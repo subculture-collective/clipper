@@ -132,6 +132,8 @@ services:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: clipper-nginx-exporter
     restart: unless-stopped
+    # NOTE: The /nginx_status endpoint must be enabled in your Nginx configuration
+    # for this exporter to work. See monitoring/README.md for instructions.
     command:
       - '-nginx.scrape-uri=http://host.docker.internal:80/nginx_status'
     ports:
