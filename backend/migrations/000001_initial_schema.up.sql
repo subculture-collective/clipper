@@ -176,7 +176,7 @@ CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to calculate hot score (Reddit-style algorithm)
--- Score = log(max(|score|, 1)) * sign(score) + (age_in_hours / 12.5)
+-- Score = log(max(|score|, 1)) * sign(score) - (age_in_hours / 12.5)
 CREATE OR REPLACE FUNCTION calculate_hot_score(score INT, created_at TIMESTAMP)
 RETURNS FLOAT AS $$
 DECLARE
