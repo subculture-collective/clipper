@@ -5,14 +5,16 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/subculture-collective/clipper/internal/services"
 )
 
 // MockClipSyncService is a mock implementation for testing
 type MockClipSyncService struct{}
 
 // SyncTrendingClips is a mock implementation that matches the interface
-func (m *MockClipSyncService) SyncTrendingClips(ctx context.Context, hours, limit int) (*SyncStats, error) {
-	return &SyncStats{
+func (m *MockClipSyncService) SyncTrendingClips(ctx context.Context, hours, limit int) (*services.SyncStats, error) {
+	return &services.SyncStats{
 		ClipsFetched: 5,
 		ClipsCreated: 5,
 		StartTime:    time.Now(),
