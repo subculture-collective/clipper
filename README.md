@@ -309,6 +309,29 @@ gh workflow run deploy-staging.yml
 gh workflow run deploy-production.yml
 ```
 
+### Deployment Scripts
+
+The repository includes several deployment automation scripts in the `scripts/` directory:
+
+```bash
+# Deploy application with automated backup and health checks
+./scripts/deploy.sh
+
+# Rollback to a previous version
+./scripts/rollback.sh [backup-tag]
+
+# Run health checks on all services
+./scripts/health-check.sh
+
+# Backup database and configuration
+./scripts/backup.sh
+
+# Set up SSL/TLS certificates (requires sudo)
+sudo ./scripts/setup-ssl.sh
+```
+
+See [RUNBOOK.md](./docs/RUNBOOK.md) for detailed operational procedures.
+
 ## 🤝 Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
@@ -322,6 +345,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Quick Start - CI/CD](./docs/QUICK-START-CI-CD.md) - Quick reference for developers
 - [CI/CD Pipeline](./docs/CI-CD.md) - Complete CI/CD documentation
 - [Deployment Guide](./docs/DEPLOYMENT.md) - Detailed deployment instructions
+- [Infrastructure Guide](./docs/INFRASTRUCTURE.md) - Production infrastructure setup
+- [Deployment Runbook](./docs/RUNBOOK.md) - Operational procedures and troubleshooting
 - [Contributing Guidelines](./CONTRIBUTING.md) - How to contribute
 
 ## 🔗 Links
