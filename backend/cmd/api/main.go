@@ -10,10 +10,26 @@ import (
 func main() {
 	r := gin.Default()
 
-	// Health check endpoint
+	// Health check endpoints
+	// Basic health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "healthy",
+		})
+	})
+
+	// Readiness check - indicates if the service is ready to serve traffic
+	r.GET("/health/ready", func(c *gin.Context) {
+		// TODO: Add checks for database, redis, and external dependencies
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ready",
+		})
+	})
+
+	// Liveness check - indicates if the application is alive
+	r.GET("/health/live", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "alive",
 		})
 	})
 
