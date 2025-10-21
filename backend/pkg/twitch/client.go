@@ -393,9 +393,13 @@ func (c *Client) GetUsers(ctx context.Context, userIDs []string, logins []string
 	// Cache user data
 	for _, user := range usersResp.Data {
 		cacheKey := fmt.Sprintf("%suser:%s", cacheKeyPrefix, user.ID)
-		userData, _ := json.Marshal(user)
+		userData, err := json.Marshal(user)
+		if err != nil {
+			log.Printf("Failed to marshal user data for user ID %s: %v", user.ID, err)
+			continue
+		}
 		if err := c.redis.Set(ctx, cacheKey, string(userData), time.Hour); err != nil {
-			log.Printf("Failed to cache user data: %v", err)
+			log.Printf("Failed to cache user data for user ID %s: %v", user.ID, err)
 		}
 	}
 
