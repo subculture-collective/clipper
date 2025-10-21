@@ -1,5 +1,10 @@
 # Clipper 🎬
 
+[![CI](https://github.com/subculture-collective/clipper/actions/workflows/ci.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/ci.yml)
+[![Docker](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml)
+[![CodeQL](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml)
+[![Lighthouse CI](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml)
+
 A modern Twitch clip curation platform that allows users to discover, organize, and share their favorite Twitch clips with the community.
 
 ## 🏗️ Architecture
@@ -216,6 +221,92 @@ docker compose logs -f
 # Reset database
 docker compose down -v
 docker compose up -d
+```
+
+## 🚢 Deployment
+
+### CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+- **CI Workflow**: Runs on every push and PR to `main` and `develop` branches
+  - Lints and formats code (backend and frontend)
+  - Runs tests with coverage reporting
+  - Builds binaries and bundles
+  - Matrix testing across Go 1.21/1.22 and Node 18/20
+
+- **Docker Workflow**: Builds and pushes Docker images
+  - Multi-stage builds for optimized image sizes
+  - Pushes to GitHub Container Registry (ghcr.io)
+  - Tags with version, branch, and commit SHA
+  - Scans images for vulnerabilities with Trivy
+
+- **Security Scanning**:
+  - CodeQL analysis for Go and TypeScript
+  - Weekly scheduled security scans
+  - Automated dependency updates via Dependabot
+
+### Docker Images
+
+Build images locally:
+```bash
+# Backend
+cd backend
+docker build -t clipper-backend .
+
+# Frontend
+cd frontend
+docker build -t clipper-frontend .
+```
+
+Pull from GitHub Container Registry:
+```bash
+docker pull ghcr.io/subculture-collective/clipper/backend:latest
+docker pull ghcr.io/subculture-collective/clipper/frontend:latest
+```
+
+### Deployment Environments
+
+#### Staging
+- Deploys automatically on push to `develop` branch
+- Environment: `staging`
+- Runs smoke tests after deployment
+
+To configure staging deployment, add these secrets to your repository:
+- `STAGING_HOST`: Hostname of staging server
+- `DEPLOY_SSH_KEY`: SSH private key for deployment
+
+#### Production
+- Deploys on push to `main` or version tags (`v*`)
+- Requires manual approval via GitHub Environments
+- Runs E2E tests before deployment
+- Automatic rollback on health check failure
+
+To configure production deployment, add these secrets:
+- `PRODUCTION_HOST`: Hostname of production server
+- `DEPLOY_SSH_KEY`: SSH private key for deployment
+
+### Required Secrets
+
+Configure the following secrets in your GitHub repository settings:
+
+| Secret | Description | Required For |
+|--------|-------------|--------------|
+| `CODECOV_TOKEN` | Codecov upload token | Coverage reporting |
+| `STAGING_HOST` | Staging server hostname | Staging deployment |
+| `PRODUCTION_HOST` | Production server hostname | Production deployment |
+| `DEPLOY_SSH_KEY` | SSH key for deployment | Both deployments |
+
+### Manual Deployment
+
+To deploy manually, use workflow dispatch:
+```bash
+# Via GitHub UI
+Actions > Deploy to Staging/Production > Run workflow
+
+# Via GitHub CLI
+gh workflow run deploy-staging.yml
+gh workflow run deploy-production.yml
 ```
 
 ## 🤝 Contributing
