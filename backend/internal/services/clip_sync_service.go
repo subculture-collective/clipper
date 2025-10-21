@@ -210,7 +210,7 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, clip
 // FetchClipByURL fetches a single clip by its Twitch URL or ID
 func (s *ClipSyncService) FetchClipByURL(ctx context.Context, clipURLOrID string) (*models.Clip, error) {
 	// Extract clip ID from URL if needed
-	clipID := extractClipID(clipURLOrID)
+	clipID := ExtractClipID(clipURLOrID)
 	if clipID == "" {
 		return nil, fmt.Errorf("invalid clip URL or ID: %s", clipURLOrID)
 	}
@@ -310,8 +310,8 @@ func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 	}
 }
 
-// extractClipID extracts the clip ID from a Twitch clip URL or returns the ID if already provided
-func extractClipID(clipURLOrID string) string {
+// ExtractClipID extracts the clip ID from a Twitch clip URL or returns the ID if already provided
+func ExtractClipID(clipURLOrID string) string {
 	// If it's already just an ID (alphanumeric), return it
 	if !strings.Contains(clipURLOrID, "/") && !strings.Contains(clipURLOrID, "twitch.tv") {
 		return clipURLOrID
