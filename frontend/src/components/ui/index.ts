@@ -22,6 +22,8 @@ export type { DividerProps } from './Divider';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
+export { Meta } from './Meta';
+
 export { Modal, ModalFooter } from './Modal';
 export type { ModalProps, ModalFooterProps } from './Modal';
 

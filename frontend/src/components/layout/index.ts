@@ -6,3 +6,7 @@ export type { GridProps } from './Grid';
 
 export { Stack } from './Stack';
 export type { StackProps } from './Stack';
+
+export { Header } from './Header';
+export { Footer } from './Footer';
+export { AppLayout } from './AppLayout';

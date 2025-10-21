@@ -14,10 +14,12 @@ import (
 	"github.com/subculture-collective/clipper/internal/handlers"
 	"github.com/subculture-collective/clipper/internal/middleware"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/scheduler"
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/pkg/twitch"
 )
 
 func main() {
@@ -70,12 +72,28 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db.Pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
+	clipRepo := repository.NewClipRepository(db.Pool)
+
+	// Initialize Twitch client
+	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize Twitch client: %v", err)
+		log.Printf("Twitch API features will be disabled. Please configure TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET")
+	}
 
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
+	var clipSyncService *services.ClipSyncService
+	if twitchClient != nil {
+		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
+	}
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg)
+	var clipSyncHandler *handlers.ClipSyncHandler
+	if clipSyncService != nil {
+		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
+	}
 
 	// Initialize router
 	r := gin.Default()
@@ -166,6 +184,35 @@ func main() {
 			// Protected auth endpoints
 			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetCurrentUser)
 		}
+
+		// Clip routes (if Twitch client is available)
+		if clipSyncHandler != nil {
+			clips := v1.Group("/clips")
+			{
+				// User clip submission with rate limiting (5 per hour)
+				clips.POST("/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), clipSyncHandler.RequestClip)
+			}
+
+			// Admin routes
+			admin := v1.Group("/admin")
+			admin.Use(middleware.AuthMiddleware(authService))
+			// TODO: Add admin role check middleware
+			{
+				sync := admin.Group("/sync")
+				{
+					sync.POST("/clips", clipSyncHandler.TriggerSync)
+					sync.GET("/status", clipSyncHandler.GetSyncStatus)
+				}
+			}
+		}
+	}
+
+	// Start background scheduler if Twitch client is available
+	var syncScheduler *scheduler.ClipSyncScheduler
+	if clipSyncService != nil {
+		// Start scheduler to run every 15 minutes
+		syncScheduler = scheduler.NewClipSyncScheduler(clipSyncService, 15)
+		go syncScheduler.Start(context.Background())
 	}
 
 	// Create HTTP server
@@ -187,6 +234,11 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	// Stop scheduler if running
+	if syncScheduler != nil {
+		syncScheduler.Stop()
+	}
 
 	// Graceful shutdown with 5 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
