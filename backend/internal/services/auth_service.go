@@ -50,11 +50,11 @@ type TwitchTokenResponse struct {
 
 // AuthService handles authentication logic
 type AuthService struct {
-	cfg             *config.Config
-	userRepo        *repository.UserRepository
+	cfg              *config.Config
+	userRepo         *repository.UserRepository
 	refreshTokenRepo *repository.RefreshTokenRepository
-	redis           *redispkg.Client
-	jwtManager      *jwtpkg.Manager
+	redis            *redispkg.Client
+	jwtManager       *jwtpkg.Manager
 }
 
 // NewAuthService creates a new auth service
@@ -66,11 +66,11 @@ func NewAuthService(
 	jwtManager *jwtpkg.Manager,
 ) *AuthService {
 	return &AuthService{
-		cfg:             cfg,
-		userRepo:        userRepo,
+		cfg:              cfg,
+		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
-		redis:           redis,
-		jwtManager:      jwtManager,
+		redis:            redis,
+		jwtManager:       jwtManager,
 	}
 }
 
