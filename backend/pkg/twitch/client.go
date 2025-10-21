@@ -437,7 +437,11 @@ func (c *Client) GetGames(ctx context.Context, gameIDs []string, names []string)
 	// Cache game data
 	for _, game := range gamesResp.Data {
 		cacheKey := fmt.Sprintf("%sgame:%s", cacheKeyPrefix, game.ID)
-		gameData, _ := json.Marshal(game)
+		gameData, err := json.Marshal(game)
+		if err != nil {
+			log.Printf("Failed to marshal game data for game ID %s: %v", game.ID, err)
+			continue
+		}
 		if err := c.redis.Set(ctx, cacheKey, string(gameData), time.Hour); err != nil {
 			log.Printf("Failed to cache game data: %v", err)
 		}
