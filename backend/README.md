@@ -199,6 +199,7 @@ The database includes the following tables:
 - **tags** - Categorization tags
 - **clip_tags** - Many-to-many clip-tag relationships
 - **reports** - Content moderation reports
+- **refresh_tokens** - JWT refresh token storage
 
 See [docs/DATABASE-SCHEMA.md](../docs/DATABASE-SCHEMA.md) for complete schema documentation including:
 - Entity relationship diagram
@@ -219,9 +220,18 @@ Go models for all database tables are defined in `internal/models/models.go`:
 
 ### Health Check
 - `GET /health` - Basic server health check
-- `GET /health/ready` - Readiness check (includes database connectivity)
+- `GET /health/ready` - Readiness check (includes database and Redis connectivity)
 - `GET /health/live` - Liveness check
 - `GET /health/stats` - Database connection pool statistics
+
+### Authentication
+- `GET /api/v1/auth/twitch` - Initiate Twitch OAuth flow
+- `GET /api/v1/auth/twitch/callback` - OAuth callback handler
+- `POST /api/v1/auth/refresh` - Refresh access token
+- `POST /api/v1/auth/logout` - Logout user
+- `GET /api/v1/auth/me` - Get current user (requires auth)
+
+See [docs/authentication.md](docs/authentication.md) for complete authentication documentation.
 
 ### API v1
 - `GET /api/v1/ping` - API ping test
@@ -270,8 +280,8 @@ See `.env.example` for all available configuration options:
 1. ✅ ~~Implement database schema and migrations~~
 2. ✅ ~~Create database connection pool~~
 3. ✅ ~~Define Go models for all tables~~
-4. Create repository layer for data access
-5. Implement authentication with Twitch OAuth
+4. ✅ ~~Create repository layer for data access~~
+5. ✅ ~~Implement authentication with Twitch OAuth~~
 6. Add business logic in services layer
 7. Create HTTP handlers for API endpoints
 8. Add comprehensive tests
@@ -285,3 +295,4 @@ See `.env.example` for all available configuration options:
 - [golang-migrate](https://github.com/golang-migrate/migrate)
 - [golang-jwt](https://github.com/golang-jwt/jwt)
 - [Database Schema Documentation](../docs/DATABASE-SCHEMA.md)
+- [Authentication Documentation](docs/authentication.md)
