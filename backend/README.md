@@ -23,11 +23,20 @@ backend/
 │   ├── repository/  # Database access layer
 │   ├── services/    # Business logic layer
 │   └── middleware/  # HTTP middleware (auth, CORS, logging)
-├── pkg/utils/       # Public utility functions
+├── pkg/             # Public packages
+│   ├── database/    # Database connection pool
+│   └── utils/       # Public utility functions
 ├── config/          # Configuration management
-├── go.mod          # Go module dependencies
-└── go.sum          # Dependency checksums
+├── migrations/      # Database migrations
+│   ├── *.up.sql     # Migration up files
+│   ├── *.down.sql   # Migration down files
+│   ├── seed.sql     # Development seed data
+│   └── README.md    # Migration documentation
+├── go.mod           # Go module dependencies
+└── go.sum           # Dependency checksums
 ```
+
+## Getting Started
 
 ## Getting Started
 
@@ -36,6 +45,7 @@ backend/
 - Go 1.24 or higher
 - PostgreSQL 17 (via Docker Compose)
 - Redis 8 (via Docker Compose)
+- golang-migrate CLI tool (for database migrations)
 
 ### Setup
 
@@ -44,19 +54,47 @@ backend/
    go mod download
    ```
 
-2. Copy environment configuration:
+2. Install golang-migrate (if not already installed):
+   ```bash
+   # macOS
+   brew install golang-migrate
+   
+   # Linux
+   curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+   sudo mv migrate /usr/local/bin/
+   
+   # Or using Go
+   go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+   ```
+
+3. Copy environment configuration:
    ```bash
    cp .env.example .env
    ```
 
-3. Edit `.env` with your configuration (database, Redis, JWT secret, Twitch API keys)
+4. Edit `.env` with your configuration (database, Redis, JWT secret, Twitch API keys)
 
-4. Start database and Redis:
+5. Start database and Redis:
    ```bash
    cd .. && docker compose up -d
    ```
 
-5. Run the server:
+6. Run database migrations:
+   ```bash
+   # From project root
+   make migrate-up
+   
+   # Or from backend directory
+   cd backend
+   migrate -path migrations -database "postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable" up
+   ```
+
+7. (Optional) Seed database with sample data:
+   ```bash
+   make migrate-seed
+   ```
+
+8. Run the server:
    ```bash
    go run cmd/api/main.go
    ```
@@ -106,11 +144,13 @@ go vet ./...
 The following dependencies will be automatically added when imported in code:
 
 ### Core Dependencies
-- `github.com/gin-gonic/gin` - HTTP web framework (already imported)
-- `github.com/jackc/pgx/v5` - PostgreSQL driver
+- `github.com/gin-gonic/gin` - HTTP web framework
+- `github.com/jackc/pgx/v5` - PostgreSQL driver with connection pooling
+- `github.com/google/uuid` - UUID generation and parsing
 - `github.com/golang-jwt/jwt/v5` - JWT authentication
 - `github.com/redis/go-redis/v9` - Redis client
 - `github.com/joho/godotenv` - Environment variable management
+- `github.com/golang-migrate/migrate/v4` - Database migrations
 
 ### Development Tools
 - `github.com/go-delve/delve` - Debugger (optional)
@@ -120,10 +160,69 @@ To add a dependency, simply import it in your code and run:
 go mod tidy
 ```
 
+## Database Management
+
+### Migrations
+
+Database migrations are located in the `migrations/` directory. See [migrations/README.md](migrations/README.md) for detailed documentation.
+
+**Common commands:**
+
+```bash
+# Run all pending migrations
+make migrate-up
+
+# Rollback the last migration
+make migrate-down
+
+# Rollback all migrations
+make migrate-down-all
+
+# Check current migration version
+make migrate-status
+
+# Create a new migration
+make migrate-create NAME=add_new_feature
+
+# Seed database with sample data (development only)
+make migrate-seed
+```
+
+### Database Schema
+
+The database includes the following tables:
+- **users** - User accounts and profiles
+- **clips** - Twitch clips with metadata
+- **votes** - User votes on clips
+- **comments** - User comments on clips
+- **comment_votes** - User votes on comments
+- **favorites** - User favorite clips
+- **tags** - Categorization tags
+- **clip_tags** - Many-to-many clip-tag relationships
+- **reports** - Content moderation reports
+
+See [docs/DATABASE-SCHEMA.md](../docs/DATABASE-SCHEMA.md) for complete schema documentation including:
+- Entity relationship diagram
+- Table structures
+- Triggers and functions
+- Views for common queries
+- Indexes and performance optimization
+
+### Database Models
+
+Go models for all database tables are defined in `internal/models/models.go`:
+- Type-safe representations of database entities
+- JSON serialization tags for API responses
+- UUID types for all primary keys
+- Proper handling of nullable fields
+
 ## API Endpoints
 
 ### Health Check
-- `GET /health` - Server health check
+- `GET /health` - Basic server health check
+- `GET /health/ready` - Readiness check (includes database connectivity)
+- `GET /health/live` - Liveness check
+- `GET /health/stats` - Database connection pool statistics
 
 ### API v1
 - `GET /api/v1/ping` - API ping test
@@ -169,17 +268,21 @@ See `.env.example` for all available configuration options:
 
 ## Next Steps
 
-1. Implement database schema and migrations
-2. Create repository layer for data access
-3. Implement authentication with Twitch OAuth
-4. Add business logic in services layer
-5. Create HTTP handlers for API endpoints
-6. Add comprehensive tests
-7. Set up CI/CD pipeline
+1. ✅ ~~Implement database schema and migrations~~
+2. ✅ ~~Create database connection pool~~
+3. ✅ ~~Define Go models for all tables~~
+4. Create repository layer for data access
+5. Implement authentication with Twitch OAuth
+6. Add business logic in services layer
+7. Create HTTP handlers for API endpoints
+8. Add comprehensive tests
+9. Add Redis caching layer
 
 ## Resources
 
 - [Go Documentation](https://go.dev/doc/)
 - [Gin Framework](https://gin-gonic.com/docs/)
 - [pgx Documentation](https://pkg.go.dev/github.com/jackc/pgx/v5)
+- [golang-migrate](https://github.com/golang-migrate/migrate)
 - [golang-jwt](https://github.com/golang-jwt/jwt)
+- [Database Schema Documentation](../docs/DATABASE-SCHEMA.md)
