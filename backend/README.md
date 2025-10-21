@@ -22,16 +22,22 @@ backend/
 │   ├── models/      # Domain models and DTOs
 │   ├── repository/  # Database access layer
 │   ├── services/    # Business logic layer
-│   └── middleware/  # HTTP middleware (auth, CORS, logging)
+│   ├── middleware/  # HTTP middleware (auth, CORS, logging)
+│   └── scheduler/   # Background job schedulers
 ├── pkg/             # Public packages
 │   ├── database/    # Database connection pool
-│   └── utils/       # Public utility functions
+│   ├── jwt/         # JWT utilities
+│   ├── redis/       # Redis client wrapper
+│   └── twitch/      # Twitch API client
 ├── config/          # Configuration management
 ├── migrations/      # Database migrations
 │   ├── *.up.sql     # Migration up files
 │   ├── *.down.sql   # Migration down files
 │   ├── seed.sql     # Development seed data
 │   └── README.md    # Migration documentation
+├── docs/            # Documentation
+│   ├── authentication.md      # Auth documentation
+│   └── TWITCH_INTEGRATION.md  # Twitch API docs
 ├── go.mod           # Go module dependencies
 └── go.sum           # Dependency checksums
 ```
@@ -233,6 +239,15 @@ Go models for all database tables are defined in `internal/models/models.go`:
 
 See [docs/authentication.md](docs/authentication.md) for complete authentication documentation.
 
+### Clips (NEW!)
+- `POST /api/v1/clips/request` - Submit a clip by URL (requires auth, rate limited: 5/hour)
+
+### Admin Endpoints (NEW!)
+- `POST /api/v1/admin/sync/clips` - Manually trigger clip sync (requires auth)
+- `GET /api/v1/admin/sync/status` - Get sync job status (requires auth)
+
+See [docs/TWITCH_INTEGRATION.md](docs/TWITCH_INTEGRATION.md) for complete Twitch API integration documentation.
+
 ### API v1
 - `GET /api/v1/ping` - API ping test
 
@@ -261,7 +276,17 @@ See `.env.example` for all available configuration options:
 ### Package Organization
 - `cmd/` - Application entry points
 - `internal/` - Private application code (cannot be imported by other projects)
+  - `handlers/` - HTTP request handlers
+  - `models/` - Domain models
+  - `repository/` - Database access layer
+  - `services/` - Business logic layer
+  - `middleware/` - HTTP middleware
+  - `scheduler/` - Background jobs
 - `pkg/` - Public libraries (can be imported by other projects)
+  - `database/` - Database connection pool
+  - `jwt/` - JWT utilities
+  - `redis/` - Redis client wrapper
+  - `twitch/` - Twitch API client
 - `config/` - Configuration management
 
 ### Error Handling
@@ -282,10 +307,12 @@ See `.env.example` for all available configuration options:
 3. ✅ ~~Define Go models for all tables~~
 4. ✅ ~~Create repository layer for data access~~
 5. ✅ ~~Implement authentication with Twitch OAuth~~
-6. Add business logic in services layer
-7. Create HTTP handlers for API endpoints
-8. Add comprehensive tests
-9. Add Redis caching layer
+6. ✅ ~~Integrate Twitch API for clip fetching~~
+7. ✅ ~~Implement clip sync service with scheduler~~
+8. Add more business logic in services layer
+9. Create HTTP handlers for remaining API endpoints
+10. Add comprehensive tests for all components
+11. Add monitoring and metrics
 
 ## Resources
 
@@ -296,3 +323,5 @@ See `.env.example` for all available configuration options:
 - [golang-jwt](https://github.com/golang-jwt/jwt)
 - [Database Schema Documentation](../docs/DATABASE-SCHEMA.md)
 - [Authentication Documentation](docs/authentication.md)
+- [Twitch API Integration Documentation](docs/TWITCH_INTEGRATION.md)
+- [Twitch API Reference](https://dev.twitch.tv/docs/api/)
