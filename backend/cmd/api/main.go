@@ -11,7 +11,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/config"
+	"github.com/subculture-collective/clipper/internal/handlers"
+	"github.com/subculture-collective/clipper/internal/middleware"
+	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/database"
+	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
 func main() {
@@ -31,8 +37,51 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize Redis client
+	redisClient, err := redispkg.NewClient(&cfg.Redis)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	defer redisClient.Close()
+
+	// Initialize JWT manager
+	var jwtManager *jwtpkg.Manager
+	if cfg.JWT.PrivateKey != "" {
+		jwtManager, err = jwtpkg.NewManager(cfg.JWT.PrivateKey)
+		if err != nil {
+			log.Fatalf("Failed to initialize JWT manager: %v", err)
+		}
+	} else {
+		// Generate new RSA key pair for development
+		log.Println("WARNING: No JWT private key provided. Generating new key pair (not for production!)")
+		privateKey, publicKey, err := jwtpkg.GenerateRSAKeyPair()
+		if err != nil {
+			log.Fatalf("Failed to generate RSA key pair: %v", err)
+		}
+		log.Printf("Generated RSA key pair. Add these to your .env file:\n")
+		log.Printf("JWT_PRIVATE_KEY:\n%s\n", privateKey)
+		log.Printf("JWT_PUBLIC_KEY:\n%s\n", publicKey)
+		jwtManager, err = jwtpkg.NewManager(privateKey)
+		if err != nil {
+			log.Fatalf("Failed to initialize JWT manager: %v", err)
+		}
+	}
+
+	// Initialize repositories
+	userRepo := repository.NewUserRepository(db.Pool)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
+
+	// Initialize services
+	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
+
+	// Initialize handlers
+	authHandler := handlers.NewAuthHandler(authService, cfg)
+
 	// Initialize router
 	r := gin.Default()
+
+	// Apply CORS middleware
+	r.Use(middleware.CORSMiddleware(cfg))
 
 	// Health check endpoints
 	// Basic health check
@@ -56,10 +105,20 @@ func main() {
 			return
 		}
 
+		// Check Redis connection
+		if err := redisClient.HealthCheck(ctx); err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": "not ready",
+				"error":  "redis unavailable",
+			})
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ready",
 			"checks": gin.H{
 				"database": "ok",
+				"redis":    "ok",
 			},
 		})
 	})
@@ -94,6 +153,19 @@ func main() {
 				"message": "pong",
 			})
 		})
+
+		// Auth routes
+		auth := v1.Group("/auth")
+		{
+			// Public auth endpoints with rate limiting
+			auth.GET("/twitch", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), authHandler.InitiateOAuth)
+			auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.HandleCallback)
+			auth.POST("/refresh", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.RefreshToken)
+			auth.POST("/logout", authHandler.Logout)
+
+			// Protected auth endpoints
+			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetCurrentUser)
+		}
 	}
 
 	// Create HTTP server
