@@ -1,4 +1,4 @@
-.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev
+.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -71,3 +71,65 @@ lint: ## Run linters
 	@echo "Linting frontend..."
 	cd frontend && npm run lint
 	@echo "✓ Linting complete"
+
+# Database Migration Commands
+DB_URL := "postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable"
+MIGRATIONS_PATH := backend/migrations
+
+migrate-up: ## Run database migrations up
+	@echo "Running database migrations..."
+	@if command -v migrate > /dev/null; then \
+		migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) up; \
+		echo "✓ Migrations completed"; \
+	else \
+		echo "Error: golang-migrate is not installed"; \
+		echo "Install it with: go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest"; \
+		exit 1; \
+	fi
+
+migrate-down: ## Rollback last database migration
+	@echo "Rolling back database migration..."
+	@if command -v migrate > /dev/null; then \
+		migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) down 1; \
+		echo "✓ Rollback completed"; \
+	else \
+		echo "Error: golang-migrate is not installed"; \
+		exit 1; \
+	fi
+
+migrate-down-all: ## Rollback all database migrations
+	@echo "Rolling back all database migrations..."
+	@if command -v migrate > /dev/null; then \
+		migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) down; \
+		echo "✓ All migrations rolled back"; \
+	else \
+		echo "Error: golang-migrate is not installed"; \
+		exit 1; \
+	fi
+
+migrate-create: ## Create a new migration (usage: make migrate-create NAME=migration_name)
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME is required. Usage: make migrate-create NAME=migration_name"; \
+		exit 1; \
+	fi
+	@if command -v migrate > /dev/null; then \
+		migrate create -ext sql -dir $(MIGRATIONS_PATH) -seq $(NAME); \
+		echo "✓ Migration files created"; \
+	else \
+		echo "Error: golang-migrate is not installed"; \
+		exit 1; \
+	fi
+
+migrate-status: ## Check current migration version
+	@echo "Checking migration status..."
+	@if command -v migrate > /dev/null; then \
+		migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) version; \
+	else \
+		echo "Error: golang-migrate is not installed"; \
+		exit 1; \
+	fi
+
+migrate-seed: ## Seed database with sample data
+	@echo "Seeding database..."
+	@PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
+	@echo "✓ Database seeded"
