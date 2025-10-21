@@ -3,20 +3,36 @@ package scheduler
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
-
-	"github.com/subculture-collective/clipper/internal/services"
 )
+
+// ClipSyncServiceInterface defines the interface required by the scheduler
+type ClipSyncServiceInterface interface {
+	SyncTrendingClips(ctx context.Context, hours, limit int) (*SyncStats, error)
+}
+
+// SyncStats contains statistics about a sync operation
+type SyncStats struct {
+	ClipsFetched int
+	ClipsCreated int
+	ClipsUpdated int
+	ClipsSkipped int
+	Errors       []string
+	StartTime    time.Time
+	EndTime      time.Time
+}
 
 // ClipSyncScheduler manages periodic clip synchronization
 type ClipSyncScheduler struct {
-	syncService *services.ClipSyncService
+	syncService ClipSyncServiceInterface
 	interval    time.Duration
 	stopChan    chan struct{}
+	stopOnce    sync.Once
 }
 
 // NewClipSyncScheduler creates a new scheduler
-func NewClipSyncScheduler(syncService *services.ClipSyncService, intervalMinutes int) *ClipSyncScheduler {
+func NewClipSyncScheduler(syncService ClipSyncServiceInterface, intervalMinutes int) *ClipSyncScheduler {
 	return &ClipSyncScheduler{
 		syncService: syncService,
 		interval:    time.Duration(intervalMinutes) * time.Minute,
@@ -48,9 +64,11 @@ func (s *ClipSyncScheduler) Start(ctx context.Context) {
 	}
 }
 
-// Stop stops the scheduler
+// Stop stops the scheduler in a thread-safe manner
 func (s *ClipSyncScheduler) Stop() {
-	close(s.stopChan)
+	s.stopOnce.Do(func() {
+		close(s.stopChan)
+	})
 }
 
 // runSync executes a sync operation
