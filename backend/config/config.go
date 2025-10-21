@@ -44,8 +44,8 @@ type RedisConfig struct {
 
 // JWTConfig holds JWT authentication configuration
 type JWTConfig struct {
-	Secret     string
-	Expiration string
+	PrivateKey string
+	PublicKey  string
 }
 
 // TwitchConfig holds Twitch API configuration
@@ -90,8 +90,8 @@ func Load() (*Config, error) {
 			DB:       redisDB,
 		},
 		JWT: JWTConfig{
-			Secret:     getEnv("JWT_SECRET", "change-me-in-production"),
-			Expiration: getEnv("JWT_EXPIRATION", "24h"),
+			PrivateKey: getEnv("JWT_PRIVATE_KEY", ""),
+			PublicKey:  getEnv("JWT_PUBLIC_KEY", ""),
 		},
 		Twitch: TwitchConfig{
 			ClientID:     getEnv("TWITCH_CLIENT_ID", ""),
