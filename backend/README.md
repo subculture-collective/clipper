@@ -38,7 +38,6 @@ backend/
 
 ## Getting Started
 
-## Getting Started
 
 ### Prerequisites
 
