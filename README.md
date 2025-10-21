@@ -317,10 +317,16 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## 📖 Documentation
+
+- [Quick Start - CI/CD](./docs/QUICK-START-CI-CD.md) - Quick reference for developers
+- [CI/CD Pipeline](./docs/CI-CD.md) - Complete CI/CD documentation
+- [Deployment Guide](./docs/DEPLOYMENT.md) - Detailed deployment instructions
+- [Contributing Guidelines](./CONTRIBUTING.md) - How to contribute
+
 ## 🔗 Links
 
 - [Issue Tracker](https://github.com/subculture-collective/clipper/issues)
-- [Documentation](./docs)
 - [Twitch API Documentation](https://dev.twitch.tv/docs/api/)
 
 ## 📧 Support
