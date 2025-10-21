@@ -13,6 +13,9 @@ jobs:
   deploy:
     name: Deploy to Staging Environment
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     environment:
       name: staging
       url: https://staging.clipper.example.com
