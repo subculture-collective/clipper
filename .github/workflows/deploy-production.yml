@@ -15,6 +15,9 @@ jobs:
   deploy:
     name: Deploy to Production Environment
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     environment:
       name: production
       url: https://clipper.example.com
