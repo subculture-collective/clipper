@@ -90,6 +90,7 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg)
+	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
@@ -162,6 +163,10 @@ func main() {
 			},
 		})
 	})
+
+	// Cache monitoring endpoints
+	r.GET("/health/cache", monitoringHandler.GetCacheStats)
+	r.GET("/health/cache/check", monitoringHandler.GetCacheHealth)
 
 	// API version 1 routes
 	v1 := r.Group("/api/v1")

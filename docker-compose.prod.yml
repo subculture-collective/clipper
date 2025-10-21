@@ -66,9 +66,10 @@ services:
       - clipper-network
 
   redis:
-    image: redis:8-alpine
+    image: redis:7-alpine
     container_name: clipper-redis
     restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     healthcheck:
