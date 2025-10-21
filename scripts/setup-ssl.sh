@@ -83,18 +83,31 @@ if [ "$SERVER_IP" != "$DOMAIN_IP" ]; then
     fi
 fi
 
+# Check if www subdomain resolves to this server
+log_info "Checking if www.$DOMAIN resolves to this server..."
+WWW_DOMAIN="www.$DOMAIN"
+WWW_DOMAIN_IP=$(dig +short "$WWW_DOMAIN" | tail -n1)
+
+CERT_DOMAINS="-d \"$DOMAIN\""
+if [ -n "$WWW_DOMAIN_IP" ] && [ "$SERVER_IP" = "$WWW_DOMAIN_IP" ]; then
+    log_info "www.$DOMAIN resolves to this server. Including in certificate request."
+    CERT_DOMAINS="$CERT_DOMAINS -d \"$WWW_DOMAIN\""
+else
+    log_warn "www.$DOMAIN does not resolve to this server. It will NOT be included in the certificate request."
+fi
+
 # Obtain certificate
 log_info "Obtaining SSL certificate from Let's Encrypt..."
 log_warn "Make sure port 80 is open and accessible from the internet"
 echo ""
 
 # Use certbot with nginx plugin
-if certbot certonly --nginx \
+# shellcheck disable=SC2086
+if eval certbot certonly --nginx \
     --non-interactive \
     --agree-tos \
     --email "$EMAIL" \
-    -d "$DOMAIN" \
-    -d "www.$DOMAIN"; then
+    $CERT_DOMAINS; then
     log_info "Certificate obtained successfully!"
 else
     log_error "Failed to obtain certificate"
