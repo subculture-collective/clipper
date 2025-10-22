@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Clip, ClipFeedFilters, ClipFeedResponse, VotePayload, FavoritePayload } from '@/types/clip';
 
 // Mock data for development - will be replaced by real API calls
@@ -85,8 +85,6 @@ export const useClipById = (clipId: string) => {
       if (!clip) throw new Error('Clip not found');
       return clip;
     },
-    initialPageParam: 1,
-    getNextPageParam: () => undefined,
   });
 };
 
