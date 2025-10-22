@@ -251,7 +251,7 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 		if idx := strings.IndexByte(line, ':'); idx != -1 {
 			key := line[:idx]
 			value := line[idx+1:]
-			stats[key] = value
+			stats[key] = strings.TrimSpace(value)
 		}
 	}
 
