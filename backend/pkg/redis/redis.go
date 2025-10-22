@@ -245,7 +245,7 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 	var line string
 	for _, r := range lines {
 		if r == '\n' || r == '\r' {
-			if line != "" && len(line) > 0 && line[0] != '#' {
+			if len(line) > 0 && line[0] != '#' {
 				// Parse key:value
 				for i := 0; i < len(line); i++ {
 					if line[i] == ':' {
