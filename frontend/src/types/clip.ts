@@ -36,8 +36,8 @@ export interface ClipFeedResponse {
   has_more: boolean;
 }
 
-export type SortOption = 'hot' | 'new' | 'top' | 'rising';
-export type TimeFrame = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
+export type SortOption = "hot" | "new" | "top" | "rising";
+export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
 
 export interface ClipFeedFilters {
   sort?: SortOption;
