@@ -6,7 +6,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
    * Badge variant
    * @default 'default'
    */
-  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'danger' | 'info';
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
   /**
    * Badge size
    * @default 'md'
@@ -30,7 +30,6 @@ const variantClasses = {
   success: 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-100',
   warning: 'bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-100',
   error: 'bg-error-100 text-error-800 dark:bg-error-900 dark:text-error-100',
-  danger: 'bg-error-100 text-error-800 dark:bg-error-900 dark:text-error-100',
   info: 'bg-info-100 text-info-800 dark:bg-info-900 dark:text-info-100',
 };
 
