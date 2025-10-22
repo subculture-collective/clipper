@@ -68,14 +68,26 @@ export function ProfilePage() {
           <CardBody>
             <Stack direction="vertical" gap={4}>
               <div className="border-b border-border">
-                <nav className="flex gap-4">
-                  <button className="px-4 py-2 border-b-2 border-primary-500 text-primary-600 font-semibold">
+                <nav className="flex gap-4" role="tablist">
+                  <button
+                    className="px-4 py-2 border-b-2 border-primary-500 text-primary-600 font-semibold"
+                    role="tab"
+                    aria-selected="true"
+                  >
                     Overview
                   </button>
-                  <button className="px-4 py-2 text-muted-foreground hover:text-foreground">
+                  <button
+                    className="px-4 py-2 text-muted-foreground hover:text-foreground"
+                    role="tab"
+                    aria-selected="false"
+                  >
                     Comments
                   </button>
-                  <button className="px-4 py-2 text-muted-foreground hover:text-foreground">
+                  <button
+                    className="px-4 py-2 text-muted-foreground hover:text-foreground"
+                    role="tab"
+                    aria-selected="false"
+                  >
                     Upvoted
                   </button>
                 </nav>
