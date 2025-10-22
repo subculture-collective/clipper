@@ -15,11 +15,13 @@ export { NotFoundPage } from './NotFoundPage';
 
 // Auth pages
 export { LoginPage } from './LoginPage';
+export { AuthCallbackPage } from './AuthCallbackPage';
 
 // Protected pages
 export { FavoritesPage } from './FavoritesPage';
 export { ProfilePage } from './ProfilePage';
 export { SubmitClipPage } from './SubmitClipPage';
+export { SettingsPage } from './SettingsPage';
 
 // Admin pages
 export { AdminDashboard } from './admin/AdminDashboard';

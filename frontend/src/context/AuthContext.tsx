@@ -1,49 +1,65 @@
-import React, { createContext, useContext, useState } from 'react';
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: 'user' | 'admin' | 'moderator';
-  avatar?: string;
-}
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
+import type { User } from '../lib/auth-api';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-  loading: boolean;
+  isLoading: boolean;
+  login: () => void;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = async (username: string, password: string) => {
-    setLoading(true);
-    // TODO: Implement actual authentication logic
-    // This is a placeholder for now
-    // Normally would send { username, password } to API
-    console.log('Login attempt for:', username, password ? '(password provided)' : '');
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock user data
-    setUser({
-      id: '1',
-      username,
-      email: `${username}@example.com`,
-      role: 'user',
-    });
-    setLoading(false);
+  // Check for existing session on mount
+  const checkAuth = useCallback(async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch {
+      // Not authenticated or session expired
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Initiate OAuth login flow
+  const login = () => {
+    initiateOAuth();
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('auth_token');
+  // Logout user
+  const logout = async () => {
+    try {
+      await logoutApi();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+    }
+  };
+
+  // Refresh user data
+  const refreshUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      setUser(null);
+    }
   };
 
   const isAuthenticated = user !== null;
@@ -55,9 +71,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAuthenticated,
         isAdmin,
+        isLoading,
         login,
         logout,
-        loading,
+        refreshUser,
       }}
     >
       {children}
@@ -74,3 +91,6 @@ export function useAuth() {
   }
   return context;
 }
+
+// Re-export User type for convenience
+export type { User };
