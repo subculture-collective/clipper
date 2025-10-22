@@ -3,6 +3,10 @@
 .env.local
 .env.*.local
 
+# Dependencies
+node_modules/
+vendor/
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -21,3 +25,10 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Build outputs
+dist/
+build/
+*.exe
+*.test
+coverage/

@@ -7,15 +7,15 @@ This guide provides step-by-step instructions for setting up the Clipper develop
 Ensure you have the following installed:
 
 - **Go**: Version 1.24 or higher
-  - Download from: https://go.dev/dl/
+  - Download from: <https://go.dev/dl/>
   - Verify: `go version`
 
 - **Node.js**: Version 20 or higher
-  - Download from: https://nodejs.org/
+  - Download from: <https://nodejs.org/>
   - Verify: `node --version`
 
 - **Docker & Docker Compose**: Latest version
-  - Download from: https://docs.docker.com/get-docker/
+  - Download from: <https://docs.docker.com/get-docker/>
   - Verify: `docker --version && docker compose version`
 
 - **Make**: Usually pre-installed on Linux/Mac
@@ -38,6 +38,7 @@ make install
 ```
 
 This will:
+
 - Install Go dependencies for the backend
 - Install npm dependencies for the frontend
 
@@ -50,10 +51,11 @@ cp backend/.env.example backend/.env
 ```
 
 Edit `backend/.env` and configure:
+
 - Database credentials
 - Redis settings
 - JWT secret (generate a secure random string)
-- Twitch API credentials (obtain from https://dev.twitch.tv/console)
+- Twitch API credentials (obtain from <https://dev.twitch.tv/console>)
 
 #### Frontend Environment
 
@@ -62,6 +64,7 @@ cp frontend/.env.example frontend/.env
 ```
 
 Edit `frontend/.env` and configure:
+
 - API base URL (defaults to `http://localhost:8080/api/v1`)
 - Twitch Client ID
 
@@ -74,6 +77,7 @@ make dev
 ```
 
 This will start:
+
 - Docker services (PostgreSQL + Redis)
 - Backend server on port 8080
 - Frontend development server on port 5173
@@ -81,26 +85,29 @@ This will start:
 #### Option B: Start Services Individually
 
 Terminal 1 - Docker Services:
+
 ```bash
 make docker-up
 ```
 
 Terminal 2 - Backend:
+
 ```bash
 make backend-dev
 ```
 
 Terminal 3 - Frontend:
+
 ```bash
 make frontend-dev
 ```
 
 ### 5. Access the Application
 
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8080
-- **Health Check**: http://localhost:8080/health
-- **API Ping**: http://localhost:8080/api/v1/ping
+- **Frontend**: <http://localhost:5173>
+- **Backend API**: <http://localhost:8080>
+- **Health Check**: <http://localhost:8080/health>
+- **API Ping**: <http://localhost:8080/api/v1/ping>
 
 ## Development Workflow
 
@@ -174,7 +181,7 @@ make docker-down
 
 ## Project Structure
 
-```
+```text
 clipper/
 ├── backend/              # Go backend
 │   ├── cmd/api/         # Main application
@@ -222,6 +229,7 @@ Use VS Code with Go extension:
 3. Run "Debug" configuration
 
 Or use Delve manually:
+
 ```bash
 go install github.com/go-delve/delve/cmd/dlv@latest
 dlv debug cmd/api/main.go
@@ -230,6 +238,7 @@ dlv debug cmd/api/main.go
 #### Frontend Debugging
 
 Use browser DevTools:
+
 - Chrome: F12 or Cmd+Option+I (Mac) / Ctrl+Shift+I (Windows)
 - Firefox: F12
 - Sources tab for breakpoints
