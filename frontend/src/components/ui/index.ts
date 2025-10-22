@@ -38,3 +38,6 @@ export type { TextAreaProps } from './TextArea';
 
 export { Toggle } from './Toggle';
 export type { ToggleProps } from './Toggle';
+
+export { Toast, ToastContainer } from './Toast';
+export type { ToastProps } from './Toast';

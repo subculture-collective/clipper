@@ -1,10 +1,11 @@
 import { useParams } from 'react-router-dom';
-import { Container, Spinner } from '../components';
-import { useClipById } from '../hooks';
+import { Container, Spinner, CommentSection } from '../components';
+import { useClipById, useUser } from '../hooks';
 
 export function ClipDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: clip, isLoading, error } = useClipById(id || '');
+  const user = useUser();
 
   if (isLoading) {
     return (
@@ -107,8 +108,11 @@ export function ClipDetailPage() {
         </div>
 
         <div className="mt-8 border-t border-border pt-8">
-          <h3 className="text-xl font-bold mb-4">Comments</h3>
-          <p className="text-muted-foreground">Comments coming soon...</p>
+          <CommentSection
+            clipId={clip.id}
+            currentUserId={user?.id}
+            isAdmin={user?.role === 'admin'}
+          />
         </div>
       </div>
     </Container>
