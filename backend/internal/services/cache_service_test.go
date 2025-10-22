@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -79,7 +80,7 @@ func sprintf(format string, a interface{}) string {
 		var result string
 		for i := 0; i < len(format); i++ {
 			if format[i] == '%' && i+1 < len(format) && format[i+1] == 'd' {
-				result += itoa(v)
+				result += strconv.Itoa(v)
 				i++ // skip 'd'
 			} else {
 				result += string(format[i])
@@ -122,7 +123,7 @@ func replaceFirst(s string, val interface{}) string {
 	var valStr string
 	switch v := val.(type) {
 	case int:
-		valStr = itoa(v)
+		valStr = strconv.Itoa(v)
 	case string:
 		valStr = v
 	}
@@ -133,30 +134,6 @@ func replaceFirst(s string, val interface{}) string {
 		}
 	}
 	return s
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	
-	negative := n < 0
-	if negative {
-		n = -n
-	}
-	
-	var result string
-	for n > 0 {
-		digit := n % 10
-		result = string(rune('0'+digit)) + result
-		n /= 10
-	}
-	
-	if negative {
-		result = "-" + result
-	}
-	
-	return result
 }
 
 // TestCacheTTLConstants verifies TTL values are reasonable
