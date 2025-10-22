@@ -115,7 +115,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           <span className="font-medium text-foreground">{comment.username}</span>
 
           {comment.user_role === 'admin' && (
-            <Badge variant="danger" size="sm">
+            <Badge variant="error" size="sm">
               Admin
             </Badge>
           )}
