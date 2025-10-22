@@ -1,24 +1,48 @@
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Clip, ClipFeedFilters, ClipFeedResponse, VotePayload, FavoritePayload } from '@/types/clip';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type {
+  Clip,
+  ClipFeedFilters,
+  ClipFeedResponse,
+  VotePayload,
+  FavoritePayload,
+} from "@/types/clip";
 
 // Mock data for development - will be replaced by real API calls
 const MOCK_CLIPS: Clip[] = Array.from({ length: 50 }, (_, i) => ({
   id: `clip-${i + 1}`,
   twitch_clip_id: `TwitchClip${i + 1}`,
   twitch_clip_url: `https://clips.twitch.tv/TwitchClip${i + 1}`,
-  embed_url: `https://clips.twitch.tv/embed?clip=TwitchClip${i + 1}&parent=localhost`,
+  embed_url: `https://clips.twitch.tv/embed?clip=TwitchClip${
+    i + 1
+  }&parent=localhost`,
   title: `Amazing Gaming Moment #${i + 1}`,
   creator_name: `Creator${i % 10}`,
   creator_id: `creator-${i % 10}`,
   broadcaster_name: `Streamer${i % 5}`,
   broadcaster_id: `streamer-${i % 5}`,
   game_id: `game-${i % 8}`,
-  game_name: ['Fortnite', 'League of Legends', 'Valorant', 'Apex Legends', 'Call of Duty', 'Minecraft', 'Just Chatting', 'GTA V'][i % 8],
-  language: 'en',
+  game_name: [
+    "Fortnite",
+    "League of Legends",
+    "Valorant",
+    "Apex Legends",
+    "Call of Duty",
+    "Minecraft",
+    "Just Chatting",
+    "GTA V",
+  ][i % 8],
+  language: "en",
   thumbnail_url: `https://picsum.photos/seed/clip${i + 1}/480/270`,
   duration: 30 + Math.random() * 60,
   view_count: Math.floor(Math.random() * 100000),
-  created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+  created_at: new Date(
+    Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000
+  ).toISOString(),
   imported_at: new Date().toISOString(),
   vote_score: Math.floor(Math.random() * 1000) - 200,
   comment_count: Math.floor(Math.random() * 100),
@@ -33,7 +57,12 @@ const MOCK_CLIPS: Clip[] = Array.from({ length: 50 }, (_, i) => ({
 const ITEMS_PER_PAGE = 10;
 
 // Fetch clips with pagination
-const fetchClips = async ({ pageParam = 1 }: { pageParam?: number; filters?: ClipFeedFilters }): Promise<ClipFeedResponse> => {
+const fetchClips = async ({
+  pageParam = 1,
+}: {
+  pageParam?: number;
+  filters?: ClipFeedFilters;
+}): Promise<ClipFeedResponse> => {
   // TODO: Replace with real API call
   // const response = await apiClient.get('/clips', {
   //   params: {
@@ -45,8 +74,8 @@ const fetchClips = async ({ pageParam = 1 }: { pageParam?: number; filters?: Cli
   // return response.data;
 
   // Mock implementation with delay to simulate network
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
   const start = (pageParam - 1) * ITEMS_PER_PAGE;
   const end = start + ITEMS_PER_PAGE;
   const clips = MOCK_CLIPS.slice(start, end);
@@ -63,7 +92,7 @@ const fetchClips = async ({ pageParam = 1 }: { pageParam?: number; filters?: Cli
 // Hook for infinite scrolling clip feed
 export const useClipFeed = (filters?: ClipFeedFilters) => {
   return useInfiniteQuery({
-    queryKey: ['clips', filters],
+    queryKey: ["clips", filters],
     queryFn: ({ pageParam = 1 }) => fetchClips({ pageParam, filters }),
     getNextPageParam: (lastPage) => {
       return lastPage.has_more ? lastPage.page + 1 : undefined;
@@ -75,14 +104,14 @@ export const useClipFeed = (filters?: ClipFeedFilters) => {
 // Hook to fetch a single clip by ID
 export const useClipById = (clipId: string) => {
   return useQuery({
-    queryKey: ['clip', clipId],
+    queryKey: ["clip", clipId],
     queryFn: async () => {
       // TODO: Replace with real API call
       // const response = await apiClient.get(`/clips/${clipId}`);
       // return response.data;
-      
-      const clip = MOCK_CLIPS.find(c => c.id === clipId);
-      if (!clip) throw new Error('Clip not found');
+
+      const clip = MOCK_CLIPS.find((c) => c.id === clipId);
+      if (!clip) throw new Error("Clip not found");
       return clip;
     },
   });
@@ -97,21 +126,21 @@ export const useClipVote = () => {
       // TODO: Replace with real API call
       // const response = await apiClient.post('/clips/vote', payload);
       // return response.data;
-      
-      await new Promise(resolve => setTimeout(resolve, 300));
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
       return payload;
     },
     onMutate: async (payload) => {
       // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['clips'] });
-      
-      const previousData = queryClient.getQueriesData({ queryKey: ['clips'] });
-      
-      queryClient.setQueriesData({ queryKey: ['clips'] }, (old: unknown) => {
+      await queryClient.cancelQueries({ queryKey: ["clips"] });
+
+      const previousData = queryClient.getQueriesData({ queryKey: ["clips"] });
+
+      queryClient.setQueriesData({ queryKey: ["clips"] }, (old: unknown) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const oldData = old as any;
         if (!oldData?.pages) return oldData;
-        
+
         return {
           ...oldData,
           pages: oldData.pages.map((page: ClipFeedResponse) => ({
@@ -120,7 +149,7 @@ export const useClipVote = () => {
               if (clip.id === payload.clip_id) {
                 const previousVote = clip.user_vote || 0;
                 const scoreDelta = payload.vote_type - previousVote;
-                
+
                 return {
                   ...clip,
                   user_vote: payload.vote_type,
@@ -132,13 +161,16 @@ export const useClipVote = () => {
           })),
         };
       });
-      
+
       return { previousData };
     },
     onError: (_error, _payload, context) => {
       // Rollback on error
       if (context?.previousData) {
-        queryClient.setQueriesData({ queryKey: ['clips'] }, context.previousData);
+        queryClient.setQueriesData(
+          { queryKey: ["clips"] },
+          context.previousData
+        );
       }
     },
   });
@@ -153,21 +185,21 @@ export const useClipFavorite = () => {
       // TODO: Replace with real API call
       // const response = await apiClient.post('/clips/favorite', payload);
       // return response.data;
-      
-      await new Promise(resolve => setTimeout(resolve, 300));
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
       return payload;
     },
     onMutate: async (payload) => {
       // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['clips'] });
-      
-      const previousData = queryClient.getQueriesData({ queryKey: ['clips'] });
-      
-      queryClient.setQueriesData({ queryKey: ['clips'] }, (old: unknown) => {
+      await queryClient.cancelQueries({ queryKey: ["clips"] });
+
+      const previousData = queryClient.getQueriesData({ queryKey: ["clips"] });
+
+      queryClient.setQueriesData({ queryKey: ["clips"] }, (old: unknown) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const oldData = old as any;
         if (!oldData?.pages) return oldData;
-        
+
         return {
           ...oldData,
           pages: oldData.pages.map((page: ClipFeedResponse) => ({
@@ -186,13 +218,16 @@ export const useClipFavorite = () => {
           })),
         };
       });
-      
+
       return { previousData };
     },
     onError: (_error, _payload, context) => {
       // Rollback on error
       if (context?.previousData) {
-        queryClient.setQueriesData({ queryKey: ['clips'] }, context.previousData);
+        queryClient.setQueriesData(
+          { queryKey: ["clips"] },
+          context.previousData
+        );
       }
     },
   });
