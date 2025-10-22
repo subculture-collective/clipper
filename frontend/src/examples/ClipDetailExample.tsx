@@ -82,6 +82,7 @@ export function ClipDetailExample({ clipId }: ClipDetailExampleProps) {
           title={clip.title}
           className="w-full h-full rounded-lg"
           allowFullScreen
+          sandbox="allow-scripts allow-same-origin"
         />
       </div>
 
