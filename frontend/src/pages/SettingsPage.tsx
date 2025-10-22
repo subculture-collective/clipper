@@ -41,8 +41,9 @@ export function SettingsPage() {
                 />
               )}
               <div>
-                <label className="block text-sm font-medium mb-2">Bio</label>
+                <label htmlFor="bio" className="block text-sm font-medium mb-2">Bio</label>
                 <textarea
+                  id="bio"
                   className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none"
                   rows={4}
                   placeholder="Tell us about yourself..."
