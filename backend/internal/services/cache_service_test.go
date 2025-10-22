@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 	"testing"
 	"time"
 
@@ -62,87 +62,16 @@ func TestCacheServiceKeyFormats(t *testing.T) {
 
 // Helper function to format keys for testing
 func formatKey(format string, args ...interface{}) string {
-	switch len(args) {
-	case 1:
-		return sprintf(format, args[0])
-	case 2:
-		return sprintf2(format, args[0], args[1])
-	case 3:
-		return sprintf3(format, args[0], args[1], args[2])
-	default:
-		return format
-	}
-}
-
-func sprintf(format string, a interface{}) string {
-	switch v := a.(type) {
-	case int:
-		var result string
-		for i := 0; i < len(format); i++ {
-			if format[i] == '%' && i+1 < len(format) && format[i+1] == 'd' {
-				result += strconv.Itoa(v)
-				i++ // skip 'd'
-			} else {
-				result += string(format[i])
-			}
-		}
-		return result
-	case string:
-		var result string
-		for i := 0; i < len(format); i++ {
-			if format[i] == '%' && i+1 < len(format) && format[i+1] == 's' {
-				result += v
-				i++ // skip 's'
-			} else {
-				result += string(format[i])
-			}
-		}
-		return result
-	}
-	return format
-}
-
-func sprintf2(format string, a, b interface{}) string {
-	result := format
-	// Replace first %s or %d
-	result = replaceFirst(result, a)
-	// Replace second %s or %d
-	result = replaceFirst(result, b)
-	return result
-}
-
-func sprintf3(format string, a, b, c interface{}) string {
-	result := format
-	result = replaceFirst(result, a)
-	result = replaceFirst(result, b)
-	result = replaceFirst(result, c)
-	return result
-}
-
-func replaceFirst(s string, val interface{}) string {
-	var valStr string
-	switch v := val.(type) {
-	case int:
-		valStr = strconv.Itoa(v)
-	case string:
-		valStr = v
-	}
-
-	for i := 0; i < len(s)-1; i++ {
-		if s[i] == '%' && (s[i+1] == 's' || s[i+1] == 'd') {
-			return s[:i] + valStr + s[i+2:]
-		}
-	}
-	return s
+	return fmt.Sprintf(format, args...)
 }
 
 // TestCacheTTLConstants verifies TTL values are reasonable
 func TestCacheTTLConstants(t *testing.T) {
 	tests := []struct {
-		name     string
-		ttl      time.Duration
-		minTTL   time.Duration
-		maxTTL   time.Duration
+		name   string
+		ttl    time.Duration
+		minTTL time.Duration
+		maxTTL time.Duration
 	}{
 		{
 			name:   "Feed hot TTL",
@@ -192,18 +121,18 @@ func TestCacheTTLConstants(t *testing.T) {
 func TestInvalidationPatterns(t *testing.T) {
 	// This test verifies the invalidation logic structure
 	// without requiring actual Redis connection
-	
+
 	clipID := uuid.New()
 	gameID := "game123"
 	creatorID := "creator456"
-	
+
 	// Test that clip invalidation would clear related caches
 	clip := &models.Clip{
 		ID:        clipID,
 		GameID:    &gameID,
 		CreatorID: &creatorID,
 	}
-	
+
 	// Verify clip has required fields for invalidation
 	if clip.GameID == nil {
 		t.Error("Clip should have game ID for testing")
@@ -211,7 +140,7 @@ func TestInvalidationPatterns(t *testing.T) {
 	if clip.CreatorID == nil {
 		t.Error("Clip should have creator ID for testing")
 	}
-	
+
 	// Verify clip ID is valid
 	if clip.ID == uuid.Nil {
 		t.Error("Clip ID should not be nil")
@@ -224,7 +153,7 @@ func TestCacheServiceCreation(t *testing.T) {
 	service := &CacheService{
 		redis: nil,
 	}
-	
+
 	if service == nil {
 		t.Error("Cache service should not be nil")
 	}
@@ -237,13 +166,13 @@ func TestSmartInvalidationLogic(t *testing.T) {
 		clipID := uuid.New()
 		gameID := "game123"
 		creatorID := "creator456"
-		
+
 		clip := &models.Clip{
 			ID:        clipID,
 			GameID:    &gameID,
 			CreatorID: &creatorID,
 		}
-		
+
 		// Verify all required fields are present
 		if clip.ID == uuid.Nil {
 			t.Error("Clip ID is required")
@@ -255,7 +184,7 @@ func TestSmartInvalidationLogic(t *testing.T) {
 			t.Error("Creator ID should be present for testing")
 		}
 	})
-	
+
 	// Test invalidation on vote
 	t.Run("Invalidate on vote", func(t *testing.T) {
 		clipID := uuid.New()
@@ -263,7 +192,7 @@ func TestSmartInvalidationLogic(t *testing.T) {
 			t.Error("Clip ID should not be nil")
 		}
 	})
-	
+
 	// Test invalidation on comment
 	t.Run("Invalidate on comment", func(t *testing.T) {
 		clipID := uuid.New()
@@ -277,10 +206,10 @@ func TestSmartInvalidationLogic(t *testing.T) {
 func TestLockOperations(t *testing.T) {
 	resource := "clip_import_123"
 	expectedKey := "lock:clip_import_123"
-	
+
 	// Format lock key
-	key := sprintf(KeyLock, resource)
-	
+	key := fmt.Sprintf(KeyLock, resource)
+
 	if key != expectedKey {
 		t.Errorf("Expected lock key %s, got %s", expectedKey, key)
 	}
@@ -290,9 +219,9 @@ func TestLockOperations(t *testing.T) {
 func TestSessionKeyFormat(t *testing.T) {
 	sessionID := "session_abc123"
 	expectedKey := "session:session_abc123"
-	
-	key := sprintf(KeySession, sessionID)
-	
+
+	key := fmt.Sprintf(KeySession, sessionID)
+
 	if key != expectedKey {
 		t.Errorf("Expected session key %s, got %s", expectedKey, key)
 	}
@@ -302,9 +231,9 @@ func TestSessionKeyFormat(t *testing.T) {
 func TestRefreshTokenKeyFormat(t *testing.T) {
 	tokenID := "token_xyz789"
 	expectedKey := "refresh_token:token_xyz789"
-	
-	key := sprintf(KeyRefreshToken, tokenID)
-	
+
+	key := fmt.Sprintf(KeyRefreshToken, tokenID)
+
 	if key != expectedKey {
 		t.Errorf("Expected token key %s, got %s", expectedKey, key)
 	}
@@ -319,7 +248,7 @@ func TestCacheConsistency(t *testing.T) {
 			t.Errorf("Feed key %s should start with 'feed:'", key)
 		}
 	}
-	
+
 	// All clip keys should start with "clip:"
 	clipKeys := []string{KeyClip, KeyClipVotes, KeyClipComments}
 	for _, key := range clipKeys {
@@ -327,7 +256,7 @@ func TestCacheConsistency(t *testing.T) {
 			t.Errorf("Clip key %s should start with 'clip:'", key)
 		}
 	}
-	
+
 	// Comment keys should start with "comment" or "comments"
 	commentKeys := []string{KeyCommentTree, KeyComment}
 	for _, key := range commentKeys {
@@ -343,22 +272,22 @@ func TestTTLRatios(t *testing.T) {
 	if TTLFeedHot >= TTLFeedTop {
 		t.Error("Hot feed TTL should be less than top feed TTL")
 	}
-	
+
 	// New feed should expire fastest
 	if TTLFeedNew >= TTLFeedHot {
 		t.Error("New feed TTL should be less than hot feed TTL")
 	}
-	
+
 	// Clip data should be cached longer than feed data
 	if TTLClip <= TTLFeedTop {
 		t.Error("Clip TTL should be greater than feed TTL")
 	}
-	
+
 	// Metadata should be cached longest
 	if TTLGame <= TTLClip {
 		t.Error("Game TTL should be greater than clip TTL")
 	}
-	
+
 	// User data should be cached longer than clips
 	if TTLUser <= TTLClipVotes {
 		t.Error("User TTL should be greater than clip votes TTL")
@@ -370,18 +299,18 @@ func TestSearchCacheKeys(t *testing.T) {
 	query := "test query"
 	filters := "game:123"
 	page := 1
-	
+
 	expectedKey := "search:test query:game:123:page:1"
-	key := sprintf3(KeySearch, query, filters, page)
-	
+	key := fmt.Sprintf(KeySearch, query, filters, page)
+
 	if key != expectedKey {
 		t.Errorf("Expected search key %s, got %s", expectedKey, key)
 	}
-	
+
 	// Test suggestions key
 	expectedSuggestKey := "search:suggestions:test query"
-	suggestKey := sprintf(KeySearchSuggest, query)
-	
+	suggestKey := fmt.Sprintf(KeySearchSuggest, query)
+
 	if suggestKey != expectedSuggestKey {
 		t.Errorf("Expected suggestion key %s, got %s", expectedSuggestKey, suggestKey)
 	}
@@ -390,16 +319,16 @@ func TestSearchCacheKeys(t *testing.T) {
 // TestInvalidationContext verifies context handling in invalidation
 func TestInvalidationContext(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Test context is not nil
 	if ctx == nil {
 		t.Error("Context should not be nil")
 	}
-	
+
 	// Test with timeout context
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if ctx == nil {
 		t.Error("Context with timeout should not be nil")
 	}
@@ -413,11 +342,11 @@ func TestCacheServiceNilSafety(t *testing.T) {
 			t.Errorf("Creating cache service with nil redis should not panic: %v", r)
 		}
 	}()
-	
+
 	service := &CacheService{
 		redis: nil,
 	}
-	
+
 	if service == nil {
 		t.Error("Cache service should not be nil")
 	}
