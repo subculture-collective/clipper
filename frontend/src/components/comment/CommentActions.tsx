@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { useDeleteComment, useReportComment, useIsAuthenticated } from '@/hooks';
+import { useDeleteComment, useReportComment, useIsAuthenticated, useToast } from '@/hooks';
 import { Modal } from '@/components/ui';
 
 interface CommentActionsProps {
@@ -29,6 +29,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
   const isAuthenticated = useIsAuthenticated();
   const { mutate: deleteComment } = useDeleteComment();
   const { mutate: reportComment } = useReportComment();
+  const toast = useToast();
 
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [showReportDialog, setShowReportDialog] = React.useState(false);
@@ -65,7 +66,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
         onSuccess: () => {
           setShowReportDialog(false);
           setReportDescription('');
-          alert('Comment reported. Thank you for helping keep our community safe.');
+          toast.success('Comment reported. Thank you for helping keep our community safe.');
         },
       }
     );
@@ -74,7 +75,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
   const handleShare = () => {
     const url = `${window.location.origin}/clips/${clipId}#comment-${commentId}`;
     navigator.clipboard.writeText(url).then(() => {
-      alert('Link copied to clipboard!');
+      toast.success('Link copied to clipboard!');
     });
   };
 

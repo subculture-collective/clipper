@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useCommentVote } from '@/hooks';
-import { useIsAuthenticated } from '@/hooks';
+import { useIsAuthenticated, useToast } from '@/hooks';
 
 interface CommentVoteButtonsProps {
   commentId: string;
@@ -19,10 +19,11 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
   const isAuthenticated = useIsAuthenticated();
   const { mutate: vote, isPending } = useCommentVote();
   const [isVoting, setIsVoting] = React.useState(false);
+  const toast = useToast();
 
   const handleVote = (voteType: 1 | -1) => {
     if (!isAuthenticated) {
-      alert('Please log in to vote');
+      toast.info('Please log in to vote');
       return;
     }
 
