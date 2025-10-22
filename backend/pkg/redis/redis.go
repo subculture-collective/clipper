@@ -84,15 +84,15 @@ func (c *Client) Delete(ctx context.Context, key string) error {
 func (c *Client) DeletePattern(ctx context.Context, pattern string) error {
 	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
 	pipe := c.client.Pipeline()
-	
+
 	for iter.Next(ctx) {
 		pipe.Del(ctx, iter.Val())
 	}
-	
+
 	if err := iter.Err(); err != nil {
 		return fmt.Errorf("failed to scan keys: %w", err)
 	}
-	
+
 	_, err := pipe.Exec(ctx)
 	return err
 }
@@ -133,22 +133,22 @@ func (c *Client) GetWithTTL(ctx context.Context, key string) (string, time.Durat
 	pipe := c.client.Pipeline()
 	getCmd := pipe.Get(ctx, key)
 	ttlCmd := pipe.TTL(ctx, key)
-	
+
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return "", 0, err
 	}
-	
+
 	value, err := getCmd.Result()
 	if err != nil {
 		return "", 0, err
 	}
-	
+
 	ttl, err := ttlCmd.Result()
 	if err != nil {
 		return "", 0, err
 	}
-	
+
 	return value, ttl, nil
 }
 
@@ -238,7 +238,7 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Parse the info string into a map
 	stats := make(map[string]string)
 	lines := []rune(info)
@@ -261,6 +261,6 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 			line += string(r)
 		}
 	}
-	
+
 	return stats, nil
 }
