@@ -244,14 +244,14 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 	stats := make(map[string]string)
 	for _, line := range strings.Split(info, "\n") {
 		line = strings.TrimSpace(line)
-		if line == "" || line[0] == '#' {
+		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
 		// Parse key:value
 		if idx := strings.IndexByte(line, ':'); idx != -1 {
 			key := line[:idx]
 			value := line[idx+1:]
-			stats[key] = value
+			stats[key] = strings.TrimSpace(value)
 		}
 	}
 
