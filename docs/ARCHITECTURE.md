@@ -6,7 +6,7 @@ Clipper is built as a modern web application with a clear separation between fro
 
 ### High-Level Architecture
 
-```
+```text
 ┌─────────────────┐
 │   Web Browser   │
 └────────┬────────┘
@@ -38,6 +38,7 @@ Clipper is built as a modern web application with a clear separation between fro
 ### Frontend (React + TypeScript)
 
 **Technology Stack:**
+
 - React 19 with hooks
 - TypeScript for type safety
 - Vite for fast development and builds
@@ -48,6 +49,7 @@ Clipper is built as a modern web application with a clear separation between fro
 - Axios for HTTP requests
 
 **Key Features:**
+
 - Component-based architecture
 - Server-side state synchronization
 - Responsive design
@@ -55,7 +57,8 @@ Clipper is built as a modern web application with a clear separation between fro
 - Real-time updates
 
 **Directory Structure:**
-```
+
+```text
 frontend/src/
 ├── components/     # Reusable UI components
 ├── pages/          # Page components
@@ -69,6 +72,7 @@ frontend/src/
 ### Backend (Go)
 
 **Technology Stack:**
+
 - Go 1.24+
 - Gin web framework
 - pgx for PostgreSQL
@@ -77,6 +81,7 @@ frontend/src/
 - godotenv for configuration
 
 **Key Features:**
+
 - RESTful API design
 - JWT-based authentication
 - Middleware for logging, CORS, auth
@@ -84,7 +89,8 @@ frontend/src/
 - Service layer for business logic
 
 **Directory Structure:**
-```
+
+```text
 backend/
 ├── cmd/api/           # Application entry point
 ├── internal/
@@ -100,12 +106,14 @@ backend/
 ### Database (PostgreSQL)
 
 **Purpose:**
+
 - Persistent storage for all application data
 - User accounts and profiles
 - Clips metadata and collections
 - Comments and reactions
 
 **Key Tables:**
+
 - `users` - User accounts and profiles
 - `clips` - Twitch clip metadata
 - `collections` - User-created clip collections
@@ -115,12 +123,14 @@ backend/
 ### Cache (Redis)
 
 **Purpose:**
+
 - Session storage
 - API response caching
 - Rate limiting
 - Real-time features (future)
 
 **Use Cases:**
+
 - Cache Twitch API responses
 - Store user sessions
 - Implement rate limiting
@@ -132,7 +142,7 @@ backend/
 
 All API endpoints are versioned and prefixed with `/api/v1`:
 
-```
+```text
 /api/v1/
   ├── /auth
   │   ├── POST /login
@@ -167,12 +177,14 @@ All API endpoints are versioned and prefixed with `/api/v1`:
 ### Request/Response Format
 
 **Request:**
-```
+
+```text
 GET /api/v1/clips?page=1&limit=20
 Authorization: Bearer <jwt_token>
 ```
 
 **Response:**
+
 ```json
 {
   "data": [...],
@@ -185,6 +197,7 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Error Response:**
+
 ```json
 {
   "error": {
@@ -207,7 +220,7 @@ Authorization: Bearer <jwt_token>
 6. Frontend displays clips with TanStack Query
 7. TanStack Query handles caching and updates
 
-### Authentication Flow
+### User Authentication Flow
 
 1. User initiates Twitch login
 2. Backend generates OAuth state token
