@@ -1,8 +1,3 @@
-/**
- * Clip-related type definitions
- * These types match the backend Clip model
- */
-
 export interface Clip {
   id: string;
   twitch_clip_id: string;
@@ -10,14 +5,14 @@ export interface Clip {
   embed_url: string;
   title: string;
   creator_name: string;
-  creator_id?: string | null;
+  creator_id?: string;
   broadcaster_name: string;
-  broadcaster_id?: string | null;
-  game_id?: string | null;
-  game_name?: string | null;
-  language?: string | null;
-  thumbnail_url?: string | null;
-  duration?: number | null;
+  broadcaster_id?: string;
+  game_id?: string;
+  game_name?: string;
+  language?: string;
+  thumbnail_url?: string;
+  duration?: number;
   view_count: number;
   created_at: string;
   imported_at: string;
@@ -27,27 +22,36 @@ export interface Clip {
   is_featured: boolean;
   is_nsfw: boolean;
   is_removed: boolean;
-  removed_reason?: string | null;
-}
-
-export interface ClipFeedFilters {
-  sort?: 'hot' | 'new' | 'top' | 'rising';
-  time?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
-  game?: string;
-  creator?: string;
+  removed_reason?: string;
+  // User interaction state (from API or local)
+  user_vote?: 1 | -1 | null;
+  user_favorited?: boolean;
 }
 
 export interface ClipFeedResponse {
   clips: Clip[];
   total: number;
   page: number;
-  per_page: number;
-  has_next: boolean;
+  limit: number;
+  has_more: boolean;
+}
+
+export type SortOption = "hot" | "new" | "top" | "rising";
+export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
+
+export interface ClipFeedFilters {
+  sort?: SortOption;
+  timeframe?: TimeFrame;
+  game_id?: string;
+  creator_id?: string;
+  tags?: string[];
+  language?: string;
+  nsfw?: boolean;
 }
 
 export interface VotePayload {
   clip_id: string;
-  vote_type: 1 | -1; // 1 for upvote, -1 for downvote
+  vote_type: 1 | -1;
 }
 
 export interface FavoritePayload {
