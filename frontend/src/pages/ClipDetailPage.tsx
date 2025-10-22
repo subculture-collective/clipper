@@ -66,13 +66,22 @@ export function ClipDetailPage() {
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <button className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors">
+          <button
+            className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            aria-label={`Upvote, ${clip.vote_score} votes`}
+          >
             Upvote ({clip.vote_score})
           </button>
-          <button className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors">
+          <button
+            className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+            aria-label={`Comment, ${clip.comment_count} comments`}
+          >
             Comment ({clip.comment_count})
           </button>
-          <button className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors">
+          <button
+            className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+            aria-label={`Favorite, ${clip.favorite_count} favorites`}
+          >
             Favorite ({clip.favorite_count})
           </button>
         </div>
