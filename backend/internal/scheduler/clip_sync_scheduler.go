@@ -5,22 +5,13 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/internal/services"
 )
 
 // ClipSyncServiceInterface defines the interface required by the scheduler
 type ClipSyncServiceInterface interface {
-	SyncTrendingClips(ctx context.Context, hours, limit int) (*SyncStats, error)
-}
-
-// SyncStats contains statistics about a sync operation
-type SyncStats struct {
-	ClipsFetched int
-	ClipsCreated int
-	ClipsUpdated int
-	ClipsSkipped int
-	Errors       []string
-	StartTime    time.Time
-	EndTime      time.Time
+	SyncTrendingClips(ctx context.Context, hours, limit int) (*services.SyncStats, error)
 }
 
 // ClipSyncScheduler manages periodic clip synchronization
