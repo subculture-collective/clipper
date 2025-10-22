@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -241,24 +242,16 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 
 	// Parse the info string into a map
 	stats := make(map[string]string)
-	lines := []rune(info)
-	var line string
-	for _, r := range lines {
-		if r == '\n' || r == '\r' {
-			if line != "" && len(line) > 0 && line[0] != '#' {
-				// Parse key:value
-				for i := 0; i < len(line); i++ {
-					if line[i] == ':' {
-						key := line[:i]
-						value := line[i+1:]
-						stats[key] = value
-						break
-					}
-				}
-			}
-			line = ""
-		} else {
-			line += string(r)
+	for _, line := range strings.Split(info, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || line[0] == '#' {
+			continue
+		}
+		// Parse key:value
+		if idx := strings.IndexByte(line, ':'); idx != -1 {
+			key := line[:idx]
+			value := line[idx+1:]
+			stats[key] = value
 		}
 	}
 
