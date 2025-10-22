@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
 import { useCreateComment, useUpdateComment } from '@/hooks';
@@ -204,7 +205,43 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         {showPreview ? (
           <div className="p-3 min-h-[120px] prose prose-sm dark:prose-invert max-w-none">
             {content ? (
-              <div dangerouslySetInnerHTML={{ __html: content }} />
+              <ReactMarkdown
+                components={{
+                  // Open external links in new tab
+                  a: ({ ...props }) => (
+                    <a
+                      {...props}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-500 hover:text-primary-600 underline"
+                    />
+                  ),
+                  // Code blocks
+                  code: ({ className, children, ...props }) => {
+                    const isInline = !className;
+                    return isInline ? (
+                      <code
+                        className="px-1 py-0.5 rounded bg-muted text-sm font-mono"
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    ) : (
+                      <code
+                        className={cn(
+                          'block p-3 rounded bg-muted text-sm font-mono overflow-x-auto',
+                          className
+                        )}
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
+                {content}
+              </ReactMarkdown>
             ) : (
               <p className="text-muted-foreground">Nothing to preview</p>
             )}
