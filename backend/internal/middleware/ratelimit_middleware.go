@@ -1,11 +1,13 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	goredis "github.com/redis/go-redis/v9"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
@@ -32,7 +34,11 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 		pipe := redis.Pipeline()
 		currentCmd := pipe.Get(ctx, currentKey)
 		previousCmd := pipe.Get(ctx, previousKey)
-		_, _ = pipe.Exec(ctx)
+		if _, err := pipe.Exec(ctx); err != nil && !errors.Is(err, goredis.Nil) {
+			// If Redis pipeline fails, allow the request (fail open)
+			c.Next()
+			return
+		}
 		
 		currentCount := int64(0)
 		if val, err := currentCmd.Result(); err == nil {
