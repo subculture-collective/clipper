@@ -22,9 +22,11 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ defaul
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage').then(m => ({ default: m.AuthCallbackPage })));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const SubmitClipPage = lazy(() => import('./pages/SubmitClipPage').then(m => ({ default: m.SubmitClipPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminClipsPage = lazy(() => import('./pages/admin/AdminClipsPage').then(m => ({ default: m.AdminClipsPage })));
 const AdminCommentsPage = lazy(() => import('./pages/admin/AdminCommentsPage').then(m => ({ default: m.AdminCommentsPage })));
@@ -73,6 +75,9 @@ function App() {
                       </GuestRoute>
                     }
                   />
+                  
+                  {/* Auth callback route */}
+                  <Route path="/auth/success" element={<AuthCallbackPage />} />
 
                   {/* Protected Routes (require authentication) */}
                   <Route
@@ -88,6 +93,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <ProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <SettingsPage />
                       </ProtectedRoute>
                     }
                   />

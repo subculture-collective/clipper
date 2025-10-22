@@ -3,9 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button, Input } from '../ui';
+import { UserMenu } from './UserMenu';
 
 export function Header() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,8 +20,9 @@ export function Header() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    setMobileMenuOpen(false);
     navigate('/');
   };
 
@@ -97,19 +99,7 @@ export function Header() {
                     Submit Clip
                   </Button>
                 </Link>
-                <Link to="/favorites">
-                  <Button variant="ghost" size="sm">
-                    Favorites
-                  </Button>
-                </Link>
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm">
-                    {user?.username || 'Profile'}
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout}>
-                  Logout
-                </Button>
+                <UserMenu />
               </div>
             ) : (
               <Link to="/login" className="hidden md:block">
@@ -183,14 +173,16 @@ export function Header() {
                     Profile
                   </Button>
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
+                <Link to="/settings" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    Settings
+                  </Button>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-error-600"
+                  onClick={handleLogout}
                 >
                   Logout
                 </Button>
