@@ -193,24 +193,18 @@ func main() {
 			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetCurrentUser)
 		}
 
-		// Clip routes (if Twitch client is available)
-		if clipSyncHandler != nil {
-			clips := v1.Group("/clips")
-			{
-				// User clip submission with rate limiting (5 per hour)
+		// Clip routes
+		clips := v1.Group("/clips")
+		{
+			// List comments for a clip (public or authenticated)
+			clips.GET("/:clipId/comments", commentHandler.ListComments)
+			
+			// Create comment (authenticated, rate limited)
+			clips.POST("/:clipId/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
+			
+			// User clip submission with rate limiting (5 per hour) - if Twitch client is available
+			if clipSyncHandler != nil {
 				clips.POST("/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), clipSyncHandler.RequestClip)
-			}
-
-			// Admin routes
-			admin := v1.Group("/admin")
-			admin.Use(middleware.AuthMiddleware(authService))
-			// TODO: Add admin role check middleware
-			{
-				sync := admin.Group("/sync")
-				{
-					sync.POST("/clips", clipSyncHandler.TriggerSync)
-					sync.GET("/status", clipSyncHandler.GetSyncStatus)
-				}
 			}
 		}
 
@@ -226,14 +220,18 @@ func main() {
 			comments.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), commentHandler.VoteOnComment)
 		}
 
-		// Clip comment routes
-		clips := v1.Group("/clips")
-		{
-			// List comments for a clip (public or authenticated)
-			clips.GET("/:clipId/comments", commentHandler.ListComments)
-			
-			// Create comment (authenticated, rate limited)
-			clips.POST("/:clipId/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
+		// Admin routes (if Twitch client is available)
+		if clipSyncHandler != nil {
+			admin := v1.Group("/admin")
+			admin.Use(middleware.AuthMiddleware(authService))
+			// TODO: Add admin role check middleware
+			{
+				sync := admin.Group("/sync")
+				{
+					sync.POST("/clips", clipSyncHandler.TriggerSync)
+					sync.GET("/status", clipSyncHandler.GetSyncStatus)
+				}
+			}
 		}
 	}
 
