@@ -74,7 +74,7 @@ export const useClipFeed = (filters?: ClipFeedFilters) => {
 
 // Hook to fetch a single clip by ID
 export const useClipById = (clipId: string) => {
-  return useInfiniteQuery({
+  return useQuery({
     queryKey: ['clip', clipId],
     queryFn: async () => {
       // TODO: Replace with real API call
