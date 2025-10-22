@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout';
 import { ProtectedRoute, AdminRoute, GuestRoute } from './components/guards';
 import { Spinner } from './components';
@@ -48,9 +49,10 @@ function App() {
     <HelmetProvider>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
+          <ToastProvider>
+            <BrowserRouter>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
                 <Route element={<AppLayout />}>
                   {/* Public Routes */}
                   <Route path="/" element={<HomePage />} />
@@ -169,6 +171,7 @@ function App() {
               </Routes>
             </Suspense>
           </BrowserRouter>
+          </ToastProvider>
         </AuthProvider>
       </ThemeProvider>
     </HelmetProvider>
