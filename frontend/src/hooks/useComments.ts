@@ -249,7 +249,7 @@ export const useCommentVote = () => {
 
       // Optimistically update comment vote
       queryClient.setQueriesData({ queryKey: ['comments'] }, (old: unknown) => {
-        if (!old) return old;
+        if (!old || typeof old !== 'object') return old;
 
         const updateComment = (comment: Comment): Comment => {
           if (comment.id === variables.comment_id) {
@@ -289,7 +289,7 @@ export const useCommentVote = () => {
         };
 
         // Handle both paginated and non-paginated data
-        if (old.pages) {
+        if ('pages' in old && Array.isArray(old.pages)) {
           return {
             ...old,
             pages: old.pages.map((page: CommentFeedResponse) => ({
@@ -297,7 +297,7 @@ export const useCommentVote = () => {
               comments: page.comments.map(updateComment),
             })),
           };
-        } else if (old.comments) {
+        } else if ('comments' in old && Array.isArray(old.comments)) {
           return {
             ...old,
             comments: old.comments.map(updateComment),
