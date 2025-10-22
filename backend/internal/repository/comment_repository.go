@@ -1,0 +1,419 @@
+package repository
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/subculture-collective/clipper/internal/models"
+)
+
+// CommentRepository handles database operations for comments
+type CommentRepository struct {
+	pool *pgxpool.Pool
+}
+
+// NewCommentRepository creates a new CommentRepository
+func NewCommentRepository(pool *pgxpool.Pool) *CommentRepository {
+	return &CommentRepository{
+		pool: pool,
+	}
+}
+
+// CommentWithAuthor represents a comment with author information
+type CommentWithAuthor struct {
+	models.Comment
+	AuthorUsername    string  `json:"author_username" db:"author_username"`
+	AuthorDisplayName string  `json:"author_display_name" db:"author_display_name"`
+	AuthorAvatarURL   *string `json:"author_avatar_url" db:"author_avatar_url"`
+	AuthorKarma       int     `json:"author_karma" db:"author_karma"`
+	AuthorRole        string  `json:"author_role" db:"author_role"`
+	ReplyCount        int     `json:"reply_count" db:"reply_count"`
+	UserVote          *int16  `json:"user_vote,omitempty" db:"user_vote"`
+}
+
+// ListByClipID retrieves comments for a clip with sorting and pagination
+func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, sortBy string, limit, offset int, userID *uuid.UUID) ([]CommentWithAuthor, error) {
+	var orderClause string
+	
+	switch sortBy {
+	case "new":
+		orderClause = "c.created_at DESC"
+	case "old":
+		orderClause = "c.created_at ASC"
+	case "controversial":
+		// Controversial: high vote count but score near zero
+		orderClause = `
+			(ABS(c.vote_score) / NULLIF(GREATEST(ABS(c.vote_score), 1), 0)) DESC,
+			ABS(c.vote_score) DESC
+		`
+	case "best":
+		fallthrough
+	default:
+		// Wilson score confidence interval for "best" sorting
+		orderClause = `
+			CASE 
+				WHEN (SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id) = 0 THEN 0
+				ELSE (
+					((SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = 1) + 1.9208) / 
+					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id) - 
+					1.96 * SQRT(((SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = 1) * 
+					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = -1)) / 
+					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id) + 0.9604) / 
+					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id)
+				) / (1 + 3.8416 / (SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id))
+			END DESC,
+			c.vote_score DESC,
+			c.created_at DESC
+		`
+	}
+
+	query := fmt.Sprintf(`
+		WITH RECURSIVE comment_tree AS (
+			-- Get top-level comments for this clip
+			SELECT 
+				c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
+				c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+				c.created_at, c.updated_at,
+				u.username AS author_username,
+				u.display_name AS author_display_name,
+				u.avatar_url AS author_avatar_url,
+				u.karma_points AS author_karma,
+				u.role AS author_role,
+				(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
+				COALESCE(cv.vote_type, NULL) AS user_vote,
+				0 AS depth
+			FROM comments c
+			INNER JOIN users u ON c.user_id = u.id
+			LEFT JOIN comment_votes cv ON c.id = cv.comment_id AND cv.user_id = $2
+			WHERE c.clip_id = $1 AND c.parent_comment_id IS NULL
+		)
+		SELECT * FROM comment_tree
+		ORDER BY %s
+		LIMIT $3 OFFSET $4
+	`, orderClause)
+
+	var args []interface{}
+	if userID != nil {
+		args = []interface{}{clipID, *userID, limit, offset}
+	} else {
+		// Use a nil UUID for non-authenticated requests
+		args = []interface{}{clipID, uuid.Nil, limit, offset}
+	}
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list comments: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []CommentWithAuthor
+	for rows.Next() {
+		var c CommentWithAuthor
+		var depth int
+		err := rows.Scan(
+			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
+			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.CreatedAt, &c.UpdatedAt,
+			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
+			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+			&depth,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan comment: %w", err)
+		}
+		comments = append(comments, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating comments: %w", err)
+	}
+
+	return comments, nil
+}
+
+// GetReplies retrieves replies to a comment
+func (r *CommentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, limit, offset int, userID *uuid.UUID) ([]CommentWithAuthor, error) {
+	query := `
+		SELECT 
+			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
+			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+			c.created_at, c.updated_at,
+			u.username AS author_username,
+			u.display_name AS author_display_name,
+			u.avatar_url AS author_avatar_url,
+			u.karma_points AS author_karma,
+			u.role AS author_role,
+			(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
+			COALESCE(cv.vote_type, NULL) AS user_vote
+		FROM comments c
+		INNER JOIN users u ON c.user_id = u.id
+		LEFT JOIN comment_votes cv ON c.id = cv.comment_id AND cv.user_id = $2
+		WHERE c.parent_comment_id = $1
+		ORDER BY c.vote_score DESC, c.created_at DESC
+		LIMIT $3 OFFSET $4
+	`
+
+	var args []interface{}
+	if userID != nil {
+		args = []interface{}{parentID, *userID, limit, offset}
+	} else {
+		args = []interface{}{parentID, uuid.Nil, limit, offset}
+	}
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get replies: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []CommentWithAuthor
+	for rows.Next() {
+		var c CommentWithAuthor
+		err := rows.Scan(
+			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
+			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.CreatedAt, &c.UpdatedAt,
+			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
+			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan reply: %w", err)
+		}
+		comments = append(comments, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating replies: %w", err)
+	}
+
+	return comments, nil
+}
+
+// GetByID retrieves a comment by ID with author info
+func (r *CommentRepository) GetByID(ctx context.Context, id uuid.UUID, userID *uuid.UUID) (*CommentWithAuthor, error) {
+	query := `
+		SELECT 
+			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
+			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+			c.created_at, c.updated_at,
+			u.username AS author_username,
+			u.display_name AS author_display_name,
+			u.avatar_url AS author_avatar_url,
+			u.karma_points AS author_karma,
+			u.role AS author_role,
+			(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
+			COALESCE(cv.vote_type, NULL) AS user_vote
+		FROM comments c
+		INNER JOIN users u ON c.user_id = u.id
+		LEFT JOIN comment_votes cv ON c.id = cv.comment_id AND cv.user_id = $2
+		WHERE c.id = $1
+	`
+
+	var c CommentWithAuthor
+	var args []interface{}
+	if userID != nil {
+		args = []interface{}{id, *userID}
+	} else {
+		args = []interface{}{id, uuid.Nil}
+	}
+
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
+		&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
+		&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+		&c.CreatedAt, &c.UpdatedAt,
+		&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
+		&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("comment not found")
+		}
+		return nil, fmt.Errorf("failed to get comment: %w", err)
+	}
+
+	return &c, nil
+}
+
+// Create inserts a new comment
+func (r *CommentRepository) Create(ctx context.Context, comment *models.Comment) error {
+	query := `
+		INSERT INTO comments (
+			id, clip_id, user_id, parent_comment_id, content,
+			vote_score, is_edited, is_removed, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+		)
+	`
+
+	_, err := r.pool.Exec(ctx, query,
+		comment.ID, comment.ClipID, comment.UserID, comment.ParentCommentID,
+		comment.Content, comment.VoteScore, comment.IsEdited, comment.IsRemoved,
+		comment.CreatedAt, comment.UpdatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create comment: %w", err)
+	}
+
+	return nil
+}
+
+// Update updates a comment's content
+func (r *CommentRepository) Update(ctx context.Context, id uuid.UUID, content string) error {
+	query := `
+		UPDATE comments
+		SET content = $2, is_edited = true
+		WHERE id = $1
+	`
+
+	result, err := r.pool.Exec(ctx, query, id, content)
+	if err != nil {
+		return fmt.Errorf("failed to update comment: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("comment not found")
+	}
+
+	return nil
+}
+
+// Delete soft-deletes a comment
+func (r *CommentRepository) Delete(ctx context.Context, id uuid.UUID, isModAction bool, reason *string) error {
+	var content string
+	if isModAction {
+		content = "[removed]"
+	} else {
+		content = "[deleted]"
+	}
+
+	query := `
+		UPDATE comments
+		SET content = $2, is_removed = true, removed_reason = $3
+		WHERE id = $1
+	`
+
+	result, err := r.pool.Exec(ctx, query, id, content, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete comment: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("comment not found")
+	}
+
+	return nil
+}
+
+// GetNestingDepth calculates the nesting depth of a comment
+func (r *CommentRepository) GetNestingDepth(ctx context.Context, parentID uuid.UUID) (int, error) {
+	query := `
+		WITH RECURSIVE parent_chain AS (
+			SELECT id, parent_comment_id, 1 AS depth
+			FROM comments
+			WHERE id = $1
+			
+			UNION ALL
+			
+			SELECT c.id, c.parent_comment_id, pc.depth + 1
+			FROM comments c
+			INNER JOIN parent_chain pc ON c.id = pc.parent_comment_id
+		)
+		SELECT COALESCE(MAX(depth), 0) FROM parent_chain
+	`
+
+	var depth int
+	err := r.pool.QueryRow(ctx, query, parentID).Scan(&depth)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get nesting depth: %w", err)
+	}
+
+	return depth, nil
+}
+
+// VoteOnComment creates or updates a vote on a comment
+func (r *CommentRepository) VoteOnComment(ctx context.Context, userID, commentID uuid.UUID, voteType int16) error {
+	query := `
+		INSERT INTO comment_votes (id, user_id, comment_id, vote_type, created_at)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (user_id, comment_id) 
+		DO UPDATE SET vote_type = EXCLUDED.vote_type
+	`
+
+	_, err := r.pool.Exec(ctx, query,
+		uuid.New(), userID, commentID, voteType, time.Now(),
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to vote on comment: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveVote removes a vote from a comment
+func (r *CommentRepository) RemoveVote(ctx context.Context, userID, commentID uuid.UUID) error {
+	query := `DELETE FROM comment_votes WHERE user_id = $1 AND comment_id = $2`
+
+	_, err := r.pool.Exec(ctx, query, userID, commentID)
+	if err != nil {
+		return fmt.Errorf("failed to remove vote: %w", err)
+	}
+
+	return nil
+}
+
+// GetUserVote gets a user's vote on a comment
+func (r *CommentRepository) GetUserVote(ctx context.Context, userID, commentID uuid.UUID) (*int16, error) {
+	query := `SELECT vote_type FROM comment_votes WHERE user_id = $1 AND comment_id = $2`
+
+	var voteType int16
+	err := r.pool.QueryRow(ctx, query, userID, commentID).Scan(&voteType)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get user vote: %w", err)
+	}
+
+	return &voteType, nil
+}
+
+// CanUserEdit checks if a user can edit a comment (within time limit)
+func (r *CommentRepository) CanUserEdit(ctx context.Context, commentID, userID uuid.UUID, editWindowMinutes int) (bool, error) {
+	query := `
+		SELECT 
+			user_id = $2 AND 
+			created_at > NOW() - INTERVAL '1 minute' * $3
+		FROM comments
+		WHERE id = $1
+	`
+
+	var canEdit bool
+	err := r.pool.QueryRow(ctx, query, commentID, userID, editWindowMinutes).Scan(&canEdit)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check edit permission: %w", err)
+	}
+
+	return canEdit, nil
+}
+
+// UpdateUserKarma updates a user's karma points
+func (r *CommentRepository) UpdateUserKarma(ctx context.Context, userID uuid.UUID, delta int) error {
+	query := `UPDATE users SET karma_points = karma_points + $2 WHERE id = $1`
+
+	_, err := r.pool.Exec(ctx, query, userID, delta)
+	if err != nil {
+		return fmt.Errorf("failed to update user karma: %w", err)
+	}
+
+	return nil
+}
