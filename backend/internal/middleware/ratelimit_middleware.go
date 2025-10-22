@@ -36,12 +36,16 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 		
 		currentCount := int64(0)
 		if val, err := currentCmd.Result(); err == nil {
-			fmt.Sscanf(val, "%d", &currentCount)
+			if n, err := fmt.Sscanf(val, "%d", &currentCount); err != nil || n != 1 {
+				fmt.Printf("Warning: failed to parse currentCount from Redis value '%s': n=%d, err=%v\n", val, n, err)
+			}
 		}
 		
 		previousCount := int64(0)
 		if val, err := previousCmd.Result(); err == nil {
-			fmt.Sscanf(val, "%d", &previousCount)
+			if n, err := fmt.Sscanf(val, "%d", &previousCount); err != nil || n != 1 {
+				fmt.Printf("Warning: failed to parse previousCount from Redis value '%s': n=%d, err=%v\n", val, n, err)
+			}
 		}
 		
 		// Calculate weighted count for sliding window
