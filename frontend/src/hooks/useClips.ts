@@ -35,7 +35,6 @@ const fetchClipsFeed = async (
   
   // TODO: Apply filters when implementing real API
   // For now, filters are not used in mock implementation
-  console.log('Filters:', filters);
   
   return {
     clips: MOCK_CLIPS,
