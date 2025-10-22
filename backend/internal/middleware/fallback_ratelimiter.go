@@ -35,16 +35,16 @@ func NewInMemoryRateLimiter(limit int, window time.Duration) *InMemoryRateLimite
 // Returns (allowed bool, remaining int)
 func (r *InMemoryRateLimiter) Allow(key string) (bool, int) {
 	now := time.Now()
-	
+
 	// Get or create request window for this key
 	val, _ := r.requests.LoadOrStore(key, &requestWindow{
 		timestamps: make([]time.Time, 0),
 	})
 	window := val.(*requestWindow)
-	
+
 	window.mu.Lock()
 	defer window.mu.Unlock()
-	
+
 	// Remove timestamps outside the current window
 	cutoff := now.Add(-r.window)
 	validTimestamps := make([]time.Time, 0, len(window.timestamps))
@@ -54,16 +54,16 @@ func (r *InMemoryRateLimiter) Allow(key string) (bool, int) {
 		}
 	}
 	window.timestamps = validTimestamps
-	
+
 	// Check if limit is exceeded
 	if len(window.timestamps) >= r.limit {
 		return false, 0
 	}
-	
+
 	// Add current timestamp
 	window.timestamps = append(window.timestamps, now)
 	remaining := r.limit - len(window.timestamps)
-	
+
 	return true, remaining
 }
 
@@ -71,15 +71,15 @@ func (r *InMemoryRateLimiter) Allow(key string) (bool, int) {
 func (r *InMemoryRateLimiter) cleanup() {
 	ticker := time.NewTicker(r.window * 2)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		now := time.Now()
 		cutoff := now.Add(-r.window * 3) // Keep entries for 3x window duration
-		
+
 		r.requests.Range(func(key, val interface{}) bool {
 			window := val.(*requestWindow)
 			window.mu.Lock()
-			
+
 			// Check if all timestamps are old
 			allOld := true
 			for _, ts := range window.timestamps {
@@ -88,7 +88,7 @@ func (r *InMemoryRateLimiter) cleanup() {
 					break
 				}
 			}
-			
+
 			// Remove entry if all timestamps are old
 			if allOld {
 				window.mu.Unlock()
@@ -96,7 +96,7 @@ func (r *InMemoryRateLimiter) cleanup() {
 			} else {
 				window.mu.Unlock()
 			}
-			
+
 			return true
 		})
 	}

@@ -142,7 +142,7 @@ func TestInMemoryRateLimiter_MultipleKeys(t *testing.T) {
 func TestInMemoryRateLimiter_Concurrency(t *testing.T) {
 	limiter := NewInMemoryRateLimiter(100, time.Second)
 	key := "test-key"
-	
+
 	var wg sync.WaitGroup
 	allowed := 0
 	blocked := 0
@@ -178,37 +178,37 @@ func TestInMemoryRateLimiter_Concurrency(t *testing.T) {
 func TestInMemoryRateLimiter_Cleanup(t *testing.T) {
 	// Create limiter with short window for faster test
 	limiter := NewInMemoryRateLimiter(5, 50*time.Millisecond)
-	
+
 	// Make requests for multiple keys
 	for i := 0; i < 10; i++ {
 		key := string(rune('a' + i))
 		limiter.Allow(key)
 	}
-	
+
 	// Verify keys exist
 	count := 0
 	limiter.requests.Range(func(_, _ interface{}) bool {
 		count++
 		return true
 	})
-	
+
 	if count != 10 {
 		t.Errorf("expected 10 keys, got %d", count)
 	}
-	
+
 	// Wait for cleanup to run (2x window = 100ms, plus some buffer)
 	time.Sleep(250 * time.Millisecond)
-	
+
 	// Keys should eventually be cleaned up (after 3x window)
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// Count remaining keys - some may still exist if within 3x window
 	count = 0
 	limiter.requests.Range(func(_, _ interface{}) bool {
 		count++
 		return true
 	})
-	
+
 	// After enough time, old entries should be cleaned
 	if count > 0 {
 		// Give it one more cleanup cycle
@@ -219,7 +219,7 @@ func TestInMemoryRateLimiter_Cleanup(t *testing.T) {
 			return true
 		})
 	}
-	
+
 	// We just verify cleanup runs without panic, exact count may vary
 	t.Logf("Remaining keys after cleanup: %d", count)
 }
