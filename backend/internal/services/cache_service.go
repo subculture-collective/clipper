@@ -25,67 +25,67 @@ func NewCacheService(redis *redispkg.Client) *CacheService {
 // Cache key builders
 const (
 	// Feed cache keys
-	KeyFeedHot       = "feed:hot:page:%d"
-	KeyFeedTop       = "feed:top:%s:page:%d"       // timeframe, page
-	KeyFeedNew       = "feed:new:page:%d"
-	KeyFeedGame      = "feed:game:%s:%s:page:%d"   // gameId, sort, page
-	KeyFeedCreator   = "feed:creator:%s:%s:page:%d" // creatorId, sort, page
-	
+	KeyFeedHot     = "feed:hot:page:%d"
+	KeyFeedTop     = "feed:top:%s:page:%d" // timeframe, page
+	KeyFeedNew     = "feed:new:page:%d"
+	KeyFeedGame    = "feed:game:%s:%s:page:%d"    // gameId, sort, page
+	KeyFeedCreator = "feed:creator:%s:%s:page:%d" // creatorId, sort, page
+
 	// Clip cache keys
-	KeyClip          = "clip:%s"                   // clipId
-	KeyClipVotes     = "clip:%s:votes"            // clipId
-	KeyClipComments  = "clip:%s:comment_count"    // clipId
-	
+	KeyClip         = "clip:%s"               // clipId
+	KeyClipVotes    = "clip:%s:votes"         // clipId
+	KeyClipComments = "clip:%s:comment_count" // clipId
+
 	// Comment cache keys
-	KeyCommentTree   = "comments:clip:%s:%s"      // clipId, sort
-	KeyComment       = "comment:%s"               // commentId
-	
+	KeyCommentTree = "comments:clip:%s:%s" // clipId, sort
+	KeyComment     = "comment:%s"          // commentId
+
 	// Metadata cache keys
-	KeyGame          = "game:%s"                  // gameId
-	KeyUser          = "user:%s"                  // userId
-	KeyTagsAll       = "tags:all"
-	
+	KeyGame    = "game:%s" // gameId
+	KeyUser    = "user:%s" // userId
+	KeyTagsAll = "tags:all"
+
 	// Search cache keys
-	KeySearch        = "search:%s:%s:page:%d"     // query, filters, page
-	KeySearchSuggest = "search:suggestions:%s"    // query
-	
+	KeySearch        = "search:%s:%s:page:%d"  // query, filters, page
+	KeySearchSuggest = "search:suggestions:%s" // query
+
 	// Session keys
-	KeySession       = "session:%s"               // sessionId
-	KeyRefreshToken  = "refresh_token:%s"         // tokenId
-	
+	KeySession      = "session:%s"       // sessionId
+	KeyRefreshToken = "refresh_token:%s" // tokenId
+
 	// Rate limit keys
-	KeyRateLimit     = "ratelimit:%s:%s"          // endpoint, identifier
-	
+	KeyRateLimit = "ratelimit:%s:%s" // endpoint, identifier
+
 	// Lock keys
-	KeyLock          = "lock:%s"                  // resource
+	KeyLock = "lock:%s" // resource
 )
 
 // Cache TTL constants
 const (
-	TTLFeedHot        = 5 * time.Minute
-	TTLFeedTop        = 15 * time.Minute
-	TTLFeedNew        = 2 * time.Minute
-	TTLFeedGame       = 10 * time.Minute
-	TTLFeedCreator    = 10 * time.Minute
-	
-	TTLClip           = 1 * time.Hour
-	TTLClipVotes      = 5 * time.Minute
-	TTLClipComments   = 10 * time.Minute
-	
-	TTLCommentTree    = 10 * time.Minute
-	TTLComment        = 15 * time.Minute
-	
-	TTLGame           = 24 * time.Hour
-	TTLUser           = 1 * time.Hour
-	TTLTags           = 1 * time.Hour
-	
-	TTLSearch         = 5 * time.Minute
-	TTLSearchSuggest  = 1 * time.Hour
-	
-	TTLSession        = 7 * 24 * time.Hour // 7 days
-	TTLRefreshToken   = 7 * 24 * time.Hour // 7 days
-	
-	TTLLock           = 30 * time.Second
+	TTLFeedHot     = 5 * time.Minute
+	TTLFeedTop     = 15 * time.Minute
+	TTLFeedNew     = 2 * time.Minute
+	TTLFeedGame    = 10 * time.Minute
+	TTLFeedCreator = 10 * time.Minute
+
+	TTLClip         = 1 * time.Hour
+	TTLClipVotes    = 5 * time.Minute
+	TTLClipComments = 10 * time.Minute
+
+	TTLCommentTree = 10 * time.Minute
+	TTLComment     = 15 * time.Minute
+
+	TTLGame = 24 * time.Hour
+	TTLUser = 1 * time.Hour
+	TTLTags = 1 * time.Hour
+
+	TTLSearch        = 5 * time.Minute
+	TTLSearchSuggest = 1 * time.Hour
+
+	TTLSession      = 7 * 24 * time.Hour // 7 days
+	TTLRefreshToken = 7 * 24 * time.Hour // 7 days
+
+	TTLLock = 30 * time.Second
 )
 
 // Feed Caching
@@ -469,26 +469,26 @@ func (s *CacheService) InvalidateOnNewClip(ctx context.Context, clip *models.Cli
 	if err := s.InvalidateFeedHot(ctx); err != nil {
 		return err
 	}
-	
+
 	// Clear new feed
 	if err := s.InvalidateFeedNew(ctx); err != nil {
 		return err
 	}
-	
+
 	// Clear game feed if game ID is present
 	if clip.GameID != nil && *clip.GameID != "" {
 		if err := s.InvalidateFeedGame(ctx, *clip.GameID); err != nil {
 			return err
 		}
 	}
-	
+
 	// Clear creator feed if creator ID is present
 	if clip.CreatorID != nil && *clip.CreatorID != "" {
 		if err := s.InvalidateFeedCreator(ctx, *clip.CreatorID); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -498,18 +498,18 @@ func (s *CacheService) InvalidateOnVote(ctx context.Context, clipID uuid.UUID) e
 	if err := s.InvalidateFeedHot(ctx); err != nil {
 		return err
 	}
-	
+
 	// Clear top feed
 	if err := s.InvalidateFeedTop(ctx); err != nil {
 		return err
 	}
-	
+
 	// Clear clip votes cache
 	key := fmt.Sprintf(KeyClipVotes, clipID.String())
 	if err := s.redis.Delete(ctx, key); err != nil {
 		return err
 	}
-	
+
 	// Invalidate the clip itself
 	return s.InvalidateClip(ctx, clipID)
 }
@@ -520,7 +520,7 @@ func (s *CacheService) InvalidateOnComment(ctx context.Context, clipID uuid.UUID
 	if err := s.InvalidateCommentTree(ctx, clipID); err != nil {
 		return err
 	}
-	
+
 	// Clear comment count
 	key := fmt.Sprintf(KeyClipComments, clipID.String())
 	return s.redis.Delete(ctx, key)
