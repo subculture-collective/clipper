@@ -6,7 +6,7 @@ import { Button, Input } from '../ui';
 import { UserMenu } from './UserMenu';
 
 export function Header() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +18,12 @@ export function Header() {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileMenuOpen(false);
+    navigate('/');
   };
 
   return (
@@ -172,6 +178,14 @@ export function Header() {
                     Settings
                   </Button>
                 </Link>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-error-600"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
               </div>
             ) : (
               <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
