@@ -14,7 +14,7 @@ import (
 
 var (
 	// Global fallback rate limiters (one per middleware instance)
-	ipFallbackLimiter  *InMemoryRateLimiter
+	ipFallbackLimiter   *InMemoryRateLimiter
 	userFallbackLimiter *InMemoryRateLimiter
 )
 
@@ -49,19 +49,19 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 			// If Redis pipeline fails, use in-memory fallback rate limiter
 			log.Printf("Redis pipeline failed for rate limiting, using in-memory fallback: %v", err)
 			allowed, remaining := ipFallbackLimiter.Allow(key)
-			
+
 			if !allowed {
 				c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", requests))
 				c.Header("X-RateLimit-Remaining", "0")
 				c.Header("X-RateLimit-Fallback", "true")
-				
+
 				c.JSON(http.StatusTooManyRequests, gin.H{
 					"error": "Rate limit exceeded. Please try again later.",
 				})
 				c.Abort()
 				return
 			}
-			
+
 			// Add rate limit headers for fallback
 			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", requests))
 			c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
@@ -69,7 +69,7 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 			c.Next()
 			return
 		}
-		
+
 		currentCount := int64(0)
 		if val, err := currentCmd.Result(); err == nil {
 			if n, err := fmt.Sscanf(val, "%d", &currentCount); err != nil || n != 1 {
@@ -113,19 +113,19 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 			// If Redis fails, use in-memory fallback rate limiter
 			log.Printf("Redis increment failed for rate limiting, using in-memory fallback: %v", err)
 			allowed, remaining := ipFallbackLimiter.Allow(key)
-			
+
 			if !allowed {
 				c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", requests))
 				c.Header("X-RateLimit-Remaining", "0")
 				c.Header("X-RateLimit-Fallback", "true")
-				
+
 				c.JSON(http.StatusTooManyRequests, gin.H{
 					"error": "Rate limit exceeded. Please try again later.",
 				})
 				c.Abort()
 				return
 			}
-			
+
 			// Add rate limit headers for fallback
 			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", requests))
 			c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
@@ -178,19 +178,19 @@ func RateLimitByUserMiddleware(redis *redispkg.Client, requests int, window time
 			// If Redis fails, use in-memory fallback rate limiter
 			log.Printf("Redis increment failed for user rate limiting, using in-memory fallback: %v", err)
 			allowed, remaining := userFallbackLimiter.Allow(key)
-			
+
 			if !allowed {
 				c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", requests))
 				c.Header("X-RateLimit-Remaining", "0")
 				c.Header("X-RateLimit-Fallback", "true")
-				
+
 				c.JSON(http.StatusTooManyRequests, gin.H{
 					"error": "Rate limit exceeded. Please try again later.",
 				})
 				c.Abort()
 				return
 			}
-			
+
 			// Add rate limit headers for fallback
 			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", requests))
 			c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
