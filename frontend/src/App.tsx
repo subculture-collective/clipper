@@ -27,6 +27,7 @@ const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage').then(m =>
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const SubmitClipPage = lazy(() => import('./pages/SubmitClipPage').then(m => ({ default: m.SubmitClipPage })));
+const UserSubmissionsPage = lazy(() => import('./pages/UserSubmissionsPage').then(m => ({ default: m.UserSubmissionsPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminClipsPage = lazy(() => import('./pages/admin/AdminClipsPage').then(m => ({ default: m.AdminClipsPage })));
@@ -34,6 +35,7 @@ const AdminCommentsPage = lazy(() => import('./pages/admin/AdminCommentsPage').t
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
+const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -114,6 +116,14 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/submissions"
+                    element={
+                      <ProtectedRoute>
+                        <UserSubmissionsPage />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Admin Routes (require admin role) */}
                   <Route
@@ -161,6 +171,14 @@ function App() {
                     element={
                       <AdminRoute>
                         <AdminSyncPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/submissions"
+                    element={
+                      <AdminRoute>
+                        <ModerationQueuePage />
                       </AdminRoute>
                     }
                   />
