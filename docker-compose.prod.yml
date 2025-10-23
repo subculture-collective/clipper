@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 # Production docker-compose configuration
 # Copy this file to your server as docker-compose.yml
@@ -11,8 +11,15 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-clipper}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB:-clipper_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
       - PORT=8080
     depends_on:
       postgres:
@@ -51,9 +58,11 @@ services:
     container_name: clipper-postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-clipper}
+      - POSTGRES_DB=${POSTGRES_DB:-clipper_db}
       - POSTGRES_USER=${POSTGRES_USER:-clipper}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5436:5432" # Expose Postgres externally on 5436; internal port remains 5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
