@@ -2,7 +2,7 @@
 # This is an optional monitoring setup using Prometheus, Grafana, and exporters
 # Usage: docker-compose -f docker-compose.monitoring.yml up -d
 
-version: '3.8'
+version: "3.8"
 
 services:
   # Prometheus - Metrics collection
@@ -11,12 +11,12 @@ services:
     container_name: clipper-prometheus
     restart: unless-stopped
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
@@ -54,8 +54,8 @@ services:
     container_name: clipper-alertmanager
     restart: unless-stopped
     command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
       - alertmanager_data:/alertmanager
@@ -70,10 +70,10 @@ services:
     container_name: clipper-node-exporter
     restart: unless-stopped
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/host'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -106,7 +106,7 @@ services:
     container_name: clipper-postgres-exporter
     restart: unless-stopped
     environment:
-      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-clipper}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipper}?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-clipper}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipper_db}?sslmode=disable
     ports:
       - "9187:9187"
     networks:
@@ -135,7 +135,7 @@ services:
     # NOTE: The /nginx_status endpoint must be enabled in your Nginx configuration
     # for this exporter to work. See monitoring/README.md for instructions.
     command:
-      - '-nginx.scrape-uri=http://host.docker.internal:80/nginx_status'
+      - "-nginx.scrape-uri=http://host.docker.internal:80/nginx_status"
     ports:
       - "9113:9113"
     extra_hosts:

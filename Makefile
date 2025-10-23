@@ -73,7 +73,7 @@ lint: ## Run linters
 	@echo "✓ Linting complete"
 
 # Database Migration Commands
-DB_URL := "postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable"
+DB_URL := "postgresql://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable"
 MIGRATIONS_PATH := backend/migrations
 
 migrate-up: ## Run database migrations up
