@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/utils"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 )
 
@@ -52,7 +53,7 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 		GameID:    gameID,
 		StartedAt: startTime,
 		EndedAt:   endTime,
-		First:     min(limit, 100), // Twitch API max is 100
+		First:     utils.Min(limit, 100), // Twitch API max is 100
 	}
 
 	log.Printf("Syncing clips for game %s from %v to %v", gameID, startTime, endTime)
@@ -113,7 +114,7 @@ func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcaste
 		BroadcasterID: broadcasterID,
 		StartedAt:     startTime,
 		EndedAt:       endTime,
-		First:         min(limit, 100),
+		First:         utils.Min(limit, 100),
 	}
 
 	log.Printf("Syncing clips for broadcaster %s from %v to %v", broadcasterID, startTime, endTime)
@@ -289,14 +290,14 @@ func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 		EmbedURL:        twitchClip.EmbedURL,
 		Title:           twitchClip.Title,
 		CreatorName:     twitchClip.CreatorName,
-		CreatorID:       stringPtr(twitchClip.CreatorID),
+		CreatorID:       utils.StringPtr(twitchClip.CreatorID),
 		BroadcasterName: twitchClip.BroadcasterName,
-		BroadcasterID:   stringPtr(twitchClip.BroadcasterID),
-		GameID:          stringPtr(twitchClip.GameID),
+		BroadcasterID:   utils.StringPtr(twitchClip.BroadcasterID),
+		GameID:          utils.StringPtr(twitchClip.GameID),
 		GameName:        nil, // Will be enriched separately if needed
-		Language:        stringPtr(twitchClip.Language),
-		ThumbnailURL:    stringPtr(twitchClip.ThumbnailURL),
-		Duration:        float64Ptr(twitchClip.Duration),
+		Language:        utils.StringPtr(twitchClip.Language),
+		ThumbnailURL:    utils.StringPtr(twitchClip.ThumbnailURL),
+		Duration:        utils.Float64Ptr(twitchClip.Duration),
 		ViewCount:       twitchClip.ViewCount,
 		CreatedAt:       twitchClip.CreatedAt,
 		ImportedAt:      time.Now(),
@@ -332,26 +333,4 @@ func ExtractClipID(clipURLOrID string) string {
 	}
 
 	return ""
-}
-
-// Helper functions
-func stringPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
-
-func float64Ptr(f float64) *float64 {
-	if f == 0 {
-		return nil
-	}
-	return &f
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
