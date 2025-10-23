@@ -319,7 +319,11 @@ CREATE TRIGGER update_tag_usage AFTER INSERT OR DELETE ON clip_tags
 -- View for hot clips feed
 CREATE VIEW hot_clips AS
 SELECT 
-    c.*,
+    c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+    c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+    c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+    c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+    c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason,
     calculate_hot_score(c.vote_score, c.created_at) as hot_score
 FROM clips c
 WHERE c.is_removed = false
@@ -328,7 +332,11 @@ ORDER BY hot_score DESC;
 -- View for top clips (by vote score)
 CREATE VIEW top_clips AS
 SELECT 
-    c.*
+    c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+    c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+    c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+    c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+    c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason
 FROM clips c
 WHERE c.is_removed = false
 ORDER BY c.vote_score DESC, c.created_at DESC;
@@ -336,7 +344,11 @@ ORDER BY c.vote_score DESC, c.created_at DESC;
 -- View for new clips (most recent)
 CREATE VIEW new_clips AS
 SELECT 
-    c.*
+    c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+    c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+    c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+    c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+    c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason
 FROM clips c
 WHERE c.is_removed = false
 ORDER BY c.created_at DESC;
@@ -344,7 +356,11 @@ ORDER BY c.created_at DESC;
 -- View for trending clips (recent + popular)
 CREATE VIEW trending_clips AS
 SELECT 
-    c.*,
+    c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+    c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+    c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+    c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+    c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason,
     calculate_hot_score(c.vote_score, c.created_at) as hot_score
 FROM clips c
 WHERE 
