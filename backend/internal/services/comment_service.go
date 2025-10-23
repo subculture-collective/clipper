@@ -36,9 +36,9 @@ const (
 
 // CommentService handles comment business logic
 type CommentService struct {
-	repo     *repository.CommentRepository
-	clipRepo *repository.ClipRepository
-	markdown goldmark.Markdown
+	repo      *repository.CommentRepository
+	clipRepo  *repository.ClipRepository
+	markdown  goldmark.Markdown
 	sanitizer *bluemonday.Policy
 }
 
@@ -62,8 +62,8 @@ func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.
 
 	// Configure HTML sanitizer - allow safe markdown subset
 	sanitizer := bluemonday.UGCPolicy()
-	sanitizer.AllowElements("p", "br", "strong", "em", "del", "code", "pre", "blockquote", 
-		"ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "h5", "h6", "table", "thead", 
+	sanitizer.AllowElements("p", "br", "strong", "em", "del", "code", "pre", "blockquote",
+		"ul", "ol", "li", "a", "h1", "h2", "h3", "h4", "h5", "h6", "table", "thead",
 		"tbody", "tr", "th", "td")
 	sanitizer.AllowAttrs("href").OnElements("a")
 	sanitizer.AllowAttrs("class").OnElements("code")
@@ -82,8 +82,8 @@ func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.
 // CommentTreeNode represents a comment with nested replies
 type CommentTreeNode struct {
 	repository.CommentWithAuthor
-	RenderedContent string             `json:"rendered_content"`
-	Replies         []CommentTreeNode  `json:"replies,omitempty"`
+	RenderedContent string            `json:"rendered_content"`
+	Replies         []CommentTreeNode `json:"replies,omitempty"`
 }
 
 // CreateCommentRequest represents a request to create a comment
@@ -297,7 +297,7 @@ func (s *CommentService) VoteOnComment(ctx context.Context, commentID, userID uu
 			karmaDelta = -KarmaPerDownvote
 		}
 	}
-	
+
 	if voteType == 1 {
 		karmaDelta += KarmaPerUpvote
 	} else {
