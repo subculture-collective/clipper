@@ -74,6 +74,8 @@ func main() {
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
 	clipRepo := repository.NewClipRepository(db.Pool)
 	commentRepo := repository.NewCommentRepository(db.Pool)
+	voteRepo := repository.NewVoteRepository(db.Pool)
+	favoriteRepo := repository.NewFavoriteRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -85,6 +87,7 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
 	commentService := services.NewCommentService(commentRepo, clipRepo)
+	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
 	var clipSyncService *services.ClipSyncService
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
@@ -94,6 +97,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
 	commentHandler := handlers.NewCommentHandler(commentService)
+	clipHandler := handlers.NewClipHandler(clipService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
@@ -196,16 +200,30 @@ func main() {
 		// Clip routes
 		clips := v1.Group("/clips")
 		{
+			// Public clip endpoints
+			clips.GET("", clipHandler.ListClips)
+			clips.GET("/:id", clipHandler.GetClip)
+			clips.GET("/:id/related", clipHandler.GetRelatedClips)
+
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:clipId/comments", commentHandler.ListComments)
 
 			// Create comment (authenticated, rate limited)
 			clips.POST("/:clipId/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
 
+			// Protected clip endpoints (require authentication)
+			clips.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), clipHandler.VoteOnClip)
+			clips.POST("/:id/favorite", middleware.AuthMiddleware(authService), clipHandler.AddFavorite)
+			clips.DELETE("/:id/favorite", middleware.AuthMiddleware(authService), clipHandler.RemoveFavorite)
+
 			// User clip submission with rate limiting (5 per hour) - if Twitch client is available
 			if clipSyncHandler != nil {
 				clips.POST("/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), clipSyncHandler.RequestClip)
 			}
+
+			// Admin clip endpoints
+			clips.PUT("/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), clipHandler.UpdateClip)
+			clips.DELETE("/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), clipHandler.DeleteClip)
 		}
 
 		// Comment routes
@@ -224,7 +242,7 @@ func main() {
 		if clipSyncHandler != nil {
 			admin := v1.Group("/admin")
 			admin.Use(middleware.AuthMiddleware(authService))
-			// TODO: Add admin role check middleware
+			admin.Use(middleware.RequireRole("admin"))
 			{
 				sync := admin.Group("/sync")
 				{
