@@ -261,3 +261,285 @@ func (r *ClipRepository) GetLastSyncTime(ctx context.Context) (*time.Time, error
 
 	return lastSync, nil
 }
+
+// ClipFilters represents filters for listing clips
+type ClipFilters struct {
+	GameID        *string
+	BroadcasterID *string
+	Tag           *string
+	Search        *string
+	Timeframe     *string // hour, day, week, month, year, all
+	Sort          string  // hot, new, top, rising
+}
+
+// ListWithFilters retrieves clips with filters, sorting, and pagination
+func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilters, limit, offset int) ([]models.Clip, int, error) {
+	// Build WHERE clause
+	whereClauses := []string{"c.is_removed = false"}
+	args := []interface{}{}
+	argIndex := 1
+
+	if filters.GameID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.game_id = $%d", argIndex))
+		args = append(args, *filters.GameID)
+		argIndex++
+	}
+
+	if filters.BroadcasterID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.broadcaster_id = $%d", argIndex))
+		args = append(args, *filters.BroadcasterID)
+		argIndex++
+	}
+
+	if filters.Tag != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = $%d
+		)`, argIndex))
+		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	if filters.Search != nil && *filters.Search != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.title ILIKE $%d", argIndex))
+		args = append(args, "%"+*filters.Search+"%")
+		argIndex++
+	}
+
+	// Add timeframe filter for top sort
+	if filters.Sort == "top" && filters.Timeframe != nil {
+		switch *filters.Timeframe {
+		case "hour":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
+		case "day":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
+		case "week":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
+		case "month":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
+		case "year":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+		}
+	}
+
+	// Add timeframe for rising (recent clips only)
+	if filters.Sort == "rising" {
+		whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
+	}
+
+	whereClause := "WHERE " + whereClauses[0]
+	for i := 1; i < len(whereClauses); i++ {
+		whereClause += " AND " + whereClauses[i]
+	}
+
+	// Build ORDER BY clause
+	var orderBy string
+	switch filters.Sort {
+	case "hot":
+		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC"
+	case "new":
+		orderBy = "ORDER BY c.created_at DESC"
+	case "top":
+		orderBy = "ORDER BY c.vote_score DESC, c.created_at DESC"
+	case "rising":
+		// Rising: recent clips with high velocity (view_count + vote_score combined with recency)
+		orderBy = "ORDER BY (c.vote_score + (c.view_count / 100)) * (1 + 1.0 / (EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600.0 + 2)) DESC"
+	default:
+		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC"
+	}
+
+	// Count query
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM clips c %s", whereClause)
+	var total int
+	err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count clips: %w", err)
+	}
+
+	// Main query
+	args = append(args, limit, offset)
+	query := fmt.Sprintf(`
+		SELECT 
+			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason
+		FROM clips c
+		%s
+		%s
+		LIMIT $%d OFFSET $%d
+	`, whereClause, orderBy, argIndex, argIndex+1)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating clips: %w", err)
+	}
+
+	return clips, total, nil
+}
+
+// IncrementViewCount atomically increments the view count for a clip
+func (r *ClipRepository) IncrementViewCount(ctx context.Context, clipID uuid.UUID) error {
+	query := `
+		UPDATE clips
+		SET view_count = view_count + 1
+		WHERE id = $1
+	`
+
+	_, err := r.pool.Exec(ctx, query, clipID)
+	if err != nil {
+		return fmt.Errorf("failed to increment view count: %w", err)
+	}
+
+	return nil
+}
+
+// Update updates a clip (for admin operations)
+func (r *ClipRepository) Update(ctx context.Context, clipID uuid.UUID, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil
+	}
+
+	// Build dynamic update query
+	setClauses := []string{}
+	args := []interface{}{}
+	argIndex := 1
+
+	for field, value := range updates {
+		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argIndex))
+		args = append(args, value)
+		argIndex++
+	}
+
+	args = append(args, clipID)
+	query := fmt.Sprintf(
+		"UPDATE clips SET %s WHERE id = $%d",
+		setClauses[0],
+		argIndex,
+	)
+	
+	for i := 1; i < len(setClauses); i++ {
+		query = fmt.Sprintf("UPDATE clips SET %s, %s WHERE id = $%d", setClauses[0], setClauses[i], argIndex)
+	}
+
+	if len(setClauses) > 1 {
+		setClause := setClauses[0]
+		for i := 1; i < len(setClauses); i++ {
+			setClause += ", " + setClauses[i]
+		}
+		query = fmt.Sprintf("UPDATE clips SET %s WHERE id = $%d", setClause, argIndex)
+	}
+
+	_, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to update clip: %w", err)
+	}
+
+	return nil
+}
+
+// SoftDelete marks a clip as removed
+func (r *ClipRepository) SoftDelete(ctx context.Context, clipID uuid.UUID, reason string) error {
+	query := `
+		UPDATE clips
+		SET is_removed = true, removed_reason = $2
+		WHERE id = $1
+	`
+
+	_, err := r.pool.Exec(ctx, query, clipID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to soft delete clip: %w", err)
+	}
+
+	return nil
+}
+
+// GetRelated finds related clips based on game, broadcaster, and tags
+func (r *ClipRepository) GetRelated(ctx context.Context, clipID uuid.UUID, limit int) ([]models.Clip, error) {
+	query := `
+		WITH current_clip AS (
+			SELECT game_id, broadcaster_id
+			FROM clips
+			WHERE id = $1
+		),
+		current_tags AS (
+			SELECT tag_id
+			FROM clip_tags
+			WHERE clip_id = $1
+		)
+		SELECT 
+			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason,
+			(
+				CASE WHEN c.game_id = (SELECT game_id FROM current_clip) THEN 3 ELSE 0 END +
+				CASE WHEN c.broadcaster_id = (SELECT broadcaster_id FROM current_clip) THEN 2 ELSE 0 END +
+				COALESCE((
+					SELECT COUNT(*)
+					FROM clip_tags ct
+					WHERE ct.clip_id = c.id AND ct.tag_id IN (SELECT tag_id FROM current_tags)
+				), 0)
+			) as relevance_score
+		FROM clips c
+		WHERE c.id != $1 AND c.is_removed = false
+		ORDER BY relevance_score DESC, c.vote_score DESC
+		LIMIT $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, clipID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get related clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		var relevanceScore int
+		err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&relevanceScore,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan related clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating related clips: %w", err)
+	}
+
+	return clips, nil
+}
