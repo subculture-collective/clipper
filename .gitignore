@@ -31,4 +31,17 @@ dist/
 build/
 *.exe
 *.test
+
+# Test coverage
 coverage/
+coverage.out
+coverage.html
+*.coverprofile
+
+# Test artifacts
+playwright-report/
+test-results/
+.playwright/
+
+# k6 test results
+summary.json
