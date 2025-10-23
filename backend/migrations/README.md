@@ -97,7 +97,7 @@ Popular clips from the last 7 days ranked by hot score
 make migrate-up
 
 # Or directly
-migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable" up
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable" up
 ```
 
 ### Run Migrations Down
@@ -107,7 +107,7 @@ migrate -path backend/migrations -database "postgresql://clipper:clipper_passwor
 make migrate-down
 
 # Or directly
-migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable" down
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable" down
 ```
 
 ### Create New Migration
@@ -123,13 +123,13 @@ migrate create -ext sql -dir backend/migrations -seq your_migration_name
 ### Check Migration Version
 
 ```bash
-migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable" version
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable" version
 ```
 
 ### Force Migration Version (use with caution)
 
 ```bash
-migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable" force VERSION
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable" force VERSION
 ```
 
 ## Seed Data
@@ -159,7 +159,7 @@ postgresql://[user]:[password]@[host]:[port]/[database]?sslmode=[mode]
 
 Default values (from `.env.example`):
 - Host: `localhost`
-- Port: `5432`
+- Port: `5436`
 - User: `clipper`
 - Password: `clipper_password`
 - Database: `clipper_db`
