@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/subculture-collective/clipper/internal/utils"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 )
 
@@ -137,7 +138,7 @@ func TestStringPtr(t *testing.T) {
 		{
 			name:     "Non-empty string",
 			input:    "test",
-			expected: stringPtr("test"),
+			expected: utils.StringPtr("test"),
 		},
 		{
 			name:     "Empty string",
@@ -148,7 +149,7 @@ func TestStringPtr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := stringPtr(tt.input)
+			result := utils.StringPtr(tt.input)
 			if tt.expected == nil {
 				if result != nil {
 					t.Errorf("Expected nil, got %v", result)
@@ -171,7 +172,7 @@ func TestFloat64Ptr(t *testing.T) {
 		{
 			name:     "Non-zero value",
 			input:    30.5,
-			expected: float64Ptr(30.5),
+			expected: utils.Float64Ptr(30.5),
 		},
 		{
 			name:     "Zero value",
@@ -182,7 +183,7 @@ func TestFloat64Ptr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := float64Ptr(tt.input)
+			result := utils.Float64Ptr(tt.input)
 			if tt.expected == nil {
 				if result != nil {
 					t.Errorf("Expected nil, got %v", result)
@@ -225,9 +226,9 @@ func TestMin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := min(tt.a, tt.b)
+			result := utils.Min(tt.a, tt.b)
 			if result != tt.expected {
-				t.Errorf("min(%d, %d) = %d, want %d", tt.a, tt.b, result, tt.expected)
+				t.Errorf("utils.Min(%d, %d) = %d, want %d", tt.a, tt.b, result, tt.expected)
 			}
 		})
 	}
