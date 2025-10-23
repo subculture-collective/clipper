@@ -106,3 +106,89 @@ func TestMin(t *testing.T) {
 		})
 	}
 }
+
+func TestStringOrDefault(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        *string
+		defaultValue string
+		expected     string
+	}{
+		{
+			name:         "Non-nil pointer with non-empty string",
+			input:        StringPtr("test"),
+			defaultValue: "default",
+			expected:     "test",
+		},
+		{
+			name:         "Non-nil pointer with empty string",
+			input:        func() *string { s := ""; return &s }(),
+			defaultValue: "default",
+			expected:     "",
+		},
+		{
+			name:         "Nil pointer",
+			input:        nil,
+			defaultValue: "default",
+			expected:     "default",
+		},
+		{
+			name:         "Nil pointer with empty default",
+			input:        nil,
+			defaultValue: "",
+			expected:     "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := StringOrDefault(tt.input, tt.defaultValue)
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestFloat64OrDefault(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        *float64
+		defaultValue float64
+		expected     float64
+	}{
+		{
+			name:         "Non-nil pointer with non-zero value",
+			input:        Float64Ptr(30.5),
+			defaultValue: 10.0,
+			expected:     30.5,
+		},
+		{
+			name:         "Non-nil pointer with zero value",
+			input:        func() *float64 { f := 0.0; return &f }(),
+			defaultValue: 10.0,
+			expected:     0.0,
+		},
+		{
+			name:         "Nil pointer",
+			input:        nil,
+			defaultValue: 10.0,
+			expected:     10.0,
+		},
+		{
+			name:         "Nil pointer with zero default",
+			input:        nil,
+			defaultValue: 0.0,
+			expected:     0.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Float64OrDefault(tt.input, tt.defaultValue)
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
