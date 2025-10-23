@@ -80,22 +80,137 @@ Follow the setup instructions in the [README.md](README.md) to get your developm
 
 ## 🧪 Testing
 
-- Write tests for new features
-- Maintain or improve existing test coverage
-- Ensure all tests pass before submitting PR
-- Include both unit and integration tests where appropriate
+All contributions must include appropriate tests. We maintain high test coverage standards:
+
+- **Backend**: >80% overall (>90% services, >85% repository, >80% handlers)
+- **Frontend**: >80% overall (>80% components, >90% hooks, >95% utilities)
+
+See our [Testing Guide](docs/TESTING.md) for comprehensive testing documentation.
+
+### Test Requirements
+
+1. **Unit Tests** - Required for all new code
+   - Test individual functions and methods
+   - Mock external dependencies
+   - Follow AAA pattern (Arrange, Act, Assert)
+
+2. **Integration Tests** - Required for API endpoints and database operations
+   - Test component interactions
+   - Use test database via Docker
+   - Clean up after tests
+
+3. **E2E Tests** - Required for major user workflows
+   - Test complete user journeys
+   - Use Playwright for frontend E2E
+   - Test across different browsers/devices
+
+### Running Tests
+
+```bash
+# All tests
+make test
+
+# Unit tests only (fast)
+make test-unit
+
+# Integration tests (requires Docker)
+make test-integration
+
+# With coverage report
+make test-coverage
+
+# E2E tests
+cd frontend && npm run test:e2e
+```
 
 ### Backend Tests
+
 ```bash
 cd backend
+
+# Run all tests
 go test ./...
+
+# Run with coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+
+# Run specific package
+go test ./internal/handlers/...
+
+# Run with race detection
+go test -race ./...
 ```
 
 ### Frontend Tests
+
 ```bash
 cd frontend
+
+# Run unit/integration tests
 npm test
+
+# Run in watch mode
+npm test -- --watch
+
+# Run with coverage
+npm run test:coverage
+
+# Run E2E tests
+npm run test:e2e
+
+# E2E with UI
+npm run test:e2e:ui
 ```
+
+### Writing Good Tests
+
+```go
+// Backend example (Go)
+func TestClipService_GetClip(t *testing.T) {
+    // Arrange
+    mockRepo := new(MockClipRepository)
+    service := NewClipService(mockRepo)
+    expectedClip := testutil.TestClip()
+    mockRepo.On("GetByID", mock.Anything, expectedClip.ID).Return(expectedClip, nil)
+    
+    // Act
+    clip, err := service.GetClip(context.Background(), expectedClip.ID)
+    
+    // Assert
+    assert.NoError(t, err)
+    assert.Equal(t, expectedClip.Title, clip.Title)
+    mockRepo.AssertExpectations(t)
+}
+```
+
+```typescript
+// Frontend example (TypeScript)
+describe('ClipCard', () => {
+  it('displays clip information correctly', () => {
+    // Arrange
+    const clip = mockClip();
+    
+    // Act
+    render(<ClipCard clip={clip} />);
+    
+    // Assert
+    expect(screen.getByText(clip.title)).toBeInTheDocument();
+    expect(screen.getByText(clip.broadcaster_name)).toBeInTheDocument();
+  });
+});
+```
+
+### Test Coverage
+
+Before submitting a PR:
+
+1. Run tests with coverage: `make test-coverage`
+2. Ensure your changes don't decrease overall coverage
+3. New code should have >80% coverage
+4. Fix any failing tests
+
+The CI will automatically check coverage and fail if it drops below thresholds.
 
 ## 📝 Documentation
 
