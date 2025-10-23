@@ -183,7 +183,7 @@ func TestKarmaCalculation(t *testing.T) {
 				return &v
 			}(),
 			newVote:     0,
-			expectedDif: 0, // Vote removal doesn't change karma directly
+			expectedDif: 0, // Vote removal does not affect karma at all
 		},
 	}
 
