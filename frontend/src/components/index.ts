@@ -6,3 +6,6 @@ export * from './layout';
 
 // Re-export all comment components
 export * from './comment';
+
+// Re-export all report components
+export * from './report';

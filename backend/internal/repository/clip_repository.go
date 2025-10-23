@@ -533,3 +533,15 @@ func (r *ClipRepository) GetRelated(ctx context.Context, clipID uuid.UUID, limit
 
 	return clips, nil
 }
+
+// RemoveClip marks a clip as removed with a reason
+func (r *ClipRepository) RemoveClip(ctx context.Context, clipID uuid.UUID, reason *string) error {
+	query := `
+		UPDATE clips
+		SET is_removed = true, removed_reason = $2
+		WHERE id = $1
+	`
+
+	_, err := r.pool.Exec(ctx, query, clipID, reason)
+	return err
+}
