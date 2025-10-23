@@ -129,3 +129,76 @@ type ClipWithHotScore struct {
 	Clip
 	HotScore float64 `json:"hot_score" db:"hot_score"`
 }
+
+// SearchRequest represents a search query request
+type SearchRequest struct {
+	Query     string   `json:"query" form:"q"`
+	Type      string   `json:"type" form:"type"`         // clips, creators, games, tags, all
+	Sort      string   `json:"sort" form:"sort"`         // relevance (default), recent, popular
+	GameID    *string  `json:"game_id" form:"game_id"`
+	CreatorID *string  `json:"creator_id" form:"creator_id"`
+	Language  *string  `json:"language" form:"language"`
+	Tags      []string `json:"tags" form:"tags"`
+	MinVotes  *int     `json:"min_votes" form:"min_votes"`
+	DateFrom  *string  `json:"date_from" form:"date_from"`
+	DateTo    *string  `json:"date_to" form:"date_to"`
+	Page      int      `json:"page" form:"page"`
+	Limit     int      `json:"limit" form:"limit"`
+}
+
+// SearchResponse represents search results
+type SearchResponse struct {
+	Query   string              `json:"query"`
+	Results SearchResultsByType `json:"results"`
+	Counts  SearchCounts        `json:"counts"`
+	Meta    SearchMeta          `json:"meta"`
+}
+
+// SearchResultsByType groups results by type
+type SearchResultsByType struct {
+	Clips    []Clip `json:"clips,omitempty"`
+	Creators []User `json:"creators,omitempty"`
+	Games    []Game `json:"games,omitempty"`
+	Tags     []Tag  `json:"tags,omitempty"`
+}
+
+// SearchCounts holds counts for each result type
+type SearchCounts struct {
+	Clips    int `json:"clips"`
+	Creators int `json:"creators"`
+	Games    int `json:"games"`
+	Tags     int `json:"tags"`
+}
+
+// SearchMeta holds pagination and other metadata
+type SearchMeta struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalItems int `json:"total_items"`
+	TotalPages int `json:"total_pages"`
+}
+
+// Game represents a game (aggregated from clips)
+type Game struct {
+	ID        string `json:"id" db:"game_id"`
+	Name      string `json:"name" db:"game_name"`
+	ClipCount int    `json:"clip_count" db:"clip_count"`
+}
+
+// SearchSuggestion represents an autocomplete suggestion
+type SearchSuggestion struct {
+	Text string `json:"text"`
+	Type string `json:"type"` // query, game, creator, tag
+}
+
+// SearchQuery tracks a search query for analytics
+type SearchQuery struct {
+	ID                uuid.UUID  `json:"id" db:"id"`
+	UserID            *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
+	Query             string     `json:"query" db:"query"`
+	Filters           *string    `json:"filters,omitempty" db:"filters"`
+	ResultCount       int        `json:"result_count" db:"result_count"`
+	ClickedResultID   *uuid.UUID `json:"clicked_result_id,omitempty" db:"clicked_result_id"`
+	ClickedResultType *string    `json:"clicked_result_type,omitempty" db:"clicked_result_type"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+}
