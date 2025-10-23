@@ -2,6 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui';
 import { TwitchEmbed } from './TwitchEmbed';
+import { TagList } from '@/components/tag/TagList';
 import { useClipVote, useClipFavorite } from '@/hooks/useClips';
 import type { Clip } from '@/types/clip';
 import { cn } from '@/lib/utils';
@@ -142,6 +143,11 @@ export function ClipCard({ clip }: ClipCardProps) {
               </>
             )}
             <span>{formatDistanceToNow(new Date(clip.created_at), { addSuffix: true })}</span>
+          </div>
+
+          {/* Tags */}
+          <div className="mb-3">
+            <TagList clipId={clip.id} maxVisible={5} />
           </div>
 
           {/* Action bar */}
