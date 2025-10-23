@@ -335,13 +335,6 @@ func ExtractClipID(clipURLOrID string) string {
 }
 
 // Helper functions
-func stringPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
-
 func float64Ptr(f float64) *float64 {
 	if f == 0 {
 		return nil
