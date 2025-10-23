@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
 // ClipService handles business logic for clips
@@ -41,10 +41,10 @@ func NewClipService(
 // ClipWithUserData represents a clip with user-specific data
 type ClipWithUserData struct {
 	models.Clip
-	UserVote       *int16 `json:"user_vote,omitempty"`
-	IsFavorited    bool   `json:"is_favorited"`
-	UpvoteCount    int    `json:"upvote_count"`
-	DownvoteCount  int    `json:"downvote_count"`
+	UserVote      *int16 `json:"user_vote,omitempty"`
+	IsFavorited   bool   `json:"is_favorited"`
+	UpvoteCount   int    `json:"upvote_count"`
+	DownvoteCount int    `json:"downvote_count"`
 }
 
 // GetClip retrieves a single clip with user data
@@ -216,7 +216,7 @@ func (s *ClipService) VoteOnClip(ctx context.Context, userID, clipID uuid.UUID, 
 				karmaChange = 2
 			}
 		}
-		
+
 		if karmaChange != 0 {
 			_ = s.userRepo.UpdateKarma(context.Background(), userID, karmaChange)
 		}

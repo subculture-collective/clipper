@@ -441,7 +441,7 @@ func (r *ClipRepository) Update(ctx context.Context, clipID uuid.UUID, updates m
 		setClauses[0],
 		argIndex,
 	)
-	
+
 	for i := 1; i < len(setClauses); i++ {
 		query = fmt.Sprintf("UPDATE clips SET %s, %s WHERE id = $%d", setClauses[0], setClauses[i], argIndex)
 	}
