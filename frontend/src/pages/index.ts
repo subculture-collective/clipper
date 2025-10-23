@@ -21,6 +21,7 @@ export { AuthCallbackPage } from './AuthCallbackPage';
 export { FavoritesPage } from './FavoritesPage';
 export { ProfilePage } from './ProfilePage';
 export { SubmitClipPage } from './SubmitClipPage';
+export { UserSubmissionsPage } from './UserSubmissionsPage';
 export { SettingsPage } from './SettingsPage';
 
 // Admin pages
@@ -30,3 +31,4 @@ export { AdminCommentsPage } from './admin/AdminCommentsPage';
 export { AdminUsersPage } from './admin/AdminUsersPage';
 export { AdminReportsPage } from './admin/AdminReportsPage';
 export { AdminSyncPage } from './admin/AdminSyncPage';
+export { ModerationQueuePage } from './admin/ModerationQueuePage';

@@ -23,3 +23,14 @@ func Min(a, b int) int {
 	}
 	return b
 }
+
+// StringOrDefault returns the value of s if it's not nil and not empty, otherwise returns the value of def
+func StringOrDefault(s *string, def *string) string {
+	if s != nil && *s != "" {
+		return *s
+	}
+	if def != nil {
+		return *def
+	}
+	return ""
+}
