@@ -202,3 +202,48 @@ type SearchQuery struct {
 	ClickedResultType *string    `json:"clicked_result_type,omitempty" db:"clicked_result_type"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 }
+
+// ClipSubmission represents a user-submitted clip pending moderation
+type ClipSubmission struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
+	TwitchClipID     string     `json:"twitch_clip_id" db:"twitch_clip_id"`
+	TwitchClipURL    string     `json:"twitch_clip_url" db:"twitch_clip_url"`
+	Title            *string    `json:"title,omitempty" db:"title"`
+	CustomTitle      *string    `json:"custom_title,omitempty" db:"custom_title"`
+	Tags             []string   `json:"tags,omitempty" db:"tags"`
+	IsNSFW           bool       `json:"is_nsfw" db:"is_nsfw"`
+	SubmissionReason *string    `json:"submission_reason,omitempty" db:"submission_reason"`
+	Status           string     `json:"status" db:"status"` // pending, approved, rejected
+	RejectionReason  *string    `json:"rejection_reason,omitempty" db:"rejection_reason"`
+	ReviewedBy       *uuid.UUID `json:"reviewed_by,omitempty" db:"reviewed_by"`
+	ReviewedAt       *time.Time `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+	// Metadata from Twitch
+	CreatorName     *string  `json:"creator_name,omitempty" db:"creator_name"`
+	CreatorID       *string  `json:"creator_id,omitempty" db:"creator_id"`
+	BroadcasterName *string  `json:"broadcaster_name,omitempty" db:"broadcaster_name"`
+	BroadcasterID   *string  `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
+	GameID          *string  `json:"game_id,omitempty" db:"game_id"`
+	GameName        *string  `json:"game_name,omitempty" db:"game_name"`
+	ThumbnailURL    *string  `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
+	Duration        *float64 `json:"duration,omitempty" db:"duration"`
+	ViewCount       int      `json:"view_count" db:"view_count"`
+}
+
+// ClipSubmissionWithUser includes user information
+type ClipSubmissionWithUser struct {
+	ClipSubmission
+	User *User `json:"user,omitempty"`
+}
+
+// SubmissionStats represents submission statistics for a user
+type SubmissionStats struct {
+	UserID         uuid.UUID `json:"user_id" db:"user_id"`
+	TotalCount     int       `json:"total_submissions" db:"total_submissions"`
+	ApprovedCount  int       `json:"approved_count" db:"approved_count"`
+	RejectedCount  int       `json:"rejected_count" db:"rejected_count"`
+	PendingCount   int       `json:"pending_count" db:"pending_count"`
+	ApprovalRate   float64   `json:"approval_rate" db:"approval_rate"`
+}

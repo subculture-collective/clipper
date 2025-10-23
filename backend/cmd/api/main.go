@@ -78,6 +78,7 @@ func main() {
 	favoriteRepo := repository.NewFavoriteRepository(db.Pool)
 	tagRepo := repository.NewTagRepository(db.Pool)
 	searchRepo := repository.NewSearchRepository(db.Pool)
+	submissionRepo := repository.NewSubmissionRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -92,8 +93,10 @@ func main() {
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	var clipSyncService *services.ClipSyncService
+	var submissionService *services.SubmissionService
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, twitchClient)
 	}
 
 	// Initialize handlers
@@ -104,8 +107,12 @@ func main() {
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
+	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
+	}
+	if submissionService != nil {
+		submissionHandler = handlers.NewSubmissionHandler(submissionService)
 	}
 
 	// Initialize router
@@ -268,38 +275,47 @@ func main() {
 			search.GET("/suggestions", searchHandler.GetSuggestions)
 		}
 
-		// Admin routes (if Twitch client is available)
-		if clipSyncHandler != nil {
-			admin := v1.Group("/admin")
-			admin.Use(middleware.AuthMiddleware(authService))
-			admin.Use(middleware.RequireRole("admin"))
+		// Submission routes (if submission handler is available)
+		if submissionHandler != nil {
+			submissions := v1.Group("/submissions")
+			submissions.Use(middleware.AuthMiddleware(authService))
 			{
+				// User submission endpoints
+				submissions.POST("", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), submissionHandler.SubmitClip)
+				submissions.GET("", submissionHandler.GetUserSubmissions)
+				submissions.GET("/stats", submissionHandler.GetSubmissionStats)
+			}
+		}
+
+		// Admin routes
+		admin := v1.Group("/admin")
+		admin.Use(middleware.AuthMiddleware(authService))
+		admin.Use(middleware.RequireRole("admin", "moderator"))
+		{
+			// Clip sync (if available)
+			if clipSyncHandler != nil {
 				sync := admin.Group("/sync")
 				{
 					sync.POST("/clips", clipSyncHandler.TriggerSync)
 					sync.GET("/status", clipSyncHandler.GetSyncStatus)
 				}
-
-				// Admin tag management
-				adminTags := admin.Group("/tags")
-				{
-					adminTags.POST("", tagHandler.CreateTag)
-					adminTags.PUT("/:id", tagHandler.UpdateTag)
-					adminTags.DELETE("/:id", tagHandler.DeleteTag)
-				}
 			}
-		} else {
-			// Admin routes without sync handler
-			admin := v1.Group("/admin")
-			admin.Use(middleware.AuthMiddleware(authService))
-			admin.Use(middleware.RequireRole("admin"))
+
+			// Admin tag management
+			adminTags := admin.Group("/tags")
 			{
-				// Admin tag management
-				adminTags := admin.Group("/tags")
+				adminTags.POST("", tagHandler.CreateTag)
+				adminTags.PUT("/:id", tagHandler.UpdateTag)
+				adminTags.DELETE("/:id", tagHandler.DeleteTag)
+			}
+
+			// Submission moderation (if available)
+			if submissionHandler != nil {
+				adminSubmissions := admin.Group("/submissions")
 				{
-					adminTags.POST("", tagHandler.CreateTag)
-					adminTags.PUT("/:id", tagHandler.UpdateTag)
-					adminTags.DELETE("/:id", tagHandler.DeleteTag)
+					adminSubmissions.GET("", submissionHandler.ListPendingSubmissions)
+					adminSubmissions.POST("/:id/approve", submissionHandler.ApproveSubmission)
+					adminSubmissions.POST("/:id/reject", submissionHandler.RejectSubmission)
 				}
 			}
 		}
