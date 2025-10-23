@@ -334,3 +334,18 @@ func ExtractClipID(clipURLOrID string) string {
 
 	return ""
 }
+
+// Helper functions
+func float64Ptr(f float64) *float64 {
+	if f == 0 {
+		return nil
+	}
+	return &f
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

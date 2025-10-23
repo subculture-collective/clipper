@@ -76,6 +76,7 @@ func main() {
 	commentRepo := repository.NewCommentRepository(db.Pool)
 	voteRepo := repository.NewVoteRepository(db.Pool)
 	favoriteRepo := repository.NewFavoriteRepository(db.Pool)
+	tagRepo := repository.NewTagRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -88,6 +89,7 @@ func main() {
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
 	commentService := services.NewCommentService(commentRepo, clipRepo)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
+	autoTagService := services.NewAutoTagService(tagRepo)
 	var clipSyncService *services.ClipSyncService
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
@@ -98,6 +100,7 @@ func main() {
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
+	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
@@ -205,6 +208,9 @@ func main() {
 			clips.GET("/:id", clipHandler.GetClip)
 			clips.GET("/:id/related", clipHandler.GetRelatedClips)
 
+			// Clip tags (public)
+			clips.GET("/:id/tags", tagHandler.GetClipTags)
+
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:clipId/comments", commentHandler.ListComments)
 
@@ -215,6 +221,10 @@ func main() {
 			clips.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), clipHandler.VoteOnClip)
 			clips.POST("/:id/favorite", middleware.AuthMiddleware(authService), clipHandler.AddFavorite)
 			clips.DELETE("/:id/favorite", middleware.AuthMiddleware(authService), clipHandler.RemoveFavorite)
+
+			// Tag management for clips (authenticated, rate limited)
+			clips.POST("/:id/tags", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), tagHandler.AddTagsToClip)
+			clips.DELETE("/:id/tags/:slug", middleware.AuthMiddleware(authService), tagHandler.RemoveTagFromClip)
 
 			// User clip submission with rate limiting (5 per hour) - if Twitch client is available
 			if clipSyncHandler != nil {
@@ -238,6 +248,16 @@ func main() {
 			comments.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), commentHandler.VoteOnComment)
 		}
 
+		// Tag routes
+		tags := v1.Group("/tags")
+		{
+			// Public tag endpoints
+			tags.GET("", tagHandler.ListTags)
+			tags.GET("/search", tagHandler.SearchTags)
+			tags.GET("/:slug", tagHandler.GetTag)
+			tags.GET("/:slug/clips", tagHandler.GetClipsByTag)
+		}
+
 		// Admin routes (if Twitch client is available)
 		if clipSyncHandler != nil {
 			admin := v1.Group("/admin")
@@ -248,6 +268,28 @@ func main() {
 				{
 					sync.POST("/clips", clipSyncHandler.TriggerSync)
 					sync.GET("/status", clipSyncHandler.GetSyncStatus)
+				}
+
+				// Admin tag management
+				adminTags := admin.Group("/tags")
+				{
+					adminTags.POST("", tagHandler.CreateTag)
+					adminTags.PUT("/:id", tagHandler.UpdateTag)
+					adminTags.DELETE("/:id", tagHandler.DeleteTag)
+				}
+			}
+		} else {
+			// Admin routes without sync handler
+			admin := v1.Group("/admin")
+			admin.Use(middleware.AuthMiddleware(authService))
+			admin.Use(middleware.RequireRole("admin"))
+			{
+				// Admin tag management
+				adminTags := admin.Group("/tags")
+				{
+					adminTags.POST("", tagHandler.CreateTag)
+					adminTags.PUT("/:id", tagHandler.UpdateTag)
+					adminTags.DELETE("/:id", tagHandler.DeleteTag)
 				}
 			}
 		}
