@@ -79,7 +79,7 @@ func Load() (*Config, error) {
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "clipper"),
-			Password: getEnv("DB_PASSWORD", "clipper_password"),
+			Password: getEnv("DB_PASSWORD", "CHANGEME_SECURE_PASSWORD_HERE"),
 			Name:     getEnv("DB_NAME", "clipper_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},

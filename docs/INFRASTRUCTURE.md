@@ -18,7 +18,7 @@ This guide covers production infrastructure setup, configuration, and maintenanc
 The Clipper application consists of:
 - **Backend**: Go API server (port 8080)
 - **Frontend**: React SPA served by Nginx (port 80/443)
-- **PostgreSQL**: Database (port 5432)
+- **PostgreSQL**: Database (port 5436)
 - **Redis**: Cache and session store (port 6379)
 
 ### Architecture Diagram
@@ -46,7 +46,7 @@ The Clipper application consists of:
                     │                      │
                     ▼                      ▼
          ┌──────────────────┐   ┌──────────────────┐
-         │ PostgreSQL:5432  │   │   Redis:6379     │
+         │ PostgreSQL:5436  │   │   Redis:6379     │
          │   Database       │   │   Cache          │
          └──────────────────┘   └──────────────────┘
 ```
@@ -252,7 +252,7 @@ For production, use connection pooling:
     image: pgbouncer/pgbouncer:latest
     environment:
       - DATABASES_HOST=postgres
-      - DATABASES_PORT=5432
+      - DATABASES_PORT=5436
       - DATABASES_USER=clipper
       - DATABASES_PASSWORD=${POSTGRES_PASSWORD}
       - DATABASES_DBNAME=clipper
