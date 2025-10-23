@@ -77,6 +77,7 @@ func main() {
 	voteRepo := repository.NewVoteRepository(db.Pool)
 	favoriteRepo := repository.NewFavoriteRepository(db.Pool)
 	tagRepo := repository.NewTagRepository(db.Pool)
+	searchRepo := repository.NewSearchRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -101,6 +102,7 @@ func main() {
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
+	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
@@ -256,6 +258,14 @@ func main() {
 			tags.GET("/search", tagHandler.SearchTags)
 			tags.GET("/:slug", tagHandler.GetTag)
 			tags.GET("/:slug/clips", tagHandler.GetClipsByTag)
+		}
+
+		// Search routes
+		search := v1.Group("/search")
+		{
+			// Public search endpoints
+			search.GET("", searchHandler.Search)
+			search.GET("/suggestions", searchHandler.GetSuggestions)
 		}
 
 		// Admin routes (if Twitch client is available)
