@@ -93,24 +93,32 @@ func (r *TagRepository) GetBySlug(ctx context.Context, slug string) (*models.Tag
 
 // List retrieves tags with optional sorting and pagination
 func (r *TagRepository) List(ctx context.Context, sort string, limit, offset int) ([]*models.Tag, error) {
-	// Validate sort parameter
-	validSorts := map[string]string{
-		"popularity": "usage_count DESC",
-		"alphabetical": "name ASC",
-		"recent": "created_at DESC",
-	}
-
-	orderBy, ok := validSorts[sort]
-	if !ok {
-		orderBy = validSorts["popularity"] // default to popularity
-	}
-
-	query := fmt.Sprintf(`
+	var query string
+	switch sort {
+	case "alphabetical":
+		query = `
 		SELECT id, name, slug, description, color, usage_count, created_at
 		FROM tags
-		ORDER BY %s
+		ORDER BY name ASC
 		LIMIT $1 OFFSET $2
-	`, orderBy)
+		`
+	case "recent":
+		query = `
+		SELECT id, name, slug, description, color, usage_count, created_at
+		FROM tags
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+		`
+	case "popularity":
+		fallthrough
+	default:
+		query = `
+		SELECT id, name, slug, description, color, usage_count, created_at
+		FROM tags
+		ORDER BY usage_count DESC
+		LIMIT $1 OFFSET $2
+		`
+	}
 
 	rows, err := r.pool.Query(ctx, query, limit, offset)
 	if err != nil {
