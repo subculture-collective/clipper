@@ -436,23 +436,13 @@ func (r *ClipRepository) Update(ctx context.Context, clipID uuid.UUID, updates m
 	}
 
 	args = append(args, clipID)
-	query := fmt.Sprintf(
-		"UPDATE clips SET %s WHERE id = $%d",
-		setClauses[0],
-		argIndex,
-	)
-
-	for i := 1; i < len(setClauses); i++ {
-		query = fmt.Sprintf("UPDATE clips SET %s, %s WHERE id = $%d", setClauses[0], setClauses[i], argIndex)
-	}
-
+	setClause := setClauses[0]
 	if len(setClauses) > 1 {
-		setClause := setClauses[0]
 		for i := 1; i < len(setClauses); i++ {
 			setClause += ", " + setClauses[i]
 		}
-		query = fmt.Sprintf("UPDATE clips SET %s WHERE id = $%d", setClause, argIndex)
 	}
+	query := fmt.Sprintf("UPDATE clips SET %s WHERE id = $%d", setClause, argIndex)
 
 	_, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
