@@ -155,6 +155,30 @@ func (r *UserRepository) UpdateKarma(ctx context.Context, userID uuid.UUID, delt
 	return err
 }
 
+// BanUser bans a user
+func (r *UserRepository) BanUser(ctx context.Context, userID uuid.UUID) error {
+	query := `
+		UPDATE users
+		SET is_banned = true, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, userID)
+	return err
+}
+
+// UnbanUser unbans a user
+func (r *UserRepository) UnbanUser(ctx context.Context, userID uuid.UUID) error {
+	query := `
+		UPDATE users
+		SET is_banned = false, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, userID)
+	return err
+}
+
 // RefreshTokenRepository handles refresh token database operations
 type RefreshTokenRepository struct {
 	db *pgxpool.Pool
