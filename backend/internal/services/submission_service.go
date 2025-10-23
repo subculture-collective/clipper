@@ -76,8 +76,8 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, err
 	}
 
-	// Extract clip ID from URL
-	clipID := ExtractClipID(req.ClipURL)
+	// Extract clip ID from URL - use the function from clip_sync_service
+	clipID := extractClipIDFromURL(req.ClipURL)
 	if clipID == "" {
 		return nil, &ValidationError{Field: "clip_url", Message: "Invalid Twitch clip URL"}
 	}
@@ -372,13 +372,41 @@ func (s *SubmissionService) GetSubmissionStats(ctx context.Context, userID uuid.
 	return s.submissionRepo.GetUserStats(ctx, userID)
 }
 
-// Helper function to get string value or default
-func stringOrDefault(s *string, def *string) string {
-	if s != nil && *s != "" {
-		return *s
+// extractClipIDFromURL extracts the clip ID from a Twitch clip URL or returns the ID if already provided
+func extractClipIDFromURL(clipURLOrID string) string {
+	// If it's already just an ID (alphanumeric), return it
+	if len(clipURLOrID) > 0 && clipURLOrID[0] != 'h' {
+		return clipURLOrID
 	}
-	if def != nil {
-		return *def
+
+	// Handle full URLs
+	parts := []rune(clipURLOrID)
+	lastSlash := -1
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] == '/' {
+			lastSlash = i
+			break
+		}
 	}
-	return ""
+
+	if lastSlash == -1 || lastSlash == len(parts)-1 {
+		return ""
+	}
+
+	clipID := string(parts[lastSlash+1:])
+	
+	// Remove query parameters if present
+	queryStart := -1
+	for i, r := range clipID {
+		if r == '?' {
+			queryStart = i
+			break
+		}
+	}
+	
+	if queryStart != -1 {
+		clipID = clipID[:queryStart]
+	}
+	
+	return clipID
 }
