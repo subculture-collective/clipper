@@ -143,6 +143,18 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID) 
 	return err
 }
 
+// UpdateKarma updates a user's karma points
+func (r *UserRepository) UpdateKarma(ctx context.Context, userID uuid.UUID, delta int) error {
+	query := `
+		UPDATE users
+		SET karma_points = karma_points + $2
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, userID, delta)
+	return err
+}
+
 // RefreshTokenRepository handles refresh token database operations
 type RefreshTokenRepository struct {
 	db *pgxpool.Pool
