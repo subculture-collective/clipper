@@ -49,9 +49,9 @@ func TestRenderMarkdown(t *testing.T) {
 	service.sanitizer = createSanitizer()
 
 	tests := []struct {
-		name     string
-		input    string
-		contains []string
+		name        string
+		input       string
+		contains    []string
 		notContains []string
 	}{
 		{
@@ -105,15 +105,15 @@ func TestRenderMarkdown(t *testing.T) {
 			notContains: []string{"<iframe>", "evil.com"},
 		},
 		{
-			name:     "Deleted content",
-			input:    "[deleted]",
-			contains: []string{"[deleted]"},
+			name:        "Deleted content",
+			input:       "[deleted]",
+			contains:    []string{"[deleted]"},
 			notContains: []string{"<p>"},
 		},
 		{
-			name:     "Removed content",
-			input:    "[removed]",
-			contains: []string{"[removed]"},
+			name:        "Removed content",
+			input:       "[removed]",
+			contains:    []string{"[removed]"},
 			notContains: []string{"<p>"},
 		},
 	}
@@ -121,7 +121,7 @@ func TestRenderMarkdown(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := service.RenderMarkdown(tt.input)
-			
+
 			for _, expected := range tt.contains {
 				if !strings.Contains(result, expected) {
 					t.Errorf("Expected output to contain %q, got: %s", expected, result)
@@ -179,9 +179,9 @@ func TestCommentValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			content := strings.TrimSpace(tt.content)
 			hasError := len(content) < MinCommentLength || len(content) > MaxCommentLength
-			
+
 			if hasError != tt.wantErr {
-				t.Errorf("Content length validation for %q: got error=%v, want error=%v", 
+				t.Errorf("Content length validation for %q: got error=%v, want error=%v",
 					tt.name, hasError, tt.wantErr)
 			}
 		})
@@ -224,7 +224,7 @@ func TestCommentConstants(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.constant < tt.min || tt.constant > tt.max {
-				t.Errorf("%s = %d, expected between %d and %d", 
+				t.Errorf("%s = %d, expected between %d and %d",
 					tt.name, tt.constant, tt.min, tt.max)
 			}
 		})

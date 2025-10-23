@@ -198,10 +198,10 @@ func main() {
 		{
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:clipId/comments", commentHandler.ListComments)
-			
+
 			// Create comment (authenticated, rate limited)
 			clips.POST("/:clipId/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
-			
+
 			// User clip submission with rate limiting (5 per hour) - if Twitch client is available
 			if clipSyncHandler != nil {
 				clips.POST("/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), clipSyncHandler.RequestClip)
@@ -213,7 +213,7 @@ func main() {
 		{
 			// Get replies to a comment (can be public or authenticated)
 			comments.GET("/:id/replies", commentHandler.GetReplies)
-			
+
 			// Protected comment endpoints
 			comments.PUT("/:id", middleware.AuthMiddleware(authService), commentHandler.UpdateComment)
 			comments.DELETE("/:id", middleware.AuthMiddleware(authService), commentHandler.DeleteComment)
