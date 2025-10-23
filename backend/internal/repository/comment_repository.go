@@ -38,7 +38,7 @@ type CommentWithAuthor struct {
 // ListByClipID retrieves comments for a clip with sorting and pagination
 func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, sortBy string, limit, offset int, userID *uuid.UUID) ([]CommentWithAuthor, error) {
 	var orderClause string
-	
+
 	switch sortBy {
 	case "new":
 		orderClause = "c.created_at DESC"
@@ -54,17 +54,14 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 		fallthrough
 	default:
 		// Wilson score confidence interval for "best" sorting
+		// Uses vote counts from the CTE to avoid N+1 query pattern
 		orderClause = `
 			CASE 
-				WHEN (SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id) = 0 THEN 0
+				WHEN total_votes = 0 THEN 0
 				ELSE (
-					((SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = 1) + 1.9208) / 
-					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id) - 
-					1.96 * SQRT(((SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = 1) * 
-					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = -1)) / 
-					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id) + 0.9604) / 
-					(SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id)
-				) / (1 + 3.8416 / (SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id))
+					((upvotes + 1.9208) / total_votes - 
+					1.96 * SQRT((upvotes * downvotes) / total_votes + 0.9604) / total_votes)
+				) / (1 + 3.8416 / total_votes)
 			END DESC,
 			c.vote_score DESC,
 			c.created_at DESC
@@ -72,7 +69,20 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 	}
 
 	query := fmt.Sprintf(`
-		WITH RECURSIVE comment_tree AS (
+		WITH vote_counts AS (
+			-- Pre-calculate vote counts to avoid N+1 query pattern
+			SELECT 
+				comment_id,
+				COUNT(*) AS total_votes,
+				COUNT(*) FILTER (WHERE vote_type = 1) AS upvotes,
+				COUNT(*) FILTER (WHERE vote_type = -1) AS downvotes
+			FROM comment_votes
+			WHERE comment_id IN (
+				SELECT id FROM comments WHERE clip_id = $1 AND parent_comment_id IS NULL
+			)
+			GROUP BY comment_id
+		),
+		comment_tree AS (
 			-- Get top-level comments for this clip
 			SELECT 
 				c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
@@ -85,10 +95,14 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 				u.role AS author_role,
 				(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
 				COALESCE(cv.vote_type, NULL) AS user_vote,
-				0 AS depth
+				0 AS depth,
+				COALESCE(vc.total_votes, 0) AS total_votes,
+				COALESCE(vc.upvotes, 0) AS upvotes,
+				COALESCE(vc.downvotes, 0) AS downvotes
 			FROM comments c
 			INNER JOIN users u ON c.user_id = u.id
 			LEFT JOIN comment_votes cv ON c.id = cv.comment_id AND cv.user_id = $2
+			LEFT JOIN vote_counts vc ON c.id = vc.comment_id
 			WHERE c.clip_id = $1 AND c.parent_comment_id IS NULL
 		)
 		SELECT * FROM comment_tree
@@ -114,13 +128,14 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 	for rows.Next() {
 		var c CommentWithAuthor
 		var depth int
+		var totalVotes, upvotes, downvotes int // Vote count columns from CTE
 		err := rows.Scan(
 			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
 			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 			&c.CreatedAt, &c.UpdatedAt,
 			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
 			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
-			&depth,
+			&depth, &totalVotes, &upvotes, &downvotes,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan comment: %w", err)
@@ -264,6 +279,7 @@ func (r *CommentRepository) Create(ctx context.Context, comment *models.Comment)
 }
 
 // Update updates a comment's content
+// Note: updated_at is automatically updated by the update_comments_updated_at database trigger
 func (r *CommentRepository) Update(ctx context.Context, id uuid.UUID, content string) error {
 	query := `
 		UPDATE comments
