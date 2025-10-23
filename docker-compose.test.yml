@@ -1,0 +1,31 @@
+services:
+  postgres-test:
+    image: postgres:17-alpine
+    container_name: clipper-postgres-test
+    environment:
+      POSTGRES_USER: clipper
+      POSTGRES_PASSWORD: clipper_password
+      POSTGRES_DB: clipper_test
+    ports:
+      - "5437:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clipper -d clipper_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: clipper-redis-test
+    ports:
+      - "6380:6379"
+    tmpfs:
+      - /data
+    command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
