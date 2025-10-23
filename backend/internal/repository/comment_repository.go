@@ -433,3 +433,15 @@ func (r *CommentRepository) UpdateUserKarma(ctx context.Context, userID uuid.UUI
 
 	return nil
 }
+
+// RemoveComment marks a comment as removed with a reason
+func (r *CommentRepository) RemoveComment(ctx context.Context, commentID uuid.UUID, reason *string) error {
+	query := `
+		UPDATE comments
+		SET is_removed = true, removed_reason = $2
+		WHERE id = $1
+	`
+
+	_, err := r.pool.Exec(ctx, query, commentID, reason)
+	return err
+}

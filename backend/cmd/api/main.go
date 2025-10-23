@@ -79,6 +79,7 @@ func main() {
 	tagRepo := repository.NewTagRepository(db.Pool)
 	searchRepo := repository.NewSearchRepository(db.Pool)
 	submissionRepo := repository.NewSubmissionRepository(db.Pool)
+	reportRepo := repository.NewReportRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -106,6 +107,7 @@ func main() {
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
+	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -287,6 +289,13 @@ func main() {
 			}
 		}
 
+		// Report routes
+		reports := v1.Group("/reports")
+		{
+			// Submit a report (authenticated, rate limited)
+			reports.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), reportHandler.SubmitReport)
+		}
+
 		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(authService))
@@ -317,6 +326,14 @@ func main() {
 					adminSubmissions.POST("/:id/approve", submissionHandler.ApproveSubmission)
 					adminSubmissions.POST("/:id/reject", submissionHandler.RejectSubmission)
 				}
+			}
+
+			// Report management
+			adminReports := admin.Group("/reports")
+			{
+				adminReports.GET("", reportHandler.ListReports)
+				adminReports.GET("/:id", reportHandler.GetReport)
+				adminReports.PUT("/:id", reportHandler.UpdateReport)
 			}
 		}
 	}
