@@ -16,6 +16,26 @@ func Float64Ptr(f float64) *float64 {
 	return &f
 }
 
+// StringOrDefault returns the value of the string pointer or the default if nil.
+// Unlike StringPtr which treats empty strings as falsy, this function only checks for nil,
+// allowing empty strings to be valid values when explicitly set.
+func StringOrDefault(s *string, defaultValue string) string {
+	if s != nil {
+		return *s
+	}
+	return defaultValue
+}
+
+// Float64OrDefault returns the value of the float64 pointer or the default if nil.
+// Unlike Float64Ptr which treats zero as falsy, this function only checks for nil,
+// allowing zero to be a valid value when explicitly set.
+func Float64OrDefault(f *float64, defaultValue float64) float64 {
+	if f != nil {
+		return *f
+	}
+	return defaultValue
+}
+
 // Min returns the minimum of two integers.
 func Min(a, b int) int {
 	if a < b {
