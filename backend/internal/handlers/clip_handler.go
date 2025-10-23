@@ -649,4 +649,3 @@ func (h *ClipHandler) DeleteClip(c *gin.Context) {
 		},
 	})
 }
-
