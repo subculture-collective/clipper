@@ -111,31 +111,37 @@ func TestStringOrDefault(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        *string
-		defaultValue string
+		defaultValue *string
 		expected     string
 	}{
 		{
 			name:         "Non-nil pointer with non-empty string",
 			input:        StringPtr("test"),
-			defaultValue: "default",
+			defaultValue: StringPtr("default"),
 			expected:     "test",
 		},
 		{
 			name:         "Non-nil pointer with empty string",
 			input:        func() *string { s := ""; return &s }(),
-			defaultValue: "default",
-			expected:     "",
+			defaultValue: StringPtr("default"),
+			expected:     "default",
 		},
 		{
 			name:         "Nil pointer",
 			input:        nil,
-			defaultValue: "default",
+			defaultValue: StringPtr("default"),
 			expected:     "default",
 		},
 		{
 			name:         "Nil pointer with empty default",
 			input:        nil,
-			defaultValue: "",
+			defaultValue: StringPtr(""),
+			expected:     "",
+		},
+		{
+			name:         "Both nil",
+			input:        nil,
+			defaultValue: nil,
 			expected:     "",
 		},
 	}
