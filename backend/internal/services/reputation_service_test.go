@@ -59,10 +59,10 @@ func TestIsValidBadge(t *testing.T) {
 
 func TestGetBadgeDefinition(t *testing.T) {
 	tests := []struct {
-		name      string
-		badgeID   string
-		wantErr   bool
-		wantName  string
+		name     string
+		badgeID  string
+		wantErr  bool
+		wantName string
 	}{
 		{"Get veteran badge", "veteran", false, "Veteran"},
 		{"Get influencer badge", "influencer", false, "Influencer"},
@@ -85,7 +85,7 @@ func TestGetBadgeDefinition(t *testing.T) {
 
 func TestGetAllBadgeDefinitions(t *testing.T) {
 	badges := GetAllBadgeDefinitions()
-	
+
 	if len(badges) == 0 {
 		t.Error("GetAllBadgeDefinitions() returned empty slice, want at least one badge")
 	}

@@ -128,12 +128,12 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		submission.Status = "approved"
 		submission.ReviewedBy = &userID
 		submission.ReviewedAt = &submission.CreatedAt
-		
+
 		// Create clip immediately
 		if err := s.createClipFromSubmission(ctx, submission); err != nil {
 			return nil, fmt.Errorf("failed to create clip: %w", err)
 		}
-		
+
 		// Award karma
 		if err := s.awardKarma(ctx, userID, 10); err != nil {
 			// Log error but don't fail
@@ -267,7 +267,7 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	title := utils.StringOrDefault(submission.CustomTitle, submission.Title)
 	creatorName := utils.StringOrDefault(submission.CreatorName, &emptyStr)
 	broadcasterName := utils.StringOrDefault(submission.BroadcasterName, &emptyStr)
-	
+
 	clip := &models.Clip{
 		ID:              uuid.New(),
 		TwitchClipID:    submission.TwitchClipID,
@@ -394,7 +394,7 @@ func extractClipIDFromURL(clipURLOrID string) string {
 	}
 
 	clipID := string(parts[lastSlash+1:])
-	
+
 	// Remove query parameters if present
 	queryStart := -1
 	for i, r := range clipID {
@@ -403,10 +403,10 @@ func extractClipIDFromURL(clipURLOrID string) string {
 			break
 		}
 	}
-	
+
 	if queryStart != -1 {
 		clipID = clipID[:queryStart]
 	}
-	
+
 	return clipID
 }

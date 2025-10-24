@@ -133,8 +133,8 @@ type ClipWithHotScore struct {
 // SearchRequest represents a search query request
 type SearchRequest struct {
 	Query     string   `json:"query" form:"q"`
-	Type      string   `json:"type" form:"type"`         // clips, creators, games, tags, all
-	Sort      string   `json:"sort" form:"sort"`         // relevance (default), recent, popular
+	Type      string   `json:"type" form:"type"` // clips, creators, games, tags, all
+	Sort      string   `json:"sort" form:"sort"` // relevance (default), recent, popular
 	GameID    *string  `json:"game_id" form:"game_id"`
 	CreatorID *string  `json:"creator_id" form:"creator_id"`
 	Language  *string  `json:"language" form:"language"`
@@ -240,12 +240,12 @@ type ClipSubmissionWithUser struct {
 
 // SubmissionStats represents submission statistics for a user
 type SubmissionStats struct {
-	UserID         uuid.UUID `json:"user_id" db:"user_id"`
-	TotalCount     int       `json:"total_submissions" db:"total_submissions"`
-	ApprovedCount  int       `json:"approved_count" db:"approved_count"`
-	RejectedCount  int       `json:"rejected_count" db:"rejected_count"`
-	PendingCount   int       `json:"pending_count" db:"pending_count"`
-	ApprovalRate   float64   `json:"approval_rate" db:"approval_rate"`
+	UserID        uuid.UUID `json:"user_id" db:"user_id"`
+	TotalCount    int       `json:"total_submissions" db:"total_submissions"`
+	ApprovedCount int       `json:"approved_count" db:"approved_count"`
+	RejectedCount int       `json:"rejected_count" db:"rejected_count"`
+	PendingCount  int       `json:"pending_count" db:"pending_count"`
+	ApprovalRate  float64   `json:"approval_rate" db:"approval_rate"`
 }
 
 // UserBadge represents a badge awarded to a user
@@ -269,17 +269,17 @@ type KarmaHistory struct {
 
 // UserStats represents user statistics for reputation
 type UserStats struct {
-	UserID             uuid.UUID  `json:"user_id" db:"user_id"`
-	TrustScore         int        `json:"trust_score" db:"trust_score"`
-	EngagementScore    int        `json:"engagement_score" db:"engagement_score"`
-	TotalComments      int        `json:"total_comments" db:"total_comments"`
-	TotalVotesCast     int        `json:"total_votes_cast" db:"total_votes_cast"`
-	TotalClipsSubmit   int        `json:"total_clips_submitted" db:"total_clips_submitted"`
-	CorrectReports     int        `json:"correct_reports" db:"correct_reports"`
-	IncorrectReports   int        `json:"incorrect_reports" db:"incorrect_reports"`
-	DaysActive         int        `json:"days_active" db:"days_active"`
-	LastActiveDate     *time.Time `json:"last_active_date,omitempty" db:"last_active_date"`
-	UpdatedAt          time.Time  `json:"updated_at" db:"updated_at"`
+	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
+	TrustScore       int        `json:"trust_score" db:"trust_score"`
+	EngagementScore  int        `json:"engagement_score" db:"engagement_score"`
+	TotalComments    int        `json:"total_comments" db:"total_comments"`
+	TotalVotesCast   int        `json:"total_votes_cast" db:"total_votes_cast"`
+	TotalClipsSubmit int        `json:"total_clips_submitted" db:"total_clips_submitted"`
+	CorrectReports   int        `json:"correct_reports" db:"correct_reports"`
+	IncorrectReports int        `json:"incorrect_reports" db:"incorrect_reports"`
+	DaysActive       int        `json:"days_active" db:"days_active"`
+	LastActiveDate   *time.Time `json:"last_active_date,omitempty" db:"last_active_date"`
+	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // Badge represents a badge definition
@@ -294,17 +294,17 @@ type Badge struct {
 
 // UserReputation represents complete reputation info for a user
 type UserReputation struct {
-	UserID          uuid.UUID     `json:"user_id"`
-	Username        string        `json:"username"`
-	DisplayName     string        `json:"display_name"`
-	AvatarURL       *string       `json:"avatar_url,omitempty"`
-	KarmaPoints     int           `json:"karma_points"`
-	Rank            string        `json:"rank"`
-	TrustScore      int           `json:"trust_score"`
-	EngagementScore int           `json:"engagement_score"`
-	Badges          []UserBadge   `json:"badges"`
-	Stats           *UserStats    `json:"stats,omitempty"`
-	CreatedAt       time.Time     `json:"created_at"`
+	UserID          uuid.UUID   `json:"user_id"`
+	Username        string      `json:"username"`
+	DisplayName     string      `json:"display_name"`
+	AvatarURL       *string     `json:"avatar_url,omitempty"`
+	KarmaPoints     int         `json:"karma_points"`
+	Rank            string      `json:"rank"`
+	TrustScore      int         `json:"trust_score"`
+	EngagementScore int         `json:"engagement_score"`
+	Badges          []UserBadge `json:"badges"`
+	Stats           *UserStats  `json:"stats,omitempty"`
+	CreatedAt       time.Time   `json:"created_at"`
 }
 
 // KarmaBreakdown represents karma sources breakdown
@@ -316,15 +316,15 @@ type KarmaBreakdown struct {
 
 // LeaderboardEntry represents a user entry in leaderboard
 type LeaderboardEntry struct {
-	Rank            int       `json:"rank"`
-	UserID          uuid.UUID `json:"user_id" db:"id"`
-	Username        string    `json:"username" db:"username"`
-	DisplayName     string    `json:"display_name" db:"display_name"`
-	AvatarURL       *string   `json:"avatar_url,omitempty" db:"avatar_url"`
-	Score           int       `json:"score"` // Karma or engagement score
-	UserRank        string    `json:"user_rank" db:"rank"`
-	AccountAge      string    `json:"account_age,omitempty"`
-	TotalComments   *int      `json:"total_comments,omitempty" db:"total_comments"`
-	TotalVotesCast  *int      `json:"total_votes_cast,omitempty" db:"total_votes_cast"`
-	TotalClipsSubmit *int     `json:"total_clips_submitted,omitempty" db:"total_clips_submitted"`
+	Rank             int       `json:"rank"`
+	UserID           uuid.UUID `json:"user_id" db:"id"`
+	Username         string    `json:"username" db:"username"`
+	DisplayName      string    `json:"display_name" db:"display_name"`
+	AvatarURL        *string   `json:"avatar_url,omitempty" db:"avatar_url"`
+	Score            int       `json:"score"` // Karma or engagement score
+	UserRank         string    `json:"user_rank" db:"rank"`
+	AccountAge       string    `json:"account_age,omitempty"`
+	TotalComments    *int      `json:"total_comments,omitempty" db:"total_comments"`
+	TotalVotesCast   *int      `json:"total_votes_cast,omitempty" db:"total_votes_cast"`
+	TotalClipsSubmit *int      `json:"total_clips_submitted,omitempty" db:"total_clips_submitted"`
 }
