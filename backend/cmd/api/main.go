@@ -375,6 +375,10 @@ func main() {
 		go syncScheduler.Start(context.Background())
 	}
 
+	// Start reputation scheduler (runs every 6 hours)
+	reputationScheduler := scheduler.NewReputationScheduler(reputationService, userRepo, 6)
+	go reputationScheduler.Start(context.Background())
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:    ":" + cfg.Server.Port,
@@ -399,6 +403,7 @@ func main() {
 	if syncScheduler != nil {
 		syncScheduler.Stop()
 	}
+	reputationScheduler.Stop()
 
 	// Graceful shutdown with 5 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
