@@ -328,3 +328,62 @@ type LeaderboardEntry struct {
 	TotalVotesCast   *int      `json:"total_votes_cast,omitempty" db:"total_votes_cast"`
 	TotalClipsSubmit *int      `json:"total_clips_submitted,omitempty" db:"total_clips_submitted"`
 }
+
+// Notification represents a notification for a user
+type Notification struct {
+	ID                uuid.UUID  `json:"id" db:"id"`
+	UserID            uuid.UUID  `json:"user_id" db:"user_id"`
+	Type              string     `json:"type" db:"type"`
+	Title             string     `json:"title" db:"title"`
+	Message           string     `json:"message" db:"message"`
+	Link              *string    `json:"link,omitempty" db:"link"`
+	IsRead            bool       `json:"is_read" db:"is_read"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	ExpiresAt         *time.Time `json:"expires_at,omitempty" db:"expires_at"`
+	SourceUserID      *uuid.UUID `json:"source_user_id,omitempty" db:"source_user_id"`
+	SourceContentID   *uuid.UUID `json:"source_content_id,omitempty" db:"source_content_id"`
+	SourceContentType *string    `json:"source_content_type,omitempty" db:"source_content_type"`
+}
+
+// NotificationWithSource includes source user information
+type NotificationWithSource struct {
+	Notification
+	SourceUsername    *string `json:"source_username,omitempty" db:"source_username"`
+	SourceDisplayName *string `json:"source_display_name,omitempty" db:"source_display_name"`
+	SourceAvatarURL   *string `json:"source_avatar_url,omitempty" db:"source_avatar_url"`
+}
+
+// NotificationPreferences represents user's notification settings
+type NotificationPreferences struct {
+	UserID                      uuid.UUID `json:"user_id" db:"user_id"`
+	InAppEnabled                bool      `json:"in_app_enabled" db:"in_app_enabled"`
+	EmailEnabled                bool      `json:"email_enabled" db:"email_enabled"`
+	EmailDigest                 string    `json:"email_digest" db:"email_digest"`
+	NotifyReplies               bool      `json:"notify_replies" db:"notify_replies"`
+	NotifyMentions              bool      `json:"notify_mentions" db:"notify_mentions"`
+	NotifyVotes                 bool      `json:"notify_votes" db:"notify_votes"`
+	NotifyBadges                bool      `json:"notify_badges" db:"notify_badges"`
+	NotifyModeration            bool      `json:"notify_moderation" db:"notify_moderation"`
+	NotifyRankUp                bool      `json:"notify_rank_up" db:"notify_rank_up"`
+	NotifyFavoritedClipComment  bool      `json:"notify_favorited_clip_comment" db:"notify_favorited_clip_comment"`
+	UpdatedAt                   time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Notification types constants
+const (
+	NotificationTypeReply                  = "reply"
+	NotificationTypeMention                = "mention"
+	NotificationTypeVoteMilestone          = "vote_milestone"
+	NotificationTypeBadgeEarned            = "badge_earned"
+	NotificationTypeRankUp                 = "rank_up"
+	NotificationTypeFavoritedClipComment   = "favorited_clip_comment"
+	NotificationTypeContentRemoved         = "content_removed"
+	NotificationTypeWarning                = "warning"
+	NotificationTypeBan                    = "ban"
+	NotificationTypeAppealDecision         = "appeal_decision"
+	NotificationTypeSubmissionApproved     = "submission_approved"
+	NotificationTypeSubmissionRejected     = "submission_rejected"
+	NotificationTypeNewReport              = "new_report"
+	NotificationTypePendingSubmissions     = "pending_submissions"
+	NotificationTypeSystemAlert            = "system_alert"
+)

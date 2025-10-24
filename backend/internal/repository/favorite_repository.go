@@ -118,3 +118,35 @@ func (r *FavoriteRepository) GetByID(ctx context.Context, id uuid.UUID) (*models
 
 	return &fav, nil
 }
+
+// GetByClipID retrieves all favorites for a clip
+func (r *FavoriteRepository) GetByClipID(ctx context.Context, clipID uuid.UUID) ([]models.Favorite, error) {
+	query := `
+		SELECT id, user_id, clip_id, created_at
+		FROM favorites
+		WHERE clip_id = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.pool.Query(ctx, query, clipID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get favorites by clip: %w", err)
+	}
+	defer rows.Close()
+
+	var favorites []models.Favorite
+	for rows.Next() {
+		var fav models.Favorite
+		err := rows.Scan(&fav.ID, &fav.UserID, &fav.ClipID, &fav.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan favorite: %w", err)
+		}
+		favorites = append(favorites, fav)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating favorites: %w", err)
+	}
+
+	return favorites, nil
+}
