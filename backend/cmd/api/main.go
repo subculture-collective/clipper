@@ -81,6 +81,7 @@ func main() {
 	submissionRepo := repository.NewSubmissionRepository(db.Pool)
 	reportRepo := repository.NewReportRepository(db.Pool)
 	reputationRepo := repository.NewReputationRepository(db.Pool)
+	notificationRepo := repository.NewNotificationRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -95,6 +96,7 @@ func main() {
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
+	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo)
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -111,6 +113,7 @@ func main() {
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -317,6 +320,30 @@ func main() {
 
 		// Badge definitions (public)
 		v1.GET("/badges", reputationHandler.GetBadgeDefinitions)
+
+		// Notification routes
+		notifications := v1.Group("/notifications")
+		notifications.Use(middleware.AuthMiddleware(authService))
+		{
+			// Get notifications list
+			notifications.GET("", notificationHandler.ListNotifications)
+			
+			// Get unread count
+			notifications.GET("/count", notificationHandler.GetUnreadCount)
+			
+			// Mark notification as read
+			notifications.PUT("/:id/read", notificationHandler.MarkAsRead)
+			
+			// Mark all notifications as read
+			notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
+			
+			// Delete notification
+			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
+			
+			// Get/Update preferences
+			notifications.GET("/preferences", notificationHandler.GetPreferences)
+			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+		}
 
 		// Admin routes
 		admin := v1.Group("/admin")

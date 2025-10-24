@@ -37,6 +37,8 @@ const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').the
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
+const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -123,6 +125,22 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <UserSubmissionsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/notifications"
+                    element={
+                      <ProtectedRoute>
+                        <NotificationsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/notifications/preferences"
+                    element={
+                      <ProtectedRoute>
+                        <NotificationPreferencesPage />
                       </ProtectedRoute>
                     }
                   />
