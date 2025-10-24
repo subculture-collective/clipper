@@ -36,6 +36,7 @@ const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m 
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -69,6 +70,7 @@ function App() {
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/leaderboards" element={<LeaderboardPage />} />
 
                   {/* Guest Routes (redirect to home if authenticated) */}
                   <Route
