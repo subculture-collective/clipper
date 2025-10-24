@@ -31,6 +31,45 @@ test: ## Run all tests
 	cd frontend && npm test
 	@echo "✓ Tests complete"
 
+test-unit: ## Run unit tests only
+	@echo "Running backend unit tests..."
+	cd backend && go test -short ./...
+	@echo "Running frontend unit tests..."
+	cd frontend && npm test -- --run
+	@echo "✓ Unit tests complete"
+
+test-integration: ## Run integration tests (requires Docker)
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running integration tests..."
+	cd backend && go test -v -tags=integration ./...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Integration tests complete"
+
+test-coverage: ## Run tests with coverage report
+	@echo "Running backend tests with coverage..."
+	cd backend && go test -coverprofile=coverage.out -covermode=atomic ./...
+	@echo "Generating coverage report..."
+	cd backend && go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated at backend/coverage.html"
+	@echo "✓ Coverage tests complete"
+
+test-load: ## Run load tests (requires k6)
+	@if command -v k6 > /dev/null; then \
+		echo "Running load tests..."; \
+		k6 run backend/tests/load/feed_test.js; \
+		echo "✓ Load tests complete"; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
+
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	rm -rf backend/bin

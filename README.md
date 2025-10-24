@@ -4,6 +4,7 @@
 [![Docker](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml)
 [![CodeQL](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml)
 [![Lighthouse CI](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml)
+[![codecov](https://codecov.io/gh/subculture-collective/clipper/branch/main/graph/badge.svg)](https://codecov.io/gh/subculture-collective/clipper)
 
 A modern Twitch clip curation platform that allows users to discover, organize, and share their favorite Twitch clips with the community.
 
@@ -181,17 +182,81 @@ More endpoints will be documented as they are implemented.
 
 ## 🧪 Testing
 
+We have a comprehensive testing strategy covering unit, integration, E2E, and load tests. See [Testing Guide](docs/TESTING.md) for detailed documentation.
+
+### Quick Start
+
+```bash
+# Run all tests
+make test
+
+# Run unit tests only
+make test-unit
+
+# Run integration tests (requires Docker)
+make test-integration
+
+# Run tests with coverage
+make test-coverage
+
+# Run load tests (requires k6)
+make test-load
+```
+
 ### Backend Tests
+
 ```bash
 cd backend
+
+# Unit tests
 go test ./...
+
+# With coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+
+# With race detection
+go test -race ./...
 ```
 
 ### Frontend Tests
+
 ```bash
 cd frontend
+
+# Unit/integration tests
 npm test
+
+# With UI
+npm run test:ui
+
+# With coverage
+npm run test:coverage
+
+# E2E tests
+npm run test:e2e
+
+# E2E with UI
+npm run test:e2e:ui
 ```
+
+### Coverage Status
+
+- **Backend**: ~15% (Target: >80%)
+  - JWT: 80% ✓
+  - Scheduler: 81.8% ✓
+  - Utils: 100% ✓
+  - Handlers: 0% (in progress)
+  - Services: 4.3% (in progress)
+  
+- **Frontend**: Infrastructure ready, tests in development
+
+### Performance Targets
+
+- Feed endpoint: <100ms (p95)
+- API responses: <50ms (p95)
+- Concurrent users: 1000+
+- Requests/second: 100+
 
 ## 📦 Building for Production
 
