@@ -479,7 +479,7 @@ func parseQueryToTSQuery(query string) string {
 
 	// Simple parsing: split by spaces and join with & (AND)
 	words := strings.Fields(query)
-	
+
 	// Remove special characters and empty strings
 	var cleanWords []string
 	for _, word := range words {
