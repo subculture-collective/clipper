@@ -127,28 +127,13 @@ const PersonalStatsPage: React.FC = () => {
 
                     <div className="space-y-4">
                       <div>
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600 dark:text-gray-400">
                             Total Votes Cast
                           </span>
                           <span className="text-sm font-semibold text-gray-900 dark:text-white">
                             {stats.clips_upvoted + stats.clips_downvoted}
                           </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className="bg-purple-600 h-2 rounded-full"
-                            style={{
-                              width: `${
-                                ((stats.clips_upvoted + stats.clips_downvoted) /
-                                  Math.max(
-                                    stats.clips_upvoted + stats.clips_downvoted,
-                                    1
-                                  )) *
-                                100
-                              }%`,
-                            }}
-                          ></div>
                         </div>
                       </div>
 
