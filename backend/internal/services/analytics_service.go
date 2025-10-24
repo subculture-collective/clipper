@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"net"
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -131,10 +132,12 @@ func (s *AnalyticsService) GetContentMetrics(ctx context.Context) (*models.Conte
 	}
 	
 	// Calculate average clip vote score
-	avgVoteScore, err := s.analyticsRepo.GetAverageClipVoteScore(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// TODO: Implement GetAverageClipVoteScore in analytics repository
+	avgVoteScore := 0.0
+	// avgVoteScore, err := s.analyticsRepo.GetAverageClipVoteScore(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	
 	return &models.ContentMetrics{
 		MostPopularGames:    games,
@@ -153,33 +156,38 @@ func (s *AnalyticsService) GetPlatformTrends(ctx context.Context, metricType str
 	return s.analyticsRepo.GetPlatformTrends(ctx, metricType, days)
 }
 
-// anonymizeIP removes the last octet of an IP address for privacy
+// anonymizeIP anonymizes an IP address for privacy using Go's net package.
+// For IPv4 addresses, the last octet (8 bits) is zeroed out.
+// For IPv6 addresses, the last 80 bits are zeroed out.
 func anonymizeIP(ip string) string {
 	if ip == "" {
 		return ""
 	}
 	
-	// Simple IPv4 anonymization - replace last octet with 0
-	// For production, use a proper IP parsing library
-	var result string
-	lastDot := -1
-	for i := len(ip) - 1; i >= 0; i-- {
-		if ip[i] == '.' {
-			lastDot = i
-			break
-		}
+	// Parse the IP address using Go's standard library
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		// Invalid IP address
+		return "invalid"
 	}
 	
-	if lastDot > 0 {
-		result = ip[:lastDot] + ".0"
-	} else {
-		// For IPv6 or invalid IPs, just truncate
-		if len(ip) > 10 {
-			result = ip[:10] + "..."
-		} else {
-			result = "anonymized"
-		}
+	// Check if it's an IPv4 address
+	if ipv4 := parsedIP.To4(); ipv4 != nil {
+		// Zero out the last octet (8 bits) of IPv4
+		ipv4[3] = 0
+		return ipv4.String()
 	}
 	
-	return result
+	// It's an IPv6 address - zero out the last 80 bits (10 bytes)
+	// IPv6 addresses are 128 bits (16 bytes), so we keep the first 48 bits (6 bytes)
+	ipv6 := parsedIP.To16()
+	if ipv6 != nil {
+		for i := 6; i < 16; i++ {
+			ipv6[i] = 0
+		}
+		return ipv6.String()
+	}
+	
+	// Fallback for unexpected cases
+	return "invalid"
 }
