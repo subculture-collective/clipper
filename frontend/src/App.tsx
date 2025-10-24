@@ -39,6 +39,9 @@ const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
+const CreatorAnalyticsPage = lazy(() => import('./pages/CreatorAnalyticsPage'));
+const PersonalStatsPage = lazy(() => import('./pages/PersonalStatsPage'));
+const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -67,6 +70,7 @@ function App() {
                   <Route path="/clip/:id" element={<ClipDetailPage />} />
                   <Route path="/game/:gameId" element={<GamePage />} />
                   <Route path="/creator/:creatorId" element={<CreatorPage />} />
+                  <Route path="/creator/:creatorName/analytics" element={<CreatorAnalyticsPage />} />
                   <Route path="/tag/:tagSlug" element={<TagPage />} />
                   <Route path="/search" element={<SearchPage />} />
                   <Route path="/about" element={<AboutPage />} />
@@ -144,6 +148,14 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/profile/stats"
+                    element={
+                      <ProtectedRoute>
+                        <PersonalStatsPage />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Admin Routes (require admin role) */}
                   <Route
@@ -191,6 +203,14 @@ function App() {
                     element={
                       <AdminRoute>
                         <AdminSyncPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/analytics"
+                    element={
+                      <AdminRoute>
+                        <AdminAnalyticsPage />
                       </AdminRoute>
                     }
                   />
