@@ -387,3 +387,161 @@ const (
 	NotificationTypePendingSubmissions     = "pending_submissions"
 	NotificationTypeSystemAlert            = "system_alert"
 )
+
+// AnalyticsEvent represents a tracked event for analytics
+type AnalyticsEvent struct {
+	ID         uuid.UUID       `json:"id" db:"id"`
+	EventType  string          `json:"event_type" db:"event_type"`
+	UserID     *uuid.UUID      `json:"user_id,omitempty" db:"user_id"`
+	ClipID     *uuid.UUID      `json:"clip_id,omitempty" db:"clip_id"`
+	Metadata   *string         `json:"metadata,omitempty" db:"metadata"` // JSON string
+	IPAddress  *string         `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent  *string         `json:"user_agent,omitempty" db:"user_agent"`
+	Referrer   *string         `json:"referrer,omitempty" db:"referrer"`
+	CreatedAt  time.Time       `json:"created_at" db:"created_at"`
+}
+
+// DailyAnalytics represents pre-aggregated daily metrics
+type DailyAnalytics struct {
+	ID         uuid.UUID  `json:"id" db:"id"`
+	Date       time.Time  `json:"date" db:"date"`
+	MetricType string     `json:"metric_type" db:"metric_type"`
+	EntityType *string    `json:"entity_type,omitempty" db:"entity_type"`
+	EntityID   *string    `json:"entity_id,omitempty" db:"entity_id"`
+	Value      int64      `json:"value" db:"value"`
+	Metadata   *string    `json:"metadata,omitempty" db:"metadata"` // JSON string
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// ClipAnalytics represents analytics for a specific clip
+type ClipAnalytics struct {
+	ClipID               uuid.UUID  `json:"clip_id" db:"clip_id"`
+	TotalViews           int64      `json:"total_views" db:"total_views"`
+	UniqueViewers        int64      `json:"unique_viewers" db:"unique_viewers"`
+	AvgViewDuration      *float64   `json:"avg_view_duration,omitempty" db:"avg_view_duration"`
+	TotalShares          int64      `json:"total_shares" db:"total_shares"`
+	PeakConcurrentViews  int        `json:"peak_concurrent_viewers" db:"peak_concurrent_viewers"`
+	RetentionRate        *float64   `json:"retention_rate,omitempty" db:"retention_rate"`
+	FirstViewedAt        *time.Time `json:"first_viewed_at,omitempty" db:"first_viewed_at"`
+	LastViewedAt         *time.Time `json:"last_viewed_at,omitempty" db:"last_viewed_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// CreatorAnalytics represents analytics for a content creator
+type CreatorAnalytics struct {
+	CreatorName        string    `json:"creator_name" db:"creator_name"`
+	CreatorID          *string   `json:"creator_id,omitempty" db:"creator_id"`
+	TotalClips         int       `json:"total_clips" db:"total_clips"`
+	TotalViews         int64     `json:"total_views" db:"total_views"`
+	TotalUpvotes       int64     `json:"total_upvotes" db:"total_upvotes"`
+	TotalDownvotes     int64     `json:"total_downvotes" db:"total_downvotes"`
+	TotalComments      int64     `json:"total_comments" db:"total_comments"`
+	TotalFavorites     int64     `json:"total_favorites" db:"total_favorites"`
+	AvgEngagementRate  *float64  `json:"avg_engagement_rate,omitempty" db:"avg_engagement_rate"`
+	FollowerCount      int       `json:"follower_count" db:"follower_count"`
+	UpdatedAt          time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// UserAnalytics represents personal statistics for a user
+type UserAnalytics struct {
+	UserID             uuid.UUID  `json:"user_id" db:"user_id"`
+	ClipsUpvoted       int        `json:"clips_upvoted" db:"clips_upvoted"`
+	ClipsDownvoted     int        `json:"clips_downvoted" db:"clips_downvoted"`
+	CommentsPosted     int        `json:"comments_posted" db:"comments_posted"`
+	ClipsFavorited     int        `json:"clips_favorited" db:"clips_favorited"`
+	SearchesPerformed  int        `json:"searches_performed" db:"searches_performed"`
+	DaysActive         int        `json:"days_active" db:"days_active"`
+	TotalKarmaEarned   int        `json:"total_karma_earned" db:"total_karma_earned"`
+	LastActiveAt       *time.Time `json:"last_active_at,omitempty" db:"last_active_at"`
+	UpdatedAt          time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// PlatformAnalytics represents global platform statistics
+type PlatformAnalytics struct {
+	ID                  uuid.UUID  `json:"id" db:"id"`
+	Date                time.Time  `json:"date" db:"date"`
+	TotalUsers          int64      `json:"total_users" db:"total_users"`
+	ActiveUsersDaily    int        `json:"active_users_daily" db:"active_users_daily"`
+	ActiveUsersWeekly   int        `json:"active_users_weekly" db:"active_users_weekly"`
+	ActiveUsersMonthly  int        `json:"active_users_monthly" db:"active_users_monthly"`
+	NewUsersToday       int        `json:"new_users_today" db:"new_users_today"`
+	TotalClips          int64      `json:"total_clips" db:"total_clips"`
+	NewClipsToday       int        `json:"new_clips_today" db:"new_clips_today"`
+	TotalVotes          int64      `json:"total_votes" db:"total_votes"`
+	VotesToday          int        `json:"votes_today" db:"votes_today"`
+	TotalComments       int64      `json:"total_comments" db:"total_comments"`
+	CommentsToday       int        `json:"comments_today" db:"comments_today"`
+	TotalViews          int64      `json:"total_views" db:"total_views"`
+	ViewsToday          int64      `json:"views_today" db:"views_today"`
+	AvgSessionDuration  *float64   `json:"avg_session_duration,omitempty" db:"avg_session_duration"`
+	Metadata            *string    `json:"metadata,omitempty" db:"metadata"` // JSON string
+	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
+}
+
+// CreatorAnalyticsOverview represents summary metrics for creator dashboard
+type CreatorAnalyticsOverview struct {
+	TotalClips         int     `json:"total_clips"`
+	TotalViews         int64   `json:"total_views"`
+	TotalUpvotes       int64   `json:"total_upvotes"`
+	TotalComments      int64   `json:"total_comments"`
+	AvgEngagementRate  float64 `json:"avg_engagement_rate"`
+	FollowerCount      int     `json:"follower_count"`
+}
+
+// CreatorTopClip represents a top-performing clip for creator analytics
+type CreatorTopClip struct {
+	Clip
+	Views             int64   `json:"views"`
+	EngagementRate    float64 `json:"engagement_rate"`
+}
+
+// TrendDataPoint represents a data point in a time series
+type TrendDataPoint struct {
+	Date  time.Time `json:"date"`
+	Value int64     `json:"value"`
+}
+
+// PlatformOverviewMetrics represents KPIs for admin dashboard
+type PlatformOverviewMetrics struct {
+	TotalUsers          int64   `json:"total_users"`
+	ActiveUsersDaily    int     `json:"active_users_daily"`
+	ActiveUsersMonthly  int     `json:"active_users_monthly"`
+	TotalClips          int64   `json:"total_clips"`
+	ClipsAddedToday     int     `json:"clips_added_today"`
+	TotalVotes          int64   `json:"total_votes"`
+	TotalComments       int64   `json:"total_comments"`
+	AvgSessionDuration  float64 `json:"avg_session_duration"`
+}
+
+// ContentMetrics represents content-related metrics for admin dashboard
+type ContentMetrics struct {
+	MostPopularGames    []GameMetric    `json:"most_popular_games"`
+	MostPopularCreators []CreatorMetric `json:"most_popular_creators"`
+	TrendingTags        []TagMetric     `json:"trending_tags"`
+	AvgClipVoteScore    float64         `json:"avg_clip_vote_score"`
+}
+
+// GameMetric represents game popularity metrics
+type GameMetric struct {
+	GameID    *string `json:"game_id"`
+	GameName  string  `json:"game_name"`
+	ClipCount int     `json:"clip_count"`
+	ViewCount int64   `json:"view_count"`
+}
+
+// CreatorMetric represents creator popularity metrics
+type CreatorMetric struct {
+	CreatorID   *string `json:"creator_id"`
+	CreatorName string  `json:"creator_name"`
+	ClipCount   int     `json:"clip_count"`
+	ViewCount   int64   `json:"view_count"`
+	VoteScore   int64   `json:"vote_score"`
+}
+
+// TagMetric represents tag usage metrics
+type TagMetric struct {
+	TagID      uuid.UUID `json:"tag_id"`
+	TagName    string    `json:"tag_name"`
+	UsageCount int       `json:"usage_count"`
+}

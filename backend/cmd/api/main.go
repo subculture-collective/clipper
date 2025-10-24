@@ -82,6 +82,7 @@ func main() {
 	reportRepo := repository.NewReportRepository(db.Pool)
 	reputationRepo := repository.NewReputationRepository(db.Pool)
 	notificationRepo := repository.NewNotificationRepository(db.Pool)
+	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -97,6 +98,7 @@ func main() {
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo)
+	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -114,6 +116,7 @@ func main() {
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
+	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -228,6 +231,10 @@ func main() {
 			// Clip tags (public)
 			clips.GET("/:id/tags", tagHandler.GetClipTags)
 
+			// Clip analytics (public)
+			clips.GET("/:id/analytics", analyticsHandler.GetClipAnalytics)
+			clips.POST("/:id/track-view", analyticsHandler.TrackClipView)
+
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:clipId/comments", commentHandler.ListComments)
 
@@ -309,6 +316,18 @@ func main() {
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
 			users.GET("/:id/karma", reputationHandler.GetUserKarma)
 			users.GET("/:id/badges", reputationHandler.GetUserBadges)
+			
+			// Personal statistics (authenticated)
+			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
+		}
+		
+		// Creator analytics routes
+		creators := v1.Group("/creators")
+		{
+			// Public creator analytics endpoints
+			creators.GET("/:creatorName/analytics/overview", analyticsHandler.GetCreatorAnalyticsOverview)
+			creators.GET("/:creatorName/analytics/clips", analyticsHandler.GetCreatorTopClips)
+			creators.GET("/:creatorName/analytics/trends", analyticsHandler.GetCreatorTrends)
 		}
 
 		// Leaderboard routes
@@ -390,6 +409,14 @@ func main() {
 			{
 				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
 				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
+			}
+			
+			// Analytics routes (admin only)
+			analytics := admin.Group("/analytics")
+			{
+				analytics.GET("/overview", analyticsHandler.GetPlatformOverview)
+				analytics.GET("/content", analyticsHandler.GetContentMetrics)
+				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
 			}
 		}
 	}
