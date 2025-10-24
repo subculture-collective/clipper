@@ -21,7 +21,7 @@ func TestUser() *models.User {
 	email := "test@example.com"
 	avatarURL := "https://example.com/avatar.png"
 	bio := "Test user bio"
-	
+
 	return &models.User{
 		ID:          uuid.New(),
 		TwitchID:    "test_twitch_123",
@@ -55,7 +55,7 @@ func TestClip() *models.Clip {
 	gameID := "game_123"
 	gameName := "Test Game"
 	language := "en"
-	
+
 	return &models.Clip{
 		ID:              uuid.New(),
 		TwitchClipID:    "test_clip_123",

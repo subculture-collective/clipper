@@ -337,7 +337,7 @@ func (r *SubmissionRepository) CountUserSubmissions(ctx context.Context, userID 
 // GetUserStats retrieves submission statistics for a user
 func (r *SubmissionRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*models.SubmissionStats, error) {
 	query := `SELECT * FROM submission_stats WHERE user_id = $1`
-	
+
 	var stats models.SubmissionStats
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&stats.UserID,
