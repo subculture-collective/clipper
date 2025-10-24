@@ -1,6 +1,7 @@
 # User-Submitted Clip System Implementation
 
 ## Overview
+
 This document describes the implementation of the user-submitted clip system with moderation queue for the Clipper application.
 
 ## Features Implemented
@@ -8,6 +9,7 @@ This document describes the implementation of the user-submitted clip system wit
 ### Backend Implementation
 
 #### 1. Database Schema
+
 - **New Table: `clip_submissions`**
   - Tracks user-submitted clips pending moderation
   - Includes metadata cached from Twitch for review
@@ -20,6 +22,7 @@ This document describes the implementation of the user-submitted clip system wit
   - Tracks total, approved, rejected, and pending counts
 
 #### 2. Repository Layer (`submission_repository.go`)
+
 - `Create()` - Create new submission
 - `GetByID()` - Retrieve submission by ID
 - `GetByTwitchClipID()` - Find submission by Twitch clip ID (for duplicate detection)
@@ -30,6 +33,7 @@ This document describes the implementation of the user-submitted clip system wit
 - `GetUserStats()` - Get submission statistics for a user
 
 #### 3. Service Layer (`submission_service.go`)
+
 - **Quality Checks:**
   - Clip age validation (must be < 6 months)
   - Duration validation (must be ≥ 5 seconds)
@@ -57,11 +61,13 @@ This document describes the implementation of the user-submitted clip system wit
 #### 4. API Endpoints (`submission_handler.go`)
 
 **User Endpoints:**
+
 - `POST /api/v1/submissions` - Submit a clip (rate limited: 5/hour)
 - `GET /api/v1/submissions` - List user's submissions
 - `GET /api/v1/submissions/stats` - Get submission statistics
 
 **Admin Endpoints:**
+
 - `GET /api/v1/admin/submissions` - List pending submissions (moderation queue)
 - `POST /api/v1/admin/submissions/:id/approve` - Approve a submission
 - `POST /api/v1/admin/submissions/:id/reject` - Reject a submission with reason
@@ -69,6 +75,7 @@ This document describes the implementation of the user-submitted clip system wit
 ### Frontend Implementation
 
 #### 1. Submission Form (`SubmitClipPage.tsx`)
+
 - URL input with validation
 - Auto-fetch metadata from backend
 - Optional custom title override
@@ -79,6 +86,7 @@ This document describes the implementation of the user-submitted clip system wit
 - Recent submissions preview
 
 #### 2. User Submission Tracking (`UserSubmissionsPage.tsx`)
+
 - List all user submissions with status
 - Status badges (pending/approved/rejected)
 - Submission statistics dashboard
@@ -88,6 +96,7 @@ This document describes the implementation of the user-submitted clip system wit
 - Tag display
 
 #### 3. Admin Moderation Queue (`ModerationQueuePage.tsx`)
+
 - List pending submissions
 - Embedded clip previews
 - Submitter information (karma, role)
@@ -98,11 +107,13 @@ This document describes the implementation of the user-submitted clip system wit
 - Pending count display
 
 #### 4. API Integration (`submission-api.ts`)
+
 - Type-safe API client methods
 - Error handling
 - Axios integration with auto-refresh
 
 #### 5. Type Definitions (`submission.ts`)
+
 - `ClipSubmission` - Main submission type
 - `ClipSubmissionWithUser` - Submission with user data
 - `SubmissionStats` - User statistics
@@ -111,11 +122,13 @@ This document describes the implementation of the user-submitted clip system wit
 ### Routes Added
 
 **Frontend Routes:**
+
 - `/submit` - Submission form (protected, requires auth)
 - `/submissions` - User's submission history (protected, requires auth)
 - `/admin/submissions` - Moderation queue (protected, requires admin/moderator role)
 
 **Backend Routes:**
+
 - `POST /api/v1/submissions` - Submit clip
 - `GET /api/v1/submissions` - List user submissions
 - `GET /api/v1/submissions/stats` - Get user stats
@@ -126,18 +139,21 @@ This document describes the implementation of the user-submitted clip system wit
 ## Security Considerations
 
 ### Authentication & Authorization
+
 - All submission endpoints require authentication
 - Admin endpoints require admin or moderator role
 - Rate limiting prevents spam
 - Karma requirement prevents low-quality submissions
 
 ### Input Validation
+
 - URL validation and sanitization
 - Twitch API validation before acceptance
 - Custom title length limits
 - Tag input sanitization
 
 ### Data Protection
+
 - User IDs validated before database operations
 - SQL injection prevented through parameterized queries
 - Rate limiting prevents abuse
@@ -145,11 +161,13 @@ This document describes the implementation of the user-submitted clip system wit
 ## Testing
 
 ### Backend Tests
+
 - Auto-approval logic tests
 - URL extraction and parsing tests
 - All existing tests passing
 
 ### Security Scanning
+
 - CodeQL analysis passed with 0 alerts
 - No vulnerabilities detected in Go or JavaScript code
 
@@ -168,6 +186,7 @@ psql -d clipper -f backend/migrations/000004_add_clip_submissions.down.sql
 ## Configuration
 
 No additional configuration required. The feature uses existing:
+
 - Authentication system
 - Rate limiting infrastructure
 - Twitch API integration
@@ -198,6 +217,7 @@ The following features were identified but not implemented in this phase:
 ## Usage Examples
 
 ### Submitting a Clip (User)
+
 1. Navigate to `/submit`
 2. Paste Twitch clip URL
 3. Optionally add custom title, tags, NSFW flag
@@ -206,6 +226,7 @@ The following features were identified but not implemented in this phase:
 6. Auto-approved if user is admin/moderator or has ≥1000 karma
 
 ### Moderating Submissions (Admin)
+
 1. Navigate to `/admin/submissions`
 2. Review clip preview and metadata
 3. Check submitter karma and history
@@ -213,6 +234,7 @@ The following features were identified but not implemented in this phase:
 5. If rejecting, provide reason for user
 
 ### Tracking Submissions (User)
+
 1. Navigate to `/submissions`
 2. View all submitted clips
 3. See status badges (pending/approved/rejected)
