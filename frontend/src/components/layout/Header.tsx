@@ -57,6 +57,11 @@ export function Header() {
                 Rising
               </Button>
             </Link>
+            <Link to="/leaderboards">
+              <Button variant="ghost" size="sm">
+                🏆 Leaderboards
+              </Button>
+            </Link>
           </nav>
 
           {/* Search Bar */}

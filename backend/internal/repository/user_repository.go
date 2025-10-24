@@ -243,6 +243,32 @@ func (r *RefreshTokenRepository) RevokeAllForUser(ctx context.Context, userID uu
 	return err
 }
 
+// GetAllActiveUserIDs retrieves all user IDs that are not banned
+func (r *UserRepository) GetAllActiveUserIDs(ctx context.Context) ([]uuid.UUID, error) {
+	query := `
+		SELECT id FROM users
+		WHERE is_banned = false
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userIDs []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		userIDs = append(userIDs, id)
+	}
+
+	return userIDs, rows.Err()
+}
+
 // DeleteExpired deletes expired refresh tokens
 func (r *RefreshTokenRepository) DeleteExpired(ctx context.Context) error {
 	query := `
