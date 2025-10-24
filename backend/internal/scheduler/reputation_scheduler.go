@@ -86,35 +86,71 @@ func (s *ReputationScheduler) runTasks(ctx context.Context) {
 		return
 	}
 
+	const workerCount = 20
+	type result struct {
+		badgesAwarded int
+		statsUpdated  int
+		errors        int
+	}
+
+	userCh := make(chan uuid.UUID)
+	resultCh := make(chan result)
+	var wg sync.WaitGroup
+
+	// Start worker goroutines
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for userID := range userCh {
+				res := result{}
+
+				// Check and award badges
+				badges, err := s.reputationService.CheckAndAwardBadges(ctx, userID)
+				if err != nil {
+					log.Printf("Failed to check badges for user %v: %v", userID, err)
+					res.errors++
+				} else if len(badges) > 0 {
+					res.badgesAwarded += len(badges)
+					log.Printf("Awarded %d badges to user %v: %v", len(badges), userID, badges)
+				}
+
+				// Update user stats
+				err = s.reputationService.UpdateUserStats(ctx, userID)
+				if err != nil {
+					log.Printf("Failed to update stats for user %v: %v", userID, err)
+					res.errors++
+				} else {
+					res.statsUpdated++
+				}
+
+				resultCh <- res
+			}
+		}()
+	}
+
+	// Feed users to workers
+	go func() {
+		for _, userID := range userIDs {
+			userCh <- userID
+		}
+		close(userCh)
+	}()
+
+	// Collect results
 	badgesAwarded := 0
 	statsUpdated := 0
 	errors := 0
-
-	// Process each user
-	for _, userID := range userIDs {
-		// Check and award badges
-		badges, err := s.reputationService.CheckAndAwardBadges(ctx, userID)
-		if err != nil {
-			log.Printf("Failed to check badges for user %v: %v", userID, err)
-			errors++
-		} else if len(badges) > 0 {
-			badgesAwarded += len(badges)
-			log.Printf("Awarded %d badges to user %v: %v", len(badges), userID, badges)
-		}
-
-		// Update user stats
-		err = s.reputationService.UpdateUserStats(ctx, userID)
-		if err != nil {
-			log.Printf("Failed to update stats for user %v: %v", userID, err)
-			errors++
-		} else {
-			statsUpdated++
-		}
-
-		// Add a small delay to avoid overwhelming the database
-		time.Sleep(10 * time.Millisecond)
+	for i := 0; i < len(userIDs); i++ {
+		res := <-resultCh
+		badgesAwarded += res.badgesAwarded
+		statsUpdated += res.statsUpdated
+		errors += res.errors
 	}
 
+	// Wait for all workers to finish
+	wg.Wait()
+	close(resultCh)
 	duration := time.Since(startTime)
 	log.Printf("Reputation tasks completed: users=%d badges_awarded=%d stats_updated=%d errors=%d duration=%v",
 		len(userIDs), badgesAwarded, statsUpdated, errors, duration)
