@@ -80,6 +80,7 @@ func main() {
 	searchRepo := repository.NewSearchRepository(db.Pool)
 	submissionRepo := repository.NewSubmissionRepository(db.Pool)
 	reportRepo := repository.NewReportRepository(db.Pool)
+	reputationRepo := repository.NewReputationRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -93,6 +94,7 @@ func main() {
 	commentService := services.NewCommentService(commentRepo, clipRepo)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
 	autoTagService := services.NewAutoTagService(tagRepo)
+	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -108,6 +110,7 @@ func main() {
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
+	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -296,6 +299,25 @@ func main() {
 			reports.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), reportHandler.SubmitReport)
 		}
 
+		// Reputation routes
+		users := v1.Group("/users")
+		{
+			// Public reputation endpoints
+			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
+			users.GET("/:id/karma", reputationHandler.GetUserKarma)
+			users.GET("/:id/badges", reputationHandler.GetUserBadges)
+		}
+
+		// Leaderboard routes
+		leaderboards := v1.Group("/leaderboards")
+		{
+			// Public leaderboard endpoints
+			leaderboards.GET("/:type", reputationHandler.GetLeaderboard)
+		}
+
+		// Badge definitions (public)
+		v1.GET("/badges", reputationHandler.GetBadgeDefinitions)
+
 		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(authService))
@@ -334,6 +356,13 @@ func main() {
 				adminReports.GET("", reportHandler.ListReports)
 				adminReports.GET("/:id", reportHandler.GetReport)
 				adminReports.PUT("/:id", reportHandler.UpdateReport)
+			}
+
+			// Badge management
+			adminUsers := admin.Group("/users")
+			{
+				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
+				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
 			}
 		}
 	}
