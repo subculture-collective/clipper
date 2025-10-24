@@ -11,13 +11,13 @@ import (
 
 // MockTagRepository is a mock implementation of TagRepository for testing
 type MockTagRepository struct {
-	tags map[uuid.UUID]*models.Tag
+	tags     map[uuid.UUID]*models.Tag
 	clipTags map[uuid.UUID]map[uuid.UUID]bool // clipID -> tagID -> exists
 }
 
 func NewMockTagRepository() *MockTagRepository {
 	return &MockTagRepository{
-		tags: make(map[uuid.UUID]*models.Tag),
+		tags:     make(map[uuid.UUID]*models.Tag),
 		clipTags: make(map[uuid.UUID]map[uuid.UUID]bool),
 	}
 }
@@ -48,7 +48,7 @@ func (m *MockTagRepository) AddTagToClip(ctx context.Context, clipID, tagID uuid
 		m.clipTags[clipID] = make(map[uuid.UUID]bool)
 	}
 	m.clipTags[clipID][tagID] = true
-	
+
 	// Increment usage count
 	if tag, ok := m.tags[tagID]; ok {
 		tag.UsageCount++
@@ -60,7 +60,7 @@ func (m *MockTagRepository) RemoveTagFromClip(ctx context.Context, clipID, tagID
 	if m.clipTags[clipID] != nil {
 		delete(m.clipTags[clipID], tagID)
 	}
-	
+
 	// Decrement usage count
 	if tag, ok := m.tags[tagID]; ok && tag.UsageCount > 0 {
 		tag.UsageCount--

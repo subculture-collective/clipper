@@ -9,38 +9,38 @@ import (
 
 func TestAutoTagService_PatternMatching(t *testing.T) {
 	tests := []struct {
-		name          string
-		clipTitle     string
-		expectedTags  []string
+		name         string
+		clipTitle    string
+		expectedTags []string
 	}{
 		{
-			name:      "Ace detection",
-			clipTitle: "Amazing ACE by Shroud",
+			name:         "Ace detection",
+			clipTitle:    "Amazing ACE by Shroud",
 			expectedTags: []string{"ace"},
 		},
 		{
-			name:      "Clutch detection",
-			clipTitle: "Insane 1v4 clutch moment",
+			name:         "Clutch detection",
+			clipTitle:    "Insane 1v4 clutch moment",
 			expectedTags: []string{"clutch"},
 		},
 		{
-			name:      "Fail detection",
-			clipTitle: "Epic fail compilation",
+			name:         "Fail detection",
+			clipTitle:    "Epic fail compilation",
 			expectedTags: []string{"fail"},
 		},
 		{
-			name:      "Funny detection",
-			clipTitle: "LMAO this is hilarious",
+			name:         "Funny detection",
+			clipTitle:    "LMAO this is hilarious",
 			expectedTags: []string{"funny"},
 		},
 		{
-			name:      "Lucky detection",
-			clipTitle: "Lucky RNG moment",
+			name:         "Lucky detection",
+			clipTitle:    "Lucky RNG moment",
 			expectedTags: []string{"lucky"},
 		},
 		{
-			name:      "Multiple patterns",
-			clipTitle: "Insane clutch ACE - epic moment",
+			name:         "Multiple patterns",
+			clipTitle:    "Insane clutch ACE - epic moment",
 			expectedTags: []string{"insane", "clutch", "ace", "epic"},
 		},
 	}
@@ -49,7 +49,7 @@ func TestAutoTagService_PatternMatching(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test pattern matching logic directly
 			title := tt.clipTitle
-			
+
 			// Check each expected tag pattern
 			for _, expectedTag := range tt.expectedTags {
 				found := false
@@ -69,7 +69,7 @@ func TestAutoTagService_PatternMatching(t *testing.T) {
 				case "epic":
 					found = containsPattern(title, "epic", "legendary", "godlike")
 				}
-				
+
 				if !found {
 					t.Errorf("Expected pattern '%s' not found in title: %s", expectedTag, title)
 				}
@@ -180,7 +180,7 @@ func TestClipModel_Basic(t *testing.T) {
 	gameName := "Counter-Strike"
 	duration := 30.5
 	language := "en"
-	
+
 	clip := &models.Clip{
 		ID:              uuid.New(),
 		TwitchClipID:    "test-123",
@@ -249,7 +249,7 @@ func slugify(s string) string {
 	// Simple slugify implementation for testing
 	result := ""
 	prevWasDash := false
-	
+
 	for _, r := range toLower(s) {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
 			result += string(r)
@@ -261,11 +261,11 @@ func slugify(s string) string {
 			}
 		}
 	}
-	
+
 	// Trim trailing dash
 	if len(result) > 0 && result[len(result)-1] == '-' {
 		result = result[:len(result)-1]
 	}
-	
+
 	return result
 }
