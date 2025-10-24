@@ -223,10 +223,10 @@ func main() {
 			clips.GET("/:id/tags", tagHandler.GetClipTags)
 
 			// List comments for a clip (public or authenticated)
-			clips.GET("/:clipId/comments", commentHandler.ListComments)
+			clips.GET("/:id/comments", commentHandler.ListComments)
 
 			// Create comment (authenticated, rate limited)
-			clips.POST("/:clipId/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
+			clips.POST("/:id/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
 
 			// Protected clip endpoints (require authentication)
 			clips.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), clipHandler.VoteOnClip)
