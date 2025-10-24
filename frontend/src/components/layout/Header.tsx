@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button, Input } from '../ui';
 import { UserMenu } from './UserMenu';
+import { NotificationBell } from './NotificationBell';
 
 export function Header() {
   const { isAuthenticated, logout } = useAuth();
@@ -104,6 +105,7 @@ export function Header() {
                     Submit Clip
                   </Button>
                 </Link>
+                <NotificationBell />
                 <UserMenu />
               </div>
             ) : (
