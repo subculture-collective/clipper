@@ -87,7 +87,9 @@ docker-down: ## Stop Docker services
 	@echo "✓ Docker services stopped"
 
 backend-dev: ## Run backend in development mode
-	@echo "Starting backend..."
+	@echo "Waiting for PostgreSQL on localhost:5436..."
+	@bash -c 'until pg_isready -h localhost -p 5436 -U clipper -d clipper_db >/dev/null 2>&1; do sleep 1; done'
+	@echo "PostgreSQL is ready. Starting backend..."
 	cd backend && go run cmd/api/main.go
 
 frontend-dev: ## Run frontend in development mode
