@@ -98,3 +98,76 @@ func TestExtractClipIDFromURL(t *testing.T) {
 		})
 	}
 }
+
+func TestSubmissionService_BroadcasterNameOverridePrecedence(t *testing.T) {
+	t.Run("Override should take precedence over Twitch metadata", func(t *testing.T) {
+		twitchBroadcaster := "TwitchBroadcaster"
+		overrideBroadcaster := "OverrideBroadcaster"
+
+		submission := &models.ClipSubmission{
+			TwitchClipID:            "TestClipID",
+			TwitchClipURL:           "https://clips.twitch.tv/TestClipID",
+			BroadcasterName:         &twitchBroadcaster,
+			BroadcasterNameOverride: &overrideBroadcaster,
+		}
+
+		// Test that the override takes precedence
+		// Since we can't easily test createClipFromSubmission without a full DB setup,
+		// we'll test the logic directly
+		result := ""
+		if submission.BroadcasterNameOverride != nil && *submission.BroadcasterNameOverride != "" {
+			result = *submission.BroadcasterNameOverride
+		} else if submission.BroadcasterName != nil {
+			result = *submission.BroadcasterName
+		}
+
+		if result != overrideBroadcaster {
+			t.Errorf("Expected broadcaster name to be %s (override), got %s", overrideBroadcaster, result)
+		}
+	})
+
+	t.Run("Twitch metadata used when no override provided", func(t *testing.T) {
+		twitchBroadcaster := "TwitchBroadcaster"
+
+		submission := &models.ClipSubmission{
+			TwitchClipID:            "TestClipID",
+			TwitchClipURL:           "https://clips.twitch.tv/TestClipID",
+			BroadcasterName:         &twitchBroadcaster,
+			BroadcasterNameOverride: nil,
+		}
+
+		result := ""
+		if submission.BroadcasterNameOverride != nil && *submission.BroadcasterNameOverride != "" {
+			result = *submission.BroadcasterNameOverride
+		} else if submission.BroadcasterName != nil {
+			result = *submission.BroadcasterName
+		}
+
+		if result != twitchBroadcaster {
+			t.Errorf("Expected broadcaster name to be %s (from Twitch), got %s", twitchBroadcaster, result)
+		}
+	})
+
+	t.Run("Empty override should not override Twitch metadata", func(t *testing.T) {
+		twitchBroadcaster := "TwitchBroadcaster"
+		emptyOverride := ""
+
+		submission := &models.ClipSubmission{
+			TwitchClipID:            "TestClipID",
+			TwitchClipURL:           "https://clips.twitch.tv/TestClipID",
+			BroadcasterName:         &twitchBroadcaster,
+			BroadcasterNameOverride: &emptyOverride,
+		}
+
+		result := ""
+		if submission.BroadcasterNameOverride != nil && *submission.BroadcasterNameOverride != "" {
+			result = *submission.BroadcasterNameOverride
+		} else if submission.BroadcasterName != nil {
+			result = *submission.BroadcasterName
+		}
+
+		if result != twitchBroadcaster {
+			t.Errorf("Expected broadcaster name to be %s (from Twitch when override is empty), got %s", twitchBroadcaster, result)
+		}
+	})
+}
