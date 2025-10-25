@@ -33,6 +33,9 @@ export type { SkeletonProps } from './Skeleton';
 export { Spinner } from './Spinner';
 export type { SpinnerProps } from './Spinner';
 
+export { StreamerInput } from './StreamerInput';
+export type { StreamerInputProps } from './StreamerInput';
+
 export { TextArea } from './TextArea';
 export type { TextAreaProps } from './TextArea';
 

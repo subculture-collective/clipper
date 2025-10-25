@@ -7,6 +7,7 @@ import {
     Checkbox,
     Container,
     Input,
+    StreamerInput,
     TextArea,
 } from '../components';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +23,7 @@ export function SubmitClipPage() {
         tags: [],
         is_nsfw: false,
         submission_reason: '',
+        streamer_name: '',
     });
     const [tagInput, setTagInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +32,7 @@ export function SubmitClipPage() {
     const [recentSubmissions, setRecentSubmissions] = useState<
         ClipSubmission[]
     >([]);
+    const [isStreamerAutoDetected, setIsStreamerAutoDetected] = useState(false);
 
     // Check if user is authenticated and has enough karma
     const canSubmit = isAuthenticated && user && user.karma_points >= 100;
@@ -69,8 +72,10 @@ export function SubmitClipPage() {
                 tags: [],
                 is_nsfw: false,
                 submission_reason: '',
+                streamer_name: '',
             });
             setTagInput('');
+            setIsStreamerAutoDetected(false);
 
             // Redirect to user submissions page after 2 seconds
             setTimeout(() => {
@@ -187,6 +192,25 @@ export function SubmitClipPage() {
                                     Paste the full URL of a Twitch clip
                                 </p>
                             </div>
+
+                            {/* Streamer Input */}
+                            <StreamerInput
+                                id='streamer_name'
+                                value={formData.streamer_name || ''}
+                                onChange={(value) => {
+                                    setFormData({
+                                        ...formData,
+                                        streamer_name: value,
+                                    });
+                                    // If user manually changes, it's no longer auto-detected
+                                    if (isStreamerAutoDetected) {
+                                        setIsStreamerAutoDetected(false);
+                                    }
+                                }}
+                                autoDetected={isStreamerAutoDetected}
+                                disabled={!canSubmit}
+                                required={false}
+                            />
 
                             {/* Custom Title */}
                             <div>
