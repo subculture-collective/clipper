@@ -5,3 +5,4 @@ export { EmptyState } from './EmptyState';
 export { FeedFilters } from './FeedFilters';
 export { FeedHeader } from './FeedHeader';
 export { TwitchEmbed } from './TwitchEmbed';
+export { SubmissionConfirmation } from './SubmissionConfirmation';
