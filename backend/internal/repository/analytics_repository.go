@@ -476,3 +476,20 @@ func (r *AnalyticsRepository) GetPlatformTrends(ctx context.Context, metricType 
 
 	return trends, rows.Err()
 }
+
+// GetAverageClipVoteScore retrieves the average vote score across all clips
+func (r *AnalyticsRepository) GetAverageClipVoteScore(ctx context.Context) (float64, error) {
+query := `
+SELECT COALESCE(AVG(vote_score), 0) as avg_vote_score
+FROM clips
+WHERE is_removed = false
+`
+
+var avgScore float64
+err := r.db.QueryRow(ctx, query).Scan(&avgScore)
+if err != nil {
+return 0, err
+}
+
+return avgScore, nil
+}
