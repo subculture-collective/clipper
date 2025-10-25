@@ -11,6 +11,7 @@ This document summarizes the implementation of the notification system for user 
 #### Database Schema
 
 **1. Notifications Table** (`backend/migrations/000006_add_notification_system.up.sql`)
+
 - Stores all notification records
 - Fields:
   - `id`: UUID primary key
@@ -32,6 +33,7 @@ This document summarizes the implementation of the notification system for user 
   - Index on `expires_at` for cleanup operations
 
 **2. Notification Preferences Table**
+
 - Stores user preferences for notifications
 - Fields:
   - `user_id`: Primary key, reference to users
@@ -48,18 +50,21 @@ This document summarizes the implementation of the notification system for user 
   - `updated_at`: Timestamp of last update
 
 **3. Database Trigger**
+
 - Automatically creates default notification preferences for new users
 - Ensures all users have preferences configured
 
 #### Backend Components
 
 **1. Models** (`backend/internal/models/models.go`)
+
 - `Notification`: Core notification model
 - `NotificationWithSource`: Extended model with source user information
 - `NotificationPreferences`: User preferences model
 - Constants for all notification types
 
 **2. Repository** (`backend/internal/repository/notification_repository.go`)
+
 - `NotificationRepository`: Database operations for notifications
 - Methods:
   - `Create`: Create a new notification
@@ -75,6 +80,7 @@ This document summarizes the implementation of the notification system for user 
   - `UpdatePreferences`: Update user preferences
 
 **3. Service** (`backend/internal/services/notification_service.go`)
+
 - `NotificationService`: Business logic for notifications
 - Core methods:
   - `CreateNotification`: Create notification with preference checking
@@ -97,6 +103,7 @@ This document summarizes the implementation of the notification system for user 
   - `extractMentions`: Extract @username mentions from text using regex
 
 **4. Handler** (`backend/internal/handlers/notification_handler.go`)
+
 - `NotificationHandler`: HTTP endpoints for notifications
 - Endpoints:
   - `GET /api/v1/notifications`: List notifications with filtering (all, unread, read)
@@ -108,10 +115,12 @@ This document summarizes the implementation of the notification system for user 
   - `PUT /api/v1/notifications/preferences`: Update preferences
 
 **5. Supporting Repository Updates**
+
 - `UserRepository.GetByUsername`: Added method to find users by username (for mentions)
 - `FavoriteRepository.GetByClipID`: Added method to find all users who favorited a clip
 
 **6. Tests** (`backend/internal/services/notification_service_test.go`)
+
 - Unit tests for:
   - `shouldNotify`: Test preference checking logic
   - `extractMentions`: Test mention extraction from text
@@ -120,6 +129,7 @@ This document summarizes the implementation of the notification system for user 
 ### Frontend Implementation
 
 #### TypeScript Types (`frontend/src/types/notification.ts`)
+
 - `Notification`: Core notification interface
 - `NotificationType`: Union type for all notification types
 - `NotificationPreferences`: User preferences interface
@@ -128,6 +138,7 @@ This document summarizes the implementation of the notification system for user 
 - `NotificationFilter`: Filter types (all, unread, read)
 
 #### API Service (`frontend/src/lib/notification-api.ts`)
+
 - Functions:
   - `getNotifications`: Fetch paginated notifications with filtering
   - `getUnreadCount`: Get unread notification count
@@ -140,6 +151,7 @@ This document summarizes the implementation of the notification system for user 
 #### Components
 
 **1. NotificationBell** (`frontend/src/components/layout/NotificationBell.tsx`)
+
 - Bell icon button with unread badge
 - Dropdown showing recent 5 notifications
 - Polls for new notifications every 30 seconds
@@ -151,6 +163,7 @@ This document summarizes the implementation of the notification system for user 
   - Real-time unread count display
 
 **2. NotificationItem** (`frontend/src/components/layout/NotificationItem.tsx`)
+
 - Individual notification display
 - Features:
   - Icon based on notification type
@@ -162,6 +175,7 @@ This document summarizes the implementation of the notification system for user 
   - Visual distinction for unread notifications
 
 **3. NotificationsPage** (`frontend/src/pages/NotificationsPage.tsx`)
+
 - Full notifications page at `/notifications`
 - Features:
   - Filter tabs (All, Unread, Read)
@@ -174,6 +188,7 @@ This document summarizes the implementation of the notification system for user 
   - Loading and error states
 
 **4. NotificationPreferencesPage** (`frontend/src/pages/NotificationPreferencesPage.tsx`)
+
 - Preferences page at `/notifications/preferences`
 - Features:
   - Toggle switches for each preference
@@ -185,11 +200,13 @@ This document summarizes the implementation of the notification system for user 
   - Back to notifications link
 
 **5. Header Integration** (`frontend/src/components/layout/Header.tsx`)
+
 - Integrated NotificationBell into header
 - Positioned between "Submit Clip" button and user menu
 - Only visible when user is authenticated
 
 #### Routing (`frontend/src/App.tsx`)
+
 - Added protected routes:
   - `/notifications`: Main notifications page
   - `/notifications/preferences`: Preferences page
@@ -197,6 +214,7 @@ This document summarizes the implementation of the notification system for user 
 ## Features Implemented
 
 ### Notification Types
+
 - ✅ Reply to comment
 - ✅ Mention in comment
 - ✅ Vote milestones (10, 25, 50, 100, 250, 500, 1000)
@@ -208,6 +226,7 @@ This document summarizes the implementation of the notification system for user 
 - ✅ Ban notifications (ready for moderation integration)
 
 ### User Experience
+
 - ✅ Bell icon with unread count badge
 - ✅ Dropdown with recent notifications
 - ✅ Full notifications page with filtering
@@ -219,6 +238,7 @@ This document summarizes the implementation of the notification system for user 
 - ✅ Real-time polling (30s interval)
 
 ### Backend Features
+
 - ✅ RESTful API endpoints
 - ✅ Database migrations
 - ✅ Efficient indexing for performance
@@ -232,6 +252,7 @@ This document summarizes the implementation of the notification system for user 
 ## Technical Decisions
 
 ### Database Design
+
 - Used UUID for all IDs for consistency
 - Composite indexes for efficient queries
 - Soft delete approach (marks as deleted rather than removing)
@@ -239,6 +260,7 @@ This document summarizes the implementation of the notification system for user 
 - Separate preferences table for flexibility
 
 ### Backend Architecture
+
 - Repository pattern for data access
 - Service layer for business logic
 - Handler layer for HTTP endpoints
@@ -246,6 +268,7 @@ This document summarizes the implementation of the notification system for user 
 - Preference checking before notification creation
 
 ### Frontend Architecture
+
 - React Query for data fetching and caching
 - Component composition (NotificationBell, NotificationItem)
 - Protected routes for authentication
@@ -253,6 +276,7 @@ This document summarizes the implementation of the notification system for user 
 - TypeScript for type safety
 
 ### Performance Optimizations
+
 - Indexes on frequently queried columns
 - Pagination support
 - Limit on dropdown to 5 notifications
@@ -262,6 +286,7 @@ This document summarizes the implementation of the notification system for user 
 ## Testing
 
 ### Backend Tests
+
 - Unit tests for:
   - Preference checking logic
   - Mention extraction
@@ -270,6 +295,7 @@ This document summarizes the implementation of the notification system for user 
 - Test coverage for core business logic
 
 ### Frontend Testing
+
 - TypeScript compilation ensures type safety
 - Component structure tested through development
 
@@ -278,6 +304,7 @@ This document summarizes the implementation of the notification system for user 
 The following features were planned but not implemented in this phase:
 
 ### Phase 2 Features
+
 - Email notifications
 - Email digest mode (daily/weekly)
 - WebSocket for real-time notifications (instead of polling)
@@ -285,6 +312,7 @@ The following features were planned but not implemented in this phase:
 - Sound notifications
 
 ### Phase 3 Features
+
 - Push notifications (browser)
 - Notification grouping (e.g., "3 new replies")
 - Rich notifications with thumbnails
@@ -292,6 +320,7 @@ The following features were planned but not implemented in this phase:
 - Admin notifications for reports and submissions
 
 ### Moderation Integration
+
 - Notifications are ready for moderation events but need to be integrated into:
   - Comment deletion/removal
   - Warning system
@@ -301,7 +330,9 @@ The following features were planned but not implemented in this phase:
 ## Integration Points
 
 ### Ready for Integration
+
 The notification system is ready to be integrated into:
+
 1. **Comment Service**: Call `NotifyCommentReply` when a reply is posted
 2. **Comment Service**: Call `NotifyMentions` when a comment is created
 3. **Vote Service**: Call `NotifyVoteMilestone` when vote thresholds are reached
@@ -310,6 +341,7 @@ The notification system is ready to be integrated into:
 6. **Favorite Service**: Call `NotifyFavoritedClipComment` when comments are added to favorited clips
 
 ### Example Integration
+
 ```go
 // In comment service CreateComment method
 if comment.ParentCommentID != nil {
@@ -327,6 +359,7 @@ notificationService.NotifyFavoritedClipComment(ctx, clipID, userID)
 ## Files Changed/Created
 
 ### Backend
+
 - `backend/migrations/000006_add_notification_system.up.sql` (created)
 - `backend/migrations/000006_add_notification_system.down.sql` (created)
 - `backend/internal/models/models.go` (modified)
@@ -339,6 +372,7 @@ notificationService.NotifyFavoritedClipComment(ctx, clipID, userID)
 - `backend/cmd/api/main.go` (modified)
 
 ### Frontend
+
 - `frontend/src/types/notification.ts` (created)
 - `frontend/src/lib/notification-api.ts` (created)
 - `frontend/src/components/layout/NotificationBell.tsx` (created)
@@ -351,19 +385,25 @@ notificationService.NotifyFavoritedClipComment(ctx, clipID, userID)
 ## Running the Application
 
 ### Database Migration
+
 Run the migration to create the notification tables:
+
 ```bash
 make migrate-up
 ```
 
 ### Backend
+
 The backend will automatically include the notification endpoints:
+
 ```bash
 make backend-dev
 ```
 
 ### Frontend
+
 Install dependencies and run the frontend:
+
 ```bash
 cd frontend
 npm install --legacy-peer-deps
@@ -373,36 +413,43 @@ npm run dev
 ## API Documentation
 
 ### List Notifications
+
 ```
 GET /api/v1/notifications?filter=all&page=1&limit=50
 ```
 
 ### Get Unread Count
+
 ```
 GET /api/v1/notifications/count
 ```
 
 ### Mark as Read
+
 ```
 PUT /api/v1/notifications/:id/read
 ```
 
 ### Mark All as Read
+
 ```
 PUT /api/v1/notifications/read-all
 ```
 
 ### Delete Notification
+
 ```
 DELETE /api/v1/notifications/:id
 ```
 
 ### Get Preferences
+
 ```
 GET /api/v1/notifications/preferences
 ```
 
 ### Update Preferences
+
 ```
 PUT /api/v1/notifications/preferences
 Body: {

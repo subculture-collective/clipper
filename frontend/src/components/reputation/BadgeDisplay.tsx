@@ -1,4 +1,4 @@
-import { UserBadge } from '../../types/reputation';
+import type { UserBadge } from '../../types/reputation';
 
 interface BadgeDisplayProps {
   badges: UserBadge[];
@@ -55,7 +55,7 @@ interface BadgeGridProps {
 export function BadgeGrid({ badges, columns = 3 }: BadgeGridProps) {
   if (badges.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-400">
+      <div className="py-8 text-center text-gray-400">
         No badges earned yet
       </div>
     );
@@ -69,20 +69,20 @@ export function BadgeGrid({ badges, columns = 3 }: BadgeGridProps) {
       {badges.map((badge) => (
         <div
           key={badge.id}
-          className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-colors"
+          className="hover:bg-gray-750 p-4 transition-colors bg-gray-800 rounded-lg"
         >
           <div className="flex items-start gap-3">
-            <div className="text-3xl flex-shrink-0">
+            <div className="shrink-0 text-3xl">
               {badge.icon}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-white truncate">
                 {badge.name}
               </h3>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="mt-1 text-sm text-gray-400">
                 {badge.description}
               </p>
-              <div className="text-xs text-gray-500 mt-2">
+              <div className="mt-2 text-xs text-gray-500">
                 Earned {new Date(badge.awarded_at).toLocaleDateString()}
               </div>
             </div>
@@ -100,7 +100,7 @@ interface BadgeListProps {
 export function BadgeList({ badges }: BadgeListProps) {
   if (badges.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-400">
+      <div className="py-4 text-center text-gray-400">
         No badges earned yet
       </div>
     );
@@ -111,9 +111,9 @@ export function BadgeList({ badges }: BadgeListProps) {
       {badges.map((badge) => (
         <div
           key={badge.id}
-          className="flex items-center gap-3 bg-gray-800 rounded-lg p-3 hover:bg-gray-750 transition-colors"
+          className="hover:bg-gray-750 flex items-center gap-3 p-3 transition-colors bg-gray-800 rounded-lg"
         >
-          <div className="text-2xl flex-shrink-0">
+          <div className="shrink-0 text-2xl">
             {badge.icon}
           </div>
           <div className="flex-1 min-w-0">

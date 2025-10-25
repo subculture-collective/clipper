@@ -21,10 +21,10 @@ func NewCommentHandler(commentService *services.CommentService) *CommentHandler 
 	}
 }
 
-// ListComments handles GET /clips/:clipId/comments
+// ListComments handles GET /clips/:id/comments
 func (h *CommentHandler) ListComments(c *gin.Context) {
 	// Parse clip ID
-	clipIDStr := c.Param("clipId")
+	clipIDStr := c.Param("id")
 	clipID, err := uuid.Parse(clipIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -76,10 +76,10 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 	})
 }
 
-// CreateComment handles POST /clips/:clipId/comments
+// CreateComment handles POST /clips/:id/comments
 func (h *CommentHandler) CreateComment(c *gin.Context) {
 	// Parse clip ID
-	clipIDStr := c.Param("clipId")
+	clipIDStr := c.Param("id")
 	clipID, err := uuid.Parse(clipIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

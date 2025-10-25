@@ -16,11 +16,13 @@ A comprehensive, production-ready component library built with React, TypeScript
 ## 📦 Components
 
 ### Layout Components
+
 - **Container**: Max-width wrapper with responsive padding
 - **Grid**: Responsive column system with gap utilities
 - **Stack**: Flexbox-based vertical/horizontal layouts
 
 ### Form Components
+
 - **Button**: Multiple variants (primary, secondary, ghost, danger, outline) with loading states
 - **Input**: Text inputs with icons, error states, and helper text
 - **TextArea**: Auto-resize option with character counter
@@ -28,12 +30,14 @@ A comprehensive, production-ready component library built with React, TypeScript
 - **Toggle**: Smooth animated switch component
 
 ### Feedback Components
+
 - **Alert**: Success, warning, error, info variants with dismissible option
 - **Modal**: Dialog with backdrop, focus trap, and animations
 - **Spinner**: Multiple sizes and color options
 - **Skeleton**: Loading placeholders with shimmer animation
 
 ### Data Display Components
+
 - **Card**: Header, body, footer sections with hover effects
 - **Badge**: Color variants and sizes for status/labels
 - **Avatar**: Image with fallback and status indicators
@@ -120,6 +124,7 @@ function ThemeToggle() {
 ### Dark Mode
 
 The theme system supports three modes:
+
 - **Light**: Bright, high-contrast interface
 - **Dark**: Reduced eye strain in low-light
 - **System**: Matches OS preference

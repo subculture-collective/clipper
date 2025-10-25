@@ -381,6 +381,7 @@ docker-compose restart redis
 ### High Memory Usage
 
 **Diagnosis:**
+
 ```bash
 # Check memory usage
 redis-cli INFO memory
@@ -393,6 +394,7 @@ redis-cli DBSIZE
 ```
 
 **Solutions:**
+
 ```bash
 # Reduce TTLs
 # Clear old data
@@ -406,6 +408,7 @@ redis-cli CONFIG SET maxmemory-policy allkeys-lru
 ### Low Hit Rate
 
 **Diagnosis:**
+
 ```bash
 # Check hit/miss ratio
 redis-cli INFO stats | grep keyspace
@@ -418,6 +421,7 @@ redis-cli RANDOMKEY
 ```
 
 **Solutions:**
+
 ```bash
 # Increase TTLs
 # Verify cache warming is working
@@ -431,6 +435,7 @@ redis-cli EXISTS "feed:hot:page:1"
 ### Connection Issues
 
 **Diagnosis:**
+
 ```bash
 # Check if Redis is running
 redis-cli PING
@@ -446,6 +451,7 @@ redis-cli --latency-history
 ```
 
 **Solutions:**
+
 ```bash
 # Increase connection pool size (in code)
 # Check network latency
@@ -459,6 +465,7 @@ docker restart clipper-redis
 ### Slow Performance
 
 **Diagnosis:**
+
 ```bash
 # Check slow log
 redis-cli SLOWLOG GET 10
@@ -474,6 +481,7 @@ docker stats clipper-redis
 ```
 
 **Solutions:**
+
 ```bash
 # Avoid KEYS command (use SCAN)
 # Enable pipelining for batch operations
@@ -487,6 +495,7 @@ redis-cli SLOWLOG RESET
 ### Data Loss
 
 **Diagnosis:**
+
 ```bash
 # Check if AOF is enabled
 redis-cli CONFIG GET appendonly
@@ -499,6 +508,7 @@ redis-cli CONFIG GET save
 ```
 
 **Solutions:**
+
 ```bash
 # Enable AOF persistence
 redis-cli CONFIG SET appendonly yes

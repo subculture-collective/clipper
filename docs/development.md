@@ -19,43 +19,50 @@ Ensure you have the following installed on your development machine:
 ### Required Software
 
 - **Go 1.24+**: [Download](https://golang.org/dl/)
-  ```bash
-  go version  # Should show 1.24 or higher
-  ```
+
+    ```bash
+    go version  # Should show 1.24 or higher
+    ```
 
 - **Node.js 20+**: [Download](https://nodejs.org/)
-  ```bash
-  node --version  # Should show v20.0.0 or higher
-  npm --version
-  ```
+
+    ```bash
+    node --version  # Should show v20.0.0 or higher
+    npm --version
+    ```
 
 - **PostgreSQL 15+**: [Download](https://www.postgresql.org/download/)
-  ```bash
-  psql --version  # Should show 15 or higher
-  ```
+
+    ```bash
+    psql --version  # Should show 15 or higher
+    ```
 
 - **Redis 7+**: [Download](https://redis.io/download)
-  ```bash
-  redis-server --version  # Should show 7.0 or higher
-  ```
+
+    ```bash
+    redis-server --version  # Should show 7.0 or higher
+    ```
 
 - **Docker & Docker Compose** (optional but recommended): [Download](https://www.docker.com/products/docker-desktop)
-  ```bash
-  docker --version
-  docker compose version
-  ```
+
+    ```bash
+    docker --version
+    docker compose version
+    ```
 
 ### Optional Tools
 
 - **Make**: For running common tasks
-  ```bash
-  make --version
-  ```
+
+    ```bash
+    make --version
+    ```
 
 - **Git**: For version control
-  ```bash
-  git --version
-  ```
+
+    ```bash
+    git --version
+    ```
 
 - **VS Code**: Recommended IDE with Go and TypeScript extensions
 
@@ -79,12 +86,12 @@ You'll need to create a Twitch application to enable OAuth authentication:
 1. Go to [Twitch Developers Console](https://dev.twitch.tv/console)
 2. Click "Register Your Application"
 3. Fill in the details:
-   - **Name**: Clipper Local Dev
-   - **OAuth Redirect URLs**: `http://localhost:8080/api/v1/auth/callback`
-   - **Category**: Website Integration
+    - **Name**: Clipper Local Dev
+    - **OAuth Redirect URLs**: `http://localhost:8080/api/v1/auth/callback`
+    - **Category**: Website Integration
 4. Save and note down:
-   - **Client ID**
-   - **Client Secret** (click "New Secret")
+    - **Client ID**
+    - **Client Secret** (click "New Secret")
 
 ### 3. Configure Environment Variables
 
@@ -100,6 +107,7 @@ nano .env  # or use your preferred editor
 ```
 
 **backend/.env**:
+
 ```bash
 # Server Configuration
 PORT=8080
@@ -152,6 +160,7 @@ nano .env
 ```
 
 **frontend/.env**:
+
 ```bash
 # API Configuration
 VITE_API_BASE_URL=http://localhost:8080
@@ -250,6 +259,7 @@ air
 ### Backend Development Tools
 
 **Useful Commands**:
+
 ```bash
 # Run tests
 go test ./...
@@ -290,6 +300,7 @@ npm list --depth=0
 The frontend should already be configured via the `.env` file created earlier.
 
 Verify the API URL is correct:
+
 ```bash
 # Check .env file
 cat .env | grep VITE_API_BASE_URL
@@ -309,6 +320,7 @@ npm run dev
 ### Frontend Development Tools
 
 **Useful Commands**:
+
 ```bash
 # Run linter
 npm run lint
@@ -357,7 +369,7 @@ docker compose logs -f
 # Access services:
 # - Frontend: http://localhost:5173
 # - Backend: http://localhost:8080
-# - PostgreSQL: localhost:5432
+# - PostgreSQL: localhost:5436 (external), postgres:5432 (internal)
 # - Redis: localhost:6379
 ```
 
@@ -400,63 +412,70 @@ docker compose logs -f backend
 ### Daily Development
 
 1. **Start Services**:
-   ```bash
-   # Terminal 1: Start Docker services (database, Redis)
-   make docker-up
-   
-   # Terminal 2: Start backend
-   make backend-dev
-   
-   # Terminal 3: Start frontend
-   make frontend-dev
-   ```
+
+    ```bash
+    # Terminal 1: Start Docker services (database, Redis)
+    make docker-up
+
+    # Terminal 2: Start backend
+    make backend-dev
+
+    # Terminal 3: Start frontend
+    make frontend-dev
+    ```
 
 2. **Make Changes**:
-   - Edit code in your IDE
-   - Changes auto-reload in development mode
-   - Check console for errors
+
+    - Edit code in your IDE
+    - Changes auto-reload in development mode
+    - Check console for errors
 
 3. **Test Changes**:
-   ```bash
-   # Run backend tests
-   cd backend && go test ./...
-   
-   # Run frontend tests
-   cd frontend && npm test
-   ```
+
+    ```bash
+    # Run backend tests
+    cd backend && go test ./...
+
+    # Run frontend tests
+    cd frontend && npm test
+    ```
 
 4. **Commit Changes**:
-   ```bash
-   git add .
-   git commit -m "feat: description of changes"
-   git push origin feature-branch
-   ```
+
+    ```bash
+    git add .
+    git commit -m "feat: description of changes"
+    git push origin feature-branch
+    ```
 
 ### Creating a New Feature
 
 1. **Create Branch**:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
 
 2. **Implement Feature**:
-   - Write code
-   - Add tests
-   - Update documentation
+
+    - Write code
+    - Add tests
+    - Update documentation
 
 3. **Test Thoroughly**:
-   ```bash
-   # Run all tests
-   make test
-   
-   # Run linters
-   make lint
-   ```
+
+    ```bash
+    # Run all tests
+    make test
+
+    # Run linters
+    make lint
+    ```
 
 4. **Submit PR**:
-   - Push to your fork
-   - Open Pull Request on GitHub
-   - Wait for CI checks to pass
+    - Push to your fork
+    - Open Pull Request on GitHub
+    - Wait for CI checks to pass
 
 ### Database Changes
 
@@ -502,6 +521,7 @@ air
 ```
 
 **Frontend Hot Reload**:
+
 - Vite automatically reloads on changes
 - No additional configuration needed
 
@@ -514,6 +534,7 @@ air
 **Problem**: `connection refused` errors
 
 **Solutions**:
+
 ```bash
 # Check if database is running
 docker compose ps
@@ -534,6 +555,7 @@ netstat -ano | findstr :8080  # Windows
 **Problem**: `EADDRINUSE` error
 
 **Solutions**:
+
 ```bash
 # Kill process on port 5173
 lsof -i :5173 | grep LISTEN | awk '{print $2}' | xargs kill -9
@@ -547,6 +569,7 @@ npm run dev -- --port 3000
 **Problem**: `database does not exist` or `authentication failed`
 
 **Solutions**:
+
 ```bash
 # Recreate database
 docker compose down -v
@@ -567,6 +590,7 @@ psql -h localhost -U clipper -d clipper -c "SELECT 1;"
 **Problem**: Dependency conflicts or missing modules
 
 **Solutions**:
+
 ```bash
 cd frontend
 
@@ -584,6 +608,7 @@ npm install
 **Problem**: `go.sum` errors or missing dependencies
 
 **Solutions**:
+
 ```bash
 cd backend
 
@@ -604,44 +629,50 @@ go mod download
 If you're still stuck:
 
 1. **Check Documentation**:
-   - [API Documentation](API.md)
-   - [Architecture Overview](ARCHITECTURE.md)
-   - [Database Schema](DATABASE-SCHEMA.md)
+
+    - [API Documentation](API.md)
+    - [Architecture Overview](ARCHITECTURE.md)
+    - [Database Schema](DATABASE-SCHEMA.md)
 
 2. **Search Issues**:
-   - [GitHub Issues](https://github.com/subculture-collective/clipper/issues)
-   - Look for similar problems
+
+    - [GitHub Issues](https://github.com/subculture-collective/clipper/issues)
+    - Look for similar problems
 
 3. **Ask for Help**:
-   - Open a new issue
-   - Tag it with `question` label
-   - Provide error messages and logs
+
+    - Open a new issue
+    - Tag it with `question` label
+    - Provide error messages and logs
 
 4. **Join Community**:
-   - Discuss in GitHub Discussions
-   - Share your environment details
+    - Discuss in GitHub Discussions
+    - Share your environment details
 
 ## Next Steps
 
 Now that your development environment is set up:
 
 1. **Explore the Codebase**:
-   - Read [Architecture Documentation](ARCHITECTURE.md)
-   - Review [API Documentation](API.md)
-   - Check out [Database Schema](DATABASE-SCHEMA.md)
+
+    - Read [Architecture Documentation](ARCHITECTURE.md)
+    - Review [API Documentation](API.md)
+    - Check out [Database Schema](DATABASE-SCHEMA.md)
 
 2. **Run the Tests**:
-   - Backend: `cd backend && go test ./...`
-   - Frontend: `cd frontend && npm test`
+
+    - Backend: `cd backend && go test ./...`
+    - Frontend: `cd frontend && npm test`
 
 3. **Pick an Issue**:
-   - Browse [good first issue](https://github.com/subculture-collective/clipper/labels/good%20first%20issue) labels
-   - Comment on the issue to claim it
-   - Start coding!
+
+    - Browse [good first issue](https://github.com/subculture-collective/clipper/labels/good%20first%20issue) labels
+    - Comment on the issue to claim it
+    - Start coding!
 
 4. **Read Contributing Guide**:
-   - [CONTRIBUTING.md](../CONTRIBUTING.md)
-   - Learn about code style and PR process
+    - [CONTRIBUTING.md](../CONTRIBUTING.md)
+    - Learn about code style and PR process
 
 ---
 

@@ -10,7 +10,7 @@ install: ## Install all dependencies
 	@echo "Installing backend dependencies..."
 	cd backend && go mod download
 	@echo "Installing frontend dependencies..."
-	cd frontend && npm install
+	cd frontend && npm install --legacy-peer-deps
 	@echo "✓ All dependencies installed"
 
 dev: ## Start all services in development mode
@@ -28,7 +28,7 @@ test: ## Run all tests
 	@echo "Running backend tests..."
 	cd backend && go test ./...
 	@echo "Running frontend tests..."
-	cd frontend && npm test
+	cd frontend && npm test -- --run
 	@echo "✓ Tests complete"
 
 test-unit: ## Run unit tests only
@@ -87,7 +87,9 @@ docker-down: ## Stop Docker services
 	@echo "✓ Docker services stopped"
 
 backend-dev: ## Run backend in development mode
-	@echo "Starting backend..."
+	@echo "Waiting for PostgreSQL on localhost:5436..."
+	@bash -c 'until pg_isready -h localhost -p 5436 -U clipper -d clipper_db >/dev/null 2>&1; do sleep 1; done'
+	@echo "PostgreSQL is ready. Starting backend..."
 	cd backend && go run cmd/api/main.go
 
 frontend-dev: ## Run frontend in development mode
@@ -170,5 +172,5 @@ migrate-status: ## Check current migration version
 
 migrate-seed: ## Seed database with sample data
 	@echo "Seeding database..."
-	@PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
+	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
 	@echo "✓ Database seeded"
