@@ -162,6 +162,8 @@ func TestBroadcasterNameHandling(t *testing.T) {
 // Helper function to create string pointers
 func strPtr(s string) *string {
 	return &s
+}
+
 func TestSubmissionService_BroadcasterNameOverridePrecedence(t *testing.T) {
 	t.Run("Override should take precedence over Twitch metadata", func(t *testing.T) {
 		twitchBroadcaster := "TwitchBroadcaster"
