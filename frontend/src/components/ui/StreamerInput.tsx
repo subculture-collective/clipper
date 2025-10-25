@@ -135,9 +135,9 @@ export function StreamerInput({
                 >
                     Streamer {required && <span className='text-red-500'>*</span>}
                 </label>
-                {autoDetected && value && (
+                {autoDetected && (
                     <Badge variant='info' size='sm'>
-                        Auto-detected: {value}
+                        Will be auto-detected from clip
                     </Badge>
                 )}
             </div>
@@ -198,7 +198,9 @@ export function StreamerInput({
                 )}
             </div>
             <p className='text-xs text-muted-foreground mt-1'>
-                Type to search for streamers or enter manually
+                {autoDetected 
+                    ? 'Streamer will be detected from the clip URL. You can override by typing here.'
+                    : 'Type to search for streamers or enter manually'}
             </p>
         </div>
     );
