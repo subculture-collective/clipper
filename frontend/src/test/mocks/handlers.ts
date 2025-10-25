@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 // Mock data
 export const mockClips = [
@@ -168,7 +168,7 @@ export const handlers = [
   }),
 
   // POST /api/v1/clips/:id/comments - Create comment
-  http.post(`${API_BASE_URL}/v1/clips/:id/comments`, async ({ request, params }) => {
+  http.post(`${API_BASE_URL}/clips/:id/comments`, async ({ request, params }) => {
     const body = await request.json() as { content: string; parent_id?: string };
     
     return HttpResponse.json({
@@ -194,7 +194,7 @@ export const handlers = [
   }),
 
   // PUT /api/v1/comments/:id - Update comment
-  http.put(`${API_BASE_URL}/v1/comments/:id`, async ({ request }) => {
+  http.put(`${API_BASE_URL}/comments/:id`, async ({ request }) => {
     const body = await request.json() as { content: string };
     
     return HttpResponse.json({
@@ -204,14 +204,14 @@ export const handlers = [
   }),
 
   // DELETE /api/v1/comments/:id - Delete comment
-  http.delete(`${API_BASE_URL}/v1/comments/:id`, () => {
+  http.delete(`${API_BASE_URL}/comments/:id`, () => {
     return HttpResponse.json({
       message: 'Comment deleted successfully',
     });
   }),
 
   // POST /api/v1/comments/:id/vote - Vote on comment
-  http.post(`${API_BASE_URL}/v1/comments/:id/vote`, async ({ request }) => {
+  http.post(`${API_BASE_URL}/comments/:id/vote`, async ({ request }) => {
     const body = await request.json() as { vote: number };
     
     return HttpResponse.json({
@@ -221,7 +221,7 @@ export const handlers = [
   }),
 
   // POST /api/v1/reports - Report content
-  http.post(`${API_BASE_URL}/v1/reports`, async ({ request }) => {
+  http.post(`${API_BASE_URL}/reports`, async ({ request }) => {
     const body = await request.json() as { 
       target_type: string; 
       target_id: string; 
