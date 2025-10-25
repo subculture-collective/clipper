@@ -81,12 +81,10 @@ export function SubmitClipPage() {
         } else if (!clipID && isStreamerAutoDetected) {
             // Clear auto-detection if URL is invalid
             setIsStreamerAutoDetected(false);
-            if (isStreamerAutoDetected) {
-                setFormData({
-                    ...formData,
-                    streamer_name: '',
-                });
-            }
+            setFormData({
+                ...formData,
+                streamer_name: '',
+            });
         }
     }, [formData.clip_url]); // eslint-disable-line react-hooks/exhaustive-deps
 
