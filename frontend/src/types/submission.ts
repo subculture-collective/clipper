@@ -19,6 +19,7 @@ export interface ClipSubmission {
   creator_id?: string;
   broadcaster_name?: string;
   broadcaster_id?: string;
+  broadcaster_name_override?: string;
   game_id?: string;
   game_name?: string;
   thumbnail_url?: string;
@@ -43,7 +44,7 @@ export interface SubmitClipRequest {
   tags?: string[];
   is_nsfw: boolean;
   submission_reason?: string;
-  streamer_name?: string;
+  broadcaster_name_override?: string;
 }
 
 export interface SubmissionStats {
