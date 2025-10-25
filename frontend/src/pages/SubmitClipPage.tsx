@@ -7,6 +7,7 @@ import {
     Checkbox,
     Container,
     Input,
+    StreamerInput,
     TextArea,
 } from '../components';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +23,7 @@ export function SubmitClipPage() {
         tags: [],
         is_nsfw: false,
         submission_reason: '',
+        streamer_name: '',
     });
     const [tagInput, setTagInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +32,7 @@ export function SubmitClipPage() {
     const [recentSubmissions, setRecentSubmissions] = useState<
         ClipSubmission[]
     >([]);
+    const [isStreamerAutoDetected, setIsStreamerAutoDetected] = useState(false);
 
     // Check if user is authenticated and has enough karma
     const canSubmit = isAuthenticated && user && user.karma_points >= 100;
@@ -45,6 +48,46 @@ export function SubmitClipPage() {
                 );
         }
     }, [isAuthenticated]);
+
+    // Helper function to extract clip ID from Twitch URL
+    const extractClipIDFromURL = (url: string): string | null => {
+        if (!url) return null;
+        
+        // Match patterns like:
+        // https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage
+        // https://www.twitch.tv/broadcaster/clip/AwkwardHelplessSalamanderSwiftRage
+        const clipsTwitchPattern = /clips\.twitch\.tv\/([a-zA-Z0-9_-]+)/;
+        const twitchClipPattern = /twitch\.tv\/[^/]+\/clip\/([a-zA-Z0-9_-]+)/;
+        
+        let match = url.match(clipsTwitchPattern);
+        if (match) return match[1];
+        
+        match = url.match(twitchClipPattern);
+        if (match) return match[1];
+        
+        return null;
+    };
+
+    // Auto-detect streamer when URL changes
+    useEffect(() => {
+        const clipID = extractClipIDFromURL(formData.clip_url);
+        
+        // If we have a valid clip ID and no streamer name set yet (or it was auto-detected)
+        if (clipID && (!formData.streamer_name || isStreamerAutoDetected)) {
+            // For now, we show a note that the streamer will be detected
+            // The backend will fetch the actual metadata
+            // In a future enhancement, we could add a preview API endpoint
+            setIsStreamerAutoDetected(true);
+        } else if (!clipID && isStreamerAutoDetected) {
+            // Clear auto-detection if URL is invalid
+            setIsStreamerAutoDetected(false);
+            setFormData({
+                ...formData,
+                streamer_name: '',
+            });
+        }
+    }, [formData.clip_url, formData.streamer_name, isStreamerAutoDetected]);
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,8 +112,10 @@ export function SubmitClipPage() {
                 tags: [],
                 is_nsfw: false,
                 submission_reason: '',
+                streamer_name: '',
             });
             setTagInput('');
+            setIsStreamerAutoDetected(false);
 
             // Redirect to user submissions page after 2 seconds
             setTimeout(() => {
@@ -187,6 +232,25 @@ export function SubmitClipPage() {
                                     Paste the full URL of a Twitch clip
                                 </p>
                             </div>
+
+                            {/* Streamer Input */}
+                            <StreamerInput
+                                id='streamer_name'
+                                value={formData.streamer_name || ''}
+                                onChange={(value) => {
+                                    setFormData({
+                                        ...formData,
+                                        streamer_name: value,
+                                    });
+                                    // If user manually changes, it's no longer auto-detected
+                                    if (isStreamerAutoDetected) {
+                                        setIsStreamerAutoDetected(false);
+                                    }
+                                }}
+                                autoDetected={isStreamerAutoDetected}
+                                disabled={!canSubmit}
+                                required={false}
+                            />
 
                             {/* Custom Title */}
                             <div>
