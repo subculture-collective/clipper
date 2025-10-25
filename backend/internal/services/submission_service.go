@@ -37,11 +37,12 @@ func NewSubmissionService(
 
 // SubmitClipRequest represents a clip submission request
 type SubmitClipRequest struct {
-	ClipURL          string   `json:"clip_url" binding:"required"`
-	CustomTitle      *string  `json:"custom_title,omitempty"`
-	Tags             []string `json:"tags,omitempty"`
-	IsNSFW           bool     `json:"is_nsfw"`
-	SubmissionReason *string  `json:"submission_reason,omitempty"`
+	ClipURL                 string   `json:"clip_url" binding:"required"`
+	CustomTitle             *string  `json:"custom_title,omitempty"`
+	Tags                    []string `json:"tags,omitempty"`
+	IsNSFW                  bool     `json:"is_nsfw"`
+	SubmissionReason        *string  `json:"submission_reason,omitempty"`
+	BroadcasterNameOverride *string  `json:"broadcaster_name_override,omitempty"`
 }
 
 // ValidationError represents a validation error
@@ -100,27 +101,28 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 
 	// Create submission
 	submission := &models.ClipSubmission{
-		ID:               uuid.New(),
-		UserID:           userID,
-		TwitchClipID:     twitchClip.ID,
-		TwitchClipURL:    twitchClip.URL,
-		Title:            &twitchClip.Title,
-		CustomTitle:      req.CustomTitle,
-		Tags:             req.Tags,
-		IsNSFW:           req.IsNSFW,
-		SubmissionReason: req.SubmissionReason,
-		Status:           "pending",
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
+		ID:                      uuid.New(),
+		UserID:                  userID,
+		TwitchClipID:            twitchClip.ID,
+		TwitchClipURL:           twitchClip.URL,
+		Title:                   &twitchClip.Title,
+		CustomTitle:             req.CustomTitle,
+		Tags:                    req.Tags,
+		IsNSFW:                  req.IsNSFW,
+		SubmissionReason:        req.SubmissionReason,
+		Status:                  "pending",
+		CreatedAt:               time.Now(),
+		UpdatedAt:               time.Now(),
 		// Metadata from Twitch
-		CreatorName:     &twitchClip.CreatorName,
-		CreatorID:       utils.StringPtr(twitchClip.CreatorID),
-		BroadcasterName: &twitchClip.BroadcasterName,
-		BroadcasterID:   utils.StringPtr(twitchClip.BroadcasterID),
-		GameID:          utils.StringPtr(twitchClip.GameID),
-		ThumbnailURL:    utils.StringPtr(twitchClip.ThumbnailURL),
-		Duration:        utils.Float64Ptr(twitchClip.Duration),
-		ViewCount:       twitchClip.ViewCount,
+		CreatorName:             &twitchClip.CreatorName,
+		CreatorID:               utils.StringPtr(twitchClip.CreatorID),
+		BroadcasterName:         &twitchClip.BroadcasterName,
+		BroadcasterID:           utils.StringPtr(twitchClip.BroadcasterID),
+		BroadcasterNameOverride: req.BroadcasterNameOverride,
+		GameID:                  utils.StringPtr(twitchClip.GameID),
+		ThumbnailURL:            utils.StringPtr(twitchClip.ThumbnailURL),
+		Duration:                utils.Float64Ptr(twitchClip.Duration),
+		ViewCount:               twitchClip.ViewCount,
 	}
 
 	// Check for auto-approval
@@ -266,7 +268,11 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	emptyStr := ""
 	title := utils.StringOrDefault(submission.CustomTitle, submission.Title)
 	creatorName := utils.StringOrDefault(submission.CreatorName, &emptyStr)
-	broadcasterName := utils.StringOrDefault(submission.BroadcasterName, &emptyStr)
+	// Use broadcaster_name_override if provided, otherwise use broadcaster_name from Twitch
+	broadcasterName := utils.StringOrDefault(submission.BroadcasterNameOverride, submission.BroadcasterName)
+	if broadcasterName == "" {
+		broadcasterName = emptyStr
+	}
 
 	clip := &models.Clip{
 		ID:              uuid.New(),

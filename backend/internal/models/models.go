@@ -221,15 +221,16 @@ type ClipSubmission struct {
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
 	// Metadata from Twitch
-	CreatorName     *string  `json:"creator_name,omitempty" db:"creator_name"`
-	CreatorID       *string  `json:"creator_id,omitempty" db:"creator_id"`
-	BroadcasterName *string  `json:"broadcaster_name,omitempty" db:"broadcaster_name"`
-	BroadcasterID   *string  `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
-	GameID          *string  `json:"game_id,omitempty" db:"game_id"`
-	GameName        *string  `json:"game_name,omitempty" db:"game_name"`
-	ThumbnailURL    *string  `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
-	Duration        *float64 `json:"duration,omitempty" db:"duration"`
-	ViewCount       int      `json:"view_count" db:"view_count"`
+	CreatorName              *string  `json:"creator_name,omitempty" db:"creator_name"`
+	CreatorID                *string  `json:"creator_id,omitempty" db:"creator_id"`
+	BroadcasterName          *string  `json:"broadcaster_name,omitempty" db:"broadcaster_name"`
+	BroadcasterID            *string  `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
+	BroadcasterNameOverride  *string  `json:"broadcaster_name_override,omitempty" db:"broadcaster_name_override"`
+	GameID                   *string  `json:"game_id,omitempty" db:"game_id"`
+	GameName                 *string  `json:"game_name,omitempty" db:"game_name"`
+	ThumbnailURL             *string  `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
+	Duration                 *float64 `json:"duration,omitempty" db:"duration"`
+	ViewCount                int      `json:"view_count" db:"view_count"`
 }
 
 // ClipSubmissionWithUser includes user information
