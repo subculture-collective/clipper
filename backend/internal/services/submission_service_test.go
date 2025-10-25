@@ -98,3 +98,78 @@ func TestExtractClipIDFromURL(t *testing.T) {
 		})
 	}
 }
+
+func TestBroadcasterNameHandling(t *testing.T) {
+	tests := []struct {
+		name                    string
+		broadcasterNameOverride *string
+		broadcasterName         *string
+		expected                string
+	}{
+		{
+			name:                    "Override provided",
+			broadcasterNameOverride: strPtr("CustomBroadcaster"),
+			broadcasterName:         strPtr("OriginalBroadcaster"),
+			expected:                "CustomBroadcaster",
+		},
+		{
+			name:                    "No override, use original",
+			broadcasterNameOverride: nil,
+			broadcasterName:         strPtr("OriginalBroadcaster"),
+			expected:                "OriginalBroadcaster",
+		},
+		{
+			name:                    "Empty override, use original",
+			broadcasterNameOverride: strPtr(""),
+			broadcasterName:         strPtr("OriginalBroadcaster"),
+			expected:                "OriginalBroadcaster",
+		},
+		{
+			name:                    "Both nil, use empty string",
+			broadcasterNameOverride: nil,
+			broadcasterName:         nil,
+			expected:                "",
+		},
+		{
+			name:                    "Override provided, original nil",
+			broadcasterNameOverride: strPtr("CustomBroadcaster"),
+			broadcasterName:         nil,
+			expected:                "CustomBroadcaster",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Simulate the logic from createClipFromSubmission
+			emptyStr := ""
+			submission := &models.ClipSubmission{
+				BroadcasterNameOverride: tt.broadcasterNameOverride,
+				BroadcasterName:         tt.broadcasterName,
+			}
+
+			// This is the pattern used in createClipFromSubmission
+			broadcasterNameFallback := stringOrDefault(submission.BroadcasterName, &emptyStr)
+			result := stringOrDefault(submission.BroadcasterNameOverride, &broadcasterNameFallback)
+
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+// Helper function for tests (mimics utils.StringOrDefault)
+func stringOrDefault(s *string, def *string) string {
+	if s != nil && *s != "" {
+		return *s
+	}
+	if def != nil {
+		return *def
+	}
+	return ""
+}
+
+// Helper function to create string pointers
+func strPtr(s string) *string {
+	return &s
+}
