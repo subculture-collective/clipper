@@ -86,7 +86,7 @@ export function SubmitClipPage() {
                 streamer_name: '',
             });
         }
-    }, [formData.clip_url]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [formData.clip_url, formData.streamer_name, isStreamerAutoDetected]);
 
 
     const handleSubmit = async (e: React.FormEvent) => {
