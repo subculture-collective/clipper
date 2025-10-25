@@ -162,6 +162,7 @@ import { ReportButton } from '@/components';
 ### Accessing Admin Interface
 
 Navigate to `/admin/reports` to:
+
 1. View all pending reports
 2. Filter by status or type
 3. Take moderation actions
@@ -177,6 +178,7 @@ go test ./internal/repository -v -run TestMockReportRepository
 ```
 
 Results:
+
 - ✅ TestMockReportRepository_CreateReport
 - ✅ TestMockReportRepository_CheckDuplicateReport
 - ✅ TestMockReportRepository_ListReports
@@ -199,18 +201,21 @@ Result: ✅ 0 security alerts
 While the core system is complete and functional, these features could be added in the future:
 
 ### Automated Moderation
+
 - Profanity filter with configurable blocklist
 - Spam detection (duplicate comments, rapid posting)
 - URL spam detection
 - NSFW image detection using ML
 
 ### User Management
+
 - Warning system with escalation (3 warnings → ban)
 - Temporary bans with duration (1 day, 1 week, 1 month)
 - Ban appeal system
 - User activity history
 
 ### Moderator Tools
+
 - Detailed moderation logs
 - Moderator performance metrics
 - Bulk actions
@@ -218,11 +223,13 @@ While the core system is complete and functional, these features could be added 
 - IP ban capability
 
 ### Notifications
+
 - Email notifications to moderators for urgent reports
 - Email to users when content is removed
 - Ban notifications with appeal instructions
 
 ### Analytics
+
 - Report metrics dashboard
 - Most common violation types
 - False report rate
@@ -259,6 +266,7 @@ if isDuplicate {
 ### Action Execution
 
 When a moderator takes action, the system:
+
 1. Updates report status
 2. Executes the action (remove content, ban user, etc.)
 3. Records the reviewer and timestamp

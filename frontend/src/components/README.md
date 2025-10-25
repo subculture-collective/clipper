@@ -30,6 +30,7 @@ import { Container } from '@/components/layout';
 ## Available Components
 
 ### UI Components
+
 - Alert
 - Avatar
 - Badge
@@ -45,6 +46,7 @@ import { Container } from '@/components/layout';
 - Toggle
 
 ### Layout Components
+
 - Container
 - Grid
 - Stack
@@ -118,6 +120,7 @@ MyComponent.displayName = 'MyComponent';
 ## Testing Components
 
 Always test your components:
+
 - In light and dark modes
 - At all responsive breakpoints (mobile, tablet, desktop)
 - With keyboard navigation

@@ -236,10 +236,10 @@ func main() {
 			clips.POST("/:id/track-view", analyticsHandler.TrackClipView)
 
 			// List comments for a clip (public or authenticated)
-			clips.GET("/:clipId/comments", commentHandler.ListComments)
+			clips.GET("/:id/comments", commentHandler.ListComments)
 
 			// Create comment (authenticated, rate limited)
-			clips.POST("/:clipId/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
+			clips.POST("/:id/comments", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), commentHandler.CreateComment)
 
 			// Protected clip endpoints (require authentication)
 			clips.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), clipHandler.VoteOnClip)
@@ -316,11 +316,11 @@ func main() {
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
 			users.GET("/:id/karma", reputationHandler.GetUserKarma)
 			users.GET("/:id/badges", reputationHandler.GetUserBadges)
-			
+
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
 		}
-		
+
 		// Creator analytics routes
 		creators := v1.Group("/creators")
 		{
@@ -346,19 +346,19 @@ func main() {
 		{
 			// Get notifications list
 			notifications.GET("", notificationHandler.ListNotifications)
-			
+
 			// Get unread count
 			notifications.GET("/count", notificationHandler.GetUnreadCount)
-			
+
 			// Mark notification as read
 			notifications.PUT("/:id/read", notificationHandler.MarkAsRead)
-			
+
 			// Mark all notifications as read
 			notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
-			
+
 			// Delete notification
 			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
-			
+
 			// Get/Update preferences
 			notifications.GET("/preferences", notificationHandler.GetPreferences)
 			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
@@ -410,7 +410,7 @@ func main() {
 				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
 				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
 			}
-			
+
 			// Analytics routes (admin only)
 			analytics := admin.Group("/analytics")
 			{

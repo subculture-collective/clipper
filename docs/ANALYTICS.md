@@ -5,6 +5,7 @@ This document describes the analytics system implemented in Clipper for tracking
 ## Overview
 
 The analytics system provides comprehensive insights for:
+
 - **Creators**: Track performance of their clips, views, votes, and engagement
 - **Admins**: Monitor platform health, user growth, and content trends
 - **Users**: View personal statistics and engagement metrics
@@ -41,89 +42,113 @@ The analytics system uses several tables:
 ### Creator Analytics
 
 **Get Creator Overview**
+
 ```
 GET /api/v1/creators/:creatorName/analytics/overview
 ```
+
 Returns summary metrics for a creator.
 
 **Get Top Clips**
+
 ```
 GET /api/v1/creators/:creatorName/analytics/clips?sort=views&limit=10
 ```
+
 Returns top-performing clips. Sort options: `views`, `votes`, `comments`
 
 **Get Trends**
+
 ```
 GET /api/v1/creators/:creatorName/analytics/trends?metric=clip_views&days=30
 ```
+
 Returns time-series data for the specified metric.
 
 ### Clip Analytics
 
 **Get Clip Analytics**
+
 ```
 GET /api/v1/clips/:id/analytics
 ```
+
 Returns detailed analytics for a specific clip.
 
 **Track Clip View**
+
 ```
 POST /api/v1/clips/:id/track-view
 ```
+
 Records a view event for the clip.
 
 ### User Analytics
 
 **Get Personal Stats** (Authenticated)
+
 ```
 GET /api/v1/users/me/stats
 ```
+
 Returns personal statistics for the authenticated user.
 
 ### Admin Analytics
 
 **Get Platform Overview** (Admin only)
+
 ```
 GET /api/v1/admin/analytics/overview
 ```
+
 Returns platform KPIs (users, clips, engagement).
 
 **Get Content Metrics** (Admin only)
+
 ```
 GET /api/v1/admin/analytics/content
 ```
+
 Returns popular games, creators, and trending tags.
 
 **Get Platform Trends** (Admin only)
+
 ```
 GET /api/v1/admin/analytics/trends?metric=users&days=30
 ```
+
 Returns time-series data for platform metrics.
 
 ## Frontend Pages
 
 ### Creator Analytics Page
+
 **Route**: `/creator/:creatorName/analytics`
 
 Displays:
+
 - Overview metrics (total clips, views, upvotes, comments, engagement rate)
 - Top-performing clips table with sorting
 - Performance trends (views, votes over time)
 - Timeframe selector (7d, 30d, 90d, 1y)
 
 ### Admin Analytics Dashboard
+
 **Route**: `/admin/analytics` (Admin only)
 
 Displays:
+
 - Platform overview KPIs
 - User and clip growth trends
 - Most popular games and creators (bar charts)
 - Trending tags
 
 ### Personal Stats Page
+
 **Route**: `/profile/stats` (Authenticated)
 
 Displays:
+
 - Activity summary (votes, comments, favorites)
 - Voting behavior (pie chart)
 - Engagement metrics
@@ -182,6 +207,7 @@ await trackClipView(clipId);
 ### Backend Event Types
 
 Supported event types:
+
 - `clip_view`: Clip was viewed
 - `vote`: Vote cast on clip
 - `comment`: Comment posted
@@ -192,6 +218,7 @@ Supported event types:
 ### Event Metadata
 
 Events can include additional metadata in JSON format:
+
 ```json
 {
   "duration": 30.5,
@@ -206,11 +233,13 @@ Events can include additional metadata in JSON format:
 The analytics system is added via migration `000007_add_analytics_system.up.sql`.
 
 To apply:
+
 ```bash
 make migrate-up
 ```
 
 To rollback:
+
 ```bash
 make migrate-down
 ```
@@ -230,12 +259,14 @@ make migrate-down
 ## Testing
 
 Run analytics service tests:
+
 ```bash
 cd backend
 go test ./internal/services -run TestAnonymizeIP
 ```
 
 Run all tests:
+
 ```bash
 make test
 ```
@@ -243,10 +274,12 @@ make test
 ## Dependencies
 
 ### Backend
+
 - PostgreSQL 17+ (for analytics tables and triggers)
 - Go 1.24+
 
 ### Frontend
+
 - React 19
 - Recharts 2.15+ (charting library)
 - TanStack Query (data fetching)

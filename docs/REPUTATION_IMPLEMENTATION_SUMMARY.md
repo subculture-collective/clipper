@@ -11,6 +11,7 @@ The reputation system implements a karma-based reward system similar to Reddit, 
 ### Backend Implementation ✅
 
 #### Database Schema
+
 - **user_badges table**: Stores badge assignments to users
 - **karma_history table**: Tracks all karma changes for auditing
 - **user_stats table**: Stores calculated user statistics and scores
@@ -27,6 +28,7 @@ The reputation system implements a karma-based reward system similar to Reddit, 
   - engagement_leaderboard
 
 #### Repository Layer
+
 - `ReputationRepository` with methods for:
   - Getting karma history
   - Getting karma breakdown by source
@@ -37,6 +39,7 @@ The reputation system implements a karma-based reward system similar to Reddit, 
   - Checking and awarding automatic badges
 
 #### Service Layer
+
 - `ReputationService` with:
   - User reputation retrieval
   - Karma management
@@ -47,6 +50,7 @@ The reputation system implements a karma-based reward system similar to Reddit, 
   - Automatic badge checking
 
 #### API Endpoints
+
 - `GET /api/v1/users/:id/reputation` - Get complete reputation info
 - `GET /api/v1/users/:id/karma` - Get karma breakdown and history
 - `GET /api/v1/users/:id/badges` - Get user badges
@@ -56,13 +60,16 @@ The reputation system implements a karma-based reward system similar to Reddit, 
 - `DELETE /api/v1/admin/users/:id/badges/:badgeId` - Remove badge (admin)
 
 #### Background Jobs
+
 - `ReputationScheduler`: Runs every 6 hours to:
   - Check and award automatic badges
   - Update user statistics
   - Recalculate trust and engagement scores
 
 #### Badge System
+
 **Achievement Badges** (automatic):
+
 - Veteran (🏆): Member for over 1 year
 - Influencer (⭐): Earned 10,000+ karma
 - Trusted User (✅): Earned 1,000+ karma
@@ -71,19 +78,24 @@ The reputation system implements a karma-based reward system similar to Reddit, 
 - Submitter (📹): Submitted 50+ clips
 
 **Staff Badges** (manual):
+
 - Moderator (🛡️): Community moderator
 - Admin (👑): Site administrator
 - Developer (💻): Platform developer
 
 **Special Badges** (manual):
+
 - Early Adopter (🚀): Joined during beta
 - Beta Tester (🧪): Participated in beta testing
 
 **Supporter Badges** (manual):
+
 - Supporter (❤️): Financial supporter
 
 #### Rank System
+
 Automatically assigned based on karma:
+
 - 0-99: Newcomer
 - 100-499: Member
 - 500-999: Regular
@@ -92,7 +104,9 @@ Automatically assigned based on karma:
 - 10,000+: Legend
 
 #### Karma Permissions
+
 Feature unlocks based on karma:
+
 - 10 karma: Create tags
 - 50 karma: Report content
 - 100 karma: Submit clips
@@ -101,9 +115,11 @@ Feature unlocks based on karma:
 ### Frontend Implementation ✅
 
 #### Types
+
 - `reputation.ts`: Complete TypeScript types for all reputation data structures
 
 #### Components
+
 1. **BadgeDisplay**:
    - Inline badge display with icons
    - Badge grid layout
@@ -129,6 +145,7 @@ Feature unlocks based on karma:
    - Top 3 summary cards
 
 #### Pages
+
 1. **LeaderboardPage** (`/leaderboards`):
    - Karma leaderboard
    - Engagement leaderboard
@@ -143,9 +160,11 @@ Feature unlocks based on karma:
    - Loads reputation data from API
 
 #### Navigation
+
 - Added "🏆 Leaderboards" link to header navigation
 
 #### Tests
+
 - Complete test coverage for:
   - BadgeDisplay components
   - KarmaBreakdown components
@@ -155,13 +174,16 @@ Feature unlocks based on karma:
 ## Technical Details
 
 ### Karma Calculation
+
 - Upvote on clip/comment: +1 karma
 - Downvote on clip/comment: -1 karma
 - Karma cannot go below 0
 - Changes tracked in karma_history for auditing
 
 ### Trust Score (0-100)
+
 Calculated based on:
+
 - Account age (max 20 points)
 - Karma amount (max 40 points)
 - Report accuracy (max 20 points)
@@ -169,13 +191,16 @@ Calculated based on:
 - Penalty for banned users (50% reduction)
 
 ### Engagement Score
+
 Sum of:
+
 - Comments × 2 points
 - Votes × 1 point
 - Clip submissions × 5 points
 - Days active × 3 points
 
 ### Background Job Schedule
+
 - Reputation scheduler runs every 6 hours
 - Processes all active (non-banned) users
 - Awards badges automatically when criteria are met
@@ -190,11 +215,13 @@ All code has been scanned and no security issues were detected.
 ## Testing
 
 ### Backend Tests
+
 - ✅ All existing tests passing
 - ✅ Reputation repository tests
 - ✅ Reputation service tests
 
 ### Frontend Tests
+
 - ✅ BadgeDisplay component tests (31 test cases)
 - ✅ KarmaBreakdown component tests (15 test cases)
 - ✅ ReputationDisplay component tests (16 test cases)
@@ -202,6 +229,7 @@ All code has been scanned and no security issues were detected.
 ## Files Changed/Added
 
 ### Backend
+
 - `backend/migrations/000005_add_reputation_system.up.sql` (existing)
 - `backend/internal/repository/reputation_repository.go` (existing)
 - `backend/internal/repository/user_repository.go` (modified - added GetAllActiveUserIDs)
@@ -211,6 +239,7 @@ All code has been scanned and no security issues were detected.
 - `backend/cmd/api/main.go` (modified - integrated scheduler)
 
 ### Frontend
+
 - `frontend/src/types/reputation.ts` (new)
 - `frontend/src/components/reputation/BadgeDisplay.tsx` (new)
 - `frontend/src/components/reputation/KarmaBreakdown.tsx` (new)
@@ -223,6 +252,7 @@ All code has been scanned and no security issues were detected.
 - `frontend/src/App.tsx` (modified - added route)
 
 ### Tests
+
 - `frontend/src/components/reputation/BadgeDisplay.test.tsx` (new)
 - `frontend/src/components/reputation/KarmaBreakdown.test.tsx` (new)
 - `frontend/src/components/reputation/ReputationDisplay.test.tsx` (new)
@@ -238,7 +268,7 @@ The following features from the original issue were not implemented as they woul
 5. **Notification System**: Milestone notifications and celebration animations
 6. **Progress Tracking**: "X more karma to next rank" displays
 7. **Profile Customization**: Badge ordering and visibility settings
-8. **Advanced Leaderboards**: 
+8. **Advanced Leaderboards**:
    - Monthly/all-time filters
    - Top contributors by game
    - Rank change indicators (↑↓)
@@ -262,6 +292,7 @@ Complete API documentation is available in `REPUTATION_SYSTEM.md`.
 ## Conclusion
 
 The reputation system has been successfully implemented with:
+
 - ✅ Complete backend infrastructure
 - ✅ Database schema with triggers and functions
 - ✅ API endpoints for all features

@@ -17,6 +17,7 @@ For detailed schema information including tables, relationships, and ERD, see [D
 ### Quick Reference
 
 **Core Tables**:
+
 - `users`: User accounts and profiles
 - `clips`: Twitch clip metadata and stats
 - `comments`: User comments on clips
@@ -25,6 +26,7 @@ For detailed schema information including tables, relationships, and ERD, see [D
 - `tags`: Clip categorization tags
 
 **Relationships**:
+
 - Users → Clips (one-to-many via user_id)
 - Users → Comments (one-to-many via user_id)
 - Users → Votes (one-to-many via user_id)
@@ -34,6 +36,7 @@ For detailed schema information including tables, relationships, and ERD, see [D
 ### Connection Details
 
 **Development**:
+
 ```
 Host: localhost
 Port: 5432
@@ -44,6 +47,7 @@ SSL Mode: disable
 ```
 
 **Production**:
+
 ```
 Host: <your-production-host>
 Port: 5432
@@ -62,6 +66,7 @@ Migrations are version-controlled database schema changes that can be applied or
 ### Migration Files
 
 Migrations are stored in `backend/migrations/` with the naming convention:
+
 ```
 YYYYMMDDHHMMSS_description.up.sql    # Apply migration
 YYYYMMDDHHMMSS_description.down.sql  # Rollback migration
@@ -85,26 +90,28 @@ cd backend
 #### Manual Creation
 
 1. Create the up migration file:
-   ```sql
-   -- migrations/20250124120000_add_user_preferences.up.sql
-   CREATE TABLE user_preferences (
-       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-       theme VARCHAR(20) DEFAULT 'dark',
-       notifications_enabled BOOLEAN DEFAULT true,
-       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-       UNIQUE(user_id)
-   );
 
-   CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
-   ```
+    ```sql
+    -- migrations/20250124120000_add_user_preferences.up.sql
+    CREATE TABLE user_preferences (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        theme VARCHAR(20) DEFAULT 'dark',
+        notifications_enabled BOOLEAN DEFAULT true,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(user_id)
+    );
+
+    CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
+    ```
 
 2. Create the down migration file:
-   ```sql
-   -- migrations/20250124120000_add_user_preferences.down.sql
-   DROP TABLE IF EXISTS user_preferences;
-   ```
+
+    ```sql
+    -- migrations/20250124120000_add_user_preferences.down.sql
+    DROP TABLE IF EXISTS user_preferences;
+    ```
 
 ### Running Migrations
 
@@ -116,7 +123,7 @@ cd backend
 go run cmd/api/main.go migrate
 
 # Using migration tool
-migrate -path ./migrations -database "postgres://clipper:clipper_password@localhost:5432/clipper?sslmode=disable" up
+migrate -path ./migrations -database "postgres://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable" up
 ```
 
 #### Apply Specific Number of Migrations
@@ -164,6 +171,7 @@ migrate -path ./migrations -database "<connection-string>" down -all
 ### Migration Best Practices
 
 **DO**:
+
 - ✅ Test migrations on a copy of production data
 - ✅ Make migrations reversible when possible
 - ✅ Include both up and down migrations
@@ -173,6 +181,7 @@ migrate -path ./migrations -database "<connection-string>" down -all
 - ✅ Test rollback procedures
 
 **DON'T**:
+
 - ❌ Modify existing migration files after they've been applied
 - ❌ Delete migration files from the repository
 - ❌ Make destructive changes without backups
@@ -185,21 +194,24 @@ migrate -path ./migrations -database "<connection-string>" down -all
 **If a Migration Fails**:
 
 1. Check the error message:
-   ```bash
-   tail -f logs/migration.log
-   ```
+
+    ```bash
+    tail -f logs/migration.log
+    ```
 
 2. Fix the migration file
 
 3. Force to the previous version:
-   ```bash
-   migrate -path ./migrations -database "<connection-string>" force <previous-version>
-   ```
+
+    ```bash
+    migrate -path ./migrations -database "<connection-string>" force <previous-version>
+    ```
 
 4. Rerun the fixed migration:
-   ```bash
-   migrate -path ./migrations -database "<connection-string>" up 1
-   ```
+
+    ```bash
+    migrate -path ./migrations -database "<connection-string>" up 1
+    ```
 
 ## Database Maintenance
 
@@ -252,7 +264,7 @@ REINDEX INDEX idx_clips_created_at;
 #### Active Connections
 
 ```sql
-SELECT 
+SELECT
     pid,
     usename,
     application_name,
@@ -268,7 +280,7 @@ ORDER BY query_start;
 #### Long-Running Queries
 
 ```sql
-SELECT 
+SELECT
     pid,
     now() - query_start AS duration,
     query,
@@ -296,7 +308,7 @@ SELECT pg_cancel_backend(12345);
 SELECT pg_size_pretty(pg_database_size('clipper'));
 
 -- Size by table
-SELECT 
+SELECT
     schemaname,
     tablename,
     pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
@@ -309,7 +321,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 
 ```sql
 -- Unused indexes
-SELECT 
+SELECT
     schemaname,
     tablename,
     indexname,
@@ -320,7 +332,7 @@ WHERE idx_scan = 0
 ORDER BY pg_relation_size(indexrelid) DESC;
 
 -- Index hit ratio (should be > 99%)
-SELECT 
+SELECT
     sum(idx_blks_hit) / nullif(sum(idx_blks_hit + idx_blks_read), 0) * 100 AS index_hit_ratio
 FROM pg_statio_user_indexes;
 ```
@@ -339,13 +351,14 @@ EXPLAIN SELECT * FROM clips WHERE broadcaster_id = 'abc123';
 EXPLAIN ANALYZE SELECT * FROM clips WHERE broadcaster_id = 'abc123';
 
 -- Show more details
-EXPLAIN (ANALYZE, BUFFERS, VERBOSE) 
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
 SELECT * FROM clips WHERE broadcaster_id = 'abc123';
 ```
 
 #### Reading EXPLAIN Output
 
 Look for:
+
 - **Seq Scan**: Full table scan (slow on large tables)
 - **Index Scan**: Using an index (fast)
 - **Nested Loop**: Join method (varies in performance)
@@ -369,17 +382,19 @@ CREATE INDEX idx_clips_created_broadcaster ON clips(created_at DESC, broadcaster
 #### Optimize Queries
 
 **Before**:
+
 ```sql
 -- Slow: Using LIKE on large table
 SELECT * FROM clips WHERE title LIKE '%funny%';
 ```
 
 **After**:
+
 ```sql
 -- Fast: Using full-text search
 CREATE INDEX idx_clips_title_fts ON clips USING gin(to_tsvector('english', title));
 
-SELECT * FROM clips 
+SELECT * FROM clips
 WHERE to_tsvector('english', title) @@ to_tsquery('english', 'funny');
 ```
 
@@ -400,8 +415,8 @@ ALTER TABLE events ADD COLUMN event_time TIMESTAMP WITH TIME ZONE;
 SELECT * FROM clips ORDER BY created_at DESC;
 
 -- Good: Using pagination
-SELECT * FROM clips 
-ORDER BY created_at DESC 
+SELECT * FROM clips
+ORDER BY created_at DESC
 LIMIT 20 OFFSET 0;
 ```
 
@@ -412,7 +427,7 @@ LIMIT 20 OFFSET 0;
 - [ ] WHERE clauses use indexed columns
 - [ ] Queries use LIMIT when appropriate
 - [ ] JOINs are on indexed columns
-- [ ] Avoid SELECT * when possible
+- [ ] Avoid SELECT \* when possible
 - [ ] Use prepared statements for repeated queries
 - [ ] Cache frequently accessed data
 
@@ -503,6 +518,7 @@ archive_command = 'test ! -f /var/lib/postgresql/archive/%f && cp %p /var/lib/po
 **Recovery Point Objective (RPO)**: 1 hour (hourly backups)
 
 **Steps**:
+
 1. Assess the situation and damage extent
 2. Notify team and stakeholders
 3. Switch to backup infrastructure if available

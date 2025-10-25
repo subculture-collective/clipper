@@ -23,11 +23,13 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 ## 📚 Documentation
 
 ### For Users
+
 - **[User Guide](docs/user-guide.md)** - How to use Clipper
 - **[FAQ](docs/faq.md)** - Frequently asked questions
 - **[Community Guidelines](docs/guidelines.md)** - Rules and best practices
 
 ### For Developers
+
 - **[Development Setup](docs/development.md)** - Get started with development
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
 - **[API Documentation](docs/API.md)** - REST API reference
@@ -35,12 +37,14 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
 
 ### Operations
+
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Infrastructure Guide](docs/INFRASTRUCTURE.md)** - Infrastructure setup
 - **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration and deployment
 - **[Runbook](docs/RUNBOOK.md)** - Operational procedures
 
 ### Contributing
+
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
 - **[Changelog](CHANGELOG.md)** - Version history and changes
@@ -55,7 +59,7 @@ This project is currently in active development. Core features are being impleme
 
 ## 🏗️ Architecture
 
-```
+```text
 clipper/
 ├── frontend/          # React + TypeScript + Vite
 │   ├── src/
@@ -81,6 +85,7 @@ clipper/
 ### Tech Stack
 
 **Frontend:**
+
 - React 19 with TypeScript
 - Vite for build tooling
 - TailwindCSS for styling
@@ -90,6 +95,7 @@ clipper/
 - Axios for API calls
 
 **Backend:**
+
 - Go 1.24+
 - Gin web framework
 - PostgreSQL (via pgx)
@@ -98,6 +104,7 @@ clipper/
 - Twitch API integration
 
 **Infrastructure:**
+
 - Docker & Docker Compose for local development
 - PostgreSQL 17
 - Redis 8
@@ -114,17 +121,20 @@ clipper/
 ### Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/subculture-collective/clipper.git
    cd clipper
    ```
 
 2. **Install dependencies**
+
    ```bash
    make install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    # Backend
    cp backend/.env.example backend/.env
@@ -136,18 +146,21 @@ clipper/
    ```
 
 4. **Start Docker services**
+
    ```bash
    make docker-up
    ```
 
 5. **Start development servers**
-   
+
    Option A: Start everything at once
+
    ```bash
    make dev
    ```
-   
+
    Option B: Start services individually
+
    ```bash
    # Terminal 1 - Backend
    make backend-dev
@@ -157,9 +170,9 @@ clipper/
    ```
 
 6. **Access the application**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8080
-   - API Health: http://localhost:8080/health
+   - Frontend: <http://localhost:5173>
+   - Backend API: <http://localhost:8080>
+   - API Health: <http://localhost:8080/health>
 
 ## 🛠️ Development
 
@@ -359,6 +372,7 @@ The project uses GitHub Actions for continuous integration and deployment:
 ### Docker Images
 
 Build images locally:
+
 ```bash
 # Backend
 cd backend
@@ -370,6 +384,7 @@ docker build -t clipper-frontend .
 ```
 
 Pull from GitHub Container Registry:
+
 ```bash
 docker pull ghcr.io/subculture-collective/clipper/backend:latest
 docker pull ghcr.io/subculture-collective/clipper/frontend:latest
@@ -378,21 +393,25 @@ docker pull ghcr.io/subculture-collective/clipper/frontend:latest
 ### Deployment Environments
 
 #### Staging
+
 - Deploys automatically on push to `develop` branch
 - Environment: `staging`
 - Runs smoke tests after deployment
 
 To configure staging deployment, add these secrets to your repository:
+
 - `STAGING_HOST`: Hostname of staging server
 - `DEPLOY_SSH_KEY`: SSH private key for deployment
 
 #### Production
+
 - Deploys on push to `main` or version tags (`v*`)
 - Requires manual approval via GitHub Environments
 - Runs E2E tests before deployment
 - Automatic rollback on health check failure
 
 To configure production deployment, add these secrets:
+
 - `PRODUCTION_HOST`: Hostname of production server
 - `DEPLOY_SSH_KEY`: SSH private key for deployment
 
@@ -410,6 +429,7 @@ Configure the following secrets in your GitHub repository settings:
 ### Manual Deployment
 
 To deploy manually, use workflow dispatch:
+
 ```bash
 # Via GitHub UI
 Actions > Deploy to Staging/Production > Run workflow
@@ -447,6 +467,7 @@ See [RUNBOOK.md](./docs/RUNBOOK.md) for detailed operational procedures.
 We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
 Please read our [Contributing Guide](CONTRIBUTING.md) for:
+
 - Development workflow
 - Code standards and style
 - Testing requirements

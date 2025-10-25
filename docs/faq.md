@@ -36,18 +36,21 @@ Yes! Clipper is completely free to use. You can browse, watch, comment, vote, an
 ### How does the voting system work?
 
 **Voting Basics**:
+
 - Click the up arrow (↑) to upvote clips you enjoy
 - Click the down arrow (↓) to downvote inappropriate or low-quality content
 - Your vote affects the clip's score and visibility
 - Higher-voted clips appear more prominently in feeds
 
 **Vote Impact**:
+
 - Votes determine clip rankings in "Hot" and "Top" feeds
 - High-voted clips may reach the front page
 - Vote patterns help our algorithm recommend similar content
 - Content creators earn karma from upvotes
 
 **Changing Your Vote**:
+
 - Click the up arrow again to remove your upvote
 - Click the down arrow again to remove your downvote
 - You can switch between upvote and downvote at any time
@@ -58,6 +61,7 @@ Yes! Clipper is completely free to use. You can browse, watch, comment, vote, an
 Karma is a score that represents your positive contributions to the Clipper community.
 
 **Earning Karma**:
+
 - **+1**: Someone upvotes your clip submission
 - **+1**: Someone upvotes your comment
 - **+5**: Your submission reaches 100+ upvotes
@@ -65,12 +69,14 @@ Karma is a score that represents your positive contributions to the Clipper comm
 - **+2**: Your comment receives helpful award (planned)
 
 **Losing Karma**:
+
 - **-1**: Your submission gets downvoted
 - **-1**: Your comment gets downvoted
 - **-10**: Your content is removed by moderators
 - **-50**: Serious guideline violations
 
 **Karma Benefits**:
+
 - Build community reputation
 - Unlock special flair and badges (planned)
 - Access beta features early (planned)
@@ -82,6 +88,7 @@ Karma is a score that represents your positive contributions to the Clipper comm
 ### How do I submit a clip?
 
 **Submission Process**:
+
 1. Find a clip on Twitch you want to share
 2. Copy the clip URL from Twitch
 3. Click "Submit Clip" on Clipper
@@ -92,6 +99,7 @@ Karma is a score that represents your positive contributions to the Clipper comm
 5. Click "Submit"
 
 **Submission Guidelines**:
+
 - Only submit clips you have the right to share
 - Add accurate, descriptive tags
 - Don't submit duplicates (check if already posted)
@@ -99,6 +107,7 @@ Karma is a score that represents your positive contributions to the Clipper comm
 - Don't spam or self-promote excessively
 
 **Review Process**:
+
 - Most clips are published immediately
 - Moderators may review clips for guideline compliance
 - Duplicate or guideline-violating clips may be removed
@@ -107,11 +116,13 @@ Karma is a score that represents your positive contributions to the Clipper comm
 ### Can I edit or delete my submissions?
 
 **Editing**:
+
 - You can edit tags and descriptions after posting
 - Titles cannot be changed after submission
 - Click "Edit" on your submission to make changes
 
 **Deleting**:
+
 - You can delete your own submissions within 24 hours
 - After 24 hours, contact moderators for removal
 - Deleting submissions will also remove associated karma
@@ -120,6 +131,7 @@ Karma is a score that represents your positive contributions to the Clipper comm
 ### What types of content are allowed?
 
 **Allowed Content**:
+
 - Gaming clips from Twitch streams
 - Funny, impressive, or entertaining moments
 - Educational or informative clips
@@ -128,6 +140,7 @@ Karma is a score that represents your positive contributions to the Clipper comm
 - Music and performances (with proper licensing)
 
 **Not Allowed**:
+
 - NSFW content without proper tags
 - Hate speech or harassment
 - Copyrighted content without permission
@@ -149,6 +162,7 @@ Yes, you can request account deletion:
 4. Confirm your decision
 
 **What happens when you delete**:
+
 - Your username becomes available
 - Your submissions remain but are marked as "deleted user"
 - Your comments remain but are anonymous
@@ -156,6 +170,7 @@ Yes, you can request account deletion:
 - All personal data is permanently deleted
 
 **Waiting Period**:
+
 - Accounts are deactivated immediately
 - Permanent deletion occurs after 30 days
 - You can cancel deletion within 30 days by signing in
@@ -163,24 +178,28 @@ Yes, you can request account deletion:
 ### Is my data private?
 
 **Data We Collect**:
+
 - Twitch username and profile information
 - Clips you submit, vote on, and favorite
 - Comments you post
 - Activity timestamps and analytics
 
 **Privacy Controls**:
+
 - Make your profile public or private
 - Hide your favorites from others
 - Control who sees your activity
 - Export your data at any time
 
 **Data Usage**:
+
 - Improve platform features
 - Generate community statistics
 - Recommend relevant content
 - Prevent abuse and spam
 
 **We Never**:
+
 - Sell your personal data
 - Share data with third parties (except as required by law)
 - Track you outside of Clipper
@@ -191,6 +210,7 @@ See our Privacy Policy for complete details.
 ### How do I report inappropriate content?
 
 **Reporting Process**:
+
 1. Click the "Report" button on any clip or comment
 2. Select the reason:
    - Spam or self-promotion
@@ -202,12 +222,14 @@ See our Privacy Policy for complete details.
 4. Submit report
 
 **What Happens Next**:
+
 - Moderators review all reports
 - Action taken within 24-48 hours
 - Reporters are notified of outcomes
 - Serious violations may result in immediate removal
 
 **Anonymous Reporting**:
+
 - Reports are confidential
 - The reported user won't know who reported them
 - False reports may result in restrictions
@@ -217,11 +239,13 @@ See our Privacy Policy for complete details.
 ### What browsers are supported?
 
 **Fully Supported**:
+
 - Chrome/Edge (latest 2 versions)
 - Firefox (latest 2 versions)
 - Safari (latest 2 versions)
 
 **Mobile Support**:
+
 - iOS Safari (iOS 14+)
 - Chrome Android (latest)
 - Firefox Android (latest)
@@ -231,6 +255,7 @@ See our Privacy Policy for complete details.
 ### Why can't I watch some clips?
 
 **Common Reasons**:
+
 - Clip was deleted by the broadcaster
 - Clip URL is broken or invalid
 - Twitch embed API is temporarily unavailable
@@ -238,6 +263,7 @@ See our Privacy Policy for complete details.
 - Geographic restrictions apply
 
 **Solutions**:
+
 - Try refreshing the page
 - Check if the clip still exists on Twitch
 - Update your browser
@@ -247,6 +273,7 @@ See our Privacy Policy for complete details.
 ### How can I improve performance?
 
 **Tips for Better Performance**:
+
 - Close unused browser tabs
 - Disable unnecessary extensions
 - Use hardware acceleration
@@ -270,6 +297,7 @@ Currently, Clipper is a passion project with no monetization. Possible future re
 - **Affiliate Links**: Partnership with Twitch and game stores
 
 **Our Promise**:
+
 - Core features will always be free
 - No pay-to-win mechanics
 - Transparent about any monetization
@@ -287,6 +315,7 @@ Not at this time. We're focused on building a great community experience before 
 ### How can I support the project?
 
 **Ways to Help**:
+
 - Share Clipper with friends and communities
 - Submit quality clips regularly
 - Participate in discussions
@@ -299,6 +328,7 @@ Not at this time. We're focused on building a great community experience before 
 ### Who moderates Clipper?
 
 **Moderation Team**:
+
 - Core team of volunteer moderators
 - Community-elected moderators (planned)
 - Automated systems for spam detection
@@ -307,12 +337,14 @@ Not at this time. We're focused on building a great community experience before 
 ### What happens if I violate the guidelines?
 
 **Enforcement Actions**:
+
 1. **Warning**: First-time minor violations
 2. **Content Removal**: Guideline-violating posts removed
 3. **Temporary Ban**: 24 hours to 30 days for repeated violations
 4. **Permanent Ban**: Serious or repeated violations
 
 **Appeals Process**:
+
 - Contact moderators within 7 days
 - Provide explanation and context
 - Moderators review and respond within 72 hours
@@ -323,6 +355,7 @@ See [Community Guidelines](guidelines.md) for detailed enforcement policies.
 ### How can I become a moderator?
 
 **Requirements**:
+
 - Active account for 3+ months
 - 1000+ karma
 - Good standing (no guideline violations)
@@ -330,6 +363,7 @@ See [Community Guidelines](guidelines.md) for detailed enforcement policies.
 - Commitment to fair and consistent moderation
 
 **Application Process**:
+
 - Applications open periodically
 - Submit application when announced
 - Complete moderation training
