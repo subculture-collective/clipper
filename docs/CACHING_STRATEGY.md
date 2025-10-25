@@ -20,6 +20,7 @@ The caching layer uses Redis to improve performance by reducing database load an
 All cache keys follow a consistent naming convention:
 
 ### Feed Caches
+
 - `feed:hot:page:{page}` - Hot/trending clips feed
 - `feed:top:{timeframe}:page:{page}` - Top clips by timeframe (24h, 7d, 30d, all)
 - `feed:new:page:{page}` - Recently uploaded clips
@@ -27,31 +28,38 @@ All cache keys follow a consistent naming convention:
 - `feed:creator:{creatorId}:{sort}:page:{page}` - Creator-specific feeds
 
 ### Clip Caches
+
 - `clip:{clipId}` - Full clip details
 - `clip:{clipId}:votes` - Vote count/score
 - `clip:{clipId}:comment_count` - Number of comments
 
 ### Comment Caches
+
 - `comments:clip:{clipId}:{sort}` - Comment tree for a clip
 - `comment:{commentId}` - Individual comment details
 
 ### Metadata Caches
+
 - `game:{gameId}` - Game information
 - `user:{userId}` - User profile data
 - `tags:all` - List of all tags
 
 ### Search Caches
+
 - `search:{query}:{filters}:page:{page}` - Search results
 - `search:suggestions:{query}` - Autocomplete suggestions
 
 ### Session Data
+
 - `session:{sessionId}` - User session data
 - `refresh_token:{tokenId}` - Refresh token data
 
 ### Rate Limiting
+
 - `ratelimit:{endpoint}:{identifier}` - Rate limit counters
 
 ### Locks
+
 - `lock:{resource}` - Distributed lock for a resource
 
 ## TTL Values
@@ -83,25 +91,30 @@ Different cache types have different Time-To-Live (TTL) values based on their up
 The system automatically invalidates related caches when data changes:
 
 #### On New Clip
+
 - Clear hot feed (`feed:hot:*`)
 - Clear new feed (`feed:new:*`)
 - Clear game feed (`feed:game:{gameId}:*`)
 - Clear creator feed (`feed:creator:{creatorId}:*`)
 
 #### On Vote
+
 - Clear hot feed (`feed:hot:*`)
 - Clear top feed (`feed:top:*`)
 - Clear clip votes (`clip:{clipId}:votes`)
 - Clear clip details (`clip:{clipId}`)
 
 #### On New Comment
+
 - Clear comment tree (`comments:clip:{clipId}:*`)
 - Clear comment count (`clip:{clipId}:comment_count`)
 
 #### On Clip Update
+
 - Clear clip details (`clip:{clipId}`)
 
 #### On User Update
+
 - Clear user profile (`user:{userId}`)
 
 ### Pattern-Based Invalidation
@@ -143,6 +156,7 @@ warmingService.WarmCriticalCaches(ctx)
 ```
 
 This warms:
+
 - Hot feed (first 3 pages)
 - New feed (first 2 pages)
 - Top feeds for all timeframes (first page)
@@ -209,6 +223,7 @@ defer cacheService.ReleaseLock(ctx, "clip_import_123")
 ```
 
 Common use cases:
+
 - Preventing duplicate clip imports
 - Serializing vote counting
 - Coordinating cache updates across instances
@@ -244,6 +259,7 @@ GET /health/cache
 ```
 
 Returns:
+
 ```json
 {
   "status": "healthy",
@@ -277,6 +293,7 @@ GET /health/cache/check
 ### Alerts
 
 Set up alerts for:
+
 - Hit rate < 70%
 - Memory usage > 80%
 - Connection failures

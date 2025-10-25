@@ -3,6 +3,7 @@
 This runbook provides step-by-step procedures for common deployment and operational tasks.
 
 ## Table of Contents
+
 - [Pre-Deployment Checklist](#pre-deployment-checklist)
 - [Standard Deployment](#standard-deployment)
 - [Emergency Rollback](#emergency-rollback)
@@ -16,6 +17,7 @@ This runbook provides step-by-step procedures for common deployment and operatio
 Before any production deployment, verify:
 
 ### Code Quality
+
 - [ ] All CI checks passing (linting, tests, build)
 - [ ] Code reviewed and approved
 - [ ] No known critical bugs
@@ -23,6 +25,7 @@ Before any production deployment, verify:
 - [ ] Documentation updated
 
 ### Testing
+
 - [ ] Unit tests passing
 - [ ] Integration tests passing
 - [ ] E2E tests passing (if applicable)
@@ -30,6 +33,7 @@ Before any production deployment, verify:
 - [ ] Tested on staging environment
 
 ### Infrastructure
+
 - [ ] Server resources sufficient (CPU, memory, disk)
 - [ ] Database backup completed
 - [ ] Monitoring and alerts active
@@ -37,12 +41,14 @@ Before any production deployment, verify:
 - [ ] SSL certificates valid
 
 ### Communication
+
 - [ ] Team notified of deployment
 - [ ] Maintenance window scheduled (if needed)
 - [ ] Rollback plan prepared
 - [ ] On-call engineer assigned
 
 ### Environment
+
 - [ ] Environment variables configured
 - [ ] Secrets updated (if needed)
 - [ ] External dependencies available
@@ -55,6 +61,7 @@ Before any production deployment, verify:
 #### Via GitHub Actions
 
 1. **Trigger Deployment**:
+
    ```bash
    # Push to main branch
    git push origin main
@@ -76,6 +83,7 @@ Before any production deployment, verify:
    - Approve deployment
 
 4. **Verify Deployment**:
+
    ```bash
    # Check health endpoints
    curl https://clipper.example.com/health
@@ -259,11 +267,13 @@ docker-compose start backend
 ### Before Migration
 
 1. **Backup Database**:
+
    ```bash
    ./scripts/backup.sh
    ```
 
 2. **Test on Staging**:
+
    ```bash
    # Run migration on staging first
    # Verify application works
@@ -382,6 +392,7 @@ docker-compose ps
    - Verify services restart
 
 2. **Docker Resources**:
+
    ```yaml
    # Edit docker-compose.yml
    services:
@@ -401,6 +412,7 @@ docker-compose ps
 #### Add Backend Instance
 
 1. **Set up Load Balancer**:
+
    ```nginx
    upstream backend {
        least_conn;
@@ -411,12 +423,14 @@ docker-compose ps
    ```
 
 2. **Deploy to New Server**:
+
    ```bash
    # Same deployment process on new server
    # Ensure shared database and Redis
    ```
 
 3. **Update Load Balancer**:
+
    ```bash
    # Add new server to upstream
    sudo nginx -t
@@ -430,6 +444,7 @@ docker-compose ps
 **Symptoms**: Container exits immediately
 
 **Steps**:
+
 ```bash
 # Check logs
 docker-compose logs backend
@@ -449,6 +464,7 @@ docker-compose run --rm backend /bin/sh
 **Symptoms**: Server becoming slow, OOM errors
 
 **Steps**:
+
 ```bash
 # Check memory usage
 free -h
@@ -469,6 +485,7 @@ docker-compose restart backend
 **Symptoms**: Slow response times, high load average
 
 **Steps**:
+
 ```bash
 # Check CPU usage
 top
@@ -488,6 +505,7 @@ docker-compose logs backend
 **Symptoms**: "connection refused", "too many connections"
 
 **Steps**:
+
 ```bash
 # Check PostgreSQL is running
 docker-compose ps postgres
@@ -510,6 +528,7 @@ docker-compose restart postgres
 **Symptoms**: Certificate expired, browser warnings
 
 **Steps**:
+
 ```bash
 # Check certificate expiry
 sudo certbot certificates
@@ -532,6 +551,7 @@ sudo systemctl reload nginx
 **Symptoms**: "no space left on device"
 
 **Steps**:
+
 ```bash
 # Check disk usage
 df -h
@@ -555,6 +575,7 @@ find /var/backups -mtime +30 -delete
 **Symptoms**: Slow response, timeouts
 
 **Steps**:
+
 ```bash
 # Check network connectivity
 ping 8.8.8.8
@@ -613,6 +634,7 @@ After deployment, verify:
 ### Rollback Decision
 
 Rollback if:
+
 - Error rate > 5%
 - P95 response time > 2x normal
 - Critical functionality broken
@@ -623,6 +645,7 @@ Rollback if:
 ### Documentation
 
 After deployment:
+
 - Update deployment log
 - Document any issues encountered
 - Update runbook if needed
