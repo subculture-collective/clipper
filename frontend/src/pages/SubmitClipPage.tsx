@@ -24,7 +24,7 @@ export function SubmitClipPage() {
         tags: [],
         is_nsfw: false,
         submission_reason: '',
-        streamer_name: '',
+        broadcaster_name_override: '',
     });
     const [tagInput, setTagInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +74,7 @@ export function SubmitClipPage() {
         const clipID = extractClipIDFromURL(formData.clip_url);
         
         // If we have a valid clip ID and no streamer name set yet (or it was auto-detected)
-        if (clipID && (!formData.streamer_name || isStreamerAutoDetected)) {
+        if (clipID && (!formData.broadcaster_name_override || isStreamerAutoDetected)) {
             // For now, we show a note that the streamer will be detected
             // The backend will fetch the actual metadata
             // In a future enhancement, we could add a preview API endpoint
@@ -84,10 +84,10 @@ export function SubmitClipPage() {
             setIsStreamerAutoDetected(false);
             setFormData((prev) => ({
                 ...prev,
-                streamer_name: '',
+                broadcaster_name_override: '',
             }));
         }
-    }, [formData.clip_url, formData.streamer_name, isStreamerAutoDetected]);
+    }, [formData.clip_url, formData.broadcaster_name_override, isStreamerAutoDetected]);
 
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -114,7 +114,7 @@ export function SubmitClipPage() {
                 tags: [],
                 is_nsfw: false,
                 submission_reason: '',
-                streamer_name: '',
+                broadcaster_name_override: '',
             });
             setTagInput('');
             setIsStreamerAutoDetected(false);
@@ -240,12 +240,12 @@ export function SubmitClipPage() {
 
                             {/* Streamer Input */}
                             <StreamerInput
-                                id='streamer_name'
-                                value={formData.streamer_name || ''}
+                                id='broadcaster_name_override'
+                                value={formData.broadcaster_name_override || ''}
                                 onChange={(value) => {
                                     setFormData({
                                         ...formData,
-                                        streamer_name: value,
+                                        broadcaster_name_override: value,
                                     });
                                     // If user manually changes, it's no longer auto-detected
                                     if (isStreamerAutoDetected) {

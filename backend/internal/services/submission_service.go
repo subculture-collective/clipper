@@ -115,14 +115,15 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		CreatedAt:               time.Now(),
 		UpdatedAt:               time.Now(),
 		// Metadata from Twitch
-		CreatorName:     &twitchClip.CreatorName,
-		CreatorID:       utils.StringPtr(twitchClip.CreatorID),
-		BroadcasterName: &twitchClip.BroadcasterName,
-		BroadcasterID:   utils.StringPtr(twitchClip.BroadcasterID),
-		GameID:          utils.StringPtr(twitchClip.GameID),
-		ThumbnailURL:    utils.StringPtr(twitchClip.ThumbnailURL),
-		Duration:        utils.Float64Ptr(twitchClip.Duration),
-		ViewCount:       twitchClip.ViewCount,
+		CreatorName:             &twitchClip.CreatorName,
+		CreatorID:               utils.StringPtr(twitchClip.CreatorID),
+		BroadcasterName:         &twitchClip.BroadcasterName,
+		BroadcasterID:           utils.StringPtr(twitchClip.BroadcasterID),
+		BroadcasterNameOverride: req.BroadcasterNameOverride,
+		GameID:                  utils.StringPtr(twitchClip.GameID),
+		ThumbnailURL:            utils.StringPtr(twitchClip.ThumbnailURL),
+		Duration:                utils.Float64Ptr(twitchClip.Duration),
+		ViewCount:               twitchClip.ViewCount,
 	}
 
 	// Check for auto-approval
