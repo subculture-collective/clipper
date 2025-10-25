@@ -8,6 +8,7 @@ import {
     Container,
     Input,
     StreamerInput,
+    SubmissionConfirmation,
     TextArea,
 } from '../components';
 import { useAuth } from '../context/AuthContext';
@@ -28,7 +29,7 @@ export function SubmitClipPage() {
     const [tagInput, setTagInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
+    const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(null);
     const [recentSubmissions, setRecentSubmissions] = useState<
         ClipSubmission[]
     >([]);
@@ -81,10 +82,10 @@ export function SubmitClipPage() {
         } else if (!clipID && isStreamerAutoDetected) {
             // Clear auto-detection if URL is invalid
             setIsStreamerAutoDetected(false);
-            setFormData({
-                ...formData,
+            setFormData((prev) => ({
+                ...prev,
                 streamer_name: '',
-            });
+            }));
         }
     }, [formData.clip_url, formData.streamer_name, isStreamerAutoDetected]);
 
@@ -98,12 +99,13 @@ export function SubmitClipPage() {
         }
 
         setError(null);
-        setSuccess(null);
+        setSubmittedClip(null);
         setIsSubmitting(true);
 
         try {
             const response = await submitClip(formData);
-            setSuccess(response.message);
+            // Set the submitted clip to show confirmation
+            setSubmittedClip(response.submission);
 
             // Reset form
             setFormData({
@@ -116,11 +118,6 @@ export function SubmitClipPage() {
             });
             setTagInput('');
             setIsStreamerAutoDetected(false);
-
-            // Redirect to user submissions page after 2 seconds
-            setTimeout(() => {
-                navigate('/submissions');
-            }, 2000);
         } catch (err: unknown) {
             const error = err as { response?: { data?: { error?: string } } };
             const errorMessage =
@@ -149,6 +146,11 @@ export function SubmitClipPage() {
         });
     };
 
+    const handleSubmitAnother = () => {
+        setSubmittedClip(null);
+        setError(null);
+    };
+
     if (!isAuthenticated) {
         return (
             <Container className='py-8'>
@@ -159,6 +161,18 @@ export function SubmitClipPage() {
                     </p>
                     <Button onClick={() => navigate('/login')}>Log In</Button>
                 </Card>
+            </Container>
+        );
+    }
+
+    // Show confirmation view after successful submission
+    if (submittedClip) {
+        return (
+            <Container className='py-8'>
+                <SubmissionConfirmation
+                    submission={submittedClip}
+                    onSubmitAnother={handleSubmitAnother}
+                />
             </Container>
         );
     }
@@ -190,15 +204,6 @@ export function SubmitClipPage() {
                         className='mb-6'
                     >
                         {error}
-                    </Alert>
-                )}
-
-                {success && (
-                    <Alert
-                        variant='success'
-                        className='mb-6'
-                    >
-                        {success}
                     </Alert>
                 )}
 
