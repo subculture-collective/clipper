@@ -43,6 +43,7 @@ export interface SubmitClipRequest {
   tags?: string[];
   is_nsfw: boolean;
   submission_reason?: string;
+  streamer_name?: string;
 }
 
 export interface SubmissionStats {
