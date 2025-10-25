@@ -23,11 +23,13 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 ## 📚 Documentation
 
 ### For Users
+
 - **[User Guide](docs/user-guide.md)** - How to use Clipper
 - **[FAQ](docs/faq.md)** - Frequently asked questions
 - **[Community Guidelines](docs/guidelines.md)** - Rules and best practices
 
 ### For Developers
+
 - **[Development Setup](docs/development.md)** - Get started with development
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
 - **[API Documentation](docs/API.md)** - REST API reference
@@ -35,12 +37,14 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
 
 ### Operations
+
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Infrastructure Guide](docs/INFRASTRUCTURE.md)** - Infrastructure setup
 - **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration and deployment
 - **[Runbook](docs/RUNBOOK.md)** - Operational procedures
 
 ### Contributing
+
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
 - **[Changelog](CHANGELOG.md)** - Version history and changes
@@ -463,6 +467,7 @@ See [RUNBOOK.md](./docs/RUNBOOK.md) for detailed operational procedures.
 We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
 Please read our [Contributing Guide](CONTRIBUTING.md) for:
+
 - Development workflow
 - Code standards and style
 - Testing requirements

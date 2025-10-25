@@ -27,7 +27,7 @@ func (r *AnalyticsRepository) TrackEvent(ctx context.Context, event *models.Anal
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at
 	`
-	
+
 	return r.db.QueryRow(ctx, query,
 		event.EventType,
 		event.UserID,
@@ -48,7 +48,7 @@ func (r *AnalyticsRepository) GetCreatorAnalytics(ctx context.Context, creatorNa
 		FROM creator_analytics
 		WHERE creator_name = $1
 	`
-	
+
 	var analytics models.CreatorAnalytics
 	err := r.db.QueryRow(ctx, query, creatorName).Scan(
 		&analytics.CreatorName,
@@ -63,11 +63,11 @@ func (r *AnalyticsRepository) GetCreatorAnalytics(ctx context.Context, creatorNa
 		&analytics.FollowerCount,
 		&analytics.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &analytics, nil
 }
 
@@ -83,7 +83,7 @@ func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorNam
 	case "votes":
 		sortColumn = "c.vote_score"
 	}
-	
+
 	query := fmt.Sprintf(`
 		SELECT c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 		       c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
@@ -103,13 +103,13 @@ func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorNam
 		ORDER BY %s DESC
 		LIMIT $2
 	`, sortColumn)
-	
+
 	rows, err := r.db.Query(ctx, query, creatorName, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var clips []models.CreatorTopClip
 	for rows.Next() {
 		var clip models.CreatorTopClip
@@ -146,7 +146,7 @@ func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorNam
 		}
 		clips = append(clips, clip)
 	}
-	
+
 	return clips, rows.Err()
 }
 
@@ -162,13 +162,13 @@ func (r *AnalyticsRepository) GetCreatorTrends(ctx context.Context, creatorName 
 		GROUP BY da.date
 		ORDER BY da.date ASC
 	`
-	
+
 	rows, err := r.db.Query(ctx, query, creatorName, metricType, days)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var trends []models.TrendDataPoint
 	for rows.Next() {
 		var point models.TrendDataPoint
@@ -178,7 +178,7 @@ func (r *AnalyticsRepository) GetCreatorTrends(ctx context.Context, creatorName 
 		}
 		trends = append(trends, point)
 	}
-	
+
 	return trends, rows.Err()
 }
 
@@ -191,7 +191,7 @@ func (r *AnalyticsRepository) GetClipAnalytics(ctx context.Context, clipID uuid.
 		FROM clip_analytics
 		WHERE clip_id = $1
 	`
-	
+
 	var analytics models.ClipAnalytics
 	err := r.db.QueryRow(ctx, query, clipID).Scan(
 		&analytics.ClipID,
@@ -205,11 +205,11 @@ func (r *AnalyticsRepository) GetClipAnalytics(ctx context.Context, clipID uuid.
 		&analytics.LastViewedAt,
 		&analytics.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &analytics, nil
 }
 
@@ -222,7 +222,7 @@ func (r *AnalyticsRepository) GetUserAnalytics(ctx context.Context, userID uuid.
 		FROM user_analytics
 		WHERE user_id = $1
 	`
-	
+
 	var analytics models.UserAnalytics
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&analytics.UserID,
@@ -236,11 +236,11 @@ func (r *AnalyticsRepository) GetUserAnalytics(ctx context.Context, userID uuid.
 		&analytics.LastActiveAt,
 		&analytics.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &analytics, nil
 }
 
@@ -254,7 +254,7 @@ func (r *AnalyticsRepository) GetPlatformAnalytics(ctx context.Context, date tim
 		FROM platform_analytics
 		WHERE date = $1
 	`
-	
+
 	var analytics models.PlatformAnalytics
 	err := r.db.QueryRow(ctx, query, date).Scan(
 		&analytics.ID,
@@ -276,11 +276,11 @@ func (r *AnalyticsRepository) GetPlatformAnalytics(ctx context.Context, date tim
 		&analytics.Metadata,
 		&analytics.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &analytics, nil
 }
 
@@ -303,7 +303,7 @@ func (r *AnalyticsRepository) GetPlatformOverviewMetrics(ctx context.Context) (*
 			COALESCE(avg_session_duration, 0)
 		FROM latest_analytics
 	`
-	
+
 	var metrics models.PlatformOverviewMetrics
 	err := r.db.QueryRow(ctx, query).Scan(
 		&metrics.TotalUsers,
@@ -315,11 +315,11 @@ func (r *AnalyticsRepository) GetPlatformOverviewMetrics(ctx context.Context) (*
 		&metrics.TotalComments,
 		&metrics.AvgSessionDuration,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &metrics, nil
 }
 
@@ -338,13 +338,13 @@ func (r *AnalyticsRepository) GetMostPopularGames(ctx context.Context, limit int
 		ORDER BY clip_count DESC, view_count DESC
 		LIMIT $1
 	`
-	
+
 	rows, err := r.db.Query(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var games []models.GameMetric
 	for rows.Next() {
 		var game models.GameMetric
@@ -354,7 +354,7 @@ func (r *AnalyticsRepository) GetMostPopularGames(ctx context.Context, limit int
 		}
 		games = append(games, game)
 	}
-	
+
 	return games, rows.Err()
 }
 
@@ -371,13 +371,13 @@ func (r *AnalyticsRepository) GetMostPopularCreators(ctx context.Context, limit 
 		ORDER BY total_views DESC, total_upvotes DESC
 		LIMIT $1
 	`
-	
+
 	rows, err := r.db.Query(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var creators []models.CreatorMetric
 	for rows.Next() {
 		var creator models.CreatorMetric
@@ -393,7 +393,7 @@ func (r *AnalyticsRepository) GetMostPopularCreators(ctx context.Context, limit 
 		}
 		creators = append(creators, creator)
 	}
-	
+
 	return creators, rows.Err()
 }
 
@@ -410,13 +410,13 @@ func (r *AnalyticsRepository) GetTrendingTags(ctx context.Context, days int, lim
 		ORDER BY usage_count DESC
 		LIMIT $2
 	`
-	
+
 	rows, err := r.db.Query(ctx, query, days, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var tags []models.TagMetric
 	for rows.Next() {
 		var tag models.TagMetric
@@ -426,7 +426,7 @@ func (r *AnalyticsRepository) GetTrendingTags(ctx context.Context, days int, lim
 		}
 		tags = append(tags, tag)
 	}
-	
+
 	return tags, rows.Err()
 }
 
@@ -448,20 +448,20 @@ func (r *AnalyticsRepository) GetPlatformTrends(ctx context.Context, metricType 
 	default:
 		return nil, fmt.Errorf("invalid metric type: %s", metricType)
 	}
-	
+
 	query := fmt.Sprintf(`
 		SELECT date, %s as value
 		FROM platform_analytics
 		WHERE date >= CURRENT_DATE - $1 * INTERVAL '1 day'
 		ORDER BY date ASC
 	`, column)
-	
+
 	rows, err := r.db.Query(ctx, query, days)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var trends []models.TrendDataPoint
 	for rows.Next() {
 		var point models.TrendDataPoint
@@ -473,6 +473,6 @@ func (r *AnalyticsRepository) GetPlatformTrends(ctx context.Context, metricType 
 		point.Value = int64(value)
 		trends = append(trends, point)
 	}
-	
+
 	return trends, rows.Err()
 }

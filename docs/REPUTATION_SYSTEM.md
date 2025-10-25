@@ -11,7 +11,9 @@ The reputation system is designed to encourage quality contributions and communi
 ### Tables
 
 #### `user_badges`
+
 Stores badge assignments to users.
+
 - `id` - Unique badge assignment ID
 - `user_id` - User who owns the badge
 - `badge_id` - Badge type identifier
@@ -19,7 +21,9 @@ Stores badge assignments to users.
 - `awarded_by` - User who awarded the badge (NULL for automatic)
 
 #### `karma_history`
+
 Tracks all karma changes for auditing and analytics.
+
 - `id` - Unique history entry ID
 - `user_id` - User whose karma changed
 - `amount` - Karma change amount (positive or negative)
@@ -28,7 +32,9 @@ Tracks all karma changes for auditing and analytics.
 - `created_at` - When the karma change occurred
 
 #### `user_stats`
+
 Stores calculated user statistics and scores.
+
 - `user_id` - User ID (primary key)
 - `trust_score` - Trust score (0-100)
 - `engagement_score` - Engagement score
@@ -44,10 +50,13 @@ Stores calculated user statistics and scores.
 ### Database Functions
 
 #### `update_user_karma(user_id, amount, source, source_id)`
+
 Updates a user's karma and creates a history entry atomically.
 
 #### `calculate_trust_score(user_id)`
+
 Calculates trust score (0-100) based on:
+
 - Account age (max 20 points)
 - Karma amount (max 40 points)
 - Report accuracy (max 20 points)
@@ -55,14 +64,18 @@ Calculates trust score (0-100) based on:
 - Penalty for banned users (50% reduction)
 
 #### `calculate_engagement_score(user_id)`
+
 Calculates engagement score based on activity:
+
 - Comments: 2 points each
 - Votes: 1 point each
 - Clip submissions: 5 points each
 - Days active: 3 points each
 
 #### `get_user_rank(karma)`
+
 Returns rank name based on karma:
+
 - 0-99: Newcomer
 - 100-499: Member
 - 500-999: Regular
@@ -73,7 +86,9 @@ Returns rank name based on karma:
 ### Database Triggers
 
 #### Automatic Karma Updates
+
 Triggers automatically update karma when votes are added, changed, or removed:
+
 - `trigger_award_karma_on_clip_vote` - Awards karma for clip votes
 - `trigger_award_karma_on_comment_vote` - Awards karma for comment votes
 
@@ -82,12 +97,15 @@ Triggers automatically update karma when votes are added, changed, or removed:
 ### Public Endpoints
 
 #### Get User Reputation
+
 ```
 GET /api/v1/users/:id/reputation
 ```
+
 Returns complete reputation information for a user including karma, rank, trust score, engagement score, badges, and stats.
 
 **Response:**
+
 ```json
 {
   "user_id": "uuid",
@@ -105,12 +123,15 @@ Returns complete reputation information for a user including karma, rank, trust 
 ```
 
 #### Get User Karma
+
 ```
 GET /api/v1/users/:id/karma?limit=50
 ```
+
 Returns karma breakdown and history.
 
 **Response:**
+
 ```json
 {
   "breakdown": {
@@ -132,12 +153,15 @@ Returns karma breakdown and history.
 ```
 
 #### Get User Badges
+
 ```
 GET /api/v1/users/:id/badges
 ```
+
 Returns all badges awarded to a user with full definitions.
 
 **Response:**
+
 ```json
 {
   "badges": [
@@ -156,16 +180,20 @@ Returns all badges awarded to a user with full definitions.
 ```
 
 #### Get Leaderboard
+
 ```
 GET /api/v1/leaderboards/:type?limit=50&page=1
 ```
+
 Returns leaderboard by type (karma or engagement).
 
 **Types:**
+
 - `karma` - Top users by karma points
 - `engagement` - Top users by engagement score
 
 **Response:**
+
 ```json
 {
   "type": "karma",
@@ -186,20 +214,25 @@ Returns leaderboard by type (karma or engagement).
 ```
 
 #### Get Badge Definitions
+
 ```
 GET /api/v1/badges
 ```
+
 Returns all available badge definitions.
 
 ### Admin Endpoints
 
 #### Award Badge
+
 ```
 POST /api/v1/admin/users/:id/badges
 ```
+
 Awards a badge to a user (admin/moderator only).
 
 **Request Body:**
+
 ```json
 {
   "badge_id": "early_adopter"
@@ -207,9 +240,11 @@ Awards a badge to a user (admin/moderator only).
 ```
 
 #### Remove Badge
+
 ```
 DELETE /api/v1/admin/users/:id/badges/:badgeId
 ```
+
 Removes a badge from a user (admin/moderator only).
 
 ## Badge System
@@ -217,7 +252,9 @@ Removes a badge from a user (admin/moderator only).
 ### Badge Categories
 
 #### Achievement Badges
+
 Automatically awarded based on user activity:
+
 - **Veteran** (🏆) - Member for over 1 year
 - **Influencer** (⭐) - Earned 10,000+ karma
 - **Trusted User** (✅) - Earned 1,000+ karma
@@ -226,18 +263,24 @@ Automatically awarded based on user activity:
 - **Submitter** (📹) - Submitted 50+ clips
 
 #### Staff Badges
+
 Manually awarded by admins:
+
 - **Moderator** (🛡️) - Community moderator
 - **Admin** (👑) - Site administrator
 - **Developer** (💻) - Platform developer
 
 #### Special Badges
+
 Manually awarded for special events:
+
 - **Early Adopter** (🚀) - Joined during beta
 - **Beta Tester** (🧪) - Participated in beta testing
 
 #### Supporter Badges
+
 Manually awarded for financial support:
+
 - **Supporter** (❤️) - Financial supporter
 
 ### Badge Awarding
@@ -252,12 +295,14 @@ Badges can be awarded in two ways:
 ### Karma Sources
 
 Users earn karma from:
+
 - **Clip votes** - +1 for upvote, -1 for downvote (on their submitted clips)
 - **Comment votes** - +1 for upvote, -1 for downvote (on their comments)
 
 ### Karma Permissions
 
 Certain actions require minimum karma:
+
 - **10 karma** - Create tags
 - **50 karma** - Report content
 - **100 karma** - Submit clips
@@ -283,6 +328,7 @@ Ranks are calculated dynamically using the `get_user_rank()` database function.
 ## Trust Score
 
 Trust score (0-100) is calculated based on multiple factors:
+
 - Account age (older accounts score higher)
 - Karma amount (more karma = higher score)
 - Report accuracy (correct reports boost score)
@@ -290,6 +336,7 @@ Trust score (0-100) is calculated based on multiple factors:
 - Moderation history (bans reduce score)
 
 Trust score can be used for:
+
 - Content filtering (hiding low-trust spam)
 - Moderation weight (high-trust users' reports valued more)
 - Feature unlocking
@@ -297,6 +344,7 @@ Trust score can be used for:
 ## Engagement Score
 
 Engagement score measures user activity:
+
 - Comments posted (2 points each)
 - Votes cast (1 point each)
 - Clips submitted (5 points each)
@@ -359,6 +407,7 @@ go test ./internal/services/reputation_service_test.go
 ## Future Enhancements
 
 Potential future improvements:
+
 - Weighted karma (recent activity weighted higher)
 - Time decay (older karma worth less)
 - Quality bonuses for top comments

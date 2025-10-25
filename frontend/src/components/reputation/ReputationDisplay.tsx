@@ -1,4 +1,4 @@
-import { UserReputation } from '../../types/reputation';
+import type { UserReputation } from '../../types/reputation';
 import { BadgeDisplay } from './BadgeDisplay';
 
 interface ReputationDisplayProps {
@@ -23,7 +23,7 @@ export function ReputationDisplay({ reputation, compact = false }: ReputationDis
       <div className="flex items-center gap-3">
         {/* Karma Points */}
         <div className="flex items-center gap-1">
-          <span className="text-purple-400 font-semibold">
+          <span className="font-semibold text-purple-400">
             {reputation.karma_points.toLocaleString()}
           </span>
           <span className="text-xs text-gray-400">karma</span>
@@ -43,7 +43,7 @@ export function ReputationDisplay({ reputation, compact = false }: ReputationDis
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6">
+    <div className="p-6 bg-gray-800 rounded-lg">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -65,60 +65,60 @@ export function ReputationDisplay({ reputation, compact = false }: ReputationDis
 
       {/* Karma */}
       <div className="mb-6">
-        <div className="text-center bg-gray-900 rounded-lg p-4">
+        <div className="p-4 text-center bg-gray-900 rounded-lg">
           <div className="text-4xl font-bold text-purple-400">
             {reputation.karma_points.toLocaleString()}
           </div>
-          <div className="text-sm text-gray-400 mt-1">Total Karma</div>
+          <div className="mt-1 text-sm text-gray-400">Total Karma</div>
         </div>
       </div>
 
       {/* Scores */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-gray-900 rounded-lg p-4 text-center">
+        <div className="p-4 text-center bg-gray-900 rounded-lg">
           <div className="text-2xl font-bold text-green-400">
             {reputation.trust_score}
           </div>
-          <div className="text-sm text-gray-400 mt-1">Trust Score</div>
+          <div className="mt-1 text-sm text-gray-400">Trust Score</div>
         </div>
-        <div className="bg-gray-900 rounded-lg p-4 text-center">
+        <div className="p-4 text-center bg-gray-900 rounded-lg">
           <div className="text-2xl font-bold text-blue-400">
             {reputation.engagement_score.toLocaleString()}
           </div>
-          <div className="text-sm text-gray-400 mt-1">Engagement</div>
+          <div className="mt-1 text-sm text-gray-400">Engagement</div>
         </div>
       </div>
 
       {/* Badges */}
       {reputation.badges.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-white mb-3">Badges</h3>
+          <h3 className="mb-3 text-lg font-semibold text-white">Badges</h3>
           <BadgeDisplay badges={reputation.badges} maxVisible={5} size="lg" />
         </div>
       )}
 
       {/* Stats */}
       {reputation.stats && (
-        <div className="mt-6 pt-6 border-t border-gray-700">
-          <h3 className="text-lg font-semibold text-white mb-3">Activity</h3>
+        <div className="pt-6 mt-6 border-t border-gray-700">
+          <h3 className="mb-3 text-lg font-semibold text-white">Activity</h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-xl font-bold text-white">
                 {reputation.stats.total_comments.toLocaleString()}
               </div>
-              <div className="text-xs text-gray-400 mt-1">Comments</div>
+              <div className="mt-1 text-xs text-gray-400">Comments</div>
             </div>
             <div>
               <div className="text-xl font-bold text-white">
                 {reputation.stats.total_votes_cast.toLocaleString()}
               </div>
-              <div className="text-xs text-gray-400 mt-1">Votes</div>
+              <div className="mt-1 text-xs text-gray-400">Votes</div>
             </div>
             <div>
               <div className="text-xl font-bold text-white">
                 {reputation.stats.total_clips_submitted.toLocaleString()}
               </div>
-              <div className="text-xs text-gray-400 mt-1">Submissions</div>
+              <div className="mt-1 text-xs text-gray-400">Submissions</div>
             </div>
           </div>
         </div>
