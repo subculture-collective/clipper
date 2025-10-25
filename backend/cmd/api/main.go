@@ -80,6 +80,9 @@ func main() {
 	searchRepo := repository.NewSearchRepository(db.Pool)
 	submissionRepo := repository.NewSubmissionRepository(db.Pool)
 	reportRepo := repository.NewReportRepository(db.Pool)
+	reputationRepo := repository.NewReputationRepository(db.Pool)
+	notificationRepo := repository.NewNotificationRepository(db.Pool)
+	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -93,6 +96,9 @@ func main() {
 	commentService := services.NewCommentService(commentRepo, clipRepo)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
 	autoTagService := services.NewAutoTagService(tagRepo)
+	reputationService := services.NewReputationService(reputationRepo, userRepo)
+	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo)
+	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -108,6 +114,9 @@ func main() {
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
+	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
+	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -222,6 +231,10 @@ func main() {
 			// Clip tags (public)
 			clips.GET("/:id/tags", tagHandler.GetClipTags)
 
+			// Clip analytics (public)
+			clips.GET("/:id/analytics", analyticsHandler.GetClipAnalytics)
+			clips.POST("/:id/track-view", analyticsHandler.TrackClipView)
+
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:id/comments", commentHandler.ListComments)
 
@@ -296,6 +309,61 @@ func main() {
 			reports.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), reportHandler.SubmitReport)
 		}
 
+		// Reputation routes
+		users := v1.Group("/users")
+		{
+			// Public reputation endpoints
+			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
+			users.GET("/:id/karma", reputationHandler.GetUserKarma)
+			users.GET("/:id/badges", reputationHandler.GetUserBadges)
+			
+			// Personal statistics (authenticated)
+			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
+		}
+		
+		// Creator analytics routes
+		creators := v1.Group("/creators")
+		{
+			// Public creator analytics endpoints
+			creators.GET("/:creatorName/analytics/overview", analyticsHandler.GetCreatorAnalyticsOverview)
+			creators.GET("/:creatorName/analytics/clips", analyticsHandler.GetCreatorTopClips)
+			creators.GET("/:creatorName/analytics/trends", analyticsHandler.GetCreatorTrends)
+		}
+
+		// Leaderboard routes
+		leaderboards := v1.Group("/leaderboards")
+		{
+			// Public leaderboard endpoints
+			leaderboards.GET("/:type", reputationHandler.GetLeaderboard)
+		}
+
+		// Badge definitions (public)
+		v1.GET("/badges", reputationHandler.GetBadgeDefinitions)
+
+		// Notification routes
+		notifications := v1.Group("/notifications")
+		notifications.Use(middleware.AuthMiddleware(authService))
+		{
+			// Get notifications list
+			notifications.GET("", notificationHandler.ListNotifications)
+			
+			// Get unread count
+			notifications.GET("/count", notificationHandler.GetUnreadCount)
+			
+			// Mark notification as read
+			notifications.PUT("/:id/read", notificationHandler.MarkAsRead)
+			
+			// Mark all notifications as read
+			notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
+			
+			// Delete notification
+			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
+			
+			// Get/Update preferences
+			notifications.GET("/preferences", notificationHandler.GetPreferences)
+			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+		}
+
 		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(authService))
@@ -335,6 +403,21 @@ func main() {
 				adminReports.GET("/:id", reportHandler.GetReport)
 				adminReports.PUT("/:id", reportHandler.UpdateReport)
 			}
+
+			// Badge management
+			adminUsers := admin.Group("/users")
+			{
+				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
+				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
+			}
+			
+			// Analytics routes (admin only)
+			analytics := admin.Group("/analytics")
+			{
+				analytics.GET("/overview", analyticsHandler.GetPlatformOverview)
+				analytics.GET("/content", analyticsHandler.GetContentMetrics)
+				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
+			}
 		}
 	}
 
@@ -345,6 +428,10 @@ func main() {
 		syncScheduler = scheduler.NewClipSyncScheduler(clipSyncService, 15)
 		go syncScheduler.Start(context.Background())
 	}
+
+	// Start reputation scheduler (runs every 6 hours)
+	reputationScheduler := scheduler.NewReputationScheduler(reputationService, userRepo, 6)
+	go reputationScheduler.Start(context.Background())
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -370,6 +457,7 @@ func main() {
 	if syncScheduler != nil {
 		syncScheduler.Stop()
 	}
+	reputationScheduler.Stop()
 
 	// Graceful shutdown with 5 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

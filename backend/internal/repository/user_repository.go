@@ -105,6 +105,33 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 	return &user, nil
 }
 
+// GetByUsername retrieves a user by username (case-insensitive)
+func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+	query := `
+		SELECT 
+			id, twitch_id, username, display_name, email, avatar_url, bio,
+			karma_points, role, is_banned, created_at, updated_at, last_login_at
+		FROM users
+		WHERE LOWER(username) = LOWER($1)
+	`
+
+	var user models.User
+	err := r.db.QueryRow(ctx, query, username).Scan(
+		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
+		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
+		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 // Update updates an existing user
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	query := `
@@ -241,6 +268,32 @@ func (r *RefreshTokenRepository) RevokeAllForUser(ctx context.Context, userID uu
 
 	_, err := r.db.Exec(ctx, query, userID)
 	return err
+}
+
+// GetAllActiveUserIDs retrieves all user IDs that are not banned
+func (r *UserRepository) GetAllActiveUserIDs(ctx context.Context) ([]uuid.UUID, error) {
+	query := `
+		SELECT id FROM users
+		WHERE is_banned = false
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userIDs []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		userIDs = append(userIDs, id)
+	}
+
+	return userIDs, rows.Err()
 }
 
 // DeleteExpired deletes expired refresh tokens

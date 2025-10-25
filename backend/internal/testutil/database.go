@@ -15,7 +15,7 @@ func SetupTestDB(t *testing.T) *pgxpool.Pool {
 
 	// Use test database configuration
 	dbURL := "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable"
-	
+
 	pool, err := pgxpool.New(context.Background(), dbURL)
 	if err != nil {
 		t.Fatalf("Failed to create test database pool: %v", err)
@@ -32,7 +32,7 @@ func SetupTestDB(t *testing.T) *pgxpool.Pool {
 // CleanupTestDB closes the database pool and cleans up test data
 func CleanupTestDB(t *testing.T, pool *pgxpool.Pool) {
 	t.Helper()
-	
+
 	if pool != nil {
 		pool.Close()
 	}

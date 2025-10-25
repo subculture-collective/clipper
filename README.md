@@ -5,8 +5,53 @@
 [![CodeQL](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml)
 [![Lighthouse CI](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml)
 [![codecov](https://codecov.io/gh/subculture-collective/clipper/branch/main/graph/badge.svg)](https://codecov.io/gh/subculture-collective/clipper)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A modern Twitch clip curation platform that allows users to discover, organize, and share their favorite Twitch clips with the community.
+A modern, community-driven Twitch clip curation platform that allows users to discover, organize, vote on, and share their favorite Twitch clips with the community.
+
+## ✨ Key Features
+
+- 🎮 **Browse & Discover**: Explore trending Twitch clips from across the platform
+- 🔍 **Smart Search**: Find clips by game, broadcaster, or tags
+- ⬆️ **Community Voting**: Upvote and downvote clips to curate the best content
+- 💬 **Discussions**: Comment on clips with markdown support
+- ⭐ **Favorites**: Save and organize your favorite clips
+- 🏆 **Karma System**: Build reputation through quality contributions
+- 🔐 **Twitch OAuth**: Seamless authentication with your Twitch account
+- 📱 **Responsive Design**: Works beautifully on desktop and mobile
+
+## 📚 Documentation
+
+### For Users
+- **[User Guide](docs/user-guide.md)** - How to use Clipper
+- **[FAQ](docs/faq.md)** - Frequently asked questions
+- **[Community Guidelines](docs/guidelines.md)** - Rules and best practices
+
+### For Developers
+- **[Development Setup](docs/development.md)** - Get started with development
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
+- **[API Documentation](docs/API.md)** - REST API reference
+- **[Database Documentation](docs/database.md)** - Database management and migrations
+- **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
+
+### Operations
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Infrastructure Guide](docs/INFRASTRUCTURE.md)** - Infrastructure setup
+- **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration and deployment
+- **[Runbook](docs/RUNBOOK.md)** - Operational procedures
+
+### Contributing
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
+- **[Changelog](CHANGELOG.md)** - Version history and changes
+
+## 🚦 Project Status
+
+**Current Version**: v0.x (Pre-release)  
+**Status**: Active Development  
+**Target**: MVP Release Q2 2025
+
+This project is currently in active development. Core features are being implemented and tested. We welcome contributions and feedback!
 
 ## 🏗️ Architecture
 
@@ -415,26 +460,34 @@ See [RUNBOOK.md](./docs/RUNBOOK.md) for detailed operational procedures.
 
 ## 🤝 Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
+
+Please read our [Contributing Guide](CONTRIBUTING.md) for:
+- Development workflow
+- Code standards and style
+- Testing requirements
+- Pull request process
+
+Also review our [Code of Conduct](CODE_OF_CONDUCT.md) to understand our community standards.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📖 Documentation
+## 🔗 Resources
 
-- [Quick Start - CI/CD](./docs/QUICK-START-CI-CD.md) - Quick reference for developers
-- [CI/CD Pipeline](./docs/CI-CD.md) - Complete CI/CD documentation
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Detailed deployment instructions
-- [Infrastructure Guide](./docs/INFRASTRUCTURE.md) - Production infrastructure setup
-- [Deployment Runbook](./docs/RUNBOOK.md) - Operational procedures and troubleshooting
-- [Contributing Guidelines](./CONTRIBUTING.md) - How to contribute
-
-## 🔗 Links
-
-- [Issue Tracker](https://github.com/subculture-collective/clipper/issues)
-- [Twitch API Documentation](https://dev.twitch.tv/docs/api/)
+- **[Issue Tracker](https://github.com/subculture-collective/clipper/issues)** - Report bugs or request features
+- **[Discussions](https://github.com/subculture-collective/clipper/discussions)** - Ask questions and share ideas
+- **[Twitch API Documentation](https://dev.twitch.tv/docs/api/)** - Official Twitch API docs
+- **[Changelog](CHANGELOG.md)** - See what's new
 
 ## 📧 Support
 
-For support, please open an issue in the GitHub repository.
+- **For Users**: Check the [FAQ](docs/faq.md) or [User Guide](docs/user-guide.md)
+- **For Developers**: See [Development Setup](docs/development.md) or open an issue
+- **For Bugs**: Open an issue with the `bug` label
+- **For Features**: Open an issue with the `enhancement` label
+
+---
+
+**Made with ❤️ by the Subculture Collective community**
