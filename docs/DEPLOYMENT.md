@@ -4,13 +4,13 @@ This guide covers the deployment process for the Clipper application using GitHu
 
 ## Table of Contents
 
--   [Overview](#overview)
--   [CI/CD Workflows](#cicd-workflows)
--   [Docker Images](#docker-images)
--   [Environment Setup](#environment-setup)
--   [Deployment Process](#deployment-process)
--   [Rollback Procedure](#rollback-procedure)
--   [Troubleshooting](#troubleshooting)
+- [Overview](#overview)
+- [CI/CD Workflows](#cicd-workflows)
+- [Docker Images](#docker-images)
+- [Environment Setup](#environment-setup)
+- [Deployment Process](#deployment-process)
+- [Rollback Procedure](#rollback-procedure)
+- [Troubleshooting](#troubleshooting)
 
 ## Overview
 
@@ -31,17 +31,17 @@ Runs on every push and pull request to `main` and `develop` branches.
 
 **Backend Jobs:**
 
--   **Lint & Format**: Checks Go code formatting and runs golangci-lint
--   **Test**: Runs tests with coverage on Go 1.21 and 1.22
-    -   Generates coverage reports
-    -   Uploads to Codecov
--   **Build**: Cross-compiles for Linux, macOS, and Windows
+- **Lint & Format**: Checks Go code formatting and runs golangci-lint
+- **Test**: Runs tests with coverage on Go 1.21 and 1.22
+  - Generates coverage reports
+  - Uploads to Codecov
+- **Build**: Cross-compiles for Linux, macOS, and Windows
 
 **Frontend Jobs:**
 
--   **Lint & Format**: Runs ESLint and TypeScript type checking
--   **Test**: Runs tests on Node 18 and 20
--   **Build**: Creates production bundle and checks size
+- **Lint & Format**: Runs ESLint and TypeScript type checking
+- **Test**: Runs tests on Node 18 and 20
+- **Build**: Creates production bundle and checks size
 
 ### Docker Workflow (`.github/workflows/docker.yml`)
 
@@ -49,31 +49,31 @@ Builds Docker images and pushes to GitHub Container Registry.
 
 **Features:**
 
--   Multi-stage builds for optimized images
--   Build caching for faster builds
--   Tags with version, branch, and commit SHA
--   Vulnerability scanning with Trivy
--   Automatic SARIF upload to GitHub Security
+- Multi-stage builds for optimized images
+- Build caching for faster builds
+- Tags with version, branch, and commit SHA
+- Vulnerability scanning with Trivy
+- Automatic SARIF upload to GitHub Security
 
 **Image Locations:**
 
--   Backend: `ghcr.io/subculture-collective/clipper/backend`
--   Frontend: `ghcr.io/subculture-collective/clipper/frontend`
+- Backend: `ghcr.io/subculture-collective/clipper/backend`
+- Frontend: `ghcr.io/subculture-collective/clipper/frontend`
 
 ### Security Scanning
 
 **CodeQL Analysis:**
 
--   Runs on push and PR
--   Weekly scheduled scans
--   Analyzes Go and TypeScript code
--   Results available in Security tab
+- Runs on push and PR
+- Weekly scheduled scans
+- Analyzes Go and TypeScript code
+- Results available in Security tab
 
 **Dependabot:**
 
--   Weekly dependency updates
--   Auto-groups minor and patch updates
--   Separate groups for production and development dependencies
+- Weekly dependency updates
+- Auto-groups minor and patch updates
+- Separate groups for production and development dependencies
 
 ## Docker Images
 
@@ -93,10 +93,10 @@ FROM alpine:latest
 
 **Features:**
 
--   Minimal image size (~20MB)
--   Static binary compilation
--   Health check endpoint
--   Non-root user
+- Minimal image size (~20MB)
+- Static binary compilation
+- Health check endpoint
+- Non-root user
 
 **Build locally:**
 
@@ -121,11 +121,11 @@ FROM nginx:alpine
 
 **Features:**
 
--   Production-optimized nginx configuration
--   Gzip compression enabled
--   SPA routing support
--   Security headers
--   Health check endpoint
+- Production-optimized nginx configuration
+- Gzip compression enabled
+- SPA routing support
+- Security headers
+- Health check endpoint
 
 **Build locally:**
 
@@ -426,10 +426,13 @@ go tool cover -html=coverage.out
 
 1. Verify SSH key is correctly added to secrets
 2. Check server is accessible:
+
     ```bash
     ssh -i <key> deploy@<host>
     ```
+
 3. Verify deploy user has Docker permissions:
+
     ```bash
     sudo usermod -aG docker deploy
     ```
@@ -437,24 +440,31 @@ go tool cover -html=coverage.out
 #### Docker Pull Fails
 
 1. Check image exists in registry:
+
     ```bash
     docker pull ghcr.io/subculture-collective/clipper/backend:latest
     ```
+
 2. Verify GitHub token has packages:read permission
 3. Check rate limits on GitHub Container Registry
 
 #### Health Check Fails
 
 1. SSH to server and check logs:
+
     ```bash
     docker compose logs backend
     docker compose logs frontend
     ```
+
 2. Check if services are running:
+
     ```bash
     docker compose ps
     ```
+
 3. Test health endpoints manually:
+
     ```bash
     curl http://localhost:8080/health
     wget http://localhost:80/health.html
@@ -463,15 +473,20 @@ go tool cover -html=coverage.out
 #### Database Connection Issues
 
 1. Check environment variables:
+
     ```bash
     cat /opt/clipper/.env
     ```
+
 2. Verify PostgreSQL is running:
+
     ```bash
     docker compose ps postgres
     docker compose logs postgres
     ```
+
 3. Test database connection:
+
     ```bash
     docker compose exec postgres psql -U clipper -d clipper
     ```
@@ -487,9 +502,11 @@ go tool cover -html=coverage.out
 #### Large Image Sizes
 
 1. Check image sizes:
+
     ```bash
     docker images | grep clipper
     ```
+
 2. Review Dockerfile for optimization opportunities
 3. Use `.dockerignore` to exclude unnecessary files
 
@@ -515,9 +532,9 @@ go tool cover -html=coverage.out
 
 **GitHub Actions:**
 
--   Go to Actions tab
--   Select workflow run
--   View job logs
+- Go to Actions tab
+- Select workflow run
+- View job logs
 
 **Server Logs:**
 
@@ -537,22 +554,22 @@ docker compose logs --tail=100 backend
 
 **Frontend Performance:**
 
--   Lighthouse CI reports available in workflow artifacts
--   Bundle size tracking in CI logs
+- Lighthouse CI reports available in workflow artifacts
+- Bundle size tracking in CI logs
 
 **Backend Health:**
 
--   Health endpoint: `/health`
--   Monitor response times and error rates
+- Health endpoint: `/health`
+- Monitor response times and error rates
 
 ### Alerts
 
 Set up alerts for:
 
--   Failed deployments
--   Failed health checks
--   Security vulnerabilities
--   High error rates
+- Failed deployments
+- Failed health checks
+- Security vulnerabilities
+- High error rates
 
 ## Best Practices
 

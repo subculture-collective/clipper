@@ -20,6 +20,7 @@ Follow the setup instructions in the [README.md](README.md) to get your developm
 ## 📋 Development Workflow
 
 1. **Create a branch** from `main` for your changes
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -31,6 +32,7 @@ Follow the setup instructions in the [README.md](README.md) to get your developm
    - Update documentation as needed
 
 3. **Test your changes**
+
    ```bash
    make test
    make lint
@@ -39,16 +41,19 @@ Follow the setup instructions in the [README.md](README.md) to get your developm
 4. **Commit your changes**
    - Use clear, descriptive commit messages
    - Follow conventional commit format:
+
      ```
      type(scope): description
      
      [optional body]
      [optional footer]
      ```
+
    - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
    - Example: `feat(clips): add clip search functionality`
 
 5. **Push to your fork**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -309,6 +314,6 @@ Closes #[issue number]
 - Join discussions in existing issues
 - Check existing documentation in `docs/` directory
 
-## 🙏 Thank You!
+## 🙏 Thank You
 
 Your contributions make this project better for everyone. We appreciate your time and effort!

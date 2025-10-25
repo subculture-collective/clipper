@@ -274,7 +274,7 @@ func (h *ReportHandler) validateReportable(ctx context.Context, reportableType s
 }
 
 // takeAction performs moderation actions based on the report
-func (h *ReportHandler) takeAction(c *gin.Context, report *models.Report, action string, moderatorID uuid.UUID) error {
+func (h *ReportHandler) takeAction(c *gin.Context, report *models.Report, action string, _ uuid.UUID) error {
 	ctx := c.Request.Context()
 
 	switch action {

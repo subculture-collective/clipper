@@ -44,7 +44,9 @@ This document tracks the progress of implementing comprehensive test coverage ac
 ### Phase 1: Critical Backend Tests (P0)
 
 #### Services (4.3% → >90%)
+
 Priority order:
+
 1. **AuthService** - Authentication logic
 2. **ClipService** - Core clip operations
 3. **CommentService** - Comment operations
@@ -53,7 +55,9 @@ Priority order:
 6. **AutoTagService** - Auto-tagging
 
 #### Repository (1.1% → >85%)
+
 Priority order:
+
 1. **UserRepository** - User CRUD operations
 2. **ClipRepository** - Clip CRUD operations
 3. **CommentRepository** - Comment CRUD operations
@@ -62,7 +66,9 @@ Priority order:
 6. **TagRepository** - Tag operations (has some tests)
 
 #### Handlers (0% → >80%)
+
 Priority order:
+
 1. **AuthHandler** - Authentication endpoints
 2. **ClipHandler** - Clip endpoints
 3. **CommentHandler** - Comment endpoints
@@ -73,7 +79,9 @@ Priority order:
 ### Phase 2: Critical Frontend Tests (P0)
 
 #### Components
+
 Priority order:
+
 1. **ClipCard** - ✅ Sample test exists
 2. **ClipFeed** - Feed display logic
 3. **CommentList** - Comment rendering
@@ -82,7 +90,9 @@ Priority order:
 6. **Navigation** - Nav component
 
 #### Hooks
+
 Priority order:
+
 1. **useClips** - Clip fetching and caching
 2. **useAuth** - Authentication state
 3. **useComments** - Comment operations
@@ -92,6 +102,7 @@ Priority order:
 ### Phase 3: Integration Tests
 
 #### Backend Integration Tests
+
 - [ ] Authentication flow (login, callback, refresh)
 - [ ] Clip CRUD operations
 - [ ] Comment CRUD operations
@@ -101,6 +112,7 @@ Priority order:
 - [ ] Report and moderation
 
 #### Frontend Integration Tests
+
 - [ ] Feed loading and pagination
 - [ ] Clip detail page
 - [ ] Comment thread interactions
@@ -111,6 +123,7 @@ Priority order:
 ### Phase 4: E2E Tests
 
 Extend existing E2E tests:
+
 - [ ] Complete user registration/login flow
 - [ ] Clip browsing with filters
 - [ ] Clip voting and favoriting
@@ -122,6 +135,7 @@ Extend existing E2E tests:
 ### Phase 5: Load Tests
 
 Extend existing feed load test:
+
 - [ ] Vote endpoint load test
 - [ ] Comment endpoint load test
 - [ ] Search endpoint load test
@@ -223,10 +237,12 @@ func TestIntegrationScenario(t *testing.T) {
 ## Coverage Thresholds
 
 Current thresholds in CI:
+
 - Backend: 15% (will increase as tests are added)
 - Frontend: Not yet enforced
 
 Gradual increase plan:
+
 1. Month 1: 15% → 30%
 2. Month 2: 30% → 50%
 3. Month 3: 50% → 70%
@@ -235,6 +251,7 @@ Gradual increase plan:
 ## Performance Targets
 
 ### API Endpoints
+
 - Feed endpoint: <100ms (p95) ⏱️
 - Single clip: <50ms (p95) ⏱️
 - Vote operation: <30ms (p95) ⏱️
@@ -242,6 +259,7 @@ Gradual increase plan:
 - Search: <200ms (p95) ⏱️
 
 ### Load Capacity
+
 - Concurrent users: 1000+ 👥
 - Requests/second: 100+ 📊
 - Database connections: Handle pool efficiently 🗄️
@@ -257,6 +275,7 @@ Gradual increase plan:
 Update this section as tests are added:
 
 ### Completed (as of initial implementation)
+
 - ✅ Testing infrastructure setup
 - ✅ Test utilities and fixtures
 - ✅ Sample component test (ClipCard)
@@ -266,6 +285,7 @@ Update this section as tests are added:
 - ✅ Documentation
 
 ### Next Steps
+
 1. Implement handler tests (high priority)
 2. Implement service tests (high priority)
 3. Implement repository integration tests

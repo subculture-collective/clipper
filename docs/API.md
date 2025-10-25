@@ -67,6 +67,7 @@ Check if the API is running.
 **Authentication:** None required
 
 **Response:**
+
 ```json
 {
   "status": "healthy"
@@ -84,6 +85,7 @@ Initiate Twitch OAuth flow.
 **Authentication:** None required
 
 **Response:**
+
 ```json
 {
   "url": "https://id.twitch.tv/oauth2/authorize?..."
@@ -97,10 +99,12 @@ Twitch OAuth callback endpoint.
 **Authentication:** None required
 
 **Query Parameters:**
+
 - `code` (string, required) - Authorization code from Twitch
 - `state` (string, required) - State token for CSRF protection
 
 **Response:**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIs...",
@@ -120,6 +124,7 @@ Log out the current user.
 **Authentication:** Required
 
 **Response:**
+
 ```json
 {
   "message": "Logged out successfully"
@@ -137,6 +142,7 @@ Retrieve a list of clips.
 **Authentication:** Optional (affects results)
 
 **Query Parameters:**
+
 - `page` (integer, default: 1) - Page number
 - `limit` (integer, default: 20, max: 100) - Items per page
 - `streamer` (string, optional) - Filter by streamer username
@@ -146,6 +152,7 @@ Retrieve a list of clips.
 - `order` (string, default: "desc") - Sort order (asc/desc)
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -177,6 +184,7 @@ Get details for a specific clip.
 **Authentication:** Optional
 
 **Response:**
+
 ```json
 {
   "data": {
@@ -203,6 +211,7 @@ Add a clip to the database.
 **Authentication:** Required
 
 **Request Body:**
+
 ```json
 {
   "twitch_clip_id": "AwkwardHelplessSalamanderSwiftRage",
@@ -211,6 +220,7 @@ Add a clip to the database.
 ```
 
 **Response:**
+
 ```json
 {
   "data": {
@@ -228,6 +238,7 @@ Remove a clip from the database.
 **Authentication:** Required (must be clip owner or admin)
 
 **Response:**
+
 ```json
 {
   "message": "Clip deleted successfully"
@@ -245,10 +256,12 @@ Get user's collections.
 **Authentication:** Required
 
 **Query Parameters:**
+
 - `page` (integer, default: 1)
 - `limit` (integer, default: 20, max: 100)
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -277,6 +290,7 @@ Create a new collection.
 **Authentication:** Required
 
 **Request Body:**
+
 ```json
 {
   "name": "Best Plays 2025",
@@ -286,6 +300,7 @@ Create a new collection.
 ```
 
 **Response:**
+
 ```json
 {
   "data": {
@@ -307,6 +322,7 @@ Get collection details with clips.
 **Authentication:** Optional (must be public or owned by user)
 
 **Response:**
+
 ```json
 {
   "data": {
@@ -333,6 +349,7 @@ Update collection details.
 **Authentication:** Required (must be owner)
 
 **Request Body:**
+
 ```json
 {
   "name": "Best Plays 2025 Updated",
@@ -348,6 +365,7 @@ Delete a collection.
 **Authentication:** Required (must be owner)
 
 **Response:**
+
 ```json
 {
   "message": "Collection deleted successfully"
@@ -361,6 +379,7 @@ Add a clip to a collection.
 **Authentication:** Required (must be owner)
 
 **Request Body:**
+
 ```json
 {
   "clip_id": "AwkwardHelplessSalamanderSwiftRage"
@@ -384,6 +403,7 @@ Get user profile.
 **Authentication:** Optional
 
 **Response:**
+
 ```json
 {
   "data": {
@@ -406,6 +426,7 @@ Update user profile.
 **Authentication:** Required (must be own profile)
 
 **Request Body:**
+
 ```json
 {
   "display_name": "John Doe",
@@ -423,6 +444,7 @@ Rate limits are applied per user (authenticated) or per IP (anonymous):
 - Authenticated: 300 requests per minute
 
 Rate limit headers are included in responses:
+
 ```
 X-RateLimit-Limit: 300
 X-RateLimit-Remaining: 299
@@ -434,11 +456,13 @@ X-RateLimit-Reset: 1634567890
 All list endpoints support pagination:
 
 **Request:**
+
 ```
 GET /api/v1/clips?page=2&limit=20
 ```
 
 **Response includes pagination metadata:**
+
 ```json
 {
   "data": [...],
