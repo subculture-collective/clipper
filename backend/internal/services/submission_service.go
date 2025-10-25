@@ -268,10 +268,13 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	emptyStr := ""
 	title := utils.StringOrDefault(submission.CustomTitle, submission.Title)
 	creatorName := utils.StringOrDefault(submission.CreatorName, &emptyStr)
-	// Use broadcaster_name_override if provided, otherwise use broadcaster_name from Twitch
-	broadcasterName := utils.StringOrDefault(submission.BroadcasterNameOverride, submission.BroadcasterName)
-	if broadcasterName == "" {
-		broadcasterName = emptyStr
+
+	// Use broadcaster_name_override if provided and not empty, otherwise use broadcaster_name from Twitch
+	var broadcasterName string
+	if submission.BroadcasterNameOverride != nil && *submission.BroadcasterNameOverride != "" {
+		broadcasterName = *submission.BroadcasterNameOverride
+	} else if submission.BroadcasterName != nil {
+		broadcasterName = *submission.BroadcasterName
 	}
 
 	clip := &models.Clip{
