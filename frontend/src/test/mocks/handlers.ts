@@ -163,7 +163,7 @@ export const handlers = [
       comments: paginatedComments,
       total: clipComments.length,
       next_cursor: cursor + paginatedComments.length,
-      has_more: cursor + limit < clipComments.length,
+      has_more: paginatedComments.length === limit,
     });
   }),
 
