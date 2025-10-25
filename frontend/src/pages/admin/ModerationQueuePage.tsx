@@ -261,6 +261,14 @@ export function ModerationQueuePage() {
                                                             }
                                                         </p>
                                                     )}
+                                                    {submission.broadcaster_name_override && (
+                                                        <p className='text-warning font-medium'>
+                                                            Broadcaster Override:{' '}
+                                                            {
+                                                                submission.broadcaster_name_override
+                                                            }
+                                                        </p>
+                                                    )}
                                                     {submission.creator_name && (
                                                         <p>
                                                             Creator:{' '}
