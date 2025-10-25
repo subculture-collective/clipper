@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 func TestSubmissionService_ShouldAutoApprove(t *testing.T) {
@@ -148,25 +149,14 @@ func TestBroadcasterNameHandling(t *testing.T) {
 			}
 
 			// This is the pattern used in createClipFromSubmission
-			broadcasterNameFallback := stringOrDefault(submission.BroadcasterName, &emptyStr)
-			result := stringOrDefault(submission.BroadcasterNameOverride, &broadcasterNameFallback)
+			broadcasterNameFallback := utils.StringOrDefault(submission.BroadcasterName, &emptyStr)
+			result := utils.StringOrDefault(submission.BroadcasterNameOverride, &broadcasterNameFallback)
 
 			if result != tt.expected {
 				t.Errorf("got %q, want %q", result, tt.expected)
 			}
 		})
 	}
-}
-
-// Helper function for tests (mimics utils.StringOrDefault)
-func stringOrDefault(s *string, def *string) string {
-	if s != nil && *s != "" {
-		return *s
-	}
-	if def != nil {
-		return *def
-	}
-	return ""
 }
 
 // Helper function to create string pointers
