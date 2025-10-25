@@ -130,8 +130,8 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // GET /api/v1/clips/:id/comments - Get comments
-  http.get(`${API_BASE_URL}/v1/clips/:id/comments`, ({ params, request }) => {
+  // GET /api/clips/:id/comments - Get comments
+  http.get(`${API_BASE_URL}/clips/:id/comments`, ({ params, request }) => {
     const url = new URL(request.url);
     const sort = url.searchParams.get('sort') || 'best';
     const cursor = parseInt(url.searchParams.get('cursor') || '0');
