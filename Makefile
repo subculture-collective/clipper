@@ -10,7 +10,7 @@ install: ## Install all dependencies
 	@echo "Installing backend dependencies..."
 	cd backend && go mod download
 	@echo "Installing frontend dependencies..."
-	cd frontend && npm install
+	cd frontend && npm install --legacy-peer-deps
 	@echo "✓ All dependencies installed"
 
 dev: ## Start all services in development mode
@@ -28,7 +28,7 @@ test: ## Run all tests
 	@echo "Running backend tests..."
 	cd backend && go test ./...
 	@echo "Running frontend tests..."
-	cd frontend && npm test
+	cd frontend && npm test -- --run
 	@echo "✓ Tests complete"
 
 test-unit: ## Run unit tests only

@@ -27,6 +27,7 @@ Multiple sync strategies for fetching clips:
 - **Trending**: Fetch trending clips from multiple top games
 
 Features:
+
 - Automatic duplicate detection
 - View count updates for existing clips
 - Detailed sync statistics
@@ -46,6 +47,7 @@ Features:
 **POST `/api/v1/admin/sync/clips`** - Manually trigger clip sync
 
 Request body:
+
 ```json
 {
   "strategy": "trending",  // "game", "broadcaster", or "trending"
@@ -57,6 +59,7 @@ Request body:
 ```
 
 Response:
+
 ```json
 {
   "message": "Sync completed",
@@ -75,6 +78,7 @@ Response:
 **GET `/api/v1/admin/sync/status`** - Get sync status
 
 Response:
+
 ```json
 {
   "status": "ready",
@@ -87,6 +91,7 @@ Response:
 **POST `/api/v1/clips/request`** - Submit a clip by URL (Rate limited: 5/hour)
 
 Request body:
+
 ```json
 {
   "clip_url": "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
@@ -94,6 +99,7 @@ Request body:
 ```
 
 Response:
+
 ```json
 {
   "message": "Clip added successfully",
@@ -118,7 +124,7 @@ TWITCH_CLIENT_SECRET=your-twitch-client-secret
 
 ### Getting Twitch Credentials
 
-1. Go to https://dev.twitch.tv/console/apps
+1. Go to <https://dev.twitch.tv/console/apps>
 2. Register a new application
 3. Copy the Client ID and generate a Client Secret
 4. Add them to your `.env` file

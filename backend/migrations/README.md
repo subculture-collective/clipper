@@ -28,34 +28,41 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 ### Core Tables
 
 #### Users
+
 - **users**: User accounts with Twitch authentication
   - Stores user profiles, karma points, roles (user/moderator/admin)
   - Tracks ban status and login history
 
 #### Clips
+
 - **clips**: Twitch clips with metadata
   - Stores clip information from Twitch API
   - Tracks engagement metrics (votes, comments, favorites)
   - Supports moderation (featured, NSFW, removal)
 
 #### Engagement
+
 - **votes**: User votes on clips (upvote/downvote)
 - **comments**: User comments on clips with nested support
 - **comment_votes**: User votes on comments
 - **favorites**: User favorited clips
 
 #### Organization
+
 - **tags**: Categorization tags for clips
 - **clip_tags**: Many-to-many relationship between clips and tags
 
 #### Moderation
+
 - **reports**: User reports for clips, comments, or users
   - Tracks report status and review process
 
 ### Database Functions
 
 #### `calculate_hot_score(score INT, created_at TIMESTAMP)`
+
 Calculates a Reddit-style hot score for ranking clips:
+
 - Combines vote score with time decay
 - Uses logarithmic scaling for score component
 - Returns higher values for recent, highly-voted content
@@ -77,15 +84,19 @@ Calculates a Reddit-style hot score for ranking clips:
 ### Database Views
 
 #### `hot_clips`
+
 Clips ranked by hot score (combines recency and popularity)
 
 #### `top_clips`
+
 Clips ranked by total vote score (all-time popular)
 
 #### `new_clips`
+
 Clips sorted by creation time (most recent first)
 
 #### `trending_clips`
+
 Popular clips from the last 7 days ranked by hot score
 
 ## Usage
@@ -145,6 +156,7 @@ psql -h localhost -U clipper -d clipper_db -f backend/migrations/seed.sql
 ```
 
 This will create:
+
 - 4 sample users (regular user, moderator, admin)
 - 4 sample clips with various metadata
 - Sample tags (Funny, Epic, Fail, Highlight, etc.)
@@ -153,11 +165,13 @@ This will create:
 ## Database Connection
 
 The database connection string format:
+
 ```
 postgresql://[user]:[password]@[host]:[port]/[database]?sslmode=[mode]
 ```
 
 Default values (from `.env.example`):
+
 - Host: `localhost`
 - Port: `5436`
 - User: `clipper`
@@ -203,6 +217,7 @@ Default values (from `.env.example`):
 ## Indexes
 
 All tables have appropriate indexes for common query patterns:
+
 - Primary keys (UUID)
 - Foreign keys
 - Frequently queried fields (username, twitch_id, vote_score, created_at)
@@ -220,7 +235,9 @@ All tables have appropriate indexes for common query patterns:
 ## Troubleshooting
 
 ### Migration Version Mismatch
+
 If you see "Dirty database version" error:
+
 ```bash
 # Check current version
 migrate -path backend/migrations -database "postgresql://..." version
@@ -230,12 +247,15 @@ migrate -path backend/migrations -database "postgresql://..." force VERSION
 ```
 
 ### Connection Issues
+
 - Ensure PostgreSQL is running: `docker compose ps`
 - Check connection settings in `.env` file
 - Verify database exists: `psql -h localhost -U clipper -l`
 
 ### Reset Database
+
 To completely reset the database:
+
 ```bash
 # Stop and remove containers with volumes
 docker compose down -v

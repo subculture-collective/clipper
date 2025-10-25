@@ -5,6 +5,7 @@ This document provides an overview of the CI/CD pipeline implemented for the Cli
 ## Overview
 
 The Clipper project uses GitHub Actions for continuous integration and deployment. The pipeline includes:
+
 - Automated testing and linting
 - Docker image building and publishing
 - Security scanning
@@ -16,12 +17,14 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
 ### 1. CI Workflow (`.github/workflows/ci.yml`)
 
 **Triggers:**
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop` branches
 
 **Jobs:**
 
 #### Backend Jobs
+
 - **backend-lint**: Runs `gofmt` check and `golangci-lint`
 - **backend-test**: Runs tests with coverage on Go 1.21 and 1.22
   - Uses matrix testing for multiple Go versions
@@ -30,6 +33,7 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
 - **backend-build**: Cross-compiles for Linux, macOS, and Windows
 
 #### Frontend Jobs
+
 - **frontend-lint**: Runs ESLint and TypeScript type checking
 - **frontend-test**: Runs tests on Node 18 and 20
   - Uses matrix testing for multiple Node versions
@@ -38,11 +42,13 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
 ### 2. Docker Workflow (`.github/workflows/docker.yml`)
 
 **Triggers:**
+
 - Push to `main` or `develop` branches
 - Push of version tags (`v*`)
 - Pull requests to `main` or `develop` branches
 
 **Jobs:**
+
 - **build-backend**: Builds backend Docker image
   - Multi-stage build for optimization
   - Pushes to GitHub Container Registry (ghcr.io)
@@ -57,11 +63,13 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
 ### 3. CodeQL Workflow (`.github/workflows/codeql.yml`)
 
 **Triggers:**
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop` branches
 - Weekly schedule (Monday at 00:00 UTC)
 
 **Jobs:**
+
 - **analyze**: Runs CodeQL analysis for Go and TypeScript
   - Identifies security vulnerabilities
   - Results available in Security tab
@@ -69,10 +77,12 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
 ### 4. Staging Deployment (`.github/workflows/deploy-staging.yml`)
 
 **Triggers:**
+
 - Push to `develop` branch
 - Manual workflow dispatch
 
 **Jobs:**
+
 - **deploy**: Deploys to staging environment
   - Builds and pushes Docker images with `staging` tag
   - Connects to staging server via SSH
@@ -80,17 +90,20 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
   - Runs smoke tests
 
 **Required Secrets:**
+
 - `STAGING_HOST`: Staging server hostname
 - `DEPLOY_SSH_KEY`: SSH private key for deployment
 
 ### 5. Production Deployment (`.github/workflows/deploy-production.yml`)
 
 **Triggers:**
+
 - Push to `main` branch
 - Push of version tags (`v*`)
 - Manual workflow dispatch
 
 **Jobs:**
+
 - **deploy**: Deploys to production environment
   - Requires manual approval via GitHub Environments
   - Builds and pushes Docker images
@@ -102,16 +115,19 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
   - Creates deployment tag
 
 **Required Secrets:**
+
 - `PRODUCTION_HOST`: Production server hostname
 - `DEPLOY_SSH_KEY`: SSH private key for deployment
 
 ### 6. Lighthouse CI (`.github/workflows/lighthouse.yml`)
 
 **Triggers:**
+
 - Push to `main` or `develop` branches (only if frontend files changed)
 - Pull requests to `main` or `develop` branches (only if frontend files changed)
 
 **Jobs:**
+
 - **lighthouse**: Runs Lighthouse performance audit
   - Builds production bundle
   - Runs preview server
@@ -124,6 +140,7 @@ The Clipper project uses GitHub Actions for continuous integration and deploymen
 ### Dependabot (`.github/dependabot.yml`)
 
 Automated dependency updates:
+
 - **Go modules**: Weekly updates on Mondays
 - **npm packages**: Weekly updates on Mondays
 - **GitHub Actions**: Weekly updates on Mondays
@@ -138,14 +155,16 @@ Automated dependency updates:
 ## Docker Images
 
 ### Backend Image (`backend/Dockerfile`)
+
 - **Base**: golang:1.24-alpine (builder), alpine:latest (runtime)
 - **Size**: ~20MB (optimized)
-- **Features**: 
+- **Features**:
   - Static binary compilation
   - Health check endpoint
   - Multi-stage build
 
 ### Frontend Image (`frontend/Dockerfile`)
+
 - **Base**: node:20-alpine (builder), nginx:alpine (runtime)
 - **Size**: ~30MB (optimized)
 - **Features**:
@@ -156,10 +175,12 @@ Automated dependency updates:
   - Health check endpoint
 
 ### Image Locations
+
 - Backend: `ghcr.io/subculture-collective/clipper/backend`
 - Frontend: `ghcr.io/subculture-collective/clipper/frontend`
 
 ### Image Tags
+
 - `latest`: Latest build from main branch
 - `develop`: Latest build from develop branch
 - `staging`: Staging deployment
@@ -229,6 +250,7 @@ cd /opt/clipper
 ### Running CI Checks Locally
 
 #### Backend
+
 ```bash
 cd backend
 
@@ -246,6 +268,7 @@ go build -o bin/api ./cmd/api
 ```
 
 #### Frontend
+
 ```bash
 cd frontend
 
@@ -281,6 +304,7 @@ docker run -d -p 80:80 clipper-frontend
 ### Manual Deployments
 
 #### Via GitHub UI
+
 1. Go to Actions tab
 2. Select workflow (Deploy to Staging/Production)
 3. Click "Run workflow"
@@ -288,6 +312,7 @@ docker run -d -p 80:80 clipper-frontend
 5. Click "Run workflow"
 
 #### Via GitHub CLI
+
 ```bash
 # Staging
 gh workflow run deploy-staging.yml
@@ -305,6 +330,7 @@ gh run watch
 ### CI/CD Status
 
 Check workflow status:
+
 - Actions tab in GitHub repository
 - Build status badges in README
 - Email notifications for failures
@@ -312,15 +338,18 @@ Check workflow status:
 ### Deployment Status
 
 **Staging:**
-- Health check: http://staging.clipper.example.com/health
+
+- Health check: <http://staging.clipper.example.com/health>
 
 **Production:**
-- Health check: https://clipper.example.com/health
+
+- Health check: <https://clipper.example.com/health>
 - Automatic rollback on failure
 
 ### Logs
 
 View logs:
+
 ```bash
 # SSH to server
 ssh deploy@<server>
@@ -404,6 +433,7 @@ docker compose up -d
 ### Build Times
 
 Typical build times with caching:
+
 - **Backend build**: 1-2 minutes
 - **Frontend build**: 2-3 minutes
 - **Docker builds**: 3-5 minutes
@@ -412,6 +442,7 @@ Typical build times with caching:
 ### Optimization
 
 The pipeline uses several optimizations:
+
 - Go module caching
 - npm package caching
 - Docker layer caching
@@ -421,6 +452,7 @@ The pipeline uses several optimizations:
 ## Future Improvements
 
 Potential enhancements:
+
 - [ ] Add E2E tests with Playwright
 - [ ] Implement automatic rollback based on error rates
 - [ ] Add performance regression testing
@@ -435,6 +467,7 @@ Potential enhancements:
 ## Support
 
 For help with CI/CD:
+
 1. Check this documentation
 2. Review [DEPLOYMENT.md](./DEPLOYMENT.md)
 3. Open an issue in the repository

@@ -48,6 +48,7 @@ npm run build               # Build
 ### Common CI Failures
 
 #### Backend Linting Fails
+
 ```bash
 # Fix formatting
 cd backend
@@ -57,6 +58,7 @@ git commit -m "Fix formatting"
 ```
 
 #### Frontend Linting Fails
+
 ```bash
 # Fix linting
 cd frontend
@@ -68,6 +70,7 @@ git commit -m "Fix linting"
 ```
 
 #### Tests Fail
+
 ```bash
 # Run tests locally to debug
 cd backend && go test -v ./...
@@ -116,6 +119,7 @@ docker pull ghcr.io/subculture-collective/clipper/frontend:latest
 ### Version Format
 
 Use [Semantic Versioning](https://semver.org/):
+
 - `v1.0.0` - Major release (breaking changes)
 - `v1.1.0` - Minor release (new features)
 - `v1.1.1` - Patch release (bug fixes)
@@ -123,18 +127,22 @@ Use [Semantic Versioning](https://semver.org/):
 ## 🔧 Troubleshooting
 
 ### "Workflow permissions error"
+
 - This is fixed - all workflows have proper permissions
 - If you see this, the workflow file needs `permissions:` block
 
 ### "Docker image not found"
+
 - Images are only pushed on merge, not on PR
 - Check if the workflow completed successfully
 
 ### "Codecov upload failed"
+
 - This is non-blocking - CI will still pass
 - Ensure `CODECOV_TOKEN` secret is set
 
 ### "Deployment failed"
+
 - Check if required secrets are configured:
   - `STAGING_HOST` or `PRODUCTION_HOST`
   - `DEPLOY_SSH_KEY`

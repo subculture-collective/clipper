@@ -3,6 +3,7 @@
 This guide covers production infrastructure setup, configuration, and maintenance for the Clipper application.
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Hosting Platform Options](#hosting-platform-options)
 - [Server Setup](#server-setup)
@@ -16,6 +17,7 @@ This guide covers production infrastructure setup, configuration, and maintenanc
 ## Overview
 
 The Clipper application consists of:
+
 - **Backend**: Go API server (port 8080)
 - **Frontend**: React SPA served by Nginx (port 80/443)
 - **PostgreSQL**: Database (port 5436)
@@ -58,17 +60,20 @@ The Clipper application consists of:
 **Providers**: DigitalOcean, Linode, Vultr, Hetzner
 
 **Pros**:
+
 - Full control over the server
 - Cost-effective ($5-20/month for basic setup)
 - Simple and predictable pricing
 - Easy to understand and maintain
 
 **Cons**:
+
 - Requires DevOps knowledge
 - Manual scaling
 - You manage backups and monitoring
 
 **Recommended Configuration**:
+
 - **Starter**: 2 CPU, 4GB RAM, 80GB SSD ($12/month)
 - **Production**: 4 CPU, 8GB RAM, 160GB SSD ($24/month)
 
@@ -79,17 +84,20 @@ The Clipper application consists of:
 **Providers**: AWS (EC2, RDS, ElastiCache), GCP, Azure
 
 **Pros**:
+
 - Highly scalable
 - Managed services available
 - Global infrastructure
 - Advanced features (auto-scaling, load balancing)
 
 **Cons**:
+
 - More complex setup
 - Higher cost
 - Steeper learning curve
 
 **Recommended Configuration**:
+
 - **Compute**: t3.small or t3.medium EC2 instances
 - **Database**: RDS PostgreSQL (db.t3.small)
 - **Cache**: ElastiCache Redis (cache.t3.micro)
@@ -103,12 +111,14 @@ The Clipper application consists of:
 **Providers**: Fly.io, Railway, Render
 
 **Pros**:
+
 - Extremely easy deployment
 - Automatic scaling
 - Built-in SSL, monitoring
 - Git-based deployments
 
 **Cons**:
+
 - Less control
 - Can be expensive at scale
 - Limited customization
@@ -210,11 +220,13 @@ sudo dpkg-reconfigure -plow unattended-upgrades
 ### Option 1: Managed Database (Recommended)
 
 Use managed PostgreSQL from:
+
 - **DigitalOcean Managed Databases**: Starting at $15/month
 - **AWS RDS**: Starting at $15/month
 - **GCP Cloud SQL**: Starting at $10/month
 
 **Benefits**:
+
 - Automatic backups
 - Point-in-time recovery
 - Automatic updates
@@ -516,12 +528,14 @@ aws s3 sync $BACKUP_DIR s3://your-bucket/clipper-backups/ --storage-class STANDA
 **Recovery Steps**:
 
 1. **Provision New Server**:
+
    ```bash
    # Follow server setup steps
    # Install Docker and dependencies
    ```
 
 2. **Restore Database**:
+
    ```bash
    # Download latest backup
    aws s3 cp s3://your-bucket/clipper-backups/db-latest.sql.gz .
@@ -531,12 +545,14 @@ aws s3 sync $BACKUP_DIR s3://your-bucket/clipper-backups/ --storage-class STANDA
    ```
 
 3. **Restore Configuration**:
+
    ```bash
    # Copy configuration files
    aws s3 sync s3://your-bucket/clipper-backups/config-latest/ /opt/clipper/
    ```
 
 4. **Start Services**:
+
    ```bash
    cd /opt/clipper
    docker-compose up -d
@@ -593,6 +609,7 @@ sudo reboot
 ### Security Monitoring
 
 Monitor for:
+
 - Failed login attempts
 - Unusual traffic patterns
 - High error rates
@@ -614,17 +631,20 @@ Monitor for:
 ### Regular Maintenance Tasks
 
 **Daily**:
+
 - Monitor health checks
 - Review error logs
 - Check backup status
 
 **Weekly**:
+
 - Review security logs
 - Check disk space
 - Review performance metrics
 - Update dependencies
 
 **Monthly**:
+
 - Review and rotate logs
 - Update system packages
 - Review and optimize database
@@ -632,6 +652,7 @@ Monitor for:
 - Review access logs
 
 **Quarterly**:
+
 - Security audit
 - Performance review
 - Disaster recovery test
@@ -640,11 +661,13 @@ Monitor for:
 ### Scaling Considerations
 
 **Vertical Scaling** (Increase server resources):
+
 - Upgrade to larger server
 - Add more CPU/RAM
 - Faster disks (SSD)
 
 **Horizontal Scaling** (Add more servers):
+
 - Multiple backend instances
 - Load balancer (Nginx/HAProxy)
 - Database replication
@@ -657,6 +680,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed troubleshooting guide.
 ## Support
 
 For infrastructure issues:
+
 1. Check logs: `docker-compose logs -f`
 2. Check health: `./scripts/health-check.sh`
 3. Review documentation
