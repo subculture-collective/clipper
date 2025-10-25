@@ -170,5 +170,5 @@ migrate-status: ## Check current migration version
 
 migrate-seed: ## Seed database with sample data
 	@echo "Seeding database..."
-	@PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
+	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
 	@echo "✓ Database seeded"
