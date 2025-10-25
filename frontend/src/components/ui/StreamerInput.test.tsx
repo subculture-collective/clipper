@@ -133,4 +133,3 @@ describe('StreamerInput', () => {
         expect(screen.getByText('*')).toBeInTheDocument();
     });
 });
-
