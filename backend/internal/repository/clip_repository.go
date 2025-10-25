@@ -545,3 +545,16 @@ func (r *ClipRepository) RemoveClip(ctx context.Context, clipID uuid.UUID, reaso
 	_, err := r.pool.Exec(ctx, query, clipID, reason)
 	return err
 }
+
+// RefreshHotScores refreshes the materialized view for hot clips
+// This should be called periodically to update hot scores for discovery lists
+func (r *ClipRepository) RefreshHotScores(ctx context.Context) error {
+query := `REFRESH MATERIALIZED VIEW CONCURRENTLY hot_clips_materialized`
+
+_, err := r.pool.Exec(ctx, query)
+if err != nil {
+return fmt.Errorf("failed to refresh hot scores: %w", err)
+}
+
+return nil
+}
