@@ -219,10 +219,15 @@ The CI will automatically check coverage and fail if it drops below thresholds.
 
 ## 📝 Documentation
 
-- Update README.md if you change functionality
-- Document new API endpoints
+When making changes, update relevant documentation:
+
+- Update [README.md](README.md) if you change core functionality
+- Document new API endpoints in [API Documentation](docs/API.md)
 - Add JSDoc/GoDoc comments for public APIs
-- Update relevant documentation in `docs/` directory
+- Update [User Guide](docs/user-guide.md) for user-facing features
+- Update [Development Guide](docs/development.md) for dev environment changes
+- Update [Database Documentation](docs/database.md) for schema changes
+- Update [CHANGELOG.md](CHANGELOG.md) with your changes
 
 ## 🐛 Bug Reports
 

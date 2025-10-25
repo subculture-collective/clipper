@@ -68,7 +68,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 
 	// Track search analytics (optional, get user ID if authenticated)
 	totalResults := results.Counts.Clips + results.Counts.Creators + results.Counts.Games + results.Counts.Tags
-	
+
 	// Try to get user from context (if authenticated)
 	if userVal, exists := c.Get("user"); exists {
 		if user, ok := userVal.(*models.User); ok {
@@ -87,7 +87,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 // GET /api/v1/search/suggestions
 func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 	query := c.Query("q")
-	
+
 	if query == "" || len(query) < 2 {
 		c.JSON(http.StatusOK, gin.H{
 			"suggestions": []models.SearchSuggestion{},

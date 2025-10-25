@@ -36,6 +36,12 @@ const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m 
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
+const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
+const CreatorAnalyticsPage = lazy(() => import('./pages/CreatorAnalyticsPage'));
+const PersonalStatsPage = lazy(() => import('./pages/PersonalStatsPage'));
+const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -64,11 +70,13 @@ function App() {
                   <Route path="/clip/:id" element={<ClipDetailPage />} />
                   <Route path="/game/:gameId" element={<GamePage />} />
                   <Route path="/creator/:creatorId" element={<CreatorPage />} />
+                  <Route path="/creator/:creatorName/analytics" element={<CreatorAnalyticsPage />} />
                   <Route path="/tag/:tagSlug" element={<TagPage />} />
                   <Route path="/search" element={<SearchPage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/leaderboards" element={<LeaderboardPage />} />
 
                   {/* Guest Routes (redirect to home if authenticated) */}
                   <Route
@@ -124,6 +132,30 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/notifications"
+                    element={
+                      <ProtectedRoute>
+                        <NotificationsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/notifications/preferences"
+                    element={
+                      <ProtectedRoute>
+                        <NotificationPreferencesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile/stats"
+                    element={
+                      <ProtectedRoute>
+                        <PersonalStatsPage />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Admin Routes (require admin role) */}
                   <Route
@@ -171,6 +203,14 @@ function App() {
                     element={
                       <AdminRoute>
                         <AdminSyncPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/analytics"
+                    element={
+                      <AdminRoute>
+                        <AdminAnalyticsPage />
                       </AdminRoute>
                     }
                   />
