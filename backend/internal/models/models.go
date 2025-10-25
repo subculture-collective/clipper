@@ -205,21 +205,22 @@ type SearchQuery struct {
 
 // ClipSubmission represents a user-submitted clip pending moderation
 type ClipSubmission struct {
-	ID               uuid.UUID  `json:"id" db:"id"`
-	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
-	TwitchClipID     string     `json:"twitch_clip_id" db:"twitch_clip_id"`
-	TwitchClipURL    string     `json:"twitch_clip_url" db:"twitch_clip_url"`
-	Title            *string    `json:"title,omitempty" db:"title"`
-	CustomTitle      *string    `json:"custom_title,omitempty" db:"custom_title"`
-	Tags             []string   `json:"tags,omitempty" db:"tags"`
-	IsNSFW           bool       `json:"is_nsfw" db:"is_nsfw"`
-	SubmissionReason *string    `json:"submission_reason,omitempty" db:"submission_reason"`
-	Status           string     `json:"status" db:"status"` // pending, approved, rejected
-	RejectionReason  *string    `json:"rejection_reason,omitempty" db:"rejection_reason"`
-	ReviewedBy       *uuid.UUID `json:"reviewed_by,omitempty" db:"reviewed_by"`
-	ReviewedAt       *time.Time `json:"reviewed_at,omitempty" db:"reviewed_at"`
-	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+	ID                      uuid.UUID  `json:"id" db:"id"`
+	UserID                  uuid.UUID  `json:"user_id" db:"user_id"`
+	TwitchClipID            string     `json:"twitch_clip_id" db:"twitch_clip_id"`
+	TwitchClipURL           string     `json:"twitch_clip_url" db:"twitch_clip_url"`
+	Title                   *string    `json:"title,omitempty" db:"title"`
+	CustomTitle             *string    `json:"custom_title,omitempty" db:"custom_title"`
+	BroadcasterNameOverride *string    `json:"broadcaster_name_override,omitempty" db:"broadcaster_name_override"`
+	Tags                    []string   `json:"tags,omitempty" db:"tags"`
+	IsNSFW                  bool       `json:"is_nsfw" db:"is_nsfw"`
+	SubmissionReason        *string    `json:"submission_reason,omitempty" db:"submission_reason"`
+	Status                  string     `json:"status" db:"status"` // pending, approved, rejected
+	RejectionReason         *string    `json:"rejection_reason,omitempty" db:"rejection_reason"`
+	ReviewedBy              *uuid.UUID `json:"reviewed_by,omitempty" db:"reviewed_by"`
+	ReviewedAt              *time.Time `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	CreatedAt               time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt               time.Time  `json:"updated_at" db:"updated_at"`
 	// Metadata from Twitch
 	CreatorName             *string  `json:"creator_name,omitempty" db:"creator_name"`
 	CreatorID               *string  `json:"creator_id,omitempty" db:"creator_id"`
