@@ -135,6 +135,18 @@ func TestExtractMentions(t *testing.T) {
 	}
 }
 
+// isVoteMilestone checks if a score is a vote milestone
+// This helper matches the logic in NotificationService.NotifyVoteMilestone
+func isVoteMilestone(score int) bool {
+	milestones := []int{10, 25, 50, 100, 250, 500, 1000}
+	for _, m := range milestones {
+		if score == m {
+			return true
+		}
+	}
+	return false
+}
+
 func TestNotifyVoteMilestone_OnlyMilestones(t *testing.T) {
 	milestones := []int{10, 25, 50, 100, 250, 500, 1000}
 	nonMilestones := []int{1, 5, 15, 30, 75, 150, 300, 600, 2000}
@@ -142,28 +154,14 @@ func TestNotifyVoteMilestone_OnlyMilestones(t *testing.T) {
 	// Test that milestones would trigger notification
 	// Note: This is a simplified test - actual implementation would need mock repos
 	for _, score := range milestones {
-		isMilestone := false
-		for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
-			if score == m {
-				isMilestone = true
-				break
-			}
-		}
-		if !isMilestone {
+		if !isVoteMilestone(score) {
 			t.Errorf("Score %d should be a milestone", score)
 		}
 	}
 
 	// Test that non-milestones would not trigger
 	for _, score := range nonMilestones {
-		isMilestone := false
-		for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
-			if score == m {
-				isMilestone = true
-				break
-			}
-		}
-		if isMilestone {
+		if isVoteMilestone(score) {
 			t.Errorf("Score %d should not be a milestone", score)
 		}
 	}
