@@ -43,20 +43,20 @@ docker-compose -f docker-compose.monitoring.yml ps
 
 ### 3. Access Services
 
-- **Grafana**: http://localhost:3000 (admin / your_password)
-- **Prometheus**: http://localhost:9090
-- **Alertmanager**: http://localhost:9093
-- **cAdvisor**: http://localhost:8081
+- **Grafana**: <http://localhost:3000> (admin / your_password)
+- **Prometheus**: <http://localhost:9090>
+- **Alertmanager**: <http://localhost:9093>
+- **cAdvisor**: <http://localhost:8081>
 
 ### 4. Configure Grafana
 
 1. Log in to Grafana (admin / your_password)
 2. Go to Configuration > Data Sources
 3. Add Prometheus:
-   - URL: http://prometheus:9090
+   - URL: <http://prometheus:9090>
    - Click "Save & Test"
 4. Add Loki:
-   - URL: http://loki:3100
+   - URL: <http://loki:3100>
    - Click "Save & Test"
 5. Import dashboards:
    - Go to Dashboards > Import
@@ -68,10 +68,13 @@ docker-compose -f docker-compose.monitoring.yml ps
 ## Configuration Files
 
 ### prometheus.yml
+
 Prometheus scrape configuration and targets.
 
 ### alerts.yml
+
 Alert rules for various conditions:
+
 - Service down
 - High error rate
 - High response time
@@ -82,6 +85,7 @@ Alert rules for various conditions:
 - SSL certificate expiring
 
 ### alertmanager.yml
+
 Alert routing configuration (create this file):
 
 ```yaml
@@ -106,6 +110,7 @@ receivers:
 ```
 
 ### promtail-config.yml
+
 Log collection configuration (create this file):
 
 ```yaml
@@ -217,7 +222,9 @@ r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 Configure alert notifications:
 
 ### Email
+
 Add to `alertmanager.yml`:
+
 ```yaml
 receivers:
   - name: 'email'
@@ -226,6 +233,7 @@ receivers:
 ```
 
 ### Slack
+
 ```yaml
 receivers:
   - name: 'slack'
@@ -235,6 +243,7 @@ receivers:
 ```
 
 ### Discord
+
 ```yaml
 receivers:
   - name: 'discord'
@@ -243,6 +252,7 @@ receivers:
 ```
 
 ### PagerDuty
+
 ```yaml
 receivers:
   - name: 'pagerduty'
@@ -253,18 +263,21 @@ receivers:
 ## Maintenance
 
 ### View Logs
+
 ```bash
 docker-compose -f docker-compose.monitoring.yml logs -f prometheus
 docker-compose -f docker-compose.monitoring.yml logs -f grafana
 ```
 
 ### Restart Services
+
 ```bash
 docker-compose -f docker-compose.monitoring.yml restart prometheus
 docker-compose -f docker-compose.monitoring.yml restart grafana
 ```
 
 ### Update Configuration
+
 ```bash
 # Edit configuration files
 nano monitoring/prometheus.yml
@@ -274,6 +287,7 @@ curl -X POST http://localhost:9090/-/reload
 ```
 
 ### Backup Grafana Dashboards
+
 ```bash
 # Export dashboard JSON from Grafana UI
 # Or backup Grafana database
@@ -286,7 +300,8 @@ docker-compose -f docker-compose.monitoring.yml exec grafana \
 ### Prometheus not scraping targets
 
 Check targets in Prometheus UI:
-- Go to http://localhost:9090/targets
+
+- Go to <http://localhost:9090/targets>
 - Verify all targets are "UP"
 - Check network connectivity between containers
 
@@ -294,11 +309,12 @@ Check targets in Prometheus UI:
 
 1. Verify Prometheus data source configuration
 2. Check time range in dashboard
-3. Verify metrics exist: http://localhost:9090/graph
+3. Verify metrics exist: <http://localhost:9090/graph>
 
 ### High memory usage
 
 Adjust retention time in `docker-compose.monitoring.yml`:
+
 ```yaml
 command:
   - '--storage.tsdb.retention.time=15d'  # Reduce from 30d

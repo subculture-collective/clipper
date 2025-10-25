@@ -11,10 +11,10 @@ func TestShouldNotify(t *testing.T) {
 	service := &NotificationService{}
 
 	tests := []struct {
-		name     string
-		prefs    *models.NotificationPreferences
+		name      string
+		prefs     *models.NotificationPreferences
 		notifType string
-		expected bool
+		expected  bool
 	}{
 		{
 			name: "should notify for replies when enabled",

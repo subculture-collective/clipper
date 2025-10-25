@@ -7,6 +7,7 @@ PR #48 changed `useClipById` from using `useInfiniteQuery` to `useQuery`, removi
 ## Analysis
 
 ### Original Implementation (Incorrect)
+
 ```typescript
 export const useClipById = (clipId: string) => {
   return useInfiniteQuery({
@@ -23,6 +24,7 @@ export const useClipById = (clipId: string) => {
 ```
 
 ### New Implementation (Correct)
+
 ```typescript
 export const useClipById = (clipId: string) => {
   return useQuery({
@@ -36,6 +38,7 @@ export const useClipById = (clipId: string) => {
 ## Why This Change is Correct
 
 ### 1. Purpose Alignment
+
 - **useQuery**: Designed for fetching a single resource
 - **useInfiniteQuery**: Designed for fetching paginated data
 
@@ -44,6 +47,7 @@ Since `useClipById` fetches a **single clip** by ID, `useQuery` is the correct h
 ### 2. Return Value Structure
 
 **useQuery returns:**
+
 ```typescript
 {
   data: Clip,              // Single clip object
@@ -55,6 +59,7 @@ Since `useClipById` fetches a **single clip** by ID, `useQuery` is the correct h
 ```
 
 **useInfiniteQuery returns:**
+
 ```typescript
 {
   data: {
@@ -72,6 +77,7 @@ Since `useClipById` fetches a **single clip** by ID, `useQuery` is the correct h
 ### 3. Parameter Requirements
 
 **useInfiniteQuery requires:**
+
 - `initialPageParam` - Starting page parameter (meaningless for single resource)
 - `getNextPageParam` - Function to determine next page (no pagination for single resource)
 
@@ -80,6 +86,7 @@ Since `useClipById` fetches a **single clip** by ID, `useQuery` is the correct h
 ### 4. Usage Pattern
 
 **Correct usage with useQuery:**
+
 ```typescript
 function ClipDetailPage() {
   const { id } = useParams();
@@ -94,6 +101,7 @@ function ClipDetailPage() {
 ```
 
 **If we incorrectly used useInfiniteQuery:**
+
 ```typescript
 function ClipDetailPage() {
   const { id } = useParams();

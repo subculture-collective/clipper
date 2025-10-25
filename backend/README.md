@@ -44,7 +44,6 @@ backend/
 
 ## Getting Started
 
-
 ### Prerequisites
 
 - Go 1.24 or higher
@@ -55,11 +54,13 @@ backend/
 ### Setup
 
 1. Install dependencies:
+
    ```bash
    go mod download
    ```
 
 2. Install golang-migrate (if not already installed):
+
    ```bash
    # macOS
    brew install golang-migrate
@@ -73,6 +74,7 @@ backend/
    ```
 
 3. Copy environment configuration:
+
    ```bash
    cp .env.example .env
    ```
@@ -80,11 +82,13 @@ backend/
 4. Edit `.env` with your configuration (database, Redis, JWT secret, Twitch API keys)
 
 5. Start database and Redis:
+
    ```bash
    cd .. && docker compose up -d
    ```
 
 6. Run database migrations:
+
    ```bash
    # From project root
    make migrate-up
@@ -95,11 +99,13 @@ backend/
    ```
 
 7. (Optional) Seed database with sample data:
+
    ```bash
    make migrate-seed
    ```
 
 8. Run the server:
+
    ```bash
    go run cmd/api/main.go
    ```
@@ -149,6 +155,7 @@ go vet ./...
 The following dependencies will be automatically added when imported in code:
 
 ### Core Dependencies
+
 - `github.com/gin-gonic/gin` - HTTP web framework
 - `github.com/jackc/pgx/v5` - PostgreSQL driver with connection pooling
 - `github.com/google/uuid` - UUID generation and parsing
@@ -158,9 +165,11 @@ The following dependencies will be automatically added when imported in code:
 - `github.com/golang-migrate/migrate/v4` - Database migrations
 
 ### Development Tools
+
 - `github.com/go-delve/delve` - Debugger (optional)
 
 To add a dependency, simply import it in your code and run:
+
 ```bash
 go mod tidy
 ```
@@ -196,6 +205,7 @@ make migrate-seed
 ### Database Schema
 
 The database includes the following tables:
+
 - **users** - User accounts and profiles
 - **clips** - Twitch clips with metadata
 - **votes** - User votes on clips
@@ -208,6 +218,7 @@ The database includes the following tables:
 - **refresh_tokens** - JWT refresh token storage
 
 See [docs/DATABASE-SCHEMA.md](../docs/DATABASE-SCHEMA.md) for complete schema documentation including:
+
 - Entity relationship diagram
 - Table structures
 - Triggers and functions
@@ -217,6 +228,7 @@ See [docs/DATABASE-SCHEMA.md](../docs/DATABASE-SCHEMA.md) for complete schema do
 ### Database Models
 
 Go models for all database tables are defined in `internal/models/models.go`:
+
 - Type-safe representations of database entities
 - JSON serialization tags for API responses
 - UUID types for all primary keys
@@ -225,12 +237,14 @@ Go models for all database tables are defined in `internal/models/models.go`:
 ## API Endpoints
 
 ### Health Check
+
 - `GET /health` - Basic server health check
 - `GET /health/ready` - Readiness check (includes database and Redis connectivity)
 - `GET /health/live` - Liveness check
 - `GET /health/stats` - Database connection pool statistics
 
 ### Authentication
+
 - `GET /api/v1/auth/twitch` - Initiate Twitch OAuth flow
 - `GET /api/v1/auth/twitch/callback` - OAuth callback handler
 - `POST /api/v1/auth/refresh` - Refresh access token
@@ -240,15 +254,18 @@ Go models for all database tables are defined in `internal/models/models.go`:
 See [docs/authentication.md](docs/authentication.md) for complete authentication documentation.
 
 ### Clips (NEW!)
+
 - `POST /api/v1/clips/request` - Submit a clip by URL (requires auth, rate limited: 5/hour)
 
 ### Admin Endpoints (NEW!)
+
 - `POST /api/v1/admin/sync/clips` - Manually trigger clip sync (requires auth)
 - `GET /api/v1/admin/sync/status` - Get sync job status (requires auth)
 
 See [docs/TWITCH_INTEGRATION.md](docs/TWITCH_INTEGRATION.md) for complete Twitch API integration documentation.
 
 ### API v1
+
 - `GET /api/v1/ping` - API ping test
 
 More endpoints will be added as features are implemented.
@@ -267,6 +284,7 @@ See `.env.example` for all available configuration options:
 ## Project Conventions
 
 ### Code Style
+
 - Follow standard Go conventions
 - Use `gofmt` for formatting
 - Use meaningful variable and function names
@@ -274,6 +292,7 @@ See `.env.example` for all available configuration options:
 - Document exported functions with comments
 
 ### Package Organization
+
 - `cmd/` - Application entry points
 - `internal/` - Private application code (cannot be imported by other projects)
   - `handlers/` - HTTP request handlers
@@ -290,12 +309,14 @@ See `.env.example` for all available configuration options:
 - `config/` - Configuration management
 
 ### Error Handling
+
 - Always check and handle errors
 - Return errors to caller when appropriate
 - Log errors with context
 - Use custom error types for domain-specific errors
 
 ### Logging
+
 - Use structured logging
 - Log at appropriate levels (debug, info, warn, error)
 - Include context in log messages

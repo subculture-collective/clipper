@@ -19,6 +19,7 @@ This directory contains automation scripts for deploying, managing, and maintain
 Deploys the application with automated backup, migration, and health checks.
 
 **Features**:
+
 - Pre-deployment checks (Docker, docker-compose, deployment directory)
 - Automatic backup of current deployment
 - Pull latest images from registry
@@ -29,6 +30,7 @@ Deploys the application with automated backup, migration, and health checks.
 - Cleanup of old images
 
 **Usage**:
+
 ```bash
 # Deploy to production
 cd /opt/clipper
@@ -39,11 +41,13 @@ DEPLOY_DIR=/opt/clipper ENVIRONMENT=production ./scripts/deploy.sh
 ```
 
 **Environment Variables**:
+
 - `DEPLOY_DIR`: Deployment directory (default: `/opt/clipper`)
 - `REGISTRY`: Container registry (default: `ghcr.io/subculture-collective/clipper`)
 - `ENVIRONMENT`: Environment name (default: `production`)
 
 **Example Output**:
+
 ```
 === Clipper Deployment Script ===
 Environment: production
@@ -66,12 +70,14 @@ Deploy Directory: /opt/clipper
 Rollback to a previous version using backup tags.
 
 **Features**:
+
 - List available backups
 - Restore from backup images
 - Health check after rollback
 - Confirmation prompt
 
 **Usage**:
+
 ```bash
 # Rollback to latest backup
 ./scripts/rollback.sh
@@ -84,9 +90,11 @@ DEPLOY_DIR=/opt/clipper ./scripts/rollback.sh backup-20240101-120000
 ```
 
 **Environment Variables**:
+
 - `DEPLOY_DIR`: Deployment directory (default: `/opt/clipper`)
 
 **Example Output**:
+
 ```
 === Clipper Rollback Script ===
 Deploy Directory: /opt/clipper
@@ -112,6 +120,7 @@ Are you sure you want to continue? (yes/no): yes
 Run health checks on all services.
 
 **Features**:
+
 - Check backend health endpoint
 - Check frontend health endpoint
 - Retry logic (3 attempts by default)
@@ -119,6 +128,7 @@ Run health checks on all services.
 - Exit codes for automation
 
 **Usage**:
+
 ```bash
 # Run health checks
 ./scripts/health-check.sh
@@ -128,17 +138,20 @@ BACKEND_URL=http://localhost:8080 FRONTEND_URL=http://localhost:80 TIMEOUT=5 MAX
 ```
 
 **Environment Variables**:
+
 - `BACKEND_URL`: Backend URL (default: `http://localhost:8080`)
 - `FRONTEND_URL`: Frontend URL (default: `http://localhost:80`)
 - `TIMEOUT`: Request timeout in seconds (default: `10`)
 - `MAX_RETRIES`: Maximum retry attempts (default: `3`)
 
 **Exit Codes**:
+
 - `0`: All services healthy
 - `1`: Some services unhealthy
 - `2`: Neither curl nor wget available
 
 **Example Output**:
+
 ```
 === Clipper Health Check ===
 Backend URL: http://localhost:8080
@@ -157,6 +170,7 @@ Max Retries: 3
 Backup database, Redis data, and configuration files.
 
 **Features**:
+
 - PostgreSQL database backup (compressed with gzip)
 - Redis data backup
 - Configuration files backup
@@ -165,6 +179,7 @@ Backup database, Redis data, and configuration files.
 - Size reporting
 
 **Usage**:
+
 ```bash
 # Run backup
 ./scripts/backup.sh
@@ -174,11 +189,13 @@ DEPLOY_DIR=/opt/clipper BACKUP_DIR=/var/backups/clipper RETENTION_DAYS=30 ./scri
 ```
 
 **Environment Variables**:
+
 - `DEPLOY_DIR`: Deployment directory (default: `/opt/clipper`)
 - `BACKUP_DIR`: Backup directory (default: `/var/backups/clipper`)
 - `RETENTION_DAYS`: Backup retention in days (default: `30`)
 
 **Scheduled Backups**:
+
 ```bash
 # Set up daily backups at 2 AM
 sudo crontab -e
@@ -188,6 +205,7 @@ sudo crontab -e
 ```
 
 **Backup Structure**:
+
 ```
 /var/backups/clipper/
 ├── db-20240101-120000.sql.gz         # Database backup
@@ -201,6 +219,7 @@ sudo crontab -e
 ```
 
 **Example Output**:
+
 ```
 === Clipper Backup Script ===
 Deploy Directory: /opt/clipper
@@ -227,6 +246,7 @@ Retention: 30 days
 Set up SSL/TLS certificates using Let's Encrypt.
 
 **Features**:
+
 - Install Certbot if not present
 - Obtain SSL certificate from Let's Encrypt
 - Set up automatic renewal with systemd timer
@@ -234,6 +254,7 @@ Set up SSL/TLS certificates using Let's Encrypt.
 - DNS verification
 
 **Usage**:
+
 ```bash
 # Set up SSL certificate
 sudo DOMAIN=clipper.example.com EMAIL=admin@example.com ./scripts/setup-ssl.sh
@@ -245,17 +266,20 @@ sudo ./scripts/setup-ssl.sh
 ```
 
 **Environment Variables**:
+
 - `DOMAIN`: Your domain name (default: `clipper.example.com`)
 - `EMAIL`: Admin email for Let's Encrypt (default: `admin@example.com`)
 - `WEBROOT`: Webroot for ACME challenge (default: `/var/www/certbot`)
 
 **Requirements**:
+
 - Domain must resolve to the server
 - Port 80 must be open and accessible
 - Nginx must be running
 - Must run as root (use sudo)
 
 **Example Output**:
+
 ```
 === SSL/TLS Certificate Setup (Let's Encrypt) ===
 Domain: clipper.example.com
@@ -294,6 +318,7 @@ Next steps:
 These scripts are used by GitHub Actions workflows but can also be run manually for troubleshooting or emergency deployments.
 
 ### Deploy from CI/CD
+
 ```yaml
 # In .github/workflows/deploy-production.yml
 - name: Deploy to Production Server
@@ -312,6 +337,7 @@ These scripts are used by GitHub Actions workflows but can also be run manually 
 ### Script Exits with "Permission Denied"
 
 Make scripts executable:
+
 ```bash
 chmod +x scripts/*.sh
 ```
@@ -319,6 +345,7 @@ chmod +x scripts/*.sh
 ### Docker Commands Fail
 
 Ensure user is in docker group:
+
 ```bash
 sudo usermod -aG docker $USER
 # Log out and back in
@@ -327,12 +354,14 @@ sudo usermod -aG docker $USER
 ### Health Checks Fail
 
 Check if services are running:
+
 ```bash
 docker-compose ps
 docker-compose logs -f
 ```
 
 Test endpoints manually:
+
 ```bash
 curl http://localhost:8080/health
 curl http://localhost:80/health.html
@@ -341,11 +370,13 @@ curl http://localhost:80/health.html
 ### Backup Fails
 
 Check disk space:
+
 ```bash
 df -h
 ```
 
 Check PostgreSQL container:
+
 ```bash
 docker-compose ps postgres
 docker-compose logs postgres
@@ -354,16 +385,19 @@ docker-compose logs postgres
 ### SSL Setup Fails
 
 Verify DNS:
+
 ```bash
 dig +short clipper.example.com
 ```
 
 Check port 80:
+
 ```bash
 sudo netstat -tlnp | grep :80
 ```
 
 Test Certbot manually:
+
 ```bash
 sudo certbot certonly --dry-run --nginx -d clipper.example.com
 ```
@@ -371,12 +405,14 @@ sudo certbot certonly --dry-run --nginx -d clipper.example.com
 ## Best Practices
 
 1. **Always backup before deployment**:
+
    ```bash
    ./scripts/backup.sh
    ./scripts/deploy.sh
    ```
 
 2. **Test on staging first**:
+
    ```bash
    # Deploy to staging
    ENVIRONMENT=staging ./scripts/deploy.sh
@@ -388,17 +424,20 @@ sudo certbot certonly --dry-run --nginx -d clipper.example.com
    ```
 
 3. **Keep backups for at least 30 days**:
+
    ```bash
    RETENTION_DAYS=30 ./scripts/backup.sh
    ```
 
 4. **Monitor logs during deployment**:
+
    ```bash
    # In another terminal
    docker-compose logs -f
    ```
 
 5. **Have rollback plan ready**:
+
    ```bash
    # Note the backup tag before deployment
    docker images | grep clipper

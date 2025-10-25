@@ -9,11 +9,13 @@ This document describes the database schema for the Clipper application, includi
 ### Core Entities
 
 #### 1. Users
+
 **Table:** `users`
 
 The central table for user accounts and authentication.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `twitch_id` (VARCHAR, UNIQUE) - Twitch user ID for OAuth
 - `username` (VARCHAR) - Username
@@ -29,6 +31,7 @@ The central table for user accounts and authentication.
 - `last_login_at` (TIMESTAMP) - Last login time
 
 **Relationships:**
+
 - One-to-many with `clips` (via votes, comments, favorites)
 - One-to-many with `votes`
 - One-to-many with `comments`
@@ -38,11 +41,13 @@ The central table for user accounts and authentication.
 - One-to-many with `reports` (as reviewer)
 
 #### 2. Clips
+
 **Table:** `clips`
 
 Stores Twitch clip metadata and engagement metrics.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `twitch_clip_id` (VARCHAR, UNIQUE) - Twitch clip identifier
 - `twitch_clip_url` (TEXT) - Full Twitch URL
@@ -69,6 +74,7 @@ Stores Twitch clip metadata and engagement metrics.
 - `removed_reason` (TEXT) - Reason for removal
 
 **Relationships:**
+
 - One-to-many with `votes`
 - One-to-many with `comments`
 - One-to-many with `favorites`
@@ -76,11 +82,13 @@ Stores Twitch clip metadata and engagement metrics.
 - One-to-many with `reports` (as reportable)
 
 #### 3. Votes
+
 **Table:** `votes`
 
 Tracks user votes (upvotes/downvotes) on clips.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `user_id` (UUID, FK) - References `users.id`
 - `clip_id` (UUID, FK) - References `clips.id`
@@ -88,17 +96,21 @@ Tracks user votes (upvotes/downvotes) on clips.
 - `created_at` (TIMESTAMP) - Vote timestamp
 
 **Constraints:**
+
 - UNIQUE(user_id, clip_id) - One vote per user per clip
 
 **Triggers:**
+
 - Automatically updates `clips.vote_score` on INSERT/UPDATE/DELETE
 
 #### 4. Comments
+
 **Table:** `comments`
 
 User comments on clips with nested comment support.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `clip_id` (UUID, FK) - References `clips.id`
 - `user_id` (UUID, FK) - References `users.id`
@@ -112,21 +124,25 @@ User comments on clips with nested comment support.
 - `updated_at` (TIMESTAMP) - Last update time (auto-updated)
 
 **Relationships:**
+
 - Many-to-one with `clips`
 - Many-to-one with `users`
 - Self-referencing for nested comments (parent-child)
 - One-to-many with `comment_votes`
 
 **Triggers:**
+
 - Automatically updates `updated_at` on UPDATE
 - Automatically updates `clips.comment_count` on INSERT/DELETE
 
 #### 5. Comment Votes
+
 **Table:** `comment_votes`
 
 Tracks user votes on comments.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `user_id` (UUID, FK) - References `users.id`
 - `comment_id` (UUID, FK) - References `comments.id`
@@ -134,34 +150,42 @@ Tracks user votes on comments.
 - `created_at` (TIMESTAMP) - Vote timestamp
 
 **Constraints:**
+
 - UNIQUE(user_id, comment_id) - One vote per user per comment
 
 **Triggers:**
+
 - Automatically updates `comments.vote_score` on INSERT/UPDATE/DELETE
 
 #### 6. Favorites
+
 **Table:** `favorites`
 
 User-saved favorite clips.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `user_id` (UUID, FK) - References `users.id`
 - `clip_id` (UUID, FK) - References `clips.id`
 - `created_at` (TIMESTAMP) - Favorite timestamp
 
 **Constraints:**
+
 - UNIQUE(user_id, clip_id) - One favorite per user per clip
 
 **Triggers:**
+
 - Automatically updates `clips.favorite_count` on INSERT/DELETE
 
 #### 7. Tags
+
 **Table:** `tags`
 
 Categorization tags for clips.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `name` (VARCHAR, UNIQUE) - Tag name
 - `slug` (VARCHAR, UNIQUE) - URL-friendly slug
@@ -171,30 +195,37 @@ Categorization tags for clips.
 - `created_at` (TIMESTAMP) - Tag creation time
 
 **Relationships:**
+
 - Many-to-many with `clips` (via `clip_tags`)
 
 #### 8. Clip Tags
+
 **Table:** `clip_tags`
 
 Junction table for clips and tags (many-to-many).
 
 **Columns:**
+
 - `clip_id` (UUID, FK, PK) - References `clips.id`
 - `tag_id` (UUID, FK, PK) - References `tags.id`
 - `created_at` (TIMESTAMP) - Association timestamp
 
 **Constraints:**
+
 - PRIMARY KEY(clip_id, tag_id)
 
 **Triggers:**
+
 - Automatically updates `tags.usage_count` on INSERT/DELETE
 
 #### 9. Reports
+
 **Table:** `reports`
 
 User-generated reports for moderation.
 
 **Columns:**
+
 - `id` (UUID, PK) - Primary key
 - `reporter_id` (UUID, FK) - References `users.id` (who reported)
 - `reportable_type` (VARCHAR) - Type: 'clip', 'comment', 'user'
@@ -207,6 +238,7 @@ User-generated reports for moderation.
 - `created_at` (TIMESTAMP) - Report creation time
 
 **Relationships:**
+
 - Many-to-one with `users` (reporter)
 - Many-to-one with `users` (reviewer)
 - Polymorphic relationship with clips, comments, or users (via type + id)
@@ -222,6 +254,7 @@ hot_score = log(max(|score|, 1)) * sign(score) - (age_in_hours / 12.5)
 ```
 
 **Parameters:**
+
 - `score`: Vote score (can be positive or negative)
 - `created_at`: Content creation timestamp
 
@@ -275,6 +308,7 @@ hot_score = log(max(|score|, 1)) * sign(score) - (age_in_hours / 12.5)
 ## Views
 
 ### 1. hot_clips
+
 Clips ranked by hot score (Reddit-style algorithm).
 
 ```sql
@@ -287,6 +321,7 @@ ORDER BY hot_score DESC
 **Use case:** Main feed, trending content
 
 ### 2. top_clips
+
 Clips ranked by total vote score (all-time popular).
 
 ```sql
@@ -299,6 +334,7 @@ ORDER BY c.vote_score DESC, c.created_at DESC
 **Use case:** Top/best of all time
 
 ### 3. new_clips
+
 Clips sorted by creation time (most recent first).
 
 ```sql
@@ -311,6 +347,7 @@ ORDER BY c.created_at DESC
 **Use case:** New/latest content feed
 
 ### 4. trending_clips
+
 Popular clips from the last 7 days.
 
 ```sql
@@ -330,11 +367,13 @@ ORDER BY hot_score DESC
 All tables include strategic indexes for common query patterns:
 
 **users:**
+
 - `idx_users_twitch_id` - Twitch OAuth lookups
 - `idx_users_username` - Username searches
 - `idx_users_karma` - Leaderboard queries
 
 **clips:**
+
 - `idx_clips_twitch_id` - Twitch clip lookups
 - `idx_clips_broadcaster` - Filter by broadcaster
 - `idx_clips_game` - Filter by game/category
@@ -343,33 +382,40 @@ All tables include strategic indexes for common query patterns:
 - `idx_clips_hot` - Composite for hot ranking
 
 **votes:**
+
 - `idx_votes_user` - User's vote history
 - `idx_votes_clip` - Clip's votes
 - `idx_votes_created` - Recent votes
 
 **comments:**
+
 - `idx_comments_clip` - Clip's comments (composite with created_at)
 - `idx_comments_user` - User's comments
 - `idx_comments_parent` - Nested comment traversal
 - `idx_comments_score` - Sort by score
 
 **comment_votes:**
+
 - `idx_comment_votes_user` - User's comment votes
 - `idx_comment_votes_comment` - Comment's votes
 
 **favorites:**
+
 - `idx_favorites_user` - User's favorites (composite with created_at)
 - `idx_favorites_clip` - Clip's favorite count
 
 **tags:**
+
 - `idx_tags_slug` - Tag lookups by slug
 - `idx_tags_usage` - Popular tags
 
 **clip_tags:**
+
 - `idx_clip_tags_clip` - Clip's tags
 - `idx_clip_tags_tag` - Tag's clips
 
 **reports:**
+
 - `idx_reports_status` - Pending reports (composite with created_at)
 - `idx_reports_type` - Reported items by type
 
@@ -476,6 +522,7 @@ All foreign key relationships use `ON DELETE CASCADE` to maintain referential in
 ### Common Queries
 
 1. **Get user's voted clips:**
+
 ```sql
 SELECT c.* 
 FROM clips c
@@ -485,6 +532,7 @@ ORDER BY v.created_at DESC;
 ```
 
 2. **Get clip with comment count:**
+
 ```sql
 SELECT c.*, c.comment_count
 FROM clips c
@@ -492,6 +540,7 @@ WHERE c.id = $1;
 ```
 
 3. **Get nested comments:**
+
 ```sql
 WITH RECURSIVE comment_tree AS (
     SELECT *, 0 as depth
@@ -507,11 +556,13 @@ ORDER BY depth, created_at;
 ```
 
 4. **Get trending clips:**
+
 ```sql
 SELECT * FROM trending_clips LIMIT 20;
 ```
 
 5. **Get user's feed (hot clips):**
+
 ```sql
 SELECT * FROM hot_clips LIMIT 50;
 ```

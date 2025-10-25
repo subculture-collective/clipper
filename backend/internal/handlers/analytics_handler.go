@@ -32,13 +32,13 @@ func (h *AnalyticsHandler) GetCreatorAnalyticsOverview(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "creator name is required"})
 		return
 	}
-	
+
 	overview, err := h.analyticsService.GetCreatorAnalyticsOverview(c.Request.Context(), creatorName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve creator analytics"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, overview)
 }
 
@@ -50,16 +50,16 @@ func (h *AnalyticsHandler) GetCreatorTopClips(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "creator name is required"})
 		return
 	}
-	
+
 	sortBy := c.DefaultQuery("sort", "votes")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	
+
 	clips, err := h.analyticsService.GetCreatorTopClips(c.Request.Context(), creatorName, sortBy, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve top clips"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"clips": clips,
 		"count": len(clips),
@@ -74,16 +74,16 @@ func (h *AnalyticsHandler) GetCreatorTrends(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "creator name is required"})
 		return
 	}
-	
+
 	metricType := c.DefaultQuery("metric", "clip_views")
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
-	
+
 	trends, err := h.analyticsService.GetCreatorTrends(c.Request.Context(), creatorName, metricType, days)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve trends"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"metric": metricType,
 		"days":   days,
@@ -100,13 +100,13 @@ func (h *AnalyticsHandler) GetClipAnalytics(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid clip ID"})
 		return
 	}
-	
+
 	analytics, err := h.analyticsService.GetClipAnalytics(c.Request.Context(), clipID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "analytics not found for this clip"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, analytics)
 }
 
@@ -119,19 +119,19 @@ func (h *AnalyticsHandler) GetUserStats(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	
+
 	user, ok := userInterface.(*models.User)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
 		return
 	}
-	
+
 	analytics, err := h.analyticsService.GetUserAnalytics(c.Request.Context(), user.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "user statistics not found"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, analytics)
 }
 
@@ -143,7 +143,7 @@ func (h *AnalyticsHandler) GetPlatformOverview(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve platform overview"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, overview)
 }
 
@@ -155,7 +155,7 @@ func (h *AnalyticsHandler) GetContentMetrics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve content metrics"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, metrics)
 }
 
@@ -164,13 +164,13 @@ func (h *AnalyticsHandler) GetContentMetrics(c *gin.Context) {
 func (h *AnalyticsHandler) GetPlatformTrends(c *gin.Context) {
 	metricType := c.DefaultQuery("metric", "users")
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
-	
+
 	trends, err := h.analyticsService.GetPlatformTrends(c.Request.Context(), metricType, days)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve platform trends"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"metric": metricType,
 		"days":   days,
@@ -187,7 +187,7 @@ func (h *AnalyticsHandler) TrackClipView(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid clip ID"})
 		return
 	}
-	
+
 	// Get user ID if authenticated
 	var userID *uuid.UUID
 	if userInterface, exists := c.Get("user"); exists {
@@ -195,13 +195,13 @@ func (h *AnalyticsHandler) TrackClipView(c *gin.Context) {
 			userID = &user.ID
 		}
 	}
-	
+
 	// Get request metadata
 	metadata := map[string]interface{}{
 		"user_agent": c.Request.UserAgent(),
 		"referrer":   c.Request.Referer(),
 	}
-	
+
 	// Track the view event
 	err = h.analyticsService.TrackEvent(
 		c.Request.Context(),
@@ -213,11 +213,11 @@ func (h *AnalyticsHandler) TrackClipView(c *gin.Context) {
 		c.Request.UserAgent(),
 		c.Request.Referer(),
 	)
-	
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to track view"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"message": "view tracked"})
 }

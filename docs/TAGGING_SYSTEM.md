@@ -13,6 +13,7 @@ The tagging system allows clips to be categorized and filtered using tags. Tags 
 The tagging system uses two main tables:
 
 #### `tags` table
+
 - `id` (UUID): Primary key
 - `name` (VARCHAR): Display name
 - `slug` (VARCHAR): URL-friendly identifier (unique)
@@ -22,6 +23,7 @@ The tagging system uses two main tables:
 - `created_at` (TIMESTAMP): Creation timestamp
 
 #### `clip_tags` junction table
+
 - `clip_id` (UUID): Foreign key to clips
 - `tag_id` (UUID): Foreign key to tags
 - `created_at` (TIMESTAMP): When tag was added
@@ -32,51 +34,61 @@ The tagging system uses two main tables:
 #### Public Endpoints
 
 **GET /api/v1/tags**
+
 - List all tags with sorting and pagination
 - Query params: `sort` (popularity|alphabetical|recent), `limit`, `page`
 - Returns: List of tags with metadata
 
 **GET /api/v1/tags/search**
+
 - Search tags by name
 - Query params: `q` (search query), `limit`
 - Returns: Matching tags
 
 **GET /api/v1/tags/:slug**
+
 - Get tag details
 - Returns: Tag with clip count
 
 **GET /api/v1/tags/:slug/clips**
+
 - Get clips with a specific tag
 - Query params: `limit`, `page`
 - Returns: Paginated list of clips
 
 **GET /api/v1/clips/:id/tags**
+
 - Get all tags for a clip
 - Returns: List of tags
 
 #### Authenticated Endpoints
 
 **POST /api/v1/clips/:id/tags**
+
 - Add tags to a clip
 - Body: `{ "tag_slugs": ["tag1", "tag2"] }`
 - Rate limited: 10 requests per minute
 - Max 10 tags per request, 15 tags per clip total
 
 **DELETE /api/v1/clips/:id/tags/:slug**
+
 - Remove a tag from a clip
 - Requires authentication (author or admin)
 
 #### Admin Endpoints
 
 **POST /api/v1/admin/tags**
+
 - Create a new tag
 - Body: `{ "name": "Tag Name", "slug": "tag-slug", "description": "...", "color": "#FF0000" }`
 
 **PUT /api/v1/admin/tags/:id**
+
 - Update tag metadata
 - Body: Same as create
 
 **DELETE /api/v1/admin/tags/:id**
+
 - Delete a tag and all associations
 - Requires confirmation
 
@@ -85,7 +97,9 @@ The tagging system uses two main tables:
 The auto-tagging service automatically generates tags for clips based on:
 
 #### Pattern Matching
+
 Detects keywords in clip titles:
+
 - **ace**, **5k**, **team wipe** → "Ace"
 - **clutch**, **1v[2-5]** → "Clutch"
 - **fail**, **epic fail** → "Fail"
@@ -100,17 +114,22 @@ Detects keywords in clip titles:
 - **tutorial**, **guide** → "Tutorial"
 
 #### Game Name
+
 Creates a tag from the game name (e.g., "Counter-Strike" → "counter-strike")
 
 #### Broadcaster Name
+
 Creates a tag from the broadcaster name (e.g., "Shroud" → "shroud")
 
 #### Duration
+
 - Clips < 15 seconds → "short"
 - Clips > 2 minutes → "long"
 
 #### Language
+
 Maps language codes to readable names:
+
 - "en" → "english"
 - "es" → "spanish"
 - "ja" → "japanese"
@@ -119,6 +138,7 @@ Maps language codes to readable names:
 ### Repository Layer
 
 **TagRepository** (`backend/internal/repository/tag_repository.go`)
+
 - `Create`: Insert new tag
 - `GetByID`: Retrieve by UUID
 - `GetBySlug`: Retrieve by slug
@@ -138,6 +158,7 @@ Maps language codes to readable names:
 ### Service Layer
 
 **AutoTagService** (`backend/internal/services/auto_tag_service.go`)
+
 - `GenerateTagsForClip`: Generate tag slugs based on clip data
 - `ApplyAutoTags`: Generate and apply tags to a clip
 - Helper functions for slugification and language mapping
@@ -145,6 +166,7 @@ Maps language codes to readable names:
 ### Handler Layer
 
 **TagHandler** (`backend/internal/handlers/tag_handler.go`)
+
 - Implements all API endpoints
 - Validates input (tag limits, color format, slug format)
 - Handles authentication and authorization
@@ -155,6 +177,7 @@ Maps language codes to readable names:
 ### Type Definitions
 
 **Tag** (`frontend/src/types/tag.ts`)
+
 ```typescript
 interface Tag {
   id: string;
@@ -170,6 +193,7 @@ interface Tag {
 ### API Client
 
 **tagApi** (`frontend/src/lib/tag-api.ts`)
+
 - Complete client for all tag endpoints
 - Type-safe using TypeScript interfaces
 - Axios-based with error handling
@@ -177,6 +201,7 @@ interface Tag {
 ### React Hooks
 
 **useTags** (`frontend/src/hooks/useTags.ts`)
+
 - `useTags`: List tags
 - `useTagSearch`: Search tags
 - `useTag`: Get tag details
@@ -193,15 +218,18 @@ All hooks use React Query for caching and automatic refetching.
 ### UI Components
 
 #### TagChip
+
 **File**: `frontend/src/components/tag/TagChip.tsx`
 
 Displays a single tag as a clickable chip with:
+
 - Custom background color
 - Size variants (small, medium)
 - Optional remove button
 - Links to tag page or custom click handler
 
 Usage:
+
 ```tsx
 <TagChip 
   tag={tag} 
@@ -212,22 +240,27 @@ Usage:
 ```
 
 #### TagList
+
 **File**: `frontend/src/components/tag/TagList.tsx`
 
 Displays a list of tags for a clip with:
+
 - Loading skeleton
 - Configurable max visible tags
 - "+" indicator for additional tags
 
 Usage:
+
 ```tsx
 <TagList clipId={clip.id} maxVisible={5} />
 ```
 
 #### TagSelector
+
 **File**: `frontend/src/components/tag/TagSelector.tsx`
 
 Interactive tag selection component with:
+
 - Search with autocomplete
 - Tag suggestions from API
 - Selected tags with remove buttons
@@ -235,6 +268,7 @@ Interactive tag selection component with:
 - Max tag validation
 
 Usage:
+
 ```tsx
 <TagSelector
   selectedTags={tags}
@@ -246,6 +280,7 @@ Usage:
 ### Integration
 
 Tags are displayed on ClipCard components automatically via the TagList component. The component:
+
 1. Fetches tags using `useClipTags` hook
 2. Displays loading skeleton while fetching
 3. Shows tags as clickable chips
@@ -256,12 +291,14 @@ Tags are displayed on ClipCard components automatically via the TagList componen
 ### Backend Tests
 
 **Tag Repository Tests** (`backend/internal/repository/tag_repository_test.go`)
+
 - Mock repository implementation
 - Tests for CRUD operations
 - Tests for clip-tag associations
 - Tests for usage count tracking
 
 **Auto-Tag Service Tests** (`backend/internal/services/auto_tag_service_test.go`)
+
 - Pattern matching validation
 - Duration-based tagging logic
 - Slug generation
@@ -272,6 +309,7 @@ All tests pass with 100% success rate.
 ### Security
 
 CodeQL analysis completed with 0 alerts:
+
 - No SQL injection vulnerabilities
 - No XSS vulnerabilities
 - No authentication/authorization issues
@@ -280,12 +318,14 @@ CodeQL analysis completed with 0 alerts:
 ## Usage Examples
 
 ### Automatically tag a clip
+
 ```go
 // In clip sync service or handler
 autoTagService.ApplyAutoTags(ctx, clip)
 ```
 
 ### Add tags via API
+
 ```bash
 curl -X POST http://localhost:8080/api/v1/clips/{id}/tags \
   -H "Authorization: Bearer <token>" \
@@ -294,11 +334,13 @@ curl -X POST http://localhost:8080/api/v1/clips/{id}/tags \
 ```
 
 ### Search tags
+
 ```bash
 curl http://localhost:8080/api/v1/tags/search?q=ace
 ```
 
 ### Get clips by tag
+
 ```bash
 curl http://localhost:8080/api/v1/tags/ace/clips?limit=20&page=1
 ```
@@ -306,6 +348,7 @@ curl http://localhost:8080/api/v1/tags/ace/clips?limit=20&page=1
 ## Configuration
 
 No additional configuration required. The tagging system uses:
+
 - Existing database connection
 - Existing authentication middleware
 - Existing rate limiting configuration
@@ -321,6 +364,7 @@ No additional configuration required. The tagging system uses:
 ## Future Enhancements
 
 Potential improvements (not implemented in this PR):
+
 - Tag categories/groups
 - Tag trending analytics
 - User tag following
@@ -334,6 +378,7 @@ Potential improvements (not implemented in this PR):
 ## Migrations
 
 The database schema for tags already exists in the initial migration:
+
 - `migrations/000001_initial_schema.up.sql`
 
 No new migrations required.

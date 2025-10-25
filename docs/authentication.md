@@ -5,6 +5,7 @@ This document describes the Twitch OAuth 2.0 authentication flow implementation 
 ## Overview
 
 The authentication system uses:
+
 - **Twitch OAuth 2.0** for user authentication
 - **JWT (RS256)** for access tokens (15 minutes)
 - **JWT (RS256)** for refresh tokens (7 days)
@@ -93,6 +94,7 @@ go run cmd/api/main.go
 ### Public Endpoints
 
 #### `GET /api/v1/auth/twitch`
+
 Initiates OAuth flow. Redirects user to Twitch authorization page.
 
 **Rate Limit:** 5 requests/minute per IP
@@ -102,30 +104,36 @@ Initiates OAuth flow. Redirects user to Twitch authorization page.
 ---
 
 #### `GET /api/v1/auth/twitch/callback`
+
 Handles OAuth callback from Twitch.
 
 **Rate Limit:** 10 requests/minute per IP
 
 **Query Parameters:**
+
 - `code` - Authorization code from Twitch
 - `state` - CSRF protection state
 
-**Response:** 
+**Response:**
+
 - Success: HTTP 307 redirect to frontend with cookies set
 - Error: HTTP 400/403/500 with error JSON
 
 **Cookies Set:**
+
 - `access_token` - JWT access token (HttpOnly, 15 min)
 - `refresh_token` - JWT refresh token (HttpOnly, 7 days)
 
 ---
 
 #### `POST /api/v1/auth/refresh`
+
 Refreshes access token using refresh token.
 
 **Rate Limit:** 10 requests/minute per IP
 
 **Request Body (optional if cookie present):**
+
 ```json
 {
   "refresh_token": "jwt_refresh_token"
@@ -133,6 +141,7 @@ Refreshes access token using refresh token.
 ```
 
 **Response:**
+
 ```json
 {
   "access_token": "new_jwt_access_token",
@@ -141,15 +150,18 @@ Refreshes access token using refresh token.
 ```
 
 **Cookies Set:**
+
 - `access_token` - New JWT access token
 - `refresh_token` - New JWT refresh token (rotated)
 
 ---
 
 #### `POST /api/v1/auth/logout`
+
 Logs out user by revoking refresh token.
 
 **Request Body (optional if cookie present):**
+
 ```json
 {
   "refresh_token": "jwt_refresh_token"
@@ -157,6 +169,7 @@ Logs out user by revoking refresh token.
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Logged out successfully"
@@ -168,11 +181,13 @@ Logs out user by revoking refresh token.
 ### Protected Endpoints
 
 #### `GET /api/v1/auth/me`
+
 Returns current authenticated user.
 
 **Authentication:** Required (Bearer token or cookie)
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -231,6 +246,7 @@ User -> Frontend -> POST /api/v1/auth/refresh (with refresh token)
 ## Middleware
 
 ### `AuthMiddleware`
+
 Requires authentication. Returns 401 if not authenticated.
 
 ```go
@@ -242,6 +258,7 @@ auth.Use(middleware.AuthMiddleware(authService))
 ```
 
 ### `OptionalAuthMiddleware`
+
 Attaches user if authenticated, but doesn't fail if not.
 
 ```go
@@ -249,6 +266,7 @@ v1.GET("/public", middleware.OptionalAuthMiddleware(authService), handler)
 ```
 
 ### `RequireRole`
+
 Requires specific role(s). Must be used after `AuthMiddleware`.
 
 ```go
@@ -260,6 +278,7 @@ admin.Use(middleware.RequireRole("admin", "moderator"))
 ```
 
 ### `RateLimitMiddleware`
+
 Rate limits requests by IP.
 
 ```go
@@ -271,11 +290,13 @@ auth.POST("/endpoint",
 ## Security Features
 
 ### CSRF Protection
+
 - OAuth state parameter stored in Redis (5 min expiry)
 - State validated on callback
 - State deleted after use
 
 ### Token Security
+
 - RS256 signing (not HS256)
 - 2048-bit RSA keys
 - Access tokens: 15 minutes
@@ -284,16 +305,19 @@ auth.POST("/endpoint",
 - Refresh tokens hashed in database
 
 ### Cookie Security
+
 - `HttpOnly` - Not accessible via JavaScript
 - `Secure` - HTTPS only (in production)
 - `SameSite=Lax` - CSRF protection
 
 ### Rate Limiting
+
 - Auth endpoints rate limited
 - Per-IP tracking
 - Fail-open if Redis unavailable
 
 ### CORS
+
 - Whitelist of allowed origins
 - Credentials allowed only for whitelisted origins
 
@@ -338,25 +362,30 @@ See `docs/auth-testing.md` for integration test examples.
 ## Troubleshooting
 
 ### "JWT private key not provided"
+
 - Ensure `JWT_PRIVATE_KEY` is set in `.env`
 - Include entire PEM block with BEGIN/END lines
 - Don't add extra whitespace or newlines
 
 ### "Failed to connect to Redis"
+
 - Ensure Redis is running: `docker compose up redis -d`
 - Check `REDIS_HOST` and `REDIS_PORT` in `.env`
 
 ### "Invalid state parameter"
+
 - State expired (5 min limit)
 - User took too long to authorize
 - Redis connection issue
 
 ### "Refresh token has been revoked"
+
 - User logged out
 - Token was already used (rotation)
 - Token manually revoked
 
 ### CORS errors
+
 - Add frontend URL to `CORS_ALLOWED_ORIGINS`
 - Ensure format matches exactly (no trailing slash)
 

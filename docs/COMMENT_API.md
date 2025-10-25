@@ -1,16 +1,19 @@
 # Comment System API Documentation
 
 ## Overview
+
 The comment system provides threaded discussions on clips with markdown support, voting, and moderation controls.
 
 ## Endpoints
 
 ### List Comments for a Clip
+
 Get paginated comments for a specific clip with various sorting options.
 
 **Endpoint:** `GET /api/v1/clips/:clipId/comments`
 
 **Query Parameters:**
+
 - `sort` (optional) - Sorting method: `best` (default), `new`, `old`, `controversial`
 - `limit` (optional) - Number of comments per page (default: 50, max: 100)
 - `cursor` (optional) - Pagination offset (default: 0)
@@ -18,6 +21,7 @@ Get paginated comments for a specific clip with various sorting options.
 **Authentication:** Optional (affects whether user vote data is included)
 
 **Response:**
+
 ```json
 {
   "comments": [
@@ -49,12 +53,14 @@ Get paginated comments for a specific clip with various sorting options.
 ```
 
 **Sorting Algorithms:**
+
 - **best** - Wilson confidence score (default, best for quality)
 - **new** - Most recent first
 - **old** - Oldest first
 - **controversial** - High engagement but mixed votes
 
 ### Create Comment
+
 Post a new comment or reply to an existing comment.
 
 **Endpoint:** `POST /api/v1/clips/:clipId/comments`
@@ -64,6 +70,7 @@ Post a new comment or reply to an existing comment.
 **Rate Limit:** 10 requests per minute
 
 **Request Body:**
+
 ```json
 {
   "content": "Your markdown comment here",
@@ -72,11 +79,13 @@ Post a new comment or reply to an existing comment.
 ```
 
 **Validation:**
+
 - Content length: 1-10,000 characters
 - Parent comment must belong to same clip (if provided)
 - Maximum nesting depth: 10 levels
 
 **Response:** `201 Created`
+
 ```json
 {
   "id": "uuid",
@@ -95,11 +104,13 @@ Post a new comment or reply to an existing comment.
 **Karma:** User receives +1 karma for posting a comment
 
 ### Get Replies to a Comment
+
 Retrieve nested replies to a specific comment.
 
 **Endpoint:** `GET /api/v1/comments/:id/replies`
 
 **Query Parameters:**
+
 - `limit` (optional) - Number of replies per page (default: 50, max: 100)
 - `cursor` (optional) - Pagination offset (default: 0)
 
@@ -108,6 +119,7 @@ Retrieve nested replies to a specific comment.
 **Response:** Same structure as list comments
 
 ### Edit Comment
+
 Update the content of an existing comment.
 
 **Endpoint:** `PUT /api/v1/comments/:id`
@@ -115,6 +127,7 @@ Update the content of an existing comment.
 **Authentication:** Required (must be comment author or admin)
 
 **Request Body:**
+
 ```json
 {
   "content": "Updated markdown content"
@@ -122,11 +135,13 @@ Update the content of an existing comment.
 ```
 
 **Restrictions:**
+
 - Authors can edit within 15 minutes of posting
 - Admins can edit anytime
 - Sets `is_edited` flag to true
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Comment updated successfully"
@@ -134,6 +149,7 @@ Update the content of an existing comment.
 ```
 
 ### Delete Comment
+
 Soft-delete a comment (keeps structure for replies).
 
 **Endpoint:** `DELETE /api/v1/comments/:id`
@@ -141,6 +157,7 @@ Soft-delete a comment (keeps structure for replies).
 **Authentication:** Required (must be comment author, moderator, or admin)
 
 **Request Body (optional):**
+
 ```json
 {
   "reason": "Removal reason (for moderators/admins)"
@@ -148,12 +165,14 @@ Soft-delete a comment (keeps structure for replies).
 ```
 
 **Behavior:**
+
 - Author deletion: Content replaced with "[deleted]"
 - Moderator/admin removal: Content replaced with "[removed]"
 - Author loses -1 karma for self-deletion
 - Comment structure preserved for existing replies
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Comment deleted successfully"
@@ -161,6 +180,7 @@ Soft-delete a comment (keeps structure for replies).
 ```
 
 ### Vote on Comment
+
 Upvote, downvote, or remove vote on a comment.
 
 **Endpoint:** `POST /api/v1/comments/:id/vote`
@@ -170,6 +190,7 @@ Upvote, downvote, or remove vote on a comment.
 **Rate Limit:** 20 requests per minute
 
 **Request Body:**
+
 ```json
 {
   "vote": 1
@@ -177,11 +198,13 @@ Upvote, downvote, or remove vote on a comment.
 ```
 
 **Vote Types:**
+
 - `1` - Upvote (+1 karma to author)
 - `-1` - Downvote (-1 karma to author)
 - `0` - Remove vote (reverses karma change)
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Vote recorded successfully"
@@ -191,6 +214,7 @@ Upvote, downvote, or remove vote on a comment.
 ## Markdown Support
 
 ### Allowed Elements
+
 - **Formatting:** Bold, italic, strikethrough
 - **Links:** Auto-linked URLs with nofollow/noreferrer
 - **Code:** Inline code and code blocks
@@ -200,12 +224,15 @@ Upvote, downvote, or remove vote on a comment.
 - **Tables:** Full table support
 
 ### Blocked Elements
+
 - HTML tags (script, iframe, etc.)
 - Images (to prevent hotlinking abuse)
 - Embedded content
 
 ### Example
+
 **Input:**
+
 ```markdown
 This is **bold** and *italic* text.
 
@@ -218,6 +245,7 @@ This is **bold** and *italic* text.
 ```
 
 **Output:**
+
 ```html
 <p>This is <strong>bold</strong> and <em>italic</em> text.</p>
 <blockquote>
@@ -233,23 +261,27 @@ This is **bold** and *italic* text.
 ## Security Features
 
 ### XSS Prevention
+
 - All user content is processed through goldmark markdown parser
 - HTML output is sanitized using bluemonday
 - Script tags, iframes, and dangerous elements are stripped
 - External links have nofollow/noreferrer/target=_blank
 
 ### Rate Limiting
+
 - Comment creation: 10 per minute
 - Voting: 20 per minute
 - Helps prevent spam and abuse
 
 ### Authentication & Authorization
+
 - Write operations require authentication
 - Users can only edit/delete their own comments (within time limits)
 - Moderators and admins have extended permissions
 - Role-based access control enforced at handler level
 
 ### SQL Injection Prevention
+
 - All database queries use parameterized statements
 - No string concatenation in SQL queries
 - pgx driver provides built-in protection
@@ -257,16 +289,19 @@ This is **bold** and *italic* text.
 ## Performance Considerations
 
 ### Pagination
+
 - Cursor-based pagination for efficient large dataset handling
 - Default limit: 50 comments
 - Maximum limit: 100 comments
 
 ### Database Optimization
+
 - Indexes on clip_id, user_id, parent_comment_id
 - Vote scores updated via database triggers
 - Recursive CTEs for efficient tree queries
 
 ### Future Optimizations
+
 - Redis caching for comment trees (10 min TTL)
 - Lazy loading for deep comment chains
 - Database query optimization for Wilson score calculation
@@ -274,6 +309,7 @@ This is **bold** and *italic* text.
 ## Error Responses
 
 ### 400 Bad Request
+
 ```json
 {
   "error": "Invalid request body"
@@ -281,12 +317,14 @@ This is **bold** and *italic* text.
 ```
 
 Common causes:
+
 - Invalid UUID format
 - Content too long/short
 - Maximum nesting depth exceeded
 - Parent comment not found
 
 ### 401 Unauthorized
+
 ```json
 {
   "error": "Authentication required"
@@ -294,6 +332,7 @@ Common causes:
 ```
 
 ### 403 Forbidden
+
 ```json
 {
   "error": "You can only edit your own comments"
@@ -301,6 +340,7 @@ Common causes:
 ```
 
 ### 429 Too Many Requests
+
 ```json
 {
   "error": "Rate limit exceeded"
@@ -308,6 +348,7 @@ Common causes:
 ```
 
 ### 500 Internal Server Error
+
 ```json
 {
   "error": "Failed to retrieve comments"
@@ -317,6 +358,7 @@ Common causes:
 ## Best Practices
 
 ### For Clients
+
 1. Cache comment trees locally to reduce API calls
 2. Implement optimistic UI updates for votes
 3. Show "Load more replies" for deeply nested threads
@@ -324,11 +366,13 @@ Common causes:
 5. Handle markdown rendering on server-side responses
 
 ### For Moderators
+
 1. Provide clear removal reasons when removing comments
 2. Use soft-delete to preserve context for other users
 3. Monitor controversial comments for potential issues
 
 ### For Users
+
 1. Use markdown formatting for better readability
 2. Edit comments quickly if needed (15-minute window)
 3. Vote thoughtfully to help surface quality content
@@ -337,6 +381,7 @@ Common causes:
 ## Karma System
 
 ### How Karma Works
+
 - **Comment Creation:** +1 karma
 - **Comment Upvote:** +1 karma to author
 - **Comment Downvote:** -1 karma to author
@@ -344,6 +389,7 @@ Common causes:
 - **Vote Removal:** Reverses karma change
 
 ### Karma Display
+
 User karma is shown in comment author information to indicate community standing.
 
 ## Constants
@@ -361,6 +407,7 @@ KarmaPerDownvote    = -1     // points
 ## Database Schema
 
 ### Comments Table
+
 ```sql
 CREATE TABLE comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -378,6 +425,7 @@ CREATE TABLE comments (
 ```
 
 ### Comment Votes Table
+
 ```sql
 CREATE TABLE comment_votes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -390,6 +438,7 @@ CREATE TABLE comment_votes (
 ```
 
 ### Triggers
+
 - `update_comment_vote_score` - Auto-updates comment vote_score
 - `update_clip_comment_count` - Auto-updates clip comment_count
 - `update_comments_updated_at` - Auto-updates updated_at timestamp

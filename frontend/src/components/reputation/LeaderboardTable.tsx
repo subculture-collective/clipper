@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { LeaderboardEntry } from '../../types/reputation';
+import type { LeaderboardEntry } from '../../types/reputation';
 import { RankBadge } from './ReputationDisplay';
 
 interface LeaderboardTableProps {
@@ -17,31 +17,31 @@ const rankMedals: Record<number, string> = {
 export function LeaderboardTable({ entries, type, currentUserId }: LeaderboardTableProps) {
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-400 text-lg">No leaderboard data available</div>
+      <div className="py-12 text-center">
+        <div className="text-lg text-gray-400">No leaderboard data available</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden">
+    <div className="overflow-hidden bg-gray-800 rounded-lg">
       <table className="w-full">
         <thead className="bg-gray-900">
           <tr>
-            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+            <th className="px-6 py-4 text-sm font-semibold text-left text-gray-300">
               Rank
             </th>
-            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+            <th className="px-6 py-4 text-sm font-semibold text-left text-gray-300">
               User
             </th>
-            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+            <th className="px-6 py-4 text-sm font-semibold text-left text-gray-300">
               Tier
             </th>
-            <th className="px-6 py-4 text-right text-sm font-semibold text-gray-300">
+            <th className="px-6 py-4 text-sm font-semibold text-right text-gray-300">
               {type === 'karma' ? 'Karma' : 'Engagement'}
             </th>
             {type === 'engagement' && (
-              <th className="px-6 py-4 text-right text-sm font-semibold text-gray-300">
+              <th className="px-6 py-4 text-sm font-semibold text-right text-gray-300">
                 Activity
               </th>
             )}
@@ -72,7 +72,7 @@ export function LeaderboardTable({ entries, type, currentUserId }: LeaderboardTa
                 <td className="px-6 py-4">
                   <Link
                     to={`/profile/${entry.username}`}
-                    className="flex items-center gap-3 group"
+                    className="group flex items-center gap-3"
                   >
                     {entry.avatar_url ? (
                       <img
@@ -81,14 +81,14 @@ export function LeaderboardTable({ entries, type, currentUserId }: LeaderboardTa
                         className="w-10 h-10 rounded-full"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                      <div className="flex items-center justify-center w-10 h-10 bg-gray-700 rounded-full">
                         <span className="text-lg font-semibold text-gray-400">
                           {entry.username[0].toUpperCase()}
                         </span>
                       </div>
                     )}
                     <div>
-                      <div className="font-semibold text-white group-hover:text-purple-400 transition-colors">
+                      <div className="group-hover:text-purple-400 font-semibold text-white transition-colors">
                         {entry.display_name || entry.username}
                       </div>
                       <div className="text-sm text-gray-400">
@@ -113,7 +113,7 @@ export function LeaderboardTable({ entries, type, currentUserId }: LeaderboardTa
                 {/* Activity Stats (for engagement leaderboard) */}
                 {type === 'engagement' && (
                   <td className="px-6 py-4">
-                    <div className="text-right text-sm text-gray-400 space-y-1">
+                    <div className="space-y-1 text-sm text-right text-gray-400">
                       <div>💬 {entry.total_comments?.toLocaleString() || 0} comments</div>
                       <div>👍 {entry.total_votes_cast?.toLocaleString() || 0} votes</div>
                       <div>📹 {entry.total_clips_submitted?.toLocaleString() || 0} clips</div>
@@ -147,32 +147,32 @@ export function LeaderboardSummary({ entries, type }: LeaderboardSummaryProps) {
         <Link
           key={entry.user_id}
           to={`/profile/${entry.username}`}
-          className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors text-center"
+          className="hover:bg-gray-750 p-6 text-center transition-colors bg-gray-800 rounded-lg"
         >
-          <div className="text-4xl mb-2">{rankMedals[index + 1]}</div>
+          <div className="mb-2 text-4xl">{rankMedals[index + 1]}</div>
           <div className="mb-2">
             {entry.avatar_url ? (
               <img
                 src={entry.avatar_url}
                 alt={entry.username}
-                className="w-16 h-16 rounded-full mx-auto"
+                className="w-16 h-16 mx-auto rounded-full"
               />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto bg-gray-700 rounded-full">
                 <span className="text-2xl font-semibold text-gray-400">
                   {entry.username[0].toUpperCase()}
                 </span>
               </div>
             )}
           </div>
-          <div className="font-semibold text-white mb-1">
+          <div className="mb-1 font-semibold text-white">
             {entry.display_name || entry.username}
           </div>
           <RankBadge rank={entry.user_rank} size="sm" />
           <div className="mt-3 text-2xl font-bold text-purple-400">
             {entry.score.toLocaleString()}
           </div>
-          <div className="text-xs text-gray-400 mt-1">
+          <div className="mt-1 text-xs text-gray-400">
             {type === 'karma' ? 'karma' : 'engagement'}
           </div>
         </Link>

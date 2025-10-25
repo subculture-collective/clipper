@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial project structure with frontend and backend
 - Twitch OAuth authentication flow
 - User profile system with karma tracking
@@ -31,18 +32,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MIT License
 
 ### Changed
+
 - N/A
 
 ### Deprecated
+
 - N/A
 
 ### Removed
+
 - N/A
 
 ### Fixed
+
 - N/A
 
 ### Security
+
 - Implemented JWT-based authentication
 - Added rate limiting on API endpoints
 - SQL injection prevention via parameterized queries
@@ -58,6 +64,7 @@ This project is currently in active development. Version 1.0.0 will be released 
 ### Upcoming Releases
 
 #### v0.1.0 (Planned)
+
 - Core functionality: Browse, search, and vote on clips
 - User authentication via Twitch
 - Basic user profiles
@@ -65,6 +72,7 @@ This project is currently in active development. Version 1.0.0 will be released 
 - Admin moderation tools
 
 #### v1.0.0 (Planned)
+
 - All MVP features complete
 - Production-ready infrastructure
 - Comprehensive documentation

@@ -1,15 +1,19 @@
 # Clip Management API Documentation
 
 ## Overview
+
 The Clip Management API provides comprehensive endpoints for managing clips with CRUD operations, filtering, sorting, and pagination.
 
 ## Base URL
+
 ```
 /api/v1
 ```
 
 ## Authentication
+
 Some endpoints require authentication. Include the JWT token in the `Authorization` header:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -19,11 +23,13 @@ Authorization: Bearer <token>
 ## Endpoints
 
 ### 1. List Clips
+
 **GET** `/clips`
 
 Retrieve a paginated list of clips with optional filtering and sorting.
 
 #### Query Parameters
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `sort` | string | `hot` | Sorting method: `hot`, `new`, `top`, `rising` |
@@ -36,6 +42,7 @@ Retrieve a paginated list of clips with optional filtering and sorting.
 | `limit` | integer | `25` | Results per page (min: 1, max: 100) |
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -69,12 +76,14 @@ Retrieve a paginated list of clips with optional filtering and sorting.
 ```
 
 #### Sorting Algorithms
+
 - **hot**: Wilson score + time decay (default)
 - **new**: Most recent clips (created_at DESC)
 - **top**: Highest vote_score (requires timeframe)
 - **rising**: Recent clips with high velocity (48 hours, views + votes)
 
 #### Examples
+
 ```bash
 # Get hot clips
 GET /clips?sort=hot
@@ -95,16 +104,19 @@ GET /clips?sort=new&page=2&limit=50
 ---
 
 ### 2. Get Single Clip
+
 **GET** `/clips/:id`
 
 Retrieve details for a specific clip.
 
 #### Path Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | UUID | Yes | Clip ID |
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -135,6 +147,7 @@ Retrieve details for a specific clip.
 ```
 
 #### Notes
+
 - View count is incremented asynchronously
 - Returns 404 if clip not found or removed
 - User-specific data (`user_vote`, `is_favorited`) only included if authenticated
@@ -142,6 +155,7 @@ Retrieve details for a specific clip.
 ---
 
 ### 3. Vote on Clip
+
 **POST** `/clips/:id/vote`
 
 Vote on a clip (upvote, downvote, or remove vote).
@@ -149,11 +163,13 @@ Vote on a clip (upvote, downvote, or remove vote).
 **Authentication Required** | **Rate Limited** (20 per minute)
 
 #### Path Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | UUID | Yes | Clip ID |
 
 #### Request Body
+
 ```json
 {
   "vote": 1
@@ -165,6 +181,7 @@ Vote on a clip (upvote, downvote, or remove vote).
 | `vote` | integer | Yes | Vote value: `1` (upvote), `-1` (downvote), `0` (remove) |
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -179,6 +196,7 @@ Vote on a clip (upvote, downvote, or remove vote).
 ```
 
 #### Notes
+
 - Voting updates user karma asynchronously
 - Vote changes are upserted (previous vote is replaced)
 - Triggers update clip vote_score automatically
@@ -186,6 +204,7 @@ Vote on a clip (upvote, downvote, or remove vote).
 ---
 
 ### 4. Add to Favorites
+
 **POST** `/clips/:id/favorite`
 
 Add a clip to user's favorites.
@@ -193,11 +212,13 @@ Add a clip to user's favorites.
 **Authentication Required**
 
 #### Path Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | UUID | Yes | Clip ID |
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -209,12 +230,14 @@ Add a clip to user's favorites.
 ```
 
 #### Notes
+
 - Idempotent operation (returns 200 if already favorited)
 - Triggers increment clip favorite_count automatically
 
 ---
 
 ### 5. Remove from Favorites
+
 **DELETE** `/clips/:id/favorite`
 
 Remove a clip from user's favorites.
@@ -222,11 +245,13 @@ Remove a clip from user's favorites.
 **Authentication Required**
 
 #### Path Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | UUID | Yes | Clip ID |
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -238,22 +263,26 @@ Remove a clip from user's favorites.
 ```
 
 #### Notes
+
 - Idempotent operation (returns 200 even if not favorited)
 - Triggers decrement clip favorite_count automatically
 
 ---
 
 ### 6. Get Related Clips
+
 **GET** `/clips/:id/related`
 
 Get clips related to the specified clip.
 
 #### Path Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | UUID | Yes | Clip ID |
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -271,13 +300,16 @@ Get clips related to the specified clip.
 ```
 
 #### Relevance Algorithm
+
 Clips are ranked by:
+
 1. Same game (priority 3)
 2. Same broadcaster (priority 2)
 3. Similar tags (priority 1 per matching tag)
 4. Vote score as tiebreaker
 
 #### Notes
+
 - Excludes the current clip
 - Limit to 10 results
 - Returns empty array if no related clips found
@@ -285,6 +317,7 @@ Clips are ranked by:
 ---
 
 ### 7. Update Clip (Admin)
+
 **PUT** `/clips/:id`
 
 Update clip properties.
@@ -292,11 +325,13 @@ Update clip properties.
 **Authentication Required** | **Admin/Moderator Only**
 
 #### Path Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | UUID | Yes | Clip ID |
 
 #### Request Body
+
 ```json
 {
   "is_featured": true,
@@ -307,12 +342,14 @@ Update clip properties.
 ```
 
 #### Allowed Fields
+
 - `is_featured` (boolean)
 - `is_nsfw` (boolean)
 - `is_removed` (boolean)
 - `removed_reason` (string, nullable)
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -326,6 +363,7 @@ Update clip properties.
 ```
 
 #### Notes
+
 - Only allowed fields can be updated
 - Cache is invalidated after update
 - Admin actions should be logged (TODO)
@@ -333,6 +371,7 @@ Update clip properties.
 ---
 
 ### 8. Delete Clip (Admin)
+
 **DELETE** `/clips/:id`
 
 Soft delete a clip (mark as removed).
@@ -340,11 +379,13 @@ Soft delete a clip (mark as removed).
 **Authentication Required** | **Admin Only**
 
 #### Path Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | UUID | Yes | Clip ID |
 
 #### Request Body
+
 ```json
 {
   "reason": "Violates community guidelines"
@@ -356,6 +397,7 @@ Soft delete a clip (mark as removed).
 | `reason` | string | Yes | Reason for deletion |
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -366,6 +408,7 @@ Soft delete a clip (mark as removed).
 ```
 
 #### Notes
+
 - Soft delete (sets `is_removed=true`)
 - Data retained for audit trail
 - Removed from public feeds
@@ -413,6 +456,7 @@ Clip feeds are cached in Redis with the following TTLs:
 | Rising | 3 minutes | Moderate updates |
 
 Cache is invalidated on:
+
 - New votes
 - Clip updates
 - Clip deletions
@@ -436,6 +480,7 @@ Cache is invalidated on:
 The API leverages several database optimizations:
 
 ### Indexes
+
 - `idx_clips_vote_score` - For top sorting
 - `idx_clips_created` - For new sorting
 - `idx_clips_hot` - For hot sorting (composite)
@@ -443,10 +488,12 @@ The API leverages several database optimizations:
 - `idx_clips_broadcaster` - For broadcaster filtering
 
 ### Database Functions
+
 - `calculate_hot_score()` - Wilson score + time decay algorithm
 - Triggers for automatic vote_score, comment_count, favorite_count updates
 
 ### Query Optimization
+
 - Covering indexes for common queries
 - Related clips use CTE for efficient relevance calculation
 - Pagination uses LIMIT/OFFSET
@@ -456,6 +503,7 @@ The API leverages several database optimizations:
 ## Examples
 
 ### JavaScript (Fetch API)
+
 ```javascript
 // List hot clips
 const response = await fetch('/api/v1/clips?sort=hot&limit=10');
@@ -474,6 +522,7 @@ const voteResponse = await fetch('/api/v1/clips/clip-id/vote', {
 ```
 
 ### cURL
+
 ```bash
 # List clips
 curl -X GET 'http://localhost:8080/api/v1/clips?sort=top&timeframe=week'
@@ -494,6 +543,7 @@ curl -X POST 'http://localhost:8080/api/v1/clips/{id}/favorite' \
 ## Changelog
 
 ### Version 1.0 (Current)
+
 - ✅ Full CRUD operations for clips
 - ✅ Advanced filtering and sorting
 - ✅ Vote system with karma
