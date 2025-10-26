@@ -19,6 +19,7 @@ export function FeedFilters({
     { value: 'new', label: 'New' },
     { value: 'top', label: 'Top' },
     { value: 'rising', label: 'Rising' },
+    { value: 'discussed', label: 'Discussed' },
   ];
 
   const timeframeOptions: { value: TimeFrame; label: string }[] = [
