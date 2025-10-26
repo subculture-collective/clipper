@@ -63,7 +63,13 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 	for totalFetched < limit {
 		clipsResp, err := s.twitchClient.GetClips(ctx, params)
 		if err != nil {
-			stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to fetch clips: %v", err))
+			// Check if it's a 404 error (invalid/removed game category)
+			if strings.Contains(err.Error(), "404") {
+				stats.Errors = append(stats.Errors, fmt.Sprintf("Game category %s not found (404) - may have been removed or merged", gameID))
+				log.Printf("[Warning] Game category %s returned 404 - skipping", gameID)
+			} else {
+				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to fetch clips: %v", err))
+			}
 			break
 		}
 
@@ -178,7 +184,7 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, clip
 		"512710", // Call of Duty: Warzone
 		"511224", // Apex Legends
 		"29595",  // Dota 2
-		"488552", // Overwatch 2
+		"488552", // Overwatch 2 (Note: This ID may return 404 if category was removed/merged)
 		"518203", // Sports
 	}
 
@@ -187,6 +193,8 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, clip
 	for _, gameID := range popularGameIDs {
 		gameStats, err := s.SyncClipsByGame(ctx, gameID, hours, clipsPerGame)
 		if err != nil {
+			// Log warning but continue with other games
+			log.Printf("[Warning] Failed to sync game %s: %v", gameID, err)
 			stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to sync game %s: %v", gameID, err))
 			continue
 		}
