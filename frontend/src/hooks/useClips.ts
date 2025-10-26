@@ -95,17 +95,22 @@ export const useClipFavorite = () => {
   return useMutation({
     mutationFn: async (payload: FavoritePayload) => {
       // Check cache to determine if we should add or remove
-      // This iterates cached clips but typically there are only a few pages cached
-      const cachedClip = queryClient
-        .getQueriesData({ queryKey: ["clips"] })
-        .flatMap(([, data]) => {
-          const queryData = data as { pages?: ClipFeedResponse[] };
-          return queryData?.pages?.flatMap((page) => page.clips) || [];
-        })
-        .find((clip) => clip.id === payload.clip_id);
-
-      const isCurrentlyFavorited = cachedClip?.user_favorited;
-
+      // First, try to get the single-clip cache entry
+      let isCurrentlyFavorited: boolean | undefined;
+      const singleClip = queryClient.getQueryData<Clip>(["clip", payload.clip_id]);
+      if (singleClip) {
+        isCurrentlyFavorited = singleClip.user_favorited;
+      } else {
+        // Fallback: iterate cached clips in paginated queries
+        const cachedClip = queryClient
+          .getQueriesData({ queryKey: ["clips"] })
+          .flatMap(([, data]) => {
+            const queryData = data as { pages?: ClipFeedResponse[] };
+            return queryData?.pages?.flatMap((page) => page.clips) || [];
+          })
+          .find((clip) => clip.id === payload.clip_id);
+        isCurrentlyFavorited = cachedClip?.user_favorited;
+      }
       if (isCurrentlyFavorited) {
         return await clipApi.removeFavorite(payload);
       } else {
