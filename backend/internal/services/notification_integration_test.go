@@ -1,13 +1,9 @@
-// +build integration
+//go:build integration
 
 package services
 
 import (
-	"context"
 	"testing"
-
-	"github.com/google/uuid"
-	"github.com/subculture-collective/clipper/internal/models"
 )
 
 // TestNotificationIntegration_SubmissionApproved tests the full flow of approving a submission
