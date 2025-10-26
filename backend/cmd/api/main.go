@@ -83,6 +83,7 @@ func main() {
 	reputationRepo := repository.NewReputationRepository(db.Pool)
 	notificationRepo := repository.NewNotificationRepository(db.Pool)
 	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
+	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -99,11 +100,12 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
+	auditLogService := services.NewAuditLogService(auditLogRepo)
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, twitchClient)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient)
 	}
 
 	// Initialize handlers
@@ -117,6 +119,7 @@ func main() {
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
+	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -391,9 +394,19 @@ func main() {
 				adminSubmissions := admin.Group("/submissions")
 				{
 					adminSubmissions.GET("", submissionHandler.ListPendingSubmissions)
+					adminSubmissions.GET("/rejection-reasons", submissionHandler.GetRejectionReasonTemplates)
 					adminSubmissions.POST("/:id/approve", submissionHandler.ApproveSubmission)
 					adminSubmissions.POST("/:id/reject", submissionHandler.RejectSubmission)
+					adminSubmissions.POST("/bulk-approve", submissionHandler.BulkApproveSubmissions)
+					adminSubmissions.POST("/bulk-reject", submissionHandler.BulkRejectSubmissions)
 				}
+			}
+
+			// Audit log routes
+			auditLogs := admin.Group("/audit-logs")
+			{
+				auditLogs.GET("", auditLogHandler.ListAuditLogs)
+				auditLogs.GET("/export", auditLogHandler.ExportAuditLogs)
 			}
 
 			// Report management
