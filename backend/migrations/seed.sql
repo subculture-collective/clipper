@@ -193,3 +193,18 @@ BEGIN
         (clip3_id, tag4_id), -- Highlight
         (clip4_id, tag1_id); -- Funny
 END $$;
+
+-- Insert sample top streamers (representing top 10k)
+-- These are popular streamers that can be used for testing the top10k_streamers filter
+INSERT INTO top_streamers (broadcaster_id, broadcaster_name, rank, follower_count, view_count) VALUES
+('12345678', 'xQc', 1, 12000000, 750000000),
+('23456789', 'Pokimane', 2, 9000000, 500000000),
+('34567890', 'Shroud', 3, 10000000, 600000000),
+('45678901', 'Ninja', 4, 18000000, 900000000),
+('56789012', 'summit1g', 5, 6000000, 400000000),
+('67890123', 'TimTheTatman', 6, 7000000, 450000000),
+('78901234', 'DrDisrespect', 7, 4500000, 350000000),
+('89012345', 'Lirik', 8, 3000000, 300000000),
+('90123456', 'NICKMERCS', 9, 4000000, 320000000),
+('01234567', 'Asmongold', 10, 3500000, 280000000)
+ON CONFLICT (broadcaster_id) DO NOTHING;
