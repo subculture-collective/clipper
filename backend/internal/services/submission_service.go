@@ -17,6 +17,7 @@ type SubmissionService struct {
 	submissionRepo *repository.SubmissionRepository
 	clipRepo       *repository.ClipRepository
 	userRepo       *repository.UserRepository
+	auditLogRepo   *repository.AuditLogRepository
 	twitchClient   *twitch.Client
 }
 
@@ -25,12 +26,14 @@ func NewSubmissionService(
 	submissionRepo *repository.SubmissionRepository,
 	clipRepo *repository.ClipRepository,
 	userRepo *repository.UserRepository,
+	auditLogRepo *repository.AuditLogRepository,
 	twitchClient *twitch.Client,
 ) *SubmissionService {
 	return &SubmissionService{
 		submissionRepo: submissionRepo,
 		clipRepo:       clipRepo,
 		userRepo:       userRepo,
+		auditLogRepo:   auditLogRepo,
 		twitchClient:   twitchClient,
 	}
 }
@@ -327,6 +330,22 @@ func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID,
 		return fmt.Errorf("failed to update submission status: %w", err)
 	}
 
+	// Create audit log
+	if s.auditLogRepo != nil {
+		auditLog := &models.ModerationAuditLog{
+			ID:          uuid.New(),
+			Action:      "approve",
+			EntityType:  "clip_submission",
+			EntityID:    submissionID,
+			ModeratorID: reviewerID,
+			CreatedAt:   time.Now(),
+		}
+		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to create audit log: %v\n", err)
+		}
+	}
+
 	// Award karma to submitter
 	if err := s.awardKarma(ctx, submission.UserID, 10); err != nil {
 		// Log error but don't fail
@@ -352,10 +371,139 @@ func (s *SubmissionService) RejectSubmission(ctx context.Context, submissionID, 
 		return fmt.Errorf("failed to update submission status: %w", err)
 	}
 
+	// Create audit log
+	if s.auditLogRepo != nil {
+		auditLog := &models.ModerationAuditLog{
+			ID:          uuid.New(),
+			Action:      "reject",
+			EntityType:  "clip_submission",
+			EntityID:    submissionID,
+			ModeratorID: reviewerID,
+			Reason:      &reason,
+			CreatedAt:   time.Now(),
+		}
+		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to create audit log: %v\n", err)
+		}
+	}
+
 	// Penalize karma
 	if err := s.awardKarma(ctx, submission.UserID, -5); err != nil {
 		// Log error but don't fail
 		fmt.Printf("Failed to penalize karma: %v\n", err)
+	}
+
+	return nil
+}
+
+// BulkApproveSubmissions approves multiple submissions
+func (s *SubmissionService) BulkApproveSubmissions(ctx context.Context, submissionIDs []uuid.UUID, reviewerID uuid.UUID) error {
+	// Get submissions to validate they're all pending
+	submissions, err := s.submissionRepo.GetByIDs(ctx, submissionIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get submissions: %w", err)
+	}
+
+	// Validate all are pending
+	for _, submission := range submissions {
+		if submission.Status != "pending" {
+			return fmt.Errorf("submission %s is not pending", submission.ID)
+		}
+	}
+
+	// Create clips for all submissions
+	for _, submission := range submissions {
+		if err := s.createClipFromSubmission(ctx, submission); err != nil {
+			return fmt.Errorf("failed to create clip for submission %s: %w", submission.ID, err)
+		}
+	}
+
+	// Bulk update status
+	if err := s.submissionRepo.BulkUpdateStatus(ctx, submissionIDs, "approved", reviewerID, nil); err != nil {
+		return fmt.Errorf("failed to bulk update submission status: %w", err)
+	}
+
+	// Create audit log
+	if s.auditLogRepo != nil {
+		metadata := map[string]interface{}{
+			"submission_count": len(submissionIDs),
+			"submission_ids":   submissionIDs,
+		}
+		auditLog := &models.ModerationAuditLog{
+			ID:          uuid.New(),
+			Action:      "bulk_approve",
+			EntityType:  "clip_submission",
+			EntityID:    reviewerID, // Use reviewer ID as entity ID for bulk actions
+			ModeratorID: reviewerID,
+			Metadata:    metadata,
+			CreatedAt:   time.Now(),
+		}
+		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to create audit log: %v\n", err)
+		}
+	}
+
+	// Award karma to submitters
+	for _, submission := range submissions {
+		if err := s.awardKarma(ctx, submission.UserID, 10); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to award karma: %v\n", err)
+		}
+	}
+
+	return nil
+}
+
+// BulkRejectSubmissions rejects multiple submissions
+func (s *SubmissionService) BulkRejectSubmissions(ctx context.Context, submissionIDs []uuid.UUID, reviewerID uuid.UUID, reason string) error {
+	// Get submissions to validate they're all pending
+	submissions, err := s.submissionRepo.GetByIDs(ctx, submissionIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get submissions: %w", err)
+	}
+
+	// Validate all are pending
+	for _, submission := range submissions {
+		if submission.Status != "pending" {
+			return fmt.Errorf("submission %s is not pending", submission.ID)
+		}
+	}
+
+	// Bulk update status
+	if err := s.submissionRepo.BulkUpdateStatus(ctx, submissionIDs, "rejected", reviewerID, &reason); err != nil {
+		return fmt.Errorf("failed to bulk update submission status: %w", err)
+	}
+
+	// Create audit log
+	if s.auditLogRepo != nil {
+		metadata := map[string]interface{}{
+			"submission_count": len(submissionIDs),
+			"submission_ids":   submissionIDs,
+		}
+		auditLog := &models.ModerationAuditLog{
+			ID:          uuid.New(),
+			Action:      "bulk_reject",
+			EntityType:  "clip_submission",
+			EntityID:    reviewerID, // Use reviewer ID as entity ID for bulk actions
+			ModeratorID: reviewerID,
+			Reason:      &reason,
+			Metadata:    metadata,
+			CreatedAt:   time.Now(),
+		}
+		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to create audit log: %v\n", err)
+		}
+	}
+
+	// Penalize karma
+	for _, submission := range submissions {
+		if err := s.awardKarma(ctx, submission.UserID, -5); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to penalize karma: %v\n", err)
+		}
 	}
 
 	return nil
@@ -369,6 +517,11 @@ func (s *SubmissionService) GetUserSubmissions(ctx context.Context, userID uuid.
 // GetPendingSubmissions retrieves pending submissions for moderation
 func (s *SubmissionService) GetPendingSubmissions(ctx context.Context, page, limit int) ([]*models.ClipSubmissionWithUser, int, error) {
 	return s.submissionRepo.ListPending(ctx, page, limit)
+}
+
+// GetPendingSubmissionsWithFilters retrieves pending submissions with filters
+func (s *SubmissionService) GetPendingSubmissionsWithFilters(ctx context.Context, filters repository.SubmissionFilters, page, limit int) ([]*models.ClipSubmissionWithUser, int, error) {
+	return s.submissionRepo.ListPendingWithFilters(ctx, filters, page, limit)
 }
 
 // GetSubmissionStats retrieves submission statistics for a user
