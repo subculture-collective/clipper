@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 const (
@@ -269,13 +270,13 @@ func (r *ClipRepository) GetLastSyncTime(ctx context.Context) (*time.Time, error
 
 // ClipFilters represents filters for listing clips
 type ClipFilters struct {
-	GameID           *string
-	BroadcasterID    *string
-	Tag              *string
-	Search           *string
-	Timeframe        *string // hour, day, week, month, year, all
-	Sort             string  // hot, new, top, rising, discussed
-	Top10kStreamers  bool    // Filter clips to only top 10k streamers
+	GameID          *string
+	BroadcasterID   *string
+	Tag             *string
+	Search          *string
+	Timeframe       *string // hour, day, week, month, year, all
+	Sort            string  // hot, new, top, rising, discussed
+	Top10kStreamers bool    // Filter clips to only top 10k streamers
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
@@ -286,13 +287,13 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	argIndex := 1
 
 	if filters.GameID != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.game_id = $%d", argIndex))
+		whereClauses = append(whereClauses, fmt.Sprintf("c.game_id = %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.GameID)
 		argIndex++
 	}
 
 	if filters.BroadcasterID != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.broadcaster_id = $%d", argIndex))
+		whereClauses = append(whereClauses, fmt.Sprintf("c.broadcaster_id = %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.BroadcasterID)
 		argIndex++
 	}
@@ -301,14 +302,14 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
 			SELECT 1 FROM clip_tags ct
 			JOIN tags t ON ct.tag_id = t.id
-			WHERE ct.clip_id = c.id AND t.slug = $%d
-		)`, argIndex))
+			WHERE ct.clip_id = c.id AND t.slug = %s
+		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
 		argIndex++
 	}
 
 	if filters.Search != nil && *filters.Search != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.title ILIKE $%d", argIndex))
+		whereClauses = append(whereClauses, fmt.Sprintf("c.title ILIKE %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, "%"+*filters.Search+"%")
 		argIndex++
 	}
@@ -402,8 +403,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		FROM clips c
 		%s
 		%s
-		LIMIT $%d OFFSET $%d
-	`, whereClause, orderBy, argIndex, argIndex+1)
+		LIMIT %s OFFSET %s
+	`, whereClause, orderBy, utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1))
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -463,7 +464,7 @@ func (r *ClipRepository) Update(ctx context.Context, clipID uuid.UUID, updates m
 	argIndex := 1
 
 	for field, value := range updates {
-		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argIndex))
+		setClauses = append(setClauses, fmt.Sprintf("%s = %s", field, utils.SQLPlaceholder(argIndex)))
 		args = append(args, value)
 		argIndex++
 	}
@@ -475,7 +476,7 @@ func (r *ClipRepository) Update(ctx context.Context, clipID uuid.UUID, updates m
 			setClause += ", " + setClauses[i]
 		}
 	}
-	query := fmt.Sprintf("UPDATE clips SET %s WHERE id = $%d", setClause, argIndex)
+	query := fmt.Sprintf("UPDATE clips SET %s WHERE id = %s", setClause, utils.SQLPlaceholder(argIndex))
 
 	_, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
