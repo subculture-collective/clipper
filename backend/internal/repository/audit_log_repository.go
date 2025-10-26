@@ -111,7 +111,7 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 		JOIN users u ON mal.moderator_id = u.id
 		%s
 		ORDER BY mal.created_at DESC
-		LIMIT $%d OFFSET $%d`, whereClause, argPos, argPos+1)
+		LIMIT %d OFFSET %d`, whereClause, argPos, argPos+1)
 
 	args = append(args, limit, offset)
 
