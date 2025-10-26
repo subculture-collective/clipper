@@ -363,12 +363,12 @@ func TestKarmaGateRequirement(t *testing.T) {
 // TestRateLimitLogic tests rate limit calculations
 func TestRateLimitLogic(t *testing.T) {
 	tests := []struct {
-		name           string
-		hourlyCount    int
-		dailyCount     int
-		exceedsHourly  bool
-		exceedsDaily   bool
-		description    string
+		name          string
+		hourlyCount   int
+		dailyCount    int
+		exceedsHourly bool
+		exceedsDaily  bool
+		description   string
 	}{
 		{
 			name:          "Within both limits",
@@ -424,13 +424,13 @@ func TestRateLimitLogic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hourlyExceeded := tt.hourlyCount >= 5
 			dailyExceeded := tt.dailyCount >= 20
-			
+
 			if hourlyExceeded != tt.exceedsHourly {
-				t.Errorf("Hourly check: count=%d, expected exceeded=%v, got %v. %s", 
+				t.Errorf("Hourly check: count=%d, expected exceeded=%v, got %v. %s",
 					tt.hourlyCount, tt.exceedsHourly, hourlyExceeded, tt.description)
 			}
 			if dailyExceeded != tt.exceedsDaily {
-				t.Errorf("Daily check: count=%d, expected exceeded=%v, got %v. %s", 
+				t.Errorf("Daily check: count=%d, expected exceeded=%v, got %v. %s",
 					tt.dailyCount, tt.exceedsDaily, dailyExceeded, tt.description)
 			}
 		})
@@ -494,7 +494,7 @@ func TestDuplicateDetectionLogic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Simulate the duplicate detection logic
 			allowed := true
-			
+
 			if tt.clipExists {
 				allowed = false
 			} else if tt.submissionState == "pending" || tt.submissionState == "approved" {
@@ -502,7 +502,7 @@ func TestDuplicateDetectionLogic(t *testing.T) {
 			} else if tt.submissionState == "rejected-recent" {
 				allowed = false
 			}
-			
+
 			if allowed != tt.shouldAllow {
 				t.Errorf("Expected shouldAllow=%v, got %v. %s", tt.shouldAllow, allowed, tt.description)
 			}
@@ -513,11 +513,11 @@ func TestDuplicateDetectionLogic(t *testing.T) {
 // TestApproveRejectStatusTransitions tests status transition logic
 func TestApproveRejectStatusTransitions(t *testing.T) {
 	tests := []struct {
-		name            string
-		currentStatus   string
-		action          string // "approve" or "reject"
-		shouldSucceed   bool
-		description     string
+		name          string
+		currentStatus string
+		action        string // "approve" or "reject"
+		shouldSucceed bool
+		description   string
 	}{
 		{
 			name:          "Approve pending submission",
@@ -567,7 +567,7 @@ func TestApproveRejectStatusTransitions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Only pending submissions can be approved or rejected
 			canTransition := tt.currentStatus == "pending"
-			
+
 			if canTransition != tt.shouldSucceed {
 				t.Errorf("Status %s, action %s: expected success=%v, got %v. %s",
 					tt.currentStatus, tt.action, tt.shouldSucceed, canTransition, tt.description)
@@ -579,10 +579,10 @@ func TestApproveRejectStatusTransitions(t *testing.T) {
 // TestKarmaAwardLogic tests karma point calculations
 func TestKarmaAwardLogic(t *testing.T) {
 	tests := []struct {
-		name         string
-		action       string
-		karmaChange  int
-		description  string
+		name        string
+		action      string
+		karmaChange int
+		description string
 	}{
 		{
 			name:        "Approval awards 10 karma",
@@ -607,7 +607,7 @@ func TestKarmaAwardLogic(t *testing.T) {
 			} else if tt.action == "reject" {
 				expectedKarma = -5
 			}
-			
+
 			// This test ensures the test data itself is correct
 			if tt.karmaChange != expectedKarma {
 				t.Errorf("Test data mismatch for action %s: karmaChange=%d should be %d. %s",
