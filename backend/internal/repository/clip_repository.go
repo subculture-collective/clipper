@@ -402,7 +402,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		FROM clips c
 		%s
 		%s
-		LIMIT $%d OFFSET $%d
+		LIMIT %d OFFSET %d
 	`, whereClause, orderBy, argIndex, argIndex+1)
 
 	rows, err := r.pool.Query(ctx, query, args...)

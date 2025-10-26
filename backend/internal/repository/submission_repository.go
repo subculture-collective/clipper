@@ -314,7 +314,7 @@ func (r *SubmissionRepository) ListPendingWithFilters(ctx context.Context, filte
 		JOIN users u ON s.user_id = u.id
 		%s
 		ORDER BY s.created_at ASC
-		LIMIT $%d OFFSET $%d`, whereClause, argPos, argPos+1)
+		LIMIT %d OFFSET %d`, whereClause, argPos, argPos+1)
 
 	args = append(args, limit, offset)
 
