@@ -72,12 +72,12 @@ func GetSecureCookieOptions(cfg *config.Config) SecureCookieOptions {
 	isProduction := cfg.Server.GinMode == "release"
 
 	return SecureCookieOptions{
-		HTTPOnly: true,                    // Prevents JavaScript access to cookies
-		Secure:   isProduction,            // Only send over HTTPS in production
-		SameSite: "lax",                   // CSRF protection
-		MaxAge:   86400,                   // 24 hours
-		Domain:   "",                      // Will be set per-cookie based on config
-		Path:     "/",                     // Available to entire domain
+		HTTPOnly: true,         // Prevents JavaScript access to cookies
+		Secure:   isProduction, // Only send over HTTPS in production
+		SameSite: "lax",        // CSRF protection
+		MaxAge:   86400,        // 24 hours
+		Domain:   "",           // Will be set per-cookie based on config
+		Path:     "/",          // Available to entire domain
 	}
 }
 

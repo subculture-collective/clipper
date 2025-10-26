@@ -29,13 +29,32 @@ export default function LeaderboardPage() {
                 `/api/v1/leaderboards/${type}?page=${page}&limit=${limit}`
             );
 
+            // Handle non-OK responses
             if (!response.ok) {
-                throw new Error('Failed to fetch leaderboard');
+                let errorMessage = 'Failed to fetch leaderboard';
+                
+                // Try to parse JSON error response
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } catch {
+                    // If JSON parsing fails, use status text
+                    errorMessage = response.statusText || errorMessage;
+                }
+                
+                throw new Error(errorMessage);
+            }
+
+            // Ensure response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Invalid response format from server');
             }
 
             const data = await response.json();
             setLeaderboard(data);
         } catch (err) {
+            console.error('Leaderboard fetch error:', err);
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setLoading(false);
@@ -99,8 +118,14 @@ export default function LeaderboardPage() {
 
             {/* Error State */}
             {error && (
-                <div className='bg-red-900/20 border border-red-500 rounded-lg p-4 mb-6'>
-                    <div className='text-red-400'>{error}</div>
+                <div className='bg-red-900/20 border border-red-500 rounded-lg p-6 mb-6'>
+                    <div className='text-red-400 mb-4'>{error}</div>
+                    <button
+                        onClick={fetchLeaderboard}
+                        className='px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors'
+                    >
+                        Retry
+                    </button>
                 </div>
             )}
 
