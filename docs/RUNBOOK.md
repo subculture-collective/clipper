@@ -639,6 +639,7 @@ Error budgets allow for controlled service degradation while maintaining SLOs:
 ### Monthly Error Budget
 
 Based on 99.5% availability SLO:
+
 - **Total Budget**: 21.6 hours of downtime per month
 - **Budget Burn Rate**: Track remaining budget daily
 
@@ -695,15 +696,19 @@ Based on 99.5% availability SLO:
 ### Alert Severity Definitions
 
 **Critical**: Service is completely down or major functionality broken
+
 - Examples: Database down, all requests failing, security breach
 
 **High**: Significant degradation affecting multiple users
+
 - Examples: High error rate, slow response times, partial outage
 
 **Medium**: Minor degradation or potential future problem
+
 - Examples: High resource usage, degraded cache, elevated error rate
 
 **Low**: Informational or minor issue
+
 - Examples: Certificate expiring soon, low cache hit rate
 
 ### Common Incident Scenarios
@@ -713,6 +718,7 @@ Based on 99.5% availability SLO:
 **Symptoms**: Health checks failing, all requests timing out
 
 **Response**:
+
 1. Check server status: `ssh deploy@production-server`
 2. Check Docker containers: `docker-compose ps`
 3. Check logs: `docker-compose logs -f --tail=100`
@@ -727,6 +733,7 @@ Based on 99.5% availability SLO:
 **Symptoms**: Error rate > 5% for more than 5 minutes
 
 **Response**:
+
 1. Check error logs: `docker-compose logs backend | grep -i error`
 2. Identify error pattern (database, API, etc.)
 3. Check dependency health (database, Redis, Twitch API)
@@ -740,6 +747,7 @@ Based on 99.5% availability SLO:
 **Symptoms**: P95 latency > 2x normal for more than 5 minutes
 
 **Response**:
+
 1. Check resource usage: `docker stats`
 2. Check database connections: `docker-compose exec postgres psql -U clipper -c "SELECT count(*) FROM pg_stat_activity;"`
 3. Check for slow queries in logs
@@ -754,6 +762,7 @@ Based on 99.5% availability SLO:
 **Symptoms**: "too many connections", connection timeouts
 
 **Response**:
+
 1. Check connection count: See [Database Connection Issues](#database-connection-issues)
 2. Restart backend to clear leaked connections: `docker-compose restart backend`
 3. Increase max_connections if needed
@@ -766,6 +775,7 @@ Based on 99.5% availability SLO:
 **Symptoms**: < 10% disk space remaining
 
 **Response**:
+
 1. Identify large files: `du -sh /* | sort -h`
 2. Clean Docker: `docker system prune -a -f`
 3. Clean logs: `sudo journalctl --vacuum-time=7d`
@@ -779,6 +789,7 @@ Based on 99.5% availability SLO:
 #### Internal Communication
 
 1. **Slack**: Post to #incidents channel
+
    ```
    🚨 INCIDENT: [Severity] - [Brief Description]
    Impact: [User-facing impact]
@@ -792,7 +803,7 @@ Based on 99.5% availability SLO:
 
 #### External Communication
 
-1. **Status Page**: Update https://status.clipper.example.com
+1. **Status Page**: Update <https://status.clipper.example.com>
 2. **Twitter**: Post updates for major incidents
 3. **Email**: Notify affected users if data loss or security issue
 
@@ -828,7 +839,7 @@ Within 48 hours of incident resolution:
 | Secondary On-Call | TBD | TBD | 24/7 |
 | Database Admin | TBD | TBD | Business hours + on-call |
 | DevOps Lead | TBD | TBD | Business hours + on-call |
-| Security Team | security@example.com | Email/Slack | 24/7 for critical |
+| Security Team | <security@example.com> | Email/Slack | 24/7 for critical |
 | Infrastructure Provider | TBD | Support portal | 24/7 |
 
 ## Post-Deployment

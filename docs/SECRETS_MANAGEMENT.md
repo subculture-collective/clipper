@@ -114,6 +114,7 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
    - Note the new Client ID and Secret
 
 2. **Update production environment:**
+
    ```bash
    # SSH to production server
    ssh deploy@production-server
@@ -131,6 +132,7 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
    ```
 
 3. **Verify functionality:**
+
    ```bash
    # Test authentication flow
    curl -X GET https://clipper.example.com/api/v1/auth/twitch
@@ -147,6 +149,7 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
 #### Database Password Rotation
 
 1. **Create new database user with same privileges:**
+
    ```sql
    CREATE USER clipper_new WITH PASSWORD 'new-secure-password';
    GRANT ALL PRIVILEGES ON DATABASE clipper_db TO clipper_new;
@@ -155,18 +158,21 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
    ```
 
 2. **Update application configuration:**
+
    ```bash
    DB_USER=clipper_new
    DB_PASSWORD=new-secure-password
    ```
 
 3. **Restart application and verify:**
+
    ```bash
    docker-compose restart backend
    ./scripts/health-check.sh
    ```
 
 4. **Remove old user after verification:**
+
    ```sql
    DROP USER clipper;
    ```
@@ -174,6 +180,7 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
 #### JWT Key Rotation
 
 1. **Generate new RSA key pair:**
+
    ```bash
    openssl genrsa -out private_new.pem 2048
    openssl rsa -in private_new.pem -pubout -out public_new.pem
@@ -191,6 +198,7 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
 #### Redis Password Rotation
 
 1. **Add password to Redis:**
+
    ```bash
    # Update docker-compose.yml
    command: redis-server --requirepass new-secure-password --appendonly yes
@@ -200,11 +208,13 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
    ```
 
 2. **Update application configuration:**
+
    ```bash
    REDIS_PASSWORD=new-secure-password
    ```
 
 3. **Rolling restart:**
+
    ```bash
    docker-compose restart redis
    docker-compose restart backend
@@ -287,7 +297,7 @@ Before deploying to production:
 
 For security concerns or suspected compromises:
 
-- Security Team: security@example.com
+- Security Team: <security@example.com>
 - On-Call Engineer: See [RUNBOOK.md](./RUNBOOK.md)
 - Emergency Hotline: [Your emergency contact]
 
