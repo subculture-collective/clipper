@@ -21,6 +21,9 @@ vi.mock('@/hooks', async () => {
   };
 });
 
+// Constants
+const FIVE_MINUTES_IN_MS = 5 * 60 * 1000;
+
 const createMockComment = (overrides: Partial<Comment> = {}): Comment => ({
   id: 'comment-1',
   clip_id: 'clip-1',
@@ -69,7 +72,7 @@ describe('CommentSection', () => {
   describe('Loading and error states', () => {
     it('should show loading spinner while fetching comments', () => {
       vi.mocked(commentApi.fetchComments).mockImplementation(
-        () => new Promise(() => {}) // Never resolves
+        () => new Promise(() => {}) // Promise that never resolves to simulate infinite loading
       );
 
       renderWithClient(<CommentSection clipId="clip-1" />);
@@ -424,7 +427,7 @@ describe('CommentSection', () => {
   describe('Props handling', () => {
     it('should pass currentUserId to CommentItem components', async () => {
       // Use a recent timestamp so Edit button appears (within 15-minute window)
-      const recentTime = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 minutes ago
+      const recentTime = new Date(Date.now() - FIVE_MINUTES_IN_MS).toISOString();
       const mockResponse: CommentFeedResponse = {
         comments: [createMockComment({ user_id: 'user-1', created_at: recentTime })],
         total: 1,
