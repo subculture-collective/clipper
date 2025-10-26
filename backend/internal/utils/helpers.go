@@ -1,5 +1,7 @@
 package utils
 
+import "fmt"
+
 // StringPtr returns a pointer to a string. If the string is empty, it returns nil.
 func StringPtr(s string) *string {
 	if s == "" {
@@ -43,4 +45,10 @@ func Min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// SQLPlaceholder returns a PostgreSQL placeholder string for the given argument position.
+// For example, SQLPlaceholder(1) returns "$1", SQLPlaceholder(2) returns "$2", etc.
+func SQLPlaceholder(position int) string {
+	return fmt.Sprintf("$%d", position)
 }
