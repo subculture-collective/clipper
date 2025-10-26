@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Container } from '../components';
 import { ClipFeed } from '../components/clip';
@@ -11,6 +11,11 @@ export function DiscoveryPage() {
   const [top10kEnabled, setTop10kEnabled] = useState(
     searchParams.get('top10k_streamers') === 'true'
   );
+
+  // Sync state with URL params when searchParams changes
+  useEffect(() => {
+    setTop10kEnabled(searchParams.get('top10k_streamers') === 'true');
+  }, [searchParams]);
 
   // Get active tab from URL or default to 'top'
   const activeTab = (searchParams.get('tab') as DiscoveryTab) || 'top';
