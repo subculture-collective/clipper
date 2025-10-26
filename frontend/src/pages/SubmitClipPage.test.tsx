@@ -1,9 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '../test/test-utils';
 import userEvent from '@testing-library/user-event';
-import { SubmitClipPage } from './SubmitClipPage';
-import * as submissionApi from '../lib/submission-api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../context/AuthContext';
+import * as submissionApi from '../lib/submission-api';
+import { render, screen, waitFor } from '../test/test-utils';
+import { SubmitClipPage } from './SubmitClipPage';
 
 // Mock the API calls
 vi.mock('../lib/submission-api', () => ({
@@ -29,10 +29,13 @@ vi.mock('react-router-dom', async () => {
 describe('SubmitClipPage', () => {
     const mockUser = {
         id: 'user-123',
+        twitch_id: 'twitch-123',
         username: 'testuser',
         display_name: 'Test User',
         karma_points: 150,
-        role: 'user',
+        role: 'user' as const,
+        is_banned: false,
+        created_at: '2024-01-01T00:00:00Z',
     };
 
     const mockSubmitClip = vi.mocked(submissionApi.submitClip);
@@ -42,10 +45,14 @@ describe('SubmitClipPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockGetUserSubmissions.mockResolvedValue({
+            success: true,
             data: [],
-            total: 0,
-            page: 1,
-            limit: 5,
+            meta: {
+                page: 1,
+                limit: 5,
+                total: 0,
+                total_pages: 0,
+            },
         });
     });
 
@@ -56,7 +63,9 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: false,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
 
             render(<SubmitClipPage />);
@@ -75,7 +84,9 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: false,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
 
             render(<SubmitClipPage />);
@@ -86,54 +97,70 @@ describe('SubmitClipPage', () => {
             expect(mockNavigate).toHaveBeenCalledWith('/login');
         });
 
-        it('shows warning when user has insufficient karma', () => {
+        it('shows warning when user has insufficient karma', async () => {
             mockUseAuth.mockReturnValue({
                 user: { ...mockUser, karma_points: 50 },
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
 
             render(<SubmitClipPage />);
 
-            expect(
-                screen.getByText(/You need 50 more karma points to submit clips/)
-            ).toBeInTheDocument();
+            await waitFor(() => {
+                expect(
+                    screen.getByText(
+                        /You need 50 more karma points to submit clips/
+                    )
+                ).toBeInTheDocument();
+            });
         });
 
-        it('does not show warning when user has enough karma', () => {
+        it('does not show warning when user has enough karma', async () => {
             mockUseAuth.mockReturnValue({
                 user: mockUser,
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
 
             render(<SubmitClipPage />);
 
-            expect(
-                screen.queryByText(/more karma points to submit/)
-            ).not.toBeInTheDocument();
+            await waitFor(() => {
+                expect(
+                    screen.queryByText(/more karma points to submit/)
+                ).not.toBeInTheDocument();
+            });
         });
 
-        it('disables form fields when user has insufficient karma', () => {
+        it('disables form fields when user has insufficient karma', async () => {
             mockUseAuth.mockReturnValue({
                 user: { ...mockUser, karma_points: 50 },
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
 
             render(<SubmitClipPage />);
 
-            const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            await waitFor(() => {
+                const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
+                const submitButton = screen.getByRole('button', {
+                    name: /Submit Clip/,
+                });
 
-            expect(clipUrlInput).toBeDisabled();
-            expect(submitButton).toBeDisabled();
+                expect(clipUrlInput).toBeDisabled();
+                expect(submitButton).toBeDisabled();
+            });
         });
     });
 
@@ -144,15 +171,21 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
         });
 
-        it('requires clip URL to submit', () => {
+        it('requires clip URL to submit', async () => {
             render(<SubmitClipPage />);
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
-            expect(submitButton).toBeDisabled();
+            await waitFor(() => {
+                const submitButton = screen.getByRole('button', {
+                    name: /Submit Clip/,
+                });
+                expect(submitButton).toBeDisabled();
+            });
         });
 
         it('enables submit button when clip URL is provided', async () => {
@@ -160,9 +193,14 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             expect(submitButton).toBeEnabled();
         });
 
@@ -171,10 +209,15 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            
+
             // Test clips.twitch.tv format
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage');
-            expect(clipUrlInput).toHaveValue('https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage'
+            );
+            expect(clipUrlInput).toHaveValue(
+                'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage'
+            );
         });
 
         it('allows adding custom title', async () => {
@@ -216,7 +259,9 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
         });
 
@@ -297,7 +342,9 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
         });
 
@@ -306,11 +353,16 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage'
+            );
 
             await waitFor(() => {
                 // The StreamerInput component should show auto-detected state
-                expect(screen.getByText('Will be auto-detected from clip')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Will be auto-detected from clip')
+                ).toBeInTheDocument();
             });
         });
 
@@ -319,20 +371,24 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            
+
             // Enter valid URL first
             await user.type(clipUrlInput, 'https://clips.twitch.tv/ValidClip');
-            
+
             await waitFor(() => {
-                expect(screen.getByText('Will be auto-detected from clip')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Will be auto-detected from clip')
+                ).toBeInTheDocument();
             });
-            
+
             // Clear the input
             await user.clear(clipUrlInput);
-            
+
             await waitFor(() => {
                 // Auto-detect banner should be gone
-                expect(screen.queryByText('Will be auto-detected from clip')).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('Will be auto-detected from clip')
+                ).not.toBeInTheDocument();
             });
         });
     });
@@ -344,7 +400,9 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
         });
 
@@ -352,7 +410,9 @@ describe('SubmitClipPage', () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const streamerInput = screen.getByPlaceholderText('Enter streamer name...');
+            const streamerInput = screen.getByPlaceholderText(
+                'Enter streamer name...'
+            );
             await user.type(streamerInput, 'CustomStreamer');
 
             expect(streamerInput).toHaveValue('CustomStreamer');
@@ -366,10 +426,14 @@ describe('SubmitClipPage', () => {
             await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip');
 
             await waitFor(() => {
-                expect(screen.getByText('Will be auto-detected from clip')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Will be auto-detected from clip')
+                ).toBeInTheDocument();
             });
 
-            const streamerInput = screen.getByPlaceholderText('Enter streamer name...');
+            const streamerInput = screen.getByPlaceholderText(
+                'Enter streamer name...'
+            );
             await user.type(streamerInput, 'ManualOverride');
 
             expect(streamerInput).toHaveValue('ManualOverride');
@@ -383,19 +447,24 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
         });
 
         it('submits form with valid data', async () => {
             const user = userEvent.setup();
             mockSubmitClip.mockResolvedValue({
+                success: true,
+                message: 'Clip submitted successfully',
                 submission: {
                     id: 'submission-123',
                     user_id: 'user-123',
                     twitch_clip_id: 'TestClip123',
                     twitch_clip_url: 'https://clips.twitch.tv/TestClip123',
                     title: 'Test Clip',
+                    is_nsfw: false,
                     status: 'pending',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -408,9 +477,14 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             await user.click(submitButton);
 
             await waitFor(() => {
@@ -428,6 +502,8 @@ describe('SubmitClipPage', () => {
         it('includes all form data in submission', async () => {
             const user = userEvent.setup();
             mockSubmitClip.mockResolvedValue({
+                success: true,
+                message: 'Clip submitted successfully',
                 submission: {
                     id: 'submission-123',
                     user_id: 'user-123',
@@ -435,6 +511,7 @@ describe('SubmitClipPage', () => {
                     twitch_clip_url: 'https://clips.twitch.tv/TestClip123',
                     title: 'Test Clip',
                     custom_title: 'Custom Title',
+                    is_nsfw: false,
                     status: 'pending',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -448,12 +525,17 @@ describe('SubmitClipPage', () => {
 
             // Fill in all fields
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
             const customTitleInput = screen.getByLabelText(/Custom Title/);
             await user.type(customTitleInput, 'Custom Title');
 
-            const streamerInput = screen.getByPlaceholderText('Enter streamer name...');
+            const streamerInput = screen.getByPlaceholderText(
+                'Enter streamer name...'
+            );
             await user.type(streamerInput, 'OverrideStreamer');
 
             const tagInput = screen.getByPlaceholderText('Add tags...');
@@ -465,7 +547,9 @@ describe('SubmitClipPage', () => {
             const reasonTextarea = screen.getByLabelText(/Submission Reason/);
             await user.type(reasonTextarea, 'Amazing play');
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             await user.click(submitButton);
 
             await waitFor(() => {
@@ -489,9 +573,14 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             await user.click(submitButton);
 
             expect(screen.getByText('Submitting...')).toBeInTheDocument();
@@ -510,13 +599,20 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             await user.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Clip already exists')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Clip already exists')
+                ).toBeInTheDocument();
             });
         });
 
@@ -527,13 +623,20 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             await user.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Failed to submit clip')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Failed to submit clip')
+                ).toBeInTheDocument();
             });
         });
     });
@@ -545,19 +648,24 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
         });
 
         it('shows success confirmation after successful submission', async () => {
             const user = userEvent.setup();
             mockSubmitClip.mockResolvedValue({
+                success: true,
+                message: 'Clip submitted successfully',
                 submission: {
                     id: 'submission-123',
                     user_id: 'user-123',
                     twitch_clip_id: 'TestClip123',
                     twitch_clip_url: 'https://clips.twitch.tv/TestClip123',
                     title: 'Test Clip',
+                    is_nsfw: false,
                     status: 'pending',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -570,25 +678,35 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             await user.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Submission Successful!')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Submission Successful!')
+                ).toBeInTheDocument();
             });
         });
 
         it('resets form after successful submission', async () => {
             const user = userEvent.setup();
             mockSubmitClip.mockResolvedValue({
+                success: true,
+                message: 'Clip submitted successfully',
                 submission: {
                     id: 'submission-123',
                     user_id: 'user-123',
                     twitch_clip_id: 'TestClip123',
                     twitch_clip_url: 'https://clips.twitch.tv/TestClip123',
                     title: 'Test Clip',
+                    is_nsfw: false,
                     status: 'pending',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -601,13 +719,20 @@ describe('SubmitClipPage', () => {
             render(<SubmitClipPage />);
 
             const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip123');
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
 
-            const submitButton = screen.getByRole('button', { name: /Submit Clip/ });
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
             await user.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Submission Successful!')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Submission Successful!')
+                ).toBeInTheDocument();
             });
 
             // Click "Submit Another Clip" to return to form
@@ -627,12 +752,15 @@ describe('SubmitClipPage', () => {
                 isAuthenticated: true,
                 login: vi.fn(),
                 logout: vi.fn(),
-                loading: false,
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
             });
         });
 
         it('loads and displays recent submissions', async () => {
             mockGetUserSubmissions.mockResolvedValue({
+                success: true,
                 data: [
                     {
                         id: 'sub-1',
@@ -640,6 +768,7 @@ describe('SubmitClipPage', () => {
                         twitch_clip_id: 'clip-1',
                         twitch_clip_url: 'https://clips.twitch.tv/clip-1',
                         title: 'Recent Submission 1',
+                        is_nsfw: false,
                         status: 'pending',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
@@ -648,21 +777,29 @@ describe('SubmitClipPage', () => {
                         view_count: 0,
                     },
                 ],
-                total: 1,
-                page: 1,
-                limit: 5,
+                meta: {
+                    page: 1,
+                    limit: 5,
+                    total: 1,
+                    total_pages: 1,
+                },
             });
 
             render(<SubmitClipPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('Your Recent Submissions')).toBeInTheDocument();
-                expect(screen.getByText('Recent Submission 1')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Your Recent Submissions')
+                ).toBeInTheDocument();
+                expect(
+                    screen.getByText('Recent Submission 1')
+                ).toBeInTheDocument();
             });
         });
 
         it('shows status badges for recent submissions', async () => {
             mockGetUserSubmissions.mockResolvedValue({
+                success: true,
                 data: [
                     {
                         id: 'sub-1',
@@ -670,6 +807,7 @@ describe('SubmitClipPage', () => {
                         twitch_clip_id: 'clip-1',
                         twitch_clip_url: 'https://clips.twitch.tv/clip-1',
                         title: 'Approved Submission',
+                        is_nsfw: false,
                         status: 'approved',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
@@ -683,6 +821,7 @@ describe('SubmitClipPage', () => {
                         twitch_clip_id: 'clip-2',
                         twitch_clip_url: 'https://clips.twitch.tv/clip-2',
                         title: 'Pending Submission',
+                        is_nsfw: false,
                         status: 'pending',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
@@ -691,9 +830,12 @@ describe('SubmitClipPage', () => {
                         view_count: 0,
                     },
                 ],
-                total: 2,
-                page: 1,
-                limit: 5,
+                meta: {
+                    page: 1,
+                    limit: 5,
+                    total: 2,
+                    total_pages: 1,
+                },
             });
 
             render(<SubmitClipPage />);
