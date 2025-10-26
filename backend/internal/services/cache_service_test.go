@@ -154,9 +154,8 @@ func TestCacheServiceCreation(t *testing.T) {
 		redis: nil,
 	}
 
-	if service == nil {
-		t.Error("Cache service should not be nil")
-	}
+	// Removed impossible nil check; construction is guaranteed non-nil
+	_ = service
 }
 
 // TestSmartInvalidationLogic verifies invalidation logic is comprehensive
@@ -347,7 +346,6 @@ func TestCacheServiceNilSafety(t *testing.T) {
 		redis: nil,
 	}
 
-	if service == nil {
-		t.Error("Cache service should not be nil")
-	}
+	// Removed impossible nil check; construction is guaranteed non-nil
+	_ = service
 }
