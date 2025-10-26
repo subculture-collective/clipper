@@ -107,6 +107,7 @@ LOG_FORMAT=json
    - Copy the DSN (Data Source Name)
 
 2. **Configure Environment**:
+
    ```bash
    # Add to .env
    SENTRY_DSN=https://[key]@[org].ingest.sentry.io/[project]
@@ -144,6 +145,7 @@ if err := someOperation(); err != nil {
 ### Setup
 
 1. **Install OpenTelemetry Collector**:
+
    ```bash
    docker run -d --name otel-collector \
      -p 4317:4317 -p 4318:4318 \
@@ -151,6 +153,7 @@ if err := someOperation(); err != nil {
    ```
 
 2. **Configure Environment**:
+
    ```bash
    # Add to .env
    OTEL_ENABLED=true
@@ -162,6 +165,7 @@ if err := someOperation(); err != nil {
 
 3. **Configure Collector**:
    Create `/opt/clipper/otel-collector-config.yaml`:
+
    ```yaml
    receivers:
      otlp:
@@ -199,6 +203,7 @@ if err := someOperation(); err != nil {
 ### Distributed Tracing
 
 Traces are automatically created for:
+
 - HTTP requests
 - Database queries
 - Redis operations
@@ -207,6 +212,7 @@ Traces are automatically created for:
 ### Trace Context
 
 Traces include:
+
 - Trace ID (unique per request)
 - Span ID (unique per operation)
 - Parent span (for nested operations)
@@ -257,6 +263,7 @@ scrape_configs:
 ### Setup
 
 1. **Access Grafana**:
+
    ```bash
    # Start monitoring stack
    docker-compose -f monitoring/docker-compose.monitoring.yml up -d
@@ -347,6 +354,7 @@ receivers:
 See `monitoring/alerts.yml` for all alert rules.
 
 Key alerts:
+
 - **ServiceDown**: Service is unavailable
 - **HighErrorRate**: Error rate > 5%
 - **HighResponseTime**: P95 latency > 500ms
@@ -359,6 +367,7 @@ Key alerts:
 ### Using ELK Stack (Optional)
 
 1. **Setup Filebeat**:
+
    ```yaml
    # filebeat.yml
    filebeat.inputs:
@@ -373,13 +382,14 @@ Key alerts:
    ```
 
 2. **Query Logs in Kibana**:
-   - Access Kibana at http://localhost:5601
+   - Access Kibana at <http://localhost:5601>
    - Create index pattern: `filebeat-*`
    - Query logs with KQL
 
 ### Using Loki (Recommended)
 
 1. **Setup Loki**:
+
    ```bash
    docker run -d --name loki \
      -p 3100:3100 \
@@ -391,6 +401,7 @@ Key alerts:
    - Save & Test
 
 3. **Query Logs**:
+
    ```logql
    {service="clipper-backend"} |= "error"
    {service="clipper-backend", level="error"} | json
