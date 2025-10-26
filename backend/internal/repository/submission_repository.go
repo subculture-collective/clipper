@@ -496,4 +496,3 @@ func (r *SubmissionRepository) BulkUpdateStatus(ctx context.Context, ids []uuid.
 	_, err := r.db.Exec(ctx, query, status, reviewedBy, time.Now(), rejectionReason, time.Now(), ids)
 	return err
 }
-
