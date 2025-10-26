@@ -435,4 +435,3 @@ func (h *SubmissionHandler) GetRejectionReasonTemplates(c *gin.Context) {
 		"data":    models.GetRejectionReasonTemplates(),
 	})
 }
-

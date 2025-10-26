@@ -252,7 +252,7 @@ type SubmissionStats struct {
 // ModerationAuditLog represents an audit log entry for moderation actions
 type ModerationAuditLog struct {
 	ID          uuid.UUID              `json:"id" db:"id"`
-	Action      string                 `json:"action" db:"action"`         // approve, reject, bulk_approve, bulk_reject
+	Action      string                 `json:"action" db:"action"`           // approve, reject, bulk_approve, bulk_reject
 	EntityType  string                 `json:"entity_type" db:"entity_type"` // clip_submission, clip, comment, user
 	EntityID    uuid.UUID              `json:"entity_id" db:"entity_id"`
 	ModeratorID uuid.UUID              `json:"moderator_id" db:"moderator_id"`
@@ -269,16 +269,16 @@ type ModerationAuditLogWithUser struct {
 
 // RejectionReason constants for common rejection reasons
 const (
-	RejectionReasonLowQuality      = "Low quality clip"
-	RejectionReasonDuplicate       = "Duplicate content"
-	RejectionReasonInappropriate   = "Inappropriate content"
-	RejectionReasonOffTopic        = "Off-topic or irrelevant"
-	RejectionReasonPoorTitle       = "Poor or misleading title"
-	RejectionReasonTooShort        = "Clip too short"
-	RejectionReasonTooLong         = "Clip too long"
-	RejectionReasonSpam            = "Spam or promotional content"
+	RejectionReasonLowQuality         = "Low quality clip"
+	RejectionReasonDuplicate          = "Duplicate content"
+	RejectionReasonInappropriate      = "Inappropriate content"
+	RejectionReasonOffTopic           = "Off-topic or irrelevant"
+	RejectionReasonPoorTitle          = "Poor or misleading title"
+	RejectionReasonTooShort           = "Clip too short"
+	RejectionReasonTooLong            = "Clip too long"
+	RejectionReasonSpam               = "Spam or promotional content"
 	RejectionReasonViolatesGuidelines = "Violates community guidelines"
-	RejectionReasonOther           = "Other (see notes)"
+	RejectionReasonOther              = "Other (see notes)"
 )
 
 // GetRejectionReasonTemplates returns a list of common rejection reason templates

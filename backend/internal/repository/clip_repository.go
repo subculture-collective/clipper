@@ -269,13 +269,13 @@ func (r *ClipRepository) GetLastSyncTime(ctx context.Context) (*time.Time, error
 
 // ClipFilters represents filters for listing clips
 type ClipFilters struct {
-	GameID           *string
-	BroadcasterID    *string
-	Tag              *string
-	Search           *string
-	Timeframe        *string // hour, day, week, month, year, all
-	Sort             string  // hot, new, top, rising, discussed
-	Top10kStreamers  bool    // Filter clips to only top 10k streamers
+	GameID          *string
+	BroadcasterID   *string
+	Tag             *string
+	Search          *string
+	Timeframe       *string // hour, day, week, month, year, all
+	Sort            string  // hot, new, top, rising, discussed
+	Top10kStreamers bool    // Filter clips to only top 10k streamers
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
@@ -402,7 +402,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		FROM clips c
 		%s
 		%s
-		LIMIT $%d OFFSET $%d
+		LIMIT %d OFFSET %d
 	`, whereClause, orderBy, argIndex, argIndex+1)
 
 	rows, err := r.pool.Query(ctx, query, args...)
