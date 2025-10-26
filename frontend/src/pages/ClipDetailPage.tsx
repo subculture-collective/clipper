@@ -124,7 +124,7 @@ export function ClipDetailPage() {
               clip.is_favorited
                 ? "bg-red-500 text-white hover:bg-red-600"
                 : "border border-border hover:bg-muted",
-              !isAuthenticated && "opacity-50 cursor-not-allowed hover:bg-transparent"
+              !isAuthenticated && "opacity-50 cursor-not-allowed hover:bg-muted"
             )}
             aria-label={
               !isAuthenticated
