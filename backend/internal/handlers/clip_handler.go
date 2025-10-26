@@ -203,6 +203,7 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	broadcasterID := c.Query("broadcaster_id")
 	tag := c.Query("tag")
 	search := c.Query("search")
+	top10kStreamers := c.Query("top10k_streamers") == "true"
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
 
@@ -216,7 +217,8 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 
 	// Build filters
 	filters := repository.ClipFilters{
-		Sort: sort,
+		Sort:            sort,
+		Top10kStreamers: top10kStreamers,
 	}
 
 	if gameID != "" {
