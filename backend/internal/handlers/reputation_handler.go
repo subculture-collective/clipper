@@ -252,7 +252,7 @@ func (h *ReputationHandler) AwardBadge(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to award badge",
 			"code":    "BADGE_AWARD_ERROR",
-			"message": err.Error(),
+			"message": "Unable to award badge. Please try again later.",
 		})
 		return
 	}
