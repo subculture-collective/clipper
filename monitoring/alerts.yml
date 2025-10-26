@@ -1,7 +1,90 @@
 # Prometheus Alert Rules for Clipper
 # Place this file in /opt/clipper/monitoring/alerts.yml
+#
+# These alerts are based on defined SLOs:
+# - Availability: 99.5% uptime
+# - Latency: P95 < 100ms (list), P95 < 50ms (detail)
+# - Error Rate: < 0.5%
 
 groups:
+  - name: clipper_slo_alerts
+    interval: 30s
+    rules:
+      # SLO: Availability - 99.5% uptime
+      - alert: SLOAvailabilityBreach
+        expr: |
+          (
+            1 - (sum(rate(http_requests_total{status=~"2.."}[5m])) / sum(rate(http_requests_total[5m])))
+          ) > 0.005
+        for: 5m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: "Availability SLO breach"
+          description: "Service availability is {{ $value | humanizePercentage }}, target is 99.5%."
+          runbook: "Check service health, investigate errors, consider rollback."
+
+      # SLO: Error Rate - < 0.5%
+      - alert: SLOErrorRateBreach
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))
+          ) > 0.005
+        for: 5m
+        labels:
+          severity: critical
+          slo: error_rate
+        annotations:
+          summary: "Error rate SLO breach"
+          description: "Error rate is {{ $value | humanizePercentage }}, target is < 0.5%."
+          runbook: "Check error logs, identify error patterns, apply fix or rollback."
+
+      # SLO: Latency - P95 < 100ms for list endpoints
+      - alert: SLOLatencyBreach
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{path=~"/api/v1/(clips|feed|lists).*"}[5m])) by (le)
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "Latency SLO breach for list endpoints"
+          description: "P95 latency is {{ $value }}s, target is < 0.1s."
+          runbook: "Check database query performance, Redis cache hit rate, system resources."
+
+      # Error Budget: Fast burn (> 10% in 1 hour)
+      - alert: ErrorBudgetFastBurn
+        expr: |
+          (
+            1 - (sum(rate(http_requests_total{status=~"2.."}[1h])) / sum(rate(http_requests_total[1h])))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          error_budget: fast_burn
+        annotations:
+          summary: "Error budget fast burn detected"
+          description: "Consuming > 10% error budget in 1 hour. Current availability: {{ $value | humanizePercentage }}."
+          runbook: "Immediate action required. Investigate and mitigate ongoing issues."
+
+      # Error Budget: Medium burn (> 25% in 6 hours)
+      - alert: ErrorBudgetMediumBurn
+        expr: |
+          (
+            1 - (sum(rate(http_requests_total{status=~"2.."}[6h])) / sum(rate(http_requests_total[6h])))
+          ) > 0.25
+        for: 15m
+        labels:
+          severity: warning
+          error_budget: medium_burn
+        annotations:
+          summary: "Error budget medium burn detected"
+          description: "Consuming > 25% error budget in 6 hours. Current availability: {{ $value | humanizePercentage }}."
+          runbook: "Review recent changes, implement stability improvements."
+
   - name: clipper_service_alerts
     interval: 30s
     rules:

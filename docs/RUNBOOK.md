@@ -593,14 +593,243 @@ sudo ufw status
 docker-compose exec backend wget -O- http://localhost:8080/health
 ```
 
+## Service Level Objectives (SLOs)
+
+### Availability SLO
+
+**Target**: 99.5% uptime (21.6 hours downtime per month)
+
+- Measured via health check endpoint (`/health`)
+- Calculated over rolling 30-day window
+- Excludes planned maintenance windows
+
+### Latency SLO
+
+**Target**: 95% of requests complete within specified latency targets
+
+| Endpoint Type | P95 Latency Target | P99 Latency Target |
+|---------------|-------------------|-------------------|
+| Health checks | 50ms | 100ms |
+| List/Feed endpoints | 100ms | 200ms |
+| Detail endpoints | 50ms | 100ms |
+| Write operations | 200ms | 500ms |
+| Search operations | 200ms | 500ms |
+
+### Error Rate SLO
+
+**Target**: < 0.5% error rate (5xx responses)
+
+- Measured as percentage of all requests
+- Calculated over rolling 1-hour window
+- Excludes user errors (4xx responses)
+
+### Data Durability SLO
+
+**Target**: 99.99% durability
+
+- Daily automated backups
+- Weekly restore testing
+- 30-day backup retention
+- Verified backup integrity
+
+## Error Budgets
+
+Error budgets allow for controlled service degradation while maintaining SLOs:
+
+### Monthly Error Budget
+
+Based on 99.5% availability SLO:
+- **Total Budget**: 21.6 hours of downtime per month
+- **Budget Burn Rate**: Track remaining budget daily
+
+### Budget Consumption Policy
+
+| Budget Remaining | Actions |
+|------------------|---------|
+| > 75% | Normal operations, continue feature development |
+| 50-75% | Review incidents, consider stability improvements |
+| 25-50% | Feature freeze, focus on reliability |
+| < 25% | Emergency: Stop all non-critical changes, focus on stability |
+
+### Burn Rate Alerts
+
+- **Fast Burn**: Alert if consuming > 10% budget in 1 hour
+- **Medium Burn**: Alert if consuming > 25% budget in 6 hours
+- **Slow Burn**: Alert if consuming > 50% budget in 3 days
+
+## On-Call Procedures
+
+### On-Call Schedule
+
+- Primary on-call: 24/7 rotation, 1-week shifts
+- Secondary on-call: Backup escalation, same schedule
+- Handoff: Mondays at 10:00 AM local time
+
+### On-Call Responsibilities
+
+1. **Respond to Alerts**:
+   - Acknowledge within 5 minutes
+   - Provide initial assessment within 15 minutes
+   - Begin mitigation immediately
+
+2. **Incident Management**:
+   - Create incident ticket
+   - Communicate status updates
+   - Coordinate with team members
+   - Document actions taken
+
+3. **Escalation**:
+   - Escalate to secondary if unresponsive
+   - Escalate to team lead for critical issues
+   - Engage specialists as needed
+
+### Alert Response Times
+
+| Severity | Target Response Time | Target Resolution Time |
+|----------|---------------------|----------------------|
+| Critical | 5 minutes | 1 hour |
+| High | 15 minutes | 4 hours |
+| Medium | 30 minutes | 24 hours |
+| Low | Next business day | 1 week |
+
+### Alert Severity Definitions
+
+**Critical**: Service is completely down or major functionality broken
+- Examples: Database down, all requests failing, security breach
+
+**High**: Significant degradation affecting multiple users
+- Examples: High error rate, slow response times, partial outage
+
+**Medium**: Minor degradation or potential future problem
+- Examples: High resource usage, degraded cache, elevated error rate
+
+**Low**: Informational or minor issue
+- Examples: Certificate expiring soon, low cache hit rate
+
+### Common Incident Scenarios
+
+#### Scenario 1: Service Down
+
+**Symptoms**: Health checks failing, all requests timing out
+
+**Response**:
+1. Check server status: `ssh deploy@production-server`
+2. Check Docker containers: `docker-compose ps`
+3. Check logs: `docker-compose logs -f --tail=100`
+4. Restart if needed: `docker-compose restart`
+5. Verify recovery: `./scripts/health-check.sh`
+6. If not resolved, escalate and prepare rollback
+
+**Escalation**: If unresolved in 15 minutes, roll back to last known good version
+
+#### Scenario 2: High Error Rate
+
+**Symptoms**: Error rate > 5% for more than 5 minutes
+
+**Response**:
+1. Check error logs: `docker-compose logs backend | grep -i error`
+2. Identify error pattern (database, API, etc.)
+3. Check dependency health (database, Redis, Twitch API)
+4. Apply fix or rollback if recent deployment
+5. Monitor error rate for 15 minutes after fix
+
+**Escalation**: If error rate doesn't improve in 20 minutes, roll back
+
+#### Scenario 3: High Response Time
+
+**Symptoms**: P95 latency > 2x normal for more than 5 minutes
+
+**Response**:
+1. Check resource usage: `docker stats`
+2. Check database connections: `docker-compose exec postgres psql -U clipper -c "SELECT count(*) FROM pg_stat_activity;"`
+3. Check for slow queries in logs
+4. Check cache hit rate: `curl localhost:8080/health/cache`
+5. Scale up resources if needed
+6. Investigate and optimize slow operations
+
+**Escalation**: If latency doesn't improve in 30 minutes, escalate to database admin
+
+#### Scenario 4: Database Connection Issues
+
+**Symptoms**: "too many connections", connection timeouts
+
+**Response**:
+1. Check connection count: See [Database Connection Issues](#database-connection-issues)
+2. Restart backend to clear leaked connections: `docker-compose restart backend`
+3. Increase max_connections if needed
+4. Identify connection leaks in code
+
+**Escalation**: If connections don't decrease, escalate to database admin
+
+#### Scenario 5: Disk Space Critical
+
+**Symptoms**: < 10% disk space remaining
+
+**Response**:
+1. Identify large files: `du -sh /* | sort -h`
+2. Clean Docker: `docker system prune -a -f`
+3. Clean logs: `sudo journalctl --vacuum-time=7d`
+4. Clean old backups: `find /var/backups -mtime +30 -delete`
+5. Add more disk space if needed
+
+**Escalation**: If disk space < 5%, stop non-critical services immediately
+
+### Incident Communication
+
+#### Internal Communication
+
+1. **Slack**: Post to #incidents channel
+   ```
+   🚨 INCIDENT: [Severity] - [Brief Description]
+   Impact: [User-facing impact]
+   Status: [Investigating/Mitigating/Resolved]
+   ETA: [Expected resolution time]
+   ```
+
+2. **Status Updates**: Every 15 minutes for critical, 30 minutes for high
+
+3. **Resolution**: Post resolution summary with root cause
+
+#### External Communication
+
+1. **Status Page**: Update https://status.clipper.example.com
+2. **Twitter**: Post updates for major incidents
+3. **Email**: Notify affected users if data loss or security issue
+
+### Post-Incident Review
+
+Within 48 hours of incident resolution:
+
+1. **Write Post-Mortem**:
+   - Timeline of events
+   - Root cause analysis
+   - Impact assessment
+   - Actions taken
+   - Lessons learned
+   - Action items
+
+2. **Team Review**:
+   - Schedule review meeting
+   - Discuss what went well
+   - Discuss what could improve
+   - Assign action items
+
+3. **Documentation Updates**:
+   - Update runbook
+   - Update monitoring
+   - Update alerts
+   - Share learnings
+
 ## Emergency Contacts
 
 | Role | Name | Contact | Availability |
 |------|------|---------|--------------|
 | Primary On-Call | TBD | TBD | 24/7 |
 | Secondary On-Call | TBD | TBD | 24/7 |
-| Database Admin | TBD | TBD | Business hours |
-| DevOps Lead | TBD | TBD | Business hours |
+| Database Admin | TBD | TBD | Business hours + on-call |
+| DevOps Lead | TBD | TBD | Business hours + on-call |
+| Security Team | security@example.com | Email/Slack | 24/7 for critical |
+| Infrastructure Provider | TBD | Support portal | 24/7 |
 
 ## Post-Deployment
 
