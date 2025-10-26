@@ -69,7 +69,11 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 		userRole, exists := c.Get("user_role")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authentication required",
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Authentication required",
+				},
 			})
 			c.Abort()
 			return
@@ -78,7 +82,11 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 		role, ok := userRole.(string)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Invalid role format",
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Invalid role format",
+				},
 			})
 			c.Abort()
 			return
@@ -93,7 +101,11 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusForbidden, gin.H{
-			"error": "Insufficient permissions",
+			"success": false,
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "Insufficient permissions",
+			},
 		})
 		c.Abort()
 	}

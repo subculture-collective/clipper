@@ -170,14 +170,26 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		token := extractToken(c)
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Missing authentication token",
+				},
+			})
 			c.Abort()
 			return
 		}
 
 		user, err := mockAuth.GetUserFromToken(c.Request.Context(), token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Invalid or expired token",
+				},
+			})
 			c.Abort()
 			return
 		}
@@ -251,14 +263,26 @@ func TestAuthMiddleware_TokenFromCookie(t *testing.T) {
 	router.Use(func(c *gin.Context) {
 		token := extractToken(c)
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Missing authentication token",
+				},
+			})
 			c.Abort()
 			return
 		}
 
 		user, err := mockAuth.GetUserFromToken(c.Request.Context(), token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Invalid or expired token",
+				},
+			})
 			c.Abort()
 			return
 		}
