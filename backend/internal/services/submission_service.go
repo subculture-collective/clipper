@@ -312,6 +312,17 @@ func (s *SubmissionService) awardKarma(ctx context.Context, userID uuid.UUID, po
 	return s.userRepo.Update(ctx, user)
 }
 
+// getClipTitle returns the clip title, preferring custom title over original title
+func getClipTitle(submission *models.ClipSubmission) string {
+	if submission.CustomTitle != nil && *submission.CustomTitle != "" {
+		return *submission.CustomTitle
+	}
+	if submission.Title != nil {
+		return *submission.Title
+	}
+	return ""
+}
+
 // ApproveSubmission approves a submission and creates the clip
 func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID, reviewerID uuid.UUID) error {
 	submission, err := s.submissionRepo.GetByID(ctx, submissionID)
@@ -357,12 +368,7 @@ func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID,
 
 	// Send notification to submitter
 	if s.notificationService != nil {
-		clipTitle := ""
-		if submission.CustomTitle != nil && *submission.CustomTitle != "" {
-			clipTitle = *submission.CustomTitle
-		} else if submission.Title != nil {
-			clipTitle = *submission.Title
-		}
+		clipTitle := getClipTitle(submission)
 		if err := s.notificationService.NotifySubmissionApproved(ctx, submission.UserID, submissionID, clipTitle); err != nil {
 			// Log error but don't fail
 			fmt.Printf("Failed to send notification: %v\n", err)
@@ -413,12 +419,7 @@ func (s *SubmissionService) RejectSubmission(ctx context.Context, submissionID, 
 
 	// Send notification to submitter
 	if s.notificationService != nil {
-		clipTitle := ""
-		if submission.CustomTitle != nil && *submission.CustomTitle != "" {
-			clipTitle = *submission.CustomTitle
-		} else if submission.Title != nil {
-			clipTitle = *submission.Title
-		}
+		clipTitle := getClipTitle(submission)
 		if err := s.notificationService.NotifySubmissionRejected(ctx, submission.UserID, submissionID, clipTitle, reason); err != nil {
 			// Log error but don't fail
 			fmt.Printf("Failed to send notification: %v\n", err)

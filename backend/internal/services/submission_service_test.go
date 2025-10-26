@@ -236,3 +236,76 @@ func TestSubmissionService_BroadcasterNameOverridePrecedence(t *testing.T) {
 		}
 	})
 }
+
+func TestGetClipTitle(t *testing.T) {
+	tests := []struct {
+		name        string
+		submission  *models.ClipSubmission
+		expected    string
+		description string
+	}{
+		{
+			name: "Custom title takes precedence",
+			submission: &models.ClipSubmission{
+				CustomTitle: strPtr("Custom Title"),
+				Title:       strPtr("Original Title"),
+			},
+			expected:    "Custom Title",
+			description: "When both custom title and title are provided, custom title should be returned",
+		},
+		{
+			name: "Use original title when no custom title",
+			submission: &models.ClipSubmission{
+				CustomTitle: nil,
+				Title:       strPtr("Original Title"),
+			},
+			expected:    "Original Title",
+			description: "When custom title is nil, original title should be returned",
+		},
+		{
+			name: "Empty custom title falls back to original title",
+			submission: &models.ClipSubmission{
+				CustomTitle: strPtr(""),
+				Title:       strPtr("Original Title"),
+			},
+			expected:    "Original Title",
+			description: "When custom title is empty string, original title should be returned",
+		},
+		{
+			name: "Return empty string when both are nil",
+			submission: &models.ClipSubmission{
+				CustomTitle: nil,
+				Title:       nil,
+			},
+			expected:    "",
+			description: "When both custom title and title are nil, empty string should be returned",
+		},
+		{
+			name: "Return empty string when both are empty",
+			submission: &models.ClipSubmission{
+				CustomTitle: strPtr(""),
+				Title:       strPtr(""),
+			},
+			expected:    "",
+			description: "When both custom title and title are empty strings, empty string should be returned",
+		},
+		{
+			name: "Custom title with whitespace is valid",
+			submission: &models.ClipSubmission{
+				CustomTitle: strPtr("   Custom Title   "),
+				Title:       strPtr("Original Title"),
+			},
+			expected:    "   Custom Title   ",
+			description: "Custom title with whitespace should be preserved",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getClipTitle(tt.submission)
+			if result != tt.expected {
+				t.Errorf("getClipTitle() = %q, want %q\nDescription: %s", result, tt.expected, tt.description)
+			}
+		})
+	}
+}
