@@ -9,12 +9,9 @@ import (
 
 // TestMockAuditLogRepository tests the AuditLogRepository interface
 func TestAuditLogRepositoryStructure(t *testing.T) {
-	// Test that the repository has all required methods
-	var repo *AuditLogRepository
-	if repo == nil {
-		// This test just ensures the struct exists
-		t.Log("AuditLogRepository structure exists")
-	}
+	// Test that the repository type exists at compile time
+	var _ AuditLogRepository
+	t.Log("AuditLogRepository type exists")
 }
 
 func TestAuditLogFilters(t *testing.T) {

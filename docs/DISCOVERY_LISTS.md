@@ -5,6 +5,7 @@ This document describes the Discovery Lists feature that provides Top, New, and 
 ## Overview
 
 The Discovery Lists feature enhances clip browsing by:
+
 - Adding a "Discussed" sort option for clips with the most comments
 - Providing a filter to show only clips from top 10,000 streamers
 - Creating a unified Discovery page with tabbed navigation
@@ -16,6 +17,7 @@ The Discovery Lists feature enhances clip browsing by:
 #### GET /api/v1/clips
 
 Query parameters:
+
 - `sort` - Sort order: `hot`, `new`, `top`, `rising`, or `discussed`
 - `timeframe` - Time range for `top` and `discussed`: `hour`, `day`, `week`, `month`, `year`, `all`
 - `top10k_streamers` - Boolean filter: `true` to show only clips from top 10k streamers
@@ -23,6 +25,7 @@ Query parameters:
 - `limit` - Results per page (default: 25, max: 100)
 
 Example requests:
+
 ```bash
 # Get most discussed clips from the past week
 GET /api/v1/clips?sort=discussed&timeframe=week
@@ -54,6 +57,7 @@ CREATE TABLE top_streamers (
 ```
 
 Indexes:
+
 - `idx_top_streamers_rank` - For ranking queries
 - `idx_top_streamers_broadcaster_id` - For existence checks
 - `idx_clips_comment_count` - For discussed sorting
@@ -80,6 +84,7 @@ func (r *ClipRepository) IsTopStreamer(ctx context.Context, broadcasterID string
 #### Clip Filtering
 
 The `ListWithFilters` method now supports:
+
 - `Sort: "discussed"` - Orders by `comment_count DESC`
 - `Top10kStreamers: true` - Filters to only top streamers
 
@@ -88,11 +93,13 @@ The `ListWithFilters` method now supports:
 ### Discovery Page
 
 Located at `/discover`, the Discovery page provides:
+
 - Tabbed navigation for Top, New, and Discussed clips
 - Toggle switch for "Top 10k Streamers" filter
 - URL parameter persistence for sharing filtered views
 
 Example URLs:
+
 ```
 /discover?tab=top&top10k_streamers=true
 /discover?tab=discussed&top10k_streamers=true
@@ -122,11 +129,13 @@ if (filters.top10k_streamers !== undefined) {
 Location: `backend/internal/repository/clip_repository_test.go`
 
 Tests cover:
+
 1. `TestClipRepository_ListWithFilters_Discussed` - Verifies discussed sorting
 2. `TestClipRepository_TopStreamers` - Tests top streamer CRUD operations
 3. `TestClipRepository_ListWithFilters_Top10kStreamers` - Tests filtering by top streamers
 
 Run tests:
+
 ```bash
 cd backend
 go test ./internal/repository/...
@@ -135,18 +144,21 @@ go test ./internal/repository/...
 ### Manual Testing
 
 1. Start the development environment:
+
 ```bash
 make docker-up
 make migrate-up
 ```
 
 2. Seed the database with sample data:
+
 ```bash
 # From backend directory
 psql $DATABASE_URL -f migrations/seed.sql
 ```
 
 3. Test the endpoints:
+
 ```bash
 # Test discussed sort
 curl "http://localhost:8080/api/v1/clips?sort=discussed"
@@ -156,6 +168,7 @@ curl "http://localhost:8080/api/v1/clips?sort=new&top10k_streamers=true"
 ```
 
 4. Test the frontend:
+
 - Navigate to `http://localhost:5173/discover`
 - Try different tabs (Top/New/Discussed)
 - Toggle "Top 10k Streamers" filter
@@ -174,11 +187,13 @@ The migration adds several indexes to optimize queries:
 ### Query Optimization
 
 The `discussed` sort uses:
+
 ```sql
 ORDER BY c.comment_count DESC, c.created_at DESC
 ```
 
 The top 10k filter uses an EXISTS subquery:
+
 ```sql
 EXISTS (
   SELECT 1 FROM top_streamers ts
@@ -229,6 +244,7 @@ Currently, the top streamers list must be updated manually. Future implementatio
 3. Webhook integration for real-time updates
 
 Example manual update:
+
 ```sql
 INSERT INTO top_streamers (broadcaster_id, broadcaster_name, rank, follower_count, view_count)
 VALUES ('123456', 'StreamerName', 1, 5000000, 300000000)
