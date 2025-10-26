@@ -130,7 +130,11 @@ func main() {
 	}
 
 	// Initialize router
-	r := gin.Default()
+	r := gin.New()
+
+	// Add custom middleware
+	r.Use(gin.Logger())
+	r.Use(middleware.JSONRecoveryMiddleware())
 
 	// Apply CORS middleware
 	r.Use(middleware.CORSMiddleware(cfg))

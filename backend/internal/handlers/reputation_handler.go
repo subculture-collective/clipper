@@ -160,14 +160,20 @@ func (h *ReputationHandler) GetLeaderboard(c *gin.Context) {
 		entries, err = h.reputationService.GetEngagementLeaderboard(c.Request.Context(), limit, offset)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid leaderboard type. Must be 'karma' or 'engagement'",
+			"error":   "Invalid leaderboard type",
+			"code":    "INVALID_LEADERBOARD_TYPE",
+			"message": "Leaderboard type must be 'karma' or 'engagement'",
 		})
 		return
 	}
 
 	if err != nil {
+		// Log the error without exposing sensitive details
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get leaderboard",
+			"error":   "Failed to retrieve leaderboard",
+			"code":    "LEADERBOARD_FETCH_ERROR",
+			"message": "Unable to retrieve leaderboard data. Please try again later.",
 		})
 		return
 	}
