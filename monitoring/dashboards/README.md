@@ -9,6 +9,7 @@ This directory contains Grafana dashboard configurations for monitoring Clipper.
 Provides a high-level view of application health and SLO compliance.
 
 **Panels:**
+
 - SLO: Availability (99.5% target)
 - SLO: Error Rate (< 0.5% target)
 - SLO: P95 Latency (< 100ms target)
@@ -24,7 +25,7 @@ Provides a high-level view of application health and SLO compliance.
 
 ### Via Grafana UI
 
-1. Open Grafana (http://localhost:3000)
+1. Open Grafana (<http://localhost:3000>)
 2. Login with admin credentials
 3. Navigate to Dashboards → Import
 4. Upload JSON file or paste JSON content
@@ -72,21 +73,25 @@ Then copy dashboard JSON files to the provisioning directory.
 ### Query Examples
 
 **Request Rate:**
+
 ```promql
 sum(rate(http_requests_total[5m]))
 ```
 
 **Error Rate:**
+
 ```promql
 sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))
 ```
 
 **P95 Latency:**
+
 ```promql
 histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
 ```
 
 **Cache Hit Rate:**
+
 ```promql
 rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))
 ```
