@@ -600,6 +600,7 @@ func TestKarmaAwardLogic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Verify the karma change matches the expected pattern for the action
 			expectedKarma := 0
 			if tt.action == "approve" {
 				expectedKarma = 10
@@ -607,8 +608,9 @@ func TestKarmaAwardLogic(t *testing.T) {
 				expectedKarma = -5
 			}
 			
-			if expectedKarma != tt.karmaChange {
-				t.Errorf("Action %s: expected karma change=%d, got %d. %s",
+			// This test ensures the test data itself is correct
+			if tt.karmaChange != expectedKarma {
+				t.Errorf("Test data mismatch for action %s: karmaChange=%d should be %d. %s",
 					tt.action, tt.karmaChange, expectedKarma, tt.description)
 			}
 		})
