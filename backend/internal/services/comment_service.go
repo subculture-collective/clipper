@@ -321,6 +321,11 @@ func (s *CommentService) ListComments(ctx context.Context, clipID uuid.UUID, sor
 		return nil, fmt.Errorf("failed to list comments: %w", err)
 	}
 
+	// Return empty slice if no comments (not nil)
+	if len(comments) == 0 {
+		return []CommentTreeNode{}, nil
+	}
+
 	// Build tree nodes with rendered content
 	var nodes []CommentTreeNode
 	for _, c := range comments {
