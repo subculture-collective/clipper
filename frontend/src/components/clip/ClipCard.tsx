@@ -50,10 +50,10 @@ export function ClipCard({ clip }: ClipCardProps) {
             : 'text-muted-foreground';
 
     return (
-        <div className='bg-card border border-border rounded-xl hover:shadow-lg transition-shadow'>
+        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border'>
             <div className='flex gap-4 p-4'>
                 {/* Vote sidebar */}
-                <div className='flex flex-col items-center gap-2 w-10 flex-shrink-0'>
+                <div className='shrink-0 flex flex-col items-center w-10 gap-2'>
                     <button
                         onClick={() => handleVote(1)}
                         className={cn(
@@ -107,21 +107,21 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                         {/* Duration badge */}
                         {clip.duration && (
-                            <div className='absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium'>
+                            <div className='bottom-2 right-2 absolute px-2 py-1 text-xs font-medium text-white bg-black bg-opacity-75 rounded'>
                                 {formatDuration(clip.duration)}
                             </div>
                         )}
 
                         {/* NSFW badge */}
                         {clip.is_nsfw && (
-                            <div className='absolute top-2 left-2'>
+                            <div className='top-2 left-2 absolute'>
                                 <Badge variant='error'>NSFW</Badge>
                             </div>
                         )}
 
                         {/* Featured badge */}
                         {clip.is_featured && (
-                            <div className='absolute top-2 right-2'>
+                            <div className='top-2 right-2 absolute'>
                                 <Badge variant='default'>Featured</Badge>
                             </div>
                         )}
@@ -130,15 +130,15 @@ export function ClipCard({ clip }: ClipCardProps) {
                     {/* Title */}
                     <Link
                         to={`/clip/${clip.id}`}
-                        className='block mb-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors'
+                        className='hover:text-primary-600 dark:hover:text-primary-400 block mb-2 transition-colors'
                     >
-                        <h3 className='text-lg font-semibold line-clamp-2'>
+                        <h3 className='line-clamp-2 text-lg font-semibold'>
                             {clip.title}
                         </h3>
                     </Link>
 
                     {/* Metadata */}
-                    <div className='flex flex-wrap gap-2 mb-3 text-sm text-muted-foreground'>
+                    <div className='text-muted-foreground flex flex-wrap gap-2 mb-3 text-sm'>
                         <Link
                             to={`/creator/${clip.creator_id}`}
                             className='hover:text-foreground transition-colors'
@@ -173,10 +173,10 @@ export function ClipCard({ clip }: ClipCardProps) {
                     </div>
 
                     {/* Action bar */}
-                    <div className='flex flex-wrap gap-4 items-center text-sm'>
+                    <div className='flex flex-wrap items-center gap-4 text-sm'>
                         <Link
                             to={`/clip/${clip.id}#comments`}
-                            className='flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors'
                         >
                             <svg
                                 className='w-5 h-5'
@@ -228,7 +228,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         </button>
 
                         <button
-                            className='flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors'
                             onClick={() => {
                                 navigator.clipboard.writeText(
                                     `${window.location.origin}/clip/${clip.id}`
@@ -252,7 +252,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                             <span>Share</span>
                         </button>
 
-                        <span className='flex items-center gap-1 text-muted-foreground'>
+                        <span className='text-muted-foreground flex items-center gap-1'>
                             <svg
                                 className='w-5 h-5'
                                 fill='none'
