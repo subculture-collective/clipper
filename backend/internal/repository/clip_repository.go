@@ -10,6 +10,11 @@ import (
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
+const (
+	// HotClipsMaterializedView is the name of the materialized view for hot clips
+	HotClipsMaterializedView = "hot_clips_materialized"
+)
+
 // ClipRepository handles database operations for clips
 type ClipRepository struct {
 	pool *pgxpool.Pool
@@ -549,7 +554,7 @@ func (r *ClipRepository) RemoveClip(ctx context.Context, clipID uuid.UUID, reaso
 // RefreshHotScores refreshes the materialized view for hot clips
 // This should be called periodically to update hot scores for discovery lists
 func (r *ClipRepository) RefreshHotScores(ctx context.Context) error {
-	query := `REFRESH MATERIALIZED VIEW CONCURRENTLY hot_clips_materialized`
+	query := fmt.Sprintf("REFRESH MATERIALIZED VIEW CONCURRENTLY %s", HotClipsMaterializedView)
 
 	_, err := r.pool.Exec(ctx, query)
 	if err != nil {
