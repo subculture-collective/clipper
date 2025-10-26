@@ -38,17 +38,18 @@ export interface ClipFeedResponse {
     has_more: boolean;
 }
 
-export type SortOption = 'hot' | 'new' | 'top' | 'rising';
-export type TimeFrame = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
+export type SortOption = "hot" | "new" | "top" | "rising" | "discussed";
+export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
 
 export interface ClipFeedFilters {
-    sort?: SortOption;
-    timeframe?: TimeFrame;
-    game_id?: string;
-    creator_id?: string;
-    tags?: string[];
-    language?: string;
-    nsfw?: boolean;
+  sort?: SortOption;
+  timeframe?: TimeFrame;
+  game_id?: string;
+  creator_id?: string;
+  tags?: string[];
+  language?: string;
+  nsfw?: boolean;
+  top10k_streamers?: boolean;
 }
 
 export interface VotePayload {

@@ -30,6 +30,7 @@ export async function fetchClips({
     if (filters.creator_id) params.creator_id = filters.creator_id;
     if (filters.language) params.language = filters.language;
     if (filters.nsfw !== undefined) params.nsfw = filters.nsfw;
+    if (filters.top10k_streamers !== undefined) params.top10k_streamers = filters.top10k_streamers;
     if (filters.tags && filters.tags.length > 0) {
       params.tag = filters.tags.join(',');
     }
