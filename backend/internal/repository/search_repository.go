@@ -177,7 +177,7 @@ func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req 
 		SELECT c.* FROM clips c
 		WHERE %s
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
+		LIMIT %d OFFSET %d
 	`, whereClause, orderBy, argPos, argPos+1)
 	args = append(args, req.Limit, offset)
 
@@ -239,7 +239,7 @@ func (r *SearchRepository) searchCreators(ctx context.Context, tsQuery string, r
 		SELECT u.* FROM users u
 		WHERE %s
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
+		LIMIT %d OFFSET %d
 	`, whereClause, orderBy, argPos, argPos+1)
 	args = append(args, req.Limit, offset)
 
@@ -304,7 +304,7 @@ func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req 
 		WHERE %s
 		GROUP BY c.game_id, c.game_name
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
+		LIMIT %d OFFSET %d
 	`, whereClause, orderBy, argPos, argPos+1)
 	args = append(args, req.Limit, offset)
 
@@ -359,7 +359,7 @@ func (r *SearchRepository) searchTags(ctx context.Context, tsQuery string, req *
 		SELECT t.* FROM tags t
 		WHERE %s
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
+		LIMIT %d OFFSET %d
 	`, whereClause, orderBy, argPos, argPos+1)
 	args = append(args, req.Limit, offset)
 

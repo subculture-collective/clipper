@@ -108,7 +108,7 @@ func (r *ReportRepository) ListReports(ctx context.Context, status, reportableTy
 		FROM reports
 		%s
 		ORDER BY created_at DESC
-		LIMIT $%d OFFSET $%d
+		LIMIT %d OFFSET %d
 	`, whereClause, argIndex, argIndex+1)
 
 	args = append(args, limit, offset)
