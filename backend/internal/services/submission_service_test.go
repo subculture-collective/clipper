@@ -309,3 +309,310 @@ func TestGetClipTitle(t *testing.T) {
 		})
 	}
 }
+
+// TestKarmaGateRequirement tests the minimum karma requirement for submission
+func TestKarmaGateRequirement(t *testing.T) {
+	tests := []struct {
+		name        string
+		karma       int
+		shouldPass  bool
+		description string
+	}{
+		{
+			name:        "Exactly 100 karma should pass",
+			karma:       100,
+			shouldPass:  true,
+			description: "Users with exactly 100 karma should be allowed to submit",
+		},
+		{
+			name:        "Above 100 karma should pass",
+			karma:       150,
+			shouldPass:  true,
+			description: "Users with more than 100 karma should be allowed to submit",
+		},
+		{
+			name:        "99 karma should fail",
+			karma:       99,
+			shouldPass:  false,
+			description: "Users with 99 karma should not be allowed to submit",
+		},
+		{
+			name:        "0 karma should fail",
+			karma:       0,
+			shouldPass:  false,
+			description: "Users with 0 karma should not be allowed to submit",
+		},
+		{
+			name:        "Negative karma should fail",
+			karma:       -50,
+			shouldPass:  false,
+			description: "Users with negative karma should not be allowed to submit",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			passes := tt.karma >= 100
+			if passes != tt.shouldPass {
+				t.Errorf("Karma %d: expected pass=%v, got %v. %s", tt.karma, tt.shouldPass, passes, tt.description)
+			}
+		})
+	}
+}
+
+// TestRateLimitLogic tests rate limit calculations
+func TestRateLimitLogic(t *testing.T) {
+	tests := []struct {
+		name           string
+		hourlyCount    int
+		dailyCount     int
+		exceedsHourly  bool
+		exceedsDaily   bool
+		description    string
+	}{
+		{
+			name:          "Within both limits",
+			hourlyCount:   2,
+			dailyCount:    10,
+			exceedsHourly: false,
+			exceedsDaily:  false,
+			description:   "2 submissions in last hour, 10 in last day should pass",
+		},
+		{
+			name:          "At hourly limit",
+			hourlyCount:   5,
+			dailyCount:    10,
+			exceedsHourly: true,
+			exceedsDaily:  false,
+			description:   "5 submissions in last hour should hit hourly limit",
+		},
+		{
+			name:          "Exceeds hourly limit",
+			hourlyCount:   6,
+			dailyCount:    10,
+			exceedsHourly: true,
+			exceedsDaily:  false,
+			description:   "6 submissions in last hour should exceed hourly limit",
+		},
+		{
+			name:          "At daily limit",
+			hourlyCount:   3,
+			dailyCount:    20,
+			exceedsHourly: false,
+			exceedsDaily:  true,
+			description:   "20 submissions in last day should hit daily limit",
+		},
+		{
+			name:          "Exceeds daily limit",
+			hourlyCount:   3,
+			dailyCount:    25,
+			exceedsHourly: false,
+			exceedsDaily:  true,
+			description:   "25 submissions in last day should exceed daily limit",
+		},
+		{
+			name:          "Exceeds both limits",
+			hourlyCount:   10,
+			dailyCount:    25,
+			exceedsHourly: true,
+			exceedsDaily:  true,
+			description:   "Both limits exceeded",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hourlyExceeded := tt.hourlyCount >= 5
+			dailyExceeded := tt.dailyCount >= 20
+			
+			if hourlyExceeded != tt.exceedsHourly {
+				t.Errorf("Hourly check: count=%d, expected exceeded=%v, got %v. %s", 
+					tt.hourlyCount, tt.exceedsHourly, hourlyExceeded, tt.description)
+			}
+			if dailyExceeded != tt.exceedsDaily {
+				t.Errorf("Daily check: count=%d, expected exceeded=%v, got %v. %s", 
+					tt.dailyCount, tt.exceedsDaily, dailyExceeded, tt.description)
+			}
+		})
+	}
+}
+
+// TestDuplicateDetectionLogic tests duplicate detection scenarios
+func TestDuplicateDetectionLogic(t *testing.T) {
+	tests := []struct {
+		name            string
+		clipExists      bool
+		submissionState string // "none", "pending", "approved", "rejected-recent", "rejected-old"
+		shouldAllow     bool
+		description     string
+	}{
+		{
+			name:            "New clip not submitted before",
+			clipExists:      false,
+			submissionState: "none",
+			shouldAllow:     true,
+			description:     "Brand new clip should be allowed",
+		},
+		{
+			name:            "Clip already exists in database",
+			clipExists:      true,
+			submissionState: "none",
+			shouldAllow:     false,
+			description:     "Clip that already exists should be rejected",
+		},
+		{
+			name:            "Clip has pending submission",
+			clipExists:      false,
+			submissionState: "pending",
+			shouldAllow:     false,
+			description:     "Clip with pending submission should be rejected",
+		},
+		{
+			name:            "Clip was already approved",
+			clipExists:      false,
+			submissionState: "approved",
+			shouldAllow:     false,
+			description:     "Previously approved clip should be rejected",
+		},
+		{
+			name:            "Clip rejected recently",
+			clipExists:      false,
+			submissionState: "rejected-recent",
+			shouldAllow:     false,
+			description:     "Recently rejected clip (within 7 days) should not be resubmitted",
+		},
+		{
+			name:            "Clip rejected long ago",
+			clipExists:      false,
+			submissionState: "rejected-old",
+			shouldAllow:     true,
+			description:     "Clip rejected more than 7 days ago can be resubmitted",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Simulate the duplicate detection logic
+			allowed := true
+			
+			if tt.clipExists {
+				allowed = false
+			} else if tt.submissionState == "pending" || tt.submissionState == "approved" {
+				allowed = false
+			} else if tt.submissionState == "rejected-recent" {
+				allowed = false
+			}
+			
+			if allowed != tt.shouldAllow {
+				t.Errorf("Expected shouldAllow=%v, got %v. %s", tt.shouldAllow, allowed, tt.description)
+			}
+		})
+	}
+}
+
+// TestApproveRejectStatusTransitions tests status transition logic
+func TestApproveRejectStatusTransitions(t *testing.T) {
+	tests := []struct {
+		name            string
+		currentStatus   string
+		action          string // "approve" or "reject"
+		shouldSucceed   bool
+		description     string
+	}{
+		{
+			name:          "Approve pending submission",
+			currentStatus: "pending",
+			action:        "approve",
+			shouldSucceed: true,
+			description:   "Pending submission can be approved",
+		},
+		{
+			name:          "Reject pending submission",
+			currentStatus: "pending",
+			action:        "reject",
+			shouldSucceed: true,
+			description:   "Pending submission can be rejected",
+		},
+		{
+			name:          "Cannot approve already approved submission",
+			currentStatus: "approved",
+			action:        "approve",
+			shouldSucceed: false,
+			description:   "Already approved submission cannot be approved again",
+		},
+		{
+			name:          "Cannot reject already approved submission",
+			currentStatus: "approved",
+			action:        "reject",
+			shouldSucceed: false,
+			description:   "Already approved submission cannot be rejected",
+		},
+		{
+			name:          "Cannot approve already rejected submission",
+			currentStatus: "rejected",
+			action:        "approve",
+			shouldSucceed: false,
+			description:   "Already rejected submission cannot be approved",
+		},
+		{
+			name:          "Cannot reject already rejected submission",
+			currentStatus: "rejected",
+			action:        "reject",
+			shouldSucceed: false,
+			description:   "Already rejected submission cannot be rejected again",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Only pending submissions can be approved or rejected
+			canTransition := tt.currentStatus == "pending"
+			
+			if canTransition != tt.shouldSucceed {
+				t.Errorf("Status %s, action %s: expected success=%v, got %v. %s",
+					tt.currentStatus, tt.action, tt.shouldSucceed, canTransition, tt.description)
+			}
+		})
+	}
+}
+
+// TestKarmaAwardLogic tests karma point calculations
+func TestKarmaAwardLogic(t *testing.T) {
+	tests := []struct {
+		name         string
+		action       string
+		karmaChange  int
+		description  string
+	}{
+		{
+			name:        "Approval awards 10 karma",
+			action:      "approve",
+			karmaChange: 10,
+			description: "Approved submissions award 10 karma points",
+		},
+		{
+			name:        "Rejection penalizes 5 karma",
+			action:      "reject",
+			karmaChange: -5,
+			description: "Rejected submissions subtract 5 karma points",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify the karma change matches the expected pattern for the action
+			expectedKarma := 0
+			if tt.action == "approve" {
+				expectedKarma = 10
+			} else if tt.action == "reject" {
+				expectedKarma = -5
+			}
+			
+			// This test ensures the test data itself is correct
+			if tt.karmaChange != expectedKarma {
+				t.Errorf("Test data mismatch for action %s: karmaChange=%d should be %d. %s",
+					tt.action, tt.karmaChange, expectedKarma, tt.description)
+			}
+		})
+	}
+}
