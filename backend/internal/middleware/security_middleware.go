@@ -83,7 +83,7 @@ func GetSecureCookieOptions(cfg *config.Config) SecureCookieOptions {
 
 // SetSecureCookie sets a secure cookie with proper flags
 func SetSecureCookie(c *gin.Context, name, value string, options SecureCookieOptions) {
-	sameSite := http.SameSiteDefaultMode
+	sameSite := http.SameSiteLaxMode // Default to Lax for better compatibility
 	switch options.SameSite {
 	case "strict":
 		sameSite = http.SameSiteStrictMode
