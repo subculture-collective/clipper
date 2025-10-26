@@ -14,7 +14,11 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 		token := extractToken(c)
 		if token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Missing authentication token",
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Missing authentication token",
+				},
 			})
 			c.Abort()
 			return
@@ -24,7 +28,11 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 		user, err := authService.GetUserFromToken(c.Request.Context(), token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid or expired token",
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Invalid or expired token",
+				},
 			})
 			c.Abort()
 			return
