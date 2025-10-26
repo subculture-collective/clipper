@@ -30,15 +30,20 @@ func (h *ReputationHandler) GetUserReputation(c *gin.Context) {
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
 		})
 		return
 	}
 
 	reputation, err := h.reputationService.GetUserReputation(c.Request.Context(), userID)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get user reputation",
+			"error":   "Failed to get user reputation",
+			"code":    "REPUTATION_FETCH_ERROR",
+			"message": "Unable to retrieve user reputation. Please try again later.",
 		})
 		return
 	}
@@ -53,7 +58,9 @@ func (h *ReputationHandler) GetUserKarma(c *gin.Context) {
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
 		})
 		return
 	}
@@ -61,8 +68,11 @@ func (h *ReputationHandler) GetUserKarma(c *gin.Context) {
 	// Get karma breakdown
 	breakdown, err := h.reputationService.GetKarmaBreakdown(c.Request.Context(), userID)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get karma breakdown",
+			"error":   "Failed to get karma breakdown",
+			"code":    "KARMA_FETCH_ERROR",
+			"message": "Unable to retrieve karma breakdown. Please try again later.",
 		})
 		return
 	}
@@ -76,8 +86,11 @@ func (h *ReputationHandler) GetUserKarma(c *gin.Context) {
 
 	history, err := h.reputationService.GetUserKarmaHistory(c.Request.Context(), userID, limit)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get karma history",
+			"error":   "Failed to get karma history",
+			"code":    "KARMA_HISTORY_FETCH_ERROR",
+			"message": "Unable to retrieve karma history. Please try again later.",
 		})
 		return
 	}
@@ -95,15 +108,20 @@ func (h *ReputationHandler) GetUserBadges(c *gin.Context) {
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
 		})
 		return
 	}
 
 	badges, err := h.reputationService.GetUserBadges(c.Request.Context(), userID)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get user badges",
+			"error":   "Failed to get user badges",
+			"code":    "BADGES_FETCH_ERROR",
+			"message": "Unable to retrieve user badges. Please try again later.",
 		})
 		return
 	}
@@ -194,7 +212,9 @@ func (h *ReputationHandler) AwardBadge(c *gin.Context) {
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
 		})
 		return
 	}
@@ -203,7 +223,9 @@ func (h *ReputationHandler) AwardBadge(c *gin.Context) {
 	currentUser, exists := c.Get("user")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Unauthorized",
+			"error":   "Unauthorized",
+			"code":    "UNAUTHORIZED",
+			"message": "Authentication required",
 		})
 		return
 	}
@@ -216,7 +238,9 @@ func (h *ReputationHandler) AwardBadge(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
+			"error":   "Invalid request body",
+			"code":    "INVALID_REQUEST",
+			"message": "Request body is missing or malformed",
 		})
 		return
 	}
@@ -224,8 +248,11 @@ func (h *ReputationHandler) AwardBadge(c *gin.Context) {
 	// Award badge
 	err = h.reputationService.AwardBadge(c.Request.Context(), userID, req.BadgeID, &adminID)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+			"error":   "Failed to award badge",
+			"code":    "BADGE_AWARD_ERROR",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -243,7 +270,9 @@ func (h *ReputationHandler) RemoveBadge(c *gin.Context) {
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
 		})
 		return
 	}
@@ -254,8 +283,11 @@ func (h *ReputationHandler) RemoveBadge(c *gin.Context) {
 	// Remove badge
 	err = h.reputationService.RemoveBadge(c.Request.Context(), userID, badgeID)
 	if err != nil {
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to remove badge",
+			"error":   "Failed to remove badge",
+			"code":    "BADGE_REMOVE_ERROR",
+			"message": "Unable to remove badge. Please try again later.",
 		})
 		return
 	}
