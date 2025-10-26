@@ -248,3 +248,106 @@ func TestClipRepository_ListWithFilters_Top10kStreamers(t *testing.T) {
 		}
 	}
 }
+
+func TestClipRepository_ListWithFilters_Language(t *testing.T) {
+	// Skip if not in integration test mode
+	if testing.Short() {
+		t.Skip("Skipping integration test")
+	}
+
+	pool := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, pool)
+
+	repo := NewClipRepository(pool)
+	ctx := context.Background()
+
+	// Create test clips with different languages
+	englishClip := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    "en-clip-1",
+		TwitchClipURL:   "https://clips.twitch.tv/en1",
+		EmbedURL:        "https://clips.twitch.tv/embed?clip=en1",
+		Title:           "English Clip",
+		CreatorName:     "creator1",
+		BroadcasterName: "EnglishStreamer",
+		BroadcasterID:   testutil.StringPtr("11111"),
+		Language:        testutil.StringPtr("en"),
+		CreatedAt:       time.Now().Add(-1 * time.Hour),
+		ImportedAt:      time.Now(),
+	}
+
+	spanishClip := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    "es-clip-1",
+		TwitchClipURL:   "https://clips.twitch.tv/es1",
+		EmbedURL:        "https://clips.twitch.tv/embed?clip=es1",
+		Title:           "Spanish Clip",
+		CreatorName:     "creator2",
+		BroadcasterName: "SpanishStreamer",
+		BroadcasterID:   testutil.StringPtr("22222"),
+		Language:        testutil.StringPtr("es"),
+		CreatedAt:       time.Now().Add(-2 * time.Hour),
+		ImportedAt:      time.Now(),
+	}
+
+	frenchClip := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    "fr-clip-1",
+		TwitchClipURL:   "https://clips.twitch.tv/fr1",
+		EmbedURL:        "https://clips.twitch.tv/embed?clip=fr1",
+		Title:           "French Clip",
+		CreatorName:     "creator3",
+		BroadcasterName: "FrenchStreamer",
+		BroadcasterID:   testutil.StringPtr("33333"),
+		Language:        testutil.StringPtr("fr"),
+		CreatedAt:       time.Now().Add(-3 * time.Hour),
+		ImportedAt:      time.Now(),
+	}
+
+	if err := repo.Create(ctx, englishClip); err != nil {
+		t.Fatalf("Failed to create English clip: %v", err)
+	}
+	if err := repo.Create(ctx, spanishClip); err != nil {
+		t.Fatalf("Failed to create Spanish clip: %v", err)
+	}
+	if err := repo.Create(ctx, frenchClip); err != nil {
+		t.Fatalf("Failed to create French clip: %v", err)
+	}
+
+	// Test filter by English
+	enLang := "en"
+	filters := ClipFilters{
+		Sort:     "new",
+		Language: &enLang,
+	}
+
+	clips, total, err := repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list clips with language filter: %v", err)
+	}
+
+	if total != 1 {
+		t.Errorf("Expected 1 English clip, got %d", total)
+	}
+
+	if len(clips) > 0 && clips[0].Language != nil && *clips[0].Language != "en" {
+		t.Errorf("Expected English clip, got language: %s", *clips[0].Language)
+	}
+
+	// Test filter by Spanish
+	esLang := "es"
+	filters.Language = &esLang
+
+	clips, total, err = repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list clips with Spanish filter: %v", err)
+	}
+
+	if total != 1 {
+		t.Errorf("Expected 1 Spanish clip, got %d", total)
+	}
+
+	if len(clips) > 0 && clips[0].Language != nil && *clips[0].Language != "es" {
+		t.Errorf("Expected Spanish clip, got language: %s", *clips[0].Language)
+	}
+}
