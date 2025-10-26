@@ -203,6 +203,7 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	broadcasterID := c.Query("broadcaster_id")
 	tag := c.Query("tag")
 	search := c.Query("search")
+	language := c.Query("language")
 	top10kStreamers := c.Query("top10k_streamers") == "true"
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
@@ -232,6 +233,9 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	}
 	if search != "" {
 		filters.Search = &search
+	}
+	if language != "" {
+		filters.Language = &language
 	}
 	if timeframe != "" {
 		filters.Timeframe = &timeframe

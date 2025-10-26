@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button, Input } from '../ui';
 import { UserMenu } from './UserMenu';
 import { NotificationBell } from './NotificationBell';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function Header() {
+  const { t } = useTranslation();
   const { isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -40,27 +43,27 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-1">
             <Link to="/">
               <Button variant="ghost" size="sm">
-                Hot
+                {t('nav.hot')}
               </Button>
             </Link>
             <Link to="/new">
               <Button variant="ghost" size="sm">
-                New
+                {t('nav.new')}
               </Button>
             </Link>
             <Link to="/top">
               <Button variant="ghost" size="sm">
-                Top
+                {t('nav.top')}
               </Button>
             </Link>
             <Link to="/rising">
               <Button variant="ghost" size="sm">
-                Rising
+                {t('nav.rising')}
               </Button>
             </Link>
             <Link to="/leaderboards">
               <Button variant="ghost" size="sm">
-                🏆 Leaderboards
+                🏆 {t('nav.leaderboards')}
               </Button>
             </Link>
           </nav>
@@ -69,7 +72,7 @@ export function Header() {
           <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-md mx-4">
             <Input
               type="search"
-              placeholder="Search clips..."
+              placeholder={t('nav.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -77,6 +80,11 @@ export function Header() {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2">
+            {/* Language Switcher */}
+            <div className="hidden md:flex">
+              <LanguageSwitcher />
+            </div>
+
             {/* Theme Toggle */}
             <div className="hidden md:flex gap-1">
               <Button
@@ -84,6 +92,7 @@ export function Header() {
                 size="sm"
                 onClick={() => setTheme('light')}
                 className={theme === 'light' ? 'bg-primary-100 dark:bg-primary-900' : ''}
+                title={t('theme.light')}
               >
                 ☀️
               </Button>
@@ -92,6 +101,7 @@ export function Header() {
                 size="sm"
                 onClick={() => setTheme('dark')}
                 className={theme === 'dark' ? 'bg-primary-100 dark:bg-primary-900' : ''}
+                title={t('theme.dark')}
               >
                 🌙
               </Button>
@@ -102,7 +112,7 @@ export function Header() {
               <div className="hidden md:flex items-center gap-2">
                 <Link to="/submit">
                   <Button variant="primary" size="sm">
-                    Submit Clip
+                    {t('nav.submit')}
                   </Button>
                 </Link>
                 <NotificationBell />
@@ -111,7 +121,7 @@ export function Header() {
             ) : (
               <Link to="/login" className="hidden md:block">
                 <Button variant="primary" size="sm">
-                  Login
+                  {t('nav.login')}
                 </Button>
               </Link>
             )}
@@ -134,22 +144,22 @@ export function Header() {
             <nav className="flex flex-col gap-2 mb-4">
               <Link to="/" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" size="sm" className="w-full justify-start">
-                  Hot
+                  {t('nav.hot')}
                 </Button>
               </Link>
               <Link to="/new" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" size="sm" className="w-full justify-start">
-                  New
+                  {t('nav.new')}
                 </Button>
               </Link>
               <Link to="/top" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" size="sm" className="w-full justify-start">
-                  Top
+                  {t('nav.top')}
                 </Button>
               </Link>
               <Link to="/rising" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" size="sm" className="w-full justify-start">
-                  Rising
+                  {t('nav.rising')}
                 </Button>
               </Link>
             </nav>
@@ -157,7 +167,7 @@ export function Header() {
             <form onSubmit={handleSearch} className="mb-4">
               <Input
                 type="search"
-                placeholder="Search clips..."
+                placeholder={t('nav.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -167,22 +177,22 @@ export function Header() {
               <div className="flex flex-col gap-2">
                 <Link to="/submit" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="primary" size="sm" className="w-full">
-                    Submit Clip
+                    {t('nav.submit')}
                   </Button>
                 </Link>
                 <Link to="/favorites" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
-                    Favorites
+                    {t('nav.favorites')}
                   </Button>
                 </Link>
                 <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
-                    Profile
+                    {t('nav.profile')}
                   </Button>
                 </Link>
                 <Link to="/settings" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
-                    Settings
+                    {t('nav.settings')}
                   </Button>
                 </Link>
                 <Button 
@@ -191,13 +201,13 @@ export function Header() {
                   className="w-full justify-start text-error-600"
                   onClick={handleLogout}
                 >
-                  Logout
+                  {t('nav.logout')}
                 </Button>
               </div>
             ) : (
               <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="primary" size="sm" className="w-full">
-                  Login
+                  {t('nav.login')}
                 </Button>
               </Link>
             )}

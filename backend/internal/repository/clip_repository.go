@@ -274,6 +274,7 @@ type ClipFilters struct {
 	BroadcasterID   *string
 	Tag             *string
 	Search          *string
+	Language        *string // Language code (e.g., en, es, fr)
 	Timeframe       *string // hour, day, week, month, year, all
 	Sort            string  // hot, new, top, rising, discussed
 	Top10kStreamers bool    // Filter clips to only top 10k streamers
@@ -311,6 +312,12 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	if filters.Search != nil && *filters.Search != "" {
 		whereClauses = append(whereClauses, fmt.Sprintf("c.title ILIKE %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, "%"+*filters.Search+"%")
+		argIndex++
+	}
+
+	if filters.Language != nil && *filters.Language != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.language = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.Language)
 		argIndex++
 	}
 

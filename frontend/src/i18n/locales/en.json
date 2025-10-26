@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Clipper"
+  },
+  "nav": {
+    "hot": "Hot",
+    "new": "New",
+    "top": "Top",
+    "rising": "Rising",
+    "leaderboards": "Leaderboards",
+    "search": "Search clips...",
+    "login": "Login",
+    "logout": "Logout",
+    "profile": "Profile",
+    "settings": "Settings",
+    "favorites": "Favorites",
+    "submit": "Submit Clip"
+  },
+  "feed": {
+    "sort": {
+      "hot": "Hot",
+      "new": "New",
+      "top": "Top",
+      "rising": "Rising",
+      "discussed": "Discussed"
+    },
+    "timeframe": {
+      "hour": "Past Hour",
+      "day": "Past Day",
+      "week": "Past Week",
+      "month": "Past Month",
+      "year": "Past Year",
+      "all": "All Time"
+    },
+    "loading": "Loading clips...",
+    "loadMore": "Load More",
+    "noClips": "No clips found",
+    "error": "Failed to load clips"
+  },
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "current": "Current Language"
+  },
+  "clip": {
+    "views": "views",
+    "comments": "comments",
+    "upvote": "Upvote",
+    "downvote": "Downvote",
+    "favorite": "Favorite",
+    "share": "Share",
+    "report": "Report"
+  },
+  "theme": {
+    "light": "Light Mode",
+    "dark": "Dark Mode"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "submit": "Submit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}

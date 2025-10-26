@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Clipper"
+  },
+  "nav": {
+    "hot": "Destacados",
+    "new": "Nuevos",
+    "top": "Populares",
+    "rising": "Ascendentes",
+    "leaderboards": "Clasificaciones",
+    "search": "Buscar clips...",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil",
+    "settings": "Configuración",
+    "favorites": "Favoritos",
+    "submit": "Enviar Clip"
+  },
+  "feed": {
+    "sort": {
+      "hot": "Destacados",
+      "new": "Nuevos",
+      "top": "Populares",
+      "rising": "Ascendentes",
+      "discussed": "Comentados"
+    },
+    "timeframe": {
+      "hour": "Última Hora",
+      "day": "Último Día",
+      "week": "Última Semana",
+      "month": "Último Mes",
+      "year": "Último Año",
+      "all": "Todo el Tiempo"
+    },
+    "loading": "Cargando clips...",
+    "loadMore": "Cargar Más",
+    "noClips": "No se encontraron clips",
+    "error": "Error al cargar clips"
+  },
+  "language": {
+    "select": "Idioma",
+    "en": "Inglés",
+    "es": "Español",
+    "fr": "Francés",
+    "current": "Idioma Actual"
+  },
+  "clip": {
+    "views": "vistas",
+    "comments": "comentarios",
+    "upvote": "Voto positivo",
+    "downvote": "Voto negativo",
+    "favorite": "Favorito",
+    "share": "Compartir",
+    "report": "Reportar"
+  },
+  "theme": {
+    "light": "Modo Claro",
+    "dark": "Modo Oscuro"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "submit": "Enviar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito"
+  }
+}
