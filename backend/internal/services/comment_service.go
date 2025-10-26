@@ -36,14 +36,15 @@ const (
 
 // CommentService handles comment business logic
 type CommentService struct {
-	repo      *repository.CommentRepository
-	clipRepo  *repository.ClipRepository
-	markdown  goldmark.Markdown
-	sanitizer *bluemonday.Policy
+	repo                *repository.CommentRepository
+	clipRepo            *repository.ClipRepository
+	markdown            goldmark.Markdown
+	sanitizer           *bluemonday.Policy
+	notificationService *NotificationService
 }
 
 // NewCommentService creates a new CommentService
-func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository) *CommentService {
+func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository, notificationService *NotificationService) *CommentService {
 	// Configure markdown processor
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -72,10 +73,11 @@ func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.
 	sanitizer.AddTargetBlankToFullyQualifiedLinks(true)
 
 	return &CommentService{
-		repo:      repo,
-		clipRepo:  clipRepo,
-		markdown:  md,
-		sanitizer: sanitizer,
+		repo:                repo,
+		clipRepo:            clipRepo,
+		markdown:            md,
+		sanitizer:           sanitizer,
+		notificationService: notificationService,
 	}
 }
 
@@ -165,6 +167,14 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 	if err := s.repo.UpdateUserKarma(ctx, userID, KarmaPerComment); err != nil {
 		// Log error but don't fail the comment creation
 		fmt.Printf("Warning: failed to update karma for user %s: %v\n", userID, err)
+	}
+
+	// Send notification for reply if this is a reply to a parent comment
+	if s.notificationService != nil && req.ParentCommentID != nil {
+		if err := s.notificationService.NotifyCommentReply(ctx, clipID, *req.ParentCommentID, userID); err != nil {
+			// Log error but don't fail the comment creation
+			fmt.Printf("Warning: failed to send reply notification: %v\n", err)
+		}
 	}
 
 	return comment, nil
