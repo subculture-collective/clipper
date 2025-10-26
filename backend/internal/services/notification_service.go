@@ -100,7 +100,8 @@ func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences
 	case models.NotificationTypeBadgeEarned, models.NotificationTypeRankUp:
 		return prefs.NotifyBadges
 	case models.NotificationTypeContentRemoved, models.NotificationTypeWarning,
-		models.NotificationTypeBan, models.NotificationTypeAppealDecision:
+		models.NotificationTypeBan, models.NotificationTypeAppealDecision,
+		models.NotificationTypeSubmissionApproved, models.NotificationTypeSubmissionRejected:
 		return prefs.NotifyModeration
 	case models.NotificationTypeFavoritedClipComment:
 		return prefs.NotifyFavoritedClipComment
@@ -459,6 +460,61 @@ func (s *NotificationService) NotifyFavoritedClipComment(
 	}
 
 	return nil
+}
+
+// NotifySubmissionApproved notifies a user when their submission is approved
+func (s *NotificationService) NotifySubmissionApproved(
+	ctx context.Context,
+	submitterID uuid.UUID,
+	submissionID uuid.UUID,
+	clipTitle string,
+) error {
+	title := "Your clip submission was approved!"
+	message := fmt.Sprintf("\"%s\" is now live on Clipper", clipTitle)
+	link := fmt.Sprintf("/clips/submissions")
+
+	contentType := "submission"
+	_, err := s.CreateNotification(
+		ctx,
+		submitterID,
+		models.NotificationTypeSubmissionApproved,
+		title,
+		message,
+		&link,
+		nil,
+		&submissionID,
+		&contentType,
+	)
+
+	return err
+}
+
+// NotifySubmissionRejected notifies a user when their submission is rejected
+func (s *NotificationService) NotifySubmissionRejected(
+	ctx context.Context,
+	submitterID uuid.UUID,
+	submissionID uuid.UUID,
+	clipTitle string,
+	reason string,
+) error {
+	title := "Your clip submission was not approved"
+	message := fmt.Sprintf("\"%s\" - Reason: %s", clipTitle, reason)
+	link := fmt.Sprintf("/clips/submissions")
+
+	contentType := "submission"
+	_, err := s.CreateNotification(
+		ctx,
+		submitterID,
+		models.NotificationTypeSubmissionRejected,
+		title,
+		message,
+		&link,
+		nil,
+		&submissionID,
+		&contentType,
+	)
+
+	return err
 }
 
 // extractMentions extracts @username mentions from text
