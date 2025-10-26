@@ -132,12 +132,10 @@ func (s *AnalyticsService) GetContentMetrics(ctx context.Context) (*models.Conte
 	}
 
 	// Calculate average clip vote score
-	// TODO: Implement GetAverageClipVoteScore in analytics repository
-	avgVoteScore := 0.0
-	// avgVoteScore, err := s.analyticsRepo.GetAverageClipVoteScore(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	avgVoteScore, err := s.analyticsRepo.GetAverageClipVoteScore(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return &models.ContentMetrics{
 		MostPopularGames:    games,
