@@ -1,0 +1,106 @@
+name: Bug Report
+description: Report a bug or issue
+title: '[Bug] '
+labels: ['kind/bug', 'status/ready']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              ## 👋 Thanks for reporting!
+
+              Before starting work, please read the [Agent Instructions](https://github.com/subculture-collective/clipper/blob/main/.github/AGENT_INSTRUCTIONS.md).
+
+    - type: textarea
+      id: summary
+      attributes:
+          label: Summary
+          description: Brief description of the bug
+          placeholder: 'Users are unable to...'
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduction
+      attributes:
+          label: Steps to Reproduce
+          description: How can we reproduce this issue?
+          placeholder: |
+              1. Go to...
+              2. Click on...
+              3. See error...
+      validations:
+          required: true
+
+    - type: textarea
+      id: expected
+      attributes:
+          label: Expected Behavior
+          description: What should happen?
+          placeholder: 'User should see...'
+      validations:
+          required: true
+
+    - type: textarea
+      id: actual
+      attributes:
+          label: Actual Behavior
+          description: What actually happens?
+          placeholder: 'Instead, user sees...'
+      validations:
+          required: true
+
+    - type: textarea
+      id: acceptance-criteria
+      attributes:
+          label: Acceptance Criteria
+          description: How will we know this is fixed?
+          placeholder: |
+              - [ ] Bug no longer reproduces
+              - [ ] Tests added to prevent regression
+              - [ ] Works across all supported browsers/devices
+      validations:
+          required: true
+
+    - type: dropdown
+      id: priority
+      attributes:
+          label: Priority
+          description: How urgent is this?
+          options:
+              - P0 (Critical - blocks users)
+              - P1 (High priority)
+              - P2 (Medium priority)
+              - P3 (Low priority)
+      validations:
+          required: true
+
+    - type: dropdown
+      id: milestone
+      attributes:
+          label: Milestone
+          description: Which release phase?
+          options:
+              - MVP (foundations, must-fixes, go-to-market blockers)
+              - Beta (core UX completeness, reliability, admin)
+              - GA (polish, growth, docs, SEO)
+              - Post-GA (nice-to-have, stretch)
+      validations:
+          required: true
+
+    - type: textarea
+      id: environment
+      attributes:
+          label: Environment
+          description: Where does this occur?
+          placeholder: |
+              - Browser: Chrome 120
+              - OS: macOS 14
+              - Device: Desktop
+              - Version: v1.2.3
+
+    - type: textarea
+      id: logs
+      attributes:
+          label: Error Logs (optional)
+          description: Any console errors or stack traces?
+          render: shell

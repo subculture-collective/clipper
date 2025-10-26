@@ -1,0 +1,75 @@
+name: Sync Issue Labels to PR
+
+on:
+    pull_request:
+        types: [opened, edited, synchronize]
+
+jobs:
+    sync-labels:
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+            pull-requests: write
+        steps:
+            - name: Sync labels from linked issues
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const pr = context.payload.pull_request;
+                      const body = pr.body || '';
+
+                      // Extract issue numbers from PR body (e.g., "Closes #146", "Fixes #147", "Resolves #148")
+                      const issuePattern = /(close[sd]?|fix(e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
+                      const issueRefs = [...body.matchAll(issuePattern)];
+
+                      if (issueRefs.length === 0) {
+                        console.log('No issue references found in PR body');
+                        return;
+                      }
+
+                      const issueNumbers = issueRefs.map(match => parseInt(match[3]));
+                      console.log(`Found issue references: ${issueNumbers.join(', ')}`);
+
+                      const labelsToAdd = new Set();
+
+                      // Fetch labels from each referenced issue
+                      for (const issueNumber of issueNumbers) {
+                        try {
+                          const { data: issue } = await github.rest.issues.get({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            issue_number: issueNumber
+                          });
+                          
+                          console.log(`Issue #${issueNumber} has ${issue.labels.length} labels`);
+                          
+                          issue.labels.forEach(label => {
+                            const labelName = typeof label === 'string' ? label : label.name;
+                            // Sync milestone, priority, area, and kind labels
+                            if (labelName.startsWith('milestone/') || 
+                                labelName.startsWith('priority/') ||
+                                labelName.startsWith('area/') ||
+                                labelName.startsWith('kind/')) {
+                              labelsToAdd.add(labelName);
+                            }
+                          });
+                        } catch (error) {
+                          console.log(`Error fetching issue #${issueNumber}: ${error.message}`);
+                        }
+                      }
+
+                      if (labelsToAdd.size > 0) {
+                        const labels = Array.from(labelsToAdd);
+                        console.log(`Adding labels to PR: ${labels.join(', ')}`);
+                        
+                        await github.rest.issues.addLabels({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: pr.number,
+                          labels: labels
+                        });
+                        
+                        console.log('Labels synced successfully!');
+                      } else {
+                        console.log('No relevant labels to sync');
+                      }

@@ -1,0 +1,84 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+title: '[Feature] '
+labels: ['kind/feature', 'status/ready']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              ## 👋 Thanks for contributing!
+
+              Before starting work, please read the [Agent Instructions](https://github.com/subculture-collective/clipper/blob/main/.github/AGENT_INSTRUCTIONS.md).
+
+    - type: textarea
+      id: summary
+      attributes:
+          label: Summary
+          description: Brief description of what this feature does
+          placeholder: 'Add support for...'
+      validations:
+          required: true
+
+    - type: textarea
+      id: scope
+      attributes:
+          label: Scope
+          description: What needs to be implemented?
+          placeholder: |
+              - Backend: API endpoints, models, etc.
+              - Frontend: Components, pages, etc.
+              - Infrastructure: Config, deployment, etc.
+      validations:
+          required: true
+
+    - type: textarea
+      id: acceptance-criteria
+      attributes:
+          label: Acceptance Criteria
+          description: How will we know this is done?
+          placeholder: |
+              - [ ] User can perform X
+              - [ ] Tests cover Y
+              - [ ] Documentation updated
+      validations:
+          required: true
+
+    - type: dropdown
+      id: priority
+      attributes:
+          label: Priority
+          description: How urgent is this?
+          options:
+              - P0 (Critical - MVP blocker)
+              - P1 (High priority)
+              - P2 (Medium priority)
+              - P3 (Low priority)
+      validations:
+          required: true
+
+    - type: dropdown
+      id: milestone
+      attributes:
+          label: Milestone
+          description: Which release phase?
+          options:
+              - MVP (foundations, must-fixes, go-to-market blockers)
+              - Beta (core UX completeness, reliability, admin)
+              - GA (polish, growth, docs, SEO)
+              - Post-GA (nice-to-have, stretch)
+      validations:
+          required: true
+
+    - type: textarea
+      id: tech-notes
+      attributes:
+          label: Tech Notes (optional)
+          description: Implementation details, dependencies, or considerations
+          placeholder: 'Consider using X library for Y...'
+
+    - type: textarea
+      id: related
+      attributes:
+          label: Related Issues
+          description: Link to related issues or PRs
+          placeholder: 'Blocks #123, Depends on #456'
