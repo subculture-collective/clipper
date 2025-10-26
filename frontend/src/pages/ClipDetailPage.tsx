@@ -1,11 +1,34 @@
 import { useParams } from 'react-router-dom';
 import { Container, Spinner, CommentSection } from '../components';
-import { useClipById, useUser } from '../hooks';
+import { useClipById, useUser, useClipVote, useClipFavorite, useIsAuthenticated, useToast } from '../hooks';
+import { cn } from '@/lib/utils';
 
 export function ClipDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: clip, isLoading, error } = useClipById(id || '');
   const user = useUser();
+  const isAuthenticated = useIsAuthenticated();
+  const voteMutation = useClipVote();
+  const favoriteMutation = useClipFavorite();
+  const toast = useToast();
+
+  const handleVote = (voteType: 1 | -1) => {
+    if (!isAuthenticated) {
+      toast.info('Please log in to vote on clips');
+      return;
+    }
+    if (!clip) return;
+    voteMutation.mutate({ clip_id: clip.id, vote_type: voteType });
+  };
+
+  const handleFavorite = () => {
+    if (!isAuthenticated) {
+      toast.info('Please log in to favorite clips');
+      return;
+    }
+    if (!clip) return;
+    favoriteMutation.mutate({ clip_id: clip.id });
+  };
 
   if (isLoading) {
     return (
@@ -69,22 +92,51 @@ export function ClipDetailPage() {
 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <button
-            className="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
-            aria-label={`Upvote, ${clip.vote_score} votes`}
+            onClick={() => handleVote(1)}
+            disabled={!isAuthenticated}
+            className={cn(
+              "px-4 py-2 rounded-md transition-colors",
+              clip.user_vote === 1
+                ? "bg-green-600 text-white hover:bg-green-700"
+                : "bg-primary-500 text-white hover:bg-primary-600",
+              !isAuthenticated && "opacity-50 cursor-not-allowed hover:bg-primary-500"
+            )}
+            aria-label={isAuthenticated ? `Upvote, ${clip.vote_score} votes` : 'Log in to upvote'}
+            aria-disabled={!isAuthenticated}
+            title={isAuthenticated ? undefined : 'Log in to vote'}
           >
             Upvote ({clip.vote_score})
           </button>
           <button
             className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
             aria-label={`Comment, ${clip.comment_count} comments`}
+            onClick={() => {
+              document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' });
+            }}
           >
             Comment ({clip.comment_count})
           </button>
           <button
-            className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
-            aria-label={`Favorite, ${clip.favorite_count} favorites`}
+            onClick={handleFavorite}
+            disabled={!isAuthenticated}
+            className={cn(
+              "px-4 py-2 rounded-md transition-colors",
+              clip.is_favorited
+                ? "bg-red-500 text-white hover:bg-red-600"
+                : "border border-border hover:bg-muted",
+              !isAuthenticated && "opacity-50 cursor-not-allowed hover:bg-transparent"
+            )}
+            aria-label={
+              !isAuthenticated
+                ? 'Log in to favorite'
+                : clip.is_favorited
+                ? `Remove from favorites, ${clip.favorite_count} favorites`
+                : `Add to favorites, ${clip.favorite_count} favorites`
+            }
+            aria-disabled={!isAuthenticated}
+            title={isAuthenticated ? undefined : 'Log in to favorite'}
           >
-            Favorite ({clip.favorite_count})
+            {clip.is_favorited ? '❤️ ' : ''}Favorite ({clip.favorite_count})
           </button>
         </div>
 
@@ -107,7 +159,7 @@ export function ClipDetailPage() {
           </p>
         </div>
 
-        <div className="mt-8 border-t border-border pt-8">
+        <div className="mt-8 border-t border-border pt-8" id="comments">
           <CommentSection
             clipId={clip.id}
             currentUserId={user?.id}

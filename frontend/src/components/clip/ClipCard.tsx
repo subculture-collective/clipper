@@ -1,6 +1,7 @@
 import { TagList } from '@/components/tag/TagList';
 import { Badge } from '@/components/ui';
 import { useClipFavorite, useClipVote } from '@/hooks/useClips';
+import { useIsAuthenticated, useToast } from '@/hooks';
 import { cn } from '@/lib/utils';
 import type { Clip } from '@/types/clip';
 import { formatDistanceToNow } from 'date-fns';
@@ -12,16 +13,24 @@ interface ClipCardProps {
 }
 
 export function ClipCard({ clip }: ClipCardProps) {
+    const isAuthenticated = useIsAuthenticated();
     const voteMutation = useClipVote();
     const favoriteMutation = useClipFavorite();
+    const toast = useToast();
 
     const handleVote = (voteType: 1 | -1) => {
-        // TODO: Add auth check
+        if (!isAuthenticated) {
+            toast.info('Please log in to vote on clips');
+            return;
+        }
         voteMutation.mutate({ clip_id: clip.id, vote_type: voteType });
     };
 
     const handleFavorite = () => {
-        // TODO: Add auth check
+        if (!isAuthenticated) {
+            toast.info('Please log in to favorite clips');
+            return;
+        }
         favoriteMutation.mutate({ clip_id: clip.id });
     };
 
@@ -56,12 +65,17 @@ export function ClipCard({ clip }: ClipCardProps) {
                 <div className='shrink-0 flex flex-col items-center w-10 gap-2'>
                     <button
                         onClick={() => handleVote(1)}
+                        disabled={!isAuthenticated}
                         className={cn(
                             'w-8 h-8 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors',
                             clip.user_vote === 1 &&
-                                'text-green-600 dark:text-green-400'
+                                'text-green-600 dark:text-green-400',
+                            !isAuthenticated &&
+                                'opacity-50 cursor-not-allowed hover:bg-transparent'
                         )}
-                        aria-label='Upvote'
+                        aria-label={isAuthenticated ? 'Upvote' : 'Log in to upvote'}
+                        aria-disabled={!isAuthenticated}
+                        title={isAuthenticated ? 'Upvote' : 'Log in to vote'}
                     >
                         <svg
                             className='w-6 h-6'
@@ -78,12 +92,17 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                     <button
                         onClick={() => handleVote(-1)}
+                        disabled={!isAuthenticated}
                         className={cn(
                             'w-8 h-8 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors',
                             clip.user_vote === -1 &&
-                                'text-red-600 dark:text-red-400'
+                                'text-red-600 dark:text-red-400',
+                            !isAuthenticated &&
+                                'opacity-50 cursor-not-allowed hover:bg-transparent'
                         )}
-                        aria-label='Downvote'
+                        aria-label={isAuthenticated ? 'Downvote' : 'Log in to downvote'}
+                        aria-disabled={!isAuthenticated}
+                        title={isAuthenticated ? 'Downvote' : 'Log in to vote'}
                     >
                         <svg
                             className='w-6 h-6'
@@ -198,16 +217,24 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                         <button
                             onClick={handleFavorite}
-                            className={`flex items-center gap-1 ${
+                            disabled={!isAuthenticated}
+                            className={cn(
+                                'flex items-center gap-1 transition-colors',
                                 clip.is_favorited
                                     ? 'text-red-500 hover:text-red-400'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            } transition-colors`}
+                                    : 'text-muted-foreground hover:text-foreground',
+                                !isAuthenticated &&
+                                    'opacity-50 cursor-not-allowed hover:text-muted-foreground'
+                            )}
                             aria-label={
-                                clip.is_favorited
+                                !isAuthenticated
+                                    ? 'Log in to favorite'
+                                    : clip.is_favorited
                                     ? 'Remove from favorites'
                                     : 'Add to favorites'
                             }
+                            aria-disabled={!isAuthenticated}
+                            title={!isAuthenticated ? 'Log in to favorite' : undefined}
                         >
                             <svg
                                 className='w-5 h-5'
