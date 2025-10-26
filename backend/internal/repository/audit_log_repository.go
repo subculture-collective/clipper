@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 // AuditLogRepository handles database operations for moderation audit logs
@@ -64,31 +65,31 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 	argPos := 1
 
 	if filters.ModeratorID != nil {
-		whereClause += fmt.Sprintf(" AND mal.moderator_id = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.moderator_id = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.ModeratorID)
 		argPos++
 	}
 
 	if filters.Action != "" {
-		whereClause += fmt.Sprintf(" AND mal.action = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.action = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, filters.Action)
 		argPos++
 	}
 
 	if filters.EntityType != "" {
-		whereClause += fmt.Sprintf(" AND mal.entity_type = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.entity_type = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, filters.EntityType)
 		argPos++
 	}
 
 	if filters.StartDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at >= $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.StartDate)
 		argPos++
 	}
 
 	if filters.EndDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at <= $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.created_at <= %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.EndDate)
 		argPos++
 	}
@@ -111,7 +112,7 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 		JOIN users u ON mal.moderator_id = u.id
 		%s
 		ORDER BY mal.created_at DESC
-		LIMIT %d OFFSET %d`, whereClause, argPos, argPos+1)
+		LIMIT %s OFFSET %s`, whereClause, utils.SQLPlaceholder(argPos), utils.SQLPlaceholder(argPos+1))
 
 	args = append(args, limit, offset)
 
@@ -185,31 +186,31 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 	argPos := 1
 
 	if filters.ModeratorID != nil {
-		whereClause += fmt.Sprintf(" AND mal.moderator_id = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.moderator_id = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.ModeratorID)
 		argPos++
 	}
 
 	if filters.Action != "" {
-		whereClause += fmt.Sprintf(" AND mal.action = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.action = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, filters.Action)
 		argPos++
 	}
 
 	if filters.EntityType != "" {
-		whereClause += fmt.Sprintf(" AND mal.entity_type = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.entity_type = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, filters.EntityType)
 		argPos++
 	}
 
 	if filters.StartDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at >= $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.StartDate)
 		argPos++
 	}
 
 	if filters.EndDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at <= $%d", argPos)
+		whereClause += fmt.Sprintf(" AND mal.created_at <= %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.EndDate)
 		argPos++
 	}

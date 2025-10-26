@@ -198,3 +198,36 @@ func TestFloat64OrDefault(t *testing.T) {
 		})
 	}
 }
+
+func TestSQLPlaceholder(t *testing.T) {
+	tests := []struct {
+		name     string
+		position int
+		expected string
+	}{
+		{
+			name:     "Position 1",
+			position: 1,
+			expected: "$1",
+		},
+		{
+			name:     "Position 10",
+			position: 10,
+			expected: "$10",
+		},
+		{
+			name:     "Position 100",
+			position: 100,
+			expected: "$100",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SQLPlaceholder(tt.position)
+			if result != tt.expected {
+				t.Errorf("Expected %s, got %s", tt.expected, result)
+			}
+		})
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 // ReportRepository handles database operations for reports
@@ -81,13 +82,13 @@ func (r *ReportRepository) ListReports(ctx context.Context, status, reportableTy
 	argIndex := 1
 
 	if status != "" {
-		whereClause += fmt.Sprintf(" AND status = $%d", argIndex)
+		whereClause += fmt.Sprintf(" AND status = %s", utils.SQLPlaceholder(argIndex))
 		args = append(args, status)
 		argIndex++
 	}
 
 	if reportableType != "" {
-		whereClause += fmt.Sprintf(" AND reportable_type = $%d", argIndex)
+		whereClause += fmt.Sprintf(" AND reportable_type = %s", utils.SQLPlaceholder(argIndex))
 		args = append(args, reportableType)
 		argIndex++
 	}
@@ -108,8 +109,8 @@ func (r *ReportRepository) ListReports(ctx context.Context, status, reportableTy
 		FROM reports
 		%s
 		ORDER BY created_at DESC
-		LIMIT %d OFFSET %d
-	`, whereClause, argIndex, argIndex+1)
+		LIMIT %s OFFSET %s
+	`, whereClause, utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1))
 
 	args = append(args, limit, offset)
 
