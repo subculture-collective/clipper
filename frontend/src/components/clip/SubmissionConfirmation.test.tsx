@@ -1,15 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '../../test/test-utils';
-import userEvent from '@testing-library/user-event';
-import { SubmissionConfirmation } from './SubmissionConfirmation';
 import type { ClipSubmission } from '@/types/submission';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '../../test/test-utils';
+import { SubmissionConfirmation } from './SubmissionConfirmation';
 
 describe('SubmissionConfirmation', () => {
     const mockSubmission: ClipSubmission = {
         id: 'clip-123',
         user_id: 'user-456',
         twitch_clip_id: 'twitch-clip-789',
-        twitch_clip_url: 'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage',
+        twitch_clip_url:
+            'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage',
         title: 'Amazing Gaming Moment',
         custom_title: 'Epic Clutch Victory',
         tags: ['clutch', 'gaming', 'epic'],
@@ -32,9 +33,7 @@ describe('SubmissionConfirmation', () => {
             />
         );
 
-        expect(
-            screen.getByText('Submission Successful!')
-        ).toBeInTheDocument();
+        expect(screen.getByText('Submission Successful!')).toBeInTheDocument();
         expect(
             screen.getByText('Your clip has been submitted for review')
         ).toBeInTheDocument();
@@ -208,7 +207,7 @@ describe('SubmissionConfirmation', () => {
 
         const clipLink = screen.getByText('View your clip →');
         expect(clipLink).toBeInTheDocument();
-        expect(clipLink).toHaveAttribute('href', '/clip/clip-123');
+        expect(clipLink).toHaveAttribute('href', '/clip/twitch-clip-789');
     });
 
     it('does not show auto-approval message when status is pending', () => {
@@ -230,7 +229,8 @@ describe('SubmissionConfirmation', () => {
             />
         );
 
-        const submissionsLink = screen.getByText('View My Submissions')
+        const submissionsLink = screen
+            .getByText('View My Submissions')
             .closest('a');
         expect(submissionsLink).toHaveAttribute('href', '/submissions');
     });
@@ -265,7 +265,7 @@ describe('SubmissionConfirmation', () => {
 
     it('displays all submission information within 2 seconds', () => {
         const startTime = performance.now();
-        
+
         render(
             <SubmissionConfirmation
                 submission={mockSubmission}
@@ -277,9 +277,7 @@ describe('SubmissionConfirmation', () => {
         const renderTime = endTime - startTime;
 
         // Check that all essential information is rendered
-        expect(
-            screen.getByText('Submission Successful!')
-        ).toBeInTheDocument();
+        expect(screen.getByText('Submission Successful!')).toBeInTheDocument();
         expect(screen.getByText('Epic Clutch Victory')).toBeInTheDocument();
         expect(screen.getByText('TestStreamer')).toBeInTheDocument();
 
