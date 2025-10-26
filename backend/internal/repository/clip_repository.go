@@ -269,12 +269,13 @@ func (r *ClipRepository) GetLastSyncTime(ctx context.Context) (*time.Time, error
 
 // ClipFilters represents filters for listing clips
 type ClipFilters struct {
-	GameID        *string
-	BroadcasterID *string
-	Tag           *string
-	Search        *string
-	Timeframe     *string // hour, day, week, month, year, all
-	Sort          string  // hot, new, top, rising
+	GameID           *string
+	BroadcasterID    *string
+	Tag              *string
+	Search           *string
+	Timeframe        *string // hour, day, week, month, year, all
+	Sort             string  // hot, new, top, rising, discussed
+	Top10kStreamers  bool    // Filter clips to only top 10k streamers
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
@@ -312,6 +313,14 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		argIndex++
 	}
 
+	// Filter by top 10k streamers if requested
+	if filters.Top10kStreamers {
+		whereClauses = append(whereClauses, `EXISTS (
+			SELECT 1 FROM top_streamers ts
+			WHERE ts.broadcaster_id = c.broadcaster_id
+		)`)
+	}
+
 	// Add timeframe filter for top sort
 	if filters.Sort == "top" && filters.Timeframe != nil {
 		switch *filters.Timeframe {
@@ -333,6 +342,22 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
 	}
 
+	// Add timeframe for discussed (recent clips only, optional)
+	if filters.Sort == "discussed" && filters.Timeframe != nil {
+		switch *filters.Timeframe {
+		case "hour":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
+		case "day":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
+		case "week":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
+		case "month":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
+		case "year":
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+		}
+	}
+
 	whereClause := "WHERE " + whereClauses[0]
 	for i := 1; i < len(whereClauses); i++ {
 		whereClause += " AND " + whereClauses[i]
@@ -350,6 +375,9 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	case "rising":
 		// Rising: recent clips with high velocity (view_count + vote_score combined with recency)
 		orderBy = "ORDER BY (c.vote_score + (c.view_count / 100)) * (1 + 1.0 / (EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600.0 + 2)) DESC"
+	case "discussed":
+		// Discussed: clips with most comments, breaking ties by creation date
+		orderBy = "ORDER BY c.comment_count DESC, c.created_at DESC"
 	default:
 		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC"
 	}
@@ -565,4 +593,64 @@ func (r *ClipRepository) RefreshHotScores(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// UpsertTopStreamer inserts or updates a top streamer record
+func (r *ClipRepository) UpsertTopStreamer(ctx context.Context, broadcasterID, broadcasterName string, rank int, followerCount, viewCount int64) error {
+	query := `
+		INSERT INTO top_streamers (broadcaster_id, broadcaster_name, rank, follower_count, view_count, last_updated)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+		ON CONFLICT (broadcaster_id) 
+		DO UPDATE SET 
+			broadcaster_name = EXCLUDED.broadcaster_name,
+			rank = EXCLUDED.rank,
+			follower_count = EXCLUDED.follower_count,
+			view_count = EXCLUDED.view_count,
+			last_updated = NOW()
+	`
+
+	_, err := r.pool.Exec(ctx, query, broadcasterID, broadcasterName, rank, followerCount, viewCount)
+	if err != nil {
+		return fmt.Errorf("failed to upsert top streamer: %w", err)
+	}
+
+	return nil
+}
+
+// ClearTopStreamers clears all top streamer records (useful before bulk insert)
+func (r *ClipRepository) ClearTopStreamers(ctx context.Context) error {
+	query := `TRUNCATE TABLE top_streamers`
+
+	_, err := r.pool.Exec(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to clear top streamers: %w", err)
+	}
+
+	return nil
+}
+
+// GetTopStreamersCount returns the count of top streamers in the database
+func (r *ClipRepository) GetTopStreamersCount(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM top_streamers`
+
+	var count int
+	err := r.pool.QueryRow(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count top streamers: %w", err)
+	}
+
+	return count, nil
+}
+
+// IsTopStreamer checks if a broadcaster is in the top streamers list
+func (r *ClipRepository) IsTopStreamer(ctx context.Context, broadcasterID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM top_streamers WHERE broadcaster_id = $1)`
+
+	var exists bool
+	err := r.pool.QueryRow(ctx, query, broadcasterID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check top streamer status: %w", err)
+	}
+
+	return exists, nil
 }
