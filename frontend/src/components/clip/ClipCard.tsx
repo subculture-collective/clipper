@@ -224,7 +224,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                                     ? 'text-red-500 hover:text-red-400'
                                     : 'text-muted-foreground hover:text-foreground',
                                 !isAuthenticated &&
-                                    'opacity-50 cursor-not-allowed hover:text-muted-foreground'
+                                    'opacity-50 cursor-not-allowed hover:bg-transparent'
                             )}
                             aria-label={
                                 !isAuthenticated
