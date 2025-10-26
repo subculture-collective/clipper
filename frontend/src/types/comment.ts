@@ -29,7 +29,7 @@ export interface CommentFeedResponse {
   has_more: boolean;
 }
 
-export type CommentSortOption = 'best' | 'new' | 'old' | 'controversial';
+export type CommentSortOption = 'best' | 'top' | 'new' | 'old' | 'controversial';
 
 export interface CreateCommentPayload {
   clip_id: string;
