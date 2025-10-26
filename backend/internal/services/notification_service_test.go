@@ -166,3 +166,56 @@ func TestNotifyVoteMilestone_OnlyMilestones(t *testing.T) {
 		}
 	}
 }
+
+func TestShouldNotify_SubmissionTypes(t *testing.T) {
+	service := &NotificationService{}
+
+	tests := []struct {
+		name      string
+		prefs     *models.NotificationPreferences
+		notifType string
+		expected  bool
+	}{
+		{
+			name: "should notify for submission approved when moderation enabled",
+			prefs: &models.NotificationPreferences{
+				NotifyModeration: true,
+			},
+			notifType: models.NotificationTypeSubmissionApproved,
+			expected:  true,
+		},
+		{
+			name: "should not notify for submission approved when moderation disabled",
+			prefs: &models.NotificationPreferences{
+				NotifyModeration: false,
+			},
+			notifType: models.NotificationTypeSubmissionApproved,
+			expected:  false,
+		},
+		{
+			name: "should notify for submission rejected when moderation enabled",
+			prefs: &models.NotificationPreferences{
+				NotifyModeration: true,
+			},
+			notifType: models.NotificationTypeSubmissionRejected,
+			expected:  true,
+		},
+		{
+			name: "should not notify for submission rejected when moderation disabled",
+			prefs: &models.NotificationPreferences{
+				NotifyModeration: false,
+			},
+			notifType: models.NotificationTypeSubmissionRejected,
+			expected:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.shouldNotify(tt.prefs, tt.notifType)
+			if result != tt.expected {
+				t.Errorf("shouldNotify() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
