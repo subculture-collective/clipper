@@ -4,7 +4,7 @@ CREATE TABLE moderation_audit_logs (
     action VARCHAR(50) NOT NULL, -- approve, reject, bulk_approve, bulk_reject
     entity_type VARCHAR(50) NOT NULL, -- clip_submission, clip, comment, user
     entity_id UUID NOT NULL,
-    moderator_id UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+    moderator_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     reason TEXT,
     metadata JSONB, -- Store additional context (e.g., bulk action details, tags, filters used)
     created_at TIMESTAMP DEFAULT NOW()
