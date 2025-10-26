@@ -159,7 +159,7 @@ func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req 
 	// Build ORDER BY clause
 	orderBy := "c.created_at DESC" // Default to recent
 	if req.Sort == "relevance" && tsQuery != "" {
-		orderBy = fmt.Sprintf("ts_rank(c.search_vector, to_tsquery('english', $1)) DESC, c.vote_score DESC, c.created_at DESC")
+		orderBy = "ts_rank(c.search_vector, to_tsquery('english', $1)) DESC, c.vote_score DESC, c.created_at DESC"
 	} else if req.Sort == "popular" {
 		orderBy = "c.vote_score DESC, c.created_at DESC"
 	}
@@ -231,7 +231,7 @@ func (r *SearchRepository) searchCreators(ctx context.Context, tsQuery string, r
 	// Build ORDER BY
 	orderBy := "u.karma_points DESC, u.created_at DESC"
 	if req.Sort == "relevance" && tsQuery != "" {
-		orderBy = fmt.Sprintf("ts_rank(u.search_vector, to_tsquery('english', $1)) DESC, u.karma_points DESC")
+		orderBy = "ts_rank(u.search_vector, to_tsquery('english', $1)) DESC, u.karma_points DESC"
 	}
 
 	// Get paginated results
@@ -351,7 +351,7 @@ func (r *SearchRepository) searchTags(ctx context.Context, tsQuery string, req *
 	// Build ORDER BY
 	orderBy := "t.usage_count DESC, t.created_at DESC"
 	if req.Sort == "relevance" && tsQuery != "" {
-		orderBy = fmt.Sprintf("ts_rank(t.search_vector, to_tsquery('english', $1)) DESC, t.usage_count DESC")
+		orderBy = "ts_rank(t.search_vector, to_tsquery('english', $1)) DESC, t.usage_count DESC"
 	}
 
 	// Get paginated results
