@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 // SubmissionRepository handles database operations for clip submissions
@@ -258,37 +259,37 @@ func (r *SubmissionRepository) ListPendingWithFilters(ctx context.Context, filte
 	argPos := 1
 
 	if filters.IsNSFW != nil {
-		whereClause += fmt.Sprintf(" AND s.is_nsfw = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND s.is_nsfw = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.IsNSFW)
 		argPos++
 	}
 
 	if filters.BroadcasterName != nil {
-		whereClause += fmt.Sprintf(" AND LOWER(s.broadcaster_name) LIKE LOWER($%d)", argPos)
+		whereClause += fmt.Sprintf(" AND LOWER(s.broadcaster_name) LIKE LOWER(%s)", utils.SQLPlaceholder(argPos))
 		args = append(args, "%"+*filters.BroadcasterName+"%")
 		argPos++
 	}
 
 	if filters.CreatorName != nil {
-		whereClause += fmt.Sprintf(" AND LOWER(s.creator_name) LIKE LOWER($%d)", argPos)
+		whereClause += fmt.Sprintf(" AND LOWER(s.creator_name) LIKE LOWER(%s)", utils.SQLPlaceholder(argPos))
 		args = append(args, "%"+*filters.CreatorName+"%")
 		argPos++
 	}
 
 	if len(filters.Tags) > 0 {
-		whereClause += fmt.Sprintf(" AND s.tags && $%d", argPos)
+		whereClause += fmt.Sprintf(" AND s.tags && %s", utils.SQLPlaceholder(argPos))
 		args = append(args, filters.Tags)
 		argPos++
 	}
 
 	if filters.StartDate != nil {
-		whereClause += fmt.Sprintf(" AND s.created_at >= $%d", argPos)
+		whereClause += fmt.Sprintf(" AND s.created_at >= %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.StartDate)
 		argPos++
 	}
 
 	if filters.EndDate != nil {
-		whereClause += fmt.Sprintf(" AND s.created_at <= $%d", argPos)
+		whereClause += fmt.Sprintf(" AND s.created_at <= %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *filters.EndDate)
 		argPos++
 	}
@@ -314,7 +315,7 @@ func (r *SubmissionRepository) ListPendingWithFilters(ctx context.Context, filte
 		JOIN users u ON s.user_id = u.id
 		%s
 		ORDER BY s.created_at ASC
-		LIMIT $%d OFFSET $%d`, whereClause, argPos, argPos+1)
+		LIMIT %s OFFSET %s`, whereClause, utils.SQLPlaceholder(argPos), utils.SQLPlaceholder(argPos+1))
 
 	args = append(args, limit, offset)
 

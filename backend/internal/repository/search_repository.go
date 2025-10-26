@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 // SearchRepository handles search operations
@@ -101,44 +102,44 @@ func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req 
 
 	// Full-text search condition
 	if tsQuery != "" {
-		whereClause += fmt.Sprintf(" AND c.search_vector @@ to_tsquery('english', $%d)", argPos)
+		whereClause += fmt.Sprintf(" AND c.search_vector @@ to_tsquery('english', %s)", utils.SQLPlaceholder(argPos))
 		args = append(args, tsQuery)
 		argPos++
 	}
 
 	// Apply filters
 	if req.GameID != nil && *req.GameID != "" {
-		whereClause += fmt.Sprintf(" AND c.game_id = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND c.game_id = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *req.GameID)
 		argPos++
 	}
 
 	if req.CreatorID != nil && *req.CreatorID != "" {
-		whereClause += fmt.Sprintf(" AND c.creator_id = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND c.creator_id = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *req.CreatorID)
 		argPos++
 	}
 
 	if req.Language != nil && *req.Language != "" {
-		whereClause += fmt.Sprintf(" AND c.language = $%d", argPos)
+		whereClause += fmt.Sprintf(" AND c.language = %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *req.Language)
 		argPos++
 	}
 
 	if req.MinVotes != nil {
-		whereClause += fmt.Sprintf(" AND c.vote_score >= $%d", argPos)
+		whereClause += fmt.Sprintf(" AND c.vote_score >= %s", utils.SQLPlaceholder(argPos))
 		args = append(args, *req.MinVotes)
 		argPos++
 	}
 
 	if req.DateFrom != nil && *req.DateFrom != "" {
-		whereClause += fmt.Sprintf(" AND c.created_at >= $%d::timestamp", argPos)
+		whereClause += fmt.Sprintf(" AND c.created_at >= %s::timestamp", utils.SQLPlaceholder(argPos))
 		args = append(args, *req.DateFrom)
 		argPos++
 	}
 
 	if req.DateTo != nil && *req.DateTo != "" {
-		whereClause += fmt.Sprintf(" AND c.created_at <= $%d::timestamp", argPos)
+		whereClause += fmt.Sprintf(" AND c.created_at <= %s::timestamp", utils.SQLPlaceholder(argPos))
 		args = append(args, *req.DateTo)
 		argPos++
 	}
@@ -149,8 +150,8 @@ func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req 
 			SELECT ct.clip_id 
 			FROM clip_tags ct 
 			JOIN tags t ON ct.tag_id = t.id 
-			WHERE t.slug = ANY($%d)
-		)`, argPos)
+			WHERE t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argPos))
 		args = append(args, req.Tags)
 		argPos++
 	}
@@ -177,8 +178,8 @@ func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req 
 		SELECT c.* FROM clips c
 		WHERE %s
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
-	`, whereClause, orderBy, argPos, argPos+1)
+		LIMIT %s OFFSET %s
+	`, whereClause, orderBy, utils.SQLPlaceholder(argPos), utils.SQLPlaceholder(argPos+1))
 	args = append(args, req.Limit, offset)
 
 	rows, err := r.db.Query(ctx, query, args...)
@@ -214,7 +215,7 @@ func (r *SearchRepository) searchCreators(ctx context.Context, tsQuery string, r
 	argPos := 1
 
 	if tsQuery != "" {
-		whereClause += fmt.Sprintf(" AND u.search_vector @@ to_tsquery('english', $%d)", argPos)
+		whereClause += fmt.Sprintf(" AND u.search_vector @@ to_tsquery('english', %s)", utils.SQLPlaceholder(argPos))
 		args = append(args, tsQuery)
 		argPos++
 	}
@@ -239,8 +240,8 @@ func (r *SearchRepository) searchCreators(ctx context.Context, tsQuery string, r
 		SELECT u.* FROM users u
 		WHERE %s
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
-	`, whereClause, orderBy, argPos, argPos+1)
+		LIMIT %s OFFSET %s
+	`, whereClause, orderBy, utils.SQLPlaceholder(argPos), utils.SQLPlaceholder(argPos+1))
 	args = append(args, req.Limit, offset)
 
 	rows, err := r.db.Query(ctx, query, args...)
@@ -274,7 +275,7 @@ func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req 
 	argPos := 1
 
 	if tsQuery != "" {
-		whereClause += fmt.Sprintf(" AND to_tsvector('english', c.game_name) @@ to_tsquery('english', $%d)", argPos)
+		whereClause += fmt.Sprintf(" AND to_tsvector('english', c.game_name) @@ to_tsquery('english', %s)", utils.SQLPlaceholder(argPos))
 		args = append(args, tsQuery)
 		argPos++
 	}
@@ -304,8 +305,8 @@ func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req 
 		WHERE %s
 		GROUP BY c.game_id, c.game_name
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
-	`, whereClause, orderBy, argPos, argPos+1)
+		LIMIT %s OFFSET %s
+	`, whereClause, orderBy, utils.SQLPlaceholder(argPos), utils.SQLPlaceholder(argPos+1))
 	args = append(args, req.Limit, offset)
 
 	rows, err := r.db.Query(ctx, query, args...)
@@ -334,7 +335,7 @@ func (r *SearchRepository) searchTags(ctx context.Context, tsQuery string, req *
 	argPos := 1
 
 	if tsQuery != "" {
-		whereClause += fmt.Sprintf(" AND t.search_vector @@ to_tsquery('english', $%d)", argPos)
+		whereClause += fmt.Sprintf(" AND t.search_vector @@ to_tsquery('english', %s)", utils.SQLPlaceholder(argPos))
 		args = append(args, tsQuery)
 		argPos++
 	}
@@ -359,8 +360,8 @@ func (r *SearchRepository) searchTags(ctx context.Context, tsQuery string, req *
 		SELECT t.* FROM tags t
 		WHERE %s
 		ORDER BY %s
-		LIMIT $%d OFFSET $%d
-	`, whereClause, orderBy, argPos, argPos+1)
+		LIMIT %s OFFSET %s
+	`, whereClause, orderBy, utils.SQLPlaceholder(argPos), utils.SQLPlaceholder(argPos+1))
 	args = append(args, req.Limit, offset)
 
 	rows, err := r.db.Query(ctx, query, args...)
