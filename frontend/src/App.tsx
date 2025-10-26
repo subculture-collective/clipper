@@ -13,6 +13,7 @@ const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.H
 const NewFeedPage = lazy(() => import('./pages/NewFeedPage').then(m => ({ default: m.NewFeedPage })));
 const TopFeedPage = lazy(() => import('./pages/TopFeedPage').then(m => ({ default: m.TopFeedPage })));
 const RisingFeedPage = lazy(() => import('./pages/RisingFeedPage').then(m => ({ default: m.RisingFeedPage })));
+const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
 const ClipDetailPage = lazy(() => import('./pages/ClipDetailPage').then(m => ({ default: m.ClipDetailPage })));
 const GamePage = lazy(() => import('./pages/GamePage').then(m => ({ default: m.GamePage })));
 const CreatorPage = lazy(() => import('./pages/CreatorPage').then(m => ({ default: m.CreatorPage })));
@@ -64,6 +65,7 @@ function App() {
                 <Route element={<AppLayout />}>
                   {/* Public Routes */}
                   <Route path="/" element={<HomePage />} />
+                  <Route path="/discover" element={<DiscoveryPage />} />
                   <Route path="/new" element={<NewFeedPage />} />
                   <Route path="/top" element={<TopFeedPage />} />
                   <Route path="/rising" element={<RisingFeedPage />} />

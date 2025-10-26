@@ -36,7 +36,7 @@ export interface ClipFeedResponse {
   has_more: boolean;
 }
 
-export type SortOption = "hot" | "new" | "top" | "rising";
+export type SortOption = "hot" | "new" | "top" | "rising" | "discussed";
 export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
 
 export interface ClipFeedFilters {
@@ -47,6 +47,7 @@ export interface ClipFeedFilters {
   tags?: string[];
   language?: string;
   nsfw?: boolean;
+  top10k_streamers?: boolean;
 }
 
 export interface VotePayload {

@@ -3,6 +3,7 @@ export { HomePage } from './HomePage';
 export { NewFeedPage } from './NewFeedPage';
 export { TopFeedPage } from './TopFeedPage';
 export { RisingFeedPage } from './RisingFeedPage';
+export { DiscoveryPage } from './DiscoveryPage';
 export { ClipDetailPage } from './ClipDetailPage';
 export { GamePage } from './GamePage';
 export { CreatorPage } from './CreatorPage';
