@@ -14,11 +14,12 @@ import (
 
 // SubmissionService handles clip submission business logic
 type SubmissionService struct {
-	submissionRepo *repository.SubmissionRepository
-	clipRepo       *repository.ClipRepository
-	userRepo       *repository.UserRepository
-	auditLogRepo   *repository.AuditLogRepository
-	twitchClient   *twitch.Client
+	submissionRepo      *repository.SubmissionRepository
+	clipRepo            *repository.ClipRepository
+	userRepo            *repository.UserRepository
+	auditLogRepo        *repository.AuditLogRepository
+	twitchClient        *twitch.Client
+	notificationService *NotificationService
 }
 
 // NewSubmissionService creates a new SubmissionService
@@ -28,13 +29,15 @@ func NewSubmissionService(
 	userRepo *repository.UserRepository,
 	auditLogRepo *repository.AuditLogRepository,
 	twitchClient *twitch.Client,
+	notificationService *NotificationService,
 ) *SubmissionService {
 	return &SubmissionService{
-		submissionRepo: submissionRepo,
-		clipRepo:       clipRepo,
-		userRepo:       userRepo,
-		auditLogRepo:   auditLogRepo,
-		twitchClient:   twitchClient,
+		submissionRepo:      submissionRepo,
+		clipRepo:            clipRepo,
+		userRepo:            userRepo,
+		auditLogRepo:        auditLogRepo,
+		twitchClient:        twitchClient,
+		notificationService: notificationService,
 	}
 }
 
@@ -352,6 +355,20 @@ func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID,
 		fmt.Printf("Failed to award karma: %v\n", err)
 	}
 
+	// Send notification to submitter
+	if s.notificationService != nil {
+		clipTitle := ""
+		if submission.CustomTitle != nil && *submission.CustomTitle != "" {
+			clipTitle = *submission.CustomTitle
+		} else if submission.Title != nil {
+			clipTitle = *submission.Title
+		}
+		if err := s.notificationService.NotifySubmissionApproved(ctx, submission.UserID, submissionID, clipTitle); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to send notification: %v\n", err)
+		}
+	}
+
 	return nil
 }
 
@@ -392,6 +409,20 @@ func (s *SubmissionService) RejectSubmission(ctx context.Context, submissionID, 
 	if err := s.awardKarma(ctx, submission.UserID, -5); err != nil {
 		// Log error but don't fail
 		fmt.Printf("Failed to penalize karma: %v\n", err)
+	}
+
+	// Send notification to submitter
+	if s.notificationService != nil {
+		clipTitle := ""
+		if submission.CustomTitle != nil && *submission.CustomTitle != "" {
+			clipTitle = *submission.CustomTitle
+		} else if submission.Title != nil {
+			clipTitle = *submission.Title
+		}
+		if err := s.notificationService.NotifySubmissionRejected(ctx, submission.UserID, submissionID, clipTitle, reason); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to send notification: %v\n", err)
+		}
 	}
 
 	return nil
