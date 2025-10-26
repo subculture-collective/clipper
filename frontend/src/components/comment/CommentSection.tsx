@@ -70,6 +70,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
             className="px-3 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="best">Best</option>
+            <option value="top">Top</option>
             <option value="new">New</option>
             <option value="old">Old</option>
             <option value="controversial">Controversial</option>
