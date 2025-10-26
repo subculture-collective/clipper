@@ -486,7 +486,7 @@ func (s *SubmissionService) BulkRejectSubmissions(ctx context.Context, submissio
 			ID:          uuid.New(),
 			Action:      "bulk_reject",
 			EntityType:  "clip_submission",
-			EntityID:    reviewerID, // Use reviewer ID as entity ID for bulk actions
+			EntityID:    uuid.Nil, // No single entity; use Nil UUID for bulk actions
 			ModeratorID: reviewerID,
 			Reason:      &reason,
 			Metadata:    metadata,
