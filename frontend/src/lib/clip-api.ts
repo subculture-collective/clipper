@@ -17,19 +17,22 @@ export async function fetchClips({
   pageParam?: number;
   filters?: ClipFeedFilters;
 }): Promise<ClipFeedResponse> {
-  const params: Record<string, string | number | boolean | undefined> = {
+  const params: Record<string, string | number | boolean> = {
     page: pageParam,
     limit: 10,
   };
 
-  if (filters?.sort) params.sort = filters.sort;
-  if (filters?.timeframe) params.timeframe = filters.timeframe;
-  if (filters?.game_id) params.game_id = filters.game_id;
-  if (filters?.creator_id) params.creator_id = filters.creator_id;
-  if (filters?.language) params.language = filters.language;
-  if (filters?.nsfw !== undefined) params.nsfw = filters.nsfw;
-  if (filters?.tags && filters.tags.length > 0) {
-    params.tag = filters.tags.join(',');
+  // Add filters to params, only if they are defined
+  if (filters) {
+    if (filters.sort) params.sort = filters.sort;
+    if (filters.timeframe) params.timeframe = filters.timeframe;
+    if (filters.game_id) params.game_id = filters.game_id;
+    if (filters.creator_id) params.creator_id = filters.creator_id;
+    if (filters.language) params.language = filters.language;
+    if (filters.nsfw !== undefined) params.nsfw = filters.nsfw;
+    if (filters.tags && filters.tags.length > 0) {
+      params.tag = filters.tags.join(',');
+    }
   }
 
   const response = await apiClient.get<{

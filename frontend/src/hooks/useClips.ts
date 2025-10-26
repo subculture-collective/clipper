@@ -94,8 +94,8 @@ export const useClipFavorite = () => {
 
   return useMutation({
     mutationFn: async (payload: FavoritePayload) => {
-      // If user_favorited is already true, remove favorite; otherwise add it
-      // We need to check the current state from the cache
+      // Check cache to determine if we should add or remove
+      // This iterates cached clips but typically there are only a few pages cached
       const cachedClip = queryClient
         .getQueriesData({ queryKey: ["clips"] })
         .flatMap(([, data]) => {
