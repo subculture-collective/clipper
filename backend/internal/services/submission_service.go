@@ -434,7 +434,7 @@ func (s *SubmissionService) BulkApproveSubmissions(ctx context.Context, submissi
 			ID:          uuid.New(),
 			Action:      "bulk_approve",
 			EntityType:  "clip_submission",
-			EntityID:    reviewerID, // Use reviewer ID as entity ID for bulk actions
+			EntityID:    uuid.Nil, // Use uuid.Nil as entity ID for bulk actions
 			ModeratorID: reviewerID,
 			Metadata:    metadata,
 			CreatedAt:   time.Now(),
