@@ -249,6 +249,54 @@ type SubmissionStats struct {
 	ApprovalRate  float64   `json:"approval_rate" db:"approval_rate"`
 }
 
+// ModerationAuditLog represents an audit log entry for moderation actions
+type ModerationAuditLog struct {
+	ID          uuid.UUID              `json:"id" db:"id"`
+	Action      string                 `json:"action" db:"action"`         // approve, reject, bulk_approve, bulk_reject
+	EntityType  string                 `json:"entity_type" db:"entity_type"` // clip_submission, clip, comment, user
+	EntityID    uuid.UUID              `json:"entity_id" db:"entity_id"`
+	ModeratorID uuid.UUID              `json:"moderator_id" db:"moderator_id"`
+	Reason      *string                `json:"reason,omitempty" db:"reason"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
+}
+
+// ModerationAuditLogWithUser includes moderator information
+type ModerationAuditLogWithUser struct {
+	ModerationAuditLog
+	Moderator *User `json:"moderator,omitempty"`
+}
+
+// RejectionReason constants for common rejection reasons
+const (
+	RejectionReasonLowQuality      = "Low quality clip"
+	RejectionReasonDuplicate       = "Duplicate content"
+	RejectionReasonInappropriate   = "Inappropriate content"
+	RejectionReasonOffTopic        = "Off-topic or irrelevant"
+	RejectionReasonPoorTitle       = "Poor or misleading title"
+	RejectionReasonTooShort        = "Clip too short"
+	RejectionReasonTooLong         = "Clip too long"
+	RejectionReasonSpam            = "Spam or promotional content"
+	RejectionReasonViolatesGuidelines = "Violates community guidelines"
+	RejectionReasonOther           = "Other (see notes)"
+)
+
+// GetRejectionReasonTemplates returns a list of common rejection reason templates
+func GetRejectionReasonTemplates() []string {
+	return []string{
+		RejectionReasonLowQuality,
+		RejectionReasonDuplicate,
+		RejectionReasonInappropriate,
+		RejectionReasonOffTopic,
+		RejectionReasonPoorTitle,
+		RejectionReasonTooShort,
+		RejectionReasonTooLong,
+		RejectionReasonSpam,
+		RejectionReasonViolatesGuidelines,
+		RejectionReasonOther,
+	}
+}
+
 // UserBadge represents a badge awarded to a user
 type UserBadge struct {
 	ID        uuid.UUID  `json:"id" db:"id"`

@@ -233,19 +233,75 @@ func (r *SubmissionRepository) ListByUser(ctx context.Context, userID uuid.UUID,
 	return submissions, total, rows.Err()
 }
 
+// SubmissionFilters represents filters for querying submissions
+type SubmissionFilters struct {
+	IsNSFW          *bool
+	BroadcasterName *string
+	CreatorName     *string
+	Tags            []string
+	StartDate       *time.Time
+	EndDate         *time.Time
+}
+
 // ListPending retrieves all pending submissions for moderation
 func (r *SubmissionRepository) ListPending(ctx context.Context, page, limit int) ([]*models.ClipSubmissionWithUser, int, error) {
+	return r.ListPendingWithFilters(ctx, SubmissionFilters{}, page, limit)
+}
+
+// ListPendingWithFilters retrieves pending submissions with optional filters
+func (r *SubmissionRepository) ListPendingWithFilters(ctx context.Context, filters SubmissionFilters, page, limit int) ([]*models.ClipSubmissionWithUser, int, error) {
 	offset := (page - 1) * limit
+
+	// Build where clause with filters
+	whereClause := "WHERE s.status = 'pending'"
+	args := []interface{}{}
+	argPos := 1
+
+	if filters.IsNSFW != nil {
+		whereClause += fmt.Sprintf(" AND s.is_nsfw = $%d", argPos)
+		args = append(args, *filters.IsNSFW)
+		argPos++
+	}
+
+	if filters.BroadcasterName != nil {
+		whereClause += fmt.Sprintf(" AND LOWER(s.broadcaster_name) LIKE LOWER($%d)", argPos)
+		args = append(args, "%"+*filters.BroadcasterName+"%")
+		argPos++
+	}
+
+	if filters.CreatorName != nil {
+		whereClause += fmt.Sprintf(" AND LOWER(s.creator_name) LIKE LOWER($%d)", argPos)
+		args = append(args, "%"+*filters.CreatorName+"%")
+		argPos++
+	}
+
+	if len(filters.Tags) > 0 {
+		whereClause += fmt.Sprintf(" AND s.tags && $%d", argPos)
+		args = append(args, filters.Tags)
+		argPos++
+	}
+
+	if filters.StartDate != nil {
+		whereClause += fmt.Sprintf(" AND s.created_at >= $%d", argPos)
+		args = append(args, *filters.StartDate)
+		argPos++
+	}
+
+	if filters.EndDate != nil {
+		whereClause += fmt.Sprintf(" AND s.created_at <= $%d", argPos)
+		args = append(args, *filters.EndDate)
+		argPos++
+	}
 
 	// Count total
 	var total int
-	countQuery := `SELECT COUNT(*) FROM clip_submissions WHERE status = 'pending'`
-	if err := r.db.QueryRow(ctx, countQuery).Scan(&total); err != nil {
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM clip_submissions s %s", whereClause)
+	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
 	// Get submissions with user info
-	query := `
+	query := fmt.Sprintf(`
 		SELECT 
 			s.id, s.user_id, s.twitch_clip_id, s.twitch_clip_url, s.title, s.custom_title,
 			s.tags, s.is_nsfw, s.submission_reason, s.status, s.rejection_reason,
@@ -256,11 +312,13 @@ func (r *SubmissionRepository) ListPending(ctx context.Context, page, limit int)
 			u.bio, u.karma_points, u.role, u.is_banned, u.created_at, u.updated_at, u.last_login_at
 		FROM clip_submissions s
 		JOIN users u ON s.user_id = u.id
-		WHERE s.status = 'pending'
+		%s
 		ORDER BY s.created_at ASC
-		LIMIT $1 OFFSET $2`
+		LIMIT $%d OFFSET $%d`, whereClause, argPos, argPos+1)
 
-	rows, err := r.db.Query(ctx, query, limit, offset)
+	args = append(args, limit, offset)
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -370,3 +428,71 @@ func (r *SubmissionRepository) GetUserStats(ctx context.Context, userID uuid.UUI
 
 	return &stats, nil
 }
+
+// GetByIDs retrieves multiple submissions by their IDs
+func (r *SubmissionRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.ClipSubmission, error) {
+	query := `
+		SELECT id, user_id, twitch_clip_id, twitch_clip_url, title, custom_title,
+			tags, is_nsfw, submission_reason, status, rejection_reason,
+			reviewed_by, reviewed_at, created_at, updated_at,
+			creator_name, creator_id, broadcaster_name, broadcaster_id, broadcaster_name_override,
+			game_id, game_name, thumbnail_url, duration, view_count
+		FROM clip_submissions
+		WHERE id = ANY($1)`
+
+	rows, err := r.db.Query(ctx, query, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var submissions []*models.ClipSubmission
+	for rows.Next() {
+		var submission models.ClipSubmission
+		err := rows.Scan(
+			&submission.ID,
+			&submission.UserID,
+			&submission.TwitchClipID,
+			&submission.TwitchClipURL,
+			&submission.Title,
+			&submission.CustomTitle,
+			&submission.Tags,
+			&submission.IsNSFW,
+			&submission.SubmissionReason,
+			&submission.Status,
+			&submission.RejectionReason,
+			&submission.ReviewedBy,
+			&submission.ReviewedAt,
+			&submission.CreatedAt,
+			&submission.UpdatedAt,
+			&submission.CreatorName,
+			&submission.CreatorID,
+			&submission.BroadcasterName,
+			&submission.BroadcasterID,
+			&submission.BroadcasterNameOverride,
+			&submission.GameID,
+			&submission.GameName,
+			&submission.ThumbnailURL,
+			&submission.Duration,
+			&submission.ViewCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+		submissions = append(submissions, &submission)
+	}
+
+	return submissions, rows.Err()
+}
+
+// BulkUpdateStatus updates the status of multiple submissions
+func (r *SubmissionRepository) BulkUpdateStatus(ctx context.Context, ids []uuid.UUID, status string, reviewedBy uuid.UUID, rejectionReason *string) error {
+	query := `
+		UPDATE clip_submissions
+		SET status = $1, reviewed_by = $2, reviewed_at = $3, rejection_reason = $4, updated_at = $5
+		WHERE id = ANY($6)`
+
+	_, err := r.db.Exec(ctx, query, status, reviewedBy, time.Now(), rejectionReason, time.Now(), ids)
+	return err
+}
+
