@@ -24,6 +24,9 @@ export { ProfilePage } from './ProfilePage';
 export { SubmitClipPage } from './SubmitClipPage';
 export { UserSubmissionsPage } from './UserSubmissionsPage';
 export { SettingsPage } from './SettingsPage';
+export { default as PricingPage } from './PricingPage';
+export { default as SubscriptionSuccessPage } from './SubscriptionSuccessPage';
+export { default as SubscriptionCancelPage } from './SubscriptionCancelPage';
 
 // Admin pages
 export { AdminDashboard } from './admin/AdminDashboard';

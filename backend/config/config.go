@@ -17,6 +17,7 @@ type Config struct {
 	Twitch     TwitchConfig
 	CORS       CORSConfig
 	OpenSearch OpenSearchConfig
+	Stripe     StripeConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -69,6 +70,16 @@ type OpenSearchConfig struct {
 	InsecureSkipVerify bool
 }
 
+// StripeConfig holds Stripe payment configuration
+type StripeConfig struct {
+	SecretKey              string
+	WebhookSecret          string
+	ProMonthlyPriceID      string
+	ProYearlyPriceID       string
+	SuccessURL             string
+	CancelURL              string
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -115,6 +126,14 @@ func Load() (*Config, error) {
 			Username:           getEnv("OPENSEARCH_USERNAME", ""),
 			Password:           getEnv("OPENSEARCH_PASSWORD", ""),
 			InsecureSkipVerify: getEnv("OPENSEARCH_INSECURE_SKIP_VERIFY", "true") == "true",
+		},
+		Stripe: StripeConfig{
+			SecretKey:         getEnv("STRIPE_SECRET_KEY", ""),
+			WebhookSecret:     getEnv("STRIPE_WEBHOOK_SECRET", ""),
+			ProMonthlyPriceID: getEnv("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
+			ProYearlyPriceID:  getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
+			SuccessURL:        getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
+			CancelURL:         getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
 		},
 	}
 
