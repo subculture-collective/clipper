@@ -22,12 +22,12 @@ func TestOpenSearchService_BuildClipQuery(t *testing.T) {
 
 		boolQuery, ok := query["bool"].(map[string]interface{})
 		if !ok {
-			t.Fatal("Expected bool query")
+			t.Fatalf("Expected bool query, got %T", query["bool"])
 		}
 
 		must, ok := boolQuery["must"].([]map[string]interface{})
 		if !ok {
-			t.Fatal("Expected must clause")
+			t.Fatalf("Expected must clause as []map[string]interface{}, got %T", boolQuery["must"])
 		}
 
 		if len(must) != 1 {
@@ -53,8 +53,16 @@ func TestOpenSearchService_BuildClipQuery(t *testing.T) {
 		}
 
 		query := service.buildClipQuery(req)
-		boolQuery := query["bool"].(map[string]interface{})
-		filter := boolQuery["filter"].([]map[string]interface{})
+		
+		boolQuery, ok := query["bool"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("Expected bool query, got %T", query["bool"])
+		}
+		
+		filter, ok := boolQuery["filter"].([]map[string]interface{})
+		if !ok {
+			t.Fatalf("Expected filter as []map[string]interface{}, got %T", boolQuery["filter"])
+		}
 
 		// Should have at least: is_removed + game_id + language + min_votes = 4 filters
 		if len(filter) < 4 {

@@ -361,12 +361,15 @@ Common issues:
 
 ## Production Considerations
 
+⚠️ **IMPORTANT SECURITY NOTE**: The default docker-compose configuration has OpenSearch security disabled (`DISABLE_SECURITY_PLUGIN=true`) for development ease. **This is NOT suitable for production.** Always enable security features, authentication, and TLS encryption for production deployments.
+
 ### Security
 
 1. **Enable OpenSearch security plugin**
    - Remove `DISABLE_SECURITY_PLUGIN=true` from docker-compose.yml
    - Configure SSL/TLS certificates
    - Set up authentication credentials
+   - See [OpenSearch Security Documentation](https://opensearch.org/docs/latest/security/)
 
 2. **Update configuration**
    ```bash
