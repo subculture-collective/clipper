@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -147,6 +148,26 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 		user.AvatarURL, user.Bio, user.LastLoginAt,
 	)
 
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// UpdateProfile updates user's display name and bio
+func (r *UserRepository) UpdateProfile(ctx context.Context, userID uuid.UUID, displayName string, bio *string) error {
+	query := `
+		UPDATE users
+		SET display_name = $2, bio = $3, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, displayName, bio)
 	if err != nil {
 		return err
 	}
@@ -304,5 +325,186 @@ func (r *RefreshTokenRepository) DeleteExpired(ctx context.Context) error {
 	`
 
 	_, err := r.db.Exec(ctx, query)
+	return err
+}
+
+// UserSettingsRepository handles user settings database operations
+type UserSettingsRepository struct {
+	db *pgxpool.Pool
+}
+
+// NewUserSettingsRepository creates a new user settings repository
+func NewUserSettingsRepository(db *pgxpool.Pool) *UserSettingsRepository {
+	return &UserSettingsRepository{db: db}
+}
+
+// GetByUserID retrieves user settings by user ID
+func (r *UserSettingsRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*models.UserSettings, error) {
+	query := `
+		SELECT user_id, profile_visibility, show_karma_publicly, created_at, updated_at
+		FROM user_settings
+		WHERE user_id = $1
+	`
+
+	var settings models.UserSettings
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&settings.UserID, &settings.ProfileVisibility, &settings.ShowKarmaPublicly,
+		&settings.CreatedAt, &settings.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
+// Update updates user settings
+func (r *UserSettingsRepository) Update(ctx context.Context, userID uuid.UUID, profileVisibility *string, showKarmaPublicly *bool) error {
+	// Build dynamic query based on provided fields
+	query := `UPDATE user_settings SET updated_at = NOW()`
+	args := []interface{}{userID}
+	argIndex := 2
+
+	if profileVisibility != nil {
+		query += `, profile_visibility = $` + fmt.Sprintf("%d", argIndex)
+		args = append(args, *profileVisibility)
+		argIndex++
+	}
+
+	if showKarmaPublicly != nil {
+		query += `, show_karma_publicly = $` + fmt.Sprintf("%d", argIndex)
+		args = append(args, *showKarmaPublicly)
+		argIndex++
+	}
+
+	query += ` WHERE user_id = $1`
+
+	result, err := r.db.Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// AccountDeletionRepository handles account deletion database operations
+type AccountDeletionRepository struct {
+	db *pgxpool.Pool
+}
+
+// NewAccountDeletionRepository creates a new account deletion repository
+func NewAccountDeletionRepository(db *pgxpool.Pool) *AccountDeletionRepository {
+	return &AccountDeletionRepository{db: db}
+}
+
+// Create creates a new account deletion request
+func (r *AccountDeletionRepository) Create(ctx context.Context, deletion *models.AccountDeletion) error {
+	query := `
+		INSERT INTO account_deletions (id, user_id, scheduled_for, reason)
+		VALUES ($1, $2, $3, $4)
+		RETURNING requested_at, is_cancelled
+	`
+
+	err := r.db.QueryRow(
+		ctx, query,
+		deletion.ID, deletion.UserID, deletion.ScheduledFor, deletion.Reason,
+	).Scan(&deletion.RequestedAt, &deletion.IsCancelled)
+
+	return err
+}
+
+// GetPendingByUserID retrieves a pending deletion request for a user
+func (r *AccountDeletionRepository) GetPendingByUserID(ctx context.Context, userID uuid.UUID) (*models.AccountDeletion, error) {
+	query := `
+		SELECT id, user_id, requested_at, scheduled_for, reason, is_cancelled, cancelled_at, completed_at
+		FROM account_deletions
+		WHERE user_id = $1 AND is_cancelled = false AND completed_at IS NULL
+		ORDER BY requested_at DESC
+		LIMIT 1
+	`
+
+	var deletion models.AccountDeletion
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&deletion.ID, &deletion.UserID, &deletion.RequestedAt, &deletion.ScheduledFor,
+		&deletion.Reason, &deletion.IsCancelled, &deletion.CancelledAt, &deletion.CompletedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil // No pending deletion
+		}
+		return nil, err
+	}
+
+	return &deletion, nil
+}
+
+// Cancel cancels a deletion request
+func (r *AccountDeletionRepository) Cancel(ctx context.Context, deletionID uuid.UUID) error {
+	query := `
+		UPDATE account_deletions
+		SET is_cancelled = true, cancelled_at = NOW()
+		WHERE id = $1 AND is_cancelled = false AND completed_at IS NULL
+	`
+
+	result, err := r.db.Exec(ctx, query, deletionID)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("deletion request not found or already completed")
+	}
+
+	return nil
+}
+
+// GetScheduledDeletions retrieves all scheduled deletions that are ready to be executed
+func (r *AccountDeletionRepository) GetScheduledDeletions(ctx context.Context) ([]*models.AccountDeletion, error) {
+	query := `
+		SELECT id, user_id, requested_at, scheduled_for, reason, is_cancelled, cancelled_at, completed_at
+		FROM account_deletions
+		WHERE scheduled_for <= NOW() AND is_cancelled = false AND completed_at IS NULL
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var deletions []*models.AccountDeletion
+	for rows.Next() {
+		var deletion models.AccountDeletion
+		err := rows.Scan(
+			&deletion.ID, &deletion.UserID, &deletion.RequestedAt, &deletion.ScheduledFor,
+			&deletion.Reason, &deletion.IsCancelled, &deletion.CancelledAt, &deletion.CompletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		deletions = append(deletions, &deletion)
+	}
+
+	return deletions, rows.Err()
+}
+
+// MarkCompleted marks a deletion as completed
+func (r *AccountDeletionRepository) MarkCompleted(ctx context.Context, deletionID uuid.UUID) error {
+	query := `
+		UPDATE account_deletions
+		SET completed_at = NOW()
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, deletionID)
 	return err
 }
