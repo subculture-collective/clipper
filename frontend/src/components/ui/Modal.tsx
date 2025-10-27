@@ -81,16 +81,6 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [open, onClose]);
 
-  // Additional cleanup on unmount to ensure overflow is always reset.
-  // This is a defensive measure to prevent black screen issues when navigating
-  // away from pages with modals, ensuring body overflow is reset even if the
-  // cleanup in the first useEffect doesn't fire due to React lifecycle timing.
-  useEffect(() => {
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
   if (!open) return null;
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
