@@ -58,7 +58,7 @@ Future tiers (e.g., Enterprise, Teams) can be added as the platform grows.
 ### Pro Subscription
 
 - **Monthly**: $9.99/month
-- **Yearly**: $99.99/year (save 16.7% - equivalent to $8.33/month)
+- **Yearly**: $99.99/year (17% off - equivalent to $8.33/month)
 
 **Payment Methods**: Credit card, debit card (via Stripe)
 
