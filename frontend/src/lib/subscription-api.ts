@@ -38,9 +38,12 @@ export async function getSubscription(): Promise<Subscription | null> {
   try {
     const response = await apiClient.get('/subscriptions/me');
     return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      return null; // No subscription found
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 404) {
+        return null; // No subscription found
+      }
     }
     throw error;
   }
@@ -83,6 +86,7 @@ export function hasActiveSubscription(subscription: Subscription | null): boolea
 export function isProUser(subscription: Subscription | null): boolean {
   return (
     hasActiveSubscription(subscription) &&
+    subscription !== null &&
     subscription.tier === 'pro'
   );
 }
