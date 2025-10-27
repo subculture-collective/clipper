@@ -11,6 +11,13 @@ export function AppLayout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // Defensive cleanup: ensure body overflow is reset on route changes
+  // This prevents black screen issues when navigating away from pages with modals
+  useEffect(() => {
+    // Reset body overflow when route changes
+    document.body.style.overflow = 'unset';
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-theme">
       <Header />

@@ -74,11 +74,19 @@ export const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = 'hidden';
     }
 
+    // Always clean up - restore overflow even if component unmounts while open
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
   }, [open, onClose]);
+
+  // Additional cleanup on unmount to ensure overflow is always reset
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   if (!open) return null;
 
