@@ -18,6 +18,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
+	opensearchpkg "github.com/subculture-collective/clipper/pkg/opensearch"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 )
@@ -45,6 +46,28 @@ func main() {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 	defer redisClient.Close()
+
+	// Initialize OpenSearch client
+	osClient, err := opensearchpkg.NewClient(&opensearchpkg.Config{
+		URL:      cfg.OpenSearch.URL,
+		Username: cfg.OpenSearch.Username,
+		Password: cfg.OpenSearch.Password,
+	})
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize OpenSearch client: %v", err)
+		log.Printf("Search features will use PostgreSQL FTS fallback")
+	} else {
+		// Test connection
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := osClient.Ping(ctx); err != nil {
+			log.Printf("WARNING: OpenSearch ping failed: %v", err)
+			log.Printf("Search features will use PostgreSQL FTS fallback")
+			osClient = nil
+		} else {
+			log.Println("OpenSearch connection established")
+		}
+	}
 
 	// Initialize JWT manager
 	var jwtManager *jwtpkg.Manager
@@ -101,6 +124,26 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
+	
+	// Initialize search services
+	var searchIndexerService *services.SearchIndexerService
+	var openSearchService *services.OpenSearchService
+	if osClient != nil {
+		searchIndexerService = services.NewSearchIndexerService(osClient)
+		openSearchService = services.NewOpenSearchService(osClient)
+		
+		// Initialize indices in background
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := searchIndexerService.InitializeIndices(ctx); err != nil {
+				log.Printf("WARNING: Failed to initialize search indices: %v", err)
+			} else {
+				log.Println("Search indices initialized successfully")
+			}
+		}()
+	}
+	
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -115,6 +158,10 @@ func main() {
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
+	if openSearchService != nil {
+		// Use OpenSearch-enhanced handler
+		searchHandler = handlers.NewSearchHandlerWithOpenSearch(searchRepo, openSearchService, authService)
+	}
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
@@ -170,12 +217,24 @@ func main() {
 			return
 		}
 
+		checks := gin.H{
+			"database": "ok",
+			"redis":    "ok",
+		}
+
+		// Check OpenSearch connection (optional)
+		if osClient != nil {
+			if err := osClient.Ping(ctx); err != nil {
+				checks["opensearch"] = "degraded"
+				log.Printf("OpenSearch health check failed: %v", err)
+			} else {
+				checks["opensearch"] = "ok"
+			}
+		}
+
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ready",
-			"checks": gin.H{
-				"database": "ok",
-				"redis":    "ok",
-			},
+			"checks": checks,
 		})
 	})
 
