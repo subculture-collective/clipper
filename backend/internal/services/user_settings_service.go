@@ -82,10 +82,24 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 		settings = nil // Settings might not exist
 	}
 
-	// Get user's favorites
-	favorites, err := s.favoriteRepo.GetByUserID(ctx, userID, 1, 10000)
-	if err != nil {
-		favorites = nil
+	// Get user's favorites (fetch all, paginated)
+	var favorites []models.Favorite
+	page := 1
+	pageSize := 1000 // reasonable page size to avoid memory issues
+	for {
+		pageFavorites, err := s.favoriteRepo.GetByUserID(ctx, userID, page, pageSize)
+		if err != nil {
+			favorites = nil
+			break
+		}
+		if len(pageFavorites) == 0 {
+			break
+		}
+		favorites = append(favorites, pageFavorites...)
+		if len(pageFavorites) < pageSize {
+			break
+		}
+		page++
 	}
 
 	// Create export structure
