@@ -145,3 +145,34 @@ func (s *AuditLogService) LogSubscriptionEvent(ctx context.Context, userID uuid.
 
 	return s.auditLogRepo.Create(ctx, log)
 }
+
+// LogAccountDeletionRequested logs when a user requests account deletion
+func (s *AuditLogService) LogAccountDeletionRequested(ctx context.Context, userID uuid.UUID, reason *string) error {
+	metadata := make(map[string]interface{})
+	if reason != nil {
+		metadata["reason"] = *reason
+	}
+
+	log := &models.ModerationAuditLog{
+		Action:      "account_deletion_requested",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: userID,
+		Reason:      reason,
+		Metadata:    metadata,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}
+
+// LogAccountDeletionCancelled logs when a user cancels account deletion
+func (s *AuditLogService) LogAccountDeletionCancelled(ctx context.Context, userID uuid.UUID) error {
+	log := &models.ModerationAuditLog{
+		Action:      "account_deletion_cancelled",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: userID,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}
