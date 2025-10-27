@@ -242,17 +242,56 @@ if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
 return nil, 0, fmt.Errorf("failed to decode response: %w", err)
 }
 
-hits := result["hits"].(map[string]interface{})
-total := int(hits["total"].(map[string]interface{})["value"].(float64))
+hitsRaw, ok := result["hits"]
+if !ok {
+    return nil, 0, fmt.Errorf("missing 'hits' in response")
+}
+hits, ok := hitsRaw.(map[string]interface{})
+if !ok {
+    return nil, 0, fmt.Errorf("unexpected 'hits' structure in response")
+}
+totalRaw, ok := hits["total"]
+if !ok {
+    return nil, 0, fmt.Errorf("missing 'total' in hits")
+}
+totalMap, ok := totalRaw.(map[string]interface{})
+if !ok {
+    return nil, 0, fmt.Errorf("unexpected 'total' structure in hits")
+}
+valueRaw, ok := totalMap["value"]
+if !ok {
+    return nil, 0, fmt.Errorf("missing 'value' in total")
+}
+valueFloat, ok := valueRaw.(float64)
+if !ok {
+    return nil, 0, fmt.Errorf("unexpected 'value' type in total")
+}
+total := int(valueFloat)
 
-hitsList := hits["hits"].([]interface{})
+hitsListRaw, ok := hits["hits"]
+if !ok {
+    return nil, 0, fmt.Errorf("missing 'hits' list in hits")
+}
+hitsList, ok := hitsListRaw.([]interface{})
+if !ok {
+    return nil, 0, fmt.Errorf("unexpected 'hits' list structure in hits")
+}
 documents := make([]json.RawMessage, 0, len(hitsList))
 
 for _, hit := range hitsList {
-hitMap := hit.(map[string]interface{})
-source := hitMap["_source"]
-sourceJSON, _ := json.Marshal(source)
-documents = append(documents, sourceJSON)
+    hitMap, ok := hit.(map[string]interface{})
+    if !ok {
+        return nil, 0, fmt.Errorf("unexpected hit structure in hits list")
+    }
+    source, ok := hitMap["_source"]
+    if !ok {
+        return nil, 0, fmt.Errorf("missing '_source' in hit")
+    }
+    sourceJSON, err := json.Marshal(source)
+    if err != nil {
+        return nil, 0, fmt.Errorf("failed to marshal _source: %w", err)
+    }
+    documents = append(documents, sourceJSON)
 }
 
 return documents, total, nil
