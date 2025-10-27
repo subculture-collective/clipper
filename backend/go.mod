@@ -9,8 +9,8 @@ require (
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
 	github.com/microcosm-cc/bluemonday v1.0.27
-	github.com/redis/go-redis/v9 v9.14.1
-	github.com/yuin/goldmark v1.7.8
+	github.com/redis/go-redis/v9 v9.16.0
+	github.com/yuin/goldmark v1.7.13
 )
 
 require (
