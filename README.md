@@ -12,7 +12,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 ## ✨ Key Features
 
 - 🎮 **Browse & Discover**: Explore trending Twitch clips from across the platform
-- 🔍 **Smart Search**: Find clips by game, broadcaster, or tags
+- 🔍 **Smart Search**: Powered by OpenSearch with typo tolerance, fuzzy matching, and advanced filtering
 - ⬆️ **Community Voting**: Upvote and downvote clips to curate the best content
 - 💬 **Discussions**: Comment on clips with markdown support
 - ⭐ **Favorites**: Save and organize your favorite clips
@@ -34,6 +34,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
 - **[API Documentation](docs/API.md)** - REST API reference
 - **[Database Documentation](docs/database.md)** - Database management and migrations
+- **[Search Platform](docs/SEARCH.md)** - OpenSearch setup and usage
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
 
 ### Operations
@@ -100,6 +101,7 @@ clipper/
 - Gin web framework
 - PostgreSQL (via pgx)
 - Redis for caching
+- OpenSearch for search
 - JWT for authentication
 - Twitch API integration
 
@@ -108,6 +110,7 @@ clipper/
 - Docker & Docker Compose for local development
 - PostgreSQL 17
 - Redis 8
+- OpenSearch 2.11
 
 ## 🚀 Quick Start
 

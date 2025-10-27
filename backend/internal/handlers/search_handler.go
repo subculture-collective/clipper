@@ -11,15 +11,28 @@ import (
 
 // SearchHandler handles search-related requests
 type SearchHandler struct {
-	searchRepo  *repository.SearchRepository
-	authService *services.AuthService
+	searchRepo        *repository.SearchRepository
+	openSearchService *services.OpenSearchService
+	authService       *services.AuthService
+	useOpenSearch     bool
 }
 
-// NewSearchHandler creates a new SearchHandler
+// NewSearchHandler creates a new SearchHandler with PostgreSQL FTS
 func NewSearchHandler(searchRepo *repository.SearchRepository, authService *services.AuthService) *SearchHandler {
 	return &SearchHandler{
-		searchRepo:  searchRepo,
-		authService: authService,
+		searchRepo:    searchRepo,
+		authService:   authService,
+		useOpenSearch: false,
+	}
+}
+
+// NewSearchHandlerWithOpenSearch creates a new SearchHandler with OpenSearch
+func NewSearchHandlerWithOpenSearch(searchRepo *repository.SearchRepository, openSearchService *services.OpenSearchService, authService *services.AuthService) *SearchHandler {
+	return &SearchHandler{
+		searchRepo:        searchRepo,
+		openSearchService: openSearchService,
+		authService:       authService,
+		useOpenSearch:     true,
 	}
 }
 
@@ -57,8 +70,16 @@ func (h *SearchHandler) Search(c *gin.Context) {
 		req.Sort = "relevance"
 	}
 
-	// Perform search
-	results, err := h.searchRepo.Search(c.Request.Context(), &req)
+	// Perform search using OpenSearch or PostgreSQL fallback
+	var results *models.SearchResponse
+	var err error
+
+	if h.useOpenSearch && h.openSearchService != nil {
+		results, err = h.openSearchService.Search(c.Request.Context(), &req)
+	} else {
+		results, err = h.searchRepo.Search(c.Request.Context(), &req)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to perform search",
@@ -97,7 +118,16 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 
 	limit := 10 // Default limit for suggestions
 
-	suggestions, err := h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
+	var suggestions []models.SearchSuggestion
+	var err error
+
+	// Use OpenSearch or PostgreSQL fallback
+	if h.useOpenSearch && h.openSearchService != nil {
+		suggestions, err = h.openSearchService.GetSuggestions(c.Request.Context(), query, limit)
+	} else {
+		suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get suggestions",
