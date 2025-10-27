@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Spinner, Button } from '@/components/ui';
 import { ClipCard } from './ClipCard';
 import { ClipCardSkeleton } from './ClipCardSkeleton';
@@ -25,6 +26,7 @@ export function ClipFeed({
   defaultTimeframe = 'day',
   filters: additionalFilters = {}
 }: ClipFeedProps) {
+  const { i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showScrollTop, setShowScrollTop] = useState(false);
   
@@ -32,10 +34,11 @@ export function ClipFeed({
   const sort = (searchParams.get('sort') as SortOption) || defaultSort;
   const timeframe = (searchParams.get('timeframe') as TimeFrame) || defaultTimeframe;
 
-  // Combine URL filters with additional filters
+  // Combine URL filters with additional filters and current language
   const filters: ClipFeedFilters = {
     sort,
     timeframe: sort === 'top' ? timeframe : undefined,
+    language: i18n.language, // Use current language for filtering
     ...additionalFilters,
   };
 
