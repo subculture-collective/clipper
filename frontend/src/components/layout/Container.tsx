@@ -34,7 +34,7 @@ export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
       <div
         ref={ref}
         className={cn(
-          'w-full px-4 sm:px-6 lg:px-8',
+          'w-full px-3 xs:px-4 sm:px-6 lg:px-8',
           maxWidthClasses[maxWidth],
           center && 'mx-auto',
           className

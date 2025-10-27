@@ -6,6 +6,15 @@ export default {
   ],
   darkMode: 'class',
   theme: {
+    // Mobile-first responsive breakpoints
+    screens: {
+      'xs': '375px',   // Small mobile devices
+      'sm': '640px',   // Mobile landscape / small tablets
+      'md': '768px',   // Tablets
+      'lg': '1024px',  // Desktop
+      'xl': '1280px',  // Large desktop
+      '2xl': '1536px', // Extra large desktop
+    },
     extend: {
       colors: {
         // Primary: Twitch purple

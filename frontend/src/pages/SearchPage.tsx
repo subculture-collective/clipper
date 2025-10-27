@@ -83,9 +83,9 @@ export function SearchPage() {
     ];
 
     return (
-        <Container className='py-8'>
+        <Container className='py-4 xs:py-6 md:py-8'>
             {/* Search Bar */}
-            <div className='mb-8 flex justify-center'>
+            <div className='mb-6 xs:mb-8 flex justify-center'>
                 <SearchBar
                     initialQuery={query}
                     onSearch={handleSearch}
@@ -93,8 +93,8 @@ export function SearchPage() {
             </div>
 
             {!query ? (
-                <div className='text-center text-muted-foreground py-12'>
-                    <p className='text-lg'>
+                <div className='text-center text-muted-foreground py-8 xs:py-12'>
+                    <p className='text-base xs:text-lg px-4'>
                         Enter a search query to find clips, games, creators, and
                         tags.
                     </p>
@@ -102,26 +102,26 @@ export function SearchPage() {
             ) : (
                 <>
                     {/* Header */}
-                    <div className='mb-6'>
-                        <h1 className='text-3xl font-bold mb-2'>
+                    <div className='mb-4 xs:mb-6'>
+                        <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
                             Search Results
                         </h1>
-                        <p className='text-muted-foreground'>
+                        <p className='text-sm xs:text-base text-muted-foreground'>
                             Found {data?.meta.total_items || 0} results for:{' '}
                             <span className='font-semibold'>"{query}"</span>
                         </p>
                     </div>
 
                     {/* Tabs and Sort */}
-                    <div className='flex items-center justify-between mb-6 border-b border-border'>
-                        <div className='flex gap-1'>
+                    <div className='flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 xs:gap-0 mb-4 xs:mb-6 border-b border-border'>
+                        <div className='flex gap-0.5 xs:gap-1 overflow-x-auto scrollbar-hide'>
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() =>
                                         handleTabChange(tab.id as SearchType)
                                     }
-                                    className={`px-4 py-2 font-medium transition-colors relative ${
+                                    className={`px-3 xs:px-4 py-2 font-medium transition-colors relative whitespace-nowrap touch-target text-sm xs:text-base ${
                                         activeTab === tab.id
                                             ? 'text-primary'
                                             : 'text-muted-foreground hover:text-foreground'
@@ -129,7 +129,7 @@ export function SearchPage() {
                                 >
                                     {tab.label}
                                     {tab.count > 0 && (
-                                        <span className='ml-2 text-xs bg-accent px-2 py-0.5 rounded-full'>
+                                        <span className='ml-1.5 xs:ml-2 text-xs bg-accent px-1.5 xs:px-2 py-0.5 rounded-full'>
                                             {tab.count}
                                         </span>
                                     )}
@@ -145,7 +145,7 @@ export function SearchPage() {
                             onChange={(e) =>
                                 handleSortChange(e.target.value as SortType)
                             }
-                            className='px-3 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900'
+                            className='px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 touch-target'
                         >
                             <option value='relevance'>Relevance</option>
                             <option value='recent'>Recent</option>

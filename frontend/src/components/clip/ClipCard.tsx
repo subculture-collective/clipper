@@ -59,15 +59,15 @@ export function ClipCard({ clip }: ClipCardProps) {
             : 'text-muted-foreground';
 
     return (
-        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border'>
-            <div className='flex gap-4 p-4'>
-                {/* Vote sidebar */}
-                <div className='shrink-0 flex flex-col items-center w-10 gap-2'>
+        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden'>
+            <div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
+                {/* Vote sidebar - horizontal on mobile, vertical on larger screens */}
+                <div className='flex xs:flex-col items-center justify-center xs:justify-start xs:w-10 gap-3 xs:gap-2 order-2 xs:order-1 shrink-0'>
                     <button
                         onClick={() => handleVote(1)}
                         disabled={!isAuthenticated}
                         className={cn(
-                            'w-8 h-8 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors',
+                            'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === 1 &&
                                 'text-green-600 dark:text-green-400',
                             !isAuthenticated &&
@@ -86,7 +86,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         </svg>
                     </button>
 
-                    <span className={cn('text-sm font-bold', voteColor)}>
+                    <span className={cn('text-sm font-bold min-w-[2rem] text-center', voteColor)}>
                         {formatNumber(clip.vote_score)}
                     </span>
 
@@ -94,7 +94,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         onClick={() => handleVote(-1)}
                         disabled={!isAuthenticated}
                         className={cn(
-                            'w-8 h-8 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors',
+                            'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === -1 &&
                                 'text-red-600 dark:text-red-400',
                             !isAuthenticated &&
@@ -115,7 +115,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                 </div>
 
                 {/* Main content */}
-                <div className='flex-1 min-w-0'>
+                <div className='flex-1 min-w-0 order-1 xs:order-2'>
                     {/* Thumbnail/Embed */}
                     <div className='relative mb-3'>
                         <TwitchEmbed
@@ -149,34 +149,34 @@ export function ClipCard({ clip }: ClipCardProps) {
                     {/* Title */}
                     <Link
                         to={`/clip/${clip.id}`}
-                        className='hover:text-primary-600 dark:hover:text-primary-400 block mb-2 transition-colors'
+                        className='hover:text-primary-600 dark:hover:text-primary-400 block mb-2 transition-colors touch-target'
                     >
-                        <h3 className='line-clamp-2 text-lg font-semibold'>
+                        <h3 className='line-clamp-2 text-base xs:text-lg font-semibold leading-snug'>
                             {clip.title}
                         </h3>
                     </Link>
 
                     {/* Metadata */}
-                    <div className='text-muted-foreground flex flex-wrap gap-2 mb-3 text-sm'>
+                    <div className='text-muted-foreground flex flex-wrap gap-1.5 xs:gap-2 mb-3 text-xs xs:text-sm'>
                         <Link
                             to={`/creator/${clip.creator_id}`}
-                            className='hover:text-foreground transition-colors'
+                            className='hover:text-foreground transition-colors touch-target'
                         >
                             {clip.creator_name}
                         </Link>
-                        <span>•</span>
+                        <span className='hidden xs:inline'>•</span>
                         {clip.game_name && (
                             <>
                                 <Link
                                     to={`/game/${clip.game_id}`}
-                                    className='hover:text-foreground transition-colors'
+                                    className='hover:text-foreground transition-colors touch-target truncate max-w-[150px] xs:max-w-none'
                                 >
                                     {clip.game_name}
                                 </Link>
-                                <span>•</span>
+                                <span className='hidden xs:inline'>•</span>
                             </>
                         )}
-                        <span>
+                        <span className='truncate'>
                             {formatDistanceToNow(new Date(clip.created_at), {
                                 addSuffix: true,
                             })}
@@ -192,13 +192,13 @@ export function ClipCard({ clip }: ClipCardProps) {
                     </div>
 
                     {/* Action bar */}
-                    <div className='flex flex-wrap items-center gap-4 text-sm'>
+                    <div className='flex flex-wrap items-center gap-3 xs:gap-4 text-xs xs:text-sm'>
                         <Link
                             to={`/clip/${clip.id}#comments`}
-                            className='text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px]'
                         >
                             <svg
-                                className='w-5 h-5'
+                                className='w-5 h-5 shrink-0'
                                 fill='none'
                                 stroke='currentColor'
                                 viewBox='0 0 24 24'
@@ -210,8 +210,11 @@ export function ClipCard({ clip }: ClipCardProps) {
                                     d='M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z'
                                 />
                             </svg>
-                            <span>
+                            <span className='hidden xs:inline'>
                                 {formatNumber(clip.comment_count)} comments
+                            </span>
+                            <span className='xs:hidden'>
+                                {formatNumber(clip.comment_count)}
                             </span>
                         </Link>
 
@@ -219,7 +222,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                             onClick={handleFavorite}
                             disabled={!isAuthenticated}
                             className={cn(
-                                'flex items-center gap-1 transition-colors',
+                                'flex items-center gap-1.5 transition-colors touch-target min-h-[44px]',
                                 clip.is_favorited
                                     ? 'text-red-500 hover:text-red-400'
                                     : 'text-muted-foreground hover:text-foreground',
@@ -237,7 +240,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                             title={!isAuthenticated ? 'Log in to favorite' : undefined}
                         >
                             <svg
-                                className='w-5 h-5'
+                                className='w-5 h-5 shrink-0'
                                 fill={
                                     clip.is_favorited ? 'currentColor' : 'none'
                                 }
@@ -255,7 +258,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         </button>
 
                         <button
-                            className='text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px]'
                             onClick={() => {
                                 navigator.clipboard.writeText(
                                     `${window.location.origin}/clip/${clip.id}`
@@ -264,7 +267,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                             aria-label='Share'
                         >
                             <svg
-                                className='w-5 h-5'
+                                className='w-5 h-5 shrink-0'
                                 fill='none'
                                 stroke='currentColor'
                                 viewBox='0 0 24 24'
