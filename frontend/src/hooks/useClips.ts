@@ -26,6 +26,19 @@ export const useClipFeed = (filters?: ClipFeedFilters) => {
     });
 };
 
+// Hook for infinite scrolling favorites feed
+export const useFavoritesFeed = (sort: 'newest' | 'top' | 'discussed' = 'newest') => {
+    return useInfiniteQuery({
+        queryKey: ['favorites', sort],
+        queryFn: ({ pageParam = 1 }) =>
+            clipApi.fetchFavorites({ pageParam, sort }),
+        getNextPageParam: (lastPage) => {
+            return lastPage.has_more ? lastPage.page + 1 : undefined;
+        },
+        initialPageParam: 1,
+    });
+};
+
 // Hook to fetch a single clip by ID
 export const useClipById = (clipId: string) => {
     return useQuery({
@@ -134,13 +147,18 @@ export const useClipFavorite = () => {
             }
         },
         onMutate: async (payload) => {
-            // Optimistic update
+            // Optimistic update for clips queries
             await queryClient.cancelQueries({ queryKey: ['clips'] });
+            await queryClient.cancelQueries({ queryKey: ['favorites'] });
 
-            const previousData = queryClient.getQueriesData({
+            const previousClipsData = queryClient.getQueriesData({
                 queryKey: ['clips'],
             });
+            const previousFavoritesData = queryClient.getQueriesData({
+                queryKey: ['favorites'],
+            });
 
+            // Update clips feed
             queryClient.setQueriesData(
                 { queryKey: ['clips'] },
                 (old: unknown) => {
@@ -170,16 +188,44 @@ export const useClipFavorite = () => {
                 }
             );
 
-            return { previousData };
+            // Update favorites feed (remove unfavorited clips)
+            queryClient.setQueriesData(
+                { queryKey: ['favorites'] },
+                (old: unknown) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const oldData = old as any;
+                    if (!oldData?.pages) return oldData;
+
+                    return {
+                        ...oldData,
+                        pages: oldData.pages.map((page: ClipFeedResponse) => ({
+                            ...page,
+                            clips: page.clips.filter((clip: Clip) => clip.id !== payload.clip_id),
+                        })),
+                    };
+                }
+            );
+
+            return { previousClipsData, previousFavoritesData };
         },
         onError: (_error, _payload, context) => {
             // Rollback on error
-            if (context?.previousData) {
+            if (context?.previousClipsData) {
                 queryClient.setQueriesData(
                     { queryKey: ['clips'] },
-                    context.previousData
+                    context.previousClipsData
                 );
             }
+            if (context?.previousFavoritesData) {
+                queryClient.setQueriesData(
+                    { queryKey: ['favorites'] },
+                    context.previousFavoritesData
+                );
+            }
+        },
+        onSettled: () => {
+            // Refetch to ensure consistency
+            queryClient.invalidateQueries({ queryKey: ['favorites'] });
         },
     });
 };

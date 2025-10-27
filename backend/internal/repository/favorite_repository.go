@@ -150,3 +150,89 @@ func (r *FavoriteRepository) GetByClipID(ctx context.Context, clipID uuid.UUID) 
 
 	return favorites, nil
 }
+
+// CountByUserID returns the total count of favorites for a user
+func (r *FavoriteRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
+	query := `SELECT COUNT(*) FROM favorites WHERE user_id = $1`
+
+	var count int
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count favorites: %w", err)
+	}
+
+	return count, nil
+}
+
+// GetClipsByUserID retrieves clips that are favorited by a user with sorting support
+func (r *FavoriteRepository) GetClipsByUserID(ctx context.Context, userID uuid.UUID, sort string, limit, offset int) ([]models.Clip, int, error) {
+	// First get the total count
+	countQuery := `
+		SELECT COUNT(*)
+		FROM favorites f
+		INNER JOIN clips c ON f.clip_id = c.id
+		WHERE f.user_id = $1 AND c.is_removed = false
+	`
+
+	var total int
+	err := r.pool.QueryRow(ctx, countQuery, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count favorite clips: %w", err)
+	}
+
+	// Build ORDER BY clause based on sort parameter
+	var orderBy string
+	switch sort {
+	case "top":
+		orderBy = "ORDER BY c.vote_score DESC"
+	case "discussed":
+		orderBy = "ORDER BY c.comment_count DESC"
+	case "newest":
+		fallthrough
+	default:
+		orderBy = "ORDER BY f.created_at DESC"
+	}
+
+	// Query to get clips with favorites
+	query := fmt.Sprintf(`
+		SELECT 
+			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason
+		FROM favorites f
+		INNER JOIN clips c ON f.clip_id = c.id
+		WHERE f.user_id = $1 AND c.is_removed = false
+		%s
+		LIMIT $2 OFFSET $3
+	`, orderBy)
+
+	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get favorite clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL, &clip.Title,
+			&clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName, &clip.BroadcasterID,
+			&clip.GameID, &clip.GameName, &clip.Language, &clip.ThumbnailURL, &clip.Duration,
+			&clip.ViewCount, &clip.CreatedAt, &clip.ImportedAt, &clip.VoteScore, &clip.CommentCount,
+			&clip.FavoriteCount, &clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating clips: %w", err)
+	}
+
+	return clips, total, nil
+}
