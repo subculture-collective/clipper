@@ -80,7 +80,7 @@ func TestAbuseDetectionMiddleware_Integration(t *testing.T) {
 
 		// Simulate many requests from same IP (but below abuse threshold for testing)
 		testIP := "192.168.1.100"
-		
+
 		// Make requests up to threshold
 		for i := 0; i < 10; i++ {
 			w := httptest.NewRecorder()
@@ -154,7 +154,7 @@ func TestUnbanIP(t *testing.T) {
 	}()
 
 	testIP := "192.168.1.1"
-	
+
 	// Ban the IP
 	banKey := "abuse:ban:" + testIP
 	if err := mockRedis.Set(ctx, banKey, "1", time.Hour); err != nil {
@@ -287,7 +287,7 @@ func TestGetAbuseStats(t *testing.T) {
 
 	testIP := "192.168.1.1"
 	expectedCount := int64(42)
-	
+
 	// Set abuse count
 	abuseKey := "abuse:track:" + testIP
 	if err := mockRedis.Set(ctx, abuseKey, "42", time.Hour); err != nil {
