@@ -95,6 +95,10 @@ You'll need to create a Twitch application to enable OAuth authentication:
 
 ### 3. Configure Environment Variables
 
+All environment variables are documented in the `.env.example` files with detailed comments.
+
+**Important**: Never commit `.env` files with actual values! See [Secrets Management Guide](SECRETS_MANAGEMENT.md) for best practices.
+
 #### Backend Environment
 
 ```bash
@@ -106,47 +110,16 @@ cp .env.example .env
 nano .env  # or use your preferred editor
 ```
 
-**backend/.env**:
+The `.env.example` file contains all required variables with documentation. Key variables to configure:
 
-```bash
-# Server Configuration
-PORT=8080
-ENV=development
-API_BASE_URL=http://localhost:8080
+- **Database**: PostgreSQL connection settings
+- **Redis**: Cache connection settings
+- **JWT**: Authentication keys (auto-generated if not provided)
+- **Twitch API**: OAuth credentials from [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+- **Stripe**: Payment processing keys (use test mode for development)
+- **Sentry**: Error tracking (optional, disable for local development)
 
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=clipper
-DB_USER=clipper
-DB_PASSWORD=clipper_password
-DB_SSL_MODE=disable
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRY=24h
-
-# Twitch OAuth
-TWITCH_CLIENT_ID=your_client_id_from_step_2
-TWITCH_CLIENT_SECRET=your_client_secret_from_step_2
-TWITCH_REDIRECT_URL=http://localhost:8080/api/v1/auth/callback
-
-# CORS
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-
-# Rate Limiting
-RATE_LIMIT_REQUESTS=100
-RATE_LIMIT_WINDOW=60s
-
-# Logging
-LOG_LEVEL=debug
-```
+See `backend/.env.example` for the complete list with detailed comments.
 
 #### Frontend Environment
 
@@ -159,20 +132,15 @@ cp .env.example .env
 nano .env
 ```
 
-**frontend/.env**:
+The `.env.example` file contains all required variables with documentation. Key variables to configure:
 
-```bash
-# API Configuration
-VITE_API_BASE_URL=http://localhost:8080
-VITE_API_VERSION=v1
+- **API URL**: Backend API endpoint (default: `http://localhost:8080/api/v1`)
+- **Twitch Client ID**: For OAuth redirects
+- **Stripe**: Publishable key and price IDs (use test mode)
+- **Sentry**: Error tracking (optional, disable for local development)
+- **Feature Flags**: Enable/disable features for development
 
-# Feature Flags
-VITE_ENABLE_ANALYTICS=false
-VITE_ENABLE_DEBUG=true
-
-# Twitch
-VITE_TWITCH_CLIENT_ID=your_client_id_from_step_2
-```
+See `frontend/.env.example` for the complete list with detailed comments.
 
 ## Backend Setup
 
