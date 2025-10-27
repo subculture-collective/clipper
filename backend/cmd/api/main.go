@@ -96,6 +96,8 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db.Pool)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
+	userSettingsRepo := repository.NewUserSettingsRepository(db.Pool)
+	accountDeletionRepo := repository.NewAccountDeletionRepository(db.Pool)
 	clipRepo := repository.NewClipRepository(db.Pool)
 	commentRepo := repository.NewCommentRepository(db.Pool)
 	voteRepo := repository.NewVoteRepository(db.Pool)
@@ -127,6 +129,7 @@ func main() {
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, cfg, auditLogService)
+	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	
 	// Initialize search services
 	var searchIndexerService *services.SearchIndexerService
@@ -171,6 +174,8 @@ func main() {
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
+	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -301,6 +306,7 @@ func main() {
 
 			// Protected auth endpoints
 			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetCurrentUser)
+			auth.POST("/twitch/reauthorize", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 3, time.Hour), authHandler.ReauthorizeTwitch)
 		}
 
 		// Clip routes
@@ -400,8 +406,26 @@ func main() {
 			users.GET("/:id/karma", reputationHandler.GetUserKarma)
 			users.GET("/:id/badges", reputationHandler.GetUserBadges)
 
+			// User activity endpoints
+			users.GET("/:id/comments", userHandler.GetUserComments)
+			users.GET("/:id/upvoted", userHandler.GetUserUpvotedClips)
+			users.GET("/:id/downvoted", userHandler.GetUserDownvotedClips)
+
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
+			
+			// Profile management (authenticated)
+			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)
+			users.GET("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.GetSettings)
+			users.PUT("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSettings)
+			
+			// Data export (authenticated, rate limited)
+			users.GET("/me/export", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.ExportData)
+			
+			// Account deletion (authenticated, rate limited)
+			users.POST("/me/delete", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.RequestAccountDeletion)
+			users.POST("/me/delete/cancel", middleware.AuthMiddleware(authService), userSettingsHandler.CancelAccountDeletion)
+			users.GET("/me/delete/status", middleware.AuthMiddleware(authService), userSettingsHandler.GetDeletionStatus)
 		}
 
 		// Creator analytics routes

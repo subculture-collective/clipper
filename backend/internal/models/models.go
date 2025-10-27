@@ -23,6 +23,45 @@ type User struct {
 	LastLoginAt *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
+// UserSettings represents user privacy and other settings
+type UserSettings struct {
+	UserID            uuid.UUID `json:"user_id" db:"user_id"`
+	ProfileVisibility string    `json:"profile_visibility" db:"profile_visibility"` // public, private, followers
+	ShowKarmaPublicly bool      `json:"show_karma_publicly" db:"show_karma_publicly"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// AccountDeletion represents a pending account deletion request
+type AccountDeletion struct {
+	ID           uuid.UUID  `json:"id" db:"id"`
+	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
+	RequestedAt  time.Time  `json:"requested_at" db:"requested_at"`
+	ScheduledFor time.Time  `json:"scheduled_for" db:"scheduled_for"`
+	Reason       *string    `json:"reason,omitempty" db:"reason"`
+	IsCancelled  bool       `json:"is_cancelled" db:"is_cancelled"`
+	CancelledAt  *time.Time `json:"cancelled_at,omitempty" db:"cancelled_at"`
+	CompletedAt  *time.Time `json:"completed_at,omitempty" db:"completed_at"`
+}
+
+// UpdateProfileRequest represents the request to update user profile
+type UpdateProfileRequest struct {
+	DisplayName string  `json:"display_name" binding:"required,min=1,max=100"`
+	Bio         *string `json:"bio" binding:"omitempty,max=500"`
+}
+
+// UpdateUserSettingsRequest represents the request to update user settings
+type UpdateUserSettingsRequest struct {
+	ProfileVisibility *string `json:"profile_visibility,omitempty" binding:"omitempty,oneof=public private followers"`
+	ShowKarmaPublicly *bool   `json:"show_karma_publicly,omitempty"`
+}
+
+// DeleteAccountRequest represents the request to delete an account
+type DeleteAccountRequest struct {
+	Reason      *string `json:"reason,omitempty" binding:"omitempty,max=1000"`
+	Confirmation string  `json:"confirmation" binding:"required,eq=DELETE MY ACCOUNT"`
+}
+
 // Clip represents a Twitch clip
 type Clip struct {
 	ID              uuid.UUID `json:"id" db:"id"`
