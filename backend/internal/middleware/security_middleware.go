@@ -34,19 +34,21 @@ func SecurityHeadersMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		// Content-Security-Policy
 		// Helps prevent XSS, clickjacking, and other code injection attacks
+		// Note: Twitch embed requires specific frame-src and media-src allowances
 		csp := "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://embed.twitch.tv; " +
 			"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
 			"font-src 'self' https://fonts.gstatic.com; " +
 			"img-src 'self' data: https: blob:; " +
-			"media-src 'self' https://clips-media-assets2.twitch.tv https://clips.twitch.tv; " +
-			"frame-src 'self' https://clips.twitch.tv https://player.twitch.tv; " +
-			"connect-src 'self' https://api.twitch.tv; " +
+			"media-src 'self' https://clips-media-assets2.twitch.tv https://clips.twitch.tv https://static.twitchcdn.net; " +
+			"frame-src 'self' https://clips.twitch.tv https://player.twitch.tv https://embed.twitch.tv; " +
+			"connect-src 'self' https://api.twitch.tv https://gql.twitch.tv; " +
 			"object-src 'none'; " +
 			"base-uri 'self'; " +
 			"form-action 'self'; " +
 			"frame-ancestors 'none'; " +
-			"upgrade-insecure-requests"
+			"upgrade-insecure-requests; " +
+			"block-all-mixed-content"
 		c.Writer.Header().Set("Content-Security-Policy", csp)
 
 		// Permissions-Policy (formerly Feature-Policy)

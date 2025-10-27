@@ -257,3 +257,8 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 
 	return stats, nil
 }
+
+// Keys returns all keys matching a pattern
+func (c *Client) Keys(ctx context.Context, pattern string) ([]string, error) {
+	return c.client.Keys(ctx, pattern).Result()
+}

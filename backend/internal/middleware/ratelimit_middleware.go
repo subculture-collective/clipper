@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -72,15 +73,19 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 
 		currentCount := int64(0)
 		if val, err := currentCmd.Result(); err == nil {
-			if n, err := fmt.Sscanf(val, "%d", &currentCount); err != nil || n != 1 {
-				log.Printf("Warning: failed to parse currentCount from Redis value '%s': n=%d, err=%v", val, n, err)
+			if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
+				log.Printf("Warning: failed to parse currentCount from Redis value '%s': err=%v", val, err)
+			} else {
+				currentCount = parsed
 			}
 		}
 
 		previousCount := int64(0)
 		if val, err := previousCmd.Result(); err == nil {
-			if n, err := fmt.Sscanf(val, "%d", &previousCount); err != nil || n != 1 {
-				log.Printf("Warning: failed to parse previousCount from Redis value '%s': n=%d, err=%v", val, n, err)
+			if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
+				log.Printf("Warning: failed to parse previousCount from Redis value '%s': err=%v", val, err)
+			} else {
+				previousCount = parsed
 			}
 		}
 
