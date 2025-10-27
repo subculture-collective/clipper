@@ -145,7 +145,7 @@ export function SearchPage() {
                             onChange={(e) =>
                                 handleSortChange(e.target.value as SortType)
                             }
-                            className='px-3 py-1.5 rounded-md border border-border bg-background text-sm'
+                            className='px-3 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900'
                         >
                             <option value='relevance'>Relevance</option>
                             <option value='recent'>Recent</option>
