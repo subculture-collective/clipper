@@ -43,7 +43,8 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Infrastructure Guide](docs/INFRASTRUCTURE.md)** - Infrastructure setup
 - **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration and deployment
-- **[Runbook](docs/RUNBOOK.md)** - Operational procedures
+- **[Monitoring Guide](docs/MONITORING.md)** - Error tracking and monitoring setup
+- **[Runbook](docs/RUNBOOK.md)** - Operational procedures and incident triage
 
 ### Contributing
 
