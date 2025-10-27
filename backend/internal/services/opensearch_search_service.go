@@ -1,16 +1,15 @@
 package services
 
 import (
-"bytes"
-"context"
-"encoding/json"
-"fmt"
-"io"
-"strings"
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 
-"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
-"github.com/subculture-collective/clipper/internal/models"
-"github.com/subculture-collective/clipper/pkg/opensearch"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/pkg/opensearch"
 )
 
 // OpenSearchService handles search operations using OpenSearch
