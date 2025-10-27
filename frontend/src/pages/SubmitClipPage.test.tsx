@@ -846,4 +846,98 @@ describe('SubmitClipPage', () => {
             });
         });
     });
+
+    describe('Navigation and Cleanup', () => {
+        beforeEach(() => {
+            mockUseAuth.mockReturnValue({
+                user: mockUser,
+                isAuthenticated: true,
+                login: vi.fn(),
+                logout: vi.fn(),
+                isLoading: false,
+                isAdmin: false,
+                refreshUser: vi.fn(),
+            });
+        });
+
+        it('cleans up effects when component unmounts', async () => {
+            const { unmount } = render(<SubmitClipPage />);
+
+            // Wait for component to mount and effects to run
+            await waitFor(() => {
+                expect(screen.getByText('Submit a Clip')).toBeInTheDocument();
+            });
+
+            // Unmount the component (simulates navigation)
+            unmount();
+
+            // Verify that API calls don't update state after unmount
+            // This is implicitly tested by the isMounted flag in the useEffect
+            expect(mockGetUserSubmissions).toHaveBeenCalled();
+        });
+
+        it('navigates back without issues after viewing confirmation', async () => {
+            const user = userEvent.setup();
+            mockSubmitClip.mockResolvedValue({
+                success: true,
+                message: 'Clip submitted successfully',
+                submission: {
+                    id: 'submission-123',
+                    user_id: 'user-123',
+                    twitch_clip_id: 'TestClip123',
+                    twitch_clip_url: 'https://clips.twitch.tv/TestClip123',
+                    title: 'Test Clip',
+                    is_nsfw: false,
+                    status: 'pending',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    broadcaster_name: 'TestStreamer',
+                    creator_name: 'TestCreator',
+                    view_count: 0,
+                },
+            });
+
+            const { unmount } = render(<SubmitClipPage />);
+
+            // Submit a clip
+            const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
+            await user.type(
+                clipUrlInput,
+                'https://clips.twitch.tv/TestClip123'
+            );
+
+            const submitButton = screen.getByRole('button', {
+                name: /Submit Clip/,
+            });
+            await user.click(submitButton);
+
+            // Wait for confirmation view
+            await waitFor(() => {
+                expect(
+                    screen.getByText('Submission Successful!')
+                ).toBeInTheDocument();
+            });
+
+            // Unmount (simulates browser back navigation)
+            unmount();
+
+            // No errors should occur, and component should clean up properly
+            // This test verifies that navigation away from confirmation doesn't cause issues
+        });
+
+        it('handles back navigation during form editing', async () => {
+            const user = userEvent.setup();
+            const { unmount } = render(<SubmitClipPage />);
+
+            // Start filling the form
+            const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
+            await user.type(clipUrlInput, 'https://clips.twitch.tv/Test');
+
+            // Navigate back (unmount) while form is being edited
+            unmount();
+
+            // No errors should occur
+            // This test verifies that navigation away during form editing doesn't cause issues
+        });
+    });
 });

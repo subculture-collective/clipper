@@ -41,13 +41,25 @@ export function SubmitClipPage() {
 
     // Load recent submissions
     useEffect(() => {
+        let isMounted = true;
+
         if (isAuthenticated) {
             getUserSubmissions(1, 5)
-                .then((response) => setRecentSubmissions(response.data))
-                .catch((err) =>
-                    console.error('Failed to load submissions:', err)
-                );
+                .then((response) => {
+                    if (isMounted) {
+                        setRecentSubmissions(response.data);
+                    }
+                })
+                .catch((err) => {
+                    if (isMounted) {
+                        console.error('Failed to load submissions:', err);
+                    }
+                });
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [isAuthenticated]);
 
     // Helper function to extract clip ID from Twitch URL
