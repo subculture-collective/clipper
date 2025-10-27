@@ -1,0 +1,5 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { Container } from '../../components';
+export function AdminSyncPage() {
+    return (_jsxs(Container, { className: "py-8", children: [_jsx("h1", { className: "text-3xl font-bold mb-2", children: "Sync Controls" }), _jsx("p", { className: "text-muted-foreground mb-6", children: "Manually trigger Twitch clip synchronization" }), _jsx("div", { className: "text-center text-muted-foreground py-12", children: _jsx("p", { className: "text-lg", children: "Sync controls interface coming soon..." }) })] }));
+}
