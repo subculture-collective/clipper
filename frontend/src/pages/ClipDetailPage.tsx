@@ -67,35 +67,35 @@ export function ClipDetailPage() {
   }
 
   return (
-    <Container className="py-8">
+    <Container className="py-4 xs:py-6 md:py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">{clip.title}</h1>
-          <div className="flex gap-4 text-sm text-muted-foreground">
+        <div className="mb-4 xs:mb-6">
+          <h1 className="text-2xl xs:text-3xl font-bold mb-2">{clip.title}</h1>
+          <div className="flex flex-wrap gap-2 xs:gap-4 text-xs xs:text-sm text-muted-foreground">
             <span>By {clip.creator_name}</span>
-            <span>•</span>
+            <span className="hidden xs:inline">•</span>
             <span>{clip.view_count.toLocaleString()} views</span>
-            <span>•</span>
+            <span className="hidden xs:inline">•</span>
             <span>{clip.vote_score} votes</span>
           </div>
         </div>
 
-        <div className="aspect-video bg-black rounded-lg mb-6">
+        <div className="aspect-video bg-black rounded-lg mb-4 xs:mb-6 overflow-hidden">
           <iframe
             src={clip.embed_url}
             title={clip.title}
-            className="w-full h-full rounded-lg"
+            className="w-full h-full"
             allowFullScreen
             sandbox="allow-scripts"
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 xs:gap-4 mb-4 xs:mb-6">
           <button
             onClick={() => handleVote(1)}
             disabled={!isAuthenticated}
             className={cn(
-              "px-4 py-2 rounded-md transition-colors",
+              "px-4 py-3 rounded-md transition-colors touch-target",
               clip.user_vote === 1
                 ? "bg-green-600 text-white hover:bg-green-700"
                 : "bg-primary-500 text-white hover:bg-primary-600",
@@ -108,7 +108,7 @@ export function ClipDetailPage() {
             Upvote ({clip.vote_score})
           </button>
           <button
-            className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+            className="px-4 py-3 border border-border rounded-md hover:bg-muted transition-colors touch-target"
             aria-label={`Comment, ${clip.comment_count} comments`}
             onClick={() => {
               document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' });
@@ -120,7 +120,7 @@ export function ClipDetailPage() {
             onClick={handleFavorite}
             disabled={!isAuthenticated}
             className={cn(
-              "px-4 py-2 rounded-md transition-colors",
+              "px-4 py-3 rounded-md transition-colors touch-target",
               clip.is_favorited
                 ? "bg-red-500 text-white hover:bg-red-600"
                 : "border border-border hover:bg-muted",
@@ -142,12 +142,12 @@ export function ClipDetailPage() {
 
         {clip.game_name && (
           <div className="mb-4">
-            <span className="text-sm text-muted-foreground">Game: </span>
-            <span className="font-semibold">{clip.game_name}</span>
+            <span className="text-xs xs:text-sm text-muted-foreground">Game: </span>
+            <span className="font-semibold text-sm xs:text-base">{clip.game_name}</span>
           </div>
         )}
 
-        <div className="text-sm text-muted-foreground space-y-1">
+        <div className="text-xs xs:text-sm text-muted-foreground space-y-1">
           <p>Broadcaster: {clip.broadcaster_name}</p>
           <p>
             Created:{' '}
