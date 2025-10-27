@@ -58,7 +58,7 @@ Future tiers (e.g., Enterprise, Teams) can be added as the platform grows.
 ### Pro Subscription
 
 - **Monthly**: $9.99/month
-- **Yearly**: $99.99/year (save 17% - equivalent to $8.33/month)
+- **Yearly**: $99.99/year (save 16.7% - equivalent to $8.33/month)
 
 **Payment Methods**: Credit card, debit card (via Stripe)
 
@@ -348,7 +348,7 @@ For implementation questions or clarification:
 
 - Create an issue with the `subscription` label
 - Reference issue [#175](https://github.com/subculture-collective/clipper/issues/175) - Product Roadmap
-- See [Stripe Integration Issue](https://github.com/subculture-collective/clipper/issues/) for Stripe-specific setup
+- See [SUBSCRIPTIONS.md](./SUBSCRIPTIONS.md) for Stripe integration setup
 
 ---
 
