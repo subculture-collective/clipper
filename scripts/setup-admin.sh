@@ -69,22 +69,24 @@ fi
 
 # Update user role
 echo "Updating user role in database..."
-docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" <<EOF
-DO \$\$
+docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -v username="$USERNAME" -v role="$ROLE" <<'EOF'
+DO $$
 DECLARE
     user_count INTEGER;
+    v_username TEXT := :'username';
+    v_role TEXT := :'role';
 BEGIN
     -- Check if user exists
-    SELECT COUNT(*) INTO user_count FROM users WHERE username = '$USERNAME';
+    SELECT COUNT(*) INTO user_count FROM users WHERE username = v_username;
     
     IF user_count = 0 THEN
-        RAISE NOTICE 'User ''%'' not found. Please log in with this user first.', '$USERNAME';
+        RAISE NOTICE 'User ''%'' not found. Please log in with this user first.', v_username;
     ELSE
         -- Update the role
-        UPDATE users SET role = '$ROLE' WHERE username = '$USERNAME';
-        RAISE NOTICE 'Successfully updated user ''%'' to role ''%''', '$USERNAME', '$ROLE';
+        UPDATE users SET role = v_role WHERE username = v_username;
+        RAISE NOTICE 'Successfully updated user ''%'' to role ''%''', v_username, v_role;
     END IF;
-END \$\$;
+END $$;
 
 -- Display updated user information
 SELECT 
@@ -94,7 +96,7 @@ SELECT
     karma_points,
     created_at 
 FROM users 
-WHERE username = '$USERNAME';
+WHERE username = :'username';
 EOF
 
 if [ $? -eq 0 ]; then
