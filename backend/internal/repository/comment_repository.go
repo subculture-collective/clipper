@@ -445,3 +445,60 @@ func (r *CommentRepository) RemoveComment(ctx context.Context, commentID uuid.UU
 	_, err := r.pool.Exec(ctx, query, commentID, reason)
 	return err
 }
+
+// ListByUserID retrieves comments by a user with pagination
+func (r *CommentRepository) ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]CommentWithAuthor, int, error) {
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM comments WHERE user_id = $1`
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, userID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count user comments: %w", err)
+	}
+
+	// Get comments
+	query := `
+		SELECT 
+			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
+			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+			c.created_at, c.updated_at,
+			u.username AS author_username,
+			u.display_name AS author_display_name,
+			u.avatar_url AS author_avatar_url,
+			u.karma_points AS author_karma,
+			u.role AS author_role,
+			(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
+			NULL AS user_vote
+		FROM comments c
+		INNER JOIN users u ON c.user_id = u.id
+		WHERE c.user_id = $1
+		ORDER BY c.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query user comments: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []CommentWithAuthor
+	for rows.Next() {
+		var c CommentWithAuthor
+		if err := rows.Scan(
+			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
+			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.CreatedAt, &c.UpdatedAt,
+			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
+			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan comment: %w", err)
+		}
+		comments = append(comments, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating user comments: %w", err)
+	}
+
+	return comments, total, nil
+}

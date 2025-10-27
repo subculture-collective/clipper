@@ -174,6 +174,7 @@ func main() {
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -292,6 +293,7 @@ func main() {
 
 			// Protected auth endpoints
 			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetCurrentUser)
+			auth.POST("/twitch/reauthorize", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 3, time.Hour), authHandler.ReauthorizeTwitch)
 		}
 
 		// Clip routes
@@ -390,6 +392,11 @@ func main() {
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
 			users.GET("/:id/karma", reputationHandler.GetUserKarma)
 			users.GET("/:id/badges", reputationHandler.GetUserBadges)
+
+			// User activity endpoints
+			users.GET("/:id/comments", userHandler.GetUserComments)
+			users.GET("/:id/upvoted", userHandler.GetUserUpvotedClips)
+			users.GET("/:id/downvoted", userHandler.GetUserDownvotedClips)
 
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)

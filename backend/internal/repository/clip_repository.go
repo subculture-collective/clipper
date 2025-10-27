@@ -662,3 +662,58 @@ func (r *ClipRepository) IsTopStreamer(ctx context.Context, broadcasterID string
 
 	return exists, nil
 }
+
+// GetByIDs retrieves clips by their IDs, maintaining the order of the provided IDs
+func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]models.Clip, error) {
+	if len(clipIDs) == 0 {
+		return []models.Clip{}, nil
+	}
+
+	query := `
+		SELECT 
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count,
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+		FROM clips
+		WHERE id = ANY($1)
+	`
+
+	rows, err := r.pool.Query(ctx, query, clipIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query clips by IDs: %w", err)
+	}
+	defer rows.Close()
+
+	// Create a map to store clips by ID
+	clipMap := make(map[uuid.UUID]models.Clip)
+	for rows.Next() {
+		var clip models.Clip
+		if err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clipMap[clip.ID] = clip
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating clips: %w", err)
+	}
+
+	// Maintain the order of the provided IDs
+	clips := make([]models.Clip, 0, len(clipIDs))
+	for _, id := range clipIDs {
+		if clip, ok := clipMap[id]; ok {
+			clips = append(clips, clip)
+		}
+	}
+
+	return clips, nil
+}
