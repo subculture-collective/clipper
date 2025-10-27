@@ -21,10 +21,11 @@ CREATE TABLE IF NOT EXISTS account_deletions (
     reason TEXT,
     is_cancelled BOOLEAN DEFAULT false,
     cancelled_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    UNIQUE(user_id, is_cancelled) -- Only one active deletion request per user
+    completed_at TIMESTAMP
 );
 
+-- Enforce only one active (not cancelled, not completed) deletion request per user
+CREATE UNIQUE INDEX idx_active_deletion ON account_deletions(user_id) WHERE is_cancelled = false AND completed_at IS NULL;
 CREATE INDEX idx_account_deletions_user ON account_deletions(user_id);
 CREATE INDEX idx_account_deletions_scheduled ON account_deletions(scheduled_for) WHERE completed_at IS NULL AND is_cancelled = false;
 
