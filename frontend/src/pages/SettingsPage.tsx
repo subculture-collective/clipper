@@ -194,8 +194,8 @@ export function SettingsPage() {
           {deletionStatus?.pending && (
             <>
               <Alert variant="warning" className="mb-4 xs:mb-6">
-                <div className="flex flex-col xs:flex-row items-start gap-3 xs:justify-between">
-                  <div>
+                <div className="flex flex-col xs:flex-row items-start xs:items-center gap-3 xs:justify-between">
+                  <div className="flex-1">
                     <h3 className="font-semibold mb-1 text-sm xs:text-base">Account Deletion Scheduled</h3>
                     <p className="text-xs xs:text-sm">
                       Your account is scheduled for deletion on{' '}
@@ -207,7 +207,7 @@ export function SettingsPage() {
                     variant="outline"
                     size="sm"
                     onClick={handleCancelDeletion}
-                    className="w-full xs:w-auto"
+                    className="w-full xs:w-auto shrink-0"
                   >
                     Cancel Deletion
                   </Button>
