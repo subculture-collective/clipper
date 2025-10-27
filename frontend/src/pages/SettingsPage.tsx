@@ -186,18 +186,18 @@ export function SettingsPage() {
         <title>Settings - Clipper</title>
       </Helmet>
 
-      <Container className="py-8">
+      <Container className="py-4 xs:py-6 md:py-8">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Settings</h1>
+          <h1 className="text-2xl xs:text-3xl font-bold mb-4 xs:mb-6">Settings</h1>
 
           {/* Account deletion warning */}
           {deletionStatus?.pending && (
             <>
-              <Alert variant="warning" className="mb-6">
-                <div className="flex items-start justify-between">
+              <Alert variant="warning" className="mb-4 xs:mb-6">
+                <div className="flex flex-col xs:flex-row items-start gap-3 xs:justify-between">
                   <div>
-                    <h3 className="font-semibold mb-1">Account Deletion Scheduled</h3>
-                    <p className="text-sm">
+                    <h3 className="font-semibold mb-1 text-sm xs:text-base">Account Deletion Scheduled</h3>
+                    <p className="text-xs xs:text-sm">
                       Your account is scheduled for deletion on{' '}
                       {new Date(deletionStatus.scheduled_for!).toLocaleDateString()}. You can cancel this
                       at any time before that date.
@@ -207,21 +207,22 @@ export function SettingsPage() {
                     variant="outline"
                     size="sm"
                     onClick={handleCancelDeletion}
+                    className="w-full xs:w-auto"
                   >
                     Cancel Deletion
                   </Button>
                 </div>
               </Alert>
               {cancelDeletionError && (
-                <Alert variant="error" className="mb-6">{cancelDeletionError}</Alert>
+                <Alert variant="error" className="mb-4 xs:mb-6">{cancelDeletionError}</Alert>
               )}
             </>
           )}
 
           {/* Profile Settings */}
-          <Card className="mb-6">
+          <Card className="mb-4 xs:mb-6">
             <CardHeader>
-              <h2 className="text-xl font-semibold">Profile</h2>
+              <h2 className="text-lg xs:text-xl font-semibold">Profile</h2>
             </CardHeader>
             <CardBody>
               <form onSubmit={handleProfileSubmit}>

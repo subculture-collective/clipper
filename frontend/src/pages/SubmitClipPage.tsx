@@ -153,10 +153,10 @@ export function SubmitClipPage() {
 
     if (!isAuthenticated) {
         return (
-            <Container className='py-8'>
-                <Card className='max-w-2xl mx-auto p-8 text-center'>
-                    <h1 className='text-3xl font-bold mb-4'>Submit a Clip</h1>
-                    <p className='text-muted-foreground mb-6'>
+            <Container className='py-4 xs:py-6 md:py-8'>
+                <Card className='max-w-2xl mx-auto p-4 xs:p-6 md:p-8 text-center'>
+                    <h1 className='text-2xl xs:text-3xl font-bold mb-4'>Submit a Clip</h1>
+                    <p className='text-sm xs:text-base text-muted-foreground mb-6'>
                         You must be logged in to submit clips.
                     </p>
                     <Button onClick={() => navigate('/login')}>Log In</Button>
@@ -168,7 +168,7 @@ export function SubmitClipPage() {
     // Show confirmation view after successful submission
     if (submittedClip) {
         return (
-            <Container className='py-8'>
+            <Container className='py-4 xs:py-6 md:py-8'>
                 <SubmissionConfirmation
                     submission={submittedClip}
                     onSubmitAnother={handleSubmitAnother}
@@ -178,11 +178,11 @@ export function SubmitClipPage() {
     }
 
     return (
-        <Container className='py-8'>
+        <Container className='py-4 xs:py-6 md:py-8'>
             <div className='max-w-3xl mx-auto'>
-                <div className='mb-6'>
-                    <h1 className='text-3xl font-bold mb-2'>Submit a Clip</h1>
-                    <p className='text-muted-foreground'>
+                <div className='mb-4 xs:mb-6'>
+                    <h1 className='text-2xl xs:text-3xl font-bold mb-2'>Submit a Clip</h1>
+                    <p className='text-sm xs:text-base text-muted-foreground'>
                         Share your favorite gaming moments with the community
                     </p>
                 </div>
@@ -190,7 +190,7 @@ export function SubmitClipPage() {
                 {!canSubmit && (
                     <Alert
                         variant='warning'
-                        className='mb-6'
+                        className='mb-4 xs:mb-6'
                     >
                         You need {karmaNeeded} more karma points to submit
                         clips. Earn karma by commenting, voting, and
