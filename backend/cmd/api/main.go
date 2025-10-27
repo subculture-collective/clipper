@@ -190,6 +190,19 @@ func main() {
 	// Apply CORS middleware
 	r.Use(middleware.CORSMiddleware(cfg))
 
+	// Apply security headers middleware
+	r.Use(middleware.SecurityHeadersMiddleware(cfg))
+
+	// Apply input validation middleware
+	r.Use(middleware.InputValidationMiddleware())
+
+	// Apply abuse detection middleware
+	r.Use(middleware.AbuseDetectionMiddleware(redisClient))
+
+	// Apply CSRF protection middleware (secure in production)
+	isProduction := cfg.Server.GinMode == "release"
+	r.Use(middleware.CSRFMiddleware(redisClient, isProduction))
+
 	// Health check endpoints
 	// Basic health check
 	r.GET("/health", func(c *gin.Context) {
