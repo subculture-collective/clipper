@@ -43,6 +43,9 @@ const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPrefe
 const CreatorAnalyticsPage = lazy(() => import('./pages/CreatorAnalyticsPage'));
 const PersonalStatsPage = lazy(() => import('./pages/PersonalStatsPage'));
 const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
+const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -79,6 +82,9 @@ function App() {
                   <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/leaderboards" element={<LeaderboardPage />} />
+                  <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
+                  <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
 
                   {/* Guest Routes (redirect to home if authenticated) */}
                   <Route
