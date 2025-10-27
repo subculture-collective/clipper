@@ -180,21 +180,20 @@ func (r *FavoriteRepository) GetClipsByUserID(ctx context.Context, userID uuid.U
 		return nil, 0, fmt.Errorf("failed to count favorite clips: %w", err)
 	}
 
-	// Build ORDER BY clause based on sort parameter
-	var orderBy string
-	switch sort {
-	case "top":
-		orderBy = "ORDER BY c.vote_score DESC"
-	case "discussed":
-		orderBy = "ORDER BY c.comment_count DESC"
-	case "newest":
-		fallthrough
-	default:
-		orderBy = "ORDER BY f.created_at DESC"
+	// Build ORDER BY clause based on sort parameter using a map for safety
+	orderByClauses := map[string]string{
+		"top":       "ORDER BY c.vote_score DESC",
+		"discussed": "ORDER BY c.comment_count DESC",
+		"newest":    "ORDER BY f.created_at DESC",
+	}
+	
+	orderBy, ok := orderByClauses[sort]
+	if !ok {
+		orderBy = orderByClauses["newest"] // default to newest
 	}
 
-	// Query to get clips with favorites
-	query := fmt.Sprintf(`
+	// Query to get clips with favorites - using parameterized orderBy from map
+	query := `
 		SELECT 
 			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
@@ -204,9 +203,9 @@ func (r *FavoriteRepository) GetClipsByUserID(ctx context.Context, userID uuid.U
 		FROM favorites f
 		INNER JOIN clips c ON f.clip_id = c.id
 		WHERE f.user_id = $1 AND c.is_removed = false
-		%s
+		` + orderBy + `
 		LIMIT $2 OFFSET $3
-	`, orderBy)
+	`
 
 	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
 	if err != nil {

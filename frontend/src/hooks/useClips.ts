@@ -211,16 +211,14 @@ export const useClipFavorite = () => {
         onError: (_error, _payload, context) => {
             // Rollback on error
             if (context?.previousClipsData) {
-                queryClient.setQueriesData(
-                    { queryKey: ['clips'] },
-                    context.previousClipsData
-                );
+                context.previousClipsData.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
             }
             if (context?.previousFavoritesData) {
-                queryClient.setQueriesData(
-                    { queryKey: ['favorites'] },
-                    context.previousFavoritesData
-                );
+                context.previousFavoritesData.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
             }
         },
         onSettled: () => {
