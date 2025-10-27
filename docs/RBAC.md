@@ -327,9 +327,9 @@ fi
 USERNAME=$1
 ROLE=${2:-admin}
 
-docker exec -i clipper-postgres psql -U $DB_USER -d $DB_NAME <<EOF
-UPDATE users SET role = '$ROLE' WHERE username = '$USERNAME';
-SELECT username, role FROM users WHERE username = '$USERNAME';
+docker exec -i clipper-postgres psql -U $DB_USER -d $DB_NAME -v role="$ROLE" -v username="$USERNAME" <<EOF
+UPDATE users SET role = :'role' WHERE username = :'username';
+SELECT username, role FROM users WHERE username = :'username';
 EOF
 ```
 
