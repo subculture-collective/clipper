@@ -116,10 +116,14 @@ export function ProfilePage() {
     const handleTabChange = (tab: TabType) => {
         setActiveTab(tab);
         if (tab === 'comments' || tab === 'upvoted' || tab === 'downvoted') {
-            // Reset tab data when switching tabs
-            setComments([]);
-            setUpvotedClips([]);
-            setDownvotedClips([]);
+            // Reset only the relevant tab data when switching
+            if (tab === 'comments') {
+                setComments([]);
+            } else if (tab === 'upvoted') {
+                setUpvotedClips([]);
+            } else if (tab === 'downvoted') {
+                setDownvotedClips([]);
+            }
             setCurrentPage(1);
             setHasMore(false);
             fetchTabData(tab, 1, false);
