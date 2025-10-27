@@ -91,7 +91,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
           ref={setRefs}
           id={textareaId}
           className={cn(
-            'w-full px-3 py-2.5 rounded-lg border transition-colors resize-none',
+            'w-full px-3 py-2.5 rounded-lg border transition-colors resize-none min-h-[100px]',
             'bg-background text-foreground',
             'placeholder:text-muted-foreground',
             'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
@@ -99,7 +99,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
             error
               ? 'border-error-500 focus:ring-error-500'
               : 'border-border hover:border-primary-300',
-            autoResize ? 'overflow-hidden min-h-[100px]' : 'min-h-[100px]',
+            autoResize && 'overflow-hidden',
             className
           )}
           disabled={disabled}
