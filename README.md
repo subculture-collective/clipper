@@ -37,6 +37,8 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[Search Platform](docs/SEARCH.md)** - OpenSearch setup and usage
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
 - **[RBAC](docs/RBAC.md)** - Role-based access control and admin panel access
+- **[Subscription Privileges Matrix](docs/SUBSCRIPTION_PRIVILEGES_MATRIX.md)** - Features and limits by subscription tier
+- **[Stripe Subscriptions](docs/SUBSCRIPTIONS.md)** - Stripe integration setup
 
 ### Operations
 

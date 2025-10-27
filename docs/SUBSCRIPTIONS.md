@@ -2,6 +2,8 @@
 
 This document describes how to set up and manage Stripe subscriptions in the Clipper application.
 
+> **📋 See [Subscription Privileges Matrix](./SUBSCRIPTION_PRIVILEGES_MATRIX.md) for a complete breakdown of features, limits, and gates for each subscription tier.**
+
 ## Overview
 
 Clipper uses Stripe for subscription management, supporting monthly and yearly Pro subscription plans. The implementation includes:
