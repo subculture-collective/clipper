@@ -36,6 +36,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[Database Documentation](docs/database.md)** - Database management and migrations
 - **[Search Platform](docs/SEARCH.md)** - OpenSearch setup and usage
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
+- **[RBAC](docs/RBAC.md)** - Role-based access control and admin panel access
 
 ### Operations
 
