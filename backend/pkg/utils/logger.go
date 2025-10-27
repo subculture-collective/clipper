@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -147,15 +149,15 @@ func (l *StructuredLogger) GinLogger() gin.HandlerFunc {
 		// Calculate latency
 		latency := time.Since(start)
 
-		// Get user ID from context if available
+		// Get user ID from context if available (hash it for privacy)
 		userID := ""
 		if uid, exists := c.Get("user_id"); exists {
-			userID = fmt.Sprintf("%v", uid)
+			userID = hashForLogging(fmt.Sprintf("%v", uid))
 		}
 
-		// Get trace ID from context if available
+		// Get trace ID from context if available (use request ID)
 		traceID := ""
-		if tid, exists := c.Get("trace_id"); exists {
+		if tid, exists := c.Get("RequestId"); exists {
 			traceID = fmt.Sprintf("%v", tid)
 		}
 
@@ -225,4 +227,10 @@ func Warn(message string, fields ...map[string]interface{}) {
 // Error logs an error message using the global logger
 func Error(message string, err error, fields ...map[string]interface{}) {
 	GetLogger().Error(message, err, fields...)
+}
+
+// hashForLogging creates a SHA-256 hash prefix for PII protection in logs
+func hashForLogging(value string) string {
+	hash := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(hash[:8]) // Use first 8 bytes for shorter hash
 }

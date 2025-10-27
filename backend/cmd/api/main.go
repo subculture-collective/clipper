@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/handlers"
@@ -20,7 +21,9 @@ import (
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	opensearchpkg "github.com/subculture-collective/clipper/pkg/opensearch"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	sentrypkg "github.com/subculture-collective/clipper/pkg/sentry"
 	"github.com/subculture-collective/clipper/pkg/twitch"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 func main() {
@@ -28,6 +31,22 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Initialize structured logger
+	logLevel := utils.LogLevelInfo
+	if cfg.Server.GinMode == "debug" {
+		logLevel = utils.LogLevelDebug
+	}
+	utils.InitLogger(logLevel)
+	logger := utils.GetLogger()
+
+	// Initialize Sentry
+	if err := sentrypkg.Init(&cfg.Sentry); err != nil {
+		log.Printf("WARNING: Failed to initialize Sentry: %v", err)
+	} else if cfg.Sentry.Enabled {
+		log.Printf("Sentry initialized: environment=%s, release=%s", cfg.Sentry.Environment, cfg.Sentry.Release)
+		defer sentrypkg.Close()
 	}
 
 	// Set Gin mode
@@ -189,8 +208,19 @@ func main() {
 	r := gin.New()
 
 	// Add custom middleware
-	r.Use(gin.Logger())
-	r.Use(middleware.JSONRecoveryMiddleware())
+	// Request ID must come first to be available in other middleware
+	r.Use(requestid.New())
+
+	// Add Sentry middleware for error tracking (if enabled)
+	if cfg.Sentry.Enabled {
+		r.Use(middleware.SentryMiddleware())
+		r.Use(middleware.RecoverWithSentry())
+	} else {
+		r.Use(middleware.JSONRecoveryMiddleware())
+	}
+
+	// Use structured logger
+	r.Use(logger.GinLogger())
 
 	// Apply CORS middleware
 	r.Use(middleware.CORSMiddleware(cfg))
