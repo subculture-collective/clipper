@@ -1,6 +1,6 @@
 import apiClient from './api';
-import type { Comment } from '@/types/comment';
-import type { Clip, ClipFeedResponse } from '@/types/clip';
+import type { Comment } from '../types/comment';
+import type { Clip, ClipFeedResponse } from '../types/clip';
 
 export interface UserCommentsResponse {
     comments: Comment[];
