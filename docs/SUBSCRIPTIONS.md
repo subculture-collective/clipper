@@ -102,11 +102,10 @@ For production, update these to your production URLs.
 brew install stripe/stripe-brew/stripe
 
 # Linux
-wget https://github.com/stripe/stripe-cli/releases/latest/download/stripe_linux_amd64.tar.gz
+# Replace v1.21.0 with the latest tested version as needed
+wget https://github.com/stripe/stripe-cli/releases/download/v1.21.0/stripe_linux_amd64.tar.gz
 tar -xvf stripe_linux_amd64.tar.gz
 sudo mv stripe /usr/local/bin
-```
-
 ### Forward Webhooks to Local Server
 
 ```bash
