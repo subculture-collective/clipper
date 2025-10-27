@@ -59,6 +59,44 @@ export async function fetchClips({
 }
 
 /**
+ * Fetch favorite clips with pagination and filters
+ */
+export async function fetchFavorites({
+  pageParam = 1,
+  sort = 'newest',
+}: {
+  pageParam?: number;
+  sort?: 'newest' | 'top' | 'discussed';
+}): Promise<ClipFeedResponse> {
+  const params: Record<string, string | number> = {
+    page: pageParam,
+    limit: 10,
+    sort,
+  };
+
+  const response = await apiClient.get<{
+    success: boolean;
+    data: Clip[];
+    meta: {
+      page: number;
+      limit: number;
+      total: number;
+      total_pages: number;
+      has_next: boolean;
+      has_prev: boolean;
+    };
+  }>('/favorites', { params });
+
+  return {
+    clips: response.data.data,
+    total: response.data.meta.total,
+    page: response.data.meta.page,
+    limit: response.data.meta.limit,
+    has_more: response.data.meta.has_next,
+  };
+}
+
+/**
  * Fetch a single clip by ID
  */
 export async function fetchClipById(clipId: string): Promise<Clip> {
