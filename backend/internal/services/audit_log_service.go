@@ -132,3 +132,16 @@ func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate st
 
 	return filters, nil
 }
+
+// LogSubscriptionEvent logs a subscription-related event for audit purposes
+func (s *AuditLogService) LogSubscriptionEvent(ctx context.Context, userID uuid.UUID, action string, metadata map[string]interface{}) error {
+	log := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  "subscription",
+		EntityID:    userID, // Use user ID as entity ID for subscription events
+		ModeratorID: userID, // For subscription events, moderator is the user themselves
+		Metadata:    metadata,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}
