@@ -10,12 +10,13 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-	Twitch   TwitchConfig
-	CORS     CORSConfig
+	Server     ServerConfig
+	Database   DatabaseConfig
+	Redis      RedisConfig
+	JWT        JWTConfig
+	Twitch     TwitchConfig
+	CORS       CORSConfig
+	OpenSearch OpenSearchConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -60,6 +61,13 @@ type CORSConfig struct {
 	AllowedOrigins string
 }
 
+// OpenSearchConfig holds OpenSearch configuration
+type OpenSearchConfig struct {
+	URL      string
+	Username string
+	Password string
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -100,6 +108,11 @@ func Load() (*Config, error) {
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000"),
+		},
+		OpenSearch: OpenSearchConfig{
+			URL:      getEnv("OPENSEARCH_URL", "http://localhost:9200"),
+			Username: getEnv("OPENSEARCH_USERNAME", ""),
+			Password: getEnv("OPENSEARCH_PASSWORD", ""),
 		},
 	}
 
