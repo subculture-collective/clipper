@@ -227,7 +227,7 @@ func main() {
 		if osClient != nil {
 			if err := osClient.Ping(ctx); err != nil {
 				checks["opensearch"] = "degraded"
-				log.Printf("OpenSearch health check failed: %v", err)
+				log.Printf("OpenSearch health check failed (%T): %v", err, err)
 			} else {
 				checks["opensearch"] = "ok"
 			}
