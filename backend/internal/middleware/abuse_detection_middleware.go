@@ -105,7 +105,9 @@ func EnhancedRateLimitMiddleware(redis *redispkg.Client, requests int, window ti
 		// Get current count
 		currentCount := int64(0)
 		if val, err := redis.Get(ctx, currentKey); err == nil {
-			fmt.Sscanf(val, "%d", &currentCount)
+			if _, err := fmt.Sscanf(val, "%d", &currentCount); err != nil {
+				log.Printf("Warning: failed to parse rate limit count: %v", err)
+			}
 		}
 		
 		// Calculate utilization percentage
@@ -158,6 +160,8 @@ func GetAbuseStats(ctx context.Context, redis *redispkg.Client, ip string) (int6
 	}
 	
 	var count int64
-	fmt.Sscanf(val, "%d", &count)
+	if _, err := fmt.Sscanf(val, "%d", &count); err != nil {
+		return 0, fmt.Errorf("failed to parse abuse count: %w", err)
+	}
 	return count, nil
 }
