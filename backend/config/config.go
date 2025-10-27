@@ -18,6 +18,7 @@ type Config struct {
 	CORS       CORSConfig
 	OpenSearch OpenSearchConfig
 	Stripe     StripeConfig
+	Sentry     SentryConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -80,6 +81,15 @@ type StripeConfig struct {
 	CancelURL              string
 }
 
+// SentryConfig holds Sentry error tracking configuration
+type SentryConfig struct {
+	DSN              string
+	Environment      string
+	Release          string
+	TracesSampleRate float64
+	Enabled          bool
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -135,6 +145,13 @@ func Load() (*Config, error) {
 			SuccessURL:        getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
 			CancelURL:         getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
 		},
+		Sentry: SentryConfig{
+			DSN:              getEnv("SENTRY_DSN", ""),
+			Environment:      getEnv("SENTRY_ENVIRONMENT", "development"),
+			Release:          getEnv("SENTRY_RELEASE", ""),
+			TracesSampleRate: getEnvFloat("SENTRY_TRACES_SAMPLE_RATE", 1.0),
+			Enabled:          getEnv("SENTRY_ENABLED", "false") == "true",
+		},
 	}
 
 	return config, nil
@@ -157,6 +174,16 @@ func (c *DatabaseConfig) GetDatabaseURL() string {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// getEnvFloat gets a float environment variable with a fallback default value
+func getEnvFloat(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatVal
+		}
 	}
 	return defaultValue
 }

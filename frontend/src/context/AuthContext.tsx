@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
 import { isModeratorOrAdmin } from '../lib/roles';
+import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/sentry';
 import type { User } from '../lib/auth-api';
 
 interface AuthContextType {
@@ -26,9 +27,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
+      // Set user context in Sentry
+      setSentryUser(currentUser.id, currentUser.username);
     } catch {
       // Not authenticated or session expired
       setUser(null);
+      clearSentryUser();
     } finally {
       setIsLoading(false);
     }
@@ -51,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      clearSentryUser();
     }
   };
 
@@ -59,9 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
+      // Update user context in Sentry
+      setSentryUser(currentUser.id, currentUser.username);
     } catch (error) {
       console.error('Failed to refresh user:', error);
       setUser(null);
+      clearSentryUser();
     }
   };
 
