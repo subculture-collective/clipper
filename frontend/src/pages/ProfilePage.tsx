@@ -158,7 +158,7 @@ export function ProfilePage() {
         <Container className='py-8'>
             <div className='max-w-4xl mx-auto'>
                 {/* Banned User Message */}
-                {user.is_banned && (
+                {user?.is_banned && (
                     <Card className='mb-6 border-red-500 bg-red-50 dark:bg-red-950'>
                         <CardBody>
                             <div className='flex items-start gap-4'>
