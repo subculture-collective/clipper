@@ -86,6 +86,6 @@ export function hasActiveSubscription(subscription: Subscription | null): boolea
 export function isProUser(subscription: Subscription | null): boolean {
   return (
     hasActiveSubscription(subscription) &&
-    subscription!.tier === 'pro'
+    subscription?.tier === 'pro'
   );
 }
