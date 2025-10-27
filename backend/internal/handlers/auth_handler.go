@@ -159,6 +159,32 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	c.JSON(http.StatusOK, userInterface)
 }
 
+// ReauthorizeTwitch handles POST /auth/twitch/reauthorize
+// Initiates a new OAuth flow to refresh Twitch profile metadata
+func (h *AuthHandler) ReauthorizeTwitch(c *gin.Context) {
+	// Get user from context (set by auth middleware) - just verify they're authenticated
+	_, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Not authenticated",
+		})
+		return
+	}
+
+	// Generate new auth URL
+	authURL, err := h.authService.GenerateAuthURL(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate auth URL",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"auth_url": authURL,
+	})
+}
+
 // setAuthCookies sets authentication cookies
 func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken, refreshToken string) {
 	isProduction := h.cfg.Server.GinMode == "release"
