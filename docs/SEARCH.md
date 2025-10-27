@@ -58,7 +58,11 @@ Add to your `.env` file:
 OPENSEARCH_URL=http://localhost:9200
 OPENSEARCH_USERNAME=       # Optional: for production with security enabled
 OPENSEARCH_PASSWORD=       # Optional: for production with security enabled
+# WARNING: Set to false in production to enable TLS certificate verification
+OPENSEARCH_INSECURE_SKIP_VERIFY=true  # Development only!
 ```
+
+⚠️ **Security Note**: The `OPENSEARCH_INSECURE_SKIP_VERIFY` setting disables TLS certificate verification. This should **ONLY** be set to `true` in development environments. For production, set it to `false` and use properly signed certificates.
 
 ### 3. Initialize Indices
 

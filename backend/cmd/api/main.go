@@ -49,9 +49,10 @@ func main() {
 
 	// Initialize OpenSearch client
 	osClient, err := opensearchpkg.NewClient(&opensearchpkg.Config{
-		URL:      cfg.OpenSearch.URL,
-		Username: cfg.OpenSearch.Username,
-		Password: cfg.OpenSearch.Password,
+		URL:                cfg.OpenSearch.URL,
+		Username:           cfg.OpenSearch.Username,
+		Password:           cfg.OpenSearch.Password,
+		InsecureSkipVerify: cfg.OpenSearch.InsecureSkipVerify,
 	})
 	if err != nil {
 		log.Printf("WARNING: Failed to initialize OpenSearch client: %v", err)

@@ -63,9 +63,10 @@ type CORSConfig struct {
 
 // OpenSearchConfig holds OpenSearch configuration
 type OpenSearchConfig struct {
-	URL      string
-	Username string
-	Password string
+	URL                string
+	Username           string
+	Password           string
+	InsecureSkipVerify bool
 }
 
 // Load loads configuration from environment variables
@@ -110,9 +111,10 @@ func Load() (*Config, error) {
 			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000"),
 		},
 		OpenSearch: OpenSearchConfig{
-			URL:      getEnv("OPENSEARCH_URL", "http://localhost:9200"),
-			Username: getEnv("OPENSEARCH_USERNAME", ""),
-			Password: getEnv("OPENSEARCH_PASSWORD", ""),
+			URL:                getEnv("OPENSEARCH_URL", "http://localhost:9200"),
+			Username:           getEnv("OPENSEARCH_USERNAME", ""),
+			Password:           getEnv("OPENSEARCH_PASSWORD", ""),
+			InsecureSkipVerify: getEnv("OPENSEARCH_INSECURE_SKIP_VERIFY", "true") == "true",
 		},
 	}
 
