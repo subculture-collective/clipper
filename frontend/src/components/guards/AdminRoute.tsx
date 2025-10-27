@@ -6,7 +6,7 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isModeratorOrAdmin, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -20,7 +20,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isAdmin) {
+  if (!isModeratorOrAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
