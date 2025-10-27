@@ -162,6 +162,7 @@ func main() {
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
+	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
 	if openSearchService != nil {
@@ -359,6 +360,13 @@ func main() {
 			comments.PUT("/:id", middleware.AuthMiddleware(authService), commentHandler.UpdateComment)
 			comments.DELETE("/:id", middleware.AuthMiddleware(authService), commentHandler.DeleteComment)
 			comments.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), commentHandler.VoteOnComment)
+		}
+
+		// Favorite routes
+		favorites := v1.Group("/favorites")
+		{
+			// Protected favorite endpoints (require authentication)
+			favorites.GET("", middleware.AuthMiddleware(authService), favoriteHandler.ListUserFavorites)
 		}
 
 		// Tag routes
