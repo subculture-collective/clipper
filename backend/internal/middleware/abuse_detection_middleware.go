@@ -106,7 +106,9 @@ func EnhancedRateLimitMiddleware(redis *redispkg.Client, requests int, window ti
 		currentCount := int64(0)
 		if val, err := redis.Get(ctx, currentKey); err == nil {
 			if _, err := fmt.Sscanf(val, "%d", &currentCount); err != nil {
-				log.Printf("Warning: failed to parse rate limit count: %v", err)
+				// Log warning and continue with 0 (safer to not apply warnings than to block legitimate traffic)
+				log.Printf("Warning: failed to parse rate limit count for enhanced warnings, defaulting to 0: %v", err)
+				currentCount = 0
 			}
 		}
 		
