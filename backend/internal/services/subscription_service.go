@@ -117,7 +117,7 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 	}
 
 	// Create checkout session with idempotency key
-	idempotencyKey := fmt.Sprintf("checkout_%s_%s_%d", user.ID.String(), priceID, time.Now().Unix())
+	idempotencyKey := fmt.Sprintf("checkout_%s_%s", user.ID.String(), priceID)
 
 	params := &stripe.CheckoutSessionParams{
 		Customer: stripe.String(customerID),
