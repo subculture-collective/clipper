@@ -36,6 +36,7 @@ export function SettingsPage() {
 
   // Export state
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -43,6 +44,7 @@ export function SettingsPage() {
   const [deleteReason, setDeleteReason] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [cancelDeletionError, setCancelDeletionError] = useState<string | null>(null);
 
   // Load user settings
   const { data: settings, isLoading: settingsLoading } = useQuery({
@@ -116,6 +118,7 @@ export function SettingsPage() {
   // Export data
   const handleExportData = async () => {
     setIsExporting(true);
+    setExportError(null);
     try {
       const blob = await exportUserData();
       const url = window.URL.createObjectURL(blob);
@@ -127,7 +130,7 @@ export function SettingsPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Failed to export data. Please try again.');
+      setExportError('Failed to export data. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -161,12 +164,13 @@ export function SettingsPage() {
 
   // Cancel deletion
   const handleCancelDeletion = async () => {
+    setCancelDeletionError(null);
     try {
       await cancelAccountDeletion();
       refetchDeletionStatus();
       queryClient.invalidateQueries({ queryKey: ['accountDeletionStatus'] });
     } catch (error) {
-      alert('Failed to cancel account deletion. Please try again.');
+      setCancelDeletionError('Failed to cancel account deletion. Please try again.');
     }
   };
 
@@ -188,25 +192,30 @@ export function SettingsPage() {
 
           {/* Account deletion warning */}
           {deletionStatus?.pending && (
-            <Alert variant="warning" className="mb-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold mb-1">Account Deletion Scheduled</h3>
-                  <p className="text-sm">
-                    Your account is scheduled for deletion on{' '}
-                    {new Date(deletionStatus.scheduled_for!).toLocaleDateString()}. You can cancel this
-                    at any time before that date.
-                  </p>
+            <>
+              <Alert variant="warning" className="mb-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold mb-1">Account Deletion Scheduled</h3>
+                    <p className="text-sm">
+                      Your account is scheduled for deletion on{' '}
+                      {new Date(deletionStatus.scheduled_for!).toLocaleDateString()}. You can cancel this
+                      at any time before that date.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelDeletion}
+                  >
+                    Cancel Deletion
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelDeletion}
-                >
-                  Cancel Deletion
-                </Button>
-              </div>
-            </Alert>
+              </Alert>
+              {cancelDeletionError && (
+                <Alert variant="error" className="mb-6">{cancelDeletionError}</Alert>
+              )}
+            </>
           )}
 
           {/* Profile Settings */}
@@ -349,6 +358,9 @@ export function SettingsPage() {
                   <Button variant="outline" onClick={handleExportData} disabled={isExporting}>
                     {isExporting ? 'Exporting...' : 'Export Data'}
                   </Button>
+                  {exportError && (
+                    <Alert variant="error" className="mt-3">{exportError}</Alert>
+                  )}
                 </div>
               </Stack>
             </CardBody>

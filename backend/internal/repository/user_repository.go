@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -364,24 +363,23 @@ func (r *UserSettingsRepository) GetByUserID(ctx context.Context, userID uuid.UU
 
 // Update updates user settings
 func (r *UserSettingsRepository) Update(ctx context.Context, userID uuid.UUID, profileVisibility *string, showKarmaPublicly *bool) error {
-	// Build dynamic query based on provided fields
-	query := `UPDATE user_settings SET updated_at = NOW()`
-	args := []interface{}{userID}
-	argIndex := 2
+	// Build query based on which fields are provided
+	var query string
+	var args []interface{}
 
-	if profileVisibility != nil {
-		query += `, profile_visibility = $` + fmt.Sprintf("%d", argIndex)
-		args = append(args, *profileVisibility)
-		argIndex++
+	if profileVisibility != nil && showKarmaPublicly != nil {
+		query = `UPDATE user_settings SET profile_visibility = $2, show_karma_publicly = $3, updated_at = NOW() WHERE user_id = $1`
+		args = []interface{}{userID, *profileVisibility, *showKarmaPublicly}
+	} else if profileVisibility != nil {
+		query = `UPDATE user_settings SET profile_visibility = $2, updated_at = NOW() WHERE user_id = $1`
+		args = []interface{}{userID, *profileVisibility}
+	} else if showKarmaPublicly != nil {
+		query = `UPDATE user_settings SET show_karma_publicly = $2, updated_at = NOW() WHERE user_id = $1`
+		args = []interface{}{userID, *showKarmaPublicly}
+	} else {
+		// Nothing to update
+		return nil
 	}
-
-	if showKarmaPublicly != nil {
-		query += `, show_karma_publicly = $` + fmt.Sprintf("%d", argIndex)
-		args = append(args, *showKarmaPublicly)
-		argIndex++
-	}
-
-	query += ` WHERE user_id = $1`
 
 	result, err := r.db.Exec(ctx, query, args...)
 	if err != nil {
