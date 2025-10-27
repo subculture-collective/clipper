@@ -53,12 +53,12 @@ func TestOpenSearchService_BuildClipQuery(t *testing.T) {
 		}
 
 		query := service.buildClipQuery(req)
-		
+
 		boolQuery, ok := query["bool"].(map[string]interface{})
 		if !ok {
 			t.Fatalf("Expected bool query, got %T", query["bool"])
 		}
-		
+
 		filter, ok := boolQuery["filter"].([]map[string]interface{})
 		if !ok {
 			t.Fatalf("Expected filter as []map[string]interface{}, got %T", boolQuery["filter"])

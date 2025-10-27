@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v81"
+	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/customer"
-	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -30,10 +30,10 @@ var (
 
 // SubscriptionService handles subscription business logic
 type SubscriptionService struct {
-	repo         *repository.SubscriptionRepository
-	userRepo     *repository.UserRepository
-	cfg          *config.Config
-	auditLogSvc  *AuditLogService
+	repo        *repository.SubscriptionRepository
+	userRepo    *repository.UserRepository
+	cfg         *config.Config
+	auditLogSvc *AuditLogService
 }
 
 // NewSubscriptionService creates a new subscription service

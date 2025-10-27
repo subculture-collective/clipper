@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -219,8 +220,10 @@ func (s *CacheService) GetClipVotes(ctx context.Context, clipID uuid.UUID) (int,
 	if err != nil {
 		return 0, err
 	}
-	var count int
-	fmt.Sscanf(val, "%d", &count)
+	count, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse vote count: %w", err)
+	}
 	return count, nil
 }
 
@@ -247,8 +250,10 @@ func (s *CacheService) GetClipCommentCount(ctx context.Context, clipID uuid.UUID
 	if err != nil {
 		return 0, err
 	}
-	var count int
-	fmt.Sscanf(val, "%d", &count)
+	count, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse comment count: %w", err)
+	}
 	return count, nil
 }
 
