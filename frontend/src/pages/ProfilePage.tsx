@@ -155,16 +155,16 @@ export function ProfilePage() {
     }
 
     return (
-        <Container className='py-8'>
+        <Container className='py-4 xs:py-6 md:py-8'>
             <div className='max-w-4xl mx-auto'>
                 {/* Banned User Message */}
                 {user?.is_banned && (
-                    <Card className='mb-6 border-red-500 bg-red-50 dark:bg-red-950'>
+                    <Card className='mb-4 xs:mb-6 border-red-500 bg-red-50 dark:bg-red-950'>
                         <CardBody>
-                            <div className='flex items-start gap-4'>
+                            <div className='flex items-start gap-3 xs:gap-4'>
                                 <div className='flex-shrink-0'>
                                     <svg
-                                        className='w-6 h-6 text-red-600'
+                                        className='w-5 h-5 xs:w-6 xs:h-6 text-red-600'
                                         fill='none'
                                         stroke='currentColor'
                                         viewBox='0 0 24 24'
@@ -178,10 +178,10 @@ export function ProfilePage() {
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className='text-lg font-semibold text-red-900 dark:text-red-100'>
+                                    <h3 className='text-base xs:text-lg font-semibold text-red-900 dark:text-red-100'>
                                         Account Restricted
                                     </h3>
-                                    <p className='mt-1 text-red-800 dark:text-red-200'>
+                                    <p className='mt-1 text-sm xs:text-base text-red-800 dark:text-red-200'>
                                         Your account has been restricted from interacting with certain content. 
                                         Please contact support if you believe this is an error.
                                     </p>
@@ -192,32 +192,32 @@ export function ProfilePage() {
                 )}
 
                 {/* Profile Header */}
-                <Card className='mb-6'>
+                <Card className='mb-4 xs:mb-6'>
                     <CardBody>
-                        <div className='flex items-start gap-6'>
+                        <div className='flex flex-col xs:flex-row items-start gap-4 xs:gap-6'>
                             {/* Avatar */}
-                            <div className='shrink-0'>
+                            <div className='shrink-0 mx-auto xs:mx-0'>
                                 {user.avatar_url ? (
                                     <img
                                         src={user.avatar_url}
                                         alt={user.username}
-                                        className='border-border w-24 h-24 border-2 rounded-full'
+                                        className='border-border w-20 h-20 xs:w-24 xs:h-24 border-2 rounded-full'
                                     />
                                 ) : (
-                                    <div className='bg-primary-100 dark:bg-primary-900 text-primary-600 flex items-center justify-center w-24 h-24 text-3xl font-bold rounded-full'>
+                                    <div className='bg-primary-100 dark:bg-primary-900 text-primary-600 flex items-center justify-center w-20 h-20 xs:w-24 xs:h-24 text-2xl xs:text-3xl font-bold rounded-full'>
                                         {user.username.charAt(0).toUpperCase()}
                                     </div>
                                 )}
                             </div>
 
                             {/* User Info */}
-                            <div className='flex-1'>
-                                <div className='flex items-start justify-between'>
+                            <div className='flex-1 w-full text-center xs:text-left'>
+                                <div className='flex flex-col xs:flex-row items-center xs:items-start justify-between gap-3 xs:gap-0'>
                                     <div>
-                                        <h1 className='mb-1 text-3xl font-bold'>
+                                        <h1 className='mb-1 text-2xl xs:text-3xl font-bold'>
                                             {user.display_name}
                                         </h1>
-                                        <p className='text-muted-foreground mb-2'>
+                                        <p className='text-sm xs:text-base text-muted-foreground mb-2'>
                                             @{user.username}
                                         </p>
                                     </div>
@@ -226,18 +226,19 @@ export function ProfilePage() {
                                         disabled={reauthorizing}
                                         variant='outline'
                                         size='sm'
+                                        className='w-full xs:w-auto'
                                     >
                                         {reauthorizing ? 'Redirecting...' : 'Reauthorize with Twitch'}
                                     </Button>
                                 </div>
 
                                 {user.bio && (
-                                    <p className='text-foreground mb-4'>
+                                    <p className='text-sm xs:text-base text-foreground mb-4'>
                                         {user.bio}
                                     </p>
                                 )}
 
-                                <div className='flex flex-wrap gap-4 text-sm'>
+                                <div className='flex flex-wrap justify-center xs:justify-start gap-3 xs:gap-4 text-xs xs:text-sm'>
                                     <div className='flex items-center gap-2'>
                                         <span className='text-muted-foreground'>
                                             Karma:
