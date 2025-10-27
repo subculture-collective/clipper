@@ -10,6 +10,7 @@ This runbook provides step-by-step procedures for common deployment and operatio
 - [Database Migration](#database-migration)
 - [Configuration Changes](#configuration-changes)
 - [Scaling Operations](#scaling-operations)
+- [Error Monitoring and Triage](#error-monitoring-and-triage)
 - [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Pre-Deployment Checklist
@@ -436,6 +437,267 @@ docker-compose ps
    sudo nginx -t
    sudo systemctl reload nginx
    ```
+
+## Error Monitoring and Triage
+
+This section covers how to use Sentry for error monitoring and incident triage.
+
+### Accessing Sentry
+
+1. **Log in to Sentry**: <https://sentry.io>
+2. **Select Project**:
+   - `clipper-backend` for backend errors
+   - `clipper-frontend` for frontend errors
+
+### Understanding Sentry Issues
+
+#### Issue Details
+
+Each Sentry issue contains:
+
+- **Error Message**: Description of what went wrong
+- **Stack Trace**: Where in the code the error occurred
+- **Breadcrumbs**: User actions leading to the error
+- **Tags**: Metadata (environment, release, route, request_id)
+- **User Context**: Hashed user ID (for privacy)
+- **Request Context**: HTTP method, URL, headers (sensitive data scrubbed)
+
+#### Issue Severity
+
+- **Fatal**: Application crash or data loss
+- **Error**: Exception that prevented operation completion
+- **Warning**: Unexpected behavior but operation completed
+- **Info**: Informational events
+
+### Triage Process
+
+#### Step 1: Assess Severity
+
+1. Check the **issue frequency** (events per hour)
+2. Check **affected users** count
+3. Review **error message** and **stack trace**
+4. Determine impact:
+   - **P0 Critical**: Data loss, security breach, complete service outage
+   - **P1 High**: Feature broken for all users, major degradation
+   - **P2 Medium**: Feature broken for some users, minor degradation
+   - **P3 Low**: Edge case, minor issue affecting few users
+
+#### Step 2: Gather Context
+
+1. **Check Tags**:
+   - `environment`: Which environment (production, staging, development)?
+   - `release`: Which version is affected?
+   - `route`: Which API endpoint or page?
+   - `request_id`: Unique identifier for request (use for log correlation)
+
+2. **Review Breadcrumbs**:
+   - User actions before error
+   - API calls made
+   - Navigation history
+
+3. **Check User Context**:
+   - Is it affecting specific users or random?
+   - Pattern in user roles or permissions?
+
+#### Step 3: Correlate with Logs
+
+Use the `request_id` tag to find related logs:
+
+```bash
+# Backend logs (structured JSON)
+docker-compose logs backend | grep "request_id\":\"<REQUEST_ID>"
+
+# Or using jq for better formatting
+docker-compose logs backend --no-color | \
+  grep "<REQUEST_ID>" | \
+  jq '.' 2>/dev/null || cat
+```
+
+Example structured log fields:
+- `timestamp`: When the event occurred
+- `level`: Log level (debug, info, warn, error)
+- `message`: Log message
+- `trace_id`/`request_id`: Request identifier
+- `user_id`: Hashed user ID (matches Sentry)
+- `method`, `path`, `status_code`: HTTP request details
+- `error`: Error message if present
+
+#### Step 4: Investigate Root Cause
+
+1. **Examine Stack Trace**:
+   - Find the origin of the error
+   - Check if it's in application code or dependencies
+
+2. **Check Recent Changes**:
+   - In Sentry, click "Releases" to see if error started after a deployment
+   - Review git commits for the affected release
+
+3. **Look for Patterns**:
+   - Time of day (load-related?)
+   - Specific routes or features
+   - User agent or browser (frontend issues)
+   - Database queries (check slow query logs)
+
+#### Step 5: Take Action
+
+Based on severity:
+
+**P0 Critical**:
+1. Page on-call engineer immediately
+2. Consider emergency rollback
+3. Communicate to stakeholders
+4. Fix immediately
+
+**P1 High**:
+1. Notify team in Slack
+2. Assign to engineer
+3. Create hotfix PR
+4. Deploy within hours
+
+**P2 Medium**:
+1. Create GitHub issue
+2. Add to sprint backlog
+3. Fix in next release
+
+**P3 Low**:
+1. Create GitHub issue
+2. Add to backlog
+3. Fix when capacity allows
+
+### Common Error Patterns
+
+#### High Error Rate (> 5%)
+
+**Investigate**:
+- Recent deployments
+- Database connection issues
+- External API failures (Twitch, Stripe)
+- Rate limiting triggered
+
+**Actions**:
+- Check service health: `/health/ready` endpoint
+- Review database stats: `/health/stats` endpoint
+- Check external service status pages
+- Consider scaling resources
+
+#### Performance Degradation
+
+**Symptoms**: Slow response times, timeouts
+
+**Investigate**:
+- Database slow queries (check Sentry transaction spans)
+- N+1 query problems
+- Missing indexes
+- Large payload sizes
+- Memory leaks
+
+**Actions**:
+- Check database connection pool: `/health/stats`
+- Review slow query logs
+- Use `EXPLAIN ANALYZE` on suspicious queries
+- Monitor memory usage: `docker stats`
+
+#### Authentication Errors
+
+**Symptoms**: Spike in 401/403 errors
+
+**Investigate**:
+- JWT token expiration issues
+- Session store (Redis) problems
+- Twitch OAuth token refresh failures
+
+**Actions**:
+- Check Redis connectivity: `/health/cache/check`
+- Verify JWT configuration (keys not rotated unexpectedly)
+- Check Twitch API status
+
+#### Frontend JavaScript Errors
+
+**Symptoms**: React errors, hydration mismatches
+
+**Investigate**:
+- Browser compatibility issues
+- React version conflicts
+- State management bugs
+- API response format changes
+
+**Actions**:
+- Check browser and version from Sentry tags
+- Review recent component changes
+- Test in affected browser
+- Check API contract hasn't changed
+
+### Sentry Workflow Management
+
+#### Resolving Issues
+
+Mark issue as resolved when:
+- Fix is deployed to production
+- Verified no new occurrences
+- Root cause is addressed
+
+To resolve:
+1. Click "Resolve" in Sentry
+2. Select "In the next release" or specific version
+3. Add resolution note explaining fix
+
+#### Ignoring Issues
+
+Ignore issues that are:
+- False positives
+- Browser extension errors
+- Known third-party library bugs with no fix
+- Expected errors (e.g., 404s for bots)
+
+To ignore:
+1. Click "Ignore"
+2. Select condition (forever, until condition met, etc.)
+3. Add reason for ignoring
+
+#### Setting Up Alerts
+
+Configure alerts for critical patterns:
+
+1. **High Error Rate**:
+   - Condition: > 50 events in 5 minutes
+   - Action: Notify Slack channel, email on-call
+
+2. **New Issue**:
+   - Condition: First seen in production
+   - Action: Notify team channel
+
+3. **Regression**:
+   - Condition: Resolved issue occurs again
+   - Action: Notify original resolver, create GitHub issue
+
+### Best Practices
+
+1. **Triage Daily**: Review new issues at least once per day
+2. **Monitor Releases**: Check Sentry after each deployment
+3. **Set Ownership**: Assign issues to specific team members
+4. **Document Patterns**: Update this runbook with new patterns
+5. **PII Protection**: Never log sensitive user data
+6. **Context is Key**: Always add breadcrumbs for user actions
+7. **Release Tracking**: Always deploy with release tags
+8. **Test Error Tracking**: Periodically test Sentry integration
+
+### Testing Error Tracking
+
+To verify Sentry is working:
+
+**Backend**:
+```bash
+# Trigger test error (only in non-production)
+curl -X POST http://localhost:8080/api/v1/test/sentry-error
+```
+
+**Frontend**:
+```javascript
+// In browser console (non-production only)
+throw new Error('Test Sentry error');
+```
+
+Check Sentry dashboard within 30 seconds to confirm error appears.
 
 ## Troubleshooting Guide
 
