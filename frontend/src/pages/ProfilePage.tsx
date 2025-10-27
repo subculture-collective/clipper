@@ -79,7 +79,7 @@ export function ProfilePage() {
         }
     }, [user]);
 
-    const fetchTabData = useCallback(async (tab: TabType, page: number = 1) => {
+    const fetchTabData = useCallback(async (tab: TabType, page: number = 1, append: boolean = false) => {
         if (!user) return;
         
         setLoadingTabData(true);
@@ -87,19 +87,19 @@ export function ProfilePage() {
             switch (tab) {
                 case 'comments': {
                     const data = await fetchUserComments(user.id, page);
-                    setComments(data.comments);
+                    setComments(prev => append ? [...prev, ...data.comments] : data.comments);
                     setHasMore(data.has_more);
                     break;
                 }
                 case 'upvoted': {
                     const data = await fetchUserUpvotedClips(user.id, page);
-                    setUpvotedClips(data.clips);
+                    setUpvotedClips(prev => append ? [...prev, ...data.clips] : data.clips);
                     setHasMore(data.has_more);
                     break;
                 }
                 case 'downvoted': {
                     const data = await fetchUserDownvotedClips(user.id, page);
-                    setDownvotedClips(data.clips);
+                    setDownvotedClips(prev => append ? [...prev, ...data.clips] : data.clips);
                     setHasMore(data.has_more);
                     break;
                 }
@@ -116,7 +116,13 @@ export function ProfilePage() {
     const handleTabChange = (tab: TabType) => {
         setActiveTab(tab);
         if (tab === 'comments' || tab === 'upvoted' || tab === 'downvoted') {
-            fetchTabData(tab, 1);
+            // Reset tab data when switching tabs
+            setComments([]);
+            setUpvotedClips([]);
+            setDownvotedClips([]);
+            setCurrentPage(1);
+            setHasMore(false);
+            fetchTabData(tab, 1, false);
         }
     };
 
@@ -480,7 +486,7 @@ export function ProfilePage() {
                                             {hasMore && (
                                                 <div className='text-center pt-4'>
                                                     <Button
-                                                        onClick={() => fetchTabData('comments', currentPage + 1)}
+                                                        onClick={() => fetchTabData('comments', currentPage + 1, true)}
                                                         variant='outline'
                                                     >
                                                         Load More
@@ -514,7 +520,7 @@ export function ProfilePage() {
                                             {hasMore && (
                                                 <div className='text-center pt-4'>
                                                     <Button
-                                                        onClick={() => fetchTabData('upvoted', currentPage + 1)}
+                                                        onClick={() => fetchTabData('upvoted', currentPage + 1, true)}
                                                         variant='outline'
                                                     >
                                                         Load More
@@ -548,7 +554,7 @@ export function ProfilePage() {
                                             {hasMore && (
                                                 <div className='text-center pt-4'>
                                                     <Button
-                                                        onClick={() => fetchTabData('downvoted', currentPage + 1)}
+                                                        onClick={() => fetchTabData('downvoted', currentPage + 1, true)}
                                                         variant='outline'
                                                     >
                                                         Load More
