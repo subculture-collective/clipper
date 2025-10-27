@@ -13,9 +13,10 @@ import (
 
 // Config holds OpenSearch configuration
 type Config struct {
-URL      string
-Username string
-Password string
+URL                string
+Username           string
+Password           string
+InsecureSkipVerify bool // Skip TLS certificate verification (DEV ONLY - NOT for production)
 }
 
 // Client wraps the OpenSearch client
@@ -29,10 +30,12 @@ if cfg.URL == "" {
 return nil, fmt.Errorf("OpenSearch URL is required")
 }
 
-// Configure TLS (skip verification for dev, enable for production)
+// Configure TLS
+// WARNING: InsecureSkipVerify bypasses certificate validation and should ONLY
+// be used in development. For production, use properly signed certificates.
 transport := &http.Transport{
 TLSClientConfig: &tls.Config{
-InsecureSkipVerify: true, // TODO: Make this configurable
+InsecureSkipVerify: cfg.InsecureSkipVerify,
 },
 MaxIdleConns:        10,
 MaxIdleConnsPerHost: 10,

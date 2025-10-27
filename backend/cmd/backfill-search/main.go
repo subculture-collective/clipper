@@ -32,9 +32,10 @@ func main() {
 	defer db.Close()
 
 	osClient, err := opensearchpkg.NewClient(&opensearchpkg.Config{
-		URL:      cfg.OpenSearch.URL,
-		Username: cfg.OpenSearch.Username,
-		Password: cfg.OpenSearch.Password,
+		URL:                cfg.OpenSearch.URL,
+		Username:           cfg.OpenSearch.Username,
+		Password:           cfg.OpenSearch.Password,
+		InsecureSkipVerify: cfg.OpenSearch.InsecureSkipVerify,
 	})
 	if err != nil {
 		log.Fatalf("Failed to initialize OpenSearch client: %v", err)
