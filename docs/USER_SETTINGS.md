@@ -73,7 +73,7 @@ Request body:
 
 ### Notification Preferences
 
-Notification preferences are managed through a separate page but linked from the Settings page. See [Notification System Documentation](./NOTIFICATIONS.md) for details.
+Notification preferences are managed through a separate page but linked from the Settings page. See [Notification System Documentation](./NOTIFICATION_SYSTEM_IMPLEMENTATION.md) for details.
 
 Users can configure:
 - Email notifications (on/off)
