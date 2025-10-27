@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export function UserMenu() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isModeratorOrAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -117,7 +117,7 @@ export function UserMenu() {
               ⭐ Favorites
             </Link>
             
-            {isAdmin && (
+            {isModeratorOrAdmin && (
               <>
                 <div className="border-t border-border my-1"></div>
                 <Link

@@ -87,3 +87,47 @@ func (r *VoteRepository) GetVoteCounts(ctx context.Context, clipID uuid.UUID) (u
 
 	return upvotes, downvotes, nil
 }
+
+// GetUserVotedClips returns clips that a user has voted on (upvoted or downvoted)
+func (r *VoteRepository) GetUserVotedClips(ctx context.Context, userID uuid.UUID, voteType int16, limit, offset int) ([]uuid.UUID, int, error) {
+	// Get total count
+	countQuery := `
+		SELECT COUNT(*)
+		FROM votes
+		WHERE user_id = $1 AND vote_type = $2
+	`
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, userID, voteType).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count voted clips: %w", err)
+	}
+
+	// Get clip IDs
+	query := `
+		SELECT clip_id
+		FROM votes
+		WHERE user_id = $1 AND vote_type = $2
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID, voteType, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query voted clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clipIDs []uuid.UUID
+	for rows.Next() {
+		var clipID uuid.UUID
+		if err := rows.Scan(&clipID); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan clip ID: %w", err)
+		}
+		clipIDs = append(clipIDs, clipID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating voted clips: %w", err)
+	}
+
+	return clipIDs, total, nil
+}
