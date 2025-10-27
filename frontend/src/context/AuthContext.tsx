@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
+import { isModeratorOrAdmin } from '../lib/roles';
 import type { User } from '../lib/auth-api';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isModerator: boolean;
+  isModeratorOrAdmin: boolean;
   isLoading: boolean;
   login: () => void;
   logout: () => Promise<void>;
@@ -63,7 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const isAuthenticated = user !== null;
-  const isAdmin = user?.role === 'admin' || user?.role === 'moderator';
+  const isAdmin = user?.role === 'admin';
+  const isModerator = user?.role === 'moderator';
+  const isModeratorOrAdminFlag = isModeratorOrAdmin(user?.role);
 
   return (
     <AuthContext.Provider
@@ -71,6 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAuthenticated,
         isAdmin,
+        isModerator,
+        isModeratorOrAdmin: isModeratorOrAdminFlag,
         isLoading,
         login,
         logout,
