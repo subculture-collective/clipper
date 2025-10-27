@@ -299,8 +299,8 @@ if err := json.NewDecoder(res.Body).Decode(&bulkRes); err != nil {
 return fmt.Errorf("failed to parse bulk response: %w", err)
 }
 
-if bulkRes["errors"].(bool) {
-log.Printf("WARNING: Some bulk operations failed. Check items for details.")
+if errors, ok := bulkRes["errors"].(bool); ok && errors {
+    log.Printf("WARNING: Some bulk operations failed. Check items for details.")
 }
 
 return nil
