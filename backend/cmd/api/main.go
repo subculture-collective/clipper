@@ -108,6 +108,7 @@ func main() {
 	notificationRepo := repository.NewNotificationRepository(db.Pool)
 	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
+	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -125,6 +126,7 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, cfg, auditLogService)
 	
 	// Initialize search services
 	var searchIndexerService *services.SearchIndexerService
@@ -168,6 +170,7 @@ func main() {
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
+	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -429,6 +432,19 @@ func main() {
 			// Get/Update preferences
 			notifications.GET("/preferences", notificationHandler.GetPreferences)
 			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+		}
+
+		// Subscription routes
+		subscriptions := v1.Group("/subscriptions")
+		{
+			// Webhook endpoint (public, no auth required)
+			v1.POST("/webhooks/stripe", subscriptionHandler.HandleWebhook)
+
+			// Protected subscription endpoints (require authentication)
+			subscriptions.Use(middleware.AuthMiddleware(authService))
+			subscriptions.GET("/me", subscriptionHandler.GetSubscription)
+			subscriptions.POST("/checkout", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.CreateCheckoutSession)
+			subscriptions.POST("/portal", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.CreatePortalSession)
 		}
 
 		// Admin routes

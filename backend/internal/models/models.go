@@ -594,3 +594,54 @@ type TagMetric struct {
 	TagName    string    `json:"tag_name"`
 	UsageCount int       `json:"usage_count"`
 }
+
+// Subscription represents a user's subscription status
+type Subscription struct {
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	UserID               uuid.UUID  `json:"user_id" db:"user_id"`
+	StripeCustomerID     string     `json:"stripe_customer_id" db:"stripe_customer_id"`
+	StripeSubscriptionID *string    `json:"stripe_subscription_id,omitempty" db:"stripe_subscription_id"`
+	StripePriceID        *string    `json:"stripe_price_id,omitempty" db:"stripe_price_id"`
+	Status               string     `json:"status" db:"status"` // inactive, active, trialing, past_due, canceled, unpaid
+	Tier                 string     `json:"tier" db:"tier"`     // free, pro
+	CurrentPeriodStart   *time.Time `json:"current_period_start,omitempty" db:"current_period_start"`
+	CurrentPeriodEnd     *time.Time `json:"current_period_end,omitempty" db:"current_period_end"`
+	CancelAtPeriodEnd    bool       `json:"cancel_at_period_end" db:"cancel_at_period_end"`
+	CanceledAt           *time.Time `json:"canceled_at,omitempty" db:"canceled_at"`
+	TrialStart           *time.Time `json:"trial_start,omitempty" db:"trial_start"`
+	TrialEnd             *time.Time `json:"trial_end,omitempty" db:"trial_end"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// SubscriptionEvent represents an event in subscription lifecycle for audit logging
+type SubscriptionEvent struct {
+	ID             uuid.UUID `json:"id" db:"id"`
+	SubscriptionID *uuid.UUID `json:"subscription_id,omitempty" db:"subscription_id"`
+	EventType      string    `json:"event_type" db:"event_type"`
+	StripeEventID  *string   `json:"stripe_event_id,omitempty" db:"stripe_event_id"`
+	Payload        string    `json:"payload" db:"payload"` // JSONB stored as string
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+}
+
+// UserWithSubscription represents a user with their subscription information
+type UserWithSubscription struct {
+	User
+	Subscription *Subscription `json:"subscription,omitempty"`
+}
+
+// CreateCheckoutSessionRequest represents a request to create a Stripe checkout session
+type CreateCheckoutSessionRequest struct {
+	PriceID string `json:"price_id" binding:"required"`
+}
+
+// CreateCheckoutSessionResponse represents the response with checkout session URL
+type CreateCheckoutSessionResponse struct {
+	SessionID  string `json:"session_id"`
+	SessionURL string `json:"session_url"`
+}
+
+// CreatePortalSessionResponse represents the response with portal session URL
+type CreatePortalSessionResponse struct {
+	PortalURL string `json:"portal_url"`
+}
