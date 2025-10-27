@@ -21,14 +21,14 @@ const (
 
 var (
 	// Common injection patterns to detect
-	sqlInjectionPattern    = regexp.MustCompile(`(?i)(union[\s(]+select|select[\s(]+\*[\s(]+from|insert[\s(]+into|delete[\s(]+from|drop[\s(]+table|alter[\s(]+table|update[\s(]+\w+[\s(]+set|;[\s]*(drop|insert|delete|update)[\s(]+)`)
-	xssPattern            = regexp.MustCompile(`(?i)(<script|javascript:|onerror=|onload=|<iframe|<object|<embed)`)
-	pathTraversalPattern  = regexp.MustCompile(`\.\.[/\\]`)
+	sqlInjectionPattern     = regexp.MustCompile(`(?i)(union[\s(]+select|select[\s(]+\*[\s(]+from|insert[\s(]+into|delete[\s(]+from|drop[\s(]+table|alter[\s(]+table|update[\s(]+\w+[\s(]+set|;[\s]*(drop|insert|delete|update)[\s(]+)`)
+	xssPattern              = regexp.MustCompile(`(?i)(<script|javascript:|onerror=|onload=|<iframe|<object|<embed)`)
+	pathTraversalPattern    = regexp.MustCompile(`\.\.[/\\]`)
 	commandInjectionPattern = regexp.MustCompile(`[;&|><$\x60\n]`)
-	
+
 	// Strict sanitizer for user-generated content
 	strictPolicy = bluemonday.StrictPolicy()
-	
+
 	// UGC sanitizer for markdown/rich content
 	ugcPolicy = bluemonday.UGCPolicy()
 )
@@ -149,7 +149,7 @@ func (s *SanitizeInput) ValidateEmail(email string) bool {
 	if len(email) > 254 {
 		return false
 	}
-	
+
 	emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return emailPattern.MatchString(email)
 }
@@ -159,7 +159,7 @@ func (s *SanitizeInput) ValidateUsername(username string) bool {
 	if len(username) < 3 || len(username) > 30 {
 		return false
 	}
-	
+
 	usernamePattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 	return usernamePattern.MatchString(username)
 }
@@ -169,7 +169,7 @@ func (s *SanitizeInput) ValidateURL(url string) bool {
 	if len(url) > MaxURLLength {
 		return false
 	}
-	
+
 	// Only allow http and https schemes
 	urlPattern := regexp.MustCompile(`^https?://[^\s<>]+$`)
 	return urlPattern.MatchString(url)
@@ -191,7 +191,7 @@ func isValidParamName(name string) bool {
 	if len(name) == 0 || len(name) > 100 {
 		return false
 	}
-	
+
 	// Allow alphanumeric, underscore, hyphen, and dot
 	paramPattern := regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)
 	return paramPattern.MatchString(name)
@@ -203,17 +203,17 @@ func containsSuspiciousPatterns(input string) bool {
 	if len(input) < 3 {
 		return false
 	}
-	
+
 	// Check for SQL injection patterns
 	if sqlInjectionPattern.MatchString(input) {
 		return true
 	}
-	
+
 	// Check for XSS patterns
 	if xssPattern.MatchString(input) {
 		return true
 	}
-	
+
 	// Check for command injection patterns in suspicious contexts
 	// Be lenient for normal text, strict for path-like inputs
 	if strings.Contains(input, "/") || strings.Contains(input, "\\") {
@@ -221,7 +221,7 @@ func containsSuspiciousPatterns(input string) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -233,13 +233,13 @@ func isStandardHeader(name string) bool {
 		"Cookie", "Host", "Origin", "Referer", "User-Agent",
 		"X-Csrf-Token", "X-Requested-With",
 	}
-	
+
 	for _, h := range standardHeaders {
 		if strings.EqualFold(name, h) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

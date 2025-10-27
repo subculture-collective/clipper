@@ -240,10 +240,10 @@ func TestSanitizeInput_ValidateUsername(t *testing.T) {
 		{"user123", true},
 		{"user_name", true},
 		{"user-name", true},
-		{"ab", false},                         // too short
-		{strings.Repeat("a", 31), false},      // too long
-		{"user@name", false},                  // invalid character
-		{"user name", false},                  // space
+		{"ab", false},                        // too short
+		{strings.Repeat("a", 31), false},     // too long
+		{"user@name", false},                 // invalid character
+		{"user name", false},                 // space
 		{"<script>alert(1)</script>", false}, // injection attempt
 	}
 
@@ -264,10 +264,10 @@ func TestSanitizeInput_ValidateURL(t *testing.T) {
 	}{
 		{"https://example.com", true},
 		{"http://example.com/path?query=1", true},
-		{"ftp://example.com", false},         // invalid scheme
-		{"javascript:alert(1)", false},       // invalid scheme
-		{"//example.com", false},             // missing scheme
-		{"https://example .com", false},      // space
+		{"ftp://example.com", false},                            // invalid scheme
+		{"javascript:alert(1)", false},                          // invalid scheme
+		{"//example.com", false},                                // missing scheme
+		{"https://example .com", false},                         // space
 		{"https://" + strings.Repeat("a", MaxURLLength), false}, // too long
 	}
 
