@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/internal/services"
+	sentrypkg "github.com/subculture-collective/clipper/pkg/sentry"
 )
 
 // AuthMiddleware creates middleware that requires authentication
@@ -43,6 +44,9 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 		c.Set("user_id", user.ID)
 		c.Set("user_role", user.Role)
 
+		// Set user context in Sentry for error tracking
+		sentrypkg.SetUser(c, user.ID.String(), user.Username)
+
 		c.Next()
 	}
 }
@@ -57,6 +61,9 @@ func OptionalAuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 				c.Set("user", user)
 				c.Set("user_id", user.ID)
 				c.Set("user_role", user.Role)
+				
+				// Set user context in Sentry for error tracking
+				sentrypkg.SetUser(c, user.ID.String(), user.Username)
 			}
 		}
 		c.Next()
