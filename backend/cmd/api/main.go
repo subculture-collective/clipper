@@ -198,6 +198,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
+	seoHandler := handlers.NewSEOHandler(clipRepo)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -240,6 +241,17 @@ func main() {
 	// Apply CSRF protection middleware (secure in production)
 	isProduction := cfg.Server.GinMode == "release"
 	r.Use(middleware.CSRFMiddleware(redisClient, isProduction))
+
+	// Add middleware to inject base URL and environment into context
+	r.Use(func(c *gin.Context) {
+		c.Set("base_url", cfg.Server.BaseURL)
+		c.Set("environment", cfg.Server.Environment)
+		c.Next()
+	})
+
+	// SEO endpoints (sitemap, robots.txt)
+	r.GET("/sitemap.xml", seoHandler.GetSitemap)
+	r.GET("/robots.txt", seoHandler.GetRobotsTxt)
 
 	// Health check endpoints
 	// Basic health check
