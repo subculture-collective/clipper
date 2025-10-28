@@ -1,11 +1,17 @@
-import { Container, Card, CardBody } from '../components';
+import { Container, Card, CardBody, SEO } from '../components';
 import { Link } from 'react-router-dom';
 
 export function AboutPage() {
   const lastUpdated = 'January 15, 2025';
 
   return (
-    <Container className="py-8 max-w-4xl">
+    <>
+      <SEO
+        title="About"
+        description="Learn about Clipper - a modern, open-source platform for discovering and sharing the best Twitch clips. Join our community of gamers and streamers."
+        canonicalUrl="/about"
+      />
+      <Container className="py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">About Clipper</h1>
         <p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
@@ -230,5 +236,6 @@ export function AboutPage() {
         </Card>
       </div>
     </Container>
+    </>
   );
 }
