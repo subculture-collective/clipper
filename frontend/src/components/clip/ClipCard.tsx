@@ -70,8 +70,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === 1 &&
                                 'text-green-600 dark:text-green-400',
-                            !isAuthenticated &&
-                                'opacity-50 cursor-not-allowed hover:bg-transparent'
+                            !isAuthenticated
+                                ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                : 'cursor-pointer'
                         )}
                         aria-label={isAuthenticated ? 'Upvote' : 'Log in to upvote'}
                         aria-disabled={!isAuthenticated}
@@ -97,8 +98,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === -1 &&
                                 'text-red-600 dark:text-red-400',
-                            !isAuthenticated &&
-                                'opacity-50 cursor-not-allowed hover:bg-transparent'
+                            !isAuthenticated
+                                ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                : 'cursor-pointer'
                         )}
                         aria-label={isAuthenticated ? 'Downvote' : 'Log in to downvote'}
                         aria-disabled={!isAuthenticated}
@@ -149,7 +151,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                     {/* Title */}
                     <Link
                         to={`/clip/${clip.id}`}
-                        className='hover:text-primary-600 dark:hover:text-primary-400 block mb-2 transition-colors touch-target'
+                        className='hover:text-primary-600 dark:hover:text-primary-400 block mb-2 transition-colors touch-target cursor-pointer'
                     >
                         <h3 className='line-clamp-2 text-base xs:text-lg font-semibold leading-snug'>
                             {clip.title}
@@ -160,7 +162,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                     <div className='text-muted-foreground flex flex-wrap gap-1.5 xs:gap-2 mb-3 text-xs xs:text-sm'>
                         <Link
                             to={`/creator/${clip.creator_id}`}
-                            className='hover:text-foreground transition-colors touch-target'
+                            className='hover:text-foreground transition-colors touch-target cursor-pointer'
                         >
                             {clip.creator_name}
                         </Link>
@@ -169,7 +171,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                             <>
                                 <Link
                                     to={`/game/${clip.game_id}`}
-                                    className='hover:text-foreground transition-colors touch-target truncate max-w-[150px] xs:max-w-none'
+                                    className='hover:text-foreground transition-colors touch-target truncate max-w-[150px] xs:max-w-none cursor-pointer'
                                 >
                                     {clip.game_name}
                                 </Link>
@@ -195,7 +197,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                     <div className='flex flex-wrap items-center gap-3 xs:gap-4 text-xs xs:text-sm'>
                         <Link
                             to={`/clip/${clip.id}#comments`}
-                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px]'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px] cursor-pointer'
                         >
                             <svg
                                 className='w-5 h-5 shrink-0'
@@ -226,8 +228,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                                 clip.is_favorited
                                     ? 'text-red-500 hover:text-red-400'
                                     : 'text-muted-foreground hover:text-foreground',
-                                !isAuthenticated &&
-                                    'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                !isAuthenticated
+                                    ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                    : 'cursor-pointer'
                             )}
                             aria-label={
                                 !isAuthenticated
@@ -258,7 +261,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         </button>
 
                         <button
-                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px]'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px] cursor-pointer'
                             onClick={() => {
                                 navigator.clipboard.writeText(
                                     `${window.location.origin}/clip/${clip.id}`

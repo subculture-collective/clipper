@@ -39,7 +39,7 @@ export function ScrollToTop({ threshold = 500, className = '' }: ScrollToTopProp
         rounded-full shadow-lg hover:shadow-xl
         transition-all duration-200 ease-in-out
         flex items-center justify-center 
-        z-50 touch-target
+        z-50 touch-target cursor-pointer
         group
         ${className}
       `}
