@@ -22,6 +22,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage').then(m => ({ default:
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const CommunityRulesPage = lazy(() => import('./pages/CommunityRulesPage').then(m => ({ default: m.CommunityRulesPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage').then(m => ({ default: m.AuthCallbackPage })));
@@ -81,6 +82,7 @@ function App() {
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/community-rules" element={<CommunityRulesPage />} />
                   <Route path="/leaderboards" element={<LeaderboardPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
