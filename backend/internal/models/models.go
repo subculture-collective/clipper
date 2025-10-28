@@ -190,6 +190,7 @@ type SearchResponse struct {
 	Query   string              `json:"query"`
 	Results SearchResultsByType `json:"results"`
 	Counts  SearchCounts        `json:"counts"`
+	Facets  SearchFacets        `json:"facets,omitempty"`
 	Meta    SearchMeta          `json:"meta"`
 }
 
@@ -215,6 +216,30 @@ type SearchMeta struct {
 	Limit      int `json:"limit"`
 	TotalItems int `json:"total_items"`
 	TotalPages int `json:"total_pages"`
+}
+
+// SearchFacets holds aggregated facet data for filtering
+type SearchFacets struct {
+	Languages []FacetBucket `json:"languages,omitempty"`
+	Games     []FacetBucket `json:"games,omitempty"`
+	Tags      []FacetBucket `json:"tags,omitempty"`
+	DateRange DateRangeFacet `json:"date_range,omitempty"`
+}
+
+// FacetBucket represents a single facet value with its count
+type FacetBucket struct {
+	Key   string `json:"key"`
+	Label string `json:"label,omitempty"` // Human-readable label
+	Count int    `json:"count"`
+}
+
+// DateRangeFacet represents date range distribution
+type DateRangeFacet struct {
+	LastHour  int `json:"last_hour"`
+	LastDay   int `json:"last_day"`
+	LastWeek  int `json:"last_week"`
+	LastMonth int `json:"last_month"`
+	Older     int `json:"older"`
 }
 
 // Game represents a game (aggregated from clips)
