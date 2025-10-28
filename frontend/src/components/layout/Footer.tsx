@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
  */
 function ExternalLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
   const isDev = import.meta.env.DEV;
+  // Note: This substring check is for UX purposes only (dev environment detection), not security.
+  // The href values are hardcoded constants defined in this component's usage, not user input.
   const isDocsOrStatus = href.includes('docs.clipper.com') || href.includes('status.clipper.com');
   
   // In development, show placeholder notice for docs/status links
