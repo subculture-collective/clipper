@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,18 +82,8 @@ func TestGetSitemap(t *testing.T) {
 	}
 
 	for _, expected := range expectedStrings {
-		if len(body) > 0 && len(expected) > 0 {
-			// Simple contains check
-			found := false
-			for i := 0; i <= len(body)-len(expected); i++ {
-				if body[i:i+len(expected)] == expected {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Errorf("Expected sitemap to contain '%s'", expected)
-			}
+		if !strings.Contains(body, expected) {
+			t.Errorf("Expected sitemap to contain '%s'", expected)
 		}
 	}
 }
@@ -141,18 +132,8 @@ func TestGetRobotsTxtProduction(t *testing.T) {
 	}
 
 	for _, expected := range expectedStrings {
-		if len(body) > 0 && len(expected) > 0 {
-			// Simple contains check
-			found := false
-			for i := 0; i <= len(body)-len(expected); i++ {
-				if body[i:i+len(expected)] == expected {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Errorf("Expected robots.txt to contain '%s'", expected)
-			}
+		if !strings.Contains(body, expected) {
+			t.Errorf("Expected robots.txt to contain '%s'", expected)
 		}
 	}
 }
@@ -192,18 +173,8 @@ func TestGetRobotsTxtDevelopment(t *testing.T) {
 	}
 
 	for _, expected := range expectedStrings {
-		if len(body) > 0 && len(expected) > 0 {
-			// Simple contains check
-			found := false
-			for i := 0; i <= len(body)-len(expected); i++ {
-				if body[i:i+len(expected)] == expected {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Errorf("Expected robots.txt to contain '%s'", expected)
-			}
+		if !strings.Contains(body, expected) {
+			t.Errorf("Expected robots.txt to contain '%s'", expected)
 		}
 	}
 }
