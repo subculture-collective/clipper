@@ -22,7 +22,7 @@ export const TagChip: React.FC<TagChipProps> = ({
     medium: "text-sm px-3 py-1",
   };
 
-  const baseClasses = `inline-flex items-center gap-1 rounded-full font-medium transition-all hover:opacity-80 ${sizeClasses[size]}`;
+  const baseClasses = `inline-flex items-center gap-1 rounded-full font-medium transition-all hover:opacity-80 cursor-pointer ${sizeClasses[size]}`;
 
   const style: React.CSSProperties = {
     backgroundColor: tag.color || "#4169E1",
@@ -50,7 +50,7 @@ export const TagChip: React.FC<TagChipProps> = ({
       {removable && (
         <button
           onClick={handleRemove}
-          className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+          className="ml-1 hover:bg-white/20 rounded-full p-0.5 cursor-pointer"
           aria-label={`Remove ${tag.name} tag`}
         >
           <svg

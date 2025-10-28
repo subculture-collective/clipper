@@ -88,7 +88,7 @@ export const Toast: React.FC<ToastProps> = ({
       </div>
       <button
         onClick={() => onDismiss(id)}
-        className="flex-shrink-0 hover:opacity-70 transition-opacity"
+        className="flex-shrink-0 hover:opacity-70 transition-opacity cursor-pointer"
         aria-label="Dismiss"
       >
         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
