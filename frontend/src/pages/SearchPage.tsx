@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Container } from '../components';
+import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
 import { SearchBar } from '../components/search';
 import { Spinner } from '../components/ui';
@@ -82,8 +82,20 @@ export function SearchPage() {
         { id: 'tags', label: 'Tags', count: data?.counts.tags || 0 },
     ];
 
+    const seoTitle = query ? `Search: ${query}` : 'Search Clips';
+    const seoDescription = query 
+        ? `Search results for "${query}" on Clipper. Find Twitch clips, games, creators, and tags matching your query.`
+        : 'Search for Twitch clips, games, creators, and tags on Clipper. Discover amazing gaming moments from your favorite streamers.';
+
     return (
-        <Container className='py-4 xs:py-6 md:py-8'>
+        <>
+            <SEO
+                title={seoTitle}
+                description={seoDescription}
+                canonicalUrl="/search"
+                noindex={!query} // Don't index empty search page
+            />
+            <Container className='py-4 xs:py-6 md:py-8'>
             {/* Search Bar */}
             <div className='mb-6 xs:mb-8 flex justify-center'>
                 <SearchBar
@@ -336,5 +348,6 @@ export function SearchPage() {
                 </>
             )}
         </Container>
+        </>
     );
 }

@@ -717,3 +717,35 @@ func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]m
 
 	return clips, nil
 }
+
+// ListForSitemap retrieves all non-removed clips with minimal info for sitemap generation
+func (r *ClipRepository) ListForSitemap(ctx context.Context) ([]models.Clip, error) {
+	query := `
+		SELECT id, created_at
+		FROM clips
+		WHERE is_removed = false
+		ORDER BY created_at DESC
+		LIMIT 10000
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list clips for sitemap: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		if err := rows.Scan(&clip.ID, &clip.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating clips: %w", err)
+	}
+
+	return clips, nil
+}
