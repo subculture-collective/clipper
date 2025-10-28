@@ -23,8 +23,10 @@ type Config struct {
 
 // ServerConfig holds server-specific configuration
 type ServerConfig struct {
-	Port    string
-	GinMode string
+	Port        string
+	GinMode     string
+	BaseURL     string
+	Environment string
 }
 
 // DatabaseConfig holds database connection configuration
@@ -102,8 +104,10 @@ func Load() (*Config, error) {
 
 	config := &Config{
 		Server: ServerConfig{
-			Port:    getEnv("PORT", "8080"),
-			GinMode: getEnv("GIN_MODE", "debug"),
+			Port:        getEnv("PORT", "8080"),
+			GinMode:     getEnv("GIN_MODE", "debug"),
+			BaseURL:     getEnv("BASE_URL", "http://localhost:5173"),
+			Environment: getEnv("ENVIRONMENT", "development"),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),

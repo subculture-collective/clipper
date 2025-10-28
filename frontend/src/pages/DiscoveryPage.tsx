@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Container } from '../components';
+import { Container, SEO } from '../components';
 import { ClipFeed } from '../components/clip';
 import type { SortOption } from '../types/clip';
 
@@ -58,7 +58,13 @@ export function DiscoveryPage() {
   ];
 
   return (
-    <Container className="py-8">
+    <>
+      <SEO
+        title="Discover Clips"
+        description="Explore the best Twitch clips from top streamers. Browse by top-rated, newest, or most discussed clips. Find amazing gaming moments from your favorite games and channels."
+        canonicalUrl="/discover"
+      />
+      <Container className="py-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -139,5 +145,6 @@ export function DiscoveryPage() {
         />
       </div>
     </Container>
+    </>
   );
 }

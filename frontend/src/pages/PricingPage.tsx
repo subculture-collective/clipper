@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createCheckoutSession } from '../lib/subscription-api';
+import { SEO } from '../components';
 
 const PRICE_IDS = {
   monthly: import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || '',
@@ -57,7 +58,13 @@ export default function PricingPage() {
   const savingsPercent = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
 
   return (
-    <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO
+        title="Pricing - Clipper Pro"
+        description="Upgrade to Clipper Pro for an ad-free experience, advanced search and filtering, priority support, and exclusive features. Choose monthly or yearly billing."
+        canonicalUrl="/pricing"
+      />
+      <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -207,5 +214,6 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
