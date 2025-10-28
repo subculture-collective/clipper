@@ -1,11 +1,17 @@
-import { Container, Card, CardBody } from '../components';
+import { Container, Card, CardBody, SEO } from '../components';
 import { Link } from 'react-router-dom';
 
 export function TermsPage() {
   const lastUpdated = 'January 15, 2025';
 
   return (
-    <Container className="py-8 max-w-4xl">
+    <>
+      <SEO
+        title="Terms of Service"
+        description="Read Clipper's Terms of Service. Learn about eligibility, user conduct, content policies, and your rights and responsibilities when using our platform."
+        canonicalUrl="/terms"
+      />
+      <Container className="py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
         <p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
@@ -406,5 +412,6 @@ export function TermsPage() {
         </Card>
       </div>
     </Container>
+    </>
   );
 }

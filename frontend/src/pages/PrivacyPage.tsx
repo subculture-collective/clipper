@@ -1,10 +1,16 @@
-import { Container, Card, CardBody } from '../components';
+import { Container, Card, CardBody, SEO } from '../components';
 
 export function PrivacyPage() {
   const lastUpdated = 'January 15, 2025';
 
   return (
-    <Container className="py-8 max-w-4xl">
+    <>
+      <SEO
+        title="Privacy Policy"
+        description="Learn how Clipper collects, uses, and protects your personal information. Read our Privacy Policy to understand your data rights and our privacy practices."
+        canonicalUrl="/privacy"
+      />
+      <Container className="py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
@@ -302,5 +308,6 @@ export function PrivacyPage() {
         </Card>
       </div>
     </Container>
+    </>
   );
 }

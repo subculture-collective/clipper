@@ -1,14 +1,21 @@
-import { Container } from '../components';
+import { Container, SEO } from '../components';
 import { ClipFeed } from '../components/clip';
 
 export function RisingFeedPage() {
   return (
-    <Container className="py-8">
-      <ClipFeed
+    <>
+      <SEO
         title="Rising Clips"
-        description="Clips trending upward"
-        defaultSort="rising"
+        description="Discover trending Twitch clips gaining momentum. See what's rising in popularity and catch viral gaming moments early."
+        canonicalUrl="/rising"
       />
-    </Container>
+      <Container className="py-8">
+        <ClipFeed
+          title="Rising Clips"
+          description="Clips trending upward"
+          defaultSort="rising"
+        />
+      </Container>
+    </>
   );
 }
