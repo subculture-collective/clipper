@@ -44,3 +44,6 @@ export type { ToggleProps } from './Toggle';
 
 export { Toast, ToastContainer } from './Toast';
 export type { ToastProps } from './Toast';
+
+export { ScrollToTop } from './ScrollToTop';
+export type { ScrollToTopProps } from './ScrollToTop';
