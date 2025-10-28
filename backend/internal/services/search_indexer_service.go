@@ -260,9 +260,11 @@ func calculateRecencyScore(clip *models.Clip) float64 {
 	daysSince := time.Since(clip.CreatedAt).Hours() / 24.0
 	
 	// Exponential decay: newer clips get higher scores
-	// Score decreases by ~50% every 7 days
-	decayRate := 0.1 // Decay constant
-	score := 100.0 * math.Exp(-decayRate*daysSince/7.0)
+	// Score decreases by 50% every 7 days
+	// Using formula: score = initial * exp(-ln(2) * days / halfLife)
+	// where halfLife = 7 days
+	halfLife := 7.0
+	score := 100.0 * math.Exp(-math.Ln2*daysSince/halfLife)
 	
 	return score
 }
