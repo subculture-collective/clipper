@@ -12,6 +12,7 @@ export { SearchPage } from './SearchPage';
 export { AboutPage } from './AboutPage';
 export { PrivacyPage } from './PrivacyPage';
 export { TermsPage } from './TermsPage';
+export { CommunityRulesPage } from './CommunityRulesPage';
 export { NotFoundPage } from './NotFoundPage';
 
 // Auth pages

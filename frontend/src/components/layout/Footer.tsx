@@ -1,5 +1,37 @@
 import { Link } from 'react-router-dom';
 
+/**
+ * ExternalLink component that checks if link should work in current environment
+ * Shows placeholder notice for docs/status in local development
+ */
+function ExternalLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
+  const isDev = import.meta.env.DEV;
+  const isDocsOrStatus = href.includes('docs.clipper.com') || href.includes('status.clipper.com');
+  
+  // In development, show placeholder notice for docs/status links
+  if (isDev && isDocsOrStatus) {
+    return (
+      <span 
+        className={`${className} cursor-not-allowed opacity-60`}
+        title="Available in production. Documentation and status pages are external services."
+      >
+        {children} <span className="text-xs">⚠️</span>
+      </span>
+    );
+  }
+  
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+    >
+      {children}
+    </a>
+  );
+}
+
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -60,6 +92,14 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Community</h3>
             <ul className="space-y-2">
               <li>
+                <Link
+                  to="/community-rules"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Community Rules
+                </Link>
+              </li>
+              <li>
                 <a
                   href="https://discord.gg/clipper"
                   target="_blank"
@@ -87,24 +127,20 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Resources</h3>
             <ul className="space-y-2">
               <li>
-                <a
+                <ExternalLink
                   href="https://docs.clipper.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Documentation
-                </a>
+                </ExternalLink>
               </li>
               <li>
-                <a
+                <ExternalLink
                   href="https://status.clipper.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Status
-                </a>
+                </ExternalLink>
               </li>
             </ul>
           </div>
