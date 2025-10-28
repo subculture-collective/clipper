@@ -97,7 +97,7 @@ export function NotificationBell() {
             {/* Bell Icon Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className='hover:bg-gray-100 dark:hover:bg-gray-800 relative p-2 transition-colors rounded-lg'
+                className='hover:bg-gray-100 dark:hover:bg-gray-800 relative p-2 transition-colors rounded-lg cursor-pointer'
                 aria-label='Notifications'
             >
                 {/* Bell Icon */}
@@ -134,7 +134,7 @@ export function NotificationBell() {
                         {unreadCount > 0 && (
                             <button
                                 onClick={handleMarkAllAsRead}
-                                className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm'
+                                className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm cursor-pointer'
                             >
                                 Mark all as read
                             </button>
@@ -184,7 +184,7 @@ export function NotificationBell() {
                             <div className='dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 border-t border-gray-200'>
                                 <Link
                                     to='/notifications'
-                                    className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 block text-sm font-medium text-center'
+                                    className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 block text-sm font-medium text-center cursor-pointer'
                                     onClick={() => setIsOpen(false)}
                                 >
                                     See all notifications

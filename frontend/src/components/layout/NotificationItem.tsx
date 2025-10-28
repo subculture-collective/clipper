@@ -101,7 +101,7 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
   // Wrap with link if notification has a link
   if (notification.link) {
     return (
-      <Link to={notification.link} className="block">
+      <Link to={notification.link} className="block cursor-pointer">
         {content}
       </Link>
     );
