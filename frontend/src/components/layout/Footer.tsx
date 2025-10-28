@@ -144,6 +144,14 @@ export function Footer() {
                   Status
                 </ExternalLink>
               </li>
+              <li>
+                <Link
+                  to="/contact"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Contact Us
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

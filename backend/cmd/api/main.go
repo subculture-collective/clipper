@@ -130,6 +130,7 @@ func main() {
 	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
+	contactRepo := repository.NewContactRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -196,6 +197,7 @@ func main() {
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
 	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
+	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -522,6 +524,13 @@ func main() {
 			subscriptions.POST("/portal", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.CreatePortalSession)
 		}
 
+		// Contact routes
+		contact := v1.Group("/contact")
+		{
+			// Public contact form submission with rate limiting
+			contact.POST("", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), contactHandler.SubmitContactMessage)
+		}
+
 		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(authService))
@@ -585,6 +594,13 @@ func main() {
 				analytics.GET("/overview", analyticsHandler.GetPlatformOverview)
 				analytics.GET("/content", analyticsHandler.GetContentMetrics)
 				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
+			}
+
+			// Contact message management (admin only)
+			adminContact := admin.Group("/contact")
+			{
+				adminContact.GET("", contactHandler.GetContactMessages)
+				adminContact.PUT("/:id/status", contactHandler.UpdateContactMessageStatus)
 			}
 		}
 	}
