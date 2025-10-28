@@ -719,6 +719,9 @@ func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]m
 }
 
 // ListForSitemap retrieves all non-removed clips with minimal info for sitemap generation
+// Limits to 10,000 clips to keep sitemap size manageable (Google's recommended limit is 50,000 URLs).
+// For sites with more clips, consider implementing a sitemap index with multiple sitemap files.
+// Returns clips ordered by creation date (newest first).
 func (r *ClipRepository) ListForSitemap(ctx context.Context) ([]models.Clip, error) {
 	query := `
 		SELECT id, created_at

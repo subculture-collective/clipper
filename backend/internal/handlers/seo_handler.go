@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,20 +35,22 @@ func (h *SEOHandler) GetSitemap(c *gin.Context) {
 	ctx := c.Request.Context()
 	clips, err := h.clipRepo.ListForSitemap(ctx)
 	if err != nil {
+		log.Printf("Error fetching clips for sitemap: %v", err)
 		c.String(http.StatusInternalServerError, "Error generating sitemap")
 		return
 	}
-
-	// Build sitemap XML
-	xml := `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-`
 
 	// Base URL from config or environment
 	baseURL := c.GetString("base_url")
 	if baseURL == "" {
 		baseURL = "https://clipper.app" // Default, should be configured
 	}
+
+	// Build sitemap XML using strings.Builder for better performance
+	var builder strings.Builder
+	builder.WriteString(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+`)
 
 	// Static pages
 	staticPages := []struct {
@@ -69,45 +73,48 @@ func (h *SEOHandler) GetSitemap(c *gin.Context) {
 	}
 
 	for _, page := range staticPages {
-		xml += fmt.Sprintf(`  <url>
+		builder.WriteString(fmt.Sprintf(`  <url>
     <loc>%s%s</loc>
     <changefreq>%s</changefreq>
     <priority>%s</priority>
   </url>
-`, baseURL, page.path, page.changefreq, page.priority)
+`, baseURL, page.path, page.changefreq, page.priority))
 	}
 
 	// Dynamic clip pages
 	for _, clip := range clips {
-		xml += fmt.Sprintf(`  <url>
+		builder.WriteString(fmt.Sprintf(`  <url>
     <loc>%s/clip/%s</loc>
     <lastmod>%s</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-`, baseURL, clip.ID, clip.CreatedAt.Format(time.RFC3339))
+`, baseURL, clip.ID, clip.CreatedAt.Format(time.RFC3339)))
 	}
 
-	xml += `</urlset>`
+	builder.WriteString(`</urlset>`)
 
 	c.Header("Content-Type", "application/xml")
-	c.String(http.StatusOK, xml)
+	c.String(http.StatusOK, builder.String())
 }
 
 // GetRobotsTxt returns the robots.txt file
 func (h *SEOHandler) GetRobotsTxt(c *gin.Context) {
-	// Get environment from context
+	// Get environment and base URL from context
 	env := c.GetString("environment")
+	baseURL := c.GetString("base_url")
+	if baseURL == "" {
+		baseURL = "https://clipper.app" // Default, should be configured
+	}
 	
 	var robotsTxt string
 	if env == "production" {
 		// Production: Allow all crawlers
-		robotsTxt = `User-agent: *
+		robotsTxt = fmt.Sprintf(`User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://clipper.app/sitemap.xml
-
+Sitemap: %s/sitemap.xml
 # Disallow admin and API routes
 Disallow: /api/
 Disallow: /admin/
@@ -121,7 +128,7 @@ Disallow: /submissions
 
 # Crawl-delay for polite crawling
 Crawl-delay: 1
-`
+`, baseURL)
 	} else {
 		// Non-production: Disallow all
 		robotsTxt = `User-agent: *
