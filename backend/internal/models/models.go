@@ -684,3 +684,26 @@ type CreateCheckoutSessionResponse struct {
 type CreatePortalSessionResponse struct {
 	PortalURL string `json:"portal_url"`
 }
+
+// ContactMessage represents a contact form submission
+type ContactMessage struct {
+	ID        uuid.UUID  `json:"id" db:"id"`
+	UserID    *uuid.UUID `json:"user_id,omitempty" db:"user_id"`       // Nullable for logged-out users
+	Email     string     `json:"email" db:"email"`                     // Required for contact
+	Category  string     `json:"category" db:"category"`               // abuse, account, billing, feedback
+	Subject   string     `json:"subject" db:"subject"`                 // Brief subject line
+	Message   string     `json:"message" db:"message"`                 // Full message content
+	Status    string     `json:"status" db:"status"`                   // pending, reviewed, resolved
+	IPAddress *string    `json:"ip_address,omitempty" db:"ip_address"` // For abuse prevention
+	UserAgent *string    `json:"user_agent,omitempty" db:"user_agent"` // For abuse prevention
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// CreateContactMessageRequest represents the request to submit a contact form
+type CreateContactMessageRequest struct {
+	Email    string `json:"email" binding:"required,email,max=255"`
+	Category string `json:"category" binding:"required,oneof=abuse account billing feedback"`
+	Subject  string `json:"subject" binding:"required,min=3,max=200"`
+	Message  string `json:"message" binding:"required,min=10,max=5000"`
+}
