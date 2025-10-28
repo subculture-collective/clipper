@@ -97,7 +97,7 @@ You'll need to create a Twitch application to enable OAuth authentication:
 
 All environment variables are documented in the `.env.example` files with detailed comments.
 
-**Important**: Never commit `.env` files with actual values! See [Secrets Management Guide](SECRETS_MANAGEMENT.md) for best practices.
+**Important**: Never commit `.env` files with actual values! See [Secrets Management Guide](CI_CD_SECRETS.md) for best practices.
 
 #### Backend Environment
 
