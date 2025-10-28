@@ -9,5 +9,6 @@ export type { StackProps } from './Stack';
 
 export { Header } from './Header';
 export { Footer } from './Footer';
+export { MiniFooter } from './MiniFooter';
 export { AppLayout } from './AppLayout';
 export { LanguageSwitcher } from './LanguageSwitcher';

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
-import { Container, Button, Spinner } from '../components';
+import { Container, Button, Spinner, ScrollToTop } from '../components';
+import { MiniFooter } from '../components/layout';
 import { ClipCard } from '../components/clip/ClipCard';
 import { ClipCardSkeleton } from '../components/clip/ClipCardSkeleton';
 import { EmptyState } from '../components/clip/EmptyState';
@@ -13,7 +14,6 @@ type FavoriteSort = 'newest' | 'top' | 'discussed';
 export function FavoritesPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Get sort from URL or default to 'newest'
   const sort = (searchParams.get('sort') as FavoriteSort) || 'newest';
@@ -40,24 +40,10 @@ export function FavoritesPage() {
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Show/hide scroll to top button
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 500);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const handleSortChange = (newSort: FavoriteSort) => {
     const params = new URLSearchParams(searchParams);
     params.set('sort', newSort);
     setSearchParams(params);
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Get all clips from all pages
@@ -231,17 +217,10 @@ export function FavoritesPage() {
         )}
 
         {/* Scroll to top button */}
-        {showScrollTop && (
-          <button
-            onClick={scrollToTop}
-            className="fixed bottom-4 right-4 xs:bottom-8 xs:right-8 w-12 h-12 xs:w-14 xs:h-14 bg-primary-500 text-white rounded-full shadow-lg hover:bg-primary-600 transition-all flex items-center justify-center z-50 touch-target"
-            aria-label="Scroll to top"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          </button>
-        )}
+        <ScrollToTop threshold={500} />
+
+        {/* Mini footer for quick access to footer links */}
+        <MiniFooter />
       </div>
     </Container>
   );
