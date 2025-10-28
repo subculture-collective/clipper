@@ -422,6 +422,8 @@ To configure production deployment, add these secrets:
 - `PRODUCTION_HOST`: Hostname of production server
 - `DEPLOY_SSH_KEY`: SSH private key for deployment
 
+For complete details on setting up CI/CD secrets, see [CI/CD Secrets Setup Guide](docs/CI_CD_SECRETS.md).
+
 ### Required Secrets
 
 Configure the following secrets in your GitHub repository settings:
@@ -432,6 +434,8 @@ Configure the following secrets in your GitHub repository settings:
 | `STAGING_HOST` | Staging server hostname | Staging deployment |
 | `PRODUCTION_HOST` | Production server hostname | Production deployment |
 | `DEPLOY_SSH_KEY` | SSH key for deployment | Both deployments |
+
+See [CI/CD Secrets Setup Guide](docs/CI_CD_SECRETS.md) for detailed instructions on generating and configuring these secrets.
 
 ### Manual Deployment
 

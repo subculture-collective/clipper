@@ -152,14 +152,20 @@ jobs:
           migrate -version
 
       - name: Run database migrations
+        env:
+          DB_URL: postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable
         run: |
-          migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+          # Mask sensitive connection strings in logs
+          echo "::add-mask::$DB_URL"
+          migrate -path backend/migrations -database "$DB_URL" up
 
       - name: Run integration tests
         env:
           TEST_DATABASE_URL: postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable
           TEST_REDIS_URL: localhost:6380
         run: |
+          # Mask sensitive connection strings in logs
+          echo "::add-mask::$TEST_DATABASE_URL"
           cd backend
           go test -v -tags=integration ./...
 
