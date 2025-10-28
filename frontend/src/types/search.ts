@@ -21,6 +21,7 @@ export interface SearchResponse {
   query: string;
   results: SearchResultsByType;
   counts: SearchCounts;
+  facets?: SearchFacets;
   meta: SearchMeta;
 }
 
@@ -36,6 +37,27 @@ export interface SearchCounts {
   creators: number;
   games: number;
   tags: number;
+}
+
+export interface SearchFacets {
+  languages?: FacetBucket[];
+  games?: FacetBucket[];
+  tags?: FacetBucket[];
+  date_range?: DateRangeFacet;
+}
+
+export interface FacetBucket {
+  key: string;
+  label?: string;
+  count: number;
+}
+
+export interface DateRangeFacet {
+  last_hour: number;
+  last_day: number;
+  last_week: number;
+  last_month: number;
+  older: number;
 }
 
 export interface SearchMeta {
