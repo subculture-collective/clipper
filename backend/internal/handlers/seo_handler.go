@@ -1,21 +1,27 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/models"
 )
+
+// ClipRepositoryForSEO defines the interface for clip repository methods needed by SEO handler
+type ClipRepositoryForSEO interface {
+	ListForSitemap(ctx context.Context) ([]models.Clip, error)
+}
 
 // SEOHandler handles SEO-related endpoints (sitemap, robots.txt)
 type SEOHandler struct {
-	clipRepo *repository.ClipRepository
+	clipRepo ClipRepositoryForSEO
 }
 
 // NewSEOHandler creates a new SEO handler
-func NewSEOHandler(clipRepo *repository.ClipRepository) *SEOHandler {
+func NewSEOHandler(clipRepo ClipRepositoryForSEO) *SEOHandler {
 	return &SEOHandler{
 		clipRepo: clipRepo,
 	}
