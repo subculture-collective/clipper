@@ -150,7 +150,7 @@ export function SubmissionConfirmation({
                             </p>
                             <Link
                                 to={`/clip/${submission.twitch_clip_id}`}
-                                className="text-sm font-medium text-success-700 dark:text-success-300 hover:text-success-800 dark:hover:text-success-200 underline"
+                                className="text-sm font-medium text-success-700 dark:text-success-300 hover:text-success-800 dark:hover:text-success-200 underline cursor-pointer"
                             >
                                 View your clip →
                             </Link>

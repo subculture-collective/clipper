@@ -55,7 +55,7 @@ export function UserMenu() {
       {/* Avatar Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted transition-colors"
+        className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
@@ -97,21 +97,21 @@ export function UserMenu() {
           <div className="py-1">
             <Link
               to="/profile"
-              className="block px-4 py-2 text-sm hover:bg-muted transition-colors"
+              className="block px-4 py-2 text-sm hover:bg-muted transition-colors cursor-pointer"
               onClick={() => setIsOpen(false)}
             >
               👤 Profile
             </Link>
             <Link
               to="/settings"
-              className="block px-4 py-2 text-sm hover:bg-muted transition-colors"
+              className="block px-4 py-2 text-sm hover:bg-muted transition-colors cursor-pointer"
               onClick={() => setIsOpen(false)}
             >
               ⚙️ Settings
             </Link>
             <Link
               to="/favorites"
-              className="block px-4 py-2 text-sm hover:bg-muted transition-colors"
+              className="block px-4 py-2 text-sm hover:bg-muted transition-colors cursor-pointer"
               onClick={() => setIsOpen(false)}
             >
               ⭐ Favorites
@@ -122,7 +122,7 @@ export function UserMenu() {
                 <div className="border-t border-border my-1"></div>
                 <Link
                   to="/admin/dashboard"
-                  className="block px-4 py-2 text-sm hover:bg-muted transition-colors text-primary-600"
+                  className="block px-4 py-2 text-sm hover:bg-muted transition-colors text-primary-600 cursor-pointer"
                   onClick={() => setIsOpen(false)}
                 >
                   🛡️ Admin Panel
@@ -134,7 +134,7 @@ export function UserMenu() {
             
             <button
               onClick={handleLogout}
-              className="block w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors text-error-600"
+              className="block w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors text-error-600 cursor-pointer"
             >
               🚪 Logout
             </button>
