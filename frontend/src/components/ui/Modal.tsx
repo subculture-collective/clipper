@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export interface ModalProps {
   /**
@@ -60,6 +61,9 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   className,
 }) => {
+  // Focus trap for modal
+  const modalRef = useFocusTrap<HTMLDivElement>(open);
+
   // Handle escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -99,6 +103,7 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal content */}
       <div
+        ref={modalRef}
         className={cn(
           'relative w-full bg-card rounded-xl shadow-2xl animate-slide-in-down',
           'flex flex-col max-h-[90vh]',

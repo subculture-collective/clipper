@@ -35,12 +35,12 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 cursor-pointer">
+          <Link to="/" className="flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rounded-md" aria-label="Clipper home">
             <div className="text-2xl font-bold text-gradient">Clipper</div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
             <Link to="/">
               <Button variant="ghost" size="sm">
                 {t('nav.hot')}
@@ -69,12 +69,13 @@ export function Header() {
           </nav>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-md mx-4">
+          <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-md mx-4" role="search" aria-label="Search clips">
             <Input
               type="search"
               placeholder={t('nav.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search clips"
             />
           </form>
 
@@ -86,13 +87,15 @@ export function Header() {
             </div>
 
             {/* Theme Toggle */}
-            <div className="hidden md:flex gap-1">
+            <div className="hidden md:flex gap-1" role="group" aria-label="Theme selection">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setTheme('light')}
                 className={theme === 'light' ? 'bg-primary-100 dark:bg-primary-900' : ''}
                 title={t('theme.light')}
+                aria-label={t('theme.light')}
+                aria-pressed={theme === 'light'}
               >
                 ☀️
               </Button>
@@ -102,6 +105,8 @@ export function Header() {
                 onClick={() => setTheme('dark')}
                 className={theme === 'dark' ? 'bg-primary-100 dark:bg-primary-900' : ''}
                 title={t('theme.dark')}
+                aria-label={t('theme.dark')}
+                aria-pressed={theme === 'dark'}
               >
                 🌙
               </Button>
@@ -132,6 +137,8 @@ export function Header() {
               size="sm"
               className="md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? '✕' : '☰'}
             </Button>
@@ -140,7 +147,7 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border">
+          <div className="md:hidden py-4 border-t border-border" role="navigation" aria-label="Mobile navigation">
             <nav className="flex flex-col gap-2 mb-4">
               <Link to="/" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" size="sm" className="w-full justify-start">
@@ -164,12 +171,13 @@ export function Header() {
               </Link>
             </nav>
 
-            <form onSubmit={handleSearch} className="mb-4">
+            <form onSubmit={handleSearch} className="mb-4" role="search" aria-label="Search clips">
               <Input
                 type="search"
                 placeholder={t('nav.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search clips"
               />
             </form>
 
