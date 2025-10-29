@@ -4,6 +4,7 @@ import {
     LeaderboardSummary,
     LeaderboardTable,
 } from '../components/reputation/LeaderboardTable';
+import { LeaderboardSkeleton, EmptyStateWithAction } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 import type { LeaderboardResponse, LeaderboardType } from '../types/reputation';
 
@@ -111,22 +112,28 @@ export default function LeaderboardPage() {
 
             {/* Loading State */}
             {loading && (
-                <div className='text-center py-12'>
-                    <div className='text-gray-400'>Loading leaderboard...</div>
-                </div>
+                <LeaderboardSkeleton />
             )}
 
             {/* Error State */}
             {error && (
-                <div className='bg-red-900/20 border border-red-500 rounded-lg p-6 mb-6'>
-                    <div className='text-red-400 mb-4'>{error}</div>
-                    <button
-                        onClick={fetchLeaderboard}
-                        className='px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors'
-                    >
-                        Retry
-                    </button>
-                </div>
+                <EmptyStateWithAction
+                    icon={
+                        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    }
+                    title="Failed to load leaderboard"
+                    description={error}
+                    primaryAction={{
+                        label: "Try Again",
+                        onClick: fetchLeaderboard
+                    }}
+                    secondaryAction={{
+                        label: "Go Home",
+                        href: "/"
+                    }}
+                />
             )}
 
             {/* Leaderboard Content */}

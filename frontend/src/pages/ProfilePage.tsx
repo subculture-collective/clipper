@@ -2,9 +2,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Card, CardBody, Container, Stack, Button, Skeleton } from '../components';
+import { Card, CardBody, Container, Stack, Button, Skeleton, ProfileSkeleton, EmptyStateWithAction } from '../components';
 import { ClipCard } from '../components/clip/ClipCard';
 import { ClipCardSkeleton } from '../components/clip/ClipCardSkeleton';
+import { CommentSkeleton } from '../components/ui';
 import {
     BadgeGrid,
     KarmaBreakdownChart,
@@ -394,26 +395,34 @@ export function ProfilePage() {
                             {activeTab === 'overview' && (
                                 <div>
                                     {loadingReputation ? (
-                                        <div className='space-y-4'>
-                                            <Skeleton variant='rectangular' height={100} />
-                                            <Skeleton variant='rectangular' height={200} />
-                                        </div>
+                                        <ProfileSkeleton />
                                     ) : reputationError ? (
-                                        <div className='py-12 text-center'>
-                                            <p className='text-red-600 dark:text-red-400'>
-                                                Failed to load reputation data
-                                            </p>
-                                        </div>
+                                        <EmptyStateWithAction
+                                            icon={
+                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            }
+                                            title="Failed to load reputation"
+                                            description="We couldn't load your reputation data. Please try again."
+                                            primaryAction={{
+                                                label: "Retry",
+                                                onClick: fetchReputation
+                                            }}
+                                        />
                                     ) : reputation ? (
                                         <ReputationDisplay
                                             reputation={reputation}
                                         />
                                     ) : (
-                                        <div className='py-12 text-center'>
-                                            <p className='text-muted-foreground'>
-                                                Unable to load reputation data
-                                            </p>
-                                        </div>
+                                        <EmptyStateWithAction
+                                            title="No reputation data"
+                                            description="Your reputation data is not available at this time."
+                                            primaryAction={{
+                                                label: "Refresh",
+                                                onClick: fetchReputation
+                                            }}
+                                        />
                                     )}
                                 </div>
                             )}
@@ -462,11 +471,7 @@ export function ProfilePage() {
                             {activeTab === 'comments' && (
                                 <div>
                                     {loadingTabData ? (
-                                        <div className='space-y-4'>
-                                            {[...Array(5)].map((_, i) => (
-                                                <Skeleton key={i} variant='rectangular' height={120} />
-                                            ))}
-                                        </div>
+                                        <CommentSkeleton />
                                     ) : comments.length > 0 ? (
                                         <div className='space-y-4'>
                                             {comments.map((comment) => (
@@ -500,11 +505,24 @@ export function ProfilePage() {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className='py-12 text-center'>
-                                            <p className='text-muted-foreground'>
-                                                No comments yet
-                                            </p>
-                                        </div>
+                                        <EmptyStateWithAction
+                                            icon={
+                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                </svg>
+                                            }
+                                            title="No comments yet"
+                                            description="Start engaging with the community by commenting on clips."
+                                            primaryAction={{
+                                                label: "Browse Clips",
+                                                href: "/"
+                                            }}
+                                            tips={[
+                                                "Share your thoughts on clips you enjoy",
+                                                "Engage in discussions with other users",
+                                                "Earn karma by posting quality comments"
+                                            ]}
+                                        />
                                     )}
                                 </div>
                             )}
@@ -534,11 +552,23 @@ export function ProfilePage() {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className='py-12 text-center'>
-                                            <p className='text-muted-foreground'>
-                                                No upvoted clips yet
-                                            </p>
-                                        </div>
+                                        <EmptyStateWithAction
+                                            icon={
+                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                                </svg>
+                                            }
+                                            title="No upvoted clips"
+                                            description="Start upvoting clips you enjoy to see them here."
+                                            primaryAction={{
+                                                label: "Discover Clips",
+                                                href: "/discover"
+                                            }}
+                                            secondaryAction={{
+                                                label: "Browse Top Clips",
+                                                href: "/top"
+                                            }}
+                                        />
                                     )}
                                 </div>
                             )}
@@ -568,11 +598,19 @@ export function ProfilePage() {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className='py-12 text-center'>
-                                            <p className='text-muted-foreground'>
-                                                No downvoted clips yet
-                                            </p>
-                                        </div>
+                                        <EmptyStateWithAction
+                                            icon={
+                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                                </svg>
+                                            }
+                                            title="No downvoted clips"
+                                            description="Downvoted clips will appear here."
+                                            primaryAction={{
+                                                label: "Browse Clips",
+                                                href: "/"
+                                            }}
+                                        />
                                     )}
                                 </div>
                             )}
