@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { testAccessibility, testKeyboardNavigation, hasProperLabel } from './utils/accessibility.tsx';
+import { testAccessibility, testKeyboardNavigation } from './utils/accessibility.tsx';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -314,7 +314,6 @@ describe('Comprehensive Accessibility Tests - WCAG 2.1 AA', () => {
         />
       );
       
-      const toggle = screen.getByRole('switch');
       // The input itself has sr-only, but peer-focus classes provide visible focus
       const visualElement = container.querySelector('.peer-focus\\:ring-2');
       expect(visualElement).toBeTruthy();

@@ -37,7 +37,7 @@ export const Toggle = React.forwardRef<HTMLInputElement, ToggleProps>(
               className="sr-only peer"
               disabled={disabled}
               checked={checked}
-              aria-checked={checked}
+              aria-checked={checked ? 'true' : 'false'}
               aria-describedby={helperText ? `${toggleId}-helper` : undefined}
               {...props}
             />

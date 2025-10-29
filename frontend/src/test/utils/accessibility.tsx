@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Accessibility testing utilities
  * Provides helper functions for consistent accessibility testing across the application

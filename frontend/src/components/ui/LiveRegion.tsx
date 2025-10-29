@@ -29,16 +29,14 @@ export const LiveRegion: React.FC<LiveRegionProps> = ({
   const [currentMessage, setCurrentMessage] = useState(message);
 
   useEffect(() => {
-    if (message) {
-      setCurrentMessage(message);
+    setCurrentMessage(message);
 
-      if (clearAfter > 0) {
-        const timer = setTimeout(() => {
-          setCurrentMessage('');
-        }, clearAfter);
+    if (message && clearAfter > 0) {
+      const timer = setTimeout(() => {
+        setCurrentMessage('');
+      }, clearAfter);
 
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
   }, [message, clearAfter]);
 
