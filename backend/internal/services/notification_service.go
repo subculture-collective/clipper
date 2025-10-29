@@ -19,6 +19,7 @@ type NotificationService struct {
 	commentRepo  *repository.CommentRepository
 	clipRepo     *repository.ClipRepository
 	favoriteRepo *repository.FavoriteRepository
+	emailService *EmailService
 }
 
 // NewNotificationService creates a new NotificationService
@@ -28,6 +29,7 @@ func NewNotificationService(
 	commentRepo *repository.CommentRepository,
 	clipRepo *repository.ClipRepository,
 	favoriteRepo *repository.FavoriteRepository,
+	emailService *EmailService,
 ) *NotificationService {
 	return &NotificationService{
 		repo:         repo,
@@ -35,6 +37,7 @@ func NewNotificationService(
 		commentRepo:  commentRepo,
 		clipRepo:     clipRepo,
 		favoriteRepo: favoriteRepo,
+		emailService: emailService,
 	}
 }
 
@@ -83,6 +86,51 @@ func (s *NotificationService) CreateNotification(
 	err = s.repo.Create(ctx, notification)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create notification: %w", err)
+	}
+
+	return notification, nil
+}
+
+// CreateNotificationWithEmail creates a notification and optionally sends an email
+func (s *NotificationService) CreateNotificationWithEmail(
+	ctx context.Context,
+	userID uuid.UUID,
+	notificationType string,
+	title string,
+	message string,
+	link *string,
+	sourceUserID *uuid.UUID,
+	sourceContentID *uuid.UUID,
+	sourceContentType *string,
+	emailData map[string]interface{},
+) (*models.Notification, error) {
+	// Create in-app notification
+	notification, err := s.CreateNotification(
+		ctx, userID, notificationType, title, message, link,
+		sourceUserID, sourceContentID, sourceContentType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// If notification was created, try to send email
+	if notification != nil {
+		// Check if user has email notifications enabled
+		prefs, err := s.repo.GetPreferences(ctx, userID)
+		if err == nil && prefs.EmailEnabled && s.shouldNotify(prefs, notificationType) {
+			// Get user info for email
+			user, err := s.userRepo.GetByID(ctx, userID)
+			if err == nil && s.emailService != nil {
+				// Send email asynchronously - don't block on email send
+				go func() {
+					// Use a background context to avoid cancellation
+					bgCtx := context.Background()
+					_ = s.emailService.SendNotificationEmail(
+						bgCtx, user, notificationType, notification.ID, emailData,
+					)
+				}()
+			}
+		}
 	}
 
 	return notification, nil
@@ -226,8 +274,20 @@ func (s *NotificationService) NotifyCommentReply(
 	message := fmt.Sprintf("on \"%s\"", clip.Title)
 	link := fmt.Sprintf("/clips/%s", clipID.String())
 
+	// Prepare email data
+	commentPreview := parentComment.Content
+	if len(commentPreview) > 100 {
+		commentPreview = commentPreview[:100] + "..."
+	}
+	emailData := map[string]interface{}{
+		"AuthorName":     replyAuthor.DisplayName,
+		"ClipTitle":      clip.Title,
+		"ClipURL":        fmt.Sprintf("%s/clips/%s", s.getBaseURL(), clipID.String()),
+		"CommentPreview": commentPreview,
+	}
+
 	contentType := "comment"
-	_, err = s.CreateNotification(
+	_, err = s.CreateNotificationWithEmail(
 		ctx,
 		parentComment.UserID,
 		models.NotificationTypeReply,
@@ -237,9 +297,18 @@ func (s *NotificationService) NotifyCommentReply(
 		&replyAuthorID,
 		&clipID,
 		&contentType,
+		emailData,
 	)
 
 	return err
+}
+
+// getBaseURL returns the base URL for the application
+func (s *NotificationService) getBaseURL() string {
+	if s.emailService != nil {
+		return s.emailService.baseURL
+	}
+	return "http://localhost:5173" // fallback
 }
 
 // NotifyMentions notifies users mentioned in a comment
@@ -267,6 +336,12 @@ func (s *NotificationService) NotifyMentions(
 		return fmt.Errorf("failed to get clip: %w", err)
 	}
 
+	// Prepare comment preview for email
+	commentPreview := content
+	if len(commentPreview) > 100 {
+		commentPreview = commentPreview[:100] + "..."
+	}
+
 	// Notify each mentioned user
 	for _, username := range mentions {
 		// Get user by username
@@ -284,8 +359,16 @@ func (s *NotificationService) NotifyMentions(
 		message := fmt.Sprintf("on \"%s\"", clip.Title)
 		link := fmt.Sprintf("/clips/%s", clipID.String())
 
+		// Prepare email data
+		emailData := map[string]interface{}{
+			"AuthorName":     author.DisplayName,
+			"ClipTitle":      clip.Title,
+			"ClipURL":        fmt.Sprintf("%s/clips/%s", s.getBaseURL(), clipID.String()),
+			"CommentPreview": commentPreview,
+		}
+
 		contentType := "comment"
-		_, err = s.CreateNotification(
+		_, err = s.CreateNotificationWithEmail(
 			ctx,
 			user.ID,
 			models.NotificationTypeMention,
@@ -295,6 +378,7 @@ func (s *NotificationService) NotifyMentions(
 			&commentAuthorID,
 			&clipID,
 			&contentType,
+			emailData,
 		)
 		if err != nil {
 			// Log error but continue with other mentions

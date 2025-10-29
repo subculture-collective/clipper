@@ -19,6 +19,7 @@ type Config struct {
 	OpenSearch OpenSearchConfig
 	Stripe     StripeConfig
 	Sentry     SentryConfig
+	Email      EmailConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -92,6 +93,15 @@ type SentryConfig struct {
 	Enabled          bool
 }
 
+// EmailConfig holds email notification configuration
+type EmailConfig struct {
+	SendGridAPIKey   string
+	FromEmail        string
+	FromName         string
+	Enabled          bool
+	MaxEmailsPerHour int
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -156,6 +166,13 @@ func Load() (*Config, error) {
 			TracesSampleRate: getEnvFloat("SENTRY_TRACES_SAMPLE_RATE", 1.0),
 			Enabled:          getEnv("SENTRY_ENABLED", "false") == "true",
 		},
+		Email: EmailConfig{
+			SendGridAPIKey:   getEnv("SENDGRID_API_KEY", ""),
+			FromEmail:        getEnv("EMAIL_FROM_ADDRESS", "noreply@clipper.gg"),
+			FromName:         getEnv("EMAIL_FROM_NAME", "Clipper"),
+			Enabled:          getEnv("EMAIL_ENABLED", "false") == "true",
+			MaxEmailsPerHour: getEnvInt("EMAIL_MAX_PER_HOUR", 10),
+		},
 	}
 
 	return config, nil
@@ -187,6 +204,16 @@ func getEnvFloat(key string, defaultValue float64) float64 {
 	if value := os.Getenv(key); value != "" {
 		if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
 			return floatVal
+		}
+	}
+	return defaultValue
+}
+
+// getEnvInt gets an int environment variable with a fallback default value
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intVal, err := strconv.Atoi(value); err == nil {
+			return intVal
 		}
 	}
 	return defaultValue

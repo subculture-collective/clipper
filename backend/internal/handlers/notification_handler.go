@@ -13,12 +13,14 @@ import (
 // NotificationHandler handles notification-related HTTP requests
 type NotificationHandler struct {
 	notificationService *services.NotificationService
+	emailService        *services.EmailService
 }
 
 // NewNotificationHandler creates a new NotificationHandler
-func NewNotificationHandler(notificationService *services.NotificationService) *NotificationHandler {
+func NewNotificationHandler(notificationService *services.NotificationService, emailService *services.EmailService) *NotificationHandler {
 	return &NotificationHandler{
 		notificationService: notificationService,
+		emailService:        emailService,
 	}
 }
 
@@ -317,5 +319,79 @@ func (h *NotificationHandler) UpdatePreferences(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "Notification preferences updated",
 		"preferences": prefs,
+	})
+}
+
+// Unsubscribe handles GET /notifications/unsubscribe (email unsubscribe)
+func (h *NotificationHandler) Unsubscribe(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Missing unsubscribe token",
+		})
+		return
+	}
+
+	if h.emailService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Email service not configured",
+		})
+		return
+	}
+
+	// Validate token
+	tokenRecord, err := h.emailService.ValidateUnsubscribeToken(c.Request.Context(), token)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid or expired unsubscribe token",
+		})
+		return
+	}
+
+	// Get current preferences
+	prefs, err := h.notificationService.GetPreferences(c.Request.Context(), tokenRecord.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get notification preferences",
+		})
+		return
+	}
+
+	// Update preferences based on token type
+	if tokenRecord.NotificationType == nil {
+		// Unsubscribe from all email notifications
+		prefs.EmailEnabled = false
+	} else {
+		// Unsubscribe from specific notification type
+		switch *tokenRecord.NotificationType {
+		case models.NotificationTypeReply:
+			prefs.NotifyReplies = false
+		case models.NotificationTypeMention:
+			prefs.NotifyMentions = false
+		}
+	}
+
+	// Save updated preferences
+	err = h.notificationService.UpdatePreferences(c.Request.Context(), prefs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update preferences",
+		})
+		return
+	}
+
+	// Mark token as used
+	err = h.emailService.UseUnsubscribeToken(c.Request.Context(), token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to process unsubscribe",
+		})
+		return
+	}
+
+	// Return success page/message
+	c.HTML(http.StatusOK, "unsubscribe.html", gin.H{
+		"success": true,
+		"message": "You have been successfully unsubscribed from email notifications.",
 	})
 }
