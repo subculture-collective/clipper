@@ -59,3 +59,6 @@ export { CommentSkeleton } from './CommentSkeleton';
 export { NotificationSkeleton } from './NotificationSkeleton';
 
 export { EmptyStateWithAction } from './EmptyStateWithAction';
+
+export { SkipLink } from './SkipLink';
+export type { SkipLinkProps } from './SkipLink';

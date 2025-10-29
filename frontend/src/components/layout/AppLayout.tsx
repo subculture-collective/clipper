@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { SkipLink } from '../ui';
 
 export function AppLayout() {
   const location = useLocation();
@@ -13,8 +14,9 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-theme">
+      <SkipLink targetId="main-content" label="Skip to main content" />
       <Header />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
       <Footer />
