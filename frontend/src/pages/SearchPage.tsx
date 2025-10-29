@@ -110,6 +110,27 @@ export function SearchPage() {
         } else {
             newParams.delete('date_from');
         }
+
+        // Add dateTo
+        if (newFilters.dateTo) {
+            newParams.set('date_to', newFilters.dateTo);
+        } else {
+            newParams.delete('date_to');
+        }
+
+        // Add minVotes
+        if (typeof newFilters.minVotes === 'number' && !isNaN(newFilters.minVotes) && newFilters.minVotes > 0) {
+            newParams.set('min_votes', String(newFilters.minVotes));
+        } else {
+            newParams.delete('min_votes');
+        }
+
+        // Add tags (as comma-separated)
+        if (Array.isArray(newFilters.tags) && newFilters.tags.length > 0) {
+            newParams.set('tags', newFilters.tags.join(','));
+        } else {
+            newParams.delete('tags');
+        }
         
         setSearchParams(newParams);
     };
