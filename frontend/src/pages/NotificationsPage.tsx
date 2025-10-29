@@ -9,7 +9,7 @@ import {
   deleteNotification,
 } from '../lib/notification-api';
 import type { NotificationFilter } from '../types/notification';
-import { Button } from '../components/ui';
+import { Button, NotificationSkeleton, EmptyStateWithAction } from '../components/ui';
 import { NotificationItem } from '../components/layout/NotificationItem';
 import { Container } from '../components/layout';
 
@@ -138,13 +138,28 @@ export function NotificationsPage() {
           {/* Notifications List */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             {isLoading ? (
-              <div className="p-12 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-primary-600"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-400">Loading notifications...</p>
+              <div className="p-4">
+                <NotificationSkeleton />
               </div>
             ) : isError ? (
-              <div className="p-12 text-center text-red-600">
-                <p>Failed to load notifications. Please try again later.</p>
+              <div className="p-8">
+                <EmptyStateWithAction
+                  icon={
+                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  }
+                  title="Failed to load notifications"
+                  description="Something went wrong while loading your notifications."
+                  primaryAction={{
+                    label: "Try Again",
+                    onClick: () => window.location.reload()
+                  }}
+                  secondaryAction={{
+                    label: "Go Home",
+                    href: "/"
+                  }}
+                />
               </div>
             ) : data && data.notifications.length > 0 ? (
               <>
@@ -211,28 +226,48 @@ export function NotificationsPage() {
                 )}
               </>
             ) : (
-              <div className="p-12 text-center text-gray-500 dark:text-gray-400">
-                <svg
-                  className="w-16 h-16 mx-auto mb-4 opacity-50"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                <p className="text-lg font-medium mb-1">No notifications</p>
-                <p className="text-sm">
-                  {filter === 'unread'
-                    ? "You're all caught up!"
-                    : filter === 'read'
-                      ? "You haven't read any notifications yet"
-                      : "You'll see notifications here when you get them"}
-                </p>
+              <div className="p-8">
+                <EmptyStateWithAction
+                  icon={
+                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                  }
+                  title={
+                    filter === 'unread'
+                      ? "No unread notifications"
+                      : filter === 'read'
+                        ? "No read notifications"
+                        : "No notifications"
+                  }
+                  description={
+                    filter === 'unread'
+                      ? "You're all caught up! Check back later for new notifications."
+                      : filter === 'read'
+                        ? "You haven't read any notifications yet."
+                        : "You'll see notifications here when you get them."
+                  }
+                  primaryAction={
+                    filter !== 'all' ? {
+                      label: "View All Notifications",
+                      onClick: () => {
+                        setFilter('all');
+                        setPage(1);
+                      }
+                    } : undefined
+                  }
+                  secondaryAction={{
+                    label: "Browse Clips",
+                    href: "/"
+                  }}
+                  tips={
+                    filter === 'all' ? [
+                      "Like or comment on clips to get notifications",
+                      "Follow your favorite streamers",
+                      "Submit clips to the community"
+                    ] : undefined
+                  }
+                />
               </div>
             )}
           </div>
