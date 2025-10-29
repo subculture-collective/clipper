@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
@@ -7,6 +7,7 @@ import { Button, Input } from '../ui';
 import { UserMenu } from './UserMenu';
 import { NotificationBell } from './NotificationBell';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 export function Header() {
   const { t } = useTranslation();
@@ -15,6 +16,8 @@ export function Header() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +32,47 @@ export function Header() {
     setMobileMenuOpen(false);
     navigate('/');
   };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: '/',
+      callback: () => {
+        if (mobileMenuOpen && mobileSearchInputRef.current) {
+          mobileSearchInputRef.current.focus();
+        } else if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      },
+      description: 'Focus search',
+    },
+    {
+      key: 'Escape',
+      callback: () => {
+        if (mobileMenuOpen) {
+          setMobileMenuOpen(false);
+        }
+      },
+      description: 'Close mobile menu',
+    },
+  ]);
+
+  // Close mobile menu on Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [mobileMenuOpen]);
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border">
@@ -71,8 +115,9 @@ export function Header() {
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-md mx-4" role="search" aria-label="Search clips">
             <Input
+              ref={searchInputRef}
               type="search"
-              placeholder={t('nav.search')}
+              placeholder={`${t('nav.search')} (Press / to focus)`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Search clips"
@@ -173,8 +218,9 @@ export function Header() {
 
             <form onSubmit={handleSearch} className="mb-4" role="search" aria-label="Search clips">
               <Input
+                ref={mobileSearchInputRef}
                 type="search"
-                placeholder={t('nav.search')}
+                placeholder={`${t('nav.search')} (Press / to focus)`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Search clips"
