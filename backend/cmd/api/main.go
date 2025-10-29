@@ -127,6 +127,7 @@ func main() {
 	reportRepo := repository.NewReportRepository(db.Pool)
 	reputationRepo := repository.NewReputationRepository(db.Pool)
 	notificationRepo := repository.NewNotificationRepository(db.Pool)
+	emailNotificationRepo := repository.NewEmailNotificationRepository(db.Pool)
 	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
@@ -141,7 +142,18 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
-	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo)
+	
+	// Initialize email service
+	emailService := services.NewEmailService(&services.EmailConfig{
+		SendGridAPIKey:   cfg.Email.SendGridAPIKey,
+		FromEmail:        cfg.Email.FromEmail,
+		FromName:         cfg.Email.FromName,
+		BaseURL:          cfg.Server.BaseURL,
+		Enabled:          cfg.Email.Enabled,
+		MaxEmailsPerHour: cfg.Email.MaxEmailsPerHour,
+	}, emailNotificationRepo)
+	
+	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
 	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
 	autoTagService := services.NewAutoTagService(tagRepo)
@@ -191,7 +203,7 @@ func main() {
 	}
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
-	notificationHandler := handlers.NewNotificationHandler(notificationService)
+	notificationHandler := handlers.NewNotificationHandler(notificationService, emailService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
@@ -501,8 +513,13 @@ func main() {
 
 		// Notification routes
 		notifications := v1.Group("/notifications")
-		notifications.Use(middleware.AuthMiddleware(authService))
 		{
+			// Public unsubscribe endpoint (no auth required, uses token)
+			notifications.GET("/unsubscribe", notificationHandler.Unsubscribe)
+			
+			// Protected notification endpoints (require authentication)
+			notifications.Use(middleware.AuthMiddleware(authService))
+			
 			// Get notifications list
 			notifications.GET("", notificationHandler.ListNotifications)
 

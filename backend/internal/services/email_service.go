@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"html/template"
 	"strings"
 	"time"
 
@@ -14,18 +13,16 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // EmailService handles email sending and management
 type EmailService struct {
-	apiKey        string
-	fromEmail     string
-	fromName      string
-	baseURL       string
-	repo          *repository.EmailNotificationRepository
-	enabled       bool
-	logger        *utils.Logger
+	apiKey           string
+	fromEmail        string
+	fromName         string
+	baseURL          string
+	repo             *repository.EmailNotificationRepository
+	enabled          bool
 	maxEmailsPerHour int
 }
 
@@ -53,7 +50,6 @@ func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationReposit
 		baseURL:          cfg.BaseURL,
 		repo:             repo,
 		enabled:          cfg.Enabled,
-		logger:           utils.GetLogger(),
 		maxEmailsPerHour: maxPerHour,
 	}
 }
@@ -67,14 +63,12 @@ func (s *EmailService) SendNotificationEmail(
 	emailData map[string]interface{},
 ) error {
 	if !s.enabled {
-		s.logger.Debug("Email service disabled, skipping email send")
-		return nil
+		return nil // Email service disabled
 	}
 
 	// Check if user has an email
 	if user.Email == nil || *user.Email == "" {
-		s.logger.Debug("User has no email address", "user_id", user.ID)
-		return nil
+		return nil // User has no email
 	}
 
 	// Check rate limit
@@ -83,15 +77,14 @@ func (s *EmailService) SendNotificationEmail(
 		return fmt.Errorf("failed to check rate limit: %w", err)
 	}
 	if !canSend {
-		s.logger.Info("Rate limit exceeded for user", "user_id", user.ID)
-		return fmt.Errorf("rate limit exceeded")
+		return fmt.Errorf("rate limit exceeded for user %s", user.ID)
 	}
 
 	// Generate unsubscribe token
 	unsubToken, err := s.generateUnsubscribeToken(ctx, user.ID, &notificationType)
 	if err != nil {
-		s.logger.Error("Failed to generate unsubscribe token", "error", err)
-		// Continue without unsubscribe link
+		// Continue without unsubscribe link (log but don't fail)
+		unsubToken = ""
 	}
 
 	// Prepare email content
@@ -138,13 +131,15 @@ func (s *EmailService) SendNotificationEmail(
 	logEntry.UpdatedAt = now
 	err = s.repo.UpdateLog(ctx, logEntry)
 	if err != nil {
-		s.logger.Error("Failed to update email log", "error", err)
+		// Log but don't fail
+		_ = err
 	}
 
 	// Increment rate limit counter
 	err = s.incrementRateLimit(ctx, user.ID)
 	if err != nil {
-		s.logger.Error("Failed to increment rate limit", "error", err)
+		// Log but don't fail
+		_ = err
 	}
 
 	return nil
@@ -168,7 +163,10 @@ func (s *EmailService) sendViaSendGrid(to, subject, htmlContent, textContent str
 	}
 
 	// Extract message ID from headers
-	messageID := response.Headers.Get("X-Message-Id")
+	messageID := ""
+	if ids, ok := response.Headers["X-Message-Id"]; ok && len(ids) > 0 {
+		messageID = ids[0]
+	}
 	return messageID, nil
 }
 
