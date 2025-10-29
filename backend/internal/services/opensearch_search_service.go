@@ -569,7 +569,7 @@ func (s *OpenSearchService) buildFacetAggregations() map[string]interface{} {
 				"field": "created_at",
 				"ranges": []map[string]interface{}{
 					{"from": lastHour.Format(time.RFC3339), "key": "last_hour"},
-					{"from": lastDay.Format(time.RFC3339), "to": lastHour.Format(time.RFC3339), "key": "last_day"},
+					{"from": lastDay.Format(time.RFC3339), "key": "last_day"},
 					{"from": lastWeek.Format(time.RFC3339), "to": lastDay.Format(time.RFC3339), "key": "last_week"},
 					{"from": lastMonth.Format(time.RFC3339), "to": lastWeek.Format(time.RFC3339), "key": "last_month"},
 					{"to": lastMonth.Format(time.RFC3339), "key": "older"},
