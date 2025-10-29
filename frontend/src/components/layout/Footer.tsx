@@ -129,12 +129,12 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Resources</h3>
             <ul className="space-y-2">
               <li>
-                <ExternalLink
-                  href="https://docs.clipper.com"
+                <Link
+                  to="/docs"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Documentation
-                </ExternalLink>
+                </Link>
               </li>
               <li>
                 <ExternalLink
