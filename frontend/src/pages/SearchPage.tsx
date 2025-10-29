@@ -16,6 +16,9 @@ export function SearchPage() {
     const languageParam = searchParams.get('language') || undefined;
     const gameIdParam = searchParams.get('game_id') || undefined;
     const dateFromParam = searchParams.get('date_from') || undefined;
+    const dateToParam = searchParams.get('date_to') || undefined;
+    const minVotesParam = searchParams.get('min_votes');
+    const tagsParam = searchParams.get('tags');
     
     type SearchType = NonNullable<SearchRequest['type']>;
     type SortType = NonNullable<SearchRequest['sort']>;
@@ -27,6 +30,9 @@ export function SearchPage() {
         language: languageParam,
         gameId: gameIdParam,
         dateFrom: dateFromParam,
+        dateTo: dateToParam,
+        minVotes: minVotesParam ? parseInt(minVotesParam, 10) : undefined,
+        tags: tagsParam ? tagsParam.split(',') : undefined,
     });
 
     // Fetch search results
@@ -60,8 +66,11 @@ export function SearchPage() {
             language: languageParam,
             gameId: gameIdParam,
             dateFrom: dateFromParam,
+            dateTo: dateToParam,
+            minVotes: minVotesParam ? parseInt(minVotesParam, 10) : undefined,
+            tags: tagsParam ? tagsParam.split(',') : undefined,
         });
-    }, [languageParam, gameIdParam, dateFromParam]);
+    }, [languageParam, gameIdParam, dateFromParam, dateToParam, minVotesParam, tagsParam]);
 
     // Handle tab change
     const handleTabChange = (newTab: SearchType) => {

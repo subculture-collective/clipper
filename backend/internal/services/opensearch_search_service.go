@@ -409,16 +409,6 @@ func (s *OpenSearchService) buildClipQuery(req *models.SearchRequest) map[string
 			},
 		})
 	}
-	
-	// Add tags filter if provided
-	if len(req.Tags) > 0 {
-		// Note: This assumes tags are stored somehow - may need to adjust based on actual implementation
-		for _, tag := range req.Tags {
-			filter = append(filter, map[string]interface{}{
-				"term": map[string]interface{}{"tags.keyword": tag},
-			})
-		}
-	}
 
 	// If no query text, use match_all
 	if len(must) == 0 {

@@ -9,6 +9,7 @@ interface SearchFiltersProps {
 
 export function SearchFilters({ facets, filters, onFiltersChange }: SearchFiltersProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [selectedDateRange, setSelectedDateRange] = useState<string | undefined>();
 
     if (!facets) {
         return null;
@@ -51,6 +52,7 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
                 dateFrom = undefined;
         }
 
+        setSelectedDateRange(range);
         onFiltersChange({
             ...filters,
             dateFrom,
@@ -59,6 +61,7 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
     };
 
     const handleClearFilters = () => {
+        setSelectedDateRange(undefined);
         onFiltersChange({});
     };
 
@@ -151,8 +154,7 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
                                     <button
                                         onClick={() => handleDateRangeSelect('last_hour')}
                                         className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                                            filters.dateFrom && 
-                                            new Date(filters.dateFrom).getTime() > Date.now() - 60 * 60 * 1000
+                                            selectedDateRange === 'last_hour'
                                                 ? 'bg-primary text-primary-foreground'
                                                 : 'hover:bg-accent'
                                         }`}
@@ -164,9 +166,7 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
                                     <button
                                         onClick={() => handleDateRangeSelect('last_day')}
                                         className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                                            filters.dateFrom &&
-                                            new Date(filters.dateFrom).getTime() > Date.now() - 24 * 60 * 60 * 1000 &&
-                                            new Date(filters.dateFrom).getTime() <= Date.now() - 60 * 60 * 1000
+                                            selectedDateRange === 'last_day'
                                                 ? 'bg-primary text-primary-foreground'
                                                 : 'hover:bg-accent'
                                         }`}
@@ -178,9 +178,7 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
                                     <button
                                         onClick={() => handleDateRangeSelect('last_week')}
                                         className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                                            filters.dateFrom &&
-                                            new Date(filters.dateFrom).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 &&
-                                            new Date(filters.dateFrom).getTime() <= Date.now() - 24 * 60 * 60 * 1000
+                                            selectedDateRange === 'last_week'
                                                 ? 'bg-primary text-primary-foreground'
                                                 : 'hover:bg-accent'
                                         }`}
@@ -192,9 +190,7 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
                                     <button
                                         onClick={() => handleDateRangeSelect('last_month')}
                                         className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                                            filters.dateFrom &&
-                                            new Date(filters.dateFrom).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000 &&
-                                            new Date(filters.dateFrom).getTime() <= Date.now() - 7 * 24 * 60 * 60 * 1000
+                                            selectedDateRange === 'last_month'
                                                 ? 'bg-primary text-primary-foreground'
                                                 : 'hover:bg-accent'
                                         }`}
@@ -205,7 +201,11 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
                                 {facets.date_range.older > 0 && (
                                     <button
                                         onClick={() => handleDateRangeSelect('older')}
-                                        className='w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent'
+                                        className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                                            selectedDateRange === 'older'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'hover:bg-accent'
+                                        }`}
                                     >
                                         Older ({facets.date_range.older})
                                     </button>
