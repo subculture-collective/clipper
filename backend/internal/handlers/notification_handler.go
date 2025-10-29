@@ -389,8 +389,8 @@ func (h *NotificationHandler) Unsubscribe(c *gin.Context) {
 		return
 	}
 
-	// Return success page/message
-	c.HTML(http.StatusOK, "unsubscribe.html", gin.H{
+	// Return success response
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "You have been successfully unsubscribed from email notifications.",
 	})
