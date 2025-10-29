@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -45,15 +46,20 @@ func (s *OpenSearchService) Search(ctx context.Context, req *models.SearchReques
 
 	var totalCount int
 
-	// Search clips
+	// Search clips (and get facets if searching clips)
 	if searchClips {
-		clips, count, err := s.searchClips(ctx, req)
+		clips, count, facets, err := s.searchClipsWithFacets(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to search clips: %w", err)
 		}
 		response.Results.Clips = clips
 		response.Counts.Clips = count
 		totalCount += count
+		
+		// Include facets only when searching clips specifically or all
+		if facets != nil {
+			response.Facets = *facets
+		}
 	}
 
 	// Search creators
@@ -98,8 +104,8 @@ func (s *OpenSearchService) Search(ctx context.Context, req *models.SearchReques
 	return response, nil
 }
 
-// searchClips searches for clips in OpenSearch
-func (s *OpenSearchService) searchClips(ctx context.Context, req *models.SearchRequest) ([]models.Clip, int, error) {
+// searchClipsWithFacets searches for clips with facet aggregations
+func (s *OpenSearchService) searchClipsWithFacets(ctx context.Context, req *models.SearchRequest) ([]models.Clip, int, *models.SearchFacets, error) {
 	query := s.buildClipQuery(req)
 
 	from := (req.Page - 1) * req.Limit
@@ -108,23 +114,51 @@ func (s *OpenSearchService) searchClips(ctx context.Context, req *models.SearchR
 		"from":  from,
 		"size":  req.Limit,
 		"sort":  s.buildSortClause(req.Sort),
+		"aggs":  s.buildFacetAggregations(),
 	}
 
-	hits, total, err := s.executeSearch(ctx, ClipsIndex, searchBody)
+	bodyJSON, err := json.Marshal(searchBody)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, fmt.Errorf("failed to marshal search body: %w", err)
 	}
 
-	clips := make([]models.Clip, 0, len(hits))
-	for _, hit := range hits {
-		var clip models.Clip
-		if err := json.Unmarshal(hit, &clip); err != nil {
-			continue
-		}
-		clips = append(clips, clip)
+	reqOS := opensearchapi.SearchRequest{
+		Index: []string{ClipsIndex},
+		Body:  bytes.NewReader(bodyJSON),
 	}
 
-	return clips, total, nil
+	res, err := reqOS.Do(ctx, s.osClient.GetClient())
+	if err != nil {
+		return nil, 0, nil, fmt.Errorf("search request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		bodyBytes, _ := io.ReadAll(res.Body)
+		return nil, 0, nil, fmt.Errorf("search error: %s - %s", res.Status(), string(bodyBytes))
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
+		return nil, 0, nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Parse hits
+	clips, total, err := s.parseClipsFromResult(result)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+
+	// Parse facets
+	facets := s.parseFacetsFromResult(result)
+
+	return clips, total, facets, nil
+}
+
+// searchClips searches for clips in OpenSearch (without facets)
+func (s *OpenSearchService) searchClips(ctx context.Context, req *models.SearchRequest) ([]models.Clip, int, error) {
+	clips, total, _, err := s.searchClipsWithFacets(ctx, req)
+	return clips, total, err
 }
 
 // searchCreators searches for users/creators in OpenSearch
@@ -297,19 +331,36 @@ func (s *OpenSearchService) executeSearch(ctx context.Context, indexName string,
 	return documents, total, nil
 }
 
-// buildClipQuery builds a query for clips with filters
+// buildClipQuery builds a query for clips with filters and enhanced relevance
 func (s *OpenSearchService) buildClipQuery(req *models.SearchRequest) map[string]interface{} {
 	must := []map[string]interface{}{}
 	filter := []map[string]interface{}{
 		{"term": map[string]interface{}{"is_removed": false}},
 	}
 
-	// Add text search if query is provided
+	// Add text search if query is provided with language-specific fields
 	if req.Query != "" {
+		// Build fields list based on language if specified
+		fields := []string{"title^3", "creator_name^2", "broadcaster_name^2", "game_name"}
+		
+		// Add language-specific field with higher boost if language is specified
+		if req.Language != nil && *req.Language != "" {
+			switch *req.Language {
+			case "en":
+				fields = append([]string{"title.en^4"}, fields...)
+			case "es":
+				fields = append([]string{"title.es^4"}, fields...)
+			case "fr":
+				fields = append([]string{"title.fr^4"}, fields...)
+			case "de":
+				fields = append([]string{"title.de^4"}, fields...)
+			}
+		}
+		
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
 				"query":     req.Query,
-				"fields":    []string{"title^3", "creator_name^2", "broadcaster_name^2", "game_name"},
+				"fields":    fields,
 				"fuzziness": "AUTO",
 				"operator":  "and",
 			},
@@ -364,10 +415,38 @@ func (s *OpenSearchService) buildClipQuery(req *models.SearchRequest) map[string
 		must = append(must, map[string]interface{}{"match_all": map[string]interface{}{}})
 	}
 
-	return map[string]interface{}{
+	baseQuery := map[string]interface{}{
 		"bool": map[string]interface{}{
 			"must":   must,
 			"filter": filter,
+		},
+	}
+
+	// Wrap with function_score for enhanced relevance (engagement + recency boost)
+	// Only apply when sorting by relevance
+	return map[string]interface{}{
+		"function_score": map[string]interface{}{
+			"query": baseQuery,
+			"functions": []map[string]interface{}{
+				{
+					"field_value_factor": map[string]interface{}{
+						"field":    "engagement_score",
+						"modifier": "log1p",
+						"factor":   0.1,
+						"missing":  0,
+					},
+				},
+				{
+					"field_value_factor": map[string]interface{}{
+						"field":    "recency_score",
+						"modifier": "none",
+						"factor":   0.5,
+						"missing":  0,
+					},
+				},
+			},
+			"score_mode": "sum",
+			"boost_mode": "sum",
 		},
 	}
 }
@@ -452,6 +531,191 @@ func (s *OpenSearchService) buildSortClause(sort string) []map[string]interface{
 			{"vote_score": "desc"},
 		}
 	}
+}
+
+// buildFacetAggregations builds aggregation queries for facets
+func (s *OpenSearchService) buildFacetAggregations() map[string]interface{} {
+	now := time.Now()
+	lastHour := now.Add(-1 * time.Hour)
+	lastDay := now.Add(-24 * time.Hour)
+	lastWeek := now.Add(-7 * 24 * time.Hour)
+	lastMonth := now.Add(-30 * 24 * time.Hour)
+
+	return map[string]interface{}{
+		"languages": map[string]interface{}{
+			"terms": map[string]interface{}{
+				"field": "language",
+				"size":  20,
+			},
+		},
+		"games": map[string]interface{}{
+			"terms": map[string]interface{}{
+				"field": "game_name.keyword",
+				"size":  20,
+			},
+		},
+		"date_ranges": map[string]interface{}{
+			"range": map[string]interface{}{
+				"field": "created_at",
+				"ranges": []map[string]interface{}{
+					{"from": lastHour.Format(time.RFC3339), "key": "last_hour"},
+					{"from": lastDay.Format(time.RFC3339), "key": "last_day"},
+					{"from": lastWeek.Format(time.RFC3339), "to": lastDay.Format(time.RFC3339), "key": "last_week"},
+					{"from": lastMonth.Format(time.RFC3339), "to": lastWeek.Format(time.RFC3339), "key": "last_month"},
+					{"to": lastMonth.Format(time.RFC3339), "key": "older"},
+				},
+			},
+		},
+	}
+}
+
+// parseClipsFromResult extracts clips from OpenSearch response
+func (s *OpenSearchService) parseClipsFromResult(result map[string]interface{}) ([]models.Clip, int, error) {
+	hitsRaw, ok := result["hits"]
+	if !ok {
+		return nil, 0, fmt.Errorf("missing 'hits' in response")
+	}
+	hits, ok := hitsRaw.(map[string]interface{})
+	if !ok {
+		return nil, 0, fmt.Errorf("unexpected 'hits' structure in response")
+	}
+	
+	totalRaw, ok := hits["total"]
+	if !ok {
+		return nil, 0, fmt.Errorf("missing 'total' in hits")
+	}
+	totalMap, ok := totalRaw.(map[string]interface{})
+	if !ok {
+		return nil, 0, fmt.Errorf("unexpected 'total' structure in hits")
+	}
+	valueRaw, ok := totalMap["value"]
+	if !ok {
+		return nil, 0, fmt.Errorf("missing 'value' in total")
+	}
+	valueFloat, ok := valueRaw.(float64)
+	if !ok {
+		return nil, 0, fmt.Errorf("unexpected 'value' type in total")
+	}
+	total := int(valueFloat)
+
+	hitsListRaw, ok := hits["hits"]
+	if !ok {
+		return nil, 0, fmt.Errorf("missing 'hits' list in hits")
+	}
+	hitsList, ok := hitsListRaw.([]interface{})
+	if !ok {
+		return nil, 0, fmt.Errorf("unexpected 'hits' list structure in hits")
+	}
+
+	clips := make([]models.Clip, 0, len(hitsList))
+	for _, hit := range hitsList {
+		hitMap, ok := hit.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		source, ok := hitMap["_source"]
+		if !ok {
+			continue
+		}
+		sourceJSON, err := json.Marshal(source)
+		if err != nil {
+			continue
+		}
+		var clip models.Clip
+		if err := json.Unmarshal(sourceJSON, &clip); err != nil {
+			continue
+		}
+		clips = append(clips, clip)
+	}
+
+	return clips, total, nil
+}
+
+// parseFacetsFromResult extracts facets from OpenSearch response
+func (s *OpenSearchService) parseFacetsFromResult(result map[string]interface{}) *models.SearchFacets {
+	facets := &models.SearchFacets{}
+
+	aggsRaw, ok := result["aggregations"]
+	if !ok {
+		return facets
+	}
+	aggs, ok := aggsRaw.(map[string]interface{})
+	if !ok {
+		return facets
+	}
+
+	// Parse language facets
+	if languagesRaw, ok := aggs["languages"]; ok {
+		if languagesMap, ok := languagesRaw.(map[string]interface{}); ok {
+			if bucketsRaw, ok := languagesMap["buckets"]; ok {
+				if bucketsList, ok := bucketsRaw.([]interface{}); ok {
+					for _, bucket := range bucketsList {
+						if bucketMap, ok := bucket.(map[string]interface{}); ok {
+							key, _ := bucketMap["key"].(string)
+							count, _ := bucketMap["doc_count"].(float64)
+							facets.Languages = append(facets.Languages, models.FacetBucket{
+								Key:   key,
+								Label: key, // Could map to language names
+								Count: int(count),
+							})
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Parse game facets
+	if gamesRaw, ok := aggs["games"]; ok {
+		if gamesMap, ok := gamesRaw.(map[string]interface{}); ok {
+			if bucketsRaw, ok := gamesMap["buckets"]; ok {
+				if bucketsList, ok := bucketsRaw.([]interface{}); ok {
+					for _, bucket := range bucketsList {
+						if bucketMap, ok := bucket.(map[string]interface{}); ok {
+							key, _ := bucketMap["key"].(string)
+							count, _ := bucketMap["doc_count"].(float64)
+							facets.Games = append(facets.Games, models.FacetBucket{
+								Key:   key,
+								Label: key,
+								Count: int(count),
+							})
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Parse date range facets
+	if dateRangesRaw, ok := aggs["date_ranges"]; ok {
+		if dateRangesMap, ok := dateRangesRaw.(map[string]interface{}); ok {
+			if bucketsRaw, ok := dateRangesMap["buckets"]; ok {
+				if bucketsList, ok := bucketsRaw.([]interface{}); ok {
+					for _, bucket := range bucketsList {
+						if bucketMap, ok := bucket.(map[string]interface{}); ok {
+							key, _ := bucketMap["key"].(string)
+							count, _ := bucketMap["doc_count"].(float64)
+							
+							switch key {
+							case "last_hour":
+								facets.DateRange.LastHour = int(count)
+							case "last_day":
+								facets.DateRange.LastDay = int(count)
+							case "last_week":
+								facets.DateRange.LastWeek = int(count)
+							case "last_month":
+								facets.DateRange.LastMonth = int(count)
+							case "older":
+								facets.DateRange.Older = int(count)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return facets
 }
 
 // GetSuggestions provides autocomplete suggestions

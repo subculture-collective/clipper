@@ -1,0 +1,237 @@
+# Search Relevance Validation Dataset
+# This file contains test queries and expected relevance criteria for validating search quality
+# Each test case documents expected behavior and ranking factors
+
+version: "1.0"
+description: "Search relevance validation dataset for Clipper search functionality"
+
+test_cases:
+  # Text matching and typo tolerance tests
+  - id: "001"
+    name: "Exact game name match"
+    query: "Valorant"
+    expected_behavior:
+      - "Should return clips with 'Valorant' in title, game_name, or creator/broadcaster names"
+      - "Clips with 'Valorant' in title should rank higher than those with it only in game_name"
+      - "Results should include clips even if game name has slight variations"
+    ranking_factors:
+      - "Title match: highest boost (3x)"
+      - "Game name match: standard boost (1x)"
+      - "Creator/broadcaster name match: medium boost (2x)"
+    
+  - id: "002"
+    name: "Typo tolerance"
+    query: "valarant"
+    expected_behavior:
+      - "Should fuzzy match to 'Valorant' clips"
+      - "Exact matches (if any 'valarant' clips exist) should rank highest"
+      - "Close fuzzy matches should be included"
+    fuzzy_distance: "AUTO (0-2 character edits)"
+    
+  - id: "003"
+    name: "Multi-word query"
+    query: "ace clutch"
+    expected_behavior:
+      - "Should find clips containing both 'ace' AND 'clutch' in any field"
+      - "Clips with both words in title should rank highest"
+      - "Operator is 'and' so both terms must be present"
+    
+  # Language-specific analyzer tests
+  - id: "101"
+    name: "English language search"
+    query: "funny moments"
+    filters:
+      language: "en"
+    expected_behavior:
+      - "Should use English analyzer for better stemming"
+      - "Title.en field gets 4x boost when language filter is English"
+      - "Should match 'funny', 'fun', 'moment' through stemming"
+      
+  - id: "102"
+    name: "Spanish language search"
+    query: "mejores jugadas"
+    filters:
+      language: "es"
+    expected_behavior:
+      - "Should use Spanish analyzer for proper stemming"
+      - "Title.es field gets 4x boost when language filter is Spanish"
+      - "Should handle Spanish stop words correctly"
+      
+  # Engagement-based relevance tests
+  - id: "201"
+    name: "High engagement clips"
+    query: "gameplay"
+    expected_behavior:
+      - "Clips with higher vote_score should rank higher for relevance sort"
+      - "Engagement score includes: votes (10x), comments (5x), favorites (3x), views (0.01x)"
+      - "Function score with log1p modifier prevents extreme outliers"
+    ranking_factors:
+      - "engagement_score with 0.1 factor and log1p modifier"
+      
+  - id: "202"
+    name: "Recent clips priority"
+    query: "highlights"
+    expected_behavior:
+      - "Newer clips should have recency boost in relevance sort"
+      - "Recency score uses exponential decay: 50% decrease every 7 days"
+      - "Score starts at 100.0 for brand new clips"
+    ranking_factors:
+      - "recency_score with 0.5 factor"
+      - "Exponential decay rate: 0.1"
+      
+  # Faceted search tests  
+  - id: "301"
+    name: "Language facets"
+    query: "competitive"
+    expected_behavior:
+      - "Facets should show distribution of results by language"
+      - "Facets should show actual counts for each language"
+      - "Up to 20 language facets returned"
+      
+  - id: "302"
+    name: "Game facets"
+    query: "fps"
+    expected_behavior:
+      - "Facets should show top games matching the query"
+      - "Facets use game_name.keyword for exact aggregation"
+      - "Up to 20 game facets returned, sorted by count"
+      
+  - id: "303"
+    name: "Date range facets"
+    query: "esports"
+    expected_behavior:
+      - "Date range facets show distribution across time periods"
+      - "Buckets: last_hour, last_day, last_week, last_month, older"
+      - "Counts reflect number of clips in each time range"
+      
+  # Filter combination tests
+  - id: "401"
+    name: "Language filter"
+    query: "best plays"
+    filters:
+      language: "en"
+    expected_behavior:
+      - "Only English language clips should be returned"
+      - "Filter is applied as term filter on language keyword field"
+      
+  - id: "402"
+    name: "Game filter"
+    query: "pro player"
+    filters:
+      game_id: "516575"
+    expected_behavior:
+      - "Only clips for specified game should be returned"
+      - "Filter is applied as term filter on game_id keyword field"
+      
+  - id: "403"
+    name: "Vote score filter"
+    query: "amazing"
+    filters:
+      min_votes: 10
+    expected_behavior:
+      - "Only clips with vote_score >= 10 should be returned"
+      - "Filter is applied as range filter"
+      
+  - id: "404"
+    name: "Date range filter"
+    query: "tournament"
+    filters:
+      date_from: "2024-10-01T00:00:00Z"
+      date_to: "2024-10-31T23:59:59Z"
+    expected_behavior:
+      - "Only clips created within specified date range should be returned"
+      - "Filters are applied as range filters on created_at field"
+      
+  - id: "405"
+    name: "Multiple filters combined"
+    query: "clutch"
+    filters:
+      language: "en"
+      min_votes: 5
+      date_from: "2024-10-01T00:00:00Z"
+    expected_behavior:
+      - "All filters should be applied using AND logic"
+      - "Results must match query text AND all filter criteria"
+      
+  # Sort order tests
+  - id: "501"
+    name: "Relevance sort"
+    query: "montage"
+    sort: "relevance"
+    expected_behavior:
+      - "Results sorted by combined score: text relevance + engagement + recency"
+      - "Function score combines all factors with sum boost mode"
+      - "Default sort when not specified"
+      
+  - id: "502"
+    name: "Recent sort"
+    query: "stream"
+    sort: "recent"
+    expected_behavior:
+      - "Results sorted by created_at descending (newest first)"
+      - "Ignores relevance and engagement scores"
+      
+  - id: "503"
+    name: "Popular sort"
+    query: "compilation"
+    sort: "popular"
+    expected_behavior:
+      - "Results sorted by vote_score descending, then created_at descending"
+      - "Prioritizes highly voted clips"
+
+# Expected index settings
+index_configuration:
+  analyzers:
+    english_analyzer:
+      type: "standard"
+      stopwords: "_english_"
+    spanish_analyzer:
+      type: "standard"
+      stopwords: "_spanish_"
+    french_analyzer:
+      type: "standard"
+      stopwords: "_french_"
+    german_analyzer:
+      type: "standard"
+      stopwords: "_german_"
+      
+  field_boosts:
+    title: 3
+    title_en: 4  # when language=en
+    title_es: 4  # when language=es
+    title_fr: 4  # when language=fr
+    title_de: 4  # when language=de
+    creator_name: 2
+    broadcaster_name: 2
+    game_name: 1
+    
+  engagement_weights:
+    vote_score: 10.0
+    comment_count: 5.0
+    favorite_count: 3.0
+    view_count: 0.01
+    
+  recency_decay:
+    initial_score: 100.0
+    decay_formula: "score = 100.0 * exp(-ln(2) * days / halfLife)"
+    half_life_days: 7
+    description: "50% decay every 7 days using exponential decay"
+
+# Test execution guidelines
+execution_notes:
+  - "Run these tests after any changes to search relevance configuration"
+  - "Compare actual results with expected behavior manually"
+  - "Document any discrepancies and adjust configuration or expectations"
+  - "Keep this dataset version controlled to track relevance improvements"
+  - "Add new test cases when bugs are found or new features added"
+  
+# Versioning
+changelog:
+  - version: "1.0"
+    date: "2024-10-28"
+    changes:
+      - "Initial relevance validation dataset"
+      - "Tests for text matching, typo tolerance, language analyzers"
+      - "Tests for engagement and recency boosting"
+      - "Tests for faceted search and filters"
+      - "Tests for sort orders"
