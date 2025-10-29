@@ -204,7 +204,7 @@ export function SearchFilters({ facets, filters, onFiltersChange }: SearchFilter
                                 )}
                                 {facets.date_range.older > 0 && (
                                     <button
-                                        onClick={() => handleClearFilters()}
+                                        onClick={() => handleDateRangeSelect('older')}
                                         className='w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent'
                                     >
                                         Older ({facets.date_range.older})
