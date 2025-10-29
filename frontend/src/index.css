@@ -220,4 +220,30 @@
     color: transparent;
     background-image: linear-gradient(to right, rgb(145 70 255), rgb(217 70 239));
   }
+
+  /* Screen reader only - hides content visually but keeps it accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Reverses sr-only for focus states */
+  .focus\:not-sr-only:focus,
+  .focus-visible\:not-sr-only:focus-visible {
+    position: fixed;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
 }
