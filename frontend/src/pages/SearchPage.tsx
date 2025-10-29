@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
 import { SearchBar, SearchFilters } from '../components/search';
-import { Spinner } from '../components/ui';
+import { SearchResultSkeleton, EmptyStateWithAction } from '../components/ui';
 import { searchApi } from '../lib/search-api';
 import type { SearchRequest, SearchResponse, SearchFilters as SearchFiltersType } from '../types/search';
 
@@ -258,18 +258,28 @@ export function SearchPage() {
 
                     {/* Loading State */}
                     {isLoading && (
-                        <div className='flex justify-center py-12'>
-                            <Spinner size='lg' />
-                        </div>
+                        <SearchResultSkeleton />
                     )}
 
                     {/* Error State */}
                     {error && (
-                        <div className='text-center text-destructive py-12'>
-                            <p>
-                                Failed to load search results. Please try again.
-                            </p>
-                        </div>
+                        <EmptyStateWithAction
+                            icon={
+                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            }
+                            title="Search failed"
+                            description="Failed to load search results. Please try again."
+                            primaryAction={{
+                                label: "Try Again",
+                                onClick: () => window.location.reload()
+                            }}
+                            secondaryAction={{
+                                label: "Go Home",
+                                href: "/"
+                            }}
+                        />
                     )}
 
                     {/* Results */}
@@ -424,15 +434,30 @@ export function SearchPage() {
 
                             {/* Empty State */}
                             {data.meta.total_items === 0 && (
-                                <div className='text-center text-muted-foreground py-12'>
-                                    <p className='text-lg'>
-                                        No results found for "{query}"
-                                    </p>
-                                    <p className='text-sm mt-2'>
-                                        Try different keywords or check your
-                                        spelling
-                                    </p>
-                                </div>
+                                <EmptyStateWithAction
+                                    icon={
+                                        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    }
+                                    title={`No results found for "${query}"`}
+                                    description="Try different keywords or adjust your filters"
+                                    primaryAction={{
+                                        label: "Clear Filters",
+                                        onClick: () => {
+                                            setSearchParams({ q: query, type: 'all', sort: 'relevance' });
+                                        }
+                                    }}
+                                    secondaryAction={{
+                                        label: "Browse All Clips",
+                                        href: "/"
+                                    }}
+                                    tips={[
+                                        "Check your spelling and try again",
+                                        "Try more general keywords",
+                                        "Remove filters to broaden your search"
+                                    ]}
+                                />
                             )}
                         </div>
                     )}
