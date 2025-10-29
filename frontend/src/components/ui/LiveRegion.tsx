@@ -11,8 +11,8 @@ export interface LiveRegionProps {
    */
   priority?: 'polite' | 'assertive';
   /**
-   * Whether to clear the message after announcing
-   * @default true
+   * Time in milliseconds after which to clear the message
+   * @default 1000
    */
   clearAfter?: number;
 }
