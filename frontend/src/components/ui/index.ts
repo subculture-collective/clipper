@@ -62,3 +62,6 @@ export { EmptyStateWithAction } from './EmptyStateWithAction';
 
 export { SkipLink } from './SkipLink';
 export type { SkipLinkProps } from './SkipLink';
+
+export { LiveRegion, useLiveRegion } from './LiveRegion';
+export type { LiveRegionProps } from './LiveRegion';
