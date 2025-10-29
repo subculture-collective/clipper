@@ -13,6 +13,7 @@ export function UserMenu() {
   // Calculate menu item count
   const menuItemCount = isModeratorOrAdmin ? 5 : 4; // Profile, Settings, Favorites, (Admin), Logout
   const { menuRef } = useMenuKeyboard(isOpen, () => setIsOpen(false), menuItemCount);
+  const prevIsOpenRef = useRef<boolean>(false);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -31,11 +32,12 @@ export function UserMenu() {
     };
   }, [isOpen]);
 
-  // Return focus to button when menu closes
+  // Return focus to button when menu transitions from open to closed
   useEffect(() => {
-    if (!isOpen && buttonRef.current) {
+    if (prevIsOpenRef.current && !isOpen && buttonRef.current) {
       buttonRef.current.focus();
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen]);
 
   const handleLogout = async () => {

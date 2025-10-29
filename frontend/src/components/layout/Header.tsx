@@ -57,23 +57,6 @@ export function Header() {
     },
   ]);
 
-  // Close mobile menu on Escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && mobileMenuOpen) {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    if (mobileMenuOpen) {
-      document.addEventListener('keydown', handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [mobileMenuOpen]);
-
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border">
       <div className="container mx-auto px-4">

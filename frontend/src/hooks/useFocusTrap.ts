@@ -33,7 +33,20 @@ export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
         container.querySelectorAll<HTMLElement>(focusableSelectors.join(','))
       ).filter(el => {
         // Filter out elements that are not visible
-        return el.offsetParent !== null;
+        // Check multiple visibility conditions:
+        // 1. offsetParent is null for hidden elements (except position: fixed)
+        // 2. Handle fixed position elements by checking computed style
+        // 3. Check for visibility: hidden and opacity: 0
+        if (el.offsetParent === null) {
+          const style = window.getComputedStyle(el);
+          // Allow fixed/sticky positioned elements
+          if (style.position === 'fixed' || style.position === 'sticky') {
+            return style.visibility !== 'hidden' && style.display !== 'none';
+          }
+          return false;
+        }
+        const style = window.getComputedStyle(el);
+        return style.visibility !== 'hidden' && style.display !== 'none' && style.opacity !== '0';
       });
     };
 
