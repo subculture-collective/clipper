@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
@@ -93,6 +95,12 @@ func (s *SearchIndexerService) createIndexIfNotExists(ctx context.Context, index
 
 // IndexClip indexes a single clip
 func (s *SearchIndexerService) IndexClip(ctx context.Context, clip *models.Clip) error {
+	// Calculate engagement score (combines votes, comments, favorites, views)
+	engagementScore := calculateEngagementScore(clip)
+	
+	// Calculate recency score (higher for newer clips)
+	recencyScore := calculateRecencyScore(clip)
+	
 	doc := map[string]interface{}{
 		"id":               clip.ID.String(),
 		"twitch_clip_id":   clip.TwitchClipID,
@@ -113,6 +121,8 @@ func (s *SearchIndexerService) IndexClip(ctx context.Context, clip *models.Clip)
 		"is_removed":       clip.IsRemoved,
 		"created_at":       clip.CreatedAt,
 		"imported_at":      clip.ImportedAt,
+		"engagement_score": engagementScore,
+		"recency_score":    recencyScore,
 	}
 
 	return s.indexDocument(ctx, ClipsIndex, clip.ID.String(), doc)
@@ -227,6 +237,38 @@ func (s *SearchIndexerService) deleteDocument(ctx context.Context, indexName, do
 	return nil
 }
 
+// calculateEngagementScore computes an engagement score based on interactions
+func calculateEngagementScore(clip *models.Clip) float64 {
+	// Weighted combination of different engagement metrics
+	// Vote score has highest weight, then comments, favorites, and views
+	voteWeight := 10.0
+	commentWeight := 5.0
+	favoriteWeight := 3.0
+	viewWeight := 0.01
+	
+	score := float64(clip.VoteScore)*voteWeight +
+		float64(clip.CommentCount)*commentWeight +
+		float64(clip.FavoriteCount)*favoriteWeight +
+		float64(clip.ViewCount)*viewWeight
+	
+	return score
+}
+
+// calculateRecencyScore computes a recency score based on creation date
+func calculateRecencyScore(clip *models.Clip) float64 {
+	// Calculate days since creation
+	daysSince := time.Since(clip.CreatedAt).Hours() / 24.0
+	
+	// Exponential decay: newer clips get higher scores
+	// Score decreases by 50% every 7 days
+	// Using formula: score = initial * exp(-ln(2) * days / halfLife)
+	// where halfLife = 7 days
+	halfLife := 7.0
+	score := 100.0 * math.Exp(-math.Ln2*daysSince/halfLife)
+	
+	return score
+}
+
 // BulkIndexClips indexes multiple clips in a batch
 func (s *SearchIndexerService) BulkIndexClips(ctx context.Context, clips []models.Clip) error {
 	if len(clips) == 0 {
@@ -247,6 +289,9 @@ func (s *SearchIndexerService) BulkIndexClips(ctx context.Context, clips []model
 		buf.WriteByte('\n')
 
 		// Document data
+		engagementScore := calculateEngagementScore(&clip)
+		recencyScore := calculateRecencyScore(&clip)
+		
 		doc := map[string]interface{}{
 			"id":               clip.ID.String(),
 			"twitch_clip_id":   clip.TwitchClipID,
@@ -267,6 +312,8 @@ func (s *SearchIndexerService) BulkIndexClips(ctx context.Context, clips []model
 			"is_removed":       clip.IsRemoved,
 			"created_at":       clip.CreatedAt,
 			"imported_at":      clip.ImportedAt,
+			"engagement_score": engagementScore,
+			"recency_score":    recencyScore,
 		}
 		docJSON, _ := json.Marshal(doc)
 		buf.Write(docJSON)
@@ -313,6 +360,22 @@ func getClipIndexMapping() string {
 "settings": {
 "analysis": {
 "analyzer": {
+"english_analyzer": {
+"type": "standard",
+"stopwords": "_english_"
+},
+"spanish_analyzer": {
+"type": "standard",
+"stopwords": "_spanish_"
+},
+"french_analyzer": {
+"type": "standard",
+"stopwords": "_french_"
+},
+"german_analyzer": {
+"type": "standard",
+"stopwords": "_german_"
+},
 "standard_multilang": {
 "type": "standard"
 }
@@ -331,7 +394,11 @@ func getClipIndexMapping() string {
 "type": "text",
 "analyzer": "standard_multilang",
 "fields": {
-"keyword": {"type": "keyword"}
+"keyword": {"type": "keyword"},
+"en": {"type": "text", "analyzer": "english_analyzer"},
+"es": {"type": "text", "analyzer": "spanish_analyzer"},
+"fr": {"type": "text", "analyzer": "french_analyzer"},
+"de": {"type": "text", "analyzer": "german_analyzer"}
 }
 },
 "creator_name": {
@@ -341,6 +408,7 @@ func getClipIndexMapping() string {
 "keyword": {"type": "keyword"}
 }
 },
+"creator_id": {"type": "keyword"},
 "broadcaster_name": {
 "type": "text",
 "analyzer": "standard_multilang",
@@ -348,6 +416,8 @@ func getClipIndexMapping() string {
 "keyword": {"type": "keyword"}
 }
 },
+"broadcaster_id": {"type": "keyword"},
+"game_id": {"type": "keyword"},
 "game_name": {
 "type": "text",
 "analyzer": "standard_multilang",
@@ -364,7 +434,9 @@ func getClipIndexMapping() string {
 "is_nsfw": {"type": "boolean"},
 "is_removed": {"type": "boolean"},
 "created_at": {"type": "date"},
-"imported_at": {"type": "date"}
+"imported_at": {"type": "date"},
+"engagement_score": {"type": "float"},
+"recency_score": {"type": "float"}
 }
 }
 }`

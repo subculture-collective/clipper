@@ -197,18 +197,60 @@ The fuzziness is set to `AUTO`, which allows:
 
 ### Multi-Language Support
 
-The standard analyzer supports multiple languages and handles:
-- Tokenization
-- Lowercasing
-- Stop words
-- Unicode normalization
+Language-specific analyzers provide optimized search for different languages:
+
+**Supported Languages:**
+- English (`en`) - English analyzer with English stop words
+- Spanish (`es`) - Spanish analyzer with Spanish stop words
+- French (`fr`) - French analyzer with French stop words
+- German (`de`) - German analyzer with German stop words
+- Other languages use standard multilingual analyzer
+
+**Language-Specific Features:**
+- Proper stemming for each language
+- Language-specific stop word lists
+- Enhanced field boost (4x) when language filter is applied
+- Tokenization optimized for each language
+
+Example with language filter:
+```bash
+# Search English clips with optimized analyzer
+curl "http://localhost:8080/api/v1/search?q=funny+moments&language=en"
+```
+
+### Enhanced Relevance Scoring
+
+Search results use function_score to combine multiple relevance signals:
+
+**Engagement Score:**
+Calculated from user interactions with weighted factors:
+- Vote score: 10x weight
+- Comment count: 5x weight
+- Favorite count: 3x weight
+- View count: 0.01x weight
+
+Uses log1p modifier to prevent extreme outliers from dominating results.
+
+**Recency Score:**
+Newer clips receive higher scores using exponential decay:
+- Initial score: 100.0 for brand new clips
+- Half-life: 7 days (50% decrease every week)
+- Formula: `score = 100.0 * exp(-ln(2) * days / 7)`
+
+**Combined Scoring:**
+For relevance sort, the final score combines:
+1. Text relevance (BM25 with field boosts)
+2. Engagement score (factor: 0.1)
+3. Recency score (factor: 0.5)
+
+All factors are summed together (score_mode: sum, boost_mode: sum).
 
 ### Field Boosting
 
 Search results are ranked by relevance with field boosting:
 
 **Clips:**
-- Title: 3x boost
+- Title: 3x boost (4x when language-specific field matches)
 - Creator name: 2x boost
 - Broadcaster name: 2x boost
 - Game name: 1x boost
@@ -221,6 +263,46 @@ Search results are ranked by relevance with field boosting:
 **Tags:**
 - Name: 2x boost
 - Description: 1x boost
+
+### Faceted Search
+
+Search responses include facet aggregations for filtering:
+
+**Available Facets:**
+- **Languages:** Distribution of results by language code
+- **Games:** Top games in search results (up to 20)
+- **Date Ranges:** Time-based distribution
+  - Last hour
+  - Last 24 hours
+  - Last week
+  - Last month
+  - Older than a month
+
+**Example Response with Facets:**
+```json
+{
+  "query": "valorant",
+  "results": { ... },
+  "counts": { ... },
+  "facets": {
+    "languages": [
+      { "key": "en", "label": "en", "count": 150 },
+      { "key": "es", "label": "es", "count": 45 }
+    ],
+    "games": [
+      { "key": "Valorant", "label": "Valorant", "count": 200 }
+    ],
+    "date_range": {
+      "last_hour": 5,
+      "last_day": 42,
+      "last_week": 88,
+      "last_month": 150,
+      "older": 315
+    }
+  },
+  "meta": { ... }
+}
+```
 
 ### Graceful Degradation
 
@@ -428,6 +510,49 @@ Common issues:
    curl -X POST "http://localhost:9200/_snapshot/backup/snapshot_1/_restore"
    ```
 
+## Relevance Validation
+
+A versioned relevance dataset is maintained in `backend/testdata/search_relevance_dataset.yaml` to validate search quality and track improvements over time.
+
+### Dataset Structure
+
+The dataset includes:
+- **Test Cases:** Queries with expected behavior and ranking factors
+- **Index Configuration:** Expected analyzer and boost settings
+- **Execution Notes:** Guidelines for running validation tests
+
+### Test Categories
+
+1. **Text Matching:** Exact matches, typo tolerance, multi-word queries
+2. **Language Analyzers:** Language-specific search with proper stemming
+3. **Engagement Scoring:** Vote-based and interaction-based ranking
+4. **Recency Scoring:** Time-decay based relevance
+5. **Faceted Search:** Facet aggregation validation
+6. **Filters:** Single and combined filter tests
+7. **Sort Orders:** Relevance, recent, and popular sorting
+
+### Running Validation Tests
+
+```bash
+# Manual validation (compare actual vs expected)
+cd backend/testdata
+cat search_relevance_dataset.yaml
+
+# For each test case, run the search and verify:
+curl "http://localhost:8080/api/v1/search?q=<query>&<filters>&<sort>"
+
+# Compare results with expected behavior documented in dataset
+```
+
+### Updating the Dataset
+
+When making relevance changes:
+1. Update the dataset with new expected behavior
+2. Run validation tests to verify changes
+3. Document any discrepancies
+4. Version the changes in the changelog section
+5. Commit the updated dataset with your changes
+
 ## Future Enhancements
 
 Potential improvements for the search platform:
@@ -437,9 +562,11 @@ Potential improvements for the search platform:
 3. **ML-powered ranking** - Use learning to rank for personalized results
 4. **Semantic search** - Add vector search for contextual understanding
 5. **Search as you type** - Implement completion suggester
-6. **Faceted search** - Add aggregations for filter options
+6. ~~**Faceted search**~~ - ✅ Completed (aggregations for filter options)
 7. **Highlighting** - Return matched text snippets in results
 8. **Spell checking** - Suggest corrections for misspelled queries
+9. **Tag facets** - Add tag-based facet aggregations
+10. **Personalized ranking** - User preference-based result ordering
 
 ## Resources
 

@@ -3,25 +3,41 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
-import { SearchBar } from '../components/search';
+import { SearchBar, SearchFilters } from '../components/search';
 import { Spinner } from '../components/ui';
 import { searchApi } from '../lib/search-api';
-import type { SearchRequest, SearchResponse } from '../types/search';
+import type { SearchRequest, SearchResponse, SearchFilters as SearchFiltersType } from '../types/search';
 
 export function SearchPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const query = searchParams.get('q') || '';
     const typeParam = searchParams.get('type') || 'all';
     const sortParam = searchParams.get('sort') || 'relevance';
+    const languageParam = searchParams.get('language') || undefined;
+    const gameIdParam = searchParams.get('game_id') || undefined;
+    const dateFromParam = searchParams.get('date_from') || undefined;
+    const dateToParam = searchParams.get('date_to') || undefined;
+    const minVotesParam = searchParams.get('min_votes');
+    const tagsParam = searchParams.get('tags');
+    
     type SearchType = NonNullable<SearchRequest['type']>;
     type SortType = NonNullable<SearchRequest['sort']>;
     const [activeTab, setActiveTab] = useState<SearchType>(
         typeParam as SearchType
     );
+    
+    const [filters, setFilters] = useState<SearchFiltersType>({
+        language: languageParam,
+        gameId: gameIdParam,
+        dateFrom: dateFromParam,
+        dateTo: dateToParam,
+        minVotes: minVotesParam ? parseInt(minVotesParam, 10) : undefined,
+        tags: tagsParam ? tagsParam.split(',') : undefined,
+    });
 
     // Fetch search results
     const { data, isLoading, error } = useQuery<SearchResponse>({
-        queryKey: ['search', query, activeTab, sortParam],
+        queryKey: ['search', query, activeTab, sortParam, filters],
         queryFn: () =>
             searchApi.search({
                 query,
@@ -29,6 +45,12 @@ export function SearchPage() {
                 sort: sortParam as SortType,
                 page: 1,
                 limit: 20,
+                language: filters.language,
+                gameId: filters.gameId,
+                dateFrom: filters.dateFrom,
+                dateTo: filters.dateTo,
+                minVotes: filters.minVotes,
+                tags: filters.tags,
             }),
         enabled: query.length > 0,
     });
@@ -37,6 +59,18 @@ export function SearchPage() {
     useEffect(() => {
         setActiveTab(typeParam as SearchType);
     }, [typeParam]);
+    
+    // Update filters from URL params
+    useEffect(() => {
+        setFilters({
+            language: languageParam,
+            gameId: gameIdParam,
+            dateFrom: dateFromParam,
+            dateTo: dateToParam,
+            minVotes: minVotesParam ? parseInt(minVotesParam, 10) : undefined,
+            tags: tagsParam ? tagsParam.split(',') : undefined,
+        });
+    }, [languageParam, gameIdParam, dateFromParam, dateToParam, minVotesParam, tagsParam]);
 
     // Handle tab change
     const handleTabChange = (newTab: SearchType) => {
@@ -59,6 +93,54 @@ export function SearchPage() {
         newParams.set('q', newQuery);
         newParams.set('type', 'all');
         newParams.set('sort', 'relevance');
+        setSearchParams(newParams);
+    };
+    
+    // Handle filters change
+    const handleFiltersChange = (newFilters: SearchFiltersType) => {
+        setFilters(newFilters);
+        const newParams = new URLSearchParams(searchParams);
+        
+        // Update URL params
+        if (newFilters.language) {
+            newParams.set('language', newFilters.language);
+        } else {
+            newParams.delete('language');
+        }
+        
+        if (newFilters.gameId) {
+            newParams.set('game_id', newFilters.gameId);
+        } else {
+            newParams.delete('game_id');
+        }
+        
+        if (newFilters.dateFrom) {
+            newParams.set('date_from', newFilters.dateFrom);
+        } else {
+            newParams.delete('date_from');
+        }
+
+        // Add dateTo
+        if (newFilters.dateTo) {
+            newParams.set('date_to', newFilters.dateTo);
+        } else {
+            newParams.delete('date_to');
+        }
+
+        // Add minVotes
+        if (typeof newFilters.minVotes === 'number' && !isNaN(newFilters.minVotes) && newFilters.minVotes > 0) {
+            newParams.set('min_votes', String(newFilters.minVotes));
+        } else {
+            newParams.delete('min_votes');
+        }
+
+        // Add tags (as comma-separated)
+        if (Array.isArray(newFilters.tags) && newFilters.tags.length > 0) {
+            newParams.set('tags', newFilters.tags.join(','));
+        } else {
+            newParams.delete('tags');
+        }
+        
         setSearchParams(newParams);
     };
 
@@ -164,6 +246,15 @@ export function SearchPage() {
                             <option value='popular'>Popular</option>
                         </select>
                     </div>
+
+                    {/* Filters */}
+                    {(activeTab === 'all' || activeTab === 'clips') && data?.facets && (
+                        <SearchFilters
+                            facets={data.facets}
+                            filters={filters}
+                            onFiltersChange={handleFiltersChange}
+                        />
+                    )}
 
                     {/* Loading State */}
                     {isLoading && (
