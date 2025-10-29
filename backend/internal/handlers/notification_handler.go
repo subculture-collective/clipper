@@ -389,9 +389,65 @@ func (h *NotificationHandler) Unsubscribe(c *gin.Context) {
 		return
 	}
 
-	// Return success response
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "You have been successfully unsubscribed from email notifications.",
-	})
+	// Return success HTML page for email links
+	html := `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscribed - Clipper</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #4a5568;
+            margin-bottom: 30px;
+        }
+        a {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+        a:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✓</div>
+        <h1>Successfully Unsubscribed</h1>
+        <p>You have been unsubscribed from email notifications. You can still manage your notification preferences in your account settings.</p>
+        <a href="/">Return to Clipper</a>
+    </div>
+</body>
+</html>`
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, html)
 }
