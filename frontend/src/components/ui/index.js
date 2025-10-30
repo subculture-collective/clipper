@@ -14,3 +14,4 @@ export { StreamerInput } from './StreamerInput';
 export { TextArea } from './TextArea';
 export { Toggle } from './Toggle';
 export { Toast, ToastContainer } from './Toast';
+export { OptimizedImage } from './OptimizedImage';

@@ -65,3 +65,6 @@ export type { SkipLinkProps } from './SkipLink';
 
 export { LiveRegion, useLiveRegion } from './LiveRegion';
 export type { LiveRegionProps } from './LiveRegion';
+
+export { OptimizedImage } from './OptimizedImage';
+export type { OptimizedImageProps } from './OptimizedImage';

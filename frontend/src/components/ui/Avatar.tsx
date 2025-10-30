@@ -67,6 +67,8 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
             <img
               src={src}
               alt={alt || 'Avatar'}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
               onError={() => setImageError(true)}
             />

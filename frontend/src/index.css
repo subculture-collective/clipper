@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Custom breakpoints for Tailwind v4 */
+@custom-variant xs (@media (min-width: 375px));
+
 /* Base layer - custom CSS resets and base styles */
 @layer base {
   :root {
