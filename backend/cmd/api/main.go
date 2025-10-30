@@ -514,8 +514,8 @@ func main() {
 		// Notification routes
 		notifications := v1.Group("/notifications")
 		{
-			// Public unsubscribe endpoint (no auth required, uses token)
-			notifications.GET("/unsubscribe", notificationHandler.Unsubscribe)
+			// Public unsubscribe endpoint (no auth required, uses token, but rate limited)
+			notifications.GET("/unsubscribe", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), notificationHandler.Unsubscribe)
 			
 			// Protected notification endpoints (require authentication)
 			notifications.Use(middleware.AuthMiddleware(authService))

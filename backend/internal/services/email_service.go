@@ -4,36 +4,44 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // EmailService handles email sending and management
 type EmailService struct {
-	apiKey           string
-	fromEmail        string
-	fromName         string
-	baseURL          string
-	repo             *repository.EmailNotificationRepository
-	enabled          bool
-	maxEmailsPerHour int
+	apiKey              string
+	fromEmail           string
+	fromName            string
+	baseURL             string
+	repo                *repository.EmailNotificationRepository
+	enabled             bool
+	maxEmailsPerHour    int
+	tokenExpiryDuration time.Duration
+	logger              *utils.StructuredLogger
+	wg                  sync.WaitGroup
+	shutdown            chan struct{}
 }
 
 // EmailConfig holds email service configuration
 type EmailConfig struct {
-	SendGridAPIKey   string
-	FromEmail        string
-	FromName         string
-	BaseURL          string
-	Enabled          bool
-	MaxEmailsPerHour int
+	SendGridAPIKey      string
+	FromEmail           string
+	FromName            string
+	BaseURL             string
+	Enabled             bool
+	MaxEmailsPerHour    int
+	TokenExpiryDuration time.Duration // Duration before unsubscribe tokens expire (default: 90 days)
 }
 
 // NewEmailService creates a new EmailService
@@ -43,14 +51,22 @@ func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationReposit
 		maxPerHour = 10 // Default rate limit
 	}
 
+	tokenExpiry := cfg.TokenExpiryDuration
+	if tokenExpiry == 0 {
+		tokenExpiry = 90 * 24 * time.Hour // Default: 90 days
+	}
+
 	return &EmailService{
-		apiKey:           cfg.SendGridAPIKey,
-		fromEmail:        cfg.FromEmail,
-		fromName:         cfg.FromName,
-		baseURL:          cfg.BaseURL,
-		repo:             repo,
-		enabled:          cfg.Enabled,
-		maxEmailsPerHour: maxPerHour,
+		apiKey:              cfg.SendGridAPIKey,
+		fromEmail:           cfg.FromEmail,
+		fromName:            cfg.FromName,
+		baseURL:             cfg.BaseURL,
+		repo:                repo,
+		enabled:             cfg.Enabled,
+		maxEmailsPerHour:    maxPerHour,
+		tokenExpiryDuration: tokenExpiry,
+		logger:              utils.GetLogger(),
+		shutdown:            make(chan struct{}),
 	}
 }
 
@@ -131,15 +147,19 @@ func (s *EmailService) SendNotificationEmail(
 	logEntry.UpdatedAt = now
 	err = s.repo.UpdateLog(ctx, logEntry)
 	if err != nil {
-		// Log but don't fail
-		_ = err
+		s.logger.Error("Failed to update email log after successful send", err, map[string]interface{}{
+			"log_id":          logEntry.ID.String(),
+			"user_id":         user.ID.String(),
+			"notification_id": notificationID.String(),
+		})
 	}
 
 	// Increment rate limit counter
 	err = s.incrementRateLimit(ctx, user.ID)
 	if err != nil {
-		// Log but don't fail
-		_ = err
+		s.logger.Error("Failed to increment rate limit counter", err, map[string]interface{}{
+			"user_id": user.ID.String(),
+		})
 	}
 
 	return nil
@@ -335,7 +355,7 @@ func (s *EmailService) generateUnsubscribeToken(ctx context.Context, userID uuid
 		Token:            token,
 		NotificationType: notificationType,
 		CreatedAt:        time.Now(),
-		ExpiresAt:        time.Now().Add(90 * 24 * time.Hour), // 90 days
+		ExpiresAt:        time.Now().Add(s.tokenExpiryDuration),
 	}
 
 	err := s.repo.CreateUnsubscribeToken(ctx, tokenRecord)
@@ -378,7 +398,7 @@ func (s *EmailService) checkRateLimit(ctx context.Context, userID uuid.UUID) (bo
 	rateLimit, err := s.repo.GetRateLimit(ctx, userID, windowStart)
 	if err != nil {
 		// If no record exists, user is under limit
-		if strings.Contains(err.Error(), "no rows") {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return true, nil
 		}
 		return false, err
@@ -396,4 +416,60 @@ func (s *EmailService) incrementRateLimit(ctx context.Context, userID uuid.UUID)
 // GetEmailLogs retrieves email logs for a user
 func (s *EmailService) GetEmailLogs(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.EmailNotificationLog, error) {
 	return s.repo.GetLogsByUserID(ctx, userID, limit, offset)
+}
+
+// Shutdown gracefully shuts down the email service by waiting for all pending emails to be sent
+func (s *EmailService) Shutdown(timeout time.Duration) error {
+	close(s.shutdown)
+	
+	// Wait for all goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		close(done)
+	}()
+	
+	select {
+	case <-done:
+		s.logger.Info("Email service shutdown completed successfully")
+		return nil
+	case <-time.After(timeout):
+		s.logger.Warn("Email service shutdown timed out, some emails may not have been sent")
+		return fmt.Errorf("shutdown timeout after %v", timeout)
+	}
+}
+
+// SendNotificationEmailAsync sends an email asynchronously with proper tracking for graceful shutdown
+func (s *EmailService) SendNotificationEmailAsync(
+	ctx context.Context,
+	user *models.User,
+	notificationType string,
+	notificationID uuid.UUID,
+	emailData map[string]interface{},
+) {
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		
+		// Check if shutdown is in progress
+		select {
+		case <-s.shutdown:
+			s.logger.Warn("Email send cancelled due to shutdown", map[string]interface{}{
+				"user_id":         user.ID.String(),
+				"notification_id": notificationID.String(),
+			})
+			return
+		default:
+		}
+		
+		// Use a background context to avoid cancellation from parent
+		bgCtx := context.Background()
+		if err := s.SendNotificationEmail(bgCtx, user, notificationType, notificationID, emailData); err != nil {
+			s.logger.Error("Failed to send notification email", err, map[string]interface{}{
+				"user_id":           user.ID.String(),
+				"notification_id":   notificationID.String(),
+				"notification_type": notificationType,
+			})
+		}
+	}()
 }

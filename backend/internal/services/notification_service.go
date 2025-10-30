@@ -121,14 +121,10 @@ func (s *NotificationService) CreateNotificationWithEmail(
 			// Get user info for email
 			user, err := s.userRepo.GetByID(ctx, userID)
 			if err == nil && s.emailService != nil {
-				// Send email asynchronously - don't block on email send
-				go func() {
-					// Use a background context to avoid cancellation
-					bgCtx := context.Background()
-					_ = s.emailService.SendNotificationEmail(
-						bgCtx, user, notificationType, notification.ID, emailData,
-					)
-				}()
+				// Send email asynchronously with proper tracking
+				s.emailService.SendNotificationEmailAsync(
+					ctx, user, notificationType, notification.ID, emailData,
+				)
 			}
 		}
 	}
