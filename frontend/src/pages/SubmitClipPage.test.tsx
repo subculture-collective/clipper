@@ -65,6 +65,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
 
@@ -86,6 +88,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
 
@@ -105,6 +109,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
 
@@ -127,6 +133,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
 
@@ -147,6 +155,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
 
@@ -173,6 +183,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });
@@ -261,6 +273,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });
@@ -344,6 +358,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });
@@ -402,6 +418,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });
@@ -449,6 +467,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });
@@ -650,6 +670,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });
@@ -754,6 +776,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });
@@ -856,6 +880,8 @@ describe('SubmitClipPage', () => {
                 logout: vi.fn(),
                 isLoading: false,
                 isAdmin: false,
+                isModerator: false,
+                isModeratorOrAdmin: false,
                 refreshUser: vi.fn(),
             });
         });

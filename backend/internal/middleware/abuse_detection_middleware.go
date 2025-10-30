@@ -136,25 +136,25 @@ func UnbanIP(ctx context.Context, redis *redispkg.Client, ip string) error {
 	return redis.Delete(ctx, banKey)
 }
 
-// GetBannedIPs returns a list of currently banned IPs (admin function)
-func GetBannedIPs(ctx context.Context, redis *redispkg.Client) ([]string, error) {
-	pattern := "abuse:ban:*"
-	keys, err := redis.Keys(ctx, pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract IPs from keys
-	ips := make([]string, 0, len(keys))
-	for _, key := range keys {
-		// Remove "abuse:ban:" prefix
-		if len(key) > 11 {
-			ips = append(ips, key[11:])
+	// GetBannedIPs returns a list of currently banned IPs (admin function)
+	func GetBannedIPs(ctx context.Context, redis *redispkg.Client) ([]string, error) {
+		const prefix = "abuse:ban:"
+		keys, err := redis.Keys(ctx, prefix+"*")
+		if err != nil {
+			return nil, err
 		}
-	}
 
-	return ips, nil
-}
+		// Extract IPs from keys
+		ips := make([]string, 0, len(keys))
+		for _, key := range keys {
+			// Remove "abuse:ban:" prefix
+			if len(key) > len(prefix) {
+				ips = append(ips, key[len(prefix):])
+			}
+		}
+
+		return ips, nil
+	}
 
 // GetAbuseStats returns abuse statistics for an IP (admin function)
 func GetAbuseStats(ctx context.Context, redis *redispkg.Client, ip string) (int64, error) {

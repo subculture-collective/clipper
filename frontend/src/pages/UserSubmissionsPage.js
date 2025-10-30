@@ -44,7 +44,6 @@ export function UserSubmissionsPage() {
         }
         loadSubmissions();
         loadStats();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated, navigate, page]);
     const getStatusColor = (status) => {
         switch (status) {

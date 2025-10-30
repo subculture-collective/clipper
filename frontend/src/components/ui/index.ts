@@ -10,8 +10,13 @@ export type { BadgeProps } from './Badge';
 export { Button } from './Button';
 export type { ButtonProps } from './Button';
 
-export { Card, CardHeader, CardBody, CardFooter } from './Card';
-export type { CardProps, CardHeaderProps, CardBodyProps, CardFooterProps } from './Card';
+export { Card, CardBody, CardFooter, CardHeader } from './Card';
+export type {
+    CardBodyProps,
+    CardFooterProps,
+    CardHeaderProps,
+    CardProps,
+} from './Card';
 
 export { Checkbox } from './Checkbox';
 export type { CheckboxProps } from './Checkbox';
@@ -25,7 +30,7 @@ export type { InputProps } from './Input';
 export { Meta } from './Meta';
 
 export { Modal, ModalFooter } from './Modal';
-export type { ModalProps, ModalFooterProps } from './Modal';
+export type { ModalFooterProps, ModalProps } from './Modal';
 
 export { Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
@@ -60,11 +65,11 @@ export { NotificationSkeleton } from './NotificationSkeleton';
 
 export { EmptyStateWithAction } from './EmptyStateWithAction';
 
+export { useLiveRegion } from '../../hooks/useLiveRegion';
+export { LiveRegion } from './LiveRegion';
+export type { LiveRegionProps } from './LiveRegion';
 export { SkipLink } from './SkipLink';
 export type { SkipLinkProps } from './SkipLink';
-
-export { LiveRegion, useLiveRegion } from './LiveRegion';
-export type { LiveRegionProps } from './LiveRegion';
 
 export { OptimizedImage } from './OptimizedImage';
 export type { OptimizedImageProps } from './OptimizedImage';
