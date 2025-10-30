@@ -732,3 +732,48 @@ type CreateContactMessageRequest struct {
 	Subject  string `json:"subject" binding:"required,min=3,max=200"`
 	Message  string `json:"message" binding:"required,min=10,max=5000"`
 }
+
+// EmailNotificationLog represents an audit log for sent emails
+type EmailNotificationLog struct {
+	ID                uuid.UUID  `json:"id" db:"id"`
+	UserID            uuid.UUID  `json:"user_id" db:"user_id"`
+	NotificationID    *uuid.UUID `json:"notification_id,omitempty" db:"notification_id"`
+	NotificationType  string     `json:"notification_type" db:"notification_type"`
+	RecipientEmail    string     `json:"recipient_email" db:"recipient_email"`
+	Subject           string     `json:"subject" db:"subject"`
+	Status            string     `json:"status" db:"status"` // pending, sent, failed, bounced
+	ProviderMessageID *string    `json:"provider_message_id,omitempty" db:"provider_message_id"`
+	ErrorMessage      *string    `json:"error_message,omitempty" db:"error_message"`
+	SentAt            *time.Time `json:"sent_at,omitempty" db:"sent_at"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// EmailUnsubscribeToken represents an unsubscribe token
+type EmailUnsubscribeToken struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
+	Token            string     `json:"token" db:"token"`
+	NotificationType *string    `json:"notification_type,omitempty" db:"notification_type"` // null means all
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	ExpiresAt        time.Time  `json:"expires_at" db:"expires_at"`
+	UsedAt           *time.Time `json:"used_at,omitempty" db:"used_at"`
+}
+
+// EmailRateLimit represents rate limiting for email notifications
+type EmailRateLimit struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	UserID      uuid.UUID `json:"user_id" db:"user_id"`
+	WindowStart time.Time `json:"window_start" db:"window_start"`
+	EmailCount  int       `json:"email_count" db:"email_count"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Email notification log status constants
+const (
+	EmailStatusPending = "pending"
+	EmailStatusSent    = "sent"
+	EmailStatusFailed  = "failed"
+	EmailStatusBounced = "bounced"
+)
