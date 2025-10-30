@@ -19,11 +19,11 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching static assets');
-      return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { credentials: 'same-origin' })))
-        .catch(err => {
-          console.error('[SW] Failed to cache some assets:', err);
-          // Continue even if some assets fail to cache
-        });
+      return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { credentials: 'same-origin' })));
+    })
+    .catch(err => {
+      console.error('[SW] Failed to cache static assets. Installation aborted:', err);
+      // The install event will fail, and the service worker will not activate.
     })
   );
   // Force the waiting service worker to become the active service worker
@@ -91,6 +91,8 @@ self.addEventListener('fetch', (event) => {
         if (response.status === 200 && url.origin === self.location.origin) {
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseToCache);
+          }).catch((err) => {
+            console.error('[SW] Failed to cache response for', request.url, err);
           });
         }
         

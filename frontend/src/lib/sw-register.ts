@@ -4,6 +4,9 @@
  * Only registers in production builds to avoid caching issues during development
  */
 
+// Module-level flag to prevent multiple reloads on controller change
+let refreshing = false;
+
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   // Only register service worker in production
   if (import.meta.env.DEV) {
@@ -45,7 +48,6 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     });
 
     // Listen for controller change (new service worker activated)
-    let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing) return;
       refreshing = true;
