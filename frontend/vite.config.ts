@@ -5,7 +5,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
         react(),
         // Upload source maps to Sentry on production builds
@@ -20,13 +20,13 @@ export default defineConfig({
                 filesToDeleteAfterUpload: ['**/*.js.map', '**/*.mjs.map'],
             },
         }),
-        // Bundle analyzer for production builds
-        visualizer({
+        // Bundle analyzer - only in analyze mode
+        ...(mode === 'analyze' ? [visualizer({
             filename: './dist/stats.html',
-            open: false,
+            open: true,
             gzipSize: true,
             brotliSize: true,
-        }) as any,
+        }) as any] : []),
     ],
     resolve: {
         alias: {
@@ -73,4 +73,4 @@ export default defineConfig({
         // Use esbuild minifier (default, faster than terser)
         minify: 'esbuild',
     },
-});
+}));
