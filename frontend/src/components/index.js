@@ -8,3 +8,5 @@ export * from './clip';
 export * from './comment';
 // Re-export all report components
 export * from './report';
+// Re-export SEO component
+export { SEO } from './SEO';
