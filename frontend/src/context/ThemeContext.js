@@ -1,5 +1,5 @@
-import { jsx as _jsx } from "react/jsx-runtime";
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { jsx as _jsx } from 'react/jsx-runtime';
 const ThemeContext = createContext(undefined);
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
@@ -12,11 +12,12 @@ export function ThemeProvider({ children }) {
         const updateTheme = () => {
             let resolvedTheme = 'light';
             if (theme === 'system') {
-                resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+                resolvedTheme = window.matchMedia(
+                    '(prefers-color-scheme: dark)'
+                ).matches
                     ? 'dark'
                     : 'light';
-            }
-            else {
+            } else {
                 resolvedTheme = theme;
             }
             root.classList.remove('light', 'dark');
@@ -38,10 +39,12 @@ export function ThemeProvider({ children }) {
         localStorage.setItem('theme', newTheme);
         setTheme(newTheme);
     };
-    return (_jsx(ThemeContext.Provider, { value: { theme, setTheme: handleSetTheme, actualTheme }, children: children }));
+    return _jsx(ThemeContext.Provider, {
+        value: { theme, setTheme: handleSetTheme, actualTheme },
+        children: children,
+    });
 }
 // Export the hook in a separate export to satisfy react-refresh
-// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
     const context = useContext(ThemeContext);
     if (context === undefined) {

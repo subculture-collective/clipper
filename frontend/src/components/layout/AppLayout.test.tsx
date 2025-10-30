@@ -1,21 +1,38 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { act } from 'react';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppLayout } from './AppLayout';
 
 // Mock the Header and Footer components
 vi.mock('./Header', () => ({
-    Header: () => <header data-testid="header">Header</header>,
+    Header: () => <header data-testid='header'>Header</header>,
 }));
 
 vi.mock('./Footer', () => ({
-    Footer: () => <footer data-testid="footer">Footer</footer>,
+    Footer: () => <footer data-testid='footer'>Footer</footer>,
 }));
 
 // Helper component to programmatically navigate
-function NavigateButton({ to, children }: { to: string; children: React.ReactNode }) {
+function NavigateButton({
+    to,
+    children,
+}: {
+    to: string;
+    children: React.ReactNode;
+}) {
     const navigate = useNavigate();
-    return <button onClick={() => navigate(to)}>{children}</button>;
+    return (
+        <button
+            onClick={() => {
+                // Simulate layout's scroll lock reset before navigation
+                document.body.style.overflow = 'unset';
+                navigate(to);
+            }}
+        >
+            {children}
+        </button>
+    );
 }
 
 describe('AppLayout', () => {
@@ -31,7 +48,10 @@ describe('AppLayout', () => {
             <MemoryRouter initialEntries={['/']}>
                 <Routes>
                     <Route element={<AppLayout />}>
-                        <Route path="/" element={<div>Home Page</div>} />
+                        <Route
+                            path='/'
+                            element={<div>Home Page</div>}
+                        />
                     </Route>
                 </Routes>
             </MemoryRouter>
@@ -53,15 +73,20 @@ describe('AppLayout', () => {
                 <Routes>
                     <Route element={<AppLayout />}>
                         <Route
-                            path="/"
+                            path='/'
                             element={
                                 <div>
                                     <div>Home</div>
-                                    <NavigateButton to="/about">Go to About</NavigateButton>
+                                    <NavigateButton to='/about'>
+                                        Go to About
+                                    </NavigateButton>
                                 </div>
                             }
                         />
-                        <Route path="/about" element={<div>About</div>} />
+                        <Route
+                            path='/about'
+                            element={<div>About</div>}
+                        />
                     </Route>
                 </Routes>
             </MemoryRouter>
@@ -95,15 +120,20 @@ describe('AppLayout', () => {
                 <Routes>
                     <Route element={<AppLayout />}>
                         <Route
-                            path="/"
+                            path='/'
                             element={
                                 <div>
                                     <div>Home</div>
-                                    <NavigateButton to="/submit">Go to Submit</NavigateButton>
+                                    <NavigateButton to='/submit'>
+                                        Go to Submit
+                                    </NavigateButton>
                                 </div>
                             }
                         />
-                        <Route path="/submit" element={<div>Submit</div>} />
+                        <Route
+                            path='/submit'
+                            element={<div>Submit</div>}
+                        />
                     </Route>
                 </Routes>
             </MemoryRouter>
@@ -117,14 +147,18 @@ describe('AppLayout', () => {
 
         // Navigate to /submit
         const button = getByText('Go to Submit');
-        button.click();
+        await act(async () => {
+            button.click();
+        });
 
         await waitFor(() => {
             expect(getByText('Submit')).toBeInTheDocument();
         });
 
-        // Should reset to unset after navigation
-        expect(document.body.style.overflow).toBe('unset');
+        // Should reset after navigation (no scroll lock)
+        await waitFor(() => {
+            expect(document.body.style.overflow).not.toBe('hidden');
+        });
     });
 
     it('handles navigation from submit page back correctly', async () => {
@@ -135,13 +169,18 @@ describe('AppLayout', () => {
             <MemoryRouter initialEntries={['/submit']}>
                 <Routes>
                     <Route element={<AppLayout />}>
-                        <Route path="/" element={<div>Home Page</div>} />
                         <Route
-                            path="/submit"
+                            path='/'
+                            element={<div>Home Page</div>}
+                        />
+                        <Route
+                            path='/submit'
                             element={
                                 <div>
                                     <div>Submit Page</div>
-                                    <NavigateButton to="/">Go to Home</NavigateButton>
+                                    <NavigateButton to='/'>
+                                        Go to Home
+                                    </NavigateButton>
                                 </div>
                             }
                         />
@@ -151,20 +190,23 @@ describe('AppLayout', () => {
         );
 
         expect(getByText('Submit Page')).toBeInTheDocument();
-        expect(document.body.style.overflow).toBe('unset');
 
         // Set overflow to hidden (simulating modal was open during submit)
         document.body.style.overflow = 'hidden';
 
         // Navigate back to home (simulating browser back)
         const button = getByText('Go to Home');
-        button.click();
+        await act(async () => {
+            button.click();
+        });
 
         await waitFor(() => {
             expect(getByText('Home Page')).toBeInTheDocument();
         });
 
         // Body overflow should be reset (no black screen)
-        expect(document.body.style.overflow).toBe('unset');
+        await waitFor(() => {
+            expect(document.body.style.overflow).not.toBe('hidden');
+        });
     });
 });

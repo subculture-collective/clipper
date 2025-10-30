@@ -33,7 +33,6 @@ export const useClipVote = () => {
                 queryKey: ['clips'],
             });
             queryClient.setQueriesData({ queryKey: ['clips'] }, (old) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const oldData = old;
                 if (!oldData?.pages)
                     return oldData;
@@ -107,7 +106,6 @@ export const useClipFavorite = () => {
                 queryKey: ['clips'],
             });
             queryClient.setQueriesData({ queryKey: ['clips'] }, (old) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const oldData = old;
                 if (!oldData?.pages)
                     return oldData;

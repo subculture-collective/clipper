@@ -44,7 +44,6 @@ export function AdminReportsPage() {
             return;
         }
         loadReports();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated, isAdmin, navigate, page, statusFilter, typeFilter]);
     const openActionModal = (report, action) => {
         setSelectedReport(report);
