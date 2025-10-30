@@ -6,6 +6,7 @@ import './i18n' // Initialize i18n
 import App from './App.tsx'
 import { initSentry } from './lib/sentry'
 import ErrorBoundary from './components/ErrorBoundary'
+import { registerServiceWorker } from './lib/sw-register'
 
 // Initialize Sentry before rendering the app
 initSentry({
@@ -36,3 +37,6 @@ createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </StrictMode>,
 )
+
+// Register service worker for PWA functionality
+registerServiceWorker()
