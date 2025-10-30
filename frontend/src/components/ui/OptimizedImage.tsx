@@ -93,7 +93,9 @@ export function OptimizedImage({
           alt={alt}
           sizes={sizes}
           loading={priority ? 'eager' : 'lazy'}
-          decoding={priority ? 'sync' : 'async'}
+          decoding="async"
+          // Note: fetchPriority has limited browser support (not in Firefox as of early 2024)
+          // See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#browser_compatibility
           fetchPriority={priority ? 'high' : 'auto'}
           onLoad={handleLoad}
           onError={handleError}

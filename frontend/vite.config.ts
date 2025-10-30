@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { visualizer } from 'rollup-plugin-visualizer';
 
@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
             open: true,
             gzipSize: true,
             brotliSize: true,
-        }) as any] : []),
+        }) as Plugin] : []),
     ],
     resolve: {
         alias: {
