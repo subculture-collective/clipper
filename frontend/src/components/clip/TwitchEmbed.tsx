@@ -65,7 +65,11 @@ export function TwitchEmbed({
           <img 
             src={thumbnailUrl} 
             alt={title}
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+            width="1920"
+            height="1080"
           />
         )}
         
