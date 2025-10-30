@@ -1,6 +1,16 @@
-import { jsx as _jsx } from "react/jsx-runtime";
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
+import { jsx as _jsx } from 'react/jsx-runtime';
+import {
+    getCurrentUser,
+    initiateOAuth,
+    logout as logoutApi,
+} from '../lib/auth-api';
 import { isModeratorOrAdmin } from '../lib/roles';
 const AuthContext = createContext(undefined);
 export function AuthProvider({ children }) {
@@ -11,12 +21,10 @@ export function AuthProvider({ children }) {
         try {
             const currentUser = await getCurrentUser();
             setUser(currentUser);
-        }
-        catch {
+        } catch {
             // Not authenticated or session expired
             setUser(null);
-        }
-        finally {
+        } finally {
             setIsLoading(false);
         }
     }, []);
@@ -31,11 +39,9 @@ export function AuthProvider({ children }) {
     const logout = async () => {
         try {
             await logoutApi();
-        }
-        catch (error) {
+        } catch (error) {
             console.error('Logout error:', error);
-        }
-        finally {
+        } finally {
             setUser(null);
         }
     };
@@ -44,8 +50,7 @@ export function AuthProvider({ children }) {
         try {
             const currentUser = await getCurrentUser();
             setUser(currentUser);
-        }
-        catch (error) {
+        } catch (error) {
             console.error('Failed to refresh user:', error);
             setUser(null);
         }
@@ -54,7 +59,8 @@ export function AuthProvider({ children }) {
     const isAdmin = user?.role === 'admin';
     const isModerator = user?.role === 'moderator';
     const isModeratorOrAdminFlag = isModeratorOrAdmin(user?.role);
-    return (_jsx(AuthContext.Provider, { value: {
+    return _jsx(AuthContext.Provider, {
+        value: {
             user,
             isAuthenticated,
             isAdmin,
@@ -64,10 +70,11 @@ export function AuthProvider({ children }) {
             login,
             logout,
             refreshUser,
-        }, children: children }));
+        },
+        children: children,
+    });
 }
 // Export the hook in a separate export to satisfy react-refresh
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {

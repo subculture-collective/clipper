@@ -106,11 +106,44 @@ func (s *OpenSearchService) Search(ctx context.Context, req *models.SearchReques
 
 // searchClipsWithFacets searches for clips with facet aggregations
 func (s *OpenSearchService) searchClipsWithFacets(ctx context.Context, req *models.SearchRequest) ([]models.Clip, int, *models.SearchFacets, error) {
-	query := s.buildClipQuery(req)
+	// Start with the base query
+	baseQuery := s.buildClipQuery(req)
+
+	// Wrap with function_score only when sorting by relevance (default)
+	var finalQuery map[string]interface{}
+	if req.Sort == "" || req.Sort == "relevance" {
+		finalQuery = map[string]interface{}{
+			"function_score": map[string]interface{}{
+				"query": baseQuery,
+				"functions": []map[string]interface{}{
+					{
+						"field_value_factor": map[string]interface{}{
+							"field":    "engagement_score",
+							"modifier": "log1p",
+							"factor":   0.1,
+							"missing":  0,
+						},
+					},
+					{
+						"field_value_factor": map[string]interface{}{
+							"field":    "recency_score",
+							"modifier": "none",
+							"factor":   0.5,
+							"missing":  0,
+						},
+					},
+				},
+				"score_mode": "sum",
+				"boost_mode": "sum",
+			},
+		}
+	} else {
+		finalQuery = baseQuery
+	}
 
 	from := (req.Page - 1) * req.Limit
 	searchBody := map[string]interface{}{
-		"query": query,
+		"query": finalQuery,
 		"from":  from,
 		"size":  req.Limit,
 		"sort":  s.buildSortClause(req.Sort),
@@ -415,6 +448,7 @@ func (s *OpenSearchService) buildClipQuery(req *models.SearchRequest) map[string
 		must = append(must, map[string]interface{}{"match_all": map[string]interface{}{}})
 	}
 
+	// Base bool query used by clip search
 	baseQuery := map[string]interface{}{
 		"bool": map[string]interface{}{
 			"must":   must,
@@ -422,33 +456,8 @@ func (s *OpenSearchService) buildClipQuery(req *models.SearchRequest) map[string
 		},
 	}
 
-	// Wrap with function_score for enhanced relevance (engagement + recency boost)
-	// Only apply when sorting by relevance
-	return map[string]interface{}{
-		"function_score": map[string]interface{}{
-			"query": baseQuery,
-			"functions": []map[string]interface{}{
-				{
-					"field_value_factor": map[string]interface{}{
-						"field":    "engagement_score",
-						"modifier": "log1p",
-						"factor":   0.1,
-						"missing":  0,
-					},
-				},
-				{
-					"field_value_factor": map[string]interface{}{
-						"field":    "recency_score",
-						"modifier": "none",
-						"factor":   0.5,
-						"missing":  0,
-					},
-				},
-			},
-			"score_mode": "sum",
-			"boost_mode": "sum",
-		},
-	}
+	// Return base query here; caller decides whether to wrap with function_score based on sort
+	return baseQuery
 }
 
 // buildUserQuery builds a query for users

@@ -41,7 +41,6 @@ export function ModerationQueuePage() {
             return;
         }
         loadSubmissions();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated, isAdmin, navigate, page]);
     const handleApprove = async (submissionId) => {
         try {
