@@ -84,7 +84,7 @@ export default function FeedScreen() {
             </View>
           </TouchableOpacity>
         )}
-        contentContainerClassName="pb-4"
+        contentContainerStyle={{ paddingBottom: 16 }}
       />
     </View>
   );

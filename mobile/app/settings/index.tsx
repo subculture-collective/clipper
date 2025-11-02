@@ -4,10 +4,8 @@
 
 import { View, Text, Switch, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 

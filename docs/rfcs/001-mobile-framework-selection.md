@@ -87,7 +87,7 @@ React Native is a JavaScript framework for building native mobile apps using Rea
 ```
 
 **Tech Stack:**
-- **Framework**: React Native 0.75+ (with Expo SDK 52+)
+- **Framework**: React Native 0.76+ (with Expo SDK 52+)
 - **Navigation**: Expo Router (file-based routing, similar to Next.js)
 - **State Management**: 
   - TanStack Query (API state, cache, sync)
