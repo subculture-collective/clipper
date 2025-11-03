@@ -249,4 +249,30 @@
     clip: auto;
     white-space: normal;
   }
+
+  /* Performance optimizations for smooth scrolling */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* GPU acceleration for better performance */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Optimize animations for 60fps */
+  .optimize-60fps {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+  }
+
+  /* Content visibility for lazy rendering */
+  .lazy-render {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
+  }
 }
