@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { Container, Spinner, CommentSection, SEO } from '../components';
+import { Container, Spinner, CommentSection, SEO, VideoPlayer } from '../components';
 import { useClipById, useUser, useClipVote, useClipFavorite, useIsAuthenticated, useToast } from '../hooks';
 import { cn } from '@/lib/utils';
 
@@ -144,13 +144,13 @@ export function ClipDetailPage() {
             </div>
           </div>
 
-          <div className="aspect-video bg-black rounded-lg mb-4 xs:mb-6 overflow-hidden">
-            <iframe
-              src={clip.embed_url}
+          <div className="mb-4 xs:mb-6">
+            <VideoPlayer
+              clipId={clip.id}
               title={clip.title}
-              className="w-full h-full"
-              allowFullScreen
-              sandbox="allow-scripts"
+              thumbnailUrl={clip.thumbnail_url}
+              embedUrl={clip.embed_url}
+              twitchClipUrl={clip.twitch_clip_url}
             />
           </div>
 
