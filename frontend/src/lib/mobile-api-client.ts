@@ -331,9 +331,10 @@ export class MobileApiClient {
       if (error) {
         promise.reject(error);
       } else {
-        // Token refreshed successfully, resolve to allow original requests to retry
-        // The resolved value isn't used - requests will be retried via axiosInstance
-        promise.resolve({ data: null, status: 200, statusText: 'OK', headers: {}, config: {} as InternalAxiosRequestConfig } as AxiosResponse);
+        // Token refreshed successfully, resolve to signal requests can retry
+        // Note: The resolved value is never accessed - it only triggers the .then()
+        // chain in handleTokenRefresh which retries the original request
+        promise.resolve(null as unknown as AxiosResponse);
       }
     });
     this.refreshQueue = [];
