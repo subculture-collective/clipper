@@ -3,7 +3,7 @@
  * Displays network connectivity status and queued requests
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export function NetworkStatusIndicator() {

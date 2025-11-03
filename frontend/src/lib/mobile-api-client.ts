@@ -9,7 +9,8 @@
  * - Request/response interceptors
  */
 
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios from 'axios';
+import type { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 // ============================================================================
 // Types and Interfaces
@@ -51,15 +52,17 @@ export interface NetworkStatus {
   rtt?: number;
 }
 
-export enum ErrorType {
-  NETWORK = 'NETWORK',
-  AUTH = 'AUTH',
-  VALIDATION = 'VALIDATION',
-  SERVER = 'SERVER',
-  TIMEOUT = 'TIMEOUT',
-  OFFLINE = 'OFFLINE',
-  UNKNOWN = 'UNKNOWN',
-}
+export const ErrorType = {
+  NETWORK: 'NETWORK',
+  AUTH: 'AUTH',
+  VALIDATION: 'VALIDATION',
+  SERVER: 'SERVER',
+  TIMEOUT: 'TIMEOUT',
+  OFFLINE: 'OFFLINE',
+  UNKNOWN: 'UNKNOWN',
+} as const;
+
+export type ErrorType = typeof ErrorType[keyof typeof ErrorType];
 
 export class ApiError extends Error {
   public readonly type: ErrorType;
@@ -73,7 +76,7 @@ export class ApiError extends Error {
     type: ErrorType,
     statusCode?: number,
     originalError?: Error,
-    retryable: boolean = false
+    retryable = false
   ) {
     super(message);
     this.name = 'ApiError';
@@ -84,8 +87,9 @@ export class ApiError extends Error {
     this.userMessage = getUserFriendlyMessage(type, statusCode);
     
     // Maintains proper stack trace for where our error was thrown
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ApiError);
+    const captureStackTrace = (Error as { captureStackTrace?: (target: object, constructor: unknown) => void }).captureStackTrace;
+    if (captureStackTrace) {
+      captureStackTrace(this, ApiError);
     }
   }
 }
@@ -361,7 +365,7 @@ export class MobileApiClient {
   }
 
   private async retryRequest(
-    error: AxiosError,
+    _error: AxiosError,
     config: InternalAxiosRequestConfig & { _retry?: boolean; _retryCount?: number }
   ): Promise<AxiosResponse> {
     config._retryCount = (config._retryCount || 0) + 1;

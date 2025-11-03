@@ -38,8 +38,10 @@ vi.mock('axios', () => ({
 const { MobileApiClient, ApiError, ErrorType, getUserFriendlyMessage, resetMobileApiClient } = 
   await import('./mobile-api-client');
 
+type MobileApiClientType = InstanceType<typeof MobileApiClient>;
+
 describe('MobileApiClient', () => {
-  let client: MobileApiClient;
+  let client: MobileApiClientType;
 
   beforeEach(() => {
     // Reset mocks
