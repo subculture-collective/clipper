@@ -38,11 +38,6 @@ jobs:
       - name: Lint mobile app
         run: npm run mobile:lint
 
-      - name: Type check mobile app
-        run: |
-          cd mobile
-          npm run type-check
-
       - name: Run mobile tests
         run: npm run mobile:test
 

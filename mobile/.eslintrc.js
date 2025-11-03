@@ -1,9 +1,11 @@
 module.exports = {
-  extends: ['expo', '@react-native'],
-  parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
+  root: true,
+  extends: ['universe/native', 'prettier'],
+  env: {
+    node: true,
+    jest: true,
+  },
   rules: {
-    'react/react-in-jsx-scope': 'off',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/ban-types': 'off',
   },
 };

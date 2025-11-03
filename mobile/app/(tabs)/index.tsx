@@ -1,6 +1,7 @@
-import { StyleSheet, View, Text, FlatList, ActivityIndicator } from 'react-native';
-import { useState, useEffect } from 'react';
 import { Clip } from '@clipper/shared';
+import { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, FlatList, ActivityIndicator } from 'react-native';
+
 import { clipService } from '@/services/clipService';
 
 export default function FeedScreen() {

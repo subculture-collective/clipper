@@ -1,8 +1,11 @@
 import { Clip, ClipFeedResponse, ClipFeedFilters } from '@clipper/shared';
+
 import api from './api';
 
 export const clipService = {
-  async getClips(filters?: ClipFeedFilters & { page?: number; limit?: number }): Promise<ClipFeedResponse> {
+  async getClips(
+    filters?: ClipFeedFilters & { page?: number; limit?: number }
+  ): Promise<ClipFeedResponse> {
     const response = await api.get<ClipFeedResponse>('/clips/feed', {
       params: filters,
     });
