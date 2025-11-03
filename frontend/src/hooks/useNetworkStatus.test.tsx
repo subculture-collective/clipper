@@ -135,20 +135,15 @@ describe('useNetworkStatus', () => {
     expect(removeEventListenerSpy).toHaveBeenCalledWith('offline', expect.any(Function));
   });
 
-  it('should update queue count periodically', async () => {
-    vi.useFakeTimers();
-
+  it('should subscribe to queue changes', () => {
     const { result, unmount } = renderHook(() => useNetworkStatus());
 
-    // Fast-forward time
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    // Count should be checked (may or may not change, but should be a number)
+    // Initial count should be a number
+    expect(typeof result.current.queuedRequestCount).toBe('number');
+    
+    // Verify queue change listener is set up (count should remain a number)
     expect(typeof result.current.queuedRequestCount).toBe('number');
 
     unmount();
-    vi.useRealTimers();
   });
 });

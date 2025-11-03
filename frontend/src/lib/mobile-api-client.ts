@@ -15,6 +15,18 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, In
 // Types and Interfaces
 // ============================================================================
 
+// Network Information API types
+interface NetworkConnection extends EventTarget {
+  type?: string;
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+}
+
+type NavigatorWithConnection = Navigator & {
+  connection?: NetworkConnection;
+};
+
 export interface RetryConfig {
   maxRetries: number;
   initialDelayMs: number;
@@ -106,6 +118,7 @@ export class MobileApiClient {
     resolve: (value: AxiosResponse) => void;
     reject: (reason: ApiError) => void;
   }> = [];
+  private queueChangeListeners: Array<() => void> = [];
 
   constructor(
     baseURL: string,
@@ -158,6 +171,7 @@ export class MobileApiClient {
     // Process queue in order
     const queue = [...this.offlineQueue];
     this.offlineQueue = [];
+    this.notifyQueueChange();
 
     for (const item of queue) {
       try {
@@ -174,11 +188,14 @@ export class MobileApiClient {
         }
       }
     }
+    
+    this.notifyQueueChange();
   }
 
   public clearOfflineQueue(): void {
     const queue = [...this.offlineQueue];
     this.offlineQueue = [];
+    this.notifyQueueChange();
     
     queue.forEach(item => {
       item.reject(new ApiError(
@@ -189,6 +206,22 @@ export class MobileApiClient {
         false
       ));
     });
+  }
+
+  public onQueueChange(listener: () => void): () => void {
+    this.queueChangeListeners.push(listener);
+    
+    // Return unsubscribe function
+    return () => {
+      const index = this.queueChangeListeners.indexOf(listener);
+      if (index > -1) {
+        this.queueChangeListeners.splice(index, 1);
+      }
+    };
+  }
+
+  private notifyQueueChange(): void {
+    this.queueChangeListeners.forEach(listener => listener());
   }
 
   public getQueuedRequestCount(): number {
@@ -294,8 +327,9 @@ export class MobileApiClient {
       if (error) {
         promise.reject(error);
       } else {
-        // Token refreshed, resolve promises so they can retry
-        promise.resolve({} as AxiosResponse);
+        // Token refreshed successfully, resolve to allow original requests to retry
+        // The resolved value isn't used - requests will be retried via axiosInstance
+        promise.resolve({ data: null, status: 200, statusText: 'OK', headers: {}, config: {} as InternalAxiosRequestConfig } as AxiosResponse);
       }
     });
     this.refreshQueue = [];
@@ -352,10 +386,11 @@ export class MobileApiClient {
         this.offlineQueue.push({
           config,
           resolve,
-          reject: reject as (reason: ApiError) => void,
+          reject: (reason: ApiError) => reject(reason),
           retryCount: config._retryCount || 0,
           timestamp: Date.now(),
         });
+        this.notifyQueueChange();
       });
     }
 
@@ -459,14 +494,7 @@ export class MobileApiClient {
 
     // Monitor connection quality if available
     if ('connection' in navigator) {
-      const connection = (navigator as Navigator & { 
-        connection?: EventTarget & { 
-          type?: string;
-          effectiveType?: string;
-          downlink?: number;
-          rtt?: number;
-        } 
-      }).connection;
+      const connection = (navigator as NavigatorWithConnection).connection;
       if (connection) {
         this.updateNetworkStatus();
         connection.addEventListener('change', this.handleConnectionChange);
@@ -494,14 +522,7 @@ export class MobileApiClient {
   };
 
   private updateNetworkStatus(): void {
-    const connection = (navigator as Navigator & { 
-      connection?: { 
-        type?: string;
-        effectiveType?: string;
-        downlink?: number;
-        rtt?: number;
-      } 
-    }).connection;
+    const connection = (navigator as NavigatorWithConnection).connection;
     if (connection) {
       this.networkStatus = {
         online: navigator.onLine,
@@ -520,14 +541,7 @@ export class MobileApiClient {
     window.removeEventListener('offline', this.handleOffline);
     
     if ('connection' in navigator) {
-      const connection = (navigator as Navigator & { 
-        connection?: EventTarget & { 
-          type?: string;
-          effectiveType?: string;
-          downlink?: number;
-          rtt?: number;
-        } 
-      }).connection;
+      const connection = (navigator as NavigatorWithConnection).connection;
       if (connection) {
         connection.removeEventListener('change', this.handleConnectionChange);
       }

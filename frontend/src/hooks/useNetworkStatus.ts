@@ -39,20 +39,22 @@ export function useNetworkStatus(): UseNetworkStatusResult {
       setNetworkStatus(mobileClient.getNetworkStatus());
     };
 
+    // Update queue count when it changes
+    const handleQueueChange = () => {
+      setQueuedRequestCount(mobileClient.getQueuedRequestCount());
+    };
+
     // Listen to browser events
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Poll for queue count changes
-    const intervalId = setInterval(() => {
-      const count = mobileClient.getQueuedRequestCount();
-      setQueuedRequestCount(count);
-    }, 1000);
+    // Subscribe to queue changes
+    const unsubscribe = mobileClient.onQueueChange(handleQueueChange);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(intervalId);
+      unsubscribe();
     };
   }, [mobileClient]);
 
