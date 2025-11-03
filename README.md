@@ -35,6 +35,8 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[API Documentation](docs/API.md)** - REST API reference
 - **[Database Documentation](docs/database.md)** - Database management and migrations
 - **[Search Platform](docs/SEARCH.md)** - OpenSearch setup and usage
+- **[Semantic Search Architecture](docs/SEMANTIC_SEARCH_ARCHITECTURE.md)** - Hybrid BM25 + vector search
+- **[Architecture Decision Records](docs/adr/)** - Key architectural decisions
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
 - **[RBAC](docs/RBAC.md)** - Role-based access control and admin panel access
 - **[Subscription Privileges Matrix](docs/SUBSCRIPTION_PRIVILEGES_MATRIX.md)** - Features and limits by subscription tier
