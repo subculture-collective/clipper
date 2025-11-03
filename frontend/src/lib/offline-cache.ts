@@ -9,7 +9,7 @@
  * - Optimistic updates
  */
 
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Clip } from '@/types/clip';
 import type { Comment } from '@/types/comment';
 

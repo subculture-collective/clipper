@@ -103,16 +103,18 @@ export async function createCommentOfflineAware(
   const optimisticComment: Comment = {
     id: `temp-${Date.now()}-${Math.random()}`,
     clip_id: payload.clip_id,
+    user_id: 'current-user', // Would need to get from auth context
+    username: 'You',
     content: payload.content,
     parent_id: payload.parent_id || null,
-    author_id: 'current-user', // Would need to get from auth context
-    author_username: 'You',
+    vote_score: 0,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    vote_count: 0,
-    user_vote: 0,
     is_deleted: false,
-    is_edited: false,
+    is_removed: false,
+    depth: 0,
+    child_count: 0,
+    user_vote: null,
   };
 
   // Add to cache immediately for optimistic UI
@@ -230,10 +232,10 @@ function sortCachedComments(comments: Comment[], sort: CommentSortOption): Comme
   
   switch (sort) {
     case 'best':
-      return sorted.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
+      return sorted.sort((a, b) => (b.vote_score || 0) - (a.vote_score || 0));
     
     case 'top':
-      return sorted.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
+      return sorted.sort((a, b) => (b.vote_score || 0) - (a.vote_score || 0));
     
     case 'new':
       return sorted.sort((a, b) => 

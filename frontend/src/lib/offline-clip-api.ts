@@ -153,8 +153,9 @@ export async function voteOnClipOfflineAware(
     // Optimistically update vote count in cache
     const updatedClip: Clip = {
       ...cachedClip,
-      vote_count: (cachedClip.vote_count || 0) + voteType,
-      user_vote: voteType,
+      upvote_count: voteType === 1 ? (cachedClip.upvote_count || 0) + 1 : cachedClip.upvote_count,
+      downvote_count: voteType === -1 ? (cachedClip.downvote_count || 0) + 1 : cachedClip.downvote_count,
+      user_vote: voteType === 0 ? null : voteType,
     };
     
     await syncManager.cacheClip(updatedClip);

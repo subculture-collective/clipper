@@ -359,7 +359,7 @@ export function resolveClipConflict(
       return {
         ...serverClip,
         view_count: Math.max(clientClip.view_count || 0, serverClip.view_count || 0),
-        vote_count: Math.max(clientClip.vote_count || 0, serverClip.vote_count || 0),
+        upvote_count: Math.max(clientClip.upvote_count || 0, serverClip.upvote_count || 0),
       };
     
     case 'manual':

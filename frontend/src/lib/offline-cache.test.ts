@@ -25,33 +25,38 @@ describe('OfflineCache', () => {
     await cache.close();
   });
 
+  // Helper to create test clip
+  const createTestClip = (id: string, title: string): Clip => ({
+    id,
+    title,
+    twitch_clip_id: `twitch-${id}`,
+    twitch_clip_url: `https://twitch.tv/clip/${id}`,
+    embed_url: `https://clips.twitch.tv/embed?clip=${id}`,
+    creator_name: 'TestCreator',
+    creator_id: 'creator-1',
+    broadcaster_name: 'TestBroadcaster',
+    broadcaster_id: 'broadcaster-1',
+    game_id: 'game-1',
+    game_name: 'Test Game',
+    language: 'en',
+    thumbnail_url: 'https://example.com/thumb.jpg',
+    duration: 30,
+    view_count: 100,
+    created_at: new Date().toISOString(),
+    imported_at: new Date().toISOString(),
+    vote_score: 10,
+    comment_count: 5,
+    favorite_count: 3,
+    is_featured: false,
+    is_nsfw: false,
+    is_removed: false,
+    user_vote: null,
+    is_favorited: false,
+  });
+
   describe('Clip Operations', () => {
     it('should store and retrieve a clip', async () => {
-      const clip: Clip = {
-        id: 'clip-1',
-        title: 'Test Clip',
-        slug: 'test-clip',
-        twitch_clip_id: 'twitch-123',
-        thumbnail_url: 'https://example.com/thumb.jpg',
-        embed_url: 'https://example.com/embed',
-        broadcaster_id: 'broadcaster-1',
-        broadcaster_name: 'TestBroadcaster',
-        broadcaster_display_name: 'Test Broadcaster',
-        creator_id: 'creator-1',
-        creator_name: 'TestCreator',
-        game_id: 'game-1',
-        game_name: 'Test Game',
-        language: 'en',
-        duration: 30,
-        view_count: 100,
-        created_at: new Date().toISOString(),
-        submitted_at: new Date().toISOString(),
-        vote_count: 10,
-        comment_count: 5,
-        is_nsfw: false,
-        user_vote: 0,
-        is_favorited: false,
-      };
+      const clip = createTestClip('clip-1', 'Test Clip');
 
       await cache.setClip(clip);
       const retrieved = await cache.getClip('clip-1');
@@ -68,56 +73,8 @@ describe('OfflineCache', () => {
 
     it('should store multiple clips', async () => {
       const clips: Clip[] = [
-        {
-          id: 'clip-1',
-          title: 'Clip 1',
-          slug: 'clip-1',
-          twitch_clip_id: 'twitch-1',
-          thumbnail_url: '',
-          embed_url: '',
-          broadcaster_id: 'b1',
-          broadcaster_name: 'B1',
-          broadcaster_display_name: 'B1',
-          creator_id: 'c1',
-          creator_name: 'C1',
-          game_id: 'g1',
-          game_name: 'G1',
-          language: 'en',
-          duration: 30,
-          view_count: 0,
-          created_at: new Date().toISOString(),
-          submitted_at: new Date().toISOString(),
-          vote_count: 0,
-          comment_count: 0,
-          is_nsfw: false,
-          user_vote: 0,
-          is_favorited: false,
-        },
-        {
-          id: 'clip-2',
-          title: 'Clip 2',
-          slug: 'clip-2',
-          twitch_clip_id: 'twitch-2',
-          thumbnail_url: '',
-          embed_url: '',
-          broadcaster_id: 'b2',
-          broadcaster_name: 'B2',
-          broadcaster_display_name: 'B2',
-          creator_id: 'c2',
-          creator_name: 'C2',
-          game_id: 'g2',
-          game_name: 'G2',
-          language: 'en',
-          duration: 30,
-          view_count: 0,
-          created_at: new Date().toISOString(),
-          submitted_at: new Date().toISOString(),
-          vote_count: 0,
-          comment_count: 0,
-          is_nsfw: false,
-          user_vote: 0,
-          is_favorited: false,
-        },
+        createTestClip('clip-1', 'Clip 1'),
+        createTestClip('clip-2', 'Clip 2'),
       ];
 
       await cache.setClips(clips);
@@ -130,31 +87,7 @@ describe('OfflineCache', () => {
     });
 
     it('should delete a clip', async () => {
-      const clip: Clip = {
-        id: 'clip-1',
-        title: 'Test Clip',
-        slug: 'test-clip',
-        twitch_clip_id: 'twitch-123',
-        thumbnail_url: '',
-        embed_url: '',
-        broadcaster_id: 'b1',
-        broadcaster_name: 'B1',
-        broadcaster_display_name: 'B1',
-        creator_id: 'c1',
-        creator_name: 'C1',
-        game_id: 'g1',
-        game_name: 'G1',
-        language: 'en',
-        duration: 30,
-        view_count: 0,
-        created_at: new Date().toISOString(),
-        submitted_at: new Date().toISOString(),
-        vote_count: 0,
-        comment_count: 0,
-        is_nsfw: false,
-        user_vote: 0,
-        is_favorited: false,
-      };
+      const clip = createTestClip('clip-1', 'Test Clip');
 
       await cache.setClip(clip);
       await cache.deleteClip('clip-1');
@@ -164,31 +97,7 @@ describe('OfflineCache', () => {
     });
 
     it('should expire clips after TTL', async () => {
-      const clip: Clip = {
-        id: 'clip-1',
-        title: 'Test Clip',
-        slug: 'test-clip',
-        twitch_clip_id: 'twitch-123',
-        thumbnail_url: '',
-        embed_url: '',
-        broadcaster_id: 'b1',
-        broadcaster_name: 'B1',
-        broadcaster_display_name: 'B1',
-        creator_id: 'c1',
-        creator_name: 'C1',
-        game_id: 'g1',
-        game_name: 'G1',
-        language: 'en',
-        duration: 30,
-        view_count: 0,
-        created_at: new Date().toISOString(),
-        submitted_at: new Date().toISOString(),
-        vote_count: 0,
-        comment_count: 0,
-        is_nsfw: false,
-        user_vote: 0,
-        is_favorited: false,
-      };
+      const clip = createTestClip('clip-1', 'Test Clip');
 
       // Set with very short TTL
       await cache.setClip(clip, 10); // 10ms
@@ -201,22 +110,27 @@ describe('OfflineCache', () => {
     });
   });
 
+  // Helper to create test comment
+  const createTestComment = (id: string, clipId: string, content: string): Comment => ({
+    id,
+    clip_id: clipId,
+    user_id: 'user-1',
+    username: 'testuser',
+    content,
+    parent_id: null,
+    vote_score: 5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_deleted: false,
+    is_removed: false,
+    depth: 0,
+    child_count: 0,
+    user_vote: null,
+  });
+
   describe('Comment Operations', () => {
     it('should store and retrieve a comment', async () => {
-      const comment: Comment = {
-        id: 'comment-1',
-        clip_id: 'clip-1',
-        content: 'Test comment',
-        author_id: 'user-1',
-        author_username: 'testuser',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        vote_count: 5,
-        user_vote: 0,
-        parent_id: null,
-        is_deleted: false,
-        is_edited: false,
-      };
+      const comment = createTestComment('comment-1', 'clip-1', 'Test comment');
 
       await cache.setComment(comment);
       const retrieved = await cache.getComment('comment-1');
@@ -228,48 +142,9 @@ describe('OfflineCache', () => {
 
     it('should retrieve comments by clip ID', async () => {
       const comments: Comment[] = [
-        {
-          id: 'comment-1',
-          clip_id: 'clip-1',
-          content: 'Comment 1',
-          author_id: 'user-1',
-          author_username: 'user1',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          vote_count: 0,
-          user_vote: 0,
-          parent_id: null,
-          is_deleted: false,
-          is_edited: false,
-        },
-        {
-          id: 'comment-2',
-          clip_id: 'clip-1',
-          content: 'Comment 2',
-          author_id: 'user-2',
-          author_username: 'user2',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          vote_count: 0,
-          user_vote: 0,
-          parent_id: null,
-          is_deleted: false,
-          is_edited: false,
-        },
-        {
-          id: 'comment-3',
-          clip_id: 'clip-2',
-          content: 'Comment 3',
-          author_id: 'user-3',
-          author_username: 'user3',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          vote_count: 0,
-          user_vote: 0,
-          parent_id: null,
-          is_deleted: false,
-          is_edited: false,
-        },
+        createTestComment('comment-1', 'clip-1', 'Comment 1'),
+        createTestComment('comment-2', 'clip-1', 'Comment 2'),
+        createTestComment('comment-3', 'clip-2', 'Comment 3'),
       ];
 
       await cache.setComments(comments);
@@ -298,46 +173,8 @@ describe('OfflineCache', () => {
 
   describe('Utility Operations', () => {
     it('should get cache stats', async () => {
-      const clip: Clip = {
-        id: 'clip-1',
-        title: 'Test',
-        slug: 'test',
-        twitch_clip_id: 'twitch-1',
-        thumbnail_url: '',
-        embed_url: '',
-        broadcaster_id: 'b1',
-        broadcaster_name: 'B1',
-        broadcaster_display_name: 'B1',
-        creator_id: 'c1',
-        creator_name: 'C1',
-        game_id: 'g1',
-        game_name: 'G1',
-        language: 'en',
-        duration: 30,
-        view_count: 0,
-        created_at: new Date().toISOString(),
-        submitted_at: new Date().toISOString(),
-        vote_count: 0,
-        comment_count: 0,
-        is_nsfw: false,
-        user_vote: 0,
-        is_favorited: false,
-      };
-
-      const comment: Comment = {
-        id: 'comment-1',
-        clip_id: 'clip-1',
-        content: 'Test',
-        author_id: 'user-1',
-        author_username: 'user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        vote_count: 0,
-        user_vote: 0,
-        parent_id: null,
-        is_deleted: false,
-        is_edited: false,
-      };
+      const clip = createTestClip('clip-1', 'Test');
+      const comment = createTestComment('comment-1', 'clip-1', 'Test');
 
       await cache.setClip(clip);
       await cache.setComment(comment);
@@ -348,31 +185,7 @@ describe('OfflineCache', () => {
     });
 
     it('should clear all data', async () => {
-      const clip: Clip = {
-        id: 'clip-1',
-        title: 'Test',
-        slug: 'test',
-        twitch_clip_id: 'twitch-1',
-        thumbnail_url: '',
-        embed_url: '',
-        broadcaster_id: 'b1',
-        broadcaster_name: 'B1',
-        broadcaster_display_name: 'B1',
-        creator_id: 'c1',
-        creator_name: 'C1',
-        game_id: 'g1',
-        game_name: 'G1',
-        language: 'en',
-        duration: 30,
-        view_count: 0,
-        created_at: new Date().toISOString(),
-        submitted_at: new Date().toISOString(),
-        vote_count: 0,
-        comment_count: 0,
-        is_nsfw: false,
-        user_vote: 0,
-        is_favorited: false,
-      };
+      const clip = createTestClip('clip-1', 'Test');
 
       await cache.setClip(clip);
       await cache.clear();
