@@ -185,7 +185,7 @@ export function getErrorTitle(type: ErrorType): string {
     case ErrorType.TIMEOUT:
       return 'Request Timeout';
     case ErrorType.OFFLINE:
-      return 'You\'re Offline';
+      return 'You're Offline';
     case ErrorType.AUTH:
       return 'Authentication Required';
     case ErrorType.VALIDATION:
