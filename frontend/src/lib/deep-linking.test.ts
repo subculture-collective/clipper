@@ -150,12 +150,31 @@ describe('Deep Linking Utilities', () => {
       vi.unstubAllGlobals();
     });
 
-    it('should return true when opened via share target', () => {
+    it('should return true when opened via share target on root path', () => {
       vi.stubGlobal('location', { 
-        search: '?url=https://example.com', 
+        search: '?url=https://example.com',
+        pathname: '/',
         origin: baseUrl 
       });
       expect(isOpenedViaDeepLink()).toBe(true);
+    });
+
+    it('should return true when opened via share target on submit path', () => {
+      vi.stubGlobal('location', { 
+        search: '?url=https://example.com',
+        pathname: '/submit',
+        origin: baseUrl 
+      });
+      expect(isOpenedViaDeepLink()).toBe(true);
+    });
+
+    it('should return false when share params on non-share-target path', () => {
+      vi.stubGlobal('location', { 
+        search: '?url=https://example.com',
+        pathname: '/search',
+        origin: baseUrl 
+      });
+      expect(isOpenedViaDeepLink()).toBe(false);
     });
 
     it('should return true when referrer is external', () => {

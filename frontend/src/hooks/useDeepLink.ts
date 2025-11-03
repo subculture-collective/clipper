@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   handleDeepLink, 
@@ -30,8 +30,9 @@ export function useDeepLink() {
       const fullUrl = window.location.href;
       const route = handleDeepLink(fullUrl);
       
-      // Navigate only if route is different from current location
-      if (route && route !== location.pathname) {
+      // Navigate only if route is different from current location (including query params)
+      const currentPath = location.pathname + location.search;
+      if (route && route !== currentPath) {
         navigate(route, { replace: true });
       }
     }
@@ -44,6 +45,7 @@ export function useDeepLink() {
  * 
  * Useful for pages that receive shared content (e.g., submit page).
  * Returns null if no share target data is present.
+ * Memoized to avoid re-reading URL parameters on every render.
  * 
  * @returns Share target data or null
  * 
@@ -65,13 +67,14 @@ export function useDeepLink() {
  * ```
  */
 export function useShareTargetData() {
-  return getShareTargetData();
+  return useMemo(() => getShareTargetData(), []);
 }
 
 /**
  * Hook that returns whether the app was opened via a deep link
  * 
  * @returns true if app was opened via deep link
+ * Memoized since the value is stable after initial mount.
  * 
  * @example
  * ```tsx
@@ -87,5 +90,5 @@ export function useShareTargetData() {
  * ```
  */
 export function useIsDeepLink() {
-  return isOpenedViaDeepLink();
+  return useMemo(() => isOpenedViaDeepLink(), []);
 }

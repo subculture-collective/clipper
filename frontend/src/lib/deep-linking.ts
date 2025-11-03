@@ -126,10 +126,8 @@ export function parseDeepLink(url: string): string | null {
  * Returns the internal route to navigate to, or null if not a valid deep link
  */
 export function handleDeepLink(url: string): string | null {
-  if (!isValidDeepLink(url)) {
-    return null;
-  }
-  
+  // parseDeepLink already validates and returns null for invalid links
+  // No need for redundant isValidDeepLink check
   return parseDeepLink(url);
 }
 
@@ -146,9 +144,17 @@ export function generateDeepLink(path: string, baseUrl?: string): string {
  */
 export function isOpenedViaDeepLink(): boolean {
   // Check if launched via share target
+  // Share target should only trigger on specific paths (e.g., /submit)
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('url') || urlParams.has('title') || urlParams.has('text')) {
-    return true;
+  const hasShareParams = urlParams.has('url') || urlParams.has('title') || urlParams.has('text');
+  
+  if (hasShareParams) {
+    // Only consider it a share target if we're on a path that expects shared content
+    const pathname = window.location.pathname;
+    // Share target typically routes to /submit or root that redirects to /submit
+    if (pathname === '/' || pathname === '/submit') {
+      return true;
+    }
   }
   
   // Check if referrer suggests external navigation
