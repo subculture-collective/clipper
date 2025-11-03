@@ -30,6 +30,8 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        # Using --legacy-peer-deps due to React 19 in frontend conflicting with React Native's React 18 requirement
+        # This is a temporary workaround until React Native officially supports React 19
         run: npm install --legacy-peer-deps
 
       - name: Build shared package
@@ -63,6 +65,8 @@ jobs:
           java-version: '17'
 
       - name: Install dependencies
+        # Using --legacy-peer-deps due to React 19 in frontend conflicting with React Native's React 18 requirement
+        # This is a temporary workaround until React Native officially supports React 19
         run: npm install --legacy-peer-deps
 
       - name: Build shared package
@@ -78,7 +82,13 @@ jobs:
     name: Build iOS
     runs-on: macos-latest
     needs: lint-and-test
-    if: false  # Disabled for now, enable when ready
+    # TODO: Enable this job after the following are completed:
+    # 1. Ensure a valid Apple Developer account and provisioning profiles are available for CI
+    # 2. Configure secrets for signing certificates and provisioning profiles in GitHub Actions
+    # 3. Verify that all iOS dependencies (e.g., CocoaPods) are compatible and install correctly in CI
+    # 4. Confirm that the Expo iOS build process works end-to-end in the CI environment
+    # Remove 'if: false' once these requirements are met
+    if: false
     
     steps:
       - name: Checkout code
@@ -91,6 +101,8 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        # Using --legacy-peer-deps due to React 19 in frontend conflicting with React Native's React 18 requirement
+        # This is a temporary workaround until React Native officially supports React 19
         run: npm install --legacy-peer-deps
 
       - name: Build shared package
