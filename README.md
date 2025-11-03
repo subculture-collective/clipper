@@ -39,8 +39,15 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[Architecture Decision Records](docs/adr/)** - Key architectural decisions
 - **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
 - **[RBAC](docs/RBAC.md)** - Role-based access control and admin panel access
-- **[Subscription Privileges Matrix](docs/SUBSCRIPTION_PRIVILEGES_MATRIX.md)** - Features and limits by subscription tier
-- **[Stripe Subscriptions](docs/SUBSCRIPTIONS.md)** - Stripe integration setup
+
+### Premium & Subscriptions
+
+- **[Premium Overview](docs/PREMIUM_OVERVIEW.md)** - Complete guide to premium features and documentation index
+- **[Premium Tiers](docs/PREMIUM_TIERS.md)** - Pricing strategy, tier benefits, and competitive analysis
+- **[Entitlement Matrix](docs/ENTITLEMENT_MATRIX.md)** - Feature gates per platform with implementation details
+- **[Trials and Discounts](docs/TRIALS_AND_DISCOUNTS.md)** - Trial periods, promotional campaigns, and coupon system
+- **[Subscription Privileges Matrix](docs/SUBSCRIPTION_PRIVILEGES_MATRIX.md)** - Quick reference for features by tier
+- **[Stripe Subscriptions](docs/SUBSCRIPTIONS.md)** - Stripe integration setup and payment processing
 
 ### Operations
 
