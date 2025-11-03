@@ -49,11 +49,12 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
         onClick={() => handleVote(1)}
         disabled={isPending || isVoting}
         className={cn(
-          'p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors',
+          'touch-target p-2 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all',
           'disabled:opacity-50 disabled:cursor-not-allowed',
-          isUpvoted && 'text-orange-500'
+          'active:scale-95',
+          isUpvoted && 'text-orange-500 bg-orange-50 dark:bg-orange-950'
         )}
-        aria-label="Upvote"
+        aria-label="Upvote comment"
         title="Upvote"
       >
         <svg
@@ -62,7 +63,10 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
           fill={isUpvoted ? 'currentColor' : 'none'}
           stroke="currentColor"
           strokeWidth="2"
-          className="w-5 h-5"
+          className={cn(
+            'w-5 h-5 transition-transform',
+            isUpvoted && 'scale-110'
+          )}
         >
           <path
             strokeLinecap="round"
@@ -74,11 +78,13 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
 
       <span
         className={cn(
-          'text-sm font-medium min-w-[2rem] text-center',
+          'text-sm font-medium min-w-[2rem] text-center transition-colors',
           isUpvoted && 'text-orange-500',
           isDownvoted && 'text-blue-500',
           !userVote && 'text-muted-foreground'
         )}
+        aria-live="polite"
+        aria-atomic="true"
       >
         {score}
       </span>
@@ -87,11 +93,12 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
         onClick={() => handleVote(-1)}
         disabled={isPending || isVoting}
         className={cn(
-          'p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors',
+          'touch-target p-2 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all',
           'disabled:opacity-50 disabled:cursor-not-allowed',
-          isDownvoted && 'text-blue-500'
+          'active:scale-95',
+          isDownvoted && 'text-blue-500 bg-blue-50 dark:bg-blue-950'
         )}
-        aria-label="Downvote"
+        aria-label="Downvote comment"
         title="Downvote"
       >
         <svg
@@ -100,7 +107,10 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
           fill={isDownvoted ? 'currentColor' : 'none'}
           stroke="currentColor"
           strokeWidth="2"
-          className="w-5 h-5"
+          className={cn(
+            'w-5 h-5 transition-transform',
+            isDownvoted && 'scale-110'
+          )}
         >
           <path
             strokeLinecap="round"

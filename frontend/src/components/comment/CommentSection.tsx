@@ -1,4 +1,5 @@
 import React from 'react';
+import { useInView } from 'react-intersection-observer';
 import { cn } from '@/lib/utils';
 import { Button, Spinner } from '@/components/ui';
 import { CommentItem } from './CommentItem';
@@ -13,6 +14,20 @@ interface CommentSectionProps {
   className?: string;
 }
 
+// Memoized CommentItem wrapper for performance
+const MemoizedCommentItem = React.memo(CommentItem, (prevProps, nextProps) => {
+  return (
+    prevProps.comment.id === nextProps.comment.id &&
+    prevProps.comment.vote_score === nextProps.comment.vote_score &&
+    prevProps.comment.user_vote === nextProps.comment.user_vote &&
+    prevProps.comment.content === nextProps.comment.content &&
+    prevProps.comment.edited_at === nextProps.comment.edited_at &&
+    prevProps.comment.is_deleted === nextProps.comment.is_deleted &&
+    prevProps.comment.is_removed === nextProps.comment.is_removed &&
+    prevProps.comment.child_count === nextProps.comment.child_count
+  );
+});
+
 export const CommentSection: React.FC<CommentSectionProps> = ({
   clipId,
   currentUserId,
@@ -21,6 +36,11 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 }) => {
   const [sort, setSort] = React.useState<CommentSortOption>('best');
   const [showCommentForm, setShowCommentForm] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [pullDistance, setPullDistance] = React.useState(0);
+  const touchStartRef = React.useRef<number>(0);
+  const scrollTopRef = React.useRef<number>(0);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   const {
     data,
@@ -29,6 +49,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch,
   } = useComments(clipId, sort);
 
   const totalComments = data?.pages[0]?.total || 0;
@@ -36,6 +57,55 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     () => data?.pages.flatMap((page) => page.comments) || [],
     [data]
   );
+
+  // Intersection observer for infinite scroll
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0.5,
+  });
+
+  // Load more when the trigger element comes into view
+  React.useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Pull-to-refresh handlers for mobile web
+  const handleTouchStart = React.useCallback((e: React.TouchEvent) => {
+    // Only enable pull-to-refresh when at the top of the container
+    const container = containerRef.current;
+    if (container) {
+      scrollTopRef.current = container.scrollTop;
+      if (scrollTopRef.current === 0) {
+        touchStartRef.current = e.touches[0].clientY;
+      }
+    }
+  }, []);
+
+  const handleTouchMove = React.useCallback((e: React.TouchEvent) => {
+    if (touchStartRef.current && scrollTopRef.current === 0) {
+      const currentY = e.touches[0].clientY;
+      const distance = Math.max(0, currentY - touchStartRef.current);
+      
+      // Only activate pull-to-refresh if user is pulling down
+      if (distance > 0) {
+        setPullDistance(Math.min(distance, 100));
+      }
+    }
+  }, []);
+
+  const handleTouchEnd = React.useCallback(() => {
+    if (pullDistance > 80 && !isRefreshing) {
+      setIsRefreshing(true);
+      refetch().finally(() => {
+        setIsRefreshing(false);
+        setPullDistance(0);
+      });
+    } else {
+      setPullDistance(0);
+    }
+    touchStartRef.current = 0;
+  }, [pullDistance, isRefreshing, refetch]);
 
   if (error) {
     return (
@@ -51,23 +121,61 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   }
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div
+      ref={containerRef}
+      className={cn('space-y-6', className)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div
+          className="fixed top-0 left-0 right-0 flex justify-center items-center z-50 transition-opacity"
+          style={{
+            opacity: Math.min(pullDistance / 80, 1),
+            transform: `translateY(${Math.min(pullDistance, 80)}px)`,
+          }}
+        >
+          <div className="bg-background border border-border rounded-full p-3 shadow-lg">
+            <svg
+              className={cn(
+                'w-6 h-6 text-primary-500 transition-transform',
+                isRefreshing && 'animate-spin'
+              )}
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold">
           Comments ({totalComments.toLocaleString()})
         </h2>
 
         {/* Sort dropdown */}
         <div className="flex items-center gap-2">
-          <label htmlFor="sort-select" className="text-sm text-muted-foreground">
+          <label htmlFor="sort-select" className="text-sm text-muted-foreground hidden sm:inline">
             Sort by:
           </label>
           <select
             id="sort-select"
             value={sort}
             onChange={(e) => setSort(e.target.value as CommentSortOption)}
-            className="px-3 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="touch-target px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            aria-label="Sort comments"
           >
             <option value="best">Best</option>
             <option value="top">Top</option>
@@ -88,7 +196,11 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
             placeholder="What are your thoughts?"
           />
         ) : (
-          <Button onClick={() => setShowCommentForm(true)} fullWidth>
+          <Button 
+            onClick={() => setShowCommentForm(true)} 
+            fullWidth
+            className="touch-target"
+          >
             Add Comment
           </Button>
         )}
@@ -117,27 +229,47 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           {/* Comments list */}
           <div className="space-y-6">
             {allComments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                clipId={clipId}
-                currentUserId={currentUserId}
-                isAdmin={isAdmin}
-              />
+              <div key={comment.id} className="lazy-render">
+                <MemoizedCommentItem
+                  comment={comment}
+                  clipId={clipId}
+                  currentUserId={currentUserId}
+                  isAdmin={isAdmin}
+                />
+              </div>
             ))}
           </div>
 
-          {/* Load more button */}
+          {/* Infinite scroll trigger and load more */}
           {hasNextPage && (
-            <div className="flex justify-center pt-4">
-              <Button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                loading={isFetchingNextPage}
-                variant="outline"
-              >
-                {isFetchingNextPage ? 'Loading...' : 'Load More Comments'}
-              </Button>
+            <>
+              {/* Intersection observer trigger */}
+              <div ref={loadMoreRef} className="h-4" />
+              
+              {/* Loading spinner */}
+              {isFetchingNextPage ? (
+                <div className="flex justify-center py-4">
+                  <Spinner size="md" />
+                </div>
+              ) : (
+                /* Fallback button if auto-load doesn't work */
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={() => fetchNextPage()}
+                    variant="outline"
+                    className="touch-target"
+                  >
+                    Load More Comments
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* End of comments indicator */}
+          {!hasNextPage && allComments.length > 0 && (
+            <div className="text-center py-6 text-sm text-muted-foreground">
+              You've reached the end of the comments
             </div>
           )}
         </>

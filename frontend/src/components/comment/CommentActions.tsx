@@ -81,11 +81,12 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
 
   return (
     <>
-      <div className={cn('flex items-center gap-3 text-sm', className)}>
+      <div className={cn('flex items-center gap-2 sm:gap-3 text-sm flex-wrap', className)}>
         {isAuthenticated && (
           <button
             onClick={onReply}
-            className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            className="touch-target text-muted-foreground hover:text-foreground transition-colors font-medium p-2 -m-2"
+            aria-label="Reply to comment"
           >
             Reply
           </button>
@@ -94,7 +95,8 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
         {canEdit && (
           <button
             onClick={onEdit}
-            className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            className="touch-target text-muted-foreground hover:text-foreground transition-colors font-medium p-2 -m-2"
+            aria-label="Edit comment"
           >
             Edit
           </button>
@@ -103,7 +105,8 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
         {canDelete && (
           <button
             onClick={() => setShowDeleteDialog(true)}
-            className="text-muted-foreground hover:text-error-500 transition-colors font-medium"
+            className="touch-target text-muted-foreground hover:text-error-500 transition-colors font-medium p-2 -m-2"
+            aria-label="Delete comment"
           >
             Delete
           </button>
@@ -111,7 +114,8 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
 
         <button
           onClick={handleShare}
-          className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+          className="touch-target text-muted-foreground hover:text-foreground transition-colors font-medium p-2 -m-2"
+          aria-label="Share comment"
         >
           Share
         </button>
@@ -119,7 +123,8 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
         {isAuthenticated && !isAuthor && (
           <button
             onClick={() => setShowReportDialog(true)}
-            className="text-muted-foreground hover:text-error-500 transition-colors font-medium"
+            className="touch-target text-muted-foreground hover:text-error-500 transition-colors font-medium p-2 -m-2"
+            aria-label="Report comment"
           >
             Report
           </button>

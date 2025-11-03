@@ -136,8 +136,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="touch-target text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -m-1"
             title={isCollapsed ? 'Expand thread' : 'Collapse thread'}
+            aria-label={isCollapsed ? 'Expand thread' : 'Collapse thread'}
           >
             {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
           </button>
@@ -154,7 +155,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         {isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
-            className="text-sm text-primary-500 hover:text-primary-600 transition-colors"
+            className="touch-target text-sm text-primary-500 hover:text-primary-600 transition-colors p-2 -m-2"
+            aria-label={`Expand comment with ${hasReplies ? `${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}` : 'content'}`}
           >
             [{hasReplies ? `${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}` : 'expand'}]
           </button>
@@ -241,7 +243,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
             {/* Nested replies */}
             {hasReplies && !shouldShowContinueThread && (
-              <div className="mt-4 space-y-4 border-l-2 border-border pl-4">
+              <div className="mt-4 space-y-4 border-l-2 border-border pl-3 sm:pl-4 optimize-60fps">
                 {comment.replies!.map((reply) => (
                   <CommentItem
                     key={reply.id}
