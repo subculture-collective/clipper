@@ -3,7 +3,17 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      'nativewind/babel',
+      [
+        'module-resolver',
+        {
+          root: ['./'],
+          alias: {
+            '@': './src',
+            '@clipper/shared': '../shared/src',
+          },
+          extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
+        },
+      ],
     ],
   };
 };

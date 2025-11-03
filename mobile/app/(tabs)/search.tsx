@@ -1,28 +1,30 @@
-/**
- * Search screen
- */
-
-import { View, Text, TextInput } from 'react-native';
-import { useState } from 'react';
+import { StyleSheet, View, Text } from 'react-native';
 
 export default function SearchScreen() {
-  const [query, setQuery] = useState('');
-
   return (
-    <View className="flex-1 bg-white p-4">
-      <TextInput
-        className="bg-gray-100 p-3 rounded-lg text-base"
-        placeholder="Search clips, users, games..."
-        value={query}
-        onChangeText={setQuery}
-        autoCapitalize="none"
-      />
-      
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-gray-500 text-center">
-          {query ? `Searching for "${query}"...` : 'Enter a search query'}
-        </Text>
-      </View>
+    <View style={styles.container}>
+      <Text style={styles.title}>Search</Text>
+      <Text style={styles.subtitle}>Search functionality coming soon</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#64748b',
+  },
+});

@@ -1,225 +1,199 @@
-# Clipper Mobile
+# Clipper Mobile App
 
-Native mobile apps for iOS and Android built with React Native and Expo.
+React Native mobile application for Clipper, built with Expo.
 
-## 🚀 Quick Start
+## Features
 
-### Prerequisites
+- 📱 Native iOS and Android support
+- 🎬 Browse and discover Twitch clips
+- 🔍 Search functionality
+- ⭐ Save favorite clips
+- 👤 User profiles and authentication
+- 🎨 Modern UI with React Native
+
+## Prerequisites
 
 - Node.js 20+
 - npm or yarn
-- Expo CLI (`npm install -g expo-cli`)
 - iOS Simulator (macOS only) or Android Emulator
+- Expo Go app (for physical device testing)
 
-### Installation
+## Getting Started
+
+### Install Dependencies
+
+From the repository root:
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
-npm start
 ```
 
-### Running on Simulators
+Or from the mobile directory:
 
 ```bash
-# iOS (macOS only)
+cd mobile
+npm install
+```
+
+### Environment Configuration
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+
+```env
+API_BASE_URL=http://localhost:8080
+ENV=development
+```
+
+### Running the App
+
+Start the development server:
+
+```bash
+npm run start
+```
+
+Run on iOS simulator:
+
+```bash
 npm run ios
+```
 
-# Android
+Run on Android emulator:
+
+```bash
 npm run android
+```
 
-# Web (for testing)
+Run in web browser:
+
+```bash
 npm run web
 ```
 
-## 📁 Project Structure
+### Using Expo Go
+
+1. Install Expo Go on your physical device
+2. Start the dev server with `npm run start`
+3. Scan the QR code with your camera (iOS) or Expo Go app (Android)
+
+## Development
+
+### Project Structure
 
 ```
 mobile/
-├── app/                    # Expo Router file-based routing
-│   ├── (tabs)/            # Tab navigation screens
-│   │   ├── index.tsx      # Home/Feed
-│   │   ├── search.tsx     # Search
-│   │   ├── favorites.tsx  # Favorites
-│   │   └── profile.tsx    # Profile
-│   ├── clip/
-│   │   └── [id].tsx       # Clip detail (dynamic route)
-│   ├── auth/
-│   │   └── login.tsx      # Login screen
-│   ├── settings/
-│   │   └── index.tsx      # Settings
-│   ├── _layout.tsx        # Root layout
-│   └── +not-found.tsx     # 404 screen
-├── src/                   # Source code
-│   ├── components/        # Reusable components (future)
-│   ├── hooks/            # Custom hooks (future)
-│   ├── services/         # API services (future)
-│   └── stores/           # Zustand stores (future)
-├── assets/               # Images, fonts, icons
-├── app.json             # Expo configuration
-├── eas.json             # EAS Build configuration
-└── package.json
+├── app/              # Expo Router screens
+│   ├── (tabs)/      # Tab-based navigation
+│   ├── _layout.tsx  # Root layout
+│   └── +not-found.tsx
+├── src/
+│   ├── components/  # Reusable components
+│   ├── screens/     # Screen components
+│   ├── navigation/  # Navigation configuration
+│   ├── services/    # API services
+│   ├── hooks/       # Custom React hooks
+│   ├── utils/       # Utility functions
+│   ├── types/       # TypeScript types
+│   └── config/      # Configuration
+├── assets/          # Images, fonts, etc.
+└── app.json         # Expo configuration
 ```
 
-## 🛠 Tech Stack
+### Shared Package
 
-- **Framework**: React Native 0.76 + Expo 52
-- **Routing**: Expo Router (file-based)
-- **Styling**: NativeWind (TailwindCSS)
-- **State Management**: TanStack Query + Zustand
-- **Build System**: EAS Build
-- **OTA Updates**: EAS Update
-- **Type Safety**: TypeScript
+This app uses `@clipper/shared` for shared types and constants with the web application:
 
-## 🎨 Styling
-
-This project uses NativeWind for styling, which brings TailwindCSS utility classes to React Native:
-
-```tsx
-<View className="flex-1 bg-white p-4">
-  <Text className="text-2xl font-bold text-gray-900">
-    Hello World
-  </Text>
-</View>
+```typescript
+import { Clip, ClipFeedResponse } from '@clipper/shared';
 ```
 
-## 🧪 Testing
+### Code Style
+
+- ESLint for linting
+- Prettier for code formatting
+- TypeScript for type safety
+
+Run linting:
 
 ```bash
-# Run tests
+npm run lint
+```
+
+Fix linting issues:
+
+```bash
+npm run lint:fix
+```
+
+### Testing
+
+Run tests:
+
+```bash
 npm test
-
-# Run tests in watch mode
-npm test -- --watch
 ```
 
-## 📦 Building
-
-### Development Build
+Run tests with coverage:
 
 ```bash
-# Build for iOS Simulator
-eas build --profile development --platform ios
-
-# Build for Android Emulator
-eas build --profile development --platform android
+npm test -- --coverage
 ```
 
-### Production Build
+### Type Checking
 
 ```bash
-# Build for both platforms
-npm run build:production
-
-# Or build individually
-eas build --profile production --platform ios
-eas build --profile production --platform android
+npm run type-check
 ```
 
-## 🚀 Deployment
+## Building for Production
 
-### Submit to App Stores
+### iOS
 
 ```bash
-# Submit to both stores
-npm run submit
-
-# Or submit individually
-eas submit --platform ios
-eas submit --platform android
+npx eas build --platform ios
 ```
 
-### OTA Updates
+### Android
 
 ```bash
-# Publish update to production channel
-eas update --branch production --message "Bug fixes"
-
-# Publish to preview channel
-eas update --branch preview --message "New feature preview"
+npx eas build --platform android
 ```
 
-## 🔗 Deep Linking
-
-The app supports deep linking with the `clipper://` scheme:
-
-- `clipper://clip/123` - Open clip with ID 123
-- `clipper://user/john` - Open user profile for john
-- `clipper://search?q=gaming` - Open search with query
-
-## 📱 Development Tips
-
-### Using Expo Go
-
-For quick iteration, use Expo Go app:
-
-1. Install Expo Go from App Store or Google Play
-2. Run `npm start`
-3. Scan QR code with camera (iOS) or Expo Go (Android)
-
-### Using Development Build
-
-For full native features:
-
-1. Build development client: `eas build --profile development`
-2. Install on device/simulator
-3. Run `npm start` and select development build
-
-### Environment Variables
-
-Create `mobile/.env`:
-
-```env
-API_URL=http://localhost:8080/api/v1
-SENTRY_DSN=your-sentry-dsn
-POSTHOG_KEY=your-posthog-key
-```
-
-## 🔐 Security
-
-- Auth tokens stored in Expo SecureStore (encrypted)
-- API requests use JWT authentication
-- Deep links validated before processing
-- No secrets in source code
-
-## 🐛 Troubleshooting
-
-### Metro bundler not starting
-
-```bash
-# Clear cache
-npx expo start -c
-```
-
-### iOS build fails
-
-```bash
-# Update CocoaPods
-cd ios && pod install --repo-update
-```
-
-### Android build fails
-
-```bash
-# Clean gradle cache
-cd android && ./gradlew clean
-```
-
-## 📚 Resources
+## Documentation
 
 - [Expo Documentation](https://docs.expo.dev/)
 - [React Native Documentation](https://reactnative.dev/)
 - [Expo Router Documentation](https://docs.expo.dev/router/introduction/)
-- [NativeWind Documentation](https://www.nativewind.dev/)
-- [RFC 001: Mobile Framework Selection](../docs/rfcs/001-mobile-framework-selection.md)
-- [Mobile Architecture](../docs/MOBILE_ARCHITECTURE.md)
 
-## 🤝 Contributing
+## Troubleshooting
 
-See main [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+### Clear cache and restart
 
-## 📄 License
+```bash
+npm run start -- --clear
+```
 
-MIT - See [LICENSE](../LICENSE) for details.
+### Reset dependencies
+
+```bash
+rm -rf node_modules
+npm install
+```
+
+### iOS build issues
+
+```bash
+cd ios
+pod install
+cd ..
+```
+
+## Contributing
+
+Please read the main [CONTRIBUTING.md](../CONTRIBUTING.md) for development guidelines.

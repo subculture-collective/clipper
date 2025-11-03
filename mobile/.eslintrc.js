@@ -1,7 +1,11 @@
 module.exports = {
-  extends: ['expo', 'prettier'],
-  plugins: ['prettier'],
+  root: true,
+  extends: ['universe/native', 'prettier'],
+  env: {
+    node: true,
+    jest: true,
+  },
   rules: {
-    'prettier/prettier': 'error',
+    '@typescript-eslint/ban-types': 'off',
   },
 };

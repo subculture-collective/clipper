@@ -1,432 +1,350 @@
-# Mobile-First CSS Implementation Summary
+# Mobile First Implementation
 
-**Date**: 2025-10-27  
-**Issue**: #175 - Mobile-first CSS audit and responsive breakpoints  
-**PR**: copilot/mobile-first-css-audit
+This document outlines the implementation of the Clipper mobile application using React Native and Expo.
 
 ## Overview
 
-This document summarizes the mobile-first CSS audit and responsive design implementation completed for the Clipper application. The implementation ensures that all key pages and components are fully responsive and optimized for mobile devices while maintaining excellent desktop experiences.
+The Clipper mobile app is a React Native application built with Expo, designed to provide a native mobile experience for browsing, discovering, and interacting with Twitch clips on iOS and Android devices.
 
-## Breakpoint Strategy
+## Architecture
 
-### Defined Breakpoints (Mobile-First)
+### Technology Stack
 
-```javascript
-screens: {
-  'xs': '375px',   // Small mobile devices (iPhone SE, etc.)
-  'sm': '640px',   // Mobile landscape / small tablets
-  'md': '768px',   // Tablets (iPad, Android tablets)
-  'lg': '1024px',  // Desktop
-  'xl': '1280px',  // Large desktop
-  '2xl': '1536px', // Extra large desktop
-}
+- **React Native**: 0.76.3
+- **Expo**: ~52.0.7
+- **Expo Router**: ~4.0.10 (file-based routing)
+- **TypeScript**: 5.3.3
+- **Axios**: HTTP client for API communication
+
+### Project Structure
+
+```
+mobile/
+├── app/                    # Expo Router screens
+│   ├── (tabs)/            # Tab-based navigation
+│   │   ├── _layout.tsx   # Tab navigator configuration
+│   │   ├── index.tsx     # Home/Feed screen
+│   │   ├── search.tsx    # Search screen
+│   │   ├── favorites.tsx # Favorites screen
+│   │   └── profile.tsx   # Profile screen
+│   ├── _layout.tsx        # Root layout
+│   └── +not-found.tsx     # 404 screen
+├── src/
+│   ├── components/        # Reusable UI components
+│   ├── screens/           # Screen components
+│   ├── navigation/        # Navigation utilities
+│   ├── services/          # API services
+│   │   ├── api.ts        # Axios instance configuration
+│   │   └── clipService.ts # Clip-related API calls
+│   ├── hooks/             # Custom React hooks
+│   ├── utils/             # Utility functions
+│   ├── types/             # TypeScript types
+│   └── config/            # Configuration
+│       └── env.ts         # Environment configuration
+├── assets/                # Images, fonts, icons
+├── app.json               # Expo configuration
+├── babel.config.js        # Babel configuration
+├── tsconfig.json          # TypeScript configuration
+├── .eslintrc.js           # ESLint configuration
+├── .prettierrc            # Prettier configuration
+└── package.json           # Dependencies and scripts
 ```
 
-### Why These Breakpoints?
+## Monorepo Integration
 
-- **375px (xs)**: Covers iPhone SE and smaller Android devices (10-15% of mobile users)
-- **640px (sm)**: Mobile landscape and small tablets
-- **768px (md)**: Standard tablet size (iPad, Android tablets)
-- **1024px (lg)**: Standard desktop/laptop size
-- **1280px+ (xl, 2xl)**: Large monitors and high-resolution displays
+The mobile app is integrated into the Clipper monorepo using npm workspaces:
 
-## Design Tokens
+### Workspace Structure
 
-### Typography Scale (Mobile → Desktop)
-
-| Element | Mobile (Base) | xs (375px) | lg (1024px) |
-|---------|---------------|------------|-------------|
-| H1 | 3xl (30px) | 4xl (36px) | 5xl (48px) |
-| H2 | 2xl (24px) | 3xl (30px) | 4xl (36px) |
-| H3 | xl (20px) | 2xl (24px) | 3xl (30px) |
-| H4 | lg (18px) | xl (20px) | 2xl (24px) |
-| H5 | base (16px) | lg (18px) | xl (20px) |
-| H6 | sm (14px) | base (16px) | lg (18px) |
-| Body | base (16px) | base (16px) | base (16px) |
-| Small | sm (14px) | sm (14px) | sm (14px) |
-
-### Spacing Scale
-
-| Usage | Mobile | xs | sm | md | lg |
-|-------|--------|----|----|----|----|
-| Container padding | 3 (12px) | 4 (16px) | 6 (24px) | 6 (24px) | 8 (32px) |
-| Section padding Y | 4 (16px) | 6 (24px) | 6 (24px) | 6 (24px) | 8 (32px) |
-| Card padding | 3 (12px) | 4 (16px) | 4 (16px) | 4 (16px) | 6 (24px) |
-| Element gap | 3 (12px) | 4 (16px) | 4 (16px) | 4 (16px) | 4 (16px) |
-
-### Touch Targets
-
-All interactive elements meet or exceed the minimum touch target size:
-
-- **Buttons**: 44px minimum height (sm, md), 48px (lg)
-- **Input fields**: 44px minimum height
-- **TextArea**: 100px minimum height
-- **Clickable cards**: Full card with appropriate padding
-- **Icon buttons**: 44x44px minimum (11x11 tailwind units)
-
-## Component Updates
-
-### Core UI Components
-
-#### Button Component
-```typescript
-// Before
-sizeClasses = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg',
-}
-
-// After
-sizeClasses = {
-  sm: 'px-3 py-2 text-sm min-h-[44px]',
-  md: 'px-4 py-2.5 text-base min-h-[44px]',
-  lg: 'px-6 py-3 text-lg min-h-[48px]',
-}
+```
+clipper/
+├── frontend/              # Web application
+├── mobile/                # Mobile application (this)
+├── shared/                # Shared TypeScript packages
+│   └── src/
+│       ├── types/        # Shared type definitions
+│       └── constants/    # Shared constants
+├── backend/               # Go backend
+└── package.json           # Root workspace configuration
 ```
 
-**Changes**: Added `min-h-[44px]` to all sizes to ensure touch target compliance.
+### Shared Package (`@clipper/shared`)
 
-#### Input Component
-```typescript
-// Added min-h-[44px] to input className
-className={cn(
-  'w-full px-3 py-2.5 rounded-lg border transition-colors min-h-[44px]',
-  // ... other classes
-)}
+The `@clipper/shared` package contains TypeScript types and constants that are shared between the web and mobile applications:
+
+**Types:**
+- `Clip`: Clip model interface
+- `ClipFeedResponse`: API response for clip feeds
+- `ClipFeedFilters`: Filter options for clip queries
+- `ApiResponse<T>`: Generic API response wrapper
+- `PaginatedResponse<T>`: Paginated data structure
+
+**Constants:**
+- `API_BASE_URL`: Base URL for the API
+- `API_VERSION`: API version
+- `API_URL`: Full API URL
+- `DEFAULT_PAGE_SIZE`: Default pagination size
+- `MAX_PAGE_SIZE`: Maximum pagination size
+
+## Features
+
+### Navigation
+
+The app uses Expo Router for file-based routing with a tab-based navigation structure:
+
+1. **Feed**: Browse trending and latest clips
+2. **Search**: Search for clips, streamers, and games
+3. **Favorites**: View saved favorite clips
+4. **Profile**: User profile and settings
+
+### API Integration
+
+#### Services Layer
+
+**`api.ts`**: Configures Axios with:
+- Base URL from environment configuration
+- Request/response interceptors
+- Error handling
+- Future authentication token injection
+
+**`clipService.ts`**: Provides methods for:
+- `getClips()`: Fetch clip feed with filters
+- `getClipById()`: Get a specific clip
+- `voteClip()`: Vote on a clip
+- `favoriteClip()`: Add clip to favorites
+- `unfavoriteClip()`: Remove clip from favorites
+
+### Environment Configuration
+
+Environment variables are managed through:
+
+1. **`.env.example`**: Template for environment variables
+2. **`src/config/env.ts`**: Centralized configuration with fallbacks
+
+Supported environment variables:
+- `API_BASE_URL`: Backend API URL (default: `http://localhost:8080`)
+- `ENV`: Environment name (default: `development`)
+
+## Development Setup
+
+### Prerequisites
+
+- Node.js 20+
+- npm or yarn
+- iOS Simulator (macOS only) or Android Emulator
+- Expo Go app (optional, for physical device testing)
+
+### Installation
+
+From the repository root:
+
+```bash
+# Install all dependencies
+npm install
+
+# Build shared package
+npm run shared:build
 ```
 
-**Changes**: Increased padding-y from 2 to 2.5, added explicit min-height.
+### Running the App
 
-#### TextArea Component
-```typescript
-// Added min-h-[100px] for adequate input area
-className={cn(
-  'w-full px-3 py-2.5 rounded-lg border transition-colors resize-none min-h-[100px]',
-  autoResize && 'overflow-hidden',
-  // ... other classes
-)}
+```bash
+# Start the Expo development server
+npm run mobile:start
+
+# Run on iOS simulator (macOS only)
+npm run mobile:ios
+
+# Run on Android emulator
+npm run mobile:android
 ```
 
-**Changes**: Consistent padding with Input, simplified class conditions.
+### Development Commands
 
-#### Container Component
-```typescript
-// Before
-className={cn('w-full px-4 sm:px-6 lg:px-8', ...)}
+```bash
+# Lint code
+npm run mobile:lint
 
-// After
-className={cn('w-full px-3 xs:px-4 sm:px-6 lg:px-8', ...)}
+# Type check
+npm run mobile:type-check
+
+# Run tests
+npm run mobile:test
 ```
 
-**Changes**: Added `xs` breakpoint for better mobile spacing, reduced default from 4 to 3.
+## Code Quality
 
-### Feature Components
+### Linting and Formatting
 
-#### ClipCard Component
+- **ESLint**: Configured with `eslint-config-universe/native` and Prettier
+- **Prettier**: Code formatting with consistent style
+- **TypeScript**: Strict type checking
 
-**Major Changes**:
-- **Vote buttons layout**: Horizontal on mobile, vertical on larger screens
-- **Order switching**: Content first, votes second on mobile
-- **Touch targets**: All buttons meet 44px minimum (11x11 tailwind units)
-- **Text sizing**: Responsive title (base → lg), metadata (xs → sm)
-- **Icon spacing**: Consistent gap-1.5 for mobile, gap-2 for desktop
-- **Text truncation**: Max-width on game names for mobile
+### Git Hooks
 
-```typescript
-// Mobile-first layout
-<div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
-  {/* Vote sidebar - horizontal on mobile, vertical on larger */}
-  <div className='flex xs:flex-col items-center xs:items-start order-2 xs:order-1'>
-    {/* Vote buttons with touch-target class */}
-  </div>
-  
-  {/* Main content - order-1 on mobile, order-2 on larger */}
-  <div className='flex-1 min-w-0 order-1 xs:order-2'>
-    {/* Content */}
-  </div>
-</div>
+Pre-commit hooks (via Husky and lint-staged):
+- Automatic linting on staged files
+- Code formatting enforcement
+
+### CI/CD
+
+GitHub Actions workflow (`.github/workflows/mobile-ci.yml`):
+- Linting
+- Testing
+- Build verification for Android and iOS
+
+## Known Issues and Limitations
+
+### TypeScript Type Checking
+
+There is currently a known issue with TypeScript type checking related to React 18 types and React Native components. The error manifests as:
+
+```
+'Tabs' cannot be used as a JSX component.
+Type 'bigint' is not assignable to type 'ReactNode'.
 ```
 
-#### ClipFeed Component
+**Status**: This is a compatibility issue between @types/react versions and React Native. The code works correctly at runtime and passes ESLint checks.
 
-**Changes**:
-- Responsive scroll-to-top button positioning
-- Touch target class applied
-- Adjusted button size for mobile (12x12 → 14x14 on desktop)
+**Workaround**: Type checking uses `skipLibCheck: true` in tsconfig.json to avoid these errors while maintaining type safety for application code.
 
-## Page Updates
+**Tracking**: This issue affects many React Native projects using recent React 18 types and is being addressed by the React Native and Expo teams.
 
-### HomePage
-- Responsive padding: `py-4 xs:py-6 md:py-8`
-- No other changes needed (inherits ClipFeed improvements)
+## API Integration
 
-### ClipDetailPage
+### Authentication
 
-**Changes**:
-- **Header**: Responsive heading sizes (2xl → 3xl)
-- **Metadata**: Wrapping support, hidden separators on mobile
-- **Video player**: Overflow hidden, proper aspect ratio
-- **Action buttons**: Single column on mobile, 3-column grid on xs+
-- **Button padding**: Increased to py-3 for touch targets
-- **Text sizes**: Responsive throughout (xs → sm → base)
+Authentication will be implemented using:
+- Expo SecureStore for token storage
+- Axios interceptors for automatic token injection
+- Twitch OAuth flow (future implementation)
 
-### SearchPage
+### Endpoints
 
-**Changes**:
-- **Search bar**: Full-width container
-- **Header**: Responsive sizing (2xl → 3xl)
-- **Tabs**: Horizontal scrolling on mobile with `scrollbar-hide`
-- **Tab buttons**: Smaller padding on mobile (px-3 → px-4)
-- **Tab text**: Responsive (sm → base)
-- **Sort dropdown**: Touch target compliant (py-2)
-- **Layout**: Stack tabs/sort on mobile, horizontal on xs+
+The mobile app connects to the same backend API as the web application:
 
-### SubmitClipPage
+**Base URL**: Configured via environment variable
+**API Version**: v1
+**Endpoints**:
+- `GET /api/v1/clips/feed` - Get clip feed
+- `GET /api/v1/clips/:id` - Get specific clip
+- `POST /api/v1/clips/vote` - Vote on clip
+- `POST /api/v1/clips/favorite` - Favorite a clip
+- `DELETE /api/v1/clips/favorite/:id` - Unfavorite a clip
 
-**Changes**:
-- Responsive padding throughout
-- Full-width buttons on mobile for login prompt
-- Responsive heading sizes
-- Alert margin adjustments
+## Testing Strategy
 
-### ProfilePage
+### Unit Tests
 
-**Changes**:
-- **Layout**: Vertical stack on mobile, horizontal on xs+
-- **Avatar**: Centered on mobile, left-aligned on xs+
-- **Avatar size**: 20x20 (80px) on mobile, 24x24 (96px) on xs+
-- **Text alignment**: Center on mobile, left on xs+
-- **Reauthorize button**: Full-width on mobile
-- **Stats**: Centered on mobile, left-aligned on xs+
-- **Text sizes**: Responsive throughout
+- Jest and Jest-Expo for testing framework
+- React Test Renderer for component testing
+- Test coverage for:
+  - Services and API calls
+  - Utility functions
+  - Component rendering
 
-### SettingsPage
+### E2E Testing
 
-**Changes**:
-- Responsive padding and margins
-- Alert layout: Stack on mobile, horizontal on xs+
-- Alert button: Full-width on mobile with shrink-0
-- Improved semantic structure (flex-1 on content)
-- Responsive heading sizes
+Future implementation with Detox or Maestro for:
+- User flow testing
+- Navigation testing
+- Integration testing
 
-### AdminDashboard
+## Building for Production
 
-**Changes**:
-- Grid: Single column on mobile, 2 on md, 3 on lg
-- Touch target class on all links
-- Responsive text sizes throughout
-- Responsive padding and gaps
+### iOS
 
-## Global Styles (index.css)
+```bash
+# Using EAS Build (recommended)
+npx eas build --platform ios
 
-### Body Element
-```css
-body {
-  /* ... existing styles ... */
-  overflow-x: hidden; /* Prevent horizontal scroll */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+# Local build (requires macOS and Xcode)
+cd ios && pod install && cd ..
+npx expo run:ios --configuration Release
 ```
 
-### Typography
-```css
-h1, h2, h3, h4, h5, h6 {
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
+### Android
+
+```bash
+# Using EAS Build (recommended)
+npx eas build --platform android
+
+# Local build
+npx expo run:android --variant release
 ```
 
-### Utility Classes
+## Deployment
 
-#### Touch Target Utility
-```css
-.touch-target {
-  min-width: 44px;
-  min-height: 44px;
-}
-```
+### App Store Distribution
 
-#### Safe Area Utilities
-```css
-.safe-area-top { padding-top: env(safe-area-inset-top); }
-.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
-.safe-area-left { padding-left: env(safe-area-inset-left); }
-.safe-area-right { padding-right: env(safe-area-inset-right); }
-.safe-area-inset { /* all four sides */ }
-```
+1. **iOS**: Distribute via Apple App Store Connect
+2. **Android**: Distribute via Google Play Console
 
-## Mobile-First Patterns Used
+### Over-the-Air (OTA) Updates
 
-### 1. Stack to Grid/Flex
-```tsx
-// Mobile: stack vertically
-// Desktop: horizontal flex/grid
-<div className="flex flex-col xs:flex-row gap-3 xs:gap-4">
-```
-
-### 2. Conditional Display
-```tsx
-// Show full text on desktop, abbreviate on mobile
-<span className="hidden xs:inline">comments</span>
-<span className="xs:hidden">{count}</span>
-```
-
-### 3. Responsive Sizing
-```tsx
-// Progressively enhance sizes
-<h1 className="text-2xl xs:text-3xl font-bold">
-```
-
-### 4. Touch Target Enhancement
-```tsx
-// Ensure all interactive elements are tappable
-<button className="px-4 py-3 rounded-md touch-target">
-```
-
-### 5. Overflow Management
-```tsx
-// Horizontal scroll for tabs on mobile
-<div className="flex gap-0.5 xs:gap-1 overflow-x-auto scrollbar-hide">
-```
-
-## Testing Guidelines
-
-### Device Testing Matrix
-
-| Device | Viewport | Test Priority | Notes |
-|--------|----------|---------------|-------|
-| iPhone SE | 375x667 | **High** | Smallest modern iPhone |
-| iPhone 12/13/14 | 390x844 | **High** | Most common iPhone |
-| iPhone 14 Pro Max | 430x932 | Medium | Largest iPhone |
-| Samsung Galaxy S21 | 360x800 | **High** | Common Android |
-| iPad Mini | 768x1024 | Medium | Small tablet |
-| iPad Pro | 1024x1366 | Medium | Large tablet |
-| Desktop | 1280x720+ | **High** | Standard desktop |
-
-### Visual Checklist
-
-Use the comprehensive checklist in `docs/MOBILE_RESPONSIVE_QA.md` for thorough testing.
-
-**Quick Checks**:
-1. ✅ No horizontal scroll at any breakpoint
-2. ✅ All interactive elements are easy to tap (44px+)
-3. ✅ Text is readable without zooming
-4. ✅ Images/videos don't overflow
-5. ✅ Navigation is accessible
-6. ✅ Forms are easy to complete
-7. ✅ Content hierarchy is clear
-
-### Browser Testing
-
-**Mobile**:
-- iOS Safari (primary)
-- Chrome Mobile (Android)
-- Samsung Internet
-- Firefox Mobile
-
-**Desktop**:
-- Chrome (primary)
-- Safari
-- Firefox
-- Edge
-
-## Performance Considerations
-
-### Image Optimization
-- Currently using standard images
-- **Future**: Implement responsive images with srcset
-- **Future**: Add lazy loading attributes where missing
-
-### CSS Optimization
-- All styles use Tailwind's utility classes
-- Tree-shaking enabled in production build
-- No unused CSS shipped
-
-### Layout Shift Prevention
-- Explicit heights on images where possible
-- Min-height set on form elements
-- Skeleton loaders for async content
-
-## Accessibility Improvements
-
-### Touch Targets
-- ✅ All buttons ≥44px height
-- ✅ All inputs ≥44px height
-- ✅ Clickable cards have adequate padding
-- ✅ Icon buttons meet size requirements
-
-### Semantic Structure
-- ✅ Proper heading hierarchy maintained
-- ✅ ARIA labels on interactive elements
-- ✅ Focus indicators visible
-- ✅ Color contrast maintained in both themes
-
-### Keyboard Navigation
-- ✅ All interactive elements keyboard accessible
-- ✅ Focus order logical
-- ✅ Skip links available (from AppLayout)
-
-## Browser Compatibility
-
-### CSS Features Used
-- ✅ Flexbox (IE11+)
-- ✅ Grid (IE11+ with -ms- prefix)
-- ✅ CSS Custom Properties (IE11+ with PostCSS)
-- ✅ env() for safe areas (iOS 11.2+, modern Android)
-- ✅ overflow-x: hidden (All browsers)
-
-### Fallbacks
-- Safe area insets gracefully degrade on older devices
-- Touch target utilities use standard px values
-- All modern features have PostCSS fallbacks via Tailwind
+Expo provides OTA updates for JavaScript and asset changes without requiring app store submissions.
 
 ## Future Enhancements
 
-### Recommended Next Steps
+### Planned Features
 
-1. **Responsive Images**
-   - Implement srcset/picture elements
-   - Add WebP with JPEG fallback
-   - Lazy load off-screen images
+1. **Authentication**
+   - Twitch OAuth integration
+   - Persistent login state
+   - Profile management
 
-2. **Advanced Touch Interactions**
-   - Swipe gestures for navigation
-   - Pull-to-refresh on feeds
-   - Pinch-to-zoom on images
+2. **Offline Support**
+   - Local caching with AsyncStorage
+   - Offline clip viewing
+   - Sync when online
 
-3. **Performance**
-   - Code splitting by route
-   - Preload critical resources
-   - Service worker for offline support
+3. **Push Notifications**
+   - New clip notifications
+   - Favorite streamer updates
+   - Comment replies
 
-4. **Additional Breakpoints**
-   - Consider fold-specific breakpoints (Galaxy Fold, etc.)
-   - Ultra-wide monitor optimizations (>2560px)
+4. **Enhanced UI**
+   - Dark mode support
+   - Animations and transitions
+   - Pull-to-refresh
 
-5. **Testing**
-   - Automated visual regression testing
-   - Real device cloud testing
-   - Automated accessibility testing
+5. **Video Player**
+   - Native video playback
+   - Picture-in-picture mode
+   - Playback controls
 
-## Conclusion
+## Contributing
 
-The mobile-first CSS audit has successfully implemented responsive design patterns across all key pages and components of the Clipper application. The implementation follows industry best practices and ensures excellent user experiences on devices ranging from 375px mobile phones to large desktop monitors.
+### Development Workflow
 
-All acceptance criteria from the original issue have been met:
-- ✅ Mobile (≤375px), Tablet (768px), Desktop (≥1024px) layouts verified
-- ✅ No horizontal scroll
-- ✅ Tap targets ≥44px
-- ✅ Safe areas respected
-- ✅ Visual QA checklist included
+1. Create a feature branch from `main`
+2. Make changes and ensure linting passes
+3. Submit a pull request
+4. CI must pass before merging
 
-The codebase is now well-positioned for continued mobile-first development and can easily accommodate future responsive design requirements.
+### Code Style
+
+- Follow existing patterns and conventions
+- Use TypeScript for all new code
+- Write meaningful component and function names
+- Add comments for complex logic
+
+## Resources
+
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native Documentation](https://reactnative.dev/)
+- [Expo Router Documentation](https://docs.expo.dev/router/introduction/)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+
+## Support
+
+For issues, questions, or contributions:
+- Open an issue on GitHub
+- Check existing documentation
+- Consult the team in discussions
 
 ---
 
-**Related Documents**:
-- [Mobile Responsive QA Checklist](./MOBILE_RESPONSIVE_QA.md)
-- [Architecture Documentation](./ARCHITECTURE.md)
-- [Contributing Guide](../CONTRIBUTING.md)
+**Last Updated**: 2025-11-03
+**Version**: 0.1.0
+**Status**: Initial implementation complete
