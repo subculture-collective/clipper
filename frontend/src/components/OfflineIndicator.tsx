@@ -156,7 +156,6 @@ export function OfflineIndicator() {
               <button
                 onClick={triggerSync}
                 className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                aria-label="Retry sync"
               >
                 Retry
               </button>

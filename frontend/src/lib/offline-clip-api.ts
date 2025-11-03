@@ -150,11 +150,23 @@ export async function voteOnClipOfflineAware(
   const cachedClip = await syncManager.getCachedClip(clipId);
   
   if (cachedClip) {
-    // Optimistically update vote count in cache
+    // Optimistically update vote count in cache, handling vote changes/removals
+    let upvoteCount = cachedClip.upvote_count || 0;
+    let downvoteCount = cachedClip.downvote_count || 0;
+    const prevVote = cachedClip.user_vote;
+
+    // Remove previous vote
+    if (prevVote === 1) upvoteCount = Math.max(0, upvoteCount - 1);
+    if (prevVote === -1) downvoteCount = Math.max(0, downvoteCount - 1);
+
+    // Add new vote
+    if (voteType === 1) upvoteCount += 1;
+    if (voteType === -1) downvoteCount += 1;
+
     const updatedClip: Clip = {
       ...cachedClip,
-      upvote_count: voteType === 1 ? (cachedClip.upvote_count || 0) + 1 : cachedClip.upvote_count,
-      downvote_count: voteType === -1 ? (cachedClip.downvote_count || 0) + 1 : cachedClip.downvote_count,
+      upvote_count: upvoteCount,
+      downvote_count: downvoteCount,
       user_vote: voteType === 0 ? null : voteType,
     };
     

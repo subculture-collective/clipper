@@ -59,7 +59,7 @@ export class SyncManager {
   private cache = getOfflineCache();
   private syncState: SyncState = { status: SyncStatus.IDLE, isSyncing: false };
   private listeners: Array<(state: SyncState) => void> = [];
-  private syncInterval: number | null = null;
+  private syncInterval: ReturnType<typeof setInterval> | null = null;
   private pendingOperations: Map<string, SyncOperation> = new Map();
 
   constructor() {
@@ -192,14 +192,13 @@ export class SyncManager {
       clearInterval(this.syncInterval);
     }
 
-    // Use setInterval directly and store the returned number
     this.syncInterval = setInterval(() => {
       if (this.mobileClient.isOnline() && !this.syncState.isSyncing) {
         this.syncNow().catch(err => {
           console.error('[SyncManager] Periodic sync failed:', err);
         });
       }
-    }, interval) as unknown as number;
+    }, interval);
   }
 
   private async performSync(): Promise<void> {
@@ -288,22 +287,57 @@ export class SyncManager {
     
     operation.status = 'syncing';
 
-    // TODO: Implement actual API calls based on operation type and entity
-    // This is a placeholder that marks operations as successful
-    // Real implementation should:
-    // 1. Call appropriate API endpoint based on operation.entity and operation.type
-    // 2. Handle response and update local cache
-    // 3. Handle errors and implement retry logic
-    // Example:
-    // if (operation.entity === 'vote') {
-    //   await voteOnClipAPI(operation.data);
-    // }
-    
-    // For now, we delegate to the MobileApiClient's offline queue
-    // which handles the actual API calls
-    await this.mobileClient.retryOfflineQueue();
-    
-    operation.status = 'success';
+    try {
+      // Import API functions dynamically to avoid circular dependencies
+      const { voteOnClip, addFavorite, removeFavorite } = await import('./clip-api');
+      const { createComment, updateComment, deleteComment, voteOnComment } = await import('./comment-api');
+
+      // Execute the operation based on entity and type
+      switch (operation.entity) {
+        case 'vote': {
+          const data = operation.data as { clip_id?: string; comment_id?: string; vote_type: 1 | -1 };
+          if (data.clip_id) {
+            await voteOnClip({ clip_id: data.clip_id, vote_type: data.vote_type });
+          } else if (data.comment_id) {
+            await voteOnComment({ comment_id: data.comment_id, vote_type: data.vote_type });
+          }
+          break;
+        }
+        
+        case 'favorite': {
+          const data = operation.data as { clip_id: string };
+          if (operation.type === 'create') {
+            await addFavorite({ clip_id: data.clip_id });
+          } else if (operation.type === 'delete') {
+            await removeFavorite({ clip_id: data.clip_id });
+          }
+          break;
+        }
+        
+        case 'comment': {
+          if (operation.type === 'create') {
+            const data = operation.data as { clip_id: string; content: string; parent_id?: string };
+            await createComment(data);
+          } else if (operation.type === 'update') {
+            const data = operation.data as { id: string; content: string };
+            await updateComment(data.id, { content: data.content });
+          } else if (operation.type === 'delete') {
+            const data = operation.data as { id: string };
+            await deleteComment(data.id);
+          }
+          break;
+        }
+        
+        default:
+          throw new Error(`Unknown entity: ${operation.entity}`);
+      }
+      
+      operation.status = 'success';
+    } catch (error: unknown) {
+      operation.status = 'error';
+      operation.error = error instanceof Error ? error.message : 'Unknown error';
+      throw error;
+    }
   }
 
   private async loadPendingOperations(): Promise<void> {

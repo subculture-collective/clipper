@@ -203,7 +203,7 @@ const resolved = resolveClipConflict(
 
 ### Dependencies Added (2)
 
-- `idb` (^7.x) - IndexedDB wrapper for cache storage
+- `idb` (^8.0.3) - IndexedDB wrapper for cache storage
 - `fake-indexeddb` (dev) - IndexedDB mock for testing
 
 ## Usage Examples

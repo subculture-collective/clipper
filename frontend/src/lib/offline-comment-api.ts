@@ -91,22 +91,26 @@ export async function fetchCommentsOfflineAware({
  * Create a comment with optimistic update
  * - Online: Send immediately and update cache
  * - Offline: Queue the operation and add to cache optimistically
+ * 
+ * @param payload - The comment creation payload
+ * @param userId - The authenticated user's ID (optional, defaults to placeholder)
+ * @param username - The authenticated user's username (optional, defaults to 'You')
  */
 export async function createCommentOfflineAware(
-  payload: CreateCommentPayload
+  payload: CreateCommentPayload,
+  userId?: string,
+  username?: string
 ): Promise<Comment> {
   const mobileClient = getMobileApiClient();
   const syncManager = getSyncManager();
   const isOnline = mobileClient.isOnline();
 
-  // Create optimistic comment
-  // TODO: Get actual user info from auth context
-  // For now using placeholder values
+  // Create optimistic comment with provided or placeholder user info
   const optimisticComment: Comment = {
     id: `temp-${Date.now()}-${Math.random()}`,
     clip_id: payload.clip_id,
-    user_id: 'pending-user-id', // TODO: Get from auth context
-    username: 'You', // TODO: Get from auth context
+    user_id: userId || 'pending-user-id',
+    username: username || 'You',
     content: payload.content,
     parent_id: payload.parent_id || null,
     vote_score: 0,
