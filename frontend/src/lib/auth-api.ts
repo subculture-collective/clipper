@@ -52,6 +52,7 @@ export async function initiateOAuth() {
  * Validates state and sends code verifier to backend
  */
 export async function handleOAuthCallback(code: string, state: string): Promise<{ success: boolean; error?: string }> {
+  // Import secure storage once at the top of the function
   const { getSecureItem, removeSecureItem } = await import('./secure-storage');
   
   try {
@@ -82,8 +83,7 @@ export async function handleOAuthCallback(code: string, state: string): Promise<
     
     return { success: true };
   } catch (error) {
-    // Clean up on error
-    const { removeSecureItem } = await import('./secure-storage');
+    // Clean up on error (reuse the imported function)
     await removeSecureItem('oauth_state');
     await removeSecureItem('oauth_code_verifier');
     

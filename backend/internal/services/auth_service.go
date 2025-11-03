@@ -31,6 +31,9 @@ var (
 	ErrUserBanned = errors.New("user is banned")
 	// ErrInvalidCodeVerifier is returned when PKCE code verifier validation fails
 	ErrInvalidCodeVerifier = errors.New("invalid code verifier")
+
+	// base64URLEncoder is a reusable base64 URL encoder without padding
+	base64URLEncoder = base64.URLEncoding.WithPadding(base64.NoPadding)
 )
 
 // TwitchUser represents a Twitch user from the API
@@ -80,6 +83,11 @@ func NewAuthService(
 // GenerateAuthURL generates the Twitch OAuth authorization URL
 // Supports PKCE: if codeChallenge is provided, stores it for later verification
 func (s *AuthService) GenerateAuthURL(ctx context.Context, codeChallenge, codeChallengeMethod, clientState string) (string, error) {
+	// Validate PKCE parameters: both must be provided, or neither
+	if (codeChallenge != "" && codeChallengeMethod == "") || (codeChallenge == "" && codeChallengeMethod != "") {
+		return "", errors.New("both codeChallenge and codeChallengeMethod must be provided together for PKCE")
+	}
+
 	// Use client-provided state if available, otherwise generate one
 	state := clientState
 	if state == "" {
@@ -414,8 +422,8 @@ func verifyPKCE(codeVerifier, codeChallenge, codeChallengeMethod string) error {
 	// Compute SHA256 hash of code verifier
 	hash := sha256.Sum256([]byte(codeVerifier))
 	
-	// Base64URL encode the hash
-	computed := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(hash[:])
+	// Base64URL encode the hash using the package-level encoder
+	computed := base64URLEncoder.EncodeToString(hash[:])
 	
 	// Compare with provided challenge
 	if computed != codeChallenge {
