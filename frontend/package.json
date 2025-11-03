@@ -64,7 +64,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.45.0",
     "vite": "npm:rolldown-vite@7.1.14",
-    "vitest": "^3.1.0",
+    "vitest": "^4.0.6",
     "vitest-axe": "^0.1.0"
   },
   "overrides": {
