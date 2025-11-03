@@ -2,14 +2,20 @@
 
 This document defines the features, limits, and privileges for each subscription tier in Clipper. Use this as the authoritative reference for implementing and gating subscription features.
 
+> **📋 Related Documentation:**
+> - **[Premium Tiers](./PREMIUM_TIERS.md)** - Comprehensive pricing, benefits, and tier details
+> - **[Entitlement Matrix](./ENTITLEMENT_MATRIX.md)** - Detailed feature gates per platform (Web, Mobile, API)
+> - **[Trials and Discounts](./TRIALS_AND_DISCOUNTS.md)** - Trial periods and promotional policies
+> - **[Stripe Integration](./SUBSCRIPTIONS.md)** - Payment processing setup
+
 ## Overview
 
 Clipper offers two subscription tiers:
 
 1. **Free** - Basic access for all users
-2. **Pro** - Enhanced features and higher limits for power users
+2. **Pro** - Enhanced features and higher limits for power users ($9.99/month or $99.99/year)
 
-Future tiers (e.g., Enterprise, Teams) can be added as the platform grows.
+Future tiers (e.g., Enterprise, Teams) can be added as the platform grows. See [Premium Tiers](./PREMIUM_TIERS.md) for detailed tier roadmap.
 
 ## Subscription Tiers Comparison
 
@@ -337,18 +343,26 @@ Track these metrics to understand subscription performance:
 
 ## Related Documentation
 
-- [Stripe Integration Setup](./SUBSCRIPTIONS.md) - How to configure Stripe
-- [API Documentation](./API.md) - API endpoints and authentication
-- [Rate Limiting](./CACHING_STRATEGY.md) - Rate limiting implementation
-- [Architecture](./ARCHITECTURE.md) - System architecture overview
+### Premium Tier Documentation (Comprehensive)
+
+- **[Premium Tiers](./PREMIUM_TIERS.md)** - Complete pricing strategy, tier benefits, competitive analysis, and future roadmap
+- **[Entitlement Matrix](./ENTITLEMENT_MATRIX.md)** - Detailed feature gates per platform (Web, Mobile, API) with implementation examples
+- **[Trials and Discounts](./TRIALS_AND_DISCOUNTS.md)** - Trial periods, promotional campaigns, coupon system, and referral program
+
+### Technical Documentation
+
+- **[Stripe Integration Setup](./SUBSCRIPTIONS.md)** - How to configure Stripe for payments and webhooks
+- **[API Documentation](./API.md)** - API endpoints and authentication
+- **[Rate Limiting](./CACHING_STRATEGY.md)** - Rate limiting implementation details
+- **[Architecture](./ARCHITECTURE.md)** - System architecture overview
 
 ## Support & Questions
 
 For implementation questions or clarification:
 
-- Create an issue with the `subscription` label
+- Create an issue with the `subscription` or `premium` label
 - Reference issue [#175](https://github.com/subculture-collective/clipper/issues/175) - Product Roadmap
-- See [SUBSCRIPTIONS.md](./SUBSCRIPTIONS.md) for Stripe integration setup
+- See comprehensive documentation linked above for detailed guidance
 
 ---
 

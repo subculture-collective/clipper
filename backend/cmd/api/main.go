@@ -358,6 +358,7 @@ func main() {
 			// Public auth endpoints with rate limiting
 			auth.GET("/twitch", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), authHandler.InitiateOAuth)
 			auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.HandleCallback)
+			auth.POST("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.HandlePKCECallback)
 			auth.POST("/refresh", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.RefreshToken)
 			auth.POST("/logout", authHandler.Logout)
 

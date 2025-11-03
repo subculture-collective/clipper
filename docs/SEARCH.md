@@ -553,6 +553,20 @@ When making relevance changes:
 4. Version the changes in the changelog section
 5. Commit the updated dataset with your changes
 
+## Semantic Search
+
+Clipper implements semantic search using hybrid BM25 + vector similarity re-ranking to understand query meaning and context, not just keywords.
+
+**See**: [Semantic Search Architecture Documentation](./SEMANTIC_SEARCH_ARCHITECTURE.md)
+
+**Key Features**:
+- Vector embeddings using pgvector in PostgreSQL
+- Hybrid search combining OpenSearch BM25 with vector similarity
+- Sub-100ms query latency with intelligent caching
+- Cost-effective approach leveraging existing infrastructure
+
+**Architecture Decision**: [ADR-001: Semantic Search Vector Database Selection](./adr/001-semantic-search-vector-db.md)
+
 ## Future Enhancements
 
 Potential improvements for the search platform:
@@ -560,13 +574,15 @@ Potential improvements for the search platform:
 1. **Real-time streaming** - Use Change Data Capture (CDC) for immediate indexing
 2. **Advanced analytics** - Implement search analytics dashboard
 3. **ML-powered ranking** - Use learning to rank for personalized results
-4. **Semantic search** - Add vector search for contextual understanding
+4. ~~**Semantic search**~~ - ✅ Architecture defined (hybrid BM25 + vector re-ranking)
 5. **Search as you type** - Implement completion suggester
 6. ~~**Faceted search**~~ - ✅ Completed (aggregations for filter options)
 7. **Highlighting** - Return matched text snippets in results
 8. **Spell checking** - Suggest corrections for misspelled queries
 9. **Tag facets** - Add tag-based facet aggregations
 10. **Personalized ranking** - User preference-based result ordering
+11. **Multi-modal embeddings** - Include video thumbnails in semantic search
+12. **Cross-lingual search** - Search across different languages semantically
 
 ## Resources
 
@@ -574,3 +590,5 @@ Potential improvements for the search platform:
 - [OpenSearch Go Client](https://github.com/opensearch-project/opensearch-go)
 - [Query DSL Reference](https://opensearch.org/docs/latest/query-dsl/)
 - [Index Management](https://opensearch.org/docs/latest/im-plugin/)
+- [pgvector Documentation](https://github.com/pgvector/pgvector)
+- [Semantic Search Architecture](./SEMANTIC_SEARCH_ARCHITECTURE.md)

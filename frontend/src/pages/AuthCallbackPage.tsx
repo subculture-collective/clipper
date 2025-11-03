@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Container, Spinner } from '../components';
 import { useAuth } from '../context/AuthContext';
+import { handleOAuthCallback } from '../lib/auth-api';
 
 export function AuthCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -26,9 +27,26 @@ export function AuthCallbackPage() {
         return;
       }
 
+      // Check if we have PKCE parameters (code and state)
+      const code = searchParams.get('code');
+      const state = searchParams.get('state');
+
       try {
-        // The backend has already set the auth cookies
-        // Just need to fetch the user data
+        // If we have code and state, use PKCE flow
+        if (code && state) {
+          const result = await handleOAuthCallback(code, state);
+          
+          if (!result.success) {
+            setError(result.error || 'Authentication failed. Please try again.');
+            setTimeout(() => {
+              navigate('/login', { replace: true });
+            }, 3000);
+            return;
+          }
+        }
+        
+        // After successful OAuth callback (or if backend already set cookies)
+        // Fetch the user data
         await refreshUser();
         
         // Get the intended destination from session storage or default to home

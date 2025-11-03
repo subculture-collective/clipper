@@ -3,9 +3,18 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { SkipLink } from '../ui';
 import { Footer } from './Footer';
 import { Header } from './Header';
+import { OfflineIndicator } from '../OfflineIndicator';
+import { useOfflineCacheInit } from '@/hooks/useOfflineCache';
+import { useSyncManager } from '@/hooks/useSyncManager';
 
 export function AppLayout() {
     const location = useLocation();
+    
+    // Initialize offline cache on app start
+    useOfflineCacheInit();
+    
+    // Initialize sync manager
+    useSyncManager();
 
     // Synchronously ensure overflow is reset during render to satisfy immediate expectations in tests
     if (typeof document !== 'undefined') {
@@ -116,6 +125,7 @@ export function AppLayout() {
                 <Outlet />
             </main>
             <Footer />
+            <OfflineIndicator />
         </div>
     );
 }
