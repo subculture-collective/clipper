@@ -192,13 +192,14 @@ export class SyncManager {
       clearInterval(this.syncInterval);
     }
 
-    this.syncInterval = window.setInterval(() => {
+    // Use setInterval directly and store the returned number
+    this.syncInterval = setInterval(() => {
       if (this.mobileClient.isOnline() && !this.syncState.isSyncing) {
         this.syncNow().catch(err => {
           console.error('[SyncManager] Periodic sync failed:', err);
         });
       }
-    }, interval);
+    }, interval) as unknown as number;
   }
 
   private async performSync(): Promise<void> {
@@ -287,9 +288,20 @@ export class SyncManager {
     
     operation.status = 'syncing';
 
-    // This is a placeholder - actual implementation would call the appropriate API
-    // For now, we just mark it as successful after a delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // TODO: Implement actual API calls based on operation type and entity
+    // This is a placeholder that marks operations as successful
+    // Real implementation should:
+    // 1. Call appropriate API endpoint based on operation.entity and operation.type
+    // 2. Handle response and update local cache
+    // 3. Handle errors and implement retry logic
+    // Example:
+    // if (operation.entity === 'vote') {
+    //   await voteOnClipAPI(operation.data);
+    // }
+    
+    // For now, we delegate to the MobileApiClient's offline queue
+    // which handles the actual API calls
+    await this.mobileClient.retryOfflineQueue();
     
     operation.status = 'success';
   }

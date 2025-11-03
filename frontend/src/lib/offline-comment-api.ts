@@ -100,11 +100,13 @@ export async function createCommentOfflineAware(
   const isOnline = mobileClient.isOnline();
 
   // Create optimistic comment
+  // TODO: Get actual user info from auth context
+  // For now using placeholder values
   const optimisticComment: Comment = {
     id: `temp-${Date.now()}-${Math.random()}`,
     clip_id: payload.clip_id,
-    user_id: 'current-user', // Would need to get from auth context
-    username: 'You',
+    user_id: 'pending-user-id', // TODO: Get from auth context
+    username: 'You', // TODO: Get from auth context
     content: payload.content,
     parent_id: payload.parent_id || null,
     vote_score: 0,
