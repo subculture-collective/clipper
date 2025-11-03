@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useShare } from '@/hooks';
 import 'video.js/dist/video-js.css';
 
 export interface VideoPlayerProps {
@@ -7,7 +8,6 @@ export interface VideoPlayerProps {
   thumbnailUrl?: string;
   embedUrl: string;
   twitchClipUrl: string;
-  onShare?: () => void;
 }
 
 export function VideoPlayer({
@@ -15,9 +15,9 @@ export function VideoPlayer({
   title,
   embedUrl,
   twitchClipUrl,
-  onShare,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
+  const { share } = useShare();
   const [isLoading, setIsLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -36,29 +36,12 @@ export function VideoPlayer({
   }, []);
 
   const handleShare = useCallback(async () => {
-    if (onShare) {
-      onShare();
-      return;
-    }
-
-    const shareData = {
+    await share({
       title: title,
       text: `Check out this clip: ${title}`,
       url: window.location.href,
-    };
-
-    try {
-      if (navigator.share && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-      } else {
-        // Fallback to clipboard
-        await navigator.clipboard.writeText(window.location.href);
-        alert('Link copied to clipboard!');
-      }
-    } catch (err) {
-      console.error('Error sharing:', err);
-    }
-  }, [title, onShare]);
+    });
+  }, [title, share]);
 
   const handleFullscreen = useCallback(() => {
     const container = videoRef.current;
