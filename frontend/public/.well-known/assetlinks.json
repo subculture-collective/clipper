@@ -1,0 +1,23 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.subculture.clipper",
+      "sha256_cert_fingerprints": [
+        "REPLACE_WITH_YOUR_APP_SHA256_FINGERPRINT"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "web",
+      "site": "https://clipper.example.com"
+    }
+  }
+]
