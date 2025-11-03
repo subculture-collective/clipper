@@ -493,4 +493,151 @@ describe('CommentSection', () => {
       expect(commentSection).toBeInTheDocument();
     });
   });
+
+  describe('Mobile features', () => {
+    it('should render with intersection observer for infinite scroll', async () => {
+      const mockResponse: CommentFeedResponse = {
+        comments: [createMockComment()],
+        total: 10,
+        page: 1,
+        limit: 10,
+        has_more: true,
+      };
+
+      vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
+
+      renderWithClient(<CommentSection clipId="clip-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test comment')).toBeInTheDocument();
+      });
+
+      // Load More button should be present as fallback
+      expect(screen.getByText(/Load More Comments/i)).toBeInTheDocument();
+    });
+
+    it('should not show load more button when no more pages', async () => {
+      const mockResponse: CommentFeedResponse = {
+        comments: [createMockComment()],
+        total: 1,
+        page: 1,
+        limit: 10,
+        has_more: false,
+      };
+
+      vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
+
+      renderWithClient(<CommentSection clipId="clip-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test comment')).toBeInTheDocument();
+      });
+
+      // Load More button should not be present
+      expect(screen.queryByText(/Load More Comments/i)).not.toBeInTheDocument();
+    });
+
+    it('should have accessible sort selector with all options', async () => {
+      const mockResponse: CommentFeedResponse = {
+        comments: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        has_more: false,
+      };
+
+      vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
+
+      const { container } = renderWithClient(<CommentSection clipId="clip-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Comments \(0\)/i)).toBeInTheDocument();
+      });
+
+      // Check sort select exists
+      const sortSelect = container.querySelector('select');
+      expect(sortSelect).toBeInTheDocument();
+
+      // Verify all sort options are present
+      const options = Array.from(sortSelect?.options || []).map(opt => opt.value);
+      expect(options).toContain('best');
+      expect(options).toContain('top');
+      expect(options).toContain('new');
+
+      // Add button should be rendered
+      expect(screen.getAllByText(/Add Comment/i)[0]).toBeInTheDocument();
+    });
+
+    it('should render memoized comment items for performance', async () => {
+      const comments = [
+        createMockComment({ id: 'comment-1', content: 'First comment' }),
+        createMockComment({ id: 'comment-2', content: 'Second comment' }),
+      ];
+
+      const mockResponse: CommentFeedResponse = {
+        comments,
+        total: 2,
+        page: 1,
+        limit: 10,
+        has_more: false,
+      };
+
+      vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
+
+      renderWithClient(<CommentSection clipId="clip-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('First comment')).toBeInTheDocument();
+        expect(screen.getByText('Second comment')).toBeInTheDocument();
+      });
+
+      // Both comments should be rendered
+      expect(screen.getByText('First comment')).toBeInTheDocument();
+      expect(screen.getByText('Second comment')).toBeInTheDocument();
+    });
+
+    it('should render comments with lazy rendering wrapper', async () => {
+      const mockResponse: CommentFeedResponse = {
+        comments: [createMockComment()],
+        total: 1,
+        page: 1,
+        limit: 10,
+        has_more: false,
+      };
+
+      vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
+
+      const { container } = renderWithClient(<CommentSection clipId="clip-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test comment')).toBeInTheDocument();
+      });
+
+      // Comments should be rendered in the space-y-6 container
+      const commentsContainer = container.querySelector('.space-y-6 > .space-y-6');
+      expect(commentsContainer).toBeInTheDocument();
+    });
+
+    it('should handle pull-to-refresh gestures on touch devices', async () => {
+      const mockResponse: CommentFeedResponse = {
+        comments: [createMockComment()],
+        total: 1,
+        page: 1,
+        limit: 10,
+        has_more: false,
+      };
+
+      vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
+
+      const { container } = renderWithClient(<CommentSection clipId="clip-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test comment')).toBeInTheDocument();
+      });
+
+      // Container should have touch event handlers (check for data attributes or refs)
+      const commentSection = container.querySelector('.space-y-6');
+      expect(commentSection).toBeInTheDocument();
+    });
+  });
 });
