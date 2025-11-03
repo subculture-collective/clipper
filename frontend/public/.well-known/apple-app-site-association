@@ -1,0 +1,30 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.com.subculture.clipper",
+        "paths": [
+          "/clip/*",
+          "/profile",
+          "/profile/*",
+          "/search",
+          "/search/*",
+          "/submit",
+          "/game/*",
+          "/creator/*",
+          "/tag/*",
+          "/discover",
+          "/new",
+          "/top",
+          "/rising"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAM_ID.com.subculture.clipper"
+    ]
+  }
+}
