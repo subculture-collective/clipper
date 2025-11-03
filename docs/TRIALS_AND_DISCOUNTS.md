@@ -337,12 +337,13 @@ current month. Upgrade now →
     Name:       stripe.String("$5 Off First Month"),
 }
 
-// Trial extension
-&stripe.CouponParams{
-    ID:           stripe.String("EXTENDED14"),
-    TrialPeriod:  stripe.Int64(14), // 14 days
-    Name:         stripe.String("Extended 14-Day Trial"),
-}
+// Trial extension (handled via SubscriptionParams, not CouponParams)
+// To implement an extended trial, use the coupon code in your application logic
+// to set TrialPeriodDays when creating the subscription:
+//
+//   if coupon == "EXTENDED14" {
+//       subParams.TrialPeriodDays = stripe.Int64(14)
+//   }
 ```
 
 ### Coupon Management
