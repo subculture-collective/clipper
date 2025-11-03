@@ -148,7 +148,6 @@ export function ClipDetailPage() {
             <VideoPlayer
               clipId={clip.id}
               title={clip.title}
-              thumbnailUrl={clip.thumbnail_url}
               embedUrl={clip.embed_url}
               twitchClipUrl={clip.twitch_clip_url}
             />

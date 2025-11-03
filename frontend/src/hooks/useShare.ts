@@ -14,7 +14,7 @@ export function useShare() {
     async (data: ShareData) => {
       try {
         // Check if Web Share API is available and can share this data
-        if (navigator.share && navigator.canShare && navigator.canShare(data)) {
+        if (navigator.share && typeof navigator.canShare === 'function' && navigator.canShare(data)) {
           await navigator.share(data);
           return { success: true, method: 'native' };
         }

@@ -4,41 +4,23 @@ import { useShare } from '@/hooks';
 export interface VideoPlayerProps {
   clipId: string;
   title: string;
-  thumbnailUrl?: string;
   embedUrl: string;
   twitchClipUrl: string;
 }
 
 export function VideoPlayer({
-  clipId,
   title,
   embedUrl,
   twitchClipUrl,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const { share } = useShare();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // TODO: Replace Twitch iframe with native video player once MP4 URLs are available
-  // Currently using Twitch embed as it provides reliable playback without needing direct video URLs
-  // Future enhancement: Fetch MP4 URLs from backend or use Twitch Player SDK for better control
-  useEffect(() => {
-    // Use Twitch embed
-    setIsLoading(false);
-  }, [clipId]);
-
-  const handleMuteToggle = useCallback(() => {
-    setIsMuted(prev => !prev);
-    // Note: This toggle affects the embed URL parameter but doesn't control the iframe dynamically
-    // The Twitch player has its own mute controls. This is a placeholder for future native player.
-  }, []);
-
   const handleShare = useCallback(async () => {
     await share({
-      title: title,
+      title,
       text: `Check out this clip: ${title}`,
       url: window.location.href,
     });
@@ -52,10 +34,8 @@ export function VideoPlayer({
       container.requestFullscreen().catch(err => {
         console.error('Error attempting to enable fullscreen:', err);
       });
-      setIsFullscreen(true);
     } else {
       document.exitFullscreen();
-      setIsFullscreen(false);
     }
   }, []);
 
@@ -96,19 +76,9 @@ export function VideoPlayer({
     };
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="relative w-full pt-[56.25%] bg-black rounded-lg flex items-center justify-center">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
   // Get parent domain for Twitch embed
   const parentDomain = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  const twitchEmbedUrl = `${embedUrl}&parent=${parentDomain}&autoplay=false&muted=${isMuted}`;
+  const twitchEmbedUrl = `${embedUrl}&parent=${parentDomain}&autoplay=false`;
 
   return (
     <div 
@@ -168,40 +138,19 @@ export function VideoPlayer({
         {/* Bottom Controls Bar */}
         <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 space-y-2 pointer-events-auto">
           {/* Control Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 md:gap-3">
-              <button
-                onClick={handleMuteToggle}
-                className="p-2 hover:bg-white/20 rounded transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
-                title={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? (
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <a
-                href={twitchClipUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 hover:bg-white/20 rounded transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Watch on Twitch"
-                title="Watch on Twitch"
-              >
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-                </svg>
-              </a>
-            </div>
+          <div className="flex items-center justify-end">
+            <a
+              href={twitchClipUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 hover:bg-white/20 rounded transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Watch on Twitch"
+              title="Watch on Twitch"
+            >
+              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+              </svg>
+            </a>
           </div>
         </div>
       </div>
