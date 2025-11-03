@@ -156,7 +156,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           <button
             onClick={() => setIsCollapsed(false)}
             className="touch-target text-sm text-primary-500 hover:text-primary-600 transition-colors p-2 -m-2"
-            aria-label={`Expand comment with ${hasReplies ? `${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}` : 'content'}`}
+            aria-label={hasReplies ? `Expand comment with ${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}` : 'Expand comment'}
           >
             [{hasReplies ? `${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}` : 'expand'}]
           </button>

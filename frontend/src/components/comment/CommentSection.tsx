@@ -15,16 +15,25 @@ interface CommentSectionProps {
 }
 
 // Memoized CommentItem wrapper for performance
+// Compares only the properties that affect rendering to prevent unnecessary re-renders
+// Note: If Comment type changes, update this comparison to include new relevant fields
 const MemoizedCommentItem = React.memo(CommentItem, (prevProps, nextProps) => {
+  const prev = prevProps.comment;
+  const next = nextProps.comment;
+  
+  // Compare all properties that affect visual rendering
   return (
-    prevProps.comment.id === nextProps.comment.id &&
-    prevProps.comment.vote_score === nextProps.comment.vote_score &&
-    prevProps.comment.user_vote === nextProps.comment.user_vote &&
-    prevProps.comment.content === nextProps.comment.content &&
-    prevProps.comment.edited_at === nextProps.comment.edited_at &&
-    prevProps.comment.is_deleted === nextProps.comment.is_deleted &&
-    prevProps.comment.is_removed === nextProps.comment.is_removed &&
-    prevProps.comment.child_count === nextProps.comment.child_count
+    prev.id === next.id &&
+    prev.vote_score === next.vote_score &&
+    prev.user_vote === next.user_vote &&
+    prev.content === next.content &&
+    prev.edited_at === next.edited_at &&
+    prev.is_deleted === next.is_deleted &&
+    prev.is_removed === next.is_removed &&
+    prev.child_count === next.child_count &&
+    // Compare other props that might change
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.isAdmin === nextProps.isAdmin
   );
 });
 
@@ -83,7 +92,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   }, []);
 
   const handleTouchMove = React.useCallback((e: React.TouchEvent) => {
-    if (touchStartRef.current && scrollTopRef.current === 0) {
+    if (touchStartRef.current && scrollTopRef.current === 0 && e.touches.length > 0) {
       const currentY = e.touches[0].clientY;
       const distance = Math.max(0, currentY - touchStartRef.current);
       
@@ -167,7 +176,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
         {/* Sort dropdown */}
         <div className="flex items-center gap-2">
-          <label htmlFor="sort-select" className="text-sm text-muted-foreground hidden sm:inline">
+          <label htmlFor="sort-select" className="text-sm text-muted-foreground sr-only sm:not-sr-only">
             Sort by:
           </label>
           <select
