@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,16 @@ interface ClipFeedProps {
   filters?: Partial<ClipFeedFilters>;
 }
 
+// Memoized ClipCard wrapper for performance
+const MemoizedClipCard = memo(ClipCard, (prevProps, nextProps) => {
+  return prevProps.clip.id === nextProps.clip.id &&
+         prevProps.clip.vote_score === nextProps.clip.vote_score &&
+         prevProps.clip.user_vote === nextProps.clip.user_vote &&
+         prevProps.clip.is_favorited === nextProps.clip.is_favorited &&
+         prevProps.clip.comment_count === nextProps.clip.comment_count &&
+         prevProps.clip.favorite_count === nextProps.clip.favorite_count;
+});
+
 export function ClipFeed({ 
   title = 'Clip Feed',
   description,
@@ -29,6 +39,11 @@ export function ClipFeed({
 }: ClipFeedProps) {
   const { i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const touchStartRef = useRef<number>(0);
+  const scrollTopRef = useRef<number>(0);
   
   // Get filters from URL or use defaults
   const sort = (searchParams.get('sort') as SortOption) || defaultSort;
@@ -50,7 +65,11 @@ export function ClipFeed({
     isFetchingNextPage,
     isLoading,
     isError,
+    refetch,
   } = useClipFeed(filters);
+
+  // Get all clips from all pages
+  const clips = data?.pages.flatMap(page => page.clips) ?? [];
 
   // Intersection observer for infinite scroll
   const { ref: loadMoreRef, inView } = useInView({
@@ -63,6 +82,44 @@ export function ClipFeed({
       fetchNextPage();
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Pull-to-refresh handlers for mobile web
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Only enable pull-to-refresh when at the top of the page
+    scrollTopRef.current = window.scrollY || document.documentElement.scrollTop;
+    if (scrollTopRef.current === 0) {
+      touchStartRef.current = e.touches[0].clientY;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartRef.current && scrollTopRef.current === 0) {
+      const currentY = e.touches[0].clientY;
+      const distance = Math.max(0, currentY - touchStartRef.current);
+      
+      // Only activate pull-to-refresh if user is pulling down
+      if (distance > 0 && distance < 120) {
+        setPullDistance(distance);
+        // Prevent default scroll behavior when pulling down
+        if (distance > 10) {
+          e.preventDefault();
+        }
+      }
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(async () => {
+    if (pullDistance > 80 && !isRefreshing && !isLoading) {
+      setIsRefreshing(true);
+      try {
+        await refetch();
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+    setPullDistance(0);
+    touchStartRef.current = 0;
+  }, [pullDistance, isRefreshing, isLoading, refetch]);
 
   const handleSortChange = (newSort: SortOption) => {
     const params = new URLSearchParams(searchParams);
@@ -79,9 +136,6 @@ export function ClipFeed({
     setSearchParams(params);
   };
 
-  // Get all clips from all pages
-  const clips = data?.pages.flatMap(page => page.clips) ?? [];
-
   return (
     <div className="max-w-4xl mx-auto">
       <FeedHeader title={title} description={description} />
@@ -92,6 +146,36 @@ export function ClipFeed({
         onSortChange={handleSortChange}
         onTimeframeChange={handleTimeframeChange}
       />
+
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div 
+          className="flex justify-center items-center py-4 text-muted-foreground transition-all"
+          style={{ 
+            transform: `translateY(${Math.min(pullDistance, 80)}px)`,
+            opacity: Math.min(pullDistance / 80, 1)
+          }}
+        >
+          {isRefreshing ? (
+            <Spinner size="md" />
+          ) : (
+            <div className="flex flex-col items-center">
+              <svg 
+                className="w-6 h-6 mb-1" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                style={{ transform: `rotate(${pullDistance * 4}deg)` }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="text-xs">
+                {pullDistance > 80 ? 'Release to refresh' : 'Pull to refresh'}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && (
@@ -128,12 +212,19 @@ export function ClipFeed({
         />
       )}
 
-      {/* Clips list */}
+      {/* Clips list with pull-to-refresh */}
       {!isLoading && !isError && clips.length > 0 && (
-        <div className="space-y-4">
-          {clips.map((clip) => (
-            <ClipCard key={clip.id} clip={clip} />
-          ))}
+        <div
+          ref={containerRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="space-y-4">
+            {clips.map((clip) => (
+              <MemoizedClipCard key={clip.id} clip={clip} />
+            ))}
+          </div>
 
           {/* Load more trigger */}
           {hasNextPage && (
