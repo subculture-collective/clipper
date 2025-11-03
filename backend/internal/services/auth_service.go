@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -28,6 +29,8 @@ var (
 	ErrInvalidCode = errors.New("invalid authorization code")
 	// ErrUserBanned is returned when a banned user tries to login
 	ErrUserBanned = errors.New("user is banned")
+	// ErrInvalidCodeVerifier is returned when PKCE code verifier validation fails
+	ErrInvalidCodeVerifier = errors.New("invalid code verifier")
 )
 
 // TwitchUser represents a Twitch user from the API
@@ -75,16 +78,28 @@ func NewAuthService(
 }
 
 // GenerateAuthURL generates the Twitch OAuth authorization URL
-func (s *AuthService) GenerateAuthURL(ctx context.Context) (string, error) {
-	// Generate secure random state
-	state, err := generateRandomState()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate state: %w", err)
+// Supports PKCE: if codeChallenge is provided, stores it for later verification
+func (s *AuthService) GenerateAuthURL(ctx context.Context, codeChallenge, codeChallengeMethod, clientState string) (string, error) {
+	// Use client-provided state if available, otherwise generate one
+	state := clientState
+	if state == "" {
+		var err error
+		state, err = generateRandomState()
+		if err != nil {
+			return "", fmt.Errorf("failed to generate state: %w", err)
+		}
 	}
 
 	// Store state in Redis with 5 minute expiration
 	stateKey := fmt.Sprintf("oauth:state:%s", state)
-	if err := s.redis.Set(ctx, stateKey, "1", 5*time.Minute); err != nil {
+	stateValue := "1"
+	
+	// If PKCE is used, store code challenge with the state
+	if codeChallenge != "" && codeChallengeMethod != "" {
+		stateValue = fmt.Sprintf("%s:%s", codeChallenge, codeChallengeMethod)
+	}
+	
+	if err := s.redis.Set(ctx, stateKey, stateValue, 5*time.Minute); err != nil {
 		return "", fmt.Errorf("failed to store state: %w", err)
 	}
 
@@ -101,19 +116,35 @@ func (s *AuthService) GenerateAuthURL(ctx context.Context) (string, error) {
 }
 
 // HandleCallback handles the OAuth callback
-func (s *AuthService) HandleCallback(ctx context.Context, code, state string) (*models.User, string, string, error) {
-	// Validate state
+// Supports PKCE: if codeVerifier is provided, validates it against stored challenge
+func (s *AuthService) HandleCallback(ctx context.Context, code, state, codeVerifier string) (*models.User, string, string, error) {
+	// Validate state and get PKCE challenge if exists
 	stateKey := fmt.Sprintf("oauth:state:%s", state)
-	exists, err := s.redis.Exists(ctx, stateKey)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to check state: %w", err)
-	}
-	if !exists {
+	stateValue, err := s.redis.Get(ctx, stateKey)
+	if err != nil || stateValue == "" {
 		return nil, "", "", ErrInvalidState
 	}
 
 	// Delete state to prevent reuse
 	_ = s.redis.Delete(ctx, stateKey)
+
+	// If PKCE was used, validate code verifier
+	if strings.Contains(stateValue, ":") {
+		parts := strings.SplitN(stateValue, ":", 2)
+		if len(parts) == 2 {
+			codeChallenge := parts[0]
+			codeChallengeMethod := parts[1]
+			
+			// Verify code verifier if PKCE is enabled
+			if codeVerifier == "" {
+				return nil, "", "", ErrInvalidCodeVerifier
+			}
+			
+			if err := verifyPKCE(codeVerifier, codeChallenge, codeChallengeMethod); err != nil {
+				return nil, "", "", ErrInvalidCodeVerifier
+			}
+		}
+	}
 
 	// Exchange code for access token
 	twitchAccessToken, err := s.exchangeCodeForToken(code)
@@ -372,4 +403,24 @@ func generateRandomState() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+// verifyPKCE verifies the code verifier against the code challenge
+func verifyPKCE(codeVerifier, codeChallenge, codeChallengeMethod string) error {
+	if codeChallengeMethod != "S256" {
+		return errors.New("unsupported code challenge method")
+	}
+
+	// Compute SHA256 hash of code verifier
+	hash := sha256.Sum256([]byte(codeVerifier))
+	
+	// Base64URL encode the hash
+	computed := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(hash[:])
+	
+	// Compare with provided challenge
+	if computed != codeChallenge {
+		return errors.New("code verifier does not match challenge")
+	}
+	
+	return nil
 }

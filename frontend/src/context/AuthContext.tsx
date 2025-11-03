@@ -11,7 +11,7 @@ interface AuthContextType {
   isModerator: boolean;
   isModeratorOrAdmin: boolean;
   isLoading: boolean;
-  login: () => void;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -42,9 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
-  // Initiate OAuth login flow
-  const login = () => {
-    initiateOAuth();
+  // Initiate OAuth login flow with PKCE
+  const login = async () => {
+    await initiateOAuth();
   };
 
   // Logout user

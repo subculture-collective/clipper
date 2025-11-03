@@ -24,8 +24,14 @@ func NewAuthHandler(authService *services.AuthService, cfg *config.Config) *Auth
 }
 
 // InitiateOAuth handles GET /auth/twitch
+// Supports PKCE (code_challenge, code_challenge_method parameters)
 func (h *AuthHandler) InitiateOAuth(c *gin.Context) {
-	authURL, err := h.authService.GenerateAuthURL(c.Request.Context())
+	// Get PKCE parameters if provided
+	codeChallenge := c.Query("code_challenge")
+	codeChallengeMethod := c.Query("code_challenge_method")
+	clientState := c.Query("state")
+
+	authURL, err := h.authService.GenerateAuthURL(c.Request.Context(), codeChallenge, codeChallengeMethod, clientState)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to generate auth URL",
@@ -38,6 +44,7 @@ func (h *AuthHandler) InitiateOAuth(c *gin.Context) {
 }
 
 // HandleCallback handles GET /auth/twitch/callback
+// For non-PKCE flow (redirected from Twitch)
 func (h *AuthHandler) HandleCallback(c *gin.Context) {
 	code := c.Query("code")
 	state := c.Query("state")
@@ -49,8 +56,8 @@ func (h *AuthHandler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	// Handle OAuth callback
-	_, accessToken, refreshToken, err := h.authService.HandleCallback(c.Request.Context(), code, state)
+	// Handle OAuth callback (no code verifier for GET callback)
+	_, accessToken, refreshToken, err := h.authService.HandleCallback(c.Request.Context(), code, state, "")
 	if err != nil {
 		if err == services.ErrInvalidState {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -81,7 +88,58 @@ func (h *AuthHandler) HandleCallback(c *gin.Context) {
 	}
 
 	// Redirect to frontend with success
-	c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/auth/success")
+	c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/auth/callback?success=true")
+}
+
+// HandlePKCECallback handles POST /auth/twitch/callback
+// For PKCE flow with code_verifier
+func (h *AuthHandler) HandlePKCECallback(c *gin.Context) {
+	var body struct {
+		Code         string `json:"code" binding:"required"`
+		State        string `json:"state" binding:"required"`
+		CodeVerifier string `json:"code_verifier" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// Handle OAuth callback with PKCE
+	_, accessToken, refreshToken, err := h.authService.HandleCallback(c.Request.Context(), body.Code, body.State, body.CodeVerifier)
+	if err != nil {
+		if err == services.ErrInvalidState {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid state parameter",
+			})
+			return
+		}
+		if err == services.ErrInvalidCodeVerifier {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid code verifier",
+			})
+			return
+		}
+		if err == services.ErrUserBanned {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Your account has been banned",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Authentication failed",
+		})
+		return
+	}
+
+	// Set HTTP-only secure cookies
+	h.setAuthCookies(c, accessToken, refreshToken)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Authentication successful",
+	})
 }
 
 // RefreshToken handles POST /auth/refresh
@@ -171,8 +229,8 @@ func (h *AuthHandler) ReauthorizeTwitch(c *gin.Context) {
 		return
 	}
 
-	// Generate new auth URL
-	authURL, err := h.authService.GenerateAuthURL(c.Request.Context())
+	// Generate new auth URL (no PKCE for reauthorize)
+	authURL, err := h.authService.GenerateAuthURL(c.Request.Context(), "", "", "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to generate auth URL",
