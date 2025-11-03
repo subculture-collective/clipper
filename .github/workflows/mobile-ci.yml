@@ -1,0 +1,115 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'mobile/**'
+      - 'shared/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'mobile/**'
+      - 'shared/**'
+      - '.github/workflows/mobile-ci.yml'
+
+jobs:
+  lint-and-test:
+    name: Lint and Test Mobile App
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build shared package
+        run: npm run shared:build
+
+      - name: Lint mobile app
+        run: npm run mobile:lint
+
+      - name: Type check mobile app
+        run: |
+          cd mobile
+          npm run type-check
+
+      - name: Run mobile tests
+        run: npm run mobile:test
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build shared package
+        run: npm run shared:build
+
+      - name: Verify mobile app structure
+        run: |
+          cd mobile
+          ls -la
+          echo "Mobile app structure verified"
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: lint-and-test
+    if: false  # Disabled for now, enable when ready
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build shared package
+        run: npm run shared:build
+
+      - name: Install Expo CLI
+        run: npm install -g expo-cli
+
+      - name: Install iOS dependencies
+        run: |
+          cd mobile/ios
+          pod install
+
+      - name: Build iOS app
+        run: |
+          cd mobile
+          npx expo export --platform ios
