@@ -437,7 +437,7 @@ func (s *HybridSearchService) Search(ctx context.Context, query string, opts Sea
     results := &SearchResults{}
     for rows.Next() {
         var clip Clip
-        if err := rows.Scan(&clip.ID, &clip.Title, ...); err != nil {
+        if err := rows.Scan(&clip.ID, &clip.Title, /* ... other fields ... */); err != nil {
             return nil, err
         }
         results.Clips = append(results.Clips, clip)
