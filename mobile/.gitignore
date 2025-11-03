@@ -1,5 +1,46 @@
-# Dependencies
+# OSX
+.DS_Store
+
+# Xcode
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+ios/.xcode.env.local
+
+# Android/IntelliJ
+build/
+.idea
+.gradle
+local.properties
+*.iml
+*.hprof
+.cxx/
+*.keystore
+!debug.keystore
+
+# node.js
 node_modules/
+npm-debug.log
+yarn-error.log
+
+# Bundle artifacts
+*.jsbundle
+
+# CocoaPods
+/ios/Pods/
 
 # Expo
 .expo/
@@ -18,20 +59,12 @@ web-build/
 .metro-health-check*
 
 # Debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+*.log
+*.env.local
+*.env.*.local
 
-# macOS
-.DS_Store
-*.pem
+# Temporary files created by Metro to check the health of the file watcher
+.metro-health-check*
 
-# Local env files
-.env*.local
-
-# Typescript
-*.tsbuildinfo
-
-# Build
-ios/
-android/
+# Testing
+/coverage

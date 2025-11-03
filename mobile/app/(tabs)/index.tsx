@@ -1,91 +1,114 @@
-/**
- * Home/Feed screen - displays list of clips
- */
+import { Clip } from '@clipper/shared';
+import { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, FlatList, ActivityIndicator } from 'react-native';
 
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-
-// Mock data for PoC
-const mockClips = [
-  {
-    id: '1',
-    title: 'Amazing Headshot',
-    creator: 'shroud',
-    viewCount: 15000,
-    voteScore: 342,
-  },
-  {
-    id: '2',
-    title: 'Epic Clutch',
-    creator: 'xQc',
-    viewCount: 25000,
-    voteScore: 789,
-  },
-  {
-    id: '3',
-    title: 'Funny Reaction',
-    creator: 'pokimane',
-    viewCount: 18000,
-    voteScore: 456,
-  },
-];
+import { clipService } from '@/services/clipService';
 
 export default function FeedScreen() {
-  const router = useRouter();
+  const [clips, setClips] = useState<Clip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // This will use real API in production
-  const { data: clips, isLoading } = useQuery({
-    queryKey: ['clips'],
-    queryFn: async () => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return mockClips;
-    },
-  });
+  useEffect(() => {
+    loadClips();
+  }, []);
 
-  const handleClipPress = (id: string) => {
-    router.push(`/clip/${id}`);
+  const loadClips = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await clipService.getClips({ sort: 'hot', limit: 20 });
+      setClips(response.clips);
+    } catch (err) {
+      setError('Failed to load clips');
+      console.error('Error loading clips:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (isLoading) {
+  const renderClip = ({ item }: { item: Clip }) => (
+    <View style={styles.clipCard}>
+      <Text style={styles.clipTitle}>{item.title}</Text>
+      <Text style={styles.clipInfo}>
+        {item.broadcaster_name} • {item.view_count} views
+      </Text>
+      <Text style={styles.clipStats}>
+        ↑ {item.upvote_count || 0} • 💬 {item.comment_count} • ⭐ {item.favorite_count}
+      </Text>
+    </View>
+  );
+
+  if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#0ea5e9" />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#6366f1" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={styles.container}>
       <FlatList
         data={clips}
+        renderItem={renderClip}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => handleClipPress(item.id)}
-            className="bg-white p-4 mb-2 border-b border-gray-200"
-          >
-            <Text className="text-lg font-bold text-gray-900 mb-1">
-              {item.title}
-            </Text>
-            <View className="flex-row items-center justify-between">
-              <Text className="text-sm text-gray-600">
-                by {item.creator}
-              </Text>
-              <View className="flex-row items-center gap-3">
-                <Text className="text-sm text-gray-500">
-                  👁 {item.viewCount.toLocaleString()}
-                </Text>
-                <Text className="text-sm text-primary-600 font-semibold">
-                  ⬆ {item.voteScore}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={{ paddingBottom: 16 }}
+        contentContainerStyle={styles.listContent}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  listContent: {
+    padding: 16,
+  },
+  clipCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  clipTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  clipInfo: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  clipStats: {
+    fontSize: 14,
+    color: '#94a3b8',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+  },
+});

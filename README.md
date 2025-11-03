@@ -32,8 +32,6 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 
 - **[Development Setup](docs/development.md)** - Get started with development
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
-- **[Mobile Architecture](docs/MOBILE_ARCHITECTURE.md)** - Mobile app architecture and patterns
-- **[Mobile Implementation Guide](docs/MOBILE_IMPLEMENTATION_GUIDE.md)** - How to develop mobile apps
 - **[API Documentation](docs/API.md)** - REST API reference
 - **[Database Documentation](docs/database.md)** - Database management and migrations
 - **[Search Platform](docs/SEARCH.md)** - OpenSearch setup and usage
@@ -41,10 +39,6 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - **[RBAC](docs/RBAC.md)** - Role-based access control and admin panel access
 - **[Subscription Privileges Matrix](docs/SUBSCRIPTION_PRIVILEGES_MATRIX.md)** - Features and limits by subscription tier
 - **[Stripe Subscriptions](docs/SUBSCRIPTIONS.md)** - Stripe integration setup
-
-### Architecture Decisions
-
-- **[RFC 001: Mobile Framework Selection](docs/rfcs/001-mobile-framework-selection.md)** - Decision to use React Native + Expo
 
 ### Operations
 
@@ -80,15 +74,6 @@ clipper/
 │   │   ├── services/
 │   │   └── utils/
 │   └── ...
-├── mobile/            # React Native + Expo (iOS & Android)
-│   ├── app/           # Expo Router screens
-│   ├── src/           # Components, hooks, services
-│   └── assets/        # Images, fonts, icons
-├── shared/            # Shared TypeScript code
-│   └── src/
-│       ├── types/     # Shared type definitions
-│       ├── constants/ # Shared constants
-│       └── utils/     # Shared utilities
 ├── backend/           # Go + Gin
 │   ├── cmd/api/       # Application entry point
 │   ├── internal/      # Private application code
@@ -104,7 +89,7 @@ clipper/
 
 ### Tech Stack
 
-**Frontend (Web):**
+**Frontend:**
 
 - React 19 with TypeScript
 - Vite for build tooling
@@ -113,21 +98,6 @@ clipper/
 - TanStack Query for API state management
 - Zustand for global state
 - Axios for API calls
-
-**Mobile (iOS & Android):**
-
-- React Native 0.76 with Expo 52
-- Expo Router for navigation
-- NativeWind (TailwindCSS) for styling
-- TanStack Query for API state management
-- Zustand for global state
-- Shared TypeScript types with web
-
-**Shared:**
-
-- TypeScript types and interfaces
-- API client configuration
-- Shared constants and utilities
 
 **Backend:**
 

@@ -1,12 +1,12 @@
 {
   "expo": {
     "name": "Clipper",
-    "slug": "clipper",
-    "version": "0.0.1",
+    "slug": "clipper-mobile",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "clipper",
     "userInterfaceStyle": "automatic",
+    "scheme": "clipper",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -17,50 +17,25 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.subculturecollective.clipper",
-      "buildNumber": "1",
-      "infoPlist": {
-        "NSCameraUsageDescription": "Clipper needs access to your camera to capture clips.",
-        "NSPhotoLibraryUsageDescription": "Clipper needs access to your photo library to save clips."
-      }
+      "bundleIdentifier": "com.subculture.clipper"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.subculturecollective.clipper",
-      "versionCode": 1,
-      "permissions": [
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE"
-      ]
+      "package": "com.subculture.clipper"
     },
     "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-secure-store",
-        {
-          "faceIDPermission": "Allow Clipper to use Face ID for secure authentication."
-        }
-      ]
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "clipper-mobile"
-      },
-      "apiUrl": "http://localhost:8080/api/v1"
     }
   }
 }

@@ -1,6 +1,2 @@
-/**
- * Shared types index
- */
-
-export * from './models';
+export * from './clip';
 export * from './api';

@@ -1,30 +1,39 @@
-/**
- * 404 Not Found screen
- */
-
-import { View, Text, TouchableOpacity } from 'react-native';
 import { Link, Stack } from 'expo-router';
+import { StyleSheet, View, Text } from 'react-native';
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: "Oops! Not Found" }} />
-      <View className="flex-1 bg-white items-center justify-center p-6">
-        <Text className="text-6xl mb-4">🤔</Text>
-        <Text className="text-2xl font-bold text-gray-900 mb-2">
-          Page Not Found
-        </Text>
-        <Text className="text-base text-gray-600 text-center mb-6">
-          This screen doesn't exist.
-        </Text>
-        <Link href="/" asChild>
-          <TouchableOpacity className="px-6 py-3 bg-primary-500 rounded-lg">
-            <Text className="text-white font-semibold">
-              Go to home screen
-            </Text>
-          </TouchableOpacity>
+      <Stack.Screen options={{ title: 'Oops! Not Found' }} />
+      <View style={styles.container}>
+        <Text style={styles.title}>This screen doesn't exist.</Text>
+        <Link href="/" style={styles.link}>
+          <Text style={styles.linkText}>Go to home screen!</Text>
         </Link>
       </View>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f8fafc',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  link: {
+    marginTop: 15,
+    paddingVertical: 15,
+  },
+  linkText: {
+    fontSize: 16,
+    color: '#6366f1',
+  },
+});
