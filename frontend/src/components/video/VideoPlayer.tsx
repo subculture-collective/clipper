@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useShare } from '@/hooks';
-import 'video.js/dist/video-js.css';
 
 export interface VideoPlayerProps {
   clipId: string;
@@ -23,9 +22,9 @@ export function VideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // For now, we'll use Twitch's embed as the primary player
-  // In a production environment, you'd fetch the actual MP4 URL from Twitch's API
-  // or use their player SDK directly
+  // TODO: Replace Twitch iframe with native video player once MP4 URLs are available
+  // Currently using Twitch embed as it provides reliable playback without needing direct video URLs
+  // Future enhancement: Fetch MP4 URLs from backend or use Twitch Player SDK for better control
   useEffect(() => {
     // Use Twitch embed
     setIsLoading(false);
@@ -33,6 +32,8 @@ export function VideoPlayer({
 
   const handleMuteToggle = useCallback(() => {
     setIsMuted(prev => !prev);
+    // Note: This toggle affects the embed URL parameter but doesn't control the iframe dynamically
+    // The Twitch player has its own mute controls. This is a placeholder for future native player.
   }, []);
 
   const handleShare = useCallback(async () => {
