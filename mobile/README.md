@@ -1,6 +1,6 @@
-# Welcome to your Expo app 👋
+# Clipper Mobile App 🎬
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is the [Expo](https://expo.dev) mobile app for Clipper - discover and share the best Twitch clips.
 
 ## Get started
 
@@ -10,7 +10,19 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Configure environment variables
+
+   Create a `.env` file in the mobile directory with the following:
+
+   ```bash
+   EXPO_PUBLIC_API_URL=http://localhost:8080/api/v1
+   EXPO_PUBLIC_TWITCH_CLIENT_ID=your_twitch_client_id_here
+   ```
+
+   > **Note**: Get your Twitch Client ID from the [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+   > Make sure to add `clipper://` as a redirect URI in your Twitch app settings
+
+3. Start the app
 
    ```bash
    npx expo start
