@@ -102,18 +102,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const setUser = async (user: User) => {
-        try {
-            await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+    const setUser = (user: User) => {
+        // Update state immediately for better UX
+        setState(prev => ({
+            ...prev,
+            user,
+            isAuthenticated: true,
+        }));
+        
+        // Store in secure storage asynchronously
+        SecureStore.setItemAsync(USER_KEY, JSON.stringify(user)).catch(error => {
+            console.error('Failed to store user data:', error);
+            // Revert state if storage fails
             setState(prev => ({
                 ...prev,
-                user,
-                isAuthenticated: true,
+                user: null,
+                isAuthenticated: false,
             }));
-        } catch (error) {
-            console.error('Failed to store user data:', error);
-            throw error;
-        }
+        });
     };
 
     const getAccessToken = async (): Promise<string | null> => {

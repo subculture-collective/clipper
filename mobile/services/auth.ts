@@ -42,16 +42,36 @@ type CurrentUserResponse = {
 };
 
 /**
+ * Convert byte array to base64url string (React Native compatible)
+ */
+function bytesToBase64Url(bytes: Uint8Array): string {
+    const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+    let result = '';
+    let i = 0;
+    
+    while (i < bytes.length) {
+        const a = bytes[i++];
+        const b = i < bytes.length ? bytes[i++] : 0;
+        const c = i < bytes.length ? bytes[i++] : 0;
+        
+        const bitmap = (a << 16) | (b << 8) | c;
+        
+        result += base64Chars.charAt((bitmap >> 18) & 63);
+        result += base64Chars.charAt((bitmap >> 12) & 63);
+        result += i - 2 < bytes.length ? base64Chars.charAt((bitmap >> 6) & 63) : '';
+        result += i - 1 < bytes.length ? base64Chars.charAt(bitmap & 63) : '';
+    }
+    
+    return result;
+}
+
+/**
  * Generate PKCE code verifier and challenge
  */
 async function generatePKCE() {
     // Generate random code verifier (43-128 characters, base64url)
     const randomBytes = await Crypto.getRandomBytesAsync(32);
-    const codeVerifier = Buffer.from(randomBytes)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+    const codeVerifier = bytesToBase64Url(randomBytes);
     
     const codeChallengeMethod = 'S256';
     
@@ -84,7 +104,7 @@ export async function initiateOAuthFlow() {
     
     // Generate random state for CSRF protection (use crypto for state)
     const stateBytes = await Crypto.getRandomBytesAsync(32);
-    const state = Buffer.from(stateBytes).toString('base64url');
+    const state = bytesToBase64Url(stateBytes);
 
     // Create auth request
     const authRequest = new AuthSession.AuthRequest({

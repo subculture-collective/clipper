@@ -28,7 +28,7 @@ export default function LoginScreen() {
 
             // Step 3: Get user info (tokens are now in cookies managed by backend)
             const user = await getCurrentUser();
-            await setUser(user);
+            setUser(user);
 
             // Step 4: Navigate to the main app
             router.replace('/(tabs)');
