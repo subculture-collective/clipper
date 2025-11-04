@@ -20,10 +20,13 @@ api.interceptors.request.use(async config => {
 
 // Track if we're currently refreshing to avoid multiple refresh attempts
 let isRefreshing = false;
-let failedQueue: Array<{
-    resolve: (value: unknown) => void;
-    reject: (reason?: unknown) => void;
-}> = [];
+
+interface QueuedRequest {
+    resolve: (value: null) => void;
+    reject: (reason: Error) => void;
+}
+
+let failedQueue: QueuedRequest[] = [];
 
 const processQueue = (error: Error | null) => {
     failedQueue.forEach(prom => {
