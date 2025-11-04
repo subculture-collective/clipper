@@ -14,42 +14,41 @@ import '../global.css';
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 2,
+    defaultOptions: {
+        queries: {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            retry: 2,
+        },
     },
-  },
 });
 
 export default function RootLayout() {
-  useEffect(() => {
-    // Hide splash screen after app is ready
-    SplashScreen.hideAsync();
-  }, []);
+    useEffect(() => {
+        // Hide splash screen after app is ready
+        SplashScreen.hideAsync();
+    }, []);
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar style="auto" />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="clip/[id]" 
-          options={{ 
-            presentation: 'modal',
-            title: 'Clip Details'
-          }} 
-        />
-        <Stack.Screen 
-          name="user/[username]" 
-          options={{ title: 'User Profile' }} 
-        />
-        <Stack.Screen 
-          name="settings" 
-          options={{ title: 'Settings' }} 
-        />
-      </Stack>
-    </QueryClientProvider>
-  );
+    return (
+        <QueryClientProvider client={queryClient}>
+            <StatusBar style='auto' />
+            <Stack>
+                <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+                <Stack.Screen
+                    name='auth/login'
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name='clip/[id]'
+                    options={{
+                        presentation: 'modal',
+                        title: 'Clip Details',
+                    }}
+                />
+                <Stack.Screen
+                    name='settings/index'
+                    options={{ title: 'Settings' }}
+                />
+            </Stack>
+        </QueryClientProvider>
+    );
 }
