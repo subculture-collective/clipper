@@ -10,7 +10,7 @@ install: ## Install all dependencies
 	@echo "Installing backend dependencies..."
 	cd backend && go mod download
 	@echo "Installing frontend dependencies..."
-	cd frontend && npm install --legacy-peer-deps
+	cd frontend && yarn install
 	@echo "✓ All dependencies installed"
 
 dev: ## Start all services in development mode
@@ -21,21 +21,21 @@ build: ## Build both frontend and backend
 	@echo "Building backend..."
 	cd backend && go build -o bin/api ./cmd/api
 	@echo "Building frontend..."
-	cd frontend && npm run build
+	cd frontend && yarn run build
 	@echo "✓ Build complete"
 
 test: ## Run all tests
 	@echo "Running backend tests..."
 	cd backend && go test ./...
 	@echo "Running frontend tests..."
-	cd frontend && npm test -- --run
+	cd frontend && yarn test -- --run
 	@echo "✓ Tests complete"
 
 test-unit: ## Run unit tests only
 	@echo "Running backend unit tests..."
 	cd backend && go test -short ./...
 	@echo "Running frontend unit tests..."
-	cd frontend && npm test -- --run
+	cd frontend && yarn test -- --run
 	@echo "✓ Unit tests complete"
 
 test-integration: ## Run integration tests (requires Docker)
@@ -94,7 +94,7 @@ backend-dev: ## Run backend in development mode
 
 frontend-dev: ## Run frontend in development mode
 	@echo "Starting frontend..."
-	cd frontend && npm run dev
+	cd frontend && yarn run dev
 
 backend-build: ## Build backend binary
 	@echo "Building backend..."
@@ -103,14 +103,14 @@ backend-build: ## Build backend binary
 
 frontend-build: ## Build frontend for production
 	@echo "Building frontend..."
-	cd frontend && npm run build
+	cd frontend && yarn run build
 	@echo "✓ Frontend built"
 
 lint: ## Run linters
 	@echo "Linting backend..."
 	cd backend && go fmt ./...
 	@echo "Linting frontend..."
-	cd frontend && npm run lint
+	cd frontend && yarn run lint
 	@echo "✓ Linting complete"
 
 # Database Migration Commands

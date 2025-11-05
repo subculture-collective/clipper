@@ -217,23 +217,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci
+          yarn install --immutable
 
       - name: Run ESLint
         run: |
           cd frontend
-          npm run lint
+          yarn lint
 
       - name: TypeScript type checking
         run: |
           cd frontend
-          npx tsc --noEmit
+          yarn tsc --noEmit
 
   frontend-test:
     name: Frontend Test (Node ${{ matrix.node-version }})
@@ -250,18 +251,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci
+          yarn install --immutable
 
       - name: Run tests with coverage
         run: |
           cd frontend
-          npm run test:coverage
+          yarn test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -284,23 +286,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci
+          yarn install --immutable
 
       - name: Install Playwright browsers
         run: |
           cd frontend
-          npx playwright install --with-deps chromium
+          yarn playwright install --with-deps chromium
 
       - name: Run E2E tests
         run: |
           cd frontend
-          npm run test:e2e
+          yarn test:e2e
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -322,18 +325,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci
+          yarn install --immutable
 
       - name: Build production bundle
         run: |
           cd frontend
-          npm run build
+          yarn build
 
       - name: Check bundle size
         run: |

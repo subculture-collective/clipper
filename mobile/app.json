@@ -9,7 +9,8 @@
         "userInterfaceStyle": "automatic",
         "newArchEnabled": true,
         "ios": {
-            "supportsTablet": true
+            "supportsTablet": true,
+            "bundleIdentifier": "com.example.mobile"
         },
         "android": {
             "adaptiveIcon": {
@@ -49,7 +50,7 @@
         ],
         "experiments": {
             "typedRoutes": true,
-            "reactCompiler": true
+            "reactCompiler": false
         }
     }
 }
