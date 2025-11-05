@@ -23,6 +23,10 @@ const queryClient = new QueryClient({
     },
 });
 
+// Deep linking is handled automatically by Expo Router v6 via file-based routing.
+// The scheme in app.json ('clipper') and Associated Domains/Intent Filters
+// enable deep linking without manual linking configuration.
+
 export default function RootLayout() {
     useEffect(() => {
         // Hide splash screen after app is ready
@@ -49,6 +53,20 @@ export default function RootLayout() {
                     <Stack.Screen
                         name='settings/index'
                         options={{ title: 'Settings' }}
+                    />
+                    <Stack.Screen
+                        name='submit/index'
+                        options={{
+                            presentation: 'modal',
+                            title: 'Submit Clip',
+                        }}
+                    />
+                    <Stack.Screen
+                        name='profile/[id]'
+                        options={{
+                            presentation: 'modal',
+                            title: 'User Profile',
+                        }}
                     />
                 </Stack>
             </QueryClientProvider>
