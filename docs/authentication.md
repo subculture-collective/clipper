@@ -1,441 +1,273 @@
-# Twitch OAuth Authentication
+# Authentication Implementation
 
-This document describes the Twitch OAuth 2.0 authentication flow implementation for the Clipper backend.
+This document describes the user authentication flow implementation for Clipper using Twitch OAuth.
 
 ## Overview
 
-The authentication system uses:
+The authentication system uses Twitch OAuth 2.0 for user authentication, with JWT tokens for session management. The backend handles the OAuth flow and issues HTTP-only cookies containing access and refresh tokens.
 
-- **Twitch OAuth 2.0** for user authentication
-- **JWT (RS256)** for access tokens (15 minutes)
-- **JWT (RS256)** for refresh tokens (7 days)
-- **Redis** for OAuth state storage
-- **PostgreSQL** for refresh token storage
-- **HTTP-only cookies** for token delivery
+## Architecture
 
-## Setup
+### Frontend Components
 
-### 1. Register Twitch Application
+#### 1. Auth Context (`src/context/AuthContext.tsx`)
 
-1. Go to [Twitch Developer Console](https://dev.twitch.tv/console)
-2. Create a new application
-3. Add OAuth Redirect URLs:
-   - Development: `http://localhost:8080/api/v1/auth/twitch/callback`
-   - Production: `https://yourdomain.com/api/v1/auth/twitch/callback`
-4. Copy the Client ID and Client Secret
+- Manages global authentication state
+- Provides user data and authentication status
+- Handles session persistence on app load
+- Automatically checks for existing session via `/api/v1/auth/me` endpoint
 
-### 2. Generate JWT Keys
+**Key Features:**
 
-Run the key generation script:
+- Session persistence across page reloads
+- Automatic user data fetching on mount
+- Clean logout functionality
+- Loading states for auth operations
 
-```bash
-cd backend/scripts
-./generate-jwt-keys.sh
-```
+#### 2. API Client (`src/lib/api.ts`)
 
-Copy the output to your `.env` file.
+- Configured with `withCredentials: true` for cookie handling
+- Implements automatic token refresh on 401 responses
+- Queue system to prevent multiple simultaneous refresh attempts
+- Retries failed requests after successful token refresh
 
-Alternatively, generate keys manually:
+**Token Refresh Flow:**
 
-```bash
-openssl genrsa -out private.pem 2048
-openssl rsa -in private.pem -pubout -out public.pem
-```
+1. Request fails with 401 status
+2. Check if already refreshing (queue if yes)
+3. Call `/api/v1/auth/refresh` endpoint
+4. Backend sets new tokens in cookies
+5. Retry original request
+6. Process queued requests
 
-### 3. Configure Environment Variables
+#### 3. Auth API Service (`src/lib/auth-api.ts`)
 
-Copy `.env.example` to `.env` and update:
+- `initiateOAuth()` - Redirects to backend OAuth endpoint
+- `getCurrentUser()` - Fetches current user data
+- `refreshToken()` - Manually refreshes tokens (usually automatic)
+- `logout()` - Logs out user and clears cookies
 
-```bash
-# Twitch OAuth
-TWITCH_CLIENT_ID=your_client_id_here
-TWITCH_CLIENT_SECRET=your_client_secret_here
-TWITCH_REDIRECT_URI=http://localhost:8080/api/v1/auth/twitch/callback
+#### 4. Pages
 
-# JWT Keys (paste entire PEM content including BEGIN/END lines)
-JWT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----
-...
------END RSA PRIVATE KEY-----
+**LoginPage (`src/pages/LoginPage.tsx`)**
 
-JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----
-...
------END PUBLIC KEY-----
+- Displays "Continue with Twitch" button
+- Twitch branding (purple color + logo)
+- Stores return URL for post-login redirect
+- Clean, minimal design
 
-# Redis (for OAuth state storage)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
+**AuthCallbackPage (`src/pages/AuthCallbackPage.tsx`)**
 
-# CORS (frontend URLs)
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
-```
+- Handles OAuth callback at `/auth/success`
+- Fetches user data after successful auth
+- Redirects to original destination
+- Handles OAuth errors gracefully
 
-### 4. Run Database Migrations
+**ProfilePage (`src/pages/ProfilePage.tsx`)**
 
-```bash
-make migrate-up
-```
+- Displays user information:
+  - Avatar
+  - Username and display name
+  - Bio
+  - Karma points
+  - Role
+  - Account age
+- Placeholder tabs for future features:
+  - Comments
+  - Upvoted clips
+  - Submitted clips
 
-This creates the `refresh_tokens` table.
+**SettingsPage (`src/pages/SettingsPage.tsx`)**
 
-### 5. Start Services
+- Account settings (read-only currently)
+- Privacy settings (placeholder)
+- Notification preferences (placeholder)
+- Danger zone (export data, delete account)
 
-```bash
-# Start PostgreSQL and Redis
-docker compose up -d
+#### 5. Components
 
-# Start backend
-go run cmd/api/main.go
-```
+**UserMenu (`src/components/layout/UserMenu.tsx`)**
 
-## API Endpoints
+- Avatar dropdown in header
+- Shows username and karma
+- Menu items:
+  - Profile
+  - Settings
+  - Favorites
+  - Admin Panel (if admin/moderator)
+  - Logout
+- Click-outside and ESC key support
+- Keyboard navigation ready
 
-### Public Endpoints
+**Route Guards:**
 
-#### `GET /api/v1/auth/twitch`
+- `ProtectedRoute` - Requires authentication
+- `AdminRoute` - Requires admin/moderator role
+- `GuestRoute` - Redirects authenticated users
 
-Initiates OAuth flow. Redirects user to Twitch authorization page.
+#### 6. Hooks (`src/hooks/useAuth.ts`)
 
-**Rate Limit:** 5 requests/minute per IP
+- `useAuth()` - Main auth hook
+- `useUser()` - Get current user
+- `useIsAuthenticated()` - Check auth status
+- `useRequireAuth()` - Force authentication
 
-**Response:** HTTP 307 redirect to Twitch
+## Backend Integration
 
----
+### Endpoints Used
 
-#### `GET /api/v1/auth/twitch/callback`
+- `GET /api/v1/auth/twitch` - Initiate OAuth flow
+- `GET /api/v1/auth/twitch/callback` - OAuth callback handler
+- `GET /api/v1/auth/me` - Get current user
+- `POST /api/v1/auth/refresh` - Refresh access token
+- `POST /api/v1/auth/logout` - Logout user
 
-Handles OAuth callback from Twitch.
+### Token Storage
 
-**Rate Limit:** 10 requests/minute per IP
+**HTTP-only Cookies** (secure in production):
 
-**Query Parameters:**
+- `access_token` - Short-lived (15 minutes)
+- `refresh_token` - Long-lived (7 days)
 
-- `code` - Authorization code from Twitch
-- `state` - CSRF protection state
+**Benefits:**
 
-**Response:**
-
-- Success: HTTP 307 redirect to frontend with cookies set
-- Error: HTTP 400/403/500 with error JSON
-
-**Cookies Set:**
-
-- `access_token` - JWT access token (HttpOnly, 15 min)
-- `refresh_token` - JWT refresh token (HttpOnly, 7 days)
-
----
-
-#### `POST /api/v1/auth/refresh`
-
-Refreshes access token using refresh token.
-
-**Rate Limit:** 10 requests/minute per IP
-
-**Request Body (optional if cookie present):**
-
-```json
-{
-  "refresh_token": "jwt_refresh_token"
-}
-```
-
-**Response:**
-
-```json
-{
-  "access_token": "new_jwt_access_token",
-  "refresh_token": "new_jwt_refresh_token"
-}
-```
-
-**Cookies Set:**
-
-- `access_token` - New JWT access token
-- `refresh_token` - New JWT refresh token (rotated)
-
----
-
-#### `POST /api/v1/auth/logout`
-
-Logs out user by revoking refresh token.
-
-**Request Body (optional if cookie present):**
-
-```json
-{
-  "refresh_token": "jwt_refresh_token"
-}
-```
-
-**Response:**
-
-```json
-{
-  "message": "Logged out successfully"
-}
-```
-
-**Cookies:** Cleared
-
-### Protected Endpoints
-
-#### `GET /api/v1/auth/me`
-
-Returns current authenticated user.
-
-**Authentication:** Required (Bearer token or cookie)
-
-**Response:**
-
-```json
-{
-  "id": "uuid",
-  "twitch_id": "123456",
-  "username": "username",
-  "display_name": "Display Name",
-  "email": "user@example.com",
-  "avatar_url": "https://...",
-  "bio": "User bio",
-  "karma_points": 0,
-  "role": "user",
-  "is_banned": false,
-  "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-01-01T00:00:00Z",
-  "last_login_at": "2024-01-01T00:00:00Z"
-}
-```
-
-## Authentication Flow
-
-### Initial Login
-
-```
-User -> Frontend -> GET /api/v1/auth/twitch
-                 -> Redirect to Twitch
-                 -> User authorizes
-                 -> Twitch redirects back
-                 -> GET /api/v1/auth/twitch/callback
-                 -> Create/update user
-                 -> Generate JWT tokens
-                 -> Set cookies
-                 -> Redirect to frontend
-```
-
-### Subsequent Requests
-
-```
-User -> Frontend -> API Request (with cookie or Bearer token)
-                 -> Middleware validates JWT
-                 -> Attach user to context
-                 -> Handle request
-```
-
-### Token Refresh
-
-```
-User -> Frontend -> POST /api/v1/auth/refresh (with refresh token)
-                 -> Validate refresh token
-                 -> Check not revoked
-                 -> Generate new token pair
-                 -> Revoke old refresh token
-                 -> Store new refresh token
-                 -> Return new tokens
-```
-
-## Middleware
-
-### `AuthMiddleware`
-
-Requires authentication. Returns 401 if not authenticated.
-
-```go
-auth := v1.Group("/protected")
-auth.Use(middleware.AuthMiddleware(authService))
-{
-    auth.GET("/resource", handler)
-}
-```
-
-### `OptionalAuthMiddleware`
-
-Attaches user if authenticated, but doesn't fail if not.
-
-```go
-v1.GET("/public", middleware.OptionalAuthMiddleware(authService), handler)
-```
-
-### `RequireRole`
-
-Requires specific role(s). Must be used after `AuthMiddleware`.
-
-```go
-admin := auth.Group("/admin")
-admin.Use(middleware.RequireRole("admin", "moderator"))
-{
-    admin.GET("/users", handler)
-}
-```
-
-### `RateLimitMiddleware`
-
-Rate limits requests by IP.
-
-```go
-auth.POST("/endpoint", 
-    middleware.RateLimitMiddleware(redis, 5, time.Minute),
-    handler)
-```
+- Protected from XSS attacks
+- Automatic token inclusion in requests
+- Secure token storage
 
 ## Security Features
 
-### CSRF Protection
+### Implemented
 
-- OAuth state parameter stored in Redis (5 min expiry)
-- State validated on callback
-- State deleted after use
+- ✅ CSRF protection via state parameter
+- ✅ HTTP-only secure cookies
+- ✅ Automatic token refresh
+- ✅ No tokens in localStorage
+- ✅ No tokens exposed in URLs
+- ✅ Proper CORS configuration
+- ✅ Token rotation on refresh
 
-### Token Security
+### User Data
 
-- RS256 signing (not HS256)
-- 2048-bit RSA keys
-- Access tokens: 15 minutes
-- Refresh tokens: 7 days
-- Refresh token rotation on use
-- Refresh tokens hashed in database
+All user input is handled by React, which provides XSS protection by default through its escaping mechanisms.
 
-### Cookie Security
+## OAuth Flow
 
-- `HttpOnly` - Not accessible via JavaScript
-- `Secure` - HTTPS only (in production)
-- `SameSite=Lax` - CSRF protection
+1. User clicks "Continue with Twitch" on LoginPage
+2. Frontend calls `initiateOAuth()` → redirects to `/api/v1/auth/twitch`
+3. Backend generates state parameter, stores in Redis
+4. Backend redirects to Twitch OAuth authorization page
+5. User authorizes application on Twitch
+6. Twitch redirects to backend callback: `/api/v1/auth/twitch/callback`
+7. Backend validates state, exchanges code for tokens
+8. Backend fetches user data from Twitch API
+9. Backend creates/updates user in database
+10. Backend generates JWT tokens
+11. Backend sets tokens in HTTP-only cookies
+12. Backend redirects to frontend: `/auth/success`
+13. AuthCallbackPage fetches user data via `/api/v1/auth/me`
+14. Frontend redirects to original destination or home
 
-### Rate Limiting
+## Session Management
 
-- Auth endpoints rate limited
-- Per-IP tracking
-- Fail-open if Redis unavailable
+### On App Load
 
-### CORS
+1. AuthContext calls `getCurrentUser()` via `/api/v1/auth/me`
+2. If successful → user is authenticated
+3. If fails → user is not authenticated
+4. Loading state shown during check
 
-- Whitelist of allowed origins
-- Credentials allowed only for whitelisted origins
+### Token Expiry
 
-## User Roles
+- Access token expires after 15 minutes
+- API client automatically refreshes via `/api/v1/auth/refresh`
+- Refresh token rotates on each refresh (security best practice)
+- If refresh token expires → user must re-authenticate
 
-- `user` - Regular user (default)
-- `moderator` - Can moderate content
-- `admin` - Full access
+### Logout
 
-## Database Schema
+1. Frontend calls `logout()` API
+2. Backend revokes refresh token in database
+3. Backend clears cookies
+4. Frontend clears user state
+5. User redirected to home page
 
-### `refresh_tokens` table
+## Environment Variables
 
-```sql
-CREATE TABLE refresh_tokens (
-    id UUID PRIMARY KEY,
-    user_id UUID REFERENCES users(id),
-    token_hash VARCHAR(64) UNIQUE NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    revoked_at TIMESTAMP,
-    is_revoked BOOLEAN DEFAULT false
-);
+```env
+VITE_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
-## Testing
+## Testing the Implementation
 
-### Unit Tests
+### Manual Testing Steps
 
-```bash
-# Test JWT utilities
-go test ./pkg/jwt -v
+1. **Login Flow:**
+   - Click "Login" in header
+   - Click "Continue with Twitch"
+   - Verify redirect to Twitch OAuth
+   - Authorize application
+   - Verify redirect back to app
+   - Verify user menu appears in header
 
-# Test all packages
-go test ./... -v
-```
+2. **Session Persistence:**
+   - Login successfully
+   - Refresh the page
+   - Verify user remains logged in
+   - Check browser cookies for tokens
 
-### Integration Testing
+3. **Protected Routes:**
+   - Try accessing `/profile` without login
+   - Verify redirect to `/login`
+   - Login and verify redirect to `/profile`
 
-See `docs/auth-testing.md` for integration test examples.
+4. **Token Refresh:**
+   - Login successfully
+   - Wait 16 minutes (access token expiry)
+   - Make an API request
+   - Verify automatic token refresh in network tab
 
-## Troubleshooting
+5. **Logout:**
+   - Click user menu
+   - Click "Logout"
+   - Verify redirect to home
+   - Verify user menu disappears
+   - Check cookies are cleared
 
-### "JWT private key not provided"
+## Future Enhancements
 
-- Ensure `JWT_PRIVATE_KEY` is set in `.env`
-- Include entire PEM block with BEGIN/END lines
-- Don't add extra whitespace or newlines
+### Phase 2 Features (Not Yet Implemented)
 
-### "Failed to connect to Redis"
+- [ ] Edit profile bio and display name
+- [ ] Avatar upload
+- [ ] Privacy settings functionality
+- [ ] Notification preferences
+- [ ] Account deletion
+- [ ] Data export (GDPR)
+- [ ] Email notifications
+- [ ] User comment history
+- [ ] Upvoted clips list
+- [ ] Login modal (alternative to page)
+- [ ] Remember me functionality
 
-- Ensure Redis is running: `docker compose up redis -d`
-- Check `REDIS_HOST` and `REDIS_PORT` in `.env`
+## Error Handling
 
-### "Invalid state parameter"
+### OAuth Errors
 
-- State expired (5 min limit)
-- User took too long to authorize
-- Redis connection issue
+- User denied permission → Friendly message + redirect to login
+- Invalid state parameter → Error message + redirect to login
+- Twitch API error → Generic error + retry option
 
-### "Refresh token has been revoked"
+### Session Errors
 
-- User logged out
-- Token was already used (rotation)
-- Token manually revoked
+- Expired access token → Automatic refresh
+- Expired refresh token → Forced logout
+- Network errors → Retry mechanism
+- Invalid token → Clear state + redirect to login
 
-### CORS errors
+## Notes
 
-- Add frontend URL to `CORS_ALLOWED_ORIGINS`
-- Ensure format matches exactly (no trailing slash)
-
-## Production Considerations
-
-1. **Key Management**
-   - Generate new RSA keys for production
-   - Store keys securely (AWS Secrets Manager, HashiCorp Vault, etc.)
-   - Rotate keys periodically
-   - Keep old keys for token validation during rotation
-
-2. **Redis**
-   - Use Redis Cluster for high availability
-   - Enable persistence
-   - Configure eviction policy
-
-3. **Rate Limiting**
-   - Adjust limits based on traffic
-   - Consider per-user rate limiting
-   - Use Redis for distributed rate limiting
-
-4. **Monitoring**
-   - Track authentication failures
-   - Monitor token refresh rate
-   - Alert on suspicious patterns
-
-5. **Security**
-   - Enable HTTPS only (`Secure` cookies)
-   - Use short access token expiry
-   - Implement token revocation check
-   - Add IP-based anomaly detection
-
-## Frontend Integration
-
-See `frontend/docs/auth-integration.md` for frontend implementation guide.
-
-Example usage:
-
-```typescript
-// Login
-window.location.href = 'http://localhost:8080/api/v1/auth/twitch';
-
-// Check auth status
-const response = await fetch('http://localhost:8080/api/v1/auth/me', {
-  credentials: 'include'
-});
-
-// Logout
-await fetch('http://localhost:8080/api/v1/auth/logout', {
-  method: 'POST',
-  credentials: 'include'
-});
-```
+- The frontend is fully functional and ready for use with the backend
+- All authentication flows follow security best practices
+- Token management is automatic and transparent to the user
+- The implementation is production-ready with proper error handling
