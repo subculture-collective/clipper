@@ -142,7 +142,7 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
-	
+
 	// Initialize email service
 	emailService := services.NewEmailService(&services.EmailConfig{
 		SendGridAPIKey:   cfg.Email.SendGridAPIKey,
@@ -152,7 +152,7 @@ func main() {
 		Enabled:          cfg.Email.Enabled,
 		MaxEmailsPerHour: cfg.Email.MaxEmailsPerHour,
 	}, emailNotificationRepo)
-	
+
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
 	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
@@ -162,14 +162,14 @@ func main() {
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, cfg, auditLogService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
-	
+
 	// Initialize search services
 	var searchIndexerService *services.SearchIndexerService
 	var openSearchService *services.OpenSearchService
 	if osClient != nil {
 		searchIndexerService = services.NewSearchIndexerService(osClient)
 		openSearchService = services.NewOpenSearchService(osClient)
-		
+
 		// Initialize indices in background
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -181,7 +181,7 @@ func main() {
 			}
 		}()
 	}
-	
+
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -478,15 +478,15 @@ func main() {
 
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
-			
+
 			// Profile management (authenticated)
 			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)
 			users.GET("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.GetSettings)
 			users.PUT("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSettings)
-			
+
 			// Data export (authenticated, rate limited)
 			users.GET("/me/export", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.ExportData)
-			
+
 			// Account deletion (authenticated, rate limited)
 			users.POST("/me/delete", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.RequestAccountDeletion)
 			users.POST("/me/delete/cancel", middleware.AuthMiddleware(authService), userSettingsHandler.CancelAccountDeletion)
@@ -517,10 +517,10 @@ func main() {
 		{
 			// Public unsubscribe endpoint (no auth required, uses token, but rate limited)
 			notifications.GET("/unsubscribe", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), notificationHandler.Unsubscribe)
-			
+
 			// Protected notification endpoints (require authentication)
 			notifications.Use(middleware.AuthMiddleware(authService))
-			
+
 			// Get notifications list
 			notifications.GET("", notificationHandler.ListNotifications)
 

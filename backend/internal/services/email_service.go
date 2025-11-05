@@ -394,7 +394,7 @@ func (s *EmailService) UseUnsubscribeToken(ctx context.Context, token string) er
 // checkRateLimit checks if a user has exceeded the email rate limit
 func (s *EmailService) checkRateLimit(ctx context.Context, userID uuid.UUID) (bool, error) {
 	windowStart := time.Now().Truncate(time.Hour)
-	
+
 	rateLimit, err := s.repo.GetRateLimit(ctx, userID, windowStart)
 	if err != nil {
 		// If no record exists, user is under limit
@@ -421,14 +421,14 @@ func (s *EmailService) GetEmailLogs(ctx context.Context, userID uuid.UUID, limit
 // Shutdown gracefully shuts down the email service by waiting for all pending emails to be sent
 func (s *EmailService) Shutdown(timeout time.Duration) error {
 	close(s.shutdown)
-	
+
 	// Wait for all goroutines with timeout
 	done := make(chan struct{})
 	go func() {
 		s.wg.Wait()
 		close(done)
 	}()
-	
+
 	select {
 	case <-done:
 		s.logger.Info("Email service shutdown completed successfully")
@@ -450,7 +450,7 @@ func (s *EmailService) SendNotificationEmailAsync(
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		
+
 		// Check if shutdown is in progress
 		select {
 		case <-s.shutdown:
@@ -461,7 +461,7 @@ func (s *EmailService) SendNotificationEmailAsync(
 			return
 		default:
 		}
-		
+
 		// Use a background context to avoid cancellation from parent
 		bgCtx := context.Background()
 		if err := s.SendNotificationEmail(bgCtx, user, notificationType, notificationID, emailData); err != nil {

@@ -60,24 +60,24 @@ func (h *UserHandler) GetUserComments(c *gin.Context) {
 
 	// Transform to response format
 	type CommentResponse struct {
-		ID              string  `json:"id"`
-		ClipID          string  `json:"clip_id"`
-		UserID          string  `json:"user_id"`
-		Username        string  `json:"username"`
-		UserAvatar      *string `json:"user_avatar"`
-		UserKarma       int     `json:"user_karma"`
-		UserRole        string  `json:"user_role"`
-		ParentID        *string `json:"parent_id"`
-		Content         string  `json:"content"`
-		VoteScore       int     `json:"vote_score"`
-		CreatedAt       string  `json:"created_at"`
-		UpdatedAt       string  `json:"updated_at"`
-		IsDeleted       bool    `json:"is_deleted"`
-		IsRemoved       bool    `json:"is_removed"`
-		RemovedReason   *string `json:"removed_reason"`
-		Depth           int     `json:"depth"`
-		ChildCount      int     `json:"child_count"`
-		UserVote        *int16  `json:"user_vote"`
+		ID            string  `json:"id"`
+		ClipID        string  `json:"clip_id"`
+		UserID        string  `json:"user_id"`
+		Username      string  `json:"username"`
+		UserAvatar    *string `json:"user_avatar"`
+		UserKarma     int     `json:"user_karma"`
+		UserRole      string  `json:"user_role"`
+		ParentID      *string `json:"parent_id"`
+		Content       string  `json:"content"`
+		VoteScore     int     `json:"vote_score"`
+		CreatedAt     string  `json:"created_at"`
+		UpdatedAt     string  `json:"updated_at"`
+		IsDeleted     bool    `json:"is_deleted"`
+		IsRemoved     bool    `json:"is_removed"`
+		RemovedReason *string `json:"removed_reason"`
+		Depth         int     `json:"depth"`
+		ChildCount    int     `json:"child_count"`
+		UserVote      *int16  `json:"user_vote"`
 	}
 
 	responses := make([]CommentResponse, len(comments))

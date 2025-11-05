@@ -69,10 +69,10 @@ func TestCalculateRecencyScore(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
-		name           string
-		clip           *models.Clip
-		expectedRange  [2]float64 // min, max expected values
-		checkDecay     bool
+		name          string
+		clip          *models.Clip
+		expectedRange [2]float64 // min, max expected values
+		checkDecay    bool
 	}{
 		{
 			name: "Brand new clip",
@@ -111,13 +111,13 @@ func TestCalculateRecencyScore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			score := calculateRecencyScore(tt.clip)
-			
+
 			// Check score is within expected range
-			assert.GreaterOrEqual(t, score, tt.expectedRange[0], 
+			assert.GreaterOrEqual(t, score, tt.expectedRange[0],
 				"Score should be >= %f, got %f", tt.expectedRange[0], score)
-			assert.LessOrEqual(t, score, tt.expectedRange[1], 
+			assert.LessOrEqual(t, score, tt.expectedRange[1],
 				"Score should be <= %f, got %f", tt.expectedRange[1], score)
-			
+
 			// Verify score is positive
 			assert.Greater(t, score, 0.0, "Recency score should always be positive")
 		})
@@ -126,32 +126,32 @@ func TestCalculateRecencyScore(t *testing.T) {
 
 func TestCalculateRecencyScoreDecay(t *testing.T) {
 	now := time.Now()
-	
+
 	// Create clips at different ages
 	newClip := &models.Clip{CreatedAt: now}
 	oneWeekOld := &models.Clip{CreatedAt: now.Add(-7 * 24 * time.Hour)}
 	twoWeeksOld := &models.Clip{CreatedAt: now.Add(-14 * 24 * time.Hour)}
-	
+
 	newScore := calculateRecencyScore(newClip)
 	oneWeekScore := calculateRecencyScore(oneWeekOld)
 	twoWeeksScore := calculateRecencyScore(twoWeeksOld)
-	
+
 	// Verify exponential decay: newer clips always have higher scores
-	assert.Greater(t, newScore, oneWeekScore, 
+	assert.Greater(t, newScore, oneWeekScore,
 		"New clip should have higher score than 1-week-old clip")
-	assert.Greater(t, oneWeekScore, twoWeeksScore, 
+	assert.Greater(t, oneWeekScore, twoWeeksScore,
 		"1-week-old clip should have higher score than 2-week-old clip")
-	
+
 	// Verify approximate 50% decay per week
 	ratio := oneWeekScore / newScore
-	assert.InDelta(t, 0.5, ratio, 0.15, 
+	assert.InDelta(t, 0.5, ratio, 0.15,
 		"Score should decrease by ~50%% per week, got %.2f", ratio)
 }
 
 func TestBulkIndexClipsEngagementAndRecency(t *testing.T) {
 	// This test verifies that BulkIndexClips calculates engagement and recency scores
 	now := time.Now()
-	
+
 	clips := []models.Clip{
 		{
 			ID:            uuid.New(),
@@ -172,18 +172,18 @@ func TestBulkIndexClipsEngagementAndRecency(t *testing.T) {
 			CreatedAt:     now,
 		},
 	}
-	
+
 	// Calculate expected scores
 	for _, clip := range clips {
 		engagementScore := calculateEngagementScore(&clip)
 		recencyScore := calculateRecencyScore(&clip)
-		
+
 		// Verify scores are reasonable
-		assert.Greater(t, engagementScore, 0.0, 
+		assert.Greater(t, engagementScore, 0.0,
 			"Engagement score should be positive for clip with interactions")
-		assert.Greater(t, recencyScore, 0.0, 
+		assert.Greater(t, recencyScore, 0.0,
 			"Recency score should be positive")
-		
+
 		// Newer clip should have higher recency
 		if clip.CreatedAt.After(clips[0].CreatedAt) {
 			clip2RecencyScore := calculateRecencyScore(&clips[1])
@@ -202,9 +202,9 @@ func TestEngagementScoreWeights(t *testing.T) {
 		FavoriteCount: 10,
 		ViewCount:     10,
 	}
-	
+
 	score := calculateEngagementScore(clip)
-	
+
 	// Calculate expected with known weights
 	// Vote: 10 * 10.0 = 100
 	// Comments: 10 * 5.0 = 50
@@ -212,7 +212,7 @@ func TestEngagementScoreWeights(t *testing.T) {
 	// Views: 10 * 0.01 = 0.1
 	// Total: 180.1
 	expected := 180.1
-	
-	assert.Equal(t, expected, score, 
+
+	assert.Equal(t, expected, score,
 		"Engagement score calculation should match expected weights")
 }

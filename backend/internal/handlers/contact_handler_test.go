@@ -117,7 +117,7 @@ func TestSubmitContactMessage_InvalidInput(t *testing.T) {
 
 			var response map[string]interface{}
 			json.Unmarshal(w.Body.Bytes(), &response)
-			
+
 			if errorMsg, ok := response["error"].(string); ok {
 				if tt.errorContains != "" && len(errorMsg) == 0 {
 					t.Errorf("expected error to contain '%s', got empty error", tt.errorContains)
