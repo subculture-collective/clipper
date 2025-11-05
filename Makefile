@@ -88,9 +88,9 @@ docker-up: ## Start Docker services (PostgreSQL + Redis)
 	@echo "✓ Docker services started"
 
 docker-build: ## Start Docker services (PostgreSQL + Redis)
-	@echo "Starting Docker services..."
+	@echo "Starting Docker build..."
 	docker compose up -d --build --remove-orphans
-	@echo "✓ Docker services started"
+	@echo "✓ Docker build complete, and services started"
 
 docker-down: ## Stop Docker services
 	@echo "Stopping Docker services..."
