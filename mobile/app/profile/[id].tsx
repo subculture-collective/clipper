@@ -13,6 +13,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { TouchableOpacity } from 'react-native';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // TODO: Import actual user API service
 // import { getUser } from '@/services/users';
@@ -40,6 +42,8 @@ async function getUser(id: string): Promise<User> {
 export default function UserProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const primaryColor = Colors[colorScheme ?? 'light'].primary;
 
     const { data: user, isLoading } = useQuery({
         queryKey: ['user', id],
@@ -50,7 +54,7 @@ export default function UserProfileScreen() {
     if (isLoading) {
         return (
             <View className='flex-1 items-center justify-center bg-white'>
-                <ActivityIndicator size='large' color='#0ea5e9' />
+                <ActivityIndicator size='large' color={primaryColor} />
             </View>
         );
     }

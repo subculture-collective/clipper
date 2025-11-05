@@ -23,34 +23,9 @@ const queryClient = new QueryClient({
     },
 });
 
-// Deep linking configuration
-// Note: Expo Router v6 handles deep linking automatically via file-based routing
-// This configuration is documented here for reference and can be used
-// if manual linking configuration is needed in the future
-export const linking = {
-    prefixes: [
-        'clipper://',
-        'https://clipper.onnwee.me',
-        'https://*.clipper.onnwee.me',
-    ],
-    config: {
-        screens: {
-            '(tabs)': {
-                screens: {
-                    index: '',
-                    search: 'search',
-                    favorites: 'favorites',
-                    profile: 'profile',
-                },
-            },
-            'clip/[id]': 'clip/:id',
-            'profile/[id]': 'profile/:id',
-            'submit/index': 'submit',
-            'auth/login': 'auth/login',
-            'settings/index': 'settings',
-        },
-    },
-};
+// Deep linking is handled automatically by Expo Router v6 via file-based routing.
+// The scheme in app.json ('clipper') and Associated Domains/Intent Filters
+// enable deep linking without manual linking configuration.
 
 export default function RootLayout() {
     useEffect(() => {

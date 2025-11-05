@@ -300,6 +300,9 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 | TC-9      | ✓          | ✓             | ✓              | ✓                |
 | TC-10     | -          | ✓             | -              | ✓                |
 | TC-11     | ✓          | ✓             | ✓              | ✓                |
+| TC-12     | ✓          | ✓             | ✓              | ✓                |
+| TC-13     | ✓          | ✓             | ✓              | ✓                |
+| TC-14     | ✓          | ✓             | ✓              | ✓                |
 
 ## Pass/Fail Criteria
 
