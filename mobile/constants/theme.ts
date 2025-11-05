@@ -7,6 +7,7 @@ import { Platform } from 'react-native';
 
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
+const primaryColorLight = '#0ea5e9'; // Sky blue for loading indicators
 
 export const Colors = {
   light: {
@@ -16,6 +17,7 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    primary: primaryColorLight,
   },
   dark: {
     text: '#ECEDEE',
@@ -24,6 +26,7 @@ export const Colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    primary: primaryColorLight,
   },
 };
 

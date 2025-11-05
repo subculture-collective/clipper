@@ -10,7 +10,10 @@
         "newArchEnabled": true,
         "ios": {
             "supportsTablet": true,
-            "bundleIdentifier": "com.example.mobile"
+            "bundleIdentifier": "com.subculture.clipper",
+            "associatedDomains": [
+                "applinks:clipper.onnwee.me"
+            ]
         },
         "android": {
             "adaptiveIcon": {
@@ -21,7 +24,39 @@
             },
             "edgeToEdgeEnabled": true,
             "predictiveBackGestureEnabled": false,
-            "package": "com.example.mobile"
+            "package": "com.subculture.clipper",
+            "intentFilters": [
+                {
+                    "action": "VIEW",
+                    "autoVerify": true,
+                    "data": [
+                        {
+                            "scheme": "https",
+                            "host": "clipper.onnwee.me",
+                            "pathPrefix": "/clip"
+                        },
+                        {
+                            "scheme": "https",
+                            "host": "clipper.onnwee.me",
+                            "pathPrefix": "/profile"
+                        },
+                        {
+                            "scheme": "https",
+                            "host": "clipper.onnwee.me",
+                            "pathPrefix": "/search"
+                        },
+                        {
+                            "scheme": "https",
+                            "host": "clipper.onnwee.me",
+                            "pathPrefix": "/submit"
+                        }
+                    ],
+                    "category": [
+                        "BROWSABLE",
+                        "DEFAULT"
+                    ]
+                }
+            ]
         },
         "web": {
             "output": "static",

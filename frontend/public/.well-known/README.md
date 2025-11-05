@@ -42,4 +42,7 @@ curl -v https://yourdomain.com/.well-known/assetlinks.json
 
 ## Documentation
 
-See `/docs/DEEP_LINKING.md` for complete setup instructions and troubleshooting guide.
+See the following for complete setup instructions and troubleshooting:
+- `/docs/MOBILE_IMPLEMENTATION_GUIDE.md` - Mobile app deep linking setup
+- `/docs/DEEP_LINKING.md` - General deep linking documentation
+- `/docs/DEEP_LINKING_TEST_CASES.md` - Comprehensive test cases
