@@ -42,6 +42,7 @@ export const linking = {
                 },
             },
             'clip/[id]': 'clip/:id',
+            'profile/[id]': 'profile/:id',
             'submit/index': 'submit',
             'auth/login': 'auth/login',
             'settings/index': 'settings',
@@ -81,6 +82,13 @@ export default function RootLayout() {
                         options={{
                             presentation: 'modal',
                             title: 'Submit Clip',
+                        }}
+                    />
+                    <Stack.Screen
+                        name='profile/[id]'
+                        options={{
+                            presentation: 'modal',
+                            title: 'User Profile',
                         }}
                     />
                 </Stack>
