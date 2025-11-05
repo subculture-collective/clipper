@@ -1,27 +1,29 @@
 /** @type {import('tailwindcss').Config} */
+// Ensure we can load the shared TypeScript preset in Node
+let sharedPreset = {};
+try {
+    // Register ts-node on the fly to load TS preset without compiling
+    require('ts-node').register({ transpileOnly: true });
+    // Access default export from the TS module
+    const mod = require('../tailwind.preset.ts');
+    sharedPreset = mod.default || mod;
+} catch (e) {
+    console.warn(
+        '[tailwind.config] Could not load ../tailwind.preset.ts – using nativewind preset only. Error:',
+        e && e.message ? e.message : e
+    );
+}
+
 module.exports = {
     content: [
         './app/**/*.{js,jsx,ts,tsx}',
         './components/**/*.{js,jsx,ts,tsx}',
         './src/**/*.{js,jsx,ts,tsx}',
     ],
-    presets: [require('nativewind/preset')],
+    presets: [require('nativewind/preset')].concat(sharedPreset ? [sharedPreset] : []),
     theme: {
         extend: {
-            colors: {
-                primary: {
-                    50: '#f0f9ff',
-                    100: '#e0f2fe',
-                    200: '#bae6fd',
-                    300: '#7dd3fc',
-                    400: '#38bdf8',
-                    500: '#0ea5e9',
-                    600: '#0284c7',
-                    700: '#0369a1',
-                    800: '#075985',
-                    900: '#0c4a6e',
-                },
-            },
+            // Mobile-specific extensions (if needed). Shared theme is in ../tailwind.preset.ts
         },
     },
     plugins: [],

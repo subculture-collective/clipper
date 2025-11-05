@@ -36,7 +36,7 @@ async function openDB(): Promise<IDBDatabase> {
 async function getEncryptionKey(): Promise<CryptoKey> {
   // Check if we have a key in sessionStorage (ephemeral)
   const storedKey = sessionStorage.getItem(ENCRYPTION_KEY_NAME);
-  
+
   if (storedKey) {
     const keyData = JSON.parse(storedKey);
     return crypto.subtle.importKey(
