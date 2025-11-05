@@ -8,3 +8,9 @@ export const API_BASE_URL =
     'http://localhost:8080/api/v1';
 
 export const REQUEST_TIMEOUT_MS = 15000;
+
+// Twitch OAuth configuration
+export const TWITCH_CLIENT_ID =
+    process.env.EXPO_PUBLIC_TWITCH_CLIENT_ID ||
+    (Constants.expoConfig?.extra as any)?.TWITCH_CLIENT_ID ||
+    '';

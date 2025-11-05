@@ -17,7 +17,7 @@
     ],
     "target": {
       "namespace": "web",
-      "site": "https://clipper.example.com"
+      "site": "https://clipper.onnwee.me"
     }
   }
 ]
