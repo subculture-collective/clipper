@@ -36,7 +36,7 @@ async function openDB(): Promise<IDBDatabase> {
 async function getEncryptionKey(): Promise<CryptoKey> {
   // Check if we have a key in sessionStorage (ephemeral)
   const storedKey = sessionStorage.getItem(ENCRYPTION_KEY_NAME);
-  
+
   if (storedKey) {
     const keyData = JSON.parse(storedKey);
     return crypto.subtle.importKey(
@@ -71,7 +71,8 @@ async function encryptData(data: string): Promise<{ iv: Uint8Array; ciphertext: 
   const iv = crypto.getRandomValues(new Uint8Array(12)); // GCM recommends 12 bytes
 
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    // Cast to BufferSource to satisfy TS typing mismatch (ArrayBuffer vs ArrayBufferLike)
+    { name: 'AES-GCM', iv: iv as unknown as BufferSource },
     key,
     encoder.encode(data)
   );
@@ -87,7 +88,8 @@ async function decryptData(iv: Uint8Array, ciphertext: ArrayBuffer): Promise<str
   const decoder = new TextDecoder();
 
   const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
+    // Cast to BufferSource to satisfy TS typing mismatch (ArrayBuffer vs ArrayBufferLike)
+    { name: 'AES-GCM', iv: iv as unknown as BufferSource },
     key,
     ciphertext
   );

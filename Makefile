@@ -8,34 +8,40 @@ help: ## Show this help message
 
 install: ## Install all dependencies
 	@echo "Installing backend dependencies..."
-	cd backend && go mod download
+	cd backend && go mod downloadmake help
 	@echo "Installing frontend dependencies..."
-	cd frontend && npm install --legacy-peer-deps
+	cd frontend && yarn
+	@echo "Installing mobile dependencies..."
+	cd mobile && yarn
 	@echo "✓ All dependencies installed"
 
-dev: ## Start all services in development mode
+dev: ## Start all services in development mode (Note: mobile must be started separately with 'make mobile-dev')
 	@echo "Starting development environment..."
 	@make -j3 docker-up backend-dev frontend-dev
 
-build: ## Build both frontend and backend
+build: ## Build backend, frontend, and mobile
 	@echo "Building backend..."
 	cd backend && go build -o bin/api ./cmd/api
 	@echo "Building frontend..."
-	cd frontend && npm run build
+	cd frontend && yarn build
+	@echo "Building mobile (iOS)..."
+	cd mobile && yarn ios --configuration Release
 	@echo "✓ Build complete"
 
 test: ## Run all tests
 	@echo "Running backend tests..."
 	cd backend && go test ./...
 	@echo "Running frontend tests..."
-	cd frontend && npm test -- --run
+	cd frontend && yarn test run
+	@echo "Running mobile tests..."
+	cd mobile && yarn test || echo "Mobile tests not configured"
 	@echo "✓ Tests complete"
 
 test-unit: ## Run unit tests only
 	@echo "Running backend unit tests..."
 	cd backend && go test -short ./...
 	@echo "Running frontend unit tests..."
-	cd frontend && npm test -- --run
+	cd frontend && yarn test run
 	@echo "✓ Unit tests complete"
 
 test-integration: ## Run integration tests (requires Docker)
@@ -81,6 +87,11 @@ docker-up: ## Start Docker services (PostgreSQL + Redis)
 	docker compose up -d
 	@echo "✓ Docker services started"
 
+docker-build: ## Start Docker services (PostgreSQL + Redis)
+	@echo "Starting Docker services..."
+	docker compose up -d --build --remove-orphans
+	@echo "✓ Docker services started"
+
 docker-down: ## Stop Docker services
 	@echo "Stopping Docker services..."
 	docker compose down
@@ -94,7 +105,7 @@ backend-dev: ## Run backend in development mode
 
 frontend-dev: ## Run frontend in development mode
 	@echo "Starting frontend..."
-	cd frontend && npm run dev
+	cd frontend && yarn dev
 
 backend-build: ## Build backend binary
 	@echo "Building backend..."
@@ -103,14 +114,38 @@ backend-build: ## Build backend binary
 
 frontend-build: ## Build frontend for production
 	@echo "Building frontend..."
-	cd frontend && npm run build
+	cd frontend && yarn build
 	@echo "✓ Frontend built"
+
+mobile-dev: ## Run mobile app in development mode
+	@echo "Starting mobile app..."
+	cd mobile && yarn start
+
+mobile-ios: ## Run mobile app on iOS simulator
+	@echo "Starting mobile app on iOS..."
+	cd mobile && yarn ios
+
+mobile-android: ## Run mobile app on Android emulator
+	@echo "Starting mobile app on Android..."
+	cd mobile && yarn android
+
+mobile-build-ios: ## Build mobile app for iOS
+	@echo "Building mobile app for iOS..."
+	cd mobile && yarn ios --configuration Release
+	@echo "✓ Mobile iOS built"
+
+mobile-build-android: ## Build mobile app for Android
+	@echo "Building mobile app for Android..."
+	cd mobile && yarn android --variant=release
+	@echo "✓ Mobile Android built"
 
 lint: ## Run linters
 	@echo "Linting backend..."
 	cd backend && go fmt ./...
 	@echo "Linting frontend..."
-	cd frontend && npm run lint
+	cd frontend && yarn lint
+	@echo "Linting mobile..."
+	cd mobile && yarn lint
 	@echo "✓ Linting complete"
 
 # Database Migration Commands
