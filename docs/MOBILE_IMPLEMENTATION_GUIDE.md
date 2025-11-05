@@ -598,11 +598,199 @@ emulator -avd Pixel_5_API_31
 9. **Beta Testing**: Deploy to TestFlight and Google Play Internal
 10. **Launch**: Submit to App Store and Google Play
 
+## Deep Linking and Universal Links
+
+The Clipper mobile app supports deep linking and universal links to allow seamless navigation from web links to specific screens in the app.
+
+### Supported Routes
+
+The following routes can be opened via deep links:
+
+- `clipper://` or `https://clipper.onnwee.me/clip/:id` - Open a specific clip
+- `clipper://` or `https://clipper.onnwee.me/profile` - Open user profile
+- `clipper://` or `https://clipper.onnwee.me/search` - Open search screen
+- `clipper://` or `https://clipper.onnwee.me/submit` - Open clip submission form
+
+### Configuration
+
+#### iOS Universal Links
+
+The app is configured with Associated Domains in `app.json`:
+
+```json
+{
+  "ios": {
+    "associatedDomains": ["applinks:clipper.onnwee.me"]
+  }
+}
+```
+
+The server must host `apple-app-site-association` file at:
+```
+https://clipper.onnwee.me/.well-known/apple-app-site-association
+```
+
+This file maps URL paths to the mobile app using the bundle identifier `com.subculture.clipper`.
+
+#### Android App Links
+
+The app is configured with intent filters in `app.json`:
+
+```json
+{
+  "android": {
+    "intentFilters": [
+      {
+        "action": "VIEW",
+        "autoVerify": true,
+        "data": [
+          {
+            "scheme": "https",
+            "host": "clipper.onnwee.me",
+            "pathPrefix": "/clip"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The server must host `assetlinks.json` file at:
+```
+https://clipper.onnwee.me/.well-known/assetlinks.json
+```
+
+This file verifies the Android app package `com.subculture.clipper` with SHA256 certificate fingerprints.
+
+#### Expo Router Linking Config
+
+The deep linking configuration is defined in `app/_layout.tsx`:
+
+```tsx
+export const linking = {
+  prefixes: [
+    'clipper://',
+    'https://clipper.onnwee.me',
+    'https://*.clipper.onnwee.me',
+  ],
+  config: {
+    screens: {
+      '(tabs)': {
+        screens: {
+          index: '',
+          search: 'search',
+          favorites: 'favorites',
+          profile: 'profile',
+        },
+      },
+      'clip/[id]': 'clip/:id',
+      'submit/index': 'submit',
+      'auth/login': 'auth/login',
+      'settings/index': 'settings',
+    },
+  },
+};
+```
+
+### Testing Deep Links
+
+#### Test on iOS Simulator
+
+```bash
+# Open a clip
+xcrun simctl openurl booted "clipper://clip/123"
+xcrun simctl openurl booted "https://clipper.onnwee.me/clip/123"
+
+# Open search
+xcrun simctl openurl booted "clipper://search"
+
+# Open submit
+xcrun simctl openurl booted "clipper://submit"
+```
+
+#### Test on Android Emulator
+
+```bash
+# Open a clip
+adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/123"
+adb shell am start -W -a android.intent.action.VIEW -d "https://clipper.onnwee.me/clip/123"
+
+# Open search
+adb shell am start -W -a android.intent.action.VIEW -d "clipper://search"
+
+# Open submit
+adb shell am start -W -a android.intent.action.VIEW -d "clipper://submit"
+```
+
+#### Test with npx uri-scheme
+
+```bash
+# Test custom scheme
+npx uri-scheme open clipper://clip/123 --ios
+npx uri-scheme open clipper://clip/123 --android
+
+# List schemes
+npx uri-scheme list
+```
+
+### Fallback Behavior
+
+When the app is not installed:
+
+1. **iOS**: Universal links will fall back to opening the URL in Safari, displaying the web version of Clipper
+2. **Android**: App links will fall back to opening the URL in the default browser, displaying the web version of Clipper
+
+This ensures a seamless user experience whether or not the app is installed.
+
+### Troubleshooting
+
+#### iOS Universal Links Not Working
+
+1. Verify the `apple-app-site-association` file is accessible:
+   ```bash
+   curl https://clipper.onnwee.me/.well-known/apple-app-site-association
+   ```
+
+2. Ensure the file is served with `Content-Type: application/json`
+
+3. Check that Associated Domains is properly configured in Xcode capabilities
+
+4. Test with a link in iMessage or Notes (links in Safari address bar won't trigger universal links)
+
+5. Clear the app and reinstall to force iOS to re-download the association file
+
+#### Android App Links Not Working
+
+1. Verify the `assetlinks.json` file is accessible:
+   ```bash
+   curl https://clipper.onnwee.me/.well-known/assetlinks.json
+   ```
+
+2. Ensure the SHA256 certificate fingerprint matches your app's signing certificate:
+   ```bash
+   # For debug build
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+   
+   # For release build
+   keytool -list -v -keystore path/to/release.keystore
+   ```
+
+3. Test with Google's Digital Asset Links API:
+   ```
+   https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://clipper.onnwee.me&relation=delegate_permission/common.handle_all_urls
+   ```
+
+4. Ensure `autoVerify: true` is set in the intent filters
+
+5. Clear defaults: Settings > Apps > Clipper > Open by default > Clear defaults
+
 ## Resources
 
 - [Expo Documentation](https://docs.expo.dev/)
 - [React Native Documentation](https://reactnative.dev/)
 - [Expo Router Guide](https://docs.expo.dev/router/introduction/)
+- [Expo Linking Documentation](https://docs.expo.dev/guides/linking/)
 - [NativeWind Documentation](https://www.nativewind.dev/)
 - [TanStack Query Documentation](https://tanstack.com/query/latest)
 - [RFC 001: Mobile Framework Selection](./rfcs/001-mobile-framework-selection.md)
