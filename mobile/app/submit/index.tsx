@@ -100,8 +100,8 @@ export default function SubmitScreen() {
                         <Text className="text-sm text-blue-800">
                             • Clips must be from gaming content{'\n'}
                             • No offensive or inappropriate content{'\n'}
-                            • Give credit to original creators{'\n'}• Clips
-                            will be reviewed before publishing
+                            • Give credit to original creators{'\n'}
+                            • Clips will be reviewed before publishing
                         </Text>
                     </View>
 

@@ -4,11 +4,10 @@
  */
 
 import { useEffect } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Linking from 'expo-linking';
 import { AuthProvider } from '@/contexts/AuthContext';
 import '../global.css';
 
@@ -25,6 +24,9 @@ const queryClient = new QueryClient({
 });
 
 // Deep linking configuration
+// Note: Expo Router v6 handles deep linking automatically via file-based routing
+// This configuration is documented here for reference and can be used
+// if manual linking configuration is needed in the future
 export const linking = {
     prefixes: [
         'clipper://',
