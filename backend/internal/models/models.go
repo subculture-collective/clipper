@@ -58,7 +58,7 @@ type UpdateUserSettingsRequest struct {
 
 // DeleteAccountRequest represents the request to delete an account
 type DeleteAccountRequest struct {
-	Reason      *string `json:"reason,omitempty" binding:"omitempty,max=1000"`
+	Reason       *string `json:"reason,omitempty" binding:"omitempty,max=1000"`
 	Confirmation string  `json:"confirmation" binding:"required,eq=DELETE MY ACCOUNT"`
 }
 
@@ -220,9 +220,9 @@ type SearchMeta struct {
 
 // SearchFacets holds aggregated facet data for filtering
 type SearchFacets struct {
-	Languages []FacetBucket `json:"languages,omitempty"`
-	Games     []FacetBucket `json:"games,omitempty"`
-	Tags      []FacetBucket `json:"tags,omitempty"`
+	Languages []FacetBucket  `json:"languages,omitempty"`
+	Games     []FacetBucket  `json:"games,omitempty"`
+	Tags      []FacetBucket  `json:"tags,omitempty"`
 	DateRange DateRangeFacet `json:"date_range,omitempty"`
 }
 
@@ -680,12 +680,12 @@ type Subscription struct {
 
 // SubscriptionEvent represents an event in subscription lifecycle for audit logging
 type SubscriptionEvent struct {
-	ID             uuid.UUID `json:"id" db:"id"`
+	ID             uuid.UUID  `json:"id" db:"id"`
 	SubscriptionID *uuid.UUID `json:"subscription_id,omitempty" db:"subscription_id"`
-	EventType      string    `json:"event_type" db:"event_type"`
-	StripeEventID  *string   `json:"stripe_event_id,omitempty" db:"stripe_event_id"`
-	Payload        string    `json:"payload" db:"payload"` // JSONB stored as string
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	EventType      string     `json:"event_type" db:"event_type"`
+	StripeEventID  *string    `json:"stripe_event_id,omitempty" db:"stripe_event_id"`
+	Payload        string     `json:"payload" db:"payload"` // JSONB stored as string
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 }
 
 // UserWithSubscription represents a user with their subscription information

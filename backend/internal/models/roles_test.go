@@ -36,8 +36,8 @@ func TestUserHasRole(t *testing.T) {
 	}
 
 	tests := []struct {
-		role   string
-		hasIt  bool
+		role  string
+		hasIt bool
 	}{
 		{RoleModerator, true},
 		{RoleAdmin, false},
@@ -130,7 +130,7 @@ func TestUserIsModerator(t *testing.T) {
 
 func TestUserIsModeratorOrAdmin(t *testing.T) {
 	tests := []struct {
-		role              string
+		role               string
 		isModeratorOrAdmin bool
 	}{
 		{RoleAdmin, true},

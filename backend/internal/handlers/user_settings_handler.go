@@ -212,7 +212,7 @@ func (h *UserSettingsHandler) RequestAccountDeletion(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":      "Account deletion scheduled",
+		"message":       "Account deletion scheduled",
 		"scheduled_for": deletion.ScheduledFor,
 	})
 }

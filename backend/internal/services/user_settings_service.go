@@ -15,13 +15,13 @@ import (
 
 // UserSettingsService handles user settings operations
 type UserSettingsService struct {
-	userRepo              *repository.UserRepository
-	userSettingsRepo      *repository.UserSettingsRepository
-	accountDeletionRepo   *repository.AccountDeletionRepository
-	clipRepo              *repository.ClipRepository
-	voteRepo              *repository.VoteRepository
-	favoriteRepo          *repository.FavoriteRepository
-	auditLogService       *AuditLogService
+	userRepo            *repository.UserRepository
+	userSettingsRepo    *repository.UserSettingsRepository
+	accountDeletionRepo *repository.AccountDeletionRepository
+	clipRepo            *repository.ClipRepository
+	voteRepo            *repository.VoteRepository
+	favoriteRepo        *repository.FavoriteRepository
+	auditLogService     *AuditLogService
 }
 
 // NewUserSettingsService creates a new user settings service

@@ -76,12 +76,12 @@ type OpenSearchConfig struct {
 
 // StripeConfig holds Stripe payment configuration
 type StripeConfig struct {
-	SecretKey              string
-	WebhookSecret          string
-	ProMonthlyPriceID      string
-	ProYearlyPriceID       string
-	SuccessURL             string
-	CancelURL              string
+	SecretKey         string
+	WebhookSecret     string
+	ProMonthlyPriceID string
+	ProYearlyPriceID  string
+	SuccessURL        string
+	CancelURL         string
 }
 
 // SentryConfig holds Sentry error tracking configuration

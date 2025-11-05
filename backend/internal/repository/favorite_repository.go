@@ -186,7 +186,7 @@ func (r *FavoriteRepository) GetClipsByUserID(ctx context.Context, userID uuid.U
 		"discussed": "ORDER BY c.comment_count DESC",
 		"newest":    "ORDER BY f.created_at DESC",
 	}
-	
+
 	orderBy, ok := orderByClauses[sort]
 	if !ok {
 		orderBy = orderByClauses["newest"] // default to newest
