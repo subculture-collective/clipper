@@ -9,7 +9,7 @@
  * - Token refresh handling
  */
 
-import { getApiClient, ApiError, ErrorType } from './enhanced-api-client';
+import { getApiClient } from './enhanced-api-client';
 
 // Export the axios instance for backward compatibility
 export const api = getApiClient().getAxiosInstance();

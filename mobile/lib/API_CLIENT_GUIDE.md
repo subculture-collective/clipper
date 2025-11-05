@@ -5,10 +5,11 @@ This guide explains how to use the enhanced mobile API client with retry logic, 
 ## Features
 
 ### 1. Automatic Retry with Exponential Backoff
-- Retries failed requests automatically for idempotent methods (GET, HEAD, OPTIONS, PUT, DELETE)
-- Uses exponential backoff with jitter to prevent thundering herd
+- Retries failed requests automatically for idempotent methods (GET, HEAD, OPTIONS, DELETE)
+- Uses exponential backoff with jitter to prevent thundering herd problem
 - Configurable retry attempts (default: 3)
 - Respects status codes: 408, 429, 500, 502, 503, 504
+- Note: PUT is queued when offline rather than retried for consistency
 
 ### 2. Network Status Awareness
 - Monitors network connectivity using expo-network
@@ -32,6 +33,7 @@ This guide explains how to use the enhanced mobile API client with retry logic, 
 - Automatically retries queued requests when network is restored
 - Queue change listeners for UI updates
 - Manual queue management (clear, retry)
+- Note: PUT is treated as a mutation and queued rather than auto-retried
 
 ## Basic Usage
 
@@ -238,7 +240,7 @@ The API client is configured with sensible defaults:
 - **Max Retries**: 3
 - **Retry Delay**: Exponential backoff (1s to 10s) with ±25% jitter
 - **Retryable Status Codes**: 408, 429, 500, 502, 503, 504
-- **Retryable Methods**: GET, HEAD, OPTIONS, PUT, DELETE
+- **Retryable Methods**: GET, HEAD, OPTIONS, DELETE (PUT is queued when offline instead)
 
 ## Best Practices
 
@@ -361,8 +363,8 @@ try {
 
 ### Request Not Retrying
 
-- Check if the HTTP method is idempotent (GET, HEAD, OPTIONS, PUT, DELETE)
-- POST requests are not retried automatically (by design)
+- Check if the HTTP method is idempotent (GET, HEAD, OPTIONS, DELETE)
+- POST, PUT, PATCH requests are queued when offline instead of auto-retried
 - Check if the status code is retryable (408, 429, 500, 502, 503, 504)
 
 ### Queue Not Working

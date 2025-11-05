@@ -13,11 +13,12 @@ This implementation enhances the mobile API client with comprehensive retry logi
 ### Core Features ✅
 
 1. **Retry with Exponential Backoff and Jitter** ✅
-   - Automatic retry for idempotent methods (GET, HEAD, OPTIONS, PUT, DELETE)
+   - Automatic retry for idempotent methods (GET, HEAD, OPTIONS, DELETE)
    - Exponential backoff: 1s → 2s → 4s (max 10s)
-   - ±25% jitter to prevent thundering herd
+   - ±25% jitter to prevent thundering herd problem
    - Max 3 retry attempts (configurable)
    - Respects status codes: 408, 429, 500, 502, 503, 504
+   - Note: PUT is queued when offline rather than auto-retried
 
 2. **Network Status Awareness (expo-network)** ✅
    - Real-time network monitoring

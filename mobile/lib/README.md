@@ -236,15 +236,16 @@ Default configuration (can be customized):
     retryDelay: exponential with jitter (1s to 10s),
     timeout: 15000ms,
     retryableStatusCodes: [408, 429, 500, 502, 503, 504],
-    retryableMethods: ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE']
+    retryableMethods: ['GET', 'HEAD', 'OPTIONS', 'DELETE']
+    // Note: PUT is queued when offline rather than auto-retried
 }
 ```
 
 ## Troubleshooting
 
 ### "Request not retrying"
-- Only idempotent methods retry (GET, HEAD, OPTIONS, PUT, DELETE)
-- POST requests don't retry by design (use offline queue instead)
+- Only idempotent methods retry (GET, HEAD, OPTIONS, DELETE)
+- POST, PUT, PATCH requests are queued when offline (use offline queue)
 - Check if status code is retryable
 
 ### "Queue not working"

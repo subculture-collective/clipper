@@ -90,7 +90,7 @@ export class EnhancedMobileApiClient {
     private offlineQueue: QueuedRequest[] = [];
     private isRefreshingToken = false;
     private refreshQueue: {
-        resolve: (value: AxiosResponse) => void;
+        resolve: () => void;
         reject: (reason: ApiError) => void;
     }[] = [];
     private queueChangeListeners: (() => void)[] = [];
@@ -226,8 +226,10 @@ export class EnhancedMobileApiClient {
                 }
 
                 // Only retry idempotent methods
+                // Note: PUT is generally idempotent per HTTP spec, but excluded here
+                // to match offline queue behavior (PUT is queued when offline)
                 const method = error.config?.method?.toUpperCase();
-                const isIdempotent = ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE'].includes(
+                const isIdempotent = ['GET', 'HEAD', 'OPTIONS', 'DELETE'].includes(
                     method || ''
                 );
 
@@ -418,7 +420,8 @@ export class EnhancedMobileApiClient {
             if (error) {
                 promise.reject(error);
             } else {
-                promise.resolve(null as unknown as AxiosResponse);
+                // Signal success - queued requests will retry themselves
+                promise.resolve();
             }
         });
         this.refreshQueue = [];

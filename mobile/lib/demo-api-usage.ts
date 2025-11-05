@@ -229,9 +229,9 @@ export async function demoRetryBehavior() {
     
     console.log('The API client automatically retries failed requests with:');
     console.log('  - Exponential backoff (1s, 2s, 4s)');
-    console.log('  - ±25% jitter to prevent thundering herd');
+    console.log('  - ±25% jitter to prevent thundering herd problem');
     console.log('  - Max 3 retry attempts');
-    console.log('  - Only for idempotent methods (GET, HEAD, OPTIONS, PUT, DELETE)');
+    console.log('  - Only for idempotent methods (GET, HEAD, OPTIONS, DELETE)');
     console.log('  - Only for retryable status codes (408, 429, 500, 502, 503, 504)');
     console.log('\nWatch the console for retry messages when a request fails!');
 }
