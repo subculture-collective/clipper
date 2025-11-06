@@ -13,7 +13,6 @@ interface UrlInputStepProps {
 
 export default function UrlInputStep({ initialUrl, onNext }: UrlInputStepProps) {
     const [clipUrl, setClipUrl] = useState(initialUrl);
-    const [isValidating, setIsValidating] = useState(false);
 
     const validateUrl = (url: string): boolean => {
         // Validate Twitch clip URL format
@@ -40,12 +39,8 @@ export default function UrlInputStep({ initialUrl, onNext }: UrlInputStepProps) 
             return;
         }
 
-        setIsValidating(true);
-        // Simulate validation delay
-        setTimeout(() => {
-            setIsValidating(false);
-            onNext(trimmedUrl);
-        }, 300);
+        // URL validation is synchronous, proceed immediately
+        onNext(trimmedUrl);
     };
 
     return (
@@ -69,7 +64,6 @@ export default function UrlInputStep({ initialUrl, onNext }: UrlInputStepProps) 
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"
-                    editable={!isValidating}
                     multiline
                     numberOfLines={2}
                 />
@@ -92,21 +86,17 @@ export default function UrlInputStep({ initialUrl, onNext }: UrlInputStepProps) 
 
             <TouchableOpacity
                 className={`rounded-lg p-4 items-center ${
-                    isValidating || !clipUrl.trim()
-                        ? 'bg-gray-300'
-                        : 'bg-primary-600'
+                    !clipUrl.trim() ? 'bg-gray-300' : 'bg-primary-600'
                 }`}
                 onPress={handleNext}
-                disabled={isValidating || !clipUrl.trim()}
+                disabled={!clipUrl.trim()}
             >
                 <Text
                     className={`text-base font-semibold ${
-                        isValidating || !clipUrl.trim()
-                            ? 'text-gray-500'
-                            : 'text-white'
+                        !clipUrl.trim() ? 'text-gray-500' : 'text-white'
                     }`}
                 >
-                    {isValidating ? 'Validating...' : 'Next'}
+                    Next
                 </Text>
             </TouchableOpacity>
         </View>
