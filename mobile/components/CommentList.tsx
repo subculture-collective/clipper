@@ -2,10 +2,8 @@ import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
-    FlatList,
     TouchableOpacity,
     ActivityIndicator,
-    RefreshControl,
     Alert,
 } from 'react-native';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -96,7 +94,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                 parent_comment_id: parentId,
                 content,
                 vote_score: 0,
-                user_vote: null,
+                user_vote: undefined,
                 reply_count: 0,
                 is_edited: false,
                 is_removed: false,
@@ -174,7 +172,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                     return {
                         ...comment,
                         vote_score: comment.vote_score + scoreDiff,
-                        user_vote: vote === 0 ? null : vote,
+                        user_vote: vote === 0 ? undefined : vote,
                     };
                 };
 
@@ -398,40 +396,32 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                     </Text>
                 </View>
             ) : (
-                <FlatList
-                    data={topLevelComments}
-                    renderItem={({ item }) => (
-                        <View key={item.id}>{renderCommentTree(item)}</View>
+                <View>
+                    {topLevelComments.map((comment) => (
+                        <View key={comment.id}>{renderCommentTree(comment)}</View>
+                    ))}
+                    
+                    {/* Load More Button */}
+                    {hasNextPage && (
+                        <View className="py-4 items-center">
+                            {isFetchingNextPage ? (
+                                <ActivityIndicator
+                                    size="small"
+                                    color="#0ea5e9"
+                                />
+                            ) : (
+                                <TouchableOpacity
+                                    onPress={() => fetchNextPage()}
+                                    className="py-2 px-4 bg-gray-100 rounded-lg"
+                                >
+                                    <Text className="font-semibold text-gray-700">
+                                        Load More Comments
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     )}
-                    keyExtractor={(item) => item.id}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={false}
-                            onRefresh={() => refetch()}
-                        />
-                    }
-                    ListFooterComponent={
-                        hasNextPage ? (
-                            <View className="py-4">
-                                {isFetchingNextPage ? (
-                                    <ActivityIndicator
-                                        size="small"
-                                        color="#0ea5e9"
-                                    />
-                                ) : (
-                                    <TouchableOpacity
-                                        onPress={() => fetchNextPage()}
-                                        className="py-2 px-4 bg-gray-100 rounded-lg self-center"
-                                    >
-                                        <Text className="font-semibold text-gray-700">
-                                            Load More
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        ) : null
-                    }
-                />
+                </View>
             )}
         </View>
     );

@@ -17,7 +17,7 @@ export type Comment = {
     parent_comment_id?: string;
     content: string;
     vote_score: number;
-    user_vote?: number; // 1 for upvote, -1 for downvote, null for no vote
+    user_vote?: number | null; // 1 for upvote, -1 for downvote, null for no vote
     reply_count?: number;
     is_edited: boolean;
     is_removed: boolean;
