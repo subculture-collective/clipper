@@ -78,12 +78,13 @@ export default function SubmitScreen() {
     const fetchClipMetadata = async (url: string) => {
         setIsLoadingMetadata(true);
         try {
-            // Extract clip ID from URL for future API call
+            // TODO: Implement real metadata fetching
+            // Extract clip ID from URL for API call
             // const clipIdMatch = url.match(/clips\.twitch\.tv\/([a-zA-Z0-9_-]+)|\/clip\/([a-zA-Z0-9_-]+)/);
             // const clipId = clipIdMatch?.[1] || clipIdMatch?.[2];
+            // Call backend API: const metadata = await fetchClipMetadata(clipId);
 
-            // In a real implementation, you would call an API endpoint to fetch metadata
-            // For now, we'll set a mock metadata
+            // MOCK DATA - Replace with real API call before production
             setClipMetadata({
                 broadcaster_name: 'ExampleStreamer',
                 game_name: 'Example Game',
