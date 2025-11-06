@@ -8,6 +8,9 @@ import { Comment } from '@/services/comments';
 import { VoteButtons } from './VoteButtons';
 import { CommentComposer } from './CommentComposer';
 
+// Visual indentation per nesting level
+const INDENT_PER_LEVEL = 16;
+
 interface CommentItemProps {
     comment: Comment;
     depth?: number;
@@ -46,7 +49,7 @@ export function CommentItem({
     const hasReplies = (comment.reply_count ?? 0) > 0;
 
     // Calculate indentation
-    const marginLeft = depth * 16;
+    const marginLeft = depth * INDENT_PER_LEVEL;
 
     const handleUpvote = () => {
         const newVote = comment.user_vote === 1 ? 0 : 1;

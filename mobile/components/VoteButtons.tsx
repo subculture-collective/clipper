@@ -3,7 +3,7 @@ import { View, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 
 interface VoteButtonsProps {
     voteScore: number;
-    userVote?: number | null; // 1 for upvote, -1 for downvote, null/undefined for no vote
+    userVote?: number; // 1 for upvote, -1 for downvote, 0 for no vote
     onUpvote: () => void;
     onDownvote: () => void;
     isLoading?: boolean;

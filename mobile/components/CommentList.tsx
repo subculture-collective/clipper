@@ -33,6 +33,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
     const [votingComments, setVotingComments] = useState<Set<string>>(
         new Set()
     );
+    const [replyingCommentId, setReplyingCommentId] = useState<string | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -84,7 +85,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
 
             // Optimistically update with temporary comment
             const tempComment: Comment = {
-                id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                id: crypto.randomUUID(),
                 clip_id: clipId,
                 user_id: currentUserId || '',
                 user: {
@@ -94,7 +95,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                 parent_comment_id: parentId,
                 content,
                 vote_score: 0,
-                user_vote: undefined,
+                user_vote: 0,
                 reply_count: 0,
                 is_edited: false,
                 is_removed: false,
@@ -120,6 +121,9 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
             return { previousComments };
         },
         onError: (err, variables, context) => {
+            // Reset replying state
+            setReplyingCommentId(null);
+            
             // Rollback on error
             if (context?.previousComments) {
                 queryClient.setQueryData(
@@ -129,6 +133,9 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
             }
         },
         onSuccess: () => {
+            // Reset replying state
+            setReplyingCommentId(null);
+            
             // Refetch to get the real comment with ID
             queryClient.invalidateQueries({
                 queryKey: ['comments', clipId, sortBy],
@@ -172,7 +179,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                     return {
                         ...comment,
                         vote_score: comment.vote_score + scoreDiff,
-                        user_vote: vote === 0 ? undefined : vote,
+                        user_vote: vote,
                     };
                 };
 
@@ -251,6 +258,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
 
     const handleReply = useCallback(
         (parentId: string, content: string) => {
+            setReplyingCommentId(parentId);
             createCommentMutation.mutate({ content, parentId });
         },
         [createCommentMutation]
@@ -311,7 +319,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                 onDelete={handleDelete}
                 onToggleReplies={handleToggleReplies}
                 isVoting={votingComments.has(comment.id)}
-                isReplying={createCommentMutation.isPending}
+                isReplying={replyingCommentId === comment.id && createCommentMutation.isPending}
                 showReplies={expandedComments.has(comment.id)}
                 currentUserId={currentUserId}
             />
