@@ -15,7 +15,7 @@ export default function NotFoundScreen() {
           Page Not Found
         </Text>
         <Text className="text-base text-gray-600 text-center mb-6">
-          This screen doesn't exist.
+          This screen doesn&apos;t exist.
         </Text>
         <Link href="/" asChild>
           <TouchableOpacity className="px-6 py-3 bg-primary-500 rounded-lg">
