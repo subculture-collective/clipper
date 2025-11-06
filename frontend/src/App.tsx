@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
+import { HelmetProvider } from '@dr.pogodin/react-helmet';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -101,7 +101,7 @@ function App() {
                       </GuestRoute>
                     }
                   />
-                  
+
                   {/* Auth callback route */}
                   <Route path="/auth/success" element={<AuthCallbackPage />} />
 

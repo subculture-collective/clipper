@@ -197,7 +197,7 @@ export async function deleteCommentOfflineAware(commentId: string): Promise<{ me
     await syncManager.queueOperation({
       type: 'delete',
       entity: 'comment',
-      id: commentId,
+      data: { id: commentId },
     });
     // Operation is already queued, will sync later
     return { message: 'Comment deletion queued for sync' };

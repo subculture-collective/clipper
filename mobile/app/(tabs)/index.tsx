@@ -5,8 +5,8 @@
 import { View, FlatList, ActivityIndicator, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import ClipListItemCard from '@/components/ClipListItemCard';
-import { listClips } from '@/services/clips';
+import ClipListItemCard from '../../components/ClipListItemCard';
+import { listClips } from '../../services/clips';
 
 export default function FeedScreen() {
     const router = useRouter();

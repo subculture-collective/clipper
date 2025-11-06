@@ -5,12 +5,12 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import {
     initiateOAuthFlow,
     exchangeCodeForTokens,
     getCurrentUser,
-} from '@/services/auth';
+} from '../../services/auth';
 
 export default function LoginScreen() {
     const router = useRouter();
