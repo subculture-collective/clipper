@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SearchFilters } from '@/hooks/useSearchFilters';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type FilterSheetProps = {
     visible: boolean;
@@ -38,6 +38,13 @@ export function FilterSheet({
 }: FilterSheetProps) {
     const [localFilters, setLocalFilters] = useState<SearchFilters>(filters);
     const [tagInput, setTagInput] = useState('');
+
+    // Sync local filters when modal opens or filters prop changes
+    useEffect(() => {
+        if (visible) {
+            setLocalFilters(filters);
+        }
+    }, [visible, filters]);
 
     const handleApply = () => {
         onApply(localFilters);

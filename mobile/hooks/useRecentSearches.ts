@@ -21,7 +21,14 @@ export function useRecentSearches() {
         try {
             const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
             if (stored) {
-                setRecentSearches(JSON.parse(stored));
+                try {
+                    const parsed = JSON.parse(stored);
+                    setRecentSearches(Array.isArray(parsed) ? parsed : []);
+                } catch (parseError) {
+                    console.error('Failed to parse recent searches:', parseError);
+                    // Clear corrupted data
+                    await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
+                }
             }
         } catch (error) {
             console.error('Failed to load recent searches:', error);

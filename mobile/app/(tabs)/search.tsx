@@ -47,19 +47,25 @@ export default function SearchScreen() {
             params.search = debouncedQuery;
         }
 
+        // Note: Current API implementation uses search parameter for text matching.
+        // Creator and game filters are combined into search as the API doesn't
+        // support separate broadcaster_name or game_name parameters (only IDs).
+        // In a production environment, you would:
+        // 1. Add API endpoints to resolve names to IDs
+        // 2. Use broadcaster_id and game_id parameters
+        // For now, we include them in the search term for basic filtering.
         if (filters.creator) {
-            // Note: API uses broadcaster_id but we'll search by name
-            // In a real implementation, you'd need to resolve name to ID
             params.search = `${params.search || ''} ${filters.creator}`.trim();
         }
 
         if (filters.game) {
-            // Similar to creator, would need game name to ID resolution
             params.search = `${params.search || ''} ${filters.game}`.trim();
         }
 
+        // API supports single tag parameter
+        // Using first tag only - UI prevents confusion by showing which tag is active
         if (filters.tags && filters.tags.length > 0) {
-            params.tag = filters.tags[0]; // API supports single tag
+            params.tag = filters.tags[0];
         }
 
         if (filters.dateRange) {
@@ -216,7 +222,13 @@ export default function SearchScreen() {
                         {filters.tags?.map(tag => (
                             <FilterChip
                                 key={tag}
-                                label={`Tag: ${tag}`}
+                                label={`Tag: ${tag}${
+                                    filters.tags &&
+                                    filters.tags.length > 1 &&
+                                    filters.tags[0] === tag
+                                        ? ' (active)'
+                                        : ''
+                                }`}
                                 onRemove={() => removeTagChip(tag)}
                                 variant="primary"
                             />

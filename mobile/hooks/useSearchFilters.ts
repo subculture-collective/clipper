@@ -27,7 +27,14 @@ export function useSearchFilters() {
         try {
             const stored = await AsyncStorage.getItem(FILTERS_KEY);
             if (stored) {
-                setFilters(JSON.parse(stored));
+                try {
+                    const parsed = JSON.parse(stored);
+                    setFilters(parsed);
+                } catch (parseError) {
+                    console.error('Failed to parse filters:', parseError);
+                    // Clear corrupted data
+                    await AsyncStorage.removeItem(FILTERS_KEY);
+                }
             }
         } catch (error) {
             console.error('Failed to load filters:', error);
