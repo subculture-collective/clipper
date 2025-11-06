@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { ClipListItem, getClip } from '@/services/clips';
+import { ClipListItem, getClip } from '../services/clips';
 import VideoClipCard from './VideoClipCard';
 
 export default function ClipListItemCard({

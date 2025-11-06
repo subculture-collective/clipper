@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { getClip } from '@/services/clips';
+import { getClip } from '../../services/clips';
 import { useEvent } from 'expo';
 import { VideoView, useVideoPlayer } from 'expo-video';
 

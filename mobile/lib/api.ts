@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { API_BASE_URL, REQUEST_TIMEOUT_MS } from '@/constants/config';
+import { API_BASE_URL, REQUEST_TIMEOUT_MS } from '../constants/config';
 
 export const api = axios.create({
     baseURL: API_BASE_URL,
@@ -61,7 +61,7 @@ api.interceptors.response.use(
             try {
                 // Attempt to refresh the token
                 await api.post('/auth/refresh');
-                
+
                 // Token refreshed successfully, retry the original request
                 processQueue(null);
                 return api(originalRequest);
