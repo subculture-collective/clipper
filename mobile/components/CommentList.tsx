@@ -84,7 +84,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
 
             // Optimistically update with temporary comment
             const tempComment: Comment = {
-                id: `temp-${Date.now()}`,
+                id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                 clip_id: clipId,
                 user_id: currentUserId || '',
                 user: {

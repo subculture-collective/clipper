@@ -119,7 +119,7 @@ export default function ClipDetailScreen() {
                             Comments
                         </Text>
                         <Text className='text-sm text-gray-500'>
-                            {clip.comment_count || 0}
+                            {clip?.comment_count || 0}
                         </Text>
                     </View>
                     <CommentList clipId={id!} currentUserId={user?.id} />

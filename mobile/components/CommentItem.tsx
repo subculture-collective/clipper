@@ -41,7 +41,7 @@ export function CommentItem({
     const [showActions, setShowActions] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
-    const isOwnComment = currentUserId === comment.user_id;
+    const isOwnComment = currentUserId && currentUserId === comment.user_id;
     const canReply = depth < maxDepth;
     const hasReplies = (comment.reply_count ?? 0) > 0;
 
