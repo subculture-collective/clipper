@@ -28,7 +28,7 @@ if ! command -v stripe &> /dev/null; then
 fi
 
 # Check if logged in - test with a simple command
-if ! stripe config --list &> /dev/null; then
+if ! stripe customers list --limit 1 &> /dev/null; then
     echo -e "${RED}Error: Please login to Stripe CLI first${NC}"
     echo "Run: stripe login"
     exit 1

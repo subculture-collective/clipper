@@ -501,8 +501,13 @@ func (s *SubscriptionService) ChangeSubscriptionPlan(ctx context.Context, user *
 	}
 
 	// Validate subscription has items
-	if stripeSubscription.Items == nil || len(stripeSubscription.Items.Data) == 0 {
+	if len(stripeSubscription.Items.Data) == 0 {
 		return errors.New("subscription has no items")
+	}
+
+	// Validate first item has a price
+	if stripeSubscription.Items.Data[0].Price == nil {
+		return errors.New("subscription item has no price")
 	}
 
 	// Check if already on this plan
