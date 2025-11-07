@@ -101,16 +101,28 @@ export default function SettingsScreen() {
   };
 
   const handleExportData = async () => {
-    try {
-      setIsLoading(true);
-      await exportUserData();
-      Alert.alert('Success', 'Your data export has been requested. You will receive an email with a download link.');
-    } catch (error) {
-      console.error('Failed to export data:', error);
-      Alert.alert('Error', 'Failed to export data. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    Alert.alert(
+      'Export Data',
+      'This feature will download your data. Note: File downloads may not work properly in all environments. You may need to use the web version for data export.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await exportUserData();
+              Alert.alert('Export Initiated', 'Your data export has been requested.');
+            } catch (error) {
+              console.error('Failed to export data:', error);
+              Alert.alert('Error', 'Failed to export data. Please try the web version.');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteAccount = () => {
