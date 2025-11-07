@@ -18,6 +18,7 @@ export type User = {
     display_name: string;
     email?: string;
     profile_image_url?: string;
+    bio?: string;
     role: string;
     is_banned: boolean;
     reputation_score: number;
