@@ -128,9 +128,13 @@ export default function SettingsScreen() {
               const result = await requestAccountDeletion();
               await refetchDeletionStatus();
               if (result.scheduled_for) {
+                const deletionDate = new Date(result.scheduled_for);
+                const dateStr = !isNaN(deletionDate.getTime())
+                  ? deletionDate.toLocaleDateString()
+                  : 'soon';
                 Alert.alert(
                   'Account Deletion Scheduled',
-                  `Your account will be deleted on ${new Date(result.scheduled_for).toLocaleDateString()}.`
+                  `Your account will be deleted on ${dateStr}.`
                 );
               } else {
                 Alert.alert('Success', 'Account deletion has been scheduled.');
@@ -169,7 +173,10 @@ export default function SettingsScreen() {
             Account Deletion Scheduled
           </Text>
           <Text className="text-sm text-red-700">
-            Your account will be deleted on {new Date(deletionStatus.scheduled_for).toLocaleDateString()}
+            Your account will be deleted on {(() => {
+              const date = new Date(deletionStatus.scheduled_for);
+              return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'soon';
+            })()}
           </Text>
           <TouchableOpacity
             className="mt-2 bg-red-600 rounded-lg py-2 px-4"
@@ -233,7 +240,7 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className={`flex-row items-center p-3 rounded-lg border mt-2 ${
+                  className={`flex-row items-center p-3 rounded-lg border mb-2 ${
                     userSettings?.profile_visibility === 'private'
                       ? 'border-primary-500 bg-primary-50'
                       : 'border-gray-200'
