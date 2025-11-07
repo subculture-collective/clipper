@@ -2,12 +2,57 @@
  * Settings screen
  */
 
-import { View, Text, Switch, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { View, Text, Switch, TouchableOpacity, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function SettingsScreen() {
-  const [notifications, setNotifications] = useState(true);
+  const { isNotificationsEnabled, enableNotifications, disableNotifications } = useNotifications();
+  const [notifications, setNotifications] = useState(isNotificationsEnabled);
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setNotifications(isNotificationsEnabled);
+  }, [isNotificationsEnabled]);
+
+  const handleNotificationToggle = async (value: boolean) => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+    try {
+      if (value) {
+        const success = await enableNotifications();
+        if (success) {
+          setNotifications(true);
+          Alert.alert(
+            'Notifications Enabled',
+            'You will now receive push notifications for replies, mentions, and more.'
+          );
+        } else {
+          Alert.alert(
+            'Permission Denied',
+            'Please enable notifications in your device settings to receive push notifications.'
+          );
+        }
+      } else {
+        await disableNotifications();
+        setNotifications(false);
+        Alert.alert(
+          'Notifications Disabled',
+          'You will no longer receive push notifications.'
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      Alert.alert(
+        'Error',
+        'Failed to update notification settings. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -17,11 +62,17 @@ export default function SettingsScreen() {
         </Text>
         
         <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
-          <Text className="text-base text-gray-900">Push Notifications</Text>
+          <View className="flex-1">
+            <Text className="text-base text-gray-900">Push Notifications</Text>
+            <Text className="text-xs text-gray-500 mt-1">
+              Get notified about replies, mentions, and approvals
+            </Text>
+          </View>
           <Switch
             value={notifications}
-            onValueChange={setNotifications}
+            onValueChange={handleNotificationToggle}
             trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
+            disabled={isLoading}
           />
         </View>
 

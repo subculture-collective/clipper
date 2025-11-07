@@ -8,19 +8,21 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	TwitchID    string     `json:"twitch_id" db:"twitch_id"`
-	Username    string     `json:"username" db:"username"`
-	DisplayName string     `json:"display_name" db:"display_name"`
-	Email       *string    `json:"email,omitempty" db:"email"`
-	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio         *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints int        `json:"karma_points" db:"karma_points"`
-	Role        string     `json:"role" db:"role"`
-	IsBanned    bool       `json:"is_banned" db:"is_banned"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID              uuid.UUID  `json:"id" db:"id"`
+	TwitchID        string     `json:"twitch_id" db:"twitch_id"`
+	Username        string     `json:"username" db:"username"`
+	DisplayName     string     `json:"display_name" db:"display_name"`
+	Email           *string    `json:"email,omitempty" db:"email"`
+	AvatarURL       *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio             *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints     int        `json:"karma_points" db:"karma_points"`
+	Role            string     `json:"role" db:"role"`
+	IsBanned        bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken     *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform  *string    `json:"device_platform,omitempty" db:"device_platform"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt     *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -777,3 +779,14 @@ const (
 	EmailStatusFailed  = "failed"
 	EmailStatusBounced = "bounced"
 )
+
+// RegisterDeviceTokenRequest represents the request to register a device token
+type RegisterDeviceTokenRequest struct {
+	DeviceToken    string `json:"device_token" binding:"required"`
+	DevicePlatform string `json:"device_platform" binding:"required,oneof=ios android web"`
+}
+
+// UnregisterDeviceTokenRequest represents the request to unregister a device token
+type UnregisterDeviceTokenRequest struct {
+	DeviceToken string `json:"device_token" binding:"required"`
+}
