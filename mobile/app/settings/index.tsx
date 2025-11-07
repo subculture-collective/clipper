@@ -268,6 +268,24 @@ export default function SettingsScreen() {
                     <Text className="text-primary-600 text-xl">✓</Text>
                   )}
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  className={`flex-row items-center p-3 rounded-lg border mt-2 ${
+                    userSettings?.profile_visibility === 'followers'
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-200'
+                  }`}
+                  onPress={() => handlePrivacySettingChange('followers')}
+                  disabled={isLoading}
+                >
+                  <View className="flex-1">
+                    <Text className="text-base font-medium text-gray-900">Followers Only</Text>
+                    <Text className="text-xs text-gray-500">Only your followers can view your profile</Text>
+                  </View>
+                  {userSettings?.profile_visibility === 'followers' && (
+                    <Text className="text-primary-600 text-xl">✓</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             </View>
 
