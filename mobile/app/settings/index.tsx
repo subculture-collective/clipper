@@ -220,7 +220,7 @@ export default function SettingsScreen() {
             
             <View className="py-3 border-b border-gray-100">
               <Text className="text-base text-gray-900 mb-3">Profile Visibility</Text>
-              <View className="space-y-2">
+              <View>
                 <TouchableOpacity
                   className={`flex-row items-center p-3 rounded-lg border ${
                     userSettings?.profile_visibility === 'public'
@@ -240,7 +240,7 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className={`flex-row items-center p-3 rounded-lg border mb-2 ${
+                  className={`flex-row items-center p-3 rounded-lg border mt-2 ${
                     userSettings?.profile_visibility === 'private'
                       ? 'border-primary-500 bg-primary-50'
                       : 'border-gray-200'
