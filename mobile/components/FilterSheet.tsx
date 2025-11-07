@@ -57,22 +57,20 @@ export function FilterSheet({
     };
 
     const handleAddTag = () => {
-        if (tagInput.trim()) {
-            const currentTags = localFilters.tags || [];
-            if (!currentTags.includes(tagInput.trim())) {
-                setLocalFilters({
-                    ...localFilters,
-                    tags: [...currentTags, tagInput.trim()],
-                });
-            }
+        const trimmed = tagInput.trim();
+        if (trimmed) {
+            setLocalFilters({
+                ...localFilters,
+                tag: trimmed,
+            });
             setTagInput('');
         }
     };
 
-    const handleRemoveTag = (tag: string) => {
+    const handleRemoveTag = () => {
         setLocalFilters({
             ...localFilters,
-            tags: (localFilters.tags || []).filter(t => t !== tag),
+            tag: undefined,
         });
     };
 
@@ -134,15 +132,15 @@ export function FilterSheet({
                             />
                         </View>
 
-                        {/* Tags Filter */}
+                        {/* Tag Filter - Single tag only */}
                         <View className="mb-6">
                             <Text className="text-sm font-semibold text-gray-700 mb-2">
-                                Tags
+                                Tag
                             </Text>
                             <View className="flex-row mb-2">
                                 <TextInput
                                     className="flex-1 bg-gray-100 p-3 rounded-lg text-base mr-2"
-                                    placeholder="Add tag..."
+                                    placeholder="Enter tag..."
                                     value={tagInput}
                                     onChangeText={setTagInput}
                                     onSubmitEditing={handleAddTag}
@@ -159,27 +157,22 @@ export function FilterSheet({
                                     />
                                 </TouchableOpacity>
                             </View>
-                            <View className="flex-row flex-wrap">
-                                {(localFilters.tags || []).map(tag => (
-                                    <View
-                                        key={tag}
-                                        className="bg-sky-100 px-3 py-1.5 rounded-full mr-2 mb-2 flex-row items-center"
+                            {localFilters.tag && (
+                                <View className="bg-sky-100 px-3 py-1.5 rounded-full self-start flex-row items-center">
+                                    <Text className="text-sm text-sky-700 mr-1">
+                                        {localFilters.tag}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={handleRemoveTag}
                                     >
-                                        <Text className="text-sm text-sky-700 mr-1">
-                                            {tag}
-                                        </Text>
-                                        <TouchableOpacity
-                                            onPress={() => handleRemoveTag(tag)}
-                                        >
-                                            <Ionicons
-                                                name="close-circle"
-                                                size={16}
-                                                color="#0369a1"
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                            </View>
+                                        <Ionicons
+                                            name="close-circle"
+                                            size={16}
+                                            color="#0369a1"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
                         </View>
 
                         {/* Date Range Filter */}

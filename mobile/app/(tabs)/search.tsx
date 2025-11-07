@@ -47,25 +47,25 @@ export default function SearchScreen() {
             params.search = debouncedQuery;
         }
 
-        // Note: Current API implementation uses search parameter for text matching.
-        // Creator and game filters are combined into search as the API doesn't
-        // support separate broadcaster_name or game_name parameters (only IDs).
-        // In a production environment, you would:
-        // 1. Add API endpoints to resolve names to IDs
-        // 2. Use broadcaster_id and game_id parameters
-        // For now, we include them in the search term for basic filtering.
-        if (filters.creator) {
+        // Use broadcaster_id if available, otherwise fall back to name search
+        if (filters.creatorId) {
+            params.broadcaster_id = filters.creatorId;
+        } else if (filters.creator) {
+            // Fallback: include creator name in search term
             params.search = `${params.search || ''} ${filters.creator}`.trim();
         }
 
-        if (filters.game) {
+        // Use game_id if available, otherwise fall back to name search
+        if (filters.gameId) {
+            params.game_id = filters.gameId;
+        } else if (filters.game) {
+            // Fallback: include game name in search term
             params.search = `${params.search || ''} ${filters.game}`.trim();
         }
 
-        // API supports single tag parameter
-        // Using first tag only - UI prevents confusion by showing which tag is active
-        if (filters.tags && filters.tags.length > 0) {
-            params.tag = filters.tags[0];
+        // Use single tag parameter
+        if (filters.tag) {
+            params.tag = filters.tag;
         }
 
         if (filters.dateRange) {
@@ -114,14 +114,11 @@ export default function SearchScreen() {
         [filters, updateFilters]
     );
 
-    const removeTagChip = useCallback(
-        (tag: string) => {
-            updateFilters({
-                tags: (filters.tags || []).filter(t => t !== tag),
-            });
-        },
-        [filters.tags, updateFilters]
-    );
+    const removeTagChip = useCallback(() => {
+        updateFilters({
+            tag: undefined,
+        });
+    }, [updateFilters]);
 
     // Show loading state for searches
     const showLoading = isLoading && shouldSearch;
@@ -180,9 +177,9 @@ export default function SearchScreen() {
                             <View className="ml-1 bg-sky-500 rounded-full w-5 h-5 items-center justify-center">
                                 <Text className="text-white text-xs font-bold">
                                     {[
-                                        filters.creator,
-                                        filters.game,
-                                        filters.tags?.length,
+                                        filters.creator || filters.creatorId,
+                                        filters.game || filters.gameId,
+                                        filters.tag,
                                         filters.dateRange,
                                     ].filter(Boolean).length}
                                 </Text>
@@ -219,20 +216,13 @@ export default function SearchScreen() {
                                 variant="primary"
                             />
                         )}
-                        {filters.tags?.map(tag => (
+                        {filters.tag && (
                             <FilterChip
-                                key={tag}
-                                label={`Tag: ${tag}${
-                                    filters.tags &&
-                                    filters.tags.length > 1 &&
-                                    filters.tags[0] === tag
-                                        ? ' (active)'
-                                        : ''
-                                }`}
-                                onRemove={() => removeTagChip(tag)}
+                                label={`Tag: ${filters.tag}`}
+                                onRemove={removeTagChip}
                                 variant="primary"
                             />
-                        ))}
+                        )}
                         {filters.dateRange && (
                             <FilterChip
                                 label={`Time: ${filters.dateRange}`}

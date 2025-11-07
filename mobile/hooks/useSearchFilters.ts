@@ -7,8 +7,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type SearchFilters = {
     creator?: string;
+    creatorId?: string;
     game?: string;
-    tags?: string[];
+    gameId?: string;
+    tag?: string; // Changed from tags array to single tag
     dateRange?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
 };
 
@@ -45,15 +47,16 @@ export function useSearchFilters() {
 
     const updateFilters = useCallback(
         async (newFilters: Partial<SearchFilters>) => {
-            const updated = { ...filters, ...newFilters };
-            setFilters(updated);
-            try {
-                await AsyncStorage.setItem(FILTERS_KEY, JSON.stringify(updated));
-            } catch (error) {
-                console.error('Failed to save filters:', error);
-            }
+            setFilters(prev => {
+                const updated = { ...prev, ...newFilters };
+                // Persist the updated filters
+                AsyncStorage.setItem(FILTERS_KEY, JSON.stringify(updated)).catch(error => {
+                    console.error('Failed to save filters:', error);
+                });
+                return updated;
+            });
         },
-        [filters]
+        []
     );
 
     const clearFilters = useCallback(async () => {
@@ -68,8 +71,10 @@ export function useSearchFilters() {
     const hasActiveFilters = useCallback(() => {
         return !!(
             filters.creator ||
+            filters.creatorId ||
             filters.game ||
-            (filters.tags && filters.tags.length > 0) ||
+            filters.gameId ||
+            filters.tag ||
             filters.dateRange
         );
     }, [filters]);

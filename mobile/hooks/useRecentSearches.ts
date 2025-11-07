@@ -43,41 +43,44 @@ export function useRecentSearches() {
 
             const trimmed = query.trim();
             
-            // Remove existing occurrence and add to front
-            const updated = [
-                trimmed,
-                ...recentSearches.filter(s => s !== trimmed),
-            ].slice(0, MAX_RECENT_SEARCHES);
+            setRecentSearches(prev => {
+                // Remove existing occurrence and add to front
+                const updated = [
+                    trimmed,
+                    ...prev.filter(s => s !== trimmed),
+                ].slice(0, MAX_RECENT_SEARCHES);
 
-            setRecentSearches(updated);
-
-            try {
-                await AsyncStorage.setItem(
+                // Persist to AsyncStorage
+                AsyncStorage.setItem(
                     RECENT_SEARCHES_KEY,
                     JSON.stringify(updated)
-                );
-            } catch (error) {
-                console.error('Failed to save recent search:', error);
-            }
+                ).catch(error => {
+                    console.error('Failed to save recent search:', error);
+                });
+
+                return updated;
+            });
         },
-        [recentSearches]
+        []
     );
 
     const removeRecentSearch = useCallback(
         async (query: string) => {
-            const updated = recentSearches.filter(s => s !== query);
-            setRecentSearches(updated);
-
-            try {
-                await AsyncStorage.setItem(
+            setRecentSearches(prev => {
+                const updated = prev.filter(s => s !== query);
+                
+                // Persist to AsyncStorage
+                AsyncStorage.setItem(
                     RECENT_SEARCHES_KEY,
                     JSON.stringify(updated)
-                );
-            } catch (error) {
-                console.error('Failed to remove recent search:', error);
-            }
+                ).catch(error => {
+                    console.error('Failed to remove recent search:', error);
+                });
+
+                return updated;
+            });
         },
-        [recentSearches]
+        []
     );
 
     const clearRecentSearches = useCallback(async () => {
