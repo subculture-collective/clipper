@@ -19,9 +19,11 @@ import {
   addNotificationResponseListener,
   getBadgeCount,
   setBadgeCount,
+  unregisterDeviceToken,
   type NotificationData,
 } from '@/services/notifications';
 import { useAuth } from './AuthContext';
+import { api } from '@/lib/api';
 
 type NotificationContextType = {
   unreadCount: number;
@@ -132,17 +134,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const refreshUnreadCount = useCallback(async () => {
     try {
-      // TODO: Fetch from API
-      // const response = await api.get('/notifications/count');
-      // setUnreadCount(response.data.count);
-      
-      // For now, use badge count
-      const count = await getBadgeCount();
+      if (!isAuthenticated) {
+        setUnreadCount(0);
+        return;
+      }
+
+      // Fetch from API
+      const response = await api.get('/notifications/count');
+      const count = response.data.unread_count || 0;
       setUnreadCount(count);
+      
+      // Also update badge
+      await setBadgeCount(count);
     } catch (error) {
       console.error('Error refreshing unread count:', error);
+      // Fallback to badge count
+      try {
+        const count = await getBadgeCount();
+        setUnreadCount(count);
+      } catch (badgeError) {
+        console.error('Error getting badge count:', badgeError);
+      }
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const enableNotifications = async (): Promise<boolean> => {
     try {
@@ -165,10 +179,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const disableNotifications = async () => {
     try {
-      // TODO: Unregister token with backend if we have one
-      // if (pushToken) {
-      //   await unregisterDeviceToken(pushToken);
-      // }
+      // Unregister token with backend if we have one
+      if (pushToken) {
+        await unregisterDeviceToken(pushToken);
+      }
 
       setPushToken(null);
       setIsNotificationsEnabled(false);
