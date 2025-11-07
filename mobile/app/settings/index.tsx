@@ -127,10 +127,14 @@ export default function SettingsScreen() {
               setIsLoading(true);
               const result = await requestAccountDeletion();
               await refetchDeletionStatus();
-              Alert.alert(
-                'Account Deletion Scheduled',
-                `Your account will be deleted on ${new Date(result.scheduled_for).toLocaleDateString()}.`
-              );
+              if (result.scheduled_for) {
+                Alert.alert(
+                  'Account Deletion Scheduled',
+                  `Your account will be deleted on ${new Date(result.scheduled_for).toLocaleDateString()}.`
+                );
+              } else {
+                Alert.alert('Success', 'Account deletion has been scheduled.');
+              }
             } catch (error) {
               console.error('Failed to request deletion:', error);
               Alert.alert('Error', 'Failed to request account deletion. Please try again.');
@@ -159,7 +163,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
-      {isAuthenticated && deletionStatus?.pending && (
+      {isAuthenticated && deletionStatus?.pending && deletionStatus?.scheduled_for && (
         <View className="bg-red-50 border-l-4 border-red-500 p-4 m-4">
           <Text className="text-base font-semibold text-red-800 mb-1">
             Account Deletion Scheduled
