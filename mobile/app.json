@@ -81,6 +81,14 @@
                 {
                     "supportsPictureInPicture": true
                 }
+            ],
+            [
+                "expo-notifications",
+                {
+                    "icon": "./assets/images/icon.png",
+                    "color": "#0ea5e9",
+                    "sounds": []
+                }
             ]
         ],
         "experiments": {
