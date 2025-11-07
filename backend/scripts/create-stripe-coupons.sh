@@ -27,8 +27,8 @@ if ! command -v stripe &> /dev/null; then
     exit 1
 fi
 
-# Check if logged in
-if ! stripe --version &> /dev/null; then
+# Check if logged in - test with a simple command
+if ! stripe config --list &> /dev/null; then
     echo -e "${RED}Error: Please login to Stripe CLI first${NC}"
     echo "Run: stripe login"
     exit 1
