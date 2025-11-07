@@ -66,6 +66,11 @@ export default function ProfileScreen() {
                         <Text className="text-sm text-gray-500">
                             @{user.username}
                         </Text>
+                        {user.bio && (
+                            <Text className="text-sm text-gray-700 mt-2 text-center px-4">
+                                {user.bio}
+                            </Text>
+                        )}
                         {user.reputation_score > 0 && (
                             <Text className="text-xs text-primary-600 mt-1">
                                 Reputation: {user.reputation_score}

@@ -23,7 +23,7 @@ export default function EditProfileScreen() {
     const router = useRouter();
     const { user, setUser } = useAuth();
     const [displayName, setDisplayName] = useState(user?.display_name || '');
-    const [bio, setBio] = useState('');
+    const [bio, setBio] = useState(user?.bio || '');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSave = async () => {
