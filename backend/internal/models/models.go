@@ -779,3 +779,14 @@ const (
 	EmailStatusFailed  = "failed"
 	EmailStatusBounced = "bounced"
 )
+
+// RegisterDeviceTokenRequest represents the request to register a device token
+type RegisterDeviceTokenRequest struct {
+	DeviceToken    string `json:"device_token" binding:"required"`
+	DevicePlatform string `json:"device_platform" binding:"required,oneof=ios android web"`
+}
+
+// UnregisterDeviceTokenRequest represents the request to unregister a device token
+type UnregisterDeviceTokenRequest struct {
+	DeviceToken string `json:"device_token" binding:"required"`
+}

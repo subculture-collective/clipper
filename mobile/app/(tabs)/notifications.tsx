@@ -42,9 +42,9 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [loadNotifications]);
 
-  const loadNotifications = async (pageNum = 1, refresh = false) => {
+  const loadNotifications = useCallback(async (pageNum = 1, refresh = false) => {
     try {
       if (refresh) {
         setIsRefreshing(true);
@@ -75,12 +75,12 @@ export default function NotificationsScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
   const handleRefresh = useCallback(() => {
     loadNotifications(1, true);
     refreshUnreadCount();
-  }, [refreshUnreadCount]);
+  }, [loadNotifications, refreshUnreadCount]);
 
   const handleLoadMore = () => {
     if (!isLoading && hasMore) {

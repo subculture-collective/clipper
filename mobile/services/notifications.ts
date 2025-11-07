@@ -60,8 +60,14 @@ export async function getExpoPushToken(): Promise<string | null> {
       return null;
     }
 
+    // Validate project ID is configured
+    if (!EXPO_PROJECT_ID || EXPO_PROJECT_ID.trim() === '') {
+      console.warn('EXPO_PROJECT_ID is not configured. Push notifications will not work.');
+      return null;
+    }
+
     const token = await Notifications.getExpoPushTokenAsync({
-      projectId: EXPO_PROJECT_ID || undefined,
+      projectId: EXPO_PROJECT_ID,
     });
 
     return token.data;

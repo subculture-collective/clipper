@@ -629,7 +629,7 @@ func (s *NotificationService) RegisterDeviceToken(
 	// Update user's device token in the database
 	err := s.userRepo.UpdateDeviceToken(ctx, userID, deviceToken, devicePlatform)
 	if err != nil {
-		return fmt.Errorf("failed to register device token: %w", err)
+		return fmt.Errorf("failed to register device token for user %s: %w", userID.String(), err)
 	}
 
 	return nil
@@ -644,7 +644,7 @@ func (s *NotificationService) UnregisterDeviceToken(
 	// Clear user's device token from the database
 	err := s.userRepo.ClearDeviceToken(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to unregister device token: %w", err)
+		return fmt.Errorf("failed to unregister device token for user %s: %w", userID.String(), err)
 	}
 
 	return nil

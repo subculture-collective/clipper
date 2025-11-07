@@ -472,11 +472,7 @@ func (h *NotificationHandler) RegisterDeviceToken(c *gin.Context) {
 	}
 
 	// Parse request body
-	var req struct {
-		DeviceToken    string `json:"device_token" binding:"required"`
-		DevicePlatform string `json:"device_platform" binding:"required,oneof=ios android web"`
-	}
-
+	var req models.RegisterDeviceTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request body",
@@ -518,10 +514,7 @@ func (h *NotificationHandler) UnregisterDeviceToken(c *gin.Context) {
 	}
 
 	// Parse request body
-	var req struct {
-		DeviceToken string `json:"device_token" binding:"required"`
-	}
-
+	var req models.UnregisterDeviceTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request body",
