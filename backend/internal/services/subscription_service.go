@@ -500,8 +500,13 @@ func (s *SubscriptionService) ChangeSubscriptionPlan(ctx context.Context, user *
 		return fmt.Errorf("failed to get stripe subscription: %w", err)
 	}
 
+	// Validate subscription has items
+	if stripeSubscription.Items == nil || len(stripeSubscription.Items.Data) == 0 {
+		return errors.New("subscription has no items")
+	}
+
 	// Check if already on this plan
-	if len(stripeSubscription.Items.Data) > 0 && stripeSubscription.Items.Data[0].Price.ID == newPriceID {
+	if stripeSubscription.Items.Data[0].Price.ID == newPriceID {
 		return errors.New("already subscribed to this plan")
 	}
 

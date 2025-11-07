@@ -702,6 +702,11 @@ type CreateCheckoutSessionRequest struct {
 	CouponCode *string `json:"coupon_code,omitempty"`
 }
 
+// ChangeSubscriptionPlanRequest represents a request to change subscription plan
+type ChangeSubscriptionPlanRequest struct {
+	PriceID string `json:"price_id" binding:"required"`
+}
+
 // CreateCheckoutSessionResponse represents the response with checkout session URL
 type CreateCheckoutSessionResponse struct {
 	SessionID  string `json:"session_id"`

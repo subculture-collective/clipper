@@ -191,7 +191,7 @@ func (h *SubscriptionHandler) HandleWebhook(c *gin.Context) {
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param request body models.CreateCheckoutSessionRequest true "New plan request"
+// @Param request body models.ChangeSubscriptionPlanRequest true "New plan request"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
@@ -212,7 +212,7 @@ func (h *SubscriptionHandler) ChangeSubscriptionPlan(c *gin.Context) {
 	}
 
 	// Parse request
-	var req models.CreateCheckoutSessionRequest
+	var req models.ChangeSubscriptionPlanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
