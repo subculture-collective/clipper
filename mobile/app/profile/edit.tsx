@@ -50,12 +50,20 @@ export default function EditProfileScreen() {
             });
 
             // Refresh user data
-            const updatedUser = await getCurrentUser();
-            setUser(updatedUser);
-
-            Alert.alert('Success', 'Profile updated successfully', [
-                { text: 'OK', onPress: () => router.back() },
-            ]);
+            try {
+                const updatedUser = await getCurrentUser();
+                setUser(updatedUser);
+                Alert.alert('Success', 'Profile updated successfully', [
+                    { text: 'OK', onPress: () => router.back() },
+                ]);
+            } catch (refreshError) {
+                console.error('Profile updated, but failed to refresh user data:', refreshError);
+                Alert.alert(
+                    'Profile Updated',
+                    'Your profile was updated, but we could not refresh your data. Please reload the app to see the latest information.',
+                    [{ text: 'OK', onPress: () => router.back() }]
+                );
+            }
         } catch (error) {
             console.error('Failed to update profile:', error);
             Alert.alert(

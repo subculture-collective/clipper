@@ -24,8 +24,12 @@ export interface UpdateSettingsData {
 
 /**
  * Update user profile (display name and bio)
+ * @throws Error if display_name is empty or invalid
  */
 export async function updateProfile(data: UpdateProfileData): Promise<void> {
+    if (!data.display_name || typeof data.display_name !== 'string' || data.display_name.trim() === '') {
+        throw new Error('Display name cannot be empty');
+    }
     await api.put('/api/v1/users/me/profile', data);
 }
 
@@ -56,6 +60,8 @@ export async function exportUserData(): Promise<Blob> {
 
 /**
  * Request account deletion
+ * @param reason Optional reason for account deletion
+ * @returns An object with `scheduled_for` as an ISO 8601 date string (e.g., "2024-06-01T12:00:00Z")
  */
 export async function requestAccountDeletion(reason?: string): Promise<{ scheduled_for: string }> {
     const response = await api.post<{ scheduled_for: string }>('/api/v1/users/me/delete', {
@@ -74,6 +80,10 @@ export async function cancelAccountDeletion(): Promise<void> {
 
 /**
  * Get account deletion status
+ * @returns Object with deletion status information:
+ *  - `pending`: true if account deletion is scheduled, false otherwise
+ *  - `scheduled_for`: ISO 8601 date string when account will be deleted (only present if pending is true)
+ *  - `requested_at`: ISO 8601 date string when deletion was requested (only present if pending is true)
  */
 export async function getDeletionStatus(): Promise<{
     pending: boolean;

@@ -10,7 +10,6 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import {
     getUserSettings,
     updateUserSettings,
-    exportUserData,
     requestAccountDeletion,
     cancelAccountDeletion,
     getDeletionStatus,
@@ -93,34 +92,23 @@ export default function SettingsScreen() {
   };
 
   const handlePrivacySettingChange = (value: 'public' | 'private' | 'followers') => {
-    updateSettingsMutation.mutate({ profile_visibility: value });
+    if (!updateSettingsMutation.isPending) {
+      updateSettingsMutation.mutate({ profile_visibility: value });
+    }
   };
 
   const handleKarmaVisibilityToggle = (value: boolean) => {
-    updateSettingsMutation.mutate({ show_karma_publicly: value });
+    if (!updateSettingsMutation.isPending) {
+      updateSettingsMutation.mutate({ show_karma_publicly: value });
+    }
   };
 
-  const handleExportData = async () => {
+  const handleExportData = () => {
     Alert.alert(
       'Export Data',
-      'This feature will download your data. Note: File downloads may not work properly in all environments. You may need to use the web version for data export.',
+      'Data export is currently only available through the web version of Clipper. Please visit the website to export your data.',
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-              await exportUserData();
-              Alert.alert('Export Initiated', 'Your data export has been requested.');
-            } catch (error) {
-              console.error('Failed to export data:', error);
-              Alert.alert('Error', 'Failed to export data. Please try the web version.');
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
+        { text: 'OK', style: 'default' },
       ]
     );
   };
@@ -240,7 +228,7 @@ export default function SettingsScreen() {
                       : 'border-gray-200'
                   }`}
                   onPress={() => handlePrivacySettingChange('public')}
-                  disabled={isLoading}
+                  disabled={updateSettingsMutation.isPending}
                 >
                   <View className="flex-1">
                     <Text className="text-base font-medium text-gray-900">Public</Text>
@@ -258,7 +246,7 @@ export default function SettingsScreen() {
                       : 'border-gray-200'
                   }`}
                   onPress={() => handlePrivacySettingChange('private')}
-                  disabled={isLoading}
+                  disabled={updateSettingsMutation.isPending}
                 >
                   <View className="flex-1">
                     <Text className="text-base font-medium text-gray-900">Private</Text>
@@ -276,7 +264,7 @@ export default function SettingsScreen() {
                       : 'border-gray-200'
                   }`}
                   onPress={() => handlePrivacySettingChange('followers')}
-                  disabled={isLoading}
+                  disabled={updateSettingsMutation.isPending}
                 >
                   <View className="flex-1">
                     <Text className="text-base font-medium text-gray-900">Followers Only</Text>
@@ -296,12 +284,19 @@ export default function SettingsScreen() {
                   Display your karma score on your profile
                 </Text>
               </View>
-              <Switch
-                value={userSettings?.show_karma_publicly ?? true}
-                onValueChange={handleKarmaVisibilityToggle}
-                trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
-                disabled={isLoading}
-              />
+              <View className="flex-row items-center">
+                <Switch
+                  value={userSettings?.show_karma_publicly ?? true}
+                  onValueChange={handleKarmaVisibilityToggle}
+                  trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
+                  disabled={updateSettingsMutation.isPending}
+                />
+                {updateSettingsMutation.isPending && (
+                  <View className="ml-2 flex-row items-center">
+                    <ActivityIndicator size="small" color="#0ea5e9" />
+                  </View>
+                )}
+              </View>
             </View>
           </View>
 
@@ -328,7 +323,6 @@ export default function SettingsScreen() {
             <TouchableOpacity
               className="py-3 border-b border-gray-100"
               onPress={handleExportData}
-              disabled={isLoading}
             >
               <Text className="text-base text-gray-900">Export My Data</Text>
               <Text className="text-xs text-gray-500 mt-1">
@@ -377,7 +371,7 @@ export default function SettingsScreen() {
       </View>
 
       {isLoading && (
-        <View className="absolute inset-0 bg-black bg-opacity-30 items-center justify-center">
+        <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
           <View className="bg-white p-6 rounded-lg">
             <ActivityIndicator size="large" color="#0ea5e9" />
             <Text className="text-gray-900 mt-2">Processing...</Text>
