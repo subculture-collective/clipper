@@ -91,6 +91,15 @@ export default function ProfileScreen() {
                 {isAuthenticated ? (
                     <>
                         <TouchableOpacity
+                            className="p-4 bg-primary-500 rounded-lg mb-3"
+                            onPress={() => router.push('/profile/edit')}
+                            disabled={isLoggingOut}
+                        >
+                            <Text className="text-white text-center font-semibold text-base">
+                                Edit Profile
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
                             className="p-4 bg-gray-100 rounded-lg mb-3"
                             onPress={() => router.push('/settings')}
                             disabled={isLoggingOut}
