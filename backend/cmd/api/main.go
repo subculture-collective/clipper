@@ -539,6 +539,10 @@ func main() {
 			// Get/Update preferences
 			notifications.GET("/preferences", notificationHandler.GetPreferences)
 			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+
+			// Device token registration for push notifications
+			notifications.POST("/register", notificationHandler.RegisterDeviceToken)
+			notifications.DELETE("/unregister", notificationHandler.UnregisterDeviceToken)
 		}
 
 		// Subscription routes
