@@ -13,6 +13,7 @@ import (
 	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -104,7 +105,7 @@ func (s *SubscriptionService) GetOrCreateCustomer(ctx context.Context, user *mod
 }
 
 // CreateCheckoutSession creates a Stripe Checkout session for subscription
-func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *models.User, priceID string) (*models.CreateCheckoutSessionResponse, error) {
+func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *models.User, priceID string, couponCode *string) (*models.CreateCheckoutSessionResponse, error) {
 	// Validate price ID
 	if priceID != s.cfg.Stripe.ProMonthlyPriceID && priceID != s.cfg.Stripe.ProYearlyPriceID {
 		return nil, ErrInvalidPriceID
@@ -133,6 +134,17 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 		Metadata: map[string]string{
 			"user_id": user.ID.String(),
 		},
+		// Enable promotion codes by default
+		AllowPromotionCodes: stripe.Bool(true),
+	}
+
+	// Apply coupon code if provided
+	if couponCode != nil && *couponCode != "" {
+		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
+			{
+				Coupon: stripe.String(*couponCode),
+			},
+		}
 	}
 
 	params.SetIdempotencyKey(idempotencyKey)
@@ -143,11 +155,15 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 	}
 
 	// Log audit event
+	metadata := map[string]interface{}{
+		"session_id": sess.ID,
+		"price_id":   priceID,
+	}
+	if couponCode != nil && *couponCode != "" {
+		metadata["coupon_code"] = *couponCode
+	}
 	if s.auditLogSvc != nil {
-		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "checkout_session_created", map[string]interface{}{
-			"session_id": sess.ID,
-			"price_id":   priceID,
-		})
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "checkout_session_created", metadata)
 	}
 
 	return &models.CreateCheckoutSessionResponse{
@@ -459,6 +475,73 @@ func (s *SubscriptionService) getTierFromPriceID(priceID string) string {
 		return "pro"
 	}
 	return "free"
+}
+
+// ChangeSubscriptionPlan changes a user's subscription plan with proration
+func (s *SubscriptionService) ChangeSubscriptionPlan(ctx context.Context, user *models.User, newPriceID string) error {
+	// Validate new price ID
+	if newPriceID != s.cfg.Stripe.ProMonthlyPriceID && newPriceID != s.cfg.Stripe.ProYearlyPriceID {
+		return ErrInvalidPriceID
+	}
+
+	// Get existing subscription
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if sub.StripeSubscriptionID == nil || *sub.StripeSubscriptionID == "" {
+		return errors.New("no active stripe subscription found")
+	}
+
+	// Get the subscription from Stripe
+	stripeSubscription, err := subscription.Get(*sub.StripeSubscriptionID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get stripe subscription: %w", err)
+	}
+
+	// Validate subscription has items
+	if len(stripeSubscription.Items.Data) == 0 {
+		return errors.New("subscription has no items")
+	}
+
+	// Validate first item has a price
+	if stripeSubscription.Items.Data[0].Price == nil {
+		return errors.New("subscription item has no price")
+	}
+
+	// Check if already on this plan
+	if stripeSubscription.Items.Data[0].Price.ID == newPriceID {
+		return errors.New("already subscribed to this plan")
+	}
+
+	// Update subscription with proration
+	subscriptionItemID := stripeSubscription.Items.Data[0].ID
+	params := &stripe.SubscriptionParams{
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				ID:    stripe.String(subscriptionItemID),
+				Price: stripe.String(newPriceID),
+			},
+		},
+		ProrationBehavior: stripe.String("always_invoice"),
+	}
+
+	_, err = subscription.Update(*sub.StripeSubscriptionID, params)
+	if err != nil {
+		return fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	// Log audit event
+	if s.auditLogSvc != nil {
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "subscription_plan_changed", map[string]interface{}{
+			"old_price_id": stripeSubscription.Items.Data[0].Price.ID,
+			"new_price_id": newPriceID,
+			"proration":    "always_invoice",
+		})
+	}
+
+	return nil
 }
 
 // HasActiveSubscription checks if user has an active subscription

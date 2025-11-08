@@ -698,6 +698,12 @@ type UserWithSubscription struct {
 
 // CreateCheckoutSessionRequest represents a request to create a Stripe checkout session
 type CreateCheckoutSessionRequest struct {
+	PriceID    string  `json:"price_id" binding:"required"`
+	CouponCode *string `json:"coupon_code,omitempty"`
+}
+
+// ChangeSubscriptionPlanRequest represents a request to change subscription plan
+type ChangeSubscriptionPlanRequest struct {
 	PriceID string `json:"price_id" binding:"required"`
 }
 
