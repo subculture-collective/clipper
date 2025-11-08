@@ -99,8 +99,9 @@ func (s *DunningService) HandlePaymentFailure(ctx context.Context, invoice *stri
 	}
 	
 	var failureReason *string
-	if invoice.LastFinalizationError != nil && invoice.LastFinalizationError.Message != "" {
-		failureReason = &invoice.LastFinalizationError.Message
+	if invoice.LastFinalizationError != nil {
+		reason := string(invoice.LastFinalizationError.Code)
+		failureReason = &reason
 	}
 	
 	var nextRetryAt *time.Time
@@ -319,8 +320,8 @@ func (s *DunningService) sendDunningNotification(ctx context.Context, sub *model
 		EmailSent: false,
 	}
 
-	// Prepare email data based on notification type
-	emailData := s.prepareDunningEmailData(sub, failure, notificationType)
+	// Prepare email data based on notification type (for future email integration)
+	_ = s.prepareDunningEmailData(sub, failure, notificationType)
 
 	// Send email (using existing email service infrastructure)
 	// For now, we'll log that we would send an email
