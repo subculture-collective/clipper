@@ -1,7 +1,5 @@
 /**
- * Shared pricing constants for Clipper Pro subscription
- * 
- * Centralized pricing values to ensure consistency across web and mobile platforms.
+ * Pricing constants for Clipper Pro subscription
  */
 
 export const PRICING = {
@@ -23,7 +21,6 @@ export const calculateSavingsPercent = (monthlyPrice: number, yearlyPrice: numbe
 
 /**
  * Pro feature list with icons
- * Used across web and mobile paywall components
  */
 export const PRO_FEATURES = [
   { icon: '🚫', text: 'Ad-free browsing' },

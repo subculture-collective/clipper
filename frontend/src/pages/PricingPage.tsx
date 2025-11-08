@@ -9,7 +9,7 @@ import {
   trackUpgradeClick,
   trackCheckoutInitiated,
 } from '../lib/paywall-analytics';
-import { PRICING, PRO_FEATURES_DETAILED, calculateYearlyMonthlyPrice, calculateSavingsPercent } from '@clipper/shared';
+import { PRICING, PRO_FEATURES_DETAILED, calculateYearlyMonthlyPrice, calculateSavingsPercent } from '../constants/pricing';
 
 const PRICE_IDS = {
   monthly: import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || '',
