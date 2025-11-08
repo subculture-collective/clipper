@@ -50,12 +50,12 @@ The system uses exponential backoff for retries:
 | 1             | 30s × 2^0     | 30 seconds   |
 | 2             | 30s × 2^1     | 1 minute     |
 | 3             | 30s × 2^2     | 2 minutes    |
-| 4             | 30s × 2^3     | 4 minutes    |
-| 5+            | Capped        | 1 hour (max) |
+
+**Note:** The table above reflects the default configuration of 3 retry attempts after initial failure (4 total attempts including the initial webhook call). The retry count is configurable via the `max_retries` setting. If configured for more retries, the delay continues to increase exponentially and is capped at the maximum delay (1 hour).
 
 ### Configuration
 
-- **Max Retries**: 3 attempts by default
+- **Max Retries**: 3 retries after initial failure (4 total attempts by default)
 - **Base Delay**: 30 seconds
 - **Max Delay**: 1 hour (capped)
 

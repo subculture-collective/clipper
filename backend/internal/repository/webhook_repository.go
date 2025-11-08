@@ -62,6 +62,7 @@ func (r *WebhookRepository) GetRetryQueueItem(ctx context.Context, stripeEventID
 }
 
 // GetPendingRetries retrieves all webhook events ready for retry
+// Uses FOR UPDATE SKIP LOCKED to prevent concurrent processing by multiple instances
 func (r *WebhookRepository) GetPendingRetries(ctx context.Context, limit int) ([]*models.WebhookRetryQueue, error) {
 	query := `
 		SELECT id, stripe_event_id, event_type, payload, retry_count, max_retries,
@@ -70,6 +71,7 @@ func (r *WebhookRepository) GetPendingRetries(ctx context.Context, limit int) ([
 		WHERE next_retry_at <= $1 AND retry_count < max_retries
 		ORDER BY next_retry_at ASC
 		LIMIT $2
+		FOR UPDATE SKIP LOCKED
 	`
 
 	rows, err := r.db.Query(ctx, query, time.Now(), limit)
@@ -188,5 +190,13 @@ func (r *WebhookRepository) CountDeadLetterQueueItems(ctx context.Context) (int,
 	var count int
 	query := `SELECT COUNT(*) FROM webhook_dead_letter_queue`
 	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// CountPendingRetries returns the count of pending retry items
+func (r *WebhookRepository) CountPendingRetries(ctx context.Context) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM webhook_retry_queue WHERE next_retry_at <= $1 AND retry_count < max_retries`
+	err := r.db.QueryRow(ctx, query, time.Now()).Scan(&count)
 	return count, err
 }

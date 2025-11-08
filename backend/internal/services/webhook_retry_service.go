@@ -98,6 +98,12 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 		// Update retry queue item
 		if updateErr := s.webhookRepo.UpdateRetryQueueItem(ctx, item.ID, newRetryCount, &nextRetry, err.Error()); updateErr != nil {
 			log.Printf("[WEBHOOK_RETRY] Failed to update retry queue item: %v", updateErr)
+			// Attempt to move to DLQ to prevent rapid retry loops
+			dlqErr := s.webhookRepo.MoveToDeadLetterQueue(ctx, item, fmt.Sprintf("Failed to update retry queue item: %v; original error: %v", updateErr, err))
+			if dlqErr != nil {
+				log.Printf("[WEBHOOK_RETRY] Failed to move event %s to DLQ after update failure: %v", item.StripeEventID, dlqErr)
+			}
+			return fmt.Errorf("failed to update retry queue item for event %s: %w (original error: %v)", item.StripeEventID, updateErr, err)
 		}
 
 		return err
@@ -107,6 +113,7 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 	log.Printf("[WEBHOOK_RETRY] Successfully processed event %s, removing from queue", item.StripeEventID)
 	if err := s.webhookRepo.RemoveFromRetryQueue(ctx, item.StripeEventID); err != nil {
 		log.Printf("[WEBHOOK_RETRY] Failed to remove event %s from retry queue: %v", item.StripeEventID, err)
+		return fmt.Errorf("successfully processed event %s but failed to remove from retry queue: %w", item.StripeEventID, err)
 	}
 
 	return nil
@@ -132,10 +139,10 @@ func (s *WebhookRetryService) calculateNextRetry(retryCount int) time.Time {
 
 // GetRetryQueueStats returns statistics about the retry queue
 func (s *WebhookRetryService) GetRetryQueueStats(ctx context.Context) (map[string]interface{}, error) {
-	// Get pending retries count
-	pendingRetries, err := s.webhookRepo.GetPendingRetries(ctx, 1000) // Get a large batch to count
+	// Get pending retries count efficiently
+	pendingCount, err := s.webhookRepo.CountPendingRetries(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pending retries: %w", err)
+		return nil, fmt.Errorf("failed to count pending retries: %w", err)
 	}
 
 	// Get DLQ count
@@ -145,7 +152,7 @@ func (s *WebhookRetryService) GetRetryQueueStats(ctx context.Context) (map[strin
 	}
 
 	stats := map[string]interface{}{
-		"pending_retries": len(pendingRetries),
+		"pending_retries": pendingCount,
 		"dlq_items":       dlqCount,
 		"timestamp":       time.Now(),
 	}
