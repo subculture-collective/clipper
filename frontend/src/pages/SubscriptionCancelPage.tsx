@@ -1,7 +1,18 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { trackCheckoutCancelled } from '../lib/paywall-analytics';
+import { useAuth } from '../hooks/useAuth';
 
 export default function SubscriptionCancelPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    // Track checkout cancellation
+    trackCheckoutCancelled({
+      userId: user?.id,
+    });
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">

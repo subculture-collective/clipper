@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createCheckoutSession } from '../lib/subscription-api';
 import { SEO } from '../components';
+import {
+  trackPricingPageView,
+  trackBillingPeriodChange,
+  trackUpgradeClick,
+  trackCheckoutInitiated,
+} from '../lib/paywall-analytics';
 
 const PRICE_IDS = {
   monthly: import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || '',
@@ -24,12 +30,35 @@ export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
+  // Track pricing page view
+  useEffect(() => {
+    trackPricingPageView({
+      userId: user?.id,
+    });
+  }, [user?.id]);
+
+  const handleBillingPeriodChange = (period: 'monthly' | 'yearly') => {
+    trackBillingPeriodChange({
+      billingPeriod: period,
+      userId: user?.id,
+      metadata: { source: 'pricing_page' },
+    });
+    setBillingPeriod(period);
+  };
+
   const handleSubscribe = async (period: 'monthly' | 'yearly') => {
     if (!user) {
       // Redirect to login
       navigate('/login?redirect=/pricing');
       return;
     }
+
+    // Track upgrade click
+    trackUpgradeClick({
+      billingPeriod: period,
+      userId: user.id,
+      metadata: { source: 'pricing_page' },
+    });
 
     setIsLoading(period);
 
@@ -39,6 +68,13 @@ export default function PricingPage() {
         alert('Subscription not configured. Please contact support.');
         return;
       }
+
+      // Track checkout initiation
+      trackCheckoutInitiated({
+        billingPeriod: period,
+        userId: user.id,
+        metadata: { source: 'pricing_page' },
+      });
 
       const response = await createCheckoutSession(priceId);
       
@@ -80,7 +116,7 @@ export default function PricingPage() {
         <div className="flex justify-center mb-12">
           <div className="bg-gray-800 rounded-lg p-1 inline-flex">
             <button
-              onClick={() => setBillingPeriod('monthly')}
+              onClick={() => handleBillingPeriodChange('monthly')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 billingPeriod === 'monthly'
                   ? 'bg-purple-600 text-white'
@@ -90,7 +126,7 @@ export default function PricingPage() {
               Monthly
             </button>
             <button
-              onClick={() => setBillingPeriod('yearly')}
+              onClick={() => handleBillingPeriodChange('yearly')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 billingPeriod === 'yearly'
                   ? 'bg-purple-600 text-white'
