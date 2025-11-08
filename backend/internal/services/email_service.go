@@ -208,6 +208,18 @@ func (s *EmailService) prepareEmailContent(
 	case models.NotificationTypeMention:
 		subject = fmt.Sprintf("%s mentioned you in a comment", data["AuthorName"])
 		htmlBody, textBody = s.prepareMentionEmail(data)
+	case "payment_failed":
+		subject = "Payment Failed - Action Required"
+		htmlBody, textBody = s.preparePaymentFailedEmail(data)
+	case "payment_retry":
+		subject = "Payment Retry Scheduled"
+		htmlBody, textBody = s.preparePaymentRetryEmail(data)
+	case "grace_period_warning":
+		subject = "Your Premium Access Will End Soon"
+		htmlBody, textBody = s.prepareGracePeriodWarningEmail(data)
+	case "subscription_downgraded":
+		subject = "Your Subscription Has Been Downgraded"
+		htmlBody, textBody = s.prepareSubscriptionDowngradedEmail(data)
 	default:
 		return "", "", "", fmt.Errorf("unsupported notification type: %s", notificationType)
 	}
@@ -472,4 +484,262 @@ func (s *EmailService) SendNotificationEmailAsync(
 			})
 		}
 	}()
+}
+
+// preparePaymentFailedEmail prepares payment failed notification email
+func (s *EmailService) preparePaymentFailedEmail(data map[string]interface{}) (html, text string) {
+	amountDue := data["AmountDue"]
+	invoiceID := data["InvoiceID"]
+	gracePeriodEnd := data["GracePeriodEnd"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Failed</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #f5576c 0%%, #f093fb 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">⚠️ Payment Failed</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            We were unable to process your subscription payment of <strong>%s</strong>.
+        </p>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #856404;">
+                <strong>Don't worry!</strong> Your premium access will continue until <strong>%s</strong> while we attempt to retry the payment.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px;">
+            Please update your payment method to ensure uninterrupted access to your Pro features.
+        </p>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s/settings/billing" style="display: inline-block; background: #f5576c; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Update Payment Method</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Invoice ID: %s<br>
+            If you have questions, please contact our support team.
+        </p>
+    </div>
+</body>
+</html>
+`, amountDue, gracePeriodEnd, s.baseURL, invoiceID)
+
+	text = fmt.Sprintf(`Payment Failed - Action Required
+
+We were unable to process your subscription payment of %s.
+
+Don't worry! Your premium access will continue until %s while we attempt to retry the payment.
+
+Please update your payment method to ensure uninterrupted access to your Pro features.
+
+Update your payment method: %s/settings/billing
+
+Invoice ID: %s
+
+If you have questions, please contact our support team.
+`, amountDue, gracePeriodEnd, s.baseURL, invoiceID)
+
+	return html, text
+}
+
+// preparePaymentRetryEmail prepares payment retry notification email
+func (s *EmailService) preparePaymentRetryEmail(data map[string]interface{}) (html, text string) {
+	amountDue := data["AmountDue"]
+	nextRetryAt := data["NextRetryAt"]
+	attemptCount := data["AttemptCount"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Retry Scheduled</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">🔄 Payment Retry Scheduled</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            We're attempting to retry your subscription payment of <strong>%s</strong>.
+        </p>
+        
+        <p style="font-size: 16px;">
+            Next retry attempt: <strong>%s</strong><br>
+            Attempt #<strong>%v</strong>
+        </p>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460;">
+                To avoid service interruption, please ensure your payment method is up to date.
+            </p>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s/settings/billing" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Update Payment Method</a>
+        </p>
+    </div>
+</body>
+</html>
+`, amountDue, nextRetryAt, attemptCount, s.baseURL)
+
+	text = fmt.Sprintf(`Payment Retry Scheduled
+
+We're attempting to retry your subscription payment of %s.
+
+Next retry attempt: %s
+Attempt #%v
+
+To avoid service interruption, please ensure your payment method is up to date.
+
+Update your payment method: %s/settings/billing
+`, amountDue, nextRetryAt, attemptCount, s.baseURL)
+
+	return html, text
+}
+
+// prepareGracePeriodWarningEmail prepares grace period warning email
+func (s *EmailService) prepareGracePeriodWarningEmail(data map[string]interface{}) (html, text string) {
+	amountDue := data["AmountDue"]
+	gracePeriodEnd := data["GracePeriodEnd"]
+	daysRemaining := data["DaysRemaining"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grace Period Ending Soon</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #fc4a1a 0%%, #f7b733 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">⏰ Your Premium Access Ends Soon</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Your premium access will end in <strong>%v days</strong> on <strong>%s</strong> due to an outstanding payment.
+        </p>
+        
+        <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #721c24;">
+                <strong>Action Required:</strong> Update your payment method to keep your premium features.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px;">
+            Outstanding amount: <strong>%s</strong>
+        </p>
+        
+        <p style="font-size: 16px;">
+            After %s, your subscription will be downgraded to the free tier and you'll lose access to:
+        </p>
+        
+        <ul style="font-size: 16px;">
+            <li>Unlimited favorites and collections</li>
+            <li>Advanced search filters</li>
+            <li>Priority support</li>
+            <li>Ad-free experience</li>
+        </ul>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s/settings/billing" style="display: inline-block; background: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Update Payment Method Now</a>
+        </p>
+    </div>
+</body>
+</html>
+`, daysRemaining, gracePeriodEnd, amountDue, gracePeriodEnd, s.baseURL)
+
+	text = fmt.Sprintf(`Your Premium Access Ends Soon
+
+Your premium access will end in %v days on %s due to an outstanding payment.
+
+Action Required: Update your payment method to keep your premium features.
+
+Outstanding amount: %s
+
+After %s, your subscription will be downgraded to the free tier and you'll lose access to:
+- Unlimited favorites and collections
+- Advanced search filters
+- Priority support
+- Ad-free experience
+
+Update your payment method now: %s/settings/billing
+`, daysRemaining, gracePeriodEnd, amountDue, gracePeriodEnd, s.baseURL)
+
+	return html, text
+}
+
+// prepareSubscriptionDowngradedEmail prepares subscription downgraded email
+func (s *EmailService) prepareSubscriptionDowngradedEmail(data map[string]interface{}) (html, text string) {
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Downgraded</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #434343 0%%, #000000 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Subscription Downgraded</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Your premium subscription has been downgraded to the free tier due to an unsuccessful payment.
+        </p>
+        
+        <p style="font-size: 16px;">
+            You now have access to our free tier features, but premium features are no longer available.
+        </p>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460;">
+                <strong>Want to restore your premium access?</strong> Update your payment method and resubscribe anytime.
+            </p>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s/premium" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Resubscribe to Pro</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999; text-align: center;">
+            We're sorry to see you go! If you have any questions or feedback, please contact our support team.
+        </p>
+    </div>
+</body>
+</html>
+`, s.baseURL)
+
+	text = fmt.Sprintf(`Subscription Downgraded
+
+Your premium subscription has been downgraded to the free tier due to an unsuccessful payment.
+
+You now have access to our free tier features, but premium features are no longer available.
+
+Want to restore your premium access? Update your payment method and resubscribe anytime.
+
+Resubscribe to Pro: %s/premium
+
+We're sorry to see you go! If you have any questions or feedback, please contact our support team.
+`, s.baseURL)
+
+	return html, text
 }
