@@ -1,6 +1,8 @@
 import React from 'react';
 import { useSubscription } from '../../hooks/useSubscription';
 import { Link } from 'react-router-dom';
+import { trackQuotaLimitReached, trackUpgradeClick } from '../../lib/paywall-analytics';
+import { useAuth } from '../../hooks/useAuth';
 
 export interface QuotaDisplayProps {
   /** Current usage count */
@@ -36,6 +38,34 @@ export function QuotaDisplay({
   warningThreshold = 5,
 }: QuotaDisplayProps): React.ReactElement {
   const { isPro, isLoading } = useSubscription();
+  const { user } = useAuth();
+
+  // Track when quota limit is reached (only fire once per reach)
+  const hasReachedLimit = React.useRef(false);
+  React.useEffect(() => {
+    if (!isPro && current >= freeLimit && !hasReachedLimit.current) {
+      hasReachedLimit.current = true;
+      trackQuotaLimitReached({
+        feature: featureName,
+        userId: user?.id,
+        metadata: { current, limit: freeLimit },
+      });
+    } else if (current < freeLimit) {
+      hasReachedLimit.current = false;
+    }
+  }, [isPro, current, freeLimit, featureName, user?.id]);
+
+  const handleUpgradeClick = () => {
+    trackUpgradeClick({
+      feature: featureName,
+      userId: user?.id,
+      metadata: { 
+        source: 'quota_display',
+        current,
+        limit: freeLimit,
+      },
+    });
+  };
 
   if (isLoading) {
     return <div className="text-sm text-gray-500">Loading...</div>;
@@ -75,6 +105,7 @@ export function QuotaDisplay({
       {isNearLimit && (
         <Link
           to="/pricing"
+          onClick={handleUpgradeClick}
           className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 hover:bg-purple-200 text-purple-800 dark:bg-purple-900 dark:hover:bg-purple-800 dark:text-purple-200 transition-colors"
           title="Upgrade for unlimited"
         >
