@@ -162,6 +162,7 @@ func main() {
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService)
+	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	
 	// Initialize search services
@@ -193,6 +194,7 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
+	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
@@ -343,6 +345,9 @@ func main() {
 	// Cache monitoring endpoints
 	r.GET("/health/cache", monitoringHandler.GetCacheStats)
 	r.GET("/health/cache/check", monitoringHandler.GetCacheHealth)
+	
+	// Webhook monitoring endpoint
+	r.GET("/health/webhooks", webhookMonitoringHandler.GetWebhookRetryStats)
 
 	// API version 1 routes
 	v1 := r.Group("/api/v1")
@@ -656,6 +661,10 @@ func main() {
 	// Start hot score scheduler (runs every 5 minutes)
 	hotScoreScheduler := scheduler.NewHotScoreScheduler(clipRepo, 5)
 	go hotScoreScheduler.Start(context.Background())
+
+	// Start webhook retry scheduler (runs every 1 minute)
+	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, 1, 100)
+	go webhookRetryScheduler.Start(context.Background())
 
 	// Create HTTP server
 	srv := &http.Server{
