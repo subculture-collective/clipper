@@ -690,6 +690,32 @@ type SubscriptionEvent struct {
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 }
 
+// WebhookRetryQueue represents a webhook event pending retry
+type WebhookRetryQueue struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	StripeEventID  string     `json:"stripe_event_id" db:"stripe_event_id"`
+	EventType      string     `json:"event_type" db:"event_type"`
+	Payload        string     `json:"payload" db:"payload"` // JSONB stored as string
+	RetryCount     int        `json:"retry_count" db:"retry_count"`
+	MaxRetries     int        `json:"max_retries" db:"max_retries"`
+	NextRetryAt    *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	LastError      *string    `json:"last_error,omitempty" db:"last_error"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// WebhookDeadLetterQueue represents a permanently failed webhook event
+type WebhookDeadLetterQueue struct {
+	ID                uuid.UUID `json:"id" db:"id"`
+	StripeEventID     string    `json:"stripe_event_id" db:"stripe_event_id"`
+	EventType         string    `json:"event_type" db:"event_type"`
+	Payload           string    `json:"payload" db:"payload"` // JSONB stored as string
+	RetryCount        int       `json:"retry_count" db:"retry_count"`
+	Error             string    `json:"error" db:"error"`
+	OriginalTimestamp time.Time `json:"original_timestamp" db:"original_timestamp"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+}
+
 // UserWithSubscription represents a user with their subscription information
 type UserWithSubscription struct {
 	User
