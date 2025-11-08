@@ -84,6 +84,8 @@ STRIPE_PRO_YEARLY_PRICE_ID=price_your_yearly_price_id
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 ```
 
+**Note:** The webhook system includes automatic retry with exponential backoff and a dead-letter queue for failed events. See [Webhook Retry Documentation](./WEBHOOK_RETRY.md) for details.
+
 ### 5. Configure Redirect URLs
 
 Add these to your `.env` file:
