@@ -40,9 +40,13 @@ describe('PaywallModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set environment variables for price IDs
-    import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID = 'price_monthly_test';
-    import.meta.env.VITE_STRIPE_PRO_YEARLY_PRICE_ID = 'price_yearly_test';
+    // Set environment variables for price IDs using Vitest's stubEnv
+    vi.stubEnv('VITE_STRIPE_PRO_MONTHLY_PRICE_ID', 'price_monthly_test');
+    vi.stubEnv('VITE_STRIPE_PRO_YEARLY_PRICE_ID', 'price_yearly_test');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('should not render when isOpen is false', () => {

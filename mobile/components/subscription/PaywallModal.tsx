@@ -13,6 +13,12 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { 
+  PRICING, 
+  PRO_FEATURES_MOBILE, 
+  calculateYearlyMonthlyPrice, 
+  calculateSavingsPercent 
+} from '../../lib/constants/pricing';
 
 export interface PaywallModalProps {
   /** Whether the modal is visible */
@@ -28,17 +34,6 @@ export interface PaywallModalProps {
   /** Callback when upgrade is initiated */
   onUpgradeClick?: () => void;
 }
-
-const PRO_FEATURES = [
-  { icon: 'ban', text: 'Ad-free browsing' },
-  { icon: 'star', text: 'Unlimited favorites' },
-  { icon: 'folder', text: 'Custom collections' },
-  { icon: 'search', text: 'Advanced search' },
-  { icon: 'sync', text: 'Cross-device sync' },
-  { icon: 'download', text: 'Export your data' },
-  { icon: 'flash', text: '5x higher rate limits' },
-  { icon: 'mail', text: 'Priority support' },
-];
 
 /**
  * Modal component that displays paywall with plan comparison
@@ -109,10 +104,10 @@ export function PaywallModal({
     setBillingPeriod(period);
   };
 
-  const monthlyPrice = 9.99;
-  const yearlyPrice = 99.99;
-  const yearlyMonthlyPrice = (yearlyPrice / 12).toFixed(2);
-  const savingsPercent = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
+  const monthlyPrice = PRICING.monthly;
+  const yearlyPrice = PRICING.yearly;
+  const yearlyMonthlyPrice = calculateYearlyMonthlyPrice(yearlyPrice);
+  const savingsPercent = calculateSavingsPercent(monthlyPrice, yearlyPrice);
 
   const modalTitle = title || `${featureName ? `${featureName} is` : 'This feature is'} a Pro Feature`;
   const modalDescription = description || 'Upgrade to Clipper Pro to unlock this feature and many more.';
@@ -137,6 +132,8 @@ export function PaywallModal({
             <TouchableOpacity
               onPress={handleClose}
               className="absolute top-4 right-4 z-10"
+              accessibilityLabel="Close paywall modal"
+              accessibilityRole="button"
             >
               <Ionicons name="close" size={24} color="#9CA3AF" />
             </TouchableOpacity>
@@ -255,14 +252,14 @@ export function PaywallModal({
                 Everything in Pro
               </Text>
               <View className="flex-row flex-wrap">
-                {PRO_FEATURES.map((feature, index) => (
+                {PRO_FEATURES_MOBILE.map((feature, index) => (
                   <View
                     key={index}
                     className="w-1/2 p-2"
                   >
                     <View className="flex-row items-center">
                       <Ionicons 
-                        name={feature.icon as any} 
+                        name={feature.icon} 
                         size={16} 
                         color="#A855F7" 
                       />

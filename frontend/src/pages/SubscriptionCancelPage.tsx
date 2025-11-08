@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { trackCheckoutCancelled } from '../lib/paywall-analytics';
 import { useAuth } from '../hooks/useAuth';
@@ -6,12 +6,16 @@ import { useAuth } from '../hooks/useAuth';
 export default function SubscriptionCancelPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const hasTrackedCancellation = useRef(false);
 
   useEffect(() => {
-    // Track checkout cancellation
-    trackCheckoutCancelled({
-      userId: user?.id,
-    });
+    // Track checkout cancellation only once
+    if (!hasTrackedCancellation.current) {
+      trackCheckoutCancelled({
+        userId: user?.id,
+      });
+      hasTrackedCancellation.current = true;
+    }
   }, [user?.id]);
 
   return (

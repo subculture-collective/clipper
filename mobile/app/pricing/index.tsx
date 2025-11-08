@@ -13,17 +13,12 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
-const PRO_FEATURES = [
-  'Ad-free browsing experience',
-  'Advanced search and filtering',
-  'Favorite clips sync across devices',
-  'Priority support',
-  'Early access to new features',
-  'Custom collections and playlists',
-  'Export your data',
-  '5x higher rate limits',
-];
+import {
+  PRICING,
+  PRO_FEATURES_DETAILED,
+  calculateYearlyMonthlyPrice,
+  calculateSavingsPercent,
+} from '../../lib/constants/pricing';
 
 export default function PricingScreen() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
@@ -61,10 +56,10 @@ export default function PricingScreen() {
     setBillingPeriod(period);
   };
 
-  const monthlyPrice = 9.99;
-  const yearlyPrice = 99.99;
-  const yearlyMonthlyPrice = (yearlyPrice / 12).toFixed(2);
-  const savingsPercent = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
+  const monthlyPrice = PRICING.monthly;
+  const yearlyPrice = PRICING.yearly;
+  const yearlyMonthlyPrice = calculateYearlyMonthlyPrice(yearlyPrice);
+  const savingsPercent = calculateSavingsPercent(monthlyPrice, yearlyPrice);
 
   return (
     <>
@@ -201,7 +196,7 @@ export default function PricingScreen() {
             </View>
 
             <View className="mb-6">
-              {PRO_FEATURES.map((feature, index) => (
+              {PRO_FEATURES_DETAILED.map((feature, index) => (
                 <View key={index} className="flex-row items-start mb-3">
                   <Ionicons name="checkmark" size={20} color="#FCD34D" />
                   <Text className="text-white ml-3 flex-1">{feature}</Text>

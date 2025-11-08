@@ -9,20 +9,12 @@ import {
   trackUpgradeClick,
   trackCheckoutInitiated,
 } from '../lib/paywall-analytics';
+import { PRICING, PRO_FEATURES_DETAILED, calculateYearlyMonthlyPrice, calculateSavingsPercent } from '@clipper/shared';
 
 const PRICE_IDS = {
   monthly: import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || '',
   yearly: import.meta.env.VITE_STRIPE_PRO_YEARLY_PRICE_ID || '',
 };
-
-const features = [
-  'Ad-free browsing experience',
-  'Advanced search and filtering',
-  'Favorite clips sync across devices',
-  'Priority support',
-  'Early access to new features',
-  'Custom collections and playlists',
-];
 
 export default function PricingPage() {
   const { user } = useAuth();
@@ -88,10 +80,10 @@ export default function PricingPage() {
     }
   };
 
-  const monthlyPrice = 9.99;
-  const yearlyPrice = 99.99;
-  const yearlyMonthlyPrice = (yearlyPrice / 12).toFixed(2);
-  const savingsPercent = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
+  const monthlyPrice = PRICING.monthly;
+  const yearlyPrice = PRICING.yearly;
+  const yearlyMonthlyPrice = calculateYearlyMonthlyPrice(yearlyPrice);
+  const savingsPercent = calculateSavingsPercent(monthlyPrice, yearlyPrice);
 
   return (
     <>
@@ -219,7 +211,7 @@ export default function PricingPage() {
             </div>
 
             <ul className="space-y-3 mb-8">
-              {features.map((feature, index) => (
+              {PRO_FEATURES_DETAILED.map((feature, index) => (
                 <li key={index} className="flex items-start">
                   <svg className="h-5 w-5 text-yellow-400 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

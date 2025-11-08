@@ -31,13 +31,14 @@ export function UpgradePrompt({
   const [showModal, setShowModal] = useState(false);
   const defaultMessage = `${featureName} requires an active Pro subscription`;
 
-  // Track feature gate encounter on mount
+  // Track feature gate encounter only on mount to avoid duplicate events
   React.useEffect(() => {
     trackFeatureGateEncountered({
       feature: featureName,
       userId: user?.id,
     });
-  }, [featureName, user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Track only on mount
 
   const handleUpgradeClick = () => {
     trackUpgradeClick({
@@ -50,29 +51,6 @@ export function UpgradePrompt({
       setShowModal(true);
     }
   };
-
-  const upgradeButton = (
-    <button
-      onClick={useModal ? handleUpgradeClick : undefined}
-      className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
-    >
-      <svg 
-        className="w-5 h-5 mr-2"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path 
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-        />
-      </svg>
-      {ctaText}
-    </button>
-  );
 
   return (
     <>
@@ -103,10 +81,43 @@ export function UpgradePrompt({
         </p>
         
         {useModal ? (
-          upgradeButton
+          <button
+            onClick={handleUpgradeClick}
+            className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+          >
+            <svg 
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path 
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+              />
+            </svg>
+            {ctaText}
+          </button>
         ) : (
-          <Link to={pricingLink} onClick={handleUpgradeClick}>
-            {upgradeButton}
+          <Link to={pricingLink} onClick={handleUpgradeClick} className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
+            <svg 
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path 
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+              />
+            </svg>
+            {ctaText}
           </Link>
         )}
       </div>

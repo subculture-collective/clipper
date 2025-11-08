@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { trackConversion } from '../lib/paywall-analytics';
 import { useAuth } from '../hooks/useAuth';
@@ -41,15 +41,17 @@ export default function SubscriptionSuccessPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const hasTrackedConversion = useRef(false);
 
   useEffect(() => {
-    // Track successful conversion
-    if (sessionId) {
+    // Track successful conversion only once
+    if (sessionId && !hasTrackedConversion.current) {
       console.log('Checkout session completed:', sessionId);
       trackConversion({
         userId: user?.id,
         metadata: { sessionId },
       });
+      hasTrackedConversion.current = true;
     }
   }, [sessionId, user?.id]);
 

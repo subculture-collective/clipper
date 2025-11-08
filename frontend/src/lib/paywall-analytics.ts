@@ -47,9 +47,9 @@ class PaywallAnalytics {
       },
     };
 
-    this.events.push(event);
-
+    // Only store events in debug mode for inspection to prevent memory leaks
     if (this.debugMode) {
+      this.events.push(event);
       console.log('[Paywall Analytics]', event);
     }
 

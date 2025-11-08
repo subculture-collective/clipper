@@ -40,14 +40,18 @@ export function QuotaDisplay({
   const { isPro, isLoading } = useSubscription();
   const { user } = useAuth();
 
-  // Track when quota limit is reached
+  // Track when quota limit is reached (only fire once per reach)
+  const hasReachedLimit = React.useRef(false);
   React.useEffect(() => {
-    if (!isPro && current >= freeLimit) {
+    if (!isPro && current >= freeLimit && !hasReachedLimit.current) {
+      hasReachedLimit.current = true;
       trackQuotaLimitReached({
         feature: featureName,
         userId: user?.id,
         metadata: { current, limit: freeLimit },
       });
+    } else if (current < freeLimit) {
+      hasReachedLimit.current = false;
     }
   }, [isPro, current, freeLimit, featureName, user?.id]);
 

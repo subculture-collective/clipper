@@ -9,6 +9,7 @@ import {
   trackPaywallDismissed,
   trackBillingPeriodChange,
 } from '../../lib/paywall-analytics';
+import { PRICING, PRO_FEATURES, calculateYearlyMonthlyPrice, calculateSavingsPercent } from '@clipper/shared';
 
 export interface PaywallModalProps {
   /** Whether the modal is open */
@@ -29,17 +30,6 @@ const PRICE_IDS = {
   monthly: import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || '',
   yearly: import.meta.env.VITE_STRIPE_PRO_YEARLY_PRICE_ID || '',
 };
-
-const PRO_FEATURES = [
-  { icon: '🚫', text: 'Ad-free browsing' },
-  { icon: '⭐', text: 'Unlimited favorites' },
-  { icon: '📁', text: 'Custom collections' },
-  { icon: '🔍', text: 'Advanced search & filters' },
-  { icon: '🔄', text: 'Cross-device sync' },
-  { icon: '📊', text: 'Export your data' },
-  { icon: '🎯', text: '5x higher rate limits' },
-  { icon: '✉️', text: 'Priority support' },
-];
 
 /**
  * Modal component that displays paywall with plan comparison and upgrade options
@@ -103,6 +93,7 @@ export function PaywallModal({
     try {
       const priceId = PRICE_IDS[period];
       if (!priceId) {
+        setIsLoading(null);
         alert('Subscription not configured. Please contact support.');
         return;
       }
@@ -151,10 +142,10 @@ export function PaywallModal({
     setBillingPeriod(period);
   };
 
-  const monthlyPrice = 9.99;
-  const yearlyPrice = 99.99;
-  const yearlyMonthlyPrice = (yearlyPrice / 12).toFixed(2);
-  const savingsPercent = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
+  const monthlyPrice = PRICING.monthly;
+  const yearlyPrice = PRICING.yearly;
+  const yearlyMonthlyPrice = calculateYearlyMonthlyPrice(yearlyPrice);
+  const savingsPercent = calculateSavingsPercent(monthlyPrice, yearlyPrice);
 
   const modalTitle = title || `${featureName ? `${featureName} is` : 'This feature is'} a Pro Feature`;
   const modalDescription = description || 'Upgrade to Clipper Pro to unlock this feature and many more.';
@@ -169,10 +160,16 @@ export function PaywallModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+      >
         <div
           className="relative bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-800"
           onClick={(e) => e.stopPropagation()}
+          role="document"
+          aria-labelledby="paywall-modal-title"
         >
           {/* Close button */}
           <button
@@ -202,7 +199,7 @@ export function PaywallModal({
                 />
               </svg>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">{modalTitle}</h2>
+            <h2 id="paywall-modal-title" className="text-3xl font-bold text-white mb-2">{modalTitle}</h2>
             <p className="text-gray-400 text-lg">{modalDescription}</p>
           </div>
 
