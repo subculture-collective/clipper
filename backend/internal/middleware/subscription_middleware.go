@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,11 +30,13 @@ func RequireProSubscription(subscriptionService SubscriptionChecker, auditLogSer
 		if !subscriptionService.IsProUser(c.Request.Context(), currentUser.ID) {
 			// Log access denial to audit log
 			if auditLogService != nil {
-				_ = auditLogService.LogEntitlementDenial(c.Request.Context(), currentUser.ID, "pro_subscription_required", map[string]interface{}{
+				if err := auditLogService.LogEntitlementDenial(c.Request.Context(), currentUser.ID, "pro_subscription_required", map[string]interface{}{
 					"endpoint": c.Request.URL.Path,
 					"method":   c.Request.Method,
 					"required": "pro",
-				})
+				}); err != nil {
+					log.Printf("[WARN] Failed to log entitlement denial: %v", err)
+				}
 			}
 
 			c.JSON(http.StatusForbidden, gin.H{
@@ -70,11 +73,13 @@ func RequireActiveSubscription(subscriptionService SubscriptionChecker, auditLog
 		if !subscriptionService.HasActiveSubscription(c.Request.Context(), currentUser.ID) {
 			// Log access denial to audit log
 			if auditLogService != nil {
-				_ = auditLogService.LogEntitlementDenial(c.Request.Context(), currentUser.ID, "active_subscription_required", map[string]interface{}{
+				if err := auditLogService.LogEntitlementDenial(c.Request.Context(), currentUser.ID, "active_subscription_required", map[string]interface{}{
 					"endpoint": c.Request.URL.Path,
 					"method":   c.Request.Method,
 					"required": "active",
-				})
+				}); err != nil {
+					log.Printf("[WARN] Failed to log entitlement denial: %v", err)
+				}
 			}
 
 			c.JSON(http.StatusForbidden, gin.H{

@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 export interface UpgradePromptProps {
   /** Name of the feature being gated */
@@ -33,7 +33,7 @@ export function UpgradePrompt({
   const handleUpgrade = () => {
     // Try to navigate to in-app pricing page first
     try {
-      router.push(pricingRoute as any);
+      router.push(pricingRoute as Href);
     } catch {
       // Fallback to web pricing page
       Linking.openURL('https://clipper.tv/pricing');

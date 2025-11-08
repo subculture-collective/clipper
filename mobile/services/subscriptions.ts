@@ -2,7 +2,7 @@
  * Subscription Service - Handles subscription-related API calls for mobile
  */
 
-import { apiGet, apiPost } from '../lib/api';
+import { api } from '@/lib/api';
 
 export interface Subscription {
   id: string;
@@ -40,7 +40,7 @@ export interface CreatePortalSessionResponse {
  */
 export async function getSubscription(): Promise<Subscription | null> {
   try {
-    const response = await apiGet('/subscriptions/me');
+    const response = await api.get('/subscriptions/me');
     return response.data;
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -56,7 +56,7 @@ export async function getSubscription(): Promise<Subscription | null> {
 export async function createCheckoutSession(
   priceId: string
 ): Promise<CreateCheckoutSessionResponse> {
-  const response = await apiPost('/subscriptions/checkout', {
+  const response = await api.post('/subscriptions/checkout', {
     price_id: priceId,
   } as CreateCheckoutSessionRequest);
   return response.data;
@@ -66,7 +66,7 @@ export async function createCheckoutSession(
  * Create a Stripe Customer Portal session
  */
 export async function createPortalSession(): Promise<CreatePortalSessionResponse> {
-  const response = await apiPost('/subscriptions/portal', {});
+  const response = await api.post('/subscriptions/portal', {});
   return response.data;
 }
 

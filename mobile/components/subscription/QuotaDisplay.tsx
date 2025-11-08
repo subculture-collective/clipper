@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useSubscription } from '../../hooks/useSubscription';
 
 export interface QuotaDisplayProps {
@@ -89,7 +89,7 @@ export function QuotaDisplay({
 
       {isNearLimit && (
         <TouchableOpacity
-          onPress={() => router.push('/pricing' as any)}
+          onPress={() => router.push('/pricing' as Href)}
           className="flex-row items-center px-2 py-0.5 rounded bg-purple-100 active:bg-purple-200 dark:bg-purple-900 dark:active:bg-purple-800"
         >
           <Ionicons 

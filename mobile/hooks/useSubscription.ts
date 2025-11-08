@@ -58,8 +58,8 @@ export function useSubscription(): UseSubscriptionReturn {
 
   return {
     subscription,
-    isLoading: isLoading ?? false,
-    isError: isError ?? false,
+    isLoading,
+    isError,
     isPro: isProUser(subscription),
     hasActive: hasActiveSubscription(subscription),
     refetch,
