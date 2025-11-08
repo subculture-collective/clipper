@@ -71,7 +71,7 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 		if err := s.webhookRepo.MoveToDeadLetterQueue(ctx, item, errMsg); err != nil {
 			log.Printf("[WEBHOOK_RETRY] Failed to move event %s to DLQ: %v", item.StripeEventID, err)
 		}
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%s", errMsg)
 	}
 
 	// Process the event using the subscription service
