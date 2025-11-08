@@ -451,3 +451,87 @@ func (h *NotificationHandler) Unsubscribe(c *gin.Context) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	c.String(http.StatusOK, html)
 }
+
+// RegisterDeviceToken handles POST /notifications/register
+func (h *NotificationHandler) RegisterDeviceToken(c *gin.Context) {
+	// Get user ID from context (set by auth middleware)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.RegisterDeviceTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// Update user's device token
+	err := h.notificationService.RegisterDeviceToken(c.Request.Context(), userID, req.DeviceToken, req.DevicePlatform)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to register device token",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Device token registered successfully",
+	})
+}
+
+// UnregisterDeviceToken handles DELETE /notifications/unregister
+func (h *NotificationHandler) UnregisterDeviceToken(c *gin.Context) {
+	// Get user ID from context (set by auth middleware)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.UnregisterDeviceTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// Unregister device token
+	err := h.notificationService.UnregisterDeviceToken(c.Request.Context(), userID, req.DeviceToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to unregister device token",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Device token unregistered successfully",
+	})
+}

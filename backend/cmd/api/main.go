@@ -131,6 +131,7 @@ func main() {
 	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
+	webhookRepo := repository.NewWebhookRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -160,7 +161,8 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, cfg, auditLogService)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService)
+	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 
 	// Initialize search services
@@ -192,6 +194,7 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
+	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
@@ -342,6 +345,9 @@ func main() {
 	// Cache monitoring endpoints
 	r.GET("/health/cache", monitoringHandler.GetCacheStats)
 	r.GET("/health/cache/check", monitoringHandler.GetCacheHealth)
+	
+	// Webhook monitoring endpoint
+	r.GET("/health/webhooks", webhookMonitoringHandler.GetWebhookRetryStats)
 
 	// API version 1 routes
 	v1 := r.Group("/api/v1")
@@ -539,6 +545,10 @@ func main() {
 			// Get/Update preferences
 			notifications.GET("/preferences", notificationHandler.GetPreferences)
 			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+
+			// Device token registration for push notifications
+			notifications.POST("/register", notificationHandler.RegisterDeviceToken)
+			notifications.DELETE("/unregister", notificationHandler.UnregisterDeviceToken)
 		}
 
 		// Subscription routes
@@ -552,6 +562,7 @@ func main() {
 			subscriptions.GET("/me", subscriptionHandler.GetSubscription)
 			subscriptions.POST("/checkout", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.CreateCheckoutSession)
 			subscriptions.POST("/portal", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.CreatePortalSession)
+			subscriptions.POST("/change-plan", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.ChangeSubscriptionPlan)
 		}
 
 		// Contact routes
@@ -650,6 +661,10 @@ func main() {
 	// Start hot score scheduler (runs every 5 minutes)
 	hotScoreScheduler := scheduler.NewHotScoreScheduler(clipRepo, 5)
 	go hotScoreScheduler.Start(context.Background())
+
+	// Start webhook retry scheduler (runs every 1 minute)
+	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, 1, 100)
+	go webhookRetryScheduler.Start(context.Background())
 
 	// Create HTTP server
 	srv := &http.Server{

@@ -618,3 +618,34 @@ func extractMentions(text string) []string {
 
 	return mentions
 }
+
+// RegisterDeviceToken registers a device token for push notifications
+func (s *NotificationService) RegisterDeviceToken(
+	ctx context.Context,
+	userID uuid.UUID,
+	deviceToken string,
+	devicePlatform string,
+) error {
+	// Update user's device token in the database
+	err := s.userRepo.UpdateDeviceToken(ctx, userID, deviceToken, devicePlatform)
+	if err != nil {
+		return fmt.Errorf("failed to register device token for user %s: %w", userID.String(), err)
+	}
+
+	return nil
+}
+
+// UnregisterDeviceToken removes a device token
+func (s *NotificationService) UnregisterDeviceToken(
+	ctx context.Context,
+	userID uuid.UUID,
+	deviceToken string,
+) error {
+	// Clear user's device token from the database
+	err := s.userRepo.ClearDeviceToken(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to unregister device token for user %s: %w", userID.String(), err)
+	}
+
+	return nil
+}

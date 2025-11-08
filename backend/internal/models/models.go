@@ -8,19 +8,21 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	TwitchID    string     `json:"twitch_id" db:"twitch_id"`
-	Username    string     `json:"username" db:"username"`
-	DisplayName string     `json:"display_name" db:"display_name"`
-	Email       *string    `json:"email,omitempty" db:"email"`
-	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio         *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints int        `json:"karma_points" db:"karma_points"`
-	Role        string     `json:"role" db:"role"`
-	IsBanned    bool       `json:"is_banned" db:"is_banned"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID              uuid.UUID  `json:"id" db:"id"`
+	TwitchID        string     `json:"twitch_id" db:"twitch_id"`
+	Username        string     `json:"username" db:"username"`
+	DisplayName     string     `json:"display_name" db:"display_name"`
+	Email           *string    `json:"email,omitempty" db:"email"`
+	AvatarURL       *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio             *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints     int        `json:"karma_points" db:"karma_points"`
+	Role            string     `json:"role" db:"role"`
+	IsBanned        bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken     *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform  *string    `json:"device_platform,omitempty" db:"device_platform"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt     *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -688,6 +690,32 @@ type SubscriptionEvent struct {
 	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 }
 
+// WebhookRetryQueue represents a webhook event pending retry
+type WebhookRetryQueue struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	StripeEventID  string     `json:"stripe_event_id" db:"stripe_event_id"`
+	EventType      string     `json:"event_type" db:"event_type"`
+	Payload        string     `json:"payload" db:"payload"` // JSONB stored as string
+	RetryCount     int        `json:"retry_count" db:"retry_count"`
+	MaxRetries     int        `json:"max_retries" db:"max_retries"`
+	NextRetryAt    *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	LastError      *string    `json:"last_error,omitempty" db:"last_error"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// WebhookDeadLetterQueue represents a permanently failed webhook event
+type WebhookDeadLetterQueue struct {
+	ID                uuid.UUID `json:"id" db:"id"`
+	StripeEventID     string    `json:"stripe_event_id" db:"stripe_event_id"`
+	EventType         string    `json:"event_type" db:"event_type"`
+	Payload           string    `json:"payload" db:"payload"` // JSONB stored as string
+	RetryCount        int       `json:"retry_count" db:"retry_count"`
+	Error             string    `json:"error" db:"error"`
+	OriginalTimestamp time.Time `json:"original_timestamp" db:"original_timestamp"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+}
+
 // UserWithSubscription represents a user with their subscription information
 type UserWithSubscription struct {
 	User
@@ -696,6 +724,12 @@ type UserWithSubscription struct {
 
 // CreateCheckoutSessionRequest represents a request to create a Stripe checkout session
 type CreateCheckoutSessionRequest struct {
+	PriceID    string  `json:"price_id" binding:"required"`
+	CouponCode *string `json:"coupon_code,omitempty"`
+}
+
+// ChangeSubscriptionPlanRequest represents a request to change subscription plan
+type ChangeSubscriptionPlanRequest struct {
 	PriceID string `json:"price_id" binding:"required"`
 }
 
@@ -777,3 +811,14 @@ const (
 	EmailStatusFailed  = "failed"
 	EmailStatusBounced = "bounced"
 )
+
+// RegisterDeviceTokenRequest represents the request to register a device token
+type RegisterDeviceTokenRequest struct {
+	DeviceToken    string `json:"device_token" binding:"required"`
+	DevicePlatform string `json:"device_platform" binding:"required,oneof=ios android web"`
+}
+
+// UnregisterDeviceTokenRequest represents the request to unregister a device token
+type UnregisterDeviceTokenRequest struct {
+	DeviceToken string `json:"device_token" binding:"required"`
+}

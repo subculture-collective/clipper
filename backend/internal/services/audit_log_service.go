@@ -176,3 +176,16 @@ func (s *AuditLogService) LogAccountDeletionCancelled(ctx context.Context, userI
 
 	return s.auditLogRepo.Create(ctx, log)
 }
+
+// LogEntitlementDenial logs when a user is denied access to a feature due to lack of entitlement
+func (s *AuditLogService) LogEntitlementDenial(ctx context.Context, userID uuid.UUID, action string, metadata map[string]interface{}) error {
+	log := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  "entitlement",
+		EntityID:    userID,
+		ModeratorID: userID,
+		Metadata:    metadata,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}

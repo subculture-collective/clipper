@@ -506,3 +506,27 @@ func (r *AccountDeletionRepository) MarkCompleted(ctx context.Context, deletionI
 	_, err := r.db.Exec(ctx, query, deletionID)
 	return err
 }
+
+// UpdateDeviceToken updates a user's device token and platform
+func (r *UserRepository) UpdateDeviceToken(ctx context.Context, userID uuid.UUID, deviceToken string, devicePlatform string) error {
+	query := `
+		UPDATE users
+		SET device_token = $1, device_platform = $2, updated_at = NOW()
+		WHERE id = $3
+	`
+
+	_, err := r.db.Exec(ctx, query, deviceToken, devicePlatform, userID)
+	return err
+}
+
+// ClearDeviceToken clears a user's device token
+func (r *UserRepository) ClearDeviceToken(ctx context.Context, userID uuid.UUID) error {
+	query := `
+		UPDATE users
+		SET device_token = NULL, device_platform = NULL, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, userID)
+	return err
+}
