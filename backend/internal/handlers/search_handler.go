@@ -11,18 +11,21 @@ import (
 
 // SearchHandler handles search-related requests
 type SearchHandler struct {
-	searchRepo        *repository.SearchRepository
-	openSearchService *services.OpenSearchService
-	authService       *services.AuthService
-	useOpenSearch     bool
+	searchRepo         *repository.SearchRepository
+	openSearchService  *services.OpenSearchService
+	hybridSearchService *services.HybridSearchService
+	authService        *services.AuthService
+	useOpenSearch      bool
+	useHybridSearch    bool
 }
 
 // NewSearchHandler creates a new SearchHandler with PostgreSQL FTS
 func NewSearchHandler(searchRepo *repository.SearchRepository, authService *services.AuthService) *SearchHandler {
 	return &SearchHandler{
-		searchRepo:    searchRepo,
-		authService:   authService,
-		useOpenSearch: false,
+		searchRepo:      searchRepo,
+		authService:     authService,
+		useOpenSearch:   false,
+		useHybridSearch: false,
 	}
 }
 
@@ -33,6 +36,18 @@ func NewSearchHandlerWithOpenSearch(searchRepo *repository.SearchRepository, ope
 		openSearchService: openSearchService,
 		authService:       authService,
 		useOpenSearch:     true,
+		useHybridSearch:   false,
+	}
+}
+
+// NewSearchHandlerWithHybridSearch creates a new SearchHandler with hybrid BM25 + vector search
+func NewSearchHandlerWithHybridSearch(searchRepo *repository.SearchRepository, hybridSearchService *services.HybridSearchService, authService *services.AuthService) *SearchHandler {
+	return &SearchHandler{
+		searchRepo:          searchRepo,
+		hybridSearchService: hybridSearchService,
+		authService:         authService,
+		useOpenSearch:       false,
+		useHybridSearch:     true,
 	}
 }
 
@@ -70,13 +85,18 @@ func (h *SearchHandler) Search(c *gin.Context) {
 		req.Sort = "relevance"
 	}
 
-	// Perform search using OpenSearch or PostgreSQL fallback
+	// Perform search using hybrid search, OpenSearch, or PostgreSQL fallback
 	var results *models.SearchResponse
 	var err error
 
-	if h.useOpenSearch && h.openSearchService != nil {
+	if h.useHybridSearch && h.hybridSearchService != nil {
+		// Use hybrid BM25 + vector similarity search
+		results, err = h.hybridSearchService.Search(c.Request.Context(), &req)
+	} else if h.useOpenSearch && h.openSearchService != nil {
+		// Use OpenSearch BM25 only
 		results, err = h.openSearchService.Search(c.Request.Context(), &req)
 	} else {
+		// Fall back to PostgreSQL FTS
 		results, err = h.searchRepo.Search(c.Request.Context(), &req)
 	}
 
@@ -139,4 +159,70 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 		"query":       query,
 		"suggestions": suggestions,
 	})
+}
+
+// SearchWithScores handles search requests that include similarity scores
+// GET /api/v1/search/scores
+func (h *SearchHandler) SearchWithScores(c *gin.Context) {
+	var req models.SearchRequest
+
+	// Bind query parameters
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid query parameters",
+		})
+		return
+	}
+
+	// Validate and set defaults
+	if req.Query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Query parameter 'q' is required",
+		})
+		return
+	}
+
+	if req.Page < 1 {
+		req.Page = 1
+	}
+
+	if req.Limit < 1 || req.Limit > 100 {
+		req.Limit = 20
+	}
+
+	// Set default sort if not specified
+	if req.Sort == "" {
+		req.Sort = "relevance"
+	}
+
+	// Only hybrid search supports scores
+	if !h.useHybridSearch || h.hybridSearchService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Semantic search with scores is not enabled",
+		})
+		return
+	}
+
+	// Perform search with scores
+	results, err := h.hybridSearchService.SearchWithScores(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to perform search",
+		})
+		return
+	}
+
+	// Track search analytics
+	totalResults := results.Counts.Clips + results.Counts.Creators + results.Counts.Games + results.Counts.Tags
+
+	// Try to get user from context (if authenticated)
+	if userVal, exists := c.Get("user"); exists {
+		if user, ok := userVal.(*models.User); ok {
+			_ = h.searchRepo.TrackSearch(c.Request.Context(), &user.ID, req.Query, totalResults)
+		}
+	} else {
+		_ = h.searchRepo.TrackSearch(c.Request.Context(), nil, req.Query, totalResults)
+	}
+
+	c.JSON(http.StatusOK, results)
 }
