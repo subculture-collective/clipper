@@ -272,6 +272,19 @@ type SearchQuery struct {
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 }
 
+// ClipScore represents the relevance score for a clip in search results
+type ClipScore struct {
+	ClipID          uuid.UUID `json:"clip_id"`
+	SimilarityScore float64   `json:"similarity_score"` // 0-1, higher is better
+	SimilarityRank  int       `json:"similarity_rank"`  // 1-based ranking
+}
+
+// SearchResponseWithScores extends SearchResponse with similarity scores
+type SearchResponseWithScores struct {
+	SearchResponse
+	Scores []ClipScore `json:"scores,omitempty"`
+}
+
 // ClipSubmission represents a user-submitted clip pending moderation
 type ClipSubmission struct {
 	ID                      uuid.UUID  `json:"id" db:"id"`

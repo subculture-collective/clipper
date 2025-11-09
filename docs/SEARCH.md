@@ -179,6 +179,78 @@ Response:
 }
 ```
 
+### Hybrid Search with Similarity Scores
+
+```
+GET /api/v1/search/scores
+```
+
+This endpoint provides hybrid search combining BM25 (keyword matching) with vector similarity (semantic search) for improved relevance. Results are re-ranked using embedding similarity scores.
+
+**Requirements:**
+- OpenSearch must be available for BM25 candidate selection
+- Embedding service must be enabled (OPENAI_API_KEY configured)
+- Clips must have embeddings generated
+
+Query Parameters:
+- Same as standard search endpoint (`/api/v1/search`)
+
+Example:
+
+```bash
+# Semantic search with similarity scores
+curl "http://localhost:8080/api/v1/search/scores?q=funny+valorant+clutch+moments"
+```
+
+Response:
+
+```json
+{
+  "query": "funny valorant clutch moments",
+  "results": {
+    "clips": [...]
+  },
+  "counts": {
+    "clips": 42
+  },
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total_items": 42,
+    "total_pages": 3
+  },
+  "scores": [
+    {
+      "clip_id": "550e8400-e29b-41d4-a716-446655440000",
+      "similarity_score": 0.892,
+      "similarity_rank": 1
+    },
+    {
+      "clip_id": "660e8400-e29b-41d4-a716-446655440001",
+      "similarity_score": 0.854,
+      "similarity_rank": 2
+    }
+  ]
+}
+```
+
+**How it works:**
+1. **BM25 Candidate Selection**: OpenSearch retrieves candidates using keyword matching
+2. **Query Embedding**: User query is converted to a 768-dimensional vector (embedding is cached in Redis by the embedding service layer)
+3. **Vector Re-ranking**: Candidates are re-ranked using cosine similarity with pgvector
+4. **Score Calculation**: Similarity scores are normalized to 0-1 range (higher is better)
+
+**Benefits:**
+- Better understanding of query intent
+- Finds semantically similar clips even without exact keyword matches
+- Combines strengths of keyword and semantic search
+- Gracefully falls back to BM25-only if embeddings unavailable
+
+**Performance:**
+- P95 latency goal: <100ms (subject to ongoing measurement and optimization)
+- Caching reduces embedding generation overhead
+- Candidate pool size scaled based on pagination needs
+
 ## Features
 
 ### Typo Tolerance

@@ -203,6 +203,18 @@ func main() {
 		log.Println("WARNING: Embedding service is enabled but OPENAI_API_KEY is not set")
 	}
 	
+	// Initialize hybrid search service if both OpenSearch and embeddings are available
+	var hybridSearchService *services.HybridSearchService
+	if osClient != nil && embeddingService != nil {
+		hybridSearchService = services.NewHybridSearchService(&services.HybridSearchConfig{
+			Pool:              db.Pool,
+			OpenSearchService: openSearchService,
+			EmbeddingService:  embeddingService,
+			RedisClient:       redisClient.GetClient(),
+		})
+		log.Println("Hybrid search service initialized (BM25 + vector similarity)")
+	}
+	
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -219,9 +231,16 @@ func main() {
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
-	if openSearchService != nil {
-		// Use OpenSearch-enhanced handler
+	if hybridSearchService != nil {
+		// Use hybrid search (BM25 + vector similarity)
+		searchHandler = handlers.NewSearchHandlerWithHybridSearch(searchRepo, hybridSearchService, authService)
+		log.Println("Using hybrid search handler (BM25 + vector similarity)")
+	} else if openSearchService != nil {
+		// Use OpenSearch-enhanced handler (BM25 only)
 		searchHandler = handlers.NewSearchHandlerWithOpenSearch(searchRepo, openSearchService, authService)
+		log.Println("Using OpenSearch handler (BM25 only)")
+	} else {
+		log.Println("Using PostgreSQL FTS handler (fallback)")
 	}
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
@@ -467,6 +486,7 @@ func main() {
 			// Public search endpoints
 			search.GET("", searchHandler.Search)
 			search.GET("/suggestions", searchHandler.GetSuggestions)
+			search.GET("/scores", searchHandler.SearchWithScores) // Hybrid search with similarity scores
 		}
 
 		// Submission routes (if submission handler is available)
