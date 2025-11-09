@@ -101,12 +101,12 @@ func (s *AuthService) GenerateAuthURL(ctx context.Context, codeChallenge, codeCh
 	// Store state in Redis with 5 minute expiration
 	stateKey := fmt.Sprintf("oauth:state:%s", state)
 	stateValue := "1"
-	
+
 	// If PKCE is used, store code challenge with the state
 	if codeChallenge != "" && codeChallengeMethod != "" {
 		stateValue = fmt.Sprintf("%s:%s", codeChallenge, codeChallengeMethod)
 	}
-	
+
 	if err := s.redis.Set(ctx, stateKey, stateValue, 5*time.Minute); err != nil {
 		return "", fmt.Errorf("failed to store state: %w", err)
 	}
@@ -142,12 +142,12 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state, codeVerif
 		if len(parts) == 2 {
 			codeChallenge := parts[0]
 			codeChallengeMethod := parts[1]
-			
+
 			// Verify code verifier if PKCE is enabled
 			if codeVerifier == "" {
 				return nil, "", "", ErrInvalidCodeVerifier
 			}
-			
+
 			if err := verifyPKCE(codeVerifier, codeChallenge, codeChallengeMethod); err != nil {
 				return nil, "", "", ErrInvalidCodeVerifier
 			}
@@ -421,14 +421,14 @@ func verifyPKCE(codeVerifier, codeChallenge, codeChallengeMethod string) error {
 
 	// Compute SHA256 hash of code verifier
 	hash := sha256.Sum256([]byte(codeVerifier))
-	
+
 	// Base64URL encode the hash using the package-level encoder
 	computed := base64URLEncoder.EncodeToString(hash[:])
-	
+
 	// Compare with provided challenge
 	if computed != codeChallenge {
 		return errors.New("code verifier does not match challenge")
 	}
-	
+
 	return nil
 }

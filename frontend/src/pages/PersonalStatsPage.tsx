@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from '@dr.pogodin/react-helmet';
 import { getUserStats } from '../lib/analytics-api';
 import { MetricCard, PieChartComponent } from '../components/analytics';
 import { format } from 'date-fns';

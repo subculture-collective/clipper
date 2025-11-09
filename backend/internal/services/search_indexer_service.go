@@ -97,10 +97,10 @@ func (s *SearchIndexerService) createIndexIfNotExists(ctx context.Context, index
 func (s *SearchIndexerService) IndexClip(ctx context.Context, clip *models.Clip) error {
 	// Calculate engagement score (combines votes, comments, favorites, views)
 	engagementScore := calculateEngagementScore(clip)
-	
+
 	// Calculate recency score (higher for newer clips)
 	recencyScore := calculateRecencyScore(clip)
-	
+
 	doc := map[string]interface{}{
 		"id":               clip.ID.String(),
 		"twitch_clip_id":   clip.TwitchClipID,
@@ -245,12 +245,12 @@ func calculateEngagementScore(clip *models.Clip) float64 {
 	commentWeight := 5.0
 	favoriteWeight := 3.0
 	viewWeight := 0.01
-	
+
 	score := float64(clip.VoteScore)*voteWeight +
 		float64(clip.CommentCount)*commentWeight +
 		float64(clip.FavoriteCount)*favoriteWeight +
 		float64(clip.ViewCount)*viewWeight
-	
+
 	return score
 }
 
@@ -258,14 +258,14 @@ func calculateEngagementScore(clip *models.Clip) float64 {
 func calculateRecencyScore(clip *models.Clip) float64 {
 	// Calculate days since creation
 	daysSince := time.Since(clip.CreatedAt).Hours() / 24.0
-	
+
 	// Exponential decay: newer clips get higher scores
 	// Score decreases by 50% every 7 days
 	// Using formula: score = initial * exp(-ln(2) * days / halfLife)
 	// where halfLife = 7 days
 	halfLife := 7.0
 	score := 100.0 * math.Exp(-math.Ln2*daysSince/halfLife)
-	
+
 	return score
 }
 
@@ -291,7 +291,7 @@ func (s *SearchIndexerService) BulkIndexClips(ctx context.Context, clips []model
 		// Document data
 		engagementScore := calculateEngagementScore(&clip)
 		recencyScore := calculateRecencyScore(&clip)
-		
+
 		doc := map[string]interface{}{
 			"id":               clip.ID.String(),
 			"twitch_clip_id":   clip.TwitchClipID,

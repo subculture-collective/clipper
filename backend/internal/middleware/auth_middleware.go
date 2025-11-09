@@ -61,7 +61,7 @@ func OptionalAuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 				c.Set("user", user)
 				c.Set("user_id", user.ID)
 				c.Set("user_role", user.Role)
-				
+
 				// Set user context in Sentry for error tracking
 				sentrypkg.SetUser(c, user.ID.String(), user.Username)
 			}

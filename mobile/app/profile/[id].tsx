@@ -9,12 +9,12 @@ import {
     ScrollView,
     ActivityIndicator,
     Image,
-    TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { TouchableOpacity } from 'react-native';
+import { Colors } from '../../constants/theme';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 
 // TODO: Import actual user API service
 // import { getUser } from '@/services/users';

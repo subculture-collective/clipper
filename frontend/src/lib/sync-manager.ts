@@ -1,6 +1,6 @@
 /**
  * Background Sync Manager
- * 
+ *
  * Handles background synchronization of cached data with server
  * Features:
  * - Automatic sync on reconnection
@@ -73,7 +73,7 @@ export class SyncManager {
   public async initialize(): Promise<void> {
     await this.cache.init();
     await this.loadPendingOperations();
-    
+
     // Start periodic sync check (every 30 seconds)
     this.startPeriodicSync(30000);
   }
@@ -229,7 +229,7 @@ export class SyncManager {
       console.log('[SyncManager] Sync completed successfully');
     } catch (error) {
       console.error('[SyncManager] Sync failed:', error);
-      
+
       this.updateSyncState({
         status: SyncStatus.ERROR,
         isSyncing: false,
@@ -256,7 +256,7 @@ export class SyncManager {
 
     results.forEach((result, index) => {
       const operation = operations[index];
-      
+
       if (result.status === 'fulfilled') {
         this.pendingOperations.delete(operation.id);
         successCount++;
@@ -265,13 +265,13 @@ export class SyncManager {
         operation.retryCount++;
         operation.status = 'error';
         operation.error = result.reason?.message || 'Unknown error';
-        
+
         // Remove if max retries reached (3 attempts)
         if (operation.retryCount >= 3) {
           console.error(`[SyncManager] Operation ${operation.id} failed after 3 retries, removing`);
           this.pendingOperations.delete(operation.id);
         }
-        
+
         errorCount++;
       }
     });
@@ -284,7 +284,7 @@ export class SyncManager {
 
   private async executeOperation(operation: SyncOperation): Promise<void> {
     console.log(`[SyncManager] Executing operation ${operation.type} ${operation.entity}:`, operation.id);
-    
+
     operation.status = 'syncing';
 
     try {
@@ -303,7 +303,7 @@ export class SyncManager {
           }
           break;
         }
-        
+
         case 'favorite': {
           const data = operation.data as { clip_id: string };
           if (operation.type === 'create') {
@@ -313,7 +313,7 @@ export class SyncManager {
           }
           break;
         }
-        
+
         case 'comment': {
           if (operation.type === 'create') {
             const data = operation.data as { clip_id: string; content: string; parent_id?: string };
@@ -327,11 +327,11 @@ export class SyncManager {
           }
           break;
         }
-        
+
         default:
           throw new Error(`Unknown entity: ${operation.entity}`);
       }
-      
+
       operation.status = 'success';
     } catch (error: unknown) {
       operation.status = 'error';
@@ -391,27 +391,27 @@ export function resolveClipConflict(
   switch (resolution.strategy) {
     case 'client-wins':
       return clientClip;
-    
+
     case 'server-wins':
       return serverClip;
-    
+
     case 'merge':
       // Use custom merge function if provided
       if (resolution.mergeFunction) {
         return resolution.mergeFunction(clientClip, serverClip) as Clip;
       }
-      
+
       // Default merge: take server data but keep client timestamps if newer
       return {
         ...serverClip,
         view_count: Math.max(clientClip.view_count || 0, serverClip.view_count || 0),
         upvote_count: Math.max(clientClip.upvote_count || 0, serverClip.upvote_count || 0),
       };
-    
+
     case 'manual':
       // Return server version and let user handle it
       return serverClip;
-    
+
     default:
       return serverClip;
   }
@@ -425,25 +425,27 @@ export function resolveCommentConflict(
   switch (resolution.strategy) {
     case 'client-wins':
       return clientComment;
-    
+
     case 'server-wins':
       return serverComment;
-    
+
     case 'merge':
       // Use custom merge function if provided
       if (resolution.mergeFunction) {
         return resolution.mergeFunction(clientComment, serverComment) as Comment;
       }
-      
+
       // Default merge: take server data but keep client content if updated_at is newer
-      const clientUpdated = new Date(clientComment.updated_at || clientComment.created_at).getTime();
-      const serverUpdated = new Date(serverComment.updated_at || serverComment.created_at).getTime();
-      
-      return clientUpdated > serverUpdated ? clientComment : serverComment;
-    
+      {
+        const clientUpdated = new Date(clientComment.updated_at || clientComment.created_at).getTime();
+        const serverUpdated = new Date(serverComment.updated_at || serverComment.created_at).getTime();
+
+        return clientUpdated > serverUpdated ? clientComment : serverComment;
+      }
+
     case 'manual':
       return serverComment;
-    
+
     default:
       return serverComment;
   }

@@ -6,9 +6,9 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as Crypto from 'expo-crypto';
 import { makeRedirectUri } from 'expo-auth-session';
-import { api } from '@/lib/api';
-import { TWITCH_CLIENT_ID } from '@/constants/config';
-import type { User } from '@/contexts/AuthContext';
+import { api } from '../lib/api';
+import { TWITCH_CLIENT_ID } from '../constants/config';
+import type { User } from '../contexts/AuthContext';
 
 // Complete the auth session properly
 WebBrowser.maybeCompleteAuthSession();
@@ -49,20 +49,20 @@ function bytesToBase64Url(bytes: Uint8Array): string {
     const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
     let result = '';
     let i = 0;
-    
+
     while (i < bytes.length) {
         const a = bytes[i++];
         const b = i < bytes.length ? bytes[i++] : 0;
         const c = i < bytes.length ? bytes[i++] : 0;
-        
+
         const bitmap = (a << 16) | (b << 8) | c;
-        
+
         result += base64Chars.charAt((bitmap >> 18) & 63);
         result += base64Chars.charAt((bitmap >> 12) & 63);
         result += i - 2 < bytes.length ? base64Chars.charAt((bitmap >> 6) & 63) : '';
         result += i - 1 < bytes.length ? base64Chars.charAt(bitmap & 63) : '';
     }
-    
+
     return result;
 }
 
@@ -73,16 +73,16 @@ async function generatePKCE() {
     // Generate random code verifier (43-128 characters, base64url)
     const randomBytes = await Crypto.getRandomBytesAsync(32);
     const codeVerifier = bytesToBase64Url(randomBytes);
-    
+
     const codeChallengeMethod = 'S256';
-    
+
     // Generate code challenge from verifier
     const digest = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         codeVerifier,
         { encoding: Crypto.CryptoEncoding.BASE64 }
     );
-    
+
     // Make URL-safe base64
     const codeChallenge = digest
         .replace(/\+/g, '-')
@@ -102,7 +102,7 @@ async function generatePKCE() {
 export async function initiateOAuthFlow() {
     const redirectUri = makeRedirectUri({ scheme: 'clipper' });
     const { codeVerifier, codeChallenge, codeChallengeMethod } = await generatePKCE();
-    
+
     // Generate random state for CSRF protection (use crypto for state)
     const stateBytes = await Crypto.getRandomBytesAsync(32);
     const state = bytesToBase64Url(stateBytes);
@@ -123,7 +123,7 @@ export async function initiateOAuthFlow() {
 
     if (result.type === 'success') {
         const { code, state: returnedState } = result.params;
-        
+
         // Verify state matches
         if (returnedState !== state) {
             throw new Error('State mismatch - possible CSRF attack');
@@ -176,7 +176,7 @@ export async function getCurrentUser(): Promise<User> {
  */
 export async function refreshAccessToken(): Promise<void> {
     const response = await api.post<RefreshResponse>('/auth/refresh');
-    
+
     if (!response.data.message) {
         throw new Error('Failed to refresh token');
     }

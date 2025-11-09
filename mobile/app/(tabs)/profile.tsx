@@ -12,8 +12,8 @@ import {
     Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { logoutUser } from '@/services/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import { logoutUser } from '../../services/auth';
 
 export default function ProfileScreen() {
     const router = useRouter();

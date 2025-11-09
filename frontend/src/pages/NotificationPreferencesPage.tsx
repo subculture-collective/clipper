@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from '@dr.pogodin/react-helmet';
 import { Link } from 'react-router-dom';
 import { getNotificationPreferences, updateNotificationPreferences } from '../lib/notification-api';
 import type { NotificationPreferences } from '../types/notification';
