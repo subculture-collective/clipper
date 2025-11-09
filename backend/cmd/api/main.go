@@ -132,6 +132,7 @@ func main() {
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
 	webhookRepo := repository.NewWebhookRepository(db.Pool)
+	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -161,7 +162,11 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService)
+	
+	// Initialize dunning service before subscription service
+	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
+	
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	

@@ -36,6 +36,7 @@ type SubscriptionService struct {
 	webhookRepo *repository.WebhookRepository
 	cfg         *config.Config
 	auditLogSvc *AuditLogService
+	dunningService *DunningService
 }
 
 // NewSubscriptionService creates a new subscription service
@@ -45,6 +46,7 @@ func NewSubscriptionService(
 	webhookRepo *repository.WebhookRepository,
 	cfg *config.Config,
 	auditLogSvc *AuditLogService,
+	dunningService *DunningService,
 ) *SubscriptionService {
 	// Initialize Stripe with secret key
 	stripe.Key = cfg.Stripe.SecretKey
@@ -55,6 +57,7 @@ func NewSubscriptionService(
 		webhookRepo: webhookRepo,
 		cfg:         cfg,
 		auditLogSvc: auditLogSvc,
+		dunningService: dunningService,
 	}
 }
 
@@ -462,6 +465,13 @@ func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event strip
 		return nil // Not critical
 	}
 
+	// Process payment success for dunning (clears grace period and marks failures as resolved)
+	if s.dunningService != nil {
+		if err := s.dunningService.HandlePaymentSuccess(ctx, &invoice); err != nil {
+			log.Printf("[WEBHOOK] Failed to process payment success in dunning service: %v", err)
+		}
+	}
+
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "invoice_paid", &event.ID, invoice); err != nil {
 		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
@@ -510,6 +520,13 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 			log.Printf("[WEBHOOK] Failed to update subscription status to past_due: %v", err)
 		} else {
 			log.Printf("[WEBHOOK] Updated subscription %s status to past_due", sub.ID)
+		}
+	}
+
+	// Process payment failure through dunning service
+	if s.dunningService != nil {
+		if err := s.dunningService.HandlePaymentFailure(ctx, &invoice); err != nil {
+			log.Printf("[WEBHOOK] Failed to process payment failure in dunning service: %v", err)
 		}
 	}
 
@@ -606,24 +623,57 @@ func (s *SubscriptionService) ChangeSubscriptionPlan(ctx context.Context, user *
 	return nil
 }
 
-// HasActiveSubscription checks if user has an active subscription
+// HasActiveSubscription checks if user has an active subscription (including grace period)
 func (s *SubscriptionService) HasActiveSubscription(ctx context.Context, userID uuid.UUID) bool {
 	sub, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return false
 	}
 
-	return sub.Status == "active" || sub.Status == "trialing"
+	// Active or trialing status
+	if sub.Status == "active" || sub.Status == "trialing" {
+		return true
+	}
+
+	// In grace period for past_due or unpaid subscriptions
+	if (sub.Status == "past_due" || sub.Status == "unpaid") && s.isInGracePeriod(sub) {
+		return true
+	}
+
+	return false
 }
 
-// IsProUser checks if user has an active Pro subscription
+// IsProUser checks if user has an active Pro subscription (including grace period)
 func (s *SubscriptionService) IsProUser(ctx context.Context, userID uuid.UUID) bool {
 	sub, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return false
 	}
 
-	return (sub.Status == "active" || sub.Status == "trialing") && sub.Tier == "pro"
+	// Must be Pro tier
+	if sub.Tier != "pro" {
+		return false
+	}
+
+	// Active or trialing status
+	if sub.Status == "active" || sub.Status == "trialing" {
+		return true
+	}
+
+	// In grace period for past_due or unpaid subscriptions
+	if (sub.Status == "past_due" || sub.Status == "unpaid") && s.isInGracePeriod(sub) {
+		return true
+	}
+
+	return false
+}
+
+// isInGracePeriod checks if a subscription is currently in grace period
+func (s *SubscriptionService) isInGracePeriod(sub *models.Subscription) bool {
+	if sub.GracePeriodEnd == nil {
+		return false
+	}
+	return time.Now().Before(*sub.GracePeriodEnd)
 }
 
 // timePtr returns a pointer to a time.Time

@@ -501,6 +501,11 @@ const (
 	NotificationTypeNewReport            = "new_report"
 	NotificationTypePendingSubmissions   = "pending_submissions"
 	NotificationTypeSystemAlert          = "system_alert"
+	// Dunning notification types
+	NotificationTypePaymentFailed           = "payment_failed"
+	NotificationTypePaymentRetry            = "payment_retry"
+	NotificationTypeGracePeriodWarning      = "grace_period_warning"
+	NotificationTypeSubscriptionDowngraded  = "subscription_downgraded"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
@@ -676,6 +681,7 @@ type Subscription struct {
 	CanceledAt           *time.Time `json:"canceled_at,omitempty" db:"canceled_at"`
 	TrialStart           *time.Time `json:"trial_start,omitempty" db:"trial_start"`
 	TrialEnd             *time.Time `json:"trial_end,omitempty" db:"trial_end"`
+	GracePeriodEnd       *time.Time `json:"grace_period_end,omitempty" db:"grace_period_end"`
 	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
 }
@@ -742,6 +748,35 @@ type CreateCheckoutSessionResponse struct {
 // CreatePortalSessionResponse represents the response with portal session URL
 type CreatePortalSessionResponse struct {
 	PortalURL string `json:"portal_url"`
+}
+
+// PaymentFailure represents a failed payment attempt for a subscription
+type PaymentFailure struct {
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	SubscriptionID       uuid.UUID  `json:"subscription_id" db:"subscription_id"`
+	StripeInvoiceID      string     `json:"stripe_invoice_id" db:"stripe_invoice_id"`
+	StripePaymentIntentID *string   `json:"stripe_payment_intent_id,omitempty" db:"stripe_payment_intent_id"`
+	AmountDue            int64      `json:"amount_due" db:"amount_due"` // Amount in cents
+	Currency             string     `json:"currency" db:"currency"`
+	AttemptCount         int        `json:"attempt_count" db:"attempt_count"`
+	FailureReason        *string    `json:"failure_reason,omitempty" db:"failure_reason"`
+	NextRetryAt          *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	Resolved             bool       `json:"resolved" db:"resolved"`
+	ResolvedAt           *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// DunningAttempt represents a communication attempt to a user about failed payment
+type DunningAttempt struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	PaymentFailureID uuid.UUID  `json:"payment_failure_id" db:"payment_failure_id"`
+	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
+	AttemptNumber    int        `json:"attempt_number" db:"attempt_number"`
+	NotificationType string     `json:"notification_type" db:"notification_type"` // payment_failed, payment_retry, grace_period_warning, subscription_downgraded
+	EmailSent        bool       `json:"email_sent" db:"email_sent"`
+	EmailSentAt      *time.Time `json:"email_sent_at,omitempty" db:"email_sent_at"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 }
 
 // ContactMessage represents a contact form submission
