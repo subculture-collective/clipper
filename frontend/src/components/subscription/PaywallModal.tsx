@@ -9,7 +9,7 @@ import {
   trackPaywallDismissed,
   trackBillingPeriodChange,
 } from '../../lib/paywall-analytics';
-import { PRICING, PRO_FEATURES, calculateYearlyMonthlyPrice, calculateSavingsPercent } from '@clipper/shared';
+import { PRICING, PRO_FEATURES, calculateYearlyMonthlyPrice, calculateSavingsPercent } from '../../constants/pricing';
 
 export interface PaywallModalProps {
   /** Whether the modal is open */

@@ -55,7 +55,7 @@ func (s *OpenSearchService) Search(ctx context.Context, req *models.SearchReques
 		response.Results.Clips = clips
 		response.Counts.Clips = count
 		totalCount += count
-		
+
 		// Include facets only when searching clips specifically or all
 		if facets != nil {
 			response.Facets = *facets
@@ -375,7 +375,7 @@ func (s *OpenSearchService) buildClipQuery(req *models.SearchRequest) map[string
 	if req.Query != "" {
 		// Build fields list based on language if specified
 		fields := []string{"title^3", "creator_name^2", "broadcaster_name^2", "game_name"}
-		
+
 		// Add language-specific field with higher boost if language is specified
 		if req.Language != nil && *req.Language != "" {
 			switch *req.Language {
@@ -389,7 +389,7 @@ func (s *OpenSearchService) buildClipQuery(req *models.SearchRequest) map[string
 				fields = append([]string{"title.de^4"}, fields...)
 			}
 		}
-		
+
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
 				"query":     req.Query,
@@ -588,7 +588,7 @@ func (s *OpenSearchService) parseClipsFromResult(result map[string]interface{}) 
 	if !ok {
 		return nil, 0, fmt.Errorf("unexpected 'hits' structure in response")
 	}
-	
+
 	totalRaw, ok := hits["total"]
 	if !ok {
 		return nil, 0, fmt.Errorf("missing 'total' in hits")
@@ -704,7 +704,7 @@ func (s *OpenSearchService) parseFacetsFromResult(result map[string]interface{})
 						if bucketMap, ok := bucket.(map[string]interface{}); ok {
 							key, _ := bucketMap["key"].(string)
 							count, _ := bucketMap["doc_count"].(float64)
-							
+
 							switch key {
 							case "last_hour":
 								facets.DateRange.LastHour = int(count)

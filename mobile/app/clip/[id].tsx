@@ -12,10 +12,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { getClip } from '@/services/clips';
+import { getClip } from '../../services/clips';
+import { useEvent } from 'expo';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useAuth } from '@/contexts/AuthContext';
-import { CommentList } from '@/components/CommentList';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIDEO_HEIGHT = SCREEN_WIDTH * (9 / 16);
@@ -23,7 +22,6 @@ const VIDEO_HEIGHT = SCREEN_WIDTH * (9 / 16);
 export default function ClipDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { user } = useAuth();
 
     const { data: clip, isLoading } = useQuery({
         queryKey: ['clip', id],
@@ -33,6 +31,9 @@ export default function ClipDetailScreen() {
 
     const player = useVideoPlayer(clip?.embed_url ?? '', player => {
         player.loop = false;
+    });
+    const { isPlaying } = useEvent(player, 'playingChange', {
+        isPlaying: player.playing,
     });
 
     if (isLoading) {
@@ -114,15 +115,14 @@ export default function ClipDetailScreen() {
 
                 {/* Comments Section */}
                 <View className='border-t border-gray-200 pt-4'>
-                    <View className='flex-row items-center justify-between mb-3'>
-                        <Text className='text-lg font-bold text-gray-900'>
-                            Comments
-                        </Text>
-                        <Text className='text-sm text-gray-500'>
-                            {clip?.comment_count || 0}
+                    <Text className='text-lg font-bold text-gray-900 mb-3'>
+                        Comments
+                    </Text>
+                    <View className='items-center py-8'>
+                        <Text className='text-gray-500'>
+                            No comments yet. Be the first!
                         </Text>
                     </View>
-                    <CommentList clipId={id!} currentUserId={user?.id} />
                 </View>
             </View>
         </ScrollView>

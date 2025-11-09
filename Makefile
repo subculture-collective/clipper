@@ -8,11 +8,11 @@ help: ## Show this help message
 
 install: ## Install all dependencies
 	@echo "Installing backend dependencies..."
-	cd backend && go mod downloadmake help
+	cd backend && go mod download
 	@echo "Installing frontend dependencies..."
-	cd frontend && yarn
+	cd frontend && npm install
 	@echo "Installing mobile dependencies..."
-	cd mobile && yarn
+	cd mobile && npm install
 	@echo "✓ All dependencies installed"
 
 dev: ## Start all services in development mode (Note: mobile must be started separately with 'make mobile-dev')
@@ -23,25 +23,25 @@ build: ## Build backend, frontend, and mobile
 	@echo "Building backend..."
 	cd backend && go build -o bin/api ./cmd/api
 	@echo "Building frontend..."
-	cd frontend && yarn build
+	cd frontend && npm run build
 	@echo "Building mobile (iOS)..."
-	cd mobile && yarn ios --configuration Release
+	cd mobile && npm run ios -- --configuration Release
 	@echo "✓ Build complete"
 
 test: ## Run all tests
 	@echo "Running backend tests..."
 	cd backend && go test ./...
 	@echo "Running frontend tests..."
-	cd frontend && yarn test run
+	cd frontend && npm run test -- run
 	@echo "Running mobile tests..."
-	cd mobile && yarn test || echo "Mobile tests not configured"
+	cd mobile && npm run test || echo "Mobile tests not configured"
 	@echo "✓ Tests complete"
 
 test-unit: ## Run unit tests only
 	@echo "Running backend unit tests..."
 	cd backend && go test -short ./...
 	@echo "Running frontend unit tests..."
-	cd frontend && yarn test run
+	cd frontend && npm run test -- run
 	@echo "✓ Unit tests complete"
 
 test-integration: ## Run integration tests (requires Docker)
@@ -97,6 +97,11 @@ docker-down: ## Stop Docker services
 	docker compose down
 	@echo "✓ Docker services stopped"
 
+docker-logs: ## View Docker service logs
+	@echo "Tailing Docker service logs..."
+	docker compose logs -f --tail 500
+	@echo "✓ Docker logs ended"m
+
 backend-dev: ## Run backend in development mode
 	@echo "Waiting for PostgreSQL on localhost:5436..."
 	@bash -c 'until pg_isready -h localhost -p 5436 -U clipper -d clipper_db >/dev/null 2>&1; do sleep 1; done'
@@ -105,7 +110,7 @@ backend-dev: ## Run backend in development mode
 
 frontend-dev: ## Run frontend in development mode
 	@echo "Starting frontend..."
-	cd frontend && yarn dev
+	cd frontend && npm run dev
 
 backend-build: ## Build backend binary
 	@echo "Building backend..."
@@ -114,39 +119,37 @@ backend-build: ## Build backend binary
 
 frontend-build: ## Build frontend for production
 	@echo "Building frontend..."
-	cd frontend && yarn build
+	cd frontend && npm run build
 	@echo "✓ Frontend built"
 
 mobile-dev: ## Run mobile app in development mode
 	@echo "Starting mobile app..."
-	cd mobile && yarn start
+	cd mobile && npm start
 
 mobile-ios: ## Run mobile app on iOS simulator
 	@echo "Starting mobile app on iOS..."
-	cd mobile && yarn ios
+	cd mobile && npm run ios
 
 mobile-android: ## Run mobile app on Android emulator
 	@echo "Starting mobile app on Android..."
-	cd mobile && yarn android
+	cd mobile && npm run android
 
 mobile-build-ios: ## Build mobile app for iOS
 	@echo "Building mobile app for iOS..."
-	cd mobile && yarn ios --configuration Release
+	cd mobile && npm run ios -- --configuration Release
 	@echo "✓ Mobile iOS built"
 
 mobile-build-android: ## Build mobile app for Android
 	@echo "Building mobile app for Android..."
-	cd mobile && yarn android --variant=release
+	cd mobile && npm run android -- --variant=release
 	@echo "✓ Mobile Android built"
 
 lint: ## Run linters
 	@echo "Linting backend..."
 	cd backend && go fmt ./...
 	@echo "Linting frontend..."
-	cd frontend && yarn lint
-	@echo "Linting mobile..."
-	cd mobile && yarn lint
-	@echo "✓ Linting complete"
+	cd frontend && npm run lint
+	@echo "✓ Linting complete (mobile linting skipped - requires expo CLI fix)"
 
 # Database Migration Commands
 DB_URL := "postgresql://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable"

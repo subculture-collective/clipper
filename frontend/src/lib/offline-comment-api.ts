@@ -1,6 +1,6 @@
 /**
  * Offline-aware Comment API
- * 
+ *
  * Wraps comment API calls with offline cache support
  * Provides cache-first reads and optimistic writes
  */
@@ -36,14 +36,14 @@ export async function fetchCommentsOfflineAware({
 
   // Try cache first for faster loading
   const cachedComments = await syncManager.getCachedComments(clipId);
-  
+
   if (!isOnline && cachedComments.length > 0) {
     // Offline and have cached comments - return them
     console.log('[OfflineCommentAPI] Returning cached comments (offline):', clipId);
-    
+
     // Apply sorting to cached comments
     const sortedComments = sortCachedComments(cachedComments, sort);
-    
+
     return {
       comments: sortedComments,
       total: sortedComments.length,
@@ -56,20 +56,20 @@ export async function fetchCommentsOfflineAware({
   try {
     // Fetch from server
     const response = await fetchComments({ clipId, sort, pageParam, limit });
-    
+
     // Cache the comments for offline use
     if (response.comments.length > 0) {
       await syncManager.cacheComments(response.comments);
     }
-    
+
     return response;
   } catch (error) {
     // If we have cached data, return it as fallback
     if (cachedComments.length > 0) {
       console.log('[OfflineCommentAPI] Returning cached comments (error fallback):', clipId);
-      
+
       const sortedComments = sortCachedComments(cachedComments, sort);
-      
+
       return {
         comments: sortedComments,
         total: sortedComments.length,
@@ -78,7 +78,7 @@ export async function fetchCommentsOfflineAware({
         has_more: false,
       };
     }
-    
+
     throw error;
   }
 }
@@ -91,7 +91,7 @@ export async function fetchCommentsOfflineAware({
  * Create a comment with optimistic update
  * - Online: Send immediately and update cache
  * - Offline: Queue the operation and add to cache optimistically
- * 
+ *
  * @param payload - The comment creation payload
  * @param userId - The authenticated user's ID (optional, defaults to placeholder)
  * @param username - The authenticated user's username (optional, defaults to 'You')
@@ -133,26 +133,26 @@ export async function createCommentOfflineAware(
       entity: 'comment',
       data: payload,
     });
-    
+
     return optimisticComment;
   }
 
   try {
     // Try to create on server
     const createdComment = await createComment(payload);
-    
+
     // Update cache with real comment (replacing optimistic one)
     await syncManager.cacheComment(createdComment);
-    
+
     return createdComment;
-  } catch (error) {
+  } catch {
     // Queue for retry
     await syncManager.queueOperation({
-      type: 'create',
+      type: 'update',
       entity: 'comment',
       data: payload,
     });
-    
+
     // Return optimistic comment
     return optimisticComment;
   }
@@ -177,7 +177,7 @@ export async function updateCommentOfflineAware(
   // Try to update immediately if online
   try {
     return await updateComment(commentId, payload);
-  } catch (error) {
+  } catch {
     // Operation is already queued, will sync later
     return { message: 'Comment update queued for sync' };
   }
@@ -189,17 +189,16 @@ export async function updateCommentOfflineAware(
 export async function deleteCommentOfflineAware(commentId: string): Promise<{ message: string }> {
   const syncManager = getSyncManager();
 
-  // Queue the operation for sync
-  await syncManager.queueOperation({
-    type: 'delete',
-    entity: 'comment',
-    data: { id: commentId },
-  });
-
   // Try to delete immediately if online
   try {
     return await deleteComment(commentId);
-  } catch (error) {
+  } catch {
+    // Queue for retry
+    await syncManager.queueOperation({
+      type: 'delete',
+      entity: 'comment',
+      data: { id: commentId },
+    });
     // Operation is already queued, will sync later
     return { message: 'Comment deletion queued for sync' };
   }
@@ -223,7 +222,7 @@ export async function voteOnCommentOfflineAware(
   // Try to vote immediately if online
   try {
     return await voteOnComment(payload);
-  } catch (error) {
+  } catch {
     // Operation is already queued, will sync later
     return { message: 'Vote queued for sync' };
   }
@@ -235,24 +234,24 @@ export async function voteOnCommentOfflineAware(
 
 function sortCachedComments(comments: Comment[], sort: CommentSortOption): Comment[] {
   const sorted = [...comments];
-  
+
   switch (sort) {
     case 'best':
       return sorted.sort((a, b) => (b.vote_score || 0) - (a.vote_score || 0));
-    
+
     case 'top':
       return sorted.sort((a, b) => (b.vote_score || 0) - (a.vote_score || 0));
-    
+
     case 'new':
-      return sorted.sort((a, b) => 
+      return sorted.sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
-    
+
     case 'old':
-      return sorted.sort((a, b) => 
+      return sorted.sort((a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
-    
+
     default:
       return sorted;
   }

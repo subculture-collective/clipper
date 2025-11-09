@@ -54,8 +54,8 @@ func (h *SEOHandler) GetSitemap(c *gin.Context) {
 
 	// Static pages
 	staticPages := []struct {
-		path     string
-		priority string
+		path       string
+		priority   string
 		changefreq string
 	}{
 		{"/", "1.0", "daily"},
@@ -106,7 +106,7 @@ func (h *SEOHandler) GetRobotsTxt(c *gin.Context) {
 	if baseURL == "" {
 		baseURL = "https://clipper.app" // Default, should be configured
 	}
-	
+
 	var robotsTxt string
 	if env == "production" {
 		// Production: Allow all crawlers
