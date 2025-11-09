@@ -17,6 +17,7 @@ This overview provides navigation to all premium-related documentation. Each doc
 | **[Trials and Discounts](./TRIALS_AND_DISCOUNTS.md)** | Trial policies, promotional campaigns, coupon system | Marketing, Product, Support |
 | **[Subscription Privileges Matrix](./SUBSCRIPTION_PRIVILEGES_MATRIX.md)** | Quick reference table of features by tier | All teams |
 | **[Stripe Integration](./SUBSCRIPTIONS.md)** | Payment processing setup and configuration | Engineering, Operations |
+| **[Dunning and Payment Recovery](./DUNNING.md)** | Failed payment handling, grace periods, user recovery | Engineering, Support, Operations |
 
 ## Quick Reference
 
@@ -75,6 +76,10 @@ This overview provides navigation to all premium-related documentation. Each doc
 - [x] Pricing page with checkout flow
 - [x] Subscription success/cancel pages
 - [x] Comprehensive documentation
+- [x] Dunning and payment recovery system
+- [x] Grace period management (7-day default)
+- [x] Failed payment email notifications
+- [x] Automatic downgrade after grace period
 
 ### In Progress 🚧
 
