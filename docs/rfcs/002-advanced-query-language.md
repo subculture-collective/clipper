@@ -867,6 +867,8 @@ Create `docs/QUERY_LANGUAGE_IMPLEMENTATION.md` with:
 | `QE008` | Too many filters | (>50 filters) |
 | `QE009` | Nesting too deep | (>10 levels) |
 | `QE010` | Invalid enum value | `sort:invalid` |
+| `QE011` | Too many OR clauses | (>20 OR operators) |
+| `QE012` | Too many terms in term list | (>100 terms) |
 
 ## Conclusion
 
