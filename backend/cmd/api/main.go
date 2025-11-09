@@ -685,10 +685,10 @@ func main() {
 	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, 1, 100)
 	go webhookRetryScheduler.Start(context.Background())
 
-	// Start embedding scheduler if embedding service is available (runs every 6 hours)
+	// Start embedding scheduler if embedding service is available (runs based on configured interval)
 	var embeddingScheduler *scheduler.EmbeddingScheduler
 	if embeddingService != nil {
-		embeddingScheduler = scheduler.NewEmbeddingScheduler(db, embeddingService, 360, cfg.Embedding.Model)
+		embeddingScheduler = scheduler.NewEmbeddingScheduler(db, embeddingService, cfg.Embedding.SchedulerIntervalMinutes, cfg.Embedding.Model)
 		go embeddingScheduler.Start(context.Background())
 	}
 

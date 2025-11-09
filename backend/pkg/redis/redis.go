@@ -264,6 +264,10 @@ func (c *Client) Keys(ctx context.Context, pattern string) ([]string, error) {
 }
 
 // GetClient returns the underlying redis client
+// WARNING: This breaks encapsulation and should only be used when absolutely necessary.
+// Direct access bypasses wrapper logic and makes it harder to change the Redis implementation.
+// Prefer adding specific methods to the Client wrapper for new operations.
+// Currently used by: embedding service (requires direct client for caching operations)
 func (c *Client) GetClient() *redis.Client {
 	return c.client
 }

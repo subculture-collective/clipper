@@ -102,6 +102,7 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 		log.Printf("Failed to fetch clips for embedding: %v", err)
 		return
 	}
+	defer rows.Close()
 
 	var clips []models.Clip
 	for rows.Next() {
@@ -121,7 +122,6 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 		}
 		clips = append(clips, clip)
 	}
-	rows.Close()
 
 	if len(clips) == 0 {
 		log.Println("No clips need embeddings - all up to date")

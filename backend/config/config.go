@@ -105,10 +105,11 @@ type EmailConfig struct {
 
 // EmbeddingConfig holds embedding service configuration
 type EmbeddingConfig struct {
-	OpenAIAPIKey      string
-	Model             string
-	RequestsPerMinute int
-	Enabled           bool
+	OpenAIAPIKey             string
+	Model                    string
+	RequestsPerMinute        int
+	SchedulerIntervalMinutes int
+	Enabled                  bool
 }
 
 // Load loads configuration from environment variables
@@ -183,10 +184,11 @@ func Load() (*Config, error) {
 			MaxEmailsPerHour: getEnvInt("EMAIL_MAX_PER_HOUR", 10),
 		},
 		Embedding: EmbeddingConfig{
-			OpenAIAPIKey:      getEnv("OPENAI_API_KEY", ""),
-			Model:             getEnv("EMBEDDING_MODEL", "text-embedding-3-small"),
-			RequestsPerMinute: getEnvInt("EMBEDDING_REQUESTS_PER_MINUTE", 500),
-			Enabled:           getEnv("EMBEDDING_ENABLED", "false") == "true",
+			OpenAIAPIKey:             getEnv("OPENAI_API_KEY", ""),
+			Model:                    getEnv("EMBEDDING_MODEL", "text-embedding-3-small"),
+			RequestsPerMinute:        getEnvInt("EMBEDDING_REQUESTS_PER_MINUTE", 500),
+			SchedulerIntervalMinutes: getEnvInt("EMBEDDING_SCHEDULER_INTERVAL_MINUTES", 360),
+			Enabled:                  getEnv("EMBEDDING_ENABLED", "false") == "true",
 		},
 	}
 

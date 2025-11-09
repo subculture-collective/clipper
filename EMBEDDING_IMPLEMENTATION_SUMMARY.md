@@ -40,10 +40,10 @@ This implementation delivers a complete embedding pipeline for semantic search c
 
 **Text Construction:**
 Embeddings are generated from:
-- Clip title (weight A - highest)
-- Broadcaster name (weight B)
-- Creator name (weight B - if different from broadcaster)
-- Game name (weight C)
+- Clip title
+- Broadcaster name
+- Creator name (if different from broadcaster)
+- Game name
 
 ### 3. Backfill Tool
 **File:** `backend/cmd/backfill-embeddings/main.go`

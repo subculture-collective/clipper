@@ -152,6 +152,7 @@ func backfillEmbeddings(
 		if err != nil {
 			return stats, fmt.Errorf("failed to fetch clips: %w", err)
 		}
+		defer rows.Close()
 
 		var clips []models.Clip
 		for rows.Next() {
@@ -169,12 +170,10 @@ func backfillEmbeddings(
 				&clip.EmbeddingModel,
 			)
 			if err != nil {
-				rows.Close()
 				return stats, fmt.Errorf("failed to scan clip: %w", err)
 			}
 			clips = append(clips, clip)
 		}
-		rows.Close()
 
 		if len(clips) == 0 {
 			break
@@ -210,7 +209,7 @@ func backfillEmbeddings(
 
 			// Save embedding to database
 			now := time.Now()
-			model := "text-embedding-3-small" // Get from service if possible
+			model := embeddingService.GetModel()
 			updateQuery := `
 				UPDATE clips
 				SET embedding = $1,

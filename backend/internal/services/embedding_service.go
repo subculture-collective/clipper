@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -80,6 +81,11 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		rpm = 500 // Default: 500 requests per minute for tier 1
 	}
 
+	// Validate API key
+	if config.APIKey == "" {
+		log.Println("WARNING: OpenAI API key is empty - embedding service will fail at runtime")
+	}
+
 	return &EmbeddingService{
 		apiKey:      config.APIKey,
 		model:       model,
@@ -113,7 +119,8 @@ func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) (
 
 	for attempt := 0; attempt < MaxRetries; attempt++ {
 		if attempt > 0 {
-			time.Sleep(RetryDelay * time.Duration(attempt))
+			// Exponential backoff: 2^attempt * RetryDelay
+			time.Sleep(RetryDelay * time.Duration(1<<uint(attempt)))
 		}
 
 		embedding, lastErr = s.callEmbeddingAPI(ctx, text)
@@ -129,7 +136,7 @@ func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) (
 	// Cache the result
 	if err := s.saveToCache(ctx, cacheKey, embedding); err != nil {
 		// Log but don't fail - cache is optional
-		fmt.Printf("Warning: failed to cache embedding: %v\n", err)
+		log.Printf("Warning: failed to cache embedding: %v", err)
 	}
 
 	return embedding, nil
@@ -167,16 +174,17 @@ func (s *EmbeddingService) GenerateBatchEmbeddings(ctx context.Context, texts []
 
 // generateBatch generates embeddings for a batch of texts
 func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([][]float32, error) {
-	// Check which texts are already cached
+	// Check cache once and store results
 	needsGeneration := make([]string, 0, len(texts))
+	cachedResults := make(map[int][]float32) // maps index to cached embedding
 	cacheKeys := make([]string, len(texts))
-	indexMap := make(map[string]int) // maps text to original index
 
 	for i, text := range texts {
 		cacheKeys[i] = s.getCacheKey(text)
-		indexMap[text] = i
 		
-		if _, err := s.getFromCache(ctx, cacheKeys[i]); err != nil {
+		if cached, err := s.getFromCache(ctx, cacheKeys[i]); err == nil {
+			cachedResults[i] = cached
+		} else {
 			needsGeneration = append(needsGeneration, text)
 		}
 	}
@@ -184,10 +192,8 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 	// If all are cached, return cached results
 	if len(needsGeneration) == 0 {
 		results := make([][]float32, len(texts))
-		for i, key := range cacheKeys {
-			if cached, err := s.getFromCache(ctx, key); err == nil {
-				results[i] = cached
-			}
+		for i := range results {
+			results[i] = cachedResults[i]
 		}
 		return results, nil
 	}
@@ -206,7 +212,8 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 
 	for attempt := 0; attempt < MaxRetries; attempt++ {
 		if attempt > 0 {
-			time.Sleep(RetryDelay * time.Duration(attempt))
+			// Exponential backoff: 2^attempt * RetryDelay
+			time.Sleep(RetryDelay * time.Duration(1<<uint(attempt)))
 		}
 
 		embeddings, lastErr = s.callBatchEmbeddingAPI(ctx, needsGeneration)
@@ -223,7 +230,7 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 	for i, text := range needsGeneration {
 		cacheKey := s.getCacheKey(text)
 		if err := s.saveToCache(ctx, cacheKey, embeddings[i]); err != nil {
-			fmt.Printf("Warning: failed to cache embedding: %v\n", err)
+			log.Printf("Warning: failed to cache embedding: %v", err)
 		}
 	}
 
@@ -232,8 +239,7 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 	generatedIdx := 0
 	
 	for i := range texts {
-		cacheKey := cacheKeys[i]
-		if cached, err := s.getFromCache(ctx, cacheKey); err == nil {
+		if cached, ok := cachedResults[i]; ok {
 			results[i] = cached
 		} else {
 			results[i] = embeddings[generatedIdx]
@@ -282,7 +288,16 @@ func (s *EmbeddingService) callEmbeddingAPI(ctx context.Context, text string) ([
 		Model: s.model,
 	}
 
-	return s.doAPICall(ctx, reqBody)
+	embeddingResp, err := s.executeAPIRequest(ctx, reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(embeddingResp.Data) == 0 {
+		return nil, fmt.Errorf("no embeddings returned")
+	}
+
+	return embeddingResp.Data[0].Embedding, nil
 }
 
 // callBatchEmbeddingAPI makes a batch API call to OpenAI
@@ -292,33 +307,9 @@ func (s *EmbeddingService) callBatchEmbeddingAPI(ctx context.Context, texts []st
 		Model: s.model,
 	}
 
-	jsonData, err := json.Marshal(reqBody)
+	embeddingResp, err := s.executeAPIRequest(ctx, reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/embeddings", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+s.apiKey)
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var embeddingResp EmbeddingResponse
-	if err := json.NewDecoder(resp.Body).Decode(&embeddingResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, err
 	}
 
 	if len(embeddingResp.Data) != len(texts) {
@@ -333,8 +324,8 @@ func (s *EmbeddingService) callBatchEmbeddingAPI(ctx context.Context, texts []st
 	return result, nil
 }
 
-// doAPICall performs the actual HTTP request to OpenAI
-func (s *EmbeddingService) doAPICall(ctx context.Context, reqBody EmbeddingRequest) ([]float32, error) {
+// executeAPIRequest performs the common HTTP request logic to OpenAI
+func (s *EmbeddingService) executeAPIRequest(ctx context.Context, reqBody EmbeddingRequest) (*EmbeddingResponse, error) {
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -362,6 +353,17 @@ func (s *EmbeddingService) doAPICall(ctx context.Context, reqBody EmbeddingReque
 	var embeddingResp EmbeddingResponse
 	if err := json.NewDecoder(resp.Body).Decode(&embeddingResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &embeddingResp, nil
+}
+
+// doAPICall is deprecated - kept for backward compatibility
+// Use callEmbeddingAPI instead
+func (s *EmbeddingService) doAPICall(ctx context.Context, reqBody EmbeddingRequest) ([]float32, error) {
+	embeddingResp, err := s.executeAPIRequest(ctx, reqBody)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(embeddingResp.Data) == 0 {
@@ -415,4 +417,9 @@ func (s *EmbeddingService) Close() {
 	if s.rateLimiter != nil {
 		s.rateLimiter.Stop()
 	}
+}
+
+// GetModel returns the embedding model being used
+func (s *EmbeddingService) GetModel() string {
+	return s.model
 }
