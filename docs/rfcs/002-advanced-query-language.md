@@ -20,6 +20,7 @@ The current search implementation supports basic filtering through structured qu
 5. **Verbose**: Requires multiple parameters for simple queries
 
 We need a concise, expressive query language that users can type directly into a search box, similar to:
+
 - Google Search advanced operators (`site:`, `filetype:`, `-`)
 - GitHub Search syntax (`is:open`, `language:go`, `stars:>100`)
 - Gmail Search filters (`from:`, `has:attachment`, `after:`)
@@ -45,12 +46,14 @@ We need a concise, expressive query language that users can type directly into a
 ### Basic Syntax
 
 A query consists of:
+
 1. **Free-text search terms**: Words or phrases to search for
 2. **Field filters**: Key-value pairs that filter results
 3. **Boolean operators**: Combine conditions with AND, OR, NOT
 4. **Sorting directives**: Control result ordering
 
 **General Form:**
+
 ```
 [free text] [filter:value] [filter:value] ...
 ```
@@ -132,12 +135,14 @@ game:minecraft (tag:funny OR tag:creative) -is:nsfw
 #### String Values
 
 Simple strings (alphanumeric, hyphen, underscore):
+
 ```
 game:valorant
 creator:shroud
 ```
 
 Quoted strings for spaces or special characters:
+
 ```
 game:"League of Legends"
 creator:"xQc Official"
@@ -170,6 +175,7 @@ after:last-month
 ```
 
 Supported relative dates:
+
 - `today`
 - `yesterday`
 - `last-week` (7 days ago)
@@ -208,6 +214,7 @@ game:"Grand Theft Auto" # Game name with spaces
 ```
 
 To include a quote within quoted string, escape with backslash:
+
 ```
 tag:"\"quoted\" text"
 ```
@@ -225,6 +232,7 @@ The following characters have special meaning and should be quoted if used liter
 - `\` (escape character)
 
 Examples:
+
 ```
 "C++"                  # Literal C++
 "price:$10"           # Colon as literal character
@@ -514,11 +522,13 @@ game:valorant (tag:funny OR tag:fail)
 ### Reserved Words
 
 The following words are reserved and cannot be used as free-text search terms without quoting:
+
 - `OR`
 - `AND` (reserved for future use)
 - `NOT` (reserved for future use)
 
 To search for these literally, use quotes:
+
 ```
 "OR"  # Searches for the word "OR"
 ```
@@ -549,6 +559,7 @@ The parsed AST should be translated to backend-specific query formats:
 3. **API Parameters**: Structured filter objects
 
 Example translation:
+
 ```
 Query: game:valorant tag:clutch -is:nsfw votes:>50
 
@@ -576,6 +587,7 @@ WHERE game_name ILIKE '%valorant%'
 ### Auto-complete Support
 
 Provide auto-complete suggestions for:
+
 1. **Filter names**: Show available filters as user types
 2. **Filter values**: Suggest common values (games, tags, creators)
 3. **Recent queries**: Show user's query history
@@ -583,6 +595,7 @@ Provide auto-complete suggestions for:
 ### URL Encoding
 
 Queries can be URL-encoded for sharing:
+
 ```
 # Original query
 game:valorant tag:clutch votes:>50
@@ -603,6 +616,7 @@ game:valorant tag:clutch votes:>50
 - If both provided, query language takes precedence
 
 Example:
+
 ```
 # Old way (still supported)
 GET /api/v1/search?game_id=123&tags=funny&min_votes=10
@@ -730,6 +744,7 @@ GET /api/v1/search?q=game:valorant&game_id=123
 ### Benchmarks
 
 Target performance metrics:
+
 - Parse time: <5ms for typical query
 - Translate time: <2ms
 - Total query execution: <100ms (p95)
@@ -739,12 +754,14 @@ Target performance metrics:
 ### User-Facing Documentation
 
 Create comprehensive documentation in:
+
 - `docs/user-guide.md`: Add "Advanced Search" section
 - `docs/SEARCH.md`: Add query language reference
 
 ### API Documentation
 
 Update `docs/API.md` with:
+
 - Query language syntax
 - Examples for common use cases
 - Error responses for invalid queries
@@ -752,6 +769,7 @@ Update `docs/API.md` with:
 ### Developer Documentation
 
 Create `docs/QUERY_LANGUAGE_IMPLEMENTATION.md` with:
+
 - Parser architecture
 - AST structure
 - Translation logic

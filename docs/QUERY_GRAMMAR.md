@@ -235,9 +235,11 @@ carriage_return = "\r" ;
 ### Top-Level Structure
 
 #### `query`
+
 The root of any query. Can be empty, contain only free-text terms, only filters, or a combination.
 
 **Examples:**
+
 ```
 valorant
 game:valorant
@@ -246,14 +248,17 @@ game:valorant tag:clutch
 ```
 
 #### `expression`
+
 The main structure that can contain terms and/or filters in any order.
 
 ### Free-Text Search
 
 #### `term_list`
+
 One or more search terms separated by whitespace.
 
 **Examples:**
+
 ```
 valorant
 epic moment
@@ -261,9 +266,11 @@ amazing play clutch
 ```
 
 #### `term`
+
 A single search term, optionally negated.
 
 **Examples:**
+
 ```
 valorant
 -fortnite
@@ -272,9 +279,11 @@ valorant
 ```
 
 #### `word`
+
 A simple word composed of letters, digits, hyphens, and underscores. Must start with a letter.
 
 **Valid:**
+
 ```
 valorant
 CS-GO
@@ -282,6 +291,7 @@ player_123
 ```
 
 **Invalid:**
+
 ```
 123player  (starts with digit)
 -valorant  (starts with hyphen - treated as negation)
@@ -289,9 +299,11 @@ _test      (starts with underscore)
 ```
 
 #### `phrase`
+
 A quoted string that can contain spaces and special characters.
 
 **Examples:**
+
 ```
 "League of Legends"
 "epic moment"
@@ -301,9 +313,11 @@ A quoted string that can contain spaces and special characters.
 ### Filter Expressions
 
 #### `filter_list`
+
 One or more filter expressions that can include boolean operators.
 
 **Examples:**
+
 ```
 game:valorant
 game:valorant tag:clutch
@@ -312,29 +326,35 @@ game:valorant OR game:csgo
 ```
 
 #### `or_expr`
+
 Boolean OR between filter expressions. OR has lower precedence than implicit AND.
 
 **Examples:**
+
 ```
 game:valorant OR game:csgo
 tag:funny OR tag:fail OR tag:epic
 ```
 
 #### `and_expr`
+
 Implicit AND between adjacent filters (no operator needed).
 
 **Examples:**
+
 ```
 game:valorant tag:clutch           (AND is implicit)
 game:valorant tag:clutch votes:>50 (multiple ANDs)
 ```
 
 #### `filter`
+
 A key-value pair with optional negation.
 
 **Structure:** `[negation] filter_name : filter_value`
 
 **Examples:**
+
 ```
 game:valorant
 -tag:nsfw
@@ -343,9 +363,11 @@ after:2025-01-01
 ```
 
 #### `grouped_expr`
+
 Filters grouped with parentheses to control precedence.
 
 **Examples:**
+
 ```
 (game:valorant OR game:csgo)
 (tag:funny OR tag:fail) -is:nsfw
@@ -355,7 +377,9 @@ game:valorant (tag:clutch OR tag:ace)
 ### Filter Names
 
 #### `clip_filter`
+
 Filters specific to clip search:
+
 - `game:` - Game name or ID
 - `creator:` - Clip creator username
 - `broadcaster:` - Channel/broadcaster username
@@ -369,21 +393,27 @@ Filters specific to clip search:
 - `is:` - Boolean flags
 
 #### `user_filter`
+
 Filters for user/creator search:
+
 - `karma:` - Karma points
 - `role:` - User role
 
 #### `universal_filter`
+
 Filters applicable to all search types:
+
 - `type:` - Result type (clips, creators, games, tags, all)
 - `sort:` - Sort order (relevance, recent, popular)
 
 ### Filter Values
 
 #### `range_value`
+
 Numeric comparisons or intervals.
 
 **Comparison operators:**
+
 ```
 votes:>50      (greater than)
 votes:>=50     (greater than or equal)
@@ -393,21 +423,25 @@ votes:=50      (exactly equal)
 ```
 
 **Intervals:**
+
 ```
 votes:10..100       (between 10 and 100, inclusive)
 duration:30..60     (30 to 60 seconds)
 ```
 
 #### `date_value`
+
 ISO 8601 dates or relative dates.
 
 **ISO dates:**
+
 ```
 after:2025-01-01
 before:2025-12-31
 ```
 
 **Relative dates:**
+
 ```
 after:today
 after:yesterday
@@ -417,9 +451,11 @@ after:last-year
 ```
 
 #### `flag_value`
+
 Boolean properties used with `is:` filter.
 
 **Values:**
+
 ```
 is:featured
 is:nsfw
@@ -427,9 +463,11 @@ is:nsfw
 ```
 
 #### `enum_value`
+
 Predefined enumeration values for specific filters.
 
 **Type enum:**
+
 ```
 type:clips
 type:creators
@@ -439,6 +477,7 @@ type:all
 ```
 
 **Sort enum:**
+
 ```
 sort:relevance
 sort:recent
@@ -446,6 +485,7 @@ sort:popular
 ```
 
 **Language enum:** ISO 639-1 two-letter codes
+
 ```
 language:en
 language:es
@@ -453,6 +493,7 @@ language:fr
 ```
 
 **Role enum:**
+
 ```
 role:admin
 role:moderator
@@ -466,6 +507,7 @@ role:user
 **Query:** `game:valorant`
 
 **Parse Tree:**
+
 ```
 query
 └── expression
@@ -487,6 +529,7 @@ query
 **Query:** `game:valorant -tag:nsfw votes:>50`
 
 **Parse Tree:**
+
 ```
 query
 └── expression
@@ -511,6 +554,7 @@ query
 **Query:** `game:valorant OR game:csgo`
 
 **Parse Tree:**
+
 ```
 query
 └── expression
@@ -533,6 +577,7 @@ query
 **Query:** `(game:valorant OR game:csgo) tag:clutch`
 
 **Parse Tree:**
+
 ```
 query
 └── expression
@@ -561,6 +606,7 @@ query
 **Query:** `epic moment game:valorant tag:clutch`
 
 **Parse Tree:**
+
 ```
 query
 └── expression
@@ -587,6 +633,7 @@ query
 **Query:** `"epic comeback" (game:valorant OR game:csgo) -is:nsfw votes:>=10 after:last-week sort:popular`
 
 **Parse Tree:**
+
 ```
 query
 └── expression
@@ -714,6 +761,7 @@ relative_date: ─┬─ "today" ─────┬─
 ### Version 1.0.0 (2025-11-09)
 
 **Initial Release**
+
 - Complete EBNF grammar specification
 - Support for free-text search terms
 - Support for field filters (game, creator, tag, etc.)
