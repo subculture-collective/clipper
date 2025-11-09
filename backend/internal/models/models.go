@@ -66,30 +66,33 @@ type DeleteAccountRequest struct {
 
 // Clip represents a Twitch clip
 type Clip struct {
-	ID              uuid.UUID `json:"id" db:"id"`
-	TwitchClipID    string    `json:"twitch_clip_id" db:"twitch_clip_id"`
-	TwitchClipURL   string    `json:"twitch_clip_url" db:"twitch_clip_url"`
-	EmbedURL        string    `json:"embed_url" db:"embed_url"`
-	Title           string    `json:"title" db:"title"`
-	CreatorName     string    `json:"creator_name" db:"creator_name"`
-	CreatorID       *string   `json:"creator_id,omitempty" db:"creator_id"`
-	BroadcasterName string    `json:"broadcaster_name" db:"broadcaster_name"`
-	BroadcasterID   *string   `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
-	GameID          *string   `json:"game_id,omitempty" db:"game_id"`
-	GameName        *string   `json:"game_name,omitempty" db:"game_name"`
-	Language        *string   `json:"language,omitempty" db:"language"`
-	ThumbnailURL    *string   `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
-	Duration        *float64  `json:"duration,omitempty" db:"duration"`
-	ViewCount       int       `json:"view_count" db:"view_count"`
-	CreatedAt       time.Time `json:"created_at" db:"created_at"`
-	ImportedAt      time.Time `json:"imported_at" db:"imported_at"`
-	VoteScore       int       `json:"vote_score" db:"vote_score"`
-	CommentCount    int       `json:"comment_count" db:"comment_count"`
-	FavoriteCount   int       `json:"favorite_count" db:"favorite_count"`
-	IsFeatured      bool      `json:"is_featured" db:"is_featured"`
-	IsNSFW          bool      `json:"is_nsfw" db:"is_nsfw"`
-	IsRemoved       bool      `json:"is_removed" db:"is_removed"`
-	RemovedReason   *string   `json:"removed_reason,omitempty" db:"removed_reason"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	TwitchClipID         string     `json:"twitch_clip_id" db:"twitch_clip_id"`
+	TwitchClipURL        string     `json:"twitch_clip_url" db:"twitch_clip_url"`
+	EmbedURL             string     `json:"embed_url" db:"embed_url"`
+	Title                string     `json:"title" db:"title"`
+	CreatorName          string     `json:"creator_name" db:"creator_name"`
+	CreatorID            *string    `json:"creator_id,omitempty" db:"creator_id"`
+	BroadcasterName      string     `json:"broadcaster_name" db:"broadcaster_name"`
+	BroadcasterID        *string    `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
+	GameID               *string    `json:"game_id,omitempty" db:"game_id"`
+	GameName             *string    `json:"game_name,omitempty" db:"game_name"`
+	Language             *string    `json:"language,omitempty" db:"language"`
+	ThumbnailURL         *string    `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
+	Duration             *float64   `json:"duration,omitempty" db:"duration"`
+	ViewCount            int        `json:"view_count" db:"view_count"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	ImportedAt           time.Time  `json:"imported_at" db:"imported_at"`
+	VoteScore            int        `json:"vote_score" db:"vote_score"`
+	CommentCount         int        `json:"comment_count" db:"comment_count"`
+	FavoriteCount        int        `json:"favorite_count" db:"favorite_count"`
+	IsFeatured           bool       `json:"is_featured" db:"is_featured"`
+	IsNSFW               bool       `json:"is_nsfw" db:"is_nsfw"`
+	IsRemoved            bool       `json:"is_removed" db:"is_removed"`
+	RemovedReason        *string    `json:"removed_reason,omitempty" db:"removed_reason"`
+	Embedding            []float32  `json:"embedding,omitempty" db:"embedding"`
+	EmbeddingGeneratedAt *time.Time `json:"embedding_generated_at,omitempty" db:"embedding_generated_at"`
+	EmbeddingModel       *string    `json:"embedding_model,omitempty" db:"embedding_model"`
 }
 
 // Vote represents a user's vote on a clip

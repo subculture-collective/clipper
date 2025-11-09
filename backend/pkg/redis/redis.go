@@ -262,3 +262,8 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 func (c *Client) Keys(ctx context.Context, pattern string) ([]string, error) {
 	return c.client.Keys(ctx, pattern).Result()
 }
+
+// GetClient returns the underlying redis client
+func (c *Client) GetClient() *redis.Client {
+	return c.client
+}
