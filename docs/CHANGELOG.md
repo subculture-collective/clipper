@@ -30,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code of Conduct
 - Contributing guidelines
 - MIT License
+- **[RFC 002: Advanced Query Language](docs/rfcs/002-advanced-query-language.md)** - Human-readable query syntax for advanced search and filtering
+  - Formal EBNF grammar specification in [QUERY_GRAMMAR.md](docs/QUERY_GRAMMAR.md)
+  - Comprehensive examples and test cases in [QUERY_LANGUAGE_EXAMPLES.md](docs/QUERY_LANGUAGE_EXAMPLES.md)
+  - Support for field filters (game:, creator:, tag:, etc.)
+  - Boolean operators (OR, implicit AND) and negation (-)
+  - Range queries (votes:>50, duration:10..30)
+  - Date filtering (after:2025-01-01, after:last-week)
+  - Grouping with parentheses for complex queries
+  - Query escaping and quoting rules
+  - Error codes and validation rules
 
 ### Changed
 

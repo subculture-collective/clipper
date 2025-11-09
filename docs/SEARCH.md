@@ -99,7 +99,42 @@ The backfill process:
 GET /api/v1/search
 ```
 
-Query Parameters:
+#### Advanced Query Language
+
+Clipper supports a powerful query language for advanced filtering and search. Use the `q` parameter with query syntax:
+
+```bash
+# Simple search
+?q=valorant
+
+# With filters
+?q=game:valorant tag:clutch votes:>50
+
+# Boolean logic
+?q=(game:valorant OR game:csgo) -is:nsfw sort:popular
+
+# Complex queries
+?q="epic comeback" game:valorant after:last-week votes:>=10
+```
+
+**📚 Documentation:**
+- [RFC 002: Advanced Query Language](./rfcs/002-advanced-query-language.md) - Complete specification
+- [Query Grammar](./QUERY_GRAMMAR.md) - Formal EBNF grammar
+- [Query Examples](./QUERY_LANGUAGE_EXAMPLES.md) - Examples and test cases
+
+**Supported Query Features:**
+- Free-text search: `valorant`, `"epic moment"`
+- Field filters: `game:`, `creator:`, `tag:`, `votes:`, `after:`, etc.
+- Boolean operators: `OR`, implicit AND
+- Negation: `-tag:nsfw`, `-is:featured`
+- Ranges: `votes:>50`, `duration:10..30`
+- Dates: `after:2025-01-01`, `after:last-week`
+- Grouping: `(game:a OR game:b) tag:x`
+
+#### Legacy Query Parameters (Deprecated)
+
+For backward compatibility, structured query parameters are still supported but **will be removed in v2.0**:
+
 - `q` (required): Search query text
 - `type`: Filter by type (`clips`, `creators`, `games`, `tags`, `all`)
 - `sort`: Sort order (`relevance`, `recent`, `popular`)
@@ -112,6 +147,8 @@ Query Parameters:
 - `date_to`: End date (ISO 8601)
 - `page`: Page number (default: 1)
 - `limit`: Results per page (default: 20, max: 100)
+
+**Note:** If both query language syntax (in `q` parameter) and legacy parameters are provided, query language takes precedence.
 
 Example:
 
