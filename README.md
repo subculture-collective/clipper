@@ -54,6 +54,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 ### Architecture Decisions
 
 - **[RFC 001: Mobile Framework Selection](docs/rfcs/001-mobile-framework-selection.md)** - Decision to use React Native + Expo
+- **[RFC 002: Advanced Query Language](docs/rfcs/002-advanced-query-language.md)** - Human-readable query syntax for search
 
 ### Operations
 
