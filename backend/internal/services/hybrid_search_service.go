@@ -44,43 +44,26 @@ func (s *HybridSearchService) Search(ctx context.Context, req *models.SearchRequ
 		return s.openSearchService.Search(ctx, req)
 	}
 
-	// Step 1: BM25 candidate selection via OpenSearch
-	// Get more candidates than requested to allow for re-ranking
-	candidateLimit := req.Limit * 5
-	if candidateLimit > 100 {
-		candidateLimit = 100
-	}
-
-	candidateReq := *req
-	candidateReq.Limit = candidateLimit
-	candidateReq.Page = 1 // Always get from first page for re-ranking
-
-	bm25Results, err := s.openSearchService.Search(ctx, &candidateReq)
+	// Get BM25 candidates and query embedding
+	candidates, queryEmbedding, err := s.getBM25CandidatesWithEmbedding(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("BM25 search failed: %w", err)
-	}
-
-	// If no clips found, return empty results
-	if len(bm25Results.Results.Clips) == 0 {
-		return bm25Results, nil
-	}
-
-	// Step 2: Generate query embedding
-	queryEmbedding, err := s.embeddingService.GenerateEmbedding(ctx, req.Query)
-	if err != nil {
-		log.Printf("Warning: failed to generate query embedding, falling back to BM25: %v", err)
-		// Fall back to BM25 results
+		// Fall back to BM25 results on error
 		return s.openSearchService.Search(ctx, req)
 	}
 
-	// Step 3: Extract candidate IDs
-	candidateIDs := make([]string, len(bm25Results.Results.Clips))
-	for i, clip := range bm25Results.Results.Clips {
+	// If no clips found, return empty results
+	if len(candidates.Results.Clips) == 0 {
+		return candidates, nil
+	}
+
+	// Extract candidate IDs
+	candidateIDs := make([]string, len(candidates.Results.Clips))
+	for i, clip := range candidates.Results.Clips {
 		candidateIDs[i] = clip.ID.String()
 	}
 
-	// Step 4: Re-rank using vector similarity
-	rerankedClips, err := s.rerankByVectorSimilarity(ctx, candidateIDs, queryEmbedding, req.Limit, (req.Page-1)*req.Limit)
+	// Re-rank using vector similarity - note: no offset, we select from all candidates
+	rerankedClips, err := s.rerankByVectorSimilarity(ctx, candidateIDs, queryEmbedding, req.Limit, 0)
 	if err != nil {
 		log.Printf("Warning: vector re-ranking failed, falling back to BM25: %v", err)
 		// Fall back to BM25 results
@@ -94,13 +77,13 @@ func (s *HybridSearchService) Search(ctx context.Context, req *models.SearchRequ
 			Clips: rerankedClips,
 		},
 		Counts: models.SearchCounts{
-			Clips: bm25Results.Counts.Clips, // Use total count from BM25
+			Clips: candidates.Counts.Clips, // Use total count from BM25
 		},
-		Facets: bm25Results.Facets,
+		Facets: candidates.Facets,
 		Meta: models.SearchMeta{
 			Page:       req.Page,
 			Limit:      req.Limit,
-			TotalItems: bm25Results.Counts.Clips,
+			TotalItems: candidates.Counts.Clips,
 		},
 	}
 
@@ -110,6 +93,39 @@ func (s *HybridSearchService) Search(ctx context.Context, req *models.SearchRequ
 	}
 
 	return response, nil
+}
+
+// getBM25CandidatesWithEmbedding retrieves BM25 candidates and generates query embedding
+// This helper method extracts common logic used by both Search and SearchWithScores
+func (s *HybridSearchService) getBM25CandidatesWithEmbedding(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, []float32, error) {
+	// Calculate candidate pool size - fetch enough candidates to support pagination
+	// We need to fetch candidates for all pages up to the requested page
+	totalNeeded := req.Page * req.Limit
+	candidateLimit := totalNeeded * 5
+	if candidateLimit > 500 {
+		candidateLimit = 500 // Cap at 500 to maintain performance
+	}
+	if candidateLimit < 100 {
+		candidateLimit = 100 // Minimum of 100 for quality re-ranking
+	}
+
+	candidateReq := *req
+	candidateReq.Limit = candidateLimit
+	candidateReq.Page = 1 // Get from first page
+
+	bm25Results, err := s.openSearchService.Search(ctx, &candidateReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("BM25 search failed: %w", err)
+	}
+
+	// Generate query embedding
+	queryEmbedding, err := s.embeddingService.GenerateEmbedding(ctx, req.Query)
+	if err != nil {
+		log.Printf("Warning: failed to generate query embedding: %v", err)
+		return nil, nil, err
+	}
+
+	return bm25Results, queryEmbedding, nil
 }
 
 // rerankByVectorSimilarity re-ranks clips using pgvector similarity
@@ -190,55 +206,49 @@ func (s *HybridSearchService) SearchWithScores(ctx context.Context, req *models.
 		}, nil
 	}
 
-	// Step 1: BM25 candidate selection via OpenSearch
-	candidateLimit := req.Limit * 5
-	if candidateLimit > 100 {
-		candidateLimit = 100
-	}
-
-	candidateReq := *req
-	candidateReq.Limit = candidateLimit
-	candidateReq.Page = 1
-
-	bm25Results, err := s.openSearchService.Search(ctx, &candidateReq)
+	// Get BM25 candidates and query embedding
+	candidates, queryEmbedding, err := s.getBM25CandidatesWithEmbedding(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("BM25 search failed: %w", err)
-	}
-
-	if len(bm25Results.Results.Clips) == 0 {
+		// Fall back to BM25 results on error
+		baseResponse, err := s.openSearchService.Search(ctx, req)
+		if err != nil {
+			return nil, err
+		}
 		return &models.SearchResponseWithScores{
-			SearchResponse: *bm25Results,
+			SearchResponse: *baseResponse,
 			Scores:         []models.ClipScore{},
 		}, nil
 	}
 
-	// Step 2: Generate query embedding
-	queryEmbedding, err := s.embeddingService.GenerateEmbedding(ctx, req.Query)
-	if err != nil {
-		log.Printf("Warning: failed to generate query embedding, falling back to BM25: %v", err)
+	if len(candidates.Results.Clips) == 0 {
 		return &models.SearchResponseWithScores{
-			SearchResponse: *bm25Results,
+			SearchResponse: *candidates,
 			Scores:         []models.ClipScore{},
 		}, nil
 	}
 
-	// Step 3: Extract candidate IDs
-	candidateIDs := make([]string, len(bm25Results.Results.Clips))
-	for i, clip := range bm25Results.Results.Clips {
+	// Extract candidate IDs
+	candidateIDs := make([]string, len(candidates.Results.Clips))
+	for i, clip := range candidates.Results.Clips {
 		candidateIDs[i] = clip.ID.String()
 	}
 
-	// Step 4: Re-rank with scores
-	rerankedClips, scores, err := s.rerankByVectorSimilarityWithScores(ctx, candidateIDs, queryEmbedding, req.Limit, (req.Page-1)*req.Limit)
+	// Re-rank with scores - calculate offset for the current page within all candidates
+	offset := (req.Page - 1) * req.Limit
+	rerankedClips, scores, err := s.rerankByVectorSimilarityWithScores(ctx, candidateIDs, queryEmbedding, req.Limit, offset)
 	if err != nil {
 		log.Printf("Warning: vector re-ranking failed, falling back to BM25: %v", err)
+		baseResponse, err := s.openSearchService.Search(ctx, req)
+		if err != nil {
+			return nil, err
+		}
 		return &models.SearchResponseWithScores{
-			SearchResponse: *bm25Results,
+			SearchResponse: *baseResponse,
 			Scores:         []models.ClipScore{},
 		}, nil
 	}
 
-	// Step 5: Build response with scores
+	// Build response with scores
 	response := &models.SearchResponseWithScores{
 		SearchResponse: models.SearchResponse{
 			Query: req.Query,
@@ -246,13 +256,13 @@ func (s *HybridSearchService) SearchWithScores(ctx context.Context, req *models.
 				Clips: rerankedClips,
 			},
 			Counts: models.SearchCounts{
-				Clips: bm25Results.Counts.Clips,
+				Clips: candidates.Counts.Clips,
 			},
-			Facets: bm25Results.Facets,
+			Facets: candidates.Facets,
 			Meta: models.SearchMeta{
 				Page:       req.Page,
 				Limit:      req.Limit,
-				TotalItems: bm25Results.Counts.Clips,
+				TotalItems: candidates.Counts.Clips,
 			},
 		},
 		Scores: scores,
@@ -318,9 +328,15 @@ func (s *HybridSearchService) rerankByVectorSimilarityWithScores(ctx context.Con
 
 		clips = append(clips, clip)
 
-		// Convert cosine distance to similarity score (1 - distance)
-		// Cosine distance ranges from 0 (identical) to 2 (opposite)
-		// Similarity score ranges from 0 to 1 (higher is better)
+		// Convert cosine distance to similarity score in [0,1] range.
+		// The pgvector '<=>' operator returns cosine distance in [0,2]:
+		//   0 = identical vectors (perfect match)
+		//   1 = orthogonal vectors (no similarity)
+		//   2 = opposite vectors (completely different)
+		// We normalize to similarity score: 1.0 - (distance / 2.0)
+		//   distance 0 (identical)   => similarity 1.0 (maximum)
+		//   distance 1 (orthogonal)  => similarity 0.5
+		//   distance 2 (opposite)    => similarity 0.0 (minimum)
 		similarityScore := 1.0 - (similarityDistance / 2.0)
 
 		scores = append(scores, models.ClipScore{

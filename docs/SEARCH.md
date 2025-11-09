@@ -235,8 +235,8 @@ Response:
 ```
 
 **How it works:**
-1. **BM25 Candidate Selection**: OpenSearch retrieves top 100 candidates using keyword matching
-2. **Query Embedding**: User query is converted to a 768-dimensional vector (cached in Redis)
+1. **BM25 Candidate Selection**: OpenSearch retrieves candidates using keyword matching
+2. **Query Embedding**: User query is converted to a 768-dimensional vector (embedding is cached in Redis by the embedding service layer)
 3. **Vector Re-ranking**: Candidates are re-ranked using cosine similarity with pgvector
 4. **Score Calculation**: Similarity scores are normalized to 0-1 range (higher is better)
 
@@ -247,9 +247,9 @@ Response:
 - Gracefully falls back to BM25-only if embeddings unavailable
 
 **Performance:**
-- P95 latency target: <100ms
+- P95 latency goal: <100ms (subject to ongoing measurement and optimization)
 - Caching reduces embedding generation overhead
-- Candidate pool limited to 100 for fast vector comparison
+- Candidate pool size scaled based on pagination needs
 
 ## Features
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -65,24 +66,11 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	}
 
 	// Validate and set defaults
-	if req.Query == "" {
+	if err := h.validateAndSetDefaults(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Query parameter 'q' is required",
+			"error": err.Error(),
 		})
 		return
-	}
-
-	if req.Page < 1 {
-		req.Page = 1
-	}
-
-	if req.Limit < 1 || req.Limit > 100 {
-		req.Limit = 20
-	}
-
-	// Set default sort if not specified
-	if req.Sort == "" {
-		req.Sort = "relevance"
 	}
 
 	// Perform search using hybrid search, OpenSearch, or PostgreSQL fallback
@@ -122,6 +110,28 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+// validateAndSetDefaults validates search request parameters and sets defaults
+func (h *SearchHandler) validateAndSetDefaults(req *models.SearchRequest) error {
+	if req.Query == "" {
+		return fmt.Errorf("Query parameter 'q' is required")
+	}
+
+	if req.Page < 1 {
+		req.Page = 1
+	}
+
+	if req.Limit < 1 || req.Limit > 100 {
+		req.Limit = 20
+	}
+
+	// Set default sort if not specified
+	if req.Sort == "" {
+		req.Sort = "relevance"
+	}
+
+	return nil
 }
 
 // GetSuggestions handles autocomplete suggestions
@@ -175,30 +185,17 @@ func (h *SearchHandler) SearchWithScores(c *gin.Context) {
 	}
 
 	// Validate and set defaults
-	if req.Query == "" {
+	if err := h.validateAndSetDefaults(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Query parameter 'q' is required",
+			"error": err.Error(),
 		})
 		return
-	}
-
-	if req.Page < 1 {
-		req.Page = 1
-	}
-
-	if req.Limit < 1 || req.Limit > 100 {
-		req.Limit = 20
-	}
-
-	// Set default sort if not specified
-	if req.Sort == "" {
-		req.Sort = "relevance"
 	}
 
 	// Only hybrid search supports scores
 	if !h.useHybridSearch || h.hybridSearchService == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Semantic search with scores is not enabled",
+			"error": "Hybrid search with similarity scores is not enabled",
 		})
 		return
 	}
