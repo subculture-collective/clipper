@@ -16,12 +16,6 @@ import (
 const (
 	// Grace period duration - 7 days from first payment failure
 	GracePeriodDuration = 7 * 24 * time.Hour
-	
-	// Dunning notification types
-	NotificationTypePaymentFailed      = "payment_failed"
-	NotificationTypePaymentRetry       = "payment_retry"
-	NotificationTypeGracePeriodWarning = "grace_period_warning"
-	NotificationTypeSubscriptionDowngraded = "subscription_downgraded"
 )
 
 var (
@@ -85,7 +79,7 @@ func (s *DunningService) HandlePaymentFailure(ctx context.Context, invoice *stri
 		}
 		
 		// Send retry notification
-		if err := s.sendDunningNotification(ctx, sub, existingFailure, NotificationTypePaymentRetry, existingFailure.AttemptCount); err != nil {
+		if err := s.sendDunningNotification(ctx, sub, existingFailure, models.NotificationTypePaymentRetry, existingFailure.AttemptCount); err != nil {
 			log.Printf("[DUNNING] Failed to send retry notification: %v", err)
 		}
 		
@@ -138,7 +132,7 @@ func (s *DunningService) HandlePaymentFailure(ctx context.Context, invoice *stri
 	}
 
 	// Send initial failure notification
-	if err := s.sendDunningNotification(ctx, sub, failure, NotificationTypePaymentFailed, 1); err != nil {
+	if err := s.sendDunningNotification(ctx, sub, failure, models.NotificationTypePaymentFailed, 1); err != nil {
 		log.Printf("[DUNNING] Failed to send payment failed notification: %v", err)
 	}
 
@@ -231,6 +225,9 @@ func (s *DunningService) ProcessExpiredGracePeriods(ctx context.Context) error {
 func (s *DunningService) downgradeSubscription(ctx context.Context, sub *models.Subscription) error {
 	log.Printf("[DUNNING] Downgrading subscription %s (user %s) to free tier", sub.ID, sub.UserID)
 
+	// Store the previous tier for audit logging
+	previousTier := sub.Tier
+
 	// Update subscription to free tier
 	sub.Tier = "free"
 	sub.Status = "canceled"
@@ -249,16 +246,16 @@ func (s *DunningService) downgradeSubscription(ctx context.Context, sub *models.
 		log.Printf("[DUNNING] No payment failures found for subscription %s", sub.ID)
 	} else {
 		// Send downgrade notification
-		if err := s.sendDunningNotification(ctx, sub, failures[0], NotificationTypeSubscriptionDowngraded, 0); err != nil {
+		if err := s.sendDunningNotification(ctx, sub, failures[0], models.NotificationTypeSubscriptionDowngraded, 0); err != nil {
 			log.Printf("[DUNNING] Failed to send downgrade notification: %v", err)
 		}
 	}
 
-	// Log audit event
+	// Log audit event with actual previous tier
 	if s.auditLogSvc != nil {
 		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, sub.UserID, "subscription_downgraded", map[string]interface{}{
 			"reason": "grace_period_expired",
-			"previous_tier": "pro",
+			"previous_tier": previousTier,
 			"new_tier": "free",
 		})
 	}
@@ -288,7 +285,27 @@ func (s *DunningService) SendGracePeriodWarnings(ctx context.Context) error {
 					continue
 				}
 				
-				if err := s.sendDunningNotification(ctx, sub, failures[0], NotificationTypeGracePeriodWarning, 0); err != nil {
+				// Check if warning was already sent by looking at dunning attempts
+				attempts, err := s.dunningRepo.GetDunningAttemptsByFailureID(ctx, failures[0].ID)
+				if err != nil {
+					log.Printf("[DUNNING] Failed to get dunning attempts for failure %s: %v", failures[0].ID, err)
+				}
+				
+				// Skip if warning was already sent
+				alreadySent := false
+				for _, attempt := range attempts {
+					if attempt.NotificationType == models.NotificationTypeGracePeriodWarning && attempt.EmailSent {
+						alreadySent = true
+						break
+					}
+				}
+				
+				if alreadySent {
+					log.Printf("[DUNNING] Grace period warning already sent for subscription %s, skipping", sub.ID)
+					continue
+				}
+				
+				if err := s.sendDunningNotification(ctx, sub, failures[0], models.NotificationTypeGracePeriodWarning, 0); err != nil {
 					log.Printf("[DUNNING] Failed to send grace period warning for subscription %s: %v", sub.ID, err)
 				}
 			}
@@ -320,24 +337,31 @@ func (s *DunningService) sendDunningNotification(ctx context.Context, sub *model
 		EmailSent: false,
 	}
 
-	// Prepare email data based on notification type (for future email integration)
-	_ = s.prepareDunningEmailData(sub, failure, notificationType)
+	// Prepare email data based on notification type
+	emailData := s.prepareDunningEmailData(sub, failure, notificationType)
 
-	// Send email (using existing email service infrastructure)
-	// For now, we'll log that we would send an email
-	log.Printf("[DUNNING] Would send %s notification to user %s (email: %s)", notificationType, user.ID, *user.Email)
-	
-	// Mark attempt as sent
-	attempt.EmailSent = true
-	now := time.Now()
-	attempt.EmailSentAt = &now
+	// Send email using the injected emailService
+	// Use a dummy notification ID for dunning emails (they're not tied to in-app notifications)
+	notificationID := uuid.New()
+	err = s.emailService.SendNotificationEmail(ctx, user, notificationType, notificationID, emailData)
+	if err != nil {
+		log.Printf("[DUNNING] Failed to send %s notification to user %s (email: %s): %v", notificationType, user.ID, *user.Email, err)
+		// Do not mark attempt as sent on failure
+		attempt.EmailSent = false
+	} else {
+		// Mark attempt as sent on success
+		log.Printf("[DUNNING] Successfully sent %s notification to user %s (email: %s)", notificationType, user.ID, *user.Email)
+		attempt.EmailSent = true
+		now := time.Now()
+		attempt.EmailSentAt = &now
+	}
 
-	// Create dunning attempt record
+	// Create dunning attempt record regardless of email success
 	if err := s.dunningRepo.CreateDunningAttempt(ctx, attempt); err != nil {
 		log.Printf("[DUNNING] Failed to create dunning attempt record: %v", err)
 	}
 
-	log.Printf("[DUNNING] Dunning notification logged: type=%s, user=%s, attempt=%d", notificationType, user.ID, attemptNumber)
+	log.Printf("[DUNNING] Dunning notification logged: type=%s, user=%s, attempt=%d, sent=%v", notificationType, user.ID, attemptNumber, attempt.EmailSent)
 	return nil
 }
 

@@ -208,16 +208,16 @@ func (s *EmailService) prepareEmailContent(
 	case models.NotificationTypeMention:
 		subject = fmt.Sprintf("%s mentioned you in a comment", data["AuthorName"])
 		htmlBody, textBody = s.prepareMentionEmail(data)
-	case "payment_failed":
+	case models.NotificationTypePaymentFailed:
 		subject = "Payment Failed - Action Required"
 		htmlBody, textBody = s.preparePaymentFailedEmail(data)
-	case "payment_retry":
+	case models.NotificationTypePaymentRetry:
 		subject = "Payment Retry Scheduled"
 		htmlBody, textBody = s.preparePaymentRetryEmail(data)
-	case "grace_period_warning":
+	case models.NotificationTypeGracePeriodWarning:
 		subject = "Your Premium Access Will End Soon"
 		htmlBody, textBody = s.prepareGracePeriodWarningEmail(data)
-	case "subscription_downgraded":
+	case models.NotificationTypeSubscriptionDowngraded:
 		subject = "Your Subscription Has Been Downgraded"
 		htmlBody, textBody = s.prepareSubscriptionDowngradedEmail(data)
 	default:

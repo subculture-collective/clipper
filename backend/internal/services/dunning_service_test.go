@@ -81,7 +81,7 @@ func TestPrepareDunningEmailData(t *testing.T) {
 	}
 
 	t.Run("payment_failed notification data", func(t *testing.T) {
-		data := service.prepareDunningEmailData(sub, failure, NotificationTypePaymentFailed)
+		data := service.prepareDunningEmailData(sub, failure, models.NotificationTypePaymentFailed)
 		
 		assert.Equal(t, subID.String(), data["SubscriptionID"])
 		assert.Equal(t, invoiceID, data["InvoiceID"])
@@ -93,7 +93,7 @@ func TestPrepareDunningEmailData(t *testing.T) {
 	})
 
 	t.Run("includes next retry time when available", func(t *testing.T) {
-		data := service.prepareDunningEmailData(sub, failure, NotificationTypePaymentRetry)
+		data := service.prepareDunningEmailData(sub, failure, models.NotificationTypePaymentRetry)
 		
 		assert.Contains(t, data, "NextRetryAt")
 		assert.NotEmpty(t, data["NextRetryAt"])
@@ -103,10 +103,10 @@ func TestPrepareDunningEmailData(t *testing.T) {
 // TestNotificationTypes tests notification type constants
 func TestNotificationTypes(t *testing.T) {
 	t.Run("notification types are defined", func(t *testing.T) {
-		assert.Equal(t, "payment_failed", NotificationTypePaymentFailed)
-		assert.Equal(t, "payment_retry", NotificationTypePaymentRetry)
-		assert.Equal(t, "grace_period_warning", NotificationTypeGracePeriodWarning)
-		assert.Equal(t, "subscription_downgraded", NotificationTypeSubscriptionDowngraded)
+		assert.Equal(t, "payment_failed", models.NotificationTypePaymentFailed)
+		assert.Equal(t, "payment_retry", models.NotificationTypePaymentRetry)
+		assert.Equal(t, "grace_period_warning", models.NotificationTypeGracePeriodWarning)
+		assert.Equal(t, "subscription_downgraded", models.NotificationTypeSubscriptionDowngraded)
 	})
 }
 
@@ -146,14 +146,14 @@ func TestDunningAttemptModel(t *testing.T) {
 			PaymentFailureID: failureID,
 			UserID:           userID,
 			AttemptNumber:    1,
-			NotificationType: NotificationTypePaymentFailed,
+			NotificationType: models.NotificationTypePaymentFailed,
 			EmailSent:        true,
 		}
 
 		assert.Equal(t, failureID, attempt.PaymentFailureID)
 		assert.Equal(t, userID, attempt.UserID)
 		assert.Equal(t, 1, attempt.AttemptNumber)
-		assert.Equal(t, NotificationTypePaymentFailed, attempt.NotificationType)
+		assert.Equal(t, models.NotificationTypePaymentFailed, attempt.NotificationType)
 		assert.True(t, attempt.EmailSent)
 	})
 }

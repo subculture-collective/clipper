@@ -501,6 +501,11 @@ const (
 	NotificationTypeNewReport            = "new_report"
 	NotificationTypePendingSubmissions   = "pending_submissions"
 	NotificationTypeSystemAlert          = "system_alert"
+	// Dunning notification types
+	NotificationTypePaymentFailed           = "payment_failed"
+	NotificationTypePaymentRetry            = "payment_retry"
+	NotificationTypeGracePeriodWarning      = "grace_period_warning"
+	NotificationTypeSubscriptionDowngraded  = "subscription_downgraded"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
