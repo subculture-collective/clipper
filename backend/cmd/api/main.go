@@ -189,6 +189,20 @@ func main() {
 		}()
 	}
 	
+	// Initialize embedding service if enabled
+	var embeddingService *services.EmbeddingService
+	if cfg.Embedding.Enabled && cfg.Embedding.OpenAIAPIKey != "" {
+		embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
+			APIKey:            cfg.Embedding.OpenAIAPIKey,
+			Model:             cfg.Embedding.Model,
+			RedisClient:       redisClient.GetClient(),
+			RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
+		})
+		log.Printf("Embedding service initialized (model: %s)", cfg.Embedding.Model)
+	} else if cfg.Embedding.Enabled {
+		log.Println("WARNING: Embedding service is enabled but OPENAI_API_KEY is not set")
+	}
+	
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -671,6 +685,13 @@ func main() {
 	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, 1, 100)
 	go webhookRetryScheduler.Start(context.Background())
 
+	// Start embedding scheduler if embedding service is available (runs based on configured interval)
+	var embeddingScheduler *scheduler.EmbeddingScheduler
+	if embeddingService != nil {
+		embeddingScheduler = scheduler.NewEmbeddingScheduler(db, embeddingService, cfg.Embedding.SchedulerIntervalMinutes, cfg.Embedding.Model)
+		go embeddingScheduler.Start(context.Background())
+	}
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:    ":" + cfg.Server.Port,
@@ -697,6 +718,15 @@ func main() {
 	}
 	reputationScheduler.Stop()
 	hotScoreScheduler.Stop()
+	webhookRetryScheduler.Stop()
+	if embeddingScheduler != nil {
+		embeddingScheduler.Stop()
+	}
+
+	// Close embedding service if running
+	if embeddingService != nil {
+		embeddingService.Close()
+	}
 
 	// Graceful shutdown with 5 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

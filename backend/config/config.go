@@ -20,6 +20,7 @@ type Config struct {
 	Stripe     StripeConfig
 	Sentry     SentryConfig
 	Email      EmailConfig
+	Embedding  EmbeddingConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -102,6 +103,15 @@ type EmailConfig struct {
 	MaxEmailsPerHour int
 }
 
+// EmbeddingConfig holds embedding service configuration
+type EmbeddingConfig struct {
+	OpenAIAPIKey             string
+	Model                    string
+	RequestsPerMinute        int
+	SchedulerIntervalMinutes int
+	Enabled                  bool
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -172,6 +182,13 @@ func Load() (*Config, error) {
 			FromName:         getEnv("EMAIL_FROM_NAME", "Clipper"),
 			Enabled:          getEnv("EMAIL_ENABLED", "false") == "true",
 			MaxEmailsPerHour: getEnvInt("EMAIL_MAX_PER_HOUR", 10),
+		},
+		Embedding: EmbeddingConfig{
+			OpenAIAPIKey:             getEnv("OPENAI_API_KEY", ""),
+			Model:                    getEnv("EMBEDDING_MODEL", "text-embedding-3-small"),
+			RequestsPerMinute:        getEnvInt("EMBEDDING_REQUESTS_PER_MINUTE", 500),
+			SchedulerIntervalMinutes: getEnvInt("EMBEDDING_SCHEDULER_INTERVAL_MINUTES", 360),
+			Enabled:                  getEnv("EMBEDDING_ENABLED", "false") == "true",
 		},
 	}
 
