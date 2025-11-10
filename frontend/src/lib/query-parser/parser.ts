@@ -3,7 +3,7 @@
  * Converts tokens into an Abstract Syntax Tree (AST)
  */
 
-import {
+import type {
   QueryNode,
   TermNode,
   FilterNode,
@@ -12,13 +12,15 @@ import {
   FilterValue,
   RangeValue,
   DateValue,
+  ComparisonOperator,
+} from './ast';
+import {
   FlagValue,
   StringValue,
   FilterName,
   isValidFilterName,
   isValidComparisonOperator,
   isValidRelativeDate,
-  ComparisonOperator,
   SORT_ORDERS,
   RESULT_TYPES,
   LANGUAGE_CODES,
@@ -290,7 +292,7 @@ export class Parser {
     // Check for comparison operator
     if (this.match(TokenType.COMPARISON)) {
       const op = this.previous().value;
-      
+
       if (!isValidComparisonOperator(op)) {
         throw createInvalidComparisonOperatorError(op, this.previous().position);
       }
@@ -390,12 +392,12 @@ export class Parser {
     // Try to parse ISO date as NUMBER-WORD sequence (e.g., 2025-01-01)
     if (this.match(TokenType.NUMBER)) {
       const year = this.previous().value;
-      
+
       // Check if next token looks like rest of date
       if (this.match(TokenType.WORD)) {
         const rest = this.previous().value;
         const fullDate = year + rest;
-        
+
         if (this.isValidISODate(fullDate)) {
           return {
             type: 'DateValue',
@@ -404,10 +406,10 @@ export class Parser {
             loc: { start: startPos, end: this.previous().position },
           };
         }
-        
+
         throw createInvalidDateFormatError(fullDate, this.previous().position);
       }
-      
+
       // Just a number without rest of date
       throw createInvalidDateFormatError(year, this.previous().position);
     }

@@ -26,13 +26,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install dependencies
         run: |
-          npm ci
-          npm -w mobile ci
-          npm -w shared ci
+          npm install
+          npm -w mobile install
+          npm -w shared install
 
       - name: Type check (shared)
         run: npm -w shared run type-check
@@ -60,7 +59,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Setup Expo
         uses: expo/expo-github-action@v8
@@ -71,9 +69,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          npm -w mobile ci
-          npm -w shared ci
+          npm install
+          npm -w mobile install
+          npm -w shared install
 
       - name: Build preview
         working-directory: mobile
@@ -96,7 +94,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Setup Expo
         uses: expo/expo-github-action@v8
@@ -107,9 +104,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          npm -w mobile ci
-          npm -w shared ci
+          npm install
+          npm -w mobile install
+          npm -w shared install
 
       - name: Build production
         working-directory: mobile

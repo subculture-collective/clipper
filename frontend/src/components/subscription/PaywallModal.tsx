@@ -33,11 +33,11 @@ const PRICE_IDS = {
 
 /**
  * Modal component that displays paywall with plan comparison and upgrade options
- * 
+ *
  * @example
  * ```tsx
  * const [showPaywall, setShowPaywall] = useState(false);
- * 
+ *
  * <PaywallModal
  *   isOpen={showPaywall}
  *   onClose={() => setShowPaywall(false)}
@@ -160,7 +160,7 @@ export function PaywallModal({
       />
 
       {/* Modal */}
-      <div 
+      <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
         role="dialog"
         aria-modal="true"

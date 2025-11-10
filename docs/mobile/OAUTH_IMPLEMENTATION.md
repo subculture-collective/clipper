@@ -115,9 +115,9 @@ Helper hook for protecting screens.
 ```typescript
 function ProtectedScreen() {
   const { isAuthenticated, isLoading } = useRequireAuth();
-  
+
   if (isLoading) return <LoadingSpinner />;
-  
+
   // Screen content - auto redirects if not authenticated
 }
 ```

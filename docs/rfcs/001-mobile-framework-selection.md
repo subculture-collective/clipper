@@ -1,8 +1,8 @@
 # RFC 001: Mobile Framework Selection
 
-**Status:** Accepted  
-**Date:** 2025-11-02  
-**Authors:** Clipper Team  
+**Status:** Accepted
+**Date:** 2025-11-02
+**Authors:** Clipper Team
 **Decision:** React Native + Expo
 
 ## Summary
@@ -12,12 +12,14 @@ This RFC evaluates and selects the mobile app technology stack for Clipper iOS a
 ## Context
 
 Clipper is a Twitch clip curation platform currently built with:
+
 - **Frontend**: React 19 + TypeScript + Vite
 - **Backend**: Go + Gin + PostgreSQL
 - **State Management**: TanStack Query + Zustand
 - **Styling**: TailwindCSS (via NativeWind for mobile)
 
 We need to build native mobile apps for iOS and Android to:
+
 1. Provide a better mobile user experience than PWA alone
 2. Support native features (push notifications, deep linking, biometric auth)
 3. Reach users who prefer native apps over web
@@ -51,6 +53,7 @@ We need to build native mobile apps for iOS and Android to:
 React Native is a JavaScript framework for building native mobile apps using React. Expo is a framework and platform built on top of React Native that provides additional tooling, services, and managed workflows.
 
 **Pros:**
+
 - ✅ **Maximum Code Sharing**: Share TypeScript interfaces, types, API clients, utilities, business logic with web
 - ✅ **Team Expertise**: Team already proficient in React, TypeScript, and JavaScript ecosystem
 - ✅ **Developer Experience**: Excellent with Expo CLI, hot reload, debugging, and dev tools
@@ -64,6 +67,7 @@ React Native is a JavaScript framework for building native mobile apps using Rea
 - ✅ **Cost Effective**: Free tier for small teams, reasonable pricing for production
 
 **Cons:**
+
 - ⚠️ **Learning Curve**: Need to learn React Native-specific components and patterns
 - ⚠️ **Bridge Overhead**: JavaScript bridge can impact performance for CPU-intensive tasks
 - ⚠️ **Bundle Size**: Larger initial bundle size compared to native
@@ -87,9 +91,10 @@ React Native is a JavaScript framework for building native mobile apps using Rea
 ```
 
 **Tech Stack:**
+
 - **Framework**: React Native 0.76+ (with Expo SDK 52+)
 - **Navigation**: Expo Router (file-based routing, similar to Next.js)
-- **State Management**: 
+- **State Management**:
   - TanStack Query (API state, cache, sync)
   - Zustand (global client state)
 - **Styling**: NativeWind (TailwindCSS for React Native)
@@ -107,6 +112,7 @@ React Native is a JavaScript framework for building native mobile apps using Rea
   - Maestro (UI testing alternative)
 
 **Cost Estimate:**
+
 - EAS Build: Free for development, ~$29/month for team plan
 - EAS Update: Included with EAS Build
 - EAS Submit: Included with EAS Build
@@ -118,6 +124,7 @@ React Native is a JavaScript framework for building native mobile apps using Rea
 Flutter is Google's UI toolkit for building natively compiled applications using Dart language.
 
 **Pros:**
+
 - ✅ **Excellent Performance**: Compiles to native ARM code, no JavaScript bridge
 - ✅ **Beautiful UI**: Rich widget library, smooth animations out of the box
 - ✅ **Single Codebase**: True cross-platform with consistent UI
@@ -125,6 +132,7 @@ Flutter is Google's UI toolkit for building natively compiled applications using
 - ✅ **Growing Ecosystem**: Rapidly expanding package ecosystem
 
 **Cons:**
+
 - ❌ **Zero Code Sharing**: Cannot reuse TypeScript code from web frontend
 - ❌ **New Language**: Team must learn Dart (different from TypeScript/JavaScript)
 - ❌ **Separate State Management**: Cannot share Zustand stores or TanStack Query logic
@@ -134,6 +142,7 @@ Flutter is Google's UI toolkit for building natively compiled applications using
 - ❌ **Less Familiar**: Limited team experience with Flutter/Dart ecosystem
 
 **Impact:**
+
 - 2-3x development time due to code duplication
 - Higher maintenance burden (fix bugs twice)
 - Slower feature parity between web and mobile
@@ -144,11 +153,13 @@ Flutter is Google's UI toolkit for building natively compiled applications using
 Build separate native apps using Swift for iOS and Kotlin for Android.
 
 **Pros:**
+
 - ✅ **Best Performance**: Native platform performance
 - ✅ **Platform Best Practices**: Follow platform conventions exactly
 - ✅ **Full Platform Access**: Unrestricted access to all APIs
 
 **Cons:**
+
 - ❌ **Zero Code Sharing**: Separate codebases for iOS and Android
 - ❌ **3x Development Time**: Build everything twice (plus web)
 - ❌ **Team Expertise**: Requires iOS and Android specialists
@@ -330,6 +341,7 @@ clipper/
 ### Workspace Configuration
 
 **Root `package.json`:**
+
 ```json
 {
   "name": "clipper",
@@ -356,12 +368,14 @@ clipper/
 **Choice:** Expo Router (file-based routing)
 
 **Rationale:**
+
 - Similar to Next.js/Remix (familiar to web devs)
 - Type-safe navigation
 - Deep linking built-in
 - Automatic code splitting
 
 **Alternative Considered:** React Navigation (library-based)
+
 - More manual setup
 - Less type-safe
 - More boilerplate
@@ -371,12 +385,14 @@ clipper/
 **Choice:** TanStack Query + Zustand
 
 **Rationale:**
+
 - Already used in web app (consistency)
 - TanStack Query handles API state, caching, sync
 - Zustand for global client state (auth, theme, etc.)
 - Lightweight and performant
 
 **Alternative Considered:** Redux Toolkit
+
 - More boilerplate
 - Heavier bundle size
 - Overkill for our needs
@@ -386,26 +402,31 @@ clipper/
 **Choice:** NativeWind (TailwindCSS for React Native)
 
 **Rationale:**
+
 - Familiar utility-first approach (matches web)
 - Can reuse Tailwind config from web
 - Good performance with compile-time extraction
 - Responsive design support
 
 **Alternative Considered:** Styled Components, React Native StyleSheet
+
 - More verbose
 - Less consistency with web
 
 ### Testing
 
 **Unit/Integration:**
+
 - Jest + React Native Testing Library
 - Same testing patterns as web
 
 **E2E:**
+
 - Detox (primary)
 - Maestro (evaluation)
 
 **Rationale:**
+
 - Detox is mature, well-documented
 - Maestro has better DX but less mature
 
@@ -414,12 +435,14 @@ clipper/
 **Choice:** PostHog (unified with web)
 
 **Rationale:**
+
 - Already integrated in web app
 - React Native SDK available
 - Self-hosted option for privacy
 - Event tracking, session replay, feature flags
 
 **Alternative Considered:** Expo Analytics
+
 - Basic metrics only
 - Less powerful than PostHog
 
@@ -428,6 +451,7 @@ clipper/
 **Choice:** Sentry (unified with web)
 
 **Rationale:**
+
 - Already integrated in web app
 - Excellent React Native support
 - Source maps work well with EAS Build
@@ -438,6 +462,7 @@ clipper/
 **Choice:** EAS Update (Expo's update service)
 
 **Rationale:**
+
 - Seamless integration with EAS Build
 - Instant bug fixes without app store review
 - Staged rollouts support
@@ -445,6 +470,7 @@ clipper/
 - Free tier generous for MVP
 
 **Alternative Considered:** CodePush (Microsoft)
+
 - More complex setup
 - Being deprecated in favor of App Center
 
@@ -453,6 +479,7 @@ clipper/
 **Choice:** EAS Build + EAS Submit
 
 **Rationale:**
+
 - Cloud-based builds (no Mac required for dev)
 - Handles iOS/Android certificates automatically
 - GitHub Actions integration
@@ -460,6 +487,7 @@ clipper/
 - Build artifacts stored securely
 
 **Alternative Considered:** Manual builds with Xcode/Android Studio
+
 - Requires local tooling setup
 - More manual certificate management
 - Slower CI/CD pipeline
@@ -469,12 +497,14 @@ clipper/
 **Choice:** Expo Notifications + FCM
 
 **Rationale:**
+
 - Unified API for iOS and Android
 - Handles tokens and permissions
 - Works with EAS Build
 - Free for reasonable volume
 
 **Alternative Considered:** Firebase Cloud Messaging (FCM) directly
+
 - More manual setup
 - Platform-specific code
 
@@ -483,6 +513,7 @@ clipper/
 ### Phase 1: Foundation (Week 1)
 
 **Deliverables:**
+
 - [ ] Initialize Expo project in monorepo
 - [ ] Configure EAS Build and EAS Update
 - [ ] Set up shared TypeScript package
@@ -492,6 +523,7 @@ clipper/
 - [ ] Test build on iOS and Android simulators
 
 **Acceptance Criteria:**
+
 - App runs on iOS simulator (Xcode Simulator)
 - App runs on Android simulator (Android Emulator)
 - User can authenticate via Twitch OAuth
@@ -500,6 +532,7 @@ clipper/
 ### Phase 2: Core Features (Weeks 2-3)
 
 **Deliverables:**
+
 - [ ] Home feed with infinite scroll
 - [ ] Clip detail view
 - [ ] Search functionality
@@ -511,6 +544,7 @@ clipper/
 ### Phase 3: Native Features (Week 4)
 
 **Deliverables:**
+
 - [ ] Deep linking (open clips from URLs)
 - [ ] Push notifications (new clips, mentions)
 - [ ] Share sheet integration
@@ -520,6 +554,7 @@ clipper/
 ### Phase 4: Polish & Launch (Week 5-6)
 
 **Deliverables:**
+
 - [ ] E2E tests with Detox
 - [ ] Performance optimization
 - [ ] Analytics integration
@@ -555,19 +590,19 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run linter
         run: npm -w mobile run lint
-      
+
       - name: Run type check
         run: npm -w mobile run type-check
-      
+
       - name: Run tests
         run: npm -w mobile run test
-  
+
   build-preview:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
@@ -579,13 +614,13 @@ jobs:
           expo-version: latest
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build preview
         run: eas build --profile preview --platform all --non-interactive
-  
+
   build-production:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -598,13 +633,13 @@ jobs:
           expo-version: latest
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build production
         run: eas build --profile production --platform all --non-interactive
-      
+
       - name: Submit to stores
         run: eas submit --platform all --latest
 ```
@@ -653,12 +688,14 @@ jobs:
 ## Success Metrics
 
 ### Technical Metrics
+
 - [ ] App builds successfully on iOS and Android
 - [ ] < 5 crashes per 1000 sessions
 - [ ] > 80% code sharing with web
 - [ ] All E2E tests passing
 
 ### Business Metrics
+
 - [ ] > 10,000 downloads in first month
 - [ ] > 30% D1 retention
 - [ ] > 4.0 star rating on app stores
@@ -667,18 +704,21 @@ jobs:
 ## Alternatives Rejected
 
 ### Why not PWA only?
+
 - Push notifications limited on iOS
 - No home screen icon prominence
 - Limited offline capabilities
 - Cannot access native APIs (biometric auth, etc.)
 
 ### Why not Capacitor?
+
 - Less mature than Expo
 - Smaller ecosystem
 - More complex setup
 - Web-first approach doesn't leverage native components
 
 ### Why not Ionic?
+
 - Web components, not native components
 - Performance concerns
 - Less modern than React Native
@@ -696,7 +736,7 @@ jobs:
 
 React Native with Expo is the clear choice for Clipper's mobile apps. It maximizes code sharing, leverages our team's existing expertise, provides excellent developer experience, and delivers native-quality performance. The Expo ecosystem provides all the tooling we need for building, deploying, and maintaining production mobile apps.
 
-**Decision Date:** 2025-11-02  
+**Decision Date:** 2025-11-02
 **Review Date:** 2026-05-02 (6 months)
 
 ---

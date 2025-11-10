@@ -1,7 +1,7 @@
 # Dunning and Failed Payment Recovery
 
-**Status**: ✅ Implemented  
-**Last Updated**: 2025-11-08  
+**Status**: ✅ Implemented
+**Last Updated**: 2025-11-08
 **Related**: [Premium Overview](./PREMIUM_OVERVIEW.md), [Subscriptions](./SUBSCRIPTIONS.md)
 
 ## Overview
@@ -13,6 +13,7 @@ This document describes the dunning and failed payment recovery process for Clip
 ### Grace Period
 
 When a subscription payment fails, the user enters a **7-day grace period** during which:
+
 - Premium features remain accessible
 - Multiple payment retry attempts are made automatically by Stripe
 - Email notifications are sent to inform the user and encourage payment update
@@ -120,24 +121,28 @@ When payment succeeds after failures (Stripe sends `invoice.paid` webhook):
 ## Email Notifications
 
 ### Payment Failed
+
 - **Subject**: Payment Failed - Action Required
 - **Timing**: Immediately after first failure
 - **Content**: Amount due, grace period info, update link
 - **Tone**: Helpful, non-urgent
 
 ### Payment Retry
+
 - **Subject**: Payment Retry Scheduled
 - **Timing**: After each retry attempt
 - **Content**: Retry count, next attempt time
 - **Tone**: Informative, encouraging
 
 ### Grace Period Warning
+
 - **Subject**: Your Premium Access Will End Soon
 - **Timing**: 2 days before expiry
 - **Content**: Days remaining, features at risk, urgent CTA
 - **Tone**: Urgent but helpful
 
 ### Subscription Downgraded
+
 - **Subject**: Your Subscription Has Been Downgraded
 - **Timing**: Immediately after downgrade
 - **Content**: Explanation, free tier features, re-subscribe option
@@ -183,19 +188,21 @@ CREATE TABLE dunning_attempts (
 ### Subscriptions Table (Extended)
 
 ```sql
-ALTER TABLE subscriptions 
+ALTER TABLE subscriptions
 ADD COLUMN grace_period_end TIMESTAMPTZ;
 ```
 
 ## Scheduled Jobs
 
 ### Grace Period Expiry Check
+
 - **Frequency**: Every hour
 - **Task**: Process subscriptions with expired grace periods
 - **Actions**: Downgrade to free tier, send notifications
 - **Function**: `DunningService.ProcessExpiredGracePeriods()`
 
 ### Grace Period Warnings
+
 - **Frequency**: Daily (at 9 AM user's timezone ideally)
 - **Task**: Send warnings for soon-to-expire grace periods
 - **Actions**: Email users with 2 days or less remaining
@@ -212,6 +219,7 @@ const GracePeriodDuration = 7 * 24 * time.Hour // 7 days
 ### Warning Threshold
 
 Grace period warnings are sent when:
+
 - Time remaining ≤ 2 days
 - User has not yet been downgraded
 
@@ -234,6 +242,7 @@ Track these metrics for dunning effectiveness:
 ### Audit Trail
 
 All dunning events are logged to:
+
 - `subscription_events` table (for Stripe events)
 - `audit_logs` table (for entitlement changes)
 - `dunning_attempts` table (for communication attempts)
@@ -241,6 +250,7 @@ All dunning events are logged to:
 ### Alerts
 
 Set up alerts for:
+
 - High failure rates (> 10% of renewals)
 - Low recovery rates (< 50%)
 - Downgrade spikes
@@ -251,6 +261,7 @@ Set up alerts for:
 ### Dashboard Indicators
 
 When in grace period, show:
+
 - Warning banner with days remaining
 - Prominent "Update Payment Method" button
 - List of features at risk
@@ -266,6 +277,7 @@ When in grace period, show:
 ### Support
 
 Users can:
+
 - Update payment method via Customer Portal (Stripe)
 - Contact support for assistance
 - View payment history and failure reasons

@@ -11,6 +11,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 ### Current Status
 
 ✅ **Implemented**:
+
 - Keyboard navigation throughout the application
 - Skip links for quick navigation to main content
 - ARIA labels and roles on interactive elements
@@ -24,6 +25,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 - Accessible dropdown menus with keyboard navigation
 
 🔄 **In Progress**:
+
 - Live region announcements for dynamic content
 - Comprehensive screen reader testing
 - Dark mode contrast validation
@@ -45,16 +47,19 @@ Clipper is committed to providing an accessible experience for all users, includ
 ### Component-Specific Navigation
 
 #### Modal Dialogs
+
 - Focus is automatically trapped within modals
 - `Escape` closes the modal
 - Focus returns to triggering element on close
 
 #### Dropdown Menus
+
 - Arrow keys navigate menu items
 - `Enter` or `Space` selects an item
 - `Escape` closes the menu
 
 #### Form Controls
+
 - All form fields have associated labels
 - Error messages are announced to screen readers
 - Required fields are properly marked with `aria-required`
@@ -64,6 +69,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 ### Component ARIA Patterns
 
 #### Buttons
+
 ```tsx
 <Button aria-label="Descriptive action">
   Click Me
@@ -75,6 +81,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 ```
 
 #### Form Inputs
+
 ```tsx
 <Input
   label="Email Address"
@@ -85,6 +92,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 ```
 
 #### Toggles/Switches
+
 ```tsx
 <Toggle
   role="switch"
@@ -94,6 +102,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 ```
 
 #### Modals
+
 ```tsx
 <Modal
   open={isOpen}
@@ -108,6 +117,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 ```
 
 #### Live Regions
+
 ```tsx
 <LiveRegion
   message="Clip upvoted successfully"
@@ -120,6 +130,7 @@ Clipper is committed to providing an accessible experience for all users, includ
 ### Text Contrast Requirements
 
 All text must meet WCAG AA contrast ratios:
+
 - **Normal text** (< 18pt or < 14pt bold): 4.5:1 minimum
 - **Large text** (≥ 18pt or ≥ 14pt bold): 3:1 minimum
 
@@ -128,11 +139,13 @@ All text must meet WCAG AA contrast ratios:
 Our color palette has been validated for contrast:
 
 **Light Mode:**
+
 - Primary text on white background: 16.21:1 ✓
 - Muted text on white background: 4.68:1 ✓
 - Primary button text on primary background: 4.52:1 ✓
 
 **Dark Mode:**
+
 - Primary text on dark background: 14.85:1 ✓
 - Muted text on dark background: 4.51:1 ✓
 - Primary button text on primary background: 4.52:1 ✓
@@ -152,6 +165,7 @@ npm test -- accessibility-comprehensive
 ```
 
 Our test suite includes:
+
 - ARIA attribute validation
 - Color contrast checking
 - Keyboard navigation testing
@@ -161,6 +175,7 @@ Our test suite includes:
 ### Manual Testing Checklist
 
 #### Keyboard Navigation
+
 - [ ] All interactive elements are keyboard accessible
 - [ ] Focus order is logical and intuitive
 - [ ] Focus indicators are clearly visible
@@ -170,11 +185,13 @@ Our test suite includes:
 #### Screen Reader Testing
 
 Test with at least one screen reader:
+
 - **Windows**: NVDA (free) or JAWS
 - **macOS**: VoiceOver (built-in)
 - **Linux**: Orca (free)
 
 Checklist:
+
 - [ ] All interactive elements are announced with their purpose
 - [ ] Form fields have clear labels
 - [ ] Error messages are announced
@@ -184,6 +201,7 @@ Checklist:
 - [ ] Links have descriptive text
 
 #### Visual Testing
+
 - [ ] Text is readable at 200% zoom
 - [ ] Layout doesn't break at different zoom levels
 - [ ] Color is not the only means of conveying information
@@ -195,6 +213,7 @@ Checklist:
 ### 1. Always Use Semantic HTML
 
 ✅ **Good:**
+
 ```tsx
 <button onClick={handleClick}>Click Me</button>
 <nav aria-label="Main navigation">
@@ -203,6 +222,7 @@ Checklist:
 ```
 
 ❌ **Bad:**
+
 ```tsx
 <div onClick={handleClick}>Click Me</div>
 <div>
@@ -213,6 +233,7 @@ Checklist:
 ### 2. Provide Text Alternatives
 
 ✅ **Good:**
+
 ```tsx
 <img src="chart.png" alt="Sales increased by 25% in Q4" />
 <button aria-label="Close dialog">
@@ -221,6 +242,7 @@ Checklist:
 ```
 
 ❌ **Bad:**
+
 ```tsx
 <img src="chart.png" />
 <button>
@@ -231,6 +253,7 @@ Checklist:
 ### 3. Maintain Focus Order
 
 ✅ **Good:**
+
 ```tsx
 <form>
   <Input label="Name" />      {/* tabIndex: 1 */}
@@ -242,6 +265,7 @@ Checklist:
 ```
 
 ❌ **Bad:**
+
 ```tsx
 <form>
   <Button type="submit" tabIndex={1}>Submit</Button>
@@ -253,27 +277,29 @@ Checklist:
 ### 4. Handle Dynamic Content
 
 ✅ **Good:**
+
 ```tsx
 function VoteButton() {
   const { announce } = useLiveRegion();
-  
+
   const handleVote = () => {
     vote();
     announce('Clip upvoted successfully');
   };
-  
+
   return <button onClick={handleVote}>Upvote</button>;
 }
 ```
 
 ❌ **Bad:**
+
 ```tsx
 function VoteButton() {
   const handleVote = () => {
     vote();
     // No announcement - screen reader users won't know the action succeeded
   };
-  
+
   return <button onClick={handleVote}>Upvote</button>;
 }
 ```
@@ -281,6 +307,7 @@ function VoteButton() {
 ### 5. Use ARIA Appropriately
 
 ✅ **Good:**
+
 ```tsx
 <button aria-label="Close">
   <XIcon />
@@ -292,6 +319,7 @@ function VoteButton() {
 ```
 
 ❌ **Bad:**
+
 ```tsx
 <div role="button" aria-label="Close">
   <XIcon />
@@ -325,10 +353,10 @@ import { testAccessibility, testKeyboardNavigation } from '@/test/utils/accessib
 describe('MyComponent', () => {
   it('should be accessible', async () => {
     const { container } = render(<MyComponent />);
-    
+
     // Runs axe-core checks
     await testAccessibility(container);
-    
+
     // Verifies keyboard navigation
     const focusableElements = testKeyboardNavigation(container);
     expect(focusableElements.length).toBeGreaterThan(0);
@@ -339,17 +367,20 @@ describe('MyComponent', () => {
 ## Resources
 
 ### Standards & Guidelines
+
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 - [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
 - [MDN Accessibility](https://developer.mozilla.org/en-US/docs/Web/Accessibility)
 
 ### Testing Tools
+
 - [axe DevTools Browser Extension](https://www.deque.com/axe/devtools/)
 - [WAVE Browser Extension](https://wave.webaim.org/extension/)
 - [Lighthouse (Chrome DevTools)](https://developers.google.com/web/tools/lighthouse)
 - [Color Contrast Checker](https://webaim.org/resources/contrastchecker/)
 
 ### Screen Readers
+
 - [NVDA (Windows)](https://www.nvaccess.org/)
 - [VoiceOver (macOS)](https://www.apple.com/accessibility/voiceover/)
 - [JAWS (Windows)](https://www.freedomscientific.com/products/software/jaws/)
@@ -357,6 +388,7 @@ describe('MyComponent', () => {
 ## Support
 
 For accessibility issues or questions:
+
 1. Check this documentation
 2. Review component examples in our component library
 3. Run automated tests to identify issues
@@ -365,6 +397,7 @@ For accessibility issues or questions:
 ## Contributing
 
 When contributing to Clipper:
+
 1. Run accessibility tests before submitting PRs
 2. Test keyboard navigation manually
 3. Verify ARIA attributes are appropriate
@@ -373,6 +406,6 @@ When contributing to Clipper:
 
 ---
 
-**Last Updated**: 2025-10-29  
-**WCAG Version**: 2.1 AA  
+**Last Updated**: 2025-10-29
+**WCAG Version**: 2.1 AA
 **Testing Tools**: axe-core 4.11.0, jest-axe 10.0.0

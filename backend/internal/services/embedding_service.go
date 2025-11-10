@@ -63,9 +63,9 @@ type EmbeddingResponse struct {
 
 // EmbeddingConfig holds configuration for the embedding service
 type EmbeddingConfig struct {
-	APIKey           string
-	Model            string
-	RedisClient      *redis.Client
+	APIKey            string
+	Model             string
+	RedisClient       *redis.Client
 	RequestsPerMinute int // Rate limiting
 }
 
@@ -153,7 +153,7 @@ func (s *EmbeddingService) GenerateBatchEmbeddings(ctx context.Context, texts []
 	const batchSize = 100
 
 	results := make([][]float32, len(texts))
-	
+
 	for i := 0; i < len(texts); i += batchSize {
 		end := i + batchSize
 		if end > len(texts) {
@@ -181,7 +181,7 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 
 	for i, text := range texts {
 		cacheKeys[i] = s.getCacheKey(text)
-		
+
 		if cached, err := s.getFromCache(ctx, cacheKeys[i]); err == nil {
 			cachedResults[i] = cached
 		} else {
@@ -237,7 +237,7 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 	// Combine cached and newly generated embeddings
 	results := make([][]float32, len(texts))
 	generatedIdx := 0
-	
+
 	for i := range texts {
 		if cached, ok := cachedResults[i]; ok {
 			results[i] = cached

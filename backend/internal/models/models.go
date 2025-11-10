@@ -8,21 +8,21 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	TwitchID        string     `json:"twitch_id" db:"twitch_id"`
-	Username        string     `json:"username" db:"username"`
-	DisplayName     string     `json:"display_name" db:"display_name"`
-	Email           *string    `json:"email,omitempty" db:"email"`
-	AvatarURL       *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio             *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints     int        `json:"karma_points" db:"karma_points"`
-	Role            string     `json:"role" db:"role"`
-	IsBanned        bool       `json:"is_banned" db:"is_banned"`
-	DeviceToken     *string    `json:"device_token,omitempty" db:"device_token"`
-	DevicePlatform  *string    `json:"device_platform,omitempty" db:"device_platform"`
-	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt     *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID             uuid.UUID  `json:"id" db:"id"`
+	TwitchID       string     `json:"twitch_id" db:"twitch_id"`
+	Username       string     `json:"username" db:"username"`
+	DisplayName    string     `json:"display_name" db:"display_name"`
+	Email          *string    `json:"email,omitempty" db:"email"`
+	AvatarURL      *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio            *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints    int        `json:"karma_points" db:"karma_points"`
+	Role           string     `json:"role" db:"role"`
+	IsBanned       bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken    *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform *string    `json:"device_platform,omitempty" db:"device_platform"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt    *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -518,10 +518,10 @@ const (
 	NotificationTypePendingSubmissions   = "pending_submissions"
 	NotificationTypeSystemAlert          = "system_alert"
 	// Dunning notification types
-	NotificationTypePaymentFailed           = "payment_failed"
-	NotificationTypePaymentRetry            = "payment_retry"
-	NotificationTypeGracePeriodWarning      = "grace_period_warning"
-	NotificationTypeSubscriptionDowngraded  = "subscription_downgraded"
+	NotificationTypePaymentFailed          = "payment_failed"
+	NotificationTypePaymentRetry           = "payment_retry"
+	NotificationTypeGracePeriodWarning     = "grace_period_warning"
+	NotificationTypeSubscriptionDowngraded = "subscription_downgraded"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
@@ -714,16 +714,16 @@ type SubscriptionEvent struct {
 
 // WebhookRetryQueue represents a webhook event pending retry
 type WebhookRetryQueue struct {
-	ID             uuid.UUID  `json:"id" db:"id"`
-	StripeEventID  string     `json:"stripe_event_id" db:"stripe_event_id"`
-	EventType      string     `json:"event_type" db:"event_type"`
-	Payload        string     `json:"payload" db:"payload"` // JSONB stored as string
-	RetryCount     int        `json:"retry_count" db:"retry_count"`
-	MaxRetries     int        `json:"max_retries" db:"max_retries"`
-	NextRetryAt    *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
-	LastError      *string    `json:"last_error,omitempty" db:"last_error"`
-	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID  `json:"id" db:"id"`
+	StripeEventID string     `json:"stripe_event_id" db:"stripe_event_id"`
+	EventType     string     `json:"event_type" db:"event_type"`
+	Payload       string     `json:"payload" db:"payload"` // JSONB stored as string
+	RetryCount    int        `json:"retry_count" db:"retry_count"`
+	MaxRetries    int        `json:"max_retries" db:"max_retries"`
+	NextRetryAt   *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	LastError     *string    `json:"last_error,omitempty" db:"last_error"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // WebhookDeadLetterQueue represents a permanently failed webhook event
@@ -768,19 +768,19 @@ type CreatePortalSessionResponse struct {
 
 // PaymentFailure represents a failed payment attempt for a subscription
 type PaymentFailure struct {
-	ID                   uuid.UUID  `json:"id" db:"id"`
-	SubscriptionID       uuid.UUID  `json:"subscription_id" db:"subscription_id"`
-	StripeInvoiceID      string     `json:"stripe_invoice_id" db:"stripe_invoice_id"`
-	StripePaymentIntentID *string   `json:"stripe_payment_intent_id,omitempty" db:"stripe_payment_intent_id"`
-	AmountDue            int64      `json:"amount_due" db:"amount_due"` // Amount in cents
-	Currency             string     `json:"currency" db:"currency"`
-	AttemptCount         int        `json:"attempt_count" db:"attempt_count"`
-	FailureReason        *string    `json:"failure_reason,omitempty" db:"failure_reason"`
-	NextRetryAt          *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
-	Resolved             bool       `json:"resolved" db:"resolved"`
-	ResolvedAt           *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
-	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+	ID                    uuid.UUID  `json:"id" db:"id"`
+	SubscriptionID        uuid.UUID  `json:"subscription_id" db:"subscription_id"`
+	StripeInvoiceID       string     `json:"stripe_invoice_id" db:"stripe_invoice_id"`
+	StripePaymentIntentID *string    `json:"stripe_payment_intent_id,omitempty" db:"stripe_payment_intent_id"`
+	AmountDue             int64      `json:"amount_due" db:"amount_due"` // Amount in cents
+	Currency              string     `json:"currency" db:"currency"`
+	AttemptCount          int        `json:"attempt_count" db:"attempt_count"`
+	FailureReason         *string    `json:"failure_reason,omitempty" db:"failure_reason"`
+	NextRetryAt           *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	Resolved              bool       `json:"resolved" db:"resolved"`
+	ResolvedAt            *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
+	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // DunningAttempt represents a communication attempt to a user about failed payment

@@ -33,9 +33,9 @@ func (m *MockEmbeddingService) Close() {
 
 func TestNewEmbeddingScheduler(t *testing.T) {
 	mockService := &MockEmbeddingService{}
-	
+
 	scheduler := NewEmbeddingScheduler(nil, mockService, 60, "test-model")
-	
+
 	assert.NotNil(t, scheduler)
 	assert.Equal(t, 60*time.Minute, scheduler.interval)
 	assert.Equal(t, "test-model", scheduler.model)
@@ -45,10 +45,10 @@ func TestNewEmbeddingScheduler(t *testing.T) {
 func TestEmbeddingScheduler_Stop(t *testing.T) {
 	mockService := &MockEmbeddingService{}
 	scheduler := NewEmbeddingScheduler(nil, mockService, 60, "test-model")
-	
+
 	// Stop should not panic
 	scheduler.Stop()
-	
+
 	// Stop should be idempotent
 	scheduler.Stop()
 	scheduler.Stop()
@@ -57,19 +57,19 @@ func TestEmbeddingScheduler_Stop(t *testing.T) {
 func TestEmbeddingScheduler_StopWithContext(t *testing.T) {
 	mockService := &MockEmbeddingService{}
 	scheduler := NewEmbeddingScheduler(nil, mockService, 1, "test-model")
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	
+
 	// Start in goroutine
 	done := make(chan struct{})
 	go func() {
 		scheduler.Start(ctx)
 		close(done)
 	}()
-	
+
 	// Wait for context to cancel
 	<-done
-	
+
 	// Scheduler should have stopped cleanly
 }

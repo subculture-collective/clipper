@@ -18,12 +18,12 @@ type EmbeddingServiceInterface interface {
 
 // EmbeddingScheduler manages periodic embedding generation for new clips
 type EmbeddingScheduler struct {
-	db              *database.DB
+	db               *database.DB
 	embeddingService EmbeddingServiceInterface
-	interval        time.Duration
-	stopChan        chan struct{}
-	stopOnce        sync.Once
-	model           string
+	interval         time.Duration
+	stopChan         chan struct{}
+	stopOnce         sync.Once
+	model            string
 }
 
 // NewEmbeddingScheduler creates a new scheduler
@@ -34,11 +34,11 @@ func NewEmbeddingScheduler(
 	model string,
 ) *EmbeddingScheduler {
 	return &EmbeddingScheduler{
-		db:              db,
+		db:               db,
 		embeddingService: embeddingService,
-		interval:        time.Duration(intervalMinutes) * time.Minute,
-		stopChan:        make(chan struct{}),
-		model:           model,
+		interval:         time.Duration(intervalMinutes) * time.Minute,
+		stopChan:         make(chan struct{}),
+		model:            model,
 	}
 }
 
@@ -84,7 +84,7 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 	}
 
 	startTime := time.Now()
-	
+
 	// Fetch clips without embeddings (created in the last 7 days to avoid old clips)
 	query := `
 		SELECT id, twitch_clip_id, title, creator_name, broadcaster_name,

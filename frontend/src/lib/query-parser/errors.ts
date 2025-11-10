@@ -3,7 +3,7 @@
  * Provides helpful error messages and suggestions
  */
 
-import { Position, SourceLocation } from './ast';
+import type { Position, SourceLocation } from './ast';
 
 /**
  * Error codes as defined in RFC 002
@@ -52,18 +52,18 @@ export class QueryParseError extends Error {
    */
   format(): string {
     let formatted = `${this.code}: ${this.message}`;
-    
+
     if (this.position) {
       formatted += ` at line ${this.position.line}, column ${this.position.column}`;
     }
-    
+
     if (this.suggestions.length > 0) {
       formatted += '\n\nSuggestions:';
       this.suggestions.forEach(suggestion => {
         formatted += `\n  - ${suggestion}`;
       });
     }
-    
+
     return formatted;
   }
 

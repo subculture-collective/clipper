@@ -55,7 +55,7 @@ func TestMetricsMiddleware(t *testing.T) {
 			// Create a new router for each test
 			r := gin.New()
 			r.Use(MetricsMiddleware())
-			
+
 			// Register the test handler
 			switch tt.method {
 			case http.MethodGet:
@@ -90,7 +90,7 @@ func TestMetricsMiddleware_InFlightRequests(t *testing.T) {
 
 	r := gin.New()
 	r.Use(MetricsMiddleware())
-	
+
 	// Handler that checks in-flight requests
 	r.GET("/slow", func(c *gin.Context) {
 		// The middleware should have incremented in-flight requests

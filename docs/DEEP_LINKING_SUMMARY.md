@@ -9,16 +9,19 @@ This document provides a high-level summary of the deep linking and universal li
 ### 1. Configuration Files
 
 #### Web App Manifest (`frontend/public/manifest.json`)
+
 - **What**: Added `scope` and `share_target` configuration
 - **Why**: Enables proper PWA deep linking and Web Share Target API
 - **Impact**: Users can share content directly to Clipper from other apps
 
 #### iOS Universal Links (`frontend/public/.well-known/apple-app-site-association`)
+
 - **What**: Apple App Site Association file for iOS universal links
 - **Why**: Allows iOS devices to open Clipper app when tapping links
 - **Impact**: Seamless app opening from Safari, Messages, Mail, etc.
 
 #### Android App Links (`frontend/public/.well-known/assetlinks.json`)
+
 - **What**: Digital Asset Links file for Android app links
 - **Why**: Allows Android devices to open Clipper app when tapping links
 - **Impact**: Seamless app opening from Chrome, Gmail, Messages, etc.
@@ -26,6 +29,7 @@ This document provides a high-level summary of the deep linking and universal li
 ### 2. Code Implementation
 
 #### Deep Linking Utilities (`frontend/src/lib/deep-linking.ts`)
+
 ```typescript
 // Validate deep links
 isValidDeepLink(url: string): boolean
@@ -49,6 +53,7 @@ getShareTargetData(): { url?: string; title?: string; text?: string } | null
 **Test Coverage**: 31 tests covering all functions
 
 #### React Hooks (`frontend/src/hooks/useDeepLink.ts`)
+
 ```typescript
 // Auto-handle deep link navigation on mount
 useDeepLink(): void
@@ -135,7 +140,7 @@ import { useShareTargetData } from '@/hooks';
 
 function SubmitClipPage() {
   const shareData = useShareTargetData();
-  
+
   useEffect(() => {
     if (shareData) {
       // Pre-fill form with shared data
@@ -145,7 +150,7 @@ function SubmitClipPage() {
       });
     }
   }, [shareData]);
-  
+
   // Rest of component...
 }
 ```
@@ -194,6 +199,7 @@ npm run preview
   - No redirects allowed
 
 - [ ] **Test on iOS Device**
+
   ```bash
   # Send link via iMessage
   # Long press link
@@ -201,6 +207,7 @@ npm run preview
   ```
 
 - [ ] **Test on Android Device**
+
   ```bash
   # Use ADB to test
   adb shell am start -W -a android.intent.action.VIEW \
@@ -220,6 +227,7 @@ npm run preview
 **Problem**: Tapping links opens Safari instead of app
 
 **Solutions**:
+
 1. Verify file is accessible: `curl https://yourdomain.com/.well-known/apple-app-site-association`
 2. Check Team ID is correct
 3. Delete and reinstall app
@@ -230,6 +238,7 @@ npm run preview
 **Problem**: Tapping links opens browser instead of app
 
 **Solutions**:
+
 1. Verify file is accessible: `curl https://yourdomain.com/.well-known/assetlinks.json`
 2. Check SHA-256 fingerprint is correct
 3. Verify domain in Android manifest
@@ -240,6 +249,7 @@ npm run preview
 **Problem**: App doesn't appear in share menu
 
 **Solutions**:
+
 1. Verify `share_target` in manifest.json
 2. Build and deploy production version (dev mode doesn't work)
 3. Test on mobile device (desktop may have limited support)
@@ -263,17 +273,20 @@ npm run preview
 ## Testing Status
 
 ✅ All tests passing:
+
 - 31 tests for deep linking utilities
 - 6 tests for React hooks
 - 37 total tests
 - 100% of critical paths covered
 
 ✅ Linting:
+
 - No errors
 - No warnings
 - ESLint rules satisfied
 
 ✅ Type Safety:
+
 - Full TypeScript coverage
 - No `any` types used
 - Strict mode enabled

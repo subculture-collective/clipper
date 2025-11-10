@@ -66,7 +66,7 @@ Before any production deployment, verify:
    ```bash
    # Push to main branch
    git push origin main
-   
+
    # Or create version tag
    git tag -a v1.2.3 -m "Release version 1.2.3"
    git push origin v1.2.3
@@ -88,10 +88,10 @@ Before any production deployment, verify:
    ```bash
    # Check health endpoints
    curl https://clipper.example.com/health
-   
+
    # Test API endpoints
    curl https://clipper.example.com/api/v1/ping
-   
+
    # Check logs
    ssh deploy@production-server
    cd /opt/clipper
@@ -514,6 +514,7 @@ docker-compose logs backend --no-color | \
 ```
 
 Example structured log fields:
+
 - `timestamp`: When the event occurred
 - `level`: Log level (debug, info, warn, error)
 - `message`: Log message
@@ -543,23 +544,27 @@ Example structured log fields:
 Based on severity:
 
 **P0 Critical**:
+
 1. Page on-call engineer immediately
 2. Consider emergency rollback
 3. Communicate to stakeholders
 4. Fix immediately
 
 **P1 High**:
+
 1. Notify team in Slack
 2. Assign to engineer
 3. Create hotfix PR
 4. Deploy within hours
 
 **P2 Medium**:
+
 1. Create GitHub issue
 2. Add to sprint backlog
 3. Fix in next release
 
 **P3 Low**:
+
 1. Create GitHub issue
 2. Add to backlog
 3. Fix when capacity allows
@@ -569,12 +574,14 @@ Based on severity:
 #### High Error Rate (> 5%)
 
 **Investigate**:
+
 - Recent deployments
 - Database connection issues
 - External API failures (Twitch, Stripe)
 - Rate limiting triggered
 
 **Actions**:
+
 - Check service health: `/health/ready` endpoint
 - Review database stats: `/health/stats` endpoint
 - Check external service status pages
@@ -585,6 +592,7 @@ Based on severity:
 **Symptoms**: Slow response times, timeouts
 
 **Investigate**:
+
 - Database slow queries (check Sentry transaction spans)
 - N+1 query problems
 - Missing indexes
@@ -592,6 +600,7 @@ Based on severity:
 - Memory leaks
 
 **Actions**:
+
 - Check database connection pool: `/health/stats`
 - Review slow query logs
 - Use `EXPLAIN ANALYZE` on suspicious queries
@@ -602,11 +611,13 @@ Based on severity:
 **Symptoms**: Spike in 401/403 errors
 
 **Investigate**:
+
 - JWT token expiration issues
 - Session store (Redis) problems
 - Twitch OAuth token refresh failures
 
 **Actions**:
+
 - Check Redis connectivity: `/health/cache/check`
 - Verify JWT configuration (keys not rotated unexpectedly)
 - Check Twitch API status
@@ -616,12 +627,14 @@ Based on severity:
 **Symptoms**: React errors, hydration mismatches
 
 **Investigate**:
+
 - Browser compatibility issues
 - React version conflicts
 - State management bugs
 - API response format changes
 
 **Actions**:
+
 - Check browser and version from Sentry tags
 - Review recent component changes
 - Test in affected browser
@@ -632,11 +645,13 @@ Based on severity:
 #### Resolving Issues
 
 Mark issue as resolved when:
+
 - Fix is deployed to production
 - Verified no new occurrences
 - Root cause is addressed
 
 To resolve:
+
 1. Click "Resolve" in Sentry
 2. Select "In the next release" or specific version
 3. Add resolution note explaining fix
@@ -644,12 +659,14 @@ To resolve:
 #### Ignoring Issues
 
 Ignore issues that are:
+
 - False positives
 - Browser extension errors
 - Known third-party library bugs with no fix
 - Expected errors (e.g., 404s for bots)
 
 To ignore:
+
 1. Click "Ignore"
 2. Select condition (forever, until condition met, etc.)
 3. Add reason for ignoring
@@ -686,12 +703,14 @@ Configure alerts for critical patterns:
 To verify Sentry is working:
 
 **Backend**:
+
 ```bash
 # Trigger test error (only in non-production)
 curl -X POST http://localhost:8080/api/v1/test/sentry-error
 ```
 
 **Frontend**:
+
 ```javascript
 // In browser console (non-production only)
 throw new Error('Test Sentry error');

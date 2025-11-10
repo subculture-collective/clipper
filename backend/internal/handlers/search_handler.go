@@ -12,12 +12,12 @@ import (
 
 // SearchHandler handles search-related requests
 type SearchHandler struct {
-	searchRepo         *repository.SearchRepository
-	openSearchService  *services.OpenSearchService
+	searchRepo          *repository.SearchRepository
+	openSearchService   *services.OpenSearchService
 	hybridSearchService *services.HybridSearchService
-	authService        *services.AuthService
-	useOpenSearch      bool
-	useHybridSearch    bool
+	authService         *services.AuthService
+	useOpenSearch       bool
+	useHybridSearch     bool
 }
 
 // NewSearchHandler creates a new SearchHandler with PostgreSQL FTS

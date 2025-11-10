@@ -5,6 +5,7 @@ This document describes the deep linking and universal links implementation for 
 ## Overview
 
 Clipper supports deep linking on iOS and Android through:
+
 - **iOS Universal Links**: Using Apple App Site Association
 - **Android App Links**: Using Digital Asset Links
 - **Web Share Target API**: For sharing content to the app
@@ -38,9 +39,9 @@ The following routes can be opened via deep links:
 ### Configuration
 
 1. **Apple App Site Association File**
-   
+
    Located at `public/.well-known/apple-app-site-association`
-   
+
    ```json
    {
      "applinks": {
@@ -56,12 +57,13 @@ The following routes can be opened via deep links:
    ```
 
 2. **Update Team ID**
-   
+
    Replace `TEAM_ID` in the file with your Apple Developer Team ID.
 
 3. **Associated Domains in Xcode**
-   
+
    Add to your app's entitlements:
+
    ```
    applinks:clipper.example.com
    ```
@@ -77,6 +79,7 @@ The following routes can be opened via deep links:
 ### Testing iOS Universal Links
 
 1. **Verify File Accessibility**
+
    ```bash
    curl -v https://yourdomain.com/.well-known/apple-app-site-association
    ```
@@ -102,9 +105,9 @@ The following routes can be opened via deep links:
 ### Configuration
 
 1. **Digital Asset Links File**
-   
+
    Located at `public/.well-known/assetlinks.json`
-   
+
    ```json
    [{
      "relation": ["delegate_permission/common.handle_all_urls"],
@@ -117,20 +120,21 @@ The following routes can be opened via deep links:
    ```
 
 2. **Get Your App's SHA-256 Fingerprint**
-   
+
    ```bash
    keytool -list -v -keystore my-release-key.keystore
    ```
-   
+
    Copy the SHA-256 certificate fingerprint.
 
 3. **Update Configuration**
-   
+
    Replace `REPLACE_WITH_YOUR_APP_SHA256_FINGERPRINT` with your fingerprint.
 
 4. **AndroidManifest.xml**
-   
+
    Add intent filters for deep link routes:
+
    ```xml
    <intent-filter android:autoVerify="true">
      <action android:name="android.intent.action.VIEW" />
@@ -152,11 +156,13 @@ The following routes can be opened via deep links:
 ### Testing Android App Links
 
 1. **Verify File Accessibility**
+
    ```bash
    curl -v https://yourdomain.com/.well-known/assetlinks.json
    ```
 
 2. **Test Intent Filter**
+
    ```bash
    adb shell am start -W -a android.intent.action.VIEW \
      -d "https://yourdomain.com/clip/abc123" \
@@ -164,6 +170,7 @@ The following routes can be opened via deep links:
    ```
 
 3. **Verify Domain**
+
    ```bash
    adb shell dumpsys package domain-preferred-apps
    ```
@@ -175,6 +182,7 @@ The app can receive shared content through the Web Share Target API.
 ### Configuration
 
 In `manifest.json`:
+
 ```json
 {
   "share_target": {
@@ -193,6 +201,7 @@ In `manifest.json`:
 ### Usage
 
 When users share content to Clipper:
+
 1. App opens to `/submit` route
 2. URL parameters contain shared data: `?url=...&title=...&text=...`
 3. Submit page can extract and pre-fill form with shared data
@@ -311,12 +320,14 @@ if (isOpenedViaDeepLink()) {
    - Verify host and pathPrefix match routes
 
 3. **Test with ADB**
+
    ```bash
    adb shell am start -W -a android.intent.action.VIEW \
      -d "https://yourdomain.com/clip/test"
    ```
 
 4. **Check Domain Verification**
+
    ```bash
    adb shell dumpsys package domain-preferred-apps
    ```
@@ -346,6 +357,7 @@ npm test src/lib/deep-linking.test.ts
 ```
 
 The test suite covers:
+
 - Deep link validation
 - URL parsing
 - Route handling

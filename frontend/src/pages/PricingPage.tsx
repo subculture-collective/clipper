@@ -69,7 +69,7 @@ export default function PricingPage() {
       });
 
       const response = await createCheckoutSession(priceId);
-      
+
       // Redirect to Stripe Checkout
       window.location.href = response.session_url;
     } catch (error) {
@@ -141,7 +141,7 @@ export default function PricingPage() {
               <h2 className="text-2xl font-bold text-white mb-2">Free</h2>
               <p className="text-gray-400">Perfect for casual users</p>
             </div>
-            
+
             <div className="mb-6">
               <span className="text-4xl font-bold text-white">$0</span>
               <span className="text-gray-400">/month</span>
@@ -192,7 +192,7 @@ export default function PricingPage() {
               <h2 className="text-2xl font-bold text-white mb-2">Pro</h2>
               <p className="text-purple-100">For power users and enthusiasts</p>
             </div>
-            
+
             <div className="mb-6">
               {billingPeriod === 'monthly' ? (
                 <>

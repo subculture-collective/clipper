@@ -16,16 +16,19 @@ This document outlines the test cases for validating deep linking and universal 
 **Objective**: Verify that custom scheme links open the clip detail screen
 
 **Steps**:
+
 1. Launch the link: `clipper://clip/123`
 2. Observe app behavior
 
 **Expected Result**:
+
 - App opens (or comes to foreground if already open)
 - Clip detail screen displays for clip ID 123
 - Video player loads the clip content
 - Clip metadata (title, creator, votes) is displayed
 
 **Test Commands**:
+
 ```bash
 # iOS
 xcrun simctl openurl booted "clipper://clip/123"
@@ -39,16 +42,19 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/123"
 **Objective**: Verify that iOS universal links open the clip detail screen
 
 **Steps**:
+
 1. Send a link via iMessage or Notes: `https://clipper.onnwee.me/clip/456`
 2. Tap the link
 3. Observe app behavior
 
 **Expected Result**:
+
 - App opens (not Safari)
 - Clip detail screen displays for clip ID 456
 - Video player loads the clip content
 
 **Alternative Test**:
+
 ```bash
 xcrun simctl openurl booted "https://clipper.onnwee.me/clip/456"
 ```
@@ -58,15 +64,18 @@ xcrun simctl openurl booted "https://clipper.onnwee.me/clip/456"
 **Objective**: Verify that Android app links open the clip detail screen
 
 **Steps**:
+
 1. Open a browser and navigate to: `https://clipper.onnwee.me/clip/789`
 2. Observe app behavior
 
 **Expected Result**:
+
 - App opens (not browser)
 - Clip detail screen displays for clip ID 789
 - Video player loads the clip content
 
 **Test Command**:
+
 ```bash
 adb shell am start -W -a android.intent.action.VIEW -d "https://clipper.onnwee.me/clip/789"
 ```
@@ -76,15 +85,18 @@ adb shell am start -W -a android.intent.action.VIEW -d "https://clipper.onnwee.m
 **Objective**: Verify that deep links open the search screen
 
 **Steps**:
+
 1. Launch the link: `clipper://search`
 2. Observe app behavior
 
 **Expected Result**:
+
 - App opens to the search tab
 - Search input field is visible
 - User can immediately start searching
 
 **Test Commands**:
+
 ```bash
 # iOS - Custom scheme
 xcrun simctl openurl booted "clipper://search"
@@ -104,16 +116,19 @@ adb shell am start -W -a android.intent.action.VIEW -d "https://clipper.onnwee.m
 **Objective**: Verify that deep links open the submit clip screen
 
 **Steps**:
+
 1. Launch the link: `clipper://submit`
 2. Observe app behavior
 
 **Expected Result**:
+
 - App opens with submit screen as a modal
 - URL input field is visible
 - Submission guidelines are displayed
 - User can enter a clip URL
 
 **Test Commands**:
+
 ```bash
 # iOS - Custom scheme
 xcrun simctl openurl booted "clipper://submit"
@@ -133,15 +148,18 @@ adb shell am start -W -a android.intent.action.VIEW -d "https://clipper.onnwee.m
 **Objective**: Verify that deep links open the profile screen
 
 **Steps**:
+
 1. Launch the link: `clipper://profile`
 2. Observe app behavior
 
 **Expected Result**:
+
 - App opens to the profile tab
 - If logged in, user profile is displayed
 - If not logged in, login prompt or guest view is shown
 
 **Test Commands**:
+
 ```bash
 # iOS - Custom scheme
 xcrun simctl openurl booted "clipper://profile"
@@ -161,15 +179,18 @@ adb shell am start -W -a android.intent.action.VIEW -d "https://clipper.onnwee.m
 **Objective**: Verify handling of invalid clip IDs
 
 **Steps**:
+
 1. Launch the link: `clipper://clip/invalid-id-999999`
 2. Observe app behavior
 
 **Expected Result**:
+
 - App opens
 - Error message displayed: "Clip not found"
 - User can navigate back or go to home screen
 
 **Test Commands**:
+
 ```bash
 # iOS
 xcrun simctl openurl booted "clipper://clip/invalid-id-999999"
@@ -183,11 +204,13 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Objective**: Verify deep link behavior when app is already open
 
 **Steps**:
+
 1. Open the app and navigate to any screen
 2. Launch a deep link: `clipper://clip/123`
 3. Observe navigation behavior
 
 **Expected Result**:
+
 - App navigates to the clip detail screen
 - Navigation stack is preserved (user can go back)
 - No app restart or flash
@@ -197,12 +220,14 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Objective**: Verify deep link behavior when app is in background
 
 **Steps**:
+
 1. Open the app
 2. Press home button (send app to background)
 3. Launch a deep link: `clipper://search`
 4. Observe app behavior
 
 **Expected Result**:
+
 - App returns to foreground
 - Navigates to search screen
 - Previous app state is preserved
@@ -212,11 +237,13 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Objective**: Verify fallback behavior when app is not installed
 
 **Steps**:
+
 1. Uninstall the Clipper app
 2. Open a link in a browser or messaging app: `https://clipper.onnwee.me/clip/123`
 3. Observe behavior
 
 **Expected Result**:
+
 - Link opens in web browser
 - Web version of Clipper displays
 - User can view the clip on the web
@@ -227,16 +254,21 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Objective**: Verify that universal link association files are properly served
 
 **Steps**:
+
 1. Test iOS association file:
+
    ```bash
    curl -I https://clipper.onnwee.me/.well-known/apple-app-site-association
    ```
+
 2. Test Android asset links file:
+
    ```bash
    curl -I https://clipper.onnwee.me/.well-known/assetlinks.json
    ```
 
 **Expected Result**:
+
 - Both files return HTTP 200
 - Content-Type is `application/json`
 - No redirects occur (301/302)
@@ -248,11 +280,13 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Objective**: Verify handling of multiple deep links opened quickly
 
 **Steps**:
+
 1. Launch link: `clipper://clip/123`
 2. Immediately launch another link: `clipper://clip/456`
 3. Observe navigation behavior
 
 **Expected Result**:
+
 - App handles both links gracefully
 - Final destination is clip 456
 - No crashes or navigation errors
@@ -262,10 +296,12 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Objective**: Verify handling of URLs with query parameters (for future use)
 
 **Steps**:
+
 1. Launch link: `clipper://search?q=fortnite`
 2. Observe app behavior
 
 **Expected Result**:
+
 - App opens to search screen
 - Query parameters are preserved (if implemented)
 - No errors or crashes
@@ -275,12 +311,14 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Objective**: Verify deep linking using Expo's uri-scheme tool
 
 **Steps**:
+
 1. Run: `npx uri-scheme list`
 2. Verify "clipper" scheme is registered
 3. Run: `npx uri-scheme open clipper://clip/123 --ios`
 4. Run: `npx uri-scheme open clipper://clip/123 --android`
 
 **Expected Result**:
+
 - Scheme is listed correctly
 - Links open the app on respective platforms
 - Correct screens are displayed
@@ -309,6 +347,7 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 **Pass**: All test cases pass on both iOS and Android platforms
 
 **Fail**: Any of the following:
+
 - Deep links don't open the app
 - Wrong screen is displayed
 - App crashes when opening deep links
@@ -324,6 +363,7 @@ adb shell am start -W -a android.intent.action.VIEW -d "clipper://clip/invalid-i
 ## Automation Opportunities
 
 Future automated tests could:
+
 - Use Detox or Appium for E2E testing
 - Verify navigation state after deep link opens
 - Test deep link handling in various app states
@@ -331,5 +371,5 @@ Future automated tests could:
 
 ---
 
-**Last Updated**: 2025-11-05  
+**Last Updated**: 2025-11-05
 **Test Coordinator**: Clipper QA Team

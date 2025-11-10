@@ -108,7 +108,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:17-alpine
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_USER: clipper
           POSTGRES_PASSWORD: clipper_password
@@ -243,7 +243,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        node-version: ['18', '20']
+        node-version: ['20']
     steps:
       - uses: actions/checkout@v4
 
