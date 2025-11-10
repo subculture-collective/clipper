@@ -305,7 +305,9 @@ make test-integration
 make test-coverage
 
 # Run load tests (requires k6)
-make test-load
+make migrate-seed-load-test  # Seed test data first
+make test-load               # Run all scenarios
+make test-load-mixed         # Run mixed user behavior (recommended)
 ```
 
 ### Backend Tests
