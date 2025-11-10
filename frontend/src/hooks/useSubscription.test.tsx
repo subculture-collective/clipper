@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSubscription } from './useSubscription';
 import * as subscriptionApi from '../lib/subscription-api';
 import * as authHook from './useAuth';
-import type { AuthContextValue } from '../contexts/AuthContext';
+import type { AuthContextType } from '../context/AuthContext';
 
 // Mock only the API calls, not the helper functions
 vi.mock('../lib/subscription-api', async () => {
@@ -49,9 +49,9 @@ describe('useSubscription', () => {
       login: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
-    } as AuthContextValue);
+    } as AuthContextType);
 
-    vi.mocked(subscriptionApi.getSubscription).mockImplementation(() => 
+    vi.mocked(subscriptionApi.getSubscription).mockImplementation(() =>
       new Promise(() => {}) // Never resolves
     );
 

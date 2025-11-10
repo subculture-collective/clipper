@@ -1,6 +1,6 @@
 /**
  * Analytics tracking for premium subscription funnel
- * 
+ *
  * This module provides event tracking for the paywall and upgrade flow
  * to enable funnel analysis and conversion optimization.
  */
@@ -68,7 +68,7 @@ class PaywallAnalytics {
     // - Google Analytics: gtag('event', event.event, event.data)
     // - Mixpanel: mixpanel.track(event.event, event.data)
     // - Custom backend: fetch('/api/v1/analytics/events', { method: 'POST', body: JSON.stringify(event) })
-    
+
     // Placeholder implementation
     if (typeof window !== 'undefined' && 'gtag' in window && typeof (window as Window & { gtag?: Function }).gtag === 'function') {
       ((window as Window & { gtag: Function }).gtag)('event', event.event, {
@@ -185,32 +185,32 @@ class PaywallAnalytics {
 export const paywallAnalytics = new PaywallAnalytics();
 
 // Export individual tracking functions for convenience
-export const trackPaywallView = (data?: PaywallEventData) => 
+export const trackPaywallView = (data?: PaywallEventData) =>
   paywallAnalytics.trackPaywallView(data);
 
-export const trackUpgradeClick = (data?: PaywallEventData) => 
+export const trackUpgradeClick = (data?: PaywallEventData) =>
   paywallAnalytics.trackUpgradeClick(data);
 
-export const trackCheckoutInitiated = (data?: PaywallEventData) => 
+export const trackCheckoutInitiated = (data?: PaywallEventData) =>
   paywallAnalytics.trackCheckoutInitiated(data);
 
-export const trackConversion = (data?: PaywallEventData) => 
+export const trackConversion = (data?: PaywallEventData) =>
   paywallAnalytics.trackConversion(data);
 
-export const trackCheckoutCancelled = (data?: PaywallEventData) => 
+export const trackCheckoutCancelled = (data?: PaywallEventData) =>
   paywallAnalytics.trackCheckoutCancelled(data);
 
-export const trackPaywallDismissed = (data?: PaywallEventData) => 
+export const trackPaywallDismissed = (data?: PaywallEventData) =>
   paywallAnalytics.trackPaywallDismissed(data);
 
-export const trackPricingPageView = (data?: PaywallEventData) => 
+export const trackPricingPageView = (data?: PaywallEventData) =>
   paywallAnalytics.trackPricingPageView(data);
 
-export const trackBillingPeriodChange = (data?: PaywallEventData) => 
+export const trackBillingPeriodChange = (data?: PaywallEventData) =>
   paywallAnalytics.trackBillingPeriodChange(data);
 
-export const trackFeatureGateEncountered = (data?: PaywallEventData) => 
+export const trackFeatureGateEncountered = (data?: PaywallEventData) =>
   paywallAnalytics.trackFeatureGateEncountered(data);
 
-export const trackQuotaLimitReached = (data?: PaywallEventData) => 
+export const trackQuotaLimitReached = (data?: PaywallEventData) =>
   paywallAnalytics.trackQuotaLimitReached(data);

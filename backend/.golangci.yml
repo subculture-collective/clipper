@@ -1,5 +1,3 @@
-version: '2'
-
 linters-settings:
   dupl:
     threshold: 100
@@ -15,7 +13,8 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   govet:
-    shadow: true
+    enable:
+      - shadow
 
 linters:
   disable-all: true
@@ -40,6 +39,3 @@ issues:
 
 run:
   timeout: 5m
-  skip-dirs:
-    - vendor
-    - bin
