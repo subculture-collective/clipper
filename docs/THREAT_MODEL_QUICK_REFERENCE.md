@@ -15,8 +15,8 @@ These require immediate attention and have GitHub issues created:
 
 Should be addressed in next sprint:
 
-| Priority | Issue | What | ETA |
-|----------|-------|------|-----|
+| Priority | Issue | What | Why | ETA |
+|----------|-------|------|-----|-----|
 | 🟡 **HIGH** | [#398](https://github.com/subculture-collective/clipper/issues/398) | IDOR testing framework | Prevent unauthorized resource access | 6 weeks |
 | 🟡 **HIGH** | [#399](https://github.com/subculture-collective/clipper/issues/399) | OpenSearch query validation | Prevent NoSQL injection | 5 weeks |
 | 🟡 **HIGH** | [#400](https://github.com/subculture-collective/clipper/issues/400) | Query cost analysis | Prevent DoS via expensive queries | 5 weeks |

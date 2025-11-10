@@ -60,7 +60,7 @@ This document provides a comprehensive threat model for the Clipper application,
 **Backend:**
 - Go 1.24+ with Gin framework
 - PostgreSQL 17 for primary data storage
-- Redis 8 for caching and session management
+- Redis 7 for caching and session management
 - OpenSearch 2.11 for search functionality
 
 **Infrastructure:**
@@ -504,9 +504,9 @@ User → Frontend → Nginx → Backend Middleware Stack:
 
 | ID | Threat | Risk Score | Recommended Mitigation | Effort | Issue Created |
 |----|--------|-----------|------------------------|--------|---------------|
-| ADMIN-S-01 | Compromised admin credentials | **CRITICAL** | Implement Multi-Factor Authentication (MFA) for admin accounts | High | #TBD |
-| DB-S-01 | Database credential compromise | **CRITICAL** | Implement automated credential rotation, secrets management (HashiCorp Vault/AWS Secrets Manager) | High | #TBD |
-| STRIPE-I-01 | Stripe API keys exposed | **CRITICAL** | Implement secrets management solution with rotation policy | High | #TBD |
+| ADMIN-S-01 | Compromised admin credentials | **CRITICAL** | Implement Multi-Factor Authentication (MFA) for admin accounts | High | #396 |
+| DB-S-01 | Database credential compromise | **CRITICAL** | Implement automated credential rotation, secrets management (HashiCorp Vault/AWS Secrets Manager) | High | #397 |
+| STRIPE-I-01 | Stripe API keys exposed | **CRITICAL** | Implement secrets management solution with rotation policy | High | #397 |
 
 ### High Priority (Next Sprint)
 
@@ -514,12 +514,12 @@ User → Frontend → Nginx → Backend Middleware Stack:
 |----|--------|-----------|------------------------|--------|---------------|
 | AUTH-S-02 | OAuth phishing attacks | **HIGH** | Implement user education/warning system, domain verification UI | Medium | #TBD |
 | AUTH-E-01 | Role manipulation in JWT | **HIGH** | Add claim validation on every authenticated request, regular permission audits | Medium | #TBD |
-| API-T-02 | NoSQL injection in OpenSearch | **HIGH** | Comprehensive input validation for OpenSearch queries, parameterized query builder | High | #TBD |
-| API-D-02 | Resource exhaustion via expensive queries | **HIGH** | Implement query cost analysis, query complexity limits | High | #TBD |
-| API-I-04 | IDOR vulnerabilities | **HIGH** | Systematic IDOR testing, implement object-level authorization framework | High | #TBD |
+| API-T-02 | NoSQL injection in OpenSearch | **HIGH** | Comprehensive input validation for OpenSearch queries, parameterized query builder | High | #399 |
+| API-D-02 | Resource exhaustion via expensive queries | **HIGH** | Implement query cost analysis, query complexity limits | High | #400 |
+| API-I-04 | IDOR vulnerabilities | **HIGH** | Systematic IDOR testing, implement object-level authorization framework | High | #398 |
 | API-E-01 | API privilege escalation | **HIGH** | Comprehensive authorization audit, automated permission testing | High | #TBD |
 | DB-I-01 | Database backup exposure | **HIGH** | Implement and validate backup encryption, access controls | Medium | #TBD |
-| SEARCH-I-01 | Search query injection | **HIGH** | Enhanced query validation, whitelist approach for search parameters | Medium | #TBD |
+| SEARCH-I-01 | Search query injection | **HIGH** | Enhanced query validation, whitelist approach for search parameters | Medium | #399 |
 
 ### Medium Priority (Backlog)
 
