@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -63,6 +64,11 @@ func (e *ValidationError) Error() string {
 
 // SubmitClip handles clip submission with validation and duplicate detection
 func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, req *SubmitClipRequest) (*models.ClipSubmission, error) {
+	// Validate and normalize input fields first
+	if err := s.validateSubmissionInput(req); err != nil {
+		return nil, err
+	}
+
 	// Check user permissions and rate limits
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -70,12 +76,12 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	}
 
 	if user.IsBanned {
-		return nil, &ValidationError{Field: "user", Message: "User is banned"}
+		return nil, &ValidationError{Field: "user", Message: "Your account has been banned and cannot submit clips. Please contact support if you believe this is an error."}
 	}
 
 	// Check minimum karma requirement (100 karma)
 	if user.KarmaPoints < 100 {
-		return nil, &ValidationError{Field: "karma", Message: "Minimum 100 karma required to submit clips"}
+		return nil, &ValidationError{Field: "karma", Message: "You need at least 100 karma points to submit clips. Earn karma by participating in the community through voting and commenting."}
 	}
 
 	// Check rate limits (5 per hour, 20 per day)
@@ -83,10 +89,13 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, err
 	}
 
-	// Extract clip ID from URL - use the function from clip_sync_service
-	clipID := extractClipIDFromURL(req.ClipURL)
+	// Extract and normalize clip ID from URL
+	clipID, normalizedURL := s.normalizeClipURL(req.ClipURL)
 	if clipID == "" {
-		return nil, &ValidationError{Field: "clip_url", Message: "Invalid Twitch clip URL"}
+		return nil, &ValidationError{
+			Field:   "clip_url",
+			Message: "Invalid Twitch clip URL. Please provide a valid URL like 'https://clips.twitch.tv/ClipID' or 'https://www.twitch.tv/username/clip/ClipID'",
+		}
 	}
 
 	// Check for duplicates
@@ -103,6 +112,11 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	// Validate clip quality
 	if err := s.validateClipQuality(twitchClip); err != nil {
 		return nil, err
+	}
+
+	// Use normalized URL
+	if normalizedURL != "" {
+		twitchClip.URL = normalizedURL
 	}
 
 	// Create submission
@@ -157,6 +171,177 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	return submission, nil
 }
 
+// validateSubmissionInput validates and normalizes submission request fields
+func (s *SubmissionService) validateSubmissionInput(req *SubmitClipRequest) error {
+	// Validate clip URL (non-empty is already enforced by binding:"required")
+	if len(req.ClipURL) > 500 {
+		return &ValidationError{
+			Field:   "clip_url",
+			Message: "Clip URL is too long (maximum 500 characters)",
+		}
+	}
+
+	// Validate custom title if provided
+	if req.CustomTitle != nil {
+		title := strings.TrimSpace(*req.CustomTitle)
+		if title != "" {
+			if len(title) < 3 {
+				return &ValidationError{
+					Field:   "custom_title",
+					Message: "Custom title must be at least 3 characters long",
+				}
+			}
+			if len(title) > 200 {
+				return &ValidationError{
+					Field:   "custom_title",
+					Message: "Custom title is too long (maximum 200 characters)",
+				}
+			}
+			// Normalize: update the pointer to the trimmed value
+			*req.CustomTitle = title
+		} else {
+			// If it's empty after trimming, set to nil
+			req.CustomTitle = nil
+		}
+	}
+
+	// Validate broadcaster name override if provided
+	if req.BroadcasterNameOverride != nil {
+		broadcaster := strings.TrimSpace(*req.BroadcasterNameOverride)
+		if broadcaster != "" {
+			if len(broadcaster) < 2 {
+				return &ValidationError{
+					Field:   "broadcaster_name_override",
+					Message: "Broadcaster name must be at least 2 characters long",
+				}
+			}
+			if len(broadcaster) > 100 {
+				return &ValidationError{
+					Field:   "broadcaster_name_override",
+					Message: "Broadcaster name is too long (maximum 100 characters)",
+				}
+			}
+			// Validate broadcaster name format (alphanumeric + underscores only)
+			if !isValidUsername(broadcaster) {
+				return &ValidationError{
+					Field:   "broadcaster_name_override",
+					Message: "Broadcaster name can only contain letters, numbers, and underscores",
+				}
+			}
+			// Normalize: update the pointer to the trimmed value
+			*req.BroadcasterNameOverride = broadcaster
+		} else {
+			// If it's empty after trimming, set to nil
+			req.BroadcasterNameOverride = nil
+		}
+	}
+
+	// Validate tags
+	if len(req.Tags) > 10 {
+		return &ValidationError{
+			Field:   "tags",
+			Message: "Too many tags (maximum 10 tags allowed)",
+		}
+	}
+
+	// Normalize and validate each tag
+	normalizedTags := make([]string, 0, len(req.Tags))
+	seenTags := make(map[string]bool)
+	for i, tag := range req.Tags {
+		// Trim and lowercase for normalization
+		normalized := strings.ToLower(strings.TrimSpace(tag))
+		if normalized == "" {
+			continue // Skip empty tags
+		}
+
+		// Check for duplicates (case-insensitive)
+		if seenTags[normalized] {
+			continue // Skip duplicate tags
+		}
+
+		if len(normalized) < 2 {
+			return &ValidationError{
+				Field:   "tags",
+				Message: fmt.Sprintf("Tag '%s' is too short (minimum 2 characters)", tag),
+			}
+		}
+		if len(normalized) > 50 {
+			return &ValidationError{
+				Field:   "tags",
+				Message: fmt.Sprintf("Tag '%s' is too long (maximum 50 characters)", tag),
+			}
+		}
+
+		// Validate tag format (alphanumeric + hyphens only)
+		if !isValidTag(normalized) {
+			return &ValidationError{
+				Field:   "tags",
+				Message: fmt.Sprintf("Tag '%s' contains invalid characters (only letters, numbers, and hyphens allowed)", tag),
+			}
+		}
+
+		normalizedTags = append(normalizedTags, normalized)
+		seenTags[normalized] = true
+
+		// Safety check: limit iteration
+		if i >= 10 {
+			break
+		}
+	}
+	req.Tags = normalizedTags
+
+	// Validate submission reason if provided
+	if req.SubmissionReason != nil {
+		reason := strings.TrimSpace(*req.SubmissionReason)
+		if reason != "" {
+			if len(reason) > 1000 {
+				return &ValidationError{
+					Field:   "submission_reason",
+					Message: "Submission reason is too long (maximum 1000 characters)",
+				}
+			}
+			// Normalize: update the pointer to the trimmed value
+			*req.SubmissionReason = reason
+		} else {
+			// If it's empty after trimming, set to nil
+			req.SubmissionReason = nil
+		}
+	}
+
+	return nil
+}
+
+// isValidUsername checks if a username contains only valid characters
+func isValidUsername(username string) bool {
+	for _, r := range username {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+// isValidTag checks if a tag contains only valid characters
+func isValidTag(tag string) bool {
+	for _, r := range tag {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+// normalizeClipURL extracts clip ID and returns normalized URL
+func (s *SubmissionService) normalizeClipURL(clipURLOrID string) (clipID string, normalizedURL string) {
+	clipID = extractClipIDFromURL(clipURLOrID)
+	if clipID == "" {
+		return "", ""
+	}
+	// Return canonical clips.twitch.tv URL
+	normalizedURL = fmt.Sprintf("https://clips.twitch.tv/%s", clipID)
+	return clipID, normalizedURL
+}
+
 // checkRateLimits validates rate limits for submissions
 func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUID) error {
 	// Check hourly limit (5 per hour)
@@ -165,7 +350,10 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 		return fmt.Errorf("failed to check hourly rate limit: %w", err)
 	}
 	if hourlyCount >= 5 {
-		return &ValidationError{Field: "rate_limit", Message: "Maximum 5 submissions per hour exceeded"}
+		return &ValidationError{
+			Field:   "rate_limit",
+			Message: fmt.Sprintf("You have submitted %d clips in the last hour. Please wait before submitting more (limit: 5 per hour)", hourlyCount),
+		}
 	}
 
 	// Check daily limit (20 per day)
@@ -174,7 +362,10 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 		return fmt.Errorf("failed to check daily rate limit: %w", err)
 	}
 	if dailyCount >= 20 {
-		return &ValidationError{Field: "rate_limit", Message: "Maximum 20 submissions per day exceeded"}
+		return &ValidationError{
+			Field:   "rate_limit",
+			Message: fmt.Sprintf("You have submitted %d clips in the last 24 hours. Please wait before submitting more (limit: 20 per day)", dailyCount),
+		}
 	}
 
 	return nil
@@ -188,7 +379,10 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 		return fmt.Errorf("failed to check clip existence: %w", err)
 	}
 	if exists {
-		return &ValidationError{Field: "clip_url", Message: "This clip already exists in our database"}
+		return &ValidationError{
+			Field:   "clip_url",
+			Message: "This clip has already been added to our database and cannot be submitted again",
+		}
 	}
 
 	// Check if clip was already submitted
@@ -198,14 +392,24 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 	}
 	if submission != nil {
 		if submission.Status == "pending" {
-			return &ValidationError{Field: "clip_url", Message: "This clip is already pending review"}
+			return &ValidationError{
+				Field:   "clip_url",
+				Message: "This clip is already pending review. You'll be notified once it's been reviewed by our moderators.",
+			}
 		}
 		if submission.Status == "approved" {
-			return &ValidationError{Field: "clip_url", Message: "This clip has already been approved"}
+			return &ValidationError{
+				Field:   "clip_url",
+				Message: "This clip has already been approved and added to our database",
+			}
 		}
 		// If rejected, allow resubmission after some time
 		if submission.Status == "rejected" && time.Since(submission.CreatedAt) < 7*24*time.Hour {
-			return &ValidationError{Field: "clip_url", Message: "This clip was recently rejected"}
+			daysRemaining := 7 - int(time.Since(submission.CreatedAt).Hours()/24)
+			return &ValidationError{
+				Field:   "clip_url",
+				Message: fmt.Sprintf("This clip was recently rejected. You can resubmit it in %d days", daysRemaining),
+			}
 		}
 	}
 
@@ -224,11 +428,17 @@ func (s *SubmissionService) fetchClipFromTwitch(ctx context.Context, clipID stri
 
 	resp, err := s.twitchClient.GetClips(ctx, params)
 	if err != nil {
-		return nil, &ValidationError{Field: "clip_url", Message: "Failed to fetch clip from Twitch"}
+		return nil, &ValidationError{
+			Field:   "clip_url",
+			Message: "Unable to fetch clip information from Twitch. Please verify the URL is correct and the clip exists.",
+		}
 	}
 
 	if len(resp.Data) == 0 {
-		return nil, &ValidationError{Field: "clip_url", Message: "Clip not found on Twitch"}
+		return nil, &ValidationError{
+			Field:   "clip_url",
+			Message: "This clip was not found on Twitch. It may have been deleted or the URL is incorrect.",
+		}
 	}
 
 	return &resp.Data[0], nil
@@ -238,17 +448,27 @@ func (s *SubmissionService) fetchClipFromTwitch(ctx context.Context, clipID stri
 func (s *SubmissionService) validateClipQuality(clip *twitch.Clip) error {
 	// Check if clip is too old (>6 months)
 	if time.Since(clip.CreatedAt) > 6*30*24*time.Hour {
-		return &ValidationError{Field: "clip", Message: "Clip is too old (must be less than 6 months)"}
+		ageInMonths := int(time.Since(clip.CreatedAt).Hours() / 24 / 30)
+		return &ValidationError{
+			Field:   "clip",
+			Message: fmt.Sprintf("This clip is too old (%d months). Only clips less than 6 months old can be submitted.", ageInMonths),
+		}
 	}
 
 	// Check if clip is too short (<5 seconds)
 	if clip.Duration < 5.0 {
-		return &ValidationError{Field: "clip", Message: "Clip is too short (must be at least 5 seconds)"}
+		return &ValidationError{
+			Field:   "clip",
+			Message: fmt.Sprintf("This clip is too short (%.1f seconds). Clips must be at least 5 seconds long.", clip.Duration),
+		}
 	}
 
 	// Check if clip has valid metadata
 	if clip.Title == "" || clip.BroadcasterName == "" {
-		return &ValidationError{Field: "clip", Message: "Clip has invalid metadata"}
+		return &ValidationError{
+			Field:   "clip",
+			Message: "This clip has missing or invalid metadata from Twitch. Please try a different clip.",
+		}
 	}
 
 	return nil
