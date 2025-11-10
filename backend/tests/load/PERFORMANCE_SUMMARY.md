@@ -18,7 +18,7 @@ This directory contains the deliverables for the load test bottleneck analysis a
 - **Tests**: `backend/internal/middleware/metrics_middleware_test.go` (100% coverage)
 
 #### pprof Profiling Endpoints
-- **Location**: `backend/cmd/api/main.go` (lines 394-417)
+- **Location**: `backend/cmd/api/main.go` (lines 395-414)
 - **Endpoints**:
   - `/debug/metrics` - Prometheus metrics
   - `/debug/pprof/*` - Go profiling (CPU, heap, goroutine, block, mutex)

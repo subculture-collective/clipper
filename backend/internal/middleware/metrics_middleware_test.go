@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,20 +13,6 @@ import (
 func TestMetricsMiddleware(t *testing.T) {
 	// Set Gin to test mode
 	gin.SetMode(gin.TestMode)
-
-	// Reset Prometheus metrics
-	prometheus.Unregister(httpRequestsTotal)
-	prometheus.Unregister(httpRequestDuration)
-	prometheus.Unregister(httpRequestSize)
-	prometheus.Unregister(httpResponseSize)
-	prometheus.Unregister(httpInFlightRequests)
-
-	// Re-register metrics
-	prometheus.MustRegister(httpRequestsTotal)
-	prometheus.MustRegister(httpRequestDuration)
-	prometheus.MustRegister(httpRequestSize)
-	prometheus.MustRegister(httpResponseSize)
-	prometheus.MustRegister(httpInFlightRequests)
 
 	tests := []struct {
 		name           string
@@ -103,9 +88,6 @@ func TestMetricsMiddleware(t *testing.T) {
 func TestMetricsMiddleware_InFlightRequests(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	// Reset the in-flight gauge
-	httpInFlightRequests.Set(0)
-
 	r := gin.New()
 	r.Use(MetricsMiddleware())
 	
@@ -129,19 +111,6 @@ func TestMetricsMiddleware_InFlightRequests(t *testing.T) {
 
 func TestMetricsMiddleware_Labels(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-
-	// Reset metrics
-	prometheus.Unregister(httpRequestsTotal)
-	prometheus.Unregister(httpRequestDuration)
-	prometheus.Unregister(httpRequestSize)
-	prometheus.Unregister(httpResponseSize)
-	prometheus.Unregister(httpInFlightRequests)
-
-	prometheus.MustRegister(httpRequestsTotal)
-	prometheus.MustRegister(httpRequestDuration)
-	prometheus.MustRegister(httpRequestSize)
-	prometheus.MustRegister(httpResponseSize)
-	prometheus.MustRegister(httpInFlightRequests)
 
 	r := gin.New()
 	r.Use(MetricsMiddleware())

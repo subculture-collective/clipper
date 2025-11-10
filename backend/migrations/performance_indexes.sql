@@ -1,5 +1,7 @@
 -- Database Performance Optimizations
 -- Run these queries to add additional indexes and optimize database performance
+-- Note: These use CREATE INDEX CONCURRENTLY (without IF NOT EXISTS) for safe production deployment
+-- Run these manually outside of migration transactions to avoid blocking table locks
 
 -- ============================================================================
 -- CLIP INDEXES FOR COMMON QUERY PATTERNS
@@ -7,35 +9,35 @@
 
 -- Composite index for filtering by is_removed + sorting by various fields
 -- Optimizes the common pattern: WHERE is_removed = false ORDER BY ...
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_not_removed_created 
+CREATE INDEX CONCURRENTLY idx_clips_not_removed_created 
 ON clips(is_removed, created_at DESC) 
 WHERE is_removed = false;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_not_removed_vote_score 
+CREATE INDEX CONCURRENTLY idx_clips_not_removed_vote_score 
 ON clips(is_removed, vote_score DESC) 
 WHERE is_removed = false;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_not_removed_hot 
+CREATE INDEX CONCURRENTLY idx_clips_not_removed_hot 
 ON clips(is_removed, vote_score DESC, created_at DESC) 
 WHERE is_removed = false;
 
 -- Index for game filtering with sorting
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_game_not_removed_created 
+CREATE INDEX CONCURRENTLY idx_clips_game_not_removed_created 
 ON clips(game_id, is_removed, created_at DESC) 
 WHERE is_removed = false;
 
 -- Index for broadcaster filtering
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_broadcaster_not_removed 
+CREATE INDEX CONCURRENTLY idx_clips_broadcaster_not_removed 
 ON clips(broadcaster_id, is_removed, created_at DESC) 
 WHERE is_removed = false;
 
 -- Index for language filtering
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_language_not_removed 
+CREATE INDEX CONCURRENTLY idx_clips_language_not_removed 
 ON clips(language, is_removed, created_at DESC) 
 WHERE is_removed = false AND language IS NOT NULL;
 
 -- Index for featured clips
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_featured 
+CREATE INDEX CONCURRENTLY idx_clips_featured 
 ON clips(is_featured, created_at DESC) 
 WHERE is_featured = true AND is_removed = false;
 
@@ -44,17 +46,17 @@ WHERE is_featured = true AND is_removed = false;
 -- ============================================================================
 
 -- Composite index for comments by clip with filtering and sorting
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_comments_clip_not_removed_created 
+CREATE INDEX CONCURRENTLY idx_comments_clip_not_removed_created 
 ON comments(clip_id, is_removed, created_at DESC) 
 WHERE is_removed = false;
 
 -- Index for top comments (sorted by vote score)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_comments_clip_not_removed_score 
+CREATE INDEX CONCURRENTLY idx_comments_clip_not_removed_score 
 ON comments(clip_id, is_removed, vote_score DESC) 
 WHERE is_removed = false;
 
 -- Index for parent comment lookup (threaded comments)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_comments_parent_not_removed 
+CREATE INDEX CONCURRENTLY idx_comments_parent_not_removed 
 ON comments(parent_comment_id, is_removed, created_at ASC) 
 WHERE parent_comment_id IS NOT NULL AND is_removed = false;
 
@@ -63,15 +65,15 @@ WHERE parent_comment_id IS NOT NULL AND is_removed = false;
 -- ============================================================================
 
 -- Index for user's vote history
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_votes_user_created 
+CREATE INDEX CONCURRENTLY idx_votes_user_created 
 ON votes(user_id, created_at DESC);
 
 -- Index for checking if user voted on a clip
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_votes_user_clip 
+CREATE INDEX CONCURRENTLY idx_votes_user_clip 
 ON votes(user_id, clip_id);
 
 -- Index for user's comment history
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_comments_user_created 
+CREATE INDEX CONCURRENTLY idx_comments_user_created 
 ON comments(user_id, is_removed, created_at DESC);
 
 -- ============================================================================
@@ -79,11 +81,11 @@ ON comments(user_id, is_removed, created_at DESC);
 -- ============================================================================
 
 -- Composite index for user's favorites with clip data
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_favorites_user_created 
+CREATE INDEX CONCURRENTLY idx_favorites_user_created 
 ON favorites(user_id, created_at DESC);
 
 -- Index for checking if clip is favorited
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_favorites_user_clip 
+CREATE INDEX CONCURRENTLY idx_favorites_user_clip 
 ON favorites(user_id, clip_id);
 
 -- ============================================================================
@@ -91,14 +93,14 @@ ON favorites(user_id, clip_id);
 -- ============================================================================
 
 -- Index for popular tags (by usage count)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tags_clip_count 
+CREATE INDEX CONCURRENTLY idx_tags_clip_count 
 ON tags(clip_count DESC, name);
 
 -- Index for clip-tag relationship lookup
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clip_tags_tag 
+CREATE INDEX CONCURRENTLY idx_clip_tags_tag 
 ON clip_tags(tag_id, clip_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clip_tags_clip 
+CREATE INDEX CONCURRENTLY idx_clip_tags_clip 
 ON clip_tags(clip_id, tag_id);
 
 -- ============================================================================
@@ -106,11 +108,11 @@ ON clip_tags(clip_id, tag_id);
 -- ============================================================================
 
 -- Index for clip view tracking
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clip_analytics_clip_date 
+CREATE INDEX CONCURRENTLY idx_clip_analytics_clip_date 
 ON clip_analytics(clip_id, date DESC);
 
 -- Index for trending analysis
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clip_analytics_date_views 
+CREATE INDEX CONCURRENTLY idx_clip_analytics_date_views 
 ON clip_analytics(date DESC, view_count DESC);
 
 -- ============================================================================
@@ -118,12 +120,12 @@ ON clip_analytics(date DESC, view_count DESC);
 -- ============================================================================
 
 -- Index for user's unread notifications
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_unread 
+CREATE INDEX CONCURRENTLY idx_notifications_user_unread 
 ON notifications(user_id, is_read, created_at DESC) 
 WHERE is_read = false;
 
 -- Index for notification delivery
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_created 
+CREATE INDEX CONCURRENTLY idx_notifications_user_created 
 ON notifications(user_id, created_at DESC);
 
 -- ============================================================================
@@ -131,11 +133,11 @@ ON notifications(user_id, created_at DESC);
 -- ============================================================================
 
 -- Index for user's submissions
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_submissions_user_created 
+CREATE INDEX CONCURRENTLY idx_submissions_user_created 
 ON submissions(user_id, created_at DESC);
 
 -- Index for pending submissions
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_submissions_status 
+CREATE INDEX CONCURRENTLY idx_submissions_status 
 ON submissions(status, created_at DESC);
 
 -- ============================================================================
@@ -143,11 +145,11 @@ ON submissions(status, created_at DESC);
 -- ============================================================================
 
 -- Index for reputation events by user
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_reputation_events_user_created 
+CREATE INDEX CONCURRENTLY idx_reputation_events_user_created 
 ON reputation_events(user_id, created_at DESC);
 
 -- Index for recent reputation events
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_reputation_events_created 
+CREATE INDEX CONCURRENTLY idx_reputation_events_created 
 ON reputation_events(created_at DESC);
 
 -- ============================================================================
@@ -155,12 +157,12 @@ ON reputation_events(created_at DESC);
 -- ============================================================================
 
 -- Index for active subscriptions
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_subscriptions_user_status 
+CREATE INDEX CONCURRENTLY idx_subscriptions_user_status 
 ON subscriptions(user_id, status) 
 WHERE status IN ('active', 'trialing');
 
 -- Index for subscription expiration monitoring
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_subscriptions_current_period_end 
+CREATE INDEX CONCURRENTLY idx_subscriptions_current_period_end 
 ON subscriptions(current_period_end ASC, status) 
 WHERE status IN ('active', 'trialing');
 

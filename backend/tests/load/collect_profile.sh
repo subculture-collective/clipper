@@ -136,11 +136,11 @@ echo ""
 echo -e "${YELLOW}=== Generating Summary Report ===${NC}"
 
 # Generate summary report
-cat > "$PROFILE_DIR/REPORT.md" << 'EOF'
+cat > "$PROFILE_DIR/REPORT.md" << EOF
 # Performance Profiling Report
 
 **Generated**: $(date)
-**Profile Directory**: $(basename $PROFILE_DIR)
+**Profile Directory**: $(basename "$PROFILE_DIR")
 
 ## Test Configuration
 
@@ -201,7 +201,7 @@ grep -A 50 "     checks" k6_results.txt
 
 ### Load Test Results
 \`\`\`bash
-cat k6_results.txt | grep -E "(http_req_duration|http_req_failed|http_reqs)"
+grep -E "(http_req_duration|http_req_failed|http_reqs)" k6_results.txt
 \`\`\`
 
 ### Top CPU Consumers
@@ -249,14 +249,6 @@ go tool pprof -top goroutine.pb.gz | head -10
 
 <!-- Compare metrics after implementing optimizations -->
 EOF
-
-# Substitute variables in the report
-sed -i.bak "s|\$(date)|$(date)|g" "$PROFILE_DIR/REPORT.md"
-sed -i.bak "s|\$(basename \$PROFILE_DIR)|$(basename $PROFILE_DIR)|g" "$PROFILE_DIR/REPORT.md"
-sed -i.bak "s|\$BASE_URL|$BASE_URL|g" "$PROFILE_DIR/REPORT.md"
-sed -i.bak "s|\${LOAD_TEST_DURATION}|$LOAD_TEST_DURATION|g" "$PROFILE_DIR/REPORT.md"
-sed -i.bak "s|\${CPU_PROFILE_DURATION}|$CPU_PROFILE_DURATION|g" "$PROFILE_DIR/REPORT.md"
-rm "$PROFILE_DIR/REPORT.md.bak"
 
 echo -e "${GREEN}✓ Generated REPORT.md${NC}"
 
