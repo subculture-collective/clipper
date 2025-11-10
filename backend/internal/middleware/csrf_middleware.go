@@ -16,7 +16,7 @@ const (
 	// CSRFTokenLength is the length of CSRF tokens in bytes
 	CSRFTokenLength = 32
 	// CSRFTokenHeader is the header name for CSRF token
-	CSRFTokenHeader = "X-CSRF-Token"
+	CSRFTokenHeader = "X-CSRF-Token" // #nosec G101 -- not a credential, just header name
 	// CSRFCookieName is the cookie name for CSRF token
 	CSRFCookieName = "csrf_token"
 	// CSRFTokenTTL is the time-to-live for CSRF tokens

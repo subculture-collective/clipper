@@ -240,17 +240,16 @@ func (h *TagHandler) AddTagsToClip(c *gin.Context) {
 
 		// Get or create tag
 		tag, err := h.tagRepo.GetBySlug(c.Request.Context(), slug)
+	if err != nil {
+		// Tag doesn't exist, create it (for now, allow users to create tags)
+		// In production, you might want to require admin approval
+		// Simple title case: capitalize first letter of each word
+		name := strings.ToUpper(slug[:1]) + slug[1:]
+		tag, err = h.tagRepo.GetOrCreateTag(c.Request.Context(), name, slug, nil)
 		if err != nil {
-			// Tag doesn't exist, create it (for now, allow users to create tags)
-			// In production, you might want to require admin approval
-			name := strings.Title(slug)
-			tag, err = h.tagRepo.GetOrCreateTag(c.Request.Context(), name, slug, nil)
-			if err != nil {
-				continue
-			}
+			continue
 		}
-
-		// Add tag to clip
+	}		// Add tag to clip
 		err = h.tagRepo.AddTagToClip(c.Request.Context(), clipID, tag.ID)
 		if err != nil {
 			continue // Skip if already exists or other error
