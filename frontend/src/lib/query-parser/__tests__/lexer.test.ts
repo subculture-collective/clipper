@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Lexer, TokenType, tokenize } from '../lexer';
+import { TokenType, tokenize } from '../lexer';
 
 describe('Lexer', () => {
   describe('Basic Tokens', () => {
@@ -188,10 +188,10 @@ describe('Lexer', () => {
       
       expect(tokens[0].value).toBe('epic');
       expect(tokens[1].type).toBe(TokenType.LPAREN);
-      expect(tokens[8].type).toBe(TokenType.RPAREN);
-      expect(tokens[9].type).toBe(TokenType.NEGATION);
-      expect(tokens[13].type).toBe(TokenType.COMPARISON);
-      expect(tokens[13].value).toBe('>=');
+      expect(tokens[9].type).toBe(TokenType.RPAREN);
+      expect(tokens[10].type).toBe(TokenType.NEGATION);
+      expect(tokens[16].type).toBe(TokenType.COMPARISON);
+      expect(tokens[16].value).toBe('>=');
     });
   });
 

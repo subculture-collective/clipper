@@ -9,7 +9,6 @@ import {
   FilterNode,
   FilterExprNode,
   GroupedFilterNode,
-  BooleanExprNode,
   FilterValue,
   RangeValue,
   DateValue,
@@ -29,11 +28,11 @@ import {
 import { Token, TokenType, tokenize } from './lexer';
 import {
   QueryParseError,
+  QueryErrorCode,
   createInvalidFilterNameError,
   createMissingFilterValueError,
   createInvalidDateFormatError,
   createInvalidRangeError,
-  createUnclosedQuoteError,
   createInvalidComparisonOperatorError,
   createQueryTooLongError,
   createTooManyFiltersError,
@@ -191,7 +190,7 @@ export class Parser {
 
     if (!this.match(TokenType.WORD)) {
       throw new QueryParseError(
-        'QE001' as any,
+        QueryErrorCode.INVALID_FILTER_NAME,
         'Expected filter name',
         this.peek().position
       );
@@ -208,7 +207,7 @@ export class Parser {
     // Expect colon
     if (!this.match(TokenType.COLON)) {
       throw new QueryParseError(
-        'QE001' as any,
+        QueryErrorCode.INVALID_FILTER_NAME,
         `Expected ':' after filter name "${name}"`,
         this.peek().position
       );
@@ -258,8 +257,6 @@ export class Parser {
    * Parse filter value based on filter type
    */
   private parseFilterValue(filterName: FilterName): FilterValue {
-    const valueStart = this.peek().position;
-
     // Range filters (duration, views, votes, karma)
     if (['duration', 'views', 'votes', 'karma'].includes(filterName)) {
       return this.parseRangeValue();
@@ -300,7 +297,7 @@ export class Parser {
 
       if (!this.match(TokenType.NUMBER)) {
         throw new QueryParseError(
-          'QE002' as any,
+          QueryErrorCode.MISSING_FILTER_VALUE,
           'Expected number after comparison operator',
           this.peek().position
         );
@@ -324,7 +321,7 @@ export class Parser {
       if (this.match(TokenType.RANGE)) {
         if (!this.match(TokenType.NUMBER)) {
           throw new QueryParseError(
-            'QE002' as any,
+            QueryErrorCode.MISSING_FILTER_VALUE,
             'Expected number after ".."',
             this.peek().position
           );
@@ -427,7 +424,7 @@ export class Parser {
     if (this.match(TokenType.WORD)) {
       const value = this.previous().value.toLowerCase();
 
-      if (FLAGS.includes(value as any)) {
+      if (FLAGS.includes(value as 'featured' | 'nsfw')) {
         return {
           type: 'FlagValue',
           flag: value as 'featured' | 'nsfw',
@@ -493,7 +490,7 @@ export class Parser {
     }
 
     throw new QueryParseError(
-      'QE002' as any,
+      QueryErrorCode.MISSING_FILTER_VALUE,
       'Expected string value',
       this.peek().position
     );
@@ -573,7 +570,7 @@ export class Parser {
    */
   private consume(type: TokenType, message: string): Token {
     if (this.check(type)) return this.advance();
-    throw new QueryParseError('QE001' as any, message, this.peek().position);
+    throw new QueryParseError(QueryErrorCode.INVALID_FILTER_NAME, message, this.peek().position);
   }
 
   /**

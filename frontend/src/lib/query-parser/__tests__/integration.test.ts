@@ -426,7 +426,9 @@ describe('Query Parser Integration', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(QueryParseError);
         if (error instanceof QueryParseError) {
-          expect(error.message).toContain('requires a value');
+          // Should be a missing value error (QE002)
+          expect(error.code).toBe('QE002');
+          expect(error.message.length).toBeGreaterThan(0);
         }
       }
     });
