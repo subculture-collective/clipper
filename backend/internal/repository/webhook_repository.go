@@ -42,7 +42,7 @@ func (r *WebhookRepository) AddToRetryQueue(ctx context.Context, stripeEventID, 
 // GetRetryQueueItem retrieves a webhook event from the retry queue by event ID
 func (r *WebhookRepository) GetRetryQueueItem(ctx context.Context, stripeEventID string) (*models.WebhookRetryQueue, error) {
 	query := `
-		SELECT id, stripe_event_id, event_type, payload, retry_count, max_retries, 
+		SELECT id, stripe_event_id, event_type, payload, retry_count, max_retries,
 		       next_retry_at, last_error, created_at, updated_at
 		FROM webhook_retry_queue
 		WHERE stripe_event_id = $1

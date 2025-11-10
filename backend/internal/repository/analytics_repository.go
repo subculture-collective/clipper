@@ -92,8 +92,8 @@ func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorNam
 		       c.comment_count, c.favorite_count, c.is_featured, c.is_nsfw,
 		       c.is_removed, c.removed_reason,
 		       COALESCE(ca.total_views, 0) as views,
-		       CASE 
-		           WHEN COALESCE(ca.total_views, 0) > 0 
+		       CASE
+		           WHEN COALESCE(ca.total_views, 0) > 0
 		           THEN (c.vote_score::float + c.comment_count::float) / ca.total_views::float
 		           ELSE 0
 		       END as engagement_rate
@@ -292,7 +292,7 @@ func (r *AnalyticsRepository) GetPlatformOverviewMetrics(ctx context.Context) (*
 			ORDER BY date DESC
 			LIMIT 1
 		)
-		SELECT 
+		SELECT
 			COALESCE(total_users, 0),
 			COALESCE(active_users_daily, 0),
 			COALESCE(active_users_monthly, 0),
@@ -326,7 +326,7 @@ func (r *AnalyticsRepository) GetPlatformOverviewMetrics(ctx context.Context) (*
 // GetMostPopularGames retrieves top games by clip count and views
 func (r *AnalyticsRepository) GetMostPopularGames(ctx context.Context, limit int) ([]models.GameMetric, error) {
 	query := `
-		SELECT 
+		SELECT
 			c.game_id,
 			c.game_name,
 			COUNT(*) as clip_count,
@@ -361,7 +361,7 @@ func (r *AnalyticsRepository) GetMostPopularGames(ctx context.Context, limit int
 // GetMostPopularCreators retrieves top creators by metrics
 func (r *AnalyticsRepository) GetMostPopularCreators(ctx context.Context, limit int) ([]models.CreatorMetric, error) {
 	query := `
-		SELECT 
+		SELECT
 			creator_id,
 			creator_name,
 			total_clips,
