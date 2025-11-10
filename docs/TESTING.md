@@ -284,29 +284,74 @@ test('user can view and vote on clip', async ({ page }) => {
 
 ### Running Load Tests
 
-Load tests use k6 to test performance under load.
+Load tests use k6 to test performance under load. We have comprehensive scenarios covering different user behaviors.
 
 ```bash
 # Install k6
 # macOS: brew install k6
 # Linux: See https://k6.io/docs/getting-started/installation/
 
-# Run load tests
+# Seed test data first
+make migrate-seed-load-test
+
+# Run all load tests
 make test-load
 
-# Or directly
-k6 run backend/tests/load/feed_test.js
+# Run specific scenarios
+make test-load-feed          # Feed browsing
+make test-load-clip          # Clip detail views
+make test-load-search        # Search functionality
+make test-load-comments      # Comment interactions
+make test-load-mixed         # Mixed user behavior (recommended)
 
-# Run with custom options
-k6 run --vus 50 --duration 30s backend/tests/load/feed_test.js
+# Collect baseline metrics
+./backend/tests/load/baseline-metrics.sh
 ```
+
+### Available Load Test Scenarios
+
+1. **Feed Browsing** (`feed_browsing.js`) - Tests feed endpoints with different sorting
+   - 100 concurrent users
+   - Hot/new/top feed variants
+   - p95 target: <100ms
+
+2. **Clip Detail View** (`clip_detail.js`) - Tests individual clip viewing
+   - 50 concurrent users
+   - Includes related clips, comments, analytics
+   - p95 target: <50ms
+
+3. **Search** (`search.js`) - Tests search with filters and suggestions
+   - 40 concurrent users
+   - Various query types and filters
+   - p95 target: <100ms
+
+4. **Comments** (`comments.js`) - Tests comment listing and interactions
+   - 25 concurrent users
+   - Read and write operations (with auth)
+   - p95 target: <50ms
+
+5. **Clip Submission** (`submit.js`) - Tests submission workflow
+   - 10 concurrent users
+   - Requires authentication
+   - p95 target: <200ms
+
+6. **Mixed Behavior** (`mixed_behavior.js`) - Realistic user patterns
+   - 100 concurrent users
+   - 4 user profiles (browsers, viewers, searchers, engaged users)
+   - Overall p95 target: <100ms
+
+See [Load Testing README](../backend/tests/load/README.md) for detailed documentation.
 
 ### Performance Targets
 
-- Feed endpoint response time: **<100ms (p95)**
-- API response time: **<50ms (p95)**
-- Concurrent users: **1000+**
-- Requests per second: **100+**
+| Endpoint Type | p95 Target | p99 Target | Concurrent Users |
+|--------------|------------|------------|------------------|
+| Feed listing | <100ms | <150ms | 100 |
+| Clip detail | <50ms | <100ms | 50 |
+| Search | <100ms | <200ms | 40 |
+| Comments | <50ms | <100ms | 25 |
+| Write operations | <100ms | <200ms | 25 |
+| Submissions | <200ms | <500ms | 10 |
 
 ## CI/CD Integration
 
