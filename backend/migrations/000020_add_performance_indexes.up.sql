@@ -100,8 +100,8 @@ CREATE INDEX IF NOT EXISTS idx_clip_tags_tag
 ON clip_tags(tag_id, clip_id);
 
 -- Index for popular tags
-CREATE INDEX IF NOT EXISTS idx_tags_clip_count 
-ON tags(clip_count DESC, name);
+CREATE INDEX IF NOT EXISTS idx_tags_usage_count 
+ON tags(usage_count DESC, name);
 
 -- ============================================================================
 -- MEDIUM PRIORITY: Notifications

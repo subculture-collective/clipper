@@ -147,7 +147,6 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
 
-
 	// Initialize email service
 	emailService := services.NewEmailService(&services.EmailConfig{
 		SendGridAPIKey:   cfg.Email.SendGridAPIKey,
@@ -157,7 +156,6 @@ func main() {
 		Enabled:          cfg.Email.Enabled,
 		MaxEmailsPerHour: cfg.Email.MaxEmailsPerHour,
 	}, emailNotificationRepo)
-
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
 	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
@@ -173,7 +171,6 @@ func main() {
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
-
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
@@ -198,7 +195,6 @@ func main() {
 	if osClient != nil {
 		searchIndexerService = services.NewSearchIndexerService(osClient)
 		openSearchService = services.NewOpenSearchService(osClient)
-
 
 		// Initialize indices in background
 		go func() {
@@ -401,7 +397,7 @@ func main() {
 	{
 		// Prometheus metrics endpoint
 		debug.GET("/metrics", gin.WrapH(promhttp.Handler()))
-		
+
 		// Go pprof endpoints for profiling
 		debug.GET("/pprof/", gin.WrapF(pprof.Index))
 		debug.GET("/pprof/cmdline", gin.WrapF(pprof.Cmdline))
@@ -553,16 +549,13 @@ func main() {
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
 
-
 			// Profile management (authenticated)
 			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)
 			users.GET("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.GetSettings)
 			users.PUT("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSettings)
 
-
 			// Data export (authenticated, rate limited)
 			users.GET("/me/export", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.ExportData)
-
 
 			// Account deletion (authenticated, rate limited)
 			users.POST("/me/delete", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.RequestAccountDeletion)
@@ -595,10 +588,8 @@ func main() {
 			// Public unsubscribe endpoint (no auth required, uses token, but rate limited)
 			notifications.GET("/unsubscribe", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), notificationHandler.Unsubscribe)
 
-
 			// Protected notification endpoints (require authentication)
 			notifications.Use(middleware.AuthMiddleware(authService))
-
 
 			// Get notifications list
 			notifications.GET("", notificationHandler.ListNotifications)

@@ -15,7 +15,7 @@ type DunningServiceInterface interface {
 
 // DunningScheduler manages periodic dunning processing tasks
 type DunningScheduler struct {
-	dunningService        DunningServiceInterface
+	dunningService           DunningServiceInterface
 	gracePeriodCheckInterval time.Duration
 	warningCheckInterval     time.Duration
 	stopChan                 chan struct{}
@@ -113,7 +113,7 @@ func (s *DunningScheduler) Stop() {
 	s.stopOnce.Do(func() {
 		log.Println("[DUNNING_SCHEDULER] Stopping dunning scheduler...")
 		close(s.stopChan)
-		
+
 		// Wait for goroutines to finish with timeout
 		done := make(chan struct{})
 		go func() {

@@ -59,7 +59,7 @@ func TestIsInGracePeriod(t *testing.T) {
 // TestPrepareDunningEmailData tests email data preparation
 func TestPrepareDunningEmailData(t *testing.T) {
 	service := &DunningService{}
-	
+
 	subID := uuid.New()
 	invoiceID := "inv_test123"
 	gracePeriodEnd := time.Now().Add(5 * 24 * time.Hour)
@@ -82,7 +82,7 @@ func TestPrepareDunningEmailData(t *testing.T) {
 
 	t.Run("payment_failed notification data", func(t *testing.T) {
 		data := service.prepareDunningEmailData(sub, failure, models.NotificationTypePaymentFailed)
-		
+
 		assert.Equal(t, subID.String(), data["SubscriptionID"])
 		assert.Equal(t, invoiceID, data["InvoiceID"])
 		assert.Equal(t, "$9.99", data["AmountDue"])
@@ -94,7 +94,7 @@ func TestPrepareDunningEmailData(t *testing.T) {
 
 	t.Run("includes next retry time when available", func(t *testing.T) {
 		data := service.prepareDunningEmailData(sub, failure, models.NotificationTypePaymentRetry)
-		
+
 		assert.Contains(t, data, "NextRetryAt")
 		assert.NotEmpty(t, data["NextRetryAt"])
 	})
@@ -116,7 +116,7 @@ func TestPaymentFailureModel(t *testing.T) {
 		subID := uuid.New()
 		invoiceID := "inv_test123"
 		paymentIntentID := "pi_test123"
-		
+
 		failure := &models.PaymentFailure{
 			SubscriptionID:        subID,
 			StripeInvoiceID:       invoiceID,
@@ -141,7 +141,7 @@ func TestDunningAttemptModel(t *testing.T) {
 	t.Run("creates dunning attempt record", func(t *testing.T) {
 		failureID := uuid.New()
 		userID := uuid.New()
-		
+
 		attempt := &models.DunningAttempt{
 			PaymentFailureID: failureID,
 			UserID:           userID,
@@ -157,4 +157,3 @@ func TestDunningAttemptModel(t *testing.T) {
 		assert.True(t, attempt.EmailSent)
 	})
 }
-

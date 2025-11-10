@@ -31,11 +31,11 @@ var (
 
 // SubscriptionService handles subscription business logic
 type SubscriptionService struct {
-	repo        *repository.SubscriptionRepository
-	userRepo    *repository.UserRepository
-	webhookRepo *repository.WebhookRepository
-	cfg         *config.Config
-	auditLogSvc *AuditLogService
+	repo           *repository.SubscriptionRepository
+	userRepo       *repository.UserRepository
+	webhookRepo    *repository.WebhookRepository
+	cfg            *config.Config
+	auditLogSvc    *AuditLogService
 	dunningService *DunningService
 }
 
@@ -52,11 +52,11 @@ func NewSubscriptionService(
 	stripe.Key = cfg.Stripe.SecretKey
 
 	return &SubscriptionService{
-		repo:        repo,
-		userRepo:    userRepo,
-		webhookRepo: webhookRepo,
-		cfg:         cfg,
-		auditLogSvc: auditLogSvc,
+		repo:           repo,
+		userRepo:       userRepo,
+		webhookRepo:    webhookRepo,
+		cfg:            cfg,
+		auditLogSvc:    auditLogSvc,
 		dunningService: dunningService,
 	}
 }
@@ -285,7 +285,7 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 		return fmt.Errorf("failed to unmarshal subscription: %w", err)
 	}
 
-	log.Printf("[WEBHOOK] Processing subscription.created for customer: %s, subscription: %s", 
+	log.Printf("[WEBHOOK] Processing subscription.created for customer: %s, subscription: %s",
 		stripeSubscription.Customer.ID, stripeSubscription.ID)
 
 	// Get subscription by customer ID
@@ -338,7 +338,7 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully created subscription for user %s (tier: %s, status: %s)", 
+	log.Printf("[WEBHOOK] Successfully created subscription for user %s (tier: %s, status: %s)",
 		sub.UserID, tier, stripeSubscription.Status)
 	return nil
 }
@@ -394,7 +394,7 @@ func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, eve
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully updated subscription %s (tier: %s, status: %s)", 
+	log.Printf("[WEBHOOK] Successfully updated subscription %s (tier: %s, status: %s)",
 		stripeSubscription.ID, tier, stripeSubscription.Status)
 	return nil
 }
@@ -455,7 +455,7 @@ func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event strip
 		return nil // Not a subscription invoice
 	}
 
-	log.Printf("[WEBHOOK] Processing invoice.paid for subscription: %s, invoice: %s", 
+	log.Printf("[WEBHOOK] Processing invoice.paid for subscription: %s, invoice: %s",
 		invoice.Subscription.ID, invoice.ID)
 
 	// Get subscription by Stripe subscription ID
@@ -503,7 +503,7 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 		return nil // Not a subscription invoice
 	}
 
-	log.Printf("[WEBHOOK] Processing invoice.payment_failed for subscription: %s, invoice: %s", 
+	log.Printf("[WEBHOOK] Processing invoice.payment_failed for subscription: %s, invoice: %s",
 		invoice.Subscription.ID, invoice.ID)
 
 	// Get subscription by Stripe subscription ID

@@ -25,11 +25,11 @@ var (
 
 // DunningService handles dunning process for failed payments
 type DunningService struct {
-	dunningRepo        *repository.DunningRepository
-	subscriptionRepo   *repository.SubscriptionRepository
-	userRepo           *repository.UserRepository
-	emailService       *EmailService
-	auditLogSvc        *AuditLogService
+	dunningRepo      *repository.DunningRepository
+	subscriptionRepo *repository.SubscriptionRepository
+	userRepo         *repository.UserRepository
+	emailService     *EmailService
+	auditLogSvc      *AuditLogService
 }
 
 // NewDunningService creates a new dunning service
@@ -77,12 +77,12 @@ func (s *DunningService) HandlePaymentFailure(ctx context.Context, invoice *stri
 		if err := s.dunningRepo.UpdatePaymentFailure(ctx, existingFailure); err != nil {
 			log.Printf("[DUNNING] Failed to update payment failure: %v", err)
 		}
-		
+
 		// Send retry notification
 		if err := s.sendDunningNotification(ctx, sub, existingFailure, models.NotificationTypePaymentRetry, existingFailure.AttemptCount); err != nil {
 			log.Printf("[DUNNING] Failed to send retry notification: %v", err)
 		}
-		
+
 		return nil
 	}
 
@@ -91,13 +91,13 @@ func (s *DunningService) HandlePaymentFailure(ctx context.Context, invoice *stri
 	if invoice.PaymentIntent != nil {
 		paymentIntentID = invoice.PaymentIntent.ID
 	}
-	
+
 	var failureReason *string
 	if invoice.LastFinalizationError != nil {
 		reason := string(invoice.LastFinalizationError.Code)
 		failureReason = &reason
 	}
-	
+
 	var nextRetryAt *time.Time
 	if invoice.NextPaymentAttempt > 0 {
 		nextRetry := time.Unix(invoice.NextPaymentAttempt, 0)
@@ -105,15 +105,15 @@ func (s *DunningService) HandlePaymentFailure(ctx context.Context, invoice *stri
 	}
 
 	failure := &models.PaymentFailure{
-		SubscriptionID: sub.ID,
-		StripeInvoiceID: invoice.ID,
+		SubscriptionID:        sub.ID,
+		StripeInvoiceID:       invoice.ID,
 		StripePaymentIntentID: &paymentIntentID,
-		AmountDue: invoice.AmountDue,
-		Currency: string(invoice.Currency),
-		AttemptCount: 1,
-		FailureReason: failureReason,
-		NextRetryAt: nextRetryAt,
-		Resolved: false,
+		AmountDue:             invoice.AmountDue,
+		Currency:              string(invoice.Currency),
+		AttemptCount:          1,
+		FailureReason:         failureReason,
+		NextRetryAt:           nextRetryAt,
+		Resolved:              false,
 	}
 
 	if err := s.dunningRepo.CreatePaymentFailure(ctx, failure); err != nil {
@@ -139,9 +139,9 @@ func (s *DunningService) HandlePaymentFailure(ctx context.Context, invoice *stri
 	// Log audit event
 	if s.auditLogSvc != nil {
 		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, sub.UserID, "payment_failed", map[string]interface{}{
-			"invoice_id": invoice.ID,
-			"amount_due": invoice.AmountDue,
-			"currency": invoice.Currency,
+			"invoice_id":    invoice.ID,
+			"amount_due":    invoice.AmountDue,
+			"currency":      invoice.Currency,
 			"attempt_count": 1,
 		})
 	}
@@ -191,7 +191,7 @@ func (s *DunningService) HandlePaymentSuccess(ctx context.Context, invoice *stri
 	// Log audit event
 	if s.auditLogSvc != nil {
 		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, sub.UserID, "payment_recovered", map[string]interface{}{
-			"invoice_id": invoice.ID,
+			"invoice_id":  invoice.ID,
 			"amount_paid": invoice.AmountPaid,
 		})
 	}
@@ -254,9 +254,9 @@ func (s *DunningService) downgradeSubscription(ctx context.Context, sub *models.
 	// Log audit event with actual previous tier
 	if s.auditLogSvc != nil {
 		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, sub.UserID, "subscription_downgraded", map[string]interface{}{
-			"reason": "grace_period_expired",
+			"reason":        "grace_period_expired",
 			"previous_tier": previousTier,
-			"new_tier": "free",
+			"new_tier":      "free",
 		})
 	}
 
@@ -284,13 +284,13 @@ func (s *DunningService) SendGracePeriodWarnings(ctx context.Context) error {
 				if err != nil || len(failures) == 0 {
 					continue
 				}
-				
+
 				// Check if warning was already sent by looking at dunning attempts
 				attempts, err := s.dunningRepo.GetDunningAttemptsByFailureID(ctx, failures[0].ID)
 				if err != nil {
 					log.Printf("[DUNNING] Failed to get dunning attempts for failure %s: %v", failures[0].ID, err)
 				}
-				
+
 				// Skip if warning was already sent
 				alreadySent := false
 				for _, attempt := range attempts {
@@ -299,12 +299,12 @@ func (s *DunningService) SendGracePeriodWarnings(ctx context.Context) error {
 						break
 					}
 				}
-				
+
 				if alreadySent {
 					log.Printf("[DUNNING] Grace period warning already sent for subscription %s, skipping", sub.ID)
 					continue
 				}
-				
+
 				if err := s.sendDunningNotification(ctx, sub, failures[0], models.NotificationTypeGracePeriodWarning, 0); err != nil {
 					log.Printf("[DUNNING] Failed to send grace period warning for subscription %s: %v", sub.ID, err)
 				}
@@ -331,10 +331,10 @@ func (s *DunningService) sendDunningNotification(ctx context.Context, sub *model
 	// Create dunning attempt record
 	attempt := &models.DunningAttempt{
 		PaymentFailureID: failure.ID,
-		UserID: user.ID,
-		AttemptNumber: attemptNumber,
+		UserID:           user.ID,
+		AttemptNumber:    attemptNumber,
 		NotificationType: notificationType,
-		EmailSent: false,
+		EmailSent:        false,
 	}
 
 	// Prepare email data based on notification type
@@ -369,9 +369,9 @@ func (s *DunningService) sendDunningNotification(ctx context.Context, sub *model
 func (s *DunningService) prepareDunningEmailData(sub *models.Subscription, failure *models.PaymentFailure, notificationType string) map[string]interface{} {
 	data := map[string]interface{}{
 		"SubscriptionID": sub.ID.String(),
-		"InvoiceID": failure.StripeInvoiceID,
-		"AmountDue": fmt.Sprintf("$%.2f", float64(failure.AmountDue)/100),
-		"Currency": failure.Currency,
+		"InvoiceID":      failure.StripeInvoiceID,
+		"AmountDue":      fmt.Sprintf("$%.2f", float64(failure.AmountDue)/100),
+		"Currency":       failure.Currency,
 	}
 
 	if sub.GracePeriodEnd != nil {

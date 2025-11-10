@@ -37,7 +37,7 @@ func (h *WebhookMonitoringHandler) GetWebhookRetryStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "healthy",
+		"status":   "healthy",
 		"webhooks": stats,
 	})
 }

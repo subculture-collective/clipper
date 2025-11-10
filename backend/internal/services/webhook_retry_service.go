@@ -15,7 +15,7 @@ import (
 
 // WebhookRetryService handles processing of webhook retries from the queue
 type WebhookRetryService struct {
-	webhookRepo        *repository.WebhookRepository
+	webhookRepo         *repository.WebhookRepository
 	subscriptionService *SubscriptionService
 }
 
@@ -25,7 +25,7 @@ func NewWebhookRetryService(
 	subscriptionService *SubscriptionService,
 ) *WebhookRetryService {
 	return &WebhookRetryService{
-		webhookRepo:        webhookRepo,
+		webhookRepo:         webhookRepo,
 		subscriptionService: subscriptionService,
 	}
 }
@@ -58,7 +58,7 @@ func (s *WebhookRetryService) ProcessPendingRetries(ctx context.Context, batchSi
 
 // processRetry processes a single retry attempt
 func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.WebhookRetryQueue) error {
-	log.Printf("[WEBHOOK_RETRY] Processing retry %d/%d for event %s (type: %s)", 
+	log.Printf("[WEBHOOK_RETRY] Processing retry %d/%d for event %s (type: %s)",
 		item.RetryCount+1, item.MaxRetries, item.StripeEventID, item.EventType)
 
 	// Parse the payload into a Stripe event
@@ -66,7 +66,7 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 	if err := json.Unmarshal([]byte(item.Payload), &event); err != nil {
 		errMsg := fmt.Sprintf("failed to unmarshal event payload: %v", err)
 		log.Printf("[WEBHOOK_RETRY] %s", errMsg)
-		
+
 		// This is a permanent error, move to DLQ
 		if err := s.webhookRepo.MoveToDeadLetterQueue(ctx, item, errMsg); err != nil {
 			log.Printf("[WEBHOOK_RETRY] Failed to move event %s to DLQ: %v", item.StripeEventID, err)
@@ -76,11 +76,11 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 
 	// Process the event using the subscription service
 	err := s.subscriptionService.processWebhookWithRetry(ctx, event)
-	
+
 	if err != nil {
 		// Increment retry count
 		newRetryCount := item.RetryCount + 1
-		
+
 		// Check if we've exhausted retries
 		if newRetryCount >= item.MaxRetries {
 			log.Printf("[WEBHOOK_RETRY] Max retries reached for event %s, moving to DLQ", item.StripeEventID)
@@ -92,7 +92,7 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 
 		// Calculate next retry time with exponential backoff
 		nextRetry := s.calculateNextRetry(newRetryCount)
-		log.Printf("[WEBHOOK_RETRY] Retry failed for event %s, scheduling next retry at %v", 
+		log.Printf("[WEBHOOK_RETRY] Retry failed for event %s, scheduling next retry at %v",
 			item.StripeEventID, nextRetry)
 
 		// Update retry queue item
@@ -125,15 +125,15 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 func (s *WebhookRetryService) calculateNextRetry(retryCount int) time.Time {
 	baseDelay := 30 * time.Second
 	maxDelay := 1 * time.Hour
-	
+
 	// Calculate exponential backoff: 30s, 1m, 2m, 4m, etc.
 	delay := time.Duration(float64(baseDelay) * math.Pow(2, float64(retryCount)))
-	
+
 	// Cap at max delay
 	if delay > maxDelay {
 		delay = maxDelay
 	}
-	
+
 	return time.Now().Add(delay)
 }
 
