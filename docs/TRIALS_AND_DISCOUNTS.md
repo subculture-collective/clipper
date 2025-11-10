@@ -27,12 +27,14 @@ This document outlines Clipper's trial and discount policies for premium subscri
 **Offer**: 7-day free trial of Pro features
 
 **Eligibility**:
+
 - New users only (never had Pro subscription)
 - Must provide valid payment method
 - One trial per user account
 - One trial per payment method
 
 **Mechanics**:
+
 - Trial starts immediately upon signup
 - Full Pro access during trial period
 - Automatic conversion to paid subscription after 7 days
@@ -40,18 +42,21 @@ This document outlines Clipper's trial and discount policies for premium subscri
 - Email reminders at day 5 and day 6
 
 **Stripe Configuration**:
+
 ```go
 // Trial period in Stripe subscription
 TrialPeriodDays: 7
 ```
 
 **Conversion Strategy**:
+
 - Send welcome email with Pro feature highlights
 - In-app tips showcasing Pro features during trial
 - Reminder emails before trial ends
 - Exit survey for users who cancel during trial
 
 **Expected Metrics**:
+
 - Trial signup rate: Target 15-20% of free users
 - Trial-to-paid conversion: Target 35-45%
 - Trial cancellation rate: Target 55-65%
@@ -61,6 +66,7 @@ TrialPeriodDays: 7
 **Offer**: 14-day or 30-day extended trials
 
 **Eligibility**:
+
 - Special promotional periods (launch, holidays)
 - Partnership programs
 - Influencer/creator referrals
@@ -68,6 +74,7 @@ TrialPeriodDays: 7
 - Recovery offers for churned users
 
 **Use Cases**:
+
 - **Launch Trial**: 14-day trial during beta launch
 - **Holiday Special**: 14-day trial during Black Friday/Cyber Monday
 - **Partner Referral**: 30-day trial from partner links
@@ -75,6 +82,7 @@ TrialPeriodDays: 7
 - **Win-back Campaign**: 14-day trial for users who canceled
 
 **Implementation**:
+
 ```go
 // Coupon-based extended trial
 Coupon: "EXTENDED14" // 14-day trial
@@ -84,26 +92,31 @@ Coupon: "CREATOR30" // 30-day trial
 ### Trial-to-Paid Optimization
 
 **Day 1: Welcome & Onboarding**
+
 - Welcome email with Pro feature overview
 - In-app onboarding tour highlighting Pro features
 - Quick win: "Create your first collection"
 
 **Day 3: Engagement Check**
+
 - Usage analytics email
 - Feature suggestion based on behavior
 - "You've saved X clips, organize them into collections"
 
 **Day 5: Reminder & Value Prop**
+
 - Email: "2 days left in your Pro trial"
 - Showcase most-used Pro feature
 - Testimonial from similar user
 
 **Day 6: Last Chance**
+
 - Email: "Your trial ends tomorrow"
 - Clear call-to-action to subscribe
 - Annual plan discount offer (15% off)
 
 **Post-Trial (Cancellation)**
+
 - Exit survey: Why didn't you subscribe?
 - Offer assistance or feature guidance
 - 20% discount offer to come back within 30 days
@@ -115,16 +128,19 @@ Coupon: "CREATOR30" // 30-day trial
 **Offer**: 17% savings on annual vs. monthly
 
 **Pricing**:
+
 - Monthly: $9.99/month × 12 = $119.88/year
 - Annual: $99.99/year (save $19.89)
 - Effective monthly: $8.33/month
 
 **Positioning**:
+
 - Default recommendation on pricing page
 - "Most popular" badge on annual option
 - Savings calculator showing dollar amount saved
 
 **Rationale**:
+
 - Improves customer lifetime value (LTV)
 - Reduces churn (annual commitment)
 - Provides upfront cash flow
@@ -141,10 +157,12 @@ Coupon: "CREATOR30" // 30-day trial
 **Code**: `LAUNCH25`
 
 **Pricing**:
+
 - Monthly: $7.49/month (was $9.99)
 - Annual: $74.99/year (was $99.99)
 
 **Eligibility**:
+
 - Available to all new Pro subscribers
 - One-time discount on first year only
 - Pricing returns to standard after first year
@@ -154,24 +172,28 @@ Coupon: "CREATOR30" // 30-day trial
 #### Seasonal Promotions
 
 **Black Friday / Cyber Monday**
+
 - Offer: 30% off annual plan
 - Code: `BFCM30`
 - Pricing: $69.99/year (was $99.99)
 - Duration: 4 days (Black Friday through Cyber Monday)
 
 **Holiday Special**
+
 - Offer: 20% off any plan for 2 weeks
 - Code: `HOLIDAY20`
 - Pricing: Monthly $7.99, Annual $79.99
 - Duration: December 15 - December 31
 
 **Anniversary Sale**
+
 - Offer: 40% off annual plan
 - Code: `ANNIVERSARY40`
 - Pricing: $59.99/year (was $99.99)
 - Duration: 1 week around platform anniversary
 
 **New Year Resolution**
+
 - Offer: "Start the year organized" - 15% off
 - Code: `NEWYEAR15`
 - Pricing: Monthly $8.49, Annual $84.99
@@ -187,6 +209,7 @@ Coupon: "CREATOR30" // 30-day trial
 | 50%+ | Never | Devalues product | Not recommended |
 
 **Best Practices**:
+
 - Limit deep discounts (>30%) to special occasions
 - Avoid constant discounts (reduces perceived value)
 - Use urgency (limited time) to drive action
@@ -201,12 +224,14 @@ Coupon: "CREATOR30" // 30-day trial
 **Target**: Convert free users to Pro
 
 **Tactics**:
+
 - In-app upgrade prompts when hitting limits
 - Email campaigns to engaged free users
 - Limited-time discount offers
 - Feature launch announcements
 
 **Example**:
+
 ```
 Subject: Unlock Advanced Search - 20% Off Pro
 Body: You've searched 45 times this month! Upgrade to Pro 
@@ -219,12 +244,14 @@ Use code SEARCH20 for 20% off your first year.
 **Target**: Keep existing Pro subscribers
 
 **Tactics**:
+
 - Loyalty rewards (free month after 1 year)
 - Early access to new features
 - Exclusive community events
 - Pro-only beta programs
 
 **Example**:
+
 ```
 Subject: Thank you for 1 year of Pro!
 Body: You've been a Pro member for a year. Here's a free 
@@ -237,12 +264,14 @@ Pro features we just launched...
 **Target**: Re-engage canceled subscribers
 
 **Tactics**:
+
 - 14-day re-activation trial
 - "We miss you" discount (25% off)
 - Survey on why they canceled
 - Showcase new features since they left
 
 **Example**:
+
 ```
 Subject: Come back to Clipper Pro - 25% Off
 Body: We noticed you canceled Pro. We've added tons of 
@@ -255,12 +284,14 @@ then 25% off if you resubscribe.
 **Target**: Move users from monthly to annual
 
 **Tactics**:
+
 - Savings calculator in account settings
 - Email after 3 months of monthly subscription
 - Limited-time bonus discount on annual switch
 - Pro-rate remaining monthly subscription
 
 **Example**:
+
 ```
 Subject: Save $40/year by switching to annual billing
 Body: You've been on Pro for 3 months. Switch to annual 
@@ -292,6 +323,7 @@ current month. Upgrade now →
 **Stripe Integration**: Use Stripe's native coupon system
 
 **Coupon Types**:
+
 1. **Percentage off**: X% discount (e.g., 20% off)
 2. **Amount off**: Fixed discount (e.g., $2 off)
 3. **Trial extension**: Extended trial period
@@ -302,6 +334,7 @@ current month. Upgrade now →
 **Structure**: `PREFIX[NUMBER][SUFFIX]`
 
 **Examples**:
+
 - `LAUNCH25` - Launch campaign, 25% off
 - `BFCM30` - Black Friday/Cyber Monday, 30% off
 - `FRIEND20` - Referral program, 20% off
@@ -309,6 +342,7 @@ current month. Upgrade now →
 - `STUDENT50` - Student discount, 50% off
 
 **Best Practices**:
+
 - Keep codes short and memorable
 - Use consistent naming convention
 - Make codes easy to communicate verbally
@@ -349,16 +383,19 @@ current month. Upgrade now →
 ### Coupon Management
 
 **Creation**:
+
 - Create in Stripe Dashboard or via API
 - Set expiration dates for time-limited offers
 - Set redemption limits (total uses, per customer)
 
 **Tracking**:
+
 - Monitor coupon usage in Stripe Dashboard
 - Track conversion rates per coupon code
 - Measure campaign ROI (cost vs. revenue)
 
 **Expiration**:
+
 - Auto-expire after campaign ends
 - Archive old codes (don't delete for records)
 - Communicate expiration clearly to users
@@ -366,6 +403,7 @@ current month. Upgrade now →
 ### Coupon Validation
 
 **Frontend Validation**:
+
 ```typescript
 async function validateCoupon(code: string): Promise<CouponValidation> {
   const response = await api.post('/api/v1/subscriptions/validate-coupon', {
@@ -382,6 +420,7 @@ async function validateCoupon(code: string): Promise<CouponValidation> {
 ```
 
 **Backend Validation**:
+
 ```go
 func (h *SubscriptionHandler) ValidateCoupon(c *gin.Context) {
     var req struct {
@@ -419,6 +458,7 @@ func (h *SubscriptionHandler) ValidateCoupon(c *gin.Context) {
 **Offer**: Give 20%, Get 20%
 
 **Mechanics**:
+
 - Referring user gets 20% off next month when friend subscribes
 - Referred user gets 20% off first month
 - Unlimited referrals allowed
@@ -452,17 +492,20 @@ type Referral struct {
 **Trigger**: When referred user completes first paid month
 
 **Referrer Reward**:
+
 - Credit: 20% off next month or $2 credit
 - Notification: Email + in-app notification
 - Applied automatically to next invoice
 
 **Referred User Reward**:
+
 - Coupon: Applied during checkout
 - Code: Auto-generated based on referral link
 
 ### Referral Analytics
 
 **Track**:
+
 - Total referrals per user
 - Successful conversions
 - Revenue from referrals
@@ -476,20 +519,24 @@ type Referral struct {
 **Offer**: 50% off Pro subscription
 
 **Eligibility**:
+
 - Currently enrolled students (high school, college, university)
 - Valid .edu email address OR student ID verification
 - Annual verification required
 
 **Pricing**:
+
 - Monthly: $4.99/month (was $9.99)
 - Annual: $49.99/year (was $99.99)
 
 **Verification**:
+
 - SheerID integration (industry standard)
 - Manual review as fallback
 - Verification valid for 12 months
 
 **Terms**:
+
 - Discount valid during enrollment only
 - Must re-verify annually
 - Switches to standard pricing upon graduation
@@ -499,15 +546,18 @@ type Referral struct {
 **Offer**: 30% off Pro subscription for 501(c)(3) organizations
 
 **Eligibility**:
+
 - Registered non-profit organization
 - Valid 501(c)(3) status (US) or equivalent
 - Organization email address
 
 **Pricing**:
+
 - Monthly: $6.99/month (was $9.99)
 - Annual: $69.99/year (was $99.99)
 
 **Verification**:
+
 - Provide EIN or non-profit registration
 - Manual review by support team
 - Annual re-verification
@@ -717,24 +767,28 @@ export function Pricing() {
 ### Key Metrics
 
 **Trial Metrics**:
+
 - Trial start rate (% of free users)
 - Trial-to-paid conversion rate
 - Average trial engagement (feature usage)
 - Cancellation reasons during trial
 
 **Discount Metrics**:
+
 - Coupon redemption rate
 - Revenue impact (discounted vs. full price)
 - Campaign ROI (cost vs. incremental revenue)
 - Discount dependency (users waiting for sales)
 
 **Referral Metrics**:
+
 - Referral link shares
 - Referral conversion rate
 - Referral revenue contribution
 - Top referrers
 
 **Student/Non-Profit Metrics**:
+
 - Application volume
 - Approval rate
 - Revenue from discounted subscriptions
@@ -743,6 +797,7 @@ export function Pricing() {
 ### Stripe Analytics
 
 Use Stripe Dashboard to track:
+
 - Coupon usage over time
 - Revenue by coupon code
 - Most successful campaigns

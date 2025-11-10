@@ -16,7 +16,11 @@ Configure the following secrets in your GitHub repository:
 
 | Secret Name | Description | Required For | How to Get |
 |------------|-------------|--------------|------------|
-| `CODECOV_TOKEN` | Token for uploading code coverage reports to Codecov | CI workflow | 1. Sign in to [Codecov](https://codecov.io/)<br>2. Add repository<br>3. Copy upload token from Settings |
+| `CODECOV_TOKEN` | Token for uploading code coverage reports to Codecov | CI workflow | 1. Sign in to [Codecov](https://codecov.io/)|
+
+2. Add repository
+
+3. Copy upload token from Settings |
 
 #### Deployment
 
@@ -24,13 +28,19 @@ Configure the following secrets in your GitHub repository:
 |------------|-------------|--------------|------------|
 | `STAGING_HOST` | Hostname of staging server | Staging deployments | Your staging server's hostname (e.g., `staging.clipper.example.com`) |
 | `PRODUCTION_HOST` | Hostname of production server | Production deployments | Your production server's hostname (e.g., `clipper.example.com`) |
-| `DEPLOY_SSH_KEY` | Private SSH key for deployment access | Staging & Production deployments | Generate with: `ssh-keygen -t ed25519 -C "github-actions-deploy"`<br>Add public key to server's `~/.ssh/authorized_keys` |
+| `DEPLOY_SSH_KEY` | Private SSH key for deployment access | Staging & Production deployments | Generate with: `ssh-keygen -t ed25519 -C "github-actions-deploy"`|
+
+5. Add public key to server's `~/.ssh/authorized_keys`
 
 #### Monitoring (Optional)
 
 | Secret Name | Description | Required For | How to Get |
 |------------|-------------|--------------|------------|
-| `SENTRY_AUTH_TOKEN` | Sentry API token for sourcemap uploads | Frontend production builds | 1. Go to [Sentry Settings](https://sentry.io/settings/)<br>2. Auth Tokens → New Token<br>3. Scopes: `project:releases`, `org:read`<br>4. Copy token |
+| `SENTRY_AUTH_TOKEN` | Sentry API token for sourcemap uploads | Frontend production builds | 1. Go to [Sentry Settings](https://sentry.io/settings/)|
+
+2. Auth Tokens → New Token
+3. Scopes: `project:releases`, `org:read`
+4. Copy token |
 | `SENTRY_ORG` | Sentry organization slug | Frontend production builds | Found in Sentry URL: `sentry.io/organizations/{org-slug}/` |
 | `SENTRY_PROJECT` | Sentry project slug | Frontend production builds | Found in Sentry project settings |
 
@@ -63,6 +73,7 @@ Create a `production` environment with these secrets:
 - Any other production-specific credentials
 
 **Recommended:** Enable protection rules for production:
+
 - Require approval before deployment
 - Limit to protected branches only (`main` branch)
 
@@ -220,7 +231,7 @@ GitHub Actions automatically masks secrets registered in the repository. For add
   run: |
     # Mask the value
     echo "::add-mask::$SENSITIVE_VALUE"
-    
+
     # Now use it safely
     command --secret "$SENSITIVE_VALUE"
 ```
@@ -244,6 +255,7 @@ Examples in our workflows:
 **Problem**: Workflow fails with "secret not found"
 
 **Solutions**:
+
 1. Verify secret name matches exactly (case-sensitive)
 2. Check secret is set at repository level, not user level
 3. For environment secrets, ensure environment name matches
@@ -254,6 +266,7 @@ Examples in our workflows:
 **Problem**: Deployment fails with "Permission denied (publickey)"
 
 **Solutions**:
+
 1. Verify public key is added to server's `~/.ssh/authorized_keys`
 2. Check private key is correctly added to GitHub secret
 3. Ensure key format is correct (no extra spaces/newlines)
@@ -264,6 +277,7 @@ Examples in our workflows:
 **Problem**: Coverage upload fails with "invalid token"
 
 **Solutions**:
+
 1. Verify token is correctly copied from Codecov dashboard
 2. Check token hasn't expired
 3. Ensure repository is added in Codecov
@@ -274,6 +288,7 @@ Examples in our workflows:
 **Problem**: Sentry sourcemap upload fails
 
 **Solutions**:
+
 1. Verify all three secrets are set: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`
 2. Check token has required scopes: `project:releases`, `org:read`
 3. Verify organization and project slugs are correct

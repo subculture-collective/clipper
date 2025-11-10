@@ -28,9 +28,11 @@ Clipper uses a role-based access control system to manage user permissions. Each
 ## Roles
 
 ### User (Default)
+
 The standard role assigned to all registered users.
 
 **Permissions:**
+
 - View and search clips
 - Vote on clips and comments
 - Comment on clips
@@ -40,9 +42,11 @@ The standard role assigned to all registered users.
 - View leaderboards and analytics
 
 ### Moderator
+
 Trusted community members who help moderate content.
 
 **Permissions:**
+
 - All User permissions, plus:
 - Access moderation queue
 - Approve/reject clip submissions
@@ -52,14 +56,17 @@ Trusted community members who help moderate content.
 - Manage tags
 
 **Restrictions:**
+
 - Cannot ban users
 - Cannot manage other moderators
 - Cannot access full admin analytics
 
 ### Admin
+
 Full administrative access to the platform.
 
 **Permissions:**
+
 - All Moderator permissions, plus:
 - User management (ban, unban, change roles)
 - Full platform analytics
@@ -111,6 +118,7 @@ const (
 The backend uses middleware to enforce role-based access:
 
 #### AuthMiddleware
+
 Validates JWT token and attaches user information to the request context.
 
 ```go
@@ -118,6 +126,7 @@ clips.POST("/:id/favorite", middleware.AuthMiddleware(authService), clipHandler.
 ```
 
 #### RequireRole
+
 Checks if the authenticated user has one of the required roles.
 
 ```go
@@ -135,7 +144,7 @@ admin.Use(middleware.RequireRole("admin", "moderator"))
 {
     // Admin-only endpoints
     adminTags.DELETE("/:id", middleware.RequireRole("admin"), tagHandler.DeleteTag)
-    
+
     // Moderator + Admin endpoints
     adminSubmissions.POST("/:id/approve", submissionHandler.ApproveSubmission)
 }
@@ -182,6 +191,7 @@ const isAdmin = user?.role === 'admin' || user?.role === 'moderator';
 ### Route Guards
 
 #### ProtectedRoute
+
 Requires authentication but no specific role.
 
 ```typescript
@@ -193,6 +203,7 @@ Requires authentication but no specific role.
 ```
 
 #### AdminRoute
+
 Requires admin or moderator role.
 
 ```typescript
@@ -284,23 +295,26 @@ For local development, you can assign roles directly in the database or use the 
 #### Option 1: Direct Database Update
 
 1. Start your local development environment:
+
    ```bash
    make dev
    ```
 
 2. Connect to the database:
+
    ```bash
    docker exec -it clipper-postgres psql -U clipper -d clipper
    ```
 
 3. Update a user's role:
+
    ```sql
    -- Make user an admin
    UPDATE users SET role = 'admin' WHERE username = 'your_username';
-   
+
    -- Make user a moderator
    UPDATE users SET role = 'moderator' WHERE username = 'your_username';
-   
+
    -- Verify the change
    SELECT id, username, role FROM users WHERE username = 'your_username';
    ```
@@ -334,6 +348,7 @@ EOF
 ```
 
 Usage:
+
 ```bash
 chmod +x scripts/setup-admin.sh
 ./scripts/setup-admin.sh your_username admin
@@ -366,8 +381,8 @@ UPDATE users SET role = 'moderator' WHERE username = 'trusted_user';
 UPDATE users SET role = 'admin' WHERE username = 'trusted_admin';
 
 -- Verify
-SELECT id, username, display_name, role, created_at 
-FROM users 
+SELECT id, username, display_name, role, created_at
+FROM users
 WHERE role IN ('admin', 'moderator')
 ORDER BY role, created_at;
 ```
@@ -415,6 +430,7 @@ UPDATE users SET role = 'user' WHERE username = 'former_moderator';
 ### User Can't Access Admin Panel
 
 1. Verify user role in database:
+
    ```sql
    SELECT username, role FROM users WHERE username = 'username';
    ```
@@ -436,9 +452,10 @@ UPDATE users SET role = 'user' WHERE username = 'former_moderator';
 - Verify the `auditLogService` is injected into services
 - Check that moderation actions call the audit log service
 - Query database directly:
+
   ```sql
-  SELECT * FROM moderation_audit_logs 
-  ORDER BY created_at DESC 
+  SELECT * FROM moderation_audit_logs
+  ORDER BY created_at DESC
   LIMIT 10;
   ```
 

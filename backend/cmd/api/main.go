@@ -132,6 +132,7 @@ func main() {
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
 	webhookRepo := repository.NewWebhookRepository(db.Pool)
+	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -144,6 +145,7 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
 
+
 	// Initialize email service
 	emailService := services.NewEmailService(&services.EmailConfig{
 		SendGridAPIKey:   cfg.Email.SendGridAPIKey,
@@ -154,6 +156,7 @@ func main() {
 		MaxEmailsPerHour: cfg.Email.MaxEmailsPerHour,
 	}, emailNotificationRepo)
 
+
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
 	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
@@ -161,9 +164,14 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService)
+
+	// Initialize dunning service before subscription service
+	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
+
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
+
 
 	// Initialize search services
 	var searchIndexerService *services.SearchIndexerService
@@ -171,6 +179,7 @@ func main() {
 	if osClient != nil {
 		searchIndexerService = services.NewSearchIndexerService(osClient)
 		openSearchService = services.NewOpenSearchService(osClient)
+
 
 		// Initialize indices in background
 		go func() {
@@ -200,9 +209,16 @@ func main() {
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
-	if openSearchService != nil {
-		// Use OpenSearch-enhanced handler
+	if hybridSearchService != nil {
+		// Use hybrid search (BM25 + vector similarity)
+		searchHandler = handlers.NewSearchHandlerWithHybridSearch(searchRepo, hybridSearchService, authService)
+		log.Println("Using hybrid search handler (BM25 + vector similarity)")
+	} else if openSearchService != nil {
+		// Use OpenSearch-enhanced handler (BM25 only)
 		searchHandler = handlers.NewSearchHandlerWithOpenSearch(searchRepo, openSearchService, authService)
+		log.Println("Using OpenSearch handler (BM25 only)")
+	} else {
+		log.Println("Using PostgreSQL FTS handler (fallback)")
 	}
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
@@ -345,7 +361,7 @@ func main() {
 	// Cache monitoring endpoints
 	r.GET("/health/cache", monitoringHandler.GetCacheStats)
 	r.GET("/health/cache/check", monitoringHandler.GetCacheHealth)
-	
+
 	// Webhook monitoring endpoint
 	r.GET("/health/webhooks", webhookMonitoringHandler.GetWebhookRetryStats)
 
@@ -448,6 +464,7 @@ func main() {
 			// Public search endpoints
 			search.GET("", searchHandler.Search)
 			search.GET("/suggestions", searchHandler.GetSuggestions)
+			search.GET("/scores", searchHandler.SearchWithScores) // Hybrid search with similarity scores
 		}
 
 		// Submission routes (if submission handler is available)
@@ -485,13 +502,16 @@ func main() {
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
 
+
 			// Profile management (authenticated)
 			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)
 			users.GET("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.GetSettings)
 			users.PUT("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSettings)
 
+
 			// Data export (authenticated, rate limited)
 			users.GET("/me/export", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.ExportData)
+
 
 			// Account deletion (authenticated, rate limited)
 			users.POST("/me/delete", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.RequestAccountDeletion)
@@ -524,8 +544,10 @@ func main() {
 			// Public unsubscribe endpoint (no auth required, uses token, but rate limited)
 			notifications.GET("/unsubscribe", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), notificationHandler.Unsubscribe)
 
+
 			// Protected notification endpoints (require authentication)
 			notifications.Use(middleware.AuthMiddleware(authService))
+
 
 			// Get notifications list
 			notifications.GET("", notificationHandler.ListNotifications)
@@ -666,6 +688,13 @@ func main() {
 	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, 1, 100)
 	go webhookRetryScheduler.Start(context.Background())
 
+	// Start embedding scheduler if embedding service is available (runs based on configured interval)
+	var embeddingScheduler *scheduler.EmbeddingScheduler
+	if embeddingService != nil {
+		embeddingScheduler = scheduler.NewEmbeddingScheduler(db, embeddingService, cfg.Embedding.SchedulerIntervalMinutes, cfg.Embedding.Model)
+		go embeddingScheduler.Start(context.Background())
+	}
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:    ":" + cfg.Server.Port,
@@ -692,6 +721,15 @@ func main() {
 	}
 	reputationScheduler.Stop()
 	hotScoreScheduler.Stop()
+	webhookRetryScheduler.Stop()
+	if embeddingScheduler != nil {
+		embeddingScheduler.Stop()
+	}
+
+	// Close embedding service if running
+	if embeddingService != nil {
+		embeddingService.Close()
+	}
 
 	// Graceful shutdown with 5 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

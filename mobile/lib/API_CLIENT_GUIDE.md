@@ -5,6 +5,7 @@ This guide explains how to use the enhanced mobile API client with retry logic, 
 ## Features
 
 ### 1. Automatic Retry with Exponential Backoff
+
 - Retries failed requests automatically for idempotent methods (GET, HEAD, OPTIONS, DELETE)
 - Uses exponential backoff with jitter to prevent thundering herd problem
 - Configurable retry attempts (default: 3)
@@ -12,23 +13,27 @@ This guide explains how to use the enhanced mobile API client with retry logic, 
 - Note: PUT is queued when offline rather than retried for consistency
 
 ### 2. Network Status Awareness
+
 - Monitors network connectivity using expo-network
 - Automatically queues non-idempotent requests when offline
 - Retries queued requests when network is restored
 - Provides network status information (connection type, reachability)
 
 ### 3. Unified Error Handling
+
 - Standardized error types: NETWORK, AUTH, VALIDATION, SERVER, TIMEOUT, OFFLINE, RATE_LIMIT, UNKNOWN
 - User-friendly error messages for each error type
 - Retryable vs non-retryable error classification
 - Original error preservation for debugging
 
 ### 4. Token Refresh Handling
+
 - Automatic token refresh on 401 errors
 - Request queuing during token refresh to prevent duplicate refresh attempts
 - Secure token storage using expo-secure-store
 
 ### 5. Offline Request Queue
+
 - Queues mutation requests (POST, PATCH, PUT, DELETE) when offline
 - Automatically retries queued requests when network is restored
 - Queue change listeners for UI updates
