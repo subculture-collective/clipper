@@ -4,7 +4,7 @@
  * Tests feed endpoint performance under various load scenarios
  * Target: Feed response time <100ms (p95), Handle 100 req/s
  *
- * Run with: k6 run feed_test.js
+ * Run with: k6 run backend/tests/load/scenarios/feed_browsing.js
  */
 
 import { check, sleep } from 'k6';

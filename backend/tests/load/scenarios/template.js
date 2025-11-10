@@ -162,30 +162,30 @@ export function teardown(data) {
 }
 
 /**
- * Helper Functions
+ * Helper Functions (Examples - uncomment and use as needed)
  */
 
 // Example: Random selection from array
-function randomChoice(array) {
-    return array[Math.floor(Math.random() * array.length)];
-}
+// function randomChoice(array) {
+//     return array[Math.floor(Math.random() * array.length)];
+// }
 
 // Example: Random integer between min and max (inclusive)
-function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+// function randomInt(min, max) {
+//     return Math.floor(Math.random() * (max - min + 1)) + min;
+// }
 
 // Example: Weighted random selection
-function weightedRandomChoice(choices, weights) {
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    let random = Math.random() * totalWeight;
-    
-    for (let i = 0; i < choices.length; i++) {
-        if (random < weights[i]) {
-            return choices[i];
-        }
-        random -= weights[i];
-    }
-    
-    return choices[choices.length - 1];
-}
+// function weightedRandomChoice(choices, weights) {
+//     const totalWeight = weights.reduce((a, b) => a + b, 0);
+//     let random = Math.random() * totalWeight;
+//     
+//     for (let i = 0; i < choices.length; i++) {
+//         if (random < weights[i]) {
+//             return choices[i];
+//         }
+//         random -= weights[i];
+//     }
+//     
+//     return choices[choices.length - 1];
+// }
