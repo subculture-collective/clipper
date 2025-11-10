@@ -122,7 +122,7 @@ func (r *WebhookRepository) MoveToDeadLetterQueue(ctx context.Context, item *mod
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Insert into dead-letter queue
 	dlqQuery := `
