@@ -15,7 +15,7 @@ export interface PaywallEventData {
   /** User ID if authenticated */
   userId?: string;
   /** Additional context */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -70,8 +70,8 @@ class PaywallAnalytics {
     // - Custom backend: fetch('/api/v1/analytics/events', { method: 'POST', body: JSON.stringify(event) })
     
     // Placeholder implementation
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', event.event, {
+    if (typeof window !== 'undefined' && 'gtag' in window && typeof (window as Window & { gtag?: Function }).gtag === 'function') {
+      ((window as Window & { gtag: Function }).gtag)('event', event.event, {
         event_category: 'paywall',
         event_label: event.data.feature,
         ...event.data,
