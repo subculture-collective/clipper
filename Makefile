@@ -65,16 +65,38 @@ test-coverage: ## Run tests with coverage report
 	@echo "Coverage report generated at backend/coverage.html"
 	@echo "✓ Coverage tests complete"
 
-test-load: ## Run load tests (requires k6)
+test-load: ## Run all load tests (requires k6)
 	@if command -v k6 > /dev/null; then \
-		echo "Running load tests..."; \
-		k6 run backend/tests/load/feed_test.js; \
-		echo "✓ Load tests complete"; \
+		echo "Running all load tests..."; \
+		k6 run backend/tests/load/scenarios/feed_browsing.js; \
+		k6 run backend/tests/load/scenarios/clip_detail.js; \
+		k6 run backend/tests/load/scenarios/search.js; \
+		k6 run backend/tests/load/scenarios/comments.js; \
+		k6 run backend/tests/load/scenarios/mixed_behavior.js; \
+		echo "✓ All load tests complete"; \
 	else \
 		echo "Error: k6 is not installed"; \
 		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
 		exit 1; \
 	fi
+
+test-load-feed: ## Run feed browsing load test
+	@k6 run backend/tests/load/scenarios/feed_browsing.js
+
+test-load-clip: ## Run clip detail view load test
+	@k6 run backend/tests/load/scenarios/clip_detail.js
+
+test-load-search: ## Run search load test
+	@k6 run backend/tests/load/scenarios/search.js
+
+test-load-comments: ## Run comments load test
+	@k6 run backend/tests/load/scenarios/comments.js
+
+test-load-submit: ## Run submission load test (requires AUTH_TOKEN)
+	@k6 run backend/tests/load/scenarios/submit.js
+
+test-load-mixed: ## Run mixed user behavior load test
+	@k6 run backend/tests/load/scenarios/mixed_behavior.js
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
@@ -212,3 +234,9 @@ migrate-seed: ## Seed database with sample data
 	@echo "Seeding database..."
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
 	@echo "✓ Database seeded"
+
+migrate-seed-load-test: ## Seed database with load test data (includes sample data)
+	@echo "Seeding database with load test data..."
+	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
+	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed_load_test.sql
+	@echo "✓ Load test data seeded"
