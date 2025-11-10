@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/handlers"
 	"github.com/subculture-collective/clipper/internal/middleware"
@@ -279,6 +281,9 @@ func main() {
 	// Use structured logger
 	r.Use(logger.GinLogger())
 
+	// Apply metrics middleware for Prometheus
+	r.Use(middleware.MetricsMiddleware())
+
 	// Apply CORS middleware
 	r.Use(middleware.CORSMiddleware(cfg))
 
@@ -386,6 +391,27 @@ func main() {
 	
 	// Webhook monitoring endpoint
 	r.GET("/health/webhooks", webhookMonitoringHandler.GetWebhookRetryStats)
+
+	// Profiling and metrics endpoints (for debugging and monitoring)
+	// These should be protected in production (e.g., firewall rules or internal network only)
+	debug := r.Group("/debug")
+	{
+		// Prometheus metrics endpoint
+		debug.GET("/metrics", gin.WrapH(promhttp.Handler()))
+		
+		// Go pprof endpoints for profiling
+		debug.GET("/pprof/", gin.WrapF(pprof.Index))
+		debug.GET("/pprof/cmdline", gin.WrapF(pprof.Cmdline))
+		debug.GET("/pprof/profile", gin.WrapF(pprof.Profile))
+		debug.GET("/pprof/symbol", gin.WrapF(pprof.Symbol))
+		debug.GET("/pprof/trace", gin.WrapF(pprof.Trace))
+		debug.GET("/pprof/allocs", gin.WrapH(pprof.Handler("allocs")))
+		debug.GET("/pprof/block", gin.WrapH(pprof.Handler("block")))
+		debug.GET("/pprof/goroutine", gin.WrapH(pprof.Handler("goroutine")))
+		debug.GET("/pprof/heap", gin.WrapH(pprof.Handler("heap")))
+		debug.GET("/pprof/mutex", gin.WrapH(pprof.Handler("mutex")))
+		debug.GET("/pprof/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
+	}
 
 	// API version 1 routes
 	v1 := r.Group("/api/v1")
