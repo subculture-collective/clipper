@@ -24,6 +24,6 @@ DROP INDEX IF EXISTS idx_favorites_user_created;
 
 DROP INDEX IF EXISTS idx_clip_tags_clip;
 DROP INDEX IF EXISTS idx_clip_tags_tag;
-DROP INDEX IF EXISTS idx_tags_clip_count;
+DROP INDEX IF EXISTS idx_tags_usage_count;
 
 DROP INDEX IF EXISTS idx_notifications_user_unread;

@@ -2,19 +2,29 @@ package scheduler
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 )
 
 // MockWebhookRetryService is a mock for testing
 type MockWebhookRetryService struct {
+	mu               sync.Mutex
 	processCallCount int
 	processError     error
 }
 
 func (m *MockWebhookRetryService) ProcessPendingRetries(ctx context.Context, batchSize int) error {
+	m.mu.Lock()
 	m.processCallCount++
+	m.mu.Unlock()
 	return m.processError
+}
+
+func (m *MockWebhookRetryService) getCallCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.processCallCount
 }
 
 func TestWebhookRetrySchedulerStartsAndStops(t *testing.T) {
@@ -37,8 +47,9 @@ func TestWebhookRetrySchedulerStartsAndStops(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify it was called at least once (initial run)
-	if mockService.processCallCount < 1 {
-		t.Errorf("Expected at least 1 call to ProcessPendingRetries, got %d", mockService.processCallCount)
+	callCount := mockService.getCallCount()
+	if callCount < 1 {
+		t.Errorf("Expected at least 1 call to ProcessPendingRetries, got %d", callCount)
 	}
 }
 
@@ -68,8 +79,9 @@ func TestWebhookRetrySchedulerProcessesMultipleTimes(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Should have been called multiple times (at least 3: initial + 2 ticks)
-	if mockService.processCallCount < 3 {
-		t.Errorf("Expected at least 3 calls to ProcessPendingRetries, got %d", mockService.processCallCount)
+	callCount := mockService.getCallCount()
+	if callCount < 3 {
+		t.Errorf("Expected at least 3 calls to ProcessPendingRetries, got %d", callCount)
 	}
 }
 

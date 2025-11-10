@@ -198,7 +198,7 @@ func (s *HybridSearchService) SearchWithScores(ctx context.Context, req *models.
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Convert to response with scores (no semantic scores available)
 		return &models.SearchResponseWithScores{
 			SearchResponse: *baseResponse,
@@ -340,9 +340,9 @@ func (s *HybridSearchService) rerankByVectorSimilarityWithScores(ctx context.Con
 		similarityScore := 1.0 - (similarityDistance / 2.0)
 
 		scores = append(scores, models.ClipScore{
-			ClipID:           clip.ID,
-			SimilarityScore:  similarityScore,
-			SimilarityRank:   len(scores) + 1,
+			ClipID:          clip.ID,
+			SimilarityScore: similarityScore,
+			SimilarityRank:  len(scores) + 1,
 		})
 	}
 

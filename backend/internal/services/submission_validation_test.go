@@ -400,46 +400,46 @@ func TestNormalizeClipURL(t *testing.T) {
 	service := &SubmissionService{}
 
 	tests := []struct {
-		name            string
-		input           string
-		expectedID      string
-		expectedURL     string
-		description     string
+		name        string
+		input       string
+		expectedID  string
+		expectedURL string
+		description string
 	}{
 		{
-			name:            "clips.twitch.tv URL",
-			input:           "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
-			expectedID:      "AwkwardHelplessSalamanderSwiftRage",
-			expectedURL:     "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
-			description:     "Should extract ID and return normalized URL",
+			name:        "clips.twitch.tv URL",
+			input:       "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
+			expectedID:  "AwkwardHelplessSalamanderSwiftRage",
+			expectedURL: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
+			description: "Should extract ID and return normalized URL",
 		},
 		{
-			name:            "www.twitch.tv clip URL",
-			input:           "https://www.twitch.tv/username/clip/AwkwardHelplessSalamanderSwiftRage",
-			expectedID:      "AwkwardHelplessSalamanderSwiftRage",
-			expectedURL:     "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
-			description:     "Should extract ID and return normalized URL",
+			name:        "www.twitch.tv clip URL",
+			input:       "https://www.twitch.tv/username/clip/AwkwardHelplessSalamanderSwiftRage",
+			expectedID:  "AwkwardHelplessSalamanderSwiftRage",
+			expectedURL: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
+			description: "Should extract ID and return normalized URL",
 		},
 		{
-			name:            "URL with query parameters",
-			input:           "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage?filter=clips",
-			expectedID:      "AwkwardHelplessSalamanderSwiftRage",
-			expectedURL:     "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
-			description:     "Should strip query parameters",
+			name:        "URL with query parameters",
+			input:       "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage?filter=clips",
+			expectedID:  "AwkwardHelplessSalamanderSwiftRage",
+			expectedURL: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
+			description: "Should strip query parameters",
 		},
 		{
-			name:            "Direct clip ID",
-			input:           "AwkwardHelplessSalamanderSwiftRage",
-			expectedID:      "AwkwardHelplessSalamanderSwiftRage",
-			expectedURL:     "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
-			description:     "Should accept direct clip ID",
+			name:        "Direct clip ID",
+			input:       "AwkwardHelplessSalamanderSwiftRage",
+			expectedID:  "AwkwardHelplessSalamanderSwiftRage",
+			expectedURL: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage",
+			description: "Should accept direct clip ID",
 		},
 		{
-			name:            "Invalid URL - will be caught by Twitch API",
-			input:           "not-a-valid-url",
-			expectedID:      "not-a-valid-url",
-			expectedURL:     "https://clips.twitch.tv/not-a-valid-url",
-			description:     "Invalid formats are accepted but will fail at Twitch API validation",
+			name:        "Invalid URL - will be caught by Twitch API",
+			input:       "not-a-valid-url",
+			expectedID:  "not-a-valid-url",
+			expectedURL: "https://clips.twitch.tv/not-a-valid-url",
+			description: "Invalid formats are accepted but will fail at Twitch API validation",
 		},
 	}
 
@@ -461,11 +461,11 @@ func TestValidationErrorMessages(t *testing.T) {
 	service := &SubmissionService{}
 
 	tests := []struct {
-		name           string
-		req            *SubmitClipRequest
-		expectedField  string
-		shouldContain  string
-		description    string
+		name          string
+		req           *SubmitClipRequest
+		expectedField string
+		shouldContain string
+		description   string
 	}{
 		{
 			name: "Custom title too short",

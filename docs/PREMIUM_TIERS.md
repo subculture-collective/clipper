@@ -1,8 +1,8 @@
 # Premium Tiers and Benefits
 
-**Status**: Approved for Beta Milestone  
-**Last Updated**: 2025-11-03  
-**Owner**: Product Team  
+**Status**: Approved for Beta Milestone
+**Last Updated**: 2025-11-03
+**Owner**: Product Team
 **Stakeholders**: Engineering, Marketing, Support
 
 ## Executive Summary
@@ -44,13 +44,15 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 
 **Description**: Complete access to Clipper's core community features. Perfect for casual viewers and community members who want to discover, vote on, and discuss clips.
 
-**Target User**: 
+**Target User**:
+
 - Casual Twitch viewers
 - Community members exploring the platform
 - Users who primarily consume content
 - First-time users evaluating the service
 
 **Key Features**:
+
 - Browse and watch unlimited clips
 - Vote on clips (upvote/downvote)
 - Comment and participate in discussions
@@ -61,6 +63,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - Community support access
 
 **Limitations**:
+
 - Limited favorites (50 clips)
 - No advanced search filters
 - No collections/playlists
@@ -75,6 +78,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 **Description**: Enhanced experience for power users who want unlimited organization, advanced discovery tools, and an ad-free experience. Ideal for content creators, streamers, and dedicated community members.
 
 **Target User**:
+
 - Active community members
 - Content creators and streamers
 - Users who curate large collections
@@ -82,6 +86,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - Users seeking ad-free experience
 
 **Key Features**:
+
 - **Everything in Free, plus:**
 - Unlimited favorite clips
 - Unlimited collections/playlists
@@ -100,6 +105,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - Enhanced comment/vote quotas
 
 **Value Proposition**:
+
 - Save time with advanced search and filters
 - Organize unlimited content your way
 - Support platform development
@@ -165,6 +171,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 ### Billing Policies
 
 #### Subscription Lifecycle
+
 - **Activation**: Immediate upon successful payment
 - **Renewal**: Automatic on billing anniversary
 - **Cancellation**: Takes effect at end of current period
@@ -172,6 +179,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - **Reactivation**: Instant with valid payment method
 
 #### Refund Policy
+
 - **Trial Period**: Full refund within first 7 days (first-time subscribers only)
 - **Monthly Plans**: No refunds after 7-day trial period
 - **Yearly Plans**: Prorated refund within first 30 days
@@ -179,17 +187,20 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - **Disputes**: Handled case-by-case via support ticket
 
 #### Currency Support
+
 - **Primary**: USD (United States Dollar)
 - **Future**: EUR, GBP, CAD, AUD planned for Phase 2
 
 ### Price Adjustments
 
 #### Grandfathering Policy
+
 - Existing subscribers maintain current pricing for 12 months after any price increase
 - Notice provided 60 days before new pricing takes effect
 - Option to cancel before price change
 
 #### Regional Pricing
+
 - Phase 1: USD only, global availability
 - Phase 2: Regional pricing based on purchasing power parity (planned)
 
@@ -198,18 +209,21 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 ### Free Tier Users
 
 **Demographics**:
+
 - Age: 18-35
 - Gaming/streaming enthusiasts
 - Budget-conscious users
 - New to the platform
 
 **Behaviors**:
+
 - Casual browsing (2-5 times/week)
 - Passive consumption
 - Occasional voting and commenting
 - Minimal clip submission
 
 **Conversion Triggers**:
+
 - Hitting favorites limit (50 clips)
 - Wanting to organize clips better
 - Needing advanced search
@@ -218,12 +232,14 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 ### Pro Tier Users
 
 **Demographics**:
+
 - Age: 25-40
 - Content creators, streamers, editors
 - Active community members
 - Power users and enthusiasts
 
 **Behaviors**:
+
 - Daily active usage
 - Heavy curation and organization
 - Frequent searching and filtering
@@ -231,6 +247,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - Community leadership
 
 **Retention Factors**:
+
 - Large organized collections
 - Saved searches and custom feeds
 - Cross-device workflow
@@ -250,6 +267,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 | Reddit Premium | Ad-free + coins | $5.99/mo | Community platform |
 
 **Competitive Advantages**:
+
 - Specialized for Twitch clip curation
 - Advanced organization features
 - Community-focused rather than creator-focused
@@ -265,6 +283,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 **Estimated Price**: $29.99/month for 5 users
 
 **Potential Features**:
+
 - Shared collections and playlists
 - Team collaboration tools
 - Shared favorites and tags
@@ -281,6 +300,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 **Estimated Price**: Custom pricing (starts at $299/month)
 
 **Potential Features**:
+
 - Everything in Team, plus:
 - Custom branding and white-labeling
 - Advanced analytics and reporting
@@ -299,6 +319,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 **Estimated Price**: $19.99/month
 
 **Potential Features**:
+
 - Creator verification badge
 - Enhanced analytics for submitted clips
 - Promote clips to community
@@ -311,6 +332,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 ## Implementation Checklist
 
 ### Phase 1: MVP (Current)
+
 - [x] Free tier with core features
 - [x] Pro tier with enhanced features
 - [x] Stripe payment integration
@@ -318,6 +340,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - [x] Feature gating infrastructure
 
 ### Phase 2: Enhancement
+
 - [ ] Trials and discount system
 - [ ] Team tier development
 - [ ] Regional pricing
@@ -325,6 +348,7 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - [ ] Enhanced analytics
 
 ### Phase 3: Scale
+
 - [ ] Enterprise tier
 - [ ] Custom contracts
 - [ ] White-labeling
@@ -336,11 +360,13 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 ### Key Performance Indicators (KPIs)
 
 **Conversion Metrics**:
+
 - Free-to-Pro conversion rate: Target 5% (industry standard 2-5%)
 - Trial-to-paid conversion: Target 40% (industry standard 25-40%)
 - Annual plan adoption: Target 30% of Pro subscribers
 
 **Revenue Metrics**:
+
 - Monthly Recurring Revenue (MRR)
 - Annual Recurring Revenue (ARR)
 - Average Revenue Per User (ARPU): Target $2-3 across all users
@@ -348,12 +374,14 @@ This document defines the premium subscription tiers for Clipper, a community-dr
 - Churn rate: Target <5% monthly
 
 **Usage Metrics**:
+
 - Feature adoption rates per tier
 - Most popular Pro features
 - Conversion trigger points (which limits drive upgrades)
 - Time to conversion (days from signup to Pro)
 
 **Health Metrics**:
+
 - Customer satisfaction (CSAT): Target >85%
 - Net Promoter Score (NPS): Target >40
 - Support ticket volume by tier

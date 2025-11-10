@@ -2,7 +2,7 @@
 
 **Issue**: [Mobile: Offline caching and background sync](https://github.com/subculture-collective/clipper/issues/XXX)
 
-**PR**: https://github.com/subculture-collective/clipper/pull/XXX
+**PR**: <https://github.com/subculture-collective/clipper/pull/XXX>
 
 ## Overview
 
@@ -21,6 +21,7 @@ This implementation delivers a complete offline-first caching system for the Cli
 - **Database Versioning**: Supports schema migrations
 
 **Key Features**:
+
 ```typescript
 // Store clips
 await cache.setClips([clip1, clip2, clip3]);
@@ -48,6 +49,7 @@ await cache.clearExpired();
 - **Event System**: Notifies listeners of sync state changes
 
 **Key Features**:
+
 ```typescript
 // Queue an operation
 await syncManager.queueOperation({
@@ -72,12 +74,14 @@ const unsubscribe = syncManager.onSyncStateChange((state) => {
 **Implementation**: Conflict resolution utilities in `sync-manager.ts`
 
 **Strategies**:
+
 1. **Server-wins** (default): Server data takes precedence
-2. **Client-wins**: Local changes take precedence  
+2. **Client-wins**: Local changes take precedence
 3. **Merge**: Intelligent merge of both versions (e.g., max vote counts)
 4. **Manual**: Return both versions for user resolution
 
 **Usage**:
+
 ```typescript
 const resolved = resolveClipConflict(
   clientClip,
@@ -87,6 +91,7 @@ const resolved = resolveClipConflict(
 ```
 
 **Merge Logic**:
+
 - Clips: Takes max of view counts and upvote counts
 - Comments: Uses most recent `updated_at` timestamp
 
@@ -95,12 +100,14 @@ const resolved = resolveClipConflict(
 ### ✅ App Usable Offline for Previously Viewed Content
 
 **Implemented**:
+
 - Cache-first loading strategy for clips and comments
 - Graceful fallback when content not cached
 - Offline access to all previously viewed clips and their comments
 - Visual feedback when using cached data
 
 **User Experience**:
+
 - Instant loading of cached content
 - No disruption to navigation
 - Clear indication of offline status
@@ -108,6 +115,7 @@ const resolved = resolveClipConflict(
 ### ✅ Writes Queued and Synced Later with User Feedback
 
 **Implemented**:
+
 - `OfflineIndicator` component provides real-time feedback
 - Shows offline status with pending operation count
 - Displays sync progress with spinner
@@ -115,6 +123,7 @@ const resolved = resolveClipConflict(
 - Last sync timestamp
 
 **Visual Feedback States**:
+
 1. **Offline Banner**: Orange banner when offline
 2. **Syncing**: Blue spinner with "Syncing X changes..."
 3. **Success**: Green checkmark with "All changes synced"
@@ -151,23 +160,27 @@ const resolved = resolveClipConflict(
 ### Data Flow
 
 **Online Read**:
+
 1. Check cache for fast loading
 2. Fetch from server
 3. Update cache with fresh data
 4. Return data to component
 
 **Offline Read**:
+
 1. Check cache
 2. Return cached data or error
 3. Show offline indicator
 
 **Online Write**:
+
 1. Optimistically update cache
 2. Send request to server
 3. Update cache with server response
 4. Show success feedback
 
 **Offline Write**:
+
 1. Optimistically update cache
 2. Queue operation in sync manager
 3. Show "queued" feedback
@@ -178,20 +191,24 @@ const resolved = resolveClipConflict(
 ### New Files (11)
 
 **Core Implementation**:
+
 - `frontend/src/lib/offline-cache.ts` (428 lines) - IndexedDB cache layer
 - `frontend/src/lib/sync-manager.ts` (458 lines) - Background sync orchestration
 - `frontend/src/lib/offline-clip-api.ts` (187 lines) - Offline-aware clip operations
 - `frontend/src/lib/offline-comment-api.ts` (250 lines) - Offline-aware comment operations
 
 **React Integration**:
+
 - `frontend/src/hooks/useOfflineCache.ts` (200 lines) - Cache hooks
 - `frontend/src/hooks/useSyncManager.ts` (52 lines) - Sync hooks
 - `frontend/src/components/OfflineIndicator.tsx` (186 lines) - UI feedback
 
 **Testing**:
+
 - `frontend/src/lib/offline-cache.test.ts` (362 lines) - Comprehensive tests
 
 **Documentation**:
+
 - `frontend/OFFLINE_CACHING.md` (437 lines) - Complete user guide
 - `OFFLINE_SYNC_IMPLEMENTATION_SUMMARY.md` - This file
 
@@ -211,19 +228,21 @@ const resolved = resolveClipConflict(
 ### For Developers
 
 **Using Offline-Aware APIs**:
+
 ```typescript
 import { fetchClipByIdOfflineAware } from '@/lib/offline-clip-api';
 import { fetchCommentsOfflineAware } from '@/lib/offline-comment-api';
 
 // Fetches from server, falls back to cache when offline
 const clip = await fetchClipByIdOfflineAware('clip-id');
-const comments = await fetchCommentsOfflineAware({ 
+const comments = await fetchCommentsOfflineAware({
   clipId: 'clip-id',
-  sort: 'best' 
+  sort: 'best'
 });
 ```
 
 **Optimistic Updates**:
+
 ```typescript
 import { voteOnClipOfflineAware } from '@/lib/offline-clip-api';
 
@@ -232,6 +251,7 @@ await voteOnClipOfflineAware('clip-id', 1); // upvote
 ```
 
 **React Query Integration**:
+
 ```typescript
 import { useQuery } from '@tanstack/react-query';
 import { fetchClipByIdOfflineAware } from '@/lib/offline-clip-api';
@@ -248,6 +268,7 @@ function useClip(clipId: string) {
 ### For Users
 
 **Offline Browsing**:
+
 1. Browse clips while online (automatically cached)
 2. Go offline
 3. Navigate to previously viewed clips - loads instantly
@@ -256,6 +277,7 @@ function useClip(clipId: string) {
 6. See orange offline banner
 
 **Background Sync**:
+
 1. Perform actions while offline
 2. OfflineIndicator shows "X operations pending"
 3. Reconnect to network
@@ -267,15 +289,18 @@ function useClip(clipId: string) {
 ### Metrics
 
 **Cache Operations**:
+
 - Write: < 10ms average
-- Read: < 5ms average  
+- Read: < 5ms average
 - Batch write (100 items): < 100ms
 
 **Memory Usage**:
+
 - Cache overhead: ~2MB for 1000 clips
 - IndexedDB: Uses browser-allocated storage
 
 **Storage Limits**:
+
 - Desktop Chrome: ~60% of free disk
 - Mobile Safari: 50MB (can request more)
 - Mobile Chrome: ~60% of free space
@@ -293,12 +318,14 @@ function useClip(clipId: string) {
 ### Test Coverage
 
 **Unit Tests**: 11 tests for offline cache
+
 - Clip CRUD operations (5 tests)
 - Comment operations (3 tests)
 - Metadata operations (2 tests)
 - Utility functions (1 test)
 
 **Integration**: Works with existing 686 tests
+
 - No breaking changes
 - All tests passing
 
@@ -322,12 +349,14 @@ function useClip(clipId: string) {
 ### CodeQL Scan
 
 ✅ **Result**: 0 vulnerabilities detected
+
 - No security alerts in JavaScript/TypeScript
 - Clean code scan passed
 
 ## Browser Compatibility
 
 **Full Support**:
+
 - Chrome/Edge 80+
 - Firefox 78+
 - Safari 14+
@@ -335,6 +364,7 @@ function useClip(clipId: string) {
 - Mobile Safari 14+
 
 **Graceful Degradation**:
+
 - Falls back to online-only if IndexedDB unavailable
 - Shows error message if storage quota exceeded
 - Works without service worker
@@ -343,7 +373,7 @@ function useClip(clipId: string) {
 
 1. **Auth Integration**: Optimistic comments use placeholder user IDs
    - **TODO**: Integrate with AuthContext for real user data
-   
+
 2. **API Execution**: SyncManager delegates to MobileApiClient
    - **TODO**: Implement direct API calls in executeOperation()
 
@@ -356,6 +386,7 @@ function useClip(clipId: string) {
 ## Future Enhancements
 
 **Planned Improvements**:
+
 - [ ] Background Sync API for true background sync
 - [ ] Periodic Background Sync for automatic updates
 - [ ] Cache preloading based on user patterns
@@ -386,6 +417,7 @@ const clip = await fetchClipByIdOfflineAware(id);
 ### For New Features
 
 Use offline-aware APIs by default:
+
 - Always import from `offline-clip-api` and `offline-comment-api`
 - Add optimistic updates for better UX
 - Test offline scenarios in your components
@@ -395,17 +427,20 @@ Use offline-aware APIs by default:
 ### Cache Management
 
 **Automatic**:
+
 - Expired entries cleaned on app start
 - Periodic cleanup every 30 seconds
 - Automatic DB upgrades
 
 **Manual** (for users):
+
 - Settings page includes "Clear Offline Cache" button
 - Useful for troubleshooting or freeing space
 
 ### Monitoring
 
 Developers can check cache stats:
+
 ```typescript
 const { stats } = useOfflineCacheStats();
 console.log(`Cached: ${stats.clips} clips, ${stats.comments} comments`);
@@ -414,11 +449,13 @@ console.log(`Cached: ${stats.clips} clips, ${stats.comments} comments`);
 ## Documentation
 
 **User Documentation**:
+
 - `frontend/OFFLINE_CACHING.md` - Complete guide with examples
 - Includes troubleshooting section
 - API reference with code samples
 
 **Developer Documentation**:
+
 - Inline JSDoc comments in all files
 - Type definitions for all interfaces
 - TODO comments for future enhancements
@@ -440,6 +477,7 @@ The system is ready for production use and provides a solid foundation for futur
 **CodeQL Scan**: ✅ 0 vulnerabilities detected
 
 **Security Practices**:
+
 - No credential storage in cache
 - Type-safe operations
 - Input validation
@@ -447,6 +485,7 @@ The system is ready for production use and provides a solid foundation for futur
 - Client-side only storage
 
 **Recommendations**:
+
 - Continue regular security scans
 - Monitor storage quota usage
 - Review conflict resolution logs for suspicious patterns

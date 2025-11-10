@@ -288,4 +288,3 @@ func TestRequireProSubscription_NilAuditService(t *testing.T) {
 		t.Errorf("expected status 403, got %d", w.Code)
 	}
 }
-

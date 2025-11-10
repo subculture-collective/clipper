@@ -23,7 +23,7 @@ func TestBuildClipText(t *testing.T) {
 	}
 
 	text := service.buildClipText(clip)
-	
+
 	assert.Contains(t, text, "Amazing pentakill!")
 	assert.Contains(t, text, "Faker")
 	assert.Contains(t, text, "fan123")
@@ -40,7 +40,7 @@ func TestBuildClipText_MinimalData(t *testing.T) {
 	}
 
 	text := service.buildClipText(clip)
-	
+
 	assert.Contains(t, text, "Great play")
 	assert.Contains(t, text, "streamer1")
 }
@@ -56,7 +56,7 @@ func TestBuildClipText_SameCreatorAndBroadcaster(t *testing.T) {
 	}
 
 	text := service.buildClipText(clip)
-	
+
 	assert.Contains(t, text, "Self clip")
 	assert.Contains(t, text, "Broadcaster: streamer1")
 	// Should not have "Clipped by" since it's the same as broadcaster
@@ -74,10 +74,10 @@ func TestGetCacheKey(t *testing.T) {
 
 	// Same text should produce same key
 	assert.Equal(t, key1, key2)
-	
+
 	// Different text should produce different key
 	assert.NotEqual(t, key1, key3)
-	
+
 	// Key should have correct prefix
 	assert.Contains(t, key1, "embedding:")
 }
@@ -126,9 +126,9 @@ func TestNewEmbeddingService_CustomValues(t *testing.T) {
 
 func TestGenerateBatchEmbeddings_EmptyInput(t *testing.T) {
 	service := &EmbeddingService{}
-	
+
 	result, err := service.GenerateBatchEmbeddings(context.Background(), []string{})
-	
+
 	assert.NoError(t, err)
 	assert.Nil(t, result)
 }

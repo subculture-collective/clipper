@@ -5,10 +5,12 @@ This directory contains the enhanced API client for the mobile app with comprehe
 ## Files Overview
 
 ### Core Implementation
+
 - **`enhanced-api-client.ts`** - Main implementation of the enhanced API client with all features
 - **`api.ts`** - Public API exports (use this in your code)
 
 ### Documentation
+
 - **`API_CLIENT_GUIDE.md`** - Complete guide covering all features, usage patterns, and best practices
 - **`MIGRATION_EXAMPLE.md`** - Before/after examples showing how to enhance existing code
 - **`demo-api-usage.ts`** - Executable demos showing all features in action
@@ -244,16 +246,19 @@ Default configuration (can be customized):
 ## Troubleshooting
 
 ### "Request not retrying"
+
 - Only idempotent methods retry (GET, HEAD, OPTIONS, DELETE)
 - POST, PUT, PATCH requests are queued when offline (use offline queue)
 - Check if status code is retryable
 
 ### "Queue not working"
+
 - GET requests don't queue (they fail immediately when offline)
 - Check `apiClient.isOnline()` to verify offline detection
 - Check `apiClient.getQueuedRequestCount()` to see queue
 
 ### "Token not refreshing"
+
 - Ensure tokens are in expo-secure-store with correct keys
 - Check if `/auth/refresh` endpoint exists
 - Verify refresh response format
@@ -303,6 +308,7 @@ Default configuration (can be customized):
 ## Support
 
 For questions or issues:
+
 1. Read [API_CLIENT_GUIDE.md](./API_CLIENT_GUIDE.md) for detailed documentation
 2. Check [MIGRATION_EXAMPLE.md](./MIGRATION_EXAMPLE.md) for code examples
 3. Run [demo-api-usage.ts](./demo-api-usage.ts) to see features in action

@@ -214,6 +214,7 @@ Maximum: 10000ms (configurable)
 ### Retryable Conditions
 
 Requests are retried when:
+
 - Network errors occur
 - Request timeout (ETIMEDOUT, ECONNABORTED)
 - HTTP status codes: 408, 429, 500, 502, 503, 504
@@ -221,6 +222,7 @@ Requests are retried when:
 ### Non-retryable Conditions
 
 Requests are NOT retried for:
+
 - Authentication errors (401, 403)
 - Client errors (400-499, except 408 and 429)
 - After max retries reached
@@ -261,6 +263,7 @@ function App() {
 ```
 
 The indicator shows:
+
 - Yellow banner when offline
 - Blue banner with retry button when there are queued requests
 - Green banner briefly when coming back online
@@ -280,6 +283,7 @@ const response = await mobileApiClient.getAxiosInstance().get('/clips');
 ```
 
 For a gradual migration:
+
 1. Keep using existing `apiClient` for web
 2. Use `mobileApiClient` for mobile/PWA features
 3. Gradually migrate critical paths to `mobileApiClient`
@@ -433,6 +437,7 @@ try {
 ### Queue Not Processing
 
 If queued requests aren't being processed:
+
 1. Check network status: `mobileApiClient.isOnline()`
 2. Verify queue has items: `mobileApiClient.getQueuedRequestCount()`
 3. Manually trigger retry: `await mobileApiClient.retryOfflineQueue()`
@@ -440,6 +445,7 @@ If queued requests aren't being processed:
 ### Excessive Retries
 
 If experiencing too many retries:
+
 1. Check retry configuration
 2. Verify retryable status codes
 3. Consider increasing initial delay
@@ -447,6 +453,7 @@ If experiencing too many retries:
 ### Memory Leaks
 
 Always clean up when unmounting:
+
 ```typescript
 useEffect(() => {
   return () => {

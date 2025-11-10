@@ -1,8 +1,8 @@
 # ADR-001: Semantic Search Vector Database Selection
 
-**Status**: Accepted  
-**Date**: 2025-11-03  
-**Decision Makers**: Engineering Team  
+**Status**: Accepted
+**Date**: 2025-11-03
+**Decision Makers**: Engineering Team
 **Related Issues**: Semantic Search Architecture
 
 ## Context
@@ -52,6 +52,7 @@ User Query
 **Examples**: Pinecone, Weaviate Cloud, Qdrant Cloud, Milvus Cloud
 
 **Pros**:
+
 - Purpose-built for vector search
 - Excellent performance and scalability
 - Advanced features (HNSW, filtering, namespaces)
@@ -59,6 +60,7 @@ User Query
 - Automatic scaling and backups
 
 **Cons**:
+
 - **Additional cost**: $70-200+/month for production
 - **Vendor lock-in**: Harder to migrate away
 - **Network latency**: Extra hop to external service
@@ -74,12 +76,14 @@ User Query
 **Description**: Use OpenSearch's built-in k-NN vector search capabilities
 
 **Pros**:
+
 - Already using OpenSearch for full-text search
 - No additional infrastructure
 - Single query can combine BM25 + k-NN
 - Native integration with existing search
 
 **Cons**:
+
 - **Performance concerns**: k-NN plugin is less optimized than specialized vector DBs
 - **Resource intensive**: Vector indices can significantly increase memory usage
 - **Limited HNSW tuning**: Less control over vector index parameters
@@ -95,6 +99,7 @@ User Query
 **Description**: Add pgvector extension to existing PostgreSQL database
 
 **Pros**:
+
 - ✅ **Leverages existing infrastructure**: No new services to manage
 - ✅ **Zero additional cost**: Just an extension
 - ✅ **ACID transactions**: Strong consistency with metadata
@@ -105,12 +110,14 @@ User Query
 - ✅ **Easy rollback**: Can remove extension if needed
 
 **Cons**:
+
 - **Scaling limits**: Single PostgreSQL instance has upper bounds (~1-2M vectors)
 - **Mixed workload**: Vector queries compete with OLTP operations
 - **Index build time**: Large HNSW indices take time to build
 - **Memory usage**: Vector indices require significant RAM
 
 **Why This Works for Clipper**:
+
 - Current scale: <100K clips, growing slowly
 - Read-heavy workload: Minimal write contention
 - Hybrid approach: Candidate selection (OpenSearch) reduces vector comparisons
@@ -126,11 +133,13 @@ User Query
 **Description**: Use Redis modules for both full-text and vector search
 
 **Pros**:
+
 - Already using Redis for caching
 - Fast in-memory operations
 - Can replace OpenSearch entirely
 
 **Cons**:
+
 - **High memory cost**: All data must fit in RAM
 - **Limited persistence**: Risk of data loss
 - **Maturity concerns**: Less mature than PostgreSQL/OpenSearch
@@ -168,18 +177,21 @@ User Query
 ### Phase 1: Foundation (Week 1-2)
 
 1. **Enable pgvector extension**
+
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
 
 2. **Add vector column to clips table**
+
    ```sql
    ALTER TABLE clips ADD COLUMN embedding vector(768);
    ```
 
 3. **Create HNSW index**
+
    ```sql
-   CREATE INDEX clips_embedding_idx ON clips 
+   CREATE INDEX clips_embedding_idx ON clips
    USING hnsw (embedding vector_cosine_ops);
    ```
 

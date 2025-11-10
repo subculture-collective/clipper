@@ -43,6 +43,7 @@ console.log(ast);
 ### Search Terms
 
 Free-text search terms:
+
 ```
 epic moment
 "exact phrase"
@@ -252,6 +253,7 @@ The parser is designed for interactive use:
 - No external dependencies beyond TypeScript
 
 Performance benchmarks:
+
 - Simple query (3 filters): ~1-2ms
 - Complex query (5 filters + OR): ~2-4ms
 - Maximum complexity query: ~4-5ms
@@ -313,6 +315,7 @@ npm test -- run src/lib/query-parser --coverage
 ```
 
 Test suites:
+
 - **Lexer Tests** (39 tests): Token generation, edge cases
 - **Parser Tests** (58 tests): AST generation, validation
 - **Error Tests** (32 tests): Error messages, suggestions
@@ -331,6 +334,7 @@ function parseQuery(query: string, config?: ParserConfig): QueryNode
 Parses a query string into an AST.
 
 **Parameters:**
+
 - `query`: The query string to parse
 - `config` (optional): Parser configuration
 

@@ -60,6 +60,7 @@ User Interaction
 ## State Management
 
 ### React Query (TanStack Query)
+
 ```typescript
 useInfiniteQuery({
   queryKey: ['clips', filters],
@@ -70,28 +71,33 @@ useInfiniteQuery({
 ```
 
 **Benefits:**
+
 - Automatic caching (5 minutes default)
 - Deduplication (multiple components can use same query)
 - Background refetching (keeps data fresh)
 - Optimistic updates (instant UI feedback)
 
 ### Local State (useState)
+
 ```typescript
 const [isRefreshing, setIsRefreshing] = useState(false);
 const [pullDistance, setPullDistance] = useState(0);
 ```
 
 **Purpose:**
+
 - Pull-to-refresh UI state
 - Touch gesture tracking
 
 ### URL State (useSearchParams)
+
 ```typescript
 const sort = searchParams.get('sort') || defaultSort;
 const timeframe = searchParams.get('timeframe') || defaultTimeframe;
 ```
 
 **Benefits:**
+
 - Shareable URLs
 - Browser back/forward support
 - Deep linking
@@ -231,6 +237,7 @@ Layer 3: Composite (Cheap - GPU)
 ```
 
 **Strategy:** Use only transform and opacity for animations
+
 - Browser creates separate layer
 - GPU handles all changes
 - No layout recalculation needed

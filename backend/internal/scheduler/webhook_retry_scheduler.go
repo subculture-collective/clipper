@@ -37,7 +37,7 @@ func NewWebhookRetryScheduler(
 
 // Start begins the periodic webhook retry processing
 func (s *WebhookRetryScheduler) Start(ctx context.Context) {
-	log.Printf("[WEBHOOK_SCHEDULER] Starting webhook retry scheduler (interval: %v, batch size: %d)", 
+	log.Printf("[WEBHOOK_SCHEDULER] Starting webhook retry scheduler (interval: %v, batch size: %d)",
 		s.interval, s.batchSize)
 
 	ticker := time.NewTicker(s.interval)

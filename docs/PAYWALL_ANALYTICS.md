@@ -32,17 +32,20 @@ trackUpgradeClick({
 ## Event Reference
 
 ### 1. Paywall Viewed
+
 **Event Name:** `paywall_viewed`
 
 **When:** User sees the paywall modal or upgrade prompt
 
 **Data:**
+
 - `feature` - Feature that triggered the paywall (e.g., "Collections", "Advanced Search")
 - `location` - URL path where event occurred
 - `userId` - User ID if authenticated
 - `metadata` - Additional context
 
 **Tracked In:**
+
 - `PaywallModal` component (web & mobile)
 - `UpgradePrompt` component
 
@@ -51,17 +54,20 @@ trackUpgradeClick({
 ---
 
 ### 2. Upgrade Clicked
+
 **Event Name:** `upgrade_clicked`
 
 **When:** User clicks any upgrade/subscribe button
 
 **Data:**
+
 - `feature` - Feature context where click occurred
 - `billingPeriod` - Selected plan (monthly/yearly)
 - `userId` - User ID if authenticated
 - `metadata.source` - Where the click originated (e.g., "upgrade_prompt", "pricing_page", "quota_display")
 
 **Tracked In:**
+
 - `PaywallModal` component
 - `UpgradePrompt` component
 - `QuotaDisplay` component
@@ -72,17 +78,20 @@ trackUpgradeClick({
 ---
 
 ### 3. Checkout Initiated
+
 **Event Name:** `checkout_initiated`
 
 **When:** User proceeds to Stripe checkout
 
 **Data:**
+
 - `feature` - Feature context (if applicable)
 - `billingPeriod` - Selected plan (monthly/yearly)
 - `userId` - User ID
 - `metadata.source` - Originating page/component
 
 **Tracked In:**
+
 - `PaywallModal` component
 - `PricingPage` component
 
@@ -91,15 +100,18 @@ trackUpgradeClick({
 ---
 
 ### 4. Subscription Purchased
+
 **Event Name:** `subscription_purchased`
 
 **When:** User completes subscription purchase (success page)
 
 **Data:**
+
 - `userId` - User ID
 - `metadata.sessionId` - Stripe checkout session ID
 
 **Tracked In:**
+
 - `SubscriptionSuccessPage` component
 
 **Use Case:** Track successful conversions, calculate conversion rate
@@ -107,14 +119,17 @@ trackUpgradeClick({
 ---
 
 ### 5. Checkout Cancelled
+
 **Event Name:** `checkout_cancelled`
 
 **When:** User cancels during checkout
 
 **Data:**
+
 - `userId` - User ID if authenticated
 
 **Tracked In:**
+
 - `SubscriptionCancelPage` component
 
 **Use Case:** Measure checkout abandonment rate, identify friction points
@@ -122,16 +137,19 @@ trackUpgradeClick({
 ---
 
 ### 6. Paywall Dismissed
+
 **Event Name:** `paywall_dismissed`
 
 **When:** User closes/dismisses the paywall without upgrading
 
 **Data:**
+
 - `feature` - Feature context
 - `userId` - User ID if authenticated
 - `metadata.action` - How dismissed ("close_button", "view_pricing", "backdrop_click")
 
 **Tracked In:**
+
 - `PaywallModal` component
 
 **Use Case:** Understand why users don't convert, measure engagement
@@ -139,15 +157,18 @@ trackUpgradeClick({
 ---
 
 ### 7. Pricing Page Viewed
+
 **Event Name:** `pricing_page_viewed`
 
 **When:** User views the dedicated pricing page
 
 **Data:**
+
 - `userId` - User ID if authenticated
 - `location` - URL path
 
 **Tracked In:**
+
 - `PricingPage` component
 - Mobile pricing screen
 
@@ -156,17 +177,20 @@ trackUpgradeClick({
 ---
 
 ### 8. Billing Period Changed
+
 **Event Name:** `billing_period_changed`
 
 **When:** User switches between monthly/yearly billing
 
 **Data:**
+
 - `feature` - Feature context (if from modal)
 - `billingPeriod` - New selected period
 - `userId` - User ID if authenticated
 - `metadata.source` - Where the change occurred
 
 **Tracked In:**
+
 - `PaywallModal` component
 - `PricingPage` component
 - Mobile pricing screen
@@ -176,15 +200,18 @@ trackUpgradeClick({
 ---
 
 ### 9. Feature Gate Encountered
+
 **Event Name:** `feature_gate_encountered`
 
 **When:** User tries to access a gated feature
 
 **Data:**
+
 - `feature` - Gated feature name
 - `userId` - User ID if authenticated
 
 **Tracked In:**
+
 - `UpgradePrompt` component (on mount)
 
 **Use Case:** Identify which features users want most, prioritize feature development
@@ -192,17 +219,20 @@ trackUpgradeClick({
 ---
 
 ### 10. Quota Limit Reached
+
 **Event Name:** `quota_limit_reached`
 
 **When:** User hits a quota limit (e.g., 50 favorites)
 
 **Data:**
+
 - `feature` - Quota feature (e.g., "Favorites")
 - `userId` - User ID
 - `metadata.current` - Current usage count
 - `metadata.limit` - Quota limit
 
 **Tracked In:**
+
 - `QuotaDisplay` component
 
 **Use Case:** Identify conversion triggers, optimize quota limits
@@ -229,6 +259,7 @@ The events form a standard conversion funnel:
 ## Analytics Integration
 
 ### Current Implementation
+
 - Events are logged to console in development mode
 - In production, events can be sent to:
   - Google Analytics (via `gtag`)
@@ -236,6 +267,7 @@ The events form a standard conversion funnel:
   - Custom backend endpoint
 
 ### Future Integration
+
 To integrate with your analytics service, update the `sendToAnalyticsService` method in `paywall-analytics.ts`:
 
 ```typescript
@@ -322,6 +354,7 @@ paywallAnalytics.clearEvents();
 ## Support
 
 For questions or issues with analytics tracking:
+
 - Create an issue with the `analytics` or `premium` label
 - Reference specific event names and expected vs actual behavior
 - Include browser/device information if relevant

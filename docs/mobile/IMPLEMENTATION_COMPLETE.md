@@ -482,7 +482,7 @@ mobile/
 ### ✅ CodeQL Scan Results
 
 ```
-Analysis Result for 'javascript': 
+Analysis Result for 'javascript':
 - Found 0 alerts
 - No vulnerabilities detected
 ```

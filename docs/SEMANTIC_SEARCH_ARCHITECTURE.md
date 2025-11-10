@@ -7,6 +7,7 @@ This document describes the architecture for semantic search in Clipper, impleme
 Semantic search combines traditional keyword-based search (BM25) with vector embeddings to understand query intent and context. This enables finding clips based on meaning, not just exact keyword matches.
 
 **Key Components**:
+
 - **OpenSearch**: BM25 full-text search for candidate selection
 - **pgvector**: PostgreSQL extension for vector similarity search
 - **Embedding Service**: Generates vector embeddings from text
@@ -538,6 +539,7 @@ Redis Configuration:
 | Query Load | 10/sec | 50/sec | 200/sec | Add read replica |
 
 **Migration Point**: If exceeding 1M clips or 500 QPS, consider:
+
 1. Read replica for search queries
 2. Separate vector database (Qdrant, Milvus)
 3. Sharding by time period (recent vs archive)
@@ -582,27 +584,32 @@ Use the search relevance dataset (`backend/testdata/search_relevance_dataset.yam
 ## Rollout Plan
 
 ### Phase 1: Foundation (2 weeks)
+
 - ✅ Install pgvector extension
 - ✅ Add embedding column and index
 - ✅ Implement embedding service
 
 ### Phase 2: Backfill (1 week)
+
 - ✅ Backfill existing clips
 - ✅ Monitor index build performance
 - ✅ Validate embedding quality
 
 ### Phase 3: Hybrid Search (2 weeks)
+
 - ✅ Implement hybrid search service
 - ✅ Create API endpoint
 - ✅ Add caching layer
 
 ### Phase 4: Production (1 week)
+
 - ✅ A/B test semantic vs traditional
 - ✅ Monitor performance metrics
 - ✅ Adjust HNSW parameters
 - ✅ Documentation updates
 
 ### Phase 5: Optimization (ongoing)
+
 - ✅ Fine-tune relevance scoring
 - ✅ Optimize cache hit rates
 - ✅ Monitor resource usage

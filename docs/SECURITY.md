@@ -73,7 +73,7 @@ CSRF protection is implemented via the `CSRFMiddleware` in `internal/middleware/
 #### Frontend Integration
 
 1. **Get CSRF Token**: Make a GET request to any endpoint to receive a CSRF token
-   
+
    ```javascript
    // Token is returned in X-CSRF-Token header
    const response = await fetch('/api/v1/ping');
@@ -81,7 +81,7 @@ CSRF protection is implemented via the `CSRFMiddleware` in `internal/middleware/
    ```
 
 2. **Include Token in Requests**: Add the token to POST/PUT/DELETE requests
-   
+
    ```javascript
    await fetch('/api/v1/clips/:id/vote', {
      method: 'POST',
@@ -152,6 +152,7 @@ Input validation is implemented via the `InputValidationMiddleware` in `internal
 ```
 
 Examples caught:
+
 - `' UNION SELECT * FROM users--`
 - `; DROP TABLE users;`
 - `admin'; INSERT INTO users VALUES('hacker')--`
@@ -163,6 +164,7 @@ Examples caught:
 ```
 
 Examples caught:
+
 - `<script>alert('xss')</script>`
 - `javascript:alert('xss')`
 - `<img src=x onerror=alert('xss')>`
@@ -208,7 +210,7 @@ Rate limiting is already implemented in `internal/middleware/ratelimit_middlewar
 
 - **Algorithm**: Sliding window with Redis backend
 - **Fallback**: In-memory rate limiter when Redis is unavailable
-- **Headers**: 
+- **Headers**:
   - `X-RateLimit-Limit`: Total requests allowed
   - `X-RateLimit-Remaining`: Requests remaining
   - `X-RateLimit-Reset`: Unix timestamp when limit resets
@@ -377,6 +379,7 @@ type SecureCookieOptions struct {
 ```
 
 Default configuration:
+
 - **HTTPOnly**: true (always)
 - **Secure**: true (production only)
 - **SameSite**: "lax"
@@ -581,6 +584,7 @@ If abuse is detected:
 
 **Problem**: CSRF validation fails
 **Solutions**:
+
 - Ensure cookies are enabled
 - Check `SameSite` cookie settings
 - Verify token is included in `X-CSRF-Token` header
@@ -590,6 +594,7 @@ If abuse is detected:
 
 **Problem**: Legitimate users are rate limited
 **Solutions**:
+
 - Review rate limit thresholds
 - Check if behind proxy (use real IP)
 - Verify Redis is working (fallback has lower limits)
@@ -599,6 +604,7 @@ If abuse is detected:
 
 **Problem**: Content blocked by CSP
 **Solutions**:
+
 - Check browser console for CSP violation reports
 - Verify allowed domains in CSP policy
 - Add necessary domains to whitelist
@@ -608,6 +614,7 @@ If abuse is detected:
 
 **Problem**: Legitimate traffic banned
 **Solutions**:
+
 - Unban IP: `middleware.UnbanIP(ctx, redis, "IP")`
 - Increase `abuseThreshold` if needed
 - Whitelist trusted IPs at nginx level

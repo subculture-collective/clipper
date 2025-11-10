@@ -260,6 +260,7 @@ Permanent errors are moved to DLQ immediately or after max retries:
 ### High Retry Queue Size
 
 Possible causes:
+
 - Database issues preventing event processing
 - Invalid webhook configuration
 - Code bugs in event handlers
@@ -269,6 +270,7 @@ Solution: Check logs for errors, investigate most recent failures
 ### Events in DLQ
 
 Possible causes:
+
 - Invalid event data from Stripe
 - Breaking changes in Stripe API
 - Bugs in event processing logic
@@ -278,6 +280,7 @@ Solution: Review DLQ items, investigate error messages, fix code if needed
 ### Missing Events
 
 Possible causes:
+
 - Webhook endpoint not configured in Stripe
 - Network issues between Stripe and server
 - Events filtered out by idempotency check

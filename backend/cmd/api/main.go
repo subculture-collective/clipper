@@ -164,17 +164,34 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
-	
+
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
-	
+
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 
-	// Initialize search services
+	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
 	var openSearchService *services.OpenSearchService
+	var hybridSearchService *services.HybridSearchService
+	var embeddingService *services.EmbeddingService
+
+	// Initialize embedding service if enabled and configured
+	if cfg.Embedding.Enabled {
+		if cfg.Embedding.OpenAIAPIKey == "" {
+			log.Println("WARNING: Embedding is enabled but OPENAI_API_KEY is not set; disabling embeddings")
+		} else {
+			embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
+				APIKey:            cfg.Embedding.OpenAIAPIKey,
+				Model:             cfg.Embedding.Model,
+				RedisClient:       redisClient.GetClient(),
+				RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
+			})
+			log.Printf("Embedding service initialized (model: %s)", cfg.Embedding.Model)
+		}
+	}
 	if osClient != nil {
 		searchIndexerService = services.NewSearchIndexerService(osClient)
 		openSearchService = services.NewOpenSearchService(osClient)
@@ -189,34 +206,16 @@ func main() {
 				log.Println("Search indices initialized successfully")
 			}
 		}()
-	}
-	
-	// Initialize embedding service if enabled
-	var embeddingService *services.EmbeddingService
-	if cfg.Embedding.Enabled && cfg.Embedding.OpenAIAPIKey != "" {
-		embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
-			APIKey:            cfg.Embedding.OpenAIAPIKey,
-			Model:             cfg.Embedding.Model,
-			RedisClient:       redisClient.GetClient(),
-			RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
-		})
-		log.Printf("Embedding service initialized (model: %s)", cfg.Embedding.Model)
-	} else if cfg.Embedding.Enabled {
-		log.Println("WARNING: Embedding service is enabled but OPENAI_API_KEY is not set")
-	}
-	
-	// Initialize hybrid search service if both OpenSearch and embeddings are available
-	var hybridSearchService *services.HybridSearchService
-	if osClient != nil && embeddingService != nil {
+
+		// Initialize hybrid search when OpenSearch is available
 		hybridSearchService = services.NewHybridSearchService(&services.HybridSearchConfig{
 			Pool:              db.Pool,
 			OpenSearchService: openSearchService,
 			EmbeddingService:  embeddingService,
 			RedisClient:       redisClient.GetClient(),
 		})
-		log.Println("Hybrid search service initialized (BM25 + vector similarity)")
 	}
-	
+
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
@@ -388,7 +387,7 @@ func main() {
 	// Cache monitoring endpoints
 	r.GET("/health/cache", monitoringHandler.GetCacheStats)
 	r.GET("/health/cache/check", monitoringHandler.GetCacheHealth)
-	
+
 	// Webhook monitoring endpoint
 	r.GET("/health/webhooks", webhookMonitoringHandler.GetWebhookRetryStats)
 
@@ -398,7 +397,7 @@ func main() {
 	{
 		// Prometheus metrics endpoint
 		debug.GET("/metrics", gin.WrapH(promhttp.Handler()))
-		
+
 		// Go pprof endpoints for profiling
 		debug.GET("/pprof/", gin.WrapF(pprof.Index))
 		debug.GET("/pprof/cmdline", gin.WrapF(pprof.Cmdline))

@@ -35,7 +35,7 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         {title}
       </h3>
-      
+
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
           <Pie
@@ -44,7 +44,7 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({
             cy="50%"
             labelLine={false}
             label={({ name, percent }) =>
-              `${name}: ${(percent * 100).toFixed(0)}%`
+              `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
             }
             outerRadius={80}
             fill="#8884d8"

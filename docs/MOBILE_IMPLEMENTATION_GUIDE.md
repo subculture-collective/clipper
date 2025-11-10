@@ -553,24 +553,28 @@ useEffect(() => {
 ### Common Issues
 
 **Metro bundler won't start:**
+
 ```bash
 # Clear cache
 npx expo start -c
 ```
 
 **Type errors from shared package:**
+
 ```bash
 # Rebuild shared types
 npm -w shared run type-check
 ```
 
 **iOS simulator not launching:**
+
 ```bash
 # Open Xcode and launch simulator manually
 open -a Simulator
 ```
 
 **Android emulator not detected:**
+
 ```bash
 # List devices
 adb devices
@@ -626,6 +630,7 @@ The app is configured with Associated Domains in `app.json`:
 ```
 
 The server must host `apple-app-site-association` file at:
+
 ```
 https://clipper.onnwee.me/.well-known/apple-app-site-association
 ```
@@ -657,6 +662,7 @@ The app is configured with intent filters in `app.json`:
 ```
 
 The server must host `assetlinks.json` file at:
+
 ```
 https://clipper.onnwee.me/.well-known/assetlinks.json
 ```
@@ -748,6 +754,7 @@ This ensures a seamless user experience whether or not the app is installed.
 #### iOS Universal Links Not Working
 
 1. Verify the `apple-app-site-association` file is accessible:
+
    ```bash
    curl https://clipper.onnwee.me/.well-known/apple-app-site-association
    ```
@@ -763,11 +770,13 @@ This ensures a seamless user experience whether or not the app is installed.
 #### Android App Links Not Working
 
 1. Verify the `assetlinks.json` file is accessible:
+
    ```bash
    curl https://clipper.onnwee.me/.well-known/assetlinks.json
    ```
 
 2. Ensure the SHA256 certificate fingerprint matches your app's signing certificate:
+
    ```bash
    # For debug build
    keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
@@ -777,6 +786,7 @@ This ensures a seamless user experience whether or not the app is installed.
    ```
 
 3. Test with Google's Digital Asset Links API:
+
    ```
    https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://clipper.onnwee.me&relation=delegate_permission/common.handle_all_urls
    ```
@@ -799,6 +809,7 @@ This ensures a seamless user experience whether or not the app is installed.
 ## Support
 
 For issues or questions:
+
 - Open an issue on GitHub
 - Check Expo forums: forums.expo.dev
 - Join Expo Discord: chat.expo.dev

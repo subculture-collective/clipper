@@ -10,7 +10,7 @@ export const PRICING = {
 /**
  * Calculate effective monthly price for yearly plan
  */
-export const calculateYearlyMonthlyPrice = (yearlyPrice: number): string => 
+export const calculateYearlyMonthlyPrice = (yearlyPrice: number): string =>
   (yearlyPrice / 12).toFixed(2);
 
 /**

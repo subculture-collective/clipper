@@ -17,6 +17,7 @@ PKCE (RFC 7636) is an extension to the OAuth 2.0 Authorization Code flow that mi
 ### 2. Authorization Request
 
 The client includes the code challenge in the authorization request:
+
 ```
 GET /auth/twitch?code_challenge={challenge}&code_challenge_method=S256&state={state}
 ```
@@ -24,6 +25,7 @@ GET /auth/twitch?code_challenge={challenge}&code_challenge_method=S256&state={st
 ### 3. Token Exchange
 
 The client sends the code verifier with the authorization code:
+
 ```
 POST /auth/twitch/callback
 {
@@ -36,6 +38,7 @@ POST /auth/twitch/callback
 ### 4. Verification
 
 The server:
+
 1. Retrieves the stored code challenge
 2. Computes SHA-256 hash of the received code verifier
 3. Compares it with the stored challenge
@@ -46,27 +49,35 @@ The server:
 ### Frontend Components
 
 #### `pkce.ts`
+
 Utilities for generating PKCE parameters:
+
 - `generateCodeVerifier()`: Creates cryptographically secure random string
 - `generateCodeChallenge()`: Computes SHA-256 hash and base64url-encodes it
 - `generateState()`: Generates random state parameter
 - `generatePKCEParams()`: Convenience function for all parameters
 
 #### `secure-storage.ts`
+
 Secure storage implementation:
+
 - Uses **IndexedDB** with **Web Crypto API** encryption for maximum security
 - Fallback to **sessionStorage** (ephemeral) when crypto APIs unavailable
 - Encryption key stored in sessionStorage (ephemeral for security)
 - Auto-cleans up on logout
 
 #### `auth-api.ts`
+
 Updated authentication API:
+
 - `initiateOAuth()`: Now async, generates PKCE params and stores verifier
 - `handleOAuthCallback()`: Validates state and sends verifier to backend
 - `logout()`: Clears secure storage
 
 #### `AuthCallbackPage.tsx`
+
 Updated callback handler:
+
 - Handles PKCE flow (code + state parameters)
 - Validates state on client-side
 - Falls back to cookie-based flow for backward compatibility
@@ -74,13 +85,17 @@ Updated callback handler:
 ### Backend Components
 
 #### `auth_service.go`
+
 Enhanced auth service:
+
 - `GenerateAuthURL()`: Accepts and stores PKCE challenge with state
 - `HandleCallback()`: Validates code verifier against stored challenge
 - `verifyPKCE()`: Implements SHA-256 verification logic
 
 #### `auth_handler.go`
+
 Updated handlers:
+
 - `InitiateOAuth()`: Accepts PKCE parameters from query string
 - `HandleCallback()`: Existing GET endpoint (backward compatible)
 - `HandlePKCECallback()`: New POST endpoint for PKCE flow
@@ -88,21 +103,25 @@ Updated handlers:
 ## Security Features
 
 ### 1. Encrypted Storage
+
 - Code verifier encrypted using AES-GCM with Web Crypto API
 - Encryption key ephemeral (stored in sessionStorage)
 - Automatic IV generation for each encryption
 
 ### 2. CSRF Protection
+
 - State parameter generated with crypto.getRandomValues()
 - Stored securely and validated on callback
 - Single-use (deleted after validation)
 
 ### 3. Code Challenge Method
+
 - Uses SHA-256 (code_challenge_method=S256)
 - More secure than plain method
 - Industry best practice
 
 ### 4. Fallback Security
+
 - Falls back to sessionStorage when IndexedDB/crypto unavailable
 - sessionStorage is ephemeral (cleared on tab close)
 - Still more secure than localStorage
@@ -146,12 +165,14 @@ await logout();
 ## Browser Compatibility
 
 ### Full Support (IndexedDB + Web Crypto)
+
 - Chrome 43+
 - Firefox 34+
 - Safari 10.1+
 - Edge 79+
 
 ### Fallback (sessionStorage)
+
 - All modern browsers
 - Still secure (ephemeral storage)
 - No persistent storage
@@ -159,10 +180,12 @@ await logout();
 ## Testing
 
 ### Unit Tests
+
 - **PKCE**: 14 tests covering verifier/challenge generation
 - **Secure Storage**: 10 tests covering storage operations
 
 ### Run Tests
+
 ```bash
 cd frontend
 npm test src/lib/pkce.test.ts src/lib/secure-storage.test.ts
@@ -171,6 +194,7 @@ npm test src/lib/pkce.test.ts src/lib/secure-storage.test.ts
 ## Migration from Standard OAuth
 
 The implementation is **backward compatible**:
+
 1. Old clients continue using GET /auth/twitch/callback (no PKCE)
 2. New clients use POST /auth/twitch/callback (with PKCE)
 3. Backend supports both flows simultaneously
@@ -178,16 +202,19 @@ The implementation is **backward compatible**:
 ## Security Considerations
 
 ### What PKCE Protects Against
+
 - ✅ Authorization code interception attacks
 - ✅ Malicious app impersonation
 - ✅ Cross-site request forgery (CSRF)
 
 ### What PKCE Doesn't Protect Against
+
 - ❌ XSS attacks (use Content Security Policy)
 - ❌ Man-in-the-middle (requires HTTPS)
 - ❌ Compromised client device
 
 ### Best Practices
+
 1. **Always use HTTPS** in production
 2. **Keep encryption keys ephemeral** (sessionStorage)
 3. **Clear storage on logout**
@@ -204,16 +231,19 @@ The implementation is **backward compatible**:
 ## Troubleshooting
 
 ### "Invalid code verifier" Error
+
 - Ensure code verifier is stored before redirect
 - Check that secure storage is available
 - Verify browser supports required APIs
 
 ### "Invalid state parameter" Error
+
 - State may have expired (5 minute TTL)
 - Check for clock skew between client/server
 - Ensure state is stored before redirect
 
 ### Storage Not Working
+
 - Check browser privacy settings
 - Verify IndexedDB is not blocked
 - Ensure cookies are enabled for sessionStorage fallback

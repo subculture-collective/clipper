@@ -5,6 +5,7 @@ This tool generates embeddings for existing clips in the database using the Open
 ## Overview
 
 The embedding backfill tool:
+
 - Generates vector embeddings for clips without embeddings
 - Uses batch processing to efficiently handle large datasets
 - Caches embeddings in Redis to reduce API costs
@@ -66,6 +67,7 @@ go run cmd/backfill-embeddings/main.go -force
 ```
 
 Useful for:
+
 - Migrating to a new embedding model
 - Fixing corrupted embeddings
 - Updating embeddings with improved text preprocessing
@@ -79,6 +81,7 @@ go run cmd/backfill-embeddings/main.go -dry-run
 ```
 
 Useful for:
+
 - Testing configuration
 - Estimating processing time
 - Checking for errors before committing changes
@@ -150,6 +153,7 @@ The tool respects OpenAI API rate limits:
 ### Caching
 
 Embeddings are cached in Redis for 30 days:
+
 - Reduces API costs on re-runs
 - Speeds up processing significantly
 - Cache key based on model + text content hash
@@ -179,7 +183,8 @@ OPENAI_API_KEY is not set. Please set it in your environment or .env file
 API returned status 429: Rate limit exceeded
 ```
 
-**Solution**: 
+**Solution**:
+
 - Reduce batch size
 - Increase `EMBEDDING_REQUESTS_PER_MINUTE` if you have a higher tier
 - Wait and retry later
@@ -200,12 +205,12 @@ Check embedding coverage:
 
 ```sql
 -- Count clips with embeddings
-SELECT COUNT(*) 
-FROM clips 
+SELECT COUNT(*)
+FROM clips
 WHERE embedding IS NOT NULL;
 
 -- Get embedding statistics
-SELECT 
+SELECT
     COUNT(*) as total_clips,
     COUNT(embedding) as clips_with_embeddings,
     COUNT(embedding)::float / COUNT(*)::float * 100 as coverage_percentage
@@ -233,6 +238,7 @@ redis-cli INFO stats | grep hits
 ## Automated Processing
 
 The API server includes an automatic embedding scheduler that:
+
 - Runs every 6 hours
 - Processes clips created in the last 7 days without embeddings
 - Limits to 100 clips per run to avoid overwhelming the API
@@ -262,6 +268,7 @@ For complete backfills of existing data, use this CLI tool.
 ## Support
 
 For issues or questions:
+
 - Check the [Semantic Search Architecture](../../docs/SEMANTIC_SEARCH_ARCHITECTURE.md)
 - Review [OpenAI Embeddings Documentation](https://platform.openai.com/docs/guides/embeddings)
 - Open an issue in the GitHub repository

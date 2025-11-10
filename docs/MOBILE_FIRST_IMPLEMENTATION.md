@@ -73,6 +73,7 @@ clipper/
 The `@clipper/shared` package contains TypeScript types and constants that are shared between the web and mobile applications:
 
 **Types:**
+
 - `Clip`: Clip model interface
 - `ClipFeedResponse`: API response for clip feeds
 - `ClipFeedFilters`: Filter options for clip queries
@@ -80,6 +81,7 @@ The `@clipper/shared` package contains TypeScript types and constants that are s
 - `PaginatedResponse<T>`: Paginated data structure
 
 **Constants:**
+
 - `API_BASE_URL`: Base URL for the API
 - `API_VERSION`: API version
 - `API_URL`: Full API URL
@@ -102,12 +104,14 @@ The app uses Expo Router for file-based routing with a tab-based navigation stru
 #### Services Layer
 
 **`api.ts`**: Configures Axios with:
+
 - Base URL from environment configuration
 - Request/response interceptors
 - Error handling
 - Future authentication token injection
 
 **`clipService.ts`**: Provides methods for:
+
 - `getClips()`: Fetch clip feed with filters
 - `getClipById()`: Get a specific clip
 - `voteClip()`: Vote on a clip
@@ -122,6 +126,7 @@ Environment variables are managed through:
 2. **`src/config/env.ts`**: Centralized configuration with fallbacks
 
 Supported environment variables:
+
 - `API_BASE_URL`: Backend API URL (default: `http://localhost:8080`)
 - `ENV`: Environment name (default: `development`)
 
@@ -183,12 +188,14 @@ npm run mobile:test
 ### Git Hooks
 
 Pre-commit hooks (via Husky and lint-staged):
+
 - Automatic linting on staged files
 - Code formatting enforcement
 
 ### CI/CD
 
 GitHub Actions workflow (`.github/workflows/mobile-ci.yml`):
+
 - Linting
 - Testing
 - Build verification for Android and iOS
@@ -215,6 +222,7 @@ Type 'bigint' is not assignable to type 'ReactNode'.
 ### Authentication
 
 Authentication will be implemented using:
+
 - Expo SecureStore for token storage
 - Axios interceptors for automatic token injection
 - Twitch OAuth flow (future implementation)
@@ -226,6 +234,7 @@ The mobile app connects to the same backend API as the web application:
 **Base URL**: Configured via environment variable
 **API Version**: v1
 **Endpoints**:
+
 - `GET /api/v1/clips/feed` - Get clip feed
 - `GET /api/v1/clips/:id` - Get specific clip
 - `POST /api/v1/clips/vote` - Vote on clip
@@ -246,6 +255,7 @@ The mobile app connects to the same backend API as the web application:
 ### E2E Testing
 
 Future implementation with Detox or Maestro for:
+
 - User flow testing
 - Navigation testing
 - Integration testing
@@ -339,6 +349,7 @@ Expo provides OTA updates for JavaScript and asset changes without requiring app
 ## Support
 
 For issues, questions, or contributions:
+
 - Open an issue on GitHub
 - Check existing documentation
 - Consult the team in discussions

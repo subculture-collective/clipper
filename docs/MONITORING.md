@@ -17,6 +17,7 @@ This guide covers how to set up Sentry for error tracking and integrate it with 
 ## Overview
 
 Clipper uses Sentry for:
+
 - **Error Tracking**: Capture and track application errors
 - **Performance Monitoring**: Monitor API response times and slow queries
 - **Release Tracking**: Track errors by deployment version
@@ -102,6 +103,7 @@ SENTRY_TRACES_SAMPLE_RATE=0.1  # 10% of transactions
 ### PII Protection
 
 The backend automatically scrubs sensitive data:
+
 - Authorization headers
 - Cookie values
 - CSRF tokens
@@ -146,6 +148,7 @@ VITE_SENTRY_TRACES_SAMPLE_RATE=0.1  # 10% of transactions
 ### PII Protection
 
 The frontend automatically scrubs:
+
 - Authorization headers and tokens
 - Cookie values
 - User emails and IPs
@@ -164,6 +167,7 @@ The global `ErrorBoundary` component catches all React errors:
 ```
 
 Features:
+
 - Catches all React component errors
 - Reports to Sentry with component stack
 - Shows user-friendly error page
@@ -289,6 +293,7 @@ sentry-cli releases files v1.2.3 upload-sourcemaps ./dist \
 ### Security
 
 Source maps contain your source code. Recommendations:
+
 - Only upload to Sentry (don't deploy to production server)
 - The Vite config automatically deletes source maps after upload
 - Use `.sentryclirc` for auth token (don't commit to git)
@@ -380,6 +385,7 @@ Create a dashboard with these widgets:
 ### Sharing Dashboard
 
 Generate a shareable link:
+
 1. Open dashboard
 2. Click "Share"
 3. Copy public link (optional: password protect)
@@ -389,6 +395,7 @@ Generate a shareable link:
 ### 1. Error Grouping
 
 Sentry groups similar errors. Ensure good grouping by:
+
 - Using consistent error messages
 - Including error codes in messages
 - Adding custom fingerprints for unique scenarios
@@ -468,6 +475,7 @@ Adjust sample rates based on traffic:
 ### 5. Performance Budget
 
 Set performance budgets:
+
 - API responses: < 500ms (P50), < 2s (P95)
 - Frontend page load: < 3s
 - Database queries: < 100ms
@@ -477,6 +485,7 @@ Alert when budgets are exceeded.
 ### 6. PII Compliance
 
 Always review and scrub PII:
+
 - User emails
 - IP addresses
 - Authentication tokens
@@ -484,6 +493,7 @@ Always review and scrub PII:
 - Personal messages
 
 Our implementation already handles this, but always verify:
+
 - Check Sentry events don't contain PII
 - Review breadcrumbs for sensitive data
 - Test with real user data in staging
@@ -491,6 +501,7 @@ Our implementation already handles this, but always verify:
 ### 7. Maintenance
 
 Regular maintenance tasks:
+
 - **Weekly**: Review new issues, triage
 - **Monthly**: Check alert effectiveness, adjust thresholds
 - **Quarterly**: Review sampling rates, clean up ignored issues
@@ -523,11 +534,13 @@ Regular maintenance tasks:
 ### Performance Impact
 
 Sentry has minimal performance impact:
+
 - Errors are sent asynchronously
 - Performance monitoring uses sampling
 - Source maps only uploaded during build
 
 If concerns:
+
 1. Lower trace sample rate
 2. Disable session replay
 3. Reduce breadcrumb limit

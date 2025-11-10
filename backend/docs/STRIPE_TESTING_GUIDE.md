@@ -4,8 +4,8 @@ This guide walks through testing the complete Stripe subscription integration.
 
 ## Prerequisites
 
-1. **Stripe Account**: Create a test account at https://dashboard.stripe.com
-2. **Stripe CLI**: Install from https://stripe.com/docs/stripe-cli
+1. **Stripe Account**: Create a test account at <https://dashboard.stripe.com>
+2. **Stripe CLI**: Install from <https://stripe.com/docs/stripe-cli>
 3. **Environment Setup**: Configure `.env` with test keys
 4. **Running Services**: Backend, PostgreSQL, and Redis
 
@@ -20,6 +20,7 @@ This guide walks through testing the complete Stripe subscription integration.
 ```
 
 Add to `backend/.env`:
+
 ```env
 STRIPE_SECRET_KEY=sk_test_your_secret_key_here
 ```
@@ -29,6 +30,7 @@ STRIPE_SECRET_KEY=sk_test_your_secret_key_here
 See [SUBSCRIPTIONS.md](../../docs/SUBSCRIPTIONS.md) for detailed instructions.
 
 Quick start:
+
 ```bash
 stripe login
 stripe products create --name="Clipper Pro Monthly"
@@ -39,6 +41,7 @@ stripe prices create --product=prod_xxx --unit-amount=9999 --currency=usd --recu
 ### 3. Create Test Coupons
 
 Run the provided script:
+
 ```bash
 cd backend
 ./scripts/create-stripe-coupons.sh
@@ -129,17 +132,21 @@ curl -X POST "http://localhost:8080/api/v1/subscriptions/portal" \
 ## Part 4: Expected Behaviors
 
 ### Coupon Applied
+
 - Discount shown in checkout UI
 - Invoice reflects reduced amount
 - Audit log records coupon code
 
 ### Proration Example
+
 Monthly ($9.99) → Yearly ($99.99) after 5 days:
+
 - Credit: ~$8.33 (unused monthly time)
 - Charge: $99.99 (yearly plan)
 - Net: ~$91.66
 
 ### Webhook Flow
+
 1. User completes checkout
 2. Stripe sends `customer.subscription.created`
 3. Backend updates database
@@ -158,6 +165,7 @@ Monthly ($9.99) → Yearly ($99.99) after 5 days:
 ## Production Readiness
 
 Before going live:
+
 - [ ] Switch to live Stripe keys
 - [ ] Create live products/prices
 - [ ] Configure live webhooks

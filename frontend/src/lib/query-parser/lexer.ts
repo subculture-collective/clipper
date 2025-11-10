@@ -3,7 +3,7 @@
  * Converts query string into tokens for parsing
  */
 
-import { Position } from './ast';
+import type { Position } from './ast';
 
 /**
  * Token types
@@ -13,7 +13,7 @@ export enum TokenType {
   WORD = 'WORD',
   PHRASE = 'PHRASE',
   NUMBER = 'NUMBER',
-  
+
   // Operators
   COLON = 'COLON',
   NEGATION = 'NEGATION',
@@ -21,10 +21,10 @@ export enum TokenType {
   RPAREN = 'RPAREN',
   RANGE = 'RANGE',
   COMPARISON = 'COMPARISON',
-  
+
   // Keywords
   OR = 'OR',
-  
+
   // Special
   EOF = 'EOF',
   WHITESPACE = 'WHITESPACE',
@@ -137,7 +137,7 @@ export class Lexer {
       this.scanWord();
       return;
     }
-    
+
     // Hyphen that isn't negation (shouldn't reach here normally)
     if (char === '-') {
       this.scanWord();
@@ -273,7 +273,7 @@ export class Lexer {
   private isNegationContext(): boolean {
     // Negation is valid at the start or after whitespace/parentheses
     if (this.position === 0) return true;
-    
+
     const prevChar = this.input[this.position - 1];
     return this.isWhitespace(prevChar) || prevChar === '(';
   }

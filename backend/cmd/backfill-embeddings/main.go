@@ -15,13 +15,13 @@ import (
 )
 
 type BackfillStats struct {
-	TotalClips      int
-	ProcessedClips  int
-	SkippedClips    int
-	FailedClips     int
-	StartTime       time.Time
-	EndTime         time.Time
-	LastError       error
+	TotalClips     int
+	ProcessedClips int
+	SkippedClips   int
+	FailedClips    int
+	StartTime      time.Time
+	EndTime        time.Time
+	LastError      error
 }
 
 func main() {
@@ -89,7 +89,7 @@ func main() {
 	log.Printf("Skipped: %d", stats.SkippedClips)
 	log.Printf("Failed: %d", stats.FailedClips)
 	log.Printf("Duration: %v", duration)
-	
+
 	if stats.ProcessedClips > 0 {
 		avgTime := duration / time.Duration(stats.ProcessedClips)
 		log.Printf("Average time per clip: %v", avgTime)

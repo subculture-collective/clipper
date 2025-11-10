@@ -148,6 +148,7 @@ Creates a Stripe Checkout session for subscription signup.
 **Authentication**: Required
 
 **Request Body**:
+
 ```json
 {
   "price_id": "price_your_monthly_or_yearly_price_id",
@@ -156,6 +157,7 @@ Creates a Stripe Checkout session for subscription signup.
 ```
 
 **Response**:
+
 ```json
 {
   "session_id": "cs_test_...",
@@ -164,6 +166,7 @@ Creates a Stripe Checkout session for subscription signup.
 ```
 
 **Usage**:
+
 ```javascript
 // Without coupon
 const response = await fetch('/api/v1/subscriptions/checkout', {
@@ -195,6 +198,7 @@ window.location.href = session_url; // Redirect to Stripe Checkout
 ```
 
 **Notes**:
+
 - The `coupon_code` field is optional
 - Checkout also supports promotion codes entered by users during checkout
 - Invalid coupon codes will be rejected by Stripe during checkout
@@ -208,6 +212,7 @@ Creates a Stripe Customer Portal session for managing subscriptions.
 **Authentication**: Required
 
 **Response**:
+
 ```json
 {
   "portal_url": "https://billing.stripe.com/..."
@@ -215,6 +220,7 @@ Creates a Stripe Customer Portal session for managing subscriptions.
 ```
 
 **Usage**:
+
 ```javascript
 const response = await fetch('/api/v1/subscriptions/portal', {
   method: 'POST',
@@ -236,6 +242,7 @@ Retrieves the authenticated user's subscription information.
 **Authentication**: Required
 
 **Response**:
+
 ```json
 {
   "id": "uuid",
@@ -262,6 +269,7 @@ Changes the user's subscription plan (e.g., from monthly to yearly) with automat
 **Authentication**: Required
 
 **Request Body**:
+
 ```json
 {
   "price_id": "price_new_plan_price_id"
@@ -269,6 +277,7 @@ Changes the user's subscription plan (e.g., from monthly to yearly) with automat
 ```
 
 **Response**:
+
 ```json
 {
   "message": "Subscription plan changed successfully"
@@ -276,6 +285,7 @@ Changes the user's subscription plan (e.g., from monthly to yearly) with automat
 ```
 
 **Usage**:
+
 ```javascript
 const response = await fetch('/api/v1/subscriptions/change-plan', {
   method: 'POST',
@@ -293,6 +303,7 @@ console.log(result.message); // "Subscription plan changed successfully"
 ```
 
 **Notes**:
+
 - This endpoint handles plan changes with automatic proration
 - Proration is calculated and invoiced immediately
 - The user will receive an invoice for any prorated charges
@@ -309,6 +320,7 @@ Processes Stripe webhook events.
 **Authentication**: None (validated via Stripe signature)
 
 **Headers**:
+
 - `Stripe-Signature`: Webhook signature from Stripe
 
 This endpoint is called automatically by Stripe. Do not call it manually.
@@ -339,6 +351,7 @@ This endpoint is called automatically by Stripe. Do not call it manually.
 ### Using Coupons in Checkout
 
 #### Option 1: Pre-applied Coupon
+
 ```javascript
 // Apply coupon in checkout request
 const response = await fetch('/api/v1/subscriptions/checkout', {
@@ -355,25 +368,30 @@ const response = await fetch('/api/v1/subscriptions/checkout', {
 ```
 
 #### Option 2: User-entered Promotion Code
+
 The checkout session automatically allows users to enter promotion codes during checkout. Enable this feature in your Stripe Dashboard:
+
 1. Go to Settings > Checkout
 2. Enable "Allow promotion codes"
 
 ### Common Coupon Patterns
 
 **Launch Discount (25% off first year)**:
+
 - ID: `LAUNCH25`
 - Type: Percentage
 - Value: 25%
 - Duration: Once
 
 **Referral Discount (20% off)**:
+
 - ID: `REFERRAL20`
 - Type: Percentage
 - Value: 20%
 - Duration: Forever
 
 **Student Discount (50% off)**:
+
 - ID: `STUDENT50`
 - Type: Percentage
 - Value: 50%
@@ -398,6 +416,7 @@ When a user changes their subscription plan, Stripe automatically calculates pro
 ### Proration Behavior
 
 The implementation uses `always_invoice` proration behavior:
+
 - Changes are invoiced immediately
 - Users receive a clear breakdown of charges and credits
 - No surprises at the next billing cycle
@@ -406,12 +425,14 @@ The implementation uses `always_invoice` proration behavior:
 
 1. Create a subscription with a monthly plan
 2. Use the change plan endpoint to switch to yearly:
+
    ```javascript
    fetch('/api/v1/subscriptions/change-plan', {
      method: 'POST',
      body: JSON.stringify({ price_id: 'price_yearly' })
    })
    ```
+
 3. Check the invoice in Stripe Dashboard to see proration breakdown
 
 ## Feature Gating
@@ -450,6 +471,7 @@ The application listens for these Stripe webhook events:
 ### customer.subscription.created
 
 Fired when a new subscription is created. Updates the subscription record with:
+
 - Stripe subscription ID
 - Price ID
 - Status
@@ -552,6 +574,7 @@ Before deploying to production:
 ## Support
 
 For Stripe-specific issues, refer to:
+
 - [Stripe Documentation](https://stripe.com/docs)
 - [Stripe API Reference](https://stripe.com/docs/api)
 - [Stripe Support](https://support.stripe.com/)
