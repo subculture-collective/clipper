@@ -173,9 +173,26 @@ func main() {
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 
 
-	// Initialize search services
+	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
 	var openSearchService *services.OpenSearchService
+	var hybridSearchService *services.HybridSearchService
+	var embeddingService *services.EmbeddingService
+
+	// Initialize embedding service if enabled and configured
+	if cfg.Embedding.Enabled {
+		if cfg.Embedding.OpenAIAPIKey == "" {
+			log.Println("WARNING: Embedding is enabled but OPENAI_API_KEY is not set; disabling embeddings")
+		} else {
+			embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
+				APIKey:            cfg.Embedding.OpenAIAPIKey,
+				Model:             cfg.Embedding.Model,
+				RedisClient:       redisClient.GetClient(),
+				RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
+			})
+			log.Printf("Embedding service initialized (model: %s)", cfg.Embedding.Model)
+		}
+	}
 	if osClient != nil {
 		searchIndexerService = services.NewSearchIndexerService(osClient)
 		openSearchService = services.NewOpenSearchService(osClient)
@@ -191,6 +208,14 @@ func main() {
 				log.Println("Search indices initialized successfully")
 			}
 		}()
+
+		// Initialize hybrid search when OpenSearch is available
+		hybridSearchService = services.NewHybridSearchService(&services.HybridSearchConfig{
+			Pool:              db.Pool,
+			OpenSearchService: openSearchService,
+			EmbeddingService:  embeddingService,
+			RedisClient:       redisClient.GetClient(),
+		})
 	}
 
 	var clipSyncService *services.ClipSyncService
