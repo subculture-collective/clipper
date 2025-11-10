@@ -29,9 +29,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          npm -w mobile ci
-          npm -w shared ci
+          npm install
+          npm -w mobile install
+          npm -w shared install
 
       - name: Type check (shared)
         run: npm -w shared run type-check
@@ -69,9 +69,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          npm -w mobile ci
-          npm -w shared ci
+          npm install
+          npm -w mobile install
+          npm -w shared install
 
       - name: Build preview
         working-directory: mobile
@@ -104,9 +104,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          npm -w mobile ci
-          npm -w shared ci
+          npm install
+          npm -w mobile install
+          npm -w shared install
 
       - name: Build production
         working-directory: mobile
