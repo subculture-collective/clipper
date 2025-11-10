@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -354,7 +355,7 @@ func TestIsValidUsername(t *testing.T) {
 		{"Invalid with space", "Streamer Name", false},
 		{"Invalid with special char", "Streamer@Name", false},
 		{"Invalid with dot", "Streamer.Name", false},
-		{"Empty string", "", true}, // Empty string technically passes (all zero chars are valid)
+		{"Empty string", "", false}, // Empty string should be invalid
 	}
 
 	for _, tt := range tests {
@@ -377,11 +378,11 @@ func TestIsValidTag(t *testing.T) {
 		{"Valid alphanumeric", "gaming123", true},
 		{"Valid with hyphen", "super-cool", true},
 		{"Valid lowercase", "epic", true},
-		{"Invalid uppercase", "EPIC", false}, // Should be lowercase after normalization
+		{"Invalid uppercase", "EPIC", false}, // isValidTag expects normalized (lowercase) input; uppercase should fail
 		{"Invalid with underscore", "tag_name", false},
 		{"Invalid with space", "tag name", false},
 		{"Invalid with special char", "tag@name", false},
-		{"Empty string", "", true}, // Empty string technically passes
+		{"Empty string", "", false}, // Empty string should be invalid
 	}
 
 	for _, tt := range tests {
@@ -493,7 +494,7 @@ func TestValidationErrorMessages(t *testing.T) {
 				Tags:    []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"},
 			},
 			expectedField: "tags",
-			shouldContain: "maximum 10",
+			shouldContain: "no more than 10",
 			description:   "Error message should specify the limit",
 		},
 	}
@@ -514,24 +515,10 @@ func TestValidationErrorMessages(t *testing.T) {
 				t.Errorf("Expected field '%s', got '%s'", tt.expectedField, valErr.Field)
 			}
 
-			if !contains(valErr.Message, tt.shouldContain) {
+			if !strings.Contains(valErr.Message, tt.shouldContain) {
 				t.Errorf("Expected message to contain '%s', got '%s'. %s",
 					tt.shouldContain, valErr.Message, tt.description)
 			}
 		})
 	}
-}
-
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

@@ -240,14 +240,14 @@ func (s *SubmissionService) validateSubmissionInput(req *SubmitClipRequest) erro
 	if len(req.Tags) > 10 {
 		return &ValidationError{
 			Field:   "tags",
-			Message: "Too many tags (maximum 10 tags allowed)",
+			Message: "Too many tags (no more than 10 tags allowed)",
 		}
 	}
 
 	// Normalize and validate each tag
 	normalizedTags := make([]string, 0, len(req.Tags))
 	seenTags := make(map[string]bool)
-	for i, tag := range req.Tags {
+	for _, tag := range req.Tags {
 		// Trim and lowercase for normalization
 		normalized := strings.ToLower(strings.TrimSpace(tag))
 		if normalized == "" {
@@ -282,11 +282,6 @@ func (s *SubmissionService) validateSubmissionInput(req *SubmitClipRequest) erro
 
 		normalizedTags = append(normalizedTags, normalized)
 		seenTags[normalized] = true
-
-		// Safety check: limit iteration
-		if i >= 10 {
-			break
-		}
 	}
 	req.Tags = normalizedTags
 
@@ -313,6 +308,9 @@ func (s *SubmissionService) validateSubmissionInput(req *SubmitClipRequest) erro
 
 // isValidUsername checks if a username contains only valid characters
 func isValidUsername(username string) bool {
+	if username == "" {
+		return false
+	}
 	for _, r := range username {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_') {
 			return false
@@ -323,6 +321,9 @@ func isValidUsername(username string) bool {
 
 // isValidTag checks if a tag contains only valid characters
 func isValidTag(tag string) bool {
+	if tag == "" {
+		return false
+	}
 	for _, r := range tag {
 		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
 			return false
@@ -405,7 +406,14 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 		}
 		// If rejected, allow resubmission after some time
 		if submission.Status == "rejected" && time.Since(submission.CreatedAt) < 7*24*time.Hour {
-			daysRemaining := 7 - int(time.Since(submission.CreatedAt).Hours()/24)
+			hoursRemaining := 7*24 - int(time.Since(submission.CreatedAt).Hours())
+			if hoursRemaining < 24 {
+				return &ValidationError{
+					Field:   "clip_url",
+					Message: "This clip was recently rejected. You can resubmit it in less than 24 hours",
+				}
+			}
+			daysRemaining := hoursRemaining / 24
 			return &ValidationError{
 				Field:   "clip_url",
 				Message: fmt.Sprintf("This clip was recently rejected. You can resubmit it in %d days", daysRemaining),
@@ -448,7 +456,13 @@ func (s *SubmissionService) fetchClipFromTwitch(ctx context.Context, clipID stri
 func (s *SubmissionService) validateClipQuality(clip *twitch.Clip) error {
 	// Check if clip is too old (>6 months)
 	if time.Since(clip.CreatedAt) > 6*30*24*time.Hour {
-		ageInMonths := int(time.Since(clip.CreatedAt).Hours() / 24 / 30)
+		now := time.Now()
+		years := now.Year() - clip.CreatedAt.Year()
+		months := int(now.Month()) - int(clip.CreatedAt.Month())
+		ageInMonths := years*12 + months
+		if now.Day() < clip.CreatedAt.Day() {
+			ageInMonths--
+		}
 		return &ValidationError{
 			Field:   "clip",
 			Message: fmt.Sprintf("This clip is too old (%d months). Only clips less than 6 months old can be submitted.", ageInMonths),
