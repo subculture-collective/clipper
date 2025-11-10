@@ -75,7 +75,7 @@ jobs:
 
       - name: Deploy to Production Server
         if: ${{ secrets.PRODUCTION_HOST != '' }}
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.3
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: deploy
