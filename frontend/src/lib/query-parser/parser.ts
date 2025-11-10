@@ -136,7 +136,7 @@ export class Parser {
       negated,
       loc: {
         start: this.previous().position,
-        end: this.peek().position,
+        end: this.previous().position,
       },
     };
   }
@@ -522,7 +522,7 @@ export class Parser {
     if (!regex.test(str)) return false;
 
     const date = new Date(str);
-    return date instanceof Date && !isNaN(date.getTime());
+    return !isNaN(date.getTime()) && date.toISOString().startsWith(str);
   }
 
   /**

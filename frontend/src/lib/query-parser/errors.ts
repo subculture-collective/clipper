@@ -140,7 +140,7 @@ export function createInvalidDateFormatError(
     position,
     undefined,
     [
-      'Use ISO 8601 format: YYYY-MM-DD (e.g., 2025-01-15)',
+      'Use YYYY-MM-DD format (ISO 8601 date), e.g., 2025-01-15',
       'Or use relative dates: today, yesterday, last-week, last-month, last-year',
       `Example: after:2025-01-01 or after:yesterday`,
     ]
