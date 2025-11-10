@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/middleware"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
@@ -27,12 +28,12 @@ func TestLeaderboardIntegration(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Setup database connection
-	dbConfig := &database.Config{
+	dbConfig := &config.DatabaseConfig{
 		Host:     getEnvOrDefault("DB_HOST", "localhost"),
 		Port:     getEnvOrDefault("DB_PORT", "5437"), // Test DB port (see docker-compose.test.yml)
 		User:     getEnvOrDefault("DB_USER", "clipper"),
 		Password: getEnvOrDefault("DB_PASSWORD", "clipper_password"),
-		Database: getEnvOrDefault("DB_NAME", "clipper_test"),
+		Name:     getEnvOrDefault("DB_NAME", "clipper_test"),
 		SSLMode:  "disable",
 	}
 
