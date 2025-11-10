@@ -175,7 +175,7 @@ func TestCSRFMiddleware_Integration(t *testing.T) {
 		ctx := context.Background()
 		keys, _ := mockRedis.Keys(ctx, "csrf:*")
 		for _, key := range keys {
-			mockRedis.Delete(ctx, key)
+			_ = mockRedis.Delete(ctx, key)
 		}
 	}()
 

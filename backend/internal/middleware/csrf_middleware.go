@@ -104,7 +104,7 @@ func ensureCSRFToken(c *gin.Context, redis *redispkg.Client, secure bool) {
 	token, err := generateCSRFToken()
 	if err != nil {
 		// Log error but don't fail the request
-		c.Error(fmt.Errorf("failed to generate CSRF token: %w", err))
+		_ = c.Error(fmt.Errorf("failed to generate CSRF token: %w", err))
 		return
 	}
 
@@ -113,7 +113,7 @@ func ensureCSRFToken(c *gin.Context, redis *redispkg.Client, secure bool) {
 	key := fmt.Sprintf("csrf:%s", token)
 	if err := redis.Set(ctx, key, "1", CSRFTokenTTL); err != nil {
 		// Log error but don't fail the request
-		c.Error(fmt.Errorf("failed to store CSRF token: %w", err))
+		_ = c.Error(fmt.Errorf("failed to store CSRF token: %w", err))
 		return
 	}
 

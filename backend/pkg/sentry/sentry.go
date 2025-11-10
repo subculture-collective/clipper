@@ -47,7 +47,7 @@ func Close() {
 // scrubSensitiveData removes or masks PII from Sentry events
 func scrubSensitiveData(event *sentry.Event) *sentry.Event {
 	if event == nil {
-		return event
+		return nil
 	}
 
 	// Scrub sensitive request data
@@ -97,7 +97,7 @@ func hashUserID(userID string) string {
 }
 
 // SetUser sets the user context for Sentry
-func SetUser(c *gin.Context, userID string, username string) {
+func SetUser(c *gin.Context, userID, username string) {
 	if hub := sentry.GetHubFromContext(c.Request.Context()); hub != nil {
 		hub.ConfigureScope(func(scope *sentry.Scope) {
 			scope.SetUser(sentry.User{

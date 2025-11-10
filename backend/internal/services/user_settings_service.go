@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -196,7 +197,9 @@ func (s *UserSettingsService) RequestAccountDeletion(ctx context.Context, userID
 	}
 
 	// Log audit event
-	s.auditLogService.LogAccountDeletionRequested(ctx, userID, reason)
+	if err := s.auditLogService.LogAccountDeletionRequested(ctx, userID, reason); err != nil {
+		log.Printf("Failed to log account deletion request: %v", err)
+	}
 
 	return deletion, nil
 }
@@ -219,7 +222,9 @@ func (s *UserSettingsService) CancelAccountDeletion(ctx context.Context, userID 
 	}
 
 	// Log audit event
-	s.auditLogService.LogAccountDeletionCancelled(ctx, userID)
+	if err := s.auditLogService.LogAccountDeletionCancelled(ctx, userID); err != nil {
+		log.Printf("Failed to log account deletion cancellation: %v", err)
+	}
 
 	return nil
 }

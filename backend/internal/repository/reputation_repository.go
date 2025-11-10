@@ -226,8 +226,8 @@ func (r *ReputationRepository) CalculateEngagementScore(ctx context.Context, use
 	return engagementScore, nil
 }
 
-// GetKarmaLeaderboard retrieves karma leaderboard
-func (r *ReputationRepository) GetKarmaLeaderboard(ctx context.Context, limit int, offset int) ([]models.LeaderboardEntry, error) {
+// GetKarmaLeaderboard returns top users by karma score
+func (r *ReputationRepository) GetKarmaLeaderboard(ctx context.Context, limit, offset int) ([]models.LeaderboardEntry, error) {
 	query := `
 		SELECT id, username, display_name, avatar_url, karma_points, rank
 		FROM karma_leaderboard
@@ -263,8 +263,8 @@ func (r *ReputationRepository) GetKarmaLeaderboard(ctx context.Context, limit in
 	return entries, rows.Err()
 }
 
-// GetEngagementLeaderboard retrieves engagement leaderboard
-func (r *ReputationRepository) GetEngagementLeaderboard(ctx context.Context, limit int, offset int) ([]models.LeaderboardEntry, error) {
+// GetEngagementLeaderboard returns top users by engagement score
+func (r *ReputationRepository) GetEngagementLeaderboard(ctx context.Context, limit, offset int) ([]models.LeaderboardEntry, error) {
 	query := `
 		SELECT id, username, display_name, avatar_url, engagement_score,
 		       total_comments, total_votes_cast, total_clips_submitted

@@ -70,8 +70,8 @@ func (r *VoteRepository) GetVote(ctx context.Context, userID, clipID uuid.UUID) 
 	return &vote, nil
 }
 
-// GetVoteCounts returns upvote and downvote counts for a clip
-func (r *VoteRepository) GetVoteCounts(ctx context.Context, clipID uuid.UUID) (upvotes int, downvotes int, err error) {
+// GetVoteCounts returns the upvote and downvote counts for a clip
+func (r *VoteRepository) GetVoteCounts(ctx context.Context, clipID uuid.UUID) (upvotes, downvotes int, err error) {
 	query := `
 		SELECT 
 			COUNT(CASE WHEN vote_type = 1 THEN 1 END) as upvotes,

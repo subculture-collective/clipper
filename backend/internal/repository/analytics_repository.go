@@ -71,8 +71,8 @@ func (r *AnalyticsRepository) GetCreatorAnalytics(ctx context.Context, creatorNa
 	return &analytics, nil
 }
 
-// GetCreatorTopClips retrieves top-performing clips for a creator
-func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorName string, sortBy string, limit int) ([]models.CreatorTopClip, error) {
+// GetCreatorTopClips returns top clips for a creator sorted by a specific metric
+func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorName, sortBy string, limit int) ([]models.CreatorTopClip, error) {
 	// Determine sort column
 	sortColumn := "c.vote_score"
 	switch sortBy {
@@ -150,8 +150,8 @@ func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorNam
 	return clips, rows.Err()
 }
 
-// GetCreatorTrends retrieves time-series data for creator metrics
-func (r *AnalyticsRepository) GetCreatorTrends(ctx context.Context, creatorName string, metricType string, days int) ([]models.TrendDataPoint, error) {
+// GetCreatorTrends returns time-series data for a creator's performance metrics
+func (r *AnalyticsRepository) GetCreatorTrends(ctx context.Context, creatorName, metricType string, days int) ([]models.TrendDataPoint, error) {
 	query := `
 		SELECT da.date, COALESCE(SUM(da.value), 0) as value
 		FROM daily_analytics da
@@ -397,8 +397,8 @@ func (r *AnalyticsRepository) GetMostPopularCreators(ctx context.Context, limit 
 	return creators, rows.Err()
 }
 
-// GetTrendingTags retrieves most used tags recently
-func (r *AnalyticsRepository) GetTrendingTags(ctx context.Context, days int, limit int) ([]models.TagMetric, error) {
+// GetTrendingTags returns tags that are trending based on recent clip activity
+func (r *AnalyticsRepository) GetTrendingTags(ctx context.Context, days, limit int) ([]models.TagMetric, error) {
 	query := `
 		SELECT t.id, t.name, COUNT(*) as usage_count
 		FROM tags t

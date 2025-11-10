@@ -177,7 +177,7 @@ func (r *NotificationRepository) CountUnread(ctx context.Context, userID uuid.UU
 }
 
 // MarkAsRead marks a notification as read
-func (r *NotificationRepository) MarkAsRead(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (r *NotificationRepository) MarkAsRead(ctx context.Context, id, userID uuid.UUID) error {
 	query := `
 		UPDATE notifications
 		SET is_read = true
@@ -212,8 +212,8 @@ func (r *NotificationRepository) MarkAllAsRead(ctx context.Context, userID uuid.
 	return nil
 }
 
-// Delete deletes a notification
-func (r *NotificationRepository) Delete(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+// Delete deletes a notification (soft delete - marks as deleted)
+func (r *NotificationRepository) Delete(ctx context.Context, id, userID uuid.UUID) error {
 	query := `
 		DELETE FROM notifications
 		WHERE id = $1 AND user_id = $2
