@@ -10,7 +10,7 @@ describe('PKCE', () => {
         digest: (algorithm: string, data: BufferSource) => Promise<ArrayBuffer>;
       };
     }
-    
+
     if (!(globalThis as { crypto?: Crypto }).crypto) {
       (globalThis as { crypto?: MockCrypto }).crypto = {
         getRandomValues: (arr: Uint8Array) => {

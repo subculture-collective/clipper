@@ -30,9 +30,9 @@ import (
 
 func main() {
 	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+	cfg, cfgErr := config.Load()
+	if cfgErr != nil {
+		log.Fatalf("Failed to load configuration: %v", cfgErr)
 	}
 
 	// Initialize structured logger
@@ -44,8 +44,8 @@ func main() {
 	logger := utils.GetLogger()
 
 	// Initialize Sentry
-	if err := sentrypkg.Init(&cfg.Sentry); err != nil {
-		log.Printf("WARNING: Failed to initialize Sentry: %v", err)
+	if initErr := sentrypkg.Init(&cfg.Sentry); initErr != nil {
+		log.Printf("WARNING: Failed to initialize Sentry: %v", initErr)
 	} else if cfg.Sentry.Enabled {
 		log.Printf("Sentry initialized: environment=%s, release=%s", cfg.Sentry.Environment, cfg.Sentry.Release)
 		defer sentrypkg.Close()
@@ -55,35 +55,35 @@ func main() {
 	gin.SetMode(cfg.Server.GinMode)
 
 	// Initialize database connection pool
-	db, err := database.NewDB(&cfg.Database)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+	db, dbErr := database.NewDB(&cfg.Database)
+	if dbErr != nil {
+		log.Fatalf("Failed to connect to database: %v", dbErr)
 	}
 	defer db.Close()
 
 	// Initialize Redis client
-	redisClient, err := redispkg.NewClient(&cfg.Redis)
-	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+	redisClient, redisErr := redispkg.NewClient(&cfg.Redis)
+	if redisErr != nil {
+		log.Fatalf("Failed to connect to Redis: %v", redisErr)
 	}
 	defer redisClient.Close()
 
 	// Initialize OpenSearch client
-	osClient, err := opensearchpkg.NewClient(&opensearchpkg.Config{
+	osClient, osErr := opensearchpkg.NewClient(&opensearchpkg.Config{
 		URL:                cfg.OpenSearch.URL,
 		Username:           cfg.OpenSearch.Username,
 		Password:           cfg.OpenSearch.Password,
 		InsecureSkipVerify: cfg.OpenSearch.InsecureSkipVerify,
 	})
-	if err != nil {
-		log.Printf("WARNING: Failed to initialize OpenSearch client: %v", err)
+	if osErr != nil {
+		log.Printf("WARNING: Failed to initialize OpenSearch client: %v", osErr)
 		log.Printf("Search features will use PostgreSQL FTS fallback")
 	} else {
 		// Test connection
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := osClient.Ping(ctx); err != nil {
-			log.Printf("WARNING: OpenSearch ping failed: %v", err)
+		if pingErr := osClient.Ping(ctx); pingErr != nil {
+			log.Printf("WARNING: OpenSearch ping failed: %v", pingErr)
 			log.Printf("Search features will use PostgreSQL FTS fallback")
 			osClient = nil
 		} else {
@@ -94,24 +94,26 @@ func main() {
 	// Initialize JWT manager
 	var jwtManager *jwtpkg.Manager
 	if cfg.JWT.PrivateKey != "" {
-		jwtManager, err = jwtpkg.NewManager(cfg.JWT.PrivateKey)
-		if err != nil {
-			log.Fatalf("Failed to initialize JWT manager: %v", err)
+		manager, jwtErr := jwtpkg.NewManager(cfg.JWT.PrivateKey)
+		if jwtErr != nil {
+			log.Fatalf("Failed to initialize JWT manager: %v", jwtErr)
 		}
+		jwtManager = manager
 	} else {
 		// Generate new RSA key pair for development
 		log.Println("WARNING: No JWT private key provided. Generating new key pair (not for production!)")
-		privateKey, publicKey, err := jwtpkg.GenerateRSAKeyPair()
-		if err != nil {
-			log.Fatalf("Failed to generate RSA key pair: %v", err)
+		privateKey, publicKey, keyErr := jwtpkg.GenerateRSAKeyPair()
+		if keyErr != nil {
+			log.Fatalf("Failed to generate RSA key pair: %v", keyErr)
 		}
 		log.Printf("Generated RSA key pair. Add these to your .env file:\n")
 		log.Printf("JWT_PRIVATE_KEY:\n%s\n", privateKey)
 		log.Printf("JWT_PUBLIC_KEY:\n%s\n", publicKey)
-		jwtManager, err = jwtpkg.NewManager(privateKey)
-		if err != nil {
-			log.Fatalf("Failed to initialize JWT manager: %v", err)
+		manager, jwtInitErr := jwtpkg.NewManager(privateKey)
+		if jwtInitErr != nil {
+			log.Fatalf("Failed to initialize JWT manager: %v", jwtInitErr)
 		}
+		jwtManager = manager
 	}
 
 	// Initialize repositories

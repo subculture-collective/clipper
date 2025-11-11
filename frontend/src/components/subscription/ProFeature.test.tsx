@@ -3,13 +3,37 @@ import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProFeature } from './ProFeature';
 import * as subscriptionHook from '../../hooks/useSubscription';
+import * as authHook from '../../hooks/useAuth';
 
-// Mock the useSubscription hook
+// Mock the hooks
 vi.mock('../../hooks/useSubscription');
+vi.mock('../../hooks/useAuth');
 
 describe('ProFeature', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Mock useAuth to return a basic user
+    vi.mocked(authHook.useAuth).mockReturnValue({
+      user: {
+        id: 'user-123',
+        username: 'testuser',
+        twitch_id: 'twitch-123',
+        display_name: 'TestUser',
+        role: 'user',
+        karma_points: 0,
+        is_banned: false,
+        created_at: new Date().toISOString(),
+      },
+      isAuthenticated: true,
+      isAdmin: false,
+      isModerator: false,
+      isModeratorOrAdmin: false,
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
