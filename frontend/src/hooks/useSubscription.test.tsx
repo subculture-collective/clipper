@@ -182,7 +182,7 @@ describe('useSubscription', () => {
     vi.mocked(subscriptionApi.getSubscription).mockRejectedValue(new Error('API Error'));
 
     const { result } = renderHook(() => useSubscription(), {
-      wrapper: QueryClientProvider,
+      wrapper,
     });
 
     await waitFor(() => {
