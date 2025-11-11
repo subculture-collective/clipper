@@ -65,7 +65,9 @@ func RequireProSubscription(subscriptionService SubscriptionChecker, auditLogSer
 			c,
 			subscriptionService,
 			auditLogService,
-			func(ctx *gin.Context, userID uuid.UUID) bool { return subscriptionService.IsProUser(ctx.Request.Context(), userID) },
+			func(ctx *gin.Context, userID uuid.UUID) bool {
+				return subscriptionService.IsProUser(ctx.Request.Context(), userID)
+			},
 			"pro_subscription_required",
 			"pro",
 			"Pro subscription required",
@@ -85,7 +87,9 @@ func RequireActiveSubscription(subscriptionService SubscriptionChecker, auditLog
 			c,
 			subscriptionService,
 			auditLogService,
-			func(ctx *gin.Context, userID uuid.UUID) bool { return subscriptionService.HasActiveSubscription(ctx.Request.Context(), userID) },
+			func(ctx *gin.Context, userID uuid.UUID) bool {
+				return subscriptionService.HasActiveSubscription(ctx.Request.Context(), userID)
+			},
 			"active_subscription_required",
 			"active",
 			"Active subscription required",

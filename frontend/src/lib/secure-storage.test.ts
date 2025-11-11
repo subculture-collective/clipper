@@ -117,12 +117,14 @@ describe('SecureStorage', () => {
     beforeEach(() => {
       // Force fallback path by disabling IndexedDB for these tests
       originalIndexedDB = globalThis.indexedDB;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (globalThis as any).indexedDB = undefined;
     });
 
     afterEach(() => {
       // Restore IndexedDB after tests
-      (globalThis as any).indexedDB = originalIndexedDB as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as any).indexedDB = originalIndexedDB;
     });
 
     it('should store and retrieve OAuth parameters', async () => {
