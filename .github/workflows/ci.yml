@@ -211,23 +211,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install dependencies
         run: |
           cd frontend
-          yarn install --immutable
+          npm ci
 
       - name: Run ESLint
         run: |
           cd frontend
-          yarn lint
+          npm run lint
 
       - name: TypeScript type checking
         run: |
           cd frontend
-          yarn tsc --noEmit
+          npx tsc --noEmit
 
   frontend-test:
     name: Frontend Test (Node ${{ matrix.node-version }})
@@ -245,18 +242,15 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install dependencies
         run: |
           cd frontend
-          yarn install --immutable
+          npm ci
 
       - name: Run tests with coverage
         run: |
           cd frontend
-          yarn test:coverage
+          npm run test:coverage
 
 
   frontend-e2e:
@@ -273,23 +267,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install dependencies
         run: |
           cd frontend
-          yarn install --immutable
+          npm ci
 
       - name: Install Playwright browsers
         run: |
           cd frontend
-          yarn playwright install --with-deps chromium
+          npx playwright install --with-deps chromium
 
       - name: Run E2E tests
         run: |
           cd frontend
-          yarn test:e2e
+          npm run test:e2e
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -312,18 +303,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install dependencies
         run: |
           cd frontend
-          yarn install --immutable
+          npm ci
 
       - name: Build production bundle
         run: |
           cd frontend
-          yarn build
+          npm run build
 
       - name: Check bundle size
         run: |
