@@ -14,10 +14,12 @@ import type {
   DateValue,
   ComparisonOperator,
 } from './ast';
-import {
+import type {
   FlagValue,
   StringValue,
   FilterName,
+} from './ast';
+import {
   isValidFilterName,
   isValidComparisonOperator,
   isValidRelativeDate,
@@ -27,7 +29,8 @@ import {
   FLAGS,
   USER_ROLES,
 } from './ast';
-import { Token, TokenType, tokenize } from './lexer';
+import type { Token } from './lexer';
+import { TokenType, tokenize } from './lexer';
 import {
   QueryParseError,
   QueryErrorCode,

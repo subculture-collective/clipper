@@ -5,30 +5,25 @@
 
 import type { Position } from './ast';
 
+
 /**
  * Token types
  */
-export enum TokenType {
-  // Literals
-  WORD = 'WORD',
-  PHRASE = 'PHRASE',
-  NUMBER = 'NUMBER',
-
-  // Operators
-  COLON = 'COLON',
-  NEGATION = 'NEGATION',
-  LPAREN = 'LPAREN',
-  RPAREN = 'RPAREN',
-  RANGE = 'RANGE',
-  COMPARISON = 'COMPARISON',
-
-  // Keywords
-  OR = 'OR',
-
-  // Special
-  EOF = 'EOF',
-  WHITESPACE = 'WHITESPACE',
-}
+export const TokenType = {
+  WORD: 'WORD',
+  PHRASE: 'PHRASE',
+  NUMBER: 'NUMBER',
+  COLON: 'COLON',
+  NEGATION: 'NEGATION',
+  LPAREN: 'LPAREN',
+  RPAREN: 'RPAREN',
+  RANGE: 'RANGE',
+  COMPARISON: 'COMPARISON',
+  OR: 'OR',
+  EOF: 'EOF',
+  WHITESPACE: 'WHITESPACE',
+} as const;
+export type TokenType = typeof TokenType[keyof typeof TokenType];
 
 /**
  * Token representation

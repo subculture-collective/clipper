@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSubscription } from './useSubscription';
 import * as subscriptionApi from '../lib/subscription-api';
 import * as authHook from './useAuth';
-import type { AuthContextType } from '../context/AuthContext';
 
 // Mock only the API calls, not the helper functions
 vi.mock('../lib/subscription-api', async () => {
@@ -40,7 +39,16 @@ describe('useSubscription', () => {
 
   it('should return loading state initially', () => {
     vi.mocked(authHook.useAuth).mockReturnValue({
-      user: { id: 'user-123', username: 'testuser', role: 'user' },
+      user: { 
+        id: 'user-123', 
+        username: 'testuser', 
+        twitch_id: 'twitch-123',
+        display_name: 'TestUser',
+        role: 'user',
+        karma_points: 0,
+        is_banned: false,
+        created_at: new Date().toISOString(),
+      },
       isAuthenticated: true,
       isAdmin: false,
       isModerator: false,
@@ -49,7 +57,7 @@ describe('useSubscription', () => {
       login: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
-    } as AuthContextType);
+    });
 
     vi.mocked(subscriptionApi.getSubscription).mockImplementation(() =>
       new Promise(() => {}) // Never resolves
