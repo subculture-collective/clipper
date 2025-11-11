@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	baseURL = "https://api.twitch.tv/helix"
-	tokenURL = "https://id.twitch.tv/oauth2/token" // #nosec G101 -- not a credential, just OAuth endpoint URL
+	baseURL         = "https://api.twitch.tv/helix"
+	tokenURL        = "https://id.twitch.tv/oauth2/token" // #nosec G101 -- not a credential, just OAuth endpoint URL
 	rateLimitPerMin = 800
 	cacheKeyPrefix  = "twitch:"
 )
