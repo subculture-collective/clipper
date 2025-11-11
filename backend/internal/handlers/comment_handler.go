@@ -60,7 +60,7 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 	comments, err := h.commentService.ListComments(c.Request.Context(), clipID, sortBy, limit, offset, userID)
 	if err != nil {
 		// Log the actual error for debugging
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve comments",
 		})

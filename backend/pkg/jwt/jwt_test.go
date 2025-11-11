@@ -42,12 +42,9 @@ func TestNewManager(t *testing.T) {
 		t.Fatalf("Failed to create manager: %v", err)
 	}
 
-	if manager == nil {
-		t.Error("Manager is nil")
-	}
-
-	if manager.privateKey == nil {
-		t.Error("Private key is nil")
+	if manager == nil || manager.privateKey == nil {
+		t.Error("Manager or private key is nil")
+		return
 	}
 
 	if manager.publicKey == nil {

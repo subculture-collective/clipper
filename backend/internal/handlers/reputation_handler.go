@@ -39,7 +39,7 @@ func (h *ReputationHandler) GetUserReputation(c *gin.Context) {
 
 	reputation, err := h.reputationService.GetUserReputation(c.Request.Context(), userID)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to get user reputation",
 			"code":    "REPUTATION_FETCH_ERROR",
@@ -68,7 +68,7 @@ func (h *ReputationHandler) GetUserKarma(c *gin.Context) {
 	// Get karma breakdown
 	breakdown, err := h.reputationService.GetKarmaBreakdown(c.Request.Context(), userID)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to get karma breakdown",
 			"code":    "KARMA_FETCH_ERROR",
@@ -86,7 +86,7 @@ func (h *ReputationHandler) GetUserKarma(c *gin.Context) {
 
 	history, err := h.reputationService.GetUserKarmaHistory(c.Request.Context(), userID, limit)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to get karma history",
 			"code":    "KARMA_HISTORY_FETCH_ERROR",
@@ -117,7 +117,7 @@ func (h *ReputationHandler) GetUserBadges(c *gin.Context) {
 
 	badges, err := h.reputationService.GetUserBadges(c.Request.Context(), userID)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to get user badges",
 			"code":    "BADGES_FETCH_ERROR",
@@ -187,7 +187,7 @@ func (h *ReputationHandler) GetLeaderboard(c *gin.Context) {
 
 	if err != nil {
 		// Log the error without exposing sensitive details
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to retrieve leaderboard",
 			"code":    "LEADERBOARD_FETCH_ERROR",
@@ -248,7 +248,7 @@ func (h *ReputationHandler) AwardBadge(c *gin.Context) {
 	// Award badge
 	err = h.reputationService.AwardBadge(c.Request.Context(), userID, req.BadgeID, &adminID)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to award badge",
 			"code":    "BADGE_AWARD_ERROR",
@@ -283,7 +283,7 @@ func (h *ReputationHandler) RemoveBadge(c *gin.Context) {
 	// Remove badge
 	err = h.reputationService.RemoveBadge(c.Request.Context(), userID, badgeID)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to remove badge",
 			"code":    "BADGE_REMOVE_ERROR",

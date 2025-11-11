@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { registerServiceWorker, unregisterServiceWorker, isPWAInstalled, canInstallPWA } from './sw-register';
 
 describe('sw-register', () => {
-  const originalNavigator = global.navigator;
-  const originalWindow = global.window;
+  const originalNavigator = globalThis.navigator;
+  const originalWindow = globalThis.window;
 
   beforeEach(() => {
     // Reset all mocks before each test
@@ -12,12 +12,12 @@ describe('sw-register', () => {
 
   afterEach(() => {
     // Restore original navigator and window
-    Object.defineProperty(global, 'navigator', {
+    Object.defineProperty(globalThis, 'navigator', {
       value: originalNavigator,
       writable: true,
       configurable: true,
     });
-    Object.defineProperty(global, 'window', {
+    Object.defineProperty(globalThis, 'window', {
       value: originalWindow,
       writable: true,
       configurable: true,
@@ -36,7 +36,7 @@ describe('sw-register', () => {
       vi.stubEnv('DEV', false);
 
       // Mock navigator without serviceWorker
-      Object.defineProperty(global, 'navigator', {
+      Object.defineProperty(globalThis, 'navigator', {
         value: {},
         writable: true,
         configurable: true,
@@ -52,7 +52,7 @@ describe('sw-register', () => {
   describe('unregisterServiceWorker', () => {
     it('should return false when service workers are not supported', async () => {
       // Mock navigator without serviceWorker
-      Object.defineProperty(global, 'navigator', {
+      Object.defineProperty(globalThis, 'navigator', {
         value: {},
         writable: true,
         configurable: true,
@@ -66,7 +66,7 @@ describe('sw-register', () => {
   describe('isPWAInstalled', () => {
     it('should return false when not in standalone mode', () => {
       // Mock window.matchMedia
-      Object.defineProperty(global.window, 'matchMedia', {
+      Object.defineProperty(globalThis.window, 'matchMedia', {
         value: vi.fn().mockImplementation((query: string) => ({
           matches: false,
           media: query,
@@ -87,7 +87,7 @@ describe('sw-register', () => {
 
     it('should return true when in standalone mode', () => {
       // Mock window.matchMedia to return standalone mode
-      Object.defineProperty(global.window, 'matchMedia', {
+      Object.defineProperty(globalThis.window, 'matchMedia', {
         value: vi.fn().mockImplementation((query: string) => ({
           matches: query === '(display-mode: standalone)',
           media: query,
@@ -115,7 +115,7 @@ describe('sw-register', () => {
 
     it('should return true when BeforeInstallPromptEvent is available', () => {
       // Mock BeforeInstallPromptEvent
-      Object.defineProperty(global.window, 'BeforeInstallPromptEvent', {
+      Object.defineProperty(globalThis.window, 'BeforeInstallPromptEvent', {
         value: class {},
         writable: true,
         configurable: true,

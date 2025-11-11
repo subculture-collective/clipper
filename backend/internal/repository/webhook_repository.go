@@ -21,8 +21,8 @@ func NewWebhookRepository(db *pgxpool.Pool) *WebhookRepository {
 	return &WebhookRepository{db: db}
 }
 
-// AddToRetryQueue adds a webhook event to the retry queue
-func (r *WebhookRepository) AddToRetryQueue(ctx context.Context, stripeEventID string, eventType string, payload interface{}, maxRetries int) error {
+// AddToRetryQueue adds a failed webhook to the retry queue
+func (r *WebhookRepository) AddToRetryQueue(ctx context.Context, stripeEventID, eventType string, payload interface{}, maxRetries int) error {
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
@@ -42,7 +42,7 @@ func (r *WebhookRepository) AddToRetryQueue(ctx context.Context, stripeEventID s
 // GetRetryQueueItem retrieves a webhook event from the retry queue by event ID
 func (r *WebhookRepository) GetRetryQueueItem(ctx context.Context, stripeEventID string) (*models.WebhookRetryQueue, error) {
 	query := `
-		SELECT id, stripe_event_id, event_type, payload, retry_count, max_retries, 
+		SELECT id, stripe_event_id, event_type, payload, retry_count, max_retries,
 		       next_retry_at, last_error, created_at, updated_at
 		FROM webhook_retry_queue
 		WHERE stripe_event_id = $1

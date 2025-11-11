@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	baseURL         = "https://api.twitch.tv/helix"
-	tokenURL        = "https://id.twitch.tv/oauth2/token"
+	baseURL = "https://api.twitch.tv/helix"
+	tokenURL = "https://id.twitch.tv/oauth2/token" // #nosec G101 -- not a credential, just OAuth endpoint URL
 	rateLimitPerMin = 800
 	cacheKeyPrefix  = "twitch:"
 )
@@ -130,7 +130,7 @@ func (c *Client) refreshAccessToken(ctx context.Context) error {
 	data.Set("client_secret", c.clientSecret)
 	data.Set("grant_type", "client_credentials")
 
-	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create token request: %w", err)
 	}
@@ -221,6 +221,7 @@ func (c *Client) waitForRateLimit(ctx context.Context) error {
 }
 
 // doRequest performs an HTTP request with authentication, rate limiting, and retry logic
+// nolint:gocyclo // Complexity stems from retry and status handling; kept readable.
 func (c *Client) doRequest(ctx context.Context, method, endpoint string, params url.Values) (*http.Response, error) {
 	// Ensure token is valid
 	if err := c.ensureValidToken(ctx); err != nil {
@@ -244,13 +245,13 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 	baseDelay := time.Second
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		req, reqErr := http.NewRequestWithContext(ctx, method, reqURL, nil)
+		req, reqErr := http.NewRequestWithContext(ctx, method, reqURL, http.NoBody)
 		if reqErr != nil {
 			return nil, fmt.Errorf("failed to create request: %w", reqErr)
 		}
 
 		c.mu.RLock()
-		req.Header.Set("Authorization", "Bearer "+c.accessToken)
+		req.Header.Set("Authorization", "Bearer "+c.accessToken) // #nosec G101 (value is an OAuth token, not hardcoded secret)
 		c.mu.RUnlock()
 		req.Header.Set("Client-Id", c.clientID)
 
@@ -364,7 +365,7 @@ func (c *Client) GetClips(ctx context.Context, params *ClipParams) (*ClipsRespon
 }
 
 // GetUsers fetches user information from Twitch API
-func (c *Client) GetUsers(ctx context.Context, userIDs []string, logins []string) (*UsersResponse, error) {
+func (c *Client) GetUsers(ctx context.Context, userIDs, logins []string) (*UsersResponse, error) {
 	urlParams := url.Values{}
 
 	for _, id := range userIDs {
@@ -391,7 +392,8 @@ func (c *Client) GetUsers(ctx context.Context, userIDs []string, logins []string
 	}
 
 	// Cache user data
-	for _, user := range usersResp.Data {
+	for i := range usersResp.Data {
+		user := &usersResp.Data[i]
 		cacheKey := fmt.Sprintf("%suser:%s", cacheKeyPrefix, user.ID)
 		userData, err := json.Marshal(user)
 		if err != nil {
@@ -408,7 +410,7 @@ func (c *Client) GetUsers(ctx context.Context, userIDs []string, logins []string
 }
 
 // GetGames fetches game information from Twitch API
-func (c *Client) GetGames(ctx context.Context, gameIDs []string, names []string) (*GamesResponse, error) {
+func (c *Client) GetGames(ctx context.Context, gameIDs, names []string) (*GamesResponse, error) {
 	urlParams := url.Values{}
 
 	for _, id := range gameIDs {
@@ -435,7 +437,8 @@ func (c *Client) GetGames(ctx context.Context, gameIDs []string, names []string)
 	}
 
 	// Cache game data
-	for _, game := range gamesResp.Data {
+	for i := range gamesResp.Data {
+		game := &gamesResp.Data[i]
 		cacheKey := fmt.Sprintf("%sgame:%s", cacheKeyPrefix, game.ID)
 		gameData, err := json.Marshal(game)
 		if err != nil {

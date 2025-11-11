@@ -16,7 +16,7 @@ const (
 	// CSRFTokenLength is the length of CSRF tokens in bytes
 	CSRFTokenLength = 32
 	// CSRFTokenHeader is the header name for CSRF token
-	CSRFTokenHeader = "X-CSRF-Token"
+	CSRFTokenHeader = "X-CSRF-Token" // #nosec G101 -- not a credential, just header name
 	// CSRFCookieName is the cookie name for CSRF token
 	CSRFCookieName = "csrf_token"
 	// CSRFTokenTTL is the time-to-live for CSRF tokens
@@ -104,7 +104,7 @@ func ensureCSRFToken(c *gin.Context, redis *redispkg.Client, secure bool) {
 	token, err := generateCSRFToken()
 	if err != nil {
 		// Log error but don't fail the request
-		c.Error(fmt.Errorf("failed to generate CSRF token: %w", err))
+		_ = c.Error(fmt.Errorf("failed to generate CSRF token: %w", err))
 		return
 	}
 
@@ -113,7 +113,7 @@ func ensureCSRFToken(c *gin.Context, redis *redispkg.Client, secure bool) {
 	key := fmt.Sprintf("csrf:%s", token)
 	if err := redis.Set(ctx, key, "1", CSRFTokenTTL); err != nil {
 		// Log error but don't fail the request
-		c.Error(fmt.Errorf("failed to store CSRF token: %w", err))
+		_ = c.Error(fmt.Errorf("failed to store CSRF token: %w", err))
 		return
 	}
 

@@ -27,11 +27,11 @@ describe('SecureStorage', () => {
       // Mock to ensure fallback path is used
       if (typeof indexedDB !== 'undefined') {
         // Store original
-        const originalIndexedDB = global.indexedDB;
+        const originalIndexedDB = globalThis.indexedDB;
         // @ts-expect-error - mocking for test
-        global.indexedDB = undefined;
+        globalThis.indexedDB = undefined;
         return () => {
-          global.indexedDB = originalIndexedDB;
+          globalThis.indexedDB = originalIndexedDB;
         };
       }
     });
