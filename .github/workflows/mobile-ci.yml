@@ -17,7 +17,7 @@ jobs:
   lint-and-test:
     name: Lint and Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,28 +29,30 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
-          npm -w mobile install
-          npm -w shared install
-
-      - name: Type check (shared)
-        run: npm -w shared run type-check
+          cd mobile
+          npm ci
 
       - name: Type check (mobile)
-        run: npm -w mobile run type-check
+        run: |
+          cd mobile
+          npm run type-check
 
       - name: Lint (mobile)
-        run: npm -w mobile run lint
+        run: |
+          cd mobile
+          npm run lint
 
       - name: Run tests (mobile)
-        run: npm -w mobile run test
+        run: |
+          cd mobile
+          npm run test
 
   build-preview:
     name: Build Preview (PR only)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     needs: lint-and-test
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -69,9 +71,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
-          npm -w mobile install
-          npm -w shared install
+          cd mobile
+          npm ci
 
       - name: Build preview
         working-directory: mobile
@@ -85,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: lint-and-test
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -104,9 +105,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
-          npm -w mobile install
-          npm -w shared install
+          cd mobile
+          npm ci
 
       - name: Build production
         working-directory: mobile

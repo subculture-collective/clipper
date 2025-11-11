@@ -54,7 +54,7 @@ func TestGetLeaderboardInvalidType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request
 			path := "/leaderboards/" + tt.leaderboardType
-			req := httptest.NewRequest("GET", path, nil)
+			req := httptest.NewRequest("GET", path, http.NoBody)
 			w := httptest.NewRecorder()
 
 			// Serve request
@@ -128,7 +128,7 @@ func TestGetLeaderboardJSONResponse(t *testing.T) {
 	r.GET("/leaderboards/:type", handler.GetLeaderboard)
 
 	// Test valid type but with nil service (will panic)
-	req := httptest.NewRequest("GET", "/leaderboards/karma", nil)
+	req := httptest.NewRequest("GET", "/leaderboards/karma", http.NoBody)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

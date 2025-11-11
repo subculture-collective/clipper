@@ -35,7 +35,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	// be used in development. For production, use properly signed certificates.
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			InsecureSkipVerify: cfg.InsecureSkipVerify, // #nosec G402 (dev only; production should set false)
 		},
 		MaxIdleConns:        10,
 		MaxIdleConnsPerHost: 10,

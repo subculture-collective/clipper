@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,12 +65,14 @@ func TestSentryMiddleware(t *testing.T) {
 		r.Use(SentryMiddleware())
 
 		// Add test handler that returns error
-		r.GET("/test", func(c *gin.Context) {
-			c.Error(assert.AnError)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "test error"})
-		})
+	r.GET("/test", func(c *gin.Context) {
+		c.Param("id")
 
-		// Make request
+		// Trigger an error
+		_ = c.Error(errors.New("test error"))
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+	})		// Make request
 		req, _ := http.NewRequest("GET", "/test", nil)
 		c.Request = req
 		r.ServeHTTP(w, req)

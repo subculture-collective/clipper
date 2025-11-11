@@ -67,7 +67,7 @@ func TestAbuseDetectionMiddleware_Integration(t *testing.T) {
 		ctx := context.Background()
 		keys, _ := mockRedis.Keys(ctx, "abuse:*")
 		for _, key := range keys {
-			mockRedis.Delete(ctx, key)
+			_ = mockRedis.Delete(ctx, key)
 		}
 	}()
 
@@ -149,7 +149,7 @@ func TestUnbanIP(t *testing.T) {
 		ctx := context.Background()
 		keys, _ := mockRedis.Keys(ctx, "abuse:*")
 		for _, key := range keys {
-			mockRedis.Delete(ctx, key)
+			_ = mockRedis.Delete(ctx, key)
 		}
 	}()
 
@@ -215,7 +215,7 @@ func TestGetBannedIPs(t *testing.T) {
 		ctx := context.Background()
 		keys, _ := mockRedis.Keys(ctx, "abuse:*")
 		for _, key := range keys {
-			mockRedis.Delete(ctx, key)
+			_ = mockRedis.Delete(ctx, key)
 		}
 	}()
 
@@ -281,7 +281,7 @@ func TestGetAbuseStats(t *testing.T) {
 		ctx := context.Background()
 		keys, _ := mockRedis.Keys(ctx, "abuse:*")
 		for _, key := range keys {
-			mockRedis.Delete(ctx, key)
+			_ = mockRedis.Delete(ctx, key)
 		}
 	}()
 

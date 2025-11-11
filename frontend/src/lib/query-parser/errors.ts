@@ -5,23 +5,25 @@
 
 import type { Position, SourceLocation } from './ast';
 
+
 /**
  * Error codes as defined in RFC 002
  */
-export enum QueryErrorCode {
-  INVALID_FILTER_NAME = 'QE001',
-  MISSING_FILTER_VALUE = 'QE002',
-  INVALID_DATE_FORMAT = 'QE003',
-  INVALID_RANGE = 'QE004',
-  UNCLOSED_QUOTE = 'QE005',
-  INVALID_COMPARISON_OPERATOR = 'QE006',
-  QUERY_TOO_LONG = 'QE007',
-  TOO_MANY_FILTERS = 'QE008',
-  NESTING_TOO_DEEP = 'QE009',
-  INVALID_ENUM_VALUE = 'QE010',
-  TOO_MANY_OR_CLAUSES = 'QE011',
-  TOO_MANY_TERMS = 'QE012',
-}
+export const QueryErrorCode = {
+  INVALID_FILTER_NAME: 'QE001',
+  MISSING_FILTER_VALUE: 'QE002',
+  INVALID_DATE_FORMAT: 'QE003',
+  INVALID_RANGE: 'QE004',
+  UNCLOSED_QUOTE: 'QE005',
+  INVALID_COMPARISON_OPERATOR: 'QE006',
+  QUERY_TOO_LONG: 'QE007',
+  TOO_MANY_FILTERS: 'QE008',
+  NESTING_TOO_DEEP: 'QE009',
+  INVALID_ENUM_VALUE: 'QE010',
+  TOO_MANY_OR_CLAUSES: 'QE011',
+  TOO_MANY_TERMS: 'QE012',
+} as const;
+export type QueryErrorCode = typeof QueryErrorCode[keyof typeof QueryErrorCode];
 
 /**
  * Query parsing error with helpful suggestions

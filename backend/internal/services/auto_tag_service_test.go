@@ -168,7 +168,7 @@ func TestAutoTagService_SlugGeneration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := slugify(tt.input)
+			result := slugify(tt.input) // Call slugify function
 			if result != tt.expected {
 				t.Errorf("Expected slug '%s', got '%s'", tt.expected, result)
 			}
@@ -248,7 +248,7 @@ func slugify(s string) string {
 			result += string(r)
 			prevWasDash = false
 		} else if r == ' ' || r == '-' {
-			if !prevWasDash && len(result) > 0 {
+			if !prevWasDash && result != "" {
 				result += "-"
 				prevWasDash = true
 			}
@@ -256,7 +256,7 @@ func slugify(s string) string {
 	}
 
 	// Trim trailing dash
-	if len(result) > 0 && result[len(result)-1] == '-' {
+	if result != "" && result[len(result)-1] == '-' {
 		result = result[:len(result)-1]
 	}
 

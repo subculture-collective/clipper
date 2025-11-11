@@ -4,7 +4,7 @@ import { isModeratorOrAdmin } from '../lib/roles';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/sentry';
 import type { User } from '../lib/auth-api';
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;

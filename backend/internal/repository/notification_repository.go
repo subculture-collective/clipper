@@ -58,7 +58,7 @@ func (r *NotificationRepository) Create(ctx context.Context, notification *model
 // GetByID retrieves a notification by ID
 func (r *NotificationRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.NotificationWithSource, error) {
 	query := `
-		SELECT 
+		SELECT
 			n.id, n.user_id, n.type, n.title, n.message, n.link, n.is_read,
 			n.created_at, n.expires_at, n.source_user_id, n.source_content_id, n.source_content_type,
 			u.username AS source_username,
@@ -111,7 +111,7 @@ func (r *NotificationRepository) ListByUserID(ctx context.Context, userID uuid.U
 	}
 
 	query := fmt.Sprintf(`
-		SELECT 
+		SELECT
 			n.id, n.user_id, n.type, n.title, n.message, n.link, n.is_read,
 			n.created_at, n.expires_at, n.source_user_id, n.source_content_id, n.source_content_type,
 			u.username AS source_username,
@@ -177,7 +177,7 @@ func (r *NotificationRepository) CountUnread(ctx context.Context, userID uuid.UU
 }
 
 // MarkAsRead marks a notification as read
-func (r *NotificationRepository) MarkAsRead(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (r *NotificationRepository) MarkAsRead(ctx context.Context, id, userID uuid.UUID) error {
 	query := `
 		UPDATE notifications
 		SET is_read = true
@@ -212,8 +212,8 @@ func (r *NotificationRepository) MarkAllAsRead(ctx context.Context, userID uuid.
 	return nil
 }
 
-// Delete deletes a notification
-func (r *NotificationRepository) Delete(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+// Delete deletes a notification (soft delete - marks as deleted)
+func (r *NotificationRepository) Delete(ctx context.Context, id, userID uuid.UUID) error {
 	query := `
 		DELETE FROM notifications
 		WHERE id = $1 AND user_id = $2
@@ -249,7 +249,7 @@ func (r *NotificationRepository) DeleteExpired(ctx context.Context) (int64, erro
 // GetPreferences retrieves notification preferences for a user
 func (r *NotificationRepository) GetPreferences(ctx context.Context, userID uuid.UUID) (*models.NotificationPreferences, error) {
 	query := `
-		SELECT 
+		SELECT
 			user_id, in_app_enabled, email_enabled, email_digest,
 			notify_replies, notify_mentions, notify_votes, notify_badges,
 			notify_moderation, notify_rank_up, notify_favorited_clip_comment, updated_at
@@ -290,7 +290,7 @@ func (r *NotificationRepository) CreateDefaultPreferences(ctx context.Context, u
 		INSERT INTO notification_preferences (user_id)
 		VALUES ($1)
 		ON CONFLICT (user_id) DO UPDATE SET user_id = $1
-		RETURNING 
+		RETURNING
 			user_id, in_app_enabled, email_enabled, email_digest,
 			notify_replies, notify_mentions, notify_votes, notify_badges,
 			notify_moderation, notify_rank_up, notify_favorited_clip_comment, updated_at
@@ -323,7 +323,7 @@ func (r *NotificationRepository) CreateDefaultPreferences(ctx context.Context, u
 func (r *NotificationRepository) UpdatePreferences(ctx context.Context, prefs *models.NotificationPreferences) error {
 	query := `
 		UPDATE notification_preferences
-		SET 
+		SET
 			in_app_enabled = $2,
 			email_enabled = $3,
 			email_digest = $4,

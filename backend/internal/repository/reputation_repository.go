@@ -52,7 +52,7 @@ func (r *ReputationRepository) GetUserKarmaHistory(ctx context.Context, userID u
 // GetKarmaBreakdown calculates karma breakdown by source
 func (r *ReputationRepository) GetKarmaBreakdown(ctx context.Context, userID uuid.UUID) (*models.KarmaBreakdown, error) {
 	query := `
-		SELECT 
+		SELECT
 			COALESCE(SUM(CASE WHEN source = 'clip_vote' THEN amount ELSE 0 END), 0) as clip_karma,
 			COALESCE(SUM(CASE WHEN source = 'comment_vote' THEN amount ELSE 0 END), 0) as comment_karma,
 			COALESCE(SUM(amount), 0) as total_karma
@@ -132,8 +132,8 @@ func (r *ReputationRepository) RemoveBadge(ctx context.Context, userID uuid.UUID
 // GetUserStats retrieves user statistics
 func (r *ReputationRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*models.UserStats, error) {
 	query := `
-		SELECT user_id, trust_score, engagement_score, total_comments, 
-		       total_votes_cast, total_clips_submitted, correct_reports, 
+		SELECT user_id, trust_score, engagement_score, total_comments,
+		       total_votes_cast, total_clips_submitted, correct_reports,
 		       incorrect_reports, days_active, last_active_date, updated_at
 		FROM user_stats
 		WHERE user_id = $1
@@ -226,8 +226,8 @@ func (r *ReputationRepository) CalculateEngagementScore(ctx context.Context, use
 	return engagementScore, nil
 }
 
-// GetKarmaLeaderboard retrieves karma leaderboard
-func (r *ReputationRepository) GetKarmaLeaderboard(ctx context.Context, limit int, offset int) ([]models.LeaderboardEntry, error) {
+// GetKarmaLeaderboard returns top users by karma score
+func (r *ReputationRepository) GetKarmaLeaderboard(ctx context.Context, limit, offset int) ([]models.LeaderboardEntry, error) {
 	query := `
 		SELECT id, username, display_name, avatar_url, karma_points, rank
 		FROM karma_leaderboard
@@ -263,8 +263,8 @@ func (r *ReputationRepository) GetKarmaLeaderboard(ctx context.Context, limit in
 	return entries, rows.Err()
 }
 
-// GetEngagementLeaderboard retrieves engagement leaderboard
-func (r *ReputationRepository) GetEngagementLeaderboard(ctx context.Context, limit int, offset int) ([]models.LeaderboardEntry, error) {
+// GetEngagementLeaderboard returns top users by engagement score
+func (r *ReputationRepository) GetEngagementLeaderboard(ctx context.Context, limit, offset int) ([]models.LeaderboardEntry, error) {
 	query := `
 		SELECT id, username, display_name, avatar_url, engagement_score,
 		       total_comments, total_votes_cast, total_clips_submitted
@@ -307,8 +307,8 @@ func (r *ReputationRepository) GetEngagementLeaderboard(ctx context.Context, lim
 func (r *ReputationRepository) IncrementUserActivity(ctx context.Context, userID uuid.UUID, activityType string, count int) error {
 	// Ensure user_stats exists
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO user_stats (user_id) 
-		VALUES ($1) 
+		INSERT INTO user_stats (user_id)
+		VALUES ($1)
 		ON CONFLICT (user_id) DO NOTHING
 	`, userID)
 	if err != nil {
@@ -320,7 +320,7 @@ func (r *ReputationRepository) IncrementUserActivity(ctx context.Context, userID
 	switch activityType {
 	case "comment":
 		query = `
-			UPDATE user_stats 
+			UPDATE user_stats
 			SET total_comments = total_comments + $2,
 			    last_active_date = CURRENT_DATE,
 				updated_at = NOW()
@@ -328,7 +328,7 @@ func (r *ReputationRepository) IncrementUserActivity(ctx context.Context, userID
 		`
 	case "vote":
 		query = `
-			UPDATE user_stats 
+			UPDATE user_stats
 			SET total_votes_cast = total_votes_cast + $2,
 			    last_active_date = CURRENT_DATE,
 				updated_at = NOW()
@@ -336,7 +336,7 @@ func (r *ReputationRepository) IncrementUserActivity(ctx context.Context, userID
 		`
 	case "submission":
 		query = `
-			UPDATE user_stats 
+			UPDATE user_stats
 			SET total_clips_submitted = total_clips_submitted + $2,
 			    last_active_date = CURRENT_DATE,
 				updated_at = NOW()
