@@ -93,13 +93,6 @@ jobs:
             exit 1
           fi
 
-      - name: Upload coverage to Codecov (optional)
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./backend/coverage.out
-          flags: backend
-          fail_ci_if_error: false
-        continue-on-error: true
 
   backend-integration-test:
     name: Backend Integration Tests
@@ -265,13 +258,6 @@ jobs:
           cd frontend
           yarn test:coverage
 
-      - name: Upload coverage to Codecov (optional)
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./frontend/coverage/coverage-final.json
-          flags: frontend
-          fail_ci_if_error: false
-        continue-on-error: true
 
   frontend-e2e:
     name: Frontend E2E Tests

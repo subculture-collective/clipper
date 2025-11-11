@@ -62,12 +62,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Expo (optional)
+      - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           eas-version: latest
-        continue-on-error: true
+          token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
         run: |
@@ -96,12 +96,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Expo (optional)
+      - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           eas-version: latest
-        continue-on-error: true
+          token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
         run: |
