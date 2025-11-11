@@ -4,8 +4,15 @@ import { generateCodeVerifier, generateCodeChallenge, generateState, generatePKC
 describe('PKCE', () => {
   beforeEach(() => {
     // Mock crypto.getRandomValues if not available in test environment
-    if (!(globalThis as any).crypto) {
-      (globalThis as any).crypto = {
+    interface MockCrypto {
+      getRandomValues: (arr: Uint8Array) => Uint8Array;
+      subtle: {
+        digest: (algorithm: string, data: BufferSource) => Promise<ArrayBuffer>;
+      };
+    }
+    
+    if (!(globalThis as { crypto?: Crypto }).crypto) {
+      (globalThis as { crypto?: MockCrypto }).crypto = {
         getRandomValues: (arr: Uint8Array) => {
           for (let i = 0; i < arr.length; i++) {
             arr[i] = Math.floor(Math.random() * 256);
