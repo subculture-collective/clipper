@@ -43,10 +43,13 @@ describe('PaywallModal', () => {
     // Set environment variables for price IDs using Vitest's stubEnv
     vi.stubEnv('VITE_STRIPE_PRO_MONTHLY_PRICE_ID', 'price_monthly_test');
     vi.stubEnv('VITE_STRIPE_PRO_YEARLY_PRICE_ID', 'price_yearly_test');
+    // Mock window.alert
+    vi.stubGlobal('alert', vi.fn());
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it('should not render when isOpen is false', () => {
@@ -168,7 +171,7 @@ describe('PaywallModal', () => {
 
   it('should call analytics when upgrade button is clicked', async () => {
     const user = userEvent.setup();
-    
+
     vi.mocked(subscriptionApi.createCheckoutSession).mockResolvedValue({
       session_id: 'test-session-id',
       session_url: 'https://checkout.stripe.com/test',
@@ -193,22 +196,39 @@ describe('PaywallModal', () => {
 
   it('should show loading state when processing upgrade', async () => {
     const user = userEvent.setup();
-    
-    // Make the checkout session promise never resolve to test loading state
-    vi.mocked(subscriptionApi.createCheckoutSession).mockImplementation(
-      () => new Promise(() => {})
-    );
+
+    // Create a promise that we can control
+    const controlledPromise = new Promise<{ session_id: string; session_url: string }>((resolve) => {
+      setTimeout(() => resolve({
+        session_id: 'test-id',
+        session_url: 'https://test.com'
+      }), 100);
+    });
+
+    vi.mocked(subscriptionApi.createCheckoutSession).mockReturnValue(controlledPromise);
 
     render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
       wrapper: createWrapper(),
     });
 
-    const upgradeButton = screen.getByRole('button', { name: /Upgrade to Pro/i });
+    const upgradeButton = screen.getByRole('button', { name: /^Upgrade to Pro$/i });
+
+    // Check if alert was called (meaning price ID is missing)
+    expect(window.alert).not.toHaveBeenCalled();
+
+    // Click the button
     await user.click(upgradeButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Processing...')).toBeInTheDocument();
-    });
+    // Check if alert was called after click
+    if (vi.mocked(window.alert).mock.calls.length > 0) {
+      console.log('Alert was called with:', vi.mocked(window.alert).mock.calls);
+    }
+
+    // The button should immediately show Processing... since setIsLoading is called before await
+    expect(await screen.findByText('Processing...')).toBeInTheDocument();
+
+    // The button should be disabled
+    expect(upgradeButton).toBeDisabled();
   });
 
   it('should display savings percentage for yearly plan', () => {

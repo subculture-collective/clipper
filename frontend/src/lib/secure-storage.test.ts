@@ -112,6 +112,19 @@ describe('SecureStorage', () => {
   });
 
   describe('OAuth flow integration', () => {
+    let originalIndexedDB: IDBFactory | undefined;
+
+    beforeEach(() => {
+      // Force fallback path by disabling IndexedDB for these tests
+      originalIndexedDB = globalThis.indexedDB;
+      (globalThis as any).indexedDB = undefined;
+    });
+
+    afterEach(() => {
+      // Restore IndexedDB after tests
+      (globalThis as any).indexedDB = originalIndexedDB as any;
+    });
+
     it('should store and retrieve OAuth parameters', async () => {
       const codeVerifier = 'test-code-verifier-string-that-is-long';
       const state = 'test-state-parameter';

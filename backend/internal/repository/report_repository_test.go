@@ -224,7 +224,7 @@ func TestMockReportRepository_ListReports(t *testing.T) {
 	}
 
 	// Filter by status
-	reports, total, err = repo.ListReports(ctx, "pending", "", 1, 10)
+	reports, _, err = repo.ListReports(ctx, "pending", "", 1, 10)
 	if err != nil {
 		t.Fatalf("ListReports failed: %v", err)
 	}
