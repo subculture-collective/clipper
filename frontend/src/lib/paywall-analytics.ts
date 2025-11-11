@@ -70,8 +70,8 @@ class PaywallAnalytics {
     // - Custom backend: fetch('/api/v1/analytics/events', { method: 'POST', body: JSON.stringify(event) })
 
     // Placeholder implementation
-    if (typeof window !== 'undefined' && 'gtag' in window && typeof (window as Window & { gtag?: (...args: any[]) => void }).gtag === 'function') {
-      ((window as Window & { gtag: (...args: any[]) => void }).gtag)('event', event.event, {
+    if (typeof window !== 'undefined' && 'gtag' in window && typeof (window as Window & { gtag?: (...args: unknown[]) => void }).gtag === 'function') {
+      ((window as Window & { gtag: (...args: unknown[]) => void }).gtag)('event', event.event, {
         event_category: 'paywall',
         event_label: event.data.feature,
         ...event.data,

@@ -105,7 +105,7 @@ describe('useSubscription', () => {
     };
 
     vi.mocked(authHook.useAuth).mockReturnValue({
-      user: { id: 'user-123', username: 'testuser', role: 'user' },
+      user: mockUser,
       isAuthenticated: true,
       isAdmin: false,
       isModerator: false,
@@ -114,7 +114,7 @@ describe('useSubscription', () => {
       login: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
-    } as any);
+    });
 
     vi.mocked(subscriptionApi.getSubscription).mockResolvedValue(mockSubscription);
 
@@ -168,6 +168,30 @@ describe('useSubscription', () => {
 
   it('should handle API errors gracefully', async () => {
     vi.mocked(authHook.useAuth).mockReturnValue({
+      user: mockUser,
+      isAuthenticated: true,
+      isAdmin: false,
+      isModerator: false,
+      isModeratorOrAdmin: false,
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+
+    vi.mocked(subscriptionApi.getSubscription).mockRejectedValue(new Error('API Error'));
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: QueryClientProvider,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.subscription).toBe(null);
+    expect(result.current.isPro).toBe(false);
+    expect(result.current.hasActive).toBe(false);
   });
 
   it('should return trialing subscription as Pro', async () => {
@@ -185,7 +209,7 @@ describe('useSubscription', () => {
     };
 
     vi.mocked(authHook.useAuth).mockReturnValue({
-      user: { id: 'user-123', username: 'testuser', role: 'user' },
+      user: mockUser,
       isAuthenticated: true,
       isAdmin: false,
       isModerator: false,
@@ -194,7 +218,7 @@ describe('useSubscription', () => {
       login: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
-    } as any);
+    });
 
     vi.mocked(subscriptionApi.getSubscription).mockResolvedValue(mockSubscription);
 
