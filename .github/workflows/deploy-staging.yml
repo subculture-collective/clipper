@@ -53,8 +53,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy to Staging Server
-        if: ${{ secrets.STAGING_HOST != '' }}
         uses: appleboy/ssh-action@v1.2.0
+        continue-on-error: true
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: deploy
