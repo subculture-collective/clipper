@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.22.x'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -93,13 +93,6 @@ jobs:
             exit 1
           fi
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./backend/coverage.out
-          flags: backend
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
 
   backend-integration-test:
     name: Backend Integration Tests
@@ -135,7 +128,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.22.x'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -184,7 +177,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.22.x'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -265,13 +258,6 @@ jobs:
           cd frontend
           yarn test:coverage
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./frontend/coverage/coverage-final.json
-          flags: frontend
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
 
   frontend-e2e:
     name: Frontend E2E Tests
