@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
+import {
   isSecureStorageAvailable,
   setSecureItem,
   getSecureItem,
   removeSecureItem,
-  clearSecureStorage 
+  clearSecureStorage
 } from './secure-storage';
 
 describe('SecureStorage', () => {

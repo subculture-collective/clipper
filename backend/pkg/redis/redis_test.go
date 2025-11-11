@@ -47,21 +47,21 @@ func TestGetStatsLineHandling(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-		// Simulate the parsing logic from GetStats
-		stats := make(map[string]string)
-		for _, line := range strings.Split(tt.input, "\n") {
-			line = strings.TrimSpace(line)
-			// This is the fixed condition that should not panic
-			if line == "" || line[0] == '#' {
-				continue
-			}
-			// Parse key:value
-			if idx := strings.IndexByte(line, ':'); idx != -1 {
-				key := line[:idx]
-				value := line[idx+1:]
-				stats[key] = strings.TrimSpace(value)
-			}
-		}			// Verify the result matches expected
+			// Simulate the parsing logic from GetStats
+			stats := make(map[string]string)
+			for _, line := range strings.Split(tt.input, "\n") {
+				line = strings.TrimSpace(line)
+				// This is the fixed condition that should not panic
+				if line == "" || line[0] == '#' {
+					continue
+				}
+				// Parse key:value
+				if idx := strings.IndexByte(line, ':'); idx != -1 {
+					key := line[:idx]
+					value := line[idx+1:]
+					stats[key] = strings.TrimSpace(value)
+				}
+			} // Verify the result matches expected
 			if len(stats) != len(tt.expected) {
 				t.Errorf("Expected %d entries, got %d", len(tt.expected), len(stats))
 			}

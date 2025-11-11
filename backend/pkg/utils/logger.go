@@ -161,7 +161,7 @@ func (l *StructuredLogger) GinLogger() gin.HandlerFunc {
 			traceID = fmt.Sprintf("%v", tid)
 		}
 
-			entry := &LogEntry{
+		entry := &LogEntry{
 			Level:      string(LogLevelInfo),
 			Message:    "HTTP Request",
 			Service:    "clipper-backend",
@@ -189,7 +189,7 @@ func (l *StructuredLogger) GinLogger() gin.HandlerFunc {
 			entry.Level = string(LogLevelError)
 		}
 
-			l.log(entry)
+		l.log(entry)
 	}
 }
 
