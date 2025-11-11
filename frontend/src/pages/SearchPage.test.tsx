@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { SearchPage } from './SearchPage';
+import { HelmetProvider } from '@dr.pogodin/react-helmet';
 
 // Create a test query client
 const queryClient = new QueryClient({
@@ -16,11 +17,13 @@ const queryClient = new QueryClient({
 describe('SearchPage - Sort Controls', () => {
     it('renders sort dropdown with proper theme-aware styling', () => {
         render(
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
-                    <SearchPage />
-                </MemoryRouter>
-            </QueryClientProvider>
+            <HelmetProvider>
+                <QueryClientProvider client={queryClient}>
+                    <MemoryRouter>
+                        <SearchPage />
+                    </MemoryRouter>
+                </QueryClientProvider>
+            </HelmetProvider>
         );
 
         // Note: The sort dropdown only appears when there's a search query
@@ -31,11 +34,13 @@ describe('SearchPage - Sort Controls', () => {
     it('sort dropdown has focus-visible styles for accessibility', () => {
         // Create a wrapper with search query
         const wrapper = ({ children }: { children: React.ReactNode }) => (
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter initialEntries={['/?q=test']}>
-                    {children}
-                </MemoryRouter>
-            </QueryClientProvider>
+            <HelmetProvider>
+                <QueryClientProvider client={queryClient}>
+                    <MemoryRouter initialEntries={['/?q=test']}>
+                        {children}
+                    </MemoryRouter>
+                </QueryClientProvider>
+            </HelmetProvider>
         );
 
         render(<SearchPage />, { wrapper }); // Wait for the component to render with query

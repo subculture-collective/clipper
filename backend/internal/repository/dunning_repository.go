@@ -247,53 +247,25 @@ func (r *DunningRepository) GetDunningAttemptsByUserID(ctx context.Context, user
 
 // GetSubscriptionsInGracePeriod retrieves all subscriptions currently in grace period
 func (r *DunningRepository) GetSubscriptionsInGracePeriod(ctx context.Context) ([]*models.Subscription, error) {
-	query := `
-		SELECT id, user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
-		       status, tier, current_period_start, current_period_end, cancel_at_period_end,
-		       canceled_at, trial_start, trial_end, grace_period_end, created_at, updated_at
-		FROM subscriptions
-		WHERE grace_period_end IS NOT NULL
-		  AND grace_period_end > NOW()
-		  AND status IN ('past_due', 'unpaid')
-		ORDER BY grace_period_end ASC
-	`
-
-	rows, err := r.db.Query(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var subscriptions []*models.Subscription
-	for rows.Next() {
-		var sub models.Subscription
-		err := rows.Scan(
-			&sub.ID, &sub.UserID, &sub.StripeCustomerID, &sub.StripeSubscriptionID, &sub.StripePriceID,
-			&sub.Status, &sub.Tier, &sub.CurrentPeriodStart, &sub.CurrentPeriodEnd, &sub.CancelAtPeriodEnd,
-			&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.GracePeriodEnd, &sub.CreatedAt, &sub.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		subscriptions = append(subscriptions, &sub)
-	}
-
-	return subscriptions, rows.Err()
+	where := `grace_period_end IS NOT NULL AND grace_period_end > NOW() AND status IN ('past_due', 'unpaid')`
+	return r.listSubscriptionsByGracePeriod(ctx, where)
 }
 
 // GetExpiredGracePeriodSubscriptions retrieves subscriptions whose grace period has expired
 func (r *DunningRepository) GetExpiredGracePeriodSubscriptions(ctx context.Context) ([]*models.Subscription, error) {
+	where := `grace_period_end IS NOT NULL AND grace_period_end <= NOW() AND status IN ('past_due', 'unpaid') AND tier != 'free'`
+	return r.listSubscriptionsByGracePeriod(ctx, where)
+}
+
+// listSubscriptionsByGracePeriod fetches subscriptions matching a WHERE predicate ordered by grace period
+func (r *DunningRepository) listSubscriptionsByGracePeriod(ctx context.Context, where string) ([]*models.Subscription, error) {
 	query := `
 		SELECT id, user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
-		       status, tier, current_period_start, current_period_end, cancel_at_period_end,
-		       canceled_at, trial_start, trial_end, grace_period_end, created_at, updated_at
+			   status, tier, current_period_start, current_period_end, cancel_at_period_end,
+			   canceled_at, trial_start, trial_end, grace_period_end, created_at, updated_at
 		FROM subscriptions
-		WHERE grace_period_end IS NOT NULL
-		  AND grace_period_end <= NOW()
-		  AND status IN ('past_due', 'unpaid')
-		  AND tier != 'free'
-		ORDER BY grace_period_end ASC
-	`
+		WHERE ` + where + `
+		ORDER BY grace_period_end ASC`
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -304,12 +276,11 @@ func (r *DunningRepository) GetExpiredGracePeriodSubscriptions(ctx context.Conte
 	var subscriptions []*models.Subscription
 	for rows.Next() {
 		var sub models.Subscription
-		err := rows.Scan(
+		if err := rows.Scan(
 			&sub.ID, &sub.UserID, &sub.StripeCustomerID, &sub.StripeSubscriptionID, &sub.StripePriceID,
 			&sub.Status, &sub.Tier, &sub.CurrentPeriodStart, &sub.CurrentPeriodEnd, &sub.CancelAtPeriodEnd,
 			&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.GracePeriodEnd, &sub.CreatedAt, &sub.UpdatedAt,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, err
 		}
 		subscriptions = append(subscriptions, &sub)

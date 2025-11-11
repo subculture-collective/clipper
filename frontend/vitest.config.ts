@@ -32,5 +32,9 @@ export default defineConfig({
                 'dist/',
             ],
         },
+        env: {
+            VITE_STRIPE_PRO_MONTHLY_PRICE_ID: 'price_test_monthly',
+            VITE_STRIPE_PRO_YEARLY_PRICE_ID: 'price_test_yearly',
+        },
     },
 });

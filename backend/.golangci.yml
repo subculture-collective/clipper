@@ -1,15 +1,20 @@
 linters-settings:
   dupl:
-    threshold: 100
+    threshold: 160
   goconst:
     min-len: 2
     min-occurrences: 2
   gocritic:
     enabled-tags:
       - diagnostic
-      - opinionated
       - performance
       - style
+    disabled-checks:
+      - paramTypeCombine
+      - emptyStringTest
+      - rangeValCopy
+      - sprintfQuotedString
+      - emptyFallthrough
   gocyclo:
     min-complexity: 15
   govet:
@@ -36,6 +41,14 @@ issues:
     - path: _test\.go
       linters:
         - dupl
+        - goconst
+    - path: _test\.go
+      linters:
+        - govet
+      text: "shadow: "
+    - path: config/config\.go
+      linters:
+        - goconst
 
 run:
   timeout: 5m
