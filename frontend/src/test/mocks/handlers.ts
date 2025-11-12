@@ -240,4 +240,14 @@ export const handlers = [
       },
     });
   }),
+
+  // GET /search/suggestions - Get search suggestions
+  http.get(`${API_BASE_URL}/search/suggestions`, ({ request }) => {
+    const url = new URL(request.url);
+    const query = url.searchParams.get('q') || '';
+    
+    return HttpResponse.json({
+      streamers: query ? ['TestStreamer', 'AnotherStreamer'] : [],
+    });
+  }),
 ];
