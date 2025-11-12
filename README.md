@@ -4,8 +4,6 @@
 [![Docker](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml)
 [![CodeQL](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml)
 [![Lighthouse CI](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml)
-[![codecov](https://codecov.io/gh/subculture-collective/clipper/branch/main/graph/badge.svg)](https://codecov.io/gh/subculture-collective/clipper)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modern, community-driven Twitch clip curation platform that allows users to discover, organize, vote on, and share their favorite Twitch clips with the community.
 
