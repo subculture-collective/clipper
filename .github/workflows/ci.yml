@@ -259,15 +259,86 @@ jobs:
     permissions:
       contents: read
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: clipper
+          POSTGRES_PASSWORD: clipper_password
+          POSTGRES_DB: clipper_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/
+          migrate -version
+
+      - name: Run database migrations
+        env:
+          DB_URL: postgresql://clipper:clipper_password@localhost:5432/clipper_e2e?sslmode=disable
+        run: |
+          echo "::add-mask::$DB_URL"
+          migrate -path backend/migrations -database "$DB_URL" up
+
+      - name: Build backend
+        run: |
+          cd backend
+          go build -o ../clipper-backend ./cmd/api
+
+      - name: Start backend server
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: clipper
+          DB_PASSWORD: clipper_password
+          DB_NAME: clipper_e2e
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret-key-for-e2e-testing
+          PORT: 8080
+        run: |
+          ./clipper-backend &
+          echo $! > backend.pid
+          
+          # Wait for backend to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:8080/api/v1/health 2>/dev/null; then
+              echo "Backend is ready"
+              break
+            fi
+            echo "Waiting for backend to start... ($i/30)"
+            sleep 2
+          done
+
+      - name: Install frontend dependencies
         run: |
           cd frontend
           npm ci
@@ -278,6 +349,8 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Run E2E tests
+        env:
+          VITE_API_URL: http://localhost:8080/api/v1
         run: |
           cd frontend
           npm run test:e2e
