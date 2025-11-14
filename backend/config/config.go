@@ -10,17 +10,18 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server     ServerConfig
-	Database   DatabaseConfig
-	Redis      RedisConfig
-	JWT        JWTConfig
-	Twitch     TwitchConfig
-	CORS       CORSConfig
-	OpenSearch OpenSearchConfig
-	Stripe     StripeConfig
-	Sentry     SentryConfig
-	Email      EmailConfig
-	Embedding  EmbeddingConfig
+	Server       ServerConfig
+	Database     DatabaseConfig
+	Redis        RedisConfig
+	JWT          JWTConfig
+	Twitch       TwitchConfig
+	CORS         CORSConfig
+	OpenSearch   OpenSearchConfig
+	Stripe       StripeConfig
+	Sentry       SentryConfig
+	Email        EmailConfig
+	Embedding    EmbeddingConfig
+	FeatureFlags FeatureFlagsConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -112,6 +113,17 @@ type EmbeddingConfig struct {
 	Enabled                  bool
 }
 
+// FeatureFlagsConfig holds feature flag configuration
+type FeatureFlagsConfig struct {
+	SemanticSearch       bool
+	PremiumSubscriptions bool
+	EmailNotifications   bool
+	PushNotifications    bool
+	Analytics            bool
+	Moderation           bool
+	DiscoveryLists       bool
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -189,6 +201,15 @@ func Load() (*Config, error) {
 			RequestsPerMinute:        getEnvInt("EMBEDDING_REQUESTS_PER_MINUTE", 500),
 			SchedulerIntervalMinutes: getEnvInt("EMBEDDING_SCHEDULER_INTERVAL_MINUTES", 360),
 			Enabled:                  getEnv("EMBEDDING_ENABLED", "false") == "true",
+		},
+		FeatureFlags: FeatureFlagsConfig{
+			SemanticSearch:       getEnv("FEATURE_SEMANTIC_SEARCH", "false") == "true",
+			PremiumSubscriptions: getEnv("FEATURE_PREMIUM_SUBSCRIPTIONS", "false") == "true",
+			EmailNotifications:   getEnv("FEATURE_EMAIL_NOTIFICATIONS", "false") == "true",
+			PushNotifications:    getEnv("FEATURE_PUSH_NOTIFICATIONS", "false") == "true",
+			Analytics:            getEnv("FEATURE_ANALYTICS", "true") == "true",
+			Moderation:           getEnv("FEATURE_MODERATION", "true") == "true",
+			DiscoveryLists:       getEnv("FEATURE_DISCOVERY_LISTS", "false") == "true",
 		},
 	}
 
