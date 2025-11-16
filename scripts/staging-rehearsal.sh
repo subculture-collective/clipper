@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENVIRONMENT="${ENVIRONMENT:-staging}"
 SKIP_BACKUP="${SKIP_BACKUP:-false}"
 SKIP_TESTS="${SKIP_TESTS:-false}"
+BACKUP_TAG="BACKUP_TAG_NOT_SET"
 
 # Counters
 TOTAL_STEPS=0
@@ -216,7 +217,9 @@ fi
 log_step "Running database migrations"
 if command_exists migrate && [ -n "$DB_HOST" ]; then
     # Check if there are pending migrations
-    DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:${DB_PORT:-5432}/$DB_NAME?sslmode=${DB_SSLMODE:-disable}"
+    # Use PGPASSWORD environment variable for secure authentication
+    export PGPASSWORD="$DB_PASSWORD"
+    DATABASE_URL="postgresql://$DB_USER@$DB_HOST:${DB_PORT:-5432}/$DB_NAME?sslmode=${DB_SSLMODE:-disable}"
     
     # Get current version
     CURRENT=$(migrate -path backend/migrations -database "$DATABASE_URL" version 2>&1 | grep -o '[0-9]\+' || echo "0")
@@ -236,6 +239,9 @@ if command_exists migrate && [ -n "$DB_HOST" ]; then
         log_error "Check migration logs and fix issues"
         exit 1
     fi
+    
+    # Clean up password
+    unset PGPASSWORD
 else
     log_warn "migrate tool not available or DB config incomplete"
 fi
@@ -354,17 +360,20 @@ if [ "$SKIP_TESTS" = false ]; then
     
     # Test 5: Redis connectivity
     if command_exists redis-cli && [ -n "$REDIS_HOST" ]; then
-        REDIS_ARGS="-h $REDIS_HOST -p ${REDIS_PORT:-6379}"
+        # Use REDISCLI_AUTH environment variable for secure authentication
         if [ -n "$REDIS_PASSWORD" ]; then
-            REDIS_ARGS="$REDIS_ARGS -a $REDIS_PASSWORD"
+            export REDISCLI_AUTH="$REDIS_PASSWORD"
         fi
         
-        if redis-cli $REDIS_ARGS ping >/dev/null 2>&1; then
+        if redis-cli -h "$REDIS_HOST" -p "${REDIS_PORT:-6379}" ping >/dev/null 2>&1; then
             log_info "✓ Redis accessible"
         else
             log_error "✗ Redis connection failed"
             SMOKE_TESTS_PASSED=false
         fi
+        
+        # Clean up authentication
+        [ -n "$REDIS_PASSWORD" ] && unset REDISCLI_AUTH
     fi
     
     if [ "$SMOKE_TESTS_PASSED" = true ]; then
@@ -381,7 +390,11 @@ fi
 log_step "Testing rollback procedure (dry run)"
 if [ -f "$SCRIPT_DIR/rollback.sh" ]; then
     log_info "Rollback script found: $SCRIPT_DIR/rollback.sh"
-    log_info "To rollback: ./scripts/rollback.sh $BACKUP_TAG"
+    if [ "$BACKUP_TAG" != "BACKUP_TAG_NOT_SET" ]; then
+        log_info "To rollback: ./scripts/rollback.sh $BACKUP_TAG"
+    else
+        log_info "To rollback: ./scripts/rollback.sh [backup-tag]"
+    fi
     step_complete
 else
     log_warn "Rollback script not found"

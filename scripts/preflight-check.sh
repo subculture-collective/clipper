@@ -48,6 +48,26 @@ EOF
     exit 1
 }
 
+# Install dependencies
+install_dependencies() {
+    log_header "Installing Dependencies"
+    
+    # Check for package managers
+    if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y curl wget postgresql-client redis-tools jq
+    elif command -v yum >/dev/null 2>&1; then
+        sudo yum install -y curl wget postgresql redis jq
+    elif command -v brew >/dev/null 2>&1; then
+        brew install postgresql redis jq
+    else
+        log_error "No supported package manager found"
+        exit 1
+    fi
+    
+    log_info "Dependencies installed successfully"
+}
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -119,26 +139,6 @@ check_warn() {
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
     WARNING_CHECKS=$((WARNING_CHECKS + 1))
     log_warn "$1"
-}
-
-# Install dependencies
-install_dependencies() {
-    log_header "Installing Dependencies"
-    
-    # Check for package managers
-    if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update
-        sudo apt-get install -y curl wget postgresql-client redis-tools jq
-    elif command -v yum >/dev/null 2>&1; then
-        sudo yum install -y curl wget postgresql redis jq
-    elif command -v brew >/dev/null 2>&1; then
-        brew install postgresql redis jq
-    else
-        log_error "No supported package manager found"
-        exit 1
-    fi
-    
-    log_info "Dependencies installed successfully"
 }
 
 # Check if command exists
@@ -372,32 +372,37 @@ check_redis() {
     
     # Test connection
     log_check "Redis connection"
-    REDIS_AUTH_ARGS=""
+    
+    # Use REDISCLI_AUTH environment variable for secure authentication
     if [ -n "$REDIS_PASSWORD" ]; then
-        REDIS_AUTH_ARGS="-a $REDIS_PASSWORD"
+        export REDISCLI_AUTH="$REDIS_PASSWORD"
     fi
     
-    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $REDIS_AUTH_ARGS ping >/dev/null 2>&1; then
+    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping >/dev/null 2>&1; then
         check_pass "Redis connection successful"
     else
         check_fail "Redis connection failed"
+        [ -n "$REDIS_PASSWORD" ] && unset REDISCLI_AUTH
         return
     fi
     
     # Check Redis info
     if [ "$CHECK_LEVEL" = "full" ]; then
         log_check "Redis info"
-        REDIS_VERSION=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $REDIS_AUTH_ARGS info server 2>/dev/null | grep "redis_version" | cut -d':' -f2 | tr -d '\r')
+        REDIS_VERSION=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" info server 2>/dev/null | grep "redis_version" | cut -d':' -f2 | tr -d '\r')
         if [ -n "$REDIS_VERSION" ]; then
             check_pass "Redis version: $REDIS_VERSION"
         fi
         
         # Check memory usage
-        REDIS_MEMORY=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" $REDIS_AUTH_ARGS info memory 2>/dev/null | grep "used_memory_human" | cut -d':' -f2 | tr -d '\r')
+        REDIS_MEMORY=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" info memory 2>/dev/null | grep "used_memory_human" | cut -d':' -f2 | tr -d '\r')
         if [ -n "$REDIS_MEMORY" ]; then
             check_pass "Redis memory usage: $REDIS_MEMORY"
         fi
     fi
+    
+    # Clean up authentication
+    [ -n "$REDIS_PASSWORD" ] && unset REDISCLI_AUTH
 }
 
 # Check external services

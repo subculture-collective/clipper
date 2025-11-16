@@ -528,10 +528,10 @@ Run the automated preflight check script before deployment:
 ./scripts/preflight-check.sh --install
 
 # Run full preflight check
-./scripts/preflight-check.sh --env production --full
+./scripts/preflight-check.sh --env production --level full
 
 # Run quick check (essential items only)
-./scripts/preflight-check.sh --env production --quick
+./scripts/preflight-check.sh --env production --level quick
 
 # Generate report
 ./scripts/preflight-check.sh --env production --report > preflight-report.txt

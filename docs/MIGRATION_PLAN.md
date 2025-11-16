@@ -210,9 +210,12 @@ echo "Backup: $BACKUP_TAG"
 docker-compose exec postgres psql -U clipper -d clipper_db -c "SELECT version, dirty FROM schema_migrations;"
 
 # 4. Run migration
+# Use PGPASSWORD environment variable for secure authentication
+export PGPASSWORD="$DB_PASSWORD"
 migrate -path backend/migrations \
-  -database "postgresql://clipper:$DB_PASSWORD@localhost:5436/clipper_db?sslmode=disable" \
+  -database "postgresql://clipper@localhost:5436/clipper_db?sslmode=disable" \
   up
+unset PGPASSWORD
 
 # 5. Verify new version
 docker-compose exec postgres psql -U clipper -d clipper_db -c "SELECT version, dirty FROM schema_migrations;"
@@ -247,9 +250,12 @@ docker-compose exec postgres psql -U clipper -d clipper_db -c "SELECT COUNT(*) F
 BACKUP_TAG=$(ls -t /var/backups/clipper/db-*.sql.gz | head -1 | sed 's/.*db-\(.*\).sql.gz/\1/')
 
 # 5. Run migration
+# Use PGPASSWORD environment variable for secure authentication
+export PGPASSWORD="$DB_PASSWORD"
 migrate -path backend/migrations \
-  -database "postgresql://clipper:$DB_PASSWORD@localhost:5436/clipper_db?sslmode=disable" \
+  -database "postgresql://clipper@localhost:5436/clipper_db?sslmode=disable" \
   up
+unset PGPASSWORD
 
 # 6. Verify migration
 docker-compose exec postgres psql -U clipper -d clipper_db -c "SELECT version, dirty FROM schema_migrations;"
@@ -293,19 +299,21 @@ If migration fails with `dirty` state:
 
 ```bash
 # Check migration state
+export PGPASSWORD="$DB_PASSWORD"
 migrate -path backend/migrations \
-  -database "postgresql://clipper:$DB_PASSWORD@localhost:5436/clipper_db?sslmode=disable" \
+  -database "postgresql://clipper@localhost:5436/clipper_db?sslmode=disable" \
   version
 
 # If dirty, force to previous version
 migrate -path backend/migrations \
-  -database "postgresql://clipper:$DB_PASSWORD@localhost:5436/clipper_db?sslmode=disable" \
+  -database "postgresql://clipper@localhost:5436/clipper_db?sslmode=disable" \
   force PREVIOUS_VERSION
 
 # Run down migration
 migrate -path backend/migrations \
-  -database "postgresql://clipper:$DB_PASSWORD@localhost:5436/clipper_db?sslmode=disable" \
+  -database "postgresql://clipper@localhost:5436/clipper_db?sslmode=disable" \
   down 1
+unset PGPASSWORD
 ```
 
 ### Manual Rollback to Backup
@@ -348,14 +356,17 @@ For reversible migrations:
 
 ```bash
 # Run down migration to revert last migration
+# Use PGPASSWORD environment variable for secure authentication
+export PGPASSWORD="$DB_PASSWORD"
 migrate -path backend/migrations \
-  -database "postgresql://clipper:$DB_PASSWORD@localhost:5436/clipper_db?sslmode=disable" \
+  -database "postgresql://clipper@localhost:5436/clipper_db?sslmode=disable" \
   down 1
 
 # Verify version rolled back
 migrate -path backend/migrations \
-  -database "postgresql://clipper:$DB_PASSWORD@localhost:5436/clipper_db?sslmode=disable" \
+  -database "postgresql://clipper@localhost:5436/clipper_db?sslmode=disable" \
   version
+unset PGPASSWORD
 
 # Restart application
 docker-compose restart backend
