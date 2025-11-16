@@ -57,6 +57,9 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 ### Operations
 
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Preflight Checklist](docs/PREFLIGHT_CHECKLIST.md)** - Pre-deployment validation checklist
+- **[Migration Plan](docs/MIGRATION_PLAN.md)** - Database migration procedures and strategies
+- **[Feature Flags](docs/FEATURE_FLAGS.md)** - Feature flag system and gradual rollout guide
 - **[Infrastructure Guide](docs/INFRASTRUCTURE.md)** - Infrastructure setup
 - **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration and deployment
 - **[Monitoring Guide](docs/MONITORING.md)** - Error tracking and monitoring setup

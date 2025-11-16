@@ -8,6 +8,8 @@ This directory contains automation scripts for deploying, managing, and maintain
 |--------|---------|---------------|
 | `deploy.sh` | Deploy application with automated backup and rollback | No |
 | `rollback.sh` | Rollback to a previous version | No |
+| `preflight-check.sh` | Run comprehensive pre-deployment validation | No |
+| `staging-rehearsal.sh` | Complete staging deployment rehearsal | No |
 | `health-check.sh` | Run health checks on all services | No |
 | `backup.sh` | Backup database and configuration | No |
 | `setup-ssl.sh` | Set up SSL/TLS certificates | Yes |
@@ -462,3 +464,228 @@ sudo certbot certonly --dry-run --nginx -d clipper.example.com
 - [Deployment Runbook](../docs/RUNBOOK.md)
 - [Docker Documentation](https://docs.docker.com/)
 - [Let's Encrypt Documentation](https://letsencrypt.org/docs/)
+
+### preflight-check.sh
+
+**NEW** - Comprehensive pre-deployment validation script that checks all critical configurations and dependencies.
+
+**Features**:
+
+- System requirements validation (Docker, disk space, memory)
+- Environment variable validation
+- Database connectivity and migration status checks
+- Redis connectivity checks
+- External service reachability (Twitch API, Stripe, etc.)
+- Security configuration validation (SSL, secrets)
+- Backup verification
+- Generates detailed pass/fail report
+
+**Usage**:
+
+```bash
+# Full preflight check for production
+./scripts/preflight-check.sh --env production --level full
+
+# Quick check for staging
+./scripts/preflight-check.sh --env staging --level quick
+
+# Generate report to file
+./scripts/preflight-check.sh --env production --report preflight-report.txt
+
+# Install required dependencies
+./scripts/preflight-check.sh --install
+
+# Show help
+./scripts/preflight-check.sh --help
+```
+
+**Environment Variables**:
+
+Uses environment variables from `.env` file or system environment.
+
+**Exit Codes**:
+
+- `0`: All checks passed
+- `1`: One or more checks failed
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════╗
+║   Clipper Preflight Check v1.0.0      ║
+╚════════════════════════════════════════╝
+
+=== Loading Environment ===
+[✓] Loading environment from backend/.env
+[✓] Environment: production
+
+=== System Requirements ===
+[•] Checking: Docker installation
+[✓] Docker installed: 24.0.7
+[•] Checking: Docker Compose installation
+[✓] Docker Compose installed: v2.23.0
+[•] Checking: Disk space
+[✓] Disk space: 45% used (>20% free)
+
+=== Environment Variables ===
+[•] Checking: Database configuration
+[✓] Database variables configured
+[✓] Database SSL mode: require
+[•] Checking: Redis configuration
+[✓] Redis variables configured
+
+=== Database Connectivity ===
+[•] Checking: Database connection
+[✓] Database connection successful
+[•] Checking: Database version
+[✓] PostgreSQL version: 17.1
+[•] Checking: Migration status
+[✓] Current migration version: 000020
+[✓] Migration state: clean
+
+=== Preflight Check Summary ===
+
+Environment: production
+Check Level: full
+
+Total Checks: 25
+  Passed: 25
+  Warnings: 0
+  Failed: 0
+
+✓ All preflight checks passed!
+Deployment may proceed.
+```
+
+See [Preflight Checklist](../docs/PREFLIGHT_CHECKLIST.md) for detailed documentation.
+
+### staging-rehearsal.sh
+
+**NEW** - Complete staging deployment rehearsal automation that simulates a full production deployment.
+
+**Features**:
+
+- Runs preflight checks
+- Creates pre-deployment backup
+- Checks current application state
+- Validates database state
+- Pulls latest Docker images
+- Runs database migrations
+- Deploys new version
+- Waits for service stabilization
+- Runs health checks
+- Executes smoke tests
+- Tests rollback procedure
+- Monitors logs for errors
+- Generates rehearsal summary
+
+**Usage**:
+
+```bash
+# Run full rehearsal
+./scripts/staging-rehearsal.sh
+
+# Skip test execution for faster run
+./scripts/staging-rehearsal.sh --skip-tests
+
+# Skip backup creation
+./scripts/staging-rehearsal.sh --skip-backup
+
+# Show help
+./scripts/staging-rehearsal.sh --help
+```
+
+**Environment Variables**:
+
+- `ENVIRONMENT`: Environment name (default: `staging`)
+- Uses `.env` file for database and service configuration
+
+**Exit Codes**:
+
+- `0`: Rehearsal successful, ready for production
+- `1`: Rehearsal failed, do not proceed to production
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════╗
+║  Staging Deployment Rehearsal         ║
+╚════════════════════════════════════════╝
+Environment: staging
+Date: 2024-11-14 18:30:00
+
+[Step 1] Running preflight checks
+[✓] Step completed
+
+[Step 2] Creating backup
+[✓] Step completed
+[✓] Backup tag: 20241114-183000
+
+[Step 3] Checking current application state
+[✓] Backend is healthy
+[✓] Frontend is accessible
+[✓] Step completed
+
+[Step 4] Checking database state
+[✓] Database connection successful
+[✓] Current migration version: 000020
+[✓] Database migration state: clean
+[✓] Step completed
+
+[Step 5] Pulling latest Docker images
+[✓] Docker images pulled successfully
+[✓] Step completed
+
+[Step 6] Running database migrations
+[✓] No new migrations to apply
+[✓] Step completed
+
+[Step 7] Deploying new version
+[✓] Deployment successful
+[✓] Step completed
+
+[Step 8] Waiting for services to stabilize
+[✓] Waiting 15 seconds...
+[✓] Step completed
+
+[Step 9] Running post-deployment health checks
+[✓] Health checks passed
+[✓] Step completed
+
+[Step 10] Running smoke tests
+[✓] ✓ Homepage loads
+[✓] ✓ API ping successful
+[✓] ✓ Health endpoint responds
+[✓] ✓ Database accessible
+[✓] ✓ Redis accessible
+[✓] All smoke tests passed
+[✓] Step completed
+
+[Step 11] Testing rollback procedure (dry run)
+[✓] Rollback script found: ./scripts/rollback.sh
+[✓] To rollback: ./scripts/rollback.sh 20241114-183000
+[✓] Step completed
+
+[Step 12] Monitoring logs for errors
+[✓] No errors found in recent logs
+[✓] Step completed
+
+╔════════════════════════════════════════╗
+║  Rehearsal Summary                     ║
+╚════════════════════════════════════════╝
+
+Total Steps: 12
+  Completed: 12
+  Failed: 0
+
+✓ Staging rehearsal completed successfully!
+
+Next steps:
+  1. Review the deployment process
+  2. Test critical user flows manually
+  3. Schedule production deployment
+  4. Notify team of deployment plan
+```
+
+See [Migration Plan](../docs/MIGRATION_PLAN.md) for detailed procedures.
+
