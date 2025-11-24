@@ -13,6 +13,8 @@ Clipper uses Stripe for subscription management, supporting monthly and yearly P
 - Webhooks for automated subscription lifecycle handling
 - Feature gating for Pro-only features
 - Audit logging for all subscription events
+- **Stripe Tax** for automatic tax calculation (sales tax, VAT, GST)
+- **Invoice PDFs** automatically sent to customers via email
 
 ## Getting Started
 
@@ -96,6 +98,78 @@ STRIPE_CANCEL_URL=http://localhost:5173/subscription/cancel
 ```
 
 For production, update these to your production URLs.
+
+### 6. Configure Stripe Tax (Optional)
+
+Stripe Tax enables automatic calculation and collection of sales tax, VAT, and GST based on customer location.
+
+#### Enable Stripe Tax in Dashboard
+
+1. Go to [Tax Settings](https://dashboard.stripe.com/settings/tax) in Stripe Dashboard
+2. Click **Get started** to enable Stripe Tax
+3. Add your business address and tax registration numbers
+4. Configure tax behavior (inclusive or exclusive)
+5. Set up tax codes for your products
+
+#### Configure Environment Variables
+
+```env
+# Enable automatic tax calculation
+STRIPE_TAX_ENABLED=true
+
+# Collect billing address (required for tax calculation)
+STRIPE_COLLECT_BILLING_ADDRESS=true
+
+# Tax behavior: "exclusive" (add tax to price) or "inclusive" (tax included in price)
+STRIPE_DEFAULT_TAX_BEHAVIOR=exclusive
+```
+
+#### Country/Region Tax Rules
+
+Stripe Tax automatically handles tax rules for:
+
+- **US**: Sales tax by state/county/city
+- **EU**: VAT with proper rates per country
+- **UK**: VAT at 20%
+- **Canada**: GST/HST/PST per province
+- **Australia**: GST at 10%
+- **Many more**: 40+ countries supported
+
+Tax registration requirements vary by jurisdiction. Consult Stripe's [Tax documentation](https://stripe.com/docs/tax) for compliance requirements.
+
+### 7. Configure Invoice PDFs
+
+Invoice PDFs are automatically generated and can be emailed to customers.
+
+#### Enable Invoice Emails
+
+1. Go to [Billing Settings](https://dashboard.stripe.com/settings/billing/automatic) in Stripe Dashboard
+2. Under **Email Settings**, enable:
+   - **Successful payments**: Send receipt emails
+   - **Invoice finalized**: Send invoice emails
+
+#### Configure Environment Variables
+
+```env
+# Enable automatic invoice emails with PDF attachment
+STRIPE_INVOICE_AUTO_EMAIL=true
+```
+
+When enabled, customers automatically receive:
+
+- Invoice email with PDF attachment when subscription is created
+- Receipt email with PDF after successful payment
+- Invoice PDF includes tax breakdown when Stripe Tax is enabled
+
+#### Invoice PDF Content
+
+Invoices automatically include:
+
+- Customer billing information
+- Line items with descriptions
+- Tax breakdown (if Stripe Tax enabled)
+- Payment details
+- Your business branding (configure in [Branding settings](https://dashboard.stripe.com/settings/branding))
 
 ## Testing with Stripe CLI (Local Development)
 
@@ -547,6 +621,53 @@ The implementation includes idempotency handling:
 2. Check Stripe Dashboard for error messages
 3. Verify price IDs are correct in `.env`
 
+### Tax not calculating correctly
+
+1. Verify Stripe Tax is enabled in Dashboard ([Tax Settings](https://dashboard.stripe.com/settings/tax))
+2. Check that `STRIPE_TAX_ENABLED=true` in your `.env` file
+3. Ensure customer billing address is being collected (`STRIPE_COLLECT_BILLING_ADDRESS=true`)
+4. Verify your business address and tax registrations are configured in Stripe
+5. Check that products have correct tax codes assigned
+
+### Invoice PDFs not being sent
+
+1. Verify email settings are enabled in [Billing Settings](https://dashboard.stripe.com/settings/billing/automatic)
+2. Check that `STRIPE_INVOICE_AUTO_EMAIL=true` in your `.env` file
+3. Verify customer email address is valid
+4. Check Stripe Dashboard > Invoices for delivery status
+
+## Testing Tax Scenarios
+
+### Test Addresses for Tax Calculation
+
+Use these addresses during checkout to test tax calculation:
+
+| Location | Address | Expected Tax |
+|----------|---------|--------------|
+| New York, US | 123 Main St, New York, NY 10001 | ~8.875% |
+| California, US | 456 Oak Ave, Los Angeles, CA 90001 | ~9.5% |
+| UK | 10 Downing St, London, SW1A 2AA | 20% VAT |
+| Germany | Unter den Linden 77, 10117 Berlin | 19% VAT |
+| No Tax | 789 Elm St, Portland, OR 97201 | 0% (Oregon has no sales tax) |
+
+### Verify Tax in Checkout
+
+1. Create a checkout session with `STRIPE_TAX_ENABLED=true`
+2. Enter a test billing address during checkout
+3. Verify tax amount is displayed before payment
+4. Complete payment with test card
+5. Check invoice in Stripe Dashboard for tax breakdown
+
+### Verify Invoice PDF
+
+1. Complete a subscription purchase
+2. Check customer email for invoice PDF attachment
+3. Verify invoice includes:
+   - Customer billing address
+   - Tax breakdown (if applicable)
+   - Your business information
+   - Line item details
+
 ## Production Deployment
 
 Before deploying to production:
@@ -566,10 +687,24 @@ Before deploying to production:
 4. **Update Redirect URLs**:
    - Change success/cancel URLs to production domains
 
-5. **Test Thoroughly**:
+5. **Configure Stripe Tax for Production** (if applicable):
+   - Enable Stripe Tax in Live Mode
+   - Add your business tax registrations for each jurisdiction
+   - Set up tax codes for your products
+   - Configure tax behavior (inclusive/exclusive)
+   - Test tax calculation with real addresses
+
+6. **Configure Invoice Emails**:
+   - Enable email notifications in Billing Settings
+   - Customize email branding in Branding Settings
+   - Test invoice PDF delivery
+
+7. **Test Thoroughly**:
    - Test full subscription flow in production
    - Verify webhook processing
    - Check feature gating
+   - Verify tax calculation in different regions
+   - Confirm invoice PDFs are delivered correctly
 
 ## Support
 
@@ -577,6 +712,7 @@ For Stripe-specific issues, refer to:
 
 - [Stripe Documentation](https://stripe.com/docs)
 - [Stripe API Reference](https://stripe.com/docs/api)
+- [Stripe Tax Documentation](https://stripe.com/docs/tax)
 - [Stripe Support](https://support.stripe.com/)
 
 For application-specific issues, create an issue in the repository.

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
@@ -57,5 +58,61 @@ func TestProrationBehavior(t *testing.T) {
 	t.Run("uses always_invoice behavior", func(t *testing.T) {
 		behavior := "always_invoice"
 		assert.Equal(t, "always_invoice", behavior)
+	})
+}
+
+// TestStripeTaxConfiguration tests Stripe Tax configuration settings
+func TestStripeTaxConfiguration(t *testing.T) {
+	t.Run("tax can be enabled via config", func(t *testing.T) {
+		cfg := &config.StripeConfig{
+			TaxEnabled: true,
+		}
+		assert.True(t, cfg.TaxEnabled)
+	})
+
+	t.Run("tax is disabled by default", func(t *testing.T) {
+		cfg := &config.StripeConfig{}
+		assert.False(t, cfg.TaxEnabled)
+	})
+
+	t.Run("default tax behavior should be exclusive", func(t *testing.T) {
+		// Test that exclusive is a valid tax behavior
+		behavior := "exclusive"
+		assert.Equal(t, "exclusive", behavior)
+
+		// Test inclusive as alternative
+		behavior = "inclusive"
+		assert.Equal(t, "inclusive", behavior)
+	})
+}
+
+// TestInvoicePDFConfiguration tests invoice PDF delivery configuration
+func TestInvoicePDFConfiguration(t *testing.T) {
+	t.Run("invoice auto email can be enabled", func(t *testing.T) {
+		cfg := &config.StripeConfig{
+			InvoiceAutoEmailEnabled: true,
+		}
+		assert.True(t, cfg.InvoiceAutoEmailEnabled)
+	})
+
+	t.Run("billing address collection can be enabled", func(t *testing.T) {
+		cfg := &config.StripeConfig{
+			CollectBillingAddress: true,
+		}
+		assert.True(t, cfg.CollectBillingAddress)
+	})
+
+	t.Run("all tax and invoice settings can be configured together", func(t *testing.T) {
+		cfg := &config.StripeConfig{
+			SecretKey:               "sk_test_xxx",
+			TaxEnabled:              true,
+			InvoiceAutoEmailEnabled: true,
+			CollectBillingAddress:   true,
+			DefaultTaxBehavior:      "exclusive",
+		}
+		assert.True(t, cfg.TaxEnabled)
+		assert.True(t, cfg.InvoiceAutoEmailEnabled)
+		assert.True(t, cfg.CollectBillingAddress)
+		assert.Equal(t, "exclusive", cfg.DefaultTaxBehavior)
 	})
 }

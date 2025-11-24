@@ -78,12 +78,16 @@ type OpenSearchConfig struct {
 
 // StripeConfig holds Stripe payment configuration
 type StripeConfig struct {
-	SecretKey         string
-	WebhookSecret     string
-	ProMonthlyPriceID string
-	ProYearlyPriceID  string
-	SuccessURL        string
-	CancelURL         string
+	SecretKey                  string
+	WebhookSecret              string
+	ProMonthlyPriceID          string
+	ProYearlyPriceID           string
+	SuccessURL                 string
+	CancelURL                  string
+	TaxEnabled                 bool
+	InvoiceAutoEmailEnabled    bool
+	CollectBillingAddress      bool
+	DefaultTaxBehavior         string // inclusive or exclusive
 }
 
 // SentryConfig holds Sentry error tracking configuration
@@ -174,12 +178,16 @@ func Load() (*Config, error) {
 			InsecureSkipVerify: getEnv("OPENSEARCH_INSECURE_SKIP_VERIFY", "true") == "true",
 		},
 		Stripe: StripeConfig{
-			SecretKey:         getEnv("STRIPE_SECRET_KEY", ""),
-			WebhookSecret:     getEnv("STRIPE_WEBHOOK_SECRET", ""),
-			ProMonthlyPriceID: getEnv("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
-			ProYearlyPriceID:  getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
-			SuccessURL:        getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
-			CancelURL:         getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
+			SecretKey:               getEnv("STRIPE_SECRET_KEY", ""),
+			WebhookSecret:           getEnv("STRIPE_WEBHOOK_SECRET", ""),
+			ProMonthlyPriceID:       getEnv("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
+			ProYearlyPriceID:        getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
+			SuccessURL:              getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
+			CancelURL:               getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
+			TaxEnabled:              getEnv("STRIPE_TAX_ENABLED", "false") == "true",
+			InvoiceAutoEmailEnabled: getEnv("STRIPE_INVOICE_AUTO_EMAIL", "true") == "true",
+			CollectBillingAddress:   getEnv("STRIPE_COLLECT_BILLING_ADDRESS", "true") == "true",
+			DefaultTaxBehavior:      getEnv("STRIPE_DEFAULT_TAX_BEHAVIOR", "exclusive"),
 		},
 		Sentry: SentryConfig{
 			DSN:              getEnv("SENTRY_DSN", ""),

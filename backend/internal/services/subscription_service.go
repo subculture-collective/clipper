@@ -144,7 +144,32 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 		AllowPromotionCodes: stripe.Bool(true),
 	}
 
-	// Apply coupon code if provided
+	// Enable automatic tax collection if configured
+	if s.cfg.Stripe.TaxEnabled {
+		params.AutomaticTax = &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		}
+		// Disable promotion codes when using automatic tax with discounts
+		// Note: This is a Stripe API limitation
+		params.AllowPromotionCodes = nil
+	}
+
+	// Collect billing address for tax calculation and invoice compliance
+	if s.cfg.Stripe.CollectBillingAddress {
+		params.BillingAddressCollection = stripe.String("required")
+	}
+
+	// Configure invoice creation with automatic emails and PDF attachment
+	if s.cfg.Stripe.InvoiceAutoEmailEnabled {
+		params.InvoiceCreation = &stripe.CheckoutSessionInvoiceCreationParams{
+			Enabled: stripe.Bool(true),
+			InvoiceData: &stripe.CheckoutSessionInvoiceCreationInvoiceDataParams{
+				Description: stripe.String("Clipper Pro Subscription"),
+			},
+		}
+	}
+
+	// Apply coupon code if provided (when tax is enabled, use discounts array)
 	if couponCode != nil && *couponCode != "" {
 		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
 			{
@@ -162,8 +187,10 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 
 	// Log audit event
 	metadata := map[string]interface{}{
-		"session_id": sess.ID,
-		"price_id":   priceID,
+		"session_id":   sess.ID,
+		"price_id":     priceID,
+		"tax_enabled":  s.cfg.Stripe.TaxEnabled,
+		"auto_invoice": s.cfg.Stripe.InvoiceAutoEmailEnabled,
 	}
 	if couponCode != nil && *couponCode != "" {
 		metadata["coupon_code"] = *couponCode
