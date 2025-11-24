@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Container, Grid, Card, CardHeader, CardBody } from '../../components';
+import { useAuth } from '../../context/AuthContext';
 
 export function AdminDashboard() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Container className="py-4 xs:py-6 md:py-8">
       <h1 className="text-2xl xs:text-3xl font-bold mb-6 xs:mb-8">Admin Dashboard</h1>
@@ -71,6 +75,34 @@ export function AdminDashboard() {
             </CardBody>
           </Card>
         </Link>
+
+        <Link to="/admin/analytics" className="touch-target">
+          <Card hover clickable>
+            <CardHeader>
+              <h3 className="text-lg xs:text-xl font-semibold">Platform Analytics</h3>
+            </CardHeader>
+            <CardBody>
+              <p className="text-sm xs:text-base text-muted-foreground">
+                View platform metrics, user engagement, and content analytics
+              </p>
+            </CardBody>
+          </Card>
+        </Link>
+
+        {isAdmin && (
+          <Link to="/admin/revenue" className="touch-target">
+            <Card hover clickable>
+              <CardHeader>
+                <h3 className="text-lg xs:text-xl font-semibold">💰 Revenue Analytics</h3>
+              </CardHeader>
+              <CardBody>
+                <p className="text-sm xs:text-base text-muted-foreground">
+                  MRR, churn, ARPU, plan distribution, and cohort retention
+                </p>
+              </CardBody>
+            </Card>
+          </Link>
+        )}
       </Grid>
     </Container>
   );

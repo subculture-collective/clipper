@@ -46,6 +46,7 @@ const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPrefe
 const CreatorAnalyticsPage = lazy(() => import('./pages/CreatorAnalyticsPage'));
 const PersonalStatsPage = lazy(() => import('./pages/PersonalStatsPage'));
 const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
+const AdminRevenuePage = lazy(() => import('./pages/admin/AdminRevenuePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
@@ -225,6 +226,14 @@ function App() {
                     element={
                       <AdminRoute>
                         <AdminAnalyticsPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/revenue"
+                    element={
+                      <AdminRoute>
+                        <AdminRevenuePage />
                       </AdminRoute>
                     }
                   />

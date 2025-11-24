@@ -873,3 +873,68 @@ type RegisterDeviceTokenRequest struct {
 type UnregisterDeviceTokenRequest struct {
 	DeviceToken string `json:"device_token" binding:"required"`
 }
+
+// RevenueMetrics represents daily revenue metrics snapshot
+type RevenueMetrics struct {
+	ID                   uuid.UUID `json:"id" db:"id"`
+	Date                 time.Time `json:"date" db:"date"`
+	MRRCents             int64     `json:"mrr_cents" db:"mrr_cents"`
+	ARRCents             int64     `json:"arr_cents" db:"arr_cents"`
+	TotalSubscribers     int       `json:"total_subscribers" db:"total_subscribers"`
+	ActiveSubscribers    int       `json:"active_subscribers" db:"active_subscribers"`
+	TrialingSubscribers  int       `json:"trialing_subscribers" db:"trialing_subscribers"`
+	ChurnedSubscribers   int       `json:"churned_subscribers" db:"churned_subscribers"`
+	NewSubscribers       int       `json:"new_subscribers" db:"new_subscribers"`
+	ARPUCents            int64     `json:"arpu_cents" db:"arpu_cents"`
+	MonthlyPlanCount     int       `json:"monthly_plan_count" db:"monthly_plan_count"`
+	YearlyPlanCount      int       `json:"yearly_plan_count" db:"yearly_plan_count"`
+	FreePlanCount        int       `json:"free_plan_count" db:"free_plan_count"`
+	CreatedAt            time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// CohortRetention represents subscriber retention for a specific cohort
+type CohortRetention struct {
+	ID                  uuid.UUID `json:"id" db:"id"`
+	CohortMonth         time.Time `json:"cohort_month" db:"cohort_month"`
+	MonthsSinceJoin     int       `json:"months_since_join" db:"months_since_join"`
+	InitialSubscribers  int       `json:"initial_subscribers" db:"initial_subscribers"`
+	RetainedSubscribers int       `json:"retained_subscribers" db:"retained_subscribers"`
+	RetentionRate       float64   `json:"retention_rate" db:"retention_rate"`
+	CreatedAt           time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// RevenueOverview represents aggregated revenue metrics for the dashboard
+type RevenueOverview struct {
+	CurrentMRR        float64 `json:"current_mrr"`         // MRR in dollars
+	CurrentARR        float64 `json:"current_arr"`         // ARR in dollars
+	ARPU              float64 `json:"arpu"`                // ARPU in dollars
+	TotalSubscribers  int     `json:"total_subscribers"`   // Total paid subscribers
+	ActiveSubscribers int     `json:"active_subscribers"`  // Active paid subscribers
+	MonthlyChurnRate  float64 `json:"monthly_churn_rate"`  // Churn rate as percentage
+	MonthlyGrowthRate float64 `json:"monthly_growth_rate"` // Growth rate as percentage
+}
+
+// PlanDistribution represents the distribution of subscribers across plans
+type PlanDistribution struct {
+	MonthlyCount int     `json:"monthly_count"`
+	YearlyCount  int     `json:"yearly_count"`
+	FreeCount    int     `json:"free_count"`
+	MonthlyPct   float64 `json:"monthly_pct"`
+	YearlyPct    float64 `json:"yearly_pct"`
+	FreePct      float64 `json:"free_pct"`
+}
+
+// RevenueTrendDataPoint represents a data point in revenue time series
+type RevenueTrendDataPoint struct {
+	Date  time.Time `json:"date"`
+	Value float64   `json:"value"`
+}
+
+// CohortRetentionRow represents a row in the cohort retention matrix
+type CohortRetentionRow struct {
+	CohortMonth     string    `json:"cohort_month"`
+	InitialCount    int       `json:"initial_count"`
+	RetentionRates  []float64 `json:"retention_rates"` // Retention rate for each month
+}

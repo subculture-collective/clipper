@@ -138,6 +138,7 @@ func main() {
 	webhookRepo := repository.NewWebhookRepository(db.Pool)
 	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
+	revenueRepo := repository.NewRevenueRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -173,6 +174,7 @@ func main() {
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
+	revenueService := services.NewRevenueService(revenueRepo, subscriptionRepo, cfg)
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
@@ -251,6 +253,7 @@ func main() {
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
+	revenueHandler := handlers.NewRevenueHandler(revenueService)
 	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
@@ -701,6 +704,19 @@ func main() {
 				analytics.GET("/overview", analyticsHandler.GetPlatformOverview)
 				analytics.GET("/content", analyticsHandler.GetContentMetrics)
 				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
+			}
+
+			// Revenue analytics routes (admin only - restricted to admin role for sensitive financial data)
+			revenue := admin.Group("/revenue")
+			revenue.Use(middleware.RequireRole("admin"))
+			{
+				revenue.GET("/overview", revenueHandler.GetRevenueOverview)
+				revenue.GET("/distribution", revenueHandler.GetPlanDistribution)
+				revenue.GET("/trends/mrr", revenueHandler.GetMRRTrend)
+				revenue.GET("/trends/subscribers", revenueHandler.GetSubscriberTrend)
+				revenue.GET("/trends/churn", revenueHandler.GetChurnTrend)
+				revenue.GET("/cohorts", revenueHandler.GetCohortRetention)
+				revenue.POST("/backfill", revenueHandler.TriggerBackfill)
 			}
 
 			// Contact message management (admin only)
