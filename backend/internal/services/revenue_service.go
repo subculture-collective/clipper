@@ -10,6 +10,14 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
+// Pricing constants in cents
+const (
+	// ProMonthlyPriceCents is the monthly Pro plan price in cents ($9.99)
+	ProMonthlyPriceCents = 999
+	// ProYearlyMonthlyEquivalentCents is the yearly Pro plan's monthly equivalent in cents ($99.99/12 ≈ $8.33)
+	ProYearlyMonthlyEquivalentCents = 833
+)
+
 // RevenueService handles revenue analytics business logic
 type RevenueService struct {
 	revenueRepo      *repository.RevenueRepository
@@ -99,10 +107,8 @@ func (s *RevenueService) calculateCurrentMetrics(ctx context.Context) (*models.R
 		yearlyCount = 0
 	}
 
-	// Calculate MRR based on assumed prices (monthly: $9.99, yearly: $99.99/12)
-	monthlyPrice := int64(999)    // $9.99 in cents
-	yearlyMonthly := int64(833)   // $99.99/12 in cents (approximately $8.33/month)
-	mrrCents := int64(monthlyCount)*monthlyPrice + int64(yearlyCount)*yearlyMonthly
+	// Calculate MRR based on plan prices
+	mrrCents := int64(monthlyCount)*ProMonthlyPriceCents + int64(yearlyCount)*ProYearlyMonthlyEquivalentCents
 
 	// Calculate ARPU
 	totalPaid := active + trialing
@@ -303,10 +309,8 @@ func (s *RevenueService) SyncDailyMetrics(ctx context.Context) error {
 		log.Printf("[REVENUE] Warning: Could not get new subscriber count: %v", err)
 	}
 
-	// Calculate MRR based on assumed prices
-	monthlyPrice := int64(999)    // $9.99 in cents
-	yearlyMonthly := int64(833)   // $99.99/12 in cents
-	mrrCents := int64(monthlyCount)*monthlyPrice + int64(yearlyCount)*yearlyMonthly
+	// Calculate MRR based on plan prices
+	mrrCents := int64(monthlyCount)*ProMonthlyPriceCents + int64(yearlyCount)*ProYearlyMonthlyEquivalentCents
 	arrCents := mrrCents * 12
 
 	// Calculate ARPU
@@ -354,7 +358,9 @@ func (s *RevenueService) SyncCohortRetention(ctx context.Context, numMonths int)
 	now := time.Now().UTC()
 
 	for i := 0; i < numMonths; i++ {
-		cohortMonth := time.Date(now.Year(), now.Month()-time.Month(i), 1, 0, 0, 0, 0, time.UTC)
+		// Use AddDate to correctly handle month boundaries (e.g., January - 2 months = November of previous year)
+		cohortDate := now.AddDate(0, -i, 0)
+		cohortMonth := time.Date(cohortDate.Year(), cohortDate.Month(), 1, 0, 0, 0, 0, time.UTC)
 
 		initialCount, currentActiveCount, err := s.revenueRepo.GetCohortSubscribers(ctx, cohortMonth)
 		if err != nil {

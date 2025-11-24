@@ -192,22 +192,6 @@ func (r *RevenueRepository) GetCohortRetention(ctx context.Context, numMonths in
 	return cohorts, rows.Err()
 }
 
-// GetSubscriptionCounts returns current subscription counts by status and plan
-func (r *RevenueRepository) GetSubscriptionCounts(ctx context.Context) (active, trialing, monthly, yearly, free int, err error) {
-	query := `
-		SELECT
-			COUNT(*) FILTER (WHERE status = 'active') AS active_count,
-			COUNT(*) FILTER (WHERE status = 'trialing') AS trialing_count,
-			COUNT(*) FILTER (WHERE stripe_price_id IS NOT NULL AND stripe_price_id LIKE '%monthly%') AS monthly_count,
-			COUNT(*) FILTER (WHERE stripe_price_id IS NOT NULL AND stripe_price_id LIKE '%yearly%') AS yearly_count,
-			COUNT(*) FILTER (WHERE tier = 'free' OR status = 'inactive' OR status = 'canceled') AS free_count
-		FROM subscriptions
-	`
-
-	err = r.db.QueryRow(ctx, query).Scan(&active, &trialing, &monthly, &yearly, &free)
-	return
-}
-
 // GetSubscriptionCountsByPriceID returns subscription counts by price ID
 func (r *RevenueRepository) GetSubscriptionCountsByPriceID(ctx context.Context, monthlyPriceID, yearlyPriceID string) (monthly, yearly int, err error) {
 	query := `

@@ -17,6 +17,11 @@ import {
   DateRangeSelector,
 } from '../../components/analytics';
 
+// Constants for UI rendering
+const LOADING_SKELETON_COUNT = 7;
+const MAX_COHORT_MONTHS = 6;
+const COHORT_MONTH_INDICES = Array.from({ length: MAX_COHORT_MONTHS }, (_, i) => i);
+
 const AdminRevenuePage: React.FC = () => {
   const [timeRange, setTimeRange] = useState(30);
   const queryClient = useQueryClient();
@@ -169,7 +174,7 @@ const AdminRevenuePage: React.FC = () => {
 
           {overviewLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              {Array.from({ length: LOADING_SKELETON_COUNT }, (_, i) => i + 1).map((i) => (
                 <div
                   key={i}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-pulse"
@@ -528,7 +533,7 @@ const AdminRevenuePage: React.FC = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Initial
                       </th>
-                      {[0, 1, 2, 3, 4, 5].map((month) => (
+                      {COHORT_MONTH_INDICES.map((month) => (
                         <th
                           key={month}
                           className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
@@ -547,7 +552,7 @@ const AdminRevenuePage: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {cohort.initial_count}
                         </td>
-                        {[0, 1, 2, 3, 4, 5].map((month) => {
+                        {COHORT_MONTH_INDICES.map((month) => {
                           const rate = cohort.retention_rates?.[month];
                           const bgColor =
                             rate === undefined

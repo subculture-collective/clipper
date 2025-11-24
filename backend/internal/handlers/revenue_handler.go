@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -239,11 +241,12 @@ func (h *RevenueHandler) TriggerBackfill(c *gin.Context) {
 		}
 	}
 
-	// Run backfill asynchronously
+	// Run backfill asynchronously with a background context
+	// since the request context will be cancelled when the response is sent
 	go func() {
-		if err := h.revenueService.BackfillMetrics(c.Request.Context(), days); err != nil {
-			// Log error - can't send to client since response already sent
-			_ = err
+		ctx := context.Background()
+		if err := h.revenueService.BackfillMetrics(ctx, days); err != nil {
+			log.Printf("[REVENUE] Backfill job failed: %v", err)
 		}
 	}()
 
