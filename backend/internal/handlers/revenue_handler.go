@@ -243,12 +243,14 @@ func (h *RevenueHandler) TriggerBackfill(c *gin.Context) {
 
 	// Run backfill asynchronously with a background context
 	// since the request context will be cancelled when the response is sent
-	go func() {
-		ctx := context.Background()
-		if err := h.revenueService.BackfillMetrics(ctx, days); err != nil {
-			log.Printf("[REVENUE] Backfill job failed: %v", err)
-		}
-	}()
+	if h.revenueService != nil {
+		go func() {
+			ctx := context.Background()
+			if err := h.revenueService.BackfillMetrics(ctx, days); err != nil {
+				log.Printf("[REVENUE] Backfill job failed: %v", err)
+			}
+		}()
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
