@@ -145,13 +145,11 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 	}
 
 	// Enable automatic tax collection if configured
+	// Tax behavior (inclusive/exclusive) is configured per-product in Stripe Dashboard
 	if s.cfg.Stripe.TaxEnabled {
 		params.AutomaticTax = &stripe.CheckoutSessionAutomaticTaxParams{
 			Enabled: stripe.Bool(true),
 		}
-		// Disable promotion codes when using automatic tax with discounts
-		// Note: This is a Stripe API limitation
-		params.AllowPromotionCodes = nil
 	}
 
 	// Collect billing address for tax calculation and invoice compliance
@@ -169,13 +167,18 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 		}
 	}
 
-	// Apply coupon code if provided (when tax is enabled, use discounts array)
+	// Apply coupon code if provided
+	// Note: When using discounts array, AllowPromotionCodes must be disabled
+	// as Stripe doesn't allow both. We keep AllowPromotionCodes for users
+	// without pre-applied coupons, and disable it when a coupon is provided.
 	if couponCode != nil && *couponCode != "" {
 		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
 			{
 				Coupon: stripe.String(*couponCode),
 			},
 		}
+		// Stripe API limitation: Cannot use both AllowPromotionCodes and Discounts
+		params.AllowPromotionCodes = nil
 	}
 
 	params.SetIdempotencyKey(idempotencyKey)

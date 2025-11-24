@@ -84,10 +84,10 @@ type StripeConfig struct {
 	ProYearlyPriceID           string
 	SuccessURL                 string
 	CancelURL                  string
-	TaxEnabled                 bool
-	InvoiceAutoEmailEnabled    bool
-	CollectBillingAddress      bool
-	DefaultTaxBehavior         string // inclusive or exclusive
+	TaxEnabled                 bool   // Enable Stripe Tax automatic calculation
+	InvoiceAutoEmailEnabled    bool   // Enable automatic invoice emails with PDF
+	CollectBillingAddress      bool   // Require billing address during checkout
+	DefaultTaxBehavior         string // Reference only - actual behavior set per-product in Stripe Dashboard (inclusive/exclusive)
 }
 
 // SentryConfig holds Sentry error tracking configuration
