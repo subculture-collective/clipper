@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
@@ -161,6 +162,7 @@ func (s *AutoTagService) GenerateTagsForClip(ctx context.Context, clip *models.C
 			_, err := s.tagRepo.GetOrCreateTag(ctx, *clip.GameName, gameSlug, color)
 			if err != nil {
 				// Log error but continue
+				log.Printf("failed to create game tag %s: %v", gameSlug, err)
 			}
 		}
 	}
@@ -177,6 +179,7 @@ func (s *AutoTagService) GenerateTagsForClip(ctx context.Context, clip *models.C
 			_, err := s.tagRepo.GetOrCreateTag(ctx, clip.BroadcasterName, broadcasterSlug, color)
 			if err != nil {
 				// Log error but continue
+				log.Printf("failed to create broadcaster tag %s: %v", broadcasterSlug, err)
 			}
 		}
 	}

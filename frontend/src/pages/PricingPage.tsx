@@ -1,22 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createCheckoutSession } from '../lib/subscription-api';
 import { SEO } from '../components';
+import {
+  trackPricingPageView,
+  trackBillingPeriodChange,
+  trackUpgradeClick,
+  trackCheckoutInitiated,
+} from '../lib/paywall-analytics';
+import { PRICING, PRO_FEATURES_DETAILED, calculateYearlyMonthlyPrice, calculateSavingsPercent } from '../constants/pricing';
 
 const PRICE_IDS = {
   monthly: import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || '',
   yearly: import.meta.env.VITE_STRIPE_PRO_YEARLY_PRICE_ID || '',
 };
-
-const features = [
-  'Ad-free browsing experience',
-  'Advanced search and filtering',
-  'Favorite clips sync across devices',
-  'Priority support',
-  'Early access to new features',
-  'Custom collections and playlists',
-];
 
 export default function PricingPage() {
   const { user } = useAuth();
@@ -24,12 +22,35 @@ export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
+  // Track pricing page view
+  useEffect(() => {
+    trackPricingPageView({
+      userId: user?.id,
+    });
+  }, [user?.id]);
+
+  const handleBillingPeriodChange = (period: 'monthly' | 'yearly') => {
+    trackBillingPeriodChange({
+      billingPeriod: period,
+      userId: user?.id,
+      metadata: { source: 'pricing_page' },
+    });
+    setBillingPeriod(period);
+  };
+
   const handleSubscribe = async (period: 'monthly' | 'yearly') => {
     if (!user) {
       // Redirect to login
       navigate('/login?redirect=/pricing');
       return;
     }
+
+    // Track upgrade click
+    trackUpgradeClick({
+      billingPeriod: period,
+      userId: user.id,
+      metadata: { source: 'pricing_page' },
+    });
 
     setIsLoading(period);
 
@@ -40,8 +61,15 @@ export default function PricingPage() {
         return;
       }
 
+      // Track checkout initiation
+      trackCheckoutInitiated({
+        billingPeriod: period,
+        userId: user.id,
+        metadata: { source: 'pricing_page' },
+      });
+
       const response = await createCheckoutSession(priceId);
-      
+
       // Redirect to Stripe Checkout
       window.location.href = response.session_url;
     } catch (error) {
@@ -52,10 +80,10 @@ export default function PricingPage() {
     }
   };
 
-  const monthlyPrice = 9.99;
-  const yearlyPrice = 99.99;
-  const yearlyMonthlyPrice = (yearlyPrice / 12).toFixed(2);
-  const savingsPercent = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
+  const monthlyPrice = PRICING.monthly;
+  const yearlyPrice = PRICING.yearly;
+  const yearlyMonthlyPrice = calculateYearlyMonthlyPrice(yearlyPrice);
+  const savingsPercent = calculateSavingsPercent(monthlyPrice, yearlyPrice);
 
   return (
     <>
@@ -80,7 +108,7 @@ export default function PricingPage() {
         <div className="flex justify-center mb-12">
           <div className="bg-gray-800 rounded-lg p-1 inline-flex">
             <button
-              onClick={() => setBillingPeriod('monthly')}
+              onClick={() => handleBillingPeriodChange('monthly')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 billingPeriod === 'monthly'
                   ? 'bg-purple-600 text-white'
@@ -90,7 +118,7 @@ export default function PricingPage() {
               Monthly
             </button>
             <button
-              onClick={() => setBillingPeriod('yearly')}
+              onClick={() => handleBillingPeriodChange('yearly')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 billingPeriod === 'yearly'
                   ? 'bg-purple-600 text-white'
@@ -113,7 +141,7 @@ export default function PricingPage() {
               <h2 className="text-2xl font-bold text-white mb-2">Free</h2>
               <p className="text-gray-400">Perfect for casual users</p>
             </div>
-            
+
             <div className="mb-6">
               <span className="text-4xl font-bold text-white">$0</span>
               <span className="text-gray-400">/month</span>
@@ -164,7 +192,7 @@ export default function PricingPage() {
               <h2 className="text-2xl font-bold text-white mb-2">Pro</h2>
               <p className="text-purple-100">For power users and enthusiasts</p>
             </div>
-            
+
             <div className="mb-6">
               {billingPeriod === 'monthly' ? (
                 <>
@@ -183,7 +211,7 @@ export default function PricingPage() {
             </div>
 
             <ul className="space-y-3 mb-8">
-              {features.map((feature, index) => (
+              {PRO_FEATURES_DETAILED.map((feature, index) => (
                 <li key={index} className="flex items-start">
                   <svg className="h-5 w-5 text-yellow-400 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

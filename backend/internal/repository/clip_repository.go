@@ -59,7 +59,7 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 // GetByTwitchClipID retrieves a clip by its Twitch clip ID
 func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID string) (*models.Clip, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
@@ -118,7 +118,7 @@ func (r *ClipRepository) ExistsByTwitchClipID(ctx context.Context, twitchClipID 
 // GetByID retrieves a clip by its ID
 func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Clip, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
@@ -147,53 +147,19 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 
 // List retrieves clips with pagination
 func (r *ClipRepository) List(ctx context.Context, limit, offset int) ([]models.Clip, error) {
-	query := `
-		SELECT 
-			id, twitch_clip_id, twitch_clip_url, embed_url, title,
-			creator_name, creator_id, broadcaster_name, broadcaster_id,
-			game_id, game_name, language, thumbnail_url, duration,
-			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
-		FROM clips
-		WHERE is_removed = false
-		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
-	`
-
-	rows, err := r.pool.Query(ctx, query, limit, offset)
+	// Delegate to ListWithFilters with empty filters for reuse and to reduce duplication.
+	clips, total, err := r.ListWithFilters(ctx, ClipFilters{Sort: "new"}, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list clips: %w", err)
+		return nil, err
 	}
-	defer rows.Close()
-
-	var clips []models.Clip
-	for rows.Next() {
-		var clip models.Clip
-		err := rows.Scan(
-			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
-			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
-			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
-			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
-			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
-			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan clip: %w", err)
-		}
-		clips = append(clips, clip)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating clips: %w", err)
-	}
-
+	_ = total // total is not needed for simple list
 	return clips, nil
 }
 
 // GetRecentClips gets clips from the last N hours
 func (r *ClipRepository) GetRecentClips(ctx context.Context, hours int, limit int) ([]models.Clip, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
@@ -401,7 +367,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	// Main query
 	args = append(args, limit, offset)
 	query := fmt.Sprintf(`
-		SELECT 
+		SELECT
 			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -522,7 +488,7 @@ func (r *ClipRepository) GetRelated(ctx context.Context, clipID uuid.UUID, limit
 			FROM clip_tags
 			WHERE clip_id = $1
 		)
-		SELECT 
+		SELECT
 			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -608,8 +574,8 @@ func (r *ClipRepository) UpsertTopStreamer(ctx context.Context, broadcasterID, b
 	query := `
 		INSERT INTO top_streamers (broadcaster_id, broadcaster_name, rank, follower_count, view_count, last_updated)
 		VALUES ($1, $2, $3, $4, $5, NOW())
-		ON CONFLICT (broadcaster_id) 
-		DO UPDATE SET 
+		ON CONFLICT (broadcaster_id)
+		DO UPDATE SET
 			broadcaster_name = EXCLUDED.broadcaster_name,
 			rank = EXCLUDED.rank,
 			follower_count = EXCLUDED.follower_count,
@@ -670,7 +636,7 @@ func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]m
 	}
 
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,

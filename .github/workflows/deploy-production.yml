@@ -74,8 +74,8 @@ jobs:
           echo "E2E tests would run before production deployment"
 
       - name: Deploy to Production Server
-        if: ${{ secrets.PRODUCTION_HOST != '' }}
         uses: appleboy/ssh-action@v1.2.0
+        continue-on-error: true
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: deploy

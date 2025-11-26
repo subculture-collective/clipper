@@ -9,6 +9,7 @@ This document provides practical examples of how deep linking works in the Clipp
 **Scenario**: User wants to share a specific clip with friends
 
 **Flow**:
+
 1. User views a clip at `https://clipper.example.com/clip/abc123`
 2. User shares the link via messaging app
 3. Friend taps the link on their mobile device
@@ -16,6 +17,7 @@ This document provides practical examples of how deep linking works in the Clipp
 5. If Clipper PWA is not installed: Web browser opens to the clip page
 
 **Code Example**:
+
 ```typescript
 import { generateDeepLink } from '@/lib/deep-linking';
 
@@ -37,12 +39,14 @@ if (navigator.share) {
 **Scenario**: User finds a Twitch clip and wants to submit it to Clipper
 
 **Flow**:
+
 1. User is browsing Twitch or another app
 2. User selects "Share" and chooses Clipper
 3. Clipper app opens to `/submit` route
 4. Form is pre-filled with shared URL and title
 
 **Code Example**:
+
 ```typescript
 // In SubmitClipPage.tsx
 import { useEffect, useState } from 'react';
@@ -74,6 +78,7 @@ function SubmitClipPage() {
 **Scenario**: User searches for Clipper on Google and taps a result
 
 **Flow**:
+
 1. User searches "Clipper valorant clips"
 2. Google shows result: `https://clipper.example.com/tag/valorant`
 3. User taps the link
@@ -85,6 +90,7 @@ function SubmitClipPage() {
 **Scenario**: User receives a notification email about a new top clip
 
 **Flow**:
+
 1. Backend sends email with link: `https://clipper.example.com/clip/xyz789`
 2. User taps link on their phone
 3. Universal link is detected
@@ -95,6 +101,7 @@ function SubmitClipPage() {
 **Scenario**: Marketing materials with QR codes
 
 **Flow**:
+
 1. Physical poster has QR code linking to `https://clipper.example.com/discover`
 2. User scans QR code with phone camera
 3. Universal link opens Clipper app to discovery page
@@ -157,7 +164,7 @@ export function DeepLinkHandler() {
     if (isOpenedViaDeepLink()) {
       const fullUrl = window.location.href;
       const route = handleDeepLink(fullUrl);
-      
+
       if (route && route !== location.pathname) {
         navigate(route);
       }
@@ -187,7 +194,7 @@ import { isOpenedViaDeepLink, parseDeepLink } from '@/lib/deep-linking';
 function trackDeepLinkOpen() {
   if (isOpenedViaDeepLink()) {
     const route = parseDeepLink(window.location.href);
-    
+
     // Track with your analytics service
     analytics.track('deep_link_open', {
       route,
@@ -212,7 +219,7 @@ import { generateDeepLink } from '@/lib/deep-linking';
 export function ShareButton({ contentType, contentId }) {
   const handleShare = async () => {
     let path: string;
-    
+
     switch (contentType) {
       case 'clip':
         path = `/clip/${contentId}`;
@@ -226,9 +233,9 @@ export function ShareButton({ contentType, contentId }) {
       default:
         path = '/';
     }
-    
+
     const shareUrl = generateDeepLink(path);
-    
+
     if (navigator.share) {
       await navigator.share({
         title: 'Check this out on Clipper!',
@@ -260,7 +267,7 @@ function handleExternalLink(url: string) {
       return;
     }
   }
-  
+
   // Not a valid deep link - open in new tab
   window.open(url, '_blank');
 }
@@ -326,12 +333,14 @@ https://clipper.example.com/notifications
 ### Issue: Link Opens in Browser Instead of App
 
 **Solution 1: iOS Cache Clear**
+
 ```bash
 # Delete and reinstall the app
 # Or wait 24 hours for Apple's CDN to update
 ```
 
 **Solution 2: Verify Association File**
+
 ```bash
 curl -v https://clipper.example.com/.well-known/apple-app-site-association
 
@@ -344,6 +353,7 @@ curl -v https://clipper.example.com/.well-known/apple-app-site-association
 ### Issue: Android App Links Not Verified
 
 **Solution: Check Domain Verification**
+
 ```bash
 # Connect device via ADB
 adb shell dumpsys package domain-preferred-apps
@@ -357,6 +367,7 @@ adb shell dumpsys package domain-preferred-apps
 ### Issue: Share Target Not Appearing
 
 **Solution 1: Verify Manifest**
+
 ```javascript
 // Check manifest.json includes share_target
 {
@@ -373,6 +384,7 @@ adb shell dumpsys package domain-preferred-apps
 ```
 
 **Solution 2: Test in Production**
+
 ```bash
 # Share Target only works over HTTPS
 # Build and deploy to production
@@ -458,6 +470,7 @@ if (isOpenedViaDeepLink()) {
 ## Security Considerations
 
 1. **Never Trust User Input**
+
    ```typescript
    // Always validate deep links
    if (isValidDeepLink(userUrl)) {
@@ -466,6 +479,7 @@ if (isOpenedViaDeepLink()) {
    ```
 
 2. **Sanitize Share Target Data**
+
    ```typescript
    const data = getShareTargetData();
    if (data?.url) {
@@ -480,6 +494,7 @@ if (isOpenedViaDeepLink()) {
    ```
 
 3. **Protect Sensitive Routes**
+
    ```typescript
    // Don't support deep links to admin or auth pages
    // These require special handling

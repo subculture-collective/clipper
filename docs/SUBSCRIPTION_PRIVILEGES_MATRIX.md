@@ -3,6 +3,7 @@
 This document defines the features, limits, and privileges for each subscription tier in Clipper. Use this as the authoritative reference for implementing and gating subscription features.
 
 > **📋 Related Documentation:**
+>
 > - **[Premium Tiers](./PREMIUM_TIERS.md)** - Comprehensive pricing, benefits, and tier details
 > - **[Entitlement Matrix](./ENTITLEMENT_MATRIX.md)** - Detailed feature gates per platform (Web, Mobile, API)
 > - **[Trials and Discounts](./TRIALS_AND_DISCOUNTS.md)** - Trial periods and promotional policies

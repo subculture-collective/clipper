@@ -14,3 +14,9 @@ export const TWITCH_CLIENT_ID =
     process.env.EXPO_PUBLIC_TWITCH_CLIENT_ID ||
     (Constants.expoConfig?.extra as any)?.TWITCH_CLIENT_ID ||
     '';
+
+// Expo project ID for push notifications
+export const EXPO_PROJECT_ID =
+    process.env.EXPO_PUBLIC_PROJECT_ID ||
+    (Constants.expoConfig?.extra as any)?.eas?.projectId ||
+    '';

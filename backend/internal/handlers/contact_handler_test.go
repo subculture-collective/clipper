@@ -116,7 +116,9 @@ func TestSubmitContactMessage_InvalidInput(t *testing.T) {
 			}
 
 			var response map[string]interface{}
-			json.Unmarshal(w.Body.Bytes(), &response)
+			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+				t.Fatalf("Failed to unmarshal response: %v", err)
+			}
 
 			if errorMsg, ok := response["error"].(string); ok {
 				if tt.errorContains != "" && len(errorMsg) == 0 {

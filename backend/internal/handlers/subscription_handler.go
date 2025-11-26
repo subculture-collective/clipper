@@ -61,8 +61,8 @@ func (h *SubscriptionHandler) CreateCheckoutSession(c *gin.Context) {
 		return
 	}
 
-	// Create checkout session
-	response, err := h.subscriptionService.CreateCheckoutSession(c.Request.Context(), currentUser, req.PriceID)
+	// Create checkout session with optional coupon code
+	response, err := h.subscriptionService.CreateCheckoutSession(c.Request.Context(), currentUser, req.PriceID, req.CouponCode)
 	if err != nil {
 		log.Printf("Failed to create checkout session: %v", err)
 		if err == services.ErrInvalidPriceID {
@@ -183,4 +183,51 @@ func (h *SubscriptionHandler) HandleWebhook(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"received": true})
+}
+
+// ChangeSubscriptionPlan changes the user's subscription plan
+// @Summary Change subscription plan
+// @Description Changes the user's subscription plan (e.g., monthly to yearly) with proration
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param request body models.ChangeSubscriptionPlanRequest true "New plan request"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/subscriptions/change-plan [post]
+func (h *SubscriptionHandler) ChangeSubscriptionPlan(c *gin.Context) {
+	// Get authenticated user from context
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	currentUser, ok := user.(*models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information"})
+		return
+	}
+
+	// Parse request
+	var req models.ChangeSubscriptionPlanRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Change subscription plan
+	if err := h.subscriptionService.ChangeSubscriptionPlan(c.Request.Context(), currentUser, req.PriceID); err != nil {
+		log.Printf("Failed to change subscription plan: %v", err)
+		if err == services.ErrInvalidPriceID {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price ID"})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Subscription plan changed successfully"})
 }

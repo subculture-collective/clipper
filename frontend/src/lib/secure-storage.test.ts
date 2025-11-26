@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
+import {
   isSecureStorageAvailable,
   setSecureItem,
   getSecureItem,
   removeSecureItem,
-  clearSecureStorage 
+  clearSecureStorage
 } from './secure-storage';
 
 describe('SecureStorage', () => {
@@ -27,11 +27,11 @@ describe('SecureStorage', () => {
       // Mock to ensure fallback path is used
       if (typeof indexedDB !== 'undefined') {
         // Store original
-        const originalIndexedDB = global.indexedDB;
+        const originalIndexedDB = globalThis.indexedDB;
         // @ts-expect-error - mocking for test
-        global.indexedDB = undefined;
+        globalThis.indexedDB = undefined;
         return () => {
-          global.indexedDB = originalIndexedDB;
+          globalThis.indexedDB = originalIndexedDB;
         };
       }
     });
@@ -112,6 +112,21 @@ describe('SecureStorage', () => {
   });
 
   describe('OAuth flow integration', () => {
+    let originalIndexedDB: IDBFactory | undefined;
+
+    beforeEach(() => {
+      // Force fallback path by disabling IndexedDB for these tests
+      originalIndexedDB = globalThis.indexedDB;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as any).indexedDB = undefined;
+    });
+
+    afterEach(() => {
+      // Restore IndexedDB after tests
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as any).indexedDB = originalIndexedDB;
+    });
+
     it('should store and retrieve OAuth parameters', async () => {
       const codeVerifier = 'test-code-verifier-string-that-is-long';
       const state = 'test-state-parameter';

@@ -5,7 +5,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 ## Responsive Breakpoints
 
 - **xs**: 375px - Small mobile devices
-- **sm**: 640px - Mobile landscape / small tablets  
+- **sm**: 640px - Mobile landscape / small tablets
 - **md**: 768px - Tablets
 - **lg**: 1024px - Desktop
 - **xl**: 1280px - Large desktop
@@ -14,6 +14,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 ## General Requirements
 
 ### ✅ Mobile (≤375px)
+
 - [ ] No horizontal scroll on any page
 - [ ] All content is readable without zooming
 - [ ] Touch targets are minimum 44x44px
@@ -25,6 +26,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Modals fit within viewport
 
 ### ✅ Tablet (768px)
+
 - [ ] Layout adjusts appropriately from mobile
 - [ ] Multi-column layouts work correctly
 - [ ] Touch targets remain appropriate
@@ -32,6 +34,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] No content cutoff or overflow
 
 ### ✅ Desktop (≥1024px)
+
 - [ ] Full desktop layout is utilized
 - [ ] Hover states work as expected
 - [ ] Multi-column layouts are optimized
@@ -39,6 +42,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Proper use of whitespace
 
 ## Safe Areas
+
 - [ ] Content respects iOS/Android notches
 - [ ] Bottom navigation clears home indicators
 - [ ] Header content clears status bar areas
@@ -47,6 +51,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 ## Page-Specific Checks
 
 ### Home Page (`/`)
+
 - [ ] **Mobile**: Clip cards stack vertically with proper spacing
 - [ ] **Mobile**: Vote buttons are horizontal at bottom of card
 - [ ] **Tablet**: Clip cards remain single column or 2-column grid
@@ -55,6 +60,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] "Scroll to top" button properly positioned
 
 ### Clip Detail Page (`/clip/:id`)
+
 - [ ] **Mobile**: Video player fills width appropriately
 - [ ] **Mobile**: Action buttons stack vertically or in responsive grid
 - [ ] **Mobile**: Metadata wraps appropriately
@@ -64,6 +70,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Vote buttons have proper touch targets
 
 ### Search Page (`/search`)
+
 - [ ] **Mobile**: Search bar is full width
 - [ ] **Mobile**: Category tabs scroll horizontally if needed
 - [ ] **Mobile**: Sort dropdown is accessible
@@ -73,6 +80,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Filters are accessible on mobile (drawer or modal)
 
 ### Submit Clip Page (`/submit`)
+
 - [ ] **Mobile**: Form fields stack vertically
 - [ ] **Mobile**: Input fields are easy to tap and fill
 - [ ] **Tablet**: Form maintains single column
@@ -82,6 +90,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Preview area scales appropriately
 
 ### Profile Page (`/profile`)
+
 - [ ] **Mobile**: Stats cards stack vertically
 - [ ] **Mobile**: Tabs scroll horizontally
 - [ ] **Mobile**: Karma breakdown chart scales
@@ -91,6 +100,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Activity feed items are readable
 
 ### Settings Page (`/settings`)
+
 - [ ] **Mobile**: Settings sections stack vertically
 - [ ] **Mobile**: Toggle switches are easy to tap
 - [ ] **Mobile**: Form inputs have proper spacing
@@ -100,6 +110,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Confirmation modals fit viewport
 
 ### Admin Pages (`/admin/*`)
+
 - [ ] **Mobile**: Data tables scroll horizontally with fixed headers
 - [ ] **Mobile**: Action buttons are accessible
 - [ ] **Tablet**: Tables use responsive design patterns
@@ -111,6 +122,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 ## Component-Specific Checks
 
 ### Navigation Header
+
 - [ ] **Mobile**: Hamburger menu icon, collapsed navigation
 - [ ] **Mobile**: Logo scales appropriately
 - [ ] **Tablet**: Expanded nav with proper spacing
@@ -119,6 +131,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Notification bell accessible on all sizes
 
 ### Footer
+
 - [ ] **Mobile**: Links stack vertically
 - [ ] **Tablet**: Links in 2-3 columns
 - [ ] **Desktop**: Full horizontal layout
@@ -126,6 +139,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Copyright text readable
 
 ### Clip Card Component
+
 - [ ] **Mobile**: Vote buttons horizontal at bottom
 - [ ] **Mobile**: Thumbnail/embed scales properly
 - [ ] **Mobile**: Title text doesn't overflow (line-clamp-2)
@@ -135,6 +149,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Tags wrap or truncate appropriately
 
 ### Modal/Dialog Components
+
 - [ ] **Mobile**: Full screen or nearly full screen
 - [ ] **Mobile**: Close button easily accessible
 - [ ] **Tablet**: Centered with appropriate padding
@@ -143,6 +158,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] Safe area padding applied
 
 ### Form Elements
+
 - [ ] All input fields: 44px minimum height
 - [ ] All buttons: 44px minimum height
 - [ ] Select dropdowns: 44px minimum height
@@ -153,6 +169,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 ## Typography Scale Verification
 
 ### Mobile (xs)
+
 - H1: 3xl (1.875rem / 30px)
 - H2: 2xl (1.5rem / 24px)
 - H3: xl (1.25rem / 20px)
@@ -161,6 +178,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - Small: sm (0.875rem / 14px)
 
 ### Tablet & Above
+
 - H1: 4xl-5xl (2.25-3rem)
 - H2: 3xl-4xl (1.875-2.25rem)
 - H3: 2xl-3xl (1.5-1.875rem)
@@ -186,6 +204,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 ## Testing Devices
 
 ### Physical Devices (Recommended)
+
 - [ ] iPhone SE (375px width)
 - [ ] iPhone 12/13/14 (390px width)
 - [ ] iPhone 14 Pro Max (430px width)
@@ -194,6 +213,7 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 - [ ] iPad Pro (1024px width)
 
 ### Browser DevTools Testing
+
 - [ ] Chrome DevTools device emulation
 - [ ] Firefox Responsive Design Mode
 - [ ] Safari Responsive Design Mode
@@ -218,19 +238,23 @@ This document provides a comprehensive checklist for verifying mobile-first desi
 ## Sign-off
 
 ### Completed By
+
 - Name: _______________
 - Date: _______________
 - Version: _______________
 
 ### Issues Found
+
 Document any issues or deviations from the checklist:
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ### Screenshots
+
 Attach screenshots at key breakpoints for critical pages:
+
 - Home (375px, 768px, 1024px)
 - Clip Detail (375px, 768px, 1024px)
 - Search (375px, 768px, 1024px)

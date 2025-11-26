@@ -83,9 +83,11 @@ go run cmd/backfill-search/main.go -batch 100
 ```
 
 Options:
+
 - `-batch`: Number of records to process per batch (default: 100)
 
 The backfill process:
+
 1. Initializes all indices with proper mappings
 2. Fetches data from PostgreSQL in batches
 3. Bulk indexes documents to OpenSearch
@@ -99,7 +101,44 @@ The backfill process:
 GET /api/v1/search
 ```
 
-Query Parameters:
+#### Advanced Query Language
+
+Clipper supports a powerful query language for advanced filtering and search. Use the `q` parameter with query syntax:
+
+```bash
+# Simple search
+?q=valorant
+
+# With filters
+?q=game:valorant tag:clutch votes:>50
+
+# Boolean logic
+?q=(game:valorant OR game:csgo) -is:nsfw sort:popular
+
+# Complex queries
+?q="epic comeback" game:valorant after:last-week votes:>=10
+```
+
+**📚 Documentation:**
+
+- [RFC 002: Advanced Query Language](./rfcs/002-advanced-query-language.md) - Complete specification
+- [Query Grammar](./QUERY_GRAMMAR.md) - Formal EBNF grammar
+- [Query Examples](./QUERY_LANGUAGE_EXAMPLES.md) - Examples and test cases
+
+**Supported Query Features:**
+
+- Free-text search: `valorant`, `"epic moment"`
+- Field filters: `game:`, `creator:`, `tag:`, `votes:`, `after:`, etc.
+- Boolean operators: `OR`, implicit AND
+- Negation: `-tag:nsfw`, `-is:featured`
+- Ranges: `votes:>50`, `duration:10..30`
+- Dates: `after:2025-01-01`, `after:last-week`
+- Grouping: `(game:a OR game:b) tag:x`
+
+#### Legacy Query Parameters (Deprecated)
+
+For backward compatibility, structured query parameters are still supported but **will be removed in v2.0**:
+
 - `q` (required): Search query text
 - `type`: Filter by type (`clips`, `creators`, `games`, `tags`, `all`)
 - `sort`: Sort order (`relevance`, `recent`, `popular`)
@@ -112,6 +151,8 @@ Query Parameters:
 - `date_to`: End date (ISO 8601)
 - `page`: Page number (default: 1)
 - `limit`: Results per page (default: 20, max: 100)
+
+**Note:** If both query language syntax (in `q` parameter) and legacy parameters are provided, query language takes precedence.
 
 Example:
 
@@ -159,6 +200,7 @@ GET /api/v1/search/suggestions
 ```
 
 Query Parameters:
+
 - `q` (required): Partial query text (minimum 2 characters)
 
 Example:
@@ -179,6 +221,83 @@ Response:
 }
 ```
 
+### Hybrid Search with Similarity Scores
+
+```
+GET /api/v1/search/scores
+```
+
+This endpoint provides hybrid search combining BM25 (keyword matching) with vector similarity (semantic search) for improved relevance. Results are re-ranked using embedding similarity scores.
+
+**Requirements:**
+
+- OpenSearch must be available for BM25 candidate selection
+- Embedding service must be enabled (OPENAI_API_KEY configured)
+- Clips must have embeddings generated
+
+Query Parameters:
+
+- Same as standard search endpoint (`/api/v1/search`)
+
+Example:
+
+```bash
+# Semantic search with similarity scores
+curl "http://localhost:8080/api/v1/search/scores?q=funny+valorant+clutch+moments"
+```
+
+Response:
+
+```json
+{
+  "query": "funny valorant clutch moments",
+  "results": {
+    "clips": [...]
+  },
+  "counts": {
+    "clips": 42
+  },
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total_items": 42,
+    "total_pages": 3
+  },
+  "scores": [
+    {
+      "clip_id": "550e8400-e29b-41d4-a716-446655440000",
+      "similarity_score": 0.892,
+      "similarity_rank": 1
+    },
+    {
+      "clip_id": "660e8400-e29b-41d4-a716-446655440001",
+      "similarity_score": 0.854,
+      "similarity_rank": 2
+    }
+  ]
+}
+```
+
+**How it works:**
+
+1. **BM25 Candidate Selection**: OpenSearch retrieves candidates using keyword matching
+2. **Query Embedding**: User query is converted to a 768-dimensional vector (embedding is cached in Redis by the embedding service layer)
+3. **Vector Re-ranking**: Candidates are re-ranked using cosine similarity with pgvector
+4. **Score Calculation**: Similarity scores are normalized to 0-1 range (higher is better)
+
+**Benefits:**
+
+- Better understanding of query intent
+- Finds semantically similar clips even without exact keyword matches
+- Combines strengths of keyword and semantic search
+- Gracefully falls back to BM25-only if embeddings unavailable
+
+**Performance:**
+
+- P95 latency goal: <100ms (subject to ongoing measurement and optimization)
+- Caching reduces embedding generation overhead
+- Candidate pool size scaled based on pagination needs
+
 ## Features
 
 ### Typo Tolerance
@@ -191,6 +310,7 @@ curl "http://localhost:8080/api/v1/search?q=valarant"
 ```
 
 The fuzziness is set to `AUTO`, which allows:
+
 - 0 edits for terms length 1-2
 - 1 edit for terms length 3-5
 - 2 edits for terms length > 5
@@ -200,6 +320,7 @@ The fuzziness is set to `AUTO`, which allows:
 Language-specific analyzers provide optimized search for different languages:
 
 **Supported Languages:**
+
 - English (`en`) - English analyzer with English stop words
 - Spanish (`es`) - Spanish analyzer with Spanish stop words
 - French (`fr`) - French analyzer with French stop words
@@ -207,12 +328,14 @@ Language-specific analyzers provide optimized search for different languages:
 - Other languages use standard multilingual analyzer
 
 **Language-Specific Features:**
+
 - Proper stemming for each language
 - Language-specific stop word lists
 - Enhanced field boost (4x) when language filter is applied
 - Tokenization optimized for each language
 
 Example with language filter:
+
 ```bash
 # Search English clips with optimized analyzer
 curl "http://localhost:8080/api/v1/search?q=funny+moments&language=en"
@@ -224,6 +347,7 @@ Search results use function_score to combine multiple relevance signals:
 
 **Engagement Score:**
 Calculated from user interactions with weighted factors:
+
 - Vote score: 10x weight
 - Comment count: 5x weight
 - Favorite count: 3x weight
@@ -233,12 +357,14 @@ Uses log1p modifier to prevent extreme outliers from dominating results.
 
 **Recency Score:**
 Newer clips receive higher scores using exponential decay:
+
 - Initial score: 100.0 for brand new clips
 - Half-life: 7 days (50% decrease every week)
 - Formula: `score = 100.0 * exp(-ln(2) * days / 7)`
 
 **Combined Scoring:**
 For relevance sort, the final score combines:
+
 1. Text relevance (BM25 with field boosts)
 2. Engagement score (factor: 0.1)
 3. Recency score (factor: 0.5)
@@ -250,17 +376,20 @@ All factors are summed together (score_mode: sum, boost_mode: sum).
 Search results are ranked by relevance with field boosting:
 
 **Clips:**
+
 - Title: 3x boost (4x when language-specific field matches)
 - Creator name: 2x boost
 - Broadcaster name: 2x boost
 - Game name: 1x boost
 
 **Users:**
+
 - Username: 3x boost
 - Display name: 2x boost
 - Bio: 1x boost
 
 **Tags:**
+
 - Name: 2x boost
 - Description: 1x boost
 
@@ -269,6 +398,7 @@ Search results are ranked by relevance with field boosting:
 Search responses include facet aggregations for filtering:
 
 **Available Facets:**
+
 - **Languages:** Distribution of results by language code
 - **Games:** Top games in search results (up to 20)
 - **Date Ranges:** Time-based distribution
@@ -279,6 +409,7 @@ Search responses include facet aggregations for filtering:
   - Older than a month
 
 **Example Response with Facets:**
+
 ```json
 {
   "query": "valorant",
@@ -402,11 +533,13 @@ if searchIndexer != nil {
 ### OpenSearch won't start
 
 Check logs:
+
 ```bash
 docker logs clipper-opensearch
 ```
 
 Common issues:
+
 - Insufficient memory: Increase Docker memory limit
 - Port conflict: Ensure ports 9200 and 9600 are available
 - Bootstrap checks failing: Review ulimits in docker-compose.yml
@@ -414,16 +547,19 @@ Common issues:
 ### Search returns no results
 
 1. Check if indices exist:
+
    ```bash
    curl http://localhost:9200/_cat/indices?v
    ```
 
 2. Verify data is indexed:
+
    ```bash
    curl http://localhost:9200/clips/_count
    ```
 
 3. Run backfill if needed:
+
    ```bash
    go run cmd/backfill-search/main.go
    ```
@@ -431,16 +567,19 @@ Common issues:
 ### Performance issues
 
 1. Check index size and fragmentation:
+
    ```bash
    curl http://localhost:9200/_cat/indices?v&s=store.size:desc
    ```
 
 2. Optimize indices (production only):
+
    ```bash
    curl -X POST "http://localhost:9200/clips/_forcemerge?max_num_segments=1"
    ```
 
 3. Increase batch size for backfill:
+
    ```bash
    go run cmd/backfill-search/main.go -batch 500
    ```
@@ -458,6 +597,7 @@ Common issues:
    - See [OpenSearch Security Documentation](https://opensearch.org/docs/latest/security/)
 
 2. **Update configuration**
+
    ```bash
    OPENSEARCH_URL=https://your-opensearch-cluster:9200
    OPENSEARCH_USERNAME=admin
@@ -489,6 +629,7 @@ Common issues:
 ### Backup and Recovery
 
 1. **Snapshot repository**
+
    ```bash
    # Register snapshot repository
    curl -X PUT "http://localhost:9200/_snapshot/backup" -H 'Content-Type: application/json' -d'
@@ -501,11 +642,13 @@ Common issues:
    ```
 
 2. **Create snapshot**
+
    ```bash
    curl -X PUT "http://localhost:9200/_snapshot/backup/snapshot_1"
    ```
 
 3. **Restore snapshot**
+
    ```bash
    curl -X POST "http://localhost:9200/_snapshot/backup/snapshot_1/_restore"
    ```
@@ -517,6 +660,7 @@ A versioned relevance dataset is maintained in `backend/testdata/search_relevanc
 ### Dataset Structure
 
 The dataset includes:
+
 - **Test Cases:** Queries with expected behavior and ranking factors
 - **Index Configuration:** Expected analyzer and boost settings
 - **Execution Notes:** Guidelines for running validation tests
@@ -547,6 +691,7 @@ curl "http://localhost:8080/api/v1/search?q=<query>&<filters>&<sort>"
 ### Updating the Dataset
 
 When making relevance changes:
+
 1. Update the dataset with new expected behavior
 2. Run validation tests to verify changes
 3. Document any discrepancies
@@ -560,6 +705,7 @@ Clipper implements semantic search using hybrid BM25 + vector similarity re-rank
 **See**: [Semantic Search Architecture Documentation](./SEMANTIC_SEARCH_ARCHITECTURE.md)
 
 **Key Features**:
+
 - Vector embeddings using pgvector in PostgreSQL
 - Hybrid search combining OpenSearch BM25 with vector similarity
 - Sub-100ms query latency with intelligent caching

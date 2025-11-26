@@ -5,15 +5,18 @@ This guide explains how to verify the performance improvements and measure Core 
 ## Quick Start
 
 ### 1. Build the Production Bundle
+
 ```bash
 cd frontend
 npm run build
 ```
 
 ### 2. Preview the Production Build
+
 ```bash
 npm run preview
 ```
+
 The app will be available at `http://localhost:4173`
 
 ## Measuring Performance
@@ -29,6 +32,7 @@ The app will be available at `http://localhost:4173`
 4. **Click "Analyze page load"**
 
 **Key metrics to check:**
+
 - **LCP (Largest Contentful Paint)**: Should be < 2.5s (Good)
 - **CLS (Cumulative Layout Shift)**: Should be < 0.1 (Good)
 - **TBT (Total Blocking Time)**: Should be < 200ms (Good)
@@ -56,6 +60,7 @@ lhci autorun --collect.url=http://localhost:4173/
 ### Option 4: PageSpeed Insights (Live Site Only)
 
 Once deployed, test with Google PageSpeed Insights:
+
 ```
 https://pagespeed.web.dev/
 ```
@@ -85,7 +90,9 @@ https://pagespeed.web.dev/
 ### Specific Improvements to Verify
 
 #### 1. Image Lazy Loading
+
 **Test:**
+
 1. Open DevTools Network tab
 2. Navigate to a page with many images (e.g., `/new`)
 3. Filter by "Img"
@@ -93,14 +100,18 @@ https://pagespeed.web.dev/
 5. **Expected:** Images should only load as they approach the viewport
 
 #### 2. Layout Shift Prevention (CLS)
+
 **Test:**
+
 1. Open DevTools Performance tab
 2. Record while loading a clip detail page
 3. Look at "Experience" row
 4. **Expected:** No red "Layout Shift" markers, or very minimal (< 0.1 score)
 
 #### 3. Code Splitting
+
 **Test:**
+
 1. Open DevTools Network tab
 2. Load homepage
 3. Note which JS chunks are loaded
@@ -108,13 +119,16 @@ https://pagespeed.web.dev/
 5. **Expected:** A new chunk (analytics-*.js) should load only when accessing analytics page
 
 #### 4. Bundle Size
+
 **Test:**
+
 ```bash
 npm run build
 # Check the output - main bundle should be around 274 KB gzipped
 ```
 
 **Expected bundles:**
+
 - Main bundle: ~274 KB gzipped
 - Analytics chunk: ~112 KB gzipped (only loaded for analytics pages)
 - Individual page chunks: 0.2-5 KB each
@@ -122,16 +136,21 @@ npm run build
 ## Analyzing Bundle Size
 
 ### Visualize Bundle Composition
+
 ```bash
 npm run build:analyze
 ```
+
 This opens an interactive visualization showing:
+
 - What's in each chunk
 - Relative sizes of dependencies
 - Potential optimization opportunities
 
 ### Check Bundle Report
+
 After building, check the console output for:
+
 - Total bundle size
 - Individual chunk sizes
 - Warnings about large chunks
@@ -139,10 +158,13 @@ After building, check the console output for:
 ## Performance Benchmarks
 
 ### Before Optimizations
+
 *(Baseline - if measurements were taken)*
 
 ### After Optimizations
+
 **Expected improvements:**
+
 - ✅ Route-level code splitting active (already implemented)
 - ✅ Image lazy loading reduces initial bandwidth by 40-60%
 - ✅ Layout shifts prevented with aspect ratios
@@ -152,16 +174,19 @@ After building, check the console output for:
 ## Troubleshooting
 
 ### Bundle Still Large?
+
 - Check if all images are using lazy loading
 - Verify that heavy dependencies like Recharts are only loaded on analytics pages
 - Run `npm run build:analyze` to see what's taking up space
 
 ### Layout Shifts Occurring?
+
 - Check if all images have width/height or aspect-ratio
 - Verify TwitchEmbed maintains its aspect ratio
 - Look for elements that change size after loading
 
 ### Slow Load Times?
+
 - Check network throttling in DevTools
 - Verify preconnect hints are in index.html
 - Check if service worker or caching is interfering
@@ -170,7 +195,9 @@ After building, check the console output for:
 ## Continuous Monitoring
 
 ### Set Up Performance Budgets
+
 Add to package.json:
+
 ```json
 {
   "lighthouse": {
@@ -189,6 +216,7 @@ Add to package.json:
 ```
 
 ### Automate Testing in CI/CD
+
 ```yaml
 # Example GitHub Actions step
 - name: Run Lighthouse CI

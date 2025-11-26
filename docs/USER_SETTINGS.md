@@ -15,11 +15,13 @@ Users can manage their profile information through the Settings page:
 #### API Endpoints
 
 **Update Profile**
+
 ```
 PUT /api/v1/users/me/profile
 ```
 
 Request body:
+
 ```json
 {
   "display_name": "My Display Name",
@@ -41,11 +43,13 @@ Users can control their privacy through various settings:
 #### API Endpoints
 
 **Get Settings**
+
 ```
 GET /api/v1/users/me/settings
 ```
 
 Response:
+
 ```json
 {
   "settings": {
@@ -59,11 +63,13 @@ Response:
 ```
 
 **Update Settings**
+
 ```
 PUT /api/v1/users/me/settings
 ```
 
 Request body:
+
 ```json
 {
   "profile_visibility": "private", // optional
@@ -76,6 +82,7 @@ Request body:
 Notification preferences are managed through a separate page but linked from the Settings page. See [Notification System Documentation](./NOTIFICATION_SYSTEM_IMPLEMENTATION.md) for details.
 
 Users can configure:
+
 - Email notifications (on/off)
 - Email digest frequency (immediate, daily, weekly)
 - Notification types (replies, mentions, votes, badges, etc.)
@@ -87,17 +94,20 @@ Users can export all their personal data in compliance with GDPR Article 20 (Rig
 #### API Endpoints
 
 **Export User Data**
+
 ```
 GET /api/v1/users/me/export
 ```
 
 Response: ZIP file containing:
+
 - `user_data.json`: Complete user data including profile, settings, and favorites
 - `README.txt`: Information about the export
 
 Rate limit: 1 request per hour
 
 The exported data includes:
+
 - User profile information
 - Privacy settings
 - Favorite clips
@@ -117,11 +127,13 @@ The account deletion feature implements GDPR-compliant data removal with a 30-da
 #### API Endpoints
 
 **Request Account Deletion**
+
 ```
 POST /api/v1/users/me/delete
 ```
 
 Request body:
+
 ```json
 {
   "confirmation": "DELETE MY ACCOUNT", // required, must match exactly
@@ -130,6 +142,7 @@ Request body:
 ```
 
 Response:
+
 ```json
 {
   "message": "Account deletion scheduled",
@@ -140,11 +153,13 @@ Response:
 Rate limit: 1 request per hour
 
 **Cancel Account Deletion**
+
 ```
 POST /api/v1/users/me/delete/cancel
 ```
 
 Response:
+
 ```json
 {
   "message": "Account deletion cancelled"
@@ -152,11 +167,13 @@ Response:
 ```
 
 **Get Deletion Status**
+
 ```
 GET /api/v1/users/me/delete/status
 ```
 
 Response:
+
 ```json
 {
   "pending": true,
@@ -202,6 +219,7 @@ CREATE TABLE account_deletions (
 Location: `frontend/src/pages/SettingsPage.tsx`
 
 The Settings page provides a unified interface for all user settings including:
+
 - Profile editing form
 - Privacy settings toggles
 - Link to notification preferences
@@ -213,6 +231,7 @@ The Settings page provides a unified interface for all user settings including:
 Location: `frontend/src/lib/user-settings-api.ts`
 
 Provides TypeScript functions for interacting with the user settings API:
+
 - `updateProfile()`
 - `getUserSettings()`
 - `updateUserSettings()`
@@ -224,7 +243,7 @@ Provides TypeScript functions for interacting with the user settings API:
 ## Security Considerations
 
 1. **Authentication Required**: All endpoints require authentication via JWT
-2. **Rate Limiting**: 
+2. **Rate Limiting**:
    - Export data: 1 request per hour
    - Delete account: 1 request per hour
 3. **Confirmation Required**: Account deletion requires exact confirmation text
@@ -262,6 +281,7 @@ The following events are logged in the audit log:
 ### Integration Tests
 
 Integration tests should be added for:
+
 - [ ] Profile update endpoint
 - [ ] Settings CRUD operations
 - [ ] Data export generates valid ZIP
@@ -287,6 +307,7 @@ migrate -path migrations -database "postgresql://..." up
 ```
 
 Migration files:
+
 - `000013_add_user_settings.up.sql`: Creates user_settings and account_deletions tables
 - `000013_add_user_settings.down.sql`: Drops the tables
 

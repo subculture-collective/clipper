@@ -48,5 +48,5 @@ class MockIntersectionObserver {
     }
 }
 
-global.IntersectionObserver =
+globalThis.IntersectionObserver =
     MockIntersectionObserver as unknown as typeof globalThis.IntersectionObserver;

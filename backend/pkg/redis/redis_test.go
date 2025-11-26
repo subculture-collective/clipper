@@ -52,7 +52,7 @@ func TestGetStatsLineHandling(t *testing.T) {
 			for _, line := range strings.Split(tt.input, "\n") {
 				line = strings.TrimSpace(line)
 				// This is the fixed condition that should not panic
-				if len(line) == 0 || line[0] == '#' {
+				if line == "" || line[0] == '#' {
 					continue
 				}
 				// Parse key:value
@@ -61,9 +61,7 @@ func TestGetStatsLineHandling(t *testing.T) {
 					value := line[idx+1:]
 					stats[key] = strings.TrimSpace(value)
 				}
-			}
-
-			// Verify the result matches expected
+			} // Verify the result matches expected
 			if len(stats) != len(tt.expected) {
 				t.Errorf("Expected %d entries, got %d", len(tt.expected), len(stats))
 			}

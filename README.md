@@ -4,8 +4,6 @@
 [![Docker](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml)
 [![CodeQL](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml)
 [![Lighthouse CI](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml)
-[![codecov](https://codecov.io/gh/subculture-collective/clipper/branch/main/graph/badge.svg)](https://codecov.io/gh/subculture-collective/clipper)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modern, community-driven Twitch clip curation platform that allows users to discover, organize, vote on, and share their favorite Twitch clips with the community.
 
@@ -54,10 +52,14 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 ### Architecture Decisions
 
 - **[RFC 001: Mobile Framework Selection](docs/rfcs/001-mobile-framework-selection.md)** - Decision to use React Native + Expo
+- **[RFC 002: Advanced Query Language](docs/rfcs/002-advanced-query-language.md)** - Human-readable query syntax for search
 
 ### Operations
 
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Preflight Checklist](docs/PREFLIGHT_CHECKLIST.md)** - Pre-deployment validation checklist
+- **[Migration Plan](docs/MIGRATION_PLAN.md)** - Database migration procedures and strategies
+- **[Feature Flags](docs/FEATURE_FLAGS.md)** - Feature flag system and gradual rollout guide
 - **[Infrastructure Guide](docs/INFRASTRUCTURE.md)** - Infrastructure setup
 - **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration and deployment
 - **[Monitoring Guide](docs/MONITORING.md)** - Error tracking and monitoring setup
@@ -304,7 +306,9 @@ make test-integration
 make test-coverage
 
 # Run load tests (requires k6)
-make test-load
+make migrate-seed-load-test  # Seed test data first
+make test-load               # Run all scenarios
+make test-load-mixed         # Run mixed user behavior (recommended)
 ```
 
 ### Backend Tests

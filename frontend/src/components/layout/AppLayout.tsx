@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { SkipLink } from '../ui';
 import { Footer } from './Footer';
@@ -9,17 +9,17 @@ import { useSyncManager } from '@/hooks/useSyncManager';
 
 export function AppLayout() {
     const location = useLocation();
-    
+
     // Initialize offline cache on app start
     useOfflineCacheInit();
-    
+
     // Initialize sync manager
     useSyncManager();
 
-    // Synchronously ensure overflow is reset during render to satisfy immediate expectations in tests
-    if (typeof document !== 'undefined') {
-        document.body.style.removeProperty('overflow');
-    }
+    // Ensure overflow is reset ASAP (layout effect runs before paint in tests)
+    useLayoutEffect(() => {
+        document.body.style.overflow = 'unset';
+    }, []);
 
     // Scroll to top on route change (guarded for test environments)
     useEffect(() => {
@@ -35,11 +35,11 @@ export function AppLayout() {
     // Ensure body overflow is reset to avoid lingering scroll locks.
     // Apply across a few ticks after navigation to guard against late mutations.
     useEffect(() => {
-        document.body.style.removeProperty('overflow');
+        document.body.style.overflow = 'unset';
         let count = 0;
         const maxTicks = 5;
         const id = window.setInterval(() => {
-            document.body.style.removeProperty('overflow');
+            document.body.style.overflow = 'unset';
             count++;
             if (count >= maxTicks) {
                 window.clearInterval(id);
@@ -51,7 +51,7 @@ export function AppLayout() {
     // Hard guard: reset overflow on history navigation events (push/replace/back/forward)
     useEffect(() => {
         const reset = () => {
-            document.body.style.removeProperty('overflow');
+            document.body.style.overflow = 'unset';
         };
         const originalPush = window.history.pushState;
         const originalReplace = window.history.replaceState;
@@ -100,7 +100,7 @@ export function AppLayout() {
     useEffect(() => {
         const observer = new MutationObserver(() => {
             if (document.body.style.overflow === 'hidden') {
-                document.body.style.removeProperty('overflow');
+                document.body.style.overflow = 'unset';
             }
         });
         observer.observe(document.body, {

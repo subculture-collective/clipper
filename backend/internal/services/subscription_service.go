@@ -13,6 +13,7 @@ import (
 	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -30,27 +31,33 @@ var (
 
 // SubscriptionService handles subscription business logic
 type SubscriptionService struct {
-	repo        *repository.SubscriptionRepository
-	userRepo    *repository.UserRepository
-	cfg         *config.Config
-	auditLogSvc *AuditLogService
+	repo           *repository.SubscriptionRepository
+	userRepo       *repository.UserRepository
+	webhookRepo    *repository.WebhookRepository
+	cfg            *config.Config
+	auditLogSvc    *AuditLogService
+	dunningService *DunningService
 }
 
 // NewSubscriptionService creates a new subscription service
 func NewSubscriptionService(
 	repo *repository.SubscriptionRepository,
 	userRepo *repository.UserRepository,
+	webhookRepo *repository.WebhookRepository,
 	cfg *config.Config,
 	auditLogSvc *AuditLogService,
+	dunningService *DunningService,
 ) *SubscriptionService {
 	// Initialize Stripe with secret key
 	stripe.Key = cfg.Stripe.SecretKey
 
 	return &SubscriptionService{
-		repo:        repo,
-		userRepo:    userRepo,
-		cfg:         cfg,
-		auditLogSvc: auditLogSvc,
+		repo:           repo,
+		userRepo:       userRepo,
+		webhookRepo:    webhookRepo,
+		cfg:            cfg,
+		auditLogSvc:    auditLogSvc,
+		dunningService: dunningService,
 	}
 }
 
@@ -104,7 +111,7 @@ func (s *SubscriptionService) GetOrCreateCustomer(ctx context.Context, user *mod
 }
 
 // CreateCheckoutSession creates a Stripe Checkout session for subscription
-func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *models.User, priceID string) (*models.CreateCheckoutSessionResponse, error) {
+func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *models.User, priceID string, couponCode *string) (*models.CreateCheckoutSessionResponse, error) {
 	// Validate price ID
 	if priceID != s.cfg.Stripe.ProMonthlyPriceID && priceID != s.cfg.Stripe.ProYearlyPriceID {
 		return nil, ErrInvalidPriceID
@@ -133,6 +140,17 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 		Metadata: map[string]string{
 			"user_id": user.ID.String(),
 		},
+		// Enable promotion codes by default
+		AllowPromotionCodes: stripe.Bool(true),
+	}
+
+	// Apply coupon code if provided
+	if couponCode != nil && *couponCode != "" {
+		params.Discounts = []*stripe.CheckoutSessionDiscountParams{
+			{
+				Coupon: stripe.String(*couponCode),
+			},
+		}
 	}
 
 	params.SetIdempotencyKey(idempotencyKey)
@@ -143,11 +161,15 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 	}
 
 	// Log audit event
+	metadata := map[string]interface{}{
+		"session_id": sess.ID,
+		"price_id":   priceID,
+	}
+	if couponCode != nil && *couponCode != "" {
+		metadata["coupon_code"] = *couponCode
+	}
 	if s.auditLogSvc != nil {
-		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "checkout_session_created", map[string]interface{}{
-			"session_id": sess.ID,
-			"price_id":   priceID,
-		})
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "checkout_session_created", metadata)
 	}
 
 	return &models.CreateCheckoutSessionResponse{
@@ -201,18 +223,42 @@ func (s *SubscriptionService) HandleWebhook(ctx context.Context, payload []byte,
 	// Verify webhook signature
 	event, err := webhook.ConstructEvent(payload, signature, s.cfg.Stripe.WebhookSecret)
 	if err != nil {
+		log.Printf("[WEBHOOK] Signature verification failed: %v", err)
 		return fmt.Errorf("webhook signature verification failed: %w", err)
 	}
+
+	// Log webhook received
+	log.Printf("[WEBHOOK] Received event: %s (type: %s)", event.ID, event.Type)
 
 	// Check for duplicate event (idempotency)
 	existingEvent, err := s.repo.GetEventByStripeEventID(ctx, event.ID)
 	if err == nil && existingEvent != nil {
-		log.Printf("Duplicate webhook event %s, skipping", event.ID)
+		log.Printf("[WEBHOOK] Duplicate event %s, skipping", event.ID)
 		return nil
 	}
 
-	log.Printf("Processing webhook event: %s (type: %s)", event.ID, event.Type)
+	// Process the webhook with retry mechanism
+	err = s.processWebhookWithRetry(ctx, event)
+	if err != nil {
+		log.Printf("[WEBHOOK] Failed to process event %s: %v", event.ID, err)
+		// Add to retry queue if not already there
+		if s.webhookRepo != nil {
+			retryErr := s.webhookRepo.AddToRetryQueue(ctx, event.ID, string(event.Type), event, 3)
+			if retryErr != nil {
+				log.Printf("[WEBHOOK] Failed to add event %s to retry queue: %v", event.ID, retryErr)
+			} else {
+				log.Printf("[WEBHOOK] Added event %s to retry queue", event.ID)
+			}
+		}
+		return err
+	}
 
+	log.Printf("[WEBHOOK] Successfully processed event: %s", event.ID)
+	return nil
+}
+
+// processWebhookWithRetry processes a webhook event and handles the routing to specific handlers
+func (s *SubscriptionService) processWebhookWithRetry(ctx context.Context, event stripe.Event) error {
 	// Handle different event types
 	switch event.Type {
 	case "customer.subscription.created":
@@ -226,7 +272,7 @@ func (s *SubscriptionService) HandleWebhook(ctx context.Context, payload []byte,
 	case "invoice.payment_failed":
 		return s.handleInvoicePaymentFailed(ctx, event)
 	default:
-		log.Printf("Unhandled webhook event type: %s", event.Type)
+		log.Printf("[WEBHOOK] Unhandled event type: %s", event.Type)
 		return nil
 	}
 }
@@ -235,12 +281,17 @@ func (s *SubscriptionService) HandleWebhook(ctx context.Context, payload []byte,
 func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, event stripe.Event) error {
 	var stripeSubscription stripe.Subscription
 	if err := json.Unmarshal(event.Data.Raw, &stripeSubscription); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal subscription.created event %s: %v", event.ID, err)
 		return fmt.Errorf("failed to unmarshal subscription: %w", err)
 	}
+
+	log.Printf("[WEBHOOK] Processing subscription.created for customer: %s, subscription: %s",
+		stripeSubscription.Customer.ID, stripeSubscription.ID)
 
 	// Get subscription by customer ID
 	sub, err := s.repo.GetByStripeCustomerID(ctx, stripeSubscription.Customer.ID)
 	if err != nil {
+		log.Printf("[WEBHOOK] Failed to find subscription by customer ID %s: %v", stripeSubscription.Customer.ID, err)
 		return fmt.Errorf("failed to find subscription by customer ID: %w", err)
 	}
 
@@ -269,12 +320,13 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 	}
 
 	if err := s.repo.Update(ctx, sub); err != nil {
+		log.Printf("[WEBHOOK] Failed to update subscription for customer %s: %v", stripeSubscription.Customer.ID, err)
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "subscription_created", &event.ID, stripeSubscription); err != nil {
-		log.Printf("Failed to log subscription event: %v", err)
+		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
 	}
 
 	// Log audit event
@@ -286,6 +338,8 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 		})
 	}
 
+	log.Printf("[WEBHOOK] Successfully created subscription for user %s (tier: %s, status: %s)",
+		sub.UserID, tier, stripeSubscription.Status)
 	return nil
 }
 
@@ -293,12 +347,16 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, event stripe.Event) error {
 	var stripeSubscription stripe.Subscription
 	if err := json.Unmarshal(event.Data.Raw, &stripeSubscription); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal subscription.updated event %s: %v", event.ID, err)
 		return fmt.Errorf("failed to unmarshal subscription: %w", err)
 	}
+
+	log.Printf("[WEBHOOK] Processing subscription.updated for subscription: %s", stripeSubscription.ID)
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, stripeSubscription.ID)
 	if err != nil {
+		log.Printf("[WEBHOOK] Failed to find subscription %s: %v", stripeSubscription.ID, err)
 		return fmt.Errorf("failed to find subscription: %w", err)
 	}
 
@@ -318,12 +376,13 @@ func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, eve
 	}
 
 	if err := s.repo.Update(ctx, sub); err != nil {
+		log.Printf("[WEBHOOK] Failed to update subscription %s: %v", stripeSubscription.ID, err)
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "subscription_updated", &event.ID, stripeSubscription); err != nil {
-		log.Printf("Failed to log subscription event: %v", err)
+		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
 	}
 
 	// Log audit event
@@ -335,6 +394,8 @@ func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, eve
 		})
 	}
 
+	log.Printf("[WEBHOOK] Successfully updated subscription %s (tier: %s, status: %s)",
+		stripeSubscription.ID, tier, stripeSubscription.Status)
 	return nil
 }
 
@@ -342,12 +403,16 @@ func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, eve
 func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, event stripe.Event) error {
 	var stripeSubscription stripe.Subscription
 	if err := json.Unmarshal(event.Data.Raw, &stripeSubscription); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal subscription.deleted event %s: %v", event.ID, err)
 		return fmt.Errorf("failed to unmarshal subscription: %w", err)
 	}
+
+	log.Printf("[WEBHOOK] Processing subscription.deleted for subscription: %s", stripeSubscription.ID)
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, stripeSubscription.ID)
 	if err != nil {
+		log.Printf("[WEBHOOK] Failed to find subscription %s: %v", stripeSubscription.ID, err)
 		return fmt.Errorf("failed to find subscription: %w", err)
 	}
 
@@ -357,12 +422,13 @@ func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, eve
 	sub.CanceledAt = timePtr(time.Now())
 
 	if err := s.repo.Update(ctx, sub); err != nil {
+		log.Printf("[WEBHOOK] Failed to update subscription %s to canceled: %v", stripeSubscription.ID, err)
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "subscription_deleted", &event.ID, stripeSubscription); err != nil {
-		log.Printf("Failed to log subscription event: %v", err)
+		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
 	}
 
 	// Log audit event
@@ -372,6 +438,7 @@ func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, eve
 		})
 	}
 
+	log.Printf("[WEBHOOK] Successfully deleted subscription %s for user %s", stripeSubscription.ID, sub.UserID)
 	return nil
 }
 
@@ -379,23 +446,35 @@ func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, eve
 func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event stripe.Event) error {
 	var invoice stripe.Invoice
 	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal invoice.paid event %s: %v", event.ID, err)
 		return fmt.Errorf("failed to unmarshal invoice: %w", err)
 	}
 
 	if invoice.Subscription == nil {
+		log.Printf("[WEBHOOK] Invoice %s is not a subscription invoice, skipping", invoice.ID)
 		return nil // Not a subscription invoice
 	}
+
+	log.Printf("[WEBHOOK] Processing invoice.paid for subscription: %s, invoice: %s",
+		invoice.Subscription.ID, invoice.ID)
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, invoice.Subscription.ID)
 	if err != nil {
-		log.Printf("Failed to find subscription for invoice: %v", err)
+		log.Printf("[WEBHOOK] Failed to find subscription for invoice %s: %v", invoice.ID, err)
 		return nil // Not critical
+	}
+
+	// Process payment success for dunning (clears grace period and marks failures as resolved)
+	if s.dunningService != nil {
+		if err := s.dunningService.HandlePaymentSuccess(ctx, &invoice); err != nil {
+			log.Printf("[WEBHOOK] Failed to process payment success in dunning service: %v", err)
+		}
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "invoice_paid", &event.ID, invoice); err != nil {
-		log.Printf("Failed to log subscription event: %v", err)
+		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
 	}
 
 	// Log audit event
@@ -407,6 +486,7 @@ func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event strip
 		})
 	}
 
+	log.Printf("[WEBHOOK] Successfully processed invoice.paid for subscription %s", invoice.Subscription.ID)
 	return nil
 }
 
@@ -414,17 +494,22 @@ func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event strip
 func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, event stripe.Event) error {
 	var invoice stripe.Invoice
 	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal invoice.payment_failed event %s: %v", event.ID, err)
 		return fmt.Errorf("failed to unmarshal invoice: %w", err)
 	}
 
 	if invoice.Subscription == nil {
+		log.Printf("[WEBHOOK] Invoice %s is not a subscription invoice, skipping", invoice.ID)
 		return nil // Not a subscription invoice
 	}
+
+	log.Printf("[WEBHOOK] Processing invoice.payment_failed for subscription: %s, invoice: %s",
+		invoice.Subscription.ID, invoice.ID)
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, invoice.Subscription.ID)
 	if err != nil {
-		log.Printf("Failed to find subscription for invoice: %v", err)
+		log.Printf("[WEBHOOK] Failed to find subscription for invoice %s: %v", invoice.ID, err)
 		return nil // Not critical
 	}
 
@@ -432,13 +517,22 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 	if sub.Status != "past_due" && sub.Status != "unpaid" {
 		sub.Status = "past_due"
 		if err := s.repo.Update(ctx, sub); err != nil {
-			log.Printf("Failed to update subscription status: %v", err)
+			log.Printf("[WEBHOOK] Failed to update subscription status to past_due: %v", err)
+		} else {
+			log.Printf("[WEBHOOK] Updated subscription %s status to past_due", sub.ID)
+		}
+	}
+
+	// Process payment failure through dunning service
+	if s.dunningService != nil {
+		if err := s.dunningService.HandlePaymentFailure(ctx, &invoice); err != nil {
+			log.Printf("[WEBHOOK] Failed to process payment failure in dunning service: %v", err)
 		}
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "invoice_payment_failed", &event.ID, invoice); err != nil {
-		log.Printf("Failed to log subscription event: %v", err)
+		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
 	}
 
 	// Log audit event
@@ -450,6 +544,7 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 		})
 	}
 
+	log.Printf("[WEBHOOK] Successfully processed invoice.payment_failed for subscription %s", invoice.Subscription.ID)
 	return nil
 }
 
@@ -461,24 +556,124 @@ func (s *SubscriptionService) getTierFromPriceID(priceID string) string {
 	return "free"
 }
 
-// HasActiveSubscription checks if user has an active subscription
+// ChangeSubscriptionPlan changes a user's subscription plan with proration
+func (s *SubscriptionService) ChangeSubscriptionPlan(ctx context.Context, user *models.User, newPriceID string) error {
+	// Validate new price ID
+	if newPriceID != s.cfg.Stripe.ProMonthlyPriceID && newPriceID != s.cfg.Stripe.ProYearlyPriceID {
+		return ErrInvalidPriceID
+	}
+
+	// Get existing subscription
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if sub.StripeSubscriptionID == nil || *sub.StripeSubscriptionID == "" {
+		return errors.New("no active stripe subscription found")
+	}
+
+	// Get the subscription from Stripe
+	stripeSubscription, err := subscription.Get(*sub.StripeSubscriptionID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get stripe subscription: %w", err)
+	}
+
+	// Validate subscription has items
+	if len(stripeSubscription.Items.Data) == 0 {
+		return errors.New("subscription has no items")
+	}
+
+	// Validate first item has a price
+	if stripeSubscription.Items.Data[0].Price == nil {
+		return errors.New("subscription item has no price")
+	}
+
+	// Check if already on this plan
+	if stripeSubscription.Items.Data[0].Price.ID == newPriceID {
+		return errors.New("already subscribed to this plan")
+	}
+
+	// Update subscription with proration
+	subscriptionItemID := stripeSubscription.Items.Data[0].ID
+	params := &stripe.SubscriptionParams{
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				ID:    stripe.String(subscriptionItemID),
+				Price: stripe.String(newPriceID),
+			},
+		},
+		ProrationBehavior: stripe.String("always_invoice"),
+	}
+
+	_, err = subscription.Update(*sub.StripeSubscriptionID, params)
+	if err != nil {
+		return fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	// Log audit event
+	if s.auditLogSvc != nil {
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "subscription_plan_changed", map[string]interface{}{
+			"old_price_id": stripeSubscription.Items.Data[0].Price.ID,
+			"new_price_id": newPriceID,
+			"proration":    "always_invoice",
+		})
+	}
+
+	return nil
+}
+
+// HasActiveSubscription checks if user has an active subscription (including grace period)
 func (s *SubscriptionService) HasActiveSubscription(ctx context.Context, userID uuid.UUID) bool {
 	sub, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return false
 	}
 
-	return sub.Status == "active" || sub.Status == "trialing"
+	// Active or trialing status
+	if sub.Status == "active" || sub.Status == "trialing" {
+		return true
+	}
+
+	// In grace period for past_due or unpaid subscriptions
+	if (sub.Status == "past_due" || sub.Status == "unpaid") && s.isInGracePeriod(sub) {
+		return true
+	}
+
+	return false
 }
 
-// IsProUser checks if user has an active Pro subscription
+// IsProUser checks if user has an active Pro subscription (including grace period)
 func (s *SubscriptionService) IsProUser(ctx context.Context, userID uuid.UUID) bool {
 	sub, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return false
 	}
 
-	return (sub.Status == "active" || sub.Status == "trialing") && sub.Tier == "pro"
+	// Must be Pro tier
+	if sub.Tier != "pro" {
+		return false
+	}
+
+	// Active or trialing status
+	if sub.Status == "active" || sub.Status == "trialing" {
+		return true
+	}
+
+	// In grace period for past_due or unpaid subscriptions
+	if (sub.Status == "past_due" || sub.Status == "unpaid") && s.isInGracePeriod(sub) {
+		return true
+	}
+
+	return false
+}
+
+// isInGracePeriod checks if a subscription is currently in grace period
+func (s *SubscriptionService) isInGracePeriod(sub *models.Subscription) bool {
+	if sub.GracePeriodEnd == nil {
+		return false
+	}
+	return time.Now().Before(*sub.GracePeriodEnd)
 }
 
 // timePtr returns a pointer to a time.Time

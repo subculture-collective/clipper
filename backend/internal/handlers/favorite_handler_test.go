@@ -19,7 +19,7 @@ func TestListUserFavorites_Unauthenticated(t *testing.T) {
 		clipService:  nil,
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/favorites", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/favorites", http.NoBody)
 	w := httptest.NewRecorder()
 
 	c, _ := gin.CreateTestContext(w)

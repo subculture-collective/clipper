@@ -19,7 +19,7 @@ func Float64Ptr(f float64) *float64 {
 }
 
 // StringOrDefault returns the value of s if it's not nil and not empty, otherwise returns the value of def
-func StringOrDefault(s *string, def *string) string {
+func StringOrDefault(s, def *string) string {
 	if s != nil && *s != "" {
 		return *s
 	}
