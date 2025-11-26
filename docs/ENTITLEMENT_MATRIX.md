@@ -260,6 +260,7 @@ router.GET("/api/v1/no-ads",
 ```
 
 **Endpoints Requiring Pro**:
+
 - `/api/v1/collections/*` - All collection endpoints
 - `/api/v1/search/advanced` - Advanced search
 - `/api/v1/export/*` - Export endpoints
@@ -292,6 +293,7 @@ func (s *FavoriteService) AddFavorite(ctx context.Context, userID uuid.UUID, cli
 ```
 
 **Quota-Enforced Features**:
+
 - Favorites limit (50 vs unlimited)
 - Clip submissions (10/day vs 50/day)
 - Comments per hour (30 vs 100)

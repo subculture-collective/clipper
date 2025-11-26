@@ -21,12 +21,14 @@ The mobile app now supports secure authentication with Twitch using the OAuth 2.
 The central authentication state management using React Context.
 
 **Features:**
+
 - Manages user state and authentication status
 - Provides auth tokens storage in expo-secure-store
 - Exposes auth methods: `setAuthTokens`, `setUser`, `logout`, `getAccessToken`, `getRefreshToken`
 - Loads saved auth state on app start
 
 **Storage Keys:**
+
 - `auth_token` - Access token (15 min expiry)
 - `refresh_token` - Refresh token (7 day expiry)
 - `user_data` - User profile JSON
@@ -66,10 +68,12 @@ Handles the OAuth PKCE flow and backend communication.
 Axios interceptors for automatic token handling.
 
 **Request Interceptor:**
+
 - Reads access token from expo-secure-store
 - Adds `Authorization: Bearer {token}` header
 
 **Response Interceptor:**
+
 - Detects 401 (Unauthorized) responses
 - Automatically calls refresh token endpoint
 - Queues failed requests during refresh
@@ -81,6 +85,7 @@ Axios interceptors for automatic token handling.
 User-facing login interface.
 
 **Flow:**
+
 1. User clicks "Login with Twitch"
 2. Opens Twitch OAuth page in browser
 3. User authorizes app
@@ -95,6 +100,7 @@ User-facing login interface.
 Displays user profile and logout option.
 
 **Features:**
+
 - Shows user avatar, display name, username
 - Shows reputation score
 - Logout button with confirmation
@@ -105,6 +111,7 @@ Displays user profile and logout option.
 Helper hook for protecting screens.
 
 **Usage:**
+
 ```typescript
 function ProtectedScreen() {
   const { isAuthenticated, isLoading } = useRequireAuth();
@@ -130,6 +137,7 @@ The verifier stays on the device, while only the challenge is sent to Twitch. Wh
 ### State Parameter
 
 Random state value prevents CSRF attacks:
+
 - Generated on auth initiation (32 random bytes)
 - Sent to Twitch and returned in callback
 - Verified to match before accepting auth code
@@ -137,6 +145,7 @@ Random state value prevents CSRF attacks:
 ### Secure Storage
 
 All sensitive data stored in expo-secure-store:
+
 - iOS: Encrypted in device Keychain
 - Android: Encrypted in KeyStore
 - Not accessible by other apps
@@ -146,6 +155,7 @@ All sensitive data stored in expo-secure-store:
 ### Token Refresh
 
 Automatic token refresh prevents session interruption:
+
 - Access token expires after 15 minutes
 - Refresh token valid for 7 days
 - 401 responses trigger automatic refresh
@@ -190,6 +200,7 @@ The backend provides these endpoints:
 Exchange auth code for tokens.
 
 **Request:**
+
 ```json
 {
   "code": "auth_code_from_twitch",
@@ -199,6 +210,7 @@ Exchange auth code for tokens.
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Authentication successful"
@@ -206,6 +218,7 @@ Exchange auth code for tokens.
 ```
 
 Backend sets HTTP-only secure cookies:
+
 - `access_token` (15 min)
 - `refresh_token` (7 days)
 
@@ -214,6 +227,7 @@ Backend sets HTTP-only secure cookies:
 Get current user profile.
 
 **Response:**
+
 ```json
 {
   "id": "user_uuid",
@@ -236,6 +250,7 @@ Refresh access token.
 **Request:** None (uses refresh_token cookie)
 
 **Response:**
+
 ```json
 {
   "message": "Token refreshed successfully"
@@ -251,6 +266,7 @@ Revoke tokens and logout.
 **Request:** None (uses cookies)
 
 **Response:**
+
 ```json
 {
   "message": "Logged out successfully"
@@ -308,7 +324,8 @@ Backend revokes refresh token and clears cookies.
 ### "Authentication failed" error
 
 **Cause:** Code exchange failed
-**Solution:** 
+**Solution:**
+
 - Check API_URL is correct
 - Verify backend is running
 - Check Twitch Client ID matches backend
@@ -317,6 +334,7 @@ Backend revokes refresh token and clears cookies.
 
 **Cause:** CSRF state doesn't match
 **Solution:**
+
 - Clear app data and try again
 - This could indicate a security issue
 
@@ -324,6 +342,7 @@ Backend revokes refresh token and clears cookies.
 
 **Cause:** Deep link not configured
 **Solution:**
+
 - Verify `scheme: "clipper"` in app.json
 - Rebuild app with `npx expo prebuild`
 - Check Twitch app has `clipper://` redirect
@@ -332,6 +351,7 @@ Backend revokes refresh token and clears cookies.
 
 **Cause:** Secure store not working
 **Solution:**
+
 - Check device permissions
 - Test on different device/emulator
 - Check for expo-secure-store errors in logs
@@ -340,6 +360,7 @@ Backend revokes refresh token and clears cookies.
 
 **Cause:** Token refresh failing
 **Solution:**
+
 - Check refresh token is valid (< 7 days old)
 - Verify backend refresh endpoint works
 - Check network connectivity

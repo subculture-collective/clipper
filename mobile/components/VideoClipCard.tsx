@@ -71,7 +71,6 @@ export default function VideoClipCard({
                         player={player}
                         style={{ width: '100%', height: '100%' }}
                         contentFit='cover'
-                        allowsFullscreen
                         allowsPictureInPicture
                     />
                 :   <View className='w-full h-full bg-gray-200 items-center justify-center'>

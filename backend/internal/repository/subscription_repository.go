@@ -25,7 +25,7 @@ func (r *SubscriptionRepository) GetByUserID(ctx context.Context, userID uuid.UU
 	query := `
 		SELECT id, user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
 		       status, tier, current_period_start, current_period_end, cancel_at_period_end,
-		       canceled_at, trial_start, trial_end, created_at, updated_at
+		       canceled_at, trial_start, trial_end, grace_period_end, created_at, updated_at
 		FROM subscriptions
 		WHERE user_id = $1
 	`
@@ -34,7 +34,7 @@ func (r *SubscriptionRepository) GetByUserID(ctx context.Context, userID uuid.UU
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&sub.ID, &sub.UserID, &sub.StripeCustomerID, &sub.StripeSubscriptionID, &sub.StripePriceID,
 		&sub.Status, &sub.Tier, &sub.CurrentPeriodStart, &sub.CurrentPeriodEnd, &sub.CancelAtPeriodEnd,
-		&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.CreatedAt, &sub.UpdatedAt,
+		&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.GracePeriodEnd, &sub.CreatedAt, &sub.UpdatedAt,
 	)
 
 	if err != nil {
@@ -49,7 +49,7 @@ func (r *SubscriptionRepository) GetByStripeCustomerID(ctx context.Context, cust
 	query := `
 		SELECT id, user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
 		       status, tier, current_period_start, current_period_end, cancel_at_period_end,
-		       canceled_at, trial_start, trial_end, created_at, updated_at
+		       canceled_at, trial_start, trial_end, grace_period_end, created_at, updated_at
 		FROM subscriptions
 		WHERE stripe_customer_id = $1
 	`
@@ -58,7 +58,7 @@ func (r *SubscriptionRepository) GetByStripeCustomerID(ctx context.Context, cust
 	err := r.db.QueryRow(ctx, query, customerID).Scan(
 		&sub.ID, &sub.UserID, &sub.StripeCustomerID, &sub.StripeSubscriptionID, &sub.StripePriceID,
 		&sub.Status, &sub.Tier, &sub.CurrentPeriodStart, &sub.CurrentPeriodEnd, &sub.CancelAtPeriodEnd,
-		&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.CreatedAt, &sub.UpdatedAt,
+		&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.GracePeriodEnd, &sub.CreatedAt, &sub.UpdatedAt,
 	)
 
 	if err != nil {
@@ -73,7 +73,7 @@ func (r *SubscriptionRepository) GetByStripeSubscriptionID(ctx context.Context, 
 	query := `
 		SELECT id, user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
 		       status, tier, current_period_start, current_period_end, cancel_at_period_end,
-		       canceled_at, trial_start, trial_end, created_at, updated_at
+		       canceled_at, trial_start, trial_end, grace_period_end, created_at, updated_at
 		FROM subscriptions
 		WHERE stripe_subscription_id = $1
 	`
@@ -82,7 +82,7 @@ func (r *SubscriptionRepository) GetByStripeSubscriptionID(ctx context.Context, 
 	err := r.db.QueryRow(ctx, query, subscriptionID).Scan(
 		&sub.ID, &sub.UserID, &sub.StripeCustomerID, &sub.StripeSubscriptionID, &sub.StripePriceID,
 		&sub.Status, &sub.Tier, &sub.CurrentPeriodStart, &sub.CurrentPeriodEnd, &sub.CancelAtPeriodEnd,
-		&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.CreatedAt, &sub.UpdatedAt,
+		&sub.CanceledAt, &sub.TrialStart, &sub.TrialEnd, &sub.GracePeriodEnd, &sub.CreatedAt, &sub.UpdatedAt,
 	)
 
 	if err != nil {

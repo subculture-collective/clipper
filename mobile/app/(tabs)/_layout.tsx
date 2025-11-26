@@ -3,7 +3,26 @@
  */
 
 import { Tabs } from 'expo-router';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNotifications } from '@/contexts/NotificationContext';
+
+function NotificationIconWithBadge({ color, size }: { color: string; size: number }) {
+  const { unreadCount } = useNotifications();
+
+  return (
+    <View>
+      <Ionicons name="notifications" size={size} color={color} />
+      {unreadCount > 0 && (
+        <View className="absolute -top-1 -right-1 bg-red-500 rounded-full min-w-[16px] h-4 items-center justify-center px-1">
+          <Text className="text-white text-xs font-bold">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -28,6 +47,15 @@ export default function TabLayout() {
           title: 'Search',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarIcon: ({ color, size }) => (
+            <NotificationIconWithBadge color={color} size={size} />
           ),
         }}
       />

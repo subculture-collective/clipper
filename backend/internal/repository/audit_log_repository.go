@@ -62,36 +62,36 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 	// Build query with filters
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}
-	argPos := 1
+	placeholderIndex := 1
 
 	if filters.ModeratorID != nil {
-		whereClause += fmt.Sprintf(" AND mal.moderator_id = %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.moderator_id = %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.ModeratorID)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.Action != "" {
-		whereClause += fmt.Sprintf(" AND mal.action = %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.action = %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, filters.Action)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.EntityType != "" {
-		whereClause += fmt.Sprintf(" AND mal.entity_type = %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.entity_type = %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, filters.EntityType)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.StartDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.StartDate)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.EndDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at <= %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.created_at <= %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.EndDate)
-		argPos++
+		placeholderIndex++
 	}
 
 	// Count total
@@ -103,8 +103,8 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 
 	// Get logs with moderator info
 	query := fmt.Sprintf(`
-		SELECT 
-			mal.id, mal.action, mal.entity_type, mal.entity_id, mal.moderator_id, 
+		SELECT
+			mal.id, mal.action, mal.entity_type, mal.entity_id, mal.moderator_id,
 			mal.reason, mal.metadata, mal.created_at,
 			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
 			u.bio, u.karma_points, u.role, u.is_banned, u.created_at, u.updated_at, u.last_login_at
@@ -112,7 +112,7 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 		JOIN users u ON mal.moderator_id = u.id
 		%s
 		ORDER BY mal.created_at DESC
-		LIMIT %s OFFSET %s`, whereClause, utils.SQLPlaceholder(argPos), utils.SQLPlaceholder(argPos+1))
+		LIMIT %s OFFSET %s`, whereClause, utils.SQLPlaceholder(placeholderIndex), utils.SQLPlaceholder(placeholderIndex+1))
 
 	args = append(args, limit, offset)
 
@@ -183,42 +183,42 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 	// Build query with filters
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}
-	argPos := 1
+	placeholderIndex := 1
 
 	if filters.ModeratorID != nil {
-		whereClause += fmt.Sprintf(" AND mal.moderator_id = %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.moderator_id = %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.ModeratorID)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.Action != "" {
-		whereClause += fmt.Sprintf(" AND mal.action = %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.action = %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, filters.Action)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.EntityType != "" {
-		whereClause += fmt.Sprintf(" AND mal.entity_type = %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.entity_type = %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, filters.EntityType)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.StartDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.StartDate)
-		argPos++
+		placeholderIndex++
 	}
 
 	if filters.EndDate != nil {
-		whereClause += fmt.Sprintf(" AND mal.created_at <= %s", utils.SQLPlaceholder(argPos))
+		whereClause += fmt.Sprintf(" AND mal.created_at <= %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.EndDate)
-		argPos++
+		placeholderIndex++
 	}
 
 	// Get logs with moderator info (no limit)
 	query := fmt.Sprintf(`
-		SELECT 
-			mal.id, mal.action, mal.entity_type, mal.entity_id, mal.moderator_id, 
+		SELECT
+			mal.id, mal.action, mal.entity_type, mal.entity_id, mal.moderator_id,
 			mal.reason, mal.metadata, mal.created_at,
 			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
 			u.bio, u.karma_points, u.role, u.is_banned, u.created_at, u.updated_at, u.last_login_at

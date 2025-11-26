@@ -52,7 +52,7 @@ export function VideoPlayer({
 
   // Touch handling for showing/hiding controls on mobile
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     const showControlsTemporarily = () => {
       setShowControls(true);
       clearTimeout(timeout);
@@ -81,7 +81,7 @@ export function VideoPlayer({
   const twitchEmbedUrl = `${embedUrl}&parent=${parentDomain}&autoplay=false`;
 
   return (
-    <div 
+    <div
       ref={videoRef}
       className="relative w-full pt-[56.25%] bg-black rounded-lg overflow-hidden group"
     >
@@ -97,7 +97,7 @@ export function VideoPlayer({
       </div>
 
       {/* Custom Controls Overlay */}
-      <div 
+      <div
         className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 transition-opacity duration-300 pointer-events-none ${
           showControls ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}

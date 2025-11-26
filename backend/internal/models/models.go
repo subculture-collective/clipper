@@ -8,19 +8,21 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	TwitchID    string     `json:"twitch_id" db:"twitch_id"`
-	Username    string     `json:"username" db:"username"`
-	DisplayName string     `json:"display_name" db:"display_name"`
-	Email       *string    `json:"email,omitempty" db:"email"`
-	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio         *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints int        `json:"karma_points" db:"karma_points"`
-	Role        string     `json:"role" db:"role"`
-	IsBanned    bool       `json:"is_banned" db:"is_banned"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID             uuid.UUID  `json:"id" db:"id"`
+	TwitchID       string     `json:"twitch_id" db:"twitch_id"`
+	Username       string     `json:"username" db:"username"`
+	DisplayName    string     `json:"display_name" db:"display_name"`
+	Email          *string    `json:"email,omitempty" db:"email"`
+	AvatarURL      *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio            *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints    int        `json:"karma_points" db:"karma_points"`
+	Role           string     `json:"role" db:"role"`
+	IsBanned       bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken    *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform *string    `json:"device_platform,omitempty" db:"device_platform"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt    *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -64,30 +66,33 @@ type DeleteAccountRequest struct {
 
 // Clip represents a Twitch clip
 type Clip struct {
-	ID              uuid.UUID `json:"id" db:"id"`
-	TwitchClipID    string    `json:"twitch_clip_id" db:"twitch_clip_id"`
-	TwitchClipURL   string    `json:"twitch_clip_url" db:"twitch_clip_url"`
-	EmbedURL        string    `json:"embed_url" db:"embed_url"`
-	Title           string    `json:"title" db:"title"`
-	CreatorName     string    `json:"creator_name" db:"creator_name"`
-	CreatorID       *string   `json:"creator_id,omitempty" db:"creator_id"`
-	BroadcasterName string    `json:"broadcaster_name" db:"broadcaster_name"`
-	BroadcasterID   *string   `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
-	GameID          *string   `json:"game_id,omitempty" db:"game_id"`
-	GameName        *string   `json:"game_name,omitempty" db:"game_name"`
-	Language        *string   `json:"language,omitempty" db:"language"`
-	ThumbnailURL    *string   `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
-	Duration        *float64  `json:"duration,omitempty" db:"duration"`
-	ViewCount       int       `json:"view_count" db:"view_count"`
-	CreatedAt       time.Time `json:"created_at" db:"created_at"`
-	ImportedAt      time.Time `json:"imported_at" db:"imported_at"`
-	VoteScore       int       `json:"vote_score" db:"vote_score"`
-	CommentCount    int       `json:"comment_count" db:"comment_count"`
-	FavoriteCount   int       `json:"favorite_count" db:"favorite_count"`
-	IsFeatured      bool      `json:"is_featured" db:"is_featured"`
-	IsNSFW          bool      `json:"is_nsfw" db:"is_nsfw"`
-	IsRemoved       bool      `json:"is_removed" db:"is_removed"`
-	RemovedReason   *string   `json:"removed_reason,omitempty" db:"removed_reason"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	TwitchClipID         string     `json:"twitch_clip_id" db:"twitch_clip_id"`
+	TwitchClipURL        string     `json:"twitch_clip_url" db:"twitch_clip_url"`
+	EmbedURL             string     `json:"embed_url" db:"embed_url"`
+	Title                string     `json:"title" db:"title"`
+	CreatorName          string     `json:"creator_name" db:"creator_name"`
+	CreatorID            *string    `json:"creator_id,omitempty" db:"creator_id"`
+	BroadcasterName      string     `json:"broadcaster_name" db:"broadcaster_name"`
+	BroadcasterID        *string    `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
+	GameID               *string    `json:"game_id,omitempty" db:"game_id"`
+	GameName             *string    `json:"game_name,omitempty" db:"game_name"`
+	Language             *string    `json:"language,omitempty" db:"language"`
+	ThumbnailURL         *string    `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
+	Duration             *float64   `json:"duration,omitempty" db:"duration"`
+	ViewCount            int        `json:"view_count" db:"view_count"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	ImportedAt           time.Time  `json:"imported_at" db:"imported_at"`
+	VoteScore            int        `json:"vote_score" db:"vote_score"`
+	CommentCount         int        `json:"comment_count" db:"comment_count"`
+	FavoriteCount        int        `json:"favorite_count" db:"favorite_count"`
+	IsFeatured           bool       `json:"is_featured" db:"is_featured"`
+	IsNSFW               bool       `json:"is_nsfw" db:"is_nsfw"`
+	IsRemoved            bool       `json:"is_removed" db:"is_removed"`
+	RemovedReason        *string    `json:"removed_reason,omitempty" db:"removed_reason"`
+	Embedding            []float32  `json:"embedding,omitempty" db:"embedding"`
+	EmbeddingGeneratedAt *time.Time `json:"embedding_generated_at,omitempty" db:"embedding_generated_at"`
+	EmbeddingModel       *string    `json:"embedding_model,omitempty" db:"embedding_model"`
 }
 
 // Vote represents a user's vote on a clip
@@ -265,6 +270,19 @@ type SearchQuery struct {
 	ClickedResultID   *uuid.UUID `json:"clicked_result_id,omitempty" db:"clicked_result_id"`
 	ClickedResultType *string    `json:"clicked_result_type,omitempty" db:"clicked_result_type"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+}
+
+// ClipScore represents the relevance score for a clip in search results
+type ClipScore struct {
+	ClipID          uuid.UUID `json:"clip_id"`
+	SimilarityScore float64   `json:"similarity_score"` // 0-1, higher is better
+	SimilarityRank  int       `json:"similarity_rank"`  // 1-based ranking
+}
+
+// SearchResponseWithScores extends SearchResponse with similarity scores
+type SearchResponseWithScores struct {
+	SearchResponse
+	Scores []ClipScore `json:"scores,omitempty"`
 }
 
 // ClipSubmission represents a user-submitted clip pending moderation
@@ -499,6 +517,11 @@ const (
 	NotificationTypeNewReport            = "new_report"
 	NotificationTypePendingSubmissions   = "pending_submissions"
 	NotificationTypeSystemAlert          = "system_alert"
+	// Dunning notification types
+	NotificationTypePaymentFailed          = "payment_failed"
+	NotificationTypePaymentRetry           = "payment_retry"
+	NotificationTypeGracePeriodWarning     = "grace_period_warning"
+	NotificationTypeSubscriptionDowngraded = "subscription_downgraded"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
@@ -674,6 +697,7 @@ type Subscription struct {
 	CanceledAt           *time.Time `json:"canceled_at,omitempty" db:"canceled_at"`
 	TrialStart           *time.Time `json:"trial_start,omitempty" db:"trial_start"`
 	TrialEnd             *time.Time `json:"trial_end,omitempty" db:"trial_end"`
+	GracePeriodEnd       *time.Time `json:"grace_period_end,omitempty" db:"grace_period_end"`
 	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
 }
@@ -688,6 +712,32 @@ type SubscriptionEvent struct {
 	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 }
 
+// WebhookRetryQueue represents a webhook event pending retry
+type WebhookRetryQueue struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	StripeEventID string     `json:"stripe_event_id" db:"stripe_event_id"`
+	EventType     string     `json:"event_type" db:"event_type"`
+	Payload       string     `json:"payload" db:"payload"` // JSONB stored as string
+	RetryCount    int        `json:"retry_count" db:"retry_count"`
+	MaxRetries    int        `json:"max_retries" db:"max_retries"`
+	NextRetryAt   *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	LastError     *string    `json:"last_error,omitempty" db:"last_error"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// WebhookDeadLetterQueue represents a permanently failed webhook event
+type WebhookDeadLetterQueue struct {
+	ID                uuid.UUID `json:"id" db:"id"`
+	StripeEventID     string    `json:"stripe_event_id" db:"stripe_event_id"`
+	EventType         string    `json:"event_type" db:"event_type"`
+	Payload           string    `json:"payload" db:"payload"` // JSONB stored as string
+	RetryCount        int       `json:"retry_count" db:"retry_count"`
+	Error             string    `json:"error" db:"error"`
+	OriginalTimestamp time.Time `json:"original_timestamp" db:"original_timestamp"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+}
+
 // UserWithSubscription represents a user with their subscription information
 type UserWithSubscription struct {
 	User
@@ -696,6 +746,12 @@ type UserWithSubscription struct {
 
 // CreateCheckoutSessionRequest represents a request to create a Stripe checkout session
 type CreateCheckoutSessionRequest struct {
+	PriceID    string  `json:"price_id" binding:"required"`
+	CouponCode *string `json:"coupon_code,omitempty"`
+}
+
+// ChangeSubscriptionPlanRequest represents a request to change subscription plan
+type ChangeSubscriptionPlanRequest struct {
 	PriceID string `json:"price_id" binding:"required"`
 }
 
@@ -708,6 +764,35 @@ type CreateCheckoutSessionResponse struct {
 // CreatePortalSessionResponse represents the response with portal session URL
 type CreatePortalSessionResponse struct {
 	PortalURL string `json:"portal_url"`
+}
+
+// PaymentFailure represents a failed payment attempt for a subscription
+type PaymentFailure struct {
+	ID                    uuid.UUID  `json:"id" db:"id"`
+	SubscriptionID        uuid.UUID  `json:"subscription_id" db:"subscription_id"`
+	StripeInvoiceID       string     `json:"stripe_invoice_id" db:"stripe_invoice_id"`
+	StripePaymentIntentID *string    `json:"stripe_payment_intent_id,omitempty" db:"stripe_payment_intent_id"`
+	AmountDue             int64      `json:"amount_due" db:"amount_due"` // Amount in cents
+	Currency              string     `json:"currency" db:"currency"`
+	AttemptCount          int        `json:"attempt_count" db:"attempt_count"`
+	FailureReason         *string    `json:"failure_reason,omitempty" db:"failure_reason"`
+	NextRetryAt           *time.Time `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	Resolved              bool       `json:"resolved" db:"resolved"`
+	ResolvedAt            *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
+	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// DunningAttempt represents a communication attempt to a user about failed payment
+type DunningAttempt struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	PaymentFailureID uuid.UUID  `json:"payment_failure_id" db:"payment_failure_id"`
+	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
+	AttemptNumber    int        `json:"attempt_number" db:"attempt_number"`
+	NotificationType string     `json:"notification_type" db:"notification_type"` // payment_failed, payment_retry, grace_period_warning, subscription_downgraded
+	EmailSent        bool       `json:"email_sent" db:"email_sent"`
+	EmailSentAt      *time.Time `json:"email_sent_at,omitempty" db:"email_sent_at"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 }
 
 // ContactMessage represents a contact form submission
@@ -777,3 +862,14 @@ const (
 	EmailStatusFailed  = "failed"
 	EmailStatusBounced = "bounced"
 )
+
+// RegisterDeviceTokenRequest represents the request to register a device token
+type RegisterDeviceTokenRequest struct {
+	DeviceToken    string `json:"device_token" binding:"required"`
+	DevicePlatform string `json:"device_platform" binding:"required,oneof=ios android web"`
+}
+
+// UnregisterDeviceTokenRequest represents the request to unregister a device token
+type UnregisterDeviceTokenRequest struct {
+	DeviceToken string `json:"device_token" binding:"required"`
+}

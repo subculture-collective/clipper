@@ -4,16 +4,21 @@ import { generateCodeVerifier, generateCodeChallenge, generateState, generatePKC
 describe('PKCE', () => {
   beforeEach(() => {
     // Mock crypto.getRandomValues if not available in test environment
-    if (!global.crypto) {
-      global.crypto = {
-        // @ts-expect-error - minimal mock for testing
+    interface MockCrypto {
+      getRandomValues: (arr: Uint8Array) => Uint8Array;
+      subtle: {
+        digest: (algorithm: string, data: BufferSource) => Promise<ArrayBuffer>;
+      };
+    }
+
+    if (!(globalThis as { crypto?: Crypto }).crypto) {
+      (globalThis as { crypto?: MockCrypto }).crypto = {
         getRandomValues: (arr: Uint8Array) => {
           for (let i = 0; i < arr.length; i++) {
             arr[i] = Math.floor(Math.random() * 256);
           }
           return arr;
         },
-        // @ts-expect-error - minimal mock for testing
         subtle: {
           digest: async (algorithm: string, data: BufferSource) => {
             // Simple mock - in real tests would use actual crypto

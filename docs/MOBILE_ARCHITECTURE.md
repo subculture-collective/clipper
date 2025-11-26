@@ -1,7 +1,7 @@
 # Mobile App Architecture
 
-**Last Updated:** 2025-11-02  
-**Status:** Active  
+**Last Updated:** 2025-11-02
+**Status:** Active
 **Related:** [RFC 001: Mobile Framework Selection](./rfcs/001-mobile-framework-selection.md)
 
 ## Overview
@@ -228,6 +228,7 @@ Check Auth Token (Zustand + SecureStore)
 **Purpose:** Manage server state, caching, synchronization
 
 **Use Cases:**
+
 - Fetching clips, users, comments
 - Infinite scroll pagination
 - Background data refresh
@@ -261,6 +262,7 @@ export const queryClient = new QueryClient({
 **Purpose:** Manage client-only global state
 
 **Use Cases:**
+
 - Authentication state (user, token, isAuthenticated)
 - Theme preference (light/dark mode)
 - App settings
@@ -335,16 +337,16 @@ interface SettingsState {
 ```typescript
 // Example: Invalidate feed cache after posting comment
 const addCommentMutation = useMutation({
-  mutationFn: (data: CreateCommentInput) => 
+  mutationFn: (data: CreateCommentInput) =>
     apiClient.comments.create(data),
-  
+
   onSuccess: (newComment, variables) => {
     // Invalidate clip detail query
     queryClient.invalidateQueries(['clip', variables.clipId]);
-    
+
     // Invalidate feed query (clip appears in feed)
     queryClient.invalidateQueries(['feed']);
-    
+
     // Optimistically update cache
     queryClient.setQueryData(
       ['clip', variables.clipId],
@@ -370,7 +372,7 @@ import type { Clip, User, Comment, ApiResponse } from '../types';
 
 export class ApiClient {
   private client: AxiosInstance;
-  
+
   constructor(baseURL: string, getToken: () => string | null) {
     this.client = axios.create({
       baseURL,
@@ -379,7 +381,7 @@ export class ApiClient {
         'Content-Type': 'application/json',
       },
     });
-    
+
     // Add auth interceptor
     this.client.interceptors.request.use((config) => {
       const token = getToken();
@@ -389,31 +391,31 @@ export class ApiClient {
       return config;
     });
   }
-  
+
   // Clip endpoints
   clips = {
-    list: (params: ListClipsParams) => 
+    list: (params: ListClipsParams) =>
       this.client.get<ApiResponse<Clip[]>>('/clips', { params }),
-    
-    get: (id: string) => 
+
+    get: (id: string) =>
       this.client.get<ApiResponse<Clip>>(`/clips/${id}`),
-    
+
     vote: (id: string, direction: 'up' | 'down') =>
       this.client.post(`/clips/${id}/vote`, { direction }),
   };
-  
+
   // User endpoints
   users = {
     me: () => this.client.get<ApiResponse<User>>('/users/me'),
-    get: (username: string) => 
+    get: (username: string) =>
       this.client.get<ApiResponse<User>>(`/users/${username}`),
   };
-  
+
   // Comment endpoints
   comments = {
     list: (clipId: string) =>
       this.client.get<ApiResponse<Comment[]>>(`/clips/${clipId}/comments`),
-    
+
     create: (data: CreateCommentInput) =>
       this.client.post<ApiResponse<Comment>>('/comments', data),
   };
@@ -428,8 +430,8 @@ import { ApiClient } from '@clipper/shared';
 import { useAuthStore } from '../stores/auth-store';
 import Constants from 'expo-constants';
 
-const API_BASE_URL = 
-  Constants.expoConfig?.extra?.apiUrl || 
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.apiUrl ||
   'https://api.clipper.app';
 
 export const apiClient = new ApiClient(
@@ -441,7 +443,7 @@ export const apiClient = new ApiClient(
 export const useClips = (params: ListClipsParams) => {
   return useInfiniteQuery({
     queryKey: ['clips', params],
-    queryFn: ({ pageParam = 1 }) => 
+    queryFn: ({ pageParam = 1 }) =>
       apiClient.clips.list({ ...params, page: pageParam }),
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
@@ -485,13 +487,13 @@ export const measurePerformance = (name: string, fn: () => void) => {
   const start = performance.now();
   fn();
   const duration = performance.now() - start;
-  
+
   Sentry.addBreadcrumb({
     category: 'performance',
     message: `${name} took ${duration}ms`,
     level: 'info',
   });
-  
+
   if (duration > 1000) {
     Sentry.captureMessage(`Slow operation: ${name}`, 'warning');
   }
@@ -537,24 +539,24 @@ export const authService = {
   async saveToken(token: string) {
     await SecureStore.setItemAsync(TOKEN_KEY, token);
   },
-  
+
   async getToken(): Promise<string | null> {
     return await SecureStore.getItemAsync(TOKEN_KEY);
   },
-  
+
   async saveRefreshToken(token: string) {
     await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
   },
-  
+
   async refreshToken(): Promise<string> {
     const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
     if (!refreshToken) throw new Error('No refresh token');
-    
+
     const response = await apiClient.auth.refresh(refreshToken);
     await this.saveToken(response.accessToken);
     return response.accessToken;
   },
-  
+
   async logout() {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
@@ -595,22 +597,22 @@ interface QueuedMutation {
 
 class OfflineQueue {
   private queue: QueuedMutation[] = [];
-  
+
   async add(mutation: Omit<QueuedMutation, 'id' | 'timestamp'>) {
     const item: QueuedMutation = {
       ...mutation,
       id: uuid(),
       timestamp: Date.now(),
     };
-    
+
     this.queue.push(item);
     await this.persist();
   }
-  
+
   async processQueue() {
     const isConnected = await NetInfo.fetch().then(state => state.isConnected);
     if (!isConnected) return;
-    
+
     for (const item of this.queue) {
       try {
         await this.processMutation(item);
@@ -619,10 +621,10 @@ class OfflineQueue {
         console.error('Failed to process queued mutation:', error);
       }
     }
-    
+
     await this.persist();
   }
-  
+
   private async persist() {
     await AsyncStorage.setItem('offline_queue', JSON.stringify(this.queue));
   }
@@ -648,19 +650,19 @@ describe('ClipCard', () => {
       creator: 'shroud',
       views: 1000,
     };
-    
+
     const { getByText } = render(<ClipCard clip={clip} />);
-    
+
     expect(getByText('Amazing Play')).toBeTruthy();
     expect(getByText('shroud')).toBeTruthy();
   });
-  
+
   it('calls onPress when tapped', () => {
     const onPress = jest.fn();
     const { getByTestId } = render(
       <ClipCard clip={mockClip} onPress={onPress} />
     );
-    
+
     fireEvent.press(getByTestId('clip-card'));
     expect(onPress).toHaveBeenCalledWith(mockClip.id);
   });
@@ -675,17 +677,17 @@ describe('Feed Screen', () => {
   beforeAll(async () => {
     await device.launchApp();
   });
-  
+
   it('should display feed with clips', async () => {
     await expect(element(by.id('feed-screen'))).toBeVisible();
     await expect(element(by.id('clip-card-1'))).toBeVisible();
   });
-  
+
   it('should navigate to clip detail on tap', async () => {
     await element(by.id('clip-card-1')).tap();
     await expect(element(by.id('clip-detail-screen'))).toBeVisible();
   });
-  
+
   it('should load more clips on scroll', async () => {
     await element(by.id('feed-list')).scrollTo('bottom');
     await waitFor(element(by.id('clip-card-20')))
@@ -807,6 +809,7 @@ export const trackEvent = (event: string, properties?: object) => {
 ### GraphQL Migration
 
 When REST API becomes too chatty:
+
 - Use Apollo Client for GraphQL
 - Share GraphQL schema with web
 - Reduce over-fetching with precise queries
@@ -814,6 +817,7 @@ When REST API becomes too chatty:
 ### Background Sync
 
 For offline-first experience:
+
 - Implement background fetch
 - Use `expo-background-fetch` for iOS
 - Use WorkManager for Android
@@ -821,6 +825,7 @@ For offline-first experience:
 ### App Clips / Instant Apps
 
 For viral sharing:
+
 - iOS App Clips (lightweight app snippet)
 - Android Instant Apps
 - Deep link to specific clips without full install
@@ -834,6 +839,6 @@ For viral sharing:
 
 ---
 
-**Maintainers:** Clipper Engineering Team  
-**Last Review:** 2025-11-02  
+**Maintainers:** Clipper Engineering Team
+**Last Review:** 2025-11-02
 **Next Review:** 2026-05-02

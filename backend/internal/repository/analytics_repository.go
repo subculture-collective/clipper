@@ -71,8 +71,8 @@ func (r *AnalyticsRepository) GetCreatorAnalytics(ctx context.Context, creatorNa
 	return &analytics, nil
 }
 
-// GetCreatorTopClips retrieves top-performing clips for a creator
-func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorName string, sortBy string, limit int) ([]models.CreatorTopClip, error) {
+// GetCreatorTopClips returns top clips for a creator sorted by a specific metric
+func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorName, sortBy string, limit int) ([]models.CreatorTopClip, error) {
 	// Determine sort column
 	sortColumn := "c.vote_score"
 	switch sortBy {
@@ -92,8 +92,8 @@ func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorNam
 		       c.comment_count, c.favorite_count, c.is_featured, c.is_nsfw,
 		       c.is_removed, c.removed_reason,
 		       COALESCE(ca.total_views, 0) as views,
-		       CASE 
-		           WHEN COALESCE(ca.total_views, 0) > 0 
+		       CASE
+		           WHEN COALESCE(ca.total_views, 0) > 0
 		           THEN (c.vote_score::float + c.comment_count::float) / ca.total_views::float
 		           ELSE 0
 		       END as engagement_rate
@@ -150,8 +150,8 @@ func (r *AnalyticsRepository) GetCreatorTopClips(ctx context.Context, creatorNam
 	return clips, rows.Err()
 }
 
-// GetCreatorTrends retrieves time-series data for creator metrics
-func (r *AnalyticsRepository) GetCreatorTrends(ctx context.Context, creatorName string, metricType string, days int) ([]models.TrendDataPoint, error) {
+// GetCreatorTrends returns time-series data for a creator's performance metrics
+func (r *AnalyticsRepository) GetCreatorTrends(ctx context.Context, creatorName, metricType string, days int) ([]models.TrendDataPoint, error) {
 	query := `
 		SELECT da.date, COALESCE(SUM(da.value), 0) as value
 		FROM daily_analytics da
@@ -292,7 +292,7 @@ func (r *AnalyticsRepository) GetPlatformOverviewMetrics(ctx context.Context) (*
 			ORDER BY date DESC
 			LIMIT 1
 		)
-		SELECT 
+		SELECT
 			COALESCE(total_users, 0),
 			COALESCE(active_users_daily, 0),
 			COALESCE(active_users_monthly, 0),
@@ -326,7 +326,7 @@ func (r *AnalyticsRepository) GetPlatformOverviewMetrics(ctx context.Context) (*
 // GetMostPopularGames retrieves top games by clip count and views
 func (r *AnalyticsRepository) GetMostPopularGames(ctx context.Context, limit int) ([]models.GameMetric, error) {
 	query := `
-		SELECT 
+		SELECT
 			c.game_id,
 			c.game_name,
 			COUNT(*) as clip_count,
@@ -361,7 +361,7 @@ func (r *AnalyticsRepository) GetMostPopularGames(ctx context.Context, limit int
 // GetMostPopularCreators retrieves top creators by metrics
 func (r *AnalyticsRepository) GetMostPopularCreators(ctx context.Context, limit int) ([]models.CreatorMetric, error) {
 	query := `
-		SELECT 
+		SELECT
 			creator_id,
 			creator_name,
 			total_clips,
@@ -397,8 +397,8 @@ func (r *AnalyticsRepository) GetMostPopularCreators(ctx context.Context, limit 
 	return creators, rows.Err()
 }
 
-// GetTrendingTags retrieves most used tags recently
-func (r *AnalyticsRepository) GetTrendingTags(ctx context.Context, days int, limit int) ([]models.TagMetric, error) {
+// GetTrendingTags returns tags that are trending based on recent clip activity
+func (r *AnalyticsRepository) GetTrendingTags(ctx context.Context, days, limit int) ([]models.TagMetric, error) {
 	query := `
 		SELECT t.id, t.name, COUNT(*) as usage_count
 		FROM tags t

@@ -10,16 +10,18 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server     ServerConfig
-	Database   DatabaseConfig
-	Redis      RedisConfig
-	JWT        JWTConfig
-	Twitch     TwitchConfig
-	CORS       CORSConfig
-	OpenSearch OpenSearchConfig
-	Stripe     StripeConfig
-	Sentry     SentryConfig
-	Email      EmailConfig
+	Server       ServerConfig
+	Database     DatabaseConfig
+	Redis        RedisConfig
+	JWT          JWTConfig
+	Twitch       TwitchConfig
+	CORS         CORSConfig
+	OpenSearch   OpenSearchConfig
+	Stripe       StripeConfig
+	Sentry       SentryConfig
+	Email        EmailConfig
+	Embedding    EmbeddingConfig
+	FeatureFlags FeatureFlagsConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -102,6 +104,26 @@ type EmailConfig struct {
 	MaxEmailsPerHour int
 }
 
+// EmbeddingConfig holds embedding service configuration
+type EmbeddingConfig struct {
+	OpenAIAPIKey             string
+	Model                    string
+	RequestsPerMinute        int
+	SchedulerIntervalMinutes int
+	Enabled                  bool
+}
+
+// FeatureFlagsConfig holds feature flag configuration
+type FeatureFlagsConfig struct {
+	SemanticSearch       bool
+	PremiumSubscriptions bool
+	EmailNotifications   bool
+	PushNotifications    bool
+	Analytics            bool
+	Moderation           bool
+	DiscoveryLists       bool
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -172,6 +194,22 @@ func Load() (*Config, error) {
 			FromName:         getEnv("EMAIL_FROM_NAME", "Clipper"),
 			Enabled:          getEnv("EMAIL_ENABLED", "false") == "true",
 			MaxEmailsPerHour: getEnvInt("EMAIL_MAX_PER_HOUR", 10),
+		},
+		Embedding: EmbeddingConfig{
+			OpenAIAPIKey:             getEnv("OPENAI_API_KEY", ""),
+			Model:                    getEnv("EMBEDDING_MODEL", "text-embedding-3-small"),
+			RequestsPerMinute:        getEnvInt("EMBEDDING_REQUESTS_PER_MINUTE", 500),
+			SchedulerIntervalMinutes: getEnvInt("EMBEDDING_SCHEDULER_INTERVAL_MINUTES", 360),
+			Enabled:                  getEnv("EMBEDDING_ENABLED", "false") == "true",
+		},
+		FeatureFlags: FeatureFlagsConfig{
+			SemanticSearch:       getEnv("FEATURE_SEMANTIC_SEARCH", "false") == "true",
+			PremiumSubscriptions: getEnv("FEATURE_PREMIUM_SUBSCRIPTIONS", "false") == "true",
+			EmailNotifications:   getEnv("FEATURE_EMAIL_NOTIFICATIONS", "false") == "true",
+			PushNotifications:    getEnv("FEATURE_PUSH_NOTIFICATIONS", "false") == "true",
+			Analytics:            getEnv("FEATURE_ANALYTICS", "true") == "true",
+			Moderation:           getEnv("FEATURE_MODERATION", "true") == "true",
+			DiscoveryLists:       getEnv("FEATURE_DISCOVERY_LISTS", "false") == "true",
 		},
 	}
 

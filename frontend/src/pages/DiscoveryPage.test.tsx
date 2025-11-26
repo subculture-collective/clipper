@@ -14,11 +14,12 @@ vi.mock('../components/clip', () => ({
     ),
 }));
 
-// Mock the Container component
+// Mock the Container and SEO components
 vi.mock('../components', () => ({
     Container: ({ children }: { children: React.ReactNode }) => (
         <div>{children}</div>
     ),
+    SEO: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 describe('DiscoveryPage', () => {
@@ -69,7 +70,7 @@ describe('DiscoveryPage', () => {
     it('has useEffect dependency on searchParams for syncing state', () => {
         // This test verifies that different URL params result in different initial states
         // which demonstrates that the component properly syncs with URL params
-        
+
         // Test with top10k_streamers=true
         const { unmount } = render(
             <MemoryRouter initialEntries={['/discovery?top10k_streamers=true']}>

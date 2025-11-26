@@ -67,7 +67,7 @@ func (l *StructuredLogger) shouldLog(level LogLevel) bool {
 }
 
 // log writes a structured log entry
-func (l *StructuredLogger) log(entry LogEntry) {
+func (l *StructuredLogger) log(entry *LogEntry) {
 	if !l.shouldLog(LogLevel(entry.Level)) {
 		return
 	}
@@ -91,7 +91,7 @@ func (l *StructuredLogger) Debug(message string, fields ...map[string]interface{
 	if len(fields) > 0 {
 		entry.Fields = fields[0]
 	}
-	l.log(entry)
+	l.log(&entry)
 }
 
 // Info logs an info message
@@ -104,7 +104,7 @@ func (l *StructuredLogger) Info(message string, fields ...map[string]interface{}
 	if len(fields) > 0 {
 		entry.Fields = fields[0]
 	}
-	l.log(entry)
+	l.log(&entry)
 }
 
 // Warn logs a warning message
@@ -117,7 +117,7 @@ func (l *StructuredLogger) Warn(message string, fields ...map[string]interface{}
 	if len(fields) > 0 {
 		entry.Fields = fields[0]
 	}
-	l.log(entry)
+	l.log(&entry)
 }
 
 // Error logs an error message
@@ -133,7 +133,7 @@ func (l *StructuredLogger) Error(message string, err error, fields ...map[string
 	if len(fields) > 0 {
 		entry.Fields = fields[0]
 	}
-	l.log(entry)
+	l.log(&entry)
 }
 
 // GinLogger returns a Gin middleware for structured logging
@@ -161,7 +161,7 @@ func (l *StructuredLogger) GinLogger() gin.HandlerFunc {
 			traceID = fmt.Sprintf("%v", tid)
 		}
 
-		entry := LogEntry{
+		entry := &LogEntry{
 			Level:      string(LogLevelInfo),
 			Message:    "HTTP Request",
 			Service:    "clipper-backend",

@@ -208,13 +208,13 @@ func (c *Client) Pipeline() redis.Pipeliner {
 	return c.client.Pipeline()
 }
 
-// HSet sets a field in a hash
-func (c *Client) HSet(ctx context.Context, key string, field string, value interface{}) error {
+// HSet sets a hash field value
+func (c *Client) HSet(ctx context.Context, key, field string, value interface{}) error {
 	return c.client.HSet(ctx, key, field, value).Err()
 }
 
-// HGet gets a field from a hash
-func (c *Client) HGet(ctx context.Context, key string, field string) (string, error) {
+// HGet gets a hash field value
+func (c *Client) HGet(ctx context.Context, key, field string) (string, error) {
 	return c.client.HGet(ctx, key, field).Result()
 }
 
@@ -224,7 +224,7 @@ func (c *Client) HGetAll(ctx context.Context, key string) (map[string]string, er
 }
 
 // HIncrBy increments a hash field by a value
-func (c *Client) HIncrBy(ctx context.Context, key string, field string, incr int64) (int64, error) {
+func (c *Client) HIncrBy(ctx context.Context, key, field string, incr int64) (int64, error) {
 	return c.client.HIncrBy(ctx, key, field, incr).Result()
 }
 
@@ -244,7 +244,7 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 	stats := make(map[string]string)
 	for _, line := range strings.Split(info, "\n") {
 		line = strings.TrimSpace(line)
-		if len(line) == 0 || line[0] == '#' {
+		if line == "" || line[0] == '#' {
 			continue
 		}
 		// Parse key:value
@@ -261,4 +261,13 @@ func (c *Client) GetStats(ctx context.Context) (map[string]string, error) {
 // Keys returns all keys matching a pattern
 func (c *Client) Keys(ctx context.Context, pattern string) ([]string, error) {
 	return c.client.Keys(ctx, pattern).Result()
+}
+
+// GetClient returns the underlying redis client
+// WARNING: This breaks encapsulation and should only be used when absolutely necessary.
+// Direct access bypasses wrapper logic and makes it harder to change the Redis implementation.
+// Prefer adding specific methods to the Client wrapper for new operations.
+// Currently used by: embedding service (requires direct client for caching operations)
+func (c *Client) GetClient() *redis.Client {
+	return c.client
 }

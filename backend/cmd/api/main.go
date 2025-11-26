@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/handlers"
 	"github.com/subculture-collective/clipper/internal/middleware"
@@ -28,9 +30,9 @@ import (
 
 func main() {
 	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+	cfg, cfgErr := config.Load()
+	if cfgErr != nil {
+		log.Fatalf("Failed to load configuration: %v", cfgErr)
 	}
 
 	// Initialize structured logger
@@ -42,8 +44,8 @@ func main() {
 	logger := utils.GetLogger()
 
 	// Initialize Sentry
-	if err := sentrypkg.Init(&cfg.Sentry); err != nil {
-		log.Printf("WARNING: Failed to initialize Sentry: %v", err)
+	if initErr := sentrypkg.Init(&cfg.Sentry); initErr != nil {
+		log.Printf("WARNING: Failed to initialize Sentry: %v", initErr)
 	} else if cfg.Sentry.Enabled {
 		log.Printf("Sentry initialized: environment=%s, release=%s", cfg.Sentry.Environment, cfg.Sentry.Release)
 		defer sentrypkg.Close()
@@ -53,35 +55,35 @@ func main() {
 	gin.SetMode(cfg.Server.GinMode)
 
 	// Initialize database connection pool
-	db, err := database.NewDB(&cfg.Database)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+	db, dbErr := database.NewDB(&cfg.Database)
+	if dbErr != nil {
+		log.Fatalf("Failed to connect to database: %v", dbErr)
 	}
 	defer db.Close()
 
 	// Initialize Redis client
-	redisClient, err := redispkg.NewClient(&cfg.Redis)
-	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+	redisClient, redisErr := redispkg.NewClient(&cfg.Redis)
+	if redisErr != nil {
+		log.Fatalf("Failed to connect to Redis: %v", redisErr)
 	}
 	defer redisClient.Close()
 
 	// Initialize OpenSearch client
-	osClient, err := opensearchpkg.NewClient(&opensearchpkg.Config{
+	osClient, osErr := opensearchpkg.NewClient(&opensearchpkg.Config{
 		URL:                cfg.OpenSearch.URL,
 		Username:           cfg.OpenSearch.Username,
 		Password:           cfg.OpenSearch.Password,
 		InsecureSkipVerify: cfg.OpenSearch.InsecureSkipVerify,
 	})
-	if err != nil {
-		log.Printf("WARNING: Failed to initialize OpenSearch client: %v", err)
+	if osErr != nil {
+		log.Printf("WARNING: Failed to initialize OpenSearch client: %v", osErr)
 		log.Printf("Search features will use PostgreSQL FTS fallback")
 	} else {
 		// Test connection
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := osClient.Ping(ctx); err != nil {
-			log.Printf("WARNING: OpenSearch ping failed: %v", err)
+		if pingErr := osClient.Ping(ctx); pingErr != nil {
+			log.Printf("WARNING: OpenSearch ping failed: %v", pingErr)
 			log.Printf("Search features will use PostgreSQL FTS fallback")
 			osClient = nil
 		} else {
@@ -92,24 +94,26 @@ func main() {
 	// Initialize JWT manager
 	var jwtManager *jwtpkg.Manager
 	if cfg.JWT.PrivateKey != "" {
-		jwtManager, err = jwtpkg.NewManager(cfg.JWT.PrivateKey)
-		if err != nil {
-			log.Fatalf("Failed to initialize JWT manager: %v", err)
+		manager, jwtErr := jwtpkg.NewManager(cfg.JWT.PrivateKey)
+		if jwtErr != nil {
+			log.Fatalf("Failed to initialize JWT manager: %v", jwtErr)
 		}
+		jwtManager = manager
 	} else {
 		// Generate new RSA key pair for development
 		log.Println("WARNING: No JWT private key provided. Generating new key pair (not for production!)")
-		privateKey, publicKey, err := jwtpkg.GenerateRSAKeyPair()
-		if err != nil {
-			log.Fatalf("Failed to generate RSA key pair: %v", err)
+		privateKey, publicKey, keyErr := jwtpkg.GenerateRSAKeyPair()
+		if keyErr != nil {
+			log.Fatalf("Failed to generate RSA key pair: %v", keyErr)
 		}
 		log.Printf("Generated RSA key pair. Add these to your .env file:\n")
 		log.Printf("JWT_PRIVATE_KEY:\n%s\n", privateKey)
 		log.Printf("JWT_PUBLIC_KEY:\n%s\n", publicKey)
-		jwtManager, err = jwtpkg.NewManager(privateKey)
-		if err != nil {
-			log.Fatalf("Failed to initialize JWT manager: %v", err)
+		manager, jwtInitErr := jwtpkg.NewManager(privateKey)
+		if jwtInitErr != nil {
+			log.Fatalf("Failed to initialize JWT manager: %v", jwtInitErr)
 		}
+		jwtManager = manager
 	}
 
 	// Initialize repositories
@@ -131,6 +135,8 @@ func main() {
 	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
+	webhookRepo := repository.NewWebhookRepository(db.Pool)
+	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -160,12 +166,34 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, cfg, auditLogService)
+
+	// Initialize dunning service before subscription service
+	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
+
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
+	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 
-	// Initialize search services
+	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
 	var openSearchService *services.OpenSearchService
+	var hybridSearchService *services.HybridSearchService
+	var embeddingService *services.EmbeddingService
+
+	// Initialize embedding service if enabled and configured
+	if cfg.Embedding.Enabled {
+		if cfg.Embedding.OpenAIAPIKey == "" {
+			log.Println("WARNING: Embedding is enabled but OPENAI_API_KEY is not set; disabling embeddings")
+		} else {
+			embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
+				APIKey:            cfg.Embedding.OpenAIAPIKey,
+				Model:             cfg.Embedding.Model,
+				RedisClient:       redisClient.GetClient(),
+				RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
+			})
+			log.Printf("Embedding service initialized (model: %s)", cfg.Embedding.Model)
+		}
+	}
 	if osClient != nil {
 		searchIndexerService = services.NewSearchIndexerService(osClient)
 		openSearchService = services.NewOpenSearchService(osClient)
@@ -180,6 +208,14 @@ func main() {
 				log.Println("Search indices initialized successfully")
 			}
 		}()
+
+		// Initialize hybrid search when OpenSearch is available
+		hybridSearchService = services.NewHybridSearchService(&services.HybridSearchConfig{
+			Pool:              db.Pool,
+			OpenSearchService: openSearchService,
+			EmbeddingService:  embeddingService,
+			RedisClient:       redisClient.GetClient(),
+		})
 	}
 
 	var clipSyncService *services.ClipSyncService
@@ -192,14 +228,22 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
+	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
-	if openSearchService != nil {
-		// Use OpenSearch-enhanced handler
+	if hybridSearchService != nil {
+		// Use hybrid search (BM25 + vector similarity)
+		searchHandler = handlers.NewSearchHandlerWithHybridSearch(searchRepo, hybridSearchService, authService)
+		log.Println("Using hybrid search handler (BM25 + vector similarity)")
+	} else if openSearchService != nil {
+		// Use OpenSearch-enhanced handler (BM25 only)
 		searchHandler = handlers.NewSearchHandlerWithOpenSearch(searchRepo, openSearchService, authService)
+		log.Println("Using OpenSearch handler (BM25 only)")
+	} else {
+		log.Println("Using PostgreSQL FTS handler (fallback)")
 	}
 	reportHandler := handlers.NewReportHandler(reportRepo, clipRepo, commentRepo, userRepo, authService)
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
@@ -237,6 +281,9 @@ func main() {
 
 	// Use structured logger
 	r.Use(logger.GinLogger())
+
+	// Apply metrics middleware for Prometheus
+	r.Use(middleware.MetricsMiddleware())
 
 	// Apply CORS middleware
 	r.Use(middleware.CORSMiddleware(cfg))
@@ -343,6 +390,30 @@ func main() {
 	r.GET("/health/cache", monitoringHandler.GetCacheStats)
 	r.GET("/health/cache/check", monitoringHandler.GetCacheHealth)
 
+	// Webhook monitoring endpoint
+	r.GET("/health/webhooks", webhookMonitoringHandler.GetWebhookRetryStats)
+
+	// Profiling and metrics endpoints (for debugging and monitoring)
+	// These should be protected in production (e.g., firewall rules or internal network only)
+	debug := r.Group("/debug")
+	{
+		// Prometheus metrics endpoint
+		debug.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+		// Go pprof endpoints for profiling
+		debug.GET("/pprof/", gin.WrapF(pprof.Index))
+		debug.GET("/pprof/cmdline", gin.WrapF(pprof.Cmdline))
+		debug.GET("/pprof/profile", gin.WrapF(pprof.Profile))
+		debug.GET("/pprof/symbol", gin.WrapF(pprof.Symbol))
+		debug.GET("/pprof/trace", gin.WrapF(pprof.Trace))
+		debug.GET("/pprof/allocs", gin.WrapH(pprof.Handler("allocs")))
+		debug.GET("/pprof/block", gin.WrapH(pprof.Handler("block")))
+		debug.GET("/pprof/goroutine", gin.WrapH(pprof.Handler("goroutine")))
+		debug.GET("/pprof/heap", gin.WrapH(pprof.Handler("heap")))
+		debug.GET("/pprof/mutex", gin.WrapH(pprof.Handler("mutex")))
+		debug.GET("/pprof/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
+	}
+
 	// API version 1 routes
 	v1 := r.Group("/api/v1")
 	{
@@ -442,6 +513,7 @@ func main() {
 			// Public search endpoints
 			search.GET("", searchHandler.Search)
 			search.GET("/suggestions", searchHandler.GetSuggestions)
+			search.GET("/scores", searchHandler.SearchWithScores) // Hybrid search with similarity scores
 		}
 
 		// Submission routes (if submission handler is available)
@@ -539,6 +611,10 @@ func main() {
 			// Get/Update preferences
 			notifications.GET("/preferences", notificationHandler.GetPreferences)
 			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+
+			// Device token registration for push notifications
+			notifications.POST("/register", notificationHandler.RegisterDeviceToken)
+			notifications.DELETE("/unregister", notificationHandler.UnregisterDeviceToken)
 		}
 
 		// Subscription routes
@@ -552,6 +628,7 @@ func main() {
 			subscriptions.GET("/me", subscriptionHandler.GetSubscription)
 			subscriptions.POST("/checkout", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.CreateCheckoutSession)
 			subscriptions.POST("/portal", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.CreatePortalSession)
+			subscriptions.POST("/change-plan", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.ChangeSubscriptionPlan)
 		}
 
 		// Contact routes
@@ -651,10 +728,22 @@ func main() {
 	hotScoreScheduler := scheduler.NewHotScoreScheduler(clipRepo, 5)
 	go hotScoreScheduler.Start(context.Background())
 
+	// Start webhook retry scheduler (runs every 1 minute)
+	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, 1, 100)
+	go webhookRetryScheduler.Start(context.Background())
+
+	// Start embedding scheduler if embedding service is available (runs based on configured interval)
+	var embeddingScheduler *scheduler.EmbeddingScheduler
+	if embeddingService != nil {
+		embeddingScheduler = scheduler.NewEmbeddingScheduler(db, embeddingService, cfg.Embedding.SchedulerIntervalMinutes, cfg.Embedding.Model)
+		go embeddingScheduler.Start(context.Background())
+	}
+
 	// Create HTTP server
 	srv := &http.Server{
-		Addr:    ":" + cfg.Server.Port,
-		Handler: r,
+		Addr:              ":" + cfg.Server.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
 	}
 
 	// Start server in goroutine
@@ -677,6 +766,15 @@ func main() {
 	}
 	reputationScheduler.Stop()
 	hotScoreScheduler.Stop()
+	webhookRetryScheduler.Stop()
+	if embeddingScheduler != nil {
+		embeddingScheduler.Stop()
+	}
+
+	// Close embedding service if running
+	if embeddingService != nil {
+		embeddingService.Close()
+	}
 
 	// Graceful shutdown with 5 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

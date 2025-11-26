@@ -9,7 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '../contexts/AuthContext';
-import { NotificationProvider } from '@/contexts/NotificationContext';
+import { NotificationProvider } from '../contexts/NotificationContext';
 import '../global.css';
 
 // Keep the splash screen visible while we fetch resources
@@ -40,10 +40,7 @@ export default function RootLayout() {
                 <QueryClientProvider client={queryClient}>
                     <StatusBar style='auto' />
                     <Stack>
-                        <Stack.Screen
-                            name='(tabs)'
-                            options={{ headerShown: false }}
-                        />
+                        <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
                         <Stack.Screen
                             name='auth/login'
                             options={{ headerShown: false }}

@@ -98,7 +98,7 @@ func TestCSRFMiddleware_MissingToken(t *testing.T) {
 
 	// With nil Redis, CSRF checks are skipped, so request succeeds
 	// In production with real Redis, this would return 403
-	if mockRedis == nil && w.Code != http.StatusOK {
+	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200 with nil Redis client, got %d", w.Code)
 	}
 }
@@ -175,7 +175,7 @@ func TestCSRFMiddleware_Integration(t *testing.T) {
 		ctx := context.Background()
 		keys, _ := mockRedis.Keys(ctx, "csrf:*")
 		for _, key := range keys {
-			mockRedis.Delete(ctx, key)
+			_ = mockRedis.Delete(ctx, key)
 		}
 	}()
 

@@ -1,18 +1,22 @@
 # Mobile Clip Feed Implementation
 
 ## Overview
+
 This document describes the implementation of the mobile-optimized clip feed with infinite scroll and pull-to-refresh functionality.
 
 ## Features Implemented
 
 ### 1. Pull-to-Refresh (Mobile Web)
+
 The feed now supports pull-to-refresh gesture on mobile devices:
+
 - **Detection**: Uses touch events to detect when user pulls down at the top of the page
 - **Visual Feedback**: Shows a rotating refresh icon with progress indicator
 - **Threshold**: Activates refresh when pulled down more than 80px
 - **Smooth Animation**: Transforms and opacity changes create smooth visual feedback
 
 #### Implementation Details
+
 ```typescript
 // Touch event handlers in ClipFeed.tsx
 - handleTouchStart: Captures initial touch position when at top of page
@@ -23,11 +27,13 @@ The feed now supports pull-to-refresh gesture on mobile devices:
 ### 2. Performance Optimizations
 
 #### Memoized Components
+
 - **MemoizedClipCard**: ClipCard components only re-render when relevant data changes
 - Compares: `id`, `vote_score`, `user_vote`, `is_favorited`, `comment_count`, `favorite_count`
 - Prevents unnecessary re-renders during scroll or other feed updates
 
 #### CSS Optimizations
+
 Added new utility classes in `src/index.css`:
 
 ```css
@@ -36,6 +42,7 @@ Added new utility classes in `src/index.css`:
   contain-intrinsic-size: auto 500px;
 }
 ```
+
 - Enables browser-native lazy rendering of off-screen content
 - Reduces CPU and memory usage for long feeds
 
@@ -47,6 +54,7 @@ Added new utility classes in `src/index.css`:
   perspective: 1000px;
 }
 ```
+
 - Forces GPU acceleration for smoother animations
 - Reduces jank during scrolling
 
@@ -56,6 +64,7 @@ Added new utility classes in `src/index.css`:
   will-change: transform, opacity;
 }
 ```
+
 - Optimizes animations to maintain 60fps
 - Uses only transform and opacity (GPU-friendly properties)
 
@@ -65,11 +74,14 @@ Added new utility classes in `src/index.css`:
   scroll-behavior: smooth;
 }
 ```
+
 - Enables momentum scrolling on iOS
 - Smooth scroll behavior across browsers
 
 ### 3. Infinite Scroll
+
 Existing implementation enhanced:
+
 - Uses `react-intersection-observer` to detect when user reaches bottom
 - Automatically loads next page when trigger element comes into view
 - Shows loading spinner during fetch
@@ -78,29 +90,35 @@ Existing implementation enhanced:
 ### 4. Loading States
 
 #### Initial Load
+
 - Shows 5 skeleton cards while fetching first page
 - Maintains layout to prevent content shift
 
 #### Loading More
+
 - Shows spinner in centered container
 - Button fallback if automatic loading fails
 
 #### Empty State
+
 - Custom message and icon
 - Suggests filter adjustment
 
 #### Error State
+
 - Clear error message
 - Recovery suggestions
 
 ### 5. Mobile-Specific Improvements
 
 #### Touch Targets
+
 - All interactive elements use `.touch-target` class
 - Minimum size: 44x44px (WCAG AAA standard)
 - Ensures easy tapping on mobile devices
 
 #### Responsive Layout
+
 - Cards adapt between mobile and desktop layouts
 - Vote buttons reposition from horizontal to vertical
 - Text sizes adjust for readability
@@ -108,16 +126,19 @@ Existing implementation enhanced:
 ## Performance Characteristics
 
 ### Memory Management
+
 - Lazy rendering reduces memory footprint
 - Memoization prevents redundant component trees
 - Content visibility allows browser to skip rendering off-screen items
 
 ### Scroll Performance
+
 - GPU acceleration ensures 60fps scrolling
 - Transform-based animations (not layout properties)
 - Will-change hints help browser optimize
 
 ### Network Efficiency
+
 - Pagination limits data transfer (10 items per page)
 - Infinite scroll loads on-demand
 - Pull-to-refresh reuses existing cache when possible
@@ -125,6 +146,7 @@ Existing implementation enhanced:
 ## Testing
 
 All existing tests pass:
+
 - 55 test files
 - 570 tests passed
 - No regressions introduced
@@ -132,12 +154,14 @@ All existing tests pass:
 ## Browser Compatibility
 
 ### Pull-to-Refresh
+
 - ✅ iOS Safari 12+
 - ✅ Chrome Android 60+
 - ✅ Samsung Internet 8+
 - ✅ Firefox Android 68+
 
 ### Performance Features
+
 - ✅ All modern browsers support CSS `content-visibility`
 - ✅ GPU acceleration works on all WebKit and Chromium browsers
 - ⚠️ Firefox has partial support but degrades gracefully
@@ -145,6 +169,7 @@ All existing tests pass:
 ## Usage
 
 The feed is used in multiple pages:
+
 - HomePage (`/`)
 - TopFeedPage (`/top`)
 - NewFeedPage (`/new`)
@@ -165,6 +190,7 @@ Potential improvements for future iterations:
 ## Metrics to Monitor
 
 When deployed to production, monitor:
+
 - Time to First Contentful Paint (FCP)
 - Largest Contentful Paint (LCP)
 - Cumulative Layout Shift (CLS)
@@ -173,6 +199,7 @@ When deployed to production, monitor:
 - Memory usage over time
 
 Target metrics:
+
 - FCP < 1.8s
 - LCP < 2.5s
 - CLS < 0.1
