@@ -2,20 +2,21 @@ import { Container, SEO } from '../components';
 import { ClipFeed } from '../components/clip';
 
 export function HomePage() {
-  return (
-    <>
-      <SEO
-        title="Home"
-        description="Discover and share the best Twitch clips curated by the community. Vote on your favorite moments, explore trending clips, and join the conversation."
-        canonicalUrl="/"
-      />
-      <Container className="py-4 xs:py-6 md:py-8">
-        <ClipFeed
-          title="Home Feed"
-          description="Discover the best Twitch clips"
-          defaultSort="hot"
-        />
-      </Container>
-    </>
-  );
+    return (
+        <>
+            <SEO
+                title='Home'
+                description='Community-submitted clips only. Share your favorite moments, vote, and discuss—just like Reddit, but for Twitch clips.'
+                canonicalUrl='/'
+            />
+            <Container className='py-4 xs:py-6 md:py-8'>
+                <ClipFeed
+                    title='Home Feed'
+                    description='Community-submitted clips'
+                    defaultSort='hot'
+                    filters={{ feed: 'submitted' }}
+                />
+            </Container>
+        </>
+    );
 }

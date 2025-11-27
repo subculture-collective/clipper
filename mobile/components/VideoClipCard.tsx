@@ -23,6 +23,8 @@ interface VideoClipCardProps {
     voteScore: number;
     videoUrl?: string;
     thumbnailUrl?: string;
+    sourceType?: 'user_submitted' | 'auto_synced' | 'staff_pick';
+    isNSFW?: boolean;
     onPress: () => void;
 }
 
@@ -37,6 +39,8 @@ export default function VideoClipCard({
     voteScore,
     videoUrl,
     thumbnailUrl,
+    sourceType,
+    isNSFW,
     onPress,
 }: VideoClipCardProps) {
     const player = useVideoPlayer(videoUrl ?? '', player => {
@@ -104,6 +108,40 @@ export default function VideoClipCard({
                         :   viewCount}
                     </Text>
                 </View>
+
+                {/* Source / NSFW Badges */}
+                {(sourceType || isNSFW) && (
+                    <View className='absolute top-3 left-3 flex-row items-center gap-2'>
+                        {sourceType === 'user_submitted' && (
+                            <View className='bg-black/70 px-2 py-1 rounded'>
+                                <Text className='text-white text-xs font-medium'>
+                                    Community
+                                </Text>
+                            </View>
+                        )}
+                        {sourceType === 'auto_synced' && (
+                            <View className='bg-black/70 px-2 py-1 rounded'>
+                                <Text className='text-white text-xs font-medium'>
+                                    Discovery
+                                </Text>
+                            </View>
+                        )}
+                        {sourceType === 'staff_pick' && (
+                            <View className='bg-black/70 px-2 py-1 rounded'>
+                                <Text className='text-white text-xs font-medium'>
+                                    Staff Pick
+                                </Text>
+                            </View>
+                        )}
+                        {isNSFW && (
+                            <View className='bg-red-600/90 px-2 py-1 rounded'>
+                                <Text className='text-white text-xs font-bold'>
+                                    NSFW
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                )}
             </Pressable>
 
             {/* Metadata Section */}

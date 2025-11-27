@@ -50,7 +50,12 @@ test-integration: ## Run integration tests (requires Docker)
 	@echo "Waiting for database to be ready..."
 	@sleep 5
 	@echo "Running database migrations..."
-	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@if command -v migrate > /dev/null; then \
+		migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up; \
+	else \
+		echo "golang-migrate not found, using dockerized migrate..."; \
+		docker run --rm --network host -v $$PWD/backend/migrations:/migrations migrate/migrate -path=/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up; \
+	fi
 	@echo "Running integration tests..."
 	cd backend && go test -v -tags=integration ./...
 	@echo "Stopping test database..."

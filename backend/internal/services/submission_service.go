@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/utils"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 )
 
@@ -21,6 +23,8 @@ type SubmissionService struct {
 	auditLogRepo        *repository.AuditLogRepository
 	twitchClient        *twitch.Client
 	notificationService *NotificationService
+	cfg                 *config.Config
+	redis               *redispkg.Client
 }
 
 // NewSubmissionService creates a new SubmissionService
@@ -31,6 +35,8 @@ func NewSubmissionService(
 	auditLogRepo *repository.AuditLogRepository,
 	twitchClient *twitch.Client,
 	notificationService *NotificationService,
+	cfg *config.Config,
+	redis *redispkg.Client,
 ) *SubmissionService {
 	return &SubmissionService{
 		submissionRepo:      submissionRepo,
@@ -39,6 +45,8 @@ func NewSubmissionService(
 		auditLogRepo:        auditLogRepo,
 		twitchClient:        twitchClient,
 		notificationService: notificationService,
+		cfg:                 cfg,
+		redis:               redis,
 	}
 }
 
@@ -79,9 +87,12 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, &ValidationError{Field: "user", Message: "Your account has been banned and cannot submit clips. Please contact support if you believe this is an error."}
 	}
 
-	// Check minimum karma requirement (100 karma)
-	if user.KarmaPoints < 100 {
-		return nil, &ValidationError{Field: "karma", Message: "You need at least 100 karma points to submit clips. Earn karma by participating in the community through voting and commenting."}
+	// Check minimum karma requirement (configurable; -1 disables check)
+	if s.cfg != nil {
+		minKarma := s.cfg.Submission.MinKarmaRequired
+		if minKarma >= 0 && user.KarmaPoints < minKarma {
+			return nil, &ValidationError{Field: "karma", Message: fmt.Sprintf("You need at least %d karma points to submit clips.", minKarma)}
+		}
 	}
 
 	// Check rate limits (5 per hour, 20 per day)
@@ -343,6 +354,84 @@ func (s *SubmissionService) normalizeClipURL(clipURLOrID string) (clipID string,
 	return clipID, normalizedURL
 }
 
+// ClipMetadata represents normalized metadata for a Twitch clip
+type ClipMetadata struct {
+	ClipID       string    `json:"clip_id"`
+	Title        string    `json:"title"`
+	StreamerName string    `json:"streamer_name"`
+	GameName     string    `json:"game_name,omitempty"`
+	ViewCount    int       `json:"view_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	ThumbnailURL string    `json:"thumbnail_url"`
+	Duration     float64   `json:"duration"`
+	URL          string    `json:"url"`
+}
+
+// GetClipMetadata fetches and caches clip metadata for a given Twitch clip URL or ID
+func (s *SubmissionService) GetClipMetadata(ctx context.Context, clipURLOrID string) (*ClipMetadata, error) {
+	if s.twitchClient == nil {
+		return nil, fmt.Errorf("Twitch API is not configured")
+	}
+
+	clipID, normalizedURL := s.normalizeClipURL(clipURLOrID)
+	if clipID == "" {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "Invalid Twitch clip URL. Provide 'https://clips.twitch.tv/<ClipID>' or 'https://www.twitch.tv/<user>/clip/<ClipID>' or the clip ID",
+		}
+	}
+
+	// Try cache first
+	if s.redis != nil {
+		cacheKey := fmt.Sprintf("twitch:clip:metadata:%s", clipID)
+		var cached ClipMetadata
+		if err := s.redis.GetJSON(ctx, cacheKey, &cached); err == nil {
+			return &cached, nil
+		}
+	}
+
+	// Fetch from Twitch
+	tclip, err := s.fetchClipFromTwitch(ctx, clipID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prefer normalized URL form
+	if normalizedURL != "" {
+		tclip.URL = normalizedURL
+	}
+
+	meta := &ClipMetadata{
+		ClipID:       tclip.ID,
+		Title:        tclip.Title,
+		StreamerName: tclip.BroadcasterName,
+		ViewCount:    tclip.ViewCount,
+		CreatedAt:    tclip.CreatedAt,
+		ThumbnailURL: tclip.ThumbnailURL,
+		Duration:     tclip.Duration,
+		URL:          tclip.URL,
+	}
+
+	// Resolve game name if available
+	if tclip.GameID != "" && s.twitchClient != nil {
+		if game, gerr := s.twitchClient.GetCachedGame(ctx, tclip.GameID); gerr == nil && game != nil {
+			meta.GameName = game.Name
+		} else {
+			if gamesResp, gerr := s.twitchClient.GetGames(ctx, []string{tclip.GameID}, nil); gerr == nil && gamesResp != nil && len(gamesResp.Data) > 0 {
+				meta.GameName = gamesResp.Data[0].Name
+			}
+		}
+	}
+
+	// Cache the result
+	if s.redis != nil {
+		cacheKey := fmt.Sprintf("twitch:clip:metadata:%s", clipID)
+		_ = s.redis.SetJSON(ctx, cacheKey, meta, time.Hour)
+	}
+
+	return meta, nil
+}
+
 // checkRateLimits validates rate limits for submissions
 func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUID) error {
 	// Check hourly limit (5 per hour)
@@ -495,8 +584,12 @@ func (s *SubmissionService) shouldAutoApprove(user *models.User) bool {
 		return true
 	}
 
-	// High karma users (>1000) are auto-approved
-	if user.KarmaPoints >= 1000 {
+	// High karma users are auto-approved based on configured threshold
+	threshold := 0
+	if s.cfg != nil {
+		threshold = s.cfg.Submission.AutoApprovalKarmaThreshold
+	}
+	if user.KarmaPoints >= threshold {
 		return true
 	}
 
@@ -527,6 +620,8 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 		ThumbnailURL:    submission.ThumbnailURL,
 		Duration:        submission.Duration,
 		ViewCount:       submission.ViewCount,
+		SourceType:      "user_submitted",
+		EngagementScore: 0.0,
 		CreatedAt:       time.Now(),
 		ImportedAt:      time.Now(),
 		IsNSFW:          submission.IsNSFW,

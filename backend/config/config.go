@@ -22,6 +22,8 @@ type Config struct {
 	Email        EmailConfig
 	Embedding    EmbeddingConfig
 	FeatureFlags FeatureFlagsConfig
+	EngagementScoring EngagementScoringConfig
+	Submission   SubmissionConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -124,6 +126,20 @@ type FeatureFlagsConfig struct {
 	DiscoveryLists       bool
 }
 
+// EngagementScoringConfig holds engagement scoring weights
+type EngagementScoringConfig struct {
+	VoteWeight     float64
+	CommentWeight  float64
+	FavoriteWeight float64
+	ViewWeight     float64
+}
+
+// SubmissionConfig holds clip submission configuration
+type SubmissionConfig struct {
+	MinKarmaRequired        int
+	AutoApprovalKarmaThreshold int
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -210,6 +226,16 @@ func Load() (*Config, error) {
 			Analytics:            getEnv("FEATURE_ANALYTICS", "true") == "true",
 			Moderation:           getEnv("FEATURE_MODERATION", "true") == "true",
 			DiscoveryLists:       getEnv("FEATURE_DISCOVERY_LISTS", "false") == "true",
+		},
+		EngagementScoring: EngagementScoringConfig{
+			VoteWeight:     getEnvFloat("ENGAGEMENT_VOTE_WEIGHT", 3.0),
+			CommentWeight:  getEnvFloat("ENGAGEMENT_COMMENT_WEIGHT", 2.0),
+			FavoriteWeight: getEnvFloat("ENGAGEMENT_FAVORITE_WEIGHT", 1.5),
+			ViewWeight:     getEnvFloat("ENGAGEMENT_VIEW_WEIGHT", 0.1),
+		},
+		Submission: SubmissionConfig{
+			MinKarmaRequired:        getEnvInt("SUBMISSION_MIN_KARMA", -1),
+			AutoApprovalKarmaThreshold: getEnvInt("SUBMISSION_AUTO_APPROVAL_KARMA", 0),
 		},
 	}
 

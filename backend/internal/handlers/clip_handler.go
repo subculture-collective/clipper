@@ -280,6 +280,94 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	})
 }
 
+// ListUserSubmittedClips handles GET /clips/submitted
+func (h *ClipHandler) ListUserSubmittedClips(c *gin.Context) {
+	// Parse query parameters
+	sort := c.DefaultQuery("sort", "hot")
+	timeframe := c.Query("timeframe")
+	language := c.Query("language")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
+
+	source := "user_submitted"
+	filters := repository.ClipFilters{Sort: sort, SourceType: &source}
+	if timeframe != "" {
+		filters.Timeframe = &timeframe
+	}
+	if language != "" {
+		filters.Language = &language
+	}
+
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	clips, total, err := h.clipService.ListClips(c.Request.Context(), filters, page, limit, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{Success: false, Error: &ErrorInfo{Code: "INTERNAL_ERROR", Message: "Failed to fetch user-submitted clips"}})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	meta := PaginationMeta{Page: page, Limit: limit, Total: total, TotalPages: totalPages, HasNext: page < totalPages, HasPrev: page > 1}
+
+	c.JSON(http.StatusOK, StandardResponse{Success: true, Data: clips, Meta: meta})
+}
+
+// ListDiscoveryClips handles GET /clips/discovery
+func (h *ClipHandler) ListDiscoveryClips(c *gin.Context) {
+	// Parse query parameters
+	sort := c.DefaultQuery("sort", "top") // default to top by view count
+	timeframe := c.DefaultQuery("timeframe", "day")
+	language := c.Query("language")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
+
+	source := "auto_synced"
+	filters := repository.ClipFilters{Sort: sort, SourceType: &source}
+	if timeframe != "" {
+		filters.Timeframe = &timeframe
+	}
+	if language != "" {
+		filters.Language = &language
+	}
+
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	clips, total, err := h.clipService.ListClips(c.Request.Context(), filters, page, limit, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{Success: false, Error: &ErrorInfo{Code: "INTERNAL_ERROR", Message: "Failed to fetch discovery clips"}})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	meta := PaginationMeta{Page: page, Limit: limit, Total: total, TotalPages: totalPages, HasNext: page < totalPages, HasPrev: page > 1}
+
+	c.JSON(http.StatusOK, StandardResponse{Success: true, Data: clips, Meta: meta})
+}
+
 // GetClip handles GET /clips/:id
 func (h *ClipHandler) GetClip(c *gin.Context) {
 	clipID, err := uuid.Parse(c.Param("id"))

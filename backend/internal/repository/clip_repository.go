@@ -30,14 +30,21 @@ func NewClipRepository(pool *pgxpool.Pool) *ClipRepository {
 
 // Create inserts a new clip into the database
 func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
+	// Ensure a valid source type is provided. If empty, default to 'auto_synced'
+	// to align with the database enum and column default. Passing an empty string
+	// would cause a Postgres enum cast error, so we normalize here.
+	srcType := clip.SourceType
+	if srcType == "" {
+		srcType = "auto_synced"
+	}
 	query := `
 		INSERT INTO clips (
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
-			view_count, created_at, imported_at
+			view_count, created_at, imported_at, source_type, engagement_score
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 		)
 	`
 
@@ -46,7 +53,7 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 		clip.Title, clip.CreatorName, clip.CreatorID, clip.BroadcasterName,
 		clip.BroadcasterID, clip.GameID, clip.GameName, clip.Language,
 		clip.ThumbnailURL, clip.Duration, clip.ViewCount, clip.CreatedAt,
-		clip.ImportedAt,
+		clip.ImportedAt, srcType, clip.EngagementScore,
 	)
 
 	if err != nil {
@@ -64,7 +71,8 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+			source_type, engagement_score
 		FROM clips
 		WHERE twitch_clip_id = $1
 	`
@@ -77,6 +85,7 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 		&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+		&clip.SourceType, &clip.EngagementScore,
 	)
 
 	if err != nil {
@@ -123,7 +132,8 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+			source_type, engagement_score
 		FROM clips
 		WHERE id = $1 AND is_removed = false
 	`
@@ -136,6 +146,7 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 		&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+		&clip.SourceType, &clip.EngagementScore,
 	)
 
 	if err != nil {
@@ -164,7 +175,8 @@ func (r *ClipRepository) GetRecentClips(ctx context.Context, hours int, limit in
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+			source_type, engagement_score
 		FROM clips
 		WHERE is_removed = false AND created_at > NOW() - INTERVAL '1 hour' * $1
 		ORDER BY view_count DESC, created_at DESC
@@ -187,6 +199,7 @@ func (r *ClipRepository) GetRecentClips(ctx context.Context, hours int, limit in
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.SourceType, &clip.EngagementScore,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan clip: %w", err)
@@ -244,6 +257,7 @@ type ClipFilters struct {
 	Timeframe       *string // hour, day, week, month, year, all
 	Sort            string  // hot, new, top, rising, discussed
 	Top10kStreamers bool    // Filter clips to only top 10k streamers
+	SourceType      *string // Filter by source_type (user_submitted, auto_synced, staff_pick)
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
@@ -284,6 +298,13 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	if filters.Language != nil && *filters.Language != "" {
 		whereClauses = append(whereClauses, fmt.Sprintf("c.language = %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Language)
+		argIndex++
+	}
+
+	// Filter by source type if provided
+	if filters.SourceType != nil && *filters.SourceType != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.source_type = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.SourceType)
 		argIndex++
 	}
 
@@ -372,7 +393,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
-			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason,
+			c.source_type, c.engagement_score
 		FROM clips c
 		%s
 		%s
@@ -395,6 +417,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.SourceType, &clip.EngagementScore,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
@@ -472,6 +495,21 @@ func (r *ClipRepository) SoftDelete(ctx context.Context, clipID uuid.UUID, reaso
 		return fmt.Errorf("failed to soft delete clip: %w", err)
 	}
 
+	return nil
+}
+
+// RecalculateEngagementScores updates the engagement_score for all (or filtered) clips
+func (r *ClipRepository) RecalculateEngagementScores(ctx context.Context, voteWeight, commentWeight, favoriteWeight, viewWeight float64) error {
+	query := `
+		UPDATE clips
+		SET engagement_score = ($1 * vote_score) + ($2 * comment_count) + ($3 * favorite_count) + ($4 * view_count)
+		WHERE is_removed = false
+	`
+
+	_, err := r.pool.Exec(ctx, query, voteWeight, commentWeight, favoriteWeight, viewWeight)
+	if err != nil {
+		return fmt.Errorf("failed to recalculate engagement scores: %w", err)
+	}
 	return nil
 }
 

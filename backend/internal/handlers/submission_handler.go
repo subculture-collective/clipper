@@ -150,6 +150,50 @@ func (h *SubmissionHandler) GetSubmissionStats(c *gin.Context) {
 	})
 }
 
+// GetClipMetadata fetches metadata for a Twitch clip URL or ID
+// GET /submissions/metadata?url=...
+func (h *SubmissionHandler) GetClipMetadata(c *gin.Context) {
+	// The submissions group is auth-protected; ensure context has user
+	if _, exists := c.Get("user_id"); !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	input := c.Query("url")
+	if input == "" {
+		input = c.Query("id")
+	}
+	if input == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Missing 'url' query parameter",
+			"success": false,
+		})
+		return
+	}
+
+	meta, err := h.submissionService.GetClipMetadata(c.Request.Context(), input)
+	if err != nil {
+		if valErr, ok := err.(*services.ValidationError); ok {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   valErr.Message,
+				"field":   valErr.Field,
+				"success": false,
+			})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error":   "Failed to fetch clip metadata",
+			"success": false,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    meta,
+	})
+}
+
 // ListPendingSubmissions lists pending submissions for moderation (admin/moderator only)
 // GET /admin/submissions
 // Supports filters: is_nsfw, broadcaster, creator, tags (comma-separated), start_date (RFC3339), end_date (RFC3339)

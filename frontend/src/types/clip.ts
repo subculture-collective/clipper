@@ -28,6 +28,8 @@ export interface Clip {
     is_favorited?: boolean; // Backend returns is_favorited, not user_favorited
     upvote_count?: number;
     downvote_count?: number;
+    source_type?: 'user_submitted' | 'auto_synced' | 'staff_pick';
+    engagement_score?: number;
 }
 
 export interface ClipFeedResponse {
@@ -38,18 +40,19 @@ export interface ClipFeedResponse {
     has_more: boolean;
 }
 
-export type SortOption = "hot" | "new" | "top" | "rising" | "discussed";
-export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
+export type SortOption = 'hot' | 'new' | 'top' | 'rising' | 'discussed';
+export type TimeFrame = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
 
 export interface ClipFeedFilters {
-  sort?: SortOption;
-  timeframe?: TimeFrame;
-  game_id?: string;
-  creator_id?: string;
-  tags?: string[];
-  language?: string;
-  nsfw?: boolean;
-  top10k_streamers?: boolean;
+    sort?: SortOption;
+    timeframe?: TimeFrame;
+    game_id?: string;
+    creator_id?: string;
+    tags?: string[];
+    language?: string;
+    nsfw?: boolean;
+    top10k_streamers?: boolean;
+    feed?: 'submitted' | 'discovery' | 'all';
 }
 
 export interface VotePayload {

@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 func TestSubmissionService_ShouldAutoApprove(t *testing.T) {
-	// Create a service with nil repos just to test this method
-	service := &SubmissionService{}
+	// Create a service with config to test auto-approval behavior
+	service := &SubmissionService{cfg: &config.Config{Submission: config.SubmissionConfig{AutoApprovalKarmaThreshold: 0}}}
 
 	t.Run("Admin should be auto-approved", func(t *testing.T) {
 		user := &models.User{
@@ -45,14 +46,26 @@ func TestSubmissionService_ShouldAutoApprove(t *testing.T) {
 		}
 	})
 
-	t.Run("Regular user should not be auto-approved", func(t *testing.T) {
+	t.Run("Regular user should be auto-approved when threshold is 0", func(t *testing.T) {
 		user := &models.User{
 			ID:          uuid.New(),
 			Role:        "user",
 			KarmaPoints: 500,
 		}
-		if service.shouldAutoApprove(user) {
-			t.Error("Regular user should not be auto-approved")
+		if !service.shouldAutoApprove(user) {
+			t.Error("Regular user should be auto-approved when threshold is 0")
+		}
+	})
+
+	t.Run("Regular user should not be auto-approved when threshold is higher than karma", func(t *testing.T) {
+		svc := &SubmissionService{cfg: &config.Config{Submission: config.SubmissionConfig{AutoApprovalKarmaThreshold: 1000}}}
+		user := &models.User{
+			ID:          uuid.New(),
+			Role:        "user",
+			KarmaPoints: 500,
+		}
+		if svc.shouldAutoApprove(user) {
+			t.Error("Regular user should not be auto-approved when threshold is higher than user karma")
 		}
 	})
 }

@@ -138,6 +138,7 @@ func main() {
 	webhookRepo := repository.NewWebhookRepository(db.Pool)
 	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
+	appSettingsRepo := repository.NewAppSettingsRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -148,6 +149,7 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
+	configService := services.NewConfigService(appSettingsRepo)
 
 	// Initialize email service
 	emailService := services.NewEmailService(&services.EmailConfig{
@@ -221,12 +223,15 @@ func main() {
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
-		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService)
+		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, cfg)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, cfg, redisClient)
 	}
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg)
+	configHandler := handlers.NewConfigHandler(configService, clipRepo)
+	presetProfileRepo := repository.NewPresetProfileRepository(db.Pool)
+	presetProfileHandler := handlers.NewPresetProfileHandler(handlers.NewPresetProfileRepositoryAdapter(presetProfileRepo))
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
 	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService)
 	commentHandler := handlers.NewCommentHandler(commentService)
@@ -443,6 +448,8 @@ func main() {
 		{
 			// Public clip endpoints
 			clips.GET("", clipHandler.ListClips)
+			clips.GET("/submitted", clipHandler.ListUserSubmittedClips)
+			clips.GET("/discovery", clipHandler.ListDiscoveryClips)
 			clips.GET("/:id", clipHandler.GetClip)
 			clips.GET("/:id/related", clipHandler.GetRelatedClips)
 
@@ -525,6 +532,7 @@ func main() {
 				submissions.POST("", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), submissionHandler.SubmitClip)
 				submissions.GET("", submissionHandler.GetUserSubmissions)
 				submissions.GET("/stats", submissionHandler.GetSubmissionStats)
+				submissions.GET("/metadata", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), submissionHandler.GetClipMetadata)
 			}
 		}
 
@@ -708,6 +716,23 @@ func main() {
 			{
 				adminContact.GET("", contactHandler.GetContactMessages)
 				adminContact.PUT("/:id/status", contactHandler.UpdateContactMessageStatus)
+			}
+
+			// Configuration management (admin only)
+			adminConfig := admin.Group("/config")
+			{
+				adminConfig.GET("/engagement", configHandler.GetEngagementConfig)
+				adminConfig.PUT("/engagement", configHandler.UpdateEngagementConfig)
+			}
+
+			// Preset profile management (admin only)
+			adminPresets := admin.Group("/presets")
+			{
+				adminPresets.GET("", presetProfileHandler.ListPresets)
+				adminPresets.GET("/:id", presetProfileHandler.GetPreset)
+				adminPresets.POST("", presetProfileHandler.CreatePreset)
+				adminPresets.PUT("/:id", presetProfileHandler.UpdatePreset)
+				adminPresets.DELETE("/:id", presetProfileHandler.DeletePreset)
 			}
 		}
 	}

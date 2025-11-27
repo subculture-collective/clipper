@@ -15,6 +15,7 @@ export type ClipListItem = {
     is_favorited?: boolean;
     upvote_count?: number;
     downvote_count?: number;
+    source_type?: 'user_submitted' | 'auto_synced' | 'staff_pick';
 };
 
 export type ClipDetail = ClipListItem & {
@@ -25,6 +26,7 @@ export type ClipDetail = ClipListItem & {
     creator_name?: string;
     is_featured?: boolean;
     is_nsfw?: boolean;
+    engagement_score?: number;
 };
 
 export type PaginatedResponse<T> = {

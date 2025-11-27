@@ -21,12 +21,12 @@ Authorization: Bearer <jwt_token>
 
 ```json
 {
-  "data": {
-    // Response data
-  },
-  "meta": {
-    // Metadata (pagination, etc.)
-  }
+    "data": {
+        // Response data
+    },
+    "meta": {
+        // Metadata (pagination, etc.)
+    }
 }
 ```
 
@@ -34,11 +34,11 @@ Authorization: Bearer <jwt_token>
 
 ```json
 {
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human readable error message",
-    "details": {}
-  }
+    "error": {
+        "code": "ERROR_CODE",
+        "message": "Human readable error message",
+        "details": {}
+    }
 }
 ```
 
@@ -70,7 +70,7 @@ Check if the API is running.
 
 ```json
 {
-  "status": "healthy"
+    "status": "healthy"
 }
 ```
 
@@ -88,7 +88,7 @@ Initiate Twitch OAuth flow.
 
 ```json
 {
-  "url": "https://id.twitch.tv/oauth2/authorize?..."
+    "url": "https://id.twitch.tv/oauth2/authorize?..."
 }
 ```
 
@@ -107,13 +107,13 @@ Twitch OAuth callback endpoint.
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": {
-    "id": "123",
-    "username": "johndoe",
-    "email": "john@example.com",
-    "twitch_id": "12345678"
-  }
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "user": {
+        "id": "123",
+        "username": "johndoe",
+        "email": "john@example.com",
+        "twitch_id": "12345678"
+    }
 }
 ```
 
@@ -127,7 +127,7 @@ Log out the current user.
 
 ```json
 {
-  "message": "Logged out successfully"
+    "message": "Logged out successfully"
 }
 ```
 
@@ -155,25 +155,25 @@ Retrieve a list of clips.
 
 ```json
 {
-  "data": [
-    {
-      "id": "AwkwardHelplessSalamanderSwiftRage",
-      "url": "https://clips.twitch.tv/...",
-      "title": "Amazing play!",
-      "streamer": "johndoe",
-      "game": "League of Legends",
-      "views": 1234,
-      "duration": 30,
-      "created_at": "2025-10-20T12:00:00Z",
-      "thumbnail_url": "https://..."
+    "data": [
+        {
+            "id": "AwkwardHelplessSalamanderSwiftRage",
+            "url": "https://clips.twitch.tv/...",
+            "title": "Amazing play!",
+            "streamer": "johndoe",
+            "game": "League of Legends",
+            "views": 1234,
+            "duration": 30,
+            "created_at": "2025-10-20T12:00:00Z",
+            "thumbnail_url": "https://..."
+        }
+    ],
+    "meta": {
+        "page": 1,
+        "limit": 20,
+        "total": 150,
+        "total_pages": 8
     }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 150,
-    "total_pages": 8
-  }
 }
 ```
 
@@ -187,20 +187,20 @@ Get details for a specific clip.
 
 ```json
 {
-  "data": {
-    "id": "AwkwardHelplessSalamanderSwiftRage",
-    "url": "https://clips.twitch.tv/...",
-    "title": "Amazing play!",
-    "streamer": "johndoe",
-    "game": "League of Legends",
-    "views": 1234,
-    "duration": 30,
-    "created_at": "2025-10-20T12:00:00Z",
-    "thumbnail_url": "https://...",
-    "tags": ["epic", "highlight"],
-    "comments_count": 5,
-    "likes_count": 42
-  }
+    "data": {
+        "id": "AwkwardHelplessSalamanderSwiftRage",
+        "url": "https://clips.twitch.tv/...",
+        "title": "Amazing play!",
+        "streamer": "johndoe",
+        "game": "League of Legends",
+        "views": 1234,
+        "duration": 30,
+        "created_at": "2025-10-20T12:00:00Z",
+        "thumbnail_url": "https://...",
+        "tags": ["epic", "highlight"],
+        "comments_count": 5,
+        "likes_count": 42
+    }
 }
 ```
 
@@ -214,8 +214,8 @@ Add a clip to the database.
 
 ```json
 {
-  "twitch_clip_id": "AwkwardHelplessSalamanderSwiftRage",
-  "tags": ["epic", "highlight"]
+    "twitch_clip_id": "AwkwardHelplessSalamanderSwiftRage",
+    "tags": ["epic", "highlight"]
 }
 ```
 
@@ -223,11 +223,11 @@ Add a clip to the database.
 
 ```json
 {
-  "data": {
-    "id": "AwkwardHelplessSalamanderSwiftRage",
-    "url": "https://clips.twitch.tv/...",
-    // ... other clip data
-  }
+    "data": {
+        "id": "AwkwardHelplessSalamanderSwiftRage",
+        "url": "https://clips.twitch.tv/..."
+        // ... other clip data
+    }
 }
 ```
 
@@ -241,7 +241,7 @@ Remove a clip from the database.
 
 ```json
 {
-  "message": "Clip deleted successfully"
+    "message": "Clip deleted successfully"
 }
 ```
 
@@ -264,22 +264,22 @@ Get user's collections.
 
 ```json
 {
-  "data": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Best Plays 2025",
-      "description": "My favorite clips from 2025",
-      "clips_count": 42,
-      "is_public": true,
-      "created_at": "2025-01-01T00:00:00Z",
-      "updated_at": "2025-10-20T12:00:00Z"
+    "data": [
+        {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Best Plays 2025",
+            "description": "My favorite clips from 2025",
+            "clips_count": 42,
+            "is_public": true,
+            "created_at": "2025-01-01T00:00:00Z",
+            "updated_at": "2025-10-20T12:00:00Z"
+        }
+    ],
+    "meta": {
+        "page": 1,
+        "limit": 20,
+        "total": 5
     }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 5
-  }
 }
 ```
 
@@ -293,9 +293,9 @@ Create a new collection.
 
 ```json
 {
-  "name": "Best Plays 2025",
-  "description": "My favorite clips from 2025",
-  "is_public": true
+    "name": "Best Plays 2025",
+    "description": "My favorite clips from 2025",
+    "is_public": true
 }
 ```
 
@@ -303,15 +303,15 @@ Create a new collection.
 
 ```json
 {
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Best Plays 2025",
-    "description": "My favorite clips from 2025",
-    "clips_count": 0,
-    "is_public": true,
-    "created_at": "2025-10-20T12:00:00Z",
-    "updated_at": "2025-10-20T12:00:00Z"
-  }
+    "data": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Best Plays 2025",
+        "description": "My favorite clips from 2025",
+        "clips_count": 0,
+        "is_public": true,
+        "created_at": "2025-10-20T12:00:00Z",
+        "updated_at": "2025-10-20T12:00:00Z"
+    }
 }
 ```
 
@@ -325,20 +325,20 @@ Get collection details with clips.
 
 ```json
 {
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Best Plays 2025",
-    "description": "My favorite clips from 2025",
-    "is_public": true,
-    "created_at": "2025-01-01T00:00:00Z",
-    "updated_at": "2025-10-20T12:00:00Z",
-    "clips": [
-      {
-        "id": "AwkwardHelplessSalamanderSwiftRage",
-        // ... clip data
-      }
-    ]
-  }
+    "data": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Best Plays 2025",
+        "description": "My favorite clips from 2025",
+        "is_public": true,
+        "created_at": "2025-01-01T00:00:00Z",
+        "updated_at": "2025-10-20T12:00:00Z",
+        "clips": [
+            {
+                "id": "AwkwardHelplessSalamanderSwiftRage"
+                // ... clip data
+            }
+        ]
+    }
 }
 ```
 
@@ -352,9 +352,9 @@ Update collection details.
 
 ```json
 {
-  "name": "Best Plays 2025 Updated",
-  "description": "Updated description",
-  "is_public": false
+    "name": "Best Plays 2025 Updated",
+    "description": "Updated description",
+    "is_public": false
 }
 ```
 
@@ -368,7 +368,7 @@ Delete a collection.
 
 ```json
 {
-  "message": "Collection deleted successfully"
+    "message": "Collection deleted successfully"
 }
 ```
 
@@ -382,7 +382,7 @@ Add a clip to a collection.
 
 ```json
 {
-  "clip_id": "AwkwardHelplessSalamanderSwiftRage"
+    "clip_id": "AwkwardHelplessSalamanderSwiftRage"
 }
 ```
 
@@ -391,6 +391,52 @@ Add a clip to a collection.
 Remove a clip from a collection.
 
 **Authentication:** Required (must be owner)
+
+---
+
+### Submissions
+
+#### GET /submissions/metadata
+
+Fetch Twitch clip metadata by URL or ID. Caches results for 1 hour.
+
+Authentication: Required
+
+Query Parameters:
+
+- url (string, required) — Twitch clip URL or clip ID. Supports formats:
+    - `https://clips.twitch.tv/<ClipID>`
+    - `https://www.twitch.tv/<user>/clip/<ClipID>`
+    - `<ClipID>`
+
+Rate limiting:
+
+- 100 requests per hour per authenticated user
+
+Response:
+
+```json
+{
+    "success": true,
+    "data": {
+        "clip_id": "AwkwardHelplessSalamanderSwiftRage",
+        "title": "Amazing play!",
+        "streamer_name": "StreamerName",
+        "game_name": "League of Legends",
+        "view_count": 1234,
+        "created_at": "2025-10-20T12:00:00Z",
+        "thumbnail_url": "https://...",
+        "duration": 30.5,
+        "url": "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+    }
+}
+```
+
+Errors:
+
+- 400 Bad Request — invalid URL/ID (error, field)
+- 429 Too Many Requests — rate limit exceeded
+- 502 Bad Gateway — Twitch API error or unavailable
 
 ---
 
@@ -406,16 +452,16 @@ Get user profile.
 
 ```json
 {
-  "data": {
-    "id": "123",
-    "username": "johndoe",
-    "display_name": "John Doe",
-    "avatar_url": "https://...",
-    "bio": "Twitch clip curator",
-    "joined_at": "2025-01-01T00:00:00Z",
-    "collections_count": 5,
-    "clips_count": 42
-  }
+    "data": {
+        "id": "123",
+        "username": "johndoe",
+        "display_name": "John Doe",
+        "avatar_url": "https://...",
+        "bio": "Twitch clip curator",
+        "joined_at": "2025-01-01T00:00:00Z",
+        "collections_count": 5,
+        "clips_count": 42
+    }
 }
 ```
 
@@ -429,8 +475,8 @@ Update user profile.
 
 ```json
 {
-  "display_name": "John Doe",
-  "bio": "Updated bio"
+    "display_name": "John Doe",
+    "bio": "Updated bio"
 }
 ```
 

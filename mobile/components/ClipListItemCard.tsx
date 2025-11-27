@@ -25,6 +25,8 @@ export default function ClipListItemCard({
                 voteScore={clip.vote_score}
                 videoUrl={detail?.embed_url}
                 thumbnailUrl={detail?.thumbnail_url}
+                sourceType={detail?.source_type}
+                isNSFW={detail?.is_nsfw}
                 onPress={onPress}
             />
         </View>

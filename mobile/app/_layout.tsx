@@ -40,7 +40,10 @@ export default function RootLayout() {
                 <QueryClientProvider client={queryClient}>
                     <StatusBar style='auto' />
                     <Stack>
-                        <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+                        <Stack.Screen
+                            name='(tabs)'
+                            options={{ headerShown: false }}
+                        />
                         <Stack.Screen
                             name='auth/login'
                             options={{ headerShown: false }}

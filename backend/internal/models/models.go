@@ -81,6 +81,8 @@ type Clip struct {
 	ThumbnailURL         *string    `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
 	Duration             *float64   `json:"duration,omitempty" db:"duration"`
 	ViewCount            int        `json:"view_count" db:"view_count"`
+	SourceType           string     `json:"source_type" db:"source_type"`
+	EngagementScore      float64    `json:"engagement_score" db:"engagement_score"`
 	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
 	ImportedAt           time.Time  `json:"imported_at" db:"imported_at"`
 	VoteScore            int        `json:"vote_score" db:"vote_score"`

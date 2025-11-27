@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/utils"
@@ -18,13 +20,15 @@ import (
 type ClipSyncService struct {
 	twitchClient *twitch.Client
 	clipRepo     *repository.ClipRepository
+	cfg          *config.Config
 }
 
 // NewClipSyncService creates a new ClipSyncService
-func NewClipSyncService(twitchClient *twitch.Client, clipRepo *repository.ClipRepository) *ClipSyncService {
+func NewClipSyncService(twitchClient *twitch.Client, clipRepo *repository.ClipRepository, cfg *config.Config) *ClipSyncService {
 	return &ClipSyncService{
 		twitchClient: twitchClient,
 		clipRepo:     clipRepo,
+		cfg:          cfg,
 	}
 }
 
@@ -168,13 +172,13 @@ func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcaste
 }
 
 // SyncTrendingClips fetches trending clips from multiple top games
-func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, clipsPerGame int) (*SyncStats, error) {
+func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, totalClipsTarget int) (*SyncStats, error) {
 	stats := &SyncStats{
 		StartTime: time.Now(),
 	}
 
-	// List of popular game IDs (top games on Twitch as of 2024)
-	// In a real implementation, this could be fetched dynamically from Twitch's Get Top Games endpoint
+	// List of popular game IDs to fetch clips from
+	// We'll fetch from multiple games and select top 1000 by view count
 	popularGameIDs := []string{
 		"32982",  // Grand Theft Auto V
 		"33214",  // Fortnite
@@ -184,27 +188,84 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, clip
 		"512710", // Call of Duty: Warzone
 		"511224", // Apex Legends
 		"29595",  // Dota 2
-		"488552", // Overwatch 2 (Note: This ID may return 404 if category was removed/merged)
+		"488552", // Overwatch 2
 		"518203", // Sports
+		"263490", // Rust
+		"32399",  // Counter-Strike
+		"26936",  // Magic: The Gathering
+		"509658", // Just Chatting
+		"509660", // Art
 	}
 
-	log.Printf("Syncing trending clips from %d games, %d clips per game", len(popularGameIDs), clipsPerGame)
+	log.Printf("Syncing top %d clips by view count from %d games", totalClipsTarget, len(popularGameIDs))
+
+	// Collect all clips from all games
+	type clipWithViewCount struct {
+		clip      *twitch.Clip
+		viewCount int
+	}
+	allClips := make([]clipWithViewCount, 0)
+
+	// Fetch 100 clips per game (max allowed by Twitch API)
+	clipsPerGame := 100
 
 	for _, gameID := range popularGameIDs {
-		gameStats, err := s.SyncClipsByGame(ctx, gameID, hours, clipsPerGame)
+		// Fetch clips for this game
+		startedAt := time.Now().Add(-time.Duration(hours) * time.Hour)
+		endedAt := time.Now()
+
+		params := &twitch.ClipParams{
+			GameID:    gameID,
+			StartedAt: startedAt,
+			EndedAt:   endedAt,
+			First:     clipsPerGame,
+		}
+
+		clipsResp, err := s.twitchClient.GetClips(ctx, params)
 		if err != nil {
-			// Log warning but continue with other games
 			log.Printf("[Warning] Failed to sync game %s: %v", gameID, err)
 			stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to sync game %s: %v", gameID, err))
 			continue
 		}
 
-		// Aggregate stats
-		stats.ClipsFetched += gameStats.ClipsFetched
-		stats.ClipsCreated += gameStats.ClipsCreated
-		stats.ClipsUpdated += gameStats.ClipsUpdated
-		stats.ClipsSkipped += gameStats.ClipsSkipped
-		stats.Errors = append(stats.Errors, gameStats.Errors...)
+		stats.ClipsFetched += len(clipsResp.Data)
+
+		// Add clips to collection
+		for i := range clipsResp.Data {
+			allClips = append(allClips, clipWithViewCount{
+				clip:      &clipsResp.Data[i],
+				viewCount: clipsResp.Data[i].ViewCount,
+			})
+		}
+	}
+
+	// Sort all clips by view count (descending)
+	sort.Slice(allClips, func(i, j int) bool {
+		return allClips[i].viewCount > allClips[j].viewCount
+	})
+
+	// Take top N clips
+	topClips := allClips
+	if len(topClips) > totalClipsTarget {
+		topClips = topClips[:totalClipsTarget]
+	}
+
+	log.Printf("Processing top %d clips out of %d total fetched", len(topClips), len(allClips))
+
+	// Process each top clip
+	for _, clipData := range topClips {
+		if err := s.processClip(ctx, clipData.clip, stats); err != nil {
+			log.Printf("[Warning] Failed to process clip %s: %v", clipData.clip.ID, err)
+			stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to process clip %s: %v", clipData.clip.ID, err))
+		}
+	}
+
+	// Recalculate engagement scores based on configured weights
+	if s.cfg != nil {
+		w := s.cfg.EngagementScoring
+		if err := s.clipRepo.RecalculateEngagementScores(ctx, w.VoteWeight, w.CommentWeight, w.FavoriteWeight, w.ViewWeight); err != nil {
+			log.Printf("[Warning] Failed to recalculate engagement scores: %v", err)
+		}
 	}
 
 	stats.EndTime = time.Now()
@@ -307,6 +368,8 @@ func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 		ThumbnailURL:    utils.StringPtr(twitchClip.ThumbnailURL),
 		Duration:        utils.Float64Ptr(twitchClip.Duration),
 		ViewCount:       twitchClip.ViewCount,
+		SourceType:      "auto_synced",
+		EngagementScore: 0.0,
 		CreatedAt:       twitchClip.CreatedAt,
 		ImportedAt:      time.Now(),
 		VoteScore:       0,

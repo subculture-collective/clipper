@@ -66,9 +66,8 @@ func (s *ClipSyncScheduler) Stop() {
 func (s *ClipSyncScheduler) runSync(ctx context.Context) {
 	log.Println("Starting scheduled clip sync...")
 
-	// Sync trending clips from the last 24 hours
-	// Fetch 10 clips per game from top 10 games = ~100 clips total
-	stats, err := s.syncService.SyncTrendingClips(ctx, 24, 10)
+	// Sync top 1000 clips by view count from the last 24 hours
+	stats, err := s.syncService.SyncTrendingClips(ctx, 24, 1000)
 	if err != nil {
 		log.Printf("Scheduled sync failed: %v", err)
 		return

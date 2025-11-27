@@ -52,11 +52,9 @@ export function ClipCard({ clip }: ClipCardProps) {
     };
 
     const voteColor =
-        clip.vote_score > 0
-            ? 'text-green-600 dark:text-green-400'
-            : clip.vote_score < 0
-            ? 'text-red-600 dark:text-red-400'
-            : 'text-muted-foreground';
+        clip.vote_score > 0 ? 'text-green-600 dark:text-green-400'
+        : clip.vote_score < 0 ? 'text-red-600 dark:text-red-400'
+        : 'text-muted-foreground';
 
     return (
         <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render'>
@@ -70,11 +68,13 @@ export function ClipCard({ clip }: ClipCardProps) {
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === 1 &&
                                 'text-green-600 dark:text-green-400',
-                            !isAuthenticated
-                                ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
-                                : 'cursor-pointer'
+                            !isAuthenticated ?
+                                'opacity-50 cursor-not-allowed hover:bg-transparent'
+                            :   'cursor-pointer'
                         )}
-                        aria-label={isAuthenticated ? 'Upvote' : 'Log in to upvote'}
+                        aria-label={
+                            isAuthenticated ? 'Upvote' : 'Log in to upvote'
+                        }
                         aria-disabled={!isAuthenticated}
                         title={isAuthenticated ? 'Upvote' : 'Log in to vote'}
                     >
@@ -87,7 +87,12 @@ export function ClipCard({ clip }: ClipCardProps) {
                         </svg>
                     </button>
 
-                    <span className={cn('text-sm font-bold min-w-[2rem] text-center', voteColor)}>
+                    <span
+                        className={cn(
+                            'text-sm font-bold min-w-8 text-center',
+                            voteColor
+                        )}
+                    >
                         {formatNumber(clip.vote_score)}
                     </span>
 
@@ -98,11 +103,13 @@ export function ClipCard({ clip }: ClipCardProps) {
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === -1 &&
                                 'text-red-600 dark:text-red-400',
-                            !isAuthenticated
-                                ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
-                                : 'cursor-pointer'
+                            !isAuthenticated ?
+                                'opacity-50 cursor-not-allowed hover:bg-transparent'
+                            :   'cursor-pointer'
                         )}
-                        aria-label={isAuthenticated ? 'Downvote' : 'Log in to downvote'}
+                        aria-label={
+                            isAuthenticated ? 'Downvote' : 'Log in to downvote'
+                        }
                         aria-disabled={!isAuthenticated}
                         title={isAuthenticated ? 'Downvote' : 'Log in to vote'}
                     >
@@ -133,10 +140,21 @@ export function ClipCard({ clip }: ClipCardProps) {
                             </div>
                         )}
 
-                        {/* NSFW badge */}
-                        {clip.is_nsfw && (
-                            <div className='top-2 left-2 absolute'>
-                                <Badge variant='error'>NSFW</Badge>
+                        {/* Source/NSFW badges (top-left) */}
+                        {(clip.source_type || clip.is_nsfw) && (
+                            <div className='top-2 left-2 absolute flex gap-2'>
+                                {clip.source_type === 'user_submitted' && (
+                                    <Badge variant='success'>Community</Badge>
+                                )}
+                                {clip.source_type === 'auto_synced' && (
+                                    <Badge variant='default'>Discovery</Badge>
+                                )}
+                                {clip.source_type === 'staff_pick' && (
+                                    <Badge variant='warning'>Staff Pick</Badge>
+                                )}
+                                {clip.is_nsfw && (
+                                    <Badge variant='error'>NSFW</Badge>
+                                )}
                             </div>
                         )}
 
@@ -187,17 +205,14 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                     {/* Tags */}
                     <div className='mb-3'>
-                        <TagList
-                            clipId={clip.id}
-                            maxVisible={5}
-                        />
+                        <TagList clipId={clip.id} maxVisible={5} />
                     </div>
 
                     {/* Action bar */}
                     <div className='flex flex-wrap items-center gap-3 xs:gap-4 text-xs xs:text-sm'>
                         <Link
                             to={`/clip/${clip.id}#comments`}
-                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px] cursor-pointer'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-11 cursor-pointer'
                         >
                             <svg
                                 className='w-5 h-5 shrink-0'
@@ -224,23 +239,26 @@ export function ClipCard({ clip }: ClipCardProps) {
                             onClick={handleFavorite}
                             disabled={!isAuthenticated}
                             className={cn(
-                                'flex items-center gap-1.5 transition-colors touch-target min-h-[44px]',
-                                clip.is_favorited
-                                    ? 'text-red-500 hover:text-red-400'
-                                    : 'text-muted-foreground hover:text-foreground',
-                                !isAuthenticated
-                                    ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
-                                    : 'cursor-pointer'
+                                'flex items-center gap-1.5 transition-colors touch-target min-h-11',
+                                clip.is_favorited ?
+                                    'text-red-500 hover:text-red-400'
+                                :   'text-muted-foreground hover:text-foreground',
+                                !isAuthenticated ?
+                                    'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                :   'cursor-pointer'
                             )}
                             aria-label={
-                                !isAuthenticated
-                                    ? 'Log in to favorite'
-                                    : clip.is_favorited
-                                    ? 'Remove from favorites'
-                                    : 'Add to favorites'
+                                !isAuthenticated ? 'Log in to favorite'
+                                : clip.is_favorited ?
+                                    'Remove from favorites'
+                                :   'Add to favorites'
                             }
                             aria-disabled={!isAuthenticated}
-                            title={!isAuthenticated ? 'Log in to favorite' : undefined}
+                            title={
+                                !isAuthenticated ? 'Log in to favorite' : (
+                                    undefined
+                                )
+                            }
                         >
                             <svg
                                 className='w-5 h-5 shrink-0'
@@ -261,7 +279,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         </button>
 
                         <button
-                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px] cursor-pointer'
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-11 cursor-pointer'
                             onClick={() => {
                                 navigator.clipboard.writeText(
                                     `${window.location.origin}/clip/${clip.id}`

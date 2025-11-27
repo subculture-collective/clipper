@@ -24,6 +24,9 @@ func TestClipRepository_ListWithFilters_Discussed(t *testing.T) {
 	repo := NewClipRepository(pool)
 	ctx := context.Background()
 
+	// Ensure a clean slate for this test
+	testutil.TruncateTables(t, pool, "clips")
+
 	// Create test clips with different comment counts
 	clip1 := &models.Clip{
 		ID:              uuid.New(),
@@ -352,4 +355,118 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 	if len(clips) > 0 && clips[0].Language != nil && *clips[0].Language != "es" {
 		t.Errorf("Expected Spanish clip, got language: %s", *clips[0].Language)
 	}
+}
+
+func TestClipRepository_ListWithFilters_SourceType(t *testing.T) {
+	// Skip if not in integration test mode
+	if testing.Short() {
+		t.Skip("Skipping integration test")
+	}
+
+	pool := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, pool)
+
+	repo := NewClipRepository(pool)
+	ctx := context.Background()
+
+	// Create clips with different source types
+	userClip := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    "src-user-1",
+		TwitchClipURL:   "https://clips.twitch.tv/src-user-1",
+		EmbedURL:        "https://clips.twitch.tv/embed?clip=src-user-1",
+		Title:           "User Submitted Clip",
+		CreatorName:     "creatorU",
+		BroadcasterName: "broadU",
+		BroadcasterID:   testutil.StringPtr("u1"),
+		CreatedAt:       time.Now().Add(-1 * time.Hour),
+		ImportedAt:      time.Now(),
+		SourceType:      "user_submitted",
+		EngagementScore: 1.0,
+	}
+
+	autoClip := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    "src-auto-1",
+		TwitchClipURL:   "https://clips.twitch.tv/src-auto-1",
+		EmbedURL:        "https://clips.twitch.tv/embed?clip=src-auto-1",
+		Title:           "Auto Synced Clip",
+		CreatorName:     "creatorA",
+		BroadcasterName: "broadA",
+		BroadcasterID:   testutil.StringPtr("a1"),
+		CreatedAt:       time.Now().Add(-2 * time.Hour),
+		ImportedAt:      time.Now(),
+		SourceType:      "auto_synced",
+		EngagementScore: 2.0,
+	}
+
+	staffClip := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    "src-staff-1",
+		TwitchClipURL:   "https://clips.twitch.tv/src-staff-1",
+		EmbedURL:        "https://clips.twitch.tv/embed?clip=src-staff-1",
+		Title:           "Staff Pick Clip",
+		CreatorName:     "creatorS",
+		BroadcasterName: "broadS",
+		BroadcasterID:   testutil.StringPtr("s1"),
+		CreatedAt:       time.Now().Add(-3 * time.Hour),
+		ImportedAt:      time.Now(),
+		SourceType:      "staff_pick",
+		EngagementScore: 3.0,
+	}
+
+	if err := repo.Create(ctx, userClip); err != nil {
+		t.Fatalf("Failed to create user clip: %v", err)
+	}
+	if err := repo.Create(ctx, autoClip); err != nil {
+		t.Fatalf("Failed to create auto clip: %v", err)
+	}
+	if err := repo.Create(ctx, staffClip); err != nil {
+		t.Fatalf("Failed to create staff clip: %v", err)
+	}
+
+	// Helper to assert all results match expected source type
+	assertAllSource := func(clips []models.Clip, expected string) {
+		for i, c := range clips {
+			if c.SourceType != expected {
+				t.Errorf("Clip %d has wrong source_type: got %s, want %s", i, c.SourceType, expected)
+			}
+		}
+	}
+
+	// Filter user_submitted
+	st := "user_submitted"
+	filters := ClipFilters{Sort: "new", SourceType: &st}
+	clips, total, err := repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list user_submitted clips: %v", err)
+	}
+	if total < 1 {
+		t.Errorf("Expected at least 1 user_submitted clip, got %d", total)
+	}
+	assertAllSource(clips, "user_submitted")
+
+	// Filter auto_synced
+	st = "auto_synced"
+	filters = ClipFilters{Sort: "new", SourceType: &st}
+	clips, total, err = repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list auto_synced clips: %v", err)
+	}
+	if total < 1 {
+		t.Errorf("Expected at least 1 auto_synced clip, got %d", total)
+	}
+	assertAllSource(clips, "auto_synced")
+
+	// Filter staff_pick
+	st = "staff_pick"
+	filters = ClipFilters{Sort: "new", SourceType: &st}
+	clips, total, err = repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list staff_pick clips: %v", err)
+	}
+	if total < 1 {
+		t.Errorf("Expected at least 1 staff_pick clip, got %d", total)
+	}
+	assertAllSource(clips, "staff_pick")
 }
