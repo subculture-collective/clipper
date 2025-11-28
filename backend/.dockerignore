@@ -20,7 +20,11 @@ testdata/
 
 # Environment files
 .env
-.env.*
+.env.local
+.env.*.local
+.env.production
+.env.production.example
+.env.backup
 !.env.example
 
 # IDE
