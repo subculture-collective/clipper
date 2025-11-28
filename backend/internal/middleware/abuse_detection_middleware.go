@@ -26,6 +26,12 @@ const (
 // AbuseDetectionMiddleware monitors and blocks abusive IPs
 func AbuseDetectionMiddleware(redis *redispkg.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Skip health check endpoints
+		if c.Request.URL.Path == "/health" || c.Request.URL.Path == "/health/ready" || c.Request.URL.Path == "/health/live" {
+			c.Next()
+			return
+		}
+
 		// Skip if Redis client is nil (for testing)
 		if redis == nil {
 			c.Next()
