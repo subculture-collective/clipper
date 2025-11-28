@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: clipper-frontend
+  labels:
+    app: clipper-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: clipper-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

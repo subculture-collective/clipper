@@ -1,0 +1,53 @@
+name: Frontend Env Policy
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+      - 'scripts/check-frontend-env.sh'
+      - '.github/workflows/frontend-env-policy.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+      - 'scripts/check-frontend-env.sh'
+      - '.github/workflows/frontend-env-policy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-frontend-env:
+    name: Enforce VITE-only frontend envs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x scripts/check-frontend-env.sh
+
+      - name: Check frontend .env.production
+        run: scripts/check-frontend-env.sh frontend/.env.production
+
+      - name: Check optional .env.production.local
+        run: scripts/check-frontend-env.sh frontend/.env.production.local
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend (triggers prebuild guard)
+        working-directory: frontend
+        env:
+          CI: true
+        run: npm run build
