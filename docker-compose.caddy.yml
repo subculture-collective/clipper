@@ -1,4 +1,3 @@
-version: "3.8"
 
 # Production docker-compose optimized for running behind a Caddy reverse proxy
 # - Frontend does NOT publish 80/443 to host; Caddy handles public ports
@@ -26,8 +25,8 @@ services:
       - GIN_MODE=release
       - BASE_URL=https://clpr.tv
       - ENVIRONMENT=production
-      - TWITCH_CLIENT_ID=lwvcwecd9l10nok5z180k5t1c894hu
-      - TWITCH_CLIENT_SECRET=344fnibpp3kxrvwvj7ikji89jaqvym
+      - TWITCH_CLIENT_ID=${TWITCH_CLIENT_ID}
+      - TWITCH_CLIENT_SECRET=${TWITCH_CLIENT_SECRET}
       - TWITCH_REDIRECT_URI=https://clpr.tv/api/v1/auth/twitch/callback
       - CORS_ALLOWED_ORIGINS=https://clpr.tv
       - LOG_LEVEL=info
