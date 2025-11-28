@@ -297,6 +297,14 @@ func main() {
 	// Apply abuse detection middleware
 	r.Use(middleware.AbuseDetectionMiddleware(redisClient))
 
+	// Public health endpoints (before CSRF middleware)
+	// Basic health check
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "healthy",
+		})
+	})
+
 	// Apply CSRF protection middleware (secure in production)
 	isProduction := cfg.Server.GinMode == "release"
 	r.Use(middleware.CSRFMiddleware(redisClient, isProduction))
@@ -312,13 +320,7 @@ func main() {
 	r.GET("/sitemap.xml", seoHandler.GetSitemap)
 	r.GET("/robots.txt", seoHandler.GetRobotsTxt)
 
-	// Health check endpoints
-	// Basic health check
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "healthy",
-		})
-	})
+	// Health check endpoints (additional checks requiring middleware)
 
 	// Readiness check - indicates if the service is ready to serve traffic
 	r.GET("/health/ready", func(c *gin.Context) {
