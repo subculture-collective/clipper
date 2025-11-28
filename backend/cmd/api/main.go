@@ -727,11 +727,11 @@ func main() {
 	go reputationScheduler.Start(context.Background())
 
 	// Start hot score scheduler (runs every 5 minutes)
-	hotScoreScheduler := scheduler.NewHotScoreScheduler(clipRepo, 5)
+	hotScoreScheduler := scheduler.NewHotScoreScheduler(clipRepo, cfg.Jobs.HotClipsRefreshIntervalMinutes)
 	go hotScoreScheduler.Start(context.Background())
 
 	// Start webhook retry scheduler (runs every 1 minute)
-	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, 1, 100)
+	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, cfg.Jobs.WebhookRetryIntervalMinutes, cfg.Jobs.WebhookRetryBatchSize)
 	go webhookRetryScheduler.Start(context.Background())
 
 	// Start embedding scheduler if embedding service is available (runs based on configured interval)
