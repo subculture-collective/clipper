@@ -22,6 +22,7 @@ type Config struct {
 	Email        EmailConfig
 	Embedding    EmbeddingConfig
 	FeatureFlags FeatureFlagsConfig
+	Jobs         JobsConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -124,6 +125,13 @@ type FeatureFlagsConfig struct {
 	DiscoveryLists       bool
 }
 
+// JobsConfig holds background job interval configuration
+type JobsConfig struct {
+	HotClipsRefreshIntervalMinutes  int
+	WebhookRetryIntervalMinutes     int
+	WebhookRetryBatchSize           int
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -210,6 +218,11 @@ func Load() (*Config, error) {
 			Analytics:            getEnv("FEATURE_ANALYTICS", "true") == "true",
 			Moderation:           getEnv("FEATURE_MODERATION", "true") == "true",
 			DiscoveryLists:       getEnv("FEATURE_DISCOVERY_LISTS", "false") == "true",
+		},
+		Jobs: JobsConfig{
+			HotClipsRefreshIntervalMinutes: getEnvInt("HOT_CLIPS_REFRESH_INTERVAL_MINUTES", 5),
+			WebhookRetryIntervalMinutes:    getEnvInt("WEBHOOK_RETRY_INTERVAL_MINUTES", 1),
+			WebhookRetryBatchSize:          getEnvInt("WEBHOOK_RETRY_BATCH_SIZE", 100),
 		},
 	}
 
