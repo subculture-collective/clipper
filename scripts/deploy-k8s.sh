@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# deploy-k8s.sh - Build and deploy clipper backend to Kubernetes
+# deploy-k8s.sh - Build and deploy clipper backend & frontend to Kubernetes
 set -euo pipefail
+
+# Secrets are now provisioned by Vault (agent sidecar / external secret management).
+# This script no longer applies in-repo Secret manifests. Ensure Vault setup is complete
+# before running (backend requires rendered /vault/secrets/backend.env).
 
 cd "$(dirname "$0")/.."
 
@@ -22,7 +26,6 @@ kubectl apply -f backend/k8s/postgres.yaml
 kubectl apply -f backend/k8s/redis.yaml
 kubectl apply -f backend/k8s/opensearch.yaml
 kubectl apply -f backend/k8s/configmap-backend.yaml
-kubectl apply -f backend/k8s/secret-backend.yaml
 kubectl apply -f backend/k8s/deployment-backend.yaml
 kubectl apply -f backend/k8s/service-backend.yaml
 kubectl apply -f backend/k8s/hpa-backend.yaml

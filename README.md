@@ -20,56 +20,45 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 
 ## 📚 Documentation
 
-### For Users
+**[📖 Browse Full Documentation](docs_new/index.md)** - Complete documentation hub with all guides, references, and resources.
 
-- **[User Guide](docs/user-guide.md)** - How to use Clipper
-- **[FAQ](docs/faq.md)** - Frequently asked questions
-- **[Community Guidelines](docs/guidelines.md)** - Rules and best practices
+### Quick Links
 
-### For Developers
+**For Users:**
 
-- **[Development Setup](docs/development.md)** - Get started with development
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
-- **[Mobile Architecture](docs/MOBILE_ARCHITECTURE.md)** - Mobile app architecture and patterns
-- **[Mobile Implementation Guide](docs/MOBILE_IMPLEMENTATION_GUIDE.md)** - How to develop mobile apps
-- **[API Documentation](docs/API.md)** - REST API reference
-- **[Database Documentation](docs/database.md)** - Database management and migrations
-- **[Search Platform](docs/SEARCH.md)** - OpenSearch setup and usage
-- **[Semantic Search Architecture](docs/SEMANTIC_SEARCH_ARCHITECTURE.md)** - Hybrid BM25 + vector search
-- **[Architecture Decision Records](docs/adr/)** - Key architectural decisions
-- **[Testing Guide](docs/TESTING.md)** - Testing strategy and tools
-- **[RBAC](docs/RBAC.md)** - Role-based access control and admin panel access
+- [User Guide](docs_new/users/user-guide.md) - How to use Clipper
+- [FAQ](docs_new/users/faq.md) - Frequently asked questions
+- [Community Guidelines](docs_new/users/community-guidelines.md) - Rules and best practices
 
-### Premium & Subscriptions
+**For Developers:**
 
-- **[Premium Overview](docs/PREMIUM_OVERVIEW.md)** - Complete guide to premium features and documentation index
-- **[Premium Tiers](docs/PREMIUM_TIERS.md)** - Pricing strategy, tier benefits, and competitive analysis
-- **[Entitlement Matrix](docs/ENTITLEMENT_MATRIX.md)** - Feature gates per platform with implementation details
-- **[Trials and Discounts](docs/TRIALS_AND_DISCOUNTS.md)** - Trial periods, promotional campaigns, and coupon system
-- **[Subscription Privileges Matrix](docs/SUBSCRIPTION_PRIVILEGES_MATRIX.md)** - Quick reference for features by tier
-- **[Stripe Subscriptions](docs/SUBSCRIPTIONS.md)** - Stripe integration setup and payment processing
+- [Development Setup](docs_new/setup/development.md) - Get started with development
+- [Backend Architecture](docs_new/backend/architecture.md) - System design and architecture
+- [Frontend Architecture](docs_new/frontend/architecture.md) - React frontend patterns
+- [Mobile Architecture](docs_new/mobile/architecture.md) - React Native app architecture
+- [API Reference](docs_new/backend/api.md) - Complete REST API documentation
+- [Database Guide](docs_new/backend/database.md) - Schema, migrations, and queries
+- [Testing Guide](docs_new/backend/testing.md) - Testing strategy and tools
 
-### Architecture Decisions
+**Premium & Subscriptions:**
 
-- **[RFC 001: Mobile Framework Selection](docs/rfcs/001-mobile-framework-selection.md)** - Decision to use React Native + Expo
-- **[RFC 002: Advanced Query Language](docs/rfcs/002-advanced-query-language.md)** - Human-readable query syntax for search
+- [Premium Overview](docs_new/premium/overview.md) - Features and benefits
+- [Premium Tiers](docs_new/premium/tiers.md) - Pricing and tier comparison
+- [Stripe Integration](docs_new/premium/stripe.md) - Payment processing
 
-### Operations
+**Operations:**
 
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
-- **[Preflight Checklist](docs/PREFLIGHT_CHECKLIST.md)** - Pre-deployment validation checklist
-- **[Migration Plan](docs/MIGRATION_PLAN.md)** - Database migration procedures and strategies
-- **[Feature Flags](docs/FEATURE_FLAGS.md)** - Feature flag system and gradual rollout guide
-- **[Infrastructure Guide](docs/INFRASTRUCTURE.md)** - Infrastructure setup
-- **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration and deployment
-- **[Monitoring Guide](docs/MONITORING.md)** - Error tracking and monitoring setup
-- **[Runbook](docs/RUNBOOK.md)** - Operational procedures and incident triage
+- [Deployment Guide](docs_new/operations/deployment.md) - Production deployment
+- [Infrastructure](docs_new/operations/infra.md) - Architecture and scaling
+- [CI/CD Pipeline](docs_new/operations/cicd.md) - Continuous integration
+- [Monitoring](docs_new/operations/monitoring.md) - Metrics and alerting
+- [Runbook](docs_new/operations/runbook.md) - Operational procedures
 
-### Contributing
+**Contributing:**
 
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
-- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
-- **[Changelog](CHANGELOG.md)** - Version history and changes
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community standards
+- [Changelog](docs_new/changelog.md) - Version history
 
 ## 🚦 Project Status
 
