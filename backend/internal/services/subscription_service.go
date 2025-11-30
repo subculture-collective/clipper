@@ -220,8 +220,8 @@ func (s *SubscriptionService) GetSubscriptionByUserID(ctx context.Context, userI
 
 // HandleWebhook processes Stripe webhook events
 func (s *SubscriptionService) HandleWebhook(ctx context.Context, payload []byte, signature string) error {
-	// Verify webhook signature
-	event, err := webhook.ConstructEvent(payload, signature, s.cfg.Stripe.WebhookSecret)
+	// Verify webhook signature against all configured secrets
+	event, err := s.verifyWebhookSignature(payload, signature)
 	if err != nil {
 		log.Printf("[WEBHOOK] Signature verification failed: %v", err)
 		return fmt.Errorf("webhook signature verification failed: %w", err)
@@ -255,6 +255,26 @@ func (s *SubscriptionService) HandleWebhook(ctx context.Context, payload []byte,
 
 	log.Printf("[WEBHOOK] Successfully processed event: %s", event.ID)
 	return nil
+}
+
+// verifyWebhookSignature attempts verification with each configured Stripe webhook secret
+// so the service can honor Stripe's per-endpoint multiple secret requirement.
+func (s *SubscriptionService) verifyWebhookSignature(payload []byte, signature string) (stripe.Event, error) {
+	var lastErr error
+	for _, secret := range s.cfg.Stripe.WebhookSecrets {
+		if secret == "" {
+			continue
+		}
+		event, err := webhook.ConstructEvent(payload, signature, secret)
+		if err == nil {
+			return event, nil
+		}
+		lastErr = err
+	}
+	if lastErr == nil {
+		lastErr = errors.New("no webhook secrets configured")
+	}
+	return stripe.Event{}, lastErr
 }
 
 // processWebhookWithRetry processes a webhook event and handles the routing to specific handlers

@@ -1,0 +1,57 @@
+name: Documentation Validation
+
+on:
+  pull_request:
+    paths:
+      - 'docs_new/**'
+      - '.markdownlint.jsonc'
+      - '.cspell.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs_new/**'
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint markdown files
+        run: pnpm docs:lint
+        continue-on-error: false
+
+      - name: Check spelling
+        run: pnpm docs:spell
+        continue-on-error: false
+
+      - name: Check links
+        run: pnpm docs:links
+        continue-on-error: true  # Allow failures for external links
+
+      - name: Comment PR with results
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Documentation validation failed. Please check the logs for details.'
+            })

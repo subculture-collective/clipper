@@ -331,6 +331,13 @@ Watch docs directory for changes:
 - Track changes and approvals
 - Discuss improvements
 
+## Deployment Notes
+
+1. Ensure `/docs` directory is included in Docker image
+2. Set appropriate file permissions (read-only)
+3. Consider caching doc tree in Redis for performance
+4. Monitor API usage to prevent abuse
+
 ## Testing
 
 ### Manual Testing

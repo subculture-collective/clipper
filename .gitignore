@@ -4,6 +4,9 @@
 .env.*.local
 backend/.env
 secrets/
+vault/approle/role_id
+vault/approle/secret_id
+vault/rendered/backend.env
 
 # Dependencies
 node_modules/

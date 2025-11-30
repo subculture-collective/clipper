@@ -18,11 +18,11 @@ services:
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--web.enable-lifecycle"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alerts.yml:/etc/prometheus/alerts.yml
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "19090:9090"
     networks:
       - clipper-network
       - monitoring
@@ -39,10 +39,10 @@ services:
       - GF_SERVER_ROOT_URL=https://monitoring.clipper.example.com
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana-datasources:/etc/grafana/provisioning/datasources
+      - ./dashboards:/etc/grafana/provisioning/dashboards
+      - ./datasources:/etc/grafana/provisioning/datasources
     ports:
-      - "3000:3000"
+      - "33000:3000"
     depends_on:
       - prometheus
     networks:
@@ -57,10 +57,10 @@ services:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
     volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
       - alertmanager_data:/alertmanager
     ports:
-      - "9093:9093"
+      - "19093:9093"
     networks:
       - monitoring
 
@@ -79,7 +79,7 @@ services:
       - /sys:/host/sys:ro
       - /:/host:ro
     ports:
-      - "9100:9100"
+      - "19100:9100"
     networks:
       - monitoring
 
@@ -96,7 +96,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "8081:8080"
+      - "18081:8080"
     networks:
       - monitoring
 
@@ -108,7 +108,7 @@ services:
     environment:
       - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-clipper}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipper_db}?sslmode=disable
     ports:
-      - "9187:9187"
+      - "19187:9187"
     networks:
       - clipper-network
       - monitoring
@@ -122,7 +122,7 @@ services:
       - REDIS_ADDR=redis://redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     ports:
-      - "9121:9121"
+      - "19121:9121"
     networks:
       - clipper-network
       - monitoring
@@ -137,7 +137,7 @@ services:
     command:
       - "-nginx.scrape-uri=http://host.docker.internal:80/nginx_status"
     ports:
-      - "9113:9113"
+      - "19113:9113"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -152,7 +152,7 @@ services:
     volumes:
       - loki_data:/loki
     ports:
-      - "3100:3100"
+      - "13100:3100"
     networks:
       - monitoring
 
@@ -164,7 +164,7 @@ services:
     volumes:
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+      - ./promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
     networks:
       - monitoring

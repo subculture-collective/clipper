@@ -1,0 +1,27 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": [
+    "node_modules",
+    "frontend/node_modules",
+    "mobile/node_modules",
+    "**/dist/**",
+    "**/.obsidian/**"
+  ],
+  "words": [
+    "OpenSearch",
+    "pgvector",
+    "Gin",
+    "TanStack",
+    "Playwright",
+    "Vitest",
+    "Zustand",
+    "Expo",
+    "HNSW",
+    "BM25",
+    "JWT",
+    "OAuth",
+    "Karma",
+    "Dunning"
+  ]
+}
