@@ -8,7 +8,7 @@
     "docs:check": "npm run docs:lint && npm run docs:spell"
   },
   "devDependencies": {
-    "markdownlint-cli2": "^0.15.0",
+    "markdownlint-cli2": "^0.19.1",
     "cspell": "^8.11.0"
   }
 }
