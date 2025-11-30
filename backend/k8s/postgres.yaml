@@ -22,16 +22,6 @@ data:
   POSTGRES_DB: clipper_db
   POSTGRES_USER: clipper
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-secret
-  labels:
-    app: postgres
-type: Opaque
-stringData:
-  POSTGRES_PASSWORD: REPLACE_ME_SECURE_PASSWORD
----
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

@@ -1,0 +1,4 @@
+# Ignore local dev endpoints and examples
+http://localhost:*
+https://localhost:*
+clips.twitch.tv/*

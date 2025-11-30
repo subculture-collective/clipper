@@ -1,30 +1,19 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 type DocsHandler struct {
-	docsPath     string
-	githubOwner  string
-	githubRepo   string
-	githubBranch string
-}
-
-type DocEntry struct {
-	Name     string      `json:"name"`
-	Path     string      `json:"path"`
-	Type     string      `json:"type"` // "file" or "directory"
-	Children []DocEntry `json:"children,omitempty"`
+	docsPath      string
+	githubOwner   string
+	githubRepo    string
+	githubBranch  string
 }
 
 type SearchResult struct {
@@ -43,13 +32,12 @@ func NewDocsHandler(docsPath, githubOwner, githubRepo, githubBranch string) *Doc
 	}
 }
 
-// GetDocsList returns the hierarchical tree of all documentation files
+// GetDocsList returns the list of all available documentation files
+// GET /api/v1/docs
 func (h *DocsHandler) GetDocsList(c *gin.Context) {
 	docs, err := h.buildDocsTree(h.docsPath, "")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to load documentation tree",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list documentation"})
 		return
 	}
 
@@ -59,60 +47,57 @@ func (h *DocsHandler) GetDocsList(c *gin.Context) {
 }
 
 // GetDoc returns the content of a specific documentation file
+// GET /api/v1/docs/:path
 func (h *DocsHandler) GetDoc(c *gin.Context) {
-	// Get path from wildcard parameter
 	docPath := c.Param("path")
-	if docPath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Document path is required",
-		})
-		return
-	}
-
-	// Remove leading slash
-	docPath = strings.TrimPrefix(docPath, "/")
 
 	// Security: prevent directory traversal
 	if strings.Contains(docPath, "..") {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid document path",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document path"})
 		return
 	}
 
-	// Add .md extension if not present
+	// Ensure .md extension
 	if !strings.HasSuffix(docPath, ".md") {
 		docPath += ".md"
 	}
 
-	// Construct full file path
 	fullPath := filepath.Join(h.docsPath, docPath)
 
-	// Verify file exists and is within docs directory
-	if !strings.HasPrefix(fullPath, h.docsPath) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid document path",
-		})
+	// Check if file exists and is within docs directory
+	absDocsPath, err := filepath.Abs(h.docsPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	// Read file content
+	absFilePath, err := filepath.Abs(fullPath)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
+		return
+	}
+
+	if !strings.HasPrefix(absFilePath, absDocsPath) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
 	content, err := os.ReadFile(fullPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Document not found",
-			})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to read document",
-			})
-		}
+		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
 		return
 	}
 
 	// Generate GitHub edit URL
-	githubURL := h.generateGitHubURL(docPath)
+	githubURL := ""
+	if h.githubOwner != "" && h.githubRepo != "" {
+		// Convert relative path to GitHub URL
+		cleanPath := strings.TrimPrefix(docPath, "/")
+		if !strings.HasSuffix(cleanPath, ".md") {
+			cleanPath += ".md"
+		}
+		githubURL = h.generateGitHubURL(cleanPath)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"path":       docPath,
@@ -121,179 +106,103 @@ func (h *DocsHandler) GetDoc(c *gin.Context) {
 	})
 }
 
-// SearchDocs searches for documents matching the query
+// SearchDocs performs full-text search across documentation files
+// GET /api/v1/docs/search?q=query
 func (h *DocsHandler) SearchDocs(c *gin.Context) {
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Query parameter 'q' is required",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
 		return
 	}
 
-	results, err := h.searchDocuments(h.docsPath, query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Search failed",
-		})
-		return
-	}
-
-	// Sort by score (highest first)
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Score > results[j].Score
-	})
+	query = strings.ToLower(query)
+	results := h.searchDocuments(h.docsPath, "", query)
 
 	c.JSON(http.StatusOK, gin.H{
 		"query":   query,
-		"count":   len(results),
 		"results": results,
+		"count":   len(results),
 	})
 }
 
-// searchDocuments recursively searches all markdown files for the query
-func (h *DocsHandler) searchDocuments(dir, query string) ([]SearchResult, error) {
-	var results []SearchResult
-	queryLower := strings.ToLower(query)
-
-	err := filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Skip directories and non-markdown files
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".md") {
-			return nil
-		}
-
-		// Skip archive and hidden files
-		if strings.Contains(path, "archive") || strings.HasPrefix(info.Name(), ".") {
-			return nil
-		}
-
-		// Read file content
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return nil // Skip files we can't read
-		}
-
-		// Search for query in content (case-insensitive)
-		contentLower := strings.ToLower(string(content))
-		if !strings.Contains(contentLower, queryLower) {
-			// Check if filename matches
-			if !strings.Contains(strings.ToLower(info.Name()), queryLower) {
-				return nil
-			}
-		}
-
-		// Get relative path from docs directory
-		relPath, _ := filepath.Rel(dir, path)
-		relPath = strings.TrimSuffix(relPath, ".md")
-
-		// Extract matching lines (up to 3)
-		lines := strings.Split(string(content), "\n")
-		matches := []string{}
-		score := 0
-
-		// Check filename match (higher score)
-		if strings.Contains(strings.ToLower(info.Name()), queryLower) {
-			score += 5
-		}
-
-		for _, line := range lines {
-			if strings.Contains(strings.ToLower(line), queryLower) {
-				// Truncate long lines
-				if len(line) > 150 {
-					// Find query position and show context
-					idx := strings.Index(strings.ToLower(line), queryLower)
-					start := max(0, idx-50)
-					end := min(len(line), idx+100)
-					line = "..." + line[start:end] + "..."
-				}
-				matches = append(matches, strings.TrimSpace(line))
-				score++
-				if len(matches) >= 3 {
-					break
-				}
-			}
-		}
-
-		if len(matches) > 0 || score > 0 {
-			results = append(results, SearchResult{
-				Path:    relPath,
-				Name:    strings.TrimSuffix(info.Name(), ".md"),
-				Matches: matches,
-				Score:   score,
-			})
-		}
-
-		return nil
-	})
-
-	return results, err
-}
-
-// generateGitHubURL creates a GitHub edit URL for the given doc path
-func (h *DocsHandler) generateGitHubURL(docPath string) string {
-	return fmt.Sprintf(
-		"https://github.com/%s/%s/edit/%s/docs/%s",
-		h.githubOwner,
-		h.githubRepo,
-		h.githubBranch,
-		docPath,
-	)
-}
-
-// buildDocsTree recursively builds the documentation tree
-func (h *DocsHandler) buildDocsTree(dir string, relativePath string) ([]DocEntry, error) {
-	var entries []DocEntry
-
-	files, err := os.ReadDir(dir)
+func (h *DocsHandler) searchDocuments(basePath, relativePath, query string) []SearchResult {
+	currentPath := filepath.Join(basePath, relativePath)
+	entries, err := os.ReadDir(currentPath)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	for _, file := range files {
-		// Skip hidden files and archive directory
-		if strings.HasPrefix(file.Name(), ".") || file.Name() == "archive" {
+	var results []SearchResult
+
+	for _, entry := range entries {
+		// Skip hidden files and archive
+		if strings.HasPrefix(entry.Name(), ".") || entry.Name() == "archive" {
 			continue
 		}
 
-		entryPath := filepath.Join(relativePath, file.Name())
-		fullPath := filepath.Join(dir, file.Name())
+		name := entry.Name()
+		path := filepath.Join(relativePath, name)
 
-		if file.IsDir() {
-			// Recursively process subdirectories
-			children, err := h.buildDocsTree(fullPath, entryPath)
+		if entry.IsDir() {
+			// Recursively search subdirectories
+			subResults := h.searchDocuments(basePath, path, query)
+			results = append(results, subResults...)
+		} else if strings.HasSuffix(name, ".md") {
+			// Search in markdown file
+			fullPath := filepath.Join(basePath, path)
+			content, err := os.ReadFile(fullPath)
 			if err != nil {
 				continue
 			}
-			entries = append(entries, DocEntry{
-				Name:     file.Name(),
-				Path:     entryPath,
-				Type:     "directory",
-				Children: children,
-			})
-		} else if strings.HasSuffix(file.Name(), ".md") {
-			// Only include markdown files
-			name := strings.TrimSuffix(file.Name(), ".md")
-			entries = append(entries, DocEntry{
-				Name: name,
-				Path: strings.TrimSuffix(entryPath, ".md"),
-				Type: "file",
-			})
+
+			contentLower := strings.ToLower(string(content))
+			lines := strings.Split(string(content), "\n")
+
+			// Check if query matches
+			if strings.Contains(contentLower, query) {
+				matches := []string{}
+				score := 0
+
+				// Find matching lines (up to 3)
+				for _, line := range lines {
+					if len(matches) >= 3 {
+						break
+					}
+					if strings.Contains(strings.ToLower(line), query) {
+						// Trim and add context
+						trimmed := strings.TrimSpace(line)
+						if len(trimmed) > 100 {
+							// Find query position and add context
+							idx := strings.Index(strings.ToLower(trimmed), query)
+							start := max(0, idx-40)
+							end := min(len(trimmed), idx+len(query)+40)
+							trimmed = "..." + trimmed[start:end] + "..."
+						}
+						matches = append(matches, trimmed)
+						score++
+					}
+				}
+
+				// Boost score for title matches
+				if strings.Contains(strings.ToLower(name), query) {
+					score += 5
+				}
+
+				results = append(results, SearchResult{
+					Path:    strings.TrimSuffix(path, ".md"),
+					Name:    strings.TrimSuffix(name, ".md"),
+					Matches: matches,
+					Score:   score,
+				})
+			}
 		}
 	}
 
-	return entries, nil
+	return results
 }
 
-// Helper functions for min/max
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+func (h *DocsHandler) generateGitHubURL(docPath string) string {
+	return "https://github.com/" + h.githubOwner + "/" + h.githubRepo + "/edit/" + h.githubBranch + "/docs/" + docPath
 }
 
 func max(a, b int) int {
@@ -301,4 +210,67 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+type DocNode struct {
+	Name     string     `json:"name"`
+	Path     string     `json:"path"`
+	Type     string     `json:"type"` // "file" or "directory"
+	Children []*DocNode `json:"children,omitempty"`
+}
+
+func (h *DocsHandler) buildDocsTree(basePath, relativePath string) ([]*DocNode, error) {
+	currentPath := filepath.Join(basePath, relativePath)
+	entries, err := os.ReadDir(currentPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var nodes []*DocNode
+
+	for _, entry := range entries {
+		// Skip hidden files and directories
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+
+		// Skip archive directory
+		if entry.Name() == "archive" {
+			continue
+		}
+
+		name := entry.Name()
+		path := filepath.Join(relativePath, name)
+
+		if entry.IsDir() {
+			// Recursively build tree for subdirectories
+			children, err := h.buildDocsTree(basePath, path)
+			if err != nil {
+				continue
+			}
+
+			nodes = append(nodes, &DocNode{
+				Name:     name,
+				Path:     path,
+				Type:     "directory",
+				Children: children,
+			})
+		} else if strings.HasSuffix(name, ".md") {
+			// Add markdown files
+			nodes = append(nodes, &DocNode{
+				Name: strings.TrimSuffix(name, ".md"),
+				Path: strings.TrimSuffix(path, ".md"),
+				Type: "file",
+			})
+		}
+	}
+
+	return nodes, nil
 }

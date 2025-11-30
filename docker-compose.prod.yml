@@ -1,5 +1,3 @@
-version: "3.8"
-
 # Production docker-compose configuration
 # Copy this file to your server as docker-compose.yml
 
@@ -8,40 +6,42 @@ services:
     image: ghcr.io/subculture-collective/clipper/backend:latest
     container_name: clipper-backend
     restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=${POSTGRES_USER:-clipper}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_NAME=${POSTGRES_DB:-clipper_db}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
-      - PORT=8080
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      vault-agent:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        until [ -s /vault/secrets/backend.env ]; do
+          echo "[clipper-backend] waiting for Vault secrets..."
+          sleep 1
+        done
+        set -a
+        . /vault/secrets/backend.env
+        set +a
+        exec ./api
+    volumes:
+      - vault_backend_env:/vault/secrets:ro
     networks:
       - clipper-network
+      - web
 
   frontend:
     image: ghcr.io/subculture-collective/clipper/frontend:latest
     container_name: clipper-frontend
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
     depends_on:
       - backend
     healthcheck:
@@ -52,6 +52,7 @@ services:
       start_period: 5s
     networks:
       - clipper-network
+      - web
 
   postgres:
     image: postgres:17-alpine
@@ -90,12 +91,45 @@ services:
     networks:
       - clipper-network
 
+  vault-agent:
+    image: hashicorp/vault:1.17.5
+    container_name: clipper-vault-agent
+    restart: unless-stopped
+    command:
+      - vault
+      - agent
+      - -config=/vault-agent/config.hcl
+    environment:
+      VAULT_ADDR: https://vault.subcult.tv
+    volumes:
+      - ./vault/config/clipper-backend-agent.hcl:/vault-agent/config.hcl:ro
+      - ./vault/templates:/vault-agent/templates:ro
+      - vault_backend_env:/vault-agent/rendered
+      - vault_agent_pid:/vault-agent/pid
+    secrets:
+      - clipper_backend_role_id
+      - clipper_backend_secret_id
+    networks:
+      - web
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
+  vault_backend_env:
+    driver: local
+  vault_agent_pid:
+    driver: local
 
 networks:
   clipper-network:
     driver: bridge
+  web:
+    external: true
+
+secrets:
+  clipper_backend_role_id:
+    file: ./vault/approle/role_id
+  clipper_backend_secret_id:
+    file: ./vault/approle/secret_id

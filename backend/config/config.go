@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -80,7 +81,7 @@ type OpenSearchConfig struct {
 // StripeConfig holds Stripe payment configuration
 type StripeConfig struct {
 	SecretKey         string
-	WebhookSecret     string
+	WebhookSecrets    []string
 	ProMonthlyPriceID string
 	ProYearlyPriceID  string
 	SuccessURL        string
@@ -183,7 +184,7 @@ func Load() (*Config, error) {
 		},
 		Stripe: StripeConfig{
 			SecretKey:         getEnv("STRIPE_SECRET_KEY", ""),
-			WebhookSecret:     getEnv("STRIPE_WEBHOOK_SECRET", ""),
+			WebhookSecrets:    collectStripeWebhookSecrets(),
 			ProMonthlyPriceID: getEnv("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
 			ProYearlyPriceID:  getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
 			SuccessURL:        getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
@@ -268,4 +269,21 @@ func getEnvInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+// collectStripeWebhookSecrets gathers the configured Stripe webhook secrets, supporting
+// one primary secret plus optional alternates without requiring multiple endpoints.
+func collectStripeWebhookSecrets() []string {
+	secrets := make([]string, 0, 3)
+	add := func(raw string) {
+		if v := strings.TrimSpace(raw); v != "" {
+			secrets = append(secrets, v)
+		}
+	}
+	add(getEnv("STRIPE_WEBHOOK_SECRET", ""))
+	add(getEnv("STRIPE_WEBHOOK_SECRET_ALT", ""))
+	for _, part := range strings.Split(getEnv("STRIPE_WEBHOOK_SECRETS", ""), ",") {
+		add(part)
+	}
+	return secrets
 }
