@@ -22,7 +22,10 @@ secrets/
 # Vault credentials and rendered secrets (never commit)
 vault/approle/role_id
 vault/approle/secret_id
+vault/approle/frontend_role_id
+vault/approle/frontend_secret_id
 vault/rendered/backend.env
+vault/rendered/frontend.env
 vault/rendered/*.env
 
 # Dependencies

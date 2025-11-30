@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for React frontend
+# Multi-stage Dockerfile for React frontend with Vault integration
 
 # Build stage
 FROM node:20-alpine AS builder
@@ -11,15 +11,30 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code and environment file
+# Copy source code
 COPY . .
 
 # Use production environment for build
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-# Remove dev .env file so .env.production is used
+# Build argument for Vault-rendered env file path (used in Docker Compose)
+ARG VAULT_ENV_FILE=/vault/secrets/frontend.env
+
+# Remove dev .env files
 RUN rm -f .env .env.local
+
+# Copy Vault-rendered .env.production if it exists (for local testing)
+# In production, this is mounted from Vault agent volume
+RUN if [ -f "${VAULT_ENV_FILE}" ]; then \
+      cp "${VAULT_ENV_FILE}" .env.production; \
+    elif [ -f .env.production.example ]; then \
+      echo "WARNING: Using .env.production.example as fallback"; \
+      cp .env.production.example .env.production; \
+    else \
+      echo "ERROR: No environment file found"; \
+      exit 1; \
+    fi
 
 # Build the application (Vite will use .env.production automatically)
 RUN npm run build

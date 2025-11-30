@@ -39,11 +39,17 @@ services:
       - web
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VAULT_ENV_FILE=/vault/secrets/frontend.env
     image: ghcr.io/subculture-collective/clipper/frontend:latest
     container_name: clipper-frontend
     restart: unless-stopped
     depends_on:
       - backend
+      - vault-agent-frontend
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost/health.html"]
       interval: 30s
@@ -112,6 +118,27 @@ services:
     networks:
       - web
 
+  vault-agent-frontend:
+    image: hashicorp/vault:1.17.5
+    container_name: clipper-vault-agent-frontend
+    restart: unless-stopped
+    command:
+      - vault
+      - agent
+      - -config=/vault-agent/config.hcl
+    environment:
+      VAULT_ADDR: https://vault.subcult.tv
+    volumes:
+      - ./vault/config/clipper-frontend-agent.hcl:/vault-agent/config.hcl:ro
+      - ./vault/templates:/vault-agent/templates:ro
+      - vault_frontend_env:/vault-agent/rendered
+      - vault_agent_frontend_pid:/vault-agent/pid
+    secrets:
+      - clipper_frontend_role_id
+      - clipper_frontend_secret_id
+    networks:
+      - web
+
 volumes:
   postgres_data:
     driver: local
@@ -119,7 +146,11 @@ volumes:
     driver: local
   vault_backend_env:
     driver: local
+  vault_frontend_env:
+    driver: local
   vault_agent_pid:
+    driver: local
+  vault_agent_frontend_pid:
     driver: local
 
 networks:
@@ -133,3 +164,7 @@ secrets:
     file: ./vault/approle/role_id
   clipper_backend_secret_id:
     file: ./vault/approle/secret_id
+  clipper_frontend_role_id:
+    file: ./vault/approle/frontend_role_id
+  clipper_frontend_secret_id:
+    file: ./vault/approle/frontend_secret_id
