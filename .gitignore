@@ -1,12 +1,29 @@
-# Environment files
+# Environment files (all .env except *.example)
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+*.env.backup
+
+# Backend environment files (use Vault in production)
 backend/.env
+backend/.env.production
+backend/.env.local
+
+# Frontend environment files (use build-time injection in production)
+frontend/.env
+frontend/.env.production
+frontend/.env.local
+
+# Legacy file-based secrets directory (replaced by Vault)
 secrets/
+
+# Vault credentials and rendered secrets (never commit)
 vault/approle/role_id
 vault/approle/secret_id
 vault/rendered/backend.env
+vault/rendered/*.env
 
 # Dependencies
 node_modules/
