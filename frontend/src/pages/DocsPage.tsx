@@ -1,390 +1,269 @@
-import { Container, Card, CardBody, SEO } from '../components';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-/**
- * Documentation Hub Page
- * Central hub for architecture, APIs, operations, and user guides
- */
-export function DocsPage() {
-  const lastUpdated = 'October 29, 2024';
+interface DocEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: DocEntry[];
+}
 
-  // Documentation sections organized by category
-  const docSections = [
-    {
-      title: 'Getting Started',
-      id: 'getting-started',
-      docs: [
-        {
-          title: 'User Guide',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/user-guide.md',
-          description: 'How to use Clipper as a user'
-        },
-        {
-          title: 'FAQ',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/faq.md',
-          description: 'Frequently asked questions'
-        },
-        {
-          title: 'Community Guidelines',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/guidelines.md',
-          description: 'Rules and best practices for the community'
-        }
-      ]
-    },
-    {
-      title: 'Development',
-      id: 'development',
-      docs: [
-        {
-          title: 'Development Setup',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/development.md',
-          description: 'Get started with local development'
-        },
-        {
-          title: 'Contributing Guide',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/CONTRIBUTING.md',
-          description: 'How to contribute to the project'
-        },
-        {
-          title: 'Testing Guide',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/TESTING.md',
-          description: 'Testing strategy and tools'
-        },
-        {
-          title: 'Component Library',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/COMPONENT-LIBRARY.md',
-          description: 'Reusable React components'
-        },
-        {
-          title: 'Internationalization (i18n)',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/I18N.md',
-          description: 'Multi-language support'
-        }
-      ]
-    },
-    {
-      title: 'Architecture & Design',
-      id: 'architecture',
-      docs: [
-        {
-          title: 'System Architecture',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/ARCHITECTURE.md',
-          description: 'High-level system design and architecture'
-        },
-        {
-          title: 'Database Schema',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/DATABASE-SCHEMA.md',
-          description: 'Database structure and relationships'
-        },
-        {
-          title: 'Database Management',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/database.md',
-          description: 'Database operations and migrations'
-        },
-        {
-          title: 'Authentication',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/AUTHENTICATION.md',
-          description: 'Authentication and authorization system'
-        },
-        {
-          title: 'Caching Strategy',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/CACHING_STRATEGY.md',
-          description: 'Redis caching implementation'
-        },
-        {
-          title: 'Search Platform',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/SEARCH.md',
-          description: 'OpenSearch setup and usage'
-        }
-      ]
-    },
-    {
-      title: 'API Documentation',
-      id: 'api',
-      docs: [
-        {
-          title: 'REST API Reference',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/API.md',
-          description: 'Complete API endpoints documentation'
-        },
-        {
-          title: 'Clip API',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/CLIP_API.md',
-          description: 'Clip management endpoints'
-        },
-        {
-          title: 'Comment API',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/COMMENT_API.md',
-          description: 'Comment system endpoints'
-        },
-        {
-          title: 'Twitch Integration',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/TWITCH_INTEGRATION.md',
-          description: 'Twitch API integration details'
-        }
-      ]
-    },
-    {
-      title: 'Operations & Infrastructure',
-      id: 'operations',
-      docs: [
-        {
-          title: 'Runbook',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/RUNBOOK.md',
-          description: 'Operational procedures and incident response'
-        },
-        {
-          title: 'Deployment Guide',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/DEPLOYMENT.md',
-          description: 'Production deployment instructions'
-        },
-        {
-          title: 'Infrastructure Guide',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/INFRASTRUCTURE.md',
-          description: 'Infrastructure setup and configuration'
-        },
-        {
-          title: 'CI/CD Pipeline',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/CI-CD.md',
-          description: 'Continuous integration and deployment'
-        },
-        {
-          title: 'Monitoring & Observability',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/MONITORING.md',
-          description: 'Error tracking and monitoring setup'
-        },
-        {
-          title: 'Redis Operations',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/REDIS_OPERATIONS.md',
-          description: 'Redis cache management'
-        },
-        {
-          title: 'Secrets Management',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/SECRETS_MANAGEMENT.md',
-          description: 'Managing sensitive configuration'
-        }
-      ]
-    },
-    {
-      title: 'Features & Systems',
-      id: 'features',
-      docs: [
-        {
-          title: 'RBAC (Role-Based Access Control)',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/RBAC.md',
-          description: 'User roles and permissions'
-        },
-        {
-          title: 'Reputation System',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/REPUTATION_SYSTEM.md',
-          description: 'Karma and reputation mechanics'
-        },
-        {
-          title: 'Tagging System',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/TAGGING_SYSTEM.md',
-          description: 'Content tagging and organization'
-        },
-        {
-          title: 'Discovery Lists',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/DISCOVERY_LISTS.md',
-          description: 'Curated content collections'
-        },
-        {
-          title: 'Analytics',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/ANALYTICS.md',
-          description: 'Analytics and tracking implementation'
-        },
-        {
-          title: 'User Settings',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/USER_SETTINGS.md',
-          description: 'User preferences and configuration'
-        },
-        {
-          title: 'Subscriptions',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/SUBSCRIPTIONS.md',
-          description: 'Stripe subscription system'
-        },
-        {
-          title: 'Subscription Privileges Matrix',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/SUBSCRIPTION_PRIVILEGES_MATRIX.md',
-          description: 'Features and limits by tier'
-        }
-      ]
-    },
-    {
-      title: 'Security',
-      id: 'security',
-      docs: [
-        {
-          title: 'Security Overview',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/SECURITY.md',
-          description: 'Security practices and policies'
-        },
-        {
-          title: 'Security Summaries',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/SECURITY_SUMMARY.md',
-          description: 'Security audit results'
-        },
-        {
-          title: 'CSS Injection Prevention',
-          path: 'https://github.com/subculture-collective/clipper/blob/main/docs/CSS_INJECTION_PREVENTION.md',
-          description: 'Protection against CSS attacks'
-        }
-      ]
+interface DocContent {
+  path: string;
+  content: string;
+  github_url?: string;
+}
+
+interface SearchResult {
+  path: string;
+  name: string;
+  matches: string[];
+  score: number;
+}
+
+const DocsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [docs, setDocs] = useState<DocEntry[]>([]);
+  const [selectedDoc, setSelectedDoc] = useState<DocContent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // Fetch documentation tree on mount
+  useEffect(() => {
+    fetch('/api/v1/docs')
+      .then(res => res.json())
+      .then(data => {
+        setDocs(data.docs);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load docs:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  // Check for doc parameter in URL
+  useEffect(() => {
+    const docPath = searchParams.get('doc');
+    if (docPath) {
+      fetchDoc(docPath);
     }
-  ];
+  }, [searchParams]);
+
+  // Fetch specific document
+  const fetchDoc = (path: string) => {
+    setLoading(true);
+    setSearchQuery(''); // Clear search when viewing doc
+    setSearchResults([]);
+    fetch(`/api/v1/docs/${path}`)
+      .then(res => res.json())
+      .then(data => {
+        setSelectedDoc(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load document:', err);
+        setLoading(false);
+      });
+  };
+
+  // Handle search
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/v1/docs/search?q=${encodeURIComponent(searchQuery)}`);
+      const data = await res.json();
+      setSearchResults(data.results || []);
+    } catch (err) {
+      console.error('Search failed:', err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Navigate back to index
+  const handleBackToIndex = () => {
+    setSelectedDoc(null);
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchParams({}); // Clear URL params
+  };
+
+  // Render documentation tree
+  const renderTree = (entries: DocEntry[]) => {
+    return (
+      <ul className="space-y-1">
+        {entries.map((entry) => (
+          <li key={entry.path}>
+            {entry.type === 'directory' ? (
+              <details className="group">
+                <summary className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 px-3 py-2 rounded">
+                  <span className="font-medium">{entry.name}</span>
+                </summary>
+                <div className="ml-4 mt-1">
+                  {entry.children && renderTree(entry.children)}
+                </div>
+              </details>
+            ) : (
+              <button
+                onClick={() => fetchDoc(entry.path)}
+                className="w-full text-left hover:bg-gray-100 dark:hover:bg-gray-800 px-3 py-2 rounded"
+              >
+                {entry.name}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  // Custom markdown components
+  const components = {
+    a: ({ href, children }: any) => {
+      // Convert wikilinks [[page]] to navigation
+      if (href && href.startsWith('[[')) {
+        const match = href.match(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/);
+        if (match) {
+          const path = match[1];
+          const label = match[3] || children;
+          return (
+            <button
+              onClick={() => fetchDoc(path)}
+              className="text-blue-600 hover:underline"
+            >
+              {label}
+            </button>
+          );
+        }
+      }
+      return <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
+    },
+    code: ({ inline, children }: any) => {
+      if (inline) {
+        return <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm">{children}</code>;
+      }
+      return <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto">{children}</code>;
+    },
+    h1: ({ children }: any) => <h1 className="text-3xl font-bold mt-6 mb-4">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-2xl font-bold mt-5 mb-3">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-xl font-semibold mt-4 mb-2">{children}</h3>,
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading documentation...</div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <SEO
-        title="Documentation"
-        description="Comprehensive documentation for Clipper - architecture, APIs, operations, user guides, and contributor information."
-        canonicalUrl="/docs"
-      />
-      <Container className="py-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Documentation Hub</h1>
-          <p className="text-lg text-muted-foreground mb-2">
-            Central hub for architecture, APIs, operations, and user guides
-          </p>
-          <p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
-        </div>
-
-        {/* Quick Links */}
-        <Card className="mb-8">
-          <CardBody>
-            <h2 className="text-xl font-semibold mb-4">Quick Links</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <a
-                href="https://github.com/subculture-collective/clipper/blob/main/CONTRIBUTING.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-4 border border-border rounded-lg hover:bg-accent transition-colors"
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex gap-8">
+        {/* Sidebar */}
+        <div className="w-64 flex-shrink-0">
+          <h2 className="text-xl font-bold mb-4">Documentation</h2>
+          
+          {/* Search */}
+          <div className="mb-6">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search docs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1 px-3 py-2 border rounded"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={searching}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               >
-                <h3 className="font-semibold mb-1 text-foreground">Contributing Guide</h3>
-                <p className="text-sm text-muted-foreground">Learn how to contribute to Clipper</p>
-              </a>
-              <a
-                href="https://github.com/subculture-collective/clipper/blob/main/docs/RUNBOOK.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-4 border border-border rounded-lg hover:bg-accent transition-colors"
-              >
-                <h3 className="font-semibold mb-1 text-foreground">Operations Runbook</h3>
-                <p className="text-sm text-muted-foreground">Incident response and procedures</p>
-              </a>
-              <a
-                href="https://github.com/subculture-collective/clipper"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-4 border border-border rounded-lg hover:bg-accent transition-colors"
-              >
-                <h3 className="font-semibold mb-1 text-foreground">GitHub Repository</h3>
-                <p className="text-sm text-muted-foreground">View source code and issues</p>
-              </a>
+                {searching ? '...' : '🔍'}
+              </button>
             </div>
-          </CardBody>
-        </Card>
+          </div>
 
-        {/* Documentation Sections */}
-        <div className="space-y-8">
-          {docSections.map((section) => (
-            <Card key={section.id} id={section.id}>
-              <CardBody>
-                <h2 className="text-2xl font-semibold mb-4">{section.title}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {section.docs.map((doc) => (
-                    <a
-                      key={doc.path}
-                      href={doc.path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-4 border border-border rounded-lg hover:bg-accent transition-colors group"
+          {/* Search Results */}
+          {searchResults.length > 0 ? (
+            <div className="mb-6">
+              <h3 className="font-semibold mb-2">
+                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+              </h3>
+              <ul className="space-y-2">
+                {searchResults.map((result) => (
+                  <li key={result.path}>
+                    <button
+                      onClick={() => fetchDoc(result.path)}
+                      className="w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
                     >
-                      <h3 className="font-semibold mb-1 text-foreground group-hover:text-primary transition-colors">
-                        {doc.title} →
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{doc.description}</p>
-                    </a>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          ))}
+                      <div className="font-medium">{result.name}</div>
+                      {result.matches.length > 0 && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {result.matches[0]}
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {/* Doc Tree */}
+          {!searchQuery && renderTree(docs)}
         </div>
 
-        {/* Additional Resources */}
-        <Card className="mt-8">
-          <CardBody>
-            <h2 className="text-2xl font-semibold mb-4">Additional Resources</h2>
-            <div className="space-y-3">
-              <div>
-                <a
-                  href="https://github.com/subculture-collective/clipper/blob/main/CODE_OF_CONDUCT.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline font-medium"
+        {/* Content */}
+        <div className="flex-1">
+          {selectedDoc ? (
+            <div>
+              <div className="mb-4 flex justify-between items-center">
+                <button
+                  onClick={handleBackToIndex}
+                  className="text-blue-600 hover:underline"
                 >
-                  Code of Conduct
-                </a>
-                <p className="text-sm text-muted-foreground">Community standards and expectations</p>
+                  ← Back to Index
+                </button>
+                {selectedDoc.github_url && (
+                  <a
+                    href={selectedDoc.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    ✏️ Edit on GitHub
+                  </a>
+                )}
               </div>
-              <div>
-                <a
-                  href="https://github.com/subculture-collective/clipper/blob/main/CHANGELOG.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Changelog
-                </a>
-                <p className="text-sm text-muted-foreground">Version history and changes</p>
-              </div>
-              <div>
-                <a
-                  href="https://github.com/subculture-collective/clipper/issues"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Issue Tracker
-                </a>
-                <p className="text-sm text-muted-foreground">Report bugs or request features</p>
-              </div>
-              <div>
-                <a
-                  href="https://github.com/subculture-collective/clipper/discussions"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Discussions
-                </a>
-                <p className="text-sm text-muted-foreground">Ask questions and share ideas</p>
+              <div className="prose dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+                  {selectedDoc.content}
+                </ReactMarkdown>
               </div>
             </div>
-          </CardBody>
-        </Card>
-
-        {/* Status Page Note */}
-        <Card className="mt-8 bg-muted/50">
-          <CardBody>
-            <h2 className="text-xl font-semibold mb-2">System Status</h2>
-            <p className="text-muted-foreground">
-              For real-time system status and incident updates, visit our status page (coming soon).
-              In the meantime, check our{' '}
-              <a
-                href="https://github.com/subculture-collective/clipper/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                GitHub issues
-              </a>
-              {' '}for known issues and updates.
-            </p>
-          </CardBody>
-        </Card>
-      </Container>
-    </>
+          ) : (
+            <div className="text-center text-gray-500 dark:text-gray-400 mt-20">
+              <h2 className="text-2xl font-bold mb-4">Clipper Documentation</h2>
+              <p>Select a document from the sidebar to get started.</p>
+              <p className="mt-2">Or use the search bar to find specific topics.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default DocsPage;
