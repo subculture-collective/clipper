@@ -255,6 +255,7 @@ func main() {
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	seoHandler := handlers.NewSEOHandler(clipRepo)
+	docsHandler := handlers.NewDocsHandler("./docs", "subculture-collective", "clipper", "main")
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -638,6 +639,14 @@ func main() {
 		{
 			// Public contact form submission with rate limiting
 			contact.POST("", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), contactHandler.SubmitContactMessage)
+		}
+
+		// Documentation routes (public access)
+		docs := v1.Group("/docs")
+		{
+			docs.GET("", docsHandler.GetDocsList)
+			docs.GET("/search", docsHandler.SearchDocs)
+			docs.GET("/*path", docsHandler.GetDoc)
 		}
 
 		// Admin routes

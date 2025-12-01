@@ -1,0 +1,14 @@
+{
+  "name": "clipper-docs",
+  "private": true,
+  "scripts": {
+    "docs:lint": "markdownlint-cli2 docs_new/**/*.md",
+    "docs:spell": "cspell lint docs_new/**/*.md",
+    "docs:links": "lychee --accept 200..399 --timeout 10s --exclude-file .lycheeignore docs_new",
+    "docs:check": "npm run docs:lint && npm run docs:spell"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.15.0",
+    "cspell": "^8.11.0"
+  }
+}
