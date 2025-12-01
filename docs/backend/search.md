@@ -1,3 +1,15 @@
+---
+title: "Search Platform"
+summary: "OpenSearch-based search with hybrid BM25 + semantic vector ranking."
+tags: ["backend", "search", "opensearch"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["search", "opensearch", "full-text search"]
+---
+
 # Search Platform
 
 OpenSearch-based search with hybrid BM25 + semantic vector ranking, query language, and typo tolerance.

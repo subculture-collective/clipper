@@ -1,3 +1,15 @@
+---
+title: "Semantic Search"
+summary: "Hybrid BM25 + vector similarity search using pgvector for semantic understanding."
+tags: ["backend", "search", "semantic", "vectors", "ai"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["vector search", "semantic", "embeddings"]
+---
+
 # Semantic Search
 
 Hybrid BM25 + vector similarity search using pgvector for semantic understanding of queries.

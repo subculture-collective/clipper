@@ -1,3 +1,15 @@
+---
+title: "ADR-003: Advanced Query Language"
+summary: "Human-readable query syntax for advanced search and filtering."
+tags: ["decisions", "adr", "search", "query-language"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["adr-003", "query language decision"]
+---
+
 # RFC 002: Advanced Query Language
 
 **Status:** Accepted  

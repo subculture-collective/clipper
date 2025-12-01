@@ -1,3 +1,15 @@
+---
+title: "Data Ingestion"
+summary: "How Clipper ingests Twitch clips into the platform."
+tags: ["pipelines", "ingestion", "twitch"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["ingestion", "data pipeline"]
+---
+
 # Pipelines: Data Ingestion
 
 How Clipper ingests Twitch clips into the platform.

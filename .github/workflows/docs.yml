@@ -1,19 +1,24 @@
-name: Documentation Validation
+name: Docs CI
 
 on:
   pull_request:
     paths:
-      - 'docs_new/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/check-*.js'
       - '.markdownlint.jsonc'
       - '.cspell.json'
+      - '.lycheeignore'
   push:
     branches:
       - main
     paths:
-      - 'docs_new/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/check-*.js'
 
 jobs:
-  validate-docs:
+  docs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -24,25 +29,27 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Lint markdown files
-        run: pnpm docs:lint
-        continue-on-error: false
+        run: npm run docs:lint
 
       - name: Check spelling
-        run: pnpm docs:spell
-        continue-on-error: false
+        run: npm run docs:spell
 
       - name: Check links
-        run: pnpm docs:links
-        continue-on-error: true  # Allow failures for external links
+        run: npm run docs:links
+        continue-on-error: true
+
+      - name: Check anchors
+        run: npm run docs:anchors
+
+      - name: Check orphans
+        run: npm run docs:orphans
+
+      - name: Check assets
+        run: npm run docs:assets
 
       - name: Comment PR with results
         if: failure() && github.event_name == 'pull_request'

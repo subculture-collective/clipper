@@ -1,3 +1,15 @@
+---
+title: "Environment Variables"
+summary: "Complete reference for environment variables across backend, frontend, and mobile services."
+tags: ["setup", "environment", "configuration", "envvar"]
+area: "setup"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["env vars", "config", "environment setup"]
+---
+
 # Environment Setup
 
 Configuration for running Clipper across development and production.

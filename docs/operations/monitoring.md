@@ -1,3 +1,15 @@
+---
+title: "Monitoring"
+summary: "Observability, metrics, logging, and alerting configuration."
+tags: ["operations", "monitoring", "observability"]
+area: "deployment"
+status: "stable"
+owner: "team-ops"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["metrics", "alerting", "observability"]
+---
+
 # Operations: Monitoring
 
 Observability, metrics, and alerting for Clipper.
