@@ -6,9 +6,23 @@
     "frontend/node_modules",
     "mobile/node_modules",
     "**/dist/**",
-    "**/.obsidian/**"
+    "**/.obsidian/**",
+    ".git",
+    "**/*.svg",
+    "**/*.png"
+  ],
+  "ignoreRegExpList": [
+    "\\[\\[.*?\\]\\]",
+    "\\^[-a-zA-Z0-9]+",
+    "#[A-Za-z0-9_\\-/]+"
   ],
   "words": [
+    "Dataview",
+    "frontmatter",
+    "kebab",
+    "OpenAPI",
+    "Dockerfile",
+    "CICD",
     "OpenSearch",
     "pgvector",
     "Gin",
@@ -22,6 +36,23 @@
     "JWT",
     "OAuth",
     "Karma",
-    "Dunning"
+    "Dunning",
+    "Twitch",
+    "Clipper",
+    "wikilink",
+    "wikilinks",
+    "docusaurus",
+    "ghcr",
+    "autoscale",
+    "downvote",
+    "upvote",
+    "rollout",
+    "Trivy",
+    "Certbot",
+    "fullchain",
+    "privkey",
+    "PITR",
+    "backfill",
+    "unread"
   ]
 }

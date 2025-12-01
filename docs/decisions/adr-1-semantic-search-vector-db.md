@@ -1,3 +1,15 @@
+---
+title: "ADR-001: Semantic Search Vector Database"
+summary: "Architecture decision for hybrid search with pgvector."
+tags: ["decisions", "adr", "search", "architecture"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["adr-001", "vector db decision"]
+---
+
 # ADR-001: Semantic Search Vector Database Selection
 
 **Status**: Accepted

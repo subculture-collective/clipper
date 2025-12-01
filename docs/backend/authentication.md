@@ -1,3 +1,15 @@
+---
+title: "Authentication"
+summary: "Twitch OAuth authentication flow and JWT session management implementation."
+tags: ["backend", "auth", "oauth", "security"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["auth", "oauth", "login"]
+---
+
 # Authentication Implementation
 
 This document describes the user authentication flow implementation for Clipper using Twitch OAuth.

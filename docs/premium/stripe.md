@@ -1,3 +1,15 @@
+---
+title: "Stripe Integration"
+summary: "Payment processing, subscription management, and webhook handling."
+tags: ["premium", "stripe", "payments"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["payments", "billing", "stripe"]
+---
+
 # Stripe Integration
 
 Payment processing, subscription management, and webhook handling.

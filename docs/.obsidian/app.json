@@ -3,6 +3,8 @@
   "livePreview": true,
   "showLineNumber": true,
   "strictLineBreaks": false,
-  "useMarkdownLinks": true,
-  "alwaysUpdateLinks": true
+  "useMarkdownLinks": false,
+  "alwaysUpdateLinks": true,
+  "showFrontmatter": true,
+  "propertiesInDocument": "visible"
 }

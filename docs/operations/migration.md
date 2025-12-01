@@ -1,3 +1,15 @@
+---
+title: "Database Migrations"
+summary: "Schema migration procedures using golang-migrate."
+tags: ["operations", "migrations", "database"]
+area: "deployment"
+status: "stable"
+owner: "team-ops"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["migrations", "schema changes"]
+---
+
 # Database Migrations
 
 Database schema migration procedures using golang-migrate.

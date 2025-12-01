@@ -1,3 +1,15 @@
+---
+title: "Backend Architecture"
+summary: "System design, components, patterns, and data flow of the Clipper backend."
+tags: ["backend", "architecture", "go", "design"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["system architecture", "backend design"]
+---
+
 # Backend Architecture
 
 ## System Overview

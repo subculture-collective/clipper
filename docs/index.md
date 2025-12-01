@@ -1,3 +1,15 @@
+---
+title: "Clipper Documentation"
+summary: "Complete documentation hub for the Clipper platform - a modern, community-driven Twitch clip curation platform."
+tags: ["docs", "hub", "index"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["home", "docs home", "documentation"]
+---
+
 # Clipper Documentation
 
 > A modern, community-driven Twitch clip curation platform

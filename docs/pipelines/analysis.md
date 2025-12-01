@@ -1,3 +1,15 @@
+---
+title: "Analytics Pipeline"
+summary: "User behavior tracking and analytics for Clipper."
+tags: ["pipelines", "analytics", "metrics"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["analytics", "tracking", "metrics"]
+---
+
 # Pipelines: Analytics
 
 User behavior tracking and analytics for Clipper.
