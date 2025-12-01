@@ -91,6 +91,11 @@ Guides for using the Clipper platform:
 - **[[decisions/adr-002-mobile-framework-selection|ADR 002: Mobile Framework]]** - React Native + Expo decision
 - **[[decisions/adr-003-advanced-query-language|ADR 003: Query Language]]** - Advanced search syntax
 
+### Product
+
+- **[[product/features|Features]]** - Complete feature list
+- **[[product/roadmap|Roadmap]]** - Upcoming features and milestones
+
 ## 📖 Additional Resources
 
 - **[[introduction|Introduction]]** - Project overview and key concepts

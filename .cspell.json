@@ -46,6 +46,8 @@
     "autoscale",
     "downvote",
     "upvote",
+    "downvotes",
+    "upvotes",
     "rollout",
     "Trivy",
     "Certbot",
@@ -53,6 +55,21 @@
     "privkey",
     "PITR",
     "backfill",
-    "unread"
+    "unread",
+    "WCAG",
+    "hoverable",
+    "Qdrant",
+    "Milvus",
+    "OLTP",
+    "Redi",
+    "anonymization",
+    "rollups",
+    "favorited",
+    "johndoe",
+    "godotenv",
+    "timestamptz",
+    "votable",
+    "reindex",
+    "entrypoint"
   ]
 }
