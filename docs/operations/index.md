@@ -46,4 +46,7 @@ SORT title ASC
 
 ---
 
-**See also:** [[../backend/architecture|Backend Architecture]] · [[../setup/development|Development Setup]] · [[../index|Documentation Home]]
+**See also:**
+[[../backend/architecture|Backend Architecture]] ·
+[[../setup/development|Development Setup]] ·
+[[../index|Documentation Home]]

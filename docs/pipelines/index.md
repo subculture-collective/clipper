@@ -37,4 +37,7 @@ Twitch API → Ingestion → Enrichment → Search Index → Embeddings → Disc
 
 ---
 
-**See also:** [[../backend/search|Search Platform]] · [[../backend/semantic-search|Semantic Search]] · [[../index|Documentation Home]]
+**See also:**
+[[../backend/search|Search Platform]] ·
+[[../backend/semantic-search|Semantic Search]] ·
+[[../index|Documentation Home]]

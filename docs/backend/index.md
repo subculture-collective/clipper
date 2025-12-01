@@ -54,4 +54,7 @@ SORT title ASC
 
 ---
 
-**See also:** [[../setup/development|Development Setup]] · [[../operations/deployment|Deployment]] · [[../index|Documentation Home]]
+**See also:**
+[[../setup/development|Development Setup]] ·
+[[../operations/deployment|Deployment]] ·
+[[../index|Documentation Home]]
