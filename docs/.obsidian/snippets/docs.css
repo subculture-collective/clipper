@@ -1,0 +1,77 @@
+/* Clipper Documentation Styles */
+
+/* Dataview tables styling */
+.dataview.table-view-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dataview.table-view-table th {
+  background-color: var(--background-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--background-modifier-border);
+}
+
+.dataview.table-view-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.dataview.table-view-table tr:hover {
+  background-color: var(--background-secondary-alt);
+}
+
+/* Callout styling for documentation */
+.callout[data-callout="note"] {
+  --callout-color: 68, 138, 255;
+}
+
+.callout[data-callout="warning"] {
+  --callout-color: 255, 152, 0;
+}
+
+.callout[data-callout="tip"] {
+  --callout-color: 76, 175, 80;
+}
+
+.callout[data-callout="important"] {
+  --callout-color: 244, 67, 54;
+}
+
+/* Status badges */
+.tag[href*="status/stable"] {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.tag[href*="status/draft"] {
+  background-color: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+
+.tag[href*="status/deprecated"] {
+  background-color: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+}
+
+/* Code block improvements */
+pre code {
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+/* Table of contents styling */
+.toc {
+  background-color: var(--background-secondary);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+/* Frontmatter properties display */
+.metadata-container {
+  font-size: 0.85em;
+  opacity: 0.9;
+}

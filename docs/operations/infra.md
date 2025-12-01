@@ -1,3 +1,15 @@
+---
+title: "Infrastructure"
+summary: "Infrastructure architecture, cloud providers, scaling, and disaster recovery."
+tags: ["operations", "infrastructure", "scaling"]
+area: "deployment"
+status: "stable"
+owner: "team-ops"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["infra", "cloud infrastructure"]
+---
+
 # Operations: Infrastructure
 
 Infrastructure architecture and deployment for Clipper.

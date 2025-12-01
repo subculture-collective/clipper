@@ -1,3 +1,15 @@
+---
+title: "Role-Based Access Control (RBAC)"
+summary: "User roles, permissions, and access control configuration."
+tags: ["backend", "rbac", "security", "permissions"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["rbac", "roles", "permissions", "access control"]
+---
+
 # Role-Based Access Control (RBAC)
 
 This document describes the role-based access control system in Clipper, including roles, permissions, and how to configure user access.

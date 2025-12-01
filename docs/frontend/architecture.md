@@ -1,3 +1,15 @@
+---
+title: "Frontend Architecture"
+summary: "React frontend architecture, components, state management, and patterns."
+tags: ["frontend", "react", "architecture"]
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["frontend", "react architecture"]
+---
+
 # Frontend Architecture
 
 Architecture and design patterns for the Clipper React frontend.

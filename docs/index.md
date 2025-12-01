@@ -1,3 +1,15 @@
+---
+title: "Clipper Documentation"
+summary: "Complete documentation hub for the Clipper platform - a modern, community-driven Twitch clip curation platform."
+tags: ["docs", "hub", "index"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["home", "docs home", "documentation"]
+---
+
 # Clipper Documentation
 
 > A modern, community-driven Twitch clip curation platform
@@ -78,6 +90,11 @@ Guides for using the Clipper platform:
 - **[[decisions/adr-1-semantic-search-vector-db|ADR 001: Semantic Search & Vector DB]]** - Hybrid search architecture
 - **[[decisions/adr-002-mobile-framework-selection|ADR 002: Mobile Framework]]** - React Native + Expo decision
 - **[[decisions/adr-003-advanced-query-language|ADR 003: Query Language]]** - Advanced search syntax
+
+### Product
+
+- **[[product/features|Features]]** - Complete feature list
+- **[[product/roadmap|Roadmap]]** - Upcoming features and milestones
 
 ## 📖 Additional Resources
 

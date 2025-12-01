@@ -1,3 +1,15 @@
+---
+title: "Introduction to Clipper"
+summary: "Project overview, key features, architecture, and core concepts of the Clipper platform."
+tags: ["docs", "overview", "introduction"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["intro", "about clipper"]
+---
+
 # Introduction to Clipper
 
 ## What is Clipper?

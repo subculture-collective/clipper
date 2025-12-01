@@ -1,3 +1,15 @@
+---
+title: "Troubleshooting"
+summary: "Common issues and quick fixes for Clipper development and operations."
+tags: ["setup", "troubleshooting", "debugging"]
+area: "setup"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["debug", "common issues", "help"]
+---
+
 # Troubleshooting
 
 Common issues and quick fixes when developing or running Clipper.

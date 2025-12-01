@@ -1,3 +1,15 @@
+---
+title: "Contributing"
+summary: "How to contribute to the Clipper project."
+tags: ["docs", "contributing", "guide"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["contribute", "contributing guide"]
+---
+
 # Contributing to Clipper
 
 See the main [Contributing Guide](../CONTRIBUTING.md) in the repository root for:
@@ -12,7 +24,7 @@ See the main [Contributing Guide](../CONTRIBUTING.md) in the repository root for
 
 To improve these docs:
 
-1. Edit markdown files in `/docs_new/`
+1. Edit markdown files in `/docs/`
 2. Follow [[index|documentation conventions]]
 3. Run validation: `npm run docs:check`
 4. Submit PR with `documentation` label

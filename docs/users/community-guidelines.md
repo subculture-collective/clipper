@@ -1,3 +1,15 @@
+---
+title: "Community Guidelines"
+summary: "Rules, content policy, voting guidelines, and moderation policies."
+tags: ["users", "guidelines", "community"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["rules", "policies", "moderation"]
+---
+
 # Community Guidelines
 
 Welcome to Clipper! These guidelines help ensure our community remains friendly, inclusive, and focused on sharing great Twitch content.

@@ -1,3 +1,15 @@
+---
+title: "CI/CD Pipeline"
+summary: "Continuous integration and deployment pipelines with GitHub Actions."
+tags: ["operations", "cicd", "automation"]
+area: "deployment"
+status: "stable"
+owner: "team-ops"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["ci", "cd", "pipelines"]
+---
+
 # Operations: CI/CD
 
 Continuous integration and deployment pipelines for Clipper.

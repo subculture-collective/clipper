@@ -1,3 +1,15 @@
+---
+title: "Glossary"
+summary: "Technical terms, acronyms, and Clipper-specific concepts."
+tags: ["docs", "glossary", "reference"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["terms", "definitions"]
+---
+
 # Glossary
 
 Quick reference for technical terms, acronyms, and Clipper-specific concepts.
