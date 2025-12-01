@@ -41,11 +41,7 @@ docker build -t clipper-backend:latest .
 docker save clipper-backend:latest | sudo k3s ctr images import -
 ```
 
-3. **Update secrets** (replace placeholders in `backend/k8s/secret-backend.yaml`):
-```bash
-kubectl edit secret backend-secrets
-kubectl edit secret postgres-secret
-```
+3. **Secrets**: Managed via Vault injection / external secret management. No in-repo secret manifests are applied.
 
 4. **Restart backend deployment:**
 ```bash
@@ -90,15 +86,14 @@ kubectl scale deployment clipper-backend --replicas=5
 kubectl get hpa
 ```
 
-## Update Configuration
+## Update Configuration & Secrets
 
 ```bash
 # Update ConfigMap
 kubectl edit configmap backend-config
 kubectl rollout restart deployment/clipper-backend
 
-# Update Secrets
-kubectl edit secret backend-secrets
+# Secrets are rotated and injected by Vault; edit Vault policies/templates instead of Kubernetes Secret manifests.
 kubectl rollout restart deployment/clipper-backend
 ```
 
@@ -145,7 +140,7 @@ kubectl delete -f backend/k8s/
 
 ## Production Checklist
 
-- [ ] Replace all placeholder secrets in `backend/k8s/secret-backend.yaml`
+- [ ] Verify Vault agent renders backend.env
 - [ ] Update email in `backend/k8s/cert-issuer.yaml` (currently admin@clpr.tv)
 - [ ] Configure DNS A record: clpr.tv → VPS IP
 - [ ] Verify TLS certificate issued: `kubectl get certificate`

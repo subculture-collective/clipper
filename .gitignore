@@ -4,6 +4,9 @@
 .env.*.local
 backend/.env
 secrets/
+vault/approle/role_id
+vault/approle/secret_id
+vault/rendered/backend.env
 
 # Dependencies
 node_modules/
@@ -47,3 +50,5 @@ test-results/
 
 # k6 test results
 summary.json
+vault/approle/frontend_role_id
+vault/approle/frontend_secret_id

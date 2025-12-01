@@ -7,7 +7,8 @@ metadata:
     component: config
 # Non-secret configuration values
 # NOTE: Keep ordering and comments aligned with .env.production.example
-# Only include non-sensitive values here. Secrets go to backend-secrets.
+# Secrets are now injected at runtime via Vault (agent template -> env file).
+# Do NOT store secrets in this ConfigMap or commit Kubernetes Secret manifests.
 data:
   PORT: "8080"
   GIN_MODE: "release"
