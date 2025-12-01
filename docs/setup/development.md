@@ -1,3 +1,15 @@
+---
+title: "Development Setup"
+summary: "Complete guide to running Clipper locally for web, backend, and mobile development."
+tags: ["setup", "development", "quickstart"]
+area: "setup"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["dev setup", "local setup", "getting started"]
+---
+
 # Development Setup
 
 This guide helps you run Clipper locally for web, backend, and mobile.

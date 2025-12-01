@@ -1,3 +1,15 @@
+---
+title: "Clipping Workflow"
+summary: "How clips move through the system after ingestion."
+tags: ["pipelines", "clipping", "workflow"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["clip processing", "enrichment"]
+---
+
 # Pipelines: Clipping Workflow
 
 How clips move through the system after ingestion.

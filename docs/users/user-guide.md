@@ -1,3 +1,15 @@
+---
+title: "User Guide"
+summary: "Complete guide to browsing, voting, commenting, and favoriting clips."
+tags: ["users", "guide", "help"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["help", "getting started"]
+---
+
 # User Guide
 
 Welcome to Clipper! This guide will help you get started with discovering, sharing, and enjoying the best Twitch clips.

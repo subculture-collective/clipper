@@ -1,3 +1,15 @@
+---
+title: "Entitlements"
+summary: "Feature access control and gating based on subscription tier."
+tags: ["premium", "entitlements", "access-control"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["feature gates", "access control"]
+---
+
 # Entitlements
 
 Feature access control based on subscription tier.

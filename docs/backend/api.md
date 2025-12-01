@@ -1,3 +1,18 @@
+---
+title: "API Reference"
+summary: "Complete REST API documentation including endpoints, authentication, pagination, and error handling."
+tags: ["backend", "api", "rest", "endpoints"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["api docs", "rest api", "endpoints"]
+links:
+  - "[[authentication|Authentication Guide]]"
+  - "[[rbac|RBAC Documentation]]"
+---
+
 # API Reference
 
 Complete API documentation for the Clipper backend.

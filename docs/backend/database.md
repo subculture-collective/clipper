@@ -1,3 +1,15 @@
+---
+title: "Database"
+summary: "PostgreSQL 17 database schema, migrations, queries, and maintenance procedures."
+tags: ["backend", "database", "postgresql", "schema"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["db", "postgresql", "schema"]
+---
+
 # Database
 
 PostgreSQL 17 database with comprehensive schema, migrations, and maintenance procedures.

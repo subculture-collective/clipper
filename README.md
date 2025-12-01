@@ -20,45 +20,45 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 
 ## 📚 Documentation
 
-**[📖 Browse Full Documentation](docs_new/index.md)** - Complete documentation hub with all guides, references, and resources.
+**[📖 Browse Full Documentation](docs/index.md)** - Complete documentation hub with all guides, references, and resources.
 
 ### Quick Links
 
 **For Users:**
 
-- [User Guide](docs_new/users/user-guide.md) - How to use Clipper
-- [FAQ](docs_new/users/faq.md) - Frequently asked questions
-- [Community Guidelines](docs_new/users/community-guidelines.md) - Rules and best practices
+- [User Guide](docs/users/user-guide.md) - How to use Clipper
+- [FAQ](docs/users/faq.md) - Frequently asked questions
+- [Community Guidelines](docs/users/community-guidelines.md) - Rules and best practices
 
 **For Developers:**
 
-- [Development Setup](docs_new/setup/development.md) - Get started with development
-- [Backend Architecture](docs_new/backend/architecture.md) - System design and architecture
-- [Frontend Architecture](docs_new/frontend/architecture.md) - React frontend patterns
-- [Mobile Architecture](docs_new/mobile/architecture.md) - React Native app architecture
-- [API Reference](docs_new/backend/api.md) - Complete REST API documentation
-- [Database Guide](docs_new/backend/database.md) - Schema, migrations, and queries
-- [Testing Guide](docs_new/backend/testing.md) - Testing strategy and tools
+- [Development Setup](docs/setup/development.md) - Get started with development
+- [Backend Architecture](docs/backend/architecture.md) - System design and architecture
+- [Frontend Architecture](docs/frontend/architecture.md) - React frontend patterns
+- [Mobile Architecture](docs/mobile/architecture.md) - React Native app architecture
+- [API Reference](docs/backend/api.md) - Complete REST API documentation
+- [Database Guide](docs/backend/database.md) - Schema, migrations, and queries
+- [Testing Guide](docs/backend/testing.md) - Testing strategy and tools
 
 **Premium & Subscriptions:**
 
-- [Premium Overview](docs_new/premium/overview.md) - Features and benefits
-- [Premium Tiers](docs_new/premium/tiers.md) - Pricing and tier comparison
-- [Stripe Integration](docs_new/premium/stripe.md) - Payment processing
+- [Premium Overview](docs/premium/overview.md) - Features and benefits
+- [Premium Tiers](docs/premium/tiers.md) - Pricing and tier comparison
+- [Stripe Integration](docs/premium/stripe.md) - Payment processing
 
 **Operations:**
 
-- [Deployment Guide](docs_new/operations/deployment.md) - Production deployment
-- [Infrastructure](docs_new/operations/infra.md) - Architecture and scaling
-- [CI/CD Pipeline](docs_new/operations/cicd.md) - Continuous integration
-- [Monitoring](docs_new/operations/monitoring.md) - Metrics and alerting
-- [Runbook](docs_new/operations/runbook.md) - Operational procedures
+- [Deployment Guide](docs/operations/deployment.md) - Production deployment
+- [Infrastructure](docs/operations/infra.md) - Architecture and scaling
+- [CI/CD Pipeline](docs/operations/cicd.md) - Continuous integration
+- [Monitoring](docs/operations/monitoring.md) - Metrics and alerting
+- [Runbook](docs/operations/runbook.md) - Operational procedures
 
 **Contributing:**
 
 - [Contributing Guide](CONTRIBUTING.md) - How to contribute
 - [Code of Conduct](CODE_OF_CONDUCT.md) - Community standards
-- [Changelog](docs_new/changelog.md) - Version history
+- [Changelog](docs/changelog.md) - Version history
 
 ## 🚦 Project Status
 

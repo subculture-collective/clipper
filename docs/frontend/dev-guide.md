@@ -1,3 +1,15 @@
+---
+title: "Frontend Development Guide"
+summary: "Setup, workflow, and best practices for React frontend development."
+tags: ["frontend", "development", "guide"]
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["frontend guide", "react dev"]
+---
+
 # Frontend Development Guide
 
 Setup, development workflow, and best practices for the Clipper frontend.

@@ -1,3 +1,15 @@
+---
+title: "Mobile Implementation Guide"
+summary: "Setup, development workflow, and deployment for the mobile app."
+tags: ["mobile", "implementation", "guide"]
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["mobile guide", "app development"]
+---
+
 # Mobile Implementation Guide
 
 Setup, development workflow, and deployment for the Clipper React Native app.

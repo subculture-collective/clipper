@@ -1,3 +1,15 @@
+---
+title: "Testing Guide"
+summary: "Comprehensive testing strategy covering unit, integration, E2E, and load tests."
+tags: ["backend", "testing", "quality"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["tests", "test guide", "qa"]
+---
+
 # Testing Guide
 
 This document provides comprehensive information on testing in the Clipper project.

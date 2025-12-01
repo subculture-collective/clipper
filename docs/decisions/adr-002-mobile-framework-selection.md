@@ -1,3 +1,15 @@
+---
+title: "ADR-002: Mobile Framework Selection"
+summary: "Architecture decision for React Native + Expo mobile framework."
+tags: ["decisions", "adr", "mobile", "architecture"]
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["adr-002", "mobile framework decision"]
+---
+
 # RFC 001: Mobile Framework Selection
 
 **Status:** Accepted

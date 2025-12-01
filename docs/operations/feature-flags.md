@@ -1,3 +1,15 @@
+---
+title: "Feature Flags"
+summary: "Feature flag system for gradual rollouts and testing."
+tags: ["operations", "feature-flags", "rollout"]
+area: "deployment"
+status: "stable"
+owner: "team-ops"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["flags", "feature toggles"]
+---
+
 # Feature Flags Guide
 
 This document describes the feature flag system in Clipper and how to use it for gradual rollouts and testing.

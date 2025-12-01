@@ -1,3 +1,15 @@
+---
+title: "Changelog"
+summary: "Version history and release notes for Clipper."
+tags: ["docs", "changelog", "releases"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["releases", "version history"]
+---
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

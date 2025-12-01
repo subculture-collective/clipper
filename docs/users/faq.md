@@ -1,3 +1,15 @@
+---
+title: "Frequently Asked Questions"
+summary: "Common questions about using Clipper, karma, and account features."
+tags: ["users", "faq", "help"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["faq", "questions", "help"]
+---
+
 # Frequently Asked Questions (FAQ)
 
 ## General Questions

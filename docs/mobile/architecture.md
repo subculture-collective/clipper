@@ -1,3 +1,15 @@
+---
+title: "Mobile Architecture"
+summary: "React Native app architecture for iOS and Android."
+tags: ["mobile", "react-native", "architecture"]
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["mobile", "app architecture", "react native"]
+---
+
 # Mobile Architecture
 
 Architecture and design for the Clipper React Native mobile app.

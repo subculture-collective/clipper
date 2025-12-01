@@ -1,3 +1,15 @@
+---
+title: "Preflight Checklist"
+summary: "Pre-deployment validation checklist for production deployments."
+tags: ["operations", "preflight", "checklist"]
+area: "deployment"
+status: "stable"
+owner: "team-ops"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["deploy checklist", "pre-deploy"]
+---
+
 # Preflight Checklist
 
 Pre-deployment validation checklist for production deployments.

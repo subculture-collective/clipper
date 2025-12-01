@@ -1,3 +1,15 @@
+---
+title: "Premium Overview"
+summary: "Subscription model with Free and Pro tiers, feature gating, and Stripe integration."
+tags: ["premium", "subscription", "monetization"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-01
+aliases: ["premium", "subscriptions"]
+---
+
 # Premium Overview
 
 Clipper's subscription model: Free and Pro tiers with feature gating, Stripe integration, and entitlements.
