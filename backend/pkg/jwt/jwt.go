@@ -45,9 +45,23 @@ func NewManager(privateKeyPEM string) (*Manager, error) {
 		return nil, errors.New("failed to parse PEM block containing the key")
 	}
 
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	var privateKey *rsa.PrivateKey
+
+	// Try PKCS8 first (modern format)
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %w", err)
+		// Try PKCS1 format as fallback
+		privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse private key: %w", err)
+		}
+	} else {
+		// PKCS8 key parsed successfully, convert to RSA
+		var ok bool
+		privateKey, ok = key.(*rsa.PrivateKey)
+		if !ok {
+			return nil, errors.New("key is not RSA private key")
+		}
 	}
 
 	return &Manager{

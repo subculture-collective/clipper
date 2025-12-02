@@ -52,3 +52,4 @@ test-results/
 summary.json
 vault/approle/frontend_role_id
 vault/approle/frontend_secret_id
+frontend/frontend.env

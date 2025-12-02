@@ -1,9 +1,62 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
+import { searchApi } from '../lib/search-api';
+
+vi.mock('../lib/search-api', () => {
+    const search = vi.fn();
+    return {
+        searchApi: {
+            search,
+            getSuggestions: vi.fn(),
+        },
+    };
+});
+
+const mockedSearchApi = searchApi as unknown as {
+    search: ReturnType<typeof vi.fn>;
+};
+
+const mockSearchResponse = {
+    query: 'test',
+    results: {
+        clips: [],
+        creators: [],
+        games: [],
+        tags: [],
+    },
+    counts: {
+        clips: 0,
+        creators: 0,
+        games: 0,
+        tags: 0,
+    },
+    facets: {
+        languages: [],
+        games: [],
+        tags: [],
+        date_range: {
+            last_hour: 0,
+            last_day: 0,
+            last_week: 0,
+            last_month: 0,
+            older: 0,
+        },
+    },
+    meta: {
+        page: 1,
+        limit: 20,
+        total_items: 0,
+        total_pages: 1,
+    },
+};
+
+beforeEach(() => {
+    mockedSearchApi.search.mockResolvedValue(mockSearchResponse);
+});
 
 // Create a test query client
 const queryClient = new QueryClient({

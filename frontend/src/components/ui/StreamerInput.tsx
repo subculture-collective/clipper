@@ -40,8 +40,9 @@ export function StreamerInput({
         setIsLoading(true);
         try {
             const results = await searchApi.getSuggestions(query);
+            const normalizedResults = Array.isArray(results) ? results : [];
             // Filter to only show creator suggestions
-            const creatorSuggestions = results.filter(
+            const creatorSuggestions = normalizedResults.filter(
                 (s) => s.type === 'creator'
             );
             setSuggestions(creatorSuggestions);
@@ -198,7 +199,7 @@ export function StreamerInput({
                 )}
             </div>
             <p className='text-xs text-muted-foreground mt-1'>
-                {autoDetected 
+                {autoDetected
                     ? 'Streamer will be detected from the clip URL. You can override by typing here.'
                     : 'Type to search for streamers or enter manually'}
             </p>
