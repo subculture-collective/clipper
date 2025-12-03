@@ -1,0 +1,43 @@
+package handlers
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/subculture-collective/clipper/internal/services"
+)
+
+// RevenueHandler handles revenue reporting HTTP requests
+type RevenueHandler struct {
+	revenueService *services.RevenueService
+}
+
+// NewRevenueHandler creates a new revenue handler
+func NewRevenueHandler(revenueService *services.RevenueService) *RevenueHandler {
+	return &RevenueHandler{
+		revenueService: revenueService,
+	}
+}
+
+// GetRevenueMetrics returns comprehensive revenue metrics for admin dashboard
+// @Summary Get revenue metrics
+// @Description Returns MRR, churn, ARPU, plan distribution, and cohort retention metrics
+// @Tags admin
+// @Produce json
+// @Success 200 {object} models.RevenueMetrics
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security BearerAuth
+// @Router /api/v1/admin/revenue [get]
+func (h *RevenueHandler) GetRevenueMetrics(c *gin.Context) {
+	metrics, err := h.revenueService.GetRevenueMetrics(c.Request.Context())
+	if err != nil {
+		log.Printf("Failed to get revenue metrics: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve revenue metrics"})
+		return
+	}
+
+	c.JSON(http.StatusOK, metrics)
+}

@@ -113,6 +113,32 @@ export function AdminDashboard() {
             </CardBody>
           </Card>
         </Link>
+
+        <Link to="/admin/analytics" className="touch-target">
+          <Card hover clickable>
+            <CardHeader>
+              <h3 className="text-lg xs:text-xl font-semibold">Platform Analytics</h3>
+            </CardHeader>
+            <CardBody>
+              <p className="text-sm xs:text-base text-muted-foreground">
+                View platform metrics and user engagement
+              </p>
+            </CardBody>
+          </Card>
+        </Link>
+
+        <Link to="/admin/revenue" className="touch-target">
+          <Card hover clickable>
+            <CardHeader>
+              <h3 className="text-lg xs:text-xl font-semibold">Revenue Dashboard</h3>
+            </CardHeader>
+            <CardBody>
+              <p className="text-sm xs:text-base text-muted-foreground">
+                MRR, churn, ARPU, and subscription metrics
+              </p>
+            </CardBody>
+          </Card>
+        </Link>
       </Grid>
     </Container>
   );
