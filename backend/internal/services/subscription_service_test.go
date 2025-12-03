@@ -65,17 +65,40 @@ func TestFormatAmountForCurrency(t *testing.T) {
 	t.Run("formats USD amount correctly", func(t *testing.T) {
 		// Amount is in cents
 		result := formatAmountForCurrency(1999, "usd")
-		assert.Equal(t, "19.99 usd", result)
+		assert.Equal(t, "19.99 USD", result)
 	})
 
 	t.Run("formats EUR amount correctly", func(t *testing.T) {
 		result := formatAmountForCurrency(2500, "eur")
-		assert.Equal(t, "25.00 eur", result)
+		assert.Equal(t, "25.00 EUR", result)
 	})
 
 	t.Run("handles zero amount", func(t *testing.T) {
 		result := formatAmountForCurrency(0, "usd")
-		assert.Equal(t, "0.00 usd", result)
+		assert.Equal(t, "0.00 USD", result)
+	})
+
+	t.Run("formats JPY (zero-decimal currency) correctly", func(t *testing.T) {
+		// JPY has no decimal places, amount is in yen
+		result := formatAmountForCurrency(1000, "jpy")
+		assert.Equal(t, "1000 JPY", result)
+	})
+
+	t.Run("formats KRW (zero-decimal currency) correctly", func(t *testing.T) {
+		result := formatAmountForCurrency(50000, "krw")
+		assert.Equal(t, "50000 KRW", result)
+	})
+
+	t.Run("formats KWD (three-decimal currency) correctly", func(t *testing.T) {
+		// KWD has 3 decimal places
+		result := formatAmountForCurrency(1500, "kwd")
+		assert.Equal(t, "1.500 KWD", result)
+	})
+
+	t.Run("handles case insensitivity", func(t *testing.T) {
+		result1 := formatAmountForCurrency(1000, "USD")
+		result2 := formatAmountForCurrency(1000, "usd")
+		assert.Equal(t, result1, result2)
 	})
 }
 

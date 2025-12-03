@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -668,9 +669,32 @@ func (s *SubscriptionService) handleInvoiceFinalized(ctx context.Context, event 
 	return nil
 }
 
-// formatAmountForCurrency formats an amount (in cents) for display with currency
+// formatAmountForCurrency formats an amount in smallest currency unit for display with currency
+// Handles zero-decimal currencies (JPY, KRW, etc.) and three-decimal currencies (KWD, BHD, etc.)
 func formatAmountForCurrency(amount int64, currency string) string {
-	// Most currencies use 2 decimal places
+	currency = strings.ToUpper(currency)
+	
+	// Zero-decimal currencies (no decimal places)
+	zeroDecimalCurrencies := map[string]bool{
+		"BIF": true, "CLP": true, "DJF": true, "GNF": true, "JPY": true,
+		"KMF": true, "KRW": true, "MGA": true, "PYG": true, "RWF": true,
+		"UGX": true, "VND": true, "VUV": true, "XAF": true, "XOF": true, "XPF": true,
+	}
+	
+	// Three-decimal currencies
+	threeDecimalCurrencies := map[string]bool{
+		"BHD": true, "JOD": true, "KWD": true, "OMR": true, "TND": true,
+	}
+	
+	if zeroDecimalCurrencies[currency] {
+		return fmt.Sprintf("%d %s", amount, currency)
+	}
+	
+	if threeDecimalCurrencies[currency] {
+		return fmt.Sprintf("%.3f %s", float64(amount)/1000, currency)
+	}
+	
+	// Default: two decimal places (most currencies)
 	return fmt.Sprintf("%.2f %s", float64(amount)/100, currency)
 }
 
