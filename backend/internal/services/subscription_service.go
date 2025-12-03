@@ -594,6 +594,12 @@ func (s *SubscriptionService) handleInvoiceFinalized(ctx context.Context, event 
 	log.Printf("[WEBHOOK] Processing invoice.finalized for invoice: %s, customer: %s",
 		invoice.ID, invoice.Customer.ID)
 
+	// Skip if invoice is not related to a subscription
+	if invoice.Subscription == nil {
+		log.Printf("[WEBHOOK] Invoice %s is not a subscription invoice, skipping", invoice.ID)
+		return nil
+	}
+
 	// Skip if invoice PDF delivery is disabled
 	if !s.cfg.Stripe.InvoicePDFEnabled {
 		log.Printf("[WEBHOOK] Invoice PDF delivery disabled, skipping for invoice %s", invoice.ID)
@@ -637,16 +643,18 @@ func (s *SubscriptionService) handleInvoiceFinalized(ctx context.Context, event 
 		}
 		if invoice.Tax > 0 {
 			emailData["TaxAmount"] = formatAmountForCurrency(invoice.Tax, string(invoice.Currency))
-		}
-		if invoice.Subtotal > 0 {
+			// Always set Subtotal when TaxAmount is present
 			emailData["Subtotal"] = formatAmountForCurrency(invoice.Subtotal, string(invoice.Currency))
 		}
+		// Always set Total; use AmountDue as fallback if Total is not positive
 		if invoice.Total > 0 {
 			emailData["Total"] = formatAmountForCurrency(invoice.Total, string(invoice.Currency))
+		} else {
+			emailData["Total"] = formatAmountForCurrency(invoice.AmountDue, string(invoice.Currency))
 		}
 
 		notificationID := uuid.New()
-		if err := s.emailService.SendNotificationEmail(ctx, user, "invoice_finalized", notificationID, emailData); err != nil {
+		if err := s.emailService.SendNotificationEmail(ctx, user, models.NotificationTypeInvoiceFinalized, notificationID, emailData); err != nil {
 			log.Printf("[WEBHOOK] Failed to send invoice email to user %s: %v", user.ID, err)
 			// Continue processing, email failure shouldn't fail the webhook
 		} else {

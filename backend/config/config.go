@@ -86,9 +86,8 @@ type StripeConfig struct {
 	ProYearlyPriceID   string
 	SuccessURL         string
 	CancelURL          string
-	TaxEnabled         bool   // Enable automatic tax calculation via Stripe Tax
-	InvoicePDFEnabled  bool   // Enable sending invoice PDFs via email
-	TaxCollectionMode  string // "automatic" or "manual" - how tax is collected
+	TaxEnabled         bool // Enable automatic tax calculation via Stripe Tax
+	InvoicePDFEnabled  bool // Enable sending invoice PDFs via email
 }
 
 // SentryConfig holds Sentry error tracking configuration
@@ -194,7 +193,6 @@ func Load() (*Config, error) {
 			CancelURL:         getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
 			TaxEnabled:        getEnv("STRIPE_TAX_ENABLED", "false") == "true",
 			InvoicePDFEnabled: getEnv("STRIPE_INVOICE_PDF_ENABLED", "false") == "true",
-			TaxCollectionMode: getEnv("STRIPE_TAX_COLLECTION_MODE", "automatic"),
 		},
 		Sentry: SentryConfig{
 			DSN:              getEnv("SENTRY_DSN", ""),

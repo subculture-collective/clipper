@@ -102,32 +102,6 @@ func TestFormatAmountForCurrency(t *testing.T) {
 	})
 }
 
-// TestStripeTaxConfiguration tests Stripe Tax configuration parameters
-func TestStripeTaxConfiguration(t *testing.T) {
-	t.Run("tax enabled flag works correctly", func(t *testing.T) {
-		// Test that tax enabled flag is properly set
-		taxEnabled := true
-		assert.True(t, taxEnabled)
-		
-		taxDisabled := false
-		assert.False(t, taxDisabled)
-	})
-
-	t.Run("invoice PDF enabled flag works correctly", func(t *testing.T) {
-		invoicePDFEnabled := true
-		assert.True(t, invoicePDFEnabled)
-	})
-
-	t.Run("tax collection mode has valid values", func(t *testing.T) {
-		// Valid tax collection modes
-		automatic := "automatic"
-		manual := "manual"
-		
-		assert.Equal(t, "automatic", automatic)
-		assert.Equal(t, "manual", manual)
-	})
-}
-
 // TestInvoiceFinalizedNotificationType tests the invoice finalized notification type
 func TestInvoiceFinalizedNotificationType(t *testing.T) {
 	t.Run("notification type constant is correct", func(t *testing.T) {

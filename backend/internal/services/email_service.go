@@ -750,6 +750,10 @@ We're sorry to see you go! If you have any questions or feedback, please contact
 // prepareInvoiceFinalizedEmail prepares invoice finalized notification email with PDF link
 func (s *EmailService) prepareInvoiceFinalizedEmail(data map[string]interface{}) (html, text string) {
 	invoiceNumber := data["InvoiceNumber"]
+	// Fallback to InvoiceID if InvoiceNumber is nil or empty
+	if invoiceNumber == nil || fmt.Sprintf("%v", invoiceNumber) == "" {
+		invoiceNumber = data["InvoiceID"]
+	}
 	total := data["Total"]
 	pdfURL := data["InvoicePDFURL"]
 	hostedURL := data["HostedInvoiceURL"]
@@ -758,10 +762,17 @@ func (s *EmailService) prepareInvoiceFinalizedEmail(data map[string]interface{})
 	subtotal := data["Subtotal"]
 	taxAmount := data["TaxAmount"]
 
-	// Build tax section if tax was applied
+	// Build tax section if tax was applied (check for non-zero string value)
 	taxSection := ""
 	taxSectionText := ""
-	if taxAmount != nil && taxAmount != "" {
+	showTax := false
+	if taxAmountStr, ok := taxAmount.(string); ok && taxAmountStr != "" {
+		// Check that the formatted amount is not zero
+		if taxAmountStr != "0.00" && taxAmountStr != "0" {
+			showTax = true
+		}
+	}
+	if showTax {
 		taxSection = fmt.Sprintf(`
 		<tr>
 			<td style="padding: 10px; border-bottom: 1px solid #eee;">Subtotal:</td>
