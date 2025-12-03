@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -169,7 +170,7 @@ func (s *SubmissionService) GetClipMetadata(ctx context.Context, clipURLOrID str
 		cacheKey := clipMetadataCacheKeyPrefix + clipID
 		if cacheErr := s.redisClient.SetJSON(ctx, cacheKey, metadata, clipMetadataCacheTTL); cacheErr != nil {
 			// Log cache error but don't fail the request
-			fmt.Printf("Failed to cache clip metadata: %v\n", cacheErr)
+			log.Printf("Failed to cache clip metadata: %v", cacheErr)
 		}
 	}
 
