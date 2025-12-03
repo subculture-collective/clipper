@@ -10,6 +10,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/utils"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 )
 
@@ -20,6 +21,7 @@ type SubmissionService struct {
 	userRepo            *repository.UserRepository
 	auditLogRepo        *repository.AuditLogRepository
 	twitchClient        *twitch.Client
+	redisClient         *redispkg.Client
 	notificationService *NotificationService
 }
 
@@ -31,6 +33,7 @@ func NewSubmissionService(
 	auditLogRepo *repository.AuditLogRepository,
 	twitchClient *twitch.Client,
 	notificationService *NotificationService,
+	redisClient *redispkg.Client,
 ) *SubmissionService {
 	return &SubmissionService{
 		submissionRepo:      submissionRepo,
@@ -38,6 +41,7 @@ func NewSubmissionService(
 		userRepo:            userRepo,
 		auditLogRepo:        auditLogRepo,
 		twitchClient:        twitchClient,
+		redisClient:         redisClient,
 		notificationService: notificationService,
 	}
 }
@@ -60,6 +64,116 @@ type ValidationError struct {
 
 func (e *ValidationError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, e.Message)
+}
+
+// ClipMetadata represents the metadata returned from the Twitch API for a clip
+type ClipMetadata struct {
+	ClipID       string    `json:"clip_id"`
+	Title        string    `json:"title"`
+	StreamerName string    `json:"streamer_name"`
+	GameName     string    `json:"game_name,omitempty"`
+	ViewCount    int       `json:"view_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	ThumbnailURL string    `json:"thumbnail_url"`
+	Duration     float64   `json:"duration"`
+	URL          string    `json:"url"`
+}
+
+const (
+	clipMetadataCacheKeyPrefix = "twitch:clip:metadata:"
+	clipMetadataCacheTTL       = 1 * time.Hour
+)
+
+// GetClipMetadata fetches clip metadata from Twitch API with Redis caching
+func (s *SubmissionService) GetClipMetadata(ctx context.Context, clipURLOrID string) (*ClipMetadata, error) {
+	// Validate input
+	if strings.TrimSpace(clipURLOrID) == "" {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "Clip URL or ID is required",
+		}
+	}
+
+	// Normalize and extract clip ID
+	clipID, normalizedURL := s.normalizeClipURL(clipURLOrID)
+	if clipID == "" {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "Invalid Twitch clip URL. Please provide a valid URL like 'https://clips.twitch.tv/ClipID' or 'https://www.twitch.tv/username/clip/ClipID'",
+		}
+	}
+
+	// Check cache first
+	if s.redisClient != nil {
+		cacheKey := clipMetadataCacheKeyPrefix + clipID
+		var cachedMetadata ClipMetadata
+		err := s.redisClient.GetJSON(ctx, cacheKey, &cachedMetadata)
+		if err == nil {
+			// Cache hit
+			return &cachedMetadata, nil
+		}
+		// Cache miss or error, continue to fetch from Twitch
+	}
+
+	// Check Twitch client is configured
+	if s.twitchClient == nil {
+		return nil, fmt.Errorf("Twitch API is not configured")
+	}
+
+	// Fetch from Twitch API
+	params := &twitch.ClipParams{
+		ClipIDs: []string{clipID},
+	}
+
+	resp, err := s.twitchClient.GetClips(ctx, params)
+	if err != nil {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "Unable to fetch clip information from Twitch. Please verify the URL is correct and try again later.",
+		}
+	}
+
+	if len(resp.Data) == 0 {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "This clip was not found on Twitch. It may have been deleted or the URL is incorrect.",
+		}
+	}
+
+	clip := resp.Data[0]
+
+	// Resolve game name if game ID is present
+	gameName := ""
+	if clip.GameID != "" && s.twitchClient != nil {
+		gamesResp, err := s.twitchClient.GetGames(ctx, []string{clip.GameID}, nil)
+		if err == nil && len(gamesResp.Data) > 0 {
+			gameName = gamesResp.Data[0].Name
+		}
+		// If game lookup fails, continue without game name (optional field)
+	}
+
+	metadata := &ClipMetadata{
+		ClipID:       clip.ID,
+		Title:        clip.Title,
+		StreamerName: clip.BroadcasterName,
+		GameName:     gameName,
+		ViewCount:    clip.ViewCount,
+		CreatedAt:    clip.CreatedAt,
+		ThumbnailURL: clip.ThumbnailURL,
+		Duration:     clip.Duration,
+		URL:          normalizedURL,
+	}
+
+	// Cache the result
+	if s.redisClient != nil {
+		cacheKey := clipMetadataCacheKeyPrefix + clipID
+		if cacheErr := s.redisClient.SetJSON(ctx, cacheKey, metadata, clipMetadataCacheTTL); cacheErr != nil {
+			// Log cache error but don't fail the request
+			fmt.Printf("Failed to cache clip metadata: %v\n", cacheErr)
+		}
+	}
+
+	return metadata, nil
 }
 
 // SubmitClip handles clip submission with validation and duplicate detection
@@ -797,12 +911,28 @@ func (s *SubmissionService) GetSubmissionStats(ctx context.Context, userID uuid.
 
 // extractClipIDFromURL extracts the clip ID from a Twitch clip URL or returns the ID if already provided
 func extractClipIDFromURL(clipURLOrID string) string {
-	// If it's already just an ID (alphanumeric), return it
-	if len(clipURLOrID) > 0 && clipURLOrID[0] != 'h' {
-		return clipURLOrID
+	// Trim whitespace first
+	clipURLOrID = strings.TrimSpace(clipURLOrID)
+
+	// Handle trailing slashes
+	clipURLOrID = strings.TrimSuffix(clipURLOrID, "/")
+
+	// If it's empty, return empty
+	if len(clipURLOrID) == 0 {
+		return ""
 	}
 
-	// Handle full URLs
+	// If it's already just an ID (not starting with http), return it
+	if !strings.HasPrefix(clipURLOrID, "http") {
+		// Still need to strip query params and fragments if someone passes "ClipID?param=value"
+		clipID := clipURLOrID
+		if idx := strings.IndexAny(clipID, "?#"); idx != -1 {
+			clipID = clipID[:idx]
+		}
+		return clipID
+	}
+
+	// Handle full URLs - find the last path segment
 	parts := []rune(clipURLOrID)
 	lastSlash := -1
 	for i := len(parts) - 1; i >= 0; i-- {
@@ -818,17 +948,9 @@ func extractClipIDFromURL(clipURLOrID string) string {
 
 	clipID := string(parts[lastSlash+1:])
 
-	// Remove query parameters if present
-	queryStart := -1
-	for i, r := range clipID {
-		if r == '?' {
-			queryStart = i
-			break
-		}
-	}
-
-	if queryStart != -1 {
-		clipID = clipID[:queryStart]
+	// Remove query parameters and fragment identifiers if present
+	if idx := strings.IndexAny(clipID, "?#"); idx != -1 {
+		clipID = clipID[:idx]
 	}
 
 	return clipID

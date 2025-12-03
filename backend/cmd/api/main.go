@@ -222,7 +222,7 @@ func main() {
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, redisClient)
 	}
 
 	// Initialize handlers
@@ -528,6 +528,8 @@ func main() {
 				submissions.POST("", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), submissionHandler.SubmitClip)
 				submissions.GET("", submissionHandler.GetUserSubmissions)
 				submissions.GET("/stats", submissionHandler.GetSubmissionStats)
+				// Metadata endpoint with rate limiting (100 requests/hour per user)
+				submissions.GET("/metadata", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), submissionHandler.GetClipMetadata)
 			}
 		}
 
