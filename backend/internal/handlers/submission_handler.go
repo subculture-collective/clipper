@@ -176,7 +176,16 @@ func (h *SubmissionHandler) GetClipMetadata(c *gin.Context) {
 		}
 
 		// Check for Twitch API errors (502 Bad Gateway)
-		if strings.Contains(err.Error(), "Twitch API") || strings.Contains(err.Error(), "not configured") {
+		if _, ok := err.(*services.TwitchAPIError); ok {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"success": false,
+				"error":   "Unable to fetch clip metadata from Twitch. Please try again later.",
+			})
+			return
+		}
+
+		// Check for Twitch API not configured error
+		if strings.Contains(err.Error(), "not configured") {
 			c.JSON(http.StatusBadGateway, gin.H{
 				"success": false,
 				"error":   "Unable to fetch clip metadata from Twitch. Please try again later.",

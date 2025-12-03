@@ -67,6 +67,15 @@ func (e *ValidationError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, e.Message)
 }
 
+// TwitchAPIError represents an error from the Twitch API
+type TwitchAPIError struct {
+	Message string
+}
+
+func (e *TwitchAPIError) Error() string {
+	return e.Message
+}
+
 // ClipMetadata represents the metadata returned from the Twitch API for a clip
 type ClipMetadata struct {
 	ClipID       string    `json:"clip_id"`
@@ -128,8 +137,7 @@ func (s *SubmissionService) GetClipMetadata(ctx context.Context, clipURLOrID str
 
 	resp, err := s.twitchClient.GetClips(ctx, params)
 	if err != nil {
-		return nil, &ValidationError{
-			Field:   "url",
+		return nil, &TwitchAPIError{
 			Message: "Unable to fetch clip information from Twitch. Please verify the URL is correct and try again later.",
 		}
 	}
@@ -145,7 +153,7 @@ func (s *SubmissionService) GetClipMetadata(ctx context.Context, clipURLOrID str
 
 	// Resolve game name if game ID is present
 	gameName := ""
-	if clip.GameID != "" && s.twitchClient != nil {
+	if clip.GameID != "" {
 		gamesResp, err := s.twitchClient.GetGames(ctx, []string{clip.GameID}, nil)
 		if err == nil && len(gamesResp.Data) > 0 {
 			gameName = gamesResp.Data[0].Name
