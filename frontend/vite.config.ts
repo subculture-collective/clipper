@@ -14,7 +14,13 @@ export default defineConfig(({ mode }) => ({
             project: process.env.SENTRY_PROJECT,
             authToken: process.env.SENTRY_AUTH_TOKEN,
             // Only upload on production builds when auth token is set
-            disable: !process.env.SENTRY_AUTH_TOKEN || process.env.NODE_ENV !== 'production',
+            // Use Vite's provided `mode` instead of NODE_ENV for reliability
+            disable: !process.env.SENTRY_AUTH_TOKEN || mode !== 'production',
+            // Align the upload release with runtime init
+            release: (() => {
+                const name = process.env.VITE_SENTRY_RELEASE || process.env.SENTRY_RELEASE;
+                return name ? { name } : undefined;
+            })(),
             sourcemaps: {
                 assets: './dist/**',
                 filesToDeleteAfterUpload: ['**/*.js.map', '**/*.mjs.map'],
@@ -36,40 +42,24 @@ export default defineConfig(({ mode }) => ({
     build: {
         // Generate source maps for production
         sourcemap: true,
-        // Optimize chunk splitting for better caching and loading performance
+        // Eliminate React init races by bundling entry as a single JS file
+        // so React and ReactDOM initialize in the same execution unit.
         rollupOptions: {
             output: {
-                manualChunks(id) {
-                    // Separate vendor chunks for better caching
-                    if (id.includes('node_modules')) {
-                        // React and related libraries
-                        if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                            return 'react-vendor';
-                        }
-                        // Tanstack Query
-                        if (id.includes('@tanstack/react-query')) {
-                            return 'query-vendor';
-                        }
-                        // Charts library
-                        if (id.includes('recharts') || id.includes('d3-')) {
-                            return 'chart-vendor';
-                        }
-                        // Sentry for error tracking
-                        if (id.includes('@sentry')) {
-                            return 'sentry';
-                        }
-                        // Date and utility libraries
-                        if (id.includes('date-fns') || id.includes('clsx') || id.includes('tailwind-merge')) {
-                            return 'ui-vendor';
-                        }
-                        // All other node_modules
-                        return 'vendor';
-                    }
-                },
+                // Disable manual vendor chunking
+                manualChunks: undefined,
+                // Inline dynamic imports at the entry to avoid multi-chunk init ordering issues
+                inlineDynamicImports: true,
+                entryFileNames: 'assets/app-[hash].js',
+                chunkFileNames: 'assets/chunk-[hash].js',
+                assetFileNames: 'assets/[name]-[hash][extname]',
             },
+            treeshake: true,
         },
-        // Increase chunk size warning limit since we're optimizing chunks
-        chunkSizeWarningLimit: 600,
+        // Keep CSS in the same output for consistent load ordering
+        cssCodeSplit: false,
+        // Increase chunk size warning limit since we may have a larger single bundle
+        chunkSizeWarningLimit: 1200,
         // Use esbuild minifier (default, faster than terser)
         minify: 'esbuild',
     },

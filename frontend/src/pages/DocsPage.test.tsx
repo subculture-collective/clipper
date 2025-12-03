@@ -1,7 +1,17 @@
+<<<<<<< HEAD
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
+import type { Mocked } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { DocsPage } from './DocsPage';
+import axios from 'axios';
+=======
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { DocsPage } from './DocsPage';
+>>>>>>> main
 
 // Mock the components
 vi.mock('../components', () => ({
@@ -11,24 +21,113 @@ vi.mock('../components', () => ({
   SEO: ({ title }: { title: string }) => <div data-testid="seo">{title}</div>,
 }));
 
+<<<<<<< HEAD
+vi.mock('axios');
+
+const mockedAxios = axios as Mocked<typeof axios>;
+
+const mockDocsResponse = {
+  docs: [
+    {
+      name: 'getting-started',
+      path: 'getting-started',
+      type: 'directory' as const,
+      children: [
+        {
+          name: 'user-guide.md',
+          path: 'getting-started/user-guide.md',
+          type: 'file' as const,
+        },
+      ],
+    },
+    {
+      name: 'development',
+      path: 'development',
+      type: 'directory' as const,
+      children: [
+        {
+          name: 'dev-setup.md',
+          path: 'development/dev-setup.md',
+          type: 'file' as const,
+        },
+      ],
+    },
+  ],
+};
+
+const mockDocContent = {
+  path: 'getting-started/user-guide.md',
+  content: '# Getting Started\nSome content',
+  github_url: 'https://github.com/subculture-collective/clipper/blob/main/docs/getting-started.md',
+};
+
+beforeAll(() => {
+  window.scrollTo = vi.fn();
+});
+
+beforeEach(() => {
+  mockedAxios.get.mockReset();
+  mockedAxios.get.mockImplementation((url: string) => {
+    if (url === '/api/v1/docs') {
+      return Promise.resolve({ data: mockDocsResponse });
+    }
+    if (url.startsWith('/api/v1/docs/')) {
+      return Promise.resolve({ data: mockDocContent });
+    }
+    if (url.startsWith('/api/v1/docs/search')) {
+      return Promise.resolve({ data: { results: [] } });
+    }
+    return Promise.resolve({ data: {} });
+  });
+});
+
+afterEach(() => {
+  mockedAxios.get.mockClear();
+});
+
+describe('DocsPage', () => {
+  it('renders the documentation hub heading and doc tree once data loads', async () => {
+=======
 describe('DocsPage', () => {
   it('renders the documentation hub heading', () => {
+>>>>>>> main
     render(
       <MemoryRouter>
         <DocsPage />
       </MemoryRouter>
     );
 
+<<<<<<< HEAD
+    expect(await screen.findByRole('heading', { name: /documentation hub/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /user guide/i })).toBeInTheDocument();
+  });
+
+  it('allows opening a document from the tree', async () => {
+    const user = userEvent.setup();
+=======
     expect(screen.getByRole('heading', { name: /documentation hub/i })).toBeInTheDocument();
   });
 
   it('renders all major documentation sections', () => {
+>>>>>>> main
     render(
       <MemoryRouter>
         <DocsPage />
       </MemoryRouter>
     );
 
+<<<<<<< HEAD
+    const docButton = await screen.findByRole('button', { name: /user guide/i });
+    await user.click(docButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/getting started/i)).toBeInTheDocument();
+    });
+    expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/docs/getting-started/user-guide.md');
+  });
+
+  it('renders external resources links', async () => {
+=======
     // Check for major section headings using getAllByRole
     const headings = screen.getAllByRole('heading');
     const headingTexts = headings.map(h => h.textContent);
@@ -43,12 +142,20 @@ describe('DocsPage', () => {
   });
 
   it('renders quick links section', () => {
+>>>>>>> main
     render(
       <MemoryRouter>
         <DocsPage />
       </MemoryRouter>
     );
 
+<<<<<<< HEAD
+    expect(await screen.findByRole('heading', { name: /external resources/i })).toBeInTheDocument();
+    expect(screen.getByText('GitHub Repository')).toBeInTheDocument();
+    expect(screen.getByText('Issue Tracker')).toBeInTheDocument();
+    expect(screen.getByText('Discussions')).toBeInTheDocument();
+  });
+=======
     expect(screen.getByRole('heading', { name: /quick links/i })).toBeInTheDocument();
     expect(screen.getByText(/learn how to contribute to clipper/i)).toBeInTheDocument();
     expect(screen.getByText(/incident response and procedures/i)).toBeInTheDocument();
@@ -110,4 +217,5 @@ describe('DocsPage', () => {
     
     expect(githubLinks.length).toBeGreaterThan(0);
   });
+>>>>>>> main
 });

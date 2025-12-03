@@ -7,6 +7,8 @@ secrets/
 vault/approle/role_id
 vault/approle/secret_id
 vault/rendered/backend.env
+vault/rendered/frontend.env
+vault/rendered/
 
 # Dependencies
 node_modules/
@@ -14,6 +16,8 @@ vendor/
 
 # OS files
 .DS_Store
+.env.*.local
+frontend/frontend.env
 Thumbs.db
 
 # IDE
@@ -52,3 +56,4 @@ test-results/
 summary.json
 vault/approle/frontend_role_id
 vault/approle/frontend_secret_id
+frontend/frontend.env

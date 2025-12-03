@@ -42,7 +42,11 @@ export function DocsPage() {
 
   useEffect(() => {
     fetchDocsList();
+<<<<<<< HEAD
+
+=======
     
+>>>>>>> main
     // Check for doc parameter in URL
     const docParam = searchParams.get('doc');
     if (docParam) {
@@ -84,7 +88,11 @@ export function DocsPage() {
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
+<<<<<<< HEAD
+
+=======
     
+>>>>>>> main
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -144,7 +152,11 @@ export function DocsPage() {
           </button>
         );
       }
+<<<<<<< HEAD
+
+=======
       
+>>>>>>> main
       // Handle relative doc links
       if (href?.endsWith('.md') && !href.startsWith('http')) {
         const cleanPath = href.replace(/^\.\.\//, '').replace(/\.md$/, '');
@@ -272,7 +284,11 @@ export function DocsPage() {
               <p className="text-lg text-muted-foreground mb-4">
                 Comprehensive guides, API references, and operational procedures
               </p>
+<<<<<<< HEAD
+
+=======
               
+>>>>>>> main
               {/* Search Bar */}
               <div className="relative">
                 <input
@@ -400,6 +416,8 @@ export function DocsPage() {
     </>
   );
 }
+<<<<<<< HEAD
+=======
 
   // Documentation sections organized by category
   const docSections = [
@@ -782,3 +800,4 @@ export function DocsPage() {
     </>
   );
 }
+>>>>>>> main

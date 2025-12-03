@@ -10,7 +10,8 @@ auto_auth {
 
   sink "file" {
     config = {
-      path = "/vault-agent/token"
+      path = "/vault-agent/rendered/token"
+      mode = 0640
     }
   }
 }
