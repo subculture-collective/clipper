@@ -645,6 +645,10 @@ func main() {
 		docs := v1.Group("/docs")
 		{
 			docs.GET("", docsHandler.GetDocsList)
+<<<<<<< HEAD
+=======
+			docs.GET("/search", docsHandler.SearchDocs)
+>>>>>>> main
 			docs.GET("/*path", docsHandler.GetDoc)
 		}
 

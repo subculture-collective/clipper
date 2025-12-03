@@ -17,10 +17,10 @@ export default defineConfig(({ mode }) => ({
             // Use Vite's provided `mode` instead of NODE_ENV for reliability
             disable: !process.env.SENTRY_AUTH_TOKEN || mode !== 'production',
             // Align the upload release with runtime init
-                        release: (() => {
-                            const name = process.env.VITE_SENTRY_RELEASE || process.env.SENTRY_RELEASE;
-                            return name ? { name } : undefined;
-                        })(),
+            release: (() => {
+                const name = process.env.VITE_SENTRY_RELEASE || process.env.SENTRY_RELEASE;
+                return name ? { name } : undefined;
+            })(),
             sourcemaps: {
                 assets: './dist/**',
                 filesToDeleteAfterUpload: ['**/*.js.map', '**/*.mjs.map'],
