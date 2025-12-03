@@ -80,12 +80,15 @@ type OpenSearchConfig struct {
 
 // StripeConfig holds Stripe payment configuration
 type StripeConfig struct {
-	SecretKey         string
-	WebhookSecrets    []string
-	ProMonthlyPriceID string
-	ProYearlyPriceID  string
-	SuccessURL        string
-	CancelURL         string
+	SecretKey          string
+	WebhookSecrets     []string
+	ProMonthlyPriceID  string
+	ProYearlyPriceID   string
+	SuccessURL         string
+	CancelURL          string
+	TaxEnabled         bool   // Enable automatic tax calculation via Stripe Tax
+	InvoicePDFEnabled  bool   // Enable sending invoice PDFs via email
+	TaxCollectionMode  string // "automatic" or "manual" - how tax is collected
 }
 
 // SentryConfig holds Sentry error tracking configuration
@@ -189,6 +192,9 @@ func Load() (*Config, error) {
 			ProYearlyPriceID:  getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
 			SuccessURL:        getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
 			CancelURL:         getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
+			TaxEnabled:        getEnv("STRIPE_TAX_ENABLED", "false") == "true",
+			InvoicePDFEnabled: getEnv("STRIPE_INVOICE_PDF_ENABLED", "false") == "true",
+			TaxCollectionMode: getEnv("STRIPE_TAX_COLLECTION_MODE", "automatic"),
 		},
 		Sentry: SentryConfig{
 			DSN:              getEnv("SENTRY_DSN", ""),

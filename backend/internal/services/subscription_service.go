@@ -37,6 +37,7 @@ type SubscriptionService struct {
 	cfg            *config.Config
 	auditLogSvc    *AuditLogService
 	dunningService *DunningService
+	emailService   *EmailService
 }
 
 // NewSubscriptionService creates a new subscription service
@@ -47,6 +48,7 @@ func NewSubscriptionService(
 	cfg *config.Config,
 	auditLogSvc *AuditLogService,
 	dunningService *DunningService,
+	emailService *EmailService,
 ) *SubscriptionService {
 	// Initialize Stripe with secret key
 	stripe.Key = cfg.Stripe.SecretKey
@@ -58,6 +60,7 @@ func NewSubscriptionService(
 		cfg:            cfg,
 		auditLogSvc:    auditLogSvc,
 		dunningService: dunningService,
+		emailService:   emailService,
 	}
 }
 
@@ -142,6 +145,15 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 		},
 		// Enable promotion codes by default
 		AllowPromotionCodes: stripe.Bool(true),
+	}
+
+	// Enable Stripe Tax for automatic tax calculation if configured
+	if s.cfg.Stripe.TaxEnabled {
+		params.AutomaticTax = &stripe.CheckoutSessionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		}
+		// Require billing address collection for tax calculation
+		params.BillingAddressCollection = stripe.String("required")
 	}
 
 	// Apply coupon code if provided
@@ -291,6 +303,8 @@ func (s *SubscriptionService) processWebhookWithRetry(ctx context.Context, event
 		return s.handleInvoicePaid(ctx, event)
 	case "invoice.payment_failed":
 		return s.handleInvoicePaymentFailed(ctx, event)
+	case "invoice.finalized":
+		return s.handleInvoiceFinalized(ctx, event)
 	default:
 		log.Printf("[WEBHOOK] Unhandled event type: %s", event.Type)
 		return nil
@@ -566,6 +580,98 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 
 	log.Printf("[WEBHOOK] Successfully processed invoice.payment_failed for subscription %s", invoice.Subscription.ID)
 	return nil
+}
+
+// handleInvoiceFinalized processes invoice.finalized events and sends invoice PDFs to customers
+func (s *SubscriptionService) handleInvoiceFinalized(ctx context.Context, event stripe.Event) error {
+	var invoice stripe.Invoice
+	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal invoice.finalized event %s: %v", event.ID, err)
+		return fmt.Errorf("failed to unmarshal invoice: %w", err)
+	}
+
+	log.Printf("[WEBHOOK] Processing invoice.finalized for invoice: %s, customer: %s",
+		invoice.ID, invoice.Customer.ID)
+
+	// Skip if invoice PDF delivery is disabled
+	if !s.cfg.Stripe.InvoicePDFEnabled {
+		log.Printf("[WEBHOOK] Invoice PDF delivery disabled, skipping for invoice %s", invoice.ID)
+		return nil
+	}
+
+	// Skip if no invoice PDF URL is available (shouldn't happen for finalized invoices)
+	if invoice.InvoicePDF == "" {
+		log.Printf("[WEBHOOK] No invoice PDF URL available for invoice %s", invoice.ID)
+		return nil
+	}
+
+	// Get subscription by Stripe customer ID
+	sub, err := s.repo.GetByStripeCustomerID(ctx, invoice.Customer.ID)
+	if err != nil {
+		log.Printf("[WEBHOOK] Failed to find subscription for customer %s: %v", invoice.Customer.ID, err)
+		return nil // Not critical, don't fail the webhook
+	}
+
+	// Get user for email
+	user, err := s.userRepo.GetByID(ctx, sub.UserID)
+	if err != nil {
+		log.Printf("[WEBHOOK] Failed to get user %s for invoice email: %v", sub.UserID, err)
+		return nil // Not critical
+	}
+
+	// Send invoice email with PDF link
+	if s.emailService != nil {
+		emailData := map[string]interface{}{
+			"InvoiceID":        invoice.ID,
+			"InvoicePDFURL":    invoice.InvoicePDF,
+			"HostedInvoiceURL": invoice.HostedInvoiceURL,
+			"AmountDue":        formatAmountForCurrency(invoice.AmountDue, string(invoice.Currency)),
+			"Currency":         string(invoice.Currency),
+			"InvoiceNumber":    invoice.Number,
+		}
+
+		// Add tax information if available
+		if invoice.AutomaticTax != nil && invoice.AutomaticTax.Status != "" {
+			emailData["TaxStatus"] = string(invoice.AutomaticTax.Status)
+		}
+		if invoice.Tax > 0 {
+			emailData["TaxAmount"] = formatAmountForCurrency(invoice.Tax, string(invoice.Currency))
+		}
+		if invoice.Subtotal > 0 {
+			emailData["Subtotal"] = formatAmountForCurrency(invoice.Subtotal, string(invoice.Currency))
+		}
+		if invoice.Total > 0 {
+			emailData["Total"] = formatAmountForCurrency(invoice.Total, string(invoice.Currency))
+		}
+
+		notificationID := uuid.New()
+		if err := s.emailService.SendNotificationEmail(ctx, user, "invoice_finalized", notificationID, emailData); err != nil {
+			log.Printf("[WEBHOOK] Failed to send invoice email to user %s: %v", user.ID, err)
+			// Continue processing, email failure shouldn't fail the webhook
+		} else {
+			log.Printf("[WEBHOOK] Invoice email sent to user %s for invoice %s", user.ID, invoice.ID)
+		}
+	}
+
+	// Log audit event
+	if s.auditLogSvc != nil {
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, sub.UserID, "invoice_finalized", map[string]interface{}{
+			"invoice_id":     invoice.ID,
+			"invoice_number": invoice.Number,
+			"amount_due":     invoice.AmountDue,
+			"tax":            invoice.Tax,
+			"pdf_url":        invoice.InvoicePDF,
+		})
+	}
+
+	log.Printf("[WEBHOOK] Successfully processed invoice.finalized for invoice %s", invoice.ID)
+	return nil
+}
+
+// formatAmountForCurrency formats an amount (in cents) for display with currency
+func formatAmountForCurrency(amount int64, currency string) string {
+	// Most currencies use 2 decimal places
+	return fmt.Sprintf("%.2f %s", float64(amount)/100, currency)
 }
 
 // getTierFromPriceID determines the subscription tier from Stripe price ID

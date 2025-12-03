@@ -170,7 +170,7 @@ func main() {
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
 
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService, emailService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 

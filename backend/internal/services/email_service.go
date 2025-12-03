@@ -220,6 +220,9 @@ func (s *EmailService) prepareEmailContent(
 	case models.NotificationTypeSubscriptionDowngraded:
 		subject = "Your Subscription Has Been Downgraded"
 		htmlBody, textBody = s.prepareSubscriptionDowngradedEmail(data)
+	case models.NotificationTypeInvoiceFinalized:
+		subject = "Your Invoice is Ready"
+		htmlBody, textBody = s.prepareInvoiceFinalizedEmail(data)
 	default:
 		return "", "", "", fmt.Errorf("unsupported notification type: %s", notificationType)
 	}
@@ -740,6 +743,102 @@ Resubscribe to Pro: %s/premium
 
 We're sorry to see you go! If you have any questions or feedback, please contact our support team.
 `, s.baseURL)
+
+	return html, text
+}
+
+// prepareInvoiceFinalizedEmail prepares invoice finalized notification email with PDF link
+func (s *EmailService) prepareInvoiceFinalizedEmail(data map[string]interface{}) (html, text string) {
+	invoiceNumber := data["InvoiceNumber"]
+	total := data["Total"]
+	pdfURL := data["InvoicePDFURL"]
+	hostedURL := data["HostedInvoiceURL"]
+	
+	// Get optional tax details
+	subtotal := data["Subtotal"]
+	taxAmount := data["TaxAmount"]
+
+	// Build tax section if tax was applied
+	taxSection := ""
+	taxSectionText := ""
+	if taxAmount != nil && taxAmount != "" {
+		taxSection = fmt.Sprintf(`
+		<tr>
+			<td style="padding: 10px; border-bottom: 1px solid #eee;">Subtotal:</td>
+			<td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;"><strong>%v</strong></td>
+		</tr>
+		<tr>
+			<td style="padding: 10px; border-bottom: 1px solid #eee;">Tax:</td>
+			<td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;"><strong>%v</strong></td>
+		</tr>`, subtotal, taxAmount)
+		taxSectionText = fmt.Sprintf(`
+Subtotal: %v
+Tax: %v`, subtotal, taxAmount)
+	}
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Invoice is Ready</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">📄 Your Invoice is Ready</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Your invoice <strong>#%s</strong> has been finalized and is ready for your records.
+        </p>
+        
+        <table style="width: 100%%; background: white; border-radius: 5px; margin: 20px 0;">
+            %s
+            <tr>
+                <td style="padding: 15px; font-size: 18px;"><strong>Total:</strong></td>
+                <td style="padding: 15px; font-size: 18px; text-align: right;"><strong>%v</strong></td>
+            </tr>
+        </table>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="%s" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 5px;">📥 Download PDF</a>
+            <a href="%s" style="display: inline-block; background: #764ba2; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 5px;">🌐 View Online</a>
+        </div>
+        
+        <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #155724;">
+                <strong>Note:</strong> This invoice includes all applicable taxes based on your location.
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999; text-align: center;">
+            This invoice is for your subscription to Clipper Pro.<br>
+            If you have any questions about this invoice, please contact our support team.
+        </p>
+    </div>
+</body>
+</html>
+`, invoiceNumber, taxSection, total, pdfURL, hostedURL)
+
+	text = fmt.Sprintf(`Your Invoice is Ready
+
+Your invoice #%s has been finalized and is ready for your records.
+%s
+Total: %v
+
+Download PDF: %s
+View Online: %s
+
+Note: This invoice includes all applicable taxes based on your location.
+
+---
+This invoice is for your subscription to Clipper Pro.
+If you have any questions about this invoice, please contact our support team.
+`, invoiceNumber, taxSectionText, total, pdfURL, hostedURL)
 
 	return html, text
 }
