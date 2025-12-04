@@ -138,6 +138,7 @@ func main() {
 	webhookRepo := repository.NewWebhookRepository(db.Pool)
 	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
+	revenueRepo := repository.NewRevenueRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -173,6 +174,7 @@ func main() {
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService, emailService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
+	revenueService := services.NewRevenueService(revenueRepo, cfg)
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
@@ -256,6 +258,7 @@ func main() {
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	seoHandler := handlers.NewSEOHandler(clipRepo)
 	docsHandler := handlers.NewDocsHandler("./docs", "subculture-collective", "clipper", "main")
+	revenueHandler := handlers.NewRevenueHandler(revenueService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -715,6 +718,9 @@ func main() {
 				analytics.GET("/content", analyticsHandler.GetContentMetrics)
 				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
 			}
+
+			// Revenue metrics (admin only)
+			admin.GET("/revenue", revenueHandler.GetRevenueMetrics)
 
 			// Contact message management (admin only)
 			adminContact := admin.Group("/contact")
