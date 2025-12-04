@@ -13,6 +13,22 @@ import {
   PieChartComponent,
 } from '../../components/analytics';
 
+// Helper function to get retention level label for accessibility
+const getRetentionLabel = (value: number): string => {
+  if (value >= 80) return 'High retention';
+  if (value >= 60) return 'Medium retention';
+  if (value >= 40) return 'Low retention';
+  return 'Very low retention';
+};
+
+// Helper function to get retention symbol for visual indicator
+const getRetentionSymbol = (value: number): string => {
+  if (value >= 80) return '✓';
+  if (value >= 60) return '⚠';
+  if (value >= 40) return '⚠';
+  return '✗';
+};
+
 const AdminRevenuePage: React.FC = () => {
   // Fetch revenue metrics
   const { data: metrics, isLoading, error } = useQuery({
@@ -265,18 +281,6 @@ const AdminRevenuePage: React.FC = () => {
                               ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
                               : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
                             : '';
-                          const getRetentionLabel = (value: number) => {
-                            if (value >= 80) return 'High retention';
-                            if (value >= 60) return 'Medium retention';
-                            if (value >= 40) return 'Low retention';
-                            return 'Very low retention';
-                          };
-                          const getRetentionSymbol = (value: number) => {
-                            if (value >= 80) return '✓';
-                            if (value >= 60) return '⚠';
-                            if (value >= 40) return '⚠';
-                            return '✗';
-                          };
                           return (
                             <td
                               key={month}

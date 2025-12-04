@@ -9,6 +9,12 @@ import (
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
+const (
+	// avgSecondsPerMonth is the average number of seconds in a month (30.44 days * 24 hours * 60 min * 60 sec)
+	// Used for calculating months retained in cohort analysis across year boundaries
+	avgSecondsPerMonth = 30.44 * 24 * 60 * 60
+)
+
 // RevenueRepository handles database operations for revenue metrics
 type RevenueRepository struct {
 	db *pgxpool.Pool
@@ -161,6 +167,7 @@ func (r *RevenueRepository) GetPlanDistribution(ctx context.Context) ([]models.P
 // GetCohortRetention calculates cohort retention data
 func (r *RevenueRepository) GetCohortRetention(ctx context.Context, months int) ([]models.CohortRetentionMetric, error) {
 	// Get cohorts from the last N months
+	// The 30.44 * 24 * 60 * 60 = avgSecondsPerMonth constant converts epoch seconds to months
 	query := `
 		WITH cohorts AS (
 			SELECT 
@@ -182,7 +189,8 @@ func (r *RevenueRepository) GetCohortRetention(ctx context.Context, months int) 
 		retained AS (
 			SELECT 
 				c.cohort_month,
-				FLOOR(EXTRACT(EPOCH FROM (COALESCE(c.canceled_at, NOW()) - c.cohort_month)) / (30.44 * 24 * 60 * 60))::int as months_retained
+				-- Calculate months retained using epoch seconds / avgSecondsPerMonth (30.44 days)
+				FLOOR(EXTRACT(EPOCH FROM (COALESCE(c.canceled_at, NOW()) - c.cohort_month)) / 2629746)::int as months_retained
 			FROM cohorts c
 			WHERE c.status IN ('active', 'trialing', 'canceled')
 		)

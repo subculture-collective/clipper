@@ -23,12 +23,14 @@ func NewRevenueService(
 ) *RevenueService {
 	// Build price mapping from config
 	// Prices are in cents, sourced from configuration
+	// Monthly prices used directly, yearly prices converted to monthly equivalent
 	priceMapping := make(map[string]float64)
 	if cfg.Stripe.ProMonthlyPriceID != "" {
 		priceMapping[cfg.Stripe.ProMonthlyPriceID] = float64(cfg.Stripe.ProMonthlyPriceCents)
 	}
 	if cfg.Stripe.ProYearlyPriceID != "" {
-		priceMapping[cfg.Stripe.ProYearlyPriceID] = float64(cfg.Stripe.ProYearlyPriceCents)
+		// Convert yearly price to monthly equivalent for MRR calculations
+		priceMapping[cfg.Stripe.ProYearlyPriceID] = float64(cfg.Stripe.ProYearlyPriceCents) / 12
 	}
 
 	return &RevenueService{
@@ -102,7 +104,8 @@ func (s *RevenueService) GetRevenueMetrics(ctx context.Context) (*models.Revenue
 			planDistribution[i].MonthlyValue = float64(s.cfg.Stripe.ProMonthlyPriceCents)
 		} else if planDistribution[i].PlanID == s.cfg.Stripe.ProYearlyPriceID {
 			planDistribution[i].PlanName = "Pro Yearly"
-			planDistribution[i].MonthlyValue = float64(s.cfg.Stripe.ProYearlyPriceCents)
+			// Convert yearly price to monthly equivalent
+			planDistribution[i].MonthlyValue = float64(s.cfg.Stripe.ProYearlyPriceCents) / 12
 		}
 	}
 
