@@ -70,7 +70,7 @@ clipper_{page}_{position}_{size}
 | Category | Description | Frequency |
 |----------|-------------|-----------|
 | **Display** | Standard banner and rectangle ads | Variable by page |
-| **In-Feed** | Ads interspersed within content feeds | Every N items |
+| **In-Feed** | Ads interspersed within content feeds | Every 4-6 items (see slot definitions) |
 | **Video** | Pre-roll or companion ads for video content | Optional |
 | **Sticky** | Fixed-position ads (mobile footer, etc.) | 1 per page max |
 
@@ -684,12 +684,15 @@ function AdSlot({ slotId, sizes, className, lazyLoad = false }: AdSlotProps) {
 
 ### Performance Budgets
 
-| Resource | Budget |
-|----------|--------|
-| Ad script size | <100KB (gzipped) |
-| Ad load time | <2s (above fold) |
-| Ad render time | <500ms |
-| Max concurrent ad requests | 3 |
+The following budgets are based on IAB (Interactive Advertising Bureau) best practices and Google Core Web Vitals
+requirements to minimize impact on user experience:
+
+| Resource | Budget | Rationale |
+|----------|--------|-----------|
+| Ad script size | <100KB (gzipped) | IAB LEAN principles; prevents main thread blocking |
+| Ad load time | <2s (above fold) | Google LCP threshold for "good" experience |
+| Ad render time | <500ms | Prevents visible layout shift after content load |
+| Max concurrent ad requests | 3 | Reduces network congestion and battery drain |
 
 ---
 
@@ -755,7 +758,7 @@ function AdSlot({ slotId, sizes, className, lazyLoad = false }: AdSlotProps) {
 - **[Entitlement Matrix](./ENTITLEMENT_MATRIX.md)** - Feature gates including ads
 - **[Analytics System](./ANALYTICS.md)** - Event tracking infrastructure
 - **[Mobile Architecture](./MOBILE_ARCHITECTURE.md)** - Mobile app structure
-- **[Frontend Architecture](./frontend/architecture.md)** - Web frontend patterns
+- **[Frontend Architecture](frontend/architecture.md)** - Web frontend patterns
 - **[Performance Guide](./PERFORMANCE.md)** - Performance requirements
 
 ---
