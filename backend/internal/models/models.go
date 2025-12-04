@@ -522,6 +522,8 @@ const (
 	NotificationTypePaymentRetry           = "payment_retry"
 	NotificationTypeGracePeriodWarning     = "grace_period_warning"
 	NotificationTypeSubscriptionDowngraded = "subscription_downgraded"
+	// Invoice notification types
+	NotificationTypeInvoiceFinalized = "invoice_finalized"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
