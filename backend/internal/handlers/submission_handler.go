@@ -150,6 +150,62 @@ func (h *SubmissionHandler) GetSubmissionStats(c *gin.Context) {
 	})
 }
 
+// GetClipMetadata fetches clip metadata from Twitch API
+// GET /submissions/metadata?url={twitchClipUrl}
+func (h *SubmissionHandler) GetClipMetadata(c *gin.Context) {
+	clipURL := c.Query("url")
+	if clipURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "URL parameter is required",
+			"field":   "url",
+		})
+		return
+	}
+
+	metadata, err := h.submissionService.GetClipMetadata(c.Request.Context(), clipURL)
+	if err != nil {
+		// Check if it's a validation error
+		if valErr, ok := err.(*services.ValidationError); ok {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   valErr.Message,
+				"field":   valErr.Field,
+			})
+			return
+		}
+
+		// Check for Twitch API errors (502 Bad Gateway)
+		if _, ok := err.(*services.TwitchAPIError); ok {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"success": false,
+				"error":   "Unable to fetch clip metadata from Twitch. Please try again later.",
+			})
+			return
+		}
+
+		// Check for Twitch API not configured error
+		if strings.Contains(err.Error(), "not configured") {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"success": false,
+				"error":   "Unable to fetch clip metadata from Twitch. Please try again later.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch clip metadata",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    metadata,
+	})
+}
+
 // ListPendingSubmissions lists pending submissions for moderation (admin/moderator only)
 // GET /admin/submissions
 // Supports filters: is_nsfw, broadcaster, creator, tags (comma-separated), start_date (RFC3339), end_date (RFC3339)
