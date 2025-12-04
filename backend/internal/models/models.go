@@ -878,21 +878,21 @@ type UnregisterDeviceTokenRequest struct {
 
 // RevenueMetrics represents subscription revenue metrics for admin dashboard
 type RevenueMetrics struct {
-	MRR                  float64                   `json:"mrr"`                     // Monthly Recurring Revenue in cents
-	Churn                float64                   `json:"churn"`                   // Churn rate as percentage
-	ARPU                 float64                   `json:"arpu"`                    // Average Revenue Per User in cents
-	ActiveSubscribers    int                       `json:"active_subscribers"`      // Total active subscribers
-	TotalRevenue         float64                   `json:"total_revenue"`           // Total revenue to date in cents
-	PlanDistribution     []PlanDistributionMetric  `json:"plan_distribution"`       // Distribution by plan
-	CohortRetention      []CohortRetentionMetric   `json:"cohort_retention"`        // Cohort retention data
-	ChurnedSubscribers   int                       `json:"churned_subscribers"`     // Subscribers churned this month
-	NewSubscribers       int                       `json:"new_subscribers"`         // New subscribers this month
-	TrialConversionRate  float64                   `json:"trial_conversion_rate"`   // Trial to paid conversion rate
-	GracePeriodRecovery  float64                   `json:"grace_period_recovery"`   // Grace period recovery rate
-	AverageLifetimeValue float64                   `json:"average_lifetime_value"`  // Average customer LTV in cents
-	RevenueByMonth       []RevenueByMonthMetric    `json:"revenue_by_month"`        // Revenue trend by month
-	SubscriberGrowth     []SubscriberGrowthMetric  `json:"subscriber_growth"`       // Subscriber growth trend
-	UpdatedAt            time.Time                 `json:"updated_at"`
+	MRR                  float64                  `json:"mrr"`                    // Monthly Recurring Revenue in cents
+	Churn                float64                  `json:"churn"`                  // Churn rate as percentage
+	ARPU                 float64                  `json:"arpu"`                   // Average Revenue Per User in cents
+	ActiveSubscribers    int                      `json:"active_subscribers"`     // Total active subscribers
+	TotalRevenue         float64                  `json:"total_revenue"`          // Total revenue to date in cents
+	PlanDistribution     []PlanDistributionMetric `json:"plan_distribution"`      // Distribution by plan
+	CohortRetention      []CohortRetentionMetric  `json:"cohort_retention"`       // Cohort retention data
+	ChurnedSubscribers   int                      `json:"churned_subscribers"`    // Subscribers churned this month
+	NewSubscribers       int                      `json:"new_subscribers"`        // New subscribers this month
+	TrialConversionRate  float64                  `json:"trial_conversion_rate"`  // Trial to paid conversion rate
+	GracePeriodRecovery  float64                  `json:"grace_period_recovery"`  // Grace period recovery rate
+	AverageLifetimeValue float64                  `json:"average_lifetime_value"` // Average customer LTV in cents
+	RevenueByMonth       []RevenueByMonthMetric   `json:"revenue_by_month"`       // Revenue trend by month
+	SubscriberGrowth     []SubscriberGrowthMetric `json:"subscriber_growth"`      // Subscriber growth trend
+	UpdatedAt            time.Time                `json:"updated_at"`
 }
 
 // PlanDistributionMetric represents distribution of subscribers by plan
@@ -929,46 +929,56 @@ type SubscriberGrowthMetric struct {
 
 // Ad represents an advertisement campaign
 type Ad struct {
-	ID                 uuid.UUID              `json:"id" db:"id"`
-	Name               string                 `json:"name" db:"name"`
-	AdvertiserName     string                 `json:"advertiser_name" db:"advertiser_name"`
-	AdType             string                 `json:"ad_type" db:"ad_type"` // banner, video, native
-	ContentURL         string                 `json:"content_url" db:"content_url"`
-	ClickURL           *string                `json:"click_url,omitempty" db:"click_url"`
-	AltText            *string                `json:"alt_text,omitempty" db:"alt_text"`
-	Width              *int                   `json:"width,omitempty" db:"width"`
-	Height             *int                   `json:"height,omitempty" db:"height"`
-	Priority           int                    `json:"priority" db:"priority"`
-	Weight             int                    `json:"weight" db:"weight"`
-	DailyBudgetCents   *int64                 `json:"daily_budget_cents,omitempty" db:"daily_budget_cents"`
-	TotalBudgetCents   *int64                 `json:"total_budget_cents,omitempty" db:"total_budget_cents"`
-	SpentTodayCents    int64                  `json:"spent_today_cents" db:"spent_today_cents"`
-	SpentTotalCents    int64                  `json:"spent_total_cents" db:"spent_total_cents"`
-	CPMCents           int                    `json:"cpm_cents" db:"cpm_cents"` // Cost per 1000 impressions
-	IsActive           bool                   `json:"is_active" db:"is_active"`
-	StartDate          *time.Time             `json:"start_date,omitempty" db:"start_date"`
-	EndDate            *time.Time             `json:"end_date,omitempty" db:"end_date"`
-	TargetingCriteria  map[string]interface{} `json:"targeting_criteria,omitempty" db:"targeting_criteria"`
-	CreatedAt          time.Time              `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time              `json:"updated_at" db:"updated_at"`
+	ID                uuid.UUID              `json:"id" db:"id"`
+	Name              string                 `json:"name" db:"name"`
+	AdvertiserName    string                 `json:"advertiser_name" db:"advertiser_name"`
+	AdType            string                 `json:"ad_type" db:"ad_type"` // banner, video, native
+	ContentURL        string                 `json:"content_url" db:"content_url"`
+	ClickURL          *string                `json:"click_url,omitempty" db:"click_url"`
+	AltText           *string                `json:"alt_text,omitempty" db:"alt_text"`
+	Width             *int                   `json:"width,omitempty" db:"width"`
+	Height            *int                   `json:"height,omitempty" db:"height"`
+	Priority          int                    `json:"priority" db:"priority"`
+	Weight            int                    `json:"weight" db:"weight"`
+	DailyBudgetCents  *int64                 `json:"daily_budget_cents,omitempty" db:"daily_budget_cents"`
+	TotalBudgetCents  *int64                 `json:"total_budget_cents,omitempty" db:"total_budget_cents"`
+	SpentTodayCents   int64                  `json:"spent_today_cents" db:"spent_today_cents"`
+	SpentTotalCents   int64                  `json:"spent_total_cents" db:"spent_total_cents"`
+	CPMCents          int                    `json:"cpm_cents" db:"cpm_cents"` // Cost per 1000 impressions
+	IsActive          bool                   `json:"is_active" db:"is_active"`
+	StartDate         *time.Time             `json:"start_date,omitempty" db:"start_date"`
+	EndDate           *time.Time             `json:"end_date,omitempty" db:"end_date"`
+	TargetingCriteria map[string]interface{} `json:"targeting_criteria,omitempty" db:"targeting_criteria"`
+	// New fields for slots and experiments
+	SlotID            *string    `json:"slot_id,omitempty" db:"slot_id"`
+	ExperimentID      *uuid.UUID `json:"experiment_id,omitempty" db:"experiment_id"`
+	ExperimentVariant *string    `json:"experiment_variant,omitempty" db:"experiment_variant"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // AdImpression represents a tracked ad impression
 type AdImpression struct {
-	ID               uuid.UUID  `json:"id" db:"id"`
-	AdID             uuid.UUID  `json:"ad_id" db:"ad_id"`
-	UserID           *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
-	SessionID        *string    `json:"session_id,omitempty" db:"session_id"`
-	Platform         string     `json:"platform" db:"platform"` // web, ios, android
-	IPAddress        *string    `json:"ip_address,omitempty" db:"ip_address"`
-	UserAgent        *string    `json:"user_agent,omitempty" db:"user_agent"`
-	PageURL          *string    `json:"page_url,omitempty" db:"page_url"`
-	ViewabilityTimeMs int       `json:"viewability_time_ms" db:"viewability_time_ms"`
-	IsViewable       bool       `json:"is_viewable" db:"is_viewable"`
-	IsClicked        bool       `json:"is_clicked" db:"is_clicked"`
-	ClickedAt        *time.Time `json:"clicked_at,omitempty" db:"clicked_at"`
-	CostCents        int        `json:"cost_cents" db:"cost_cents"`
-	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	ID                uuid.UUID  `json:"id" db:"id"`
+	AdID              uuid.UUID  `json:"ad_id" db:"ad_id"`
+	UserID            *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
+	SessionID         *string    `json:"session_id,omitempty" db:"session_id"`
+	Platform          string     `json:"platform" db:"platform"` // web, ios, android
+	IPAddress         *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent         *string    `json:"user_agent,omitempty" db:"user_agent"`
+	PageURL           *string    `json:"page_url,omitempty" db:"page_url"`
+	ViewabilityTimeMs int        `json:"viewability_time_ms" db:"viewability_time_ms"`
+	IsViewable        bool       `json:"is_viewable" db:"is_viewable"`
+	IsClicked         bool       `json:"is_clicked" db:"is_clicked"`
+	ClickedAt         *time.Time `json:"clicked_at,omitempty" db:"clicked_at"`
+	CostCents         int        `json:"cost_cents" db:"cost_cents"`
+	// New fields for enhanced tracking
+	SlotID            *string    `json:"slot_id,omitempty" db:"slot_id"`
+	Country           *string    `json:"country,omitempty" db:"country"`
+	DeviceType        *string    `json:"device_type,omitempty" db:"device_type"` // desktop, mobile, tablet
+	ExperimentID      *uuid.UUID `json:"experiment_id,omitempty" db:"experiment_id"`
+	ExperimentVariant *string    `json:"experiment_variant,omitempty" db:"experiment_variant"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 }
 
 // AdFrequencyCap represents per-user/session impression tracking for frequency capping
@@ -995,14 +1005,19 @@ type AdFrequencyLimit struct {
 
 // AdSelectionRequest represents a request to select an ad
 type AdSelectionRequest struct {
-	Platform  string     `json:"platform" form:"platform" binding:"required,oneof=web ios android"`
-	PageURL   *string    `json:"page_url,omitempty" form:"page_url"`
-	AdType    *string    `json:"ad_type,omitempty" form:"ad_type"`   // Filter by ad type
-	Width     *int       `json:"width,omitempty" form:"width"`       // Filter by dimensions
-	Height    *int       `json:"height,omitempty" form:"height"`
-	SessionID *string    `json:"session_id,omitempty" form:"session_id"` // For anonymous users
-	GameID    *string    `json:"game_id,omitempty" form:"game_id"`       // For targeting
-	Language  *string    `json:"language,omitempty" form:"language"`
+	Platform  string  `json:"platform" form:"platform" binding:"required,oneof=web ios android"`
+	PageURL   *string `json:"page_url,omitempty" form:"page_url"`
+	AdType    *string `json:"ad_type,omitempty" form:"ad_type"` // Filter by ad type
+	Width     *int    `json:"width,omitempty" form:"width"`     // Filter by dimensions
+	Height    *int    `json:"height,omitempty" form:"height"`
+	SessionID *string `json:"session_id,omitempty" form:"session_id"` // For anonymous users
+	GameID    *string `json:"game_id,omitempty" form:"game_id"`       // For targeting
+	Language  *string `json:"language,omitempty" form:"language"`
+	// Enhanced targeting fields
+	SlotID     *string  `json:"slot_id,omitempty" form:"slot_id"`         // Ad placement slot identifier
+	Country    *string  `json:"country,omitempty" form:"country"`         // ISO 3166-1 alpha-2 country code
+	DeviceType *string  `json:"device_type,omitempty" form:"device_type"` // desktop, mobile, tablet
+	Interests  []string `json:"interests,omitempty" form:"interests"`     // User interest categories
 }
 
 // AdSelectionResponse represents a selected ad for display
@@ -1031,3 +1046,131 @@ const (
 // ViewabilityThresholdMs is the minimum time (in ms) an ad must be viewable to count
 // IAB standard: 50% of pixels visible for 1000ms (1 second)
 const ViewabilityThresholdMs = 1000
+
+// AdExperiment represents an A/B experiment for comparing ad variants
+type AdExperiment struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	Name           string     `json:"name" db:"name"`
+	Description    *string    `json:"description,omitempty" db:"description"`
+	Status         string     `json:"status" db:"status"` // draft, running, paused, completed
+	StartDate      *time.Time `json:"start_date,omitempty" db:"start_date"`
+	EndDate        *time.Time `json:"end_date,omitempty" db:"end_date"`
+	TrafficPercent int        `json:"traffic_percent" db:"traffic_percent"` // 0-100
+	WinningVariant *string    `json:"winning_variant,omitempty" db:"winning_variant"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// AdTargetingRule represents a structured targeting rule for an ad
+type AdTargetingRule struct {
+	ID        uuid.UUID `json:"id" db:"id"`
+	AdID      uuid.UUID `json:"ad_id" db:"ad_id"`
+	RuleType  string    `json:"rule_type" db:"rule_type"` // country, device, interest, platform, language, game
+	Operator  string    `json:"operator" db:"operator"`   // include, exclude
+	Values    []string  `json:"values" db:"values"`       // Array of values to match
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+// TargetingRuleType constants
+const (
+	TargetingRuleTypeCountry  = "country"
+	TargetingRuleTypeDevice   = "device"
+	TargetingRuleTypeInterest = "interest"
+	TargetingRuleTypePlatform = "platform"
+	TargetingRuleTypeLanguage = "language"
+	TargetingRuleTypeGame     = "game"
+)
+
+// TargetingRuleOperator constants
+const (
+	TargetingOperatorInclude = "include"
+	TargetingOperatorExclude = "exclude"
+)
+
+// ExperimentStatus constants
+const (
+	ExperimentStatusDraft     = "draft"
+	ExperimentStatusRunning   = "running"
+	ExperimentStatusPaused    = "paused"
+	ExperimentStatusCompleted = "completed"
+)
+
+// AdCampaignAnalytics represents aggregated campaign analytics by date and slot
+type AdCampaignAnalytics struct {
+	ID                  uuid.UUID `json:"id" db:"id"`
+	AdID                uuid.UUID `json:"ad_id" db:"ad_id"`
+	Date                time.Time `json:"date" db:"date"`
+	SlotID              *string   `json:"slot_id,omitempty" db:"slot_id"`
+	Impressions         int       `json:"impressions" db:"impressions"`
+	ViewableImpressions int       `json:"viewable_impressions" db:"viewable_impressions"`
+	Clicks              int       `json:"clicks" db:"clicks"`
+	SpendCents          int64     `json:"spend_cents" db:"spend_cents"`
+	UniqueUsers         int       `json:"unique_users" db:"unique_users"`
+	CreatedAt           time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// AdExperimentAnalytics represents aggregated experiment analytics by variant and date
+type AdExperimentAnalytics struct {
+	ID                  uuid.UUID `json:"id" db:"id"`
+	ExperimentID        uuid.UUID `json:"experiment_id" db:"experiment_id"`
+	Variant             string    `json:"variant" db:"variant"`
+	Date                time.Time `json:"date" db:"date"`
+	Impressions         int       `json:"impressions" db:"impressions"`
+	ViewableImpressions int       `json:"viewable_impressions" db:"viewable_impressions"`
+	Clicks              int       `json:"clicks" db:"clicks"`
+	Conversions         int       `json:"conversions" db:"conversions"`
+	CreatedAt           time.Time `json:"created_at" db:"created_at"`
+}
+
+// AdCTRReport represents a CTR report for campaigns/slots
+type AdCTRReport struct {
+	AdID                uuid.UUID `json:"ad_id" db:"ad_id"`
+	AdName              string    `json:"ad_name" db:"ad_name"`
+	SlotID              *string   `json:"slot_id,omitempty" db:"slot_id"`
+	Impressions         int64     `json:"impressions" db:"impressions"`
+	ViewableImpressions int64     `json:"viewable_impressions" db:"viewable_impressions"`
+	Clicks              int64     `json:"clicks" db:"clicks"`
+	CTR                 float64   `json:"ctr"`              // Click-through rate (clicks / viewable impressions)
+	ViewabilityRate     float64   `json:"viewability_rate"` // viewable impressions / total impressions
+	SpendCents          int64     `json:"spend_cents" db:"spend_cents"`
+}
+
+// AdSlotReport represents CTR metrics grouped by slot
+type AdSlotReport struct {
+	SlotID              string  `json:"slot_id" db:"slot_id"`
+	Impressions         int64   `json:"impressions" db:"impressions"`
+	ViewableImpressions int64   `json:"viewable_impressions" db:"viewable_impressions"`
+	Clicks              int64   `json:"clicks" db:"clicks"`
+	CTR                 float64 `json:"ctr"`
+	ViewabilityRate     float64 `json:"viewability_rate"`
+	SpendCents          int64   `json:"spend_cents" db:"spend_cents"`
+	UniqueAds           int     `json:"unique_ads" db:"unique_ads"`
+}
+
+// AdExperimentReport represents experiment results with variant comparison
+type AdExperimentReport struct {
+	ExperimentID   uuid.UUID                   `json:"experiment_id" db:"experiment_id"`
+	ExperimentName string                      `json:"experiment_name" db:"experiment_name"`
+	Status         string                      `json:"status" db:"status"`
+	Variants       []AdExperimentVariantReport `json:"variants"`
+}
+
+// AdExperimentVariantReport represents metrics for a single experiment variant
+type AdExperimentVariantReport struct {
+	Variant             string  `json:"variant" db:"variant"`
+	Impressions         int64   `json:"impressions" db:"impressions"`
+	ViewableImpressions int64   `json:"viewable_impressions" db:"viewable_impressions"`
+	Clicks              int64   `json:"clicks" db:"clicks"`
+	CTR                 float64 `json:"ctr"`
+	Conversions         int64   `json:"conversions" db:"conversions"`
+	ConversionRate      float64 `json:"conversion_rate"` // conversions / clicks
+}
+
+// AdSelectionContext represents context information for ad targeting
+type AdSelectionContext struct {
+	Country    *string  `json:"country,omitempty" form:"country"`
+	DeviceType *string  `json:"device_type,omitempty" form:"device_type"` // desktop, mobile, tablet
+	Interests  []string `json:"interests,omitempty" form:"interests"`
+	SlotID     *string  `json:"slot_id,omitempty" form:"slot_id"`
+}

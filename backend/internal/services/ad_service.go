@@ -38,8 +38,14 @@ func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest,
 		return &models.AdSelectionResponse{}, nil
 	}
 
-	// Filter ads based on targeting criteria
+	// Filter ads based on targeting criteria (including country, device, interests)
 	ads = s.filterByTargeting(ads, req)
+
+	// Filter ads based on targeting rules (structured rules from database)
+	ads, err = s.filterByTargetingRules(ctx, ads, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter by targeting rules: %w", err)
+	}
 
 	if len(ads) == 0 {
 		return &models.AdSelectionResponse{}, nil
@@ -67,19 +73,24 @@ func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest,
 		return &models.AdSelectionResponse{}, nil
 	}
 
-	// Select ad using weighted rotation
-	selectedAd := s.weightedRandomSelect(ads)
+	// Apply experiment selection if applicable
+	selectedAd := s.selectAdWithExperiment(ads, userID, req.SessionID)
 
-	// Create impression record
+	// Create impression record with enhanced tracking fields
 	impressionID := uuid.New()
 	impression := &models.AdImpression{
-		ID:        impressionID,
-		AdID:      selectedAd.ID,
-		UserID:    userID,
-		SessionID: req.SessionID,
-		Platform:  req.Platform,
-		IPAddress: &ipAddress,
-		PageURL:   req.PageURL,
+		ID:                impressionID,
+		AdID:              selectedAd.ID,
+		UserID:            userID,
+		SessionID:         req.SessionID,
+		Platform:          req.Platform,
+		IPAddress:         &ipAddress,
+		PageURL:           req.PageURL,
+		SlotID:            req.SlotID,
+		Country:           req.Country,
+		DeviceType:        req.DeviceType,
+		ExperimentID:      selectedAd.ExperimentID,
+		ExperimentVariant: selectedAd.ExperimentVariant,
 	}
 
 	if err := s.adRepo.CreateImpression(ctx, impression); err != nil {
@@ -201,6 +212,77 @@ func (s *AdService) filterByTargeting(ads []models.Ad, req models.AdSelectionReq
 				}
 				if !platformMatch {
 					match = false
+				}
+			}
+		}
+
+		// Check country targeting (enhanced targeting)
+		if match {
+			if targetCountries, ok := ad.TargetingCriteria["countries"].([]interface{}); ok && len(targetCountries) > 0 {
+				if req.Country == nil {
+					// Ad targets specific countries but request doesn't specify a country
+					match = false
+				} else {
+					countryMatch := false
+					for _, c := range targetCountries {
+						if country, ok := c.(string); ok && country == *req.Country {
+							countryMatch = true
+							break
+						}
+					}
+					if !countryMatch {
+						match = false
+					}
+				}
+			}
+		}
+
+		// Check device type targeting (enhanced targeting)
+		if match {
+			if targetDevices, ok := ad.TargetingCriteria["devices"].([]interface{}); ok && len(targetDevices) > 0 {
+				if req.DeviceType == nil {
+					// Ad targets specific devices but request doesn't specify a device
+					match = false
+				} else {
+					deviceMatch := false
+					for _, d := range targetDevices {
+						if device, ok := d.(string); ok && device == *req.DeviceType {
+							deviceMatch = true
+							break
+						}
+					}
+					if !deviceMatch {
+						match = false
+					}
+				}
+			}
+		}
+
+		// Check interests targeting (enhanced targeting)
+		if match {
+			if targetInterests, ok := ad.TargetingCriteria["interests"].([]interface{}); ok && len(targetInterests) > 0 {
+				if len(req.Interests) == 0 {
+					// Ad targets specific interests but request doesn't specify interests
+					match = false
+				} else {
+					// Check if any request interest matches any target interest
+					interestMatch := false
+					for _, ti := range targetInterests {
+						if targetInterest, ok := ti.(string); ok {
+							for _, reqInterest := range req.Interests {
+								if targetInterest == reqInterest {
+									interestMatch = true
+									break
+								}
+							}
+							if interestMatch {
+								break
+							}
+						}
+					}
+					if !interestMatch {
+						match = false
+					}
 				}
 			}
 		}
@@ -370,4 +452,197 @@ func (s *AdService) GetAdByID(ctx context.Context, id uuid.UUID) (*models.Ad, er
 // ResetDailySpend resets daily spend for all ads
 func (s *AdService) ResetDailySpend(ctx context.Context) error {
 	return s.adRepo.ResetDailySpend(ctx)
+}
+
+// filterByTargetingRules applies structured targeting rules from the database
+func (s *AdService) filterByTargetingRules(ctx context.Context, ads []models.Ad, req models.AdSelectionRequest) ([]models.Ad, error) {
+	var filtered []models.Ad
+
+	for _, ad := range ads {
+		rules, err := s.adRepo.GetTargetingRules(ctx, ad.ID)
+		if err != nil {
+			// If we can't get rules, include the ad (fail open)
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		if len(rules) == 0 {
+			// No rules = show to everyone
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		match := true
+		for _, rule := range rules {
+			ruleMatch := s.evaluateTargetingRule(rule, req)
+			if rule.Operator == models.TargetingOperatorInclude && !ruleMatch {
+				match = false
+				break
+			}
+			if rule.Operator == models.TargetingOperatorExclude && ruleMatch {
+				match = false
+				break
+			}
+		}
+
+		if match {
+			filtered = append(filtered, ad)
+		}
+	}
+
+	return filtered, nil
+}
+
+// evaluateTargetingRule checks if a single targeting rule matches the request
+func (s *AdService) evaluateTargetingRule(rule models.AdTargetingRule, req models.AdSelectionRequest) bool {
+	switch rule.RuleType {
+	case models.TargetingRuleTypeCountry:
+		if req.Country == nil {
+			return false
+		}
+		return containsString(rule.Values, *req.Country)
+	case models.TargetingRuleTypeDevice:
+		if req.DeviceType == nil {
+			return false
+		}
+		return containsString(rule.Values, *req.DeviceType)
+	case models.TargetingRuleTypeInterest:
+		if len(req.Interests) == 0 {
+			return false
+		}
+		// Check if any interest matches
+		for _, interest := range req.Interests {
+			if containsString(rule.Values, interest) {
+				return true
+			}
+		}
+		return false
+	case models.TargetingRuleTypePlatform:
+		return containsString(rule.Values, req.Platform)
+	case models.TargetingRuleTypeLanguage:
+		if req.Language == nil {
+			return false
+		}
+		return containsString(rule.Values, *req.Language)
+	case models.TargetingRuleTypeGame:
+		if req.GameID == nil {
+			return false
+		}
+		return containsString(rule.Values, *req.GameID)
+	default:
+		return true // Unknown rule types are ignored
+	}
+}
+
+// containsString checks if a string slice contains a value
+func containsString(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
+// selectAdWithExperiment selects an ad considering A/B experiments
+func (s *AdService) selectAdWithExperiment(ads []models.Ad, userID *uuid.UUID, sessionID *string) models.Ad {
+	// Group ads by experiment
+	experimentAds := make(map[uuid.UUID][]models.Ad)
+	nonExperimentAds := []models.Ad{}
+
+	for _, ad := range ads {
+		if ad.ExperimentID != nil {
+			experimentAds[*ad.ExperimentID] = append(experimentAds[*ad.ExperimentID], ad)
+		} else {
+			nonExperimentAds = append(nonExperimentAds, ad)
+		}
+	}
+
+	// If there are experiment ads, try to select from them based on consistent bucketing
+	for experimentID, expAds := range experimentAds {
+		if len(expAds) > 1 {
+			// Use consistent bucketing based on user/session ID
+			selectedVariant := s.selectExperimentVariant(expAds, userID, sessionID, experimentID)
+			return selectedVariant
+		} else if len(expAds) == 1 {
+			return expAds[0]
+		}
+	}
+
+	// Fall back to weighted random selection from non-experiment ads
+	if len(nonExperimentAds) > 0 {
+		return s.weightedRandomSelect(nonExperimentAds)
+	}
+
+	// If somehow we have no ads, return the first one
+	return ads[0]
+}
+
+// selectExperimentVariant selects a variant for an experiment using consistent bucketing
+func (s *AdService) selectExperimentVariant(ads []models.Ad, userID *uuid.UUID, sessionID *string, experimentID uuid.UUID) models.Ad {
+	// Create a deterministic bucket key from user/session ID and experiment ID
+	var bucketKey string
+	if userID != nil {
+		bucketKey = userID.String() + experimentID.String()
+	} else if sessionID != nil {
+		bucketKey = *sessionID + experimentID.String()
+	} else {
+		// No stable identifier, use random selection
+		return s.weightedRandomSelect(ads)
+	}
+
+	// Simple hash-based bucketing
+	hash := 0
+	for _, c := range bucketKey {
+		hash = (hash*31 + int(c)) % 10000
+	}
+
+	// Group ads by variant
+	variantAds := make(map[string][]models.Ad)
+	for _, ad := range ads {
+		variant := "default"
+		if ad.ExperimentVariant != nil {
+			variant = *ad.ExperimentVariant
+		}
+		variantAds[variant] = append(variantAds[variant], ad)
+	}
+
+	// Distribute bucket across variants evenly
+	variants := make([]string, 0, len(variantAds))
+	for v := range variantAds {
+		variants = append(variants, v)
+	}
+
+	if len(variants) == 0 {
+		return ads[0]
+	}
+
+	selectedVariant := variants[hash%len(variants)]
+	variantGroup := variantAds[selectedVariant]
+
+	if len(variantGroup) == 1 {
+		return variantGroup[0]
+	}
+
+	return s.weightedRandomSelect(variantGroup)
+}
+
+// GetCTRReportByCampaign retrieves CTR report grouped by campaign
+func (s *AdService) GetCTRReportByCampaign(ctx context.Context, since time.Time) ([]models.AdCTRReport, error) {
+	return s.adRepo.GetCTRReportByCampaign(ctx, since)
+}
+
+// GetCTRReportBySlot retrieves CTR report grouped by ad slot
+func (s *AdService) GetCTRReportBySlot(ctx context.Context, since time.Time) ([]models.AdSlotReport, error) {
+	return s.adRepo.GetCTRReportBySlot(ctx, since)
+}
+
+// GetExperimentReport retrieves analytics for an experiment
+func (s *AdService) GetExperimentReport(ctx context.Context, experimentID uuid.UUID, since time.Time) (*models.AdExperimentReport, error) {
+	return s.adRepo.GetExperimentReport(ctx, experimentID, since)
+}
+
+// GetRunningExperiments retrieves all running experiments
+func (s *AdService) GetRunningExperiments(ctx context.Context) ([]models.AdExperiment, error) {
+	return s.adRepo.GetRunningExperiments(ctx)
 }
