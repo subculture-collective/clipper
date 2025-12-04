@@ -139,6 +139,7 @@ func main() {
 	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
 	revenueRepo := repository.NewRevenueRepository(db.Pool)
+	adRepo := repository.NewAdRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -175,6 +176,7 @@ func main() {
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	revenueService := services.NewRevenueService(revenueRepo, cfg)
+	adService := services.NewAdService(adRepo, redisClient)
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
@@ -259,6 +261,7 @@ func main() {
 	seoHandler := handlers.NewSEOHandler(clipRepo)
 	docsHandler := handlers.NewDocsHandler("./docs", "subculture-collective", "clipper", "main")
 	revenueHandler := handlers.NewRevenueHandler(revenueService)
+	adHandler := handlers.NewAdHandler(adService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -644,6 +647,17 @@ func main() {
 		{
 			// Public contact form submission with rate limiting
 			contact.POST("", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), contactHandler.SubmitContactMessage)
+		}
+
+		// Ad routes
+		ads := v1.Group("/ads")
+		{
+			// Ad selection endpoint - rate limited to prevent abuse
+			ads.GET("/select", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), adHandler.SelectAd)
+			// Ad tracking endpoint - higher rate limit for tracking callbacks
+			ads.POST("/track/:id", middleware.RateLimitMiddleware(redisClient, 120, time.Minute), adHandler.TrackImpression)
+			// Get ad by ID (public)
+			ads.GET("/:id", adHandler.GetAd)
 		}
 
 		// Documentation routes (public access)
