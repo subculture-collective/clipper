@@ -34,8 +34,13 @@ func NewRevenueHandler(revenueService *services.RevenueService) *RevenueHandler 
 func (h *RevenueHandler) GetRevenueMetrics(c *gin.Context) {
 	metrics, err := h.revenueService.GetRevenueMetrics(c.Request.Context())
 	if err != nil {
-		log.Printf("Failed to get revenue metrics: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve revenue metrics"})
+		// Log full error internally for debugging
+		log.Printf("Revenue metrics error: %v", err)
+		// Return generic error to client to avoid exposing internal details
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Unable to retrieve metrics at this time",
+			"code":  "METRICS_ERROR",
+		})
 		return
 	}
 

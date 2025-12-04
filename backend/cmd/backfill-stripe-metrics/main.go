@@ -166,8 +166,8 @@ func syncSubscriptions(
 		}
 
 		tier := "free"
-		if sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing {
-			tier = "pro"
+		if sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing || sub.Status == stripe.SubscriptionStatusCanceled {
+			tier = "pro" // Preserve pro tier for canceled subs for historical revenue data
 		}
 
 		var canceledAt *time.Time

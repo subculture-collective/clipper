@@ -170,7 +170,7 @@ func (r *RevenueRepository) GetCohortRetention(ctx context.Context, months int) 
 				canceled_at
 			FROM subscriptions
 			WHERE tier = 'pro'
-			AND created_at >= NOW() - INTERVAL '%d months'
+			AND created_at >= NOW() - INTERVAL '1 month' * $1
 		),
 		cohort_sizes AS (
 			SELECT 
@@ -182,10 +182,7 @@ func (r *RevenueRepository) GetCohortRetention(ctx context.Context, months int) 
 		retained AS (
 			SELECT 
 				c.cohort_month,
-				EXTRACT(MONTH FROM AGE(
-					COALESCE(c.canceled_at, NOW()),
-					c.cohort_month
-				)) as months_retained
+				FLOOR(EXTRACT(EPOCH FROM (COALESCE(c.canceled_at, NOW()) - c.cohort_month)) / (30.44 * 24 * 60 * 60))::int as months_retained
 			FROM cohorts c
 			WHERE c.status IN ('active', 'trialing', 'canceled')
 		)
@@ -200,7 +197,7 @@ func (r *RevenueRepository) GetCohortRetention(ctx context.Context, months int) 
 		ORDER BY cs.cohort_month, r.months_retained
 	`
 
-	rows, err := r.db.Query(ctx, fmt.Sprintf(query, months))
+	rows, err := r.db.Query(ctx, query, months)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query cohort retention: %w", err)
 	}
@@ -211,7 +208,7 @@ func (r *RevenueRepository) GetCohortRetention(ctx context.Context, months int) 
 	for rows.Next() {
 		var cohortMonth time.Time
 		var initialSize int
-		var monthsRetained *float64
+		var monthsRetained *int
 		var retainedCount int
 
 		if err := rows.Scan(&cohortMonth, &initialSize, &monthsRetained, &retainedCount); err != nil {
@@ -228,7 +225,7 @@ func (r *RevenueRepository) GetCohortRetention(ctx context.Context, months int) 
 		}
 
 		if monthsRetained != nil && initialSize > 0 {
-			monthIdx := int(*monthsRetained)
+			monthIdx := *monthsRetained
 			// Ensure we have enough slots
 			for len(cohortMap[cohortKey].RetentionRates) <= monthIdx {
 				cohortMap[cohortKey].RetentionRates = append(cohortMap[cohortKey].RetentionRates, 0)
@@ -254,7 +251,7 @@ func (r *RevenueRepository) GetSubscriberGrowthTrend(ctx context.Context, months
 				COUNT(*) as new_subscribers
 			FROM subscriptions
 			WHERE tier = 'pro'
-			AND created_at >= NOW() - INTERVAL '%d months'
+			AND created_at >= NOW() - INTERVAL '1 month' * $1
 			GROUP BY DATE_TRUNC('month', created_at)
 		),
 		churned_data AS (
@@ -264,7 +261,7 @@ func (r *RevenueRepository) GetSubscriberGrowthTrend(ctx context.Context, months
 			FROM subscriptions
 			WHERE tier = 'pro'
 			AND canceled_at IS NOT NULL
-			AND canceled_at >= NOW() - INTERVAL '%d months'
+			AND canceled_at >= NOW() - INTERVAL '1 month' * $2
 			GROUP BY DATE_TRUNC('month', canceled_at)
 		)
 		SELECT 
@@ -276,7 +273,7 @@ func (r *RevenueRepository) GetSubscriberGrowthTrend(ctx context.Context, months
 		ORDER BY month
 	`
 
-	rows, err := r.db.Query(ctx, fmt.Sprintf(query, months, months))
+	rows, err := r.db.Query(ctx, query, months, months)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query subscriber growth: %w", err)
 	}
@@ -367,7 +364,7 @@ func (r *RevenueRepository) GetRevenueByMonth(ctx context.Context, months int, p
 			FROM subscription_events se
 			JOIN subscriptions s ON se.subscription_id = s.id
 			WHERE se.event_type = 'invoice_paid'
-			AND se.created_at >= NOW() - INTERVAL '%d months'
+			AND se.created_at >= NOW() - INTERVAL '1 month' * $1
 			GROUP BY DATE_TRUNC('month', se.created_at), s.stripe_price_id
 		)
 		SELECT month, stripe_price_id, count
@@ -375,7 +372,7 @@ func (r *RevenueRepository) GetRevenueByMonth(ctx context.Context, months int, p
 		ORDER BY month
 	`
 
-	rows, err := r.db.Query(ctx, fmt.Sprintf(query, months))
+	rows, err := r.db.Query(ctx, query, months)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query revenue by month: %w", err)
 	}

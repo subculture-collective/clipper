@@ -18,7 +18,8 @@ const AdminRevenuePage: React.FC = () => {
   const { data: metrics, isLoading, error } = useQuery({
     queryKey: ['revenueMetrics'],
     queryFn: getRevenueMetrics,
-    refetchInterval: 60000, // Refresh every minute
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus to reduce load
   });
 
   if (error) {
@@ -264,12 +265,38 @@ const AdminRevenuePage: React.FC = () => {
                               ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
                               : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
                             : '';
+                          const getRetentionLabel = (value: number) => {
+                            if (value >= 80) return 'High retention';
+                            if (value >= 60) return 'Medium retention';
+                            if (value >= 40) return 'Low retention';
+                            return 'Very low retention';
+                          };
+                          const getRetentionSymbol = (value: number) => {
+                            if (value >= 80) return '✓';
+                            if (value >= 60) return '⚠';
+                            if (value >= 40) return '⚠';
+                            return '✗';
+                          };
                           return (
                             <td
                               key={month}
                               className={`px-6 py-4 whitespace-nowrap text-sm ${bgColor}`}
+                              aria-label={
+                                retention !== undefined
+                                  ? `${formatPercentage(retention)} - ${getRetentionLabel(retention)}`
+                                  : 'No data'
+                              }
                             >
-                              {retention !== undefined ? formatPercentage(retention) : '-'}
+                              {retention !== undefined ? (
+                                <>
+                                  <span aria-hidden="true" className="mr-1">
+                                    {getRetentionSymbol(retention)}
+                                  </span>
+                                  {formatPercentage(retention)}
+                                </>
+                              ) : (
+                                '-'
+                              )}
                             </td>
                           );
                         })}

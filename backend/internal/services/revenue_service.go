@@ -22,13 +22,13 @@ func NewRevenueService(
 	cfg *config.Config,
 ) *RevenueService {
 	// Build price mapping from config
-	// Prices are in cents
+	// Prices are in cents, sourced from configuration
 	priceMapping := make(map[string]float64)
 	if cfg.Stripe.ProMonthlyPriceID != "" {
-		priceMapping[cfg.Stripe.ProMonthlyPriceID] = 999 // $9.99/month default
+		priceMapping[cfg.Stripe.ProMonthlyPriceID] = float64(cfg.Stripe.ProMonthlyPriceCents)
 	}
 	if cfg.Stripe.ProYearlyPriceID != "" {
-		priceMapping[cfg.Stripe.ProYearlyPriceID] = 833 // $99.99/year = $8.33/month equivalent
+		priceMapping[cfg.Stripe.ProYearlyPriceID] = float64(cfg.Stripe.ProYearlyPriceCents)
 	}
 
 	return &RevenueService{
@@ -99,10 +99,10 @@ func (s *RevenueService) GetRevenueMetrics(ctx context.Context) (*models.Revenue
 	for i := range planDistribution {
 		if planDistribution[i].PlanID == s.cfg.Stripe.ProMonthlyPriceID {
 			planDistribution[i].PlanName = "Pro Monthly"
-			planDistribution[i].MonthlyValue = 999
+			planDistribution[i].MonthlyValue = float64(s.cfg.Stripe.ProMonthlyPriceCents)
 		} else if planDistribution[i].PlanID == s.cfg.Stripe.ProYearlyPriceID {
 			planDistribution[i].PlanName = "Pro Yearly"
-			planDistribution[i].MonthlyValue = 833
+			planDistribution[i].MonthlyValue = float64(s.cfg.Stripe.ProYearlyPriceCents)
 		}
 	}
 

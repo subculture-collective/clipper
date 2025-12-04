@@ -490,3 +490,98 @@ Webhook support for real-time updates will be added in a future version.
 ## Versioning
 
 The API is versioned in the URL path (`/api/v1/`). Breaking changes will result in a new version (`/api/v2/`).
+
+---
+
+## Admin Endpoints
+
+### Revenue Metrics
+
+#### GET /admin/revenue
+
+Retrieve comprehensive subscription revenue metrics for the admin dashboard.
+
+**Authentication:** Required (admin or moderator role only)
+
+**Response:**
+
+```json
+{
+  "mrr": 99900,
+  "churn": 5.2,
+  "arpu": 850,
+  "active_subscribers": 1175,
+  "total_revenue": 1250000,
+  "plan_distribution": [
+    {
+      "plan_id": "price_pro_monthly",
+      "plan_name": "Pro Monthly",
+      "subscribers": 800,
+      "percentage": 68.09,
+      "monthly_value": 999
+    },
+    {
+      "plan_id": "price_pro_yearly",
+      "plan_name": "Pro Yearly",
+      "subscribers": 375,
+      "percentage": 31.91,
+      "monthly_value": 833
+    }
+  ],
+  "cohort_retention": [
+    {
+      "cohort_month": "2025-01",
+      "initial_size": 150,
+      "retention_rates": [100, 95.5, 88.2, 82.1, 78.5, 75.0]
+    }
+  ],
+  "churned_subscribers": 45,
+  "new_subscribers": 120,
+  "trial_conversion_rate": 68.5,
+  "grace_period_recovery": 42.3,
+  "average_lifetime_value": 16346,
+  "revenue_by_month": [
+    {
+      "month": "2025-01",
+      "revenue": 85000,
+      "mrr": 85000
+    }
+  ],
+  "subscriber_growth": [
+    {
+      "month": "2025-01",
+      "total": 1175,
+      "new": 120,
+      "churned": 45,
+      "net_change": 75
+    }
+  ],
+  "updated_at": "2025-12-04T00:00:00Z"
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mrr` | number | Monthly Recurring Revenue in cents |
+| `churn` | number | Monthly churn rate as percentage |
+| `arpu` | number | Average Revenue Per User in cents |
+| `active_subscribers` | number | Current count of active paid subscribers |
+| `total_revenue` | number | All-time total revenue in cents |
+| `plan_distribution` | array | Distribution of subscribers by plan |
+| `cohort_retention` | array | Cohort retention rates by signup month |
+| `churned_subscribers` | number | Subscribers who churned this month |
+| `new_subscribers` | number | New subscribers this month |
+| `trial_conversion_rate` | number | Trial to paid conversion rate (percentage) |
+| `grace_period_recovery` | number | Grace period recovery rate (percentage) |
+| `average_lifetime_value` | number | Average customer LTV in cents |
+| `revenue_by_month` | array | Revenue trend by month |
+| `subscriber_growth` | array | Subscriber growth trend by month |
+| `updated_at` | string | ISO 8601 timestamp of when metrics were calculated |
+
+**Error Responses:**
+
+- `401 Unauthorized` - Missing or invalid authentication
+- `403 Forbidden` - User does not have admin or moderator role
+- `500 Internal Server Error` - Server error (returns generic message with error code)
