@@ -57,10 +57,11 @@ CREATE TABLE ad_frequency_caps (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Unique constraint: one cap per user/session, ad, and window type
-    CONSTRAINT unique_user_ad_window UNIQUE (ad_id, user_id, window_type),
-    CONSTRAINT unique_session_ad_window UNIQUE (ad_id, session_id, window_type)
 );
 
+-- Add partial unique indexes for ad_frequency_caps
+CREATE UNIQUE INDEX unique_user_ad_window ON ad_frequency_caps(ad_id, user_id, window_type) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX unique_session_ad_window ON ad_frequency_caps(ad_id, session_id, window_type) WHERE session_id IS NOT NULL;
 -- Create ad frequency limits table (configurable per ad)
 CREATE TABLE ad_frequency_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
