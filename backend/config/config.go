@@ -84,10 +84,12 @@ type StripeConfig struct {
 	WebhookSecrets       []string
 	ProMonthlyPriceID    string
 	ProYearlyPriceID     string
-	ProMonthlyPriceCents int // Monthly price in cents (e.g., 999 for $9.99)
-	ProYearlyPriceCents  int // Full yearly price in cents (e.g., 9999 for $99.99/year) - service layer converts to monthly equivalent
+	ProMonthlyPriceCents int  // Monthly price in cents (e.g., 999 for $9.99)
+	ProYearlyPriceCents  int  // Full yearly price in cents (e.g., 9999 for $99.99/year) - service layer converts to monthly equivalent
 	SuccessURL           string
 	CancelURL            string
+	TaxEnabled           bool // Enable automatic tax calculation via Stripe Tax
+	InvoicePDFEnabled    bool // Enable sending invoice PDFs via email
 }
 
 // SentryConfig holds Sentry error tracking configuration
@@ -189,10 +191,12 @@ func Load() (*Config, error) {
 			WebhookSecrets:       collectStripeWebhookSecrets(),
 			ProMonthlyPriceID:    getEnv("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
 			ProYearlyPriceID:     getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
-			ProMonthlyPriceCents: getEnvInt("STRIPE_PRO_MONTHLY_PRICE_CENTS", 999),   // Default: $9.99/month
-			ProYearlyPriceCents:  getEnvInt("STRIPE_PRO_YEARLY_PRICE_CENTS", 9999),   // Default: $99.99/year (full yearly price)
+			ProMonthlyPriceCents: getEnvInt("STRIPE_PRO_MONTHLY_PRICE_CENTS", 999),  // Default: $9.99/month
+			ProYearlyPriceCents:  getEnvInt("STRIPE_PRO_YEARLY_PRICE_CENTS", 9999),  // Default: $99.99/year (full yearly price)
 			SuccessURL:           getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
 			CancelURL:            getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
+			TaxEnabled:           getEnv("STRIPE_TAX_ENABLED", "false") == "true",
+			InvoicePDFEnabled:    getEnv("STRIPE_INVOICE_PDF_ENABLED", "false") == "true",
 		},
 		Sentry: SentryConfig{
 			DSN:              getEnv("SENTRY_DSN", ""),

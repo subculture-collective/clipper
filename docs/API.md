@@ -247,6 +247,91 @@ Remove a clip from the database.
 
 ---
 
+### Submissions
+
+#### GET /submissions/metadata
+
+Fetch clip metadata from Twitch API in real-time during the submission flow.
+
+**Authentication:** Required
+
+**Rate Limit:** 100 requests per hour per user
+
+**Query Parameters:**
+
+- `url` (string, required) - Twitch clip URL or clip ID
+
+**Supported URL Formats:**
+
+- `https://clips.twitch.tv/{clipId}`
+- `https://www.twitch.tv/{streamer}/clip/{clipId}`
+- `https://m.twitch.tv/{streamer}/clip/{clipId}` (mobile)
+- Direct clip ID (e.g., `AwkwardHelplessSalamanderSwiftRage`)
+- URLs with query parameters (auto-stripped)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "clip_id": "AwkwardHelplessSalamanderSwiftRage",
+    "title": "Amazing play!",
+    "streamer_name": "shroud",
+    "game_name": "Valorant",
+    "view_count": 12543,
+    "created_at": "2024-11-20T15:30:00Z",
+    "thumbnail_url": "https://clips-media-assets2.twitch.tv/...",
+    "duration": 30,
+    "url": "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid URL format, missing parameters, or clip not found on Twitch
+
+```json
+{
+  "success": false,
+  "error": "This clip was not found on Twitch. It may have been deleted or the URL is incorrect.",
+  "field": "url"
+}
+```
+
+- `502 Bad Gateway`: Twitch API errors (rate limits, service unavailable)
+
+```json
+{
+  "success": false,
+  "error": "Unable to fetch clip metadata from Twitch. Please try again later."
+}
+```
+
+**Caching:**
+
+- Results are cached in Redis for 1 hour
+- Cache key: `twitch:clip:metadata:{clipID}`
+
+**Example Usage:**
+
+```bash
+# Using clip URL
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8080/api/v1/submissions/metadata?url=https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+
+# Using alternative URL format
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8080/api/v1/submissions/metadata?url=https://www.twitch.tv/shroud/clip/AwkwardHelplessSalamanderSwiftRage"
+
+# Using direct clip ID
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8080/api/v1/submissions/metadata?url=AwkwardHelplessSalamanderSwiftRage"
+```
+
+---
+
 ### Collections
 
 #### GET /collections

@@ -171,7 +171,7 @@ func main() {
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
 
-	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService, emailService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	revenueService := services.NewRevenueService(revenueRepo, cfg)
@@ -224,7 +224,7 @@ func main() {
 	var submissionService *services.SubmissionService
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, redisClient)
 	}
 
 	// Initialize handlers
@@ -531,6 +531,8 @@ func main() {
 				submissions.POST("", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), submissionHandler.SubmitClip)
 				submissions.GET("", submissionHandler.GetUserSubmissions)
 				submissions.GET("/stats", submissionHandler.GetSubmissionStats)
+				// Metadata endpoint with rate limiting (100 requests/hour per user)
+				submissions.GET("/metadata", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), submissionHandler.GetClipMetadata)
 			}
 		}
 
