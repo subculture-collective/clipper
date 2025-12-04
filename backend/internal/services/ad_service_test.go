@@ -130,6 +130,40 @@ func TestAdService_filterByTargeting(t *testing.T) {
 			},
 			expected: 1,
 		},
+		{
+			name: "Game targeting - request has no game ID",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"game_ids": []interface{}{"game123"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+				// GameID is nil
+			},
+			expected: 0, // Should not match because ad targets specific games
+		},
+		{
+			name: "Language targeting - request has no language",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"languages": []interface{}{"en"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+				// Language is nil
+			},
+			expected: 0, // Should not match because ad targets specific languages
+		},
 	}
 
 	for _, tt := range tests {
@@ -171,7 +205,7 @@ func TestAdService_weightedRandomSelect(t *testing.T) {
 			selections[result.Name]++
 		}
 		// Both should be selected at least once (probabilistically)
-		assert.True(t, selections["Ad 1"] > 0 || selections["Ad 2"] > 0)
+		assert.True(t, selections["Ad 1"] > 0 && selections["Ad 2"] > 0)
 	})
 }
 

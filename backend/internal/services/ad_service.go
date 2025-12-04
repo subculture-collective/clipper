@@ -150,8 +150,11 @@ func (s *AdService) filterByTargeting(ads []models.Ad, req models.AdSelectionReq
 		match := true
 
 		// Check game targeting
-		if req.GameID != nil {
-			if targetGames, ok := ad.TargetingCriteria["game_ids"].([]interface{}); ok && len(targetGames) > 0 {
+		if targetGames, ok := ad.TargetingCriteria["game_ids"].([]interface{}); ok && len(targetGames) > 0 {
+			if req.GameID == nil {
+				// Ad targets specific games but request doesn't specify a game
+				match = false
+			} else {
 				gameMatch := false
 				for _, g := range targetGames {
 					if gID, ok := g.(string); ok && gID == *req.GameID {
@@ -166,17 +169,22 @@ func (s *AdService) filterByTargeting(ads []models.Ad, req models.AdSelectionReq
 		}
 
 		// Check language targeting
-		if match && req.Language != nil {
+		if match {
 			if targetLanguages, ok := ad.TargetingCriteria["languages"].([]interface{}); ok && len(targetLanguages) > 0 {
-				langMatch := false
-				for _, l := range targetLanguages {
-					if lang, ok := l.(string); ok && lang == *req.Language {
-						langMatch = true
-						break
-					}
-				}
-				if !langMatch {
+				if req.Language == nil {
+					// Ad targets specific languages but request doesn't specify a language
 					match = false
+				} else {
+					langMatch := false
+					for _, l := range targetLanguages {
+						if lang, ok := l.(string); ok && lang == *req.Language {
+							langMatch = true
+							break
+						}
+					}
+					if !langMatch {
+						match = false
+					}
 				}
 			}
 		}

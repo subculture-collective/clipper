@@ -9,6 +9,18 @@ import {
   VIEWABILITY_PERCENT_THRESHOLD,
 } from '../../lib/ads-api';
 
+/**
+ * Validates that a URL uses a safe protocol (http or https)
+ */
+const isValidUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 interface AdDisplayProps {
   /** Platform for targeting */
   platform?: 'web' | 'ios' | 'android';
@@ -162,8 +174,8 @@ export function AdDisplay({
 
     onAdClick?.(ad);
 
-    // Navigate to click URL if available
-    if (ad.click_url) {
+    // Navigate to click URL if available and valid
+    if (ad.click_url && isValidUrl(ad.click_url)) {
       window.open(ad.click_url, '_blank', 'noopener,noreferrer');
     }
   }, [ad, impressionId, onAdClick]);
@@ -192,16 +204,18 @@ export function AdDisplay({
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
           handleClick();
         }
       }}
       style={{
+        position: 'relative',
         cursor: ad.click_url ? 'pointer' : 'default',
         width: ad.width || width,
         height: ad.height || height,
       }}
     >
-      {ad.ad_type === 'banner' && (
+      {ad.ad_type === 'banner' && isValidUrl(ad.content_url) && (
         <img
           src={ad.content_url}
           alt={ad.alt_text || `Ad by ${ad.advertiser_name}`}
@@ -210,7 +224,7 @@ export function AdDisplay({
         />
       )}
       
-      {ad.ad_type === 'video' && (
+      {ad.ad_type === 'video' && isValidUrl(ad.content_url) && (
         <video
           src={ad.content_url}
           className="ad-display__video w-full h-full object-cover"

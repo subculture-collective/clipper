@@ -15,6 +15,8 @@ DROP INDEX IF EXISTS idx_ad_impressions_user_id;
 DROP INDEX IF EXISTS idx_ad_impressions_ad_id;
 DROP INDEX IF EXISTS idx_ads_priority_weight;
 DROP INDEX IF EXISTS idx_ads_active_dates;
+DROP INDEX IF EXISTS unique_user_ad_window;
+DROP INDEX IF EXISTS unique_session_ad_window;
 
 -- Drop tables (in order due to foreign keys)
 DROP TABLE IF EXISTS ad_frequency_limits;

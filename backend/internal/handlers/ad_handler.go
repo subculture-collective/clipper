@@ -30,7 +30,7 @@ func (h *AdHandler) SelectAd(c *gin.Context) {
 			Success: false,
 			Error: &ErrorInfo{
 				Code:    "INVALID_REQUEST",
-				Message: "Platform is required",
+				Message: err.Error(),
 			},
 		})
 		return
@@ -60,11 +60,11 @@ func (h *AdHandler) SelectAd(c *gin.Context) {
 		return
 	}
 
-	// If no ad available, return empty response
+	// If no ad available, return empty response with consistent structure
 	if response.Ad == nil {
 		c.JSON(http.StatusOK, StandardResponse{
 			Success: true,
-			Data:    nil,
+			Data:    models.AdSelectionResponse{},
 		})
 		return
 	}
