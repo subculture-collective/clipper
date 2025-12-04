@@ -733,18 +733,18 @@ func (r *AdRepository) GetExperimentReport(ctx context.Context, experimentID uui
 func (r *AdRepository) UpsertCampaignAnalytics(ctx context.Context, adID uuid.UUID, date time.Time, slotID *string, impressions, viewableImpressions, clicks int, spendCents int64, uniqueUsers int) error {
 	query := `
 		INSERT INTO ad_campaign_analytics (id, ad_id, date, slot_id, impressions, viewable_impressions, clicks, spend_cents, unique_users)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (ad_id, date, slot_id)
 		DO UPDATE SET
-			impressions = ad_campaign_analytics.impressions + $5,
-			viewable_impressions = ad_campaign_analytics.viewable_impressions + $6,
-			clicks = ad_campaign_analytics.clicks + $7,
-			spend_cents = ad_campaign_analytics.spend_cents + $8,
-			unique_users = ad_campaign_analytics.unique_users + $9,
+			impressions = ad_campaign_analytics.impressions + EXCLUDED.impressions,
+			viewable_impressions = ad_campaign_analytics.viewable_impressions + EXCLUDED.viewable_impressions,
+			clicks = ad_campaign_analytics.clicks + EXCLUDED.clicks,
+			spend_cents = ad_campaign_analytics.spend_cents + EXCLUDED.spend_cents,
+			unique_users = ad_campaign_analytics.unique_users + EXCLUDED.unique_users,
 			updated_at = NOW()
 	`
 
-	_, err := r.pool.Exec(ctx, query, uuid.New(), adID, date, slotID, impressions, viewableImpressions, clicks, spendCents, uniqueUsers)
+	_, err := r.pool.Exec(ctx, query, adID, date, slotID, impressions, viewableImpressions, clicks, spendCents, uniqueUsers)
 	if err != nil {
 		return fmt.Errorf("failed to upsert campaign analytics: %w", err)
 	}

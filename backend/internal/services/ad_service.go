@@ -12,6 +12,10 @@ import (
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
+// experimentBucketCount is the number of buckets used for A/B experiment user distribution
+// A higher number provides finer-grained distribution but 10000 provides adequate precision
+const experimentBucketCount = 10000
+
 // AdService handles business logic for ad delivery
 type AdService struct {
 	adRepo      *repository.AdRepository
@@ -591,10 +595,10 @@ func (s *AdService) selectExperimentVariant(ads []models.Ad, userID *uuid.UUID, 
 		return s.weightedRandomSelect(ads)
 	}
 
-	// Simple hash-based bucketing
+	// Simple hash-based bucketing for consistent experiment variant assignment
 	hash := 0
 	for _, c := range bucketKey {
-		hash = (hash*31 + int(c)) % 10000
+		hash = (hash*31 + int(c)) % experimentBucketCount
 	}
 
 	// Group ads by variant
