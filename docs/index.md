@@ -73,6 +73,7 @@ Guides for using the Clipper platform:
 - **[[premium/tiers|Pricing Tiers]]** - Free vs Pro benefits, pricing strategy
 - **[[premium/entitlements|Entitlements]]** - Feature gates and access control implementation
 - **[[premium/stripe|Stripe Integration]]** - Billing, trials, discounts, and payment recovery
+- **[[AD_SLOT_SPECIFICATION|Ad Slot Specification]]** - Ad taxonomy, placements, sizes, and fallback rules
 
 ### Operations & Deployment
 

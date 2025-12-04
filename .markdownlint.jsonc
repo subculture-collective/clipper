@@ -3,21 +3,13 @@
   // Obsidian-compatible settings
   "default": true,
   "MD013": { "line_length": 120, "code_blocks": false, "tables": false },
-<<<<<<< HEAD
   "MD024": false,
-=======
-  "MD024": { "allow_different_nesting": true },
->>>>>>> main
   "MD025": false,
+  "MD029": false,
   "MD031": false,
   "MD032": false,
   "MD033": false,
   "MD036": false,
   "MD040": false,
-<<<<<<< HEAD
-  "MD041": false,
-  "MD029": false
-=======
   "MD041": false
->>>>>>> main
 }
