@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/google/uuid"
@@ -302,9 +302,8 @@ func (s *AdService) weightedRandomSelect(ads []models.Ad) models.Ad {
 		totalWeight += ad.Weight
 	}
 
-	// Random selection based on weight
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	randomWeight := r.Intn(totalWeight)
+	// Random selection based on weight (using v2 package-level random)
+	randomWeight := rand.IntN(totalWeight)
 
 	cumulative := 0
 	for _, ad := range priorityAds {

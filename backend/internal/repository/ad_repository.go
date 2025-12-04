@@ -90,7 +90,10 @@ func (r *AdRepository) GetActiveAds(ctx context.Context, adType *string, width, 
 		}
 
 		if targetingJSON != nil {
-			_ = json.Unmarshal(targetingJSON, &ad.TargetingCriteria)
+			if err := json.Unmarshal(targetingJSON, &ad.TargetingCriteria); err != nil {
+				// Log warning but continue - targeting will be empty
+				ad.TargetingCriteria = nil
+			}
 		}
 		ads = append(ads, ad)
 	}
@@ -126,7 +129,10 @@ func (r *AdRepository) GetAdByID(ctx context.Context, id uuid.UUID) (*models.Ad,
 	}
 
 	if targetingJSON != nil {
-		_ = json.Unmarshal(targetingJSON, &ad.TargetingCriteria)
+		if err := json.Unmarshal(targetingJSON, &ad.TargetingCriteria); err != nil {
+			// Log warning but continue - targeting will be empty
+			ad.TargetingCriteria = nil
+		}
 	}
 
 	return &ad, nil

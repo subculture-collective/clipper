@@ -214,13 +214,12 @@ export function AdDisplay({
         <video
           src={ad.content_url}
           className="ad-display__video w-full h-full object-cover"
-          autoPlay
           muted
           loop
           playsInline
-        >
-          <track kind="captions" />
-        </video>
+          controls
+          aria-label={ad.alt_text || `Video ad by ${ad.advertiser_name}`}
+        />
       )}
       
       {ad.ad_type === 'native' && (
