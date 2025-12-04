@@ -920,9 +920,114 @@ type RevenueByMonthMetric struct {
 
 // SubscriberGrowthMetric represents subscriber growth data for a specific month
 type SubscriberGrowthMetric struct {
-	Month       string `json:"month"`        // YYYY-MM format
-	Total       int    `json:"total"`        // Total subscribers at end of month
-	New         int    `json:"new"`          // New subscribers that month
-	Churned     int    `json:"churned"`      // Churned subscribers that month
-	NetChange   int    `json:"net_change"`   // Net subscriber change
+	Month     string `json:"month"`      // YYYY-MM format
+	Total     int    `json:"total"`      // Total subscribers at end of month
+	New       int    `json:"new"`        // New subscribers that month
+	Churned   int    `json:"churned"`    // Churned subscribers that month
+	NetChange int    `json:"net_change"` // Net subscriber change
 }
+
+// Ad represents an advertisement campaign
+type Ad struct {
+	ID                 uuid.UUID              `json:"id" db:"id"`
+	Name               string                 `json:"name" db:"name"`
+	AdvertiserName     string                 `json:"advertiser_name" db:"advertiser_name"`
+	AdType             string                 `json:"ad_type" db:"ad_type"` // banner, video, native
+	ContentURL         string                 `json:"content_url" db:"content_url"`
+	ClickURL           *string                `json:"click_url,omitempty" db:"click_url"`
+	AltText            *string                `json:"alt_text,omitempty" db:"alt_text"`
+	Width              *int                   `json:"width,omitempty" db:"width"`
+	Height             *int                   `json:"height,omitempty" db:"height"`
+	Priority           int                    `json:"priority" db:"priority"`
+	Weight             int                    `json:"weight" db:"weight"`
+	DailyBudgetCents   *int64                 `json:"daily_budget_cents,omitempty" db:"daily_budget_cents"`
+	TotalBudgetCents   *int64                 `json:"total_budget_cents,omitempty" db:"total_budget_cents"`
+	SpentTodayCents    int64                  `json:"spent_today_cents" db:"spent_today_cents"`
+	SpentTotalCents    int64                  `json:"spent_total_cents" db:"spent_total_cents"`
+	CPMCents           int                    `json:"cpm_cents" db:"cpm_cents"` // Cost per 1000 impressions
+	IsActive           bool                   `json:"is_active" db:"is_active"`
+	StartDate          *time.Time             `json:"start_date,omitempty" db:"start_date"`
+	EndDate            *time.Time             `json:"end_date,omitempty" db:"end_date"`
+	TargetingCriteria  map[string]interface{} `json:"targeting_criteria,omitempty" db:"targeting_criteria"`
+	CreatedAt          time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt          time.Time              `json:"updated_at" db:"updated_at"`
+}
+
+// AdImpression represents a tracked ad impression
+type AdImpression struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	AdID             uuid.UUID  `json:"ad_id" db:"ad_id"`
+	UserID           *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
+	SessionID        *string    `json:"session_id,omitempty" db:"session_id"`
+	Platform         string     `json:"platform" db:"platform"` // web, ios, android
+	IPAddress        *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent        *string    `json:"user_agent,omitempty" db:"user_agent"`
+	PageURL          *string    `json:"page_url,omitempty" db:"page_url"`
+	ViewabilityTimeMs int       `json:"viewability_time_ms" db:"viewability_time_ms"`
+	IsViewable       bool       `json:"is_viewable" db:"is_viewable"`
+	IsClicked        bool       `json:"is_clicked" db:"is_clicked"`
+	ClickedAt        *time.Time `json:"clicked_at,omitempty" db:"clicked_at"`
+	CostCents        int        `json:"cost_cents" db:"cost_cents"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+}
+
+// AdFrequencyCap represents per-user/session impression tracking for frequency capping
+type AdFrequencyCap struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	AdID            uuid.UUID  `json:"ad_id" db:"ad_id"`
+	UserID          *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
+	SessionID       *string    `json:"session_id,omitempty" db:"session_id"`
+	ImpressionCount int        `json:"impression_count" db:"impression_count"`
+	WindowStart     time.Time  `json:"window_start" db:"window_start"`
+	WindowType      string     `json:"window_type" db:"window_type"` // hourly, daily, weekly, lifetime
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// AdFrequencyLimit represents configurable frequency limits per ad
+type AdFrequencyLimit struct {
+	ID             uuid.UUID `json:"id" db:"id"`
+	AdID           uuid.UUID `json:"ad_id" db:"ad_id"`
+	WindowType     string    `json:"window_type" db:"window_type"` // hourly, daily, weekly, lifetime
+	MaxImpressions int       `json:"max_impressions" db:"max_impressions"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+}
+
+// AdSelectionRequest represents a request to select an ad
+type AdSelectionRequest struct {
+	Platform  string     `json:"platform" form:"platform" binding:"required,oneof=web ios android"`
+	PageURL   *string    `json:"page_url,omitempty" form:"page_url"`
+	AdType    *string    `json:"ad_type,omitempty" form:"ad_type"`   // Filter by ad type
+	Width     *int       `json:"width,omitempty" form:"width"`       // Filter by dimensions
+	Height    *int       `json:"height,omitempty" form:"height"`
+	SessionID *string    `json:"session_id,omitempty" form:"session_id"` // For anonymous users
+	GameID    *string    `json:"game_id,omitempty" form:"game_id"`       // For targeting
+	Language  *string    `json:"language,omitempty" form:"language"`
+}
+
+// AdSelectionResponse represents a selected ad for display
+type AdSelectionResponse struct {
+	Ad           *Ad    `json:"ad,omitempty"`
+	ImpressionID string `json:"impression_id,omitempty"` // UUID for tracking
+	TrackingURL  string `json:"tracking_url,omitempty"`  // URL to call for viewability
+}
+
+// AdTrackingRequest represents a tracking update for an impression
+type AdTrackingRequest struct {
+	ImpressionID      string `json:"impression_id" binding:"required"`
+	ViewabilityTimeMs int    `json:"viewability_time_ms"`
+	IsViewable        bool   `json:"is_viewable"`
+	IsClicked         bool   `json:"is_clicked"`
+}
+
+// AdFrequencyCapWindow represents the time window types for frequency capping
+const (
+	FrequencyWindowHourly   = "hourly"
+	FrequencyWindowDaily    = "daily"
+	FrequencyWindowWeekly   = "weekly"
+	FrequencyWindowLifetime = "lifetime"
+)
+
+// ViewabilityThresholdMs is the minimum time (in ms) an ad must be viewable to count
+// IAB standard: 50% of pixels visible for 1000ms (1 second)
+const ViewabilityThresholdMs = 1000

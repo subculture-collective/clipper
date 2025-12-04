@@ -1,0 +1,373 @@
+package services
+
+import (
+	"context"
+	"fmt"
+	"math/rand/v2"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+)
+
+// AdService handles business logic for ad delivery
+type AdService struct {
+	adRepo      *repository.AdRepository
+	redisClient *redispkg.Client
+}
+
+// NewAdService creates a new AdService
+func NewAdService(adRepo *repository.AdRepository, redisClient *redispkg.Client) *AdService {
+	return &AdService{
+		adRepo:      adRepo,
+		redisClient: redisClient,
+	}
+}
+
+// SelectAd selects an appropriate ad for display based on targeting, frequency caps, and fraud prevention
+func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest, userID *uuid.UUID, ipAddress string) (*models.AdSelectionResponse, error) {
+	// Get all active ads matching the request criteria
+	ads, err := s.adRepo.GetActiveAds(ctx, req.AdType, req.Width, req.Height)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active ads: %w", err)
+	}
+
+	if len(ads) == 0 {
+		return &models.AdSelectionResponse{}, nil
+	}
+
+	// Filter ads based on targeting criteria
+	ads = s.filterByTargeting(ads, req)
+
+	if len(ads) == 0 {
+		return &models.AdSelectionResponse{}, nil
+	}
+
+	// Filter ads based on frequency caps
+	ads, err = s.filterByFrequencyCaps(ctx, ads, userID, req.SessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter by frequency caps: %w", err)
+	}
+
+	if len(ads) == 0 {
+		return &models.AdSelectionResponse{}, nil
+	}
+
+	// Basic fraud prevention: check for rapid impressions from same IP
+	if ipAddress != "" {
+		ads, err = s.filterByFraudPrevention(ctx, ads, ipAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to filter by fraud prevention: %w", err)
+		}
+	}
+
+	if len(ads) == 0 {
+		return &models.AdSelectionResponse{}, nil
+	}
+
+	// Select ad using weighted rotation
+	selectedAd := s.weightedRandomSelect(ads)
+
+	// Create impression record
+	impressionID := uuid.New()
+	impression := &models.AdImpression{
+		ID:        impressionID,
+		AdID:      selectedAd.ID,
+		UserID:    userID,
+		SessionID: req.SessionID,
+		Platform:  req.Platform,
+		IPAddress: &ipAddress,
+		PageURL:   req.PageURL,
+	}
+
+	if err := s.adRepo.CreateImpression(ctx, impression); err != nil {
+		return nil, fmt.Errorf("failed to create impression: %w", err)
+	}
+
+	// Update frequency caps (async to not block response)
+	go s.updateFrequencyCaps(context.Background(), selectedAd.ID, userID, req.SessionID)
+
+	return &models.AdSelectionResponse{
+		Ad:           &selectedAd,
+		ImpressionID: impressionID.String(),
+		TrackingURL:  fmt.Sprintf("/api/v1/ads/track/%s", impressionID.String()),
+	}, nil
+}
+
+// TrackImpression updates an impression with viewability and click data
+func (s *AdService) TrackImpression(ctx context.Context, req models.AdTrackingRequest) error {
+	impressionID, err := uuid.Parse(req.ImpressionID)
+	if err != nil {
+		return fmt.Errorf("invalid impression ID: %w", err)
+	}
+
+	// Get the impression to validate it exists
+	impression, err := s.adRepo.GetImpressionByID(ctx, impressionID)
+	if err != nil {
+		return fmt.Errorf("impression not found: %w", err)
+	}
+
+	// Determine if viewability threshold is met (IAB standard: 50% visible for 1s)
+	isViewable := req.ViewabilityTimeMs >= models.ViewabilityThresholdMs
+
+	// Update the impression
+	if err := s.adRepo.UpdateImpression(ctx, impressionID, req.ViewabilityTimeMs, isViewable, req.IsClicked); err != nil {
+		return fmt.Errorf("failed to update impression: %w", err)
+	}
+
+	// If viewable, charge the advertiser (CPM based)
+	if isViewable && !impression.IsViewable {
+		// Calculate cost (CPM / 1000 = cost per impression)
+		ad, err := s.adRepo.GetAdByID(ctx, impression.AdID)
+		if err == nil {
+			costCents := ad.CPMCents / 1000 // Cost per single impression
+			if costCents < 1 {
+				costCents = 1 // Minimum 1 cent per impression
+			}
+			// Update ad spend (async)
+			go func() {
+				_ = s.adRepo.IncrementAdSpend(context.Background(), ad.ID, costCents)
+			}()
+		}
+	}
+
+	return nil
+}
+
+// filterByTargeting filters ads based on targeting criteria
+func (s *AdService) filterByTargeting(ads []models.Ad, req models.AdSelectionRequest) []models.Ad {
+	var filtered []models.Ad
+
+	for _, ad := range ads {
+		if ad.TargetingCriteria == nil {
+			// No targeting = show to everyone
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		match := true
+
+		// Check game targeting
+		if targetGames, ok := ad.TargetingCriteria["game_ids"].([]interface{}); ok && len(targetGames) > 0 {
+			if req.GameID == nil {
+				// Ad targets specific games but request doesn't specify a game
+				match = false
+			} else {
+				gameMatch := false
+				for _, g := range targetGames {
+					if gID, ok := g.(string); ok && gID == *req.GameID {
+						gameMatch = true
+						break
+					}
+				}
+				if !gameMatch {
+					match = false
+				}
+			}
+		}
+
+		// Check language targeting
+		if match {
+			if targetLanguages, ok := ad.TargetingCriteria["languages"].([]interface{}); ok && len(targetLanguages) > 0 {
+				if req.Language == nil {
+					// Ad targets specific languages but request doesn't specify a language
+					match = false
+				} else {
+					langMatch := false
+					for _, l := range targetLanguages {
+						if lang, ok := l.(string); ok && lang == *req.Language {
+							langMatch = true
+							break
+						}
+					}
+					if !langMatch {
+						match = false
+					}
+				}
+			}
+		}
+
+		// Check platform targeting
+		if match {
+			if targetPlatforms, ok := ad.TargetingCriteria["platforms"].([]interface{}); ok && len(targetPlatforms) > 0 {
+				platformMatch := false
+				for _, p := range targetPlatforms {
+					if platform, ok := p.(string); ok && platform == req.Platform {
+						platformMatch = true
+						break
+					}
+				}
+				if !platformMatch {
+					match = false
+				}
+			}
+		}
+
+		if match {
+			filtered = append(filtered, ad)
+		}
+	}
+
+	return filtered
+}
+
+// filterByFrequencyCaps filters ads based on per-user/session frequency caps
+func (s *AdService) filterByFrequencyCaps(ctx context.Context, ads []models.Ad, userID *uuid.UUID, sessionID *string) ([]models.Ad, error) {
+	if userID == nil && sessionID == nil {
+		// No user identification, can't enforce caps
+		return ads, nil
+	}
+
+	var filtered []models.Ad
+
+	for _, ad := range ads {
+		// Get frequency limits for this ad
+		limits, err := s.adRepo.GetFrequencyLimits(ctx, ad.ID)
+		if err != nil {
+			// If we can't get limits, assume no limits
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		if len(limits) == 0 {
+			// No limits configured
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		// Check each frequency limit
+		capExceeded := false
+		for _, limit := range limits {
+			count, err := s.adRepo.GetUserImpressionCount(ctx, ad.ID, userID, sessionID, limit.WindowType)
+			if err != nil {
+				continue
+			}
+			if count >= limit.MaxImpressions {
+				capExceeded = true
+				break
+			}
+		}
+
+		if !capExceeded {
+			filtered = append(filtered, ad)
+		}
+	}
+
+	return filtered, nil
+}
+
+// filterByFraudPrevention filters ads to prevent fraud (rapid impressions from same IP)
+func (s *AdService) filterByFraudPrevention(ctx context.Context, ads []models.Ad, ipAddress string) ([]models.Ad, error) {
+	var filtered []models.Ad
+
+	// Maximum impressions per minute from same IP (basic fraud threshold)
+	const maxImpressionsPerMinute = 5
+
+	for _, ad := range ads {
+		count, err := s.adRepo.CountRecentImpressions(ctx, ad.ID, ipAddress, 1)
+		if err != nil {
+			// If we can't check, include the ad
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		if count < maxImpressionsPerMinute {
+			filtered = append(filtered, ad)
+		}
+	}
+
+	return filtered, nil
+}
+
+// weightedRandomSelect selects an ad using weighted random selection
+func (s *AdService) weightedRandomSelect(ads []models.Ad) models.Ad {
+	if len(ads) == 1 {
+		return ads[0]
+	}
+
+	// Group ads by priority
+	highestPriority := ads[0].Priority
+	var priorityAds []models.Ad
+
+	for _, ad := range ads {
+		if ad.Priority > highestPriority {
+			highestPriority = ad.Priority
+			priorityAds = []models.Ad{ad}
+		} else if ad.Priority == highestPriority {
+			priorityAds = append(priorityAds, ad)
+		}
+	}
+
+	if len(priorityAds) == 1 {
+		return priorityAds[0]
+	}
+
+	// Calculate total weight
+	totalWeight := 0
+	for _, ad := range priorityAds {
+		totalWeight += ad.Weight
+	}
+
+	// Random selection based on weight (using v2 package-level random)
+	randomWeight := rand.IntN(totalWeight)
+
+	cumulative := 0
+	for _, ad := range priorityAds {
+		cumulative += ad.Weight
+		if randomWeight < cumulative {
+			return ad
+		}
+	}
+
+	// Fallback to first ad
+	return priorityAds[0]
+}
+
+// updateFrequencyCaps updates frequency caps for all window types
+func (s *AdService) updateFrequencyCaps(ctx context.Context, adID uuid.UUID, userID *uuid.UUID, sessionID *string) {
+	if userID == nil && sessionID == nil {
+		return
+	}
+
+	windowTypes := []string{
+		models.FrequencyWindowHourly,
+		models.FrequencyWindowDaily,
+		models.FrequencyWindowWeekly,
+		models.FrequencyWindowLifetime,
+	}
+
+	for _, windowType := range windowTypes {
+		windowStart := s.calculateWindowStart(windowType)
+		_ = s.adRepo.UpsertFrequencyCap(ctx, adID, userID, sessionID, windowType, windowStart)
+	}
+}
+
+// calculateWindowStart returns the start time for a given window type
+func (s *AdService) calculateWindowStart(windowType string) time.Time {
+	now := time.Now().UTC()
+	switch windowType {
+	case models.FrequencyWindowHourly:
+		return now.Truncate(time.Hour)
+	case models.FrequencyWindowDaily:
+		return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	case models.FrequencyWindowWeekly:
+		daysSinceSunday := int(now.Weekday())
+		return time.Date(now.Year(), now.Month(), now.Day()-daysSinceSunday, 0, 0, 0, 0, time.UTC)
+	case models.FrequencyWindowLifetime:
+		return time.Time{}
+	default:
+		return now.Truncate(time.Hour)
+	}
+}
+
+// GetAdByID retrieves an ad by its ID
+func (s *AdService) GetAdByID(ctx context.Context, id uuid.UUID) (*models.Ad, error) {
+	return s.adRepo.GetAdByID(ctx, id)
+}
+
+// ResetDailySpend resets daily spend for all ads
+func (s *AdService) ResetDailySpend(ctx context.Context) error {
+	return s.adRepo.ResetDailySpend(ctx)
+}
