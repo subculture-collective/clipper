@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -19,6 +21,37 @@ func NewAdHandler(adService *services.AdService) *AdHandler {
 	return &AdHandler{
 		adService: adService,
 	}
+}
+
+// parseDaysParameter parses and validates the days query parameter
+// Returns the number of days and true if valid, or 0 and false if invalid (error already sent)
+func parseDaysParameter(c *gin.Context, defaultDays int) (int, bool) {
+	days := defaultDays
+	if daysStr := c.Query("days"); daysStr != "" {
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be a valid integer",
+				},
+			})
+			return 0, false
+		}
+		if d <= 0 || d > 365 {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be between 1 and 365",
+				},
+			})
+			return 0, false
+		}
+		days = d
+	}
+	return days, true
 }
 
 // SelectAd handles GET /ads/select
@@ -172,5 +205,130 @@ func (h *AdHandler) GetAd(c *gin.Context) {
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
 		Data:    ad,
+	})
+}
+
+// GetCTRReportByCampaign handles GET /ads/analytics/campaigns
+// Returns CTR report grouped by campaign/ad
+func (h *AdHandler) GetCTRReportByCampaign(c *gin.Context) {
+	days, ok := parseDaysParameter(c, 30)
+	if !ok {
+		return
+	}
+
+	since := time.Now().AddDate(0, 0, -days)
+	reports, err := h.adService.GetCTRReportByCampaign(c.Request.Context(), since)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "ANALYTICS_FAILED",
+				Message: "Failed to get campaign CTR report",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"reports": reports,
+			"days":    days,
+		},
+	})
+}
+
+// GetCTRReportBySlot handles GET /ads/analytics/slots
+// Returns CTR report grouped by ad slot
+func (h *AdHandler) GetCTRReportBySlot(c *gin.Context) {
+	days, ok := parseDaysParameter(c, 30)
+	if !ok {
+		return
+	}
+
+	since := time.Now().AddDate(0, 0, -days)
+	reports, err := h.adService.GetCTRReportBySlot(c.Request.Context(), since)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "ANALYTICS_FAILED",
+				Message: "Failed to get slot CTR report",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"reports": reports,
+			"days":    days,
+		},
+	})
+}
+
+// GetExperimentReport handles GET /ads/experiments/:id/report
+// Returns analytics for a specific experiment
+func (h *AdHandler) GetExperimentReport(c *gin.Context) {
+	experimentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_EXPERIMENT_ID",
+				Message: "Invalid experiment ID format",
+			},
+		})
+		return
+	}
+
+	days, ok := parseDaysParameter(c, 30)
+	if !ok {
+		return
+	}
+
+	since := time.Now().AddDate(0, 0, -days)
+	report, err := h.adService.GetExperimentReport(c.Request.Context(), experimentID, since)
+	if err != nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "EXPERIMENT_NOT_FOUND",
+				Message: "Experiment not found",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"report": report,
+			"days":   days,
+		},
+	})
+}
+
+// ListExperiments handles GET /ads/experiments
+// Returns all running experiments
+func (h *AdHandler) ListExperiments(c *gin.Context) {
+	experiments, err := h.adService.GetRunningExperiments(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "LIST_EXPERIMENTS_FAILED",
+				Message: "Failed to list experiments",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"experiments": experiments,
+		},
 	})
 }

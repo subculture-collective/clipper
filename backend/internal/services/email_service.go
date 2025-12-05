@@ -757,7 +757,7 @@ func (s *EmailService) prepareInvoiceFinalizedEmail(data map[string]interface{})
 	total := data["Total"]
 	pdfURL := data["InvoicePDFURL"]
 	hostedURL := data["HostedInvoiceURL"]
-	
+
 	// Get optional tax details
 	subtotal := data["Subtotal"]
 	taxAmount := data["TaxAmount"]

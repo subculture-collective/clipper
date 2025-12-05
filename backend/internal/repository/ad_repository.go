@@ -431,3 +431,325 @@ func (r *AdRepository) CountViewableImpressions(ctx context.Context, adID uuid.U
 
 	return count, nil
 }
+
+// GetTargetingRules retrieves all targeting rules for an ad
+func (r *AdRepository) GetTargetingRules(ctx context.Context, adID uuid.UUID) ([]models.AdTargetingRule, error) {
+	query := `
+		SELECT id, ad_id, rule_type, operator, values, created_at
+		FROM ad_targeting_rules
+		WHERE ad_id = $1
+		ORDER BY rule_type
+	`
+
+	rows, err := r.pool.Query(ctx, query, adID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get targeting rules: %w", err)
+	}
+	defer rows.Close()
+
+	var rules []models.AdTargetingRule
+	for rows.Next() {
+		var rule models.AdTargetingRule
+		err := rows.Scan(&rule.ID, &rule.AdID, &rule.RuleType, &rule.Operator, &rule.Values, &rule.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan targeting rule: %w", err)
+		}
+		rules = append(rules, rule)
+	}
+
+	return rules, rows.Err()
+}
+
+// CreateTargetingRule creates a new targeting rule for an ad
+func (r *AdRepository) CreateTargetingRule(ctx context.Context, rule *models.AdTargetingRule) error {
+	query := `
+		INSERT INTO ad_targeting_rules (id, ad_id, rule_type, operator, values)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+
+	rule.ID = uuid.New()
+	_, err := r.pool.Exec(ctx, query, rule.ID, rule.AdID, rule.RuleType, rule.Operator, rule.Values)
+	if err != nil {
+		return fmt.Errorf("failed to create targeting rule: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteTargetingRules deletes all targeting rules for an ad
+func (r *AdRepository) DeleteTargetingRules(ctx context.Context, adID uuid.UUID) error {
+	query := `DELETE FROM ad_targeting_rules WHERE ad_id = $1`
+	_, err := r.pool.Exec(ctx, query, adID)
+	if err != nil {
+		return fmt.Errorf("failed to delete targeting rules: %w", err)
+	}
+	return nil
+}
+
+// GetExperiment retrieves an experiment by ID
+func (r *AdRepository) GetExperiment(ctx context.Context, experimentID uuid.UUID) (*models.AdExperiment, error) {
+	query := `
+		SELECT id, name, description, status, start_date, end_date, traffic_percent, winning_variant, created_at, updated_at
+		FROM ad_experiments
+		WHERE id = $1
+	`
+
+	var exp models.AdExperiment
+	err := r.pool.QueryRow(ctx, query, experimentID).Scan(
+		&exp.ID, &exp.Name, &exp.Description, &exp.Status, &exp.StartDate,
+		&exp.EndDate, &exp.TrafficPercent, &exp.WinningVariant, &exp.CreatedAt, &exp.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get experiment: %w", err)
+	}
+
+	return &exp, nil
+}
+
+// GetRunningExperiments retrieves all currently running experiments
+func (r *AdRepository) GetRunningExperiments(ctx context.Context) ([]models.AdExperiment, error) {
+	query := `
+		SELECT id, name, description, status, start_date, end_date, traffic_percent, winning_variant, created_at, updated_at
+		FROM ad_experiments
+		WHERE status = 'running'
+		  AND (start_date IS NULL OR start_date <= NOW())
+		  AND (end_date IS NULL OR end_date > NOW())
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get running experiments: %w", err)
+	}
+	defer rows.Close()
+
+	var experiments []models.AdExperiment
+	for rows.Next() {
+		var exp models.AdExperiment
+		err := rows.Scan(
+			&exp.ID, &exp.Name, &exp.Description, &exp.Status, &exp.StartDate,
+			&exp.EndDate, &exp.TrafficPercent, &exp.WinningVariant, &exp.CreatedAt, &exp.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan experiment: %w", err)
+		}
+		experiments = append(experiments, exp)
+	}
+
+	return experiments, rows.Err()
+}
+
+// GetAdsByExperiment retrieves all ads for a given experiment
+func (r *AdRepository) GetAdsByExperiment(ctx context.Context, experimentID uuid.UUID) ([]models.Ad, error) {
+	query := `
+		SELECT id, name, advertiser_name, ad_type, content_url, click_url, alt_text,
+			width, height, priority, weight, daily_budget_cents, total_budget_cents,
+			spent_today_cents, spent_total_cents, cpm_cents, is_active, start_date,
+			end_date, targeting_criteria, slot_id, experiment_id, experiment_variant, created_at, updated_at
+		FROM ads
+		WHERE experiment_id = $1 AND is_active = true
+	`
+
+	rows, err := r.pool.Query(ctx, query, experimentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ads by experiment: %w", err)
+	}
+	defer rows.Close()
+
+	var ads []models.Ad
+	for rows.Next() {
+		var ad models.Ad
+		var targetingJSON []byte
+		err := rows.Scan(
+			&ad.ID, &ad.Name, &ad.AdvertiserName, &ad.AdType, &ad.ContentURL, &ad.ClickURL,
+			&ad.AltText, &ad.Width, &ad.Height, &ad.Priority, &ad.Weight, &ad.DailyBudgetCents,
+			&ad.TotalBudgetCents, &ad.SpentTodayCents, &ad.SpentTotalCents, &ad.CPMCents,
+			&ad.IsActive, &ad.StartDate, &ad.EndDate, &targetingJSON, &ad.SlotID,
+			&ad.ExperimentID, &ad.ExperimentVariant, &ad.CreatedAt, &ad.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan ad: %w", err)
+		}
+
+		if targetingJSON != nil {
+			if err := json.Unmarshal(targetingJSON, &ad.TargetingCriteria); err != nil {
+				ad.TargetingCriteria = nil
+			}
+		}
+		ads = append(ads, ad)
+	}
+
+	return ads, rows.Err()
+}
+
+// GetCTRReportByCampaign retrieves CTR report grouped by campaign (ad)
+func (r *AdRepository) GetCTRReportByCampaign(ctx context.Context, since time.Time) ([]models.AdCTRReport, error) {
+	query := `
+		SELECT
+			a.id as ad_id,
+			a.name as ad_name,
+			COUNT(i.id) as impressions,
+			COUNT(CASE WHEN i.is_viewable THEN 1 END) as viewable_impressions,
+			COUNT(CASE WHEN i.is_clicked THEN 1 END) as clicks,
+			COALESCE(SUM(i.cost_cents), 0) as spend_cents
+		FROM ads a
+		LEFT JOIN ad_impressions i ON a.id = i.ad_id AND i.created_at >= $1
+		GROUP BY a.id, a.name
+		ORDER BY impressions DESC
+	`
+
+	rows, err := r.pool.Query(ctx, query, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get CTR report by campaign: %w", err)
+	}
+	defer rows.Close()
+
+	var reports []models.AdCTRReport
+	for rows.Next() {
+		var report models.AdCTRReport
+		err := rows.Scan(
+			&report.AdID, &report.AdName, &report.Impressions,
+			&report.ViewableImpressions, &report.Clicks, &report.SpendCents,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan CTR report: %w", err)
+		}
+
+		// Calculate CTR and viewability rate
+		if report.ViewableImpressions > 0 {
+			report.CTR = float64(report.Clicks) / float64(report.ViewableImpressions) * 100
+		}
+		if report.Impressions > 0 {
+			report.ViewabilityRate = float64(report.ViewableImpressions) / float64(report.Impressions) * 100
+		}
+
+		reports = append(reports, report)
+	}
+
+	return reports, rows.Err()
+}
+
+// GetCTRReportBySlot retrieves CTR report grouped by ad slot
+func (r *AdRepository) GetCTRReportBySlot(ctx context.Context, since time.Time) ([]models.AdSlotReport, error) {
+	query := `
+		SELECT
+			COALESCE(i.slot_id, 'unassigned') as slot_id,
+			COUNT(i.id) as impressions,
+			COUNT(CASE WHEN i.is_viewable THEN 1 END) as viewable_impressions,
+			COUNT(CASE WHEN i.is_clicked THEN 1 END) as clicks,
+			COALESCE(SUM(i.cost_cents), 0) as spend_cents,
+			COUNT(DISTINCT i.ad_id) as unique_ads
+		FROM ad_impressions i
+		WHERE i.created_at >= $1
+		GROUP BY i.slot_id
+		ORDER BY impressions DESC
+	`
+
+	rows, err := r.pool.Query(ctx, query, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get CTR report by slot: %w", err)
+	}
+	defer rows.Close()
+
+	var reports []models.AdSlotReport
+	for rows.Next() {
+		var report models.AdSlotReport
+		err := rows.Scan(
+			&report.SlotID, &report.Impressions, &report.ViewableImpressions,
+			&report.Clicks, &report.SpendCents, &report.UniqueAds,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan slot report: %w", err)
+		}
+
+		// Calculate CTR and viewability rate
+		if report.ViewableImpressions > 0 {
+			report.CTR = float64(report.Clicks) / float64(report.ViewableImpressions) * 100
+		}
+		if report.Impressions > 0 {
+			report.ViewabilityRate = float64(report.ViewableImpressions) / float64(report.Impressions) * 100
+		}
+
+		reports = append(reports, report)
+	}
+
+	return reports, rows.Err()
+}
+
+// GetExperimentReport retrieves analytics for an experiment with variant comparison
+func (r *AdRepository) GetExperimentReport(ctx context.Context, experimentID uuid.UUID, since time.Time) (*models.AdExperimentReport, error) {
+	// Get experiment info
+	exp, err := r.GetExperiment(ctx, experimentID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get variant metrics
+	query := `
+		SELECT
+			experiment_variant as variant,
+			COUNT(id) as impressions,
+			COUNT(CASE WHEN is_viewable THEN 1 END) as viewable_impressions,
+			COUNT(CASE WHEN is_clicked THEN 1 END) as clicks
+		FROM ad_impressions
+		WHERE experiment_id = $1 AND created_at >= $2
+		GROUP BY experiment_variant
+		ORDER BY experiment_variant
+	`
+
+	rows, err := r.pool.Query(ctx, query, experimentID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get experiment variant metrics: %w", err)
+	}
+	defer rows.Close()
+
+	var variants []models.AdExperimentVariantReport
+	for rows.Next() {
+		var variant models.AdExperimentVariantReport
+		err := rows.Scan(
+			&variant.Variant, &variant.Impressions,
+			&variant.ViewableImpressions, &variant.Clicks,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan variant report: %w", err)
+		}
+
+		// Calculate CTR
+		if variant.ViewableImpressions > 0 {
+			variant.CTR = float64(variant.Clicks) / float64(variant.ViewableImpressions) * 100
+		}
+		// Note: ConversionRate calculation requires conversion tracking implementation
+		// Conversions are tracked separately in ad_experiment_analytics table
+
+		variants = append(variants, variant)
+	}
+
+	return &models.AdExperimentReport{
+		ExperimentID:   exp.ID,
+		ExperimentName: exp.Name,
+		Status:         exp.Status,
+		Variants:       variants,
+	}, nil
+}
+
+// UpsertCampaignAnalytics updates or inserts daily campaign analytics
+func (r *AdRepository) UpsertCampaignAnalytics(ctx context.Context, adID uuid.UUID, date time.Time, slotID *string, impressions, viewableImpressions, clicks int, spendCents int64, uniqueUsers int) error {
+	query := `
+		INSERT INTO ad_campaign_analytics (id, ad_id, date, slot_id, impressions, viewable_impressions, clicks, spend_cents, unique_users)
+		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (ad_id, date, slot_id)
+		DO UPDATE SET
+			impressions = ad_campaign_analytics.impressions + EXCLUDED.impressions,
+			viewable_impressions = ad_campaign_analytics.viewable_impressions + EXCLUDED.viewable_impressions,
+			clicks = ad_campaign_analytics.clicks + EXCLUDED.clicks,
+			spend_cents = ad_campaign_analytics.spend_cents + EXCLUDED.spend_cents,
+			unique_users = ad_campaign_analytics.unique_users + EXCLUDED.unique_users,
+			updated_at = NOW()
+	`
+
+	_, err := r.pool.Exec(ctx, query, adID, date, slotID, impressions, viewableImpressions, clicks, spendCents, uniqueUsers)
+	if err != nil {
+		return fmt.Errorf("failed to upsert campaign analytics: %w", err)
+	}
+
+	return nil
+}

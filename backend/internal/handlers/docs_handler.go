@@ -10,10 +10,10 @@ import (
 )
 
 type DocsHandler struct {
-	docsPath      string
-	githubOwner   string
-	githubRepo    string
-	githubBranch  string
+	docsPath     string
+	githubOwner  string
+	githubRepo   string
+	githubBranch string
 }
 
 type SearchResult struct {
