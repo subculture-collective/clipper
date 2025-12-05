@@ -351,13 +351,15 @@ func (s *IndexVersionService) DeleteOldVersions(ctx context.Context, baseIndex s
 			log.Printf("WARNING: Failed to delete index %s: %v", version.Name, err)
 			continue
 		}
-		defer deleteRes.Body.Close()
 
+		// Read body and close immediately (not deferred) since we're in a loop
 		if deleteRes.IsError() {
 			body, _ := io.ReadAll(deleteRes.Body)
+			deleteRes.Body.Close()
 			log.Printf("WARNING: Failed to delete index %s: %s - %s", version.Name, deleteRes.Status(), string(body))
 			continue
 		}
+		deleteRes.Body.Close()
 
 		deletedIndices = append(deletedIndices, version.Name)
 		log.Printf("Deleted old index version: %s", version.Name)
@@ -399,70 +401,4 @@ func (s *IndexVersionService) RefreshIndex(ctx context.Context, indexName string
 // GetVersionedIndexName returns the versioned index name for a given base index and version
 func (s *IndexVersionService) GetVersionedIndexName(baseIndex string, version int) string {
 	return getVersionedIndexName(baseIndex, version)
-}
-
-// MigrateToVersionedIndices migrates existing unversioned indices to versioned format
-func (s *IndexVersionService) MigrateToVersionedIndices(ctx context.Context, baseIndices []string) error {
-	for _, baseIndex := range baseIndices {
-		// Check if the base index exists as an actual index (not alias)
-		existsReq := opensearchapi.IndicesExistsRequest{
-			Index: []string{baseIndex},
-		}
-
-		existsRes, err := existsReq.Do(ctx, s.osClient.GetClient())
-		if err != nil {
-			return fmt.Errorf("failed to check index %s: %w", baseIndex, err)
-		}
-		existsRes.Body.Close()
-
-		if existsRes.StatusCode != 200 {
-			// Index doesn't exist, skip
-			continue
-		}
-
-		// Check if it's an alias
-		aliasReq := opensearchapi.IndicesGetAliasRequest{
-			Index: []string{baseIndex},
-		}
-
-		aliasRes, err := aliasReq.Do(ctx, s.osClient.GetClient())
-		if err != nil {
-			return fmt.Errorf("failed to check alias for %s: %w", baseIndex, err)
-		}
-
-		aliasBody, _ := io.ReadAll(aliasRes.Body)
-		aliasRes.Body.Close()
-
-		// If the base index name appears as an actual index (not an alias), reindex to versioned format
-		var aliasData map[string]interface{}
-		if err := json.Unmarshal(aliasBody, &aliasData); err == nil {
-			// If baseIndex is a key, it's an actual index not an alias
-			if _, exists := aliasData[baseIndex]; exists {
-				log.Printf("Migrating %s to versioned format...", baseIndex)
-
-				// Create v1 index with same mapping
-				mappingReq := opensearchapi.IndicesGetMappingRequest{
-					Index: []string{baseIndex},
-				}
-
-				mappingRes, err := mappingReq.Do(ctx, s.osClient.GetClient())
-				if err != nil {
-					return fmt.Errorf("failed to get mapping for %s: %w", baseIndex, err)
-				}
-
-				mappingBody, _ := io.ReadAll(mappingRes.Body)
-				mappingRes.Body.Close()
-
-				// Parse and reformat mapping
-				var mappingData map[string]interface{}
-				if err := json.Unmarshal(mappingBody, &mappingData); err != nil {
-					return fmt.Errorf("failed to parse mapping: %w", err)
-				}
-
-				log.Printf("Index %s is an actual index - needs migration to versioned format", baseIndex)
-			}
-		}
-	}
-
-	return nil
 }

@@ -24,10 +24,11 @@ type IndexRebuildService struct {
 
 // RebuildConfig contains configuration for index rebuild
 type RebuildConfig struct {
-	BatchSize       int  `json:"batch_size"`
-	KeepOldVersions int  `json:"keep_old_versions"`
-	SwapAfterBuild  bool `json:"swap_after_build"`
-	Verbose         bool `json:"verbose"`
+	BatchSize       int           `json:"batch_size"`
+	KeepOldVersions int           `json:"keep_old_versions"`
+	SwapAfterBuild  bool          `json:"swap_after_build"`
+	Verbose         bool          `json:"verbose"`
+	BatchDelay      time.Duration `json:"batch_delay"` // Delay between batches to control load
 }
 
 // RebuildResult contains the result of a rebuild operation
@@ -59,6 +60,7 @@ func DefaultRebuildConfig() *RebuildConfig {
 		KeepOldVersions: 2,
 		SwapAfterBuild:  true,
 		Verbose:         true,
+		BatchDelay:      100 * time.Millisecond,
 	}
 }
 
@@ -106,7 +108,7 @@ func (s *IndexRebuildService) RebuildClipsIndex(ctx context.Context, config *Reb
 	}
 
 	// Index all clips to the new index
-	docCount, err := s.indexClipsToVersionedIndex(ctx, result.NewIndexName, config.BatchSize, config.Verbose)
+	docCount, err := s.indexClipsToVersionedIndex(ctx, result.NewIndexName, config)
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to index clips: %v", err)
 		return result, fmt.Errorf("failed to index clips: %w", err)
@@ -146,7 +148,7 @@ func (s *IndexRebuildService) RebuildClipsIndex(ctx context.Context, config *Reb
 }
 
 // indexClipsToVersionedIndex indexes all clips to a specific versioned index
-func (s *IndexRebuildService) indexClipsToVersionedIndex(ctx context.Context, indexName string, batchSize int, verbose bool) (int64, error) {
+func (s *IndexRebuildService) indexClipsToVersionedIndex(ctx context.Context, indexName string, config *RebuildConfig) (int64, error) {
 	var totalIndexed int64
 	offset := 0
 
@@ -164,7 +166,7 @@ func (s *IndexRebuildService) indexClipsToVersionedIndex(ctx context.Context, in
 			LIMIT $1 OFFSET $2
 		`
 
-		rows, err := s.db.Pool.Query(ctx, query, batchSize, offset)
+		rows, err := s.db.Pool.Query(ctx, query, config.BatchSize, offset)
 		if err != nil {
 			return totalIndexed, fmt.Errorf("failed to fetch clips: %w", err)
 		}
@@ -199,12 +201,14 @@ func (s *IndexRebuildService) indexClipsToVersionedIndex(ctx context.Context, in
 
 		totalIndexed += int64(len(clips))
 
-		if verbose {
+		if config.Verbose {
 			log.Printf("Indexed %d clips to %s (total: %d)", len(clips), indexName, totalIndexed)
 		}
 
-		offset += batchSize
-		time.Sleep(100 * time.Millisecond)
+		offset += config.BatchSize
+		if config.BatchDelay > 0 {
+			time.Sleep(config.BatchDelay)
+		}
 	}
 
 	return totalIndexed, nil
@@ -306,7 +310,7 @@ func (s *IndexRebuildService) RebuildUsersIndex(ctx context.Context, config *Reb
 		return result, fmt.Errorf("failed to create versioned index: %w", err)
 	}
 
-	docCount, err := s.indexUsersToVersionedIndex(ctx, result.NewIndexName, config.BatchSize, config.Verbose)
+	docCount, err := s.indexUsersToVersionedIndex(ctx, result.NewIndexName, config)
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to index users: %v", err)
 		return result, fmt.Errorf("failed to index users: %w", err)
@@ -342,7 +346,7 @@ func (s *IndexRebuildService) RebuildUsersIndex(ctx context.Context, config *Reb
 	return result, nil
 }
 
-func (s *IndexRebuildService) indexUsersToVersionedIndex(ctx context.Context, indexName string, batchSize int, verbose bool) (int64, error) {
+func (s *IndexRebuildService) indexUsersToVersionedIndex(ctx context.Context, indexName string, config *RebuildConfig) (int64, error) {
 	var totalIndexed int64
 	offset := 0
 
@@ -356,7 +360,7 @@ func (s *IndexRebuildService) indexUsersToVersionedIndex(ctx context.Context, in
 			LIMIT $1 OFFSET $2
 		`
 
-		rows, err := s.db.Pool.Query(ctx, query, batchSize, offset)
+		rows, err := s.db.Pool.Query(ctx, query, config.BatchSize, offset)
 		if err != nil {
 			return totalIndexed, fmt.Errorf("failed to fetch users: %w", err)
 		}
@@ -388,12 +392,14 @@ func (s *IndexRebuildService) indexUsersToVersionedIndex(ctx context.Context, in
 
 		totalIndexed += int64(len(users))
 
-		if verbose {
+		if config.Verbose {
 			log.Printf("Indexed %d users to %s (total: %d)", len(users), indexName, totalIndexed)
 		}
 
-		offset += batchSize
-		time.Sleep(100 * time.Millisecond)
+		offset += config.BatchSize
+		if config.BatchDelay > 0 {
+			time.Sleep(config.BatchDelay)
+		}
 	}
 
 	return totalIndexed, nil
@@ -478,7 +484,7 @@ func (s *IndexRebuildService) RebuildTagsIndex(ctx context.Context, config *Rebu
 		return result, fmt.Errorf("failed to create versioned index: %w", err)
 	}
 
-	docCount, err := s.indexTagsToVersionedIndex(ctx, result.NewIndexName, config.BatchSize, config.Verbose)
+	docCount, err := s.indexTagsToVersionedIndex(ctx, result.NewIndexName, config)
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to index tags: %v", err)
 		return result, fmt.Errorf("failed to index tags: %w", err)
@@ -514,7 +520,7 @@ func (s *IndexRebuildService) RebuildTagsIndex(ctx context.Context, config *Rebu
 	return result, nil
 }
 
-func (s *IndexRebuildService) indexTagsToVersionedIndex(ctx context.Context, indexName string, batchSize int, verbose bool) (int64, error) {
+func (s *IndexRebuildService) indexTagsToVersionedIndex(ctx context.Context, indexName string, config *RebuildConfig) (int64, error) {
 	var totalIndexed int64
 	offset := 0
 
@@ -526,7 +532,7 @@ func (s *IndexRebuildService) indexTagsToVersionedIndex(ctx context.Context, ind
 			LIMIT $1 OFFSET $2
 		`
 
-		rows, err := s.db.Pool.Query(ctx, query, batchSize, offset)
+		rows, err := s.db.Pool.Query(ctx, query, config.BatchSize, offset)
 		if err != nil {
 			return totalIndexed, fmt.Errorf("failed to fetch tags: %w", err)
 		}
@@ -556,12 +562,14 @@ func (s *IndexRebuildService) indexTagsToVersionedIndex(ctx context.Context, ind
 
 		totalIndexed += int64(len(tags))
 
-		if verbose {
+		if config.Verbose {
 			log.Printf("Indexed %d tags to %s (total: %d)", len(tags), indexName, totalIndexed)
 		}
 
-		offset += batchSize
-		time.Sleep(100 * time.Millisecond)
+		offset += config.BatchSize
+		if config.BatchDelay > 0 {
+			time.Sleep(config.BatchDelay)
+		}
 	}
 
 	return totalIndexed, nil
@@ -642,7 +650,7 @@ func (s *IndexRebuildService) RebuildGamesIndex(ctx context.Context, config *Reb
 		return result, fmt.Errorf("failed to create versioned index: %w", err)
 	}
 
-	docCount, err := s.indexGamesToVersionedIndex(ctx, result.NewIndexName, config.BatchSize, config.Verbose)
+	docCount, err := s.indexGamesToVersionedIndex(ctx, result.NewIndexName, config)
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to index games: %v", err)
 		return result, fmt.Errorf("failed to index games: %w", err)
@@ -678,7 +686,7 @@ func (s *IndexRebuildService) RebuildGamesIndex(ctx context.Context, config *Reb
 	return result, nil
 }
 
-func (s *IndexRebuildService) indexGamesToVersionedIndex(ctx context.Context, indexName string, batchSize int, verbose bool) (int64, error) {
+func (s *IndexRebuildService) indexGamesToVersionedIndex(ctx context.Context, indexName string, config *RebuildConfig) (int64, error) {
 	var totalIndexed int64
 	offset := 0
 
@@ -692,7 +700,7 @@ func (s *IndexRebuildService) indexGamesToVersionedIndex(ctx context.Context, in
 			LIMIT $1 OFFSET $2
 		`
 
-		rows, err := s.db.Pool.Query(ctx, query, batchSize, offset)
+		rows, err := s.db.Pool.Query(ctx, query, config.BatchSize, offset)
 		if err != nil {
 			return totalIndexed, fmt.Errorf("failed to fetch games: %w", err)
 		}
@@ -719,12 +727,14 @@ func (s *IndexRebuildService) indexGamesToVersionedIndex(ctx context.Context, in
 
 		totalIndexed += int64(len(games))
 
-		if verbose {
+		if config.Verbose {
 			log.Printf("Indexed %d games to %s (total: %d)", len(games), indexName, totalIndexed)
 		}
 
-		offset += batchSize
-		time.Sleep(100 * time.Millisecond)
+		offset += config.BatchSize
+		if config.BatchDelay > 0 {
+			time.Sleep(config.BatchDelay)
+		}
 	}
 
 	return totalIndexed, nil

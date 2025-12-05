@@ -2,6 +2,7 @@ package services
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -168,6 +169,7 @@ func TestDefaultRebuildConfig(t *testing.T) {
 	assert.Equal(t, 2, config.KeepOldVersions)
 	assert.True(t, config.SwapAfterBuild)
 	assert.True(t, config.Verbose)
+	assert.Equal(t, 100*time.Millisecond, config.BatchDelay)
 }
 
 func TestRebuildConfig_Custom(t *testing.T) {
@@ -176,12 +178,14 @@ func TestRebuildConfig_Custom(t *testing.T) {
 		KeepOldVersions: 5,
 		SwapAfterBuild:  false,
 		Verbose:         false,
+		BatchDelay:      200 * time.Millisecond,
 	}
 
 	assert.Equal(t, 500, config.BatchSize)
 	assert.Equal(t, 5, config.KeepOldVersions)
 	assert.False(t, config.SwapAfterBuild)
 	assert.False(t, config.Verbose)
+	assert.Equal(t, 200*time.Millisecond, config.BatchDelay)
 }
 
 func TestRebuildResult_Success(t *testing.T) {
