@@ -182,7 +182,10 @@ func executeStatus(ctx context.Context, versionService *services.IndexVersionSer
 	}
 
 	if jsonOutput {
-		output, _ := json.MarshalIndent(allInfo, "", "  ")
+		output, err := json.MarshalIndent(allInfo, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal results to JSON: %v", err)
+		}
 		fmt.Println(string(output))
 		return
 	}
@@ -272,7 +275,10 @@ func executeRebuild(ctx context.Context, rebuildService *services.IndexRebuildSe
 	}
 
 	if jsonOutput {
-		output, _ := json.MarshalIndent(results, "", "  ")
+		output, err := json.MarshalIndent(results, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal results to JSON: %v", err)
+		}
 		fmt.Println(string(output))
 	} else {
 		fmt.Println("Rebuild completed successfully!")
@@ -293,6 +299,9 @@ func executeSwap(ctx context.Context, versionService *services.IndexVersionServi
 		if err != nil {
 			log.Fatalf("Failed to get index info: %v", err)
 		}
+		if info.LatestVersion == 0 {
+			log.Fatal("No versioned indices exist for swap operation")
+		}
 		version = info.LatestVersion
 	}
 
@@ -312,7 +321,10 @@ func executeSwap(ctx context.Context, versionService *services.IndexVersionServi
 	}
 
 	if jsonOutput {
-		output, _ := json.MarshalIndent(result, "", "  ")
+		output, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal results to JSON: %v", err)
+		}
 		fmt.Println(string(output))
 	} else {
 		fmt.Printf("Successfully swapped %s alias to version v%d\n", idx, version)
@@ -377,7 +389,10 @@ func executeRollback(ctx context.Context, versionService *services.IndexVersionS
 	}
 
 	if jsonOutput {
-		output, _ := json.MarshalIndent(result, "", "  ")
+		output, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal results to JSON: %v", err)
+		}
 		fmt.Println(string(output))
 	} else {
 		fmt.Printf("Successfully rolled back %s alias to version v%d\n", idx, version)
@@ -426,7 +441,10 @@ func executeCleanup(ctx context.Context, versionService *services.IndexVersionSe
 	}
 
 	if jsonOutput {
-		output, _ := json.MarshalIndent(allDeleted, "", "  ")
+		output, err := json.MarshalIndent(allDeleted, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal results to JSON: %v", err)
+		}
 		fmt.Println(string(output))
 	} else {
 		fmt.Println("Cleanup completed:")

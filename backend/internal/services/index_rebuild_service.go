@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -229,7 +230,10 @@ func (s *IndexRebuildService) bulkIndexClipsToIndex(ctx context.Context, indexNa
 				"_id":    clip.ID.String(),
 			},
 		}
-		metaJSON, _ := json.Marshal(meta)
+		metaJSON, err := json.Marshal(meta)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for clip %s: %w", clip.ID, err)
+		}
 		buf.Write(metaJSON)
 		buf.WriteByte('\n')
 
@@ -260,7 +264,10 @@ func (s *IndexRebuildService) bulkIndexClipsToIndex(ctx context.Context, indexNa
 			"engagement_score": engagementScore,
 			"recency_score":    recencyScore,
 		}
-		docJSON, _ := json.Marshal(doc)
+		docJSON, err := json.Marshal(doc)
+		if err != nil {
+			return fmt.Errorf("failed to marshal document for clip %s: %w", clip.ID, err)
+		}
 		buf.Write(docJSON)
 		buf.WriteByte('\n')
 	}
@@ -276,7 +283,8 @@ func (s *IndexRebuildService) bulkIndexClipsToIndex(ctx context.Context, indexNa
 	defer res.Body.Close()
 
 	if res.IsError() {
-		return fmt.Errorf("bulk request error: %s", res.Status())
+		bodyBytes, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("bulk request error: %s - %s", res.Status(), string(bodyBytes))
 	}
 
 	return nil
@@ -418,7 +426,10 @@ func (s *IndexRebuildService) bulkIndexUsersToIndex(ctx context.Context, indexNa
 				"_id":    user.ID.String(),
 			},
 		}
-		metaJSON, _ := json.Marshal(meta)
+		metaJSON, err := json.Marshal(meta)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for user %s: %w", user.ID, err)
+		}
 		buf.Write(metaJSON)
 		buf.WriteByte('\n')
 
@@ -434,7 +445,10 @@ func (s *IndexRebuildService) bulkIndexUsersToIndex(ctx context.Context, indexNa
 			"created_at":    user.CreatedAt,
 			"last_login_at": user.LastLoginAt,
 		}
-		docJSON, _ := json.Marshal(doc)
+		docJSON, err := json.Marshal(doc)
+		if err != nil {
+			return fmt.Errorf("failed to marshal document for user %s: %w", user.ID, err)
+		}
 		buf.Write(docJSON)
 		buf.WriteByte('\n')
 	}
@@ -450,7 +464,8 @@ func (s *IndexRebuildService) bulkIndexUsersToIndex(ctx context.Context, indexNa
 	defer res.Body.Close()
 
 	if res.IsError() {
-		return fmt.Errorf("bulk request error: %s", res.Status())
+		bodyBytes, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("bulk request error: %s - %s", res.Status(), string(bodyBytes))
 	}
 
 	return nil
@@ -588,7 +603,10 @@ func (s *IndexRebuildService) bulkIndexTagsToIndex(ctx context.Context, indexNam
 				"_id":    tag.ID.String(),
 			},
 		}
-		metaJSON, _ := json.Marshal(meta)
+		metaJSON, err := json.Marshal(meta)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for tag %s: %w", tag.ID, err)
+		}
 		buf.Write(metaJSON)
 		buf.WriteByte('\n')
 
@@ -600,7 +618,10 @@ func (s *IndexRebuildService) bulkIndexTagsToIndex(ctx context.Context, indexNam
 			"usage_count": tag.UsageCount,
 			"created_at":  tag.CreatedAt,
 		}
-		docJSON, _ := json.Marshal(doc)
+		docJSON, err := json.Marshal(doc)
+		if err != nil {
+			return fmt.Errorf("failed to marshal document for tag %s: %w", tag.ID, err)
+		}
 		buf.Write(docJSON)
 		buf.WriteByte('\n')
 	}
@@ -616,7 +637,8 @@ func (s *IndexRebuildService) bulkIndexTagsToIndex(ctx context.Context, indexNam
 	defer res.Body.Close()
 
 	if res.IsError() {
-		return fmt.Errorf("bulk request error: %s", res.Status())
+		bodyBytes, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("bulk request error: %s - %s", res.Status(), string(bodyBytes))
 	}
 
 	return nil
@@ -753,7 +775,10 @@ func (s *IndexRebuildService) bulkIndexGamesToIndex(ctx context.Context, indexNa
 				"_id":    game.ID,
 			},
 		}
-		metaJSON, _ := json.Marshal(meta)
+		metaJSON, err := json.Marshal(meta)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for game %s: %w", game.ID, err)
+		}
 		buf.Write(metaJSON)
 		buf.WriteByte('\n')
 
@@ -762,7 +787,10 @@ func (s *IndexRebuildService) bulkIndexGamesToIndex(ctx context.Context, indexNa
 			"name":       game.Name,
 			"clip_count": game.ClipCount,
 		}
-		docJSON, _ := json.Marshal(doc)
+		docJSON, err := json.Marshal(doc)
+		if err != nil {
+			return fmt.Errorf("failed to marshal document for game %s: %w", game.ID, err)
+		}
 		buf.Write(docJSON)
 		buf.WriteByte('\n')
 	}
@@ -778,7 +806,8 @@ func (s *IndexRebuildService) bulkIndexGamesToIndex(ctx context.Context, indexNa
 	defer res.Body.Close()
 
 	if res.IsError() {
-		return fmt.Errorf("bulk request error: %s", res.Status())
+		bodyBytes, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("bulk request error: %s - %s", res.Status(), string(bodyBytes))
 	}
 
 	return nil

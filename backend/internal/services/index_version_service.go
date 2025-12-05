@@ -155,16 +155,20 @@ func (s *IndexVersionService) GetIndexVersionInfo(ctx context.Context, baseIndex
 		if version > info.LatestVersion {
 			info.LatestVersion = version
 		}
-
-		if indexVersion.IsActive {
-			info.ActiveVersion = &indexVersion
-		}
 	}
 
 	// Sort versions by version number (descending)
 	sort.Slice(info.AllVersions, func(i, j int) bool {
 		return info.AllVersions[i].Version > info.AllVersions[j].Version
 	})
+
+	// Set ActiveVersion after sorting to point to the correct slice element
+	for i := range info.AllVersions {
+		if info.AllVersions[i].IsActive {
+			info.ActiveVersion = &info.AllVersions[i]
+			break
+		}
+	}
 
 	info.TotalVersions = len(info.AllVersions)
 

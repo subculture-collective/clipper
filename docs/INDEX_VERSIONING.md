@@ -365,7 +365,7 @@ For regular maintenance, schedule rebuilds during low-traffic periods:
 
 ```bash
 # Cron job example (daily at 3 AM)
-0 3 * * * cd /opt/clipper/backend && ./bin/search-index-manager rebuild -index all -batch 200 -keep 3 >> /var/log/clipper/index-rebuild.log 2>&1
+0 3 * * * cd /opt/clipper/backend && ./bin/search-index-manager rebuild -index all -batch 200 -keep 2 >> /var/log/clipper/index-rebuild.log 2>&1
 ```
 
 ### Pre-deployment Checklist
