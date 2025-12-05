@@ -91,7 +91,7 @@ func TestCalculateNDCG(t *testing.T) {
 	}
 }
 
-func TestCalculateMRR(t *testing.T) {
+func TestCalculateRR(t *testing.T) {
 	tests := []struct {
 		name       string
 		relevances []int
@@ -144,7 +144,7 @@ func TestCalculateMRR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := CalculateMRR(tt.relevances, tt.threshold)
+			result := CalculateRR(tt.relevances, tt.threshold)
 			assert.Equal(t, tt.expected, result,
 				"MRR should be %v, got %v", tt.expected, result)
 		})

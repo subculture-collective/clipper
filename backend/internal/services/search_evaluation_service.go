@@ -153,7 +153,8 @@ func calculateDCG(relevances []int, k int) float64 {
 	for i := 0; i < limit; i++ {
 		// Using the formula: (2^rel - 1) / log2(i + 2)
 		// This gives more weight to highly relevant documents
-		gain := math.Pow(2, float64(relevances[i])) - 1
+		// Using bit shift for efficiency since relevances are small integers (0-4)
+		gain := float64(int(1<<uint(relevances[i])) - 1)
 		discount := math.Log2(float64(i + 2))
 		dcg += gain / discount
 	}
@@ -161,10 +162,11 @@ func calculateDCG(relevances []int, k int) float64 {
 	return dcg
 }
 
-// CalculateMRR calculates Mean Reciprocal Rank
-// MRR = 1 / rank of first relevant document
+// CalculateRR calculates Reciprocal Rank for a single query
+// RR = 1 / rank of first relevant document
 // Returns 0 if no relevant documents found
-func CalculateMRR(relevances []int, relevanceThreshold int) float64 {
+// Note: MRR (Mean Reciprocal Rank) is the mean of RR across multiple queries
+func CalculateRR(relevances []int, relevanceThreshold int) float64 {
 	for i, rel := range relevances {
 		if rel >= relevanceThreshold {
 			return 1.0 / float64(i+1)
@@ -256,7 +258,7 @@ func (s *SearchEvaluationService) EvaluateQuery(ctx context.Context, evalQuery E
 		Query:            evalQuery.Query,
 		NDCG5:            CalculateNDCG(relevances, 5),
 		NDCG10:           CalculateNDCG(relevances, 10),
-		MRR:              CalculateMRR(relevances, 2), // Threshold of 2 for "relevant"
+		MRR:              CalculateRR(relevances, 2), // Threshold of 2 for "relevant"
 		Precision5:       CalculatePrecision(relevances, 5, 2),
 		Recall10:         CalculateRecall(relevances, 10, totalRelevant, 2),
 		RetrievedResults: len(retrievedIDs),
