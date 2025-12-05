@@ -753,3 +753,281 @@ func (r *AdRepository) UpsertCampaignAnalytics(ctx context.Context, adID uuid.UU
 
 	return nil
 }
+
+// ListCampaigns retrieves all campaigns with optional filtering
+func (r *AdRepository) ListCampaigns(ctx context.Context, page, limit int, status *string) ([]models.Ad, int, error) {
+	whereClauses := []string{"1=1"}
+	args := []interface{}{}
+
+	if status != nil {
+		switch *status {
+		case "active":
+			whereClauses = append(whereClauses, "is_active = true AND (end_date IS NULL OR end_date > NOW())")
+		case "inactive":
+			whereClauses = append(whereClauses, "is_active = false")
+		case "ended":
+			whereClauses = append(whereClauses, "end_date IS NOT NULL AND end_date <= NOW()")
+		case "scheduled":
+			whereClauses = append(whereClauses, "is_active = true AND start_date IS NOT NULL AND start_date > NOW()")
+		}
+	}
+
+	whereClause := whereClauses[0]
+	for i := 1; i < len(whereClauses); i++ {
+		whereClause += " AND " + whereClauses[i]
+	}
+
+	// Get total count
+	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM ads WHERE %s`, whereClause)
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count campaigns: %w", err)
+	}
+
+	// Get campaigns with pagination
+	offset := (page - 1) * limit
+	args = append(args, limit, offset)
+	// Use len(args)-1 and len(args) for placeholders to correctly track argument positions
+	limitPlaceholder := utils.SQLPlaceholder(len(args) - 1)
+	offsetPlaceholder := utils.SQLPlaceholder(len(args))
+	query := fmt.Sprintf(`
+		SELECT id, name, advertiser_name, ad_type, content_url, click_url, alt_text,
+			width, height, priority, weight, daily_budget_cents, total_budget_cents,
+			spent_today_cents, spent_total_cents, cpm_cents, is_active, start_date,
+			end_date, targeting_criteria, created_at, updated_at
+		FROM ads
+		WHERE %s
+		ORDER BY created_at DESC
+		LIMIT %s OFFSET %s
+	`, whereClause, limitPlaceholder, offsetPlaceholder)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list campaigns: %w", err)
+	}
+	defer rows.Close()
+
+	var campaigns []models.Ad
+	for rows.Next() {
+		var ad models.Ad
+		var targetingJSON []byte
+		err := rows.Scan(
+			&ad.ID, &ad.Name, &ad.AdvertiserName, &ad.AdType, &ad.ContentURL, &ad.ClickURL,
+			&ad.AltText, &ad.Width, &ad.Height, &ad.Priority, &ad.Weight, &ad.DailyBudgetCents,
+			&ad.TotalBudgetCents, &ad.SpentTodayCents, &ad.SpentTotalCents, &ad.CPMCents,
+			&ad.IsActive, &ad.StartDate, &ad.EndDate, &targetingJSON, &ad.CreatedAt, &ad.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan campaign: %w", err)
+		}
+
+		if targetingJSON != nil {
+			if err := json.Unmarshal(targetingJSON, &ad.TargetingCriteria); err != nil {
+				ad.TargetingCriteria = nil
+			}
+		}
+		campaigns = append(campaigns, ad)
+	}
+
+	return campaigns, total, rows.Err()
+}
+
+// CreateCampaign creates a new ad campaign
+func (r *AdRepository) CreateCampaign(ctx context.Context, ad *models.Ad) error {
+	var targetingJSON []byte
+	var err error
+	if ad.TargetingCriteria != nil {
+		targetingJSON, err = json.Marshal(ad.TargetingCriteria)
+		if err != nil {
+			return fmt.Errorf("failed to marshal targeting criteria: %w", err)
+		}
+	}
+
+	query := `
+		INSERT INTO ads (id, name, advertiser_name, ad_type, content_url, click_url, alt_text,
+			width, height, priority, weight, daily_budget_cents, total_budget_cents,
+			cpm_cents, is_active, start_date, end_date, targeting_criteria)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+	`
+
+	if ad.ID == uuid.Nil {
+		ad.ID = uuid.New()
+	}
+
+	_, err = r.pool.Exec(ctx, query,
+		ad.ID, ad.Name, ad.AdvertiserName, ad.AdType, ad.ContentURL, ad.ClickURL, ad.AltText,
+		ad.Width, ad.Height, ad.Priority, ad.Weight, ad.DailyBudgetCents, ad.TotalBudgetCents,
+		ad.CPMCents, ad.IsActive, ad.StartDate, ad.EndDate, targetingJSON,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create campaign: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateCampaign updates an existing ad campaign
+func (r *AdRepository) UpdateCampaign(ctx context.Context, ad *models.Ad) error {
+	var targetingJSON []byte
+	var err error
+	if ad.TargetingCriteria != nil {
+		targetingJSON, err = json.Marshal(ad.TargetingCriteria)
+		if err != nil {
+			return fmt.Errorf("failed to marshal targeting criteria: %w", err)
+		}
+	}
+
+	query := `
+		UPDATE ads SET
+			name = $2,
+			advertiser_name = $3,
+			ad_type = $4,
+			content_url = $5,
+			click_url = $6,
+			alt_text = $7,
+			width = $8,
+			height = $9,
+			priority = $10,
+			weight = $11,
+			daily_budget_cents = $12,
+			total_budget_cents = $13,
+			cpm_cents = $14,
+			is_active = $15,
+			start_date = $16,
+			end_date = $17,
+			targeting_criteria = $18,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.pool.Exec(ctx, query,
+		ad.ID, ad.Name, ad.AdvertiserName, ad.AdType, ad.ContentURL, ad.ClickURL, ad.AltText,
+		ad.Width, ad.Height, ad.Priority, ad.Weight, ad.DailyBudgetCents, ad.TotalBudgetCents,
+		ad.CPMCents, ad.IsActive, ad.StartDate, ad.EndDate, targetingJSON,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update campaign: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("campaign not found")
+	}
+
+	return nil
+}
+
+// DeleteCampaign deletes an ad campaign by ID
+func (r *AdRepository) DeleteCampaign(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM ads WHERE id = $1`
+	result, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete campaign: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("campaign not found")
+	}
+
+	return nil
+}
+
+// GetCampaignReportByDate retrieves campaign performance report by date range
+func (r *AdRepository) GetCampaignReportByDate(ctx context.Context, adID *uuid.UUID, startDate, endDate time.Time) ([]models.AdCampaignAnalytics, error) {
+	whereClauses := []string{"date >= $1", "date <= $2"}
+	args := []interface{}{startDate, endDate}
+	argIndex := 3
+
+	if adID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("ad_id = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *adID)
+	}
+
+	whereClause := whereClauses[0]
+	for i := 1; i < len(whereClauses); i++ {
+		whereClause += " AND " + whereClauses[i]
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, ad_id, date, slot_id, impressions, viewable_impressions, clicks, spend_cents, unique_users, created_at, updated_at
+		FROM ad_campaign_analytics
+		WHERE %s
+		ORDER BY date DESC
+	`, whereClause)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get campaign report by date: %w", err)
+	}
+	defer rows.Close()
+
+	var reports []models.AdCampaignAnalytics
+	for rows.Next() {
+		var report models.AdCampaignAnalytics
+		err := rows.Scan(
+			&report.ID, &report.AdID, &report.Date, &report.SlotID, &report.Impressions,
+			&report.ViewableImpressions, &report.Clicks, &report.SpendCents, &report.UniqueUsers,
+			&report.CreatedAt, &report.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan campaign report: %w", err)
+		}
+		reports = append(reports, report)
+	}
+
+	return reports, rows.Err()
+}
+
+// GetCampaignReportByPlacement retrieves campaign performance report grouped by placement/slot
+func (r *AdRepository) GetCampaignReportByPlacement(ctx context.Context, adID *uuid.UUID, since time.Time) ([]models.AdSlotReport, error) {
+	args := []interface{}{since}
+	whereClause := "i.created_at >= $1"
+
+	if adID != nil {
+		whereClause += " AND i.ad_id = $2"
+		args = append(args, *adID)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT
+			COALESCE(i.slot_id, 'unassigned') as slot_id,
+			COUNT(i.id) as impressions,
+			COUNT(CASE WHEN i.is_viewable THEN 1 END) as viewable_impressions,
+			COUNT(CASE WHEN i.is_clicked THEN 1 END) as clicks,
+			COALESCE(SUM(i.cost_cents), 0) as spend_cents,
+			COUNT(DISTINCT i.ad_id) as unique_ads
+		FROM ad_impressions i
+		WHERE %s
+		GROUP BY i.slot_id
+		ORDER BY impressions DESC
+	`, whereClause)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get campaign report by placement: %w", err)
+	}
+	defer rows.Close()
+
+	var reports []models.AdSlotReport
+	for rows.Next() {
+		var report models.AdSlotReport
+		err := rows.Scan(
+			&report.SlotID, &report.Impressions, &report.ViewableImpressions,
+			&report.Clicks, &report.SpendCents, &report.UniqueAds,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan placement report: %w", err)
+		}
+
+		// Calculate CTR and viewability rate
+		if report.ViewableImpressions > 0 {
+			report.CTR = float64(report.Clicks) / float64(report.ViewableImpressions) * 100
+		}
+		if report.Impressions > 0 {
+			report.ViewabilityRate = float64(report.ViewableImpressions) / float64(report.Impressions) * 100
+		}
+
+		reports = append(reports, report)
+	}
+
+	return reports, rows.Err()
+}

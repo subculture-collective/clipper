@@ -742,6 +742,30 @@ func main() {
 				adminContact.GET("", contactHandler.GetContactMessages)
 				adminContact.PUT("/:id/status", contactHandler.UpdateContactMessageStatus)
 			}
+
+			// Ad Campaign management (admin only)
+			adminAds := admin.Group("/ads")
+			{
+				// Campaign CRUD
+				adminAds.GET("/campaigns", adHandler.ListCampaigns)
+				adminAds.GET("/campaigns/:id", adHandler.GetCampaign)
+				adminAds.POST("/campaigns", adHandler.CreateCampaign)
+				adminAds.PUT("/campaigns/:id", adHandler.UpdateCampaign)
+				adminAds.DELETE("/campaigns/:id", adHandler.DeleteCampaign)
+
+				// Creative validation
+				adminAds.POST("/validate-creative", adHandler.ValidateCreative)
+
+				// Campaign reports
+				adminAds.GET("/reports/by-date", adHandler.GetCampaignReportByDate)
+				adminAds.GET("/reports/by-placement", adHandler.GetCampaignReportByPlacement)
+				adminAds.GET("/reports/by-campaign", adHandler.GetCTRReportByCampaign)
+				adminAds.GET("/reports/by-slot", adHandler.GetCTRReportBySlot)
+
+				// Experiments
+				adminAds.GET("/experiments", adHandler.ListExperiments)
+				adminAds.GET("/experiments/:id/report", adHandler.GetExperimentReport)
+			}
 		}
 	}
 

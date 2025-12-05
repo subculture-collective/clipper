@@ -780,3 +780,237 @@ func TestAdService_filterByContextualTargeting(t *testing.T) {
 		})
 	}
 }
+
+func TestAdService_ValidateCreative(t *testing.T) {
+	s := &AdService{}
+
+	tests := []struct {
+		name       string
+		contentURL string
+		adType     string
+		width      *int
+		height     *int
+		expectErr  bool
+		errMsg     string
+	}{
+		{
+			name:       "Valid banner with standard size",
+			contentURL: "https://example.com/ad.jpg",
+			adType:     "banner",
+			width:      intPtr(728),
+			height:     intPtr(90),
+			expectErr:  false,
+		},
+		{
+			name:       "Valid banner with medium rectangle",
+			contentURL: "https://example.com/ad.jpg",
+			adType:     "banner",
+			width:      intPtr(300),
+			height:     intPtr(250),
+			expectErr:  false,
+		},
+		{
+			name:       "Invalid banner size",
+			contentURL: "https://example.com/ad.jpg",
+			adType:     "banner",
+			width:      intPtr(100),
+			height:     intPtr(100),
+			expectErr:  true,
+			errMsg:     "invalid banner size",
+		},
+		{
+			name:       "Banner without dimensions",
+			contentURL: "https://example.com/ad.jpg",
+			adType:     "banner",
+			width:      nil,
+			height:     nil,
+			expectErr:  true,
+			errMsg:     "width and height are required for banner ads",
+		},
+		{
+			name:       "Valid video (no dimensions required)",
+			contentURL: "https://example.com/video.mp4",
+			adType:     "video",
+			width:      nil,
+			height:     nil,
+			expectErr:  false,
+		},
+		{
+			name:       "Valid native ad",
+			contentURL: "https://example.com/native.json",
+			adType:     "native",
+			width:      nil,
+			height:     nil,
+			expectErr:  false,
+		},
+		{
+			name:       "Invalid ad type",
+			contentURL: "https://example.com/ad.jpg",
+			adType:     "invalid",
+			width:      nil,
+			height:     nil,
+			expectErr:  true,
+			errMsg:     "invalid ad type",
+		},
+		{
+			name:       "Empty content URL",
+			contentURL: "",
+			adType:     "banner",
+			width:      intPtr(728),
+			height:     intPtr(90),
+			expectErr:  true,
+			errMsg:     "content URL is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := s.ValidateCreative(nil, tt.contentURL, tt.adType, tt.width, tt.height)
+			if tt.expectErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestAdService_CreateCampaignValidation(t *testing.T) {
+	s := &AdService{}
+
+	tests := []struct {
+		name      string
+		ad        *models.Ad
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name: "Valid campaign - all fields",
+			ad: &models.Ad{
+				Name:           "Test Campaign",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "banner",
+				ContentURL:     "https://example.com/ad.jpg",
+				Width:          intPtr(728),
+				Height:         intPtr(90),
+			},
+			expectErr: false,
+		},
+		{
+			name: "Missing name",
+			ad: &models.Ad{
+				Name:           "",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "banner",
+				ContentURL:     "https://example.com/ad.jpg",
+			},
+			expectErr: true,
+			errMsg:    "campaign name is required",
+		},
+		{
+			name: "Missing advertiser name",
+			ad: &models.Ad{
+				Name:           "Test Campaign",
+				AdvertiserName: "",
+				AdType:         "banner",
+				ContentURL:     "https://example.com/ad.jpg",
+			},
+			expectErr: true,
+			errMsg:    "advertiser name is required",
+		},
+		{
+			name: "Missing ad type",
+			ad: &models.Ad{
+				Name:           "Test Campaign",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "",
+				ContentURL:     "https://example.com/ad.jpg",
+			},
+			expectErr: true,
+			errMsg:    "ad type is required",
+		},
+		{
+			name: "Invalid ad type",
+			ad: &models.Ad{
+				Name:           "Test Campaign",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "invalid",
+				ContentURL:     "https://example.com/ad.jpg",
+			},
+			expectErr: true,
+			errMsg:    "invalid ad type",
+		},
+		{
+			name: "Missing content URL",
+			ad: &models.Ad{
+				Name:           "Test Campaign",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "banner",
+				ContentURL:     "",
+			},
+			expectErr: true,
+			errMsg:    "content URL is required",
+		},
+		{
+			name: "End date before start date",
+			ad: &models.Ad{
+				Name:           "Test Campaign",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "video",
+				ContentURL:     "https://example.com/video.mp4",
+				StartDate:      testTimePtr(time.Now().Add(48 * time.Hour)),
+				EndDate:        testTimePtr(time.Now().Add(24 * time.Hour)),
+			},
+			expectErr: true,
+			errMsg:    "end date must be after start date",
+		},
+		{
+			name: "Valid video campaign",
+			ad: &models.Ad{
+				Name:           "Video Campaign",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "video",
+				ContentURL:     "https://example.com/video.mp4",
+			},
+			expectErr: false,
+		},
+		{
+			name: "Valid native campaign",
+			ad: &models.Ad{
+				Name:           "Native Campaign",
+				AdvertiserName: "Test Advertiser",
+				AdType:         "native",
+				ContentURL:     "https://example.com/native.json",
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test ValidateCampaign directly to avoid needing a mock repository
+			err := s.ValidateCampaign(tt.ad)
+			if tt.expectErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// Helper function to create int pointer
+func intPtr(i int) *int {
+	return &i
+}
+
+// Helper function to create time pointer for tests
+func testTimePtr(t time.Time) *time.Time {
+	return &t
+}
