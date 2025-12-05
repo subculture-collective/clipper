@@ -1018,6 +1018,8 @@ type AdSelectionRequest struct {
 	Country    *string  `json:"country,omitempty" form:"country"`         // ISO 3166-1 alpha-2 country code
 	DeviceType *string  `json:"device_type,omitempty" form:"device_type"` // desktop, mobile, tablet
 	Interests  []string `json:"interests,omitempty" form:"interests"`     // User interest categories
+	// Privacy/consent fields
+	Personalized *bool `json:"personalized,omitempty" form:"personalized"` // Whether user consented to personalized ads
 }
 
 // AdSelectionResponse represents a selected ad for display

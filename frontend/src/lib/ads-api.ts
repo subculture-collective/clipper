@@ -29,6 +29,10 @@ export interface AdSelectionRequest {
   session_id?: string;
   game_id?: string;
   language?: string;
+  /** Slot ID for ad placement */
+  slot_id?: string;
+  /** Whether personalized ads are allowed (consent given) */
+  personalized?: boolean;
 }
 
 /**

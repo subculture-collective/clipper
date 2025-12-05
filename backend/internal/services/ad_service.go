@@ -34,6 +34,11 @@ func NewAdService(adRepo *repository.AdRepository, redisClient *redispkg.Client)
 
 // SelectAd selects an appropriate ad for display based on targeting, frequency caps, and fraud prevention
 func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest, userID *uuid.UUID, ipAddress string) (*models.AdSelectionResponse, error) {
+	// Check if personalized ads are allowed
+	// If not, we only use contextual targeting (game, language, platform)
+	// and skip user-specific targeting (interests, user history, country/device)
+	isPersonalized := req.Personalized != nil && *req.Personalized
+
 	// Get all active ads matching the request criteria
 	ads, err := s.adRepo.GetActiveAds(ctx, req.AdType, req.Width, req.Height)
 	if err != nil {
@@ -44,13 +49,29 @@ func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest,
 		return &models.AdSelectionResponse{}, nil
 	}
 
-	// Filter ads based on targeting criteria (including country, device, interests)
-	ads = s.filterByTargeting(ads, req)
+	// Filter ads based on targeting criteria
+	// If personalized is false, only use contextual targeting (game, language, platform)
+	if isPersonalized {
+		// Full targeting including user-specific criteria
+		ads = s.filterByTargeting(ads, req)
+	} else {
+		// Contextual-only targeting (no user-specific data)
+		ads = s.filterByContextualTargeting(ads, req)
+	}
 
 	// Filter ads based on targeting rules (structured rules from database)
-	ads, err = s.filterByTargetingRules(ctx, ads, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to filter by targeting rules: %w", err)
+	// Only apply user-specific rules if personalized
+	if isPersonalized {
+		ads, err = s.filterByTargetingRules(ctx, ads, req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to filter by targeting rules: %w", err)
+		}
+	} else {
+		// Only apply contextual targeting rules
+		ads, err = s.filterByContextualTargetingRules(ctx, ads, req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to filter by contextual targeting rules: %w", err)
+		}
 	}
 
 	if len(ads) == 0 {
@@ -58,9 +79,12 @@ func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest,
 	}
 
 	// Filter ads based on frequency caps
-	ads, err = s.filterByFrequencyCaps(ctx, ads, userID, req.SessionID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to filter by frequency caps: %w", err)
+	// Only apply if personalized (requires user/session tracking)
+	if isPersonalized {
+		ads, err = s.filterByFrequencyCaps(ctx, ads, userID, req.SessionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to filter by frequency caps: %w", err)
+		}
 	}
 
 	if len(ads) == 0 {
@@ -68,6 +92,7 @@ func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest,
 	}
 
 	// Basic fraud prevention: check for rapid impressions from same IP
+	// This is non-personalized as it uses IP address for security, not targeting
 	if ipAddress != "" {
 		ads, err = s.filterByFraudPrevention(ctx, ads, ipAddress)
 		if err != nil {
@@ -79,24 +104,36 @@ func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest,
 		return &models.AdSelectionResponse{}, nil
 	}
 
-	// Apply experiment selection if applicable
-	selectedAd := s.selectAdWithExperiment(ads, userID, req.SessionID)
+	// Apply experiment selection if applicable (only if personalized)
+	var selectedAd models.Ad
+	if isPersonalized {
+		selectedAd = s.selectAdWithExperiment(ads, userID, req.SessionID)
+	} else {
+		// Random selection without user-specific bucketing
+		selectedAd = s.weightedRandomSelect(ads)
+	}
 
 	// Create impression record with enhanced tracking fields
+	// If not personalized, we don't record user-identifiable information
 	impressionID := uuid.New()
 	impression := &models.AdImpression{
-		ID:                impressionID,
-		AdID:              selectedAd.ID,
-		UserID:            userID,
-		SessionID:         req.SessionID,
-		Platform:          req.Platform,
-		IPAddress:         &ipAddress,
-		PageURL:           req.PageURL,
-		SlotID:            req.SlotID,
-		Country:           req.Country,
-		DeviceType:        req.DeviceType,
-		ExperimentID:      selectedAd.ExperimentID,
-		ExperimentVariant: selectedAd.ExperimentVariant,
+		ID:        impressionID,
+		AdID:      selectedAd.ID,
+		Platform:  req.Platform,
+		PageURL:   req.PageURL,
+		SlotID:    req.SlotID,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	// Only include user-identifiable data if personalized
+	if isPersonalized {
+		impression.UserID = userID
+		impression.SessionID = req.SessionID
+		impression.IPAddress = &ipAddress
+		impression.Country = req.Country
+		impression.DeviceType = req.DeviceType
+		impression.ExperimentID = selectedAd.ExperimentID
+		impression.ExperimentVariant = selectedAd.ExperimentVariant
 	}
 
 	if err := s.adRepo.CreateImpression(ctx, impression); err != nil {
@@ -104,7 +141,10 @@ func (s *AdService) SelectAd(ctx context.Context, req models.AdSelectionRequest,
 	}
 
 	// Update frequency caps (async to not block response)
-	go s.updateFrequencyCaps(context.Background(), selectedAd.ID, userID, req.SessionID)
+	// Only if personalized
+	if isPersonalized {
+		go s.updateFrequencyCaps(context.Background(), selectedAd.ID, userID, req.SessionID)
+	}
 
 	return &models.AdSelectionResponse{
 		Ad:           &selectedAd,
@@ -292,6 +332,85 @@ func (s *AdService) filterByTargeting(ads []models.Ad, req models.AdSelectionReq
 				}
 			}
 		}
+
+		if match {
+			filtered = append(filtered, ad)
+		}
+	}
+
+	return filtered
+}
+
+// filterByContextualTargeting filters ads using only contextual (non-user-specific) criteria
+// This is used when user has not consented to personalized ads
+func (s *AdService) filterByContextualTargeting(ads []models.Ad, req models.AdSelectionRequest) []models.Ad {
+	var filtered []models.Ad
+
+	for _, ad := range ads {
+		if ad.TargetingCriteria == nil {
+			// No targeting = show to everyone
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		match := true
+
+		// Check game targeting (contextual - based on page content, not user)
+		if targetGames, ok := ad.TargetingCriteria["game_ids"].([]interface{}); ok && len(targetGames) > 0 {
+			if req.GameID == nil {
+				match = false
+			} else {
+				gameMatch := false
+				for _, g := range targetGames {
+					if gID, ok := g.(string); ok && gID == *req.GameID {
+						gameMatch = true
+						break
+					}
+				}
+				if !gameMatch {
+					match = false
+				}
+			}
+		}
+
+		// Check language targeting (contextual - based on page language)
+		if match {
+			if targetLanguages, ok := ad.TargetingCriteria["languages"].([]interface{}); ok && len(targetLanguages) > 0 {
+				if req.Language == nil {
+					match = false
+				} else {
+					langMatch := false
+					for _, l := range targetLanguages {
+						if lang, ok := l.(string); ok && lang == *req.Language {
+							langMatch = true
+							break
+						}
+					}
+					if !langMatch {
+						match = false
+					}
+				}
+			}
+		}
+
+		// Check platform targeting (contextual - based on device platform)
+		if match {
+			if targetPlatforms, ok := ad.TargetingCriteria["platforms"].([]interface{}); ok && len(targetPlatforms) > 0 {
+				platformMatch := false
+				for _, p := range targetPlatforms {
+					if platform, ok := p.(string); ok && platform == req.Platform {
+						platformMatch = true
+						break
+					}
+				}
+				if !platformMatch {
+					match = false
+				}
+			}
+		}
+
+		// NOTE: We skip country, device, and interests targeting in contextual mode
+		// as these are considered user-specific personalization
 
 		if match {
 			filtered = append(filtered, ad)
@@ -489,6 +608,65 @@ func (s *AdService) filterByTargetingRules(ctx context.Context, ads []models.Ad,
 				match = false
 				break
 			}
+		}
+
+		if match {
+			filtered = append(filtered, ad)
+		}
+	}
+
+	return filtered, nil
+}
+
+// filterByContextualTargetingRules applies only contextual (non-user-specific) targeting rules
+// Used when user has not consented to personalized ads
+func (s *AdService) filterByContextualTargetingRules(ctx context.Context, ads []models.Ad, req models.AdSelectionRequest) ([]models.Ad, error) {
+	var filtered []models.Ad
+
+	// Contextual rule types (non-user-specific)
+	contextualRuleTypes := map[string]bool{
+		models.TargetingRuleTypePlatform: true,
+		models.TargetingRuleTypeLanguage: true,
+		models.TargetingRuleTypeGame:     true,
+	}
+
+	for _, ad := range ads {
+		rules, err := s.adRepo.GetTargetingRules(ctx, ad.ID)
+		if err != nil {
+			// If we can't get rules, include the ad (fail open)
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		if len(rules) == 0 {
+			// No rules = show to everyone
+			filtered = append(filtered, ad)
+			continue
+		}
+
+		match := true
+		hasContextualRules := false
+		for _, rule := range rules {
+			// Skip non-contextual rules (user-specific targeting)
+			if !contextualRuleTypes[rule.RuleType] {
+				continue
+			}
+			hasContextualRules = true
+
+			ruleMatch := s.evaluateTargetingRule(rule, req)
+			if rule.Operator == models.TargetingOperatorInclude && !ruleMatch {
+				match = false
+				break
+			}
+			if rule.Operator == models.TargetingOperatorExclude && ruleMatch {
+				match = false
+				break
+			}
+		}
+
+		// If ad has rules but none are contextual, exclude it in contextual mode
+		if len(rules) > 0 && !hasContextualRules {
+			match = false
 		}
 
 		if match {
