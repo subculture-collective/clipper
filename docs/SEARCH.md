@@ -713,6 +713,32 @@ Clipper implements semantic search using hybrid BM25 + vector similarity re-rank
 
 **Architecture Decision**: [ADR-001: Semantic Search Vector Database Selection](./adr/001-semantic-search-vector-db.md)
 
+## Index Management and Versioning
+
+Search indices use a versioning system for zero-downtime rebuilds and quick rollbacks.
+
+**See**: [Index Versioning Documentation](./INDEX_VERSIONING.md)
+
+**Key Features**:
+
+- Versioned indices (`clips_v1`, `clips_v2`, etc.) with alias-based routing
+- Zero-downtime rebuilds with atomic alias swaps
+- Quick rollbacks to previous versions
+- Automatic cleanup of old versions
+
+**CLI Tool**:
+
+```bash
+# Check index status
+./bin/search-index-manager status
+
+# Rebuild with zero-downtime swap
+./bin/search-index-manager rebuild -index clips
+
+# Rollback to previous version
+./bin/search-index-manager rollback -index clips
+```
+
 ## Future Enhancements
 
 Potential improvements for the search platform:
@@ -729,6 +755,7 @@ Potential improvements for the search platform:
 10. **Personalized ranking** - User preference-based result ordering
 11. **Multi-modal embeddings** - Include video thumbnails in semantic search
 12. **Cross-lingual search** - Search across different languages semantically
+13. ~~**Index versioning**~~ - ✅ Completed (zero-downtime rebuilds and rollbacks)
 
 ## Resources
 
@@ -738,3 +765,4 @@ Potential improvements for the search platform:
 - [Index Management](https://opensearch.org/docs/latest/im-plugin/)
 - [pgvector Documentation](https://github.com/pgvector/pgvector)
 - [Semantic Search Architecture](./SEMANTIC_SEARCH_ARCHITECTURE.md)
+- [Index Versioning](./INDEX_VERSIONING.md)
