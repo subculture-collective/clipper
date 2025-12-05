@@ -55,9 +55,11 @@ CREATE TABLE IF NOT EXISTS ad_campaign_analytics (
     spend_cents BIGINT DEFAULT 0,
     unique_users INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT unique_ad_date_slot UNIQUE (ad_id, date, slot_id)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Create unique index using COALESCE to handle NULL slot_id properly
+CREATE UNIQUE INDEX IF NOT EXISTS unique_ad_date_slot ON ad_campaign_analytics (ad_id, date, COALESCE(slot_id, ''));
 
 -- Create experiment analytics table
 CREATE TABLE IF NOT EXISTS ad_experiment_analytics (
@@ -80,7 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_ad_targeting_rules_ad_id ON ad_targeting_rules(ad
 CREATE INDEX IF NOT EXISTS idx_ad_targeting_rules_type ON ad_targeting_rules(rule_type);
 CREATE INDEX IF NOT EXISTS idx_ad_impressions_slot_id ON ad_impressions(slot_id) WHERE slot_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ad_impressions_experiment ON ad_impressions(experiment_id, experiment_variant) WHERE experiment_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_ad_impressions_date ON ad_impressions(created_at::date);
+CREATE INDEX IF NOT EXISTS idx_ad_impressions_date ON ad_impressions(created_at);
 CREATE INDEX IF NOT EXISTS idx_ad_campaign_analytics_ad_date ON ad_campaign_analytics(ad_id, date);
 CREATE INDEX IF NOT EXISTS idx_ad_campaign_analytics_slot ON ad_campaign_analytics(slot_id) WHERE slot_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ad_experiment_analytics_experiment ON ad_experiment_analytics(experiment_id, date);

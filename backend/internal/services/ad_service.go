@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"math/rand/v2"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -562,8 +564,18 @@ func (s *AdService) selectAdWithExperiment(ads []models.Ad, userID *uuid.UUID, s
 		}
 	}
 
+	// Sort experiment IDs for deterministic iteration order
+	experimentIDs := make([]uuid.UUID, 0, len(experimentAds))
+	for expID := range experimentAds {
+		experimentIDs = append(experimentIDs, expID)
+	}
+	sort.Slice(experimentIDs, func(i, j int) bool {
+		return experimentIDs[i].String() < experimentIDs[j].String()
+	})
+
 	// If there are experiment ads, try to select from them based on consistent bucketing
-	for experimentID, expAds := range experimentAds {
+	for _, experimentID := range experimentIDs {
+		expAds := experimentAds[experimentID]
 		if len(expAds) > 1 {
 			// Use consistent bucketing based on user/session ID
 			selectedVariant := s.selectExperimentVariant(expAds, userID, sessionID, experimentID)
@@ -595,11 +607,10 @@ func (s *AdService) selectExperimentVariant(ads []models.Ad, userID *uuid.UUID, 
 		return s.weightedRandomSelect(ads)
 	}
 
-	// Simple hash-based bucketing for consistent experiment variant assignment
-	hash := 0
-	for _, c := range bucketKey {
-		hash = (hash*31 + int(c)) % experimentBucketCount
-	}
+	// Use FNV hash for better distribution in A/B experiment bucketing
+	h := fnv.New32a()
+	h.Write([]byte(bucketKey))
+	hash := int(h.Sum32()) % experimentBucketCount
 
 	// Group ads by variant
 	variantAds := make(map[string][]models.Ad)
@@ -611,11 +622,12 @@ func (s *AdService) selectExperimentVariant(ads []models.Ad, userID *uuid.UUID, 
 		variantAds[variant] = append(variantAds[variant], ad)
 	}
 
-	// Distribute bucket across variants evenly
+	// Distribute bucket across variants evenly with deterministic ordering
 	variants := make([]string, 0, len(variantAds))
 	for v := range variantAds {
 		variants = append(variants, v)
 	}
+	sort.Strings(variants) // Ensure deterministic ordering
 
 	if len(variants) == 0 {
 		return ads[0]

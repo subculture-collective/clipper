@@ -18,6 +18,7 @@ DROP INDEX IF EXISTS idx_ad_targeting_rules_type;
 DROP INDEX IF EXISTS idx_ad_targeting_rules_ad_id;
 DROP INDEX IF EXISTS idx_ads_experiment_id;
 DROP INDEX IF EXISTS idx_ads_slot_id;
+DROP INDEX IF EXISTS unique_ad_date_slot;
 
 -- Drop new tables
 DROP TABLE IF EXISTS ad_experiment_analytics;

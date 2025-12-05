@@ -183,9 +183,28 @@ func (h *AdHandler) GetCTRReportByCampaign(c *gin.Context) {
 	// Parse days parameter (default 30)
 	days := 30
 	if daysStr := c.Query("days"); daysStr != "" {
-		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 365 {
-			days = d
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be a valid integer",
+				},
+			})
+			return
 		}
+		if d <= 0 || d > 365 {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be between 1 and 365",
+				},
+			})
+			return
+		}
+		days = d
 	}
 
 	since := time.Now().AddDate(0, 0, -days)
@@ -216,9 +235,28 @@ func (h *AdHandler) GetCTRReportBySlot(c *gin.Context) {
 	// Parse days parameter (default 30)
 	days := 30
 	if daysStr := c.Query("days"); daysStr != "" {
-		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 365 {
-			days = d
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be a valid integer",
+				},
+			})
+			return
 		}
+		if d <= 0 || d > 365 {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be between 1 and 365",
+				},
+			})
+			return
+		}
+		days = d
 	}
 
 	since := time.Now().AddDate(0, 0, -days)
@@ -261,9 +299,28 @@ func (h *AdHandler) GetExperimentReport(c *gin.Context) {
 	// Parse days parameter (default 30)
 	days := 30
 	if daysStr := c.Query("days"); daysStr != "" {
-		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 365 {
-			days = d
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be a valid integer",
+				},
+			})
+			return
 		}
+		if d <= 0 || d > 365 {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be between 1 and 365",
+				},
+			})
+			return
+		}
+		days = d
 	}
 
 	since := time.Now().AddDate(0, 0, -days)

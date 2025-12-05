@@ -473,6 +473,59 @@ func TestAdService_evaluateTargetingRule(t *testing.T) {
 			},
 			expected: true,
 		},
+		// Exclude operator tests
+		{
+			name: "Country rule - exclude matches (should filter out)",
+			rule: models.AdTargetingRule{
+				RuleType: models.TargetingRuleTypeCountry,
+				Operator: models.TargetingOperatorExclude,
+				Values:   []string{"US", "CA"},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+				Country:  strPtr("US"),
+			},
+			expected: true, // Rule matches, so exclude operator will filter it out
+		},
+		{
+			name: "Country rule - exclude no match (should include)",
+			rule: models.AdTargetingRule{
+				RuleType: models.TargetingRuleTypeCountry,
+				Operator: models.TargetingOperatorExclude,
+				Values:   []string{"US", "CA"},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+				Country:  strPtr("GB"),
+			},
+			expected: false, // Rule does not match, so exclude operator keeps it
+		},
+		{
+			name: "Device rule - exclude matches",
+			rule: models.AdTargetingRule{
+				RuleType: models.TargetingRuleTypeDevice,
+				Operator: models.TargetingOperatorExclude,
+				Values:   []string{"mobile"},
+			},
+			req: models.AdSelectionRequest{
+				Platform:   "web",
+				DeviceType: strPtr("mobile"),
+			},
+			expected: true, // Rule matches for exclude
+		},
+		{
+			name: "Interest rule - exclude matches one",
+			rule: models.AdTargetingRule{
+				RuleType: models.TargetingRuleTypeInterest,
+				Operator: models.TargetingOperatorExclude,
+				Values:   []string{"gambling", "adult"},
+			},
+			req: models.AdSelectionRequest{
+				Platform:  "web",
+				Interests: []string{"tech", "gambling"},
+			},
+			expected: true, // Rule matches for exclude
+		},
 	}
 
 	for _, tt := range tests {
