@@ -1,0 +1,313 @@
+# Semantic Search Evaluation Dataset
+# This file contains labeled query-document pairs for evaluating search quality
+# using standard IR metrics: nDCG (normalized Discounted Cumulative Gain) and MRR (Mean Reciprocal Rank)
+
+version: "1.0"
+description: "Labeled evaluation dataset for semantic search quality metrics"
+created_at: "2024-10-28"
+last_updated: "2024-10-28"
+
+# Relevance scale:
+# 0 = Not relevant - Document is completely unrelated to the query
+# 1 = Marginally relevant - Document is tangentially related but doesn't satisfy the query
+# 2 = Fairly relevant - Document partially satisfies the query intent
+# 3 = Highly relevant - Document strongly satisfies the query intent
+# 4 = Perfect - Document is exactly what the user is looking for
+
+evaluation_queries:
+  # Game-specific searches
+  - id: "eval-001"
+    query: "valorant ace"
+    description: "User looking for clips of ace plays in Valorant"
+    relevant_documents:
+      - clip_id: "valorant-ace-tenz-01"
+        relevance: 4
+        reason: "Valorant ace clip by professional player"
+      - clip_id: "valorant-ace-casual-02"
+        relevance: 3
+        reason: "Valorant ace in ranked play"
+      - clip_id: "valorant-4k-play-03"
+        relevance: 2
+        reason: "Valorant 4k but not ace"
+      - clip_id: "csgo-ace-04"
+        relevance: 1
+        reason: "Ace but wrong game"
+      - clip_id: "valorant-tutorial-05"
+        relevance: 0
+        reason: "Valorant content but not about aces"
+
+  - id: "eval-002"
+    query: "funny stream moments"
+    description: "User looking for humorous clips from streams"
+    relevant_documents:
+      - clip_id: "funny-fail-streamer-01"
+        relevance: 4
+        reason: "Hilarious fail moment from stream"
+      - clip_id: "streamer-laugh-02"
+        relevance: 3
+        reason: "Funny reaction moment"
+      - clip_id: "meme-worthy-clip-03"
+        relevance: 3
+        reason: "Meme-worthy moment from stream"
+      - clip_id: "serious-gameplay-04"
+        relevance: 0
+        reason: "Not funny content"
+      - clip_id: "edited-youtube-05"
+        relevance: 1
+        reason: "Funny but not from stream"
+
+  - id: "eval-003"
+    query: "clutch play"
+    description: "User looking for clutch/comeback plays"
+    relevant_documents:
+      - clip_id: "1v5-clutch-01"
+        relevance: 4
+        reason: "Perfect 1v5 clutch scenario"
+      - clip_id: "1v3-comeback-02"
+        relevance: 3
+        reason: "Solid clutch situation"
+      - clip_id: "close-call-03"
+        relevance: 2
+        reason: "Close call but not true clutch"
+      - clip_id: "easy-win-04"
+        relevance: 0
+        reason: "Not a clutch situation at all"
+
+  - id: "eval-004"
+    query: "league of legends pentakill"
+    description: "User looking for pentakill clips in LoL"
+    relevant_documents:
+      - clip_id: "lol-pentakill-faker-01"
+        relevance: 4
+        reason: "Pro player pentakill"
+      - clip_id: "lol-pentakill-ranked-02"
+        relevance: 4
+        reason: "Pentakill in ranked game"
+      - clip_id: "lol-quadrakill-03"
+        relevance: 2
+        reason: "Almost pentakill, just quadra"
+      - clip_id: "lol-highlight-04"
+        relevance: 1
+        reason: "LoL content but no multi-kill"
+      - clip_id: "dota-rampage-05"
+        relevance: 1
+        reason: "Similar concept but wrong game"
+
+  - id: "eval-005"
+    query: "fortnite building tips"
+    description: "User looking for educational building content"
+    relevant_documents:
+      - clip_id: "fortnite-building-tutorial-01"
+        relevance: 4
+        reason: "Explicit building tutorial"
+      - clip_id: "pro-building-showcase-02"
+        relevance: 3
+        reason: "Pro building techniques shown"
+      - clip_id: "fast-building-03"
+        relevance: 2
+        reason: "Shows building but no tips"
+      - clip_id: "fortnite-win-04"
+        relevance: 1
+        reason: "Fortnite content, minimal building"
+      - clip_id: "minecraft-building-05"
+        relevance: 0
+        reason: "Wrong game entirely"
+
+  # Creator-focused searches
+  - id: "eval-006"
+    query: "shroud gameplay"
+    description: "User looking for clips featuring Shroud"
+    relevant_documents:
+      - clip_id: "shroud-aim-showcase-01"
+        relevance: 4
+        reason: "Shroud's impressive gameplay"
+      - clip_id: "shroud-collab-02"
+        relevance: 3
+        reason: "Shroud in collab stream"
+      - clip_id: "shroud-mentioned-03"
+        relevance: 1
+        reason: "Shroud mentioned but not playing"
+      - clip_id: "similar-aim-player-04"
+        relevance: 0
+        reason: "Not Shroud"
+
+  # Semantic understanding tests
+  - id: "eval-007"
+    query: "epic comeback victory"
+    description: "Tests semantic understanding of 'comeback'"
+    relevant_documents:
+      - clip_id: "impossible-comeback-01"
+        relevance: 4
+        reason: "Classic impossible comeback"
+      - clip_id: "reverse-sweep-02"
+        relevance: 4
+        reason: "Reverse sweep in competitive"
+      - clip_id: "close-game-03"
+        relevance: 2
+        reason: "Close game but not comeback"
+      - clip_id: "dominant-win-04"
+        relevance: 0
+        reason: "Easy win, no comeback"
+
+  - id: "eval-008"
+    query: "insane reaction time"
+    description: "Tests semantic understanding of reaction-based plays"
+    relevant_documents:
+      - clip_id: "instant-headshot-01"
+        relevance: 4
+        reason: "Lightning-fast reaction"
+      - clip_id: "quick-scope-02"
+        relevance: 3
+        reason: "Fast reaction scope"
+      - clip_id: "anticipation-play-03"
+        relevance: 2
+        reason: "Good play but predictive, not reactive"
+      - clip_id: "slow-play-04"
+        relevance: 0
+        reason: "Slow methodical play"
+
+  # Language-specific searches
+  - id: "eval-009"
+    query: "mejores jugadas"
+    description: "Spanish search for 'best plays'"
+    relevant_documents:
+      - clip_id: "highlight-reel-spanish-01"
+        relevance: 4
+        reason: "Spanish highlight reel"
+      - clip_id: "best-plays-english-02"
+        relevance: 3
+        reason: "Best plays but English content"
+      - clip_id: "average-play-03"
+        relevance: 1
+        reason: "Not a 'best' play"
+
+  - id: "eval-010"
+    query: "moments drôles"
+    description: "French search for 'funny moments'"
+    relevant_documents:
+      - clip_id: "french-funny-clip-01"
+        relevance: 4
+        reason: "French funny content"
+      - clip_id: "funny-clip-english-02"
+        relevance: 3
+        reason: "Funny but English"
+      - clip_id: "serious-french-03"
+        relevance: 1
+        reason: "French but not funny"
+
+  # Edge cases and typos
+  - id: "eval-011"
+    query: "valoarnt"
+    description: "Typo test for 'valorant'"
+    relevant_documents:
+      - clip_id: "valorant-clip-01"
+        relevance: 4
+        reason: "Should match despite typo"
+
+  - id: "eval-012"
+    query: "cs go"
+    description: "Space variation test"
+    relevant_documents:
+      - clip_id: "csgo-clip-01"
+        relevance: 4
+        reason: "Should match CS:GO clips"
+      - clip_id: "cs2-clip-02"
+        relevance: 3
+        reason: "Counter-Strike 2 successor"
+
+  # Complex multi-intent queries
+  - id: "eval-013"
+    query: "streamer rage quit compilation"
+    description: "Multi-concept query test"
+    relevant_documents:
+      - clip_id: "rage-quit-compilation-01"
+        relevance: 4
+        reason: "Matches all concepts"
+      - clip_id: "single-rage-quit-02"
+        relevance: 3
+        reason: "Rage quit but not compilation"
+      - clip_id: "streamer-angry-03"
+        relevance: 2
+        reason: "Angry but didn't quit"
+      - clip_id: "calm-gameplay-04"
+        relevance: 0
+        reason: "No rage involved"
+
+  - id: "eval-014"
+    query: "pro player tutorial tips tricks"
+    description: "Educational content search"
+    relevant_documents:
+      - clip_id: "pro-guide-01"
+        relevance: 4
+        reason: "Comprehensive pro guide"
+      - clip_id: "quick-tip-02"
+        relevance: 3
+        reason: "Quick tip from pro"
+      - clip_id: "pro-highlight-03"
+        relevance: 2
+        reason: "Pro play but not educational"
+      - clip_id: "casual-tips-04"
+        relevance: 2
+        reason: "Tips but not from pro"
+
+  - id: "eval-015"
+    query: "world record speedrun"
+    description: "Specific achievement search"
+    relevant_documents:
+      - clip_id: "wr-speedrun-01"
+        relevance: 4
+        reason: "Actual world record run"
+      - clip_id: "personal-best-02"
+        relevance: 2
+        reason: "Speedrun but not WR"
+      - clip_id: "fast-gameplay-03"
+        relevance: 1
+        reason: "Fast but not speedrun format"
+
+# Baseline metrics targets
+# These targets help track search quality improvements over time
+metric_targets:
+  ndcg_at_5:
+    target: 0.75
+    description: "Normalized DCG for top 5 results"
+    warning_threshold: 0.70
+    critical_threshold: 0.60
+  ndcg_at_10:
+    target: 0.80
+    description: "Normalized DCG for top 10 results"
+    warning_threshold: 0.75
+    critical_threshold: 0.65
+  mrr:
+    target: 0.70
+    description: "Mean Reciprocal Rank - how high first relevant result appears"
+    warning_threshold: 0.65
+    critical_threshold: 0.55
+  precision_at_5:
+    target: 0.60
+    description: "Precision at 5 - fraction of top 5 that are relevant"
+    warning_threshold: 0.55
+    critical_threshold: 0.45
+  recall_at_10:
+    target: 0.70
+    description: "Recall at 10 - fraction of relevant docs in top 10"
+    warning_threshold: 0.65
+    critical_threshold: 0.55
+
+# Instructions for evaluators
+evaluation_guidelines:
+  - "Run evaluation after any search relevance changes"
+  - "Track metrics over time to measure improvements"
+  - "Add new queries as real user searches are analyzed"
+  - "Update relevance labels if consensus changes"
+  - "Document reasons for relevance scores to maintain consistency"
+  - "Consider both BM25 and semantic search results"
+
+# Changelog
+changelog:
+  - version: "1.0"
+    date: "2024-10-28"
+    changes:
+      - "Initial evaluation dataset with 15 labeled queries"
+      - "Defined relevance scale 0-4"
+      - "Established baseline metric targets"
+      - "Added evaluation guidelines"
