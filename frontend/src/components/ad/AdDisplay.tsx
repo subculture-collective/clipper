@@ -73,7 +73,7 @@ export function AdDisplay({
   const totalViewableTime = useRef(0);
 
   // Get consent preferences
-  const { canShowPersonalizedAds, hasConsented } = useConsent();
+  const { canShowPersonalizedAds } = useConsent();
 
   // Use Intersection Observer to track visibility
   const { ref: adRef, inView } = useInView({
@@ -93,6 +93,7 @@ export function AdDisplay({
           page_url: window.location.href,
           session_id: sessionId,
           // Pass consent status to backend for personalization decisions
+          // Contextual ads are allowed even without explicit consent
           personalized: canShowPersonalizedAds,
         };
 
@@ -116,14 +117,10 @@ export function AdDisplay({
       }
     };
 
-    // Only fetch ads if user has made a consent decision
-    // This ensures we respect privacy until explicit consent is given
-    if (hasConsented) {
-      fetchAd();
-    } else {
-      setIsLoading(false);
-    }
-  }, [platform, adType, width, height, gameId, language, slotId, canShowPersonalizedAds, hasConsented]);
+    // Always fetch ads - contextual ads don't require consent
+    // The personalized flag tells backend whether to use user-specific targeting
+    fetchAd();
+  }, [platform, adType, width, height, gameId, language, slotId, canShowPersonalizedAds]);
 
   // Track viewability time
   useEffect(() => {

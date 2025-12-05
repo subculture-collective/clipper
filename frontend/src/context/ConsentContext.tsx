@@ -222,7 +222,6 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
 /**
  * Hook to access consent context
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useConsent() {
   const context = useContext(ConsentContext);
   if (context === undefined) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useConsent } from '../../context/ConsentContext';
 import { Button } from '../ui/Button';
 import { Toggle } from '../ui/Toggle';
@@ -30,6 +30,15 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
     personalizedAds: consent.personalizedAds,
     performance: consent.performance,
   });
+
+  // Sync local preferences when consent changes (e.g., from settings page)
+  useEffect(() => {
+    setLocalPreferences({
+      analytics: consent.analytics,
+      personalizedAds: consent.personalizedAds,
+      performance: consent.performance,
+    });
+  }, [consent.analytics, consent.personalizedAds, consent.performance]);
 
   if (!showConsentBanner) {
     return null;
@@ -237,5 +246,3 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
     </div>
   );
 }
-
-export default ConsentBanner;
