@@ -840,3 +840,139 @@ func (s *AdService) GetExperimentReport(ctx context.Context, experimentID uuid.U
 func (s *AdService) GetRunningExperiments(ctx context.Context) ([]models.AdExperiment, error) {
 	return s.adRepo.GetRunningExperiments(ctx)
 }
+
+// Campaign CRUD methods
+
+// ListCampaigns retrieves all campaigns with optional filtering
+func (s *AdService) ListCampaigns(ctx context.Context, page, limit int, status *string) ([]models.Ad, int, error) {
+	return s.adRepo.ListCampaigns(ctx, page, limit, status)
+}
+
+// CreateCampaign creates a new ad campaign with validation
+func (s *AdService) CreateCampaign(ctx context.Context, ad *models.Ad) error {
+	// Validate required fields
+	if ad.Name == "" {
+		return fmt.Errorf("campaign name is required")
+	}
+	if ad.AdvertiserName == "" {
+		return fmt.Errorf("advertiser name is required")
+	}
+	if ad.AdType == "" {
+		return fmt.Errorf("ad type is required")
+	}
+	if ad.ContentURL == "" {
+		return fmt.Errorf("content URL is required")
+	}
+
+	// Validate ad type
+	validAdTypes := map[string]bool{"banner": true, "video": true, "native": true}
+	if !validAdTypes[ad.AdType] {
+		return fmt.Errorf("invalid ad type: must be banner, video, or native")
+	}
+
+	// Validate dates if both provided
+	if ad.StartDate != nil && ad.EndDate != nil && ad.EndDate.Before(*ad.StartDate) {
+		return fmt.Errorf("end date must be after start date")
+	}
+
+	// Set defaults
+	if ad.Priority == 0 {
+		ad.Priority = 1
+	}
+	if ad.Weight == 0 {
+		ad.Weight = 100
+	}
+	if ad.CPMCents == 0 {
+		ad.CPMCents = 100 // Default $1 CPM
+	}
+
+	return s.adRepo.CreateCampaign(ctx, ad)
+}
+
+// UpdateCampaign updates an existing campaign
+func (s *AdService) UpdateCampaign(ctx context.Context, ad *models.Ad) error {
+	// Verify campaign exists
+	existing, err := s.adRepo.GetAdByID(ctx, ad.ID)
+	if err != nil {
+		return fmt.Errorf("campaign not found")
+	}
+
+	// Validate ad type if changed
+	if ad.AdType != "" {
+		validAdTypes := map[string]bool{"banner": true, "video": true, "native": true}
+		if !validAdTypes[ad.AdType] {
+			return fmt.Errorf("invalid ad type: must be banner, video, or native")
+		}
+	} else {
+		ad.AdType = existing.AdType
+	}
+
+	// Validate dates if both provided
+	if ad.StartDate != nil && ad.EndDate != nil && ad.EndDate.Before(*ad.StartDate) {
+		return fmt.Errorf("end date must be after start date")
+	}
+
+	return s.adRepo.UpdateCampaign(ctx, ad)
+}
+
+// DeleteCampaign deletes a campaign by ID
+func (s *AdService) DeleteCampaign(ctx context.Context, id uuid.UUID) error {
+	// Verify campaign exists
+	_, err := s.adRepo.GetAdByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("campaign not found")
+	}
+
+	return s.adRepo.DeleteCampaign(ctx, id)
+}
+
+// GetCampaignReportByDate retrieves campaign performance report by date range
+func (s *AdService) GetCampaignReportByDate(ctx context.Context, adID *uuid.UUID, startDate, endDate time.Time) ([]models.AdCampaignAnalytics, error) {
+	return s.adRepo.GetCampaignReportByDate(ctx, adID, startDate, endDate)
+}
+
+// GetCampaignReportByPlacement retrieves campaign performance report grouped by placement/slot
+func (s *AdService) GetCampaignReportByPlacement(ctx context.Context, adID *uuid.UUID, since time.Time) ([]models.AdSlotReport, error) {
+	return s.adRepo.GetCampaignReportByPlacement(ctx, adID, since)
+}
+
+// ValidateCreative validates an ad creative URL and dimensions
+func (s *AdService) ValidateCreative(ctx context.Context, contentURL string, adType string, width, height *int) error {
+	// Validate content URL is not empty
+	if contentURL == "" {
+		return fmt.Errorf("content URL is required")
+	}
+
+	// Validate ad type
+	validAdTypes := map[string]bool{"banner": true, "video": true, "native": true}
+	if !validAdTypes[adType] {
+		return fmt.Errorf("invalid ad type: must be banner, video, or native")
+	}
+
+	// Validate dimensions for banner ads
+	if adType == "banner" {
+		if width == nil || height == nil {
+			return fmt.Errorf("width and height are required for banner ads")
+		}
+		// Standard banner sizes (IAB)
+		validSizes := map[string]bool{
+			"728x90":   true, // Leaderboard
+			"300x250":  true, // Medium Rectangle
+			"336x280":  true, // Large Rectangle
+			"300x600":  true, // Half Page
+			"970x250":  true, // Billboard
+			"320x50":   true, // Mobile Leaderboard
+			"160x600":  true, // Wide Skyscraper
+			"300x50":   true, // Mobile Banner
+			"970x90":   true, // Large Leaderboard
+			"250x250":  true, // Square
+			"200x200":  true, // Small Square
+		}
+		sizeKey := fmt.Sprintf("%dx%d", *width, *height)
+		if !validSizes[sizeKey] {
+			return fmt.Errorf("invalid banner size: %s. Supported sizes: 728x90, 300x250, 336x280, 300x600, 970x250, 320x50, 160x600, 300x50, 970x90, 250x250, 200x200", sizeKey)
+		}
+	}
+
+	return nil
+}
