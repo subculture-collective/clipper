@@ -848,8 +848,8 @@ func (s *AdService) ListCampaigns(ctx context.Context, page, limit int, status *
 	return s.adRepo.ListCampaigns(ctx, page, limit, status)
 }
 
-// CreateCampaign creates a new ad campaign with validation
-func (s *AdService) CreateCampaign(ctx context.Context, ad *models.Ad) error {
+// ValidateCampaign validates campaign data without creating it
+func (s *AdService) ValidateCampaign(ad *models.Ad) error {
 	// Validate required fields
 	if ad.Name == "" {
 		return fmt.Errorf("campaign name is required")
@@ -873,6 +873,16 @@ func (s *AdService) CreateCampaign(ctx context.Context, ad *models.Ad) error {
 	// Validate dates if both provided
 	if ad.StartDate != nil && ad.EndDate != nil && ad.EndDate.Before(*ad.StartDate) {
 		return fmt.Errorf("end date must be after start date")
+	}
+
+	return nil
+}
+
+// CreateCampaign creates a new ad campaign with validation
+func (s *AdService) CreateCampaign(ctx context.Context, ad *models.Ad) error {
+	// Validate campaign data
+	if err := s.ValidateCampaign(ad); err != nil {
+		return err
 	}
 
 	// Set defaults
