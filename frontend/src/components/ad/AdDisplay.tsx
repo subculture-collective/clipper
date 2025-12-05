@@ -8,6 +8,7 @@ import {
   VIEWABILITY_THRESHOLD_MS,
   VIEWABILITY_PERCENT_THRESHOLD,
 } from '../../lib/ads-api';
+import { useConsent } from '../../context/ConsentContext';
 
 /**
  * Validates that a URL uses a safe protocol (http or https)
@@ -42,11 +43,14 @@ interface AdDisplayProps {
   onViewable?: (ad: Ad) => void;
   /** Fallback content when no ad is available */
   fallback?: React.ReactNode;
+  /** Slot ID for ad placement */
+  slotId?: string;
 }
 
 /**
  * AdDisplay component handles ad selection, display, and viewability tracking
  * Implements IAB viewability standards (50% visible for 1 second)
+ * Respects user consent preferences and Do Not Track settings
  */
 export function AdDisplay({
   platform = 'web',
@@ -59,6 +63,7 @@ export function AdDisplay({
   onAdClick,
   onViewable,
   fallback,
+  slotId,
 }: AdDisplayProps) {
   const [ad, setAd] = useState<Ad | null>(null);
   const [impressionId, setImpressionId] = useState<string | null>(null);
@@ -66,6 +71,9 @@ export function AdDisplay({
   const [hasTrackedViewability, setHasTrackedViewability] = useState(false);
   const viewabilityStartTime = useRef<number | null>(null);
   const totalViewableTime = useRef(0);
+
+  // Get consent preferences
+  const { canShowPersonalizedAds, hasConsented } = useConsent();
 
   // Use Intersection Observer to track visibility
   const { ref: adRef, inView } = useInView({
@@ -84,6 +92,8 @@ export function AdDisplay({
           platform,
           page_url: window.location.href,
           session_id: sessionId,
+          // Pass consent status to backend for personalization decisions
+          personalized: canShowPersonalizedAds,
         };
 
         if (adType) request.ad_type = adType;
@@ -91,6 +101,7 @@ export function AdDisplay({
         if (height) request.height = height;
         if (gameId) request.game_id = gameId;
         if (language) request.language = language;
+        if (slotId) request.slot_id = slotId;
 
         const response = await selectAd(request);
 
@@ -105,8 +116,14 @@ export function AdDisplay({
       }
     };
 
-    fetchAd();
-  }, [platform, adType, width, height, gameId, language]);
+    // Only fetch ads if user has made a consent decision
+    // This ensures we respect privacy until explicit consent is given
+    if (hasConsented) {
+      fetchAd();
+    } else {
+      setIsLoading(false);
+    }
+  }, [platform, adType, width, height, gameId, language, slotId, canShowPersonalizedAds, hasConsented]);
 
   // Track viewability time
   useEffect(() => {

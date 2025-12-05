@@ -630,3 +630,153 @@ func TestExperimentStatusConstants(t *testing.T) {
 		assert.Equal(t, "completed", models.ExperimentStatusCompleted)
 	})
 }
+
+func TestAdService_filterByContextualTargeting(t *testing.T) {
+	s := &AdService{}
+
+	tests := []struct {
+		name     string
+		ads      []models.Ad
+		req      models.AdSelectionRequest
+		expected int
+	}{
+		{
+			name: "No targeting criteria - all ads pass",
+			ads: []models.Ad{
+				{ID: uuid.New(), Name: "Ad 1", TargetingCriteria: nil},
+				{ID: uuid.New(), Name: "Ad 2", TargetingCriteria: nil},
+			},
+			req:      models.AdSelectionRequest{Platform: "web"},
+			expected: 2,
+		},
+		{
+			name: "Game targeting - matches (contextual)",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"game_ids": []interface{}{"game123", "game456"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+				GameID:   strPtr("game123"),
+			},
+			expected: 1,
+		},
+		{
+			name: "Language targeting - matches (contextual)",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"languages": []interface{}{"en", "es"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+				Language: strPtr("en"),
+			},
+			expected: 1,
+		},
+		{
+			name: "Platform targeting - matches (contextual)",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"platforms": []interface{}{"web", "ios"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+			},
+			expected: 1,
+		},
+		{
+			name: "Country targeting - IGNORED in contextual mode (privacy)",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"countries": []interface{}{"US"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform: "web",
+				Country:  strPtr("CA"), // Different country, but should still pass in contextual
+			},
+			expected: 1, // Passes because country targeting is skipped
+		},
+		{
+			name: "Device targeting - IGNORED in contextual mode (privacy)",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"devices": []interface{}{"mobile"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform:   "web",
+				DeviceType: strPtr("desktop"), // Different device, but should still pass
+			},
+			expected: 1, // Passes because device targeting is skipped
+		},
+		{
+			name: "Interests targeting - IGNORED in contextual mode (privacy)",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"interests": []interface{}{"gaming"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform:  "web",
+				Interests: []string{"cooking"}, // Different interests, but should still pass
+			},
+			expected: 1, // Passes because interests targeting is skipped
+		},
+		{
+			name: "Mixed contextual and user-specific targeting - only contextual applied",
+			ads: []models.Ad{
+				{
+					ID:   uuid.New(),
+					Name: "Ad 1",
+					TargetingCriteria: map[string]interface{}{
+						"game_ids":  []interface{}{"game123"},
+						"countries": []interface{}{"US"},
+						"interests": []interface{}{"gaming"},
+					},
+				},
+			},
+			req: models.AdSelectionRequest{
+				Platform:  "web",
+				GameID:    strPtr("game123"), // Matches contextual targeting
+				Country:   strPtr("CA"),      // Would fail user-specific, but ignored
+				Interests: []string{},        // Would fail user-specific, but ignored
+			},
+			expected: 1, // Passes because only game_ids is checked
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := s.filterByContextualTargeting(tt.ads, tt.req)
+			assert.Equal(t, tt.expected, len(result))
+		})
+	}
+}

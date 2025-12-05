@@ -140,6 +140,58 @@ export function PrivacyPage() {
           </CardBody>
         </Card>
 
+        {/* Advertising and Personalization */}
+        <Card id="advertising">
+          <CardBody>
+            <h2 className="text-2xl font-semibold mb-4">Advertising and Personalization</h2>
+            <p className="text-muted-foreground mb-4">
+              Clipper displays advertisements to support our free service. We offer you control over how 
+              ads are personalized based on your preferences and behavior.
+            </p>
+            
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Contextual Advertising</h3>
+                <p className="text-muted-foreground">
+                  By default, you will see contextual ads based on the content you're viewing (such as the 
+                  game category or page content). This type of advertising does not require tracking your 
+                  personal browsing behavior.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Personalized Advertising</h3>
+                <p className="text-muted-foreground">
+                  With your consent, we may show personalized ads based on your interests, viewing history, 
+                  and demographics. This includes using information such as your country, device type, and 
+                  content preferences to display more relevant advertisements.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Your Advertising Choices</h3>
+                <p className="text-muted-foreground mb-2">
+                  You have full control over advertising personalization:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
+                  <li>Use the consent banner when you first visit to set your preferences</li>
+                  <li>Visit your Settings page at any time to update your consent choices</li>
+                  <li>Enable "Do Not Track" in your browser to automatically opt out of personalization</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Do Not Track</h3>
+                <p className="text-muted-foreground">
+                  We honor the Do Not Track (DNT) and Global Privacy Control (GPC) browser signals. When 
+                  enabled, we will not use your personal information for ad personalization, even if you 
+                  have previously consented. You will continue to see contextual ads based on page content.
+                </p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
         {/* Data Sharing */}
         <Card id="data-sharing">
           <CardBody>
