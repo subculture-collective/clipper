@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from '@dr.pogodin/react-helmet';
 import {
@@ -645,6 +645,28 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     end_date: campaign?.end_date?.split('T')[0],
   });
 
+  // Reset form state when campaign prop changes (for editing different campaigns)
+  useEffect(() => {
+    setFormData({
+      name: campaign?.name || '',
+      advertiser_name: campaign?.advertiser_name || '',
+      ad_type: campaign?.ad_type || 'banner',
+      content_url: campaign?.content_url || '',
+      click_url: campaign?.click_url || '',
+      alt_text: campaign?.alt_text || '',
+      width: campaign?.width,
+      height: campaign?.height,
+      priority: campaign?.priority || 1,
+      weight: campaign?.weight || 100,
+      daily_budget_cents: campaign?.daily_budget_cents,
+      total_budget_cents: campaign?.total_budget_cents,
+      cpm_cents: campaign?.cpm_cents || 100,
+      is_active: campaign?.is_active ?? true,
+      start_date: campaign?.start_date?.split('T')[0],
+      end_date: campaign?.end_date?.split('T')[0],
+    });
+  }, [campaign]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -661,8 +683,16 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
 
-        <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg">
-          <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">
+        <div
+          className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="campaign-modal-title"
+        >
+          <h3
+            id="campaign-modal-title"
+            className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4"
+          >
             {campaign ? 'Edit Campaign' : 'Create Campaign'}
           </h3>
 
@@ -943,11 +973,23 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
 
-        <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg">
-          <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-2">
+        <div
+          className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="delete-campaign-modal-title"
+          aria-describedby="delete-campaign-modal-desc"
+        >
+          <h3
+            id="delete-campaign-modal-title"
+            className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-2"
+          >
             Delete Campaign
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <p
+            id="delete-campaign-modal-desc"
+            className="text-sm text-gray-500 dark:text-gray-400 mb-4"
+          >
             Are you sure you want to delete "{campaign.name}"? This action cannot be undone.
           </p>
 

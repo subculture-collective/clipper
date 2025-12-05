@@ -758,7 +758,6 @@ func (r *AdRepository) UpsertCampaignAnalytics(ctx context.Context, adID uuid.UU
 func (r *AdRepository) ListCampaigns(ctx context.Context, page, limit int, status *string) ([]models.Ad, int, error) {
 	whereClauses := []string{"1=1"}
 	args := []interface{}{}
-	argIndex := 1
 
 	if status != nil {
 		switch *status {
@@ -788,6 +787,9 @@ func (r *AdRepository) ListCampaigns(ctx context.Context, page, limit int, statu
 	// Get campaigns with pagination
 	offset := (page - 1) * limit
 	args = append(args, limit, offset)
+	// Use len(args)-1 and len(args) for placeholders to correctly track argument positions
+	limitPlaceholder := utils.SQLPlaceholder(len(args) - 1)
+	offsetPlaceholder := utils.SQLPlaceholder(len(args))
 	query := fmt.Sprintf(`
 		SELECT id, name, advertiser_name, ad_type, content_url, click_url, alt_text,
 			width, height, priority, weight, daily_budget_cents, total_budget_cents,
@@ -797,7 +799,7 @@ func (r *AdRepository) ListCampaigns(ctx context.Context, page, limit int, statu
 		WHERE %s
 		ORDER BY created_at DESC
 		LIMIT %s OFFSET %s
-	`, whereClause, utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1))
+	`, whereClause, limitPlaceholder, offsetPlaceholder)
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
