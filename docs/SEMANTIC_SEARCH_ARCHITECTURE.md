@@ -623,6 +623,32 @@ Use the search relevance dataset (`backend/testdata/search_relevance_dataset.yam
 4. **Query Injection**: Use parameterized queries for vector search
 5. **Cache Poisoning**: Hash query inputs for cache keys
 
+## Index Management and Versioning
+
+For zero-downtime index rebuilds, rollbacks, and version management, see:
+
+- **[Index Versioning Documentation](./INDEX_VERSIONING.md)** - Complete guide to index versioning scheme, rebuild workflows, and rollback procedures
+
+### Key Features
+
+- **Versioned Indices**: All indices use versioned names (e.g., `clips_v1`, `clips_v2`)
+- **Alias-based Routing**: Searches use aliases that point to active versions
+- **Zero-downtime Rebuilds**: New indices are built before swapping
+- **Quick Rollbacks**: Previous versions retained for fast recovery
+
+### CLI Tool
+
+```bash
+# Check index status
+./bin/search-index-manager status
+
+# Rebuild with zero-downtime swap
+./bin/search-index-manager rebuild -index clips
+
+# Rollback to previous version
+./bin/search-index-manager rollback -index clips
+```
+
 ## Future Enhancements
 
 1. **Fine-tuned Models**: Train custom embedding model on clip data
