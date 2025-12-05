@@ -143,18 +143,19 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
    * Update consent preferences
    */
   const updateConsent = useCallback((preferences: Partial<ConsentPreferences>) => {
-    const updatedPreferences: ConsentPreferences = {
-      ...consent,
-      ...preferences,
-      essential: true, // Always keep essential enabled
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setConsent(updatedPreferences);
+    setConsent((prevConsent) => {
+      const updatedPreferences: ConsentPreferences = {
+        ...prevConsent,
+        ...preferences,
+        essential: true, // Always keep essential enabled
+        updatedAt: new Date().toISOString(),
+      };
+      saveConsent(updatedPreferences);
+      return updatedPreferences;
+    });
     setHasConsented(true);
     setShowConsentBanner(false);
-    saveConsent(updatedPreferences);
-  }, [consent]);
+  }, []);
 
   /**
    * Accept all optional consent categories

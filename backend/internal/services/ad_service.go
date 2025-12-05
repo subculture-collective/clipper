@@ -645,11 +645,13 @@ func (s *AdService) filterByContextualTargetingRules(ctx context.Context, ads []
 		}
 
 		match := true
+		hasContextualRules := false
 		for _, rule := range rules {
 			// Skip non-contextual rules (user-specific targeting)
 			if !contextualRuleTypes[rule.RuleType] {
 				continue
 			}
+			hasContextualRules = true
 
 			ruleMatch := s.evaluateTargetingRule(rule, req)
 			if rule.Operator == models.TargetingOperatorInclude && !ruleMatch {
@@ -660,6 +662,11 @@ func (s *AdService) filterByContextualTargetingRules(ctx context.Context, ads []
 				match = false
 				break
 			}
+		}
+
+		// If ad has rules but none are contextual, exclude it in contextual mode
+		if len(rules) > 0 && !hasContextualRules {
+			match = false
 		}
 
 		if match {
