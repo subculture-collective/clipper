@@ -23,6 +23,37 @@ func NewAdHandler(adService *services.AdService) *AdHandler {
 	}
 }
 
+// parseDaysParameter parses and validates the days query parameter
+// Returns the number of days and true if valid, or 0 and false if invalid (error already sent)
+func parseDaysParameter(c *gin.Context, defaultDays int) (int, bool) {
+	days := defaultDays
+	if daysStr := c.Query("days"); daysStr != "" {
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be a valid integer",
+				},
+			})
+			return 0, false
+		}
+		if d <= 0 || d > 365 {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PARAMETER",
+					Message: "days parameter must be between 1 and 365",
+				},
+			})
+			return 0, false
+		}
+		days = d
+	}
+	return days, true
+}
+
 // SelectAd handles GET /ads/select
 // Selects an appropriate ad for display based on request parameters
 func (h *AdHandler) SelectAd(c *gin.Context) {
@@ -180,31 +211,9 @@ func (h *AdHandler) GetAd(c *gin.Context) {
 // GetCTRReportByCampaign handles GET /ads/analytics/campaigns
 // Returns CTR report grouped by campaign/ad
 func (h *AdHandler) GetCTRReportByCampaign(c *gin.Context) {
-	// Parse days parameter (default 30)
-	days := 30
-	if daysStr := c.Query("days"); daysStr != "" {
-		d, err := strconv.Atoi(daysStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, StandardResponse{
-				Success: false,
-				Error: &ErrorInfo{
-					Code:    "INVALID_PARAMETER",
-					Message: "days parameter must be a valid integer",
-				},
-			})
-			return
-		}
-		if d <= 0 || d > 365 {
-			c.JSON(http.StatusBadRequest, StandardResponse{
-				Success: false,
-				Error: &ErrorInfo{
-					Code:    "INVALID_PARAMETER",
-					Message: "days parameter must be between 1 and 365",
-				},
-			})
-			return
-		}
-		days = d
+	days, ok := parseDaysParameter(c, 30)
+	if !ok {
+		return
 	}
 
 	since := time.Now().AddDate(0, 0, -days)
@@ -232,31 +241,9 @@ func (h *AdHandler) GetCTRReportByCampaign(c *gin.Context) {
 // GetCTRReportBySlot handles GET /ads/analytics/slots
 // Returns CTR report grouped by ad slot
 func (h *AdHandler) GetCTRReportBySlot(c *gin.Context) {
-	// Parse days parameter (default 30)
-	days := 30
-	if daysStr := c.Query("days"); daysStr != "" {
-		d, err := strconv.Atoi(daysStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, StandardResponse{
-				Success: false,
-				Error: &ErrorInfo{
-					Code:    "INVALID_PARAMETER",
-					Message: "days parameter must be a valid integer",
-				},
-			})
-			return
-		}
-		if d <= 0 || d > 365 {
-			c.JSON(http.StatusBadRequest, StandardResponse{
-				Success: false,
-				Error: &ErrorInfo{
-					Code:    "INVALID_PARAMETER",
-					Message: "days parameter must be between 1 and 365",
-				},
-			})
-			return
-		}
-		days = d
+	days, ok := parseDaysParameter(c, 30)
+	if !ok {
+		return
 	}
 
 	since := time.Now().AddDate(0, 0, -days)
@@ -296,31 +283,9 @@ func (h *AdHandler) GetExperimentReport(c *gin.Context) {
 		return
 	}
 
-	// Parse days parameter (default 30)
-	days := 30
-	if daysStr := c.Query("days"); daysStr != "" {
-		d, err := strconv.Atoi(daysStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, StandardResponse{
-				Success: false,
-				Error: &ErrorInfo{
-					Code:    "INVALID_PARAMETER",
-					Message: "days parameter must be a valid integer",
-				},
-			})
-			return
-		}
-		if d <= 0 || d > 365 {
-			c.JSON(http.StatusBadRequest, StandardResponse{
-				Success: false,
-				Error: &ErrorInfo{
-					Code:    "INVALID_PARAMETER",
-					Message: "days parameter must be between 1 and 365",
-				},
-			})
-			return
-		}
-		days = d
+	days, ok := parseDaysParameter(c, 30)
+	if !ok {
+		return
 	}
 
 	since := time.Now().AddDate(0, 0, -days)

@@ -717,10 +717,8 @@ func (r *AdRepository) GetExperimentReport(ctx context.Context, experimentID uui
 		if variant.ViewableImpressions > 0 {
 			variant.CTR = float64(variant.Clicks) / float64(variant.ViewableImpressions) * 100
 		}
-		// Calculate conversion rate
-		if variant.Clicks > 0 {
-			variant.ConversionRate = float64(variant.Conversions) / float64(variant.Clicks) * 100
-		}
+		// Note: ConversionRate calculation requires conversion tracking implementation
+		// Conversions are tracked separately in ad_experiment_analytics table
 
 		variants = append(variants, variant)
 	}
