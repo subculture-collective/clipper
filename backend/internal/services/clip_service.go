@@ -339,41 +339,41 @@ func (s *ClipService) invalidateCache(ctx context.Context) {
 
 // CanManageClip checks if a user can manage a specific clip
 func (s *ClipService) CanManageClip(ctx context.Context, userID uuid.UUID, clipID uuid.UUID) (bool, error) {
-// Get user to check role
-user, err := s.userRepo.GetByID(ctx, userID)
-if err != nil {
-return false, fmt.Errorf("failed to get user: %w", err)
-}
+	// Get user to check role
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get user: %w", err)
+	}
 
-// Admins and moderators can manage any clip
-if user.Role == "admin" || user.Role == "moderator" {
-return true, nil
-}
+	// Admins and moderators can manage any clip
+	if user.Role == "admin" || user.Role == "moderator" {
+		return true, nil
+	}
 
-// Get clip to check creator
-clip, err := s.clipRepo.GetByID(ctx, clipID)
-if err != nil {
-return false, fmt.Errorf("failed to get clip: %w", err)
-}
+	// Get clip to check creator
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get clip: %w", err)
+	}
 
-// Check if user is the creator (by matching Twitch ID)
-if clip.CreatorID != nil && user.TwitchID == *clip.CreatorID {
-return true, nil
-}
+	// Check if user is the creator (by matching Twitch ID)
+	if clip.CreatorID != nil && user.TwitchID == *clip.CreatorID {
+		return true, nil
+	}
 
-return false, nil
+	return false, nil
 }
 
 // UpdateClipMetadata updates clip metadata (title) - only accessible by creator or admin
 func (s *ClipService) UpdateClipMetadata(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, title *string) error {
-// Check authorization
-canManage, err := s.CanManageClip(ctx, userID, clipID)
-if err != nil {
-return err
-}
-if !canManage {
-return fmt.Errorf("user does not have permission to manage this clip")
-}
+	// Check authorization
+	canManage, err := s.CanManageClip(ctx, userID, clipID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return fmt.Errorf("user does not have permission to manage this clip")
+	}
 
 	// Update metadata
 	err = s.clipRepo.UpdateMetadata(ctx, clipID, title)
@@ -386,7 +386,7 @@ return fmt.Errorf("user does not have permission to manage this clip")
 	if title != nil {
 		changes["title"] = *title
 	}
-	
+
 	if len(changes) > 0 {
 		auditLog := &models.ModerationAuditLog{
 			Action:      "clip_metadata_updated",
@@ -406,14 +406,14 @@ return fmt.Errorf("user does not have permission to manage this clip")
 
 // UpdateClipVisibility updates clip visibility (hidden status) - only accessible by creator or admin
 func (s *ClipService) UpdateClipVisibility(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, isHidden bool) error {
-// Check authorization
-canManage, err := s.CanManageClip(ctx, userID, clipID)
-if err != nil {
-return err
-}
-if !canManage {
-return fmt.Errorf("user does not have permission to manage this clip")
-}
+	// Check authorization
+	canManage, err := s.CanManageClip(ctx, userID, clipID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return fmt.Errorf("user does not have permission to manage this clip")
+	}
 
 	// Update visibility
 	err = s.clipRepo.UpdateVisibility(ctx, clipID, isHidden)
@@ -426,7 +426,7 @@ return fmt.Errorf("user does not have permission to manage this clip")
 	if !isHidden {
 		action = "clip_unhidden"
 	}
-	
+
 	auditLog := &models.ModerationAuditLog{
 		Action:      action,
 		EntityType:  "clip",
@@ -444,59 +444,59 @@ return fmt.Errorf("user does not have permission to manage this clip")
 
 // ListCreatorClips retrieves clips created by a specific creator (including hidden ones if the user is the creator)
 func (s *ClipService) ListCreatorClips(ctx context.Context, creatorTwitchID string, userID *uuid.UUID, page, limit int) ([]ClipWithUserData, int, error) {
-offset := (page - 1) * limit
+	offset := (page - 1) * limit
 
-// Determine if we should show hidden clips
-showHidden := false
-if userID != nil {
-user, err := s.userRepo.GetByID(ctx, *userID)
-if err == nil {
-// Show hidden clips if user is the creator or an admin/moderator
-if user.TwitchID == creatorTwitchID || user.Role == "admin" || user.Role == "moderator" {
-showHidden = true
-}
-}
-}
+	// Determine if we should show hidden clips
+	showHidden := false
+	if userID != nil {
+		user, err := s.userRepo.GetByID(ctx, *userID)
+		if err == nil {
+			// Show hidden clips if user is the creator or an admin/moderator
+			if user.TwitchID == creatorTwitchID || user.Role == "admin" || user.Role == "moderator" {
+				showHidden = true
+			}
+		}
+	}
 
-// Get clips with creator filter
-filters := repository.ClipFilters{
-CreatorID:  &creatorTwitchID,
-Sort:       "new",
-ShowHidden: showHidden,
-}
+	// Get clips with creator filter
+	filters := repository.ClipFilters{
+		CreatorID:  &creatorTwitchID,
+		Sort:       "new",
+		ShowHidden: showHidden,
+	}
 
-clips, total, err := s.clipRepo.ListWithFilters(ctx, filters, limit, offset)
-if err != nil {
-return nil, 0, err
-}
+	clips, total, err := s.clipRepo.ListWithFilters(ctx, filters, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
 
-// Convert to ClipWithUserData
-clipsWithData := make([]ClipWithUserData, len(clips))
-for i, clip := range clips {
-clipsWithData[i] = ClipWithUserData{
-Clip: clip,
-}
+	// Convert to ClipWithUserData
+	clipsWithData := make([]ClipWithUserData, len(clips))
+	for i, clip := range clips {
+		clipsWithData[i] = ClipWithUserData{
+			Clip: clip,
+		}
 
-// Get vote counts
-upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
-if err == nil {
-clipsWithData[i].UpvoteCount = upvotes
-clipsWithData[i].DownvoteCount = downvotes
-}
+		// Get vote counts
+		upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+		if err == nil {
+			clipsWithData[i].UpvoteCount = upvotes
+			clipsWithData[i].DownvoteCount = downvotes
+		}
 
-// Get user-specific data if authenticated
-if userID != nil {
-vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
-if err == nil && vote != nil {
-clipsWithData[i].UserVote = &vote.VoteType
-}
+		// Get user-specific data if authenticated
+		if userID != nil {
+			vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+			if err == nil && vote != nil {
+				clipsWithData[i].UserVote = &vote.VoteType
+			}
 
-isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
-if err == nil {
-clipsWithData[i].IsFavorited = isFavorited
-}
-}
-}
+			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+			if err == nil {
+				clipsWithData[i].IsFavorited = isFavorited
+			}
+		}
+	}
 
-return clipsWithData, total, nil
+	return clipsWithData, total, nil
 }

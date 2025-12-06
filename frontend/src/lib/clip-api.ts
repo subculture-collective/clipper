@@ -236,7 +236,9 @@ export async function fetchCreatorClips({
     clips: response.data.data,
     page: response.data.meta.page,
     total: response.data.meta.total,
+    limit: response.data.meta.limit,
     total_pages: response.data.meta.total_pages,
+    has_more: response.data.meta.has_next,
     has_next: response.data.meta.has_next,
     has_prev: response.data.meta.has_prev,
   };

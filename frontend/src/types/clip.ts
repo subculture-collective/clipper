@@ -23,6 +23,7 @@ export interface Clip {
     is_nsfw: boolean;
     is_removed: boolean;
     removed_reason?: string;
+    is_hidden?: boolean;
     // User interaction state (from API or local)
     user_vote?: 1 | -1 | null;
     is_favorited?: boolean; // Backend returns is_favorited, not user_favorited
@@ -34,8 +35,11 @@ export interface ClipFeedResponse {
     clips: Clip[];
     total: number;
     page: number;
-    limit: number;
+    limit?: number;
+    total_pages?: number;
     has_more: boolean;
+    has_next?: boolean;
+    has_prev?: boolean;
 }
 
 export type SortOption = "hot" | "new" | "top" | "rising" | "discussed";
