@@ -5,7 +5,7 @@ import { Helmet } from '@dr.pogodin/react-helmet';
 import { Pencil, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCreatorClips, updateClipMetadata, updateClipVisibility } from '../lib/clip-api';
-import { ClipCard, Container, Button } from '../components';
+import { Container, Button } from '../components';
 import type { Clip } from '../types/clip';
 
 export function CreatorDashboardPage() {
@@ -43,11 +43,8 @@ export function CreatorDashboardPage() {
   });
 
   // Check if user has access to this dashboard
-  if (!user || user.twitch_id !== creatorId) {
-    // Only the creator or admins can access this dashboard
-    if (user?.role !== 'admin' && user?.role !== 'moderator') {
-      return <Navigate to="/" replace />;
-    }
+  if (!user || (user.twitch_id !== creatorId && user.role !== 'admin' && user.role !== 'moderator')) {
+    return <Navigate to="/" replace />;
   }
 
   const handleEditClick = (clip: Clip) => {
@@ -56,8 +53,9 @@ export function CreatorDashboardPage() {
   };
 
   const handleSaveEdit = (clipId: string) => {
-    if (editTitle.trim()) {
-      updateMetadataMutation.mutate({ clipId, title: editTitle });
+    const trimmedTitle = editTitle.trim();
+    if (trimmedTitle && trimmedTitle.length >= 1 && trimmedTitle.length <= 255) {
+      updateMetadataMutation.mutate({ clipId, title: trimmedTitle });
     }
   };
 
@@ -138,6 +136,7 @@ export function CreatorDashboardPage() {
                           onChange={(e) => setEditTitle(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="Clip title"
+                          aria-label="Clip title"
                         />
                         <div className="flex gap-2">
                           <Button
@@ -172,6 +171,7 @@ export function CreatorDashboardPage() {
                             onClick={() => handleEditClick(clip)}
                             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                             title="Edit title"
+                            aria-label="Edit clip title"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>

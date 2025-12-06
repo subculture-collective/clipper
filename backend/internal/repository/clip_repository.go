@@ -252,12 +252,12 @@ type ClipFilters struct {
 func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilters, limit, offset int) ([]models.Clip, int, error) {
 	// Build WHERE clause
 	whereClauses := []string{"c.is_removed = false"}
-	
+
 	// Filter hidden clips unless ShowHidden is true
 	if !filters.ShowHidden {
 		whereClauses = append(whereClauses, "c.is_hidden = false")
 	}
-	
+
 	args := []interface{}{}
 	argIndex := 1
 
@@ -735,30 +735,43 @@ func (r *ClipRepository) ListForSitemap(ctx context.Context) ([]models.Clip, err
 
 // UpdateMetadata updates the title of a clip
 func (r *ClipRepository) UpdateMetadata(ctx context.Context, clipID uuid.UUID, title *string) error {
-updates := make(map[string]interface{})
-if title != nil {
-updates["title"] = *title
-}
+	// Whitelist of allowed fields for metadata update
+	allowedFields := map[string]struct{}{
+		"title": {},
+	}
 
-if len(updates) == 0 {
-return nil
-}
+	updates := make(map[string]interface{})
+	if title != nil {
+		updates["title"] = *title
+	}
 
-return r.Update(ctx, clipID, updates)
+	// Filter updates to only include allowed fields
+	filteredUpdates := make(map[string]interface{})
+	for field, value := range updates {
+		if _, ok := allowedFields[field]; ok {
+			filteredUpdates[field] = value
+		}
+	}
+
+	if len(filteredUpdates) == 0 {
+		return nil
+	}
+
+	return r.Update(ctx, clipID, filteredUpdates)
 }
 
 // UpdateVisibility updates the visibility status of a clip
 func (r *ClipRepository) UpdateVisibility(ctx context.Context, clipID uuid.UUID, isHidden bool) error {
-query := `
+	query := `
 UPDATE clips
 SET is_hidden = $2
 WHERE id = $1
 `
 
-_, err := r.pool.Exec(ctx, query, clipID, isHidden)
-if err != nil {
-return fmt.Errorf("failed to update clip visibility: %w", err)
-}
+	_, err := r.pool.Exec(ctx, query, clipID, isHidden)
+	if err != nil {
+		return fmt.Errorf("failed to update clip visibility: %w", err)
+	}
 
-return nil
+	return nil
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
+
+// ErrUnauthorized is returned when a user doesn't have permission to manage a clip
+var ErrUnauthorized = errors.New("user does not have permission to manage this clip")
 
 // ClipService handles business logic for clips
 type ClipService struct {
@@ -372,7 +376,7 @@ func (s *ClipService) UpdateClipMetadata(ctx context.Context, userID uuid.UUID, 
 		return err
 	}
 	if !canManage {
-		return fmt.Errorf("user does not have permission to manage this clip")
+		return ErrUnauthorized
 	}
 
 	// Update metadata
@@ -412,7 +416,7 @@ func (s *ClipService) UpdateClipVisibility(ctx context.Context, userID uuid.UUID
 		return err
 	}
 	if !canManage {
-		return fmt.Errorf("user does not have permission to manage this clip")
+		return ErrUnauthorized
 	}
 
 	// Update visibility

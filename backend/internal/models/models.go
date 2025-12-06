@@ -1186,5 +1186,5 @@ type UpdateClipMetadataRequest struct {
 
 // UpdateClipVisibilityRequest represents a request to update clip visibility
 type UpdateClipVisibilityRequest struct {
-	IsHidden bool `json:"is_hidden" binding:"required"`
+	IsHidden bool `json:"is_hidden"`
 }
