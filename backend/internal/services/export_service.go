@@ -161,7 +161,6 @@ func (s *ExportService) generateCSVExport(exportID uuid.UUID, clips []*models.Cl
 	defer file.Close()
 
 	writer := csv.NewWriter(file)
-	defer writer.Flush()
 
 	// Write header
 	header := []string{
@@ -200,6 +199,12 @@ func (s *ExportService) generateCSVExport(exportID uuid.UUID, clips []*models.Cl
 		if err := writer.Write(record); err != nil {
 			return "", 0, fmt.Errorf("failed to write CSV record: %w", err)
 		}
+	}
+
+	// Flush the writer before getting file size
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return "", 0, fmt.Errorf("failed to flush CSV writer: %w", err)
 	}
 
 	// Get file size
