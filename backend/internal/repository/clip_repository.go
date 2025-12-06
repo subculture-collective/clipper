@@ -64,7 +64,7 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden
 		FROM clips
 		WHERE twitch_clip_id = $1
 	`
@@ -76,7 +76,7 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 		&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
 		&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
-		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
 	)
 
 	if err != nil {
@@ -123,7 +123,7 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden
 		FROM clips
 		WHERE id = $1 AND is_removed = false
 	`
@@ -135,7 +135,7 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 		&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
 		&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
-		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
 	)
 
 	if err != nil {
@@ -244,12 +244,20 @@ type ClipFilters struct {
 	Timeframe       *string // hour, day, week, month, year, all
 	Sort            string  // hot, new, top, rising, discussed
 	Top10kStreamers bool    // Filter clips to only top 10k streamers
+	ShowHidden      bool    // If true, include hidden clips (for owners/admins)
+	CreatorID       *string // Filter by creator ID (for creator dashboard)
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
 func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilters, limit, offset int) ([]models.Clip, int, error) {
 	// Build WHERE clause
 	whereClauses := []string{"c.is_removed = false"}
+
+	// Filter hidden clips unless ShowHidden is true
+	if !filters.ShowHidden {
+		whereClauses = append(whereClauses, "c.is_hidden = false")
+	}
+
 	args := []interface{}{}
 	argIndex := 1
 
@@ -262,6 +270,12 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	if filters.BroadcasterID != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf("c.broadcaster_id = %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.BroadcasterID)
+		argIndex++
+	}
+
+	if filters.CreatorID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.creator_id = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.CreatorID)
 		argIndex++
 	}
 
@@ -372,7 +386,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
-			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden
 		FROM clips c
 		%s
 		%s
@@ -394,7 +408,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
-			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
@@ -717,4 +731,47 @@ func (r *ClipRepository) ListForSitemap(ctx context.Context) ([]models.Clip, err
 	}
 
 	return clips, nil
+}
+
+// UpdateMetadata updates the title of a clip
+func (r *ClipRepository) UpdateMetadata(ctx context.Context, clipID uuid.UUID, title *string) error {
+	// Whitelist of allowed fields for metadata update
+	allowedFields := map[string]struct{}{
+		"title": {},
+	}
+
+	updates := make(map[string]interface{})
+	if title != nil {
+		updates["title"] = *title
+	}
+
+	// Filter updates to only include allowed fields
+	filteredUpdates := make(map[string]interface{})
+	for field, value := range updates {
+		if _, ok := allowedFields[field]; ok {
+			filteredUpdates[field] = value
+		}
+	}
+
+	if len(filteredUpdates) == 0 {
+		return nil
+	}
+
+	return r.Update(ctx, clipID, filteredUpdates)
+}
+
+// UpdateVisibility updates the visibility status of a clip
+func (r *ClipRepository) UpdateVisibility(ctx context.Context, clipID uuid.UUID, isHidden bool) error {
+	query := `
+UPDATE clips
+SET is_hidden = $2
+WHERE id = $1
+`
+
+	_, err := r.pool.Exec(ctx, query, clipID, isHidden)
+	if err != nil {
+		return fmt.Errorf("failed to update clip visibility: %w", err)
+	}
+
+	return nil
 }

@@ -90,6 +90,7 @@ type Clip struct {
 	IsNSFW               bool       `json:"is_nsfw" db:"is_nsfw"`
 	IsRemoved            bool       `json:"is_removed" db:"is_removed"`
 	RemovedReason        *string    `json:"removed_reason,omitempty" db:"removed_reason"`
+	IsHidden             bool       `json:"is_hidden" db:"is_hidden"`
 	Embedding            []float32  `json:"embedding,omitempty" db:"embedding"`
 	EmbeddingGeneratedAt *time.Time `json:"embedding_generated_at,omitempty" db:"embedding_generated_at"`
 	EmbeddingModel       *string    `json:"embedding_model,omitempty" db:"embedding_model"`
@@ -1175,4 +1176,15 @@ type AdSelectionContext struct {
 	DeviceType *string  `json:"device_type,omitempty" form:"device_type"` // desktop, mobile, tablet
 	Interests  []string `json:"interests,omitempty" form:"interests"`
 	SlotID     *string  `json:"slot_id,omitempty" form:"slot_id"`
+}
+
+// UpdateClipMetadataRequest represents a request to update clip metadata (title, tags)
+type UpdateClipMetadataRequest struct {
+	Title *string  `json:"title,omitempty" binding:"omitempty,min=1,max=255"`
+	Tags  []string `json:"tags,omitempty" binding:"omitempty,max=10,dive,min=1,max=50"`
+}
+
+// UpdateClipVisibilityRequest represents a request to update clip visibility
+type UpdateClipVisibilityRequest struct {
+	IsHidden bool `json:"is_hidden"`
 }

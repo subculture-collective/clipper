@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,6 +13,9 @@ import (
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
+// ErrUnauthorized is returned when a user doesn't have permission to manage a clip
+var ErrUnauthorized = errors.New("user does not have permission to manage this clip")
+
 // ClipService handles business logic for clips
 type ClipService struct {
 	clipRepo     *repository.ClipRepository
@@ -19,6 +23,7 @@ type ClipService struct {
 	favoriteRepo *repository.FavoriteRepository
 	userRepo     *repository.UserRepository
 	redisClient  *redispkg.Client
+	auditLogRepo *repository.AuditLogRepository
 }
 
 // NewClipService creates a new ClipService
@@ -28,6 +33,7 @@ func NewClipService(
 	favoriteRepo *repository.FavoriteRepository,
 	userRepo *repository.UserRepository,
 	redisClient *redispkg.Client,
+	auditLogRepo *repository.AuditLogRepository,
 ) *ClipService {
 	return &ClipService{
 		clipRepo:     clipRepo,
@@ -35,6 +41,7 @@ func NewClipService(
 		favoriteRepo: favoriteRepo,
 		userRepo:     userRepo,
 		redisClient:  redisClient,
+		auditLogRepo: auditLogRepo,
 	}
 }
 
@@ -332,4 +339,168 @@ func (s *ClipService) invalidateCache(ctx context.Context) {
 	// Invalidate all clip list caches
 	pattern := "clips:list:*"
 	_ = s.redisClient.DeletePattern(ctx, pattern)
+}
+
+// CanManageClip checks if a user can manage a specific clip
+func (s *ClipService) CanManageClip(ctx context.Context, userID uuid.UUID, clipID uuid.UUID) (bool, error) {
+	// Get user to check role
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Admins and moderators can manage any clip
+	if user.Role == "admin" || user.Role == "moderator" {
+		return true, nil
+	}
+
+	// Get clip to check creator
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get clip: %w", err)
+	}
+
+	// Check if user is the creator (by matching Twitch ID)
+	if clip.CreatorID != nil && user.TwitchID == *clip.CreatorID {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// UpdateClipMetadata updates clip metadata (title) - only accessible by creator or admin
+func (s *ClipService) UpdateClipMetadata(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, title *string) error {
+	// Check authorization
+	canManage, err := s.CanManageClip(ctx, userID, clipID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return ErrUnauthorized
+	}
+
+	// Update metadata
+	err = s.clipRepo.UpdateMetadata(ctx, clipID, title)
+	if err != nil {
+		return err
+	}
+
+	// Log the change
+	changes := make(map[string]interface{})
+	if title != nil {
+		changes["title"] = *title
+	}
+
+	if len(changes) > 0 {
+		auditLog := &models.ModerationAuditLog{
+			Action:      "clip_metadata_updated",
+			EntityType:  "clip",
+			EntityID:    clipID,
+			ModeratorID: userID,
+			Metadata:    changes,
+		}
+		_ = s.auditLogRepo.Create(ctx, auditLog)
+	}
+
+	// Invalidate cache
+	s.invalidateCache(ctx)
+
+	return nil
+}
+
+// UpdateClipVisibility updates clip visibility (hidden status) - only accessible by creator or admin
+func (s *ClipService) UpdateClipVisibility(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, isHidden bool) error {
+	// Check authorization
+	canManage, err := s.CanManageClip(ctx, userID, clipID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return ErrUnauthorized
+	}
+
+	// Update visibility
+	err = s.clipRepo.UpdateVisibility(ctx, clipID, isHidden)
+	if err != nil {
+		return err
+	}
+
+	// Log the change
+	action := "clip_hidden"
+	if !isHidden {
+		action = "clip_unhidden"
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  "clip",
+		EntityID:    clipID,
+		ModeratorID: userID,
+		Metadata:    map[string]interface{}{"is_hidden": isHidden},
+	}
+	_ = s.auditLogRepo.Create(ctx, auditLog)
+
+	// Invalidate cache
+	s.invalidateCache(ctx)
+
+	return nil
+}
+
+// ListCreatorClips retrieves clips created by a specific creator (including hidden ones if the user is the creator)
+func (s *ClipService) ListCreatorClips(ctx context.Context, creatorTwitchID string, userID *uuid.UUID, page, limit int) ([]ClipWithUserData, int, error) {
+	offset := (page - 1) * limit
+
+	// Determine if we should show hidden clips
+	showHidden := false
+	if userID != nil {
+		user, err := s.userRepo.GetByID(ctx, *userID)
+		if err == nil {
+			// Show hidden clips if user is the creator or an admin/moderator
+			if user.TwitchID == creatorTwitchID || user.Role == "admin" || user.Role == "moderator" {
+				showHidden = true
+			}
+		}
+	}
+
+	// Get clips with creator filter
+	filters := repository.ClipFilters{
+		CreatorID:  &creatorTwitchID,
+		Sort:       "new",
+		ShowHidden: showHidden,
+	}
+
+	clips, total, err := s.clipRepo.ListWithFilters(ctx, filters, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to ClipWithUserData
+	clipsWithData := make([]ClipWithUserData, len(clips))
+	for i, clip := range clips {
+		clipsWithData[i] = ClipWithUserData{
+			Clip: clip,
+		}
+
+		// Get vote counts
+		upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+		if err == nil {
+			clipsWithData[i].UpvoteCount = upvotes
+			clipsWithData[i].DownvoteCount = downvotes
+		}
+
+		// Get user-specific data if authenticated
+		if userID != nil {
+			vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+			if err == nil && vote != nil {
+				clipsWithData[i].UserVote = &vote.VoteType
+			}
+
+			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+			if err == nil {
+				clipsWithData[i].IsFavorited = isFavorited
+			}
+		}
+	}
+
+	return clipsWithData, total, nil
 }
