@@ -4,7 +4,7 @@
  */
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { axe, toHaveNoViolations } from 'vitest-axe';
+import { axe, toHaveNoViolations } from 'jest-axe';
 import MetricCard from '../components/analytics/MetricCard';
 import LineChartComponent from '../components/analytics/LineChartComponent';
 import PieChartComponent from '../components/analytics/PieChartComponent';

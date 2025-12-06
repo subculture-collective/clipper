@@ -50,3 +50,13 @@ class MockIntersectionObserver {
 
 globalThis.IntersectionObserver =
     MockIntersectionObserver as unknown as typeof globalThis.IntersectionObserver;
+
+// Mock ResizeObserver for chart components
+class MockResizeObserver {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+}
+
+globalThis.ResizeObserver =
+    MockResizeObserver as unknown as typeof globalThis.ResizeObserver;
