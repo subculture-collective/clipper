@@ -278,3 +278,128 @@ groups:
         annotations:
           summary: "SSL certificate expired"
           description: "SSL certificate for {{ $labels.domain }} has expired."
+
+  - name: clipper_search_alerts
+    interval: 30s
+    rules:
+      # Semantic Search High Latency
+      - alert: SemanticSearchHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(search_query_duration_ms_bucket{search_type="hybrid"}[5m])) by (le)) > 200
+        for: 5m
+        labels:
+          severity: warning
+          slo: search_latency
+        annotations:
+          summary: "Semantic search P95 latency exceeds 200ms"
+          description: "Hybrid search P95 latency is {{ $value }}ms, target is < 200ms."
+          runbook: "docs/operations/playbooks/search-incidents.md#high-latency"
+
+      # Search Critical Latency
+      - alert: SemanticSearchCriticalLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(search_query_duration_ms_bucket{search_type="hybrid"}[5m])) by (le)) > 500
+        for: 3m
+        labels:
+          severity: critical
+          slo: search_latency
+        annotations:
+          summary: "Semantic search P95 latency critical (>500ms)"
+          description: "Hybrid search P95 latency is {{ $value }}ms. Immediate action required."
+          runbook: "docs/operations/playbooks/search-incidents.md#critical-latency"
+
+      # Embedding Generation Failures
+      - alert: EmbeddingGenerationFailing
+        expr: |
+          rate(embedding_generation_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Embedding generation failing"
+          description: "Embedding generation error rate is {{ $value }}/sec. This affects semantic search quality."
+          runbook: "docs/operations/playbooks/search-incidents.md#embedding-failures"
+
+      # Low Embedding Coverage
+      - alert: LowEmbeddingCoverage
+        expr: |
+          clips_without_embeddings / (clips_with_embeddings + clips_without_embeddings) > 0.1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low embedding coverage"
+          description: "{{ $value | humanizePercentage }} of clips are missing embeddings."
+          runbook: "docs/operations/playbooks/search-incidents.md#low-coverage"
+
+      # Embedding Cache Low Hit Rate
+      - alert: EmbeddingCacheLowHitRate
+        expr: |
+          rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) < 0.5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Embedding cache hit rate below 50%"
+          description: "Embedding cache hit rate is {{ $value | humanizePercentage }}. This increases API costs and latency."
+          runbook: "docs/operations/playbooks/search-incidents.md#cache-issues"
+
+      # High Zero Result Rate
+      - alert: HighZeroResultRate
+        expr: |
+          rate(search_zero_results_total[5m]) / rate(search_queries_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High zero result rate in search"
+          description: "{{ $value | humanizePercentage }} of searches return no results."
+          runbook: "docs/operations/playbooks/search-incidents.md#zero-results"
+
+      # Search Fallback Activated
+      - alert: SearchFallbackActivated
+        expr: |
+          rate(search_fallback_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Search falling back to BM25 frequently"
+          description: "Search is falling back to BM25-only at {{ $value }}/sec due to {{ $labels.reason }}."
+          runbook: "docs/operations/playbooks/search-incidents.md#fallback-issues"
+
+      # Indexing Job Failures
+      - alert: IndexingJobFailing
+        expr: |
+          increase(indexing_jobs_total{status="failed"}[1h]) > 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Indexing jobs failing repeatedly"
+          description: "{{ $value }} indexing jobs failed in the last hour."
+          runbook: "docs/operations/playbooks/search-incidents.md#indexing-failures"
+
+      # Vector Search Slow
+      - alert: VectorSearchSlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(vector_search_duration_ms_bucket[5m])) by (le)) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Vector re-ranking is slow"
+          description: "Vector search P95 latency is {{ $value }}ms, target is < 100ms."
+          runbook: "docs/operations/playbooks/search-incidents.md#vector-search-slow"
+
+      # BM25 Search Slow
+      - alert: BM25SearchSlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(bm25_search_duration_ms_bucket[5m])) by (le)) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "BM25 candidate search is slow"
+          description: "BM25 search P95 latency is {{ $value }}ms, target is < 50ms."
+          runbook: "docs/operations/playbooks/search-incidents.md#bm25-search-slow"

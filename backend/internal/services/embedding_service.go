@@ -15,6 +15,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 const (
@@ -99,11 +100,16 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 
 // GenerateEmbedding generates an embedding for a single text
 func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	start := time.Now()
+	embeddingType := "query"
+
 	// Check cache first
 	cacheKey := s.getCacheKey(text)
 	if cached, err := s.getFromCache(ctx, cacheKey); err == nil && cached != nil {
+		recordEmbeddingCacheHit()
 		return cached, nil
 	}
+	recordEmbeddingCacheMiss()
 
 	// Rate limit
 	select {
@@ -129,9 +135,14 @@ func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) (
 		}
 	}
 
+	duration := float64(time.Since(start).Milliseconds())
+
 	if lastErr != nil {
+		recordEmbeddingGenerationError(embeddingType)
 		return nil, fmt.Errorf("failed to generate embedding after %d attempts: %w", MaxRetries, lastErr)
 	}
+
+	recordEmbeddingGeneration(embeddingType, duration)
 
 	// Cache the result
 	if err := s.saveToCache(ctx, cacheKey, embedding); err != nil {
@@ -252,8 +263,57 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 
 // GenerateClipEmbedding generates an embedding for a clip based on its content
 func (s *EmbeddingService) GenerateClipEmbedding(ctx context.Context, clip *models.Clip) ([]float32, error) {
+	start := time.Now()
+	embeddingType := "clip"
+
 	text := s.buildClipText(clip)
-	return s.GenerateEmbedding(ctx, text)
+
+	// Check cache first
+	cacheKey := s.getCacheKey(text)
+	if cached, err := s.getFromCache(ctx, cacheKey); err == nil && cached != nil {
+		recordEmbeddingCacheHit()
+		return cached, nil
+	}
+	recordEmbeddingCacheMiss()
+
+	// Rate limit
+	select {
+	case <-s.rateLimiter.C:
+		// Continue
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	// Generate embedding with retries
+	var embedding []float32
+	var lastErr error
+
+	for attempt := 0; attempt < MaxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(RetryDelay * time.Duration(1<<uint(attempt)))
+		}
+
+		embedding, lastErr = s.callEmbeddingAPI(ctx, text)
+		if lastErr == nil {
+			break
+		}
+	}
+
+	duration := float64(time.Since(start).Milliseconds())
+
+	if lastErr != nil {
+		recordEmbeddingGenerationError(embeddingType)
+		return nil, fmt.Errorf("failed to generate embedding after %d attempts: %w", MaxRetries, lastErr)
+	}
+
+	recordEmbeddingGeneration(embeddingType, duration)
+
+	// Cache the result
+	if err := s.saveToCache(ctx, cacheKey, embedding); err != nil {
+		log.Printf("Warning: failed to cache embedding: %v", err)
+	}
+
+	return embedding, nil
 }
 
 // buildClipText constructs the text representation of a clip for embedding
@@ -422,4 +482,23 @@ func (s *EmbeddingService) Close() {
 // GetModel returns the embedding model being used
 func (s *EmbeddingService) GetModel() string {
 	return s.model
+}
+
+// Metrics helper functions - wrappers for recording metrics
+
+func recordEmbeddingCacheHit() {
+	metrics.EmbeddingCacheHits.Inc()
+}
+
+func recordEmbeddingCacheMiss() {
+	metrics.EmbeddingCacheMisses.Inc()
+}
+
+func recordEmbeddingGeneration(embeddingType string, durationMs float64) {
+	metrics.EmbeddingGenerationTotal.WithLabelValues(embeddingType).Inc()
+	metrics.EmbeddingGenerationDuration.WithLabelValues(embeddingType).Observe(durationMs)
+}
+
+func recordEmbeddingGenerationError(embeddingType string) {
+	metrics.EmbeddingGenerationErrors.WithLabelValues(embeddingType).Inc()
 }

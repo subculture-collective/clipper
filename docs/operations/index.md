@@ -21,6 +21,10 @@ This section covers production operations, deployment, and infrastructure for Cl
 - [[infra|Infrastructure]] - Server setup and scaling
 - [[monitoring|Monitoring]] - Metrics and alerting
 
+## On-Call Playbooks
+
+- [[playbooks/search-incidents|Search Incidents]] - Semantic search troubleshooting
+
 ## Documentation Index
 
 ```dataview
