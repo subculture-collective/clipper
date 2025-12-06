@@ -275,11 +275,18 @@ func main() {
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
+	var moderationHandler *handlers.ModerationHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
 	if submissionService != nil {
 		submissionHandler = handlers.NewSubmissionHandler(submissionService)
+		// Create moderation handler using services from submission service
+		abuseDetector := submissionService.GetAbuseDetector()
+		moderationEventService := submissionService.GetModerationEventService()
+		if abuseDetector != nil && moderationEventService != nil {
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector)
+		}
 	}
 
 	// Initialize router
@@ -790,6 +797,22 @@ func main() {
 				// Experiments
 				adminAds.GET("/experiments", adHandler.ListExperiments)
 				adminAds.GET("/experiments/:id/report", adHandler.GetExperimentReport)
+			}
+
+			// Moderation queue management (admin/moderator only)
+			if moderationHandler != nil {
+				moderation := admin.Group("/moderation")
+				{
+					// Event management
+					moderation.GET("/events", moderationHandler.GetPendingEvents)
+					moderation.GET("/events/:type", moderationHandler.GetEventsByType)
+					moderation.POST("/events/:id/review", moderationHandler.MarkEventReviewed)
+					moderation.POST("/events/:id/process", moderationHandler.ProcessEvent)
+					moderation.GET("/stats", moderationHandler.GetEventStats)
+
+					// Abuse detection
+					moderation.GET("/abuse/:userId", moderationHandler.GetUserAbuseStats)
+				}
 			}
 		}
 	}
