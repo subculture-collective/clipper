@@ -30,24 +30,31 @@ type ExportRepositoryInterface interface {
 
 // ExportService handles data export operations for creators
 type ExportService struct {
-	exportRepo   ExportRepositoryInterface
-	emailService *EmailService
-	exportDir    string
-	baseURL      string
+	exportRepo    ExportRepositoryInterface
+	emailService  *EmailService
+	exportDir     string
+	baseURL       string
+	retentionDays int
 }
 
 // NewExportService creates a new export service
-func NewExportService(exportRepo ExportRepositoryInterface, emailService *EmailService, exportDir string, baseURL string) *ExportService {
+func NewExportService(exportRepo ExportRepositoryInterface, emailService *EmailService, exportDir string, baseURL string, retentionDays int) *ExportService {
 	// Ensure export directory exists
 	if err := os.MkdirAll(exportDir, 0755); err != nil {
 		utils.GetLogger().Error("Failed to create export directory", err)
 	}
 	
+	// Default to 7 days if not specified
+	if retentionDays <= 0 {
+		retentionDays = 7
+	}
+	
 	return &ExportService{
-		exportRepo:   exportRepo,
-		emailService: emailService,
-		exportDir:    exportDir,
-		baseURL:      baseURL,
+		exportRepo:    exportRepo,
+		emailService:  emailService,
+		exportDir:     exportDir,
+		baseURL:       baseURL,
+		retentionDays: retentionDays,
 	}
 }
 
@@ -126,8 +133,8 @@ func (s *ExportService) ProcessExportRequest(ctx context.Context, req *models.Ex
 		return fmt.Errorf("failed to generate export file: %w", err)
 	}
 
-	// Set expiration time (7 days from now)
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	// Set expiration time based on configured retention period
+	expiresAt := time.Now().Add(time.Duration(s.retentionDays) * 24 * time.Hour)
 
 	// Mark as completed
 	if err := s.exportRepo.CompleteExportRequest(ctx, req.ID, filePath, fileSize, expiresAt); err != nil {
@@ -251,12 +258,10 @@ func (s *ExportService) generateJSONExport(exportID uuid.UUID, clips []*models.C
 }
 
 // sendExportCompletedEmail sends an email notification when export is ready
+// TODO: Implement email notification when export is ready.
+// This requires access to the user repository and an email service.
+// When ready, add functionality here to send an email to the user with the export download link.
 func (s *ExportService) sendExportCompletedEmail(ctx context.Context, req *models.ExportRequest, downloadURL string, expiresAt time.Time) error {
-	// For now, we'll skip email sending if we can't retrieve the user
-	// In a production system, you'd want to handle this differently
-	// The email service needs the user object, which we don't have direct access to
-	// This would require adding a user repository to the export service
-	// For this implementation, we'll log that the export is ready and skip email
 	logger := utils.GetLogger()
 	logger.Info("Export completed, email notification skipped (requires user repository)", map[string]interface{}{
 		"export_id":    req.ID.String(),

@@ -153,7 +153,7 @@ func (m *mockExportRepository) addTestClips(creatorName string, count int) {
 func TestExportService_CreateExportRequest(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080")
+	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -202,7 +202,7 @@ func TestExportService_CreateExportRequest(t *testing.T) {
 func TestExportService_ProcessExportRequest_CSV(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080")
+	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -240,7 +240,7 @@ func TestExportService_ProcessExportRequest_CSV(t *testing.T) {
 func TestExportService_ProcessExportRequest_JSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080")
+	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -274,7 +274,7 @@ func TestExportService_ProcessExportRequest_JSON(t *testing.T) {
 func TestExportService_CleanupExpiredExports(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080")
+	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -316,7 +316,7 @@ func TestExportService_CleanupExpiredExports(t *testing.T) {
 func TestExportService_GetExportFilePath(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080")
+	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -347,7 +347,7 @@ func TestExportService_GetExportFilePath(t *testing.T) {
 func TestExportService_CSVGeneration(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080")
+	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
 
 	creatorName := "testcreator"
 	mockRepo.addTestClips(creatorName, 10)
@@ -375,7 +375,7 @@ func TestExportService_CSVGeneration(t *testing.T) {
 func TestExportService_JSONGeneration(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080")
+	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
 
 	creatorName := "testcreator"
 	mockRepo.addTestClips(creatorName, 10)

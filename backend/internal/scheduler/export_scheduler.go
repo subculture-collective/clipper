@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -91,20 +92,43 @@ func (s *ExportScheduler) processExports(ctx context.Context) {
 		"count": len(requests),
 	})
 
-	// Process each request
-	for _, req := range requests {
-		if err := s.exportService.ProcessExportRequest(ctx, req); err != nil {
-			logger.Error("Failed to process export request", err, map[string]interface{}{
-				"export_id": req.ID.String(),
-			})
-			continue
-		}
-		logger.Info("Successfully processed export request", map[string]interface{}{
-			"export_id":    req.ID.String(),
-			"creator_name": req.CreatorName,
-			"format":       req.Format,
-		})
+	// Process each request concurrently using a worker pool
+	numWorkers := s.batchSize
+	if numWorkers > len(requests) {
+		numWorkers = len(requests)
 	}
+	requestCh := make(chan *models.ExportRequest, len(requests))
+	var wg sync.WaitGroup
+
+	// Start workers
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for req := range requestCh {
+				if err := s.exportService.ProcessExportRequest(ctx, req); err != nil {
+					logger.Error("Failed to process export request", err, map[string]interface{}{
+						"export_id": req.ID.String(),
+					})
+					continue
+				}
+				logger.Info("Successfully processed export request", map[string]interface{}{
+					"export_id":    req.ID.String(),
+					"creator_name": req.CreatorName,
+					"format":       req.Format,
+				})
+			}
+		}()
+	}
+
+	// Send requests to workers
+	for _, req := range requests {
+		requestCh <- req
+	}
+	close(requestCh)
+
+	// Wait for all workers to finish
+	wg.Wait()
 
 	// Clean up expired exports
 	if err := s.exportService.CleanupExpiredExports(ctx); err != nil {

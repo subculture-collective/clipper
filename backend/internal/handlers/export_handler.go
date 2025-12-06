@@ -105,7 +105,11 @@ func (h *ExportHandler) GetExportStatus(c *gin.Context) {
 	}
 
 	if exportReq.Status == models.ExportStatusCompleted && exportReq.ExpiresAt != nil {
-		downloadURL := fmt.Sprintf("%s/api/v1/creators/me/export/download/%s", c.GetString("base_url"), exportReq.ID)
+		baseURL := c.GetString("base_url")
+		if baseURL == "" {
+			baseURL = "http://localhost:8080"
+		}
+		downloadURL := fmt.Sprintf("%s/api/v1/creators/me/export/download/%s", baseURL, exportReq.ID)
 		response.DownloadURL = &downloadURL
 	}
 
@@ -194,13 +198,18 @@ func (h *ExportHandler) ListExportRequests(c *gin.Context) {
 	}
 
 	// Build response with download URLs
+	baseURL := c.GetString("base_url")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	
 	responses := make([]models.ExportRequestResponse, len(exportReqs))
 	for i, req := range exportReqs {
 		responses[i] = models.ExportRequestResponse{
 			ExportRequest: *req,
 		}
 		if req.Status == models.ExportStatusCompleted && req.ExpiresAt != nil {
-			downloadURL := fmt.Sprintf("%s/api/v1/creators/me/export/download/%s", c.GetString("base_url"), req.ID)
+			downloadURL := fmt.Sprintf("%s/api/v1/creators/me/export/download/%s", baseURL, req.ID)
 			responses[i].DownloadURL = &downloadURL
 		}
 	}

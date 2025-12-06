@@ -184,7 +184,9 @@ func main() {
 	if exportDir == "" {
 		exportDir = "./exports"
 	}
-	exportService := services.NewExportService(exportRepo, emailService, exportDir, cfg.Server.BaseURL)
+	// Default retention period is 7 days
+	exportRetentionDays := 7
+	exportService := services.NewExportService(exportRepo, emailService, exportDir, cfg.Server.BaseURL, exportRetentionDays)
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService

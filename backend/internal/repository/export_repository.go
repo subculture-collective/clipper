@@ -273,7 +273,7 @@ func (r *ExportRepository) GetCreatorClipsForExport(ctx context.Context, creator
 			comment_count, favorite_count, is_featured, is_nsfw,
 			is_removed, removed_reason, is_hidden
 		FROM clips
-		WHERE creator_name = $1
+		WHERE creator_name = $1 AND is_removed = false
 		ORDER BY created_at DESC
 	`
 	rows, err := r.pool.Query(ctx, query, creatorName)

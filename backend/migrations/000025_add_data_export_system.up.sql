@@ -22,6 +22,7 @@ CREATE INDEX idx_export_requests_user_id ON export_requests(user_id);
 CREATE INDEX idx_export_requests_status ON export_requests(status);
 CREATE INDEX idx_export_requests_created_at ON export_requests(created_at DESC);
 CREATE INDEX idx_export_requests_expires_at ON export_requests(expires_at) WHERE status = 'completed';
+CREATE INDEX idx_export_requests_status_created ON export_requests(status, created_at ASC);
 
 -- Add trigger to update updated_at timestamp
 CREATE TRIGGER update_export_requests_updated_at
