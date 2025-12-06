@@ -272,32 +272,39 @@ func (c *Client) GetClient() *redis.Client {
 	return c.client
 }
 
-// ListPush pushes an element to a list
+// ListPush appends a value to a Redis list using the RPUSH operation
 func (c *Client) ListPush(ctx context.Context, key string, value interface{}) error {
 	return c.client.RPush(ctx, key, value).Err()
 }
 
-// ListRange retrieves a range of elements from a list
+// ListRange retrieves a range of elements from a Redis list (LRANGE operation).
+// The range is inclusive: both start and stop indices are included.
 func (c *Client) ListRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
 	return c.client.LRange(ctx, key, start, stop).Result()
 }
 
-// ListLen returns the length of a list
+// ListLen returns the length of a Redis list (LLEN operation)
 func (c *Client) ListLen(ctx context.Context, key string) (int64, error) {
 	return c.client.LLen(ctx, key).Result()
 }
 
-// SetAdd adds a member to a set
+// ListTrim trims a list to the specified range (LTRIM operation)
+func (c *Client) ListTrim(ctx context.Context, key string, start, stop int64) error {
+	return c.client.LTrim(ctx, key, start, stop).Err()
+}
+
+// SetAdd adds one or more members to a Redis set (SADD operation)
 func (c *Client) SetAdd(ctx context.Context, key string, members ...interface{}) error {
 	return c.client.SAdd(ctx, key, members...).Err()
 }
 
-// SetCard returns the number of elements in a set
+// SetCard returns the cardinality (number of elements) in a Redis set (SCARD operation)
 func (c *Client) SetCard(ctx context.Context, key string) (int64, error) {
 	return c.client.SCard(ctx, key).Result()
 }
 
-// TTL returns the remaining time to live of a key
+// TTL returns the remaining time to live of a key in seconds.
+// Returns 0 if the key doesn't exist or has no expiration.
 func (c *Client) TTL(ctx context.Context, key string) (int64, error) {
 	ttl, err := c.client.TTL(ctx, key).Result()
 	if err != nil {

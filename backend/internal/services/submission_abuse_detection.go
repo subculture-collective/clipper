@@ -27,7 +27,6 @@ const (
 	velocityWindow        = 5 * time.Minute
 	velocityThreshold     = 3 // max 3 submissions in 5 minutes
 	velocityCooldown      = 30 * time.Minute
-	velocityBanDuration   = 24 * time.Hour
 
 	// Duplicate detection
 	duplicateWindow       = 1 * time.Hour
@@ -37,7 +36,6 @@ const (
 	// Same IP, different users
 	ipSharedWindow        = 1 * time.Hour
 	ipSharedThreshold     = 5 // max 5 different users from same IP
-	ipSharedCooldown      = 2 * time.Hour
 
 	// Burst detection
 	burstWindow           = 1 * time.Minute
@@ -180,13 +178,15 @@ func (d *SubmissionAbuseDetector) checkVelocityViolation(ctx context.Context, us
 func (d *SubmissionAbuseDetector) checkIPSharing(ctx context.Context, userID uuid.UUID, ip string) (bool, error) {
 	key := fmt.Sprintf("submission:ip:%s", ip)
 	
+	// Check if key exists before adding
+	exists, _ := d.redisClient.Exists(ctx, key)
+
 	// Add user to set
 	if err := d.redisClient.SetAdd(ctx, key, userID.String()); err != nil {
 		return false, err
 	}
 
 	// Set expiration on first add
-	exists, _ := d.redisClient.Exists(ctx, key)
 	if !exists {
 		_ = d.redisClient.Expire(ctx, key, ipSharedWindow)
 	}

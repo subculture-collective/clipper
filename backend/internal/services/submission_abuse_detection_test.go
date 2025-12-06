@@ -102,7 +102,7 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_BlocksVelocityViolation(t 
 		result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
 		require.NoError(t, err)
 		assert.True(t, result.Allowed)
-		time.Sleep(2 * time.Second) // Avoid burst detection
+		time.Sleep(100 * time.Millisecond) // Avoid burst detection with minimal delay
 	}
 	
 	// Next submission should be blocked by velocity

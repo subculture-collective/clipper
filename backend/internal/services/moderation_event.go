@@ -86,16 +86,28 @@ func (s *ModerationEventService) EmitEvent(ctx context.Context, event *Moderatio
 		return fmt.Errorf("failed to push event to queue: %w", err)
 	}
 
+	// Trim queue to prevent unbounded growth (keep last 10000 events)
+	const maxQueueSize = 10000
+	if err := s.redisClient.ListTrim(ctx, queueKey, -maxQueueSize, -1); err != nil {
+		log.Printf("Failed to trim moderation queue: %v", err)
+	}
+
 	// Store event by ID for retrieval
 	eventKey := fmt.Sprintf("moderation:event:%s", event.ID.String())
 	if err := s.redisClient.Set(ctx, eventKey, string(eventJSON), 30*24*time.Hour); err != nil {
-		log.Printf("Failed to store event by ID: %v", err)
+		return fmt.Errorf("failed to store event by ID: %w", err)
 	}
 
 	// Store event by type for filtering
 	typeKey := fmt.Sprintf("moderation:events:%s", event.Type)
 	if err := s.redisClient.ListPush(ctx, typeKey, string(eventJSON)); err != nil {
-		log.Printf("Failed to store event by type: %v", err)
+		return fmt.Errorf("failed to store event by type: %w", err)
+	}
+
+	// Trim type-based event list to prevent unbounded growth (keep last 1000 per type)
+	const maxTypeEvents = 1000
+	if err := s.redisClient.ListTrim(ctx, typeKey, -maxTypeEvents, -1); err != nil {
+		log.Printf("Failed to trim type-based event list: %v", err)
 	}
 
 	// Log the event
