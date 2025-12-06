@@ -33,5 +33,3 @@ DROP INDEX CONCURRENTLY IF EXISTS idx_clips_vote_score;
 
 -- Drop full-text search indexes
 DROP INDEX CONCURRENTLY IF EXISTS idx_clips_search_vector;
-DROP INDEX CONCURRENTLY IF EXISTS idx_clips_creator_name_search;
-DROP INDEX CONCURRENTLY IF EXISTS idx_clips_title_search;

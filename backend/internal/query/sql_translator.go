@@ -273,27 +273,33 @@ func (t *SQLTranslator) translateFullTextNode(n *FullTextNode) (string, error) {
 		return "", ErrEmptyQuery
 	}
 
-	// Sanitize and convert query to tsquery format
+	// Sanitize and prepare query for plainto_tsquery (handles escaping safely)
 	tsQuery := t.toTSQuery(n.Query)
 	t.argCounter++
 	t.args = append(t.args, tsQuery)
 
 	// Build the search vector column name(s)
 	if len(n.Fields) == 0 {
-		// Default to search_vector column
-		return fmt.Sprintf("search_vector @@ to_tsquery('english', %s)", t.placeholder()), nil
+		// Default to search_vector column - use plainto_tsquery for safe parsing
+		return fmt.Sprintf("search_vector @@ plainto_tsquery('english', %s)", t.placeholder()), nil
 	}
 
 	// Multiple fields: build composite tsvector
+	// Fields must be from allowed fields list if configured, and properly quoted
 	fieldExprs := make([]string, len(n.Fields))
 	for i, field := range n.Fields {
 		if !t.isValidFieldName(field) {
 			return "", fmt.Errorf("%w: %s", ErrInvalidField, field)
 		}
-		fieldExprs[i] = fmt.Sprintf("to_tsvector('english', COALESCE(%s, ''))", field)
+		// Check against allowed fields list if configured
+		if len(t.allowedFields) > 0 && !t.allowedFields[field] {
+			return "", fmt.Errorf("%w: %s", ErrFieldNotAllowed, field)
+		}
+		// Quote the field name to prevent SQL injection
+		fieldExprs[i] = fmt.Sprintf("to_tsvector('english', COALESCE(%s, ''))", quoteIdentifier(field))
 	}
 
-	return fmt.Sprintf("(%s) @@ to_tsquery('english', %s)",
+	return fmt.Sprintf("(%s) @@ plainto_tsquery('english', %s)",
 		strings.Join(fieldExprs, " || "),
 		t.placeholderAt(t.argCounter)), nil
 }
@@ -337,10 +343,30 @@ func (t *SQLTranslator) placeholderAt(n int) string {
 }
 
 // isValidFieldName validates field names to prevent SQL injection
+// Only allows simple field names (alphanumeric and underscores).
+// Qualified names (table.column) must be validated against allowed fields list.
 func (t *SQLTranslator) isValidFieldName(name string) bool {
-	// Allow only alphanumeric, underscores, and dots (for qualified names)
-	matched, _ := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$`, name)
+	// Allow only alphanumeric and underscores for simple names
+	matched, _ := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_]*$`, name)
 	return matched
+}
+
+// isValidQualifiedFieldName validates qualified field names (table.column)
+// These are only allowed when explicitly configured in allowed fields
+func (t *SQLTranslator) isValidQualifiedFieldName(name string) bool {
+	matched, _ := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$`, name)
+	if !matched {
+		return false
+	}
+	// Qualified names must be in the allowed fields list
+	return len(t.allowedFields) > 0 && t.allowedFields[name]
+}
+
+// quoteIdentifier safely quotes a PostgreSQL identifier to prevent SQL injection
+func quoteIdentifier(name string) string {
+	// Double any double quotes in the name and wrap in double quotes
+	escaped := strings.ReplaceAll(name, `"`, `""`)
+	return `"` + escaped + `"`
 }
 
 // validateLikePattern validates LIKE patterns for safety
@@ -353,25 +379,12 @@ func (t *SQLTranslator) validateLikePattern(pattern string) error {
 	return nil
 }
 
-// toTSQuery converts a search query to PostgreSQL tsquery format
+// toTSQuery prepares a query string for PostgreSQL's plainto_tsquery.
+// Instead of manually parsing the query, we use plainto_tsquery which handles
+// escaping and special characters automatically.
 func (t *SQLTranslator) toTSQuery(query string) string {
-	// Simple parsing: split by spaces and join with & (AND)
-	words := strings.Fields(query)
-
-	var cleanWords []string
-	for _, word := range words {
-		cleaned := strings.TrimSpace(word)
-		if cleaned != "" {
-			// Add prefix matching for partial words
-			cleanWords = append(cleanWords, cleaned+":*")
-		}
-	}
-
-	if len(cleanWords) == 0 {
-		return ""
-	}
-
-	return strings.Join(cleanWords, " & ")
+	// Return trimmed query - the SQL will use plainto_tsquery for safe parsing
+	return strings.TrimSpace(query)
 }
 
 // BuildSelectQuery builds a complete SELECT query with pagination
@@ -395,7 +408,7 @@ func (t *SQLTranslator) BuildSelectQuery(tableName string, columns []string, whe
 		}
 	}
 
-	// Build column list
+	// Build column list with proper quoting
 	cols := "*"
 	if len(columns) > 0 {
 		validCols := make([]string, 0, len(columns))
@@ -403,22 +416,30 @@ func (t *SQLTranslator) BuildSelectQuery(tableName string, columns []string, whe
 			if !t.isValidFieldName(col) {
 				return nil, fmt.Errorf("%w: %s", ErrInvalidField, col)
 			}
-			validCols = append(validCols, col)
+			// Check against allowed fields if configured
+			if len(t.allowedFields) > 0 && !t.allowedFields[col] {
+				return nil, fmt.Errorf("%w: %s", ErrFieldNotAllowed, col)
+			}
+			validCols = append(validCols, quoteIdentifier(col))
 		}
 		cols = strings.Join(validCols, ", ")
 	}
 
-	// Build ORDER BY clause
+	// Build ORDER BY clause with proper quoting
 	orderClause := ""
 	if orderBy != "" {
 		if !t.isValidFieldName(orderBy) {
 			return nil, fmt.Errorf("%w: %s", ErrInvalidField, orderBy)
 		}
+		// Check against allowed fields if configured
+		if len(t.allowedFields) > 0 && !t.allowedFields[orderBy] {
+			return nil, fmt.Errorf("%w: %s", ErrFieldNotAllowed, orderBy)
+		}
 		dir := t.opts.OrderDir
 		if dir != "ASC" && dir != "DESC" {
 			dir = "DESC"
 		}
-		orderClause = fmt.Sprintf(" ORDER BY %s %s", orderBy, dir)
+		orderClause = fmt.Sprintf(" ORDER BY %s %s", quoteIdentifier(orderBy), dir)
 	}
 
 	// Apply safe limits
@@ -429,10 +450,10 @@ func (t *SQLTranslator) BuildSelectQuery(tableName string, columns []string, whe
 	var sql string
 	if whereClause != "" {
 		sql = fmt.Sprintf("SELECT %s FROM %s WHERE %s%s LIMIT $%d OFFSET $%d",
-			cols, tableName, whereClause, orderClause, t.argCounter+1, t.argCounter+2)
+			cols, quoteIdentifier(tableName), whereClause, orderClause, t.argCounter+1, t.argCounter+2)
 	} else {
 		sql = fmt.Sprintf("SELECT %s FROM %s%s LIMIT $%d OFFSET $%d",
-			cols, tableName, orderClause, t.argCounter+1, t.argCounter+2)
+			cols, quoteIdentifier(tableName), orderClause, t.argCounter+1, t.argCounter+2)
 	}
 
 	t.args = append(t.args, t.opts.Limit, t.opts.Offset)
@@ -474,12 +495,12 @@ func (t *SQLTranslator) BuildCountQuery(tableName string, whereNode Node) (*Quer
 		}
 	}
 
-	// Build query
+	// Build query with properly quoted table name
 	var sql string
 	if whereClause != "" {
-		sql = fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s", tableName, whereClause)
+		sql = fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s", quoteIdentifier(tableName), whereClause)
 	} else {
-		sql = fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)
+		sql = fmt.Sprintf("SELECT COUNT(*) FROM %s", quoteIdentifier(tableName))
 	}
 
 	return &QueryResult{

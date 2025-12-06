@@ -488,6 +488,7 @@ func (t *ESTranslator) likeToWildcard(pattern string) string {
 
 // replaceUnescaped replaces unescaped occurrences of a pattern
 // Handles escape sequences properly including escaped backslashes
+// For escaped target characters (e.g., \%), preserves the escape with the new character
 func replaceUnescaped(s, old, new string) string {
 	if len(s) == 0 || len(old) != 1 {
 		return s
@@ -500,10 +501,17 @@ func replaceUnescaped(s, old, new string) string {
 	for i < len(s) {
 		// Check for escape sequence
 		if s[i] == '\\' && i+1 < len(s) {
-			// Escaped character - include the escape and the next char literally
-			if s[i+1] == oldByte || s[i+1] == '\\' {
-				// Skip the backslash, add the escaped character
-				result = append(result, s[i+1])
+			if s[i+1] == oldByte {
+				// Escaped target character: preserve escape and replace with new
+				// e.g., \% becomes \* (escaped literal)
+				result = append(result, '\\')
+				result = append(result, new...)
+				i += 2
+				continue
+			} else if s[i+1] == '\\' {
+				// Escaped backslash: preserve as is
+				result = append(result, '\\')
+				result = append(result, '\\')
 				i += 2
 				continue
 			}
@@ -540,6 +548,10 @@ func (t *ESTranslator) BuildSearchQuery(node Node, sortField string, sortDir str
 	// Build sort clause
 	sort := []map[string]interface{}{}
 	if sortField != "" {
+		// Validate sort field against allowed fields if configured
+		if len(t.allowedFields) > 0 && !t.allowedFields[sortField] {
+			return nil, fmt.Errorf("%w: %s", ErrFieldNotAllowed, sortField)
+		}
 		order := "desc"
 		if sortDir == "ASC" || sortDir == "asc" {
 			order = "asc"

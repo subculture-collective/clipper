@@ -208,8 +208,8 @@ func TestSQLTranslator_FullTextSearch(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !strings.Contains(result.SQL, "to_tsquery") {
-		t.Errorf("expected to_tsquery in SQL, got %q", result.SQL)
+	if !strings.Contains(result.SQL, "plainto_tsquery") {
+		t.Errorf("expected plainto_tsquery in SQL, got %q", result.SQL)
 	}
 
 	if !strings.Contains(result.SQL, "@@") {
@@ -347,8 +347,8 @@ func TestSQLTranslator_BuildSelectQuery(t *testing.T) {
 		t.Errorf("expected SELECT in SQL, got %q", result.SQL)
 	}
 
-	if !strings.Contains(result.SQL, "FROM clips") {
-		t.Errorf("expected FROM clips in SQL, got %q", result.SQL)
+	if !strings.Contains(result.SQL, `FROM "clips"`) {
+		t.Errorf("expected FROM \"clips\" in SQL, got %q", result.SQL)
 	}
 
 	if !strings.Contains(result.SQL, "WHERE") {
@@ -382,8 +382,8 @@ func TestSQLTranslator_BuildCountQuery(t *testing.T) {
 		t.Errorf("expected COUNT(*) in SQL, got %q", result.SQL)
 	}
 
-	if !strings.Contains(result.SQL, "FROM clips") {
-		t.Errorf("expected FROM clips in SQL, got %q", result.SQL)
+	if !strings.Contains(result.SQL, `FROM "clips"`) {
+		t.Errorf("expected FROM \"clips\" in SQL, got %q", result.SQL)
 	}
 }
 
