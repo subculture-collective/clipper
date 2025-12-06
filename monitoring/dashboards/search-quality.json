@@ -1,0 +1,561 @@
+{
+  "dashboard": {
+    "title": "Clipper Search Quality Metrics",
+    "tags": ["clipper", "search", "quality", "semantic"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "5m",
+    "description": "Dashboard for tracking search quality metrics over time including nDCG, MRR, and hybrid search performance",
+    "annotations": {
+      "list": [
+        {
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": false,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Deployments",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Search Quality Overview",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "title": "nDCG@5 (Target: 0.75)",
+        "description": "Normalized Discounted Cumulative Gain at 5 - measures ranking quality for top 5 results",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.60},
+                {"color": "light-yellow", "value": 0.70},
+                {"color": "green", "value": 0.75}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        },
+        "targets": [
+          {
+            "expr": "search_evaluation_ndcg_5",
+            "legendFormat": "nDCG@5",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "nDCG@10 (Target: 0.80)",
+        "description": "Normalized Discounted Cumulative Gain at 10 - measures ranking quality for top 10 results",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.65},
+                {"color": "light-yellow", "value": 0.75},
+                {"color": "green", "value": 0.80}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        },
+        "targets": [
+          {
+            "expr": "search_evaluation_ndcg_10",
+            "legendFormat": "nDCG@10",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "MRR (Target: 0.70)",
+        "description": "Mean Reciprocal Rank - how high the first relevant result appears",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.55},
+                {"color": "light-yellow", "value": 0.65},
+                {"color": "green", "value": 0.70}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        },
+        "targets": [
+          {
+            "expr": "search_evaluation_mrr",
+            "legendFormat": "MRR",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Precision@5 (Target: 0.60)",
+        "description": "Precision at 5 - fraction of top 5 results that are relevant",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.45},
+                {"color": "light-yellow", "value": 0.55},
+                {"color": "green", "value": 0.60}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        },
+        "targets": [
+          {
+            "expr": "search_evaluation_precision_5",
+            "legendFormat": "Precision@5",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Search Performance",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 7},
+        "collapsed": false
+      },
+      {
+        "id": 7,
+        "title": "Search Query Latency (P95)",
+        "description": "95th percentile latency for search queries",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 100}
+              ]
+            }
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(search_query_duration_ms_bucket{search_type=\"hybrid\"}[5m])) by (le))",
+            "legendFormat": "Hybrid Search P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(search_query_duration_ms_bucket{search_type=\"bm25\"}[5m])) by (le))",
+            "legendFormat": "BM25 Search P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(search_query_duration_ms_bucket{search_type=\"vector\"}[5m])) by (le))",
+            "legendFormat": "Vector Search P95",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Search Query Rate",
+        "description": "Number of search queries per second by type",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(search_queries_total{search_type=\"hybrid\"}[5m]))",
+            "legendFormat": "Hybrid Search",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(search_queries_total{search_type=\"bm25\"}[5m]))",
+            "legendFormat": "BM25 Fallback",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Embedding Service",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 16},
+        "collapsed": false
+      },
+      {
+        "id": 10,
+        "title": "Embedding Cache Hit Rate",
+        "description": "Percentage of embedding requests served from cache",
+        "type": "gauge",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 17},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.50},
+                {"color": "green", "value": 0.80}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m]))",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Embedding Generation Rate",
+        "description": "Rate of new embeddings generated (cache misses)",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 9, "x": 6, "y": 17},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(embedding_generation_total[5m])",
+            "legendFormat": "Embeddings Generated",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(embedding_generation_errors_total[5m])",
+            "legendFormat": "Generation Errors",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Embedding Coverage",
+        "description": "Percentage of clips with embeddings generated",
+        "type": "gauge",
+        "gridPos": {"h": 6, "w": 9, "x": 15, "y": 17},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.80},
+                {"color": "green", "value": 0.95}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "clips_with_embeddings / (clips_with_embeddings + clips_without_embeddings)",
+            "legendFormat": "Coverage",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Quality Metrics Over Time",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+        "collapsed": false
+      },
+      {
+        "id": 14,
+        "title": "Search Quality Metrics Trend",
+        "description": "Historical trend of all search quality metrics",
+        "type": "timeseries",
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 24},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "nDCG@5 Target"},
+              "properties": [
+                {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 10]}},
+                {"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "MRR Target"},
+              "properties": [
+                {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 10]}},
+                {"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}
+              ]
+            }
+          ]
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "mean"]}
+        },
+        "targets": [
+          {
+            "expr": "search_evaluation_ndcg_5",
+            "legendFormat": "nDCG@5",
+            "refId": "A"
+          },
+          {
+            "expr": "search_evaluation_ndcg_10",
+            "legendFormat": "nDCG@10",
+            "refId": "B"
+          },
+          {
+            "expr": "search_evaluation_mrr",
+            "legendFormat": "MRR",
+            "refId": "C"
+          },
+          {
+            "expr": "search_evaluation_precision_5",
+            "legendFormat": "Precision@5",
+            "refId": "D"
+          },
+          {
+            "expr": "search_evaluation_recall_10",
+            "legendFormat": "Recall@10",
+            "refId": "E"
+          },
+          {
+            "expr": "vector(0.75)",
+            "legendFormat": "nDCG@5 Target",
+            "refId": "F"
+          },
+          {
+            "expr": "vector(0.70)",
+            "legendFormat": "MRR Target",
+            "refId": "G"
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Online Metrics",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 34},
+        "collapsed": false
+      },
+      {
+        "id": 16,
+        "title": "Click-Through Rate (CTR)",
+        "description": "Percentage of search results that users click on",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 35},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.15},
+                {"color": "green", "value": 0.25}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(search_result_clicks_total[1h]) / rate(search_impressions_total[1h])",
+            "legendFormat": "CTR",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Zero Result Rate",
+        "description": "Percentage of searches returning no results",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 35},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.05},
+                {"color": "red", "value": 0.10}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(search_zero_results_total[1h]) / rate(search_queries_total[1h])",
+            "legendFormat": "Zero Results",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Average Click Position",
+        "description": "Average position of clicked results (lower is better)",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 35},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 3},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "unit": "short",
+            "min": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "avg(search_click_position)",
+            "legendFormat": "Avg Position",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Session Success Rate",
+        "description": "Percentage of search sessions where user found relevant content",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 35},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.60},
+                {"color": "green", "value": 0.75}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(search_sessions_successful_total[1h]) / rate(search_sessions_total[1h])",
+            "legendFormat": "Success Rate",
+            "refId": "A"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -240,3 +240,16 @@ migrate-seed-load-test: ## Seed database with load test data (includes sample da
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed_load_test.sql
 	@echo "✓ Load test data seeded"
+
+# Search Evaluation
+evaluate-search: ## Run search quality evaluation
+	@echo "Running search evaluation..."
+	@cd backend && go build -o bin/evaluate-search ./cmd/evaluate-search
+	@cd backend && ./bin/evaluate-search -verbose
+	@echo "✓ Search evaluation complete"
+
+evaluate-search-json: ## Run search evaluation and output JSON
+	@echo "Running search evaluation..."
+	@cd backend && go build -o bin/evaluate-search ./cmd/evaluate-search
+	@cd backend && ./bin/evaluate-search -output evaluation-results.json
+	@echo "✓ Results saved to backend/evaluation-results.json"

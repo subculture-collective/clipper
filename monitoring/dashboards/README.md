@@ -21,6 +21,33 @@ Provides a high-level view of application health and SLO compliance.
 - Database Connection Pool
 - Cache Hit Rate
 
+### 2. Search Quality Metrics (`search-quality.json`)
+
+Tracks semantic search quality metrics and performance over time.
+
+**Offline Metrics Panels:**
+
+- nDCG@5 (target: 0.75) - Ranking quality for top 5 results
+- nDCG@10 (target: 0.80) - Ranking quality for top 10 results
+- MRR (target: 0.70) - Mean Reciprocal Rank
+- Precision@5 (target: 0.60) - Fraction of top 5 that are relevant
+- Search Quality Metrics Trend - Historical view with targets
+
+**Performance Panels:**
+
+- Search Query Latency (P95) - By search type (hybrid, BM25, vector)
+- Search Query Rate - Queries per second by type
+- Embedding Cache Hit Rate
+- Embedding Generation Rate
+- Embedding Coverage
+
+**Online Metrics Panels:**
+
+- Click-Through Rate (CTR)
+- Zero Result Rate
+- Average Click Position
+- Session Success Rate
+
 ## Importing Dashboards
 
 ### Via Grafana UI
