@@ -109,6 +109,24 @@ export interface ContentMetrics {
   avg_clip_vote_score: number;
 }
 
+export interface GeographyMetric {
+  country: string;
+  view_count: number;
+  percentage: number;
+}
+
+export interface DeviceMetric {
+  device_type: string;
+  view_count: number;
+  percentage: number;
+}
+
+export interface CreatorAudienceInsights {
+  top_countries: GeographyMetric[];
+  device_types: DeviceMetric[];
+  total_views: number;
+}
+
 // Creator Analytics API
 export const getCreatorAnalyticsOverview = async (
   creatorName: string
@@ -136,6 +154,17 @@ export const getCreatorTrends = async (
 ): Promise<{ metric: string; days: number; data: TrendDataPoint[] }> => {
   const response = await apiClient.get(
     `/creators/${encodeURIComponent(creatorName)}/analytics/trends`,
+    { params }
+  );
+  return response.data;
+};
+
+export const getCreatorAudienceInsights = async (
+  creatorName: string,
+  params?: { limit?: number }
+): Promise<CreatorAudienceInsights> => {
+  const response = await apiClient.get(
+    `/creators/${encodeURIComponent(creatorName)}/analytics/audience`,
     { params }
   );
   return response.data;

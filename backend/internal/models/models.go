@@ -685,6 +685,27 @@ type TagMetric struct {
 	UsageCount int       `json:"usage_count"`
 }
 
+// GeographyMetric represents audience distribution by country
+type GeographyMetric struct {
+	Country    string `json:"country"`      // ISO country code (e.g., "US", "GB")
+	ViewCount  int64  `json:"view_count"`   // Number of views from this country
+	Percentage float64 `json:"percentage"` // Percentage of total views
+}
+
+// DeviceMetric represents audience distribution by device type
+type DeviceMetric struct {
+	DeviceType string  `json:"device_type"` // "mobile", "desktop", "tablet", "unknown"
+	ViewCount  int64   `json:"view_count"`  // Number of views from this device type
+	Percentage float64 `json:"percentage"`  // Percentage of total views
+}
+
+// CreatorAudienceInsights represents audience insights for a creator
+type CreatorAudienceInsights struct {
+	TopCountries []GeographyMetric `json:"top_countries"` // Top countries by view count
+	DeviceTypes  []DeviceMetric    `json:"device_types"`  // Distribution by device type
+	TotalViews   int64             `json:"total_views"`   // Total views analyzed
+}
+
 // Subscription represents a user's subscription status
 type Subscription struct {
 	ID                   uuid.UUID  `json:"id" db:"id"`

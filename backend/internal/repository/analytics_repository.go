@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -492,4 +493,213 @@ WHERE is_removed = false
 	}
 
 	return avgScore, nil
+}
+
+// parseDeviceType extracts device type from user agent string
+// Returns "mobile", "tablet", "desktop", or "unknown"
+func parseDeviceType(userAgent string) string {
+	if userAgent == "" {
+		return "unknown"
+	}
+
+	ua := strings.ToLower(userAgent)
+
+	// Check for mobile devices
+	mobileKeywords := []string{"mobile", "android", "iphone", "ipod", "blackberry", "windows phone"}
+	for _, keyword := range mobileKeywords {
+		if strings.Contains(ua, keyword) && !strings.Contains(ua, "ipad") {
+			return "mobile"
+		}
+	}
+
+	// Check for tablets
+	tabletKeywords := []string{"ipad", "tablet", "kindle", "playbook"}
+	for _, keyword := range tabletKeywords {
+		if strings.Contains(ua, keyword) {
+			return "tablet"
+		}
+	}
+
+	// Check for desktop/known browsers
+	desktopKeywords := []string{"windows", "macintosh", "linux", "chrome", "firefox", "safari", "edge"}
+	for _, keyword := range desktopKeywords {
+		if strings.Contains(ua, keyword) {
+			return "desktop"
+		}
+	}
+
+	return "unknown"
+}
+
+// extractCountryFromIP extracts a country code from an IP address
+// This is a simplified implementation that returns "XX" (unknown) for all IPs
+// In production, this would use a GeoIP database like MaxMind GeoLite2
+func extractCountryFromIP(ipAddress string) string {
+	if ipAddress == "" || ipAddress == "invalid" {
+		return "XX" // Unknown country code
+	}
+
+	// For now, return XX (unknown) for all IPs
+	// In production, you would use a GeoIP library:
+	// - github.com/oschwald/geoip2-golang with MaxMind GeoLite2 database
+	// - or use a GeoIP service API
+	return "XX"
+}
+
+// GetCreatorAudienceInsights retrieves audience insights (geography and devices) for a creator
+func (r *AnalyticsRepository) GetCreatorAudienceInsights(ctx context.Context, creatorName string, limit int) (*models.CreatorAudienceInsights, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	// Get all clip IDs for this creator
+	clipsQuery := `
+		SELECT id FROM clips
+		WHERE creator_name = $1 AND is_removed = false
+	`
+
+	rows, err := r.db.Query(ctx, clipsQuery, creatorName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clipIDs []uuid.UUID
+	for rows.Next() {
+		var clipID uuid.UUID
+		if err := rows.Scan(&clipID); err != nil {
+			return nil, err
+		}
+		clipIDs = append(clipIDs, clipID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(clipIDs) == 0 {
+		// No clips for this creator
+		return &models.CreatorAudienceInsights{
+			TopCountries: []models.GeographyMetric{},
+			DeviceTypes:  []models.DeviceMetric{},
+			TotalViews:   0,
+		}, nil
+	}
+
+	// Query analytics events for these clips
+	eventsQuery := `
+		SELECT user_agent, ip_address
+		FROM analytics_events
+		WHERE event_type = 'clip_view'
+		  AND clip_id = ANY($1)
+		  AND created_at >= CURRENT_DATE - INTERVAL '90 days'
+	`
+
+	eventsRows, err := r.db.Query(ctx, eventsQuery, clipIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer eventsRows.Close()
+
+	// Count views by device type and country
+	deviceCounts := make(map[string]int64)
+	countryCounts := make(map[string]int64)
+	totalViews := int64(0)
+
+	for eventsRows.Next() {
+		var userAgent, ipAddress *string
+		if err := eventsRows.Scan(&userAgent, &ipAddress); err != nil {
+			return nil, err
+		}
+
+		totalViews++
+
+		// Parse device type
+		ua := ""
+		if userAgent != nil {
+			ua = *userAgent
+		}
+		deviceType := parseDeviceType(ua)
+		deviceCounts[deviceType]++
+
+		// Extract country
+		ip := ""
+		if ipAddress != nil {
+			ip = *ipAddress
+		}
+		country := extractCountryFromIP(ip)
+		countryCounts[country]++
+	}
+
+	if err := eventsRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Convert device counts to sorted slice
+	deviceMetrics := make([]models.DeviceMetric, 0, len(deviceCounts))
+	for deviceType, count := range deviceCounts {
+		percentage := 0.0
+		if totalViews > 0 {
+			percentage = float64(count) / float64(totalViews) * 100
+		}
+		deviceMetrics = append(deviceMetrics, models.DeviceMetric{
+			DeviceType: deviceType,
+			ViewCount:  count,
+			Percentage: percentage,
+		})
+	}
+
+	// Sort device metrics by view count (descending)
+	// Using a simple bubble sort since we have few device types
+	for i := 0; i < len(deviceMetrics)-1; i++ {
+		for j := 0; j < len(deviceMetrics)-i-1; j++ {
+			if deviceMetrics[j].ViewCount < deviceMetrics[j+1].ViewCount {
+				deviceMetrics[j], deviceMetrics[j+1] = deviceMetrics[j+1], deviceMetrics[j]
+			}
+		}
+	}
+
+	// Convert country counts to sorted slice (top N countries)
+	type countryCount struct {
+		country string
+		count   int64
+	}
+	countryCountsSlice := make([]countryCount, 0, len(countryCounts))
+	for country, count := range countryCounts {
+		countryCountsSlice = append(countryCountsSlice, countryCount{country, count})
+	}
+
+	// Sort by count (descending)
+	for i := 0; i < len(countryCountsSlice)-1; i++ {
+		for j := 0; j < len(countryCountsSlice)-i-1; j++ {
+			if countryCountsSlice[j].count < countryCountsSlice[j+1].count {
+				countryCountsSlice[j], countryCountsSlice[j+1] = countryCountsSlice[j+1], countryCountsSlice[j]
+			}
+		}
+	}
+
+	// Take top N countries
+	topN := limit
+	if topN > len(countryCountsSlice) {
+		topN = len(countryCountsSlice)
+	}
+
+	geographyMetrics := make([]models.GeographyMetric, topN)
+	for i := 0; i < topN; i++ {
+		percentage := 0.0
+		if totalViews > 0 {
+			percentage = float64(countryCountsSlice[i].count) / float64(totalViews) * 100
+		}
+		geographyMetrics[i] = models.GeographyMetric{
+			Country:    countryCountsSlice[i].country,
+			ViewCount:  countryCountsSlice[i].count,
+			Percentage: percentage,
+		}
+	}
+
+	return &models.CreatorAudienceInsights{
+		TopCountries: geographyMetrics,
+		DeviceTypes:  deviceMetrics,
+		TotalViews:   totalViews,
+	}, nil
 }
