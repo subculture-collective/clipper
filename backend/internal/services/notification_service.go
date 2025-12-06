@@ -144,11 +144,19 @@ func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences
 	case models.NotificationTypeBadgeEarned, models.NotificationTypeRankUp:
 		return prefs.NotifyBadges
 	case models.NotificationTypeContentRemoved, models.NotificationTypeWarning,
-		models.NotificationTypeBan, models.NotificationTypeAppealDecision,
-		models.NotificationTypeSubmissionApproved, models.NotificationTypeSubmissionRejected:
+		models.NotificationTypeBan, models.NotificationTypeAppealDecision:
 		return prefs.NotifyModeration
 	case models.NotificationTypeFavoritedClipComment:
 		return prefs.NotifyFavoritedClipComment
+	// Creator-specific notification preferences
+	case models.NotificationTypeSubmissionApproved:
+		return prefs.NotifyClipApproved
+	case models.NotificationTypeSubmissionRejected:
+		return prefs.NotifyClipRejected
+	case models.NotificationTypeClipComment:
+		return prefs.NotifyClipComments
+	case models.NotificationTypeClipViewThreshold, models.NotificationTypeClipVoteThreshold:
+		return prefs.NotifyClipThreshold
 	default:
 		return true // Default to notifying for unknown types
 	}
@@ -648,4 +656,182 @@ func (s *NotificationService) UnregisterDeviceToken(
 	}
 
 	return nil
+}
+
+// NotifyClipComment notifies a clip creator when someone comments on their clip
+func (s *NotificationService) NotifyClipComment(
+	ctx context.Context,
+	clipID uuid.UUID,
+	commentAuthorID uuid.UUID,
+	clipCreatorID string,
+) error {
+	// Get clip creator user by Twitch ID
+	clipCreator, err := s.userRepo.GetByTwitchID(ctx, clipCreatorID)
+	if err != nil {
+		// Creator might not be a registered user, silently skip
+		return nil
+	}
+
+	// Don't notify if creator comments on their own clip
+	if clipCreator.ID == commentAuthorID {
+		return nil
+	}
+
+	// Get comment author info
+	author, err := s.userRepo.GetByID(ctx, commentAuthorID)
+	if err != nil {
+		return fmt.Errorf("failed to get comment author: %w", err)
+	}
+
+	// Get clip info
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err != nil {
+		return fmt.Errorf("failed to get clip: %w", err)
+	}
+
+	title := fmt.Sprintf("%s commented on your clip", author.DisplayName)
+	message := fmt.Sprintf("\"%s\"", clip.Title)
+	link := fmt.Sprintf("/clips/%s", clipID.String())
+
+	// Prepare email data
+	emailData := map[string]interface{}{
+		"AuthorName": author.DisplayName,
+		"ClipTitle":  clip.Title,
+		"ClipURL":    fmt.Sprintf("%s/clips/%s", s.getBaseURL(), clipID.String()),
+	}
+
+	contentType := "clip"
+	_, err = s.CreateNotificationWithEmail(
+		ctx,
+		clipCreator.ID,
+		models.NotificationTypeClipComment,
+		title,
+		message,
+		&link,
+		&commentAuthorID,
+		&clipID,
+		&contentType,
+		emailData,
+	)
+
+	return err
+}
+
+// NotifyClipViewThreshold notifies a clip creator when their clip reaches view milestones
+func (s *NotificationService) NotifyClipViewThreshold(
+	ctx context.Context,
+	clipID uuid.UUID,
+	viewCount int64,
+	clipCreatorID string,
+) error {
+	// Only notify for specific milestones
+	milestones := []int64{100, 500, 1000, 5000, 10000, 50000, 100000}
+	isMilestone := false
+	for _, m := range milestones {
+		if viewCount == m {
+			isMilestone = true
+			break
+		}
+	}
+
+	if !isMilestone {
+		return nil
+	}
+
+	// Get clip creator user by Twitch ID
+	clipCreator, err := s.userRepo.GetByTwitchID(ctx, clipCreatorID)
+	if err != nil {
+		// Creator might not be a registered user, silently skip
+		return nil
+	}
+
+	// Get clip info
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err != nil {
+		return fmt.Errorf("failed to get clip: %w", err)
+	}
+
+	title := fmt.Sprintf("Your clip reached %s views!", formatNumber(viewCount))
+	message := fmt.Sprintf("\"%s\" is trending!", clip.Title)
+	link := fmt.Sprintf("/clips/%s", clipID.String())
+
+	contentType := "clip"
+	_, err = s.CreateNotification(
+		ctx,
+		clipCreator.ID,
+		models.NotificationTypeClipViewThreshold,
+		title,
+		message,
+		&link,
+		nil,
+		&clipID,
+		&contentType,
+	)
+
+	return err
+}
+
+// NotifyClipVoteThreshold notifies a clip creator when their clip reaches vote milestones
+func (s *NotificationService) NotifyClipVoteThreshold(
+	ctx context.Context,
+	clipID uuid.UUID,
+	voteScore int,
+	clipCreatorID string,
+) error {
+	// Only notify for specific milestones
+	milestones := []int{10, 25, 50, 100, 250, 500, 1000}
+	isMilestone := false
+	for _, m := range milestones {
+		if voteScore == m {
+			isMilestone = true
+			break
+		}
+	}
+
+	if !isMilestone {
+		return nil
+	}
+
+	// Get clip creator user by Twitch ID
+	clipCreator, err := s.userRepo.GetByTwitchID(ctx, clipCreatorID)
+	if err != nil {
+		// Creator might not be a registered user, silently skip
+		return nil
+	}
+
+	// Get clip info
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err != nil {
+		return fmt.Errorf("failed to get clip: %w", err)
+	}
+
+	title := fmt.Sprintf("Your clip reached %d upvotes!", voteScore)
+	message := fmt.Sprintf("\"%s\" is popular!", clip.Title)
+	link := fmt.Sprintf("/clips/%s", clipID.String())
+
+	contentType := "clip"
+	_, err = s.CreateNotification(
+		ctx,
+		clipCreator.ID,
+		models.NotificationTypeClipVoteThreshold,
+		title,
+		message,
+		&link,
+		nil,
+		&clipID,
+		&contentType,
+	)
+
+	return err
+}
+
+// formatNumber formats a number with commas for readability
+func formatNumber(n int64) string {
+	if n < 1000 {
+		return fmt.Sprintf("%d", n)
+	}
+	if n < 1000000 {
+		return fmt.Sprintf("%d,%03d", n/1000, n%1000)
+	}
+	return fmt.Sprintf("%d,%03d,%03d", n/1000000, (n%1000000)/1000, n%1000)
 }

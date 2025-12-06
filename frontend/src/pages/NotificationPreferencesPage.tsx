@@ -195,6 +195,46 @@ export function NotificationPreferencesPage() {
               </div>
             </div>
 
+            {/* Creator Notification Preferences */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Creator Notifications
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Get notified about activity on clips you've created
+              </p>
+
+              <div className="space-y-4">
+                <ToggleSwitch
+                  label="Clip Approvals"
+                  description="When your submitted clip is approved"
+                  checked={formData.notify_clip_approved ?? true}
+                  onChange={() => handleToggle('notify_clip_approved')}
+                />
+
+                <ToggleSwitch
+                  label="Clip Rejections"
+                  description="When your submitted clip is rejected"
+                  checked={formData.notify_clip_rejected ?? true}
+                  onChange={() => handleToggle('notify_clip_rejected')}
+                />
+
+                <ToggleSwitch
+                  label="Comments on Your Clips"
+                  description="When someone comments on a clip you created"
+                  checked={formData.notify_clip_comments ?? true}
+                  onChange={() => handleToggle('notify_clip_comments')}
+                />
+
+                <ToggleSwitch
+                  label="Clip Threshold Alerts"
+                  description="When your clips reach view/vote milestones (100, 1K, 10K views, etc.)"
+                  checked={formData.notify_clip_threshold ?? true}
+                  onChange={() => handleToggle('notify_clip_threshold')}
+                />
+              </div>
+            </div>
+
             {/* Actions */}
             <div className="flex justify-end gap-3">
               <Link to="/notifications">

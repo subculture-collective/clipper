@@ -169,6 +169,16 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 		fmt.Printf("Warning: failed to update karma for user %s: %v\n", userID, err)
 	}
 
+	// Get clip for creator notification
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+		// Send notification to clip creator about the comment
+		if err := s.notificationService.NotifyClipComment(ctx, clipID, userID, *clip.CreatorID); err != nil {
+			// Log error but don't fail the comment creation
+			fmt.Printf("Warning: failed to send clip comment notification: %v\n", err)
+		}
+	}
+
 	// Send notification for reply if this is a reply to a parent comment
 	if s.notificationService != nil && req.ParentCommentID != nil {
 		if err := s.notificationService.NotifyCommentReply(ctx, clipID, *req.ParentCommentID, userID); err != nil {

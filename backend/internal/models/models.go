@@ -498,7 +498,12 @@ type NotificationPreferences struct {
 	NotifyModeration           bool      `json:"notify_moderation" db:"notify_moderation"`
 	NotifyRankUp               bool      `json:"notify_rank_up" db:"notify_rank_up"`
 	NotifyFavoritedClipComment bool      `json:"notify_favorited_clip_comment" db:"notify_favorited_clip_comment"`
-	UpdatedAt                  time.Time `json:"updated_at" db:"updated_at"`
+	// Creator-specific notification preferences
+	NotifyClipApproved  bool      `json:"notify_clip_approved" db:"notify_clip_approved"`
+	NotifyClipRejected  bool      `json:"notify_clip_rejected" db:"notify_clip_rejected"`
+	NotifyClipComments  bool      `json:"notify_clip_comments" db:"notify_clip_comments"`
+	NotifyClipThreshold bool      `json:"notify_clip_threshold" db:"notify_clip_threshold"`
+	UpdatedAt           time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Notification types constants
@@ -527,6 +532,10 @@ const (
 	NotificationTypeInvoiceFinalized = "invoice_finalized"
 	// Export notification types
 	NotificationTypeExportCompleted = "export_completed"
+	// Creator clip notification types
+	NotificationTypeClipComment       = "clip_comment"
+	NotificationTypeClipViewThreshold = "clip_view_threshold"
+	NotificationTypeClipVoteThreshold = "clip_vote_threshold"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
