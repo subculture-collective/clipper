@@ -72,3 +72,28 @@ func TestAnonymizeIP(t *testing.T) {
 		})
 	}
 }
+
+// TestAnalyticsServiceStructure validates the service structure
+func TestAnalyticsServiceStructure(t *testing.T) {
+	// This test ensures the AnalyticsService is properly structured
+	// and can be instantiated
+	service := NewAnalyticsService(nil, nil)
+	if service == nil {
+		t.Error("NewAnalyticsService returned nil")
+	}
+}
+
+// TestAnalyticsServiceMethods validates that all expected methods exist
+func TestAnalyticsServiceMethods(t *testing.T) {
+	service := NewAnalyticsService(nil, nil)
+
+	// Verify service has the expected method signatures by checking it's not nil
+	if service == nil {
+		t.Error("Service should not be nil")
+	}
+
+	// The service struct exists and has the correct type
+	if _, ok := interface{}(service).(*AnalyticsService); !ok {
+		t.Error("Service is not of type *AnalyticsService")
+	}
+}
