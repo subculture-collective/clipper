@@ -374,7 +374,9 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 			metadata["tags"] = submission.Tags
 		}
 		
-		_ = s.moderationEvents.EmitSubmissionEvent(ctx, eventType, submission, ip, metadata)
+		if err := s.moderationEvents.EmitSubmissionEvent(ctx, eventType, submission, ip, metadata); err != nil {
+			log.Printf("Failed to emit submission event: %v", err)
+		}
 	}
 
 	return submission, nil
@@ -591,7 +593,9 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 	if exists {
 		// Track duplicate attempt
 		if s.abuseDetector != nil {
-			_ = s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID)
+			if err := s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID); err != nil {
+				log.Printf("Failed to track duplicate attempt: %v", err)
+			}
 		}
 		
 		// Emit moderation event
@@ -600,7 +604,9 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 				"clip_id": twitchClipID,
 				"reason":  "clip_already_exists",
 			}
-			_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata)
+			if err := s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata); err != nil {
+				log.Printf("Failed to emit duplicate event: %v", err)
+			}
 		}
 		
 		return &ValidationError{
@@ -617,7 +623,9 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 	if submission != nil {
 		// Track duplicate attempt
 		if s.abuseDetector != nil {
-			_ = s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID)
+			if err := s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID); err != nil {
+				log.Printf("Failed to track duplicate attempt: %v", err)
+			}
 		}
 		
 		if submission.Status == "pending" {
@@ -628,7 +636,9 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 					"reason":        "submission_pending",
 					"submission_id": submission.ID.String(),
 				}
-				_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata)
+				if err := s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata); err != nil {
+					log.Printf("Failed to emit duplicate event: %v", err)
+				}
 			}
 			
 			return &ValidationError{
