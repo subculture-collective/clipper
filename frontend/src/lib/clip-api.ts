@@ -169,3 +169,75 @@ export async function removeFavorite(payload: FavoritePayload): Promise<{
 
   return response.data.data;
 }
+
+/**
+ * Update clip metadata (title) - creator only
+ */
+export async function updateClipMetadata(clipId: string, payload: {
+  title?: string;
+  tags?: string[];
+}): Promise<{ message: string }> {
+  const response = await apiClient.put<{
+    success: boolean;
+    data: { message: string };
+  }>(`/clips/${clipId}/metadata`, payload);
+
+  return response.data.data;
+}
+
+/**
+ * Update clip visibility (hidden status) - creator only
+ */
+export async function updateClipVisibility(clipId: string, isHidden: boolean): Promise<{
+  message: string;
+  is_hidden: boolean;
+}> {
+  const response = await apiClient.put<{
+    success: boolean;
+    data: { message: string; is_hidden: boolean };
+  }>(`/clips/${clipId}/visibility`, {
+    is_hidden: isHidden,
+  });
+
+  return response.data.data;
+}
+
+/**
+ * Fetch clips for a specific creator
+ */
+export async function fetchCreatorClips({
+  creatorId,
+  pageParam = 1,
+  limit = 25,
+}: {
+  creatorId: string;
+  pageParam?: number;
+  limit?: number;
+}): Promise<ClipFeedResponse> {
+  const params: Record<string, string | number> = {
+    page: pageParam,
+    limit,
+  };
+
+  const response = await apiClient.get<{
+    success: boolean;
+    data: Clip[];
+    meta: {
+      page: number;
+      limit: number;
+      total: number;
+      total_pages: number;
+      has_next: boolean;
+      has_prev: boolean;
+    };
+  }>(`/creators/${creatorId}/clips`, { params });
+
+  return {
+    clips: response.data.data,
+    page: response.data.meta.page,
+    total: response.data.meta.total,
+    total_pages: response.data.meta.total_pages,
+    has_next: response.data.meta.has_next,
+    has_prev: response.data.meta.has_prev,
+  };
+}
