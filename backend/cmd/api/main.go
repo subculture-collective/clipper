@@ -140,6 +140,7 @@ func main() {
 	contactRepo := repository.NewContactRepository(db.Pool)
 	revenueRepo := repository.NewRevenueRepository(db.Pool)
 	adRepo := repository.NewAdRepository(db.Pool)
+	exportRepo := repository.NewExportRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -177,6 +178,15 @@ func main() {
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	revenueService := services.NewRevenueService(revenueRepo, cfg)
 	adService := services.NewAdService(adRepo, redisClient)
+	
+	// Initialize export service with exports directory
+	exportDir := cfg.Server.ExportDir
+	if exportDir == "" {
+		exportDir = "./exports"
+	}
+	// Default retention period is 7 days
+	exportRetentionDays := 7
+	exportService := services.NewExportService(exportRepo, emailService, exportDir, cfg.Server.BaseURL, exportRetentionDays)
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
@@ -262,6 +272,7 @@ func main() {
 	docsHandler := handlers.NewDocsHandler("./docs", "subculture-collective", "clipper", "main")
 	revenueHandler := handlers.NewRevenueHandler(revenueService)
 	adHandler := handlers.NewAdHandler(adService)
+	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	if clipSyncService != nil {
@@ -591,6 +602,12 @@ func main() {
 			
 			// Creator clips listing (shows hidden clips if authenticated as creator)
 			creators.GET("/:creatorId/clips", middleware.OptionalAuthMiddleware(authService), clipHandler.ListCreatorClips)
+			
+			// Creator data export routes (authenticated, rate limited)
+			creators.POST("/me/export/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 3, 24*time.Hour), exportHandler.RequestExport)
+			creators.GET("/me/exports", middleware.AuthMiddleware(authService), exportHandler.ListExportRequests)
+			creators.GET("/me/export/status/:id", middleware.AuthMiddleware(authService), exportHandler.GetExportStatus)
+			creators.GET("/me/export/download/:id", middleware.AuthMiddleware(authService), exportHandler.DownloadExport)
 		}
 
 		// Leaderboard routes
@@ -804,6 +821,10 @@ func main() {
 		go embeddingScheduler.Start(context.Background())
 	}
 
+	// Start export scheduler (runs every 2 minutes, batch size 10)
+	exportScheduler := scheduler.NewExportScheduler(exportService, exportRepo, 2, 10)
+	go exportScheduler.Start(context.Background())
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:              ":" + cfg.Server.Port,
@@ -832,6 +853,7 @@ func main() {
 	reputationScheduler.Stop()
 	hotScoreScheduler.Stop()
 	webhookRetryScheduler.Stop()
+	exportScheduler.Stop()
 	if embeddingScheduler != nil {
 		embeddingScheduler.Stop()
 	}
