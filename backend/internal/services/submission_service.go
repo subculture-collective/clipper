@@ -24,6 +24,8 @@ type SubmissionService struct {
 	twitchClient        *twitch.Client
 	redisClient         *redispkg.Client
 	notificationService *NotificationService
+	abuseDetector       *SubmissionAbuseDetector
+	moderationEvents    *ModerationEventService
 }
 
 // NewSubmissionService creates a new SubmissionService
@@ -36,6 +38,14 @@ func NewSubmissionService(
 	notificationService *NotificationService,
 	redisClient *redispkg.Client,
 ) *SubmissionService {
+	var abuseDetector *SubmissionAbuseDetector
+	var moderationEvents *ModerationEventService
+	
+	if redisClient != nil {
+		abuseDetector = NewSubmissionAbuseDetector(redisClient)
+		moderationEvents = NewModerationEventService(redisClient, notificationService)
+	}
+	
 	return &SubmissionService{
 		submissionRepo:      submissionRepo,
 		clipRepo:            clipRepo,
@@ -44,6 +54,8 @@ func NewSubmissionService(
 		twitchClient:        twitchClient,
 		redisClient:         redisClient,
 		notificationService: notificationService,
+		abuseDetector:       abuseDetector,
+		moderationEvents:    moderationEvents,
 	}
 }
 
@@ -186,7 +198,7 @@ func (s *SubmissionService) GetClipMetadata(ctx context.Context, clipURLOrID str
 }
 
 // SubmitClip handles clip submission with validation and duplicate detection
-func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, req *SubmitClipRequest) (*models.ClipSubmission, error) {
+func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, req *SubmitClipRequest, ip string, deviceFingerprint string) (*models.ClipSubmission, error) {
 	// Validate and normalize input fields first
 	if err := s.validateSubmissionInput(req); err != nil {
 		return nil, err
@@ -207,8 +219,46 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, &ValidationError{Field: "karma", Message: "You need at least 100 karma points to submit clips. Earn karma by participating in the community through voting and commenting."}
 	}
 
+	// Perform abuse detection checks
+	if s.abuseDetector != nil {
+		abuseCheck, err := s.abuseDetector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
+		if err != nil {
+			log.Printf("Error checking abuse: %v", err)
+		} else if !abuseCheck.Allowed {
+			// Emit abuse event
+			if s.moderationEvents != nil {
+				metadata := map[string]interface{}{
+					"reason":         abuseCheck.Reason,
+					"severity":       abuseCheck.Severity,
+					"cooldown_until": abuseCheck.CooldownUntil,
+				}
+				_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventUserCooldownActivated, userID, ip, metadata)
+			}
+			
+			return nil, &ValidationError{
+				Field:   "rate_limit",
+				Message: abuseCheck.Reason,
+			}
+		} else if abuseCheck.Severity == "warning" {
+			// Log warning but allow submission
+			if s.moderationEvents != nil {
+				metadata := map[string]interface{}{
+					"warning": "IP sharing detected",
+				}
+				_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventIPShareSuspicious, userID, ip, metadata)
+			}
+		}
+	}
+
 	// Check rate limits (5 per hour, 20 per day)
 	if err := s.checkRateLimits(ctx, userID); err != nil {
+		// Emit rate limit event
+		if s.moderationEvents != nil {
+			metadata := map[string]interface{}{
+				"error": err.Error(),
+			}
+			_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventRateLimitExceeded, userID, ip, metadata)
+		}
 		return nil, err
 	}
 
