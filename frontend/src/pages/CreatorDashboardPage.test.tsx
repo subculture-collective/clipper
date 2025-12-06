@@ -37,10 +37,10 @@ describe('CreatorDashboardPage - Performance & Accessibility Improvements', () =
 
   it('verifies focus indicator classes are present', () => {
     const button = document.createElement('button');
-    button.className = 'p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2';
+    button.className = 'p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2';
 
     expect(button.className).toContain('focus:ring');
-    expect(button.className).toContain('focus:ring-purple-500');
+    expect(button.className).toContain('focus:ring-primary-500');
   });
 
   it('verifies aria-hidden on decorative icons', () => {

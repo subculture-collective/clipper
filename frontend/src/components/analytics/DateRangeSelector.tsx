@@ -41,7 +41,7 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
             }
             border border-gray-200 dark:border-gray-600
             transition-colors duration-150
-            focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
           `}
         >
           {option.label}

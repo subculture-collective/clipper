@@ -204,7 +204,7 @@ describe('Creator Dashboard - Accessibility Compliance', () => {
         const classList = Array.from(button.classList);
         // Should have focus ring classes
         const hasFocusRing = classList.some((cls) =>
-          cls.includes('focus:ring')
+          cls.startsWith('focus:ring')
         );
         expect(hasFocusRing).toBe(true);
       });

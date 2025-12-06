@@ -141,7 +141,7 @@ export function CreatorDashboardPage() {
                           type="text"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="Clip title"
                           aria-describedby={`clip-title-help-${clip.id}`}
                         />
@@ -179,7 +179,7 @@ export function CreatorDashboardPage() {
                           </h3>
                           <button
                             onClick={() => handleEditClick(clip)}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                             title="Edit title"
                             aria-label={`Edit title for ${clip.title}`}
                           >
