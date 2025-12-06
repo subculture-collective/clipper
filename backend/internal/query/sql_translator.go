@@ -127,11 +127,25 @@ func (t *SQLTranslator) translateNode(node Node) (string, error) {
 	}
 }
 
+// Minimum length for LIKE patterns with leading wildcards
+const minLeadingWildcardLength = 4
+
 // translateBinaryNode translates binary operations
 func (t *SQLTranslator) translateBinaryNode(n *BinaryNode) (string, error) {
 	left, err := t.translateNode(n.Left)
 	if err != nil {
 		return "", err
+	}
+
+	// For LIKE/ILIKE, validate the pattern before translation
+	if n.Op == NodeLike || n.Op == NodeILike {
+		if lit, ok := n.Right.(*LiteralNode); ok {
+			if pattern, ok := lit.Value.(string); ok {
+				if err := t.validateLikePattern(pattern); err != nil {
+					return "", err
+				}
+			}
+		}
 	}
 
 	right, err := t.translateNode(n.Right)
@@ -157,14 +171,8 @@ func (t *SQLTranslator) translateBinaryNode(n *BinaryNode) (string, error) {
 	case NodeLessThanOrEqual:
 		return fmt.Sprintf("%s <= %s", left, right), nil
 	case NodeLike:
-		if err := t.validateLikePattern(right); err != nil {
-			return "", err
-		}
 		return fmt.Sprintf("%s LIKE %s", left, right), nil
 	case NodeILike:
-		if err := t.validateLikePattern(right); err != nil {
-			return "", err
-		}
 		return fmt.Sprintf("%s ILIKE %s", left, right), nil
 	default:
 		return "", fmt.Errorf("%w: %v", ErrUnsupportedOperator, n.Op)
@@ -339,8 +347,8 @@ func (t *SQLTranslator) isValidFieldName(name string) bool {
 func (t *SQLTranslator) validateLikePattern(pattern string) error {
 	// Prevent patterns that could cause performance issues
 	// e.g., leading wildcards without any anchoring characters
-	if strings.HasPrefix(pattern, "%") && len(pattern) < 4 {
-		return fmt.Errorf("%w: leading wildcard requires at least 3 characters", ErrInvalidLikePattern)
+	if strings.HasPrefix(pattern, "%") && len(pattern) < minLeadingWildcardLength {
+		return fmt.Errorf("%w: leading wildcard requires at least %d characters", ErrInvalidLikePattern, minLeadingWildcardLength-1)
 	}
 	return nil
 }

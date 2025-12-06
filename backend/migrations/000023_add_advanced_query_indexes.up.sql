@@ -1,12 +1,20 @@
 -- Migration: Add advanced query performance indexes
 -- Description: Creates indexes to optimize advanced query operations
 -- including full-text search, range queries, and composite filtering
+--
+-- PERFORMANCE NOTE: The functional GIN indexes below (to_tsvector) are 
+-- generally less efficient than pre-computed search_vector columns with triggers.
+-- The clips table already has a search_vector column which is the preferred approach.
+-- The functional indexes here are kept as fallback options and for tables that
+-- may not have pre-computed search vectors.
 
 -- ============================================================================
 -- FULL-TEXT SEARCH INDEXES
 -- ============================================================================
 
 -- Clips: Composite full-text search index on title and creator name
+-- NOTE: These functional indexes are more expensive to maintain. Consider using
+-- pre-computed search_vector columns with triggers for frequently updated tables.
 -- Supports: ILIKE, full-text search queries
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_title_search
 ON clips USING gin (to_tsvector('english', COALESCE(title, '')));
@@ -16,6 +24,7 @@ ON clips USING gin (to_tsvector('english', COALESCE(creator_name, '')));
 
 -- Combined search vector index (if search_vector column exists)
 -- This is the primary index used by the search repository
+-- PREFERRED: Using pre-computed column is more efficient than functional indexes
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clips_search_vector
 ON clips USING gin (search_vector);
 

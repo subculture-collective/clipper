@@ -197,15 +197,16 @@ func (v *Validator) validateRangeNode(n *RangeNode, depth int) {
 }
 
 // validateRangeValue validates a range boundary value
-func (v *Validator) validateRangeValue(val interface{}, name string) {
+// boundaryType indicates which boundary is being validated (e.g., "min" or "max")
+func (v *Validator) validateRangeValue(val interface{}, boundaryType string) {
 	if val == nil {
-		v.addError(name, "Range value cannot be nil", "NIL_RANGE_VALUE")
+		v.addError(boundaryType, "Range value cannot be nil", "NIL_RANGE_VALUE")
 		return
 	}
 
 	if str, ok := val.(string); ok {
 		if len(str) > v.maxStringLength {
-			v.addError(name, "Range value exceeds maximum string length", "STRING_TOO_LONG")
+			v.addError(boundaryType, "Range value exceeds maximum string length", "STRING_TOO_LONG")
 		}
 	}
 }

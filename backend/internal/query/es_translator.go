@@ -481,27 +481,48 @@ func (t *ESTranslator) validateAndMapField(name string) (string, error) {
 // likeToWildcard converts SQL LIKE pattern to Elasticsearch wildcard pattern
 func (t *ESTranslator) likeToWildcard(pattern string) string {
 	// Convert % to * and _ to ?
-	result := pattern
-	result = replaceUnescaped(result, "%", "*")
+	result := replaceUnescaped(pattern, "%", "*")
 	result = replaceUnescaped(result, "_", "?")
 	return result
 }
 
 // replaceUnescaped replaces unescaped occurrences of a pattern
+// Handles escape sequences properly including escaped backslashes
 func replaceUnescaped(s, old, new string) string {
-	result := ""
-	for i := 0; i < len(s); i++ {
-		if i > 0 && s[i-1] == '\\' {
-			result += string(s[i])
+	if len(s) == 0 || len(old) != 1 {
+		return s
+	}
+
+	oldByte := old[0]
+	var result []byte
+	i := 0
+
+	for i < len(s) {
+		// Check for escape sequence
+		if s[i] == '\\' && i+1 < len(s) {
+			// Escaped character - include the escape and the next char literally
+			if s[i+1] == oldByte || s[i+1] == '\\' {
+				// Skip the backslash, add the escaped character
+				result = append(result, s[i+1])
+				i += 2
+				continue
+			}
+			// Not escaping our target char, include the backslash
+			result = append(result, s[i])
+			i++
 			continue
 		}
-		if string(s[i]) == old {
-			result += new
+
+		// Replace unescaped target character
+		if s[i] == oldByte {
+			result = append(result, new...)
 		} else {
-			result += string(s[i])
+			result = append(result, s[i])
 		}
+		i++
 	}
-	return result
+
+	return string(result)
 }
 
 // BuildSearchQuery builds a complete Elasticsearch search query with pagination
