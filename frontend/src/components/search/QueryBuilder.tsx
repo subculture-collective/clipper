@@ -21,6 +21,23 @@ import {
 } from '@/lib/query-parser';
 
 /**
+ * Configuration constants
+ */
+const MAX_SUGGESTIONS = 10;
+const VALIDATION_DEBOUNCE_MS = 300;
+
+/**
+ * Operator descriptions for range filters
+ */
+const OPERATOR_DESCRIPTIONS: Record<string, string> = {
+    '>': 'Greater than',
+    '>=': 'Greater or equal',
+    '<': 'Less than',
+    '<=': 'Less or equal',
+    '..': 'Range (e.g., 10..100)',
+};
+
+/**
  * Autocomplete suggestion item
  */
 interface AutocompleteSuggestion {
@@ -290,11 +307,12 @@ export function QueryBuilder({
                         });
 
                         // Suggest ISO date format
-                        if (!partialValue || '2025'.startsWith(partialValue)) {
+                        const currentYear = new Date().getFullYear().toString();
+                        if (!partialValue || currentYear.startsWith(partialValue)) {
                             suggestions.push({
                                 text: 'YYYY-MM-DD',
                                 category: 'Date format',
-                                description: 'Use ISO date format (e.g., 2025-01-15)',
+                                description: `Use ISO date format (e.g., ${currentYear}-01-15)`,
                                 insertValue: `${filterName}:`,
                             });
                         }
@@ -311,10 +329,7 @@ export function QueryBuilder({
                                 suggestions.push({
                                     text: op,
                                     category: 'Comparison operators',
-                                    description:
-                                        op === '..'
-                                            ? 'Range (e.g., 10..100)'
-                                            : `${op === '>' ? 'Greater than' : op === '>=' ? 'Greater or equal' : op === '<' ? 'Less than' : 'Less or equal'}`,
+                                    description: OPERATOR_DESCRIPTIONS[op] || op,
                                     insertValue: `${filterName}:${op}`,
                                 });
                             });
@@ -366,7 +381,7 @@ export function QueryBuilder({
                 });
             }
 
-            return suggestions.slice(0, 10); // Limit suggestions
+            return suggestions.slice(0, MAX_SUGGESTIONS);
         },
         []
     );
@@ -420,7 +435,7 @@ export function QueryBuilder({
         // Debounce validation
         debounceTimerRef.current = setTimeout(() => {
             validateQuery(newQuery);
-        }, 300);
+        }, VALIDATION_DEBOUNCE_MS);
 
         // Notify parent of change
         onChange?.(newQuery);
