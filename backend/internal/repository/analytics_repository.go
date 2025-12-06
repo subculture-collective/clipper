@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -495,8 +496,18 @@ WHERE is_removed = false
 	return avgScore, nil
 }
 
-// parseDeviceType extracts device type from user agent string
-// Returns "mobile", "tablet", "desktop", or "unknown"
+// parseDeviceType categorizes user agents into device types for analytics purposes.
+//
+// Returns one of:
+//   - "mobile": for smartphones (e.g., Android, iPhone, etc.), explicitly excluding iPads.
+//   - "tablet": for tablets and iPads (e.g., "ipad", "tablet", "kindle", "playbook").
+//   - "desktop": for computers and known desktop browsers (e.g., "windows", "macintosh", "linux", "chrome", "firefox", "safari", "edge").
+//   - "unknown": for user agents that do not match any known keywords.
+//
+// Keywords are checked in order: mobile, then tablet, then desktop.
+// If a user agent matches multiple categories, the first matching category in this order is returned.
+// For example, "ipad" is excluded from "mobile" and included in "tablet".
+// The function is case-insensitive and returns "unknown" for empty or unrecognized user agents.
 func parseDeviceType(userAgent string) string {
 	if userAgent == "" {
 		return "unknown"
@@ -535,7 +546,8 @@ func parseDeviceType(userAgent string) string {
 // This is a simplified implementation that returns "XX" (unknown) for all IPs
 // In production, this would use a GeoIP database like MaxMind GeoLite2
 func extractCountryFromIP(ipAddress string) string {
-	if ipAddress == "" || ipAddress == "invalid" {
+	// Use empty string to represent invalid or missing IP addresses
+	if ipAddress == "" {
 		return "XX" // Unknown country code
 	}
 
@@ -650,14 +662,9 @@ func (r *AnalyticsRepository) GetCreatorAudienceInsights(ctx context.Context, cr
 	}
 
 	// Sort device metrics by view count (descending)
-	// Using a simple bubble sort since we have few device types
-	for i := 0; i < len(deviceMetrics)-1; i++ {
-		for j := 0; j < len(deviceMetrics)-i-1; j++ {
-			if deviceMetrics[j].ViewCount < deviceMetrics[j+1].ViewCount {
-				deviceMetrics[j], deviceMetrics[j+1] = deviceMetrics[j+1], deviceMetrics[j]
-			}
-		}
-	}
+	sort.Slice(deviceMetrics, func(i, j int) bool {
+		return deviceMetrics[i].ViewCount > deviceMetrics[j].ViewCount
+	})
 
 	// Convert country counts to sorted slice (top N countries)
 	type countryCount struct {
@@ -670,13 +677,9 @@ func (r *AnalyticsRepository) GetCreatorAudienceInsights(ctx context.Context, cr
 	}
 
 	// Sort by count (descending)
-	for i := 0; i < len(countryCountsSlice)-1; i++ {
-		for j := 0; j < len(countryCountsSlice)-i-1; j++ {
-			if countryCountsSlice[j].count < countryCountsSlice[j+1].count {
-				countryCountsSlice[j], countryCountsSlice[j+1] = countryCountsSlice[j+1], countryCountsSlice[j]
-			}
-		}
-	}
+	sort.Slice(countryCountsSlice, func(i, j int) bool {
+		return countryCountsSlice[i].count > countryCountsSlice[j].count
+	})
 
 	// Take top N countries
 	topN := limit

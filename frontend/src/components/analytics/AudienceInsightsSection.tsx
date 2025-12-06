@@ -45,20 +45,30 @@ const DEVICE_NAMES: Record<string, string> = {
 
 // Device type icons
 const DEVICE_ICONS: Record<string, string> = {
-  mobile: '📱',
+  mobile: '📲',
   desktop: '💻',
-  tablet: '📟',
+  tablet: '📱',
   unknown: '❓',
 };
 
 const AudienceInsightsSection: React.FC<AudienceInsightsSectionProps> = ({
   creatorName,
 }) => {
-  const { data: insights, isLoading } = useQuery({
+  const { data: insights, isLoading, error } = useQuery({
     queryKey: ['creatorAudienceInsights', creatorName],
     queryFn: () => getCreatorAudienceInsights(creatorName, { limit: 10 }),
     enabled: !!creatorName,
   });
+
+  if (error) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <p className="text-red-800 dark:text-red-200">
+          Failed to load audience insights. Please try again later.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -127,7 +137,8 @@ const AudienceInsightsSection: React.FC<AudienceInsightsSectionProps> = ({
             
             {/* Device breakdown table */}
             <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" role="table" aria-label="Device type distribution">
+                <caption className="sr-only">Breakdown of views by device type</caption>
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left py-2 text-gray-700 dark:text-gray-300">Device</th>
@@ -136,8 +147,8 @@ const AudienceInsightsSection: React.FC<AudienceInsightsSectionProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {insights.device_types.map((device, idx) => (
-                    <tr key={idx} className="border-b border-gray-100 dark:border-gray-800">
+                  {insights.device_types.map((device) => (
+                    <tr key={device.device_type} className="border-b border-gray-100 dark:border-gray-800">
                       <td className="py-2 text-gray-900 dark:text-white">
                         <span className="mr-2">
                           {DEVICE_ICONS[device.device_type] || '❓'}
@@ -171,7 +182,8 @@ const AudienceInsightsSection: React.FC<AudienceInsightsSectionProps> = ({
             
             {/* Geography breakdown table */}
             <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" role="table" aria-label="Geographic distribution">
+                <caption className="sr-only">Breakdown of views by country</caption>
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left py-2 text-gray-700 dark:text-gray-300">Country</th>
@@ -180,8 +192,8 @@ const AudienceInsightsSection: React.FC<AudienceInsightsSectionProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {insights.top_countries.map((country, idx) => (
-                    <tr key={idx} className="border-b border-gray-100 dark:border-gray-800">
+                  {insights.top_countries.map((country) => (
+                    <tr key={country.country} className="border-b border-gray-100 dark:border-gray-800">
                       <td className="py-2 text-gray-900 dark:text-white">
                         {COUNTRY_NAMES[country.country] || country.country}
                       </td>
