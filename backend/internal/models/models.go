@@ -1263,3 +1263,74 @@ type UpdateClipMetadataRequest struct {
 type UpdateClipVisibilityRequest struct {
 	IsHidden bool `json:"is_hidden"`
 }
+
+// WebhookSubscription represents a webhook subscription for third-party integrations
+type WebhookSubscription struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	UserID         uuid.UUID  `json:"user_id" db:"user_id"`
+	URL            string     `json:"url" db:"url"`
+	Secret         string     `json:"-" db:"secret"` // Never expose in JSON responses
+	Events         []string   `json:"events" db:"events"`
+	IsActive       bool       `json:"is_active" db:"is_active"`
+	Description    *string    `json:"description,omitempty" db:"description"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	LastDeliveryAt *time.Time `json:"last_delivery_at,omitempty" db:"last_delivery_at"`
+}
+
+// WebhookDelivery represents a webhook delivery attempt
+type WebhookDelivery struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	SubscriptionID uuid.UUID  `json:"subscription_id" db:"subscription_id"`
+	EventType      string     `json:"event_type" db:"event_type"`
+	EventID        uuid.UUID  `json:"event_id" db:"event_id"`
+	Payload        string     `json:"payload" db:"payload"`
+	Status         string     `json:"status" db:"status"`
+	HTTPStatusCode *int       `json:"http_status_code,omitempty" db:"http_status_code"`
+	ResponseBody   *string    `json:"response_body,omitempty" db:"response_body"`
+	ErrorMessage   *string    `json:"error_message,omitempty" db:"error_message"`
+	AttemptCount   int        `json:"attempt_count" db:"attempt_count"`
+	MaxAttempts    int        `json:"max_attempts" db:"max_attempts"`
+	NextAttemptAt  *time.Time `json:"next_attempt_at,omitempty" db:"next_attempt_at"`
+	DeliveredAt    *time.Time `json:"delivered_at,omitempty" db:"delivered_at"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// WebhookEventPayload represents the payload sent to webhook endpoints
+type WebhookEventPayload struct {
+	Event     string                 `json:"event"`
+	Timestamp time.Time              `json:"timestamp"`
+	Data      map[string]interface{} `json:"data"`
+}
+
+// CreateWebhookSubscriptionRequest represents a request to create a webhook subscription
+type CreateWebhookSubscriptionRequest struct {
+	URL         string   `json:"url" binding:"required,url,max=2048"`
+	Events      []string `json:"events" binding:"required,min=1"`
+	Description *string  `json:"description,omitempty" binding:"omitempty,max=500"`
+}
+
+// UpdateWebhookSubscriptionRequest represents a request to update a webhook subscription
+type UpdateWebhookSubscriptionRequest struct {
+	URL         *string  `json:"url,omitempty" binding:"omitempty,url,max=2048"`
+	Events      []string `json:"events,omitempty" binding:"omitempty,min=1"`
+	IsActive    *bool    `json:"is_active,omitempty"`
+	Description *string  `json:"description,omitempty" binding:"omitempty,max=500"`
+}
+
+// WebhookEvent constants for supported webhook events
+const (
+	WebhookEventClipSubmitted = "clip.submitted"
+	WebhookEventClipApproved  = "clip.approved"
+	WebhookEventClipRejected  = "clip.rejected"
+)
+
+// GetSupportedWebhookEvents returns the list of supported webhook events
+func GetSupportedWebhookEvents() []string {
+	return []string{
+		WebhookEventClipSubmitted,
+		WebhookEventClipApproved,
+		WebhookEventClipRejected,
+	}
+}

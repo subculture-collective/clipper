@@ -1,0 +1,371 @@
+package services
+
+import (
+	"bytes"
+	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"math"
+	"net/http"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
+)
+
+// OutboundWebhookService handles webhook delivery to third-party endpoints
+type OutboundWebhookService struct {
+	webhookRepo *repository.OutboundWebhookRepository
+	httpClient  *http.Client
+}
+
+// NewOutboundWebhookService creates a new outbound webhook service
+func NewOutboundWebhookService(webhookRepo *repository.OutboundWebhookRepository) *OutboundWebhookService {
+	return &OutboundWebhookService{
+		webhookRepo: webhookRepo,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+}
+
+// CreateSubscription creates a new webhook subscription
+func (s *OutboundWebhookService) CreateSubscription(ctx context.Context, userID uuid.UUID, req *models.CreateWebhookSubscriptionRequest) (*models.WebhookSubscription, error) {
+	// Validate events
+	if err := s.validateEvents(req.Events); err != nil {
+		return nil, err
+	}
+
+	// Generate a secure random secret for HMAC signing
+	secret, err := s.generateSecret()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate secret: %w", err)
+	}
+
+	subscription := &models.WebhookSubscription{
+		ID:          uuid.New(),
+		UserID:      userID,
+		URL:         req.URL,
+		Secret:      secret,
+		Events:      req.Events,
+		IsActive:    true,
+		Description: req.Description,
+	}
+
+	if err := s.webhookRepo.CreateSubscription(ctx, subscription); err != nil {
+		return nil, fmt.Errorf("failed to create subscription: %w", err)
+	}
+
+	return subscription, nil
+}
+
+// GetSubscriptionByID retrieves a webhook subscription by ID
+func (s *OutboundWebhookService) GetSubscriptionByID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*models.WebhookSubscription, error) {
+	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the subscription belongs to the user
+	if subscription.UserID != userID {
+		return nil, fmt.Errorf("subscription not found")
+	}
+
+	return subscription, nil
+}
+
+// GetSubscriptionsByUserID retrieves all webhook subscriptions for a user
+func (s *OutboundWebhookService) GetSubscriptionsByUserID(ctx context.Context, userID uuid.UUID) ([]*models.WebhookSubscription, error) {
+	return s.webhookRepo.GetSubscriptionsByUserID(ctx, userID)
+}
+
+// UpdateSubscription updates a webhook subscription
+func (s *OutboundWebhookService) UpdateSubscription(ctx context.Context, id uuid.UUID, userID uuid.UUID, req *models.UpdateWebhookSubscriptionRequest) error {
+	// Verify ownership
+	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if subscription.UserID != userID {
+		return fmt.Errorf("subscription not found")
+	}
+
+	// Validate events if provided
+	if len(req.Events) > 0 {
+		if err := s.validateEvents(req.Events); err != nil {
+			return err
+		}
+	}
+
+	return s.webhookRepo.UpdateSubscription(ctx, id, req.URL, req.Events, req.IsActive, req.Description)
+}
+
+// DeleteSubscription deletes a webhook subscription
+func (s *OutboundWebhookService) DeleteSubscription(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+	// Verify ownership
+	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if subscription.UserID != userID {
+		return fmt.Errorf("subscription not found")
+	}
+
+	return s.webhookRepo.DeleteSubscription(ctx, id)
+}
+
+// RegenerateSecret regenerates the webhook secret for a subscription
+func (s *OutboundWebhookService) RegenerateSecret(ctx context.Context, id uuid.UUID, userID uuid.UUID) (string, error) {
+	// Verify ownership
+	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	if subscription.UserID != userID {
+		return "", fmt.Errorf("subscription not found")
+	}
+
+	// Generate new secret
+	newSecret, err := s.generateSecret()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate secret: %w", err)
+	}
+
+	// Update subscription with new secret
+	if err := s.webhookRepo.UpdateSubscription(ctx, id, nil, nil, nil, nil); err != nil {
+		return "", fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	return newSecret, nil
+}
+
+// TriggerEvent triggers a webhook event for all subscribed endpoints
+func (s *OutboundWebhookService) TriggerEvent(ctx context.Context, eventType string, eventID uuid.UUID, data map[string]interface{}) error {
+	// Get all active subscriptions for this event
+	subscriptions, err := s.webhookRepo.GetActiveSubscriptionsByEvent(ctx, eventType)
+	if err != nil {
+		return fmt.Errorf("failed to get subscriptions: %w", err)
+	}
+
+	if len(subscriptions) == 0 {
+		log.Printf("[WEBHOOK] No active subscriptions for event %s", eventType)
+		return nil
+	}
+
+	log.Printf("[WEBHOOK] Triggering event %s for %d subscriptions", eventType, len(subscriptions))
+
+	// Create payload
+	payload := models.WebhookEventPayload{
+		Event:     eventType,
+		Timestamp: time.Now(),
+		Data:      data,
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	// Queue delivery for each subscription
+	for _, subscription := range subscriptions {
+		delivery := &models.WebhookDelivery{
+			ID:             uuid.New(),
+			SubscriptionID: subscription.ID,
+			EventType:      eventType,
+			EventID:        eventID,
+			Payload:        string(payloadJSON),
+			Status:         "pending",
+			AttemptCount:   0,
+			MaxAttempts:    5,
+			NextAttemptAt:  ptrTime(time.Now()),
+		}
+
+		if err := s.webhookRepo.CreateDelivery(ctx, delivery); err != nil {
+			log.Printf("[WEBHOOK] Failed to create delivery for subscription %s: %v", subscription.ID, err)
+			continue
+		}
+
+		log.Printf("[WEBHOOK] Queued delivery %s for subscription %s", delivery.ID, subscription.ID)
+	}
+
+	return nil
+}
+
+// ProcessPendingDeliveries processes pending webhook deliveries
+func (s *OutboundWebhookService) ProcessPendingDeliveries(ctx context.Context, batchSize int) error {
+	deliveries, err := s.webhookRepo.GetPendingDeliveries(ctx, batchSize)
+	if err != nil {
+		return fmt.Errorf("failed to get pending deliveries: %w", err)
+	}
+
+	if len(deliveries) == 0 {
+		return nil
+	}
+
+	log.Printf("[WEBHOOK] Processing %d pending deliveries", len(deliveries))
+
+	for _, delivery := range deliveries {
+		if err := s.processDelivery(ctx, delivery); err != nil {
+			log.Printf("[WEBHOOK] Failed to process delivery %s: %v", delivery.ID, err)
+		}
+	}
+
+	return nil
+}
+
+// processDelivery processes a single webhook delivery
+func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *models.WebhookDelivery) error {
+	// Get subscription details
+	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, delivery.SubscriptionID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if !subscription.IsActive {
+		log.Printf("[WEBHOOK] Subscription %s is inactive, skipping delivery", subscription.ID)
+		// Mark as failed since subscription is inactive
+		return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, nil, "subscription is inactive", nil)
+	}
+
+	log.Printf("[WEBHOOK] Delivering webhook to %s (attempt %d/%d)", subscription.URL, delivery.AttemptCount+1, delivery.MaxAttempts)
+
+	// Generate signature
+	signature := s.generateSignature(delivery.Payload, subscription.Secret)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "POST", subscription.URL, bytes.NewBufferString(delivery.Payload))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Signature", signature)
+	req.Header.Set("X-Webhook-Event", delivery.EventType)
+	req.Header.Set("X-Webhook-Delivery-ID", delivery.ID.String())
+	req.Header.Set("User-Agent", "Clipper-Webhooks/1.0")
+
+	// Send request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		// Network error - schedule retry
+		nextRetry := s.calculateNextRetry(delivery.AttemptCount + 1)
+		errMsg := fmt.Sprintf("network error: %v", err)
+		log.Printf("[WEBHOOK] Delivery failed: %s, next retry at %v", errMsg, nextRetry)
+		return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, nil, errMsg, &nextRetry)
+	}
+	defer resp.Body.Close()
+
+	// Read response body (limit to 10KB)
+	responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 10*1024))
+
+	// Check status code
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		// Success
+		log.Printf("[WEBHOOK] Delivery successful: status=%d", resp.StatusCode)
+		if err := s.webhookRepo.UpdateDeliverySuccess(ctx, delivery.ID, resp.StatusCode, string(responseBody)); err != nil {
+			return fmt.Errorf("failed to update delivery success: %w", err)
+		}
+
+		// Update subscription's last delivery time
+		if err := s.webhookRepo.UpdateLastDeliveryTime(ctx, subscription.ID, time.Now()); err != nil {
+			log.Printf("[WEBHOOK] Failed to update last delivery time: %v", err)
+		}
+
+		return nil
+	}
+
+	// Failed delivery - schedule retry
+	nextRetry := s.calculateNextRetry(delivery.AttemptCount + 1)
+	errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(responseBody))
+	log.Printf("[WEBHOOK] Delivery failed: %s, next retry at %v", errMsg, nextRetry)
+	return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, &resp.StatusCode, errMsg, &nextRetry)
+}
+
+// generateSignature generates HMAC-SHA256 signature for webhook payload
+func (s *OutboundWebhookService) generateSignature(payload, secret string) string {
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(payload))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// generateSecret generates a cryptographically secure random secret
+func (s *OutboundWebhookService) generateSecret() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// validateEvents validates that all events are supported
+func (s *OutboundWebhookService) validateEvents(events []string) error {
+	supportedEvents := make(map[string]bool)
+	for _, event := range models.GetSupportedWebhookEvents() {
+		supportedEvents[event] = true
+	}
+
+	for _, event := range events {
+		if !supportedEvents[event] {
+			return fmt.Errorf("unsupported event: %s", event)
+		}
+	}
+
+	return nil
+}
+
+// calculateNextRetry calculates the next retry time using exponential backoff
+func (s *OutboundWebhookService) calculateNextRetry(attemptCount int) time.Time {
+	baseDelay := 30 * time.Second
+	maxDelay := 1 * time.Hour
+
+	// Calculate exponential backoff: 30s, 1m, 2m, 4m, etc.
+	delay := time.Duration(float64(baseDelay) * math.Pow(2, float64(attemptCount)))
+
+	// Cap at max delay
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+
+	return time.Now().Add(delay)
+}
+
+// GetDeliveriesBySubscriptionID retrieves deliveries for a subscription with pagination
+func (s *OutboundWebhookService) GetDeliveriesBySubscriptionID(ctx context.Context, subscriptionID uuid.UUID, userID uuid.UUID, page, limit int) ([]*models.WebhookDelivery, int, error) {
+	// Verify ownership
+	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, subscriptionID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if subscription.UserID != userID {
+		return nil, 0, fmt.Errorf("subscription not found")
+	}
+
+	offset := (page - 1) * limit
+	deliveries, err := s.webhookRepo.GetDeliveriesBySubscriptionID(ctx, subscriptionID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	total, err := s.webhookRepo.CountDeliveriesBySubscriptionID(ctx, subscriptionID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return deliveries, total, nil
+}
+
+// Helper function to create a pointer to time.Time
+func ptrTime(t time.Time) *time.Time {
+	return &t
+}
