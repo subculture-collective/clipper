@@ -18,12 +18,13 @@ var ErrUnauthorized = errors.New("user does not have permission to manage this c
 
 // ClipService handles business logic for clips
 type ClipService struct {
-	clipRepo     *repository.ClipRepository
-	voteRepo     *repository.VoteRepository
-	favoriteRepo *repository.FavoriteRepository
-	userRepo     *repository.UserRepository
-	redisClient  *redispkg.Client
-	auditLogRepo *repository.AuditLogRepository
+	clipRepo            *repository.ClipRepository
+	voteRepo            *repository.VoteRepository
+	favoriteRepo        *repository.FavoriteRepository
+	userRepo            *repository.UserRepository
+	redisClient         *redispkg.Client
+	auditLogRepo        *repository.AuditLogRepository
+	notificationService *NotificationService
 }
 
 // NewClipService creates a new ClipService
@@ -34,14 +35,16 @@ func NewClipService(
 	userRepo *repository.UserRepository,
 	redisClient *redispkg.Client,
 	auditLogRepo *repository.AuditLogRepository,
+	notificationService *NotificationService,
 ) *ClipService {
 	return &ClipService{
-		clipRepo:     clipRepo,
-		voteRepo:     voteRepo,
-		favoriteRepo: favoriteRepo,
-		userRepo:     userRepo,
-		redisClient:  redisClient,
-		auditLogRepo: auditLogRepo,
+		clipRepo:            clipRepo,
+		voteRepo:            voteRepo,
+		favoriteRepo:        favoriteRepo,
+		userRepo:            userRepo,
+		redisClient:         redisClient,
+		auditLogRepo:        auditLogRepo,
+		notificationService: notificationService,
 	}
 }
 
@@ -203,6 +206,17 @@ func (s *ClipService) VoteOnClip(ctx context.Context, userID, clipID uuid.UUID, 
 	err = s.voteRepo.UpsertVote(ctx, userID, clipID, voteType)
 	if err != nil {
 		return err
+	}
+
+	// Get updated clip to check vote score
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+		// Check if we reached a vote threshold (async with timeout)
+		go func() {
+			timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_ = s.notificationService.NotifyClipVoteThreshold(timeoutCtx, clipID, clip.VoteScore, *clip.CreatorID)
+		}()
 	}
 
 	// Update user karma (async)
