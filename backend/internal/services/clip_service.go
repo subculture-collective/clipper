@@ -88,9 +88,16 @@ func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uui
 		}
 	}
 
-	// Increment view count (async, don't block on errors)
+	// Increment view count and check for threshold notifications (async, don't block on errors)
 	go func() {
-		_ = s.clipRepo.IncrementViewCount(context.Background(), clipID)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		newViewCount, err := s.clipRepo.IncrementViewCount(timeoutCtx, clipID)
+		if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+			// Check if we reached a view threshold
+			_ = s.notificationService.NotifyClipViewThreshold(timeoutCtx, clipID, newViewCount, *clip.CreatorID)
+		}
 	}()
 
 	return clipWithData, nil
@@ -202,21 +209,33 @@ func (s *ClipService) VoteOnClip(ctx context.Context, userID, clipID uuid.UUID, 
 		return nil
 	}
 
+	// Calculate if this vote will increase the score (only notify on increases)
+	scoreWillIncrease := false
+	if oldVote == nil {
+		// New vote - increases if upvote
+		scoreWillIncrease = (voteType == 1)
+	} else if oldVote.VoteType != voteType {
+		// Changed vote - increases if changing from downvote to upvote
+		scoreWillIncrease = (oldVote.VoteType == -1 && voteType == 1)
+	}
+
 	// Upsert vote
 	err = s.voteRepo.UpsertVote(ctx, userID, clipID, voteType)
 	if err != nil {
 		return err
 	}
 
-	// Get updated clip to check vote score
-	clip, err := s.clipRepo.GetByID(ctx, clipID)
-	if err == nil && clip.CreatorID != nil && s.notificationService != nil {
-		// Check if we reached a vote threshold (async with timeout)
-		go func() {
-			timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			_ = s.notificationService.NotifyClipVoteThreshold(timeoutCtx, clipID, clip.VoteScore, *clip.CreatorID)
-		}()
+	// Only check for vote thresholds if the score increased
+	if scoreWillIncrease {
+		clip, err := s.clipRepo.GetByID(ctx, clipID)
+		if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+			// Check if we reached a vote threshold (async with timeout)
+			go func() {
+				timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				_ = s.notificationService.NotifyClipVoteThreshold(timeoutCtx, clipID, clip.VoteScore, *clip.CreatorID)
+			}()
+		}
 	}
 
 	// Update user karma (async)

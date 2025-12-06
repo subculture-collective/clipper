@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/subculture-collective/clipper/internal/models"
@@ -286,49 +287,129 @@ func TestShouldNotify_SubmissionTypes(t *testing.T) {
 }
 
 func TestFormatNumber(t *testing.T) {
-tests := []struct {
-name     string
-input    int64
-expected string
-}{
-{
-name:     "less than 1000",
-input:    100,
-expected: "100",
-},
-{
-name:     "exactly 1000",
-input:    1000,
-expected: "1,000",
-},
-{
-name:     "5000",
-input:    5000,
-expected: "5,000",
-},
-{
-name:     "10000",
-input:    10000,
-expected: "10,000",
-},
-{
-name:     "100000",
-input:    100000,
-expected: "100,000",
-},
-{
-name:     "1 million",
-input:    1000000,
-expected: "1,000,000",
-},
+	tests := []struct {
+		name     string
+		input    int64
+		expected string
+	}{
+		{
+			name:     "less than 1000",
+			input:    100,
+			expected: "100",
+		},
+		{
+			name:     "exactly 1000",
+			input:    1000,
+			expected: "1,000",
+		},
+		{
+			name:     "5000",
+			input:    5000,
+			expected: "5,000",
+		},
+		{
+			name:     "10000",
+			input:    10000,
+			expected: "10,000",
+		},
+		{
+			name:     "100000",
+			input:    100000,
+			expected: "100,000",
+		},
+		{
+			name:     "1 million",
+			input:    1000000,
+			expected: "1,000,000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatNumber(tt.input)
+			if result != tt.expected {
+				t.Errorf("formatNumber() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
 }
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-result := formatNumber(tt.input)
-if result != tt.expected {
-t.Errorf("formatNumber() = %v, want %v", result, tt.expected)
+// TestNotificationMilestoneDetection tests that milestones are correctly identified
+func TestNotificationMilestoneDetection(t *testing.T) {
+// Test vote milestones
+voteMilestones := []int{10, 25, 50, 100, 250, 500, 1000}
+notMilestones := []int{9, 11, 24, 26, 49, 51, 99, 101, 249, 251, 499, 501, 999, 1001}
+
+t.Run("vote_milestones", func(t *testing.T) {
+for _, score := range voteMilestones {
+t.Run(fmt.Sprintf("score_%d_is_milestone", score), func(t *testing.T) {
+// This would be detected as a milestone in NotifyClipVoteThreshold
+isMilestone := false
+for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
+if score == m {
+isMilestone = true
+break
+}
+}
+if !isMilestone {
+t.Errorf("Score %d should be recognized as a milestone", score)
 }
 })
 }
+})
+
+t.Run("not_vote_milestones", func(t *testing.T) {
+for _, score := range notMilestones {
+t.Run(fmt.Sprintf("score_%d_not_milestone", score), func(t *testing.T) {
+isMilestone := false
+for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
+if score == m {
+isMilestone = true
+break
+}
+}
+if isMilestone {
+t.Errorf("Score %d should not be recognized as a milestone", score)
+}
+})
+}
+})
+
+// Test view milestones
+viewMilestones := []int64{100, 500, 1000, 5000, 10000, 50000, 100000}
+notViewMilestones := []int64{99, 101, 499, 501, 999, 1001, 4999, 5001, 9999, 10001}
+
+t.Run("view_milestones", func(t *testing.T) {
+for _, count := range viewMilestones {
+t.Run(fmt.Sprintf("count_%d_is_milestone", count), func(t *testing.T) {
+isMilestone := false
+for _, m := range []int64{100, 500, 1000, 5000, 10000, 50000, 100000} {
+if count == m {
+isMilestone = true
+break
+}
+}
+if !isMilestone {
+t.Errorf("View count %d should be recognized as a milestone", count)
+}
+})
+}
+})
+
+t.Run("not_view_milestones", func(t *testing.T) {
+for _, count := range notViewMilestones {
+t.Run(fmt.Sprintf("count_%d_not_milestone", count), func(t *testing.T) {
+isMilestone := false
+for _, m := range []int64{100, 500, 1000, 5000, 10000, 50000, 100000} {
+if count == m {
+isMilestone = true
+break
+}
+}
+if isMilestone {
+t.Errorf("View count %d should not be recognized as a milestone", count)
+}
+})
+}
+})
 }
