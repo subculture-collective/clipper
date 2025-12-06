@@ -423,20 +423,22 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	return clips, total, nil
 }
 
-// IncrementViewCount atomically increments the view count for a clip
-func (r *ClipRepository) IncrementViewCount(ctx context.Context, clipID uuid.UUID) error {
+// IncrementViewCount atomically increments the view count for a clip and returns the new count
+func (r *ClipRepository) IncrementViewCount(ctx context.Context, clipID uuid.UUID) (int64, error) {
 	query := `
 		UPDATE clips
 		SET view_count = view_count + 1
 		WHERE id = $1
+		RETURNING view_count
 	`
 
-	_, err := r.pool.Exec(ctx, query, clipID)
+	var newViewCount int64
+	err := r.pool.QueryRow(ctx, query, clipID).Scan(&newViewCount)
 	if err != nil {
-		return fmt.Errorf("failed to increment view count: %w", err)
+		return 0, fmt.Errorf("failed to increment view count: %w", err)
 	}
 
-	return nil
+	return newViewCount, nil
 }
 
 // Update updates a clip (for admin operations)

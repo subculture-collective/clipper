@@ -252,7 +252,9 @@ func (r *NotificationRepository) GetPreferences(ctx context.Context, userID uuid
 		SELECT
 			user_id, in_app_enabled, email_enabled, email_digest,
 			notify_replies, notify_mentions, notify_votes, notify_badges,
-			notify_moderation, notify_rank_up, notify_favorited_clip_comment, updated_at
+			notify_moderation, notify_rank_up, notify_favorited_clip_comment,
+			notify_clip_approved, notify_clip_rejected, notify_clip_comments, notify_clip_threshold,
+			updated_at
 		FROM notification_preferences
 		WHERE user_id = $1
 	`
@@ -270,6 +272,10 @@ func (r *NotificationRepository) GetPreferences(ctx context.Context, userID uuid
 		&prefs.NotifyModeration,
 		&prefs.NotifyRankUp,
 		&prefs.NotifyFavoritedClipComment,
+		&prefs.NotifyClipApproved,
+		&prefs.NotifyClipRejected,
+		&prefs.NotifyClipComments,
+		&prefs.NotifyClipThreshold,
 		&prefs.UpdatedAt,
 	)
 
@@ -293,7 +299,9 @@ func (r *NotificationRepository) CreateDefaultPreferences(ctx context.Context, u
 		RETURNING
 			user_id, in_app_enabled, email_enabled, email_digest,
 			notify_replies, notify_mentions, notify_votes, notify_badges,
-			notify_moderation, notify_rank_up, notify_favorited_clip_comment, updated_at
+			notify_moderation, notify_rank_up, notify_favorited_clip_comment,
+			notify_clip_approved, notify_clip_rejected, notify_clip_comments, notify_clip_threshold,
+			updated_at
 	`
 
 	var prefs models.NotificationPreferences
@@ -309,6 +317,10 @@ func (r *NotificationRepository) CreateDefaultPreferences(ctx context.Context, u
 		&prefs.NotifyModeration,
 		&prefs.NotifyRankUp,
 		&prefs.NotifyFavoritedClipComment,
+		&prefs.NotifyClipApproved,
+		&prefs.NotifyClipRejected,
+		&prefs.NotifyClipComments,
+		&prefs.NotifyClipThreshold,
 		&prefs.UpdatedAt,
 	)
 
@@ -334,6 +346,10 @@ func (r *NotificationRepository) UpdatePreferences(ctx context.Context, prefs *m
 			notify_moderation = $9,
 			notify_rank_up = $10,
 			notify_favorited_clip_comment = $11,
+			notify_clip_approved = $12,
+			notify_clip_rejected = $13,
+			notify_clip_comments = $14,
+			notify_clip_threshold = $15,
 			updated_at = NOW()
 		WHERE user_id = $1
 	`
@@ -350,6 +366,10 @@ func (r *NotificationRepository) UpdatePreferences(ctx context.Context, prefs *m
 		prefs.NotifyModeration,
 		prefs.NotifyRankUp,
 		prefs.NotifyFavoritedClipComment,
+		prefs.NotifyClipApproved,
+		prefs.NotifyClipRejected,
+		prefs.NotifyClipComments,
+		prefs.NotifyClipThreshold,
 	)
 
 	if err != nil {

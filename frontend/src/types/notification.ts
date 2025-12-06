@@ -32,7 +32,10 @@ export type NotificationType =
   | 'submission_rejected'
   | 'new_report'
   | 'pending_submissions'
-  | 'system_alert';
+  | 'system_alert'
+  | 'clip_comment'
+  | 'clip_view_threshold'
+  | 'clip_vote_threshold';
 
 export interface NotificationPreferences {
   user_id: string;
@@ -46,6 +49,11 @@ export interface NotificationPreferences {
   notify_moderation: boolean;
   notify_rank_up: boolean;
   notify_favorited_clip_comment: boolean;
+  // Creator-specific notification preferences
+  notify_clip_approved: boolean;
+  notify_clip_rejected: boolean;
+  notify_clip_comments: boolean;
+  notify_clip_threshold: boolean;
   updated_at: string;
 }
 
