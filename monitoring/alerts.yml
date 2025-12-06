@@ -323,7 +323,8 @@ groups:
       # Low Embedding Coverage
       - alert: LowEmbeddingCoverage
         expr: |
-          clips_without_embeddings / (clips_with_embeddings + clips_without_embeddings) > 0.1
+          (clips_with_embeddings + clips_without_embeddings) > 0 
+          and clips_without_embeddings / (clips_with_embeddings + clips_without_embeddings) > 0.1
         for: 30m
         labels:
           severity: warning
@@ -335,7 +336,8 @@ groups:
       # Embedding Cache Low Hit Rate
       - alert: EmbeddingCacheLowHitRate
         expr: |
-          rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) < 0.5
+          (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) > 0 
+          and rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) < 0.5
         for: 15m
         labels:
           severity: warning
@@ -347,7 +349,8 @@ groups:
       # High Zero Result Rate
       - alert: HighZeroResultRate
         expr: |
-          rate(search_zero_results_total[5m]) / rate(search_queries_total[5m]) > 0.1
+          rate(search_queries_total[5m]) > 0
+          and rate(search_zero_results_total[5m]) / rate(search_queries_total[5m]) > 0.1
         for: 10m
         labels:
           severity: warning

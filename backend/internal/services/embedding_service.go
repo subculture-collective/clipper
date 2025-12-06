@@ -100,8 +100,12 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 
 // GenerateEmbedding generates an embedding for a single text
 func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	return s.generateEmbeddingWithType(ctx, text, "query")
+}
+
+// generateEmbeddingWithType is the core embedding generation logic with metrics tracking
+func (s *EmbeddingService) generateEmbeddingWithType(ctx context.Context, text string, embeddingType string) ([]float32, error) {
 	start := time.Now()
-	embeddingType := "query"
 
 	// Check cache first
 	cacheKey := s.getCacheKey(text)
@@ -263,57 +267,8 @@ func (s *EmbeddingService) generateBatch(ctx context.Context, texts []string) ([
 
 // GenerateClipEmbedding generates an embedding for a clip based on its content
 func (s *EmbeddingService) GenerateClipEmbedding(ctx context.Context, clip *models.Clip) ([]float32, error) {
-	start := time.Now()
-	embeddingType := "clip"
-
 	text := s.buildClipText(clip)
-
-	// Check cache first
-	cacheKey := s.getCacheKey(text)
-	if cached, err := s.getFromCache(ctx, cacheKey); err == nil && cached != nil {
-		recordEmbeddingCacheHit()
-		return cached, nil
-	}
-	recordEmbeddingCacheMiss()
-
-	// Rate limit
-	select {
-	case <-s.rateLimiter.C:
-		// Continue
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-
-	// Generate embedding with retries
-	var embedding []float32
-	var lastErr error
-
-	for attempt := 0; attempt < MaxRetries; attempt++ {
-		if attempt > 0 {
-			time.Sleep(RetryDelay * time.Duration(1<<uint(attempt)))
-		}
-
-		embedding, lastErr = s.callEmbeddingAPI(ctx, text)
-		if lastErr == nil {
-			break
-		}
-	}
-
-	duration := float64(time.Since(start).Milliseconds())
-
-	if lastErr != nil {
-		recordEmbeddingGenerationError(embeddingType)
-		return nil, fmt.Errorf("failed to generate embedding after %d attempts: %w", MaxRetries, lastErr)
-	}
-
-	recordEmbeddingGeneration(embeddingType, duration)
-
-	// Cache the result
-	if err := s.saveToCache(ctx, cacheKey, embedding); err != nil {
-		log.Printf("Warning: failed to cache embedding: %v", err)
-	}
-
-	return embedding, nil
+	return s.generateEmbeddingWithType(ctx, text, "clip")
 }
 
 // buildClipText constructs the text representation of a clip for embedding
