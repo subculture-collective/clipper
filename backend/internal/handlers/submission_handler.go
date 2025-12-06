@@ -46,7 +46,11 @@ func (h *SubmissionHandler) SubmitClip(c *gin.Context) {
 		return
 	}
 
-	submission, err := h.submissionService.SubmitClip(c.Request.Context(), userID, &req)
+	// Get IP address and device fingerprint for abuse detection
+	ip := c.ClientIP()
+	deviceFingerprint := c.GetHeader("User-Agent") // Simple fingerprint using user agent
+
+	submission, err := h.submissionService.SubmitClip(c.Request.Context(), userID, &req, ip, deviceFingerprint)
 	if err != nil {
 		// Check if it's a validation error
 		if valErr, ok := err.(*services.ValidationError); ok {

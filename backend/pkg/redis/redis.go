@@ -271,3 +271,37 @@ func (c *Client) Keys(ctx context.Context, pattern string) ([]string, error) {
 func (c *Client) GetClient() *redis.Client {
 	return c.client
 }
+
+// ListPush pushes an element to a list
+func (c *Client) ListPush(ctx context.Context, key string, value interface{}) error {
+	return c.client.RPush(ctx, key, value).Err()
+}
+
+// ListRange retrieves a range of elements from a list
+func (c *Client) ListRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
+	return c.client.LRange(ctx, key, start, stop).Result()
+}
+
+// ListLen returns the length of a list
+func (c *Client) ListLen(ctx context.Context, key string) (int64, error) {
+	return c.client.LLen(ctx, key).Result()
+}
+
+// SetAdd adds a member to a set
+func (c *Client) SetAdd(ctx context.Context, key string, members ...interface{}) error {
+	return c.client.SAdd(ctx, key, members...).Err()
+}
+
+// SetCard returns the number of elements in a set
+func (c *Client) SetCard(ctx context.Context, key string) (int64, error) {
+	return c.client.SCard(ctx, key).Result()
+}
+
+// TTL returns the remaining time to live of a key
+func (c *Client) TTL(ctx context.Context, key string) (int64, error) {
+	ttl, err := c.client.TTL(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	return int64(ttl.Seconds()), nil
+}
