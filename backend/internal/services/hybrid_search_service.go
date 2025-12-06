@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pgvector/pgvector-go"
 	"github.com/redis/go-redis/v9"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // HybridSearchService orchestrates BM25 + vector similarity search
@@ -39,20 +41,31 @@ func NewHybridSearchService(config *HybridSearchConfig) *HybridSearchService {
 
 // Search performs hybrid search combining BM25 and vector similarity
 func (s *HybridSearchService) Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error) {
+	searchStart := time.Now()
+	searchType := "hybrid"
+
 	// If semantic search is disabled or embedding service not available, fall back to BM25 only
 	if s.embeddingService == nil || req.Query == "" {
-		return s.openSearchService.Search(ctx, req)
+		searchType = "bm25"
+		result, err := s.openSearchService.Search(ctx, req)
+		s.recordSearchMetrics(searchType, searchStart, result, err)
+		return result, err
 	}
 
 	// Get BM25 candidates and query embedding
 	candidates, queryEmbedding, err := s.getBM25CandidatesWithEmbedding(ctx, req)
 	if err != nil {
 		// Fall back to BM25 results on error
-		return s.openSearchService.Search(ctx, req)
+		metrics.SearchFallbackTotal.WithLabelValues("embedding_error").Inc()
+		searchType = "bm25"
+		result, err := s.openSearchService.Search(ctx, req)
+		s.recordSearchMetrics(searchType, searchStart, result, err)
+		return result, err
 	}
 
 	// If no clips found, return empty results
 	if len(candidates.Results.Clips) == 0 {
+		s.recordSearchMetrics(searchType, searchStart, candidates, nil)
 		return candidates, nil
 	}
 
@@ -63,11 +76,18 @@ func (s *HybridSearchService) Search(ctx context.Context, req *models.SearchRequ
 	}
 
 	// Re-rank using vector similarity - note: no offset, we select from all candidates
+	vectorStart := time.Now()
 	rerankedClips, err := s.rerankByVectorSimilarity(ctx, candidateIDs, queryEmbedding, req.Limit, 0)
+	metrics.VectorSearchDuration.Observe(float64(time.Since(vectorStart).Milliseconds()))
+
 	if err != nil {
 		log.Printf("Warning: vector re-ranking failed, falling back to BM25: %v", err)
 		// Fall back to BM25 results
-		return s.openSearchService.Search(ctx, req)
+		metrics.SearchFallbackTotal.WithLabelValues("vector_search_error").Inc()
+		searchType = "bm25"
+		result, err := s.openSearchService.Search(ctx, req)
+		s.recordSearchMetrics(searchType, searchStart, result, err)
+		return result, err
 	}
 
 	// Step 5: Build response
@@ -92,6 +112,7 @@ func (s *HybridSearchService) Search(ctx context.Context, req *models.SearchRequ
 		response.Meta.TotalPages = (response.Meta.TotalItems + req.Limit - 1) / req.Limit
 	}
 
+	s.recordSearchMetrics(searchType, searchStart, response, nil)
 	return response, nil
 }
 
@@ -113,7 +134,10 @@ func (s *HybridSearchService) getBM25CandidatesWithEmbedding(ctx context.Context
 	candidateReq.Limit = candidateLimit
 	candidateReq.Page = 1 // Get from first page
 
+	bm25Start := time.Now()
 	bm25Results, err := s.openSearchService.Search(ctx, &candidateReq)
+	metrics.BM25SearchDuration.Observe(float64(time.Since(bm25Start).Milliseconds()))
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("BM25 search failed: %w", err)
 	}
@@ -351,4 +375,25 @@ func (s *HybridSearchService) rerankByVectorSimilarityWithScores(ctx context.Con
 	}
 
 	return clips, scores, nil
+}
+
+// recordSearchMetrics records Prometheus metrics for search queries
+func (s *HybridSearchService) recordSearchMetrics(searchType string, start time.Time, result *models.SearchResponse, err error) {
+	duration := float64(time.Since(start).Milliseconds())
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+
+	metrics.SearchQueriesTotal.WithLabelValues(searchType, status).Inc()
+	metrics.SearchQueryDuration.WithLabelValues(searchType).Observe(duration)
+
+	if result != nil {
+		resultCount := float64(len(result.Results.Clips))
+		metrics.SearchResultsCount.WithLabelValues(searchType).Observe(resultCount)
+
+		if resultCount == 0 {
+			metrics.SearchZeroResultsTotal.WithLabelValues(searchType).Inc()
+		}
+	}
 }

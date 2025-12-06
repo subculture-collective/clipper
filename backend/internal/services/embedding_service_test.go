@@ -133,5 +133,32 @@ func TestGenerateBatchEmbeddings_EmptyInput(t *testing.T) {
 	assert.Nil(t, result)
 }
 
+// TestRecordEmbeddingMetrics tests the metrics helper functions
+// These functions record to Prometheus metrics and don't return errors
+func TestRecordEmbeddingMetrics(t *testing.T) {
+	// Test that metrics functions don't panic
+	t.Run("CacheHit", func(t *testing.T) {
+		// Should not panic
+		recordEmbeddingCacheHit()
+	})
+
+	t.Run("CacheMiss", func(t *testing.T) {
+		// Should not panic
+		recordEmbeddingCacheMiss()
+	})
+
+	t.Run("Generation", func(t *testing.T) {
+		// Should not panic
+		recordEmbeddingGeneration("query", 100.0)
+		recordEmbeddingGeneration("clip", 200.0)
+	})
+
+	t.Run("GenerationError", func(t *testing.T) {
+		// Should not panic
+		recordEmbeddingGenerationError("query")
+		recordEmbeddingGenerationError("clip")
+	})
+}
+
 // Note: Testing actual API calls would require mocking the HTTP client
 // or using integration tests with a real API key
