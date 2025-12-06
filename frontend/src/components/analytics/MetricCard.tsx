@@ -12,7 +12,7 @@ interface MetricCardProps {
   className?: string;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({
+const MetricCard: React.FC<MetricCardProps> = React.memo(({
   title,
   value,
   subtitle,
@@ -57,6 +57,8 @@ const MetricCard: React.FC<MetricCardProps> = ({
       )}
     </div>
   );
-};
+});
+
+MetricCard.displayName = 'MetricCard';
 
 export default MetricCard;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -24,18 +24,22 @@ interface LineChartComponentProps {
   color?: string;
 }
 
-const LineChartComponent: React.FC<LineChartComponentProps> = ({
+const LineChartComponent: React.FC<LineChartComponentProps> = React.memo(({
   data,
   title,
   valueLabel = 'Value',
   height = 300,
   color = '#8b5cf6',
 }) => {
-  // Format data for recharts
-  const chartData = data.map((point) => ({
-    date: format(parseISO(point.date), 'MMM dd'),
-    value: point.value,
-  }));
+  // Format data for recharts - memoized to avoid recalculation
+  const chartData = useMemo(
+    () =>
+      data.map((point) => ({
+        date: format(parseISO(point.date), 'MMM dd'),
+        value: point.value,
+      })),
+    [data]
+  );
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -77,6 +81,8 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({
       </ResponsiveContainer>
     </div>
   );
-};
+});
+
+LineChartComponent.displayName = 'LineChartComponent';
 
 export default LineChartComponent;

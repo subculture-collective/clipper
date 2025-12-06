@@ -141,9 +141,9 @@ const AudienceInsightsSection: React.FC<AudienceInsightsSectionProps> = ({
                 <caption className="sr-only">Breakdown of views by device type</caption>
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-2 text-gray-700 dark:text-gray-300">Device</th>
-                    <th className="text-right py-2 text-gray-700 dark:text-gray-300">Views</th>
-                    <th className="text-right py-2 text-gray-700 dark:text-gray-300">%</th>
+                    <th scope="col" className="text-left py-2 text-gray-700 dark:text-gray-300">Device</th>
+                    <th scope="col" className="text-right py-2 text-gray-700 dark:text-gray-300">Views</th>
+                    <th scope="col" className="text-right py-2 text-gray-700 dark:text-gray-300">%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,9 +186,9 @@ const AudienceInsightsSection: React.FC<AudienceInsightsSectionProps> = ({
                 <caption className="sr-only">Breakdown of views by country</caption>
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-2 text-gray-700 dark:text-gray-300">Country</th>
-                    <th className="text-right py-2 text-gray-700 dark:text-gray-300">Views</th>
-                    <th className="text-right py-2 text-gray-700 dark:text-gray-300">%</th>
+                    <th scope="col" className="text-left py-2 text-gray-700 dark:text-gray-300">Country</th>
+                    <th scope="col" className="text-right py-2 text-gray-700 dark:text-gray-300">Views</th>
+                    <th scope="col" className="text-right py-2 text-gray-700 dark:text-gray-300">%</th>
                   </tr>
                 </thead>
                 <tbody>

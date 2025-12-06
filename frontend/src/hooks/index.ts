@@ -7,3 +7,4 @@ export { useDeepLink, useShareTargetData, useIsDeepLink } from './useDeepLink';
 export { useNetworkStatus } from './useNetworkStatus';
 export { useShare } from './useShare';
 export type { ShareData } from './useShare';
+export { useDebounce } from './useDebounce';
