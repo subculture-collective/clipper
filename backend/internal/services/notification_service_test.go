@@ -64,6 +64,71 @@ func TestShouldNotify(t *testing.T) {
 			notifType: models.NotificationTypeContentRemoved,
 			expected:  true,
 		},
+		// Creator notification preferences tests
+		{
+			name: "should notify for clip approvals when enabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipApproved: true,
+			},
+			notifType: models.NotificationTypeSubmissionApproved,
+			expected:  true,
+		},
+		{
+			name: "should not notify for clip approvals when disabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipApproved: false,
+			},
+			notifType: models.NotificationTypeSubmissionApproved,
+			expected:  false,
+		},
+		{
+			name: "should notify for clip rejections when enabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipRejected: true,
+			},
+			notifType: models.NotificationTypeSubmissionRejected,
+			expected:  true,
+		},
+		{
+			name: "should not notify for clip rejections when disabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipRejected: false,
+			},
+			notifType: models.NotificationTypeSubmissionRejected,
+			expected:  false,
+		},
+		{
+			name: "should notify for clip comments when enabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipComments: true,
+			},
+			notifType: models.NotificationTypeClipComment,
+			expected:  true,
+		},
+		{
+			name: "should not notify for clip comments when disabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipComments: false,
+			},
+			notifType: models.NotificationTypeClipComment,
+			expected:  false,
+		},
+		{
+			name: "should notify for clip view threshold when enabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipThreshold: true,
+			},
+			notifType: models.NotificationTypeClipViewThreshold,
+			expected:  true,
+		},
+		{
+			name: "should not notify for clip vote threshold when disabled",
+			prefs: &models.NotificationPreferences{
+				NotifyClipThreshold: false,
+			},
+			notifType: models.NotificationTypeClipVoteThreshold,
+			expected:  false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -177,33 +242,33 @@ func TestShouldNotify_SubmissionTypes(t *testing.T) {
 		expected  bool
 	}{
 		{
-			name: "should notify for submission approved when moderation enabled",
+			name: "should notify for submission approved when clip approved enabled",
 			prefs: &models.NotificationPreferences{
-				NotifyModeration: true,
+				NotifyClipApproved: true,
 			},
 			notifType: models.NotificationTypeSubmissionApproved,
 			expected:  true,
 		},
 		{
-			name: "should not notify for submission approved when moderation disabled",
+			name: "should not notify for submission approved when clip approved disabled",
 			prefs: &models.NotificationPreferences{
-				NotifyModeration: false,
+				NotifyClipApproved: false,
 			},
 			notifType: models.NotificationTypeSubmissionApproved,
 			expected:  false,
 		},
 		{
-			name: "should notify for submission rejected when moderation enabled",
+			name: "should notify for submission rejected when clip rejected enabled",
 			prefs: &models.NotificationPreferences{
-				NotifyModeration: true,
+				NotifyClipRejected: true,
 			},
 			notifType: models.NotificationTypeSubmissionRejected,
 			expected:  true,
 		},
 		{
-			name: "should not notify for submission rejected when moderation disabled",
+			name: "should not notify for submission rejected when clip rejected disabled",
 			prefs: &models.NotificationPreferences{
-				NotifyModeration: false,
+				NotifyClipRejected: false,
 			},
 			notifType: models.NotificationTypeSubmissionRejected,
 			expected:  false,
@@ -218,4 +283,52 @@ func TestShouldNotify_SubmissionTypes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFormatNumber(t *testing.T) {
+tests := []struct {
+name     string
+input    int64
+expected string
+}{
+{
+name:     "less than 1000",
+input:    100,
+expected: "100",
+},
+{
+name:     "exactly 1000",
+input:    1000,
+expected: "1,000",
+},
+{
+name:     "5000",
+input:    5000,
+expected: "5,000",
+},
+{
+name:     "10000",
+input:    10000,
+expected: "10,000",
+},
+{
+name:     "100000",
+input:    100000,
+expected: "100,000",
+},
+{
+name:     "1 million",
+input:    1000000,
+expected: "1,000,000",
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+result := formatNumber(tt.input)
+if result != tt.expected {
+t.Errorf("formatNumber() = %v, want %v", result, tt.expected)
+}
+})
+}
 }
