@@ -137,7 +137,6 @@ func (d *SubmissionAbuseDetector) TrackDuplicateAttempt(ctx context.Context, use
 
 	// Check if threshold exceeded
 	if count >= int64(duplicateThreshold) {
-		cooldownUntil := time.Now().Add(duplicateCooldown)
 		_ = d.setCooldown(ctx, userID, duplicateCooldown, "duplicate")
 		d.logAbuseAttempt(ctx, userID, ip, "duplicate_attempts", fmt.Sprintf("Attempted to submit duplicate clip %s %d times", clipID, count))
 	}

@@ -272,7 +272,7 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	}
 
 	// Check for duplicates
-	if err := s.checkDuplicates(ctx, clipID); err != nil {
+	if err := s.checkDuplicates(ctx, clipID, userID, ip); err != nil {
 		return nil, err
 	}
 
@@ -339,6 +339,32 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	// Save submission
 	if err := s.submissionRepo.Create(ctx, submission); err != nil {
 		return nil, fmt.Errorf("failed to create submission: %w", err)
+	}
+
+	// Emit moderation event for new submission
+	if s.moderationEvents != nil {
+		eventType := ModerationEventSubmissionReceived
+		if submission.Status == "approved" {
+			eventType = ModerationEventSubmissionApproved
+		}
+		
+		metadata := map[string]interface{}{
+			"submission_id":   submission.ID.String(),
+			"clip_id":         submission.TwitchClipID,
+			"clip_url":        submission.TwitchClipURL,
+			"status":          submission.Status,
+			"is_nsfw":         submission.IsNSFW,
+			"auto_approved":   submission.Status == "approved",
+		}
+		
+		if submission.CustomTitle != nil {
+			metadata["custom_title"] = *submission.CustomTitle
+		}
+		if len(submission.Tags) > 0 {
+			metadata["tags"] = submission.Tags
+		}
+		
+		_ = s.moderationEvents.EmitSubmissionEvent(ctx, eventType, submission, ip, metadata)
 	}
 
 	return submission, nil
@@ -546,13 +572,27 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 }
 
 // checkDuplicates checks if clip already exists or was submitted
-func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID string) error {
+func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID string, userID uuid.UUID, ip string) error {
 	// Check if clip already exists in clips table
 	exists, err := s.clipRepo.ExistsByTwitchClipID(ctx, twitchClipID)
 	if err != nil {
 		return fmt.Errorf("failed to check clip existence: %w", err)
 	}
 	if exists {
+		// Track duplicate attempt
+		if s.abuseDetector != nil {
+			_ = s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID)
+		}
+		
+		// Emit moderation event
+		if s.moderationEvents != nil {
+			metadata := map[string]interface{}{
+				"clip_id": twitchClipID,
+				"reason":  "clip_already_exists",
+			}
+			_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata)
+		}
+		
 		return &ValidationError{
 			Field:   "clip_url",
 			Message: "This clip has already been added to our database and cannot be submitted again",
@@ -565,7 +605,22 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 		return fmt.Errorf("failed to check submission existence: %w", err)
 	}
 	if submission != nil {
+		// Track duplicate attempt
+		if s.abuseDetector != nil {
+			_ = s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID)
+		}
+		
 		if submission.Status == "pending" {
+			// Emit moderation event for duplicate pending submission
+			if s.moderationEvents != nil {
+				metadata := map[string]interface{}{
+					"clip_id":       twitchClipID,
+					"reason":        "submission_pending",
+					"submission_id": submission.ID.String(),
+				}
+				_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata)
+			}
+			
 			return &ValidationError{
 				Field:   "clip_url",
 				Message: "This clip is already pending review. You'll be notified once it's been reviewed by our moderators.",
