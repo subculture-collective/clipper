@@ -11,6 +11,7 @@ import {
   MetricCard,
   LineChartComponent,
   DateRangeSelector,
+  AudienceInsightsSection,
 } from '../components/analytics';
 
 const CreatorAnalyticsPage: React.FC = () => {
@@ -242,6 +243,14 @@ const CreatorAnalyticsPage: React.FC = () => {
               />
             ) : null}
           </div>
+        </div>
+
+        {/* Audience Insights Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Audience Insights
+          </h2>
+          <AudienceInsightsSection creatorName={creatorName} />
         </div>
       </div>
     </>

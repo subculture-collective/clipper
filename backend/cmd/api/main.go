@@ -587,6 +587,7 @@ func main() {
 			creators.GET("/:creatorName/analytics/overview", analyticsHandler.GetCreatorAnalyticsOverview)
 			creators.GET("/:creatorName/analytics/clips", analyticsHandler.GetCreatorTopClips)
 			creators.GET("/:creatorName/analytics/trends", analyticsHandler.GetCreatorTrends)
+			creators.GET("/:creatorName/analytics/audience", analyticsHandler.GetCreatorAudienceInsights)
 			
 			// Creator clips listing (shows hidden clips if authenticated as creator)
 			creators.GET("/:creatorId/clips", middleware.OptionalAuthMiddleware(authService), clipHandler.ListCreatorClips)

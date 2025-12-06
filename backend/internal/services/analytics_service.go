@@ -154,6 +154,15 @@ func (s *AnalyticsService) GetPlatformTrends(ctx context.Context, metricType str
 	return s.analyticsRepo.GetPlatformTrends(ctx, metricType, days)
 }
 
+// GetCreatorAudienceInsights retrieves audience insights for a creator
+func (s *AnalyticsService) GetCreatorAudienceInsights(ctx context.Context, creatorName string, limit int) (*models.CreatorAudienceInsights, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	return s.analyticsRepo.GetCreatorAudienceInsights(ctx, creatorName, limit)
+}
+
 // anonymizeIP anonymizes an IP address for privacy using Go's net package.
 // For IPv4 addresses, the last octet (8 bits) is zeroed out.
 // For IPv6 addresses, the last 80 bits are zeroed out.
