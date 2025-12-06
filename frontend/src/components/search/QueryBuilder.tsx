@@ -459,10 +459,13 @@ export function QueryBuilder({
                 ? beforeCursor.length - wordMatch[1].length
                 : beforeCursor.length;
 
-            // Build new query
+            // Build new query - ensure trailing space for better UX
+            const insertValueWithSpace = suggestion.insertValue.endsWith(' ')
+                ? suggestion.insertValue
+                : suggestion.insertValue + ' ';
             const newQuery =
                 query.slice(0, replaceFrom) +
-                suggestion.insertValue +
+                insertValueWithSpace +
                 afterCursor.trimStart();
 
             setQuery(newQuery);
@@ -475,7 +478,7 @@ export function QueryBuilder({
             // Focus input and set cursor position
             requestAnimationFrame(() => {
                 input.focus();
-                const newCursorPos = replaceFrom + suggestion.insertValue.length;
+                const newCursorPos = replaceFrom + insertValueWithSpace.length;
                 input.setSelectionRange(newCursorPos, newCursorPos);
             });
 
@@ -564,6 +567,20 @@ export function QueryBuilder({
             }
         };
     }, []);
+
+    /**
+     * Scroll selected suggestion into view when navigating with keyboard
+     */
+    useEffect(() => {
+        if (selectedIndex >= 0 && suggestionsRef.current) {
+            const selectedElement = suggestionsRef.current.querySelector(
+                '[aria-selected="true"]'
+            );
+            if (selectedElement && typeof selectedElement.scrollIntoView === 'function') {
+                selectedElement.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [selectedIndex]);
 
     /**
      * Handle example query click
