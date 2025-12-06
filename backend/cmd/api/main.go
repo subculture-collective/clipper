@@ -163,7 +163,7 @@ func main() {
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
 	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
-	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient)
+	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
@@ -477,6 +477,10 @@ func main() {
 			clips.POST("/:id/tags", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), tagHandler.AddTagsToClip)
 			clips.DELETE("/:id/tags/:slug", middleware.AuthMiddleware(authService), tagHandler.RemoveTagFromClip)
 
+			// Creator content management (authenticated)
+			clips.PUT("/:id/metadata", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), clipHandler.UpdateClipMetadata)
+			clips.PUT("/:id/visibility", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), clipHandler.UpdateClipVisibility)
+
 			// User clip submission with rate limiting (5 per hour) - if Twitch client is available
 			if clipSyncHandler != nil {
 				clips.POST("/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), clipSyncHandler.RequestClip)
@@ -583,6 +587,9 @@ func main() {
 			creators.GET("/:creatorName/analytics/overview", analyticsHandler.GetCreatorAnalyticsOverview)
 			creators.GET("/:creatorName/analytics/clips", analyticsHandler.GetCreatorTopClips)
 			creators.GET("/:creatorName/analytics/trends", analyticsHandler.GetCreatorTrends)
+			
+			// Creator clips listing (shows hidden clips if authenticated as creator)
+			creators.GET("/:creatorId/clips", middleware.OptionalAuthMiddleware(authService), clipHandler.ListCreatorClips)
 		}
 
 		// Leaderboard routes

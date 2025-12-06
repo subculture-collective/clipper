@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/config"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 )
@@ -654,4 +655,208 @@ func (h *ClipHandler) DeleteClip(c *gin.Context) {
 			"message": "Clip deleted successfully",
 		},
 	})
+}
+
+// UpdateClipMetadata handles PUT /clips/:id/metadata
+// Updates clip metadata (title) - only accessible by creator or admin
+func (h *ClipHandler) UpdateClipMetadata(c *gin.Context) {
+// Get clip ID from URL
+clipIDStr := c.Param("id")
+clipID, err := uuid.Parse(clipIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "INVALID_CLIP_ID",
+Message: "Invalid clip ID format",
+},
+})
+return
+}
+
+// Get user from context
+userID, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "UNAUTHORIZED",
+Message: "Authentication required",
+},
+})
+return
+}
+
+// Parse request body
+var req models.UpdateClipMetadataRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+c.JSON(http.StatusBadRequest, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "INVALID_REQUEST",
+Message: "Invalid request body",
+},
+})
+return
+}
+
+// Update metadata
+err = h.clipService.UpdateClipMetadata(c.Request.Context(), userID.(uuid.UUID), clipID, req.Title)
+if err != nil {
+if err.Error() == "user does not have permission to manage this clip" {
+c.JSON(http.StatusForbidden, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "FORBIDDEN",
+Message: err.Error(),
+},
+})
+return
+}
+
+c.JSON(http.StatusInternalServerError, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "UPDATE_FAILED",
+Message: "Failed to update clip metadata",
+},
+})
+return
+}
+
+c.JSON(http.StatusOK, StandardResponse{
+Success: true,
+Data: gin.H{
+"message": "Clip metadata updated successfully",
+},
+})
+}
+
+// UpdateClipVisibility handles PUT /clips/:id/visibility
+// Updates clip visibility (hidden status) - only accessible by creator or admin
+func (h *ClipHandler) UpdateClipVisibility(c *gin.Context) {
+// Get clip ID from URL
+clipIDStr := c.Param("id")
+clipID, err := uuid.Parse(clipIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "INVALID_CLIP_ID",
+Message: "Invalid clip ID format",
+},
+})
+return
+}
+
+// Get user from context
+userID, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "UNAUTHORIZED",
+Message: "Authentication required",
+},
+})
+return
+}
+
+// Parse request body
+var req models.UpdateClipVisibilityRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+c.JSON(http.StatusBadRequest, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "INVALID_REQUEST",
+Message: "Invalid request body",
+},
+})
+return
+}
+
+// Update visibility
+err = h.clipService.UpdateClipVisibility(c.Request.Context(), userID.(uuid.UUID), clipID, req.IsHidden)
+if err != nil {
+if err.Error() == "user does not have permission to manage this clip" {
+c.JSON(http.StatusForbidden, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "FORBIDDEN",
+Message: err.Error(),
+},
+})
+return
+}
+
+c.JSON(http.StatusInternalServerError, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "UPDATE_FAILED",
+Message: "Failed to update clip visibility",
+},
+})
+return
+}
+
+c.JSON(http.StatusOK, StandardResponse{
+Success: true,
+Data: gin.H{
+"message": "Clip visibility updated successfully",
+"is_hidden": req.IsHidden,
+},
+})
+}
+
+// ListCreatorClips handles GET /creators/:creatorId/clips
+// Lists clips for a specific creator
+func (h *ClipHandler) ListCreatorClips(c *gin.Context) {
+creatorID := c.Param("creatorId")
+page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
+
+// Validate and constrain parameters
+if page < 1 {
+page = 1
+}
+if limit < 1 || limit > 100 {
+limit = 25
+}
+
+// Get user ID from context (optional)
+var userID *uuid.UUID
+if uid, exists := c.Get("user_id"); exists {
+id := uid.(uuid.UUID)
+userID = &id
+}
+
+// List clips
+clips, total, err := h.clipService.ListCreatorClips(c.Request.Context(), creatorID, userID, page, limit)
+if err != nil {
+c.JSON(http.StatusInternalServerError, StandardResponse{
+Success: false,
+Error: &ErrorInfo{
+Code:    "LIST_FAILED",
+Message: "Failed to list creator clips",
+},
+})
+return
+}
+
+// Calculate pagination metadata
+totalPages := (total + limit - 1) / limit
+meta := PaginationMeta{
+Page:       page,
+Limit:      limit,
+Total:      total,
+TotalPages: totalPages,
+HasNext:    page < totalPages,
+HasPrev:    page > 1,
+}
+
+c.JSON(http.StatusOK, StandardResponse{
+Success: true,
+Data:    clips,
+Meta:    meta,
+})
 }
