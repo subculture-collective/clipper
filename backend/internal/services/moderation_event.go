@@ -30,6 +30,10 @@ const (
 	ModerationEventVelocityViolation       ModerationEventType = "velocity_violation"
 	ModerationEventIPShareSuspicious       ModerationEventType = "ip_share_suspicious"
 	ModerationEventUserCooldownActivated   ModerationEventType = "user_cooldown_activated"
+
+	// Queue size limits to prevent unbounded growth
+	maxModerationQueueSize  = 10000 // Maximum events in main moderation queue
+	maxTypeEventListSize    = 1000  // Maximum events per type-based list
 )
 
 // ModerationEvent represents an event that requires moderation attention
@@ -86,9 +90,8 @@ func (s *ModerationEventService) EmitEvent(ctx context.Context, event *Moderatio
 		return fmt.Errorf("failed to push event to queue: %w", err)
 	}
 
-	// Trim queue to prevent unbounded growth (keep last 10000 events)
-	const maxQueueSize = 10000
-	if err := s.redisClient.ListTrim(ctx, queueKey, -maxQueueSize, -1); err != nil {
+	// Trim queue to prevent unbounded growth
+	if err := s.redisClient.ListTrim(ctx, queueKey, -maxModerationQueueSize, -1); err != nil {
 		log.Printf("Failed to trim moderation queue: %v", err)
 	}
 
@@ -104,9 +107,8 @@ func (s *ModerationEventService) EmitEvent(ctx context.Context, event *Moderatio
 		return fmt.Errorf("failed to store event by type: %w", err)
 	}
 
-	// Trim type-based event list to prevent unbounded growth (keep last 1000 per type)
-	const maxTypeEvents = 1000
-	if err := s.redisClient.ListTrim(ctx, typeKey, -maxTypeEvents, -1); err != nil {
+	// Trim type-based event list to prevent unbounded growth
+	if err := s.redisClient.ListTrim(ctx, typeKey, -maxTypeEventListSize, -1); err != nil {
 		log.Printf("Failed to trim type-based event list: %v", err)
 	}
 

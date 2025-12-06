@@ -178,18 +178,13 @@ func (d *SubmissionAbuseDetector) checkVelocityViolation(ctx context.Context, us
 func (d *SubmissionAbuseDetector) checkIPSharing(ctx context.Context, userID uuid.UUID, ip string) (bool, error) {
 	key := fmt.Sprintf("submission:ip:%s", ip)
 	
-	// Check if key exists before adding
-	exists, _ := d.redisClient.Exists(ctx, key)
-
 	// Add user to set
 	if err := d.redisClient.SetAdd(ctx, key, userID.String()); err != nil {
 		return false, err
 	}
 
-	// Set expiration on first add
-	if !exists {
-		_ = d.redisClient.Expire(ctx, key, ipSharedWindow)
-	}
+	// Always set expiration to ensure it's maintained (Redis preserves TTL if key exists)
+	_ = d.redisClient.Expire(ctx, key, ipSharedWindow)
 
 	// Check count
 	count, err := d.redisClient.SetCard(ctx, key)
