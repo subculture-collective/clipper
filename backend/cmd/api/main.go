@@ -281,12 +281,10 @@ func main() {
 	}
 	if submissionService != nil {
 		submissionHandler = handlers.NewSubmissionHandler(submissionService)
-		// Create moderation handler if we have submission service
-		if submissionService != nil && redisClient != nil {
-			// Get the abuse detector and moderation event service from submission service
-			// We'll need to expose these or create them separately
-			abuseDetector := services.NewSubmissionAbuseDetector(redisClient)
-			moderationEventService := services.NewModerationEventService(redisClient, notificationService)
+		// Create moderation handler using services from submission service
+		abuseDetector := submissionService.GetAbuseDetector()
+		moderationEventService := submissionService.GetModerationEventService()
+		if abuseDetector != nil && moderationEventService != nil {
 			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector)
 		}
 	}

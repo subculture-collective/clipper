@@ -59,6 +59,16 @@ func NewSubmissionService(
 	}
 }
 
+// GetAbuseDetector returns the abuse detector instance
+func (s *SubmissionService) GetAbuseDetector() *SubmissionAbuseDetector {
+	return s.abuseDetector
+}
+
+// GetModerationEventService returns the moderation event service instance
+func (s *SubmissionService) GetModerationEventService() *ModerationEventService {
+	return s.moderationEvents
+}
+
 // SubmitClipRequest represents a clip submission request
 type SubmitClipRequest struct {
 	ClipURL                 string   `json:"clip_url" binding:"required"`
