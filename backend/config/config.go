@@ -32,6 +32,7 @@ type ServerConfig struct {
 	GinMode     string
 	BaseURL     string
 	Environment string
+	ExportDir   string
 }
 
 // DatabaseConfig holds database connection configuration
@@ -153,6 +154,7 @@ func Load() (*Config, error) {
 			GinMode:     getEnv("GIN_MODE", "debug"),
 			BaseURL:     getEnv("BASE_URL", "http://localhost:5173"),
 			Environment: getEnv("ENVIRONMENT", "development"),
+			ExportDir:   getEnv("EXPORT_DIR", "./exports"),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),

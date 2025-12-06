@@ -525,6 +525,8 @@ const (
 	NotificationTypeSubscriptionDowngraded = "subscription_downgraded"
 	// Invoice notification types
 	NotificationTypeInvoiceFinalized = "invoice_finalized"
+	// Export notification types
+	NotificationTypeExportCompleted = "export_completed"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
@@ -947,6 +949,49 @@ type SubscriberGrowthMetric struct {
 	New       int    `json:"new"`        // New subscribers that month
 	Churned   int    `json:"churned"`    // Churned subscribers that month
 	NetChange int    `json:"net_change"` // Net subscriber change
+}
+
+// ExportRequest represents a creator's data export request
+type ExportRequest struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	CreatorName   string     `json:"creator_name" db:"creator_name"`
+	Format        string     `json:"format" db:"format"` // csv, json
+	Status        string     `json:"status" db:"status"` // pending, processing, completed, failed, expired
+	FilePath      *string    `json:"file_path,omitempty" db:"file_path"`
+	FileSizeBytes *int64     `json:"file_size_bytes,omitempty" db:"file_size_bytes"`
+	ErrorMessage  *string    `json:"error_message,omitempty" db:"error_message"`
+	ExpiresAt     *time.Time `json:"expires_at,omitempty" db:"expires_at"`
+	EmailSent     bool       `json:"email_sent" db:"email_sent"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+	CompletedAt   *time.Time `json:"completed_at,omitempty" db:"completed_at"`
+}
+
+// Export request status constants
+const (
+	ExportStatusPending    = "pending"
+	ExportStatusProcessing = "processing"
+	ExportStatusCompleted  = "completed"
+	ExportStatusFailed     = "failed"
+	ExportStatusExpired    = "expired"
+)
+
+// Export format constants
+const (
+	ExportFormatCSV  = "csv"
+	ExportFormatJSON = "json"
+)
+
+// CreateExportRequest represents the request to create a data export
+type CreateExportRequest struct {
+	Format string `json:"format" binding:"required,oneof=csv json"`
+}
+
+// ExportRequestResponse represents the response for an export request
+type ExportRequestResponse struct {
+	ExportRequest
+	DownloadURL *string `json:"download_url,omitempty"`
 }
 
 // Ad represents an advertisement campaign
