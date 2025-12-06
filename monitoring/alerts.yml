@@ -330,14 +330,14 @@ groups:
           severity: warning
         annotations:
           summary: "Low embedding coverage"
-          description: "{{ $value | humanizePercentage }} of clips are missing embeddings."
+          description: "{{ $value | humanizePercentage }} of clips are missing embeddings (threshold: 10%)."
           runbook: "docs/operations/playbooks/search-incidents.md#low-coverage"
 
       # Embedding Cache Low Hit Rate
       - alert: EmbeddingCacheLowHitRate
         expr: |
-          (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) > 0 
-          and rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) < 0.5
+          (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) > 0
+          and (rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m]))) < 0.5
         for: 15m
         labels:
           severity: warning

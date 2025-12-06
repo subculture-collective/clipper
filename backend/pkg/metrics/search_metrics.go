@@ -100,7 +100,7 @@ var (
 			Name: "indexing_jobs_total",
 			Help: "Total number of indexing jobs",
 		},
-		[]string{"status"}, // "success", "failed"
+		[]string{"status"}, // "success", "partial", "failed"
 	)
 
 	IndexingJobDuration = prometheus.NewHistogram(

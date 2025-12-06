@@ -296,7 +296,7 @@
         },
         "targets": [
           {
-            "expr": "rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m]))",
+            "expr": "rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) OR on() vector(0)",
             "legendFormat": "Hit Rate",
             "refId": "A"
           }
@@ -329,9 +329,14 @@
             "refId": "B"
           },
           {
-            "expr": "rate(embedding_generation_errors_total[5m])",
-            "legendFormat": "Errors",
+            "expr": "rate(embedding_generation_errors_total{type=\"query\"}[5m])",
+            "legendFormat": "Query Errors",
             "refId": "C"
+          },
+          {
+            "expr": "rate(embedding_generation_errors_total{type=\"clip\"}[5m])",
+            "legendFormat": "Clip Errors",
+            "refId": "D"
           }
         ]
       },
@@ -406,7 +411,7 @@
         },
         "targets": [
           {
-            "expr": "clips_with_embeddings / (clips_with_embeddings + clips_without_embeddings)",
+            "expr": "clips_with_embeddings / (clips_with_embeddings + clips_without_embeddings) OR on() vector(0)",
             "legendFormat": "Coverage",
             "refId": "A"
           }
