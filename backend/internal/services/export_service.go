@@ -11,20 +11,33 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
-	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
+// ExportRepositoryInterface defines the interface for export repository operations
+type ExportRepositoryInterface interface {
+	CreateExportRequest(ctx context.Context, req *models.ExportRequest) error
+	GetExportRequestByID(ctx context.Context, id uuid.UUID) (*models.ExportRequest, error)
+	GetUserExportRequests(ctx context.Context, userID uuid.UUID, limit int) ([]*models.ExportRequest, error)
+	UpdateExportStatus(ctx context.Context, id uuid.UUID, status string, errorMsg *string) error
+	CompleteExportRequest(ctx context.Context, id uuid.UUID, filePath string, fileSize int64, expiresAt time.Time) error
+	MarkEmailSent(ctx context.Context, id uuid.UUID) error
+	GetPendingExportRequests(ctx context.Context, limit int) ([]*models.ExportRequest, error)
+	GetExpiredExportRequests(ctx context.Context) ([]*models.ExportRequest, error)
+	MarkExportExpired(ctx context.Context, id uuid.UUID) error
+	GetCreatorClipsForExport(ctx context.Context, creatorName string) ([]*models.Clip, error)
+}
+
 // ExportService handles data export operations for creators
 type ExportService struct {
-	exportRepo   *repository.ExportRepository
+	exportRepo   ExportRepositoryInterface
 	emailService *EmailService
 	exportDir    string
 	baseURL      string
 }
 
 // NewExportService creates a new export service
-func NewExportService(exportRepo *repository.ExportRepository, emailService *EmailService, exportDir string, baseURL string) *ExportService {
+func NewExportService(exportRepo ExportRepositoryInterface, emailService *EmailService, exportDir string, baseURL string) *ExportService {
 	// Ensure export directory exists
 	if err := os.MkdirAll(exportDir, 0755); err != nil {
 		utils.GetLogger().Error("Failed to create export directory", err)

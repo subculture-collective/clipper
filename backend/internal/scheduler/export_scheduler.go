@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -13,7 +12,7 @@ import (
 // ExportScheduler manages periodic processing of export requests
 type ExportScheduler struct {
 	exportService *services.ExportService
-	exportRepo    *repository.ExportRepository
+	exportRepo    services.ExportRepositoryInterface
 	interval      time.Duration
 	batchSize     int
 	stopChan      chan struct{}
@@ -23,7 +22,7 @@ type ExportScheduler struct {
 // NewExportScheduler creates a new export scheduler
 func NewExportScheduler(
 	exportService *services.ExportService,
-	exportRepo *repository.ExportRepository,
+	exportRepo services.ExportRepositoryInterface,
 	intervalMinutes int,
 	batchSize int,
 ) *ExportScheduler {
