@@ -93,7 +93,12 @@ func (s *ExportScheduler) processExports(ctx context.Context) {
 	})
 
 	// Process each request concurrently using a worker pool
+	// Cap workers at a reasonable maximum to avoid excessive goroutines
+	const maxWorkers = 10
 	numWorkers := s.batchSize
+	if numWorkers > maxWorkers {
+		numWorkers = maxWorkers
+	}
 	if numWorkers > len(requests) {
 		numWorkers = len(requests)
 	}
