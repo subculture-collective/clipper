@@ -24,7 +24,7 @@ const DEFAULT_COLORS = [
   '#6366f1',
 ];
 
-const PieChartComponent: React.FC<PieChartComponentProps> = ({
+const PieChartComponent: React.FC<PieChartComponentProps> = React.memo(({
   data,
   title,
   height = 300,
@@ -71,6 +71,8 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({
       </ResponsiveContainer>
     </div>
   );
-};
+});
+
+PieChartComponent.displayName = 'PieChartComponent';
 
 export default PieChartComponent;
