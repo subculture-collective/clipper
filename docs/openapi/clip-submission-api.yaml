@@ -1,0 +1,742 @@
+openapi: 3.0.3
+info:
+  title: Clipper - Clip Submission API
+  description: |
+    API for submitting Twitch clips to the Clipper platform. This API allows users to submit clips for moderation, track their submission history, and view submission statistics.
+    
+    ## Authentication
+    All endpoints require authentication via JWT token. Include the token in the `Authorization` header:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+    
+    ## Rate Limits
+    - Clip submission: 5 requests per hour per user
+    - Metadata fetch: 100 requests per hour per user
+    - Other endpoints: 300 requests per minute per user
+    
+    ## Submission Workflow
+    1. **Fetch Metadata**: Use `GET /api/v1/submissions/metadata` to validate the clip URL and retrieve clip details
+    2. **Submit Clip**: Use `POST /api/v1/submissions` to submit the clip with optional custom fields
+    3. **Track Status**: Use `GET /api/v1/submissions` to view your submission history and status
+    
+    ## Auto-Approval
+    Clips are automatically approved if:
+    - The submitter is an admin or moderator
+    - The submitter has ≥1000 karma points
+    
+    Otherwise, clips are placed in a moderation queue for review.
+    
+  version: 1.0.0
+  contact:
+    name: Clipper API Support
+    url: https://github.com/subculture-collective/clipper
+  license:
+    name: MIT
+    url: https://github.com/subculture-collective/clipper/blob/main/LICENSE
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api.clipper.app/api/v1
+    description: Production server
+
+tags:
+  - name: Submissions
+    description: User clip submission operations
+  - name: Metadata
+    description: Clip metadata fetching from Twitch
+
+paths:
+  /submissions/metadata:
+    get:
+      tags:
+        - Metadata
+      summary: Fetch clip metadata from Twitch
+      description: |
+        Fetches clip metadata from the Twitch API during the submission flow. 
+        This endpoint validates the clip URL and returns clip details before submission.
+        Results are cached for 1 hour to reduce Twitch API calls.
+        
+        **Rate Limit**: 100 requests per hour per user
+      operationId: getClipMetadata
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: url
+          in: query
+          required: true
+          description: |
+            Twitch clip URL or clip ID. Supported formats:
+            - `https://clips.twitch.tv/{clipId}`
+            - `https://www.twitch.tv/{streamer}/clip/{clipId}`
+            - `https://m.twitch.tv/{streamer}/clip/{clipId}` (mobile)
+            - Direct clip ID (e.g., `AwkwardHelplessSalamanderSwiftRage`)
+            - URLs with query parameters (automatically stripped)
+          schema:
+            type: string
+            example: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+      responses:
+        '200':
+          description: Clip metadata retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ClipMetadata'
+              examples:
+                success:
+                  summary: Successful metadata retrieval
+                  value:
+                    success: true
+                    data:
+                      clip_id: "AwkwardHelplessSalamanderSwiftRage"
+                      title: "Amazing play!"
+                      streamer_name: "shroud"
+                      game_name: "Valorant"
+                      view_count: 12543
+                      created_at: "2024-11-20T15:30:00Z"
+                      thumbnail_url: "https://clips-media-assets2.twitch.tv/..."
+                      duration: 30
+                      url: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+        '400':
+          description: Invalid URL format or clip not found on Twitch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                invalidUrl:
+                  summary: Invalid URL format
+                  value:
+                    success: false
+                    error: "Invalid Twitch clip URL format"
+                    field: "url"
+                clipNotFound:
+                  summary: Clip not found on Twitch
+                  value:
+                    success: false
+                    error: "This clip was not found on Twitch. It may have been deleted or the URL is incorrect."
+                    field: "url"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '502':
+          description: Twitch API error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Unable to fetch clip metadata from Twitch. Please try again later."
+
+  /submissions:
+    post:
+      tags:
+        - Submissions
+      summary: Submit a clip for review
+      description: |
+        Submits a Twitch clip to the platform. The clip will be automatically approved if the user is an admin/moderator or has ≥1000 karma. Otherwise, it will be placed in the moderation queue.
+        
+        **Rate Limit**: 5 requests per hour per user
+        
+        **Requirements**:
+        - User must have at least 100 karma points
+        - Clip must not be a duplicate (already submitted or existing)
+        - Clip must be less than 6 months old
+        - Clip must be at least 5 seconds long
+      operationId: submitClip
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitClipRequest'
+            examples:
+              basic:
+                summary: Basic submission
+                value:
+                  clip_url: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+              withOptionalFields:
+                summary: Submission with custom title and tags
+                value:
+                  clip_url: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+                  custom_title: "Epic 1v5 Clutch"
+                  tags: ["clutch", "epic", "valorant"]
+                  is_nsfw: false
+                  submission_reason: "Amazing gameplay moment that deserves to be shared"
+      responses:
+        '201':
+          description: Clip submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Clip submitted for review"
+                  submission:
+                    $ref: '#/components/schemas/ClipSubmission'
+              examples:
+                pending:
+                  summary: Submission pending review
+                  value:
+                    success: true
+                    message: "Clip submitted for review"
+                    submission:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      user_id: "123e4567-e89b-12d3-a456-426614174000"
+                      twitch_clip_id: "AwkwardHelplessSalamanderSwiftRage"
+                      title: "Amazing play!"
+                      custom_title: null
+                      broadcaster_name: "shroud"
+                      game_name: "Valorant"
+                      tags: ["epic", "valorant"]
+                      is_nsfw: false
+                      status: "pending"
+                      submitted_at: "2024-12-07T01:30:00Z"
+                autoApproved:
+                  summary: Submission auto-approved
+                  value:
+                    success: true
+                    message: "Clip submitted and auto-approved!"
+                    submission:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      user_id: "123e4567-e89b-12d3-a456-426614174000"
+                      twitch_clip_id: "AwkwardHelplessSalamanderSwiftRage"
+                      title: "Amazing play!"
+                      status: "approved"
+                      approved_at: "2024-12-07T01:30:00Z"
+                      clip_id: "abc12345-e29b-41d4-a716-446655440000"
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                duplicateClip:
+                  summary: Clip already exists
+                  value:
+                    success: false
+                    error: "This clip has already been submitted"
+                    field: "clip_url"
+                clipTooOld:
+                  summary: Clip is too old
+                  value:
+                    success: false
+                    error: "Clip must be less than 6 months old"
+                    field: "clip_url"
+                clipTooShort:
+                  summary: Clip is too short
+                  value:
+                    success: false
+                    error: "Clip must be at least 5 seconds long"
+                    field: "clip_url"
+                insufficientKarma:
+                  summary: User doesn't have enough karma
+                  value:
+                    success: false
+                    error: "You need at least 100 karma to submit clips"
+                    field: "karma"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Rate limit exceeded. You can submit up to 5 clips per hour."
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Submissions
+      summary: List user's submissions
+      description: |
+        Retrieves a paginated list of all submissions made by the authenticated user, including status and rejection reasons.
+      operationId: getUserSubmissions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (starts at 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+      responses:
+        '200':
+          description: List of user submissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClipSubmission'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              example:
+                success: true
+                data:
+                  - id: "550e8400-e29b-41d4-a716-446655440000"
+                    user_id: "123e4567-e89b-12d3-a456-426614174000"
+                    twitch_clip_id: "AwkwardHelplessSalamanderSwiftRage"
+                    title: "Amazing play!"
+                    status: "approved"
+                    submitted_at: "2024-12-07T01:30:00Z"
+                    approved_at: "2024-12-07T02:00:00Z"
+                    clip_id: "abc12345-e29b-41d4-a716-446655440000"
+                  - id: "660e8400-e29b-41d4-a716-446655440001"
+                    user_id: "123e4567-e89b-12d3-a456-426614174000"
+                    twitch_clip_id: "AnotherClipID123"
+                    title: "Great moment"
+                    status: "rejected"
+                    submitted_at: "2024-12-06T10:00:00Z"
+                    reviewed_at: "2024-12-06T11:30:00Z"
+                    rejection_reason: "Low quality clip"
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 42
+                  total_pages: 3
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /submissions/stats:
+    get:
+      tags:
+        - Submissions
+      summary: Get submission statistics
+      description: |
+        Retrieves submission statistics for the authenticated user, including total submissions, approval rates, and karma earned.
+      operationId: getSubmissionStats
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User submission statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SubmissionStats'
+              example:
+                success: true
+                data:
+                  total_submissions: 42
+                  approved_submissions: 38
+                  rejected_submissions: 2
+                  pending_submissions: 2
+                  approval_rate: 95.0
+                  total_karma_earned: 360
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from the authentication endpoint
+
+  schemas:
+    ClipMetadata:
+      type: object
+      description: Metadata for a Twitch clip retrieved from the Twitch API
+      required:
+        - clip_id
+        - title
+        - streamer_name
+        - game_name
+        - view_count
+        - created_at
+        - thumbnail_url
+        - duration
+        - url
+      properties:
+        clip_id:
+          type: string
+          description: Twitch clip ID
+          example: "AwkwardHelplessSalamanderSwiftRage"
+        title:
+          type: string
+          description: Original clip title from Twitch
+          example: "Amazing play!"
+        streamer_name:
+          type: string
+          description: Broadcaster/streamer name
+          example: "shroud"
+        game_name:
+          type: string
+          description: Game name
+          example: "Valorant"
+        view_count:
+          type: integer
+          description: Number of views on Twitch
+          example: 12543
+        created_at:
+          type: string
+          format: date-time
+          description: When the clip was created on Twitch
+          example: "2024-11-20T15:30:00Z"
+        thumbnail_url:
+          type: string
+          format: uri
+          description: URL to the clip thumbnail image
+          example: "https://clips-media-assets2.twitch.tv/..."
+        duration:
+          type: number
+          format: float
+          description: Clip duration in seconds
+          example: 30
+        url:
+          type: string
+          format: uri
+          description: Full Twitch clip URL
+          example: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+
+    SubmitClipRequest:
+      type: object
+      required:
+        - clip_url
+      properties:
+        clip_url:
+          type: string
+          description: |
+            Twitch clip URL or clip ID. Supported formats:
+            - `https://clips.twitch.tv/{clipId}`
+            - `https://www.twitch.tv/{streamer}/clip/{clipId}`
+            - Direct clip ID
+          example: "https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage"
+        custom_title:
+          type: string
+          nullable: true
+          description: Optional custom title to override the Twitch clip title
+          maxLength: 200
+          example: "Epic 1v5 Clutch"
+        broadcaster_name_override:
+          type: string
+          nullable: true
+          description: Optional override for broadcaster name (rarely used)
+          example: "shroud"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Optional tags to categorize the clip
+          maxItems: 10
+          example: ["clutch", "epic", "valorant"]
+        is_nsfw:
+          type: boolean
+          description: Whether the clip contains NSFW content
+          default: false
+          example: false
+        submission_reason:
+          type: string
+          nullable: true
+          description: Optional reason or context for submitting this clip
+          maxLength: 500
+          example: "Amazing gameplay moment that deserves to be shared"
+
+    ClipSubmission:
+      type: object
+      description: A clip submission record
+      required:
+        - id
+        - user_id
+        - twitch_clip_id
+        - title
+        - broadcaster_name
+        - game_name
+        - status
+        - submitted_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Submission ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: string
+          format: uuid
+          description: ID of the user who submitted the clip
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        twitch_clip_id:
+          type: string
+          description: Twitch clip ID
+          example: "AwkwardHelplessSalamanderSwiftRage"
+        title:
+          type: string
+          description: Clip title (custom or from Twitch)
+          example: "Amazing play!"
+        custom_title:
+          type: string
+          nullable: true
+          description: User-provided custom title
+          example: "Epic 1v5 Clutch"
+        broadcaster_name:
+          type: string
+          description: Broadcaster/streamer name
+          example: "shroud"
+        game_name:
+          type: string
+          description: Game name
+          example: "Valorant"
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to the clip thumbnail
+          example: "https://clips-media-assets2.twitch.tv/..."
+        view_count:
+          type: integer
+          nullable: true
+          description: View count from Twitch
+          example: 12543
+        duration:
+          type: number
+          format: float
+          nullable: true
+          description: Clip duration in seconds
+          example: 30
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags associated with the clip
+          example: ["epic", "valorant"]
+        is_nsfw:
+          type: boolean
+          description: Whether the clip is marked as NSFW
+          example: false
+        submission_reason:
+          type: string
+          nullable: true
+          description: Reason provided for submission
+          example: "Amazing gameplay moment"
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+          description: Current status of the submission
+          example: "pending"
+        submitted_at:
+          type: string
+          format: date-time
+          description: When the clip was submitted
+          example: "2024-12-07T01:30:00Z"
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the submission was reviewed
+          example: "2024-12-07T02:00:00Z"
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the submission was approved
+          example: "2024-12-07T02:00:00Z"
+        rejected_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the submission was rejected
+          example: null
+        reviewer_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of the moderator who reviewed the submission
+          example: "999e8400-e29b-41d4-a716-446655440000"
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Reason for rejection (if rejected)
+          example: "Low quality clip"
+        clip_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of the created clip (if approved)
+          example: "abc12345-e29b-41d4-a716-446655440000"
+
+    SubmissionStats:
+      type: object
+      description: Statistics about a user's clip submissions
+      required:
+        - total_submissions
+        - approved_submissions
+        - rejected_submissions
+        - pending_submissions
+        - approval_rate
+        - total_karma_earned
+      properties:
+        total_submissions:
+          type: integer
+          description: Total number of submissions
+          example: 42
+        approved_submissions:
+          type: integer
+          description: Number of approved submissions
+          example: 38
+        rejected_submissions:
+          type: integer
+          description: Number of rejected submissions
+          example: 2
+        pending_submissions:
+          type: integer
+          description: Number of pending submissions
+          example: 2
+        approval_rate:
+          type: number
+          format: float
+          description: Approval rate as a percentage
+          example: 95.0
+        total_karma_earned:
+          type: integer
+          description: Total karma earned from submissions (+10 per approval, -5 per rejection)
+          example: 360
+
+    PaginationMeta:
+      type: object
+      description: Pagination metadata
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
+      properties:
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          description: Items per page
+          example: 20
+        total:
+          type: integer
+          description: Total number of items
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages
+          example: 3
+
+    ValidationError:
+      type: object
+      description: Validation error response
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Invalid Twitch clip URL format"
+        field:
+          type: string
+          description: Field that caused the validation error
+          example: "clip_url"
+
+    Error:
+      type: object
+      description: Generic error response
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+          example: "An error occurred"
+
+  responses:
+    UnauthorizedError:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Unauthorized"
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Rate limit exceeded. Please try again later."
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "An internal error occurred"
