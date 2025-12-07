@@ -7,6 +7,9 @@ This directory contains automation scripts for deploying, managing, and maintain
 | Script | Purpose | Requires Sudo |
 |--------|---------|---------------|
 | `deploy.sh` | Deploy application with automated backup and rollback | No |
+| `deploy-blue-green.sh` | Deploy using blue/green strategy with zero downtime | No |
+| `deploy-k8s-blue-green.sh` | Deploy using blue/green strategy on Kubernetes | No |
+| `smoke-tests.sh` | Run automated smoke tests on deployed application | No |
 | `rollback.sh` | Rollback to a previous version | No |
 | `preflight-check.sh` | Run comprehensive pre-deployment validation | No |
 | `staging-rehearsal.sh` | Complete staging deployment rehearsal | No |
@@ -688,4 +691,320 @@ Next steps:
 ```
 
 See [Migration Plan](../docs/MIGRATION_PLAN.md) for detailed procedures.
+
+### deploy-blue-green.sh
+
+**NEW** - Blue/green deployment script for zero-downtime deployments with automated smoke tests and rollback.
+
+**Features**:
+
+- Detects current active environment (blue or green)
+- Deploys to inactive environment
+- Automated health checks
+- Automated smoke tests
+- Traffic switching with load balancer update
+- Automatic rollback on failure
+- Preserves old environment for quick rollback
+- Zero downtime during deployment
+
+**Usage**:
+
+```bash
+# Deploy to production using blue/green strategy
+cd /opt/clipper
+./scripts/deploy-blue-green.sh
+
+# Deploy with custom settings
+ENVIRONMENT=production BLUE_PORT=8080 GREEN_PORT=8081 ./scripts/deploy-blue-green.sh
+
+# Deploy to staging
+ENVIRONMENT=staging ./scripts/deploy-blue-green.sh
+```
+
+**Environment Variables**:
+
+- `DEPLOY_DIR`: Deployment directory (default: `/opt/clipper`)
+- `REGISTRY`: Container registry (default: `ghcr.io/subculture-collective/clipper`)
+- `ENVIRONMENT`: Environment name (default: `production`)
+- `BLUE_PORT`: Blue environment port (default: `8080`)
+- `GREEN_PORT`: Green environment port (default: `8081`)
+- `NGINX_CONFIG`: Nginx config file (default: `/etc/nginx/sites-available/clipper`)
+- `HEALTH_CHECK_RETRIES`: Number of health check retries (default: `10`)
+- `HEALTH_CHECK_INTERVAL`: Interval between health checks in seconds (default: `5`)
+
+**Prerequisites**:
+
+- Docker installed
+- Nginx or load balancer configured
+- Network `clipper-network` created
+- `.env` file with environment variables
+
+**Example Output**:
+
+```
+=== Clipper Blue/Green Deployment ===
+Environment: production
+Deploy Directory: /opt/clipper
+Blue Port: 8080
+Green Port: 8081
+
+[INFO] Current active environment: blue
+[INFO] Deploying to inactive environment: green (port 8081)
+[STEP] Pulling latest images from registry...
+[STEP] Stopping old green environment containers...
+[STEP] Starting new version in green environment...
+[INFO] ✓ green environment started on port 8081
+[STEP] Waiting for service to initialize...
+[STEP] Running health checks on green environment...
+[INFO] ✓ Health check passed
+[STEP] Running smoke tests on green environment...
+[INFO] ✓ All smoke tests passed
+[STEP] Switching traffic to green environment (port 8081)...
+[INFO] ✓ Traffic switched to green environment
+[STEP] Monitoring new environment for stability...
+[INFO] ✓ New environment stable
+[STEP] Stopping old blue environment...
+[INFO] Old blue environment stopped but preserved for rollback
+
+=== Blue/Green Deployment Complete ===
+Active environment: green (port 8081)
+Inactive environment: blue (stopped, preserved for rollback)
+
+To rollback: docker start clipper-backend-blue && <switch traffic back>
+To cleanup old environment: docker rm clipper-backend-blue
+```
+
+**Rollback**:
+
+The script automatically rolls back on any failure. For manual rollback:
+
+```bash
+# Start the previous environment
+docker start clipper-backend-blue
+
+# Switch traffic back (manual or via script)
+sudo vim /etc/nginx/sites-available/clipper
+# Change proxy_pass to point to old port
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### deploy-k8s-blue-green.sh
+
+**NEW** - Blue/green deployment script for Kubernetes clusters.
+
+**Features**:
+
+- Kubernetes-native blue/green deployments
+- Automatic service selector switching
+- Health checks using readiness/liveness probes
+- Smoke tests via port-forwarding
+- Automatic rollback on failure
+- Zero downtime during deployment
+- Preserves old deployment for quick rollback
+
+**Usage**:
+
+```bash
+# Deploy to Kubernetes production
+NAMESPACE=production VERSION=v1.2.3 ./scripts/deploy-k8s-blue-green.sh
+
+# Deploy to staging
+NAMESPACE=staging VERSION=latest ./scripts/deploy-k8s-blue-green.sh
+
+# Deploy with custom registry
+REGISTRY=myregistry.io/clipper NAMESPACE=production VERSION=v1.2.3 ./scripts/deploy-k8s-blue-green.sh
+```
+
+**Environment Variables**:
+
+- `NAMESPACE`: Kubernetes namespace (default: `default`)
+- `REGISTRY`: Container registry (default: `ghcr.io/subculture-collective/clipper`)
+- `VERSION`: Image version/tag (default: `latest`)
+- `KUBECTL`: kubectl command (default: `kubectl`)
+
+**Prerequisites**:
+
+- kubectl installed and configured
+- Kubernetes cluster running
+- Blue and green deployments created (`deployment-backend-blue.yaml`, `deployment-backend-green.yaml`)
+- Service `clipper-backend` configured
+- Proper RBAC permissions
+
+**Example Output**:
+
+```
+=== Kubernetes Blue/Green Deployment ===
+Namespace: production
+Registry: ghcr.io/subculture-collective/clipper
+Version: v1.2.3
+
+[INFO] Current active environment: blue
+[INFO] Deploying to inactive environment: green
+[STEP] Updating green deployment with new image...
+[INFO] Waiting for deployment clipper-backend-green to be ready...
+[INFO] ✓ Deployment clipper-backend-green is ready
+[STEP] Running smoke tests on green environment...
+[INFO] Port forwarding to pod clipper-backend-green-xyz...
+[INFO] ✓ Smoke tests passed
+[STEP] Switching traffic to green environment...
+[INFO] ✓ Traffic switched to green environment
+[STEP] Monitoring new environment for stability...
+[INFO] ✓ New environment stable
+[STEP] Scaling down old blue environment...
+[INFO] Old blue environment scaled down (preserved for rollback)
+
+=== Blue/Green Deployment Complete ===
+Active environment: green
+Inactive environment: blue (scaled to 0)
+
+To rollback: kubectl scale deployment/clipper-backend-blue --replicas=2 -n production
+             kubectl patch service clipper-backend -n production -p '{"spec":{"selector":{"version":"blue"}}}'
+```
+
+**Rollback**:
+
+```bash
+# Quick rollback
+kubectl patch service clipper-backend -n production -p '{"spec":{"selector":{"version":"blue"}}}'
+kubectl scale deployment/clipper-backend-blue --replicas=2 -n production
+kubectl scale deployment/clipper-backend-green --replicas=0 -n production
+```
+
+### smoke-tests.sh
+
+**NEW** - Automated smoke test suite for deployed applications.
+
+**Features**:
+
+- Health endpoint testing
+- API endpoint availability testing
+- Response time validation
+- JSON response structure validation
+- Authentication testing
+- Error handling testing
+- Configurable timeout and retries
+- Detailed pass/fail reporting
+- Exit codes for automation
+
+**Usage**:
+
+```bash
+# Run smoke tests on local deployment
+./scripts/smoke-tests.sh
+
+# Test specific environment
+BACKEND_URL=http://localhost:8080 ./scripts/smoke-tests.sh
+
+# Test production
+BACKEND_URL=https://api.clipper.example.com ./scripts/smoke-tests.sh
+
+# Run with verbose output
+VERBOSE=true ./scripts/smoke-tests.sh
+
+# Custom timeout
+TIMEOUT=20 ./scripts/smoke-tests.sh
+```
+
+**Environment Variables**:
+
+- `BACKEND_URL`: Backend base URL (default: `http://localhost:8080`)
+- `TIMEOUT`: Request timeout in seconds (default: `10`)
+- `VERBOSE`: Enable verbose output (default: `false`)
+
+**Tests Performed**:
+
+1. **Health Checks**:
+   - `/health` - Basic health endpoint
+   - `/health/ready` - Readiness probe
+   - `/health/live` - Liveness probe
+
+2. **API Endpoints**:
+   - `/api/v1/ping` - API availability
+   - `/api/v1/clips` - Clips endpoint
+   - `/api/v1/search` - Search endpoint
+   - `/api/v1/tags` - Tags endpoint
+
+3. **Authentication**:
+   - Protected endpoints return 401
+   - Submit endpoint requires auth
+
+4. **Performance** (if `bc` is available):
+   - Health endpoint < 1000ms
+   - API ping < 1000ms
+
+5. **Error Handling**:
+   - Non-existent endpoints return 404
+
+**Exit Codes**:
+
+- `0`: All tests passed
+- `1`: One or more tests failed
+
+**Example Output**:
+
+```
+=== Clipper Smoke Tests ===
+Backend URL: http://localhost:8080
+Timeout: 10s
+
+Running smoke tests...
+
+[TEST] Basic Health Check
+[INFO] ✓ Basic Health Check passed (HTTP 200)
+[TEST] Readiness Probe
+[INFO] ✓ Readiness Probe passed (HTTP 200)
+[TEST] Liveness Probe
+[INFO] ✓ Liveness Probe passed (HTTP 200)
+[TEST] API Ping
+[INFO] ✓ API Ping passed (HTTP 200)
+[TEST] Health Status Field
+[INFO] ✓ Health Status Field passed (field: .status = ok)
+[TEST] Health Response Time
+[INFO] ✓ Health Response Time passed (243ms < 1000ms)
+[TEST] Clips Endpoint Exists
+[INFO] ✓ Clips Endpoint Exists passed (HTTP 200)
+[TEST] Search Endpoint Exists
+[INFO] ✓ Search Endpoint Exists passed (HTTP 200)
+[TEST] Protected Submit Endpoint
+[INFO] ✓ Protected Submit Endpoint passed (HTTP 401)
+[TEST] 404 for Non-existent Endpoint
+[INFO] ✓ 404 for Non-existent Endpoint passed (HTTP 404)
+
+=== Test Summary ===
+Total Tests: 10
+Passed: 10
+Failed: 0
+
+✓ All smoke tests passed!
+```
+
+**Integration with Deployment**:
+
+The smoke tests are automatically run during blue/green deployments:
+
+```bash
+# In deploy-blue-green.sh
+run_smoke_tests "$INACTIVE_PORT"
+
+# In deploy-k8s-blue-green.sh
+run_smoke_tests "$INACTIVE_ENV"
+
+# In GitHub Actions
+BACKEND_URL="http://localhost:8080" ./scripts/smoke-tests.sh
+```
+
+**Adding Custom Tests**:
+
+Edit `scripts/smoke-tests.sh` and add your tests:
+
+```bash
+# Test a new endpoint
+run_test "New Feature Endpoint" "/api/v1/new-feature" 200
+
+# Test JSON response
+test_json_response "Feature Config" "/api/v1/config" ".feature.enabled" "true"
+
+# Test performance
+test_response_time "Feature Speed" "/api/v1/feature" 500
+```
 
