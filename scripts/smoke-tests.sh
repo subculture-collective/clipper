@@ -137,11 +137,26 @@ test_response_time() {
     
     if command -v curl >/dev/null 2>&1; then
         response_time=$(curl -s -o /dev/null -w "%{time_total}" -m "$TIMEOUT" "$url" 2>/dev/null || echo "999")
-        # Convert to milliseconds
-        response_time_ms=$(echo "$response_time * 1000" | bc 2>/dev/null || echo "999999")
-        response_time_ms=${response_time_ms%.*} # Remove decimal
+        # Ensure response_time is not empty
+        response_time=${response_time:-999}
         
-        if [ "$response_time_ms" -lt "$max_time_ms" ]; then
+        # Convert to milliseconds
+        if command -v bc >/dev/null 2>&1; then
+            # Use bc to multiply, then printf to format
+            response_time_ms=$(echo "scale=0; $response_time * 1000 / 1" | bc 2>/dev/null || echo "999999")
+        elif command -v awk >/dev/null 2>&1; then
+            # Fallback: use awk for multiplication
+            response_time_ms=$(awk -v rt="$response_time" 'BEGIN {printf "%.0f", rt * 1000}' 2>/dev/null || echo "999999")
+        else
+            # Last fallback: skip this test
+            log_warn "Neither bc nor awk available, skipping performance test"
+            return 0
+        fi
+        
+        # Ensure response_time_ms is a valid integer
+        response_time_ms=${response_time_ms:-999999}
+        
+        if [ "$response_time_ms" -lt "$max_time_ms" ] 2>/dev/null; then
             log_info "✓ $test_name passed (${response_time_ms}ms < ${max_time_ms}ms)"
             TESTS_PASSED=$((TESTS_PASSED + 1))
             return 0

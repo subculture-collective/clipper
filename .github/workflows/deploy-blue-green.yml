@@ -30,7 +30,7 @@ jobs:
     environment:
       name: ${{ inputs.environment }}
       url: ${{ inputs.environment == 'production' && 'https://clipper.example.com' || 'https://staging.clipper.example.com' }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -94,14 +94,14 @@ jobs:
           script: |
             set -e
             cd /opt/clipper
-            
+
             # Pull latest images
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${ENVIRONMENT}
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${ENVIRONMENT}
-            
+
             # Run blue/green deployment script
             ./scripts/deploy-blue-green.sh
-            
+
             # Cleanup old images
             docker system prune -f
 
@@ -156,7 +156,7 @@ jobs:
     if: failure()
     environment:
       name: ${{ inputs.environment }}
-    
+
     steps:
       - name: Execute rollback
         uses: appleboy/ssh-action@v1.2.0
@@ -166,20 +166,20 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /opt/clipper
-            
+
             # Detect and restart the previous environment
             if docker ps -a --format '{{.Names}}' | grep -q "clipper-backend-blue"; then
               PREVIOUS_ENV="blue"
             else
               PREVIOUS_ENV="green"
             fi
-            
+
             echo "Rolling back to $PREVIOUS_ENV environment..."
             docker start "clipper-backend-$PREVIOUS_ENV"
-            
+
             # Wait for service to be ready
             sleep 5
-            
+
             # Verify rollback
             if curl -f http://localhost:8080/health; then
               echo "Rollback successful"
