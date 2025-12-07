@@ -45,6 +45,7 @@ Guides for using the Clipper platform:
 
 - **[[backend/architecture|Architecture]]** - System design, components, and data flow
 - **[[backend/api|API Reference]]** - REST API endpoints, authentication, and examples
+- **[[CLIP_SUBMISSION_API_DOCUMENTATION_SUMMARY|Clip Submission API - Documentation Hub]]** - Navigate all submission API resources
 - **[[CLIP_SUBMISSION_API_GUIDE|Clip Submission API Guide]]** - Complete guide with TypeScript and cURL examples
 - **[[CLIP_SUBMISSION_API_QUICKREF|Clip Submission Quick Reference]]** - Quick reference card for developers
 - **[[openapi/README|OpenAPI Specifications]]** - Machine-readable API specifications
