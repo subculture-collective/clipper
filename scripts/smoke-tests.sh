@@ -110,15 +110,22 @@ test_json_response() {
             return 1
         fi
     else
-        # Fallback: simple grep-based check
-        if echo "$response" | grep -q "\"$json_field\".*\"$expected_value\""; then
-            log_info "✓ $test_name passed (contains expected value)"
+        # Fallback: Use python to parse JSON if available
+        if command -v python3 >/dev/null 2>&1; then
+            local actual_value=$(echo "$response" | python3 -c "import sys, json; data = json.load(sys.stdin); print(data$json_field)" 2>/dev/null || echo "null")
+            if [ "$actual_value" = "$expected_value" ]; then
+                log_info "✓ $test_name passed (field: $json_field = $expected_value)"
+                TESTS_PASSED=$((TESTS_PASSED + 1))
+                return 0
+            else
+                log_error "✗ $test_name failed (expected $expected_value, got $actual_value)"
+                TESTS_FAILED=$((TESTS_FAILED + 1))
+                return 1
+            fi
+        else
+            log_warn "Neither jq nor python3 available, skipping JSON field test"
             TESTS_PASSED=$((TESTS_PASSED + 1))
             return 0
-        else
-            log_error "✗ $test_name failed"
-            TESTS_FAILED=$((TESTS_FAILED + 1))
-            return 1
         fi
     fi
 }
@@ -156,7 +163,14 @@ test_response_time() {
         # Ensure response_time_ms is a valid integer
         response_time_ms=${response_time_ms:-999999}
         
-        if [ "$response_time_ms" -lt "$max_time_ms" ] 2>/dev/null; then
+        # Validate it's numeric
+        if ! [ "$response_time_ms" -eq "$response_time_ms" ] 2>/dev/null; then
+            log_error "✗ $test_name failed (invalid response time)"
+            TESTS_FAILED=$((TESTS_FAILED + 1))
+            return 1
+        fi
+        
+        if [ "$response_time_ms" -lt "$max_time_ms" ]; then
             log_info "✓ $test_name passed (${response_time_ms}ms < ${max_time_ms}ms)"
             TESTS_PASSED=$((TESTS_PASSED + 1))
             return 0

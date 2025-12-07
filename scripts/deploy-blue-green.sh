@@ -50,13 +50,16 @@ command_exists() {
 
 # Function to detect current active environment
 detect_active_environment() {
-    if docker ps --format '{{.Names}}' | grep -q "clipper-backend-green"; then
-        if docker ps --format '{{.Names}}' --filter "status=running" | grep -q "clipper-backend-green"; then
-            echo "green"
-        else
-            echo "blue"
-        fi
+    # Check if either container is running
+    local blue_running=$(docker ps --filter "name=clipper-backend-blue" --filter "status=running" --format '{{.Names}}' 2>/dev/null)
+    local green_running=$(docker ps --filter "name=clipper-backend-green" --filter "status=running" --format '{{.Names}}' 2>/dev/null)
+    
+    if [ -n "$green_running" ]; then
+        echo "green"
+    elif [ -n "$blue_running" ]; then
+        echo "blue"
     else
+        # Default to blue if nothing is running
         echo "blue"
     fi
 }
@@ -131,7 +134,14 @@ switch_traffic() {
     # Update nginx configuration if it exists
     if [ -f "$NGINX_CONFIG" ]; then
         log_info "Updating nginx configuration..."
-        sed -i.bak "s/proxy_pass http:\/\/localhost:[0-9]\+/proxy_pass http:\/\/localhost:$target_port/g" "$NGINX_CONFIG"
+        
+        # Verify the pattern exists before replacement
+        if grep -q "proxy_pass http://localhost:[0-9]\+" "$NGINX_CONFIG"; then
+            sed -i.bak "s/proxy_pass http:\/\/localhost:[0-9]\+/proxy_pass http:\/\/localhost:$target_port/g" "$NGINX_CONFIG"
+        else
+            log_error "Nginx configuration doesn't contain expected proxy_pass pattern"
+            return 1
+        fi
         
         # Test nginx configuration
         if nginx -t 2>/dev/null; then

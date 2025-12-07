@@ -14,6 +14,13 @@ REGISTRY="${REGISTRY:-ghcr.io/subculture-collective/clipper}"
 VERSION="${VERSION:-latest}"
 KUBECTL="${KUBECTL:-kubectl}"
 
+# Warn about using 'latest' in production
+if [ "$VERSION" = "latest" ]; then
+    echo -e "${YELLOW}WARNING: Using 'latest' tag is not recommended for production deployments.${NC}"
+    echo -e "${YELLOW}Please specify a version tag (e.g., VERSION=v1.2.3)${NC}"
+    echo ""
+fi
+
 echo -e "${BLUE}=== Kubernetes Blue/Green Deployment ===${NC}"
 echo "Namespace: $NAMESPACE"
 echo "Registry: $REGISTRY"
@@ -91,6 +98,21 @@ run_smoke_tests() {
     
     # Wait for port forward to be ready
     sleep 3
+    
+    # Verify port forward is working
+    local retries=5
+    while [ $retries -gt 0 ]; do
+        if curl -s http://localhost:9090/health >/dev/null 2>&1; then
+            break
+        fi
+        retries=$((retries - 1))
+        if [ $retries -eq 0 ]; then
+            log_error "Port forward failed to become ready"
+            kill $PF_PID 2>/dev/null || true
+            return 1
+        fi
+        sleep 1
+    done
     
     # Run smoke tests
     if BACKEND_URL="http://localhost:9090" ./scripts/smoke-tests.sh; then

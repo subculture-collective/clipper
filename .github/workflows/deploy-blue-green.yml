@@ -167,15 +167,22 @@ jobs:
           script: |
             cd /opt/clipper
 
-            # Detect and restart the previous environment
-            if docker ps -a --format '{{.Names}}' | grep -q "clipper-backend-blue"; then
-              PREVIOUS_ENV="blue"
-            else
-              PREVIOUS_ENV="green"
+            # Detect the previously active environment from deployment logs or container status
+            # First, check if there's a backup tag we can use
+            ACTIVE_ENV=$(docker ps --filter "status=running" --filter "name=clipper-backend" --format '{{.Names}}' | grep -o -E '(blue|green)' | head -1)
+
+            if [ -z "$ACTIVE_ENV" ]; then
+              # If no running container, check stopped containers
+              ACTIVE_ENV=$(docker ps -a --filter "name=clipper-backend" --format '{{.Names}}' | grep -o -E '(blue|green)' | head -1)
             fi
 
-            echo "Rolling back to $PREVIOUS_ENV environment..."
-            docker start "clipper-backend-$PREVIOUS_ENV"
+            if [ -z "$ACTIVE_ENV" ]; then
+              echo "Cannot determine previous environment, defaulting to blue"
+              ACTIVE_ENV="blue"
+            fi
+
+            echo "Rolling back to $ACTIVE_ENV environment..."
+            docker start "clipper-backend-$ACTIVE_ENV"
 
             # Wait for service to be ready
             sleep 5
