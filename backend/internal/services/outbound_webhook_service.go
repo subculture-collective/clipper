@@ -114,12 +114,17 @@ func (s *OutboundWebhookService) UpdateSubscription(ctx context.Context, id uuid
 
 	// Validate events if provided
 	var eventsToUpdate []string
-	if len(req.Events) > 0 {
+	if req.Events != nil {
+		// Check if empty array was explicitly provided (invalid)
+		if len(req.Events) == 0 {
+			return fmt.Errorf("events array cannot be empty; omit the field to keep current events")
+		}
 		if err := s.validateEvents(req.Events); err != nil {
 			return err
 		}
 		eventsToUpdate = req.Events
 	} else {
+		// nil means don't update events
 		eventsToUpdate = nil
 	}
 
