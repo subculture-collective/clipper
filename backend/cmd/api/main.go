@@ -142,6 +142,7 @@ func main() {
 	revenueRepo := repository.NewRevenueRepository(db.Pool)
 	adRepo := repository.NewAdRepository(db.Pool)
 	exportRepo := repository.NewExportRepository(db.Pool)
+	verificationRepo := repository.NewVerificationRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -170,6 +171,7 @@ func main() {
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
+	verificationService := services.NewVerificationService(verificationRepo, userRepo)
 
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
@@ -276,6 +278,7 @@ func main() {
 	adHandler := handlers.NewAdHandler(adService)
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
 	webhookSubscriptionHandler := handlers.NewWebhookSubscriptionHandler(outboundWebhookService)
+	verificationHandler := handlers.NewVerificationHandler(verificationService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -618,6 +621,21 @@ func main() {
 			creators.GET("/me/exports", middleware.AuthMiddleware(authService), exportHandler.ListExportRequests)
 			creators.GET("/me/export/status/:id", middleware.AuthMiddleware(authService), exportHandler.GetExportStatus)
 			creators.GET("/me/export/download/:id", middleware.AuthMiddleware(authService), exportHandler.DownloadExport)
+		}
+
+		// Creator verification routes
+		verification := v1.Group("/verification")
+		{
+			// Submit verification application (authenticated, rate limited)
+			verification.POST("/apply", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, 24*time.Hour), verificationHandler.SubmitApplication)
+			
+			// Get user's verification status (authenticated)
+			verification.GET("/status", middleware.AuthMiddleware(authService), verificationHandler.GetStatus)
+			
+			// Admin endpoints (require admin role)
+			verification.GET("/applications", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), verificationHandler.ListApplications)
+			verification.POST("/review/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), verificationHandler.ReviewApplication)
+			verification.GET("/:id/audit-logs", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), verificationHandler.GetAuditLogs)
 		}
 
 		// Leaderboard routes

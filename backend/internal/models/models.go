@@ -18,6 +18,8 @@ type User struct {
 	KarmaPoints    int        `json:"karma_points" db:"karma_points"`
 	Role           string     `json:"role" db:"role"`
 	IsBanned       bool       `json:"is_banned" db:"is_banned"`
+	IsVerified     bool       `json:"is_verified" db:"is_verified"`
+	VerifiedAt     *time.Time `json:"verified_at,omitempty" db:"verified_at"`
 	DeviceToken    *string    `json:"device_token,omitempty" db:"device_token"`
 	DevicePlatform *string    `json:"device_platform,omitempty" db:"device_platform"`
 	CreatedAt      time.Time  `json:"created_at" db:"created_at"`

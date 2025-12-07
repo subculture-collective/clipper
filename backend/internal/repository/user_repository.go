@@ -56,7 +56,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 	query := `
 		SELECT 
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, is_banned, is_verified, verified_at, created_at, updated_at, last_login_at
 		FROM users
 		WHERE id = $1
 	`
@@ -65,7 +65,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
 		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
-		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		&user.IsVerified, &user.VerifiedAt, &user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 	)
 
 	if err != nil {
@@ -83,7 +83,7 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 	query := `
 		SELECT 
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, is_banned, is_verified, verified_at, created_at, updated_at, last_login_at
 		FROM users
 		WHERE twitch_id = $1
 	`
@@ -92,7 +92,7 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 	err := r.db.QueryRow(ctx, query, twitchID).Scan(
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
 		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
-		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		&user.IsVerified, &user.VerifiedAt, &user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 	)
 
 	if err != nil {
@@ -137,14 +137,14 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	query := `
 		UPDATE users
 		SET username = $2, display_name = $3, email = $4, avatar_url = $5,
-		    bio = $6, last_login_at = $7, updated_at = NOW()
+		    bio = $6, last_login_at = $7, is_verified = $8, verified_at = $9, updated_at = NOW()
 		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(
 		ctx, query,
 		user.ID, user.Username, user.DisplayName, user.Email,
-		user.AvatarURL, user.Bio, user.LastLoginAt,
+		user.AvatarURL, user.Bio, user.LastLoginAt, user.IsVerified, user.VerifiedAt,
 	)
 
 	if err != nil {
