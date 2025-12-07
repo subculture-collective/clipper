@@ -30,15 +30,19 @@ CREATE TABLE creator_verifications (
     
     -- Audit trail
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    
-    CONSTRAINT unique_active_application UNIQUE (user_id, status)
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Create indexes for common queries
 CREATE INDEX idx_creator_verifications_user_id ON creator_verifications(user_id);
 CREATE INDEX idx_creator_verifications_status ON creator_verifications(status);
 CREATE INDEX idx_creator_verifications_created_at ON creator_verifications(created_at DESC);
+
+-- Create unique partial index for pending applications only
+-- This allows multiple rejected/revoked applications but only one pending
+CREATE UNIQUE INDEX idx_creator_verifications_user_pending 
+    ON creator_verifications(user_id) 
+    WHERE status = 'pending';
 
 -- Verification audit log table
 CREATE TABLE verification_audit_logs (

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 var (
@@ -121,7 +122,11 @@ func (s *VerificationService) SubmitApplication(ctx context.Context, userID uuid
 
 	if err := s.verificationRepo.CreateAuditLog(ctx, auditLog); err != nil {
 		// Log error but don't fail the request
-		fmt.Printf("WARNING: failed to create audit log: %v\n", err)
+		logger := utils.GetLogger()
+		logger.Warn("Failed to create audit log", map[string]interface{}{
+			"error":           err.Error(),
+			"verification_id": verification.ID.String(),
+		})
 	}
 
 	return verification, nil
@@ -227,7 +232,11 @@ func (s *VerificationService) ReviewApplication(ctx context.Context, verificatio
 
 	if err := s.verificationRepo.CreateAuditLog(ctx, auditLog); err != nil {
 		// Log error but don't fail the request
-		fmt.Printf("WARNING: failed to create audit log: %v\n", err)
+		logger := utils.GetLogger()
+		logger.Warn("Failed to create audit log", map[string]interface{}{
+			"error":           err.Error(),
+			"verification_id": verification.ID.String(),
+		})
 	}
 
 	return verification, nil

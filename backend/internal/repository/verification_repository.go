@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 )
@@ -54,9 +55,13 @@ func (r *VerificationRepository) Create(ctx context.Context, verification *model
 	).Scan(&verification.CreatedAt, &verification.UpdatedAt)
 
 	if err != nil {
-		// Check for unique constraint violation
-		if err.Error() == "ERROR: duplicate key value violates unique constraint \"unique_active_application\" (SQLSTATE 23505)" {
-			return ErrActiveVerificationExists
+		// Check for unique constraint violation on pending applications
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			// Check if it's the specific constraint we care about
+			if pgErr.ConstraintName == "idx_creator_verifications_user_pending" {
+				return ErrActiveVerificationExists
+			}
 		}
 		return fmt.Errorf("failed to create verification: %w", err)
 	}
