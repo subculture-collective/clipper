@@ -12,7 +12,9 @@ import (
 	"io"
 	"log"
 	"math"
+	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,6 +40,11 @@ func NewOutboundWebhookService(webhookRepo *repository.OutboundWebhookRepository
 
 // CreateSubscription creates a new webhook subscription
 func (s *OutboundWebhookService) CreateSubscription(ctx context.Context, userID uuid.UUID, req *models.CreateWebhookSubscriptionRequest) (*models.WebhookSubscription, error) {
+	// Validate URL for SSRF protection
+	if err := s.validateURL(req.URL); err != nil {
+		return nil, err
+	}
+
 	// Validate events
 	if err := s.validateEvents(req.Events); err != nil {
 		return nil, err
@@ -98,14 +105,25 @@ func (s *OutboundWebhookService) UpdateSubscription(ctx context.Context, id uuid
 		return fmt.Errorf("subscription not found")
 	}
 
-	// Validate events if provided
-	if len(req.Events) > 0 {
-		if err := s.validateEvents(req.Events); err != nil {
+	// Validate URL if provided
+	if req.URL != nil {
+		if err := s.validateURL(*req.URL); err != nil {
 			return err
 		}
 	}
 
-	return s.webhookRepo.UpdateSubscription(ctx, id, req.URL, req.Events, req.IsActive, req.Description)
+	// Validate events if provided
+	var eventsToUpdate []string
+	if len(req.Events) > 0 {
+		if err := s.validateEvents(req.Events); err != nil {
+			return err
+		}
+		eventsToUpdate = req.Events
+	} else {
+		eventsToUpdate = nil
+	}
+
+	return s.webhookRepo.UpdateSubscription(ctx, id, req.URL, eventsToUpdate, req.IsActive, req.Description)
 }
 
 // DeleteSubscription deletes a webhook subscription
@@ -142,7 +160,7 @@ func (s *OutboundWebhookService) RegenerateSecret(ctx context.Context, id uuid.U
 	}
 
 	// Update subscription with new secret
-	if err := s.webhookRepo.UpdateSubscription(ctx, id, nil, nil, nil, nil); err != nil {
+	if err := s.webhookRepo.UpdateSubscriptionSecret(ctx, id, newSecret); err != nil {
 		return "", fmt.Errorf("failed to update subscription: %w", err)
 	}
 
@@ -317,6 +335,34 @@ func (s *OutboundWebhookService) validateEvents(events []string) error {
 	for _, event := range events {
 		if !supportedEvents[event] {
 			return fmt.Errorf("unsupported event: %s", event)
+		}
+	}
+
+	return nil
+}
+
+// validateURL validates webhook URL and protects against SSRF attacks
+func (s *OutboundWebhookService) validateURL(urlStr string) error {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Only allow HTTP/HTTPS
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("only http and https schemes are allowed")
+	}
+
+	// Resolve hostname to IP
+	ips, err := net.LookupIP(u.Hostname())
+	if err != nil {
+		return fmt.Errorf("cannot resolve hostname: %w", err)
+	}
+
+	// Check if any resolved IP is private/internal
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() {
+			return fmt.Errorf("webhook URLs cannot point to private/internal addresses")
 		}
 	}
 

@@ -680,8 +680,8 @@ func main() {
 		// Outbound webhook subscription routes
 		webhooks := v1.Group("/webhooks")
 		{
-			// Get supported webhook events (public)
-			webhooks.GET("/events", webhookSubscriptionHandler.GetSupportedEvents)
+			// Get supported webhook events (public, rate-limited)
+			webhooks.GET("/events", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), webhookSubscriptionHandler.GetSupportedEvents)
 
 			// Protected webhook subscription endpoints (require authentication)
 			webhooks.Use(middleware.AuthMiddleware(authService))
@@ -692,6 +692,9 @@ func main() {
 			webhooks.GET("/:id", webhookSubscriptionHandler.GetSubscription)
 			webhooks.PATCH("/:id", webhookSubscriptionHandler.UpdateSubscription)
 			webhooks.DELETE("/:id", webhookSubscriptionHandler.DeleteSubscription)
+			
+			// Secret regeneration
+			webhooks.POST("/:id/regenerate-secret", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), webhookSubscriptionHandler.RegenerateSecret)
 			
 			// Delivery history
 			webhooks.GET("/:id/deliveries", webhookSubscriptionHandler.GetSubscriptionDeliveries)

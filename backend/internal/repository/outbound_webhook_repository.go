@@ -176,6 +176,13 @@ func (r *OutboundWebhookRepository) UpdateLastDeliveryTime(ctx context.Context, 
 	return err
 }
 
+// UpdateSubscriptionSecret updates the secret for a webhook subscription
+func (r *OutboundWebhookRepository) UpdateSubscriptionSecret(ctx context.Context, id uuid.UUID, secret string) error {
+	query := `UPDATE webhook_subscriptions SET secret = $2 WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id, secret)
+	return err
+}
+
 // CreateDelivery creates a new webhook delivery record
 func (r *OutboundWebhookRepository) CreateDelivery(ctx context.Context, delivery *models.WebhookDelivery) error {
 	query := `

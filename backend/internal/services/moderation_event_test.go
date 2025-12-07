@@ -3,14 +3,11 @@ package services
 import (
 	"context"
 	"testing"
-	_ "time" // Used by setupTestRedis in submission_abuse_detection_test.go
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/subculture-collective/clipper/internal/models"
-	_ "github.com/subculture-collective/clipper/pkg/redis" // Used by setupTestRedis in submission_abuse_detection_test.go
-	_ "github.com/subculture-collective/clipper/config"    // Used by setupTestRedis in submission_abuse_detection_test.go
 )
 
 func TestModerationEventService_EmitEvent(t *testing.T) {

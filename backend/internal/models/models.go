@@ -1307,14 +1307,14 @@ type WebhookEventPayload struct {
 // CreateWebhookSubscriptionRequest represents a request to create a webhook subscription
 type CreateWebhookSubscriptionRequest struct {
 	URL         string   `json:"url" binding:"required,url,max=2048"`
-	Events      []string `json:"events" binding:"required,min=1"`
+	Events      []string `json:"events" binding:"required,min=1,max=10"`
 	Description *string  `json:"description,omitempty" binding:"omitempty,max=500"`
 }
 
 // UpdateWebhookSubscriptionRequest represents a request to update a webhook subscription
 type UpdateWebhookSubscriptionRequest struct {
 	URL         *string  `json:"url,omitempty" binding:"omitempty,url,max=2048"`
-	Events      []string `json:"events,omitempty" binding:"omitempty,min=1"`
+	Events      []string `json:"events,omitempty" binding:"omitempty,min=1,max=10"`
 	IsActive    *bool    `json:"is_active,omitempty"`
 	Description *string  `json:"description,omitempty" binding:"omitempty,max=500"`
 }

@@ -55,6 +55,7 @@ func (h *WebhookSubscriptionHandler) CreateSubscription(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"data":    subscription,
+		"secret":  subscription.Secret,
 		"message": "Webhook subscription created. Save the secret safely - it won't be shown again.",
 	})
 }
@@ -262,5 +263,34 @@ func (h *WebhookSubscriptionHandler) GetSupportedEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    events,
+	})
+}
+
+// RegenerateSecret regenerates the secret for a webhook subscription
+// POST /webhooks/:id/regenerate-secret
+func (h *WebhookSubscriptionHandler) RegenerateSecret(c *gin.Context) {
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	subscriptionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid subscription ID"})
+		return
+	}
+
+	newSecret, err := h.webhookService.RegenerateSecret(c.Request.Context(), subscriptionID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to regenerate secret: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"secret":  newSecret,
+		"message": "Secret regenerated. Save it safely - it won't be shown again.",
 	})
 }

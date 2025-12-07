@@ -372,13 +372,21 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 			webhookData["tags"] = submission.Tags
 		}
 
-		eventType := models.WebhookEventClipSubmitted
-		if submission.Status == "approved" {
-			eventType = models.WebhookEventClipApproved
+		// Always send clip.submitted event
+		if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipSubmitted, submission.ID, webhookData); err != nil {
+			log.Printf("Failed to trigger webhook event: %v", err)
 		}
 
-		if err := s.webhookService.TriggerEvent(ctx, eventType, submission.ID, webhookData); err != nil {
-			log.Printf("Failed to trigger webhook event: %v", err)
+		// If auto-approved, also send clip.approved event with auto_approved field
+		if submission.Status == "approved" {
+			webhookDataApproved := make(map[string]interface{})
+			for k, v := range webhookData {
+				webhookDataApproved[k] = v
+			}
+			webhookDataApproved["auto_approved"] = true
+			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipApproved, submission.ID, webhookDataApproved); err != nil {
+				log.Printf("Failed to trigger webhook event: %v", err)
+			}
 		}
 	}
 

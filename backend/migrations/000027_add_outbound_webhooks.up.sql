@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS webhook_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     url VARCHAR(2048) NOT NULL,
-    secret VARCHAR(255) NOT NULL, -- HMAC secret for signing webhooks
+    secret VARCHAR(64) NOT NULL, -- HMAC secret for signing webhooks (32 bytes hex-encoded, 64 chars)
     events TEXT[] NOT NULL, -- Array of subscribed events: clip.submitted, clip.approved, clip.rejected
     is_active BOOLEAN NOT NULL DEFAULT true,
     description TEXT,
