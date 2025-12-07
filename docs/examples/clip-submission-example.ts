@@ -115,7 +115,6 @@ export class ClipSubmissionClient {
       return response.data.data;
     } catch (error) {
       this.handleError(error);
-      throw error; // TypeScript requires this
     }
   }
 
@@ -143,7 +142,6 @@ export class ClipSubmissionClient {
       };
     } catch (error) {
       this.handleError(error);
-      throw error; // TypeScript requires this
     }
   }
 
@@ -163,7 +161,6 @@ export class ClipSubmissionClient {
       return response.data;
     } catch (error) {
       this.handleError(error);
-      throw error;
     }
   }
 
@@ -179,7 +176,6 @@ export class ClipSubmissionClient {
       return response.data.data;
     } catch (error) {
       this.handleError(error);
-      throw error;
     }
   }
 
