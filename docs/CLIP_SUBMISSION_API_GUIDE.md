@@ -41,6 +41,8 @@ The Clip Submission API allows users to submit Twitch clips to the Clipper platf
 - **Minimum Karma**: At least 100 karma points to submit clips
 - **Valid Twitch Clip**: The clip must be publicly accessible on Twitch
 
+> **💡 Looking for ready-to-use code?** Check out the [Examples Directory](./examples/) for working TypeScript and shell script examples you can run immediately.
+
 ## Authentication
 
 All API endpoints require authentication via JWT Bearer token:
