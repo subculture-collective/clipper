@@ -35,15 +35,15 @@ func TestOutboundWebhookCalculateNextRetry(t *testing.T) {
 	// Test exponential backoff
 	baseTime := time.Now()
 
-	// First retry: ~30 seconds
+	// First retry (attempt 1): 30 * 2^1 = 60 seconds
 	nextRetry1 := service.calculateNextRetry(1)
-	assert.True(t, nextRetry1.After(baseTime.Add(25*time.Second)))
-	assert.True(t, nextRetry1.Before(baseTime.Add(35*time.Second)))
+	assert.True(t, nextRetry1.After(baseTime.Add(55*time.Second)))
+	assert.True(t, nextRetry1.Before(baseTime.Add(65*time.Second)))
 
-	// Second retry: ~1 minute
+	// Second retry (attempt 2): 30 * 2^2 = 120 seconds = 2 minutes
 	nextRetry2 := service.calculateNextRetry(2)
-	assert.True(t, nextRetry2.After(baseTime.Add(55*time.Second)))
-	assert.True(t, nextRetry2.Before(baseTime.Add(65*time.Second)))
+	assert.True(t, nextRetry2.After(baseTime.Add(115*time.Second)))
+	assert.True(t, nextRetry2.Before(baseTime.Add(125*time.Second)))
 
 	// Large retry count should be capped at max delay (1 hour)
 	nextRetry10 := service.calculateNextRetry(10)
