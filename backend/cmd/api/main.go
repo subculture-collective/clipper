@@ -136,6 +136,7 @@ func main() {
 	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
 	subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
 	webhookRepo := repository.NewWebhookRepository(db.Pool)
+	outboundWebhookRepo := repository.NewOutboundWebhookRepository(db.Pool)
 	dunningRepo := repository.NewDunningRepository(db.Pool)
 	contactRepo := repository.NewContactRepository(db.Pool)
 	revenueRepo := repository.NewRevenueRepository(db.Pool)
@@ -234,9 +235,10 @@ func main() {
 
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
+	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, redisClient)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService)
 	}
 
 	// Initialize handlers
@@ -273,6 +275,7 @@ func main() {
 	revenueHandler := handlers.NewRevenueHandler(revenueService)
 	adHandler := handlers.NewAdHandler(adService)
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
+	webhookSubscriptionHandler := handlers.NewWebhookSubscriptionHandler(outboundWebhookService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -674,6 +677,29 @@ func main() {
 			subscriptions.POST("/change-plan", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.ChangeSubscriptionPlan)
 		}
 
+		// Outbound webhook subscription routes
+		webhooks := v1.Group("/webhooks")
+		{
+			// Get supported webhook events (public, rate-limited)
+			webhooks.GET("/events", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), webhookSubscriptionHandler.GetSupportedEvents)
+
+			// Protected webhook subscription endpoints (require authentication)
+			webhooks.Use(middleware.AuthMiddleware(authService))
+			
+			// CRUD operations for webhook subscriptions
+			webhooks.POST("", middleware.RateLimitMiddleware(redisClient, 10, time.Hour), webhookSubscriptionHandler.CreateSubscription)
+			webhooks.GET("", webhookSubscriptionHandler.ListSubscriptions)
+			webhooks.GET("/:id", webhookSubscriptionHandler.GetSubscription)
+			webhooks.PATCH("/:id", webhookSubscriptionHandler.UpdateSubscription)
+			webhooks.DELETE("/:id", webhookSubscriptionHandler.DeleteSubscription)
+			
+			// Secret regeneration
+			webhooks.POST("/:id/regenerate-secret", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), webhookSubscriptionHandler.RegenerateSecret)
+			
+			// Delivery history
+			webhooks.GET("/:id/deliveries", webhookSubscriptionHandler.GetSubscriptionDeliveries)
+		}
+
 		// Contact routes
 		contact := v1.Group("/contact")
 		{
@@ -837,6 +863,10 @@ func main() {
 	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, cfg.Jobs.WebhookRetryIntervalMinutes, cfg.Jobs.WebhookRetryBatchSize)
 	go webhookRetryScheduler.Start(context.Background())
 
+	// Start outbound webhook delivery scheduler (runs every 30 seconds, batch size 50)
+	outboundWebhookScheduler := scheduler.NewOutboundWebhookScheduler(outboundWebhookService, 30*time.Second, 50)
+	go outboundWebhookScheduler.Start(context.Background())
+
 	// Start embedding scheduler if embedding service is available (runs based on configured interval)
 	var embeddingScheduler *scheduler.EmbeddingScheduler
 	if embeddingService != nil {
@@ -876,6 +906,7 @@ func main() {
 	reputationScheduler.Stop()
 	hotScoreScheduler.Stop()
 	webhookRetryScheduler.Stop()
+	outboundWebhookScheduler.Stop()
 	exportScheduler.Stop()
 	if embeddingScheduler != nil {
 		embeddingScheduler.Stop()

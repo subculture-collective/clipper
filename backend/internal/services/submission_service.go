@@ -26,6 +26,7 @@ type SubmissionService struct {
 	notificationService *NotificationService
 	abuseDetector       *SubmissionAbuseDetector
 	moderationEvents    *ModerationEventService
+	webhookService      *OutboundWebhookService
 }
 
 // NewSubmissionService creates a new SubmissionService
@@ -37,6 +38,7 @@ func NewSubmissionService(
 	twitchClient *twitch.Client,
 	notificationService *NotificationService,
 	redisClient *redispkg.Client,
+	webhookService *OutboundWebhookService,
 ) *SubmissionService {
 	var abuseDetector *SubmissionAbuseDetector
 	var moderationEvents *ModerationEventService
@@ -56,6 +58,7 @@ func NewSubmissionService(
 		notificationService: notificationService,
 		abuseDetector:       abuseDetector,
 		moderationEvents:    moderationEvents,
+		webhookService:      webhookService,
 	}
 }
 
@@ -349,6 +352,42 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	// Save submission
 	if err := s.submissionRepo.Create(ctx, submission); err != nil {
 		return nil, fmt.Errorf("failed to create submission: %w", err)
+	}
+
+	// Trigger webhook for clip submission
+	if s.webhookService != nil {
+		webhookData := map[string]interface{}{
+			"submission_id":    submission.ID.String(),
+			"user_id":          submission.UserID.String(),
+			"twitch_clip_id":   submission.TwitchClipID,
+			"twitch_clip_url":  submission.TwitchClipURL,
+			"status":           submission.Status,
+			"is_nsfw":          submission.IsNSFW,
+			"created_at":       submission.CreatedAt,
+		}
+		if submission.CustomTitle != nil {
+			webhookData["custom_title"] = *submission.CustomTitle
+		}
+		if len(submission.Tags) > 0 {
+			webhookData["tags"] = submission.Tags
+		}
+
+		// Always send clip.submitted event
+		if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipSubmitted, submission.ID, webhookData); err != nil {
+			log.Printf("Failed to trigger webhook event: %v", err)
+		}
+
+		// If auto-approved, also send clip.approved event with auto_approved field
+		if submission.Status == "approved" {
+			webhookDataApproved := make(map[string]interface{})
+			for k, v := range webhookData {
+				webhookDataApproved[k] = v
+			}
+			webhookDataApproved["auto_approved"] = true
+			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipApproved, submission.ID, webhookDataApproved); err != nil {
+				log.Printf("Failed to trigger webhook event: %v", err)
+			}
+		}
 	}
 
 	// Emit moderation event for new submission
@@ -857,6 +896,25 @@ func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID,
 		}
 	}
 
+	// Trigger webhook for approval
+	if s.webhookService != nil {
+		webhookData := map[string]interface{}{
+			"submission_id":   submissionID.String(),
+			"user_id":         submission.UserID.String(),
+			"twitch_clip_id":  submission.TwitchClipID,
+			"twitch_clip_url": submission.TwitchClipURL,
+			"reviewer_id":     reviewerID.String(),
+			"approved_at":     time.Now(),
+		}
+		if submission.CustomTitle != nil {
+			webhookData["custom_title"] = *submission.CustomTitle
+		}
+
+		if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipApproved, submissionID, webhookData); err != nil {
+			log.Printf("Failed to trigger webhook event: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -905,6 +963,26 @@ func (s *SubmissionService) RejectSubmission(ctx context.Context, submissionID, 
 		if err := s.notificationService.NotifySubmissionRejected(ctx, submission.UserID, submissionID, clipTitle, reason); err != nil {
 			// Log error but don't fail
 			fmt.Printf("Failed to send notification: %v\n", err)
+		}
+	}
+
+	// Trigger webhook for rejection
+	if s.webhookService != nil {
+		webhookData := map[string]interface{}{
+			"submission_id":   submissionID.String(),
+			"user_id":         submission.UserID.String(),
+			"twitch_clip_id":  submission.TwitchClipID,
+			"twitch_clip_url": submission.TwitchClipURL,
+			"reviewer_id":     reviewerID.String(),
+			"rejection_reason": reason,
+			"rejected_at":     time.Now(),
+		}
+		if submission.CustomTitle != nil {
+			webhookData["custom_title"] = *submission.CustomTitle
+		}
+
+		if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipRejected, submissionID, webhookData); err != nil {
+			log.Printf("Failed to trigger webhook event: %v", err)
 		}
 	}
 

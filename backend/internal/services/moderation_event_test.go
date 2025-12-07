@@ -3,14 +3,11 @@ package services
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/subculture-collective/clipper/internal/models"
-	redispkg "github.com/subculture-collective/clipper/pkg/redis"
-	"github.com/subculture-collective/clipper/config"
 )
 
 func TestModerationEventService_EmitEvent(t *testing.T) {
