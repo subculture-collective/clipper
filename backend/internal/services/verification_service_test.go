@@ -417,7 +417,7 @@ func TestReviewApplication_Revoke(t *testing.T) {
 	mockVerificationRepo.On("GetByID", ctx, verificationID).Return(verification, nil)
 	mockUserRepo.On("GetByID", ctx, userID).Return(user, nil)
 	mockUserRepo.On("Update", ctx, mock.MatchedBy(func(u *models.User) bool {
-		return u.IsVerified == false && u.VerifiedAt == nil
+		return !u.IsVerified && u.VerifiedAt == nil
 	})).Return(nil)
 	mockVerificationRepo.On("Update", ctx, mock.MatchedBy(func(v *models.CreatorVerification) bool {
 		return v.Status == models.VerificationStatusRevoked
@@ -465,7 +465,7 @@ func TestReviewApplication_RevokePending_ShouldFail(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "can only revoke approved verifications")
+	assert.True(t, errors.Is(err, ErrCanOnlyRevokeApproved))
 	mockVerificationRepo.AssertExpectations(t)
 }
 
@@ -499,7 +499,7 @@ func TestReviewApplication_RevokeRejected_ShouldFail(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "can only revoke approved verifications")
+	assert.True(t, errors.Is(err, ErrCanOnlyRevokeApproved))
 	mockVerificationRepo.AssertExpectations(t)
 }
 

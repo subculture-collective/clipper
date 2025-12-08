@@ -19,6 +19,8 @@ var (
 	ErrNotEligibleForVerification = errors.New("user does not meet verification eligibility criteria")
 	// ErrInvalidVerificationStatus is returned when trying to perform invalid status transition
 	ErrInvalidVerificationStatus = errors.New("invalid verification status transition")
+	// ErrCanOnlyRevokeApproved is returned when trying to revoke non-approved verification
+	ErrCanOnlyRevokeApproved = errors.New("can only revoke approved verifications")
 )
 
 // Eligibility criteria constants
@@ -176,7 +178,7 @@ func (s *VerificationService) ReviewApplication(ctx context.Context, verificatio
 		}
 	case "revoke":
 		if verification.Status != models.VerificationStatusApproved {
-			return nil, errors.New("can only revoke approved verifications")
+			return nil, ErrCanOnlyRevokeApproved
 		}
 	}
 
