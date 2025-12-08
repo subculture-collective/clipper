@@ -43,7 +43,7 @@ export function ModerationQueuePage() {
             setIsLoading(true);
             setError(null);
             const response = await getPendingSubmissions(page, 20);
-            setSubmissions(response.data);
+            setSubmissions(response.data || []);
             setTotalPages(response.meta.total_pages);
             setTotal(response.meta.total);
         } catch (err: unknown) {
@@ -165,7 +165,7 @@ export function ModerationQueuePage() {
                         <div className='flex justify-center py-12'>
                             <Spinner size='lg' />
                         </div>
-                    ) : submissions.length === 0 ? (
+                    ) : !submissions || submissions.length === 0 ? (
                         <div className='py-12 text-center'>
                             <p className='text-muted-foreground'>
                                 No pending submissions to review.

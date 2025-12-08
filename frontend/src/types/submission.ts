@@ -75,7 +75,7 @@ export interface SubmissionListResponse {
 
 export interface ModerationQueueResponse {
   success: boolean;
-  data: ClipSubmissionWithUser[];
+  data: ClipSubmissionWithUser[] | null;
   meta: {
     page: number;
     limit: number;
