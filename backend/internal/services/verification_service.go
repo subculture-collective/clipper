@@ -168,9 +168,16 @@ func (s *VerificationService) ReviewApplication(ctx context.Context, verificatio
 		return nil, fmt.Errorf("failed to get verification: %w", err)
 	}
 
-	// Check if already reviewed
-	if verification.Status != models.VerificationStatusPending {
-		return nil, ErrInvalidVerificationStatus
+	// Check status based on action
+	switch req.Action {
+	case "approve", "reject":
+		if verification.Status != models.VerificationStatusPending {
+			return nil, ErrInvalidVerificationStatus
+		}
+	case "revoke":
+		if verification.Status != models.VerificationStatusApproved {
+			return nil, errors.New("can only revoke approved verifications")
+		}
 	}
 
 	previousStatus := verification.Status

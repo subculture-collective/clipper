@@ -385,6 +385,124 @@ func TestGetVerificationStatus(t *testing.T) {
 	mockVerificationRepo.AssertExpectations(t)
 }
 
+func TestReviewApplication_Revoke(t *testing.T) {
+	mockVerificationRepo := new(MockVerificationRepository)
+	mockUserRepo := new(MockUserRepository)
+	service := &VerificationService{
+		verificationRepo: mockVerificationRepo,
+		userRepo:         mockUserRepo,
+	}
+
+	ctx := context.Background()
+	verificationID := uuid.New()
+	userID := uuid.New()
+	reviewerID := uuid.New()
+
+	verification := &models.CreatorVerification{
+		ID:     verificationID,
+		UserID: userID,
+		Status: models.VerificationStatusApproved, // Currently approved
+	}
+
+	user := &models.User{
+		ID:         userID,
+		IsVerified: true,
+	}
+
+	req := &models.VerificationReviewRequest{
+		Action: "revoke",
+	}
+
+	// Mock expectations
+	mockVerificationRepo.On("GetByID", ctx, verificationID).Return(verification, nil)
+	mockUserRepo.On("GetByID", ctx, userID).Return(user, nil)
+	mockUserRepo.On("Update", ctx, mock.MatchedBy(func(u *models.User) bool {
+		return u.IsVerified == false && u.VerifiedAt == nil
+	})).Return(nil)
+	mockVerificationRepo.On("Update", ctx, mock.MatchedBy(func(v *models.CreatorVerification) bool {
+		return v.Status == models.VerificationStatusRevoked
+	})).Return(nil)
+	mockVerificationRepo.On("CreateAuditLog", ctx, mock.AnythingOfType("*models.VerificationAuditLog")).Return(nil)
+
+	// Execute
+	result, err := service.ReviewApplication(ctx, verificationID, reviewerID, req)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, models.VerificationStatusRevoked, result.Status)
+	mockVerificationRepo.AssertExpectations(t)
+	mockUserRepo.AssertExpectations(t)
+}
+
+func TestReviewApplication_RevokePending_ShouldFail(t *testing.T) {
+	mockVerificationRepo := new(MockVerificationRepository)
+	mockUserRepo := new(MockUserRepository)
+	service := &VerificationService{
+		verificationRepo: mockVerificationRepo,
+		userRepo:         mockUserRepo,
+	}
+
+	ctx := context.Background()
+	verificationID := uuid.New()
+	reviewerID := uuid.New()
+
+	verification := &models.CreatorVerification{
+		ID:     verificationID,
+		Status: models.VerificationStatusPending, // Trying to revoke pending
+	}
+
+	req := &models.VerificationReviewRequest{
+		Action: "revoke",
+	}
+
+	// Mock expectations
+	mockVerificationRepo.On("GetByID", ctx, verificationID).Return(verification, nil)
+
+	// Execute
+	result, err := service.ReviewApplication(ctx, verificationID, reviewerID, req)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "can only revoke approved verifications")
+	mockVerificationRepo.AssertExpectations(t)
+}
+
+func TestReviewApplication_RevokeRejected_ShouldFail(t *testing.T) {
+	mockVerificationRepo := new(MockVerificationRepository)
+	mockUserRepo := new(MockUserRepository)
+	service := &VerificationService{
+		verificationRepo: mockVerificationRepo,
+		userRepo:         mockUserRepo,
+	}
+
+	ctx := context.Background()
+	verificationID := uuid.New()
+	reviewerID := uuid.New()
+
+	verification := &models.CreatorVerification{
+		ID:     verificationID,
+		Status: models.VerificationStatusRejected, // Trying to revoke rejected
+	}
+
+	req := &models.VerificationReviewRequest{
+		Action: "revoke",
+	}
+
+	// Mock expectations
+	mockVerificationRepo.On("GetByID", ctx, verificationID).Return(verification, nil)
+
+	// Execute
+	result, err := service.ReviewApplication(ctx, verificationID, reviewerID, req)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "can only revoke approved verifications")
+	mockVerificationRepo.AssertExpectations(t)
+}
+
 func TestListApplications(t *testing.T) {
 	mockVerificationRepo := new(MockVerificationRepository)
 	mockUserRepo := new(MockUserRepository)
