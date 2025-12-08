@@ -35,7 +35,7 @@ export function ReputationDisplay({ reputation, compact = false }: ReputationDis
         </div>
 
         {/* Badges */}
-        {reputation.badges.length > 0 && (
+        {reputation.badges && reputation.badges.length > 0 && (
           <BadgeDisplay badges={reputation.badges} maxVisible={3} size="sm" />
         )}
       </div>
@@ -67,7 +67,7 @@ export function ReputationDisplay({ reputation, compact = false }: ReputationDis
       <div className="mb-6">
         <div className="p-4 text-center bg-gray-900 rounded-lg">
           <div className="text-4xl font-bold text-purple-400">
-            {reputation.karma_points.toLocaleString()}
+            {((reputation?.karma_points) || 0).toLocaleString()}
           </div>
           <div className="mt-1 text-sm text-gray-400">Total Karma</div>
         </div>
@@ -77,20 +77,20 @@ export function ReputationDisplay({ reputation, compact = false }: ReputationDis
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 text-center bg-gray-900 rounded-lg">
           <div className="text-2xl font-bold text-green-400">
-            {reputation.trust_score}
+            {((reputation?.trust_score) || 0)}
           </div>
           <div className="mt-1 text-sm text-gray-400">Trust Score</div>
         </div>
         <div className="p-4 text-center bg-gray-900 rounded-lg">
           <div className="text-2xl font-bold text-blue-400">
-            {reputation.engagement_score.toLocaleString()}
+            {((reputation?.engagement_score) || 0).toLocaleString()}
           </div>
           <div className="mt-1 text-sm text-gray-400">Engagement</div>
         </div>
       </div>
 
       {/* Badges */}
-      {reputation.badges.length > 0 && (
+      {reputation.badges && reputation.badges.length > 0 && (
         <div>
           <h3 className="mb-3 text-lg font-semibold text-white">Badges</h3>
           <BadgeDisplay badges={reputation.badges} maxVisible={5} size="lg" />
@@ -98,31 +98,31 @@ export function ReputationDisplay({ reputation, compact = false }: ReputationDis
       )}
 
       {/* Stats */}
-      {reputation.stats && (
+      {reputation.stats ? (
         <div className="pt-6 mt-6 border-t border-gray-700">
           <h3 className="mb-3 text-lg font-semibold text-white">Activity</h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-xl font-bold text-white">
-                {reputation.stats.total_comments.toLocaleString()}
+                {((reputation.stats?.total_comments) || 0).toLocaleString()}
               </div>
               <div className="mt-1 text-xs text-gray-400">Comments</div>
             </div>
             <div>
               <div className="text-xl font-bold text-white">
-                {reputation.stats.total_votes_cast.toLocaleString()}
+                {((reputation.stats?.total_votes_cast) || 0).toLocaleString()}
               </div>
               <div className="mt-1 text-xs text-gray-400">Votes</div>
             </div>
             <div>
               <div className="text-xl font-bold text-white">
-                {reputation.stats.total_clips_submitted.toLocaleString()}
+                {((reputation.stats?.total_clips_submitted) || 0).toLocaleString()}
               </div>
               <div className="mt-1 text-xs text-gray-400">Submissions</div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

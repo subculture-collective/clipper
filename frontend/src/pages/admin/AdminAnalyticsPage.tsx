@@ -181,27 +181,31 @@ const AdminAnalyticsPage: React.FC = () => {
             </div>
           ) : content ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <BarChartComponent
-                data={content.most_popular_games.map((game) => ({
-                  name: game.game_name,
-                  value: game.clip_count,
-                }))}
-                title="Most Popular Games"
-                valueLabel="Clip Count"
-                color="#3b82f6"
-                height={350}
-              />
+              {content.most_popular_games && (
+                <BarChartComponent
+                  data={content.most_popular_games.map((game) => ({
+                    name: game.game_name,
+                    value: game.clip_count,
+                  }))}
+                  title="Most Popular Games"
+                  valueLabel="Clip Count"
+                  color="#3b82f6"
+                  height={350}
+                />
+              )}
 
-              <BarChartComponent
-                data={content.most_popular_creators.map((creator) => ({
-                  name: creator.creator_name,
-                  value: creator.view_count,
-                }))}
-                title="Most Popular Creators"
-                valueLabel="Views"
-                color="#ec4899"
-                height={350}
-              />
+              {content.most_popular_creators && (
+                <BarChartComponent
+                  data={content.most_popular_creators.map((creator) => ({
+                    name: creator.creator_name,
+                    value: creator.view_count,
+                  }))}
+                  title="Most Popular Creators"
+                  valueLabel="Views"
+                  color="#ec4899"
+                  height={350}
+                />
+              )}
             </div>
           ) : null}
         </div>

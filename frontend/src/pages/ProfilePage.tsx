@@ -35,7 +35,7 @@ export function ProfilePage() {
     const [loadingReputation, setLoadingReputation] = useState(true);
     const [reputationError, setReputationError] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
-    
+
     // Tab-specific data states
     const [comments, setComments] = useState<Comment[]>([]);
     const [upvotedClips, setUpvotedClips] = useState<Clip[]>([]);
@@ -64,7 +64,7 @@ export function ProfilePage() {
             setLoadingReputation(false);
         }
     }, [user]);
-    
+
     const fetchKarmaBreakdown = useCallback(async () => {
         if (!user) return;
         try {
@@ -82,7 +82,7 @@ export function ProfilePage() {
 
     const fetchTabData = useCallback(async (tab: TabType, page: number = 1, append: boolean = false) => {
         if (!user) return;
-        
+
         setLoadingTabData(true);
         try {
             switch (tab) {
@@ -183,7 +183,7 @@ export function ProfilePage() {
                                         Account Restricted
                                     </h3>
                                     <p className='mt-1 text-sm xs:text-base text-red-800 dark:text-red-200'>
-                                        Your account has been restricted from interacting with certain content. 
+                                        Your account has been restricted from interacting with certain content.
                                         Please contact support if you believe this is an error.
                                     </p>
                                 </div>
@@ -436,6 +436,7 @@ export function ProfilePage() {
                                             ))}
                                         </div>
                                     ) : reputation &&
+                                      reputation.badges &&
                                       reputation.badges.length > 0 ? (
                                         <BadgeGrid
                                             badges={reputation.badges}

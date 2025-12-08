@@ -56,8 +56,8 @@ export interface UserReputation {
   rank: string;
   trust_score: number;
   engagement_score: number;
-  badges: UserBadge[];
-  stats?: UserStats;
+  badges: UserBadge[] | null;
+  stats?: UserStats | null;
   created_at: string;
 }
 
