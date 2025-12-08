@@ -271,7 +271,7 @@ func main() {
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	seoHandler := handlers.NewSEOHandler(clipRepo)
-	docsHandler := handlers.NewDocsHandler("./docs", "subculture-collective", "clipper", "main")
+	docsHandler := handlers.NewDocsHandler(cfg.Server.DocsPath, "subculture-collective", "clipper", "main")
 	revenueHandler := handlers.NewRevenueHandler(revenueService)
 	adHandler := handlers.NewAdHandler(adService)
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)

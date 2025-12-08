@@ -34,6 +34,7 @@ type ServerConfig struct {
 	BaseURL     string
 	Environment string
 	ExportDir   string
+	DocsPath    string
 }
 
 // DatabaseConfig holds database connection configuration
@@ -163,6 +164,7 @@ func Load() (*Config, error) {
 			BaseURL:     getEnv("BASE_URL", "http://localhost:5173"),
 			Environment: getEnv("ENVIRONMENT", "development"),
 			ExportDir:   getEnv("EXPORT_DIR", "./exports"),
+			DocsPath:    getEnv("DOCS_PATH", "../docs"),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
