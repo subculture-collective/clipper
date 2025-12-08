@@ -17,7 +17,7 @@ var (
 	// Global fallback rate limiters (one per middleware instance)
 	ipFallbackLimiter   *InMemoryRateLimiter
 	userFallbackLimiter *InMemoryRateLimiter
-	
+
 	// IP whitelist for rate limiting bypass (for testing/trusted IPs)
 	rateLimitWhitelist = map[string]bool{
 		"127.0.0.1":     true,
@@ -35,7 +35,7 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 	return func(c *gin.Context) {
 		// Get client IP and endpoint for granular rate limiting
 		ip := c.ClientIP()
-		
+
 		// Skip rate limiting for whitelisted IPs
 		if rateLimitWhitelist[ip] {
 			c.Header("X-RateLimit-Bypass", "whitelisted")
