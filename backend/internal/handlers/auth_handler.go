@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -44,7 +45,8 @@ func (h *AuthHandler) InitiateOAuth(c *gin.Context) {
 }
 
 // HandleCallback handles GET /auth/twitch/callback
-// For non-PKCE flow (redirected from Twitch)
+// For PKCE flow: returns code and state for frontend to complete
+// For non-PKCE flow: directly authenticates and sets cookies
 func (h *AuthHandler) HandleCallback(c *gin.Context) {
 	code := c.Query("code")
 	state := c.Query("state")
@@ -56,7 +58,34 @@ func (h *AuthHandler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	// Handle OAuth callback (no code verifier for GET callback)
+	// Check if PKCE was used by validating state in Redis
+	// If PKCE challenge exists in Redis, we need code_verifier from frontend
+	stateKey := fmt.Sprintf("oauth:state:%s", state)
+	stateValue, err := h.authService.GetStateValue(c.Request.Context(), stateKey)
+
+	if err != nil || stateValue == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid state parameter",
+		})
+		return
+	}
+
+	// Check if PKCE was used (stateValue contains code challenge)
+	if strings.Contains(stateValue, ":") {
+		// PKCE flow: return code and state to frontend to complete exchange
+		// Frontend will POST to /auth/twitch/callback with code_verifier
+		frontendURL := "http://localhost:3000"
+		origins := strings.Split(h.cfg.CORS.AllowedOrigins, ",")
+		if len(origins) > 0 {
+			frontendURL = origins[0]
+		}
+
+		// Redirect to frontend callback route to complete PKCE exchange
+		c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/auth/success?code="+code+"&state="+state)
+		return
+	}
+
+	// Non-PKCE flow: complete authentication directly
 	_, accessToken, refreshToken, err := h.authService.HandleCallback(c.Request.Context(), code, state, "")
 	if err != nil {
 		if err == services.ErrInvalidState {
@@ -71,6 +100,8 @@ func (h *AuthHandler) HandleCallback(c *gin.Context) {
 			})
 			return
 		}
+		// Log the actual error for debugging
+		c.Error(err) // This will be logged by Gin's logger middleware
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Authentication failed",
 		})
@@ -88,7 +119,7 @@ func (h *AuthHandler) HandleCallback(c *gin.Context) {
 	}
 
 	// Redirect to frontend with success
-	c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/auth/callback?success=true")
+	c.Redirect(http.StatusTemporaryRedirect, frontendURL+"/auth/success?success=true")
 }
 
 // HandlePKCECallback handles POST /auth/twitch/callback

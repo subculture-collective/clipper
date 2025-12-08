@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
     container_name: clipper-postgres
     environment:
       POSTGRES_USER: clipper

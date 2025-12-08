@@ -283,18 +283,9 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 }
 
 // GetClip handles GET /clips/:id
+// Accepts both UUID and Twitch clip ID formats
 func (h *ClipHandler) GetClip(c *gin.Context) {
-	clipID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, StandardResponse{
-			Success: false,
-			Error: &ErrorInfo{
-				Code:    "INVALID_CLIP_ID",
-				Message: "Invalid clip ID format",
-			},
-		})
-		return
-	}
+	clipIDParam := c.Param("id")
 
 	// Get user ID if authenticated
 	var userID *uuid.UUID
@@ -304,8 +295,18 @@ func (h *ClipHandler) GetClip(c *gin.Context) {
 		}
 	}
 
-	// Fetch clip
-	clip, err := h.clipService.GetClip(c.Request.Context(), clipID, userID)
+	var clip *services.ClipWithUserData
+	var err error
+
+	// Try to parse as UUID first
+	if clipID, parseErr := uuid.Parse(clipIDParam); parseErr == nil {
+		// It's a valid UUID, fetch by database ID
+		clip, err = h.clipService.GetClip(c.Request.Context(), clipID, userID)
+	} else {
+		// Not a UUID, treat as Twitch clip ID
+		clip, err = h.clipService.GetClipByTwitchID(c.Request.Context(), clipIDParam, userID)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusNotFound, StandardResponse{
 			Success: false,

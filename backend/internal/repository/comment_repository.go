@@ -41,14 +41,14 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 
 	switch sortBy {
 	case "new":
-		orderClause = "c.created_at DESC"
+		orderClause = "created_at DESC"
 	case "old":
-		orderClause = "c.created_at ASC"
+		orderClause = "created_at ASC"
 	case "controversial":
 		// Controversial: high vote count but score near zero
 		orderClause = `
-			(ABS(c.vote_score) / NULLIF(GREATEST(ABS(c.vote_score), 1), 0)) DESC,
-			ABS(c.vote_score) DESC
+			(ABS(vote_score) / NULLIF(GREATEST(ABS(vote_score), 1), 0)) DESC,
+			ABS(vote_score) DESC
 		`
 	case "best":
 		fallthrough
@@ -63,8 +63,8 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 					1.96 * SQRT((upvotes * downvotes) / total_votes + 0.9604) / total_votes)
 				) / (1 + 3.8416 / total_votes)
 			END DESC,
-			c.vote_score DESC,
-			c.created_at DESC
+			vote_score DESC,
+			created_at DESC
 		`
 	}
 

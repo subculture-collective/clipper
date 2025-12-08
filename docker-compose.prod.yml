@@ -3,7 +3,7 @@
 
 services:
   backend:
-    image: ghcr.io/subculture-collective/clipper/backend:latest
+    image: clipper-backend:latest
     container_name: clipper-backend
     restart: unless-stopped
     depends_on:
@@ -14,7 +14,7 @@ services:
       vault-agent:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -23,7 +23,6 @@ services:
       - /bin/sh
       - -c
       - |
-<<<<<<< HEAD
         set -e
         until [ -s /vault-agent/rendered/backend.env ]; do
           echo "[clipper-backend] waiting for Vault secrets..."
@@ -49,31 +48,12 @@ services:
         exec ./api
     volumes_from:
       - vault-agent  # Share tmpfs mounts from vault-agent container
-=======
-        set -eu
-        until [ -s /vault/secrets/backend.env ]; do
-          echo "[clipper-backend] waiting for Vault secrets..."
-          sleep 1
-        done
-        set -a
-        . /vault/secrets/backend.env
-        set +a
-        exec ./api
-    volumes:
-      - vault_backend_env:/vault/secrets:ro
->>>>>>> main
     networks:
       - clipper-network
       - web
 
   frontend:
-<<<<<<< HEAD
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-=======
-    image: ghcr.io/subculture-collective/clipper/frontend:latest
->>>>>>> main
+    image: clipper-frontend:latest
     container_name: clipper-frontend
     restart: unless-stopped
     depends_on:
@@ -89,7 +69,7 @@ services:
       - web
 
   postgres:
-    image: postgres:17-alpine
+    image: clipper-postgres:latest
     container_name: clipper-postgres
     restart: unless-stopped
     environment:
@@ -129,7 +109,6 @@ services:
     image: hashicorp/vault:1.17.5
     container_name: clipper-vault-agent
     restart: unless-stopped
-<<<<<<< HEAD
     cap_add:
       - IPC_LOCK  # Required for mlock() to prevent secrets from being swapped to disk
     command:
@@ -149,19 +128,6 @@ services:
       - ./vault/config/clipper-backend-agent.hcl:/vault-agent/config.hcl:ro
       - ./vault/templates:/vault-agent/templates:ro
       - vault_agent_data:/vault-agent:rw  # Single volume for all vault-agent writable data
-=======
-    command:
-      - vault
-      - agent
-      - -config=/vault-agent/config.hcl
-    environment:
-      VAULT_ADDR: https://vault.subcult.tv
-    volumes:
-      - ./vault/config/clipper-backend-agent.hcl:/vault-agent/config.hcl:ro
-      - ./vault/templates:/vault-agent/templates:ro
-      - vault_backend_env:/vault-agent/rendered
-      - vault_agent_pid:/vault-agent/pid
->>>>>>> main
     secrets:
       - clipper_backend_role_id
       - clipper_backend_secret_id
@@ -173,13 +139,7 @@ volumes:
     driver: local
   redis_data:
     driver: local
-<<<<<<< HEAD
   vault_agent_data:
-=======
-  vault_backend_env:
-    driver: local
-  vault_agent_pid:
->>>>>>> main
     driver: local
 
 networks:

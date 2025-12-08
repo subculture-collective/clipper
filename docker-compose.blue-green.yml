@@ -1,0 +1,132 @@
+# Blue-Green Deployment Configuration
+# Allows running two versions simultaneously for zero-downtime deployments
+# Switch traffic via the proxy/load balancer
+
+services:
+  # BLUE environment (current production)
+  backend-blue:
+    image: ghcr.io/subculture-collective/clipper/backend:latest
+    container_name: clipper-backend-blue
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - PORT=8080
+      - ENVIRONMENT=blue
+    networks:
+      - clipper-network
+
+  frontend-blue:
+    image: ghcr.io/subculture-collective/clipper/frontend:latest
+    container_name: clipper-frontend-blue
+    restart: unless-stopped
+    depends_on:
+      - backend-blue
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - clipper-network
+
+  # GREEN environment (new version during deploy)
+  backend-green:
+    image: ghcr.io/subculture-collective/clipper/backend:latest
+    container_name: clipper-backend-green
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - PORT=8081
+      - ENVIRONMENT=green
+    networks:
+      - clipper-network
+    profiles:
+      - green  # Only starts when explicitly requested
+
+  frontend-green:
+    image: ghcr.io/subculture-collective/clipper/frontend:latest
+    container_name: clipper-frontend-green
+    restart: unless-stopped
+    depends_on:
+      - backend-green
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:81/health.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    ports:
+      - "81:80"
+    networks:
+      - clipper-network
+    profiles:
+      - green  # Only starts when explicitly requested
+
+  # Shared Services
+  postgres:
+    image: postgres:17-alpine
+    container_name: clipper-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-clipper_db}
+      - POSTGRES_USER=${POSTGRES_USER:-clipper}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clipper}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - clipper-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: clipper-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - clipper-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  clipper-network:
+    driver: bridge

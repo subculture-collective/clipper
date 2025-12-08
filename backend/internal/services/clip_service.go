@@ -92,11 +92,57 @@ func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uui
 	go func() {
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		
+
 		newViewCount, err := s.clipRepo.IncrementViewCount(timeoutCtx, clipID)
 		if err == nil && clip.CreatorID != nil && s.notificationService != nil {
 			// Check if we reached a view threshold
 			_ = s.notificationService.NotifyClipViewThreshold(timeoutCtx, clipID, newViewCount, *clip.CreatorID)
+		}
+	}()
+
+	return clipWithData, nil
+}
+
+// GetClipByTwitchID retrieves a single clip by Twitch clip ID with user data
+func (s *ClipService) GetClipByTwitchID(ctx context.Context, twitchClipID string, userID *uuid.UUID) (*ClipWithUserData, error) {
+	clip, err := s.clipRepo.GetByTwitchClipID(ctx, twitchClipID)
+	if err != nil {
+		return nil, err
+	}
+
+	clipWithData := &ClipWithUserData{
+		Clip: *clip,
+	}
+
+	// Get vote counts
+	upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+	if err == nil {
+		clipWithData.UpvoteCount = upvotes
+		clipWithData.DownvoteCount = downvotes
+	}
+
+	// Get user-specific data if authenticated
+	if userID != nil {
+		vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+		if err == nil && vote != nil {
+			clipWithData.UserVote = &vote.VoteType
+		}
+
+		isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+		if err == nil {
+			clipWithData.IsFavorited = isFavorited
+		}
+	}
+
+	// Increment view count and check for threshold notifications (async, don't block on errors)
+	go func() {
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		newViewCount, err := s.clipRepo.IncrementViewCount(timeoutCtx, clip.ID)
+		if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+			// Check if we reached a view threshold
+			_ = s.notificationService.NotifyClipViewThreshold(timeoutCtx, clip.ID, newViewCount, *clip.CreatorID)
 		}
 	}()
 

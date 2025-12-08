@@ -1,6 +1,12 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Enable trigram extension for text similarity search (used for username search)
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- Enable vector extension for semantic search embeddings
+CREATE EXTENSION IF NOT EXISTS "vector";
+
 -- Users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -185,10 +191,10 @@ DECLARE
 BEGIN
     -- Calculate age in hours
     age_hours := EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600.0;
-    
+
     -- Calculate order (logarithmic component)
     order_value := LOG(GREATEST(ABS(score), 1));
-    
+
     -- Apply sign
     IF score > 0 THEN
         order_value := order_value;
@@ -197,7 +203,7 @@ BEGIN
     ELSE
         order_value := 0;
     END IF;
-    
+
     -- Combine with time decay
     RETURN order_value - (age_hours / 12.5);
 END;
@@ -208,15 +214,15 @@ CREATE OR REPLACE FUNCTION update_clip_vote_score()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE clips 
+        UPDATE clips
         SET vote_score = vote_score + NEW.vote_type
         WHERE id = NEW.clip_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE clips 
+        UPDATE clips
         SET vote_score = vote_score - OLD.vote_type
         WHERE id = OLD.clip_id;
     ELSIF TG_OP = 'UPDATE' THEN
-        UPDATE clips 
+        UPDATE clips
         SET vote_score = vote_score - OLD.vote_type + NEW.vote_type
         WHERE id = NEW.clip_id;
     END IF;
@@ -233,15 +239,15 @@ CREATE OR REPLACE FUNCTION update_comment_vote_score()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE comments 
+        UPDATE comments
         SET vote_score = vote_score + NEW.vote_type
         WHERE id = NEW.comment_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE comments 
+        UPDATE comments
         SET vote_score = vote_score - OLD.vote_type
         WHERE id = OLD.comment_id;
     ELSIF TG_OP = 'UPDATE' THEN
-        UPDATE comments 
+        UPDATE comments
         SET vote_score = vote_score - OLD.vote_type + NEW.vote_type
         WHERE id = NEW.comment_id;
     END IF;
@@ -258,11 +264,11 @@ CREATE OR REPLACE FUNCTION update_clip_comment_count()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE clips 
+        UPDATE clips
         SET comment_count = comment_count + 1
         WHERE id = NEW.clip_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE clips 
+        UPDATE clips
         SET comment_count = comment_count - 1
         WHERE id = OLD.clip_id;
     END IF;
@@ -279,11 +285,11 @@ CREATE OR REPLACE FUNCTION update_clip_favorite_count()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE clips 
+        UPDATE clips
         SET favorite_count = favorite_count + 1
         WHERE id = NEW.clip_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE clips 
+        UPDATE clips
         SET favorite_count = favorite_count - 1
         WHERE id = OLD.clip_id;
     END IF;
@@ -300,11 +306,11 @@ CREATE OR REPLACE FUNCTION update_tag_usage_count()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE tags 
+        UPDATE tags
         SET usage_count = usage_count + 1
         WHERE id = NEW.tag_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE tags 
+        UPDATE tags
         SET usage_count = usage_count - 1
         WHERE id = OLD.tag_id;
     END IF;
@@ -318,7 +324,7 @@ CREATE TRIGGER update_tag_usage AFTER INSERT OR DELETE ON clip_tags
 
 -- View for hot clips feed
 CREATE VIEW hot_clips AS
-SELECT 
+SELECT
     c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
     c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
     c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -331,7 +337,7 @@ ORDER BY hot_score DESC;
 
 -- View for top clips (by vote score)
 CREATE VIEW top_clips AS
-SELECT 
+SELECT
     c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
     c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
     c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -343,7 +349,7 @@ ORDER BY c.vote_score DESC, c.created_at DESC;
 
 -- View for new clips (most recent)
 CREATE VIEW new_clips AS
-SELECT 
+SELECT
     c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
     c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
     c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -355,7 +361,7 @@ ORDER BY c.created_at DESC;
 
 -- View for trending clips (recent + popular)
 CREATE VIEW trending_clips AS
-SELECT 
+SELECT
     c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
     c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
     c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -363,7 +369,7 @@ SELECT
     c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason,
     calculate_hot_score(c.vote_score, c.created_at) as hot_score
 FROM clips c
-WHERE 
-    c.is_removed = false 
+WHERE
+    c.is_removed = false
     AND c.created_at > NOW() - INTERVAL '7 days'
 ORDER BY hot_score DESC;

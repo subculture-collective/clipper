@@ -22,6 +22,25 @@ interface QueuedRequest {
 let isRefreshing = false;
 let failedQueue: QueuedRequest[] = [];
 
+// Store CSRF token from response headers
+let csrfToken: string | null = null;
+
+// Request interceptor to add CSRF token to state-changing requests
+apiClient.interceptors.request.use(
+  (config) => {
+    // Only add CSRF token for state-changing methods
+    if (config.method && ['post', 'put', 'delete', 'patch'].includes(config.method.toLowerCase())) {
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 const processQueue = (
   error: AxiosError | null,
   token: AxiosResponse | null = null
@@ -38,7 +57,14 @@ const processQueue = (
 
 // Response interceptor to handle token refresh on 401
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Extract CSRF token from response headers if present
+    const token = response.headers['x-csrf-token'];
+    if (token) {
+      csrfToken = token;
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
@@ -78,11 +104,11 @@ apiClient.interceptors.response.use(
       try {
         // Try to refresh the token
         const response = await apiClient.post('/auth/refresh');
-        
+
         // Token refreshed successfully (new tokens are in cookies)
         isRefreshing = false;
         processQueue(null, response);
-        
+
         // Retry the original request
         return apiClient(originalRequest);
       } catch (refreshError) {

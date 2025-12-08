@@ -13,6 +13,7 @@ import {
 } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { getUserSubmissions, submitClip } from '../lib/submission-api';
+import { getPublicConfig } from '../lib/config-api';
 import type { ClipSubmission, SubmitClipRequest } from '../types/submission';
 
 export function SubmitClipPage() {
@@ -34,10 +35,25 @@ export function SubmitClipPage() {
         ClipSubmission[]
     >([]);
     const [isStreamerAutoDetected, setIsStreamerAutoDetected] = useState(false);
+    const [karmaRequired, setKarmaRequired] = useState(100);
+    const [karmaRequirementEnabled, setKarmaRequirementEnabled] = useState(true);
 
     // Check if user is authenticated and has enough karma
-    const canSubmit = isAuthenticated && user && user.karma_points >= 100;
-    const karmaNeeded = user ? Math.max(0, 100 - user.karma_points) : 100;
+    const canSubmit = isAuthenticated && user && (!karmaRequirementEnabled || user.karma_points >= karmaRequired);
+    const karmaNeeded = user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
+
+    // Load karma configuration
+    useEffect(() => {
+        getPublicConfig()
+            .then((config) => {
+                setKarmaRequired(config.karma.submission_karma_required);
+                setKarmaRequirementEnabled(config.karma.require_karma_for_submission);
+            })
+            .catch((err) => {
+                console.error('Failed to load config:', err);
+                // Use defaults if config fails to load
+            });
+    }, []);
 
     // Load recent submissions
     useEffect(() => {
@@ -47,12 +63,13 @@ export function SubmitClipPage() {
             getUserSubmissions(1, 5)
                 .then((response) => {
                     if (isMounted) {
-                        setRecentSubmissions(response.data);
+                        setRecentSubmissions(response.data || []);
                     }
                 })
                 .catch((err) => {
                     if (isMounted) {
                         console.error('Failed to load submissions:', err);
+                        setRecentSubmissions([]);
                     }
                 });
         }
@@ -65,26 +82,26 @@ export function SubmitClipPage() {
     // Helper function to extract clip ID from Twitch URL
     const extractClipIDFromURL = (url: string): string | null => {
         if (!url) return null;
-        
+
         // Match patterns like:
         // https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage
         // https://www.twitch.tv/broadcaster/clip/AwkwardHelplessSalamanderSwiftRage
         const clipsTwitchPattern = /clips\.twitch\.tv\/([a-zA-Z0-9_-]+)/;
         const twitchClipPattern = /twitch\.tv\/[^/]+\/clip\/([a-zA-Z0-9_-]+)/;
-        
+
         let match = url.match(clipsTwitchPattern);
         if (match) return match[1];
-        
+
         match = url.match(twitchClipPattern);
         if (match) return match[1];
-        
+
         return null;
     };
 
     // Auto-detect streamer when URL changes
     useEffect(() => {
         const clipID = extractClipIDFromURL(formData.clip_url);
-        
+
         // If we have a valid clip ID and no streamer name set yet (or it was auto-detected)
         if (clipID && (!formData.broadcaster_name_override || isStreamerAutoDetected)) {
             // For now, we show a note that the streamer will be detected
@@ -106,7 +123,11 @@ export function SubmitClipPage() {
         e.preventDefault();
 
         if (!canSubmit) {
-            setError('You need at least 100 karma points to submit clips');
+            if (karmaRequirementEnabled) {
+                setError(`You need at least ${karmaRequired} karma points to submit clips`);
+            } else {
+                setError('You must be logged in to submit clips');
+            }
             return;
         }
 
@@ -424,7 +445,7 @@ export function SubmitClipPage() {
                 </Card>
 
                 {/* Recent Submissions */}
-                {recentSubmissions.length > 0 && (
+                {Array.isArray(recentSubmissions) && recentSubmissions.length > 0 && (
                     <Card className='p-6'>
                         <h2 className='text-xl font-bold mb-4'>
                             Your Recent Submissions

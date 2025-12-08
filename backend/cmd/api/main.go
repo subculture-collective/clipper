@@ -179,7 +179,7 @@ func main() {
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	revenueService := services.NewRevenueService(revenueRepo, cfg)
 	adService := services.NewAdService(adRepo, redisClient)
-	
+
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
 	if exportDir == "" {
@@ -238,7 +238,7 @@ func main() {
 	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
 	}
 
 	// Initialize handlers
@@ -276,6 +276,7 @@ func main() {
 	adHandler := handlers.NewAdHandler(adService)
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
 	webhookSubscriptionHandler := handlers.NewWebhookSubscriptionHandler(outboundWebhookService)
+	configHandler := handlers.NewConfigHandler(cfg)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -324,14 +325,6 @@ func main() {
 
 	// Apply abuse detection middleware
 	r.Use(middleware.AbuseDetectionMiddleware(redisClient))
-
-	// Public health endpoints (before CSRF middleware)
-	// Basic health check
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "healthy",
-		})
-	})
 
 	// Apply CSRF protection middleware (secure in production)
 	isProduction := cfg.Server.GinMode == "release"
@@ -447,20 +440,30 @@ func main() {
 	// API version 1 routes
 	v1 := r.Group("/api/v1")
 	{
+		// Basic health check
+		v1.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"status": "healthy",
+			})
+		})
+
 		v1.GET("/ping", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "pong",
 			})
 		})
 
+		// Public config endpoint
+		v1.GET("/config", configHandler.GetPublicConfig)
+
 		// Auth routes
 		auth := v1.Group("/auth")
 		{
-			// Public auth endpoints with rate limiting
-			auth.GET("/twitch", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), authHandler.InitiateOAuth)
-			auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.HandleCallback)
-			auth.POST("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.HandlePKCECallback)
-			auth.POST("/refresh", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), authHandler.RefreshToken)
+			// Public auth endpoints with rate limiting (increased for legitimate OAuth flows)
+			auth.GET("/twitch", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), authHandler.InitiateOAuth)
+			auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.HandleCallback)
+			auth.POST("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.HandlePKCECallback)
+			auth.POST("/refresh", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.RefreshToken)
 			auth.POST("/logout", authHandler.Logout)
 
 			// Protected auth endpoints
@@ -609,10 +612,10 @@ func main() {
 			creators.GET("/:creatorName/analytics/clips", analyticsHandler.GetCreatorTopClips)
 			creators.GET("/:creatorName/analytics/trends", analyticsHandler.GetCreatorTrends)
 			creators.GET("/:creatorName/analytics/audience", analyticsHandler.GetCreatorAudienceInsights)
-			
+
 			// Creator clips listing (shows hidden clips if authenticated as creator)
-			creators.GET("/:creatorId/clips", middleware.OptionalAuthMiddleware(authService), clipHandler.ListCreatorClips)
-			
+			creators.GET("/:creatorName/clips", middleware.OptionalAuthMiddleware(authService), clipHandler.ListCreatorClips)
+
 			// Creator data export routes (authenticated, rate limited)
 			creators.POST("/me/export/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 3, 24*time.Hour), exportHandler.RequestExport)
 			creators.GET("/me/exports", middleware.AuthMiddleware(authService), exportHandler.ListExportRequests)
@@ -685,17 +688,17 @@ func main() {
 
 			// Protected webhook subscription endpoints (require authentication)
 			webhooks.Use(middleware.AuthMiddleware(authService))
-			
+
 			// CRUD operations for webhook subscriptions
 			webhooks.POST("", middleware.RateLimitMiddleware(redisClient, 10, time.Hour), webhookSubscriptionHandler.CreateSubscription)
 			webhooks.GET("", webhookSubscriptionHandler.ListSubscriptions)
 			webhooks.GET("/:id", webhookSubscriptionHandler.GetSubscription)
 			webhooks.PATCH("/:id", webhookSubscriptionHandler.UpdateSubscription)
 			webhooks.DELETE("/:id", webhookSubscriptionHandler.DeleteSubscription)
-			
+
 			// Secret regeneration
 			webhooks.POST("/:id/regenerate-secret", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), webhookSubscriptionHandler.RegenerateSecret)
-			
+
 			// Delivery history
 			webhooks.GET("/:id/deliveries", webhookSubscriptionHandler.GetSubscriptionDeliveries)
 		}
@@ -723,7 +726,8 @@ func main() {
 		{
 			docs.GET("", docsHandler.GetDocsList)
 			docs.GET("/search", docsHandler.SearchDocs)
-			docs.GET("/*path", docsHandler.GetDoc)
+			// Catch-all route must be last
+			docs.GET("/:path", docsHandler.GetDoc) // Changed from /*path to /:path to avoid conflict
 		}
 
 		// Admin routes

@@ -296,7 +296,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	}
 
 	if filters.Language != nil && *filters.Language != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.language = %s", utils.SQLPlaceholder(argIndex)))
+		placeholder := utils.SQLPlaceholder(argIndex)
+		whereClauses = append(whereClauses, fmt.Sprintf("(c.language = %s OR c.language = split_part(%s, '-', 1) OR c.language IS NULL OR c.language = '')", placeholder, placeholder))
 		args = append(args, *filters.Language)
 		argIndex++
 	}

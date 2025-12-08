@@ -13,13 +13,13 @@ export function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       const errorParam = searchParams.get('error');
-      
+
       if (errorParam) {
         // OAuth error (e.g., user denied permission)
-        setError(errorParam === 'access_denied' 
-          ? 'You cancelled the login process.' 
+        setError(errorParam === 'access_denied'
+          ? 'You cancelled the login process.'
           : 'Authentication failed. Please try again.');
-        
+
         // Redirect to login after a delay
         setTimeout(() => {
           navigate('/login', { replace: true });
@@ -32,32 +32,47 @@ export function AuthCallbackPage() {
       const state = searchParams.get('state');
 
       try {
-        // If we have code and state, use PKCE flow
+        // If we have code and state, try PKCE flow
         if (code && state) {
           const result = await handleOAuthCallback(code, state);
-          
+
           if (!result.success) {
-            setError(result.error || 'Authentication failed. Please try again.');
-            setTimeout(() => {
-              navigate('/login', { replace: true });
-            }, 3000);
-            return;
+            // PKCE flow failed, but don't give up yet
+            // The backend might have already authenticated us (non-PKCE fallback)
+            console.warn('PKCE callback failed:', result.error, 'Attempting to check if backend authenticated...');
+
+            // Try to get user without PKCE completion
+            try {
+              await refreshUser();
+              // If we get here, backend did authenticate us
+              const returnTo = sessionStorage.getItem('auth_return_to') || '/';
+              sessionStorage.removeItem('auth_return_to');
+              navigate(returnTo, { replace: true });
+              return;
+            } catch {
+              // Backend also couldn't authenticate
+              setError(result.error || 'Authentication failed. Please try again.');
+              setTimeout(() => {
+                navigate('/login', { replace: true });
+              }, 3000);
+              return;
+            }
           }
         }
-        
+
         // After successful OAuth callback (or if backend already set cookies)
         // Fetch the user data
         await refreshUser();
-        
+
         // Get the intended destination from session storage or default to home
         const returnTo = sessionStorage.getItem('auth_return_to') || '/';
         sessionStorage.removeItem('auth_return_to');
-        
+
         navigate(returnTo, { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
         setError('Failed to complete authentication. Please try again.');
-        
+
         setTimeout(() => {
           navigate('/login', { replace: true });
         }, 3000);

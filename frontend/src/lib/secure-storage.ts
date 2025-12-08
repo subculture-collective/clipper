@@ -109,8 +109,9 @@ export function isSecureStorageAvailable(): boolean {
  */
 export async function setSecureItem(key: string, value: string): Promise<void> {
   if (!isSecureStorageAvailable()) {
-    // Fallback to sessionStorage (not encrypted, but ephemeral)
+    // Fallback to sessionStorage and localStorage for better persistence
     sessionStorage.setItem(`secure_${key}`, value);
+    localStorage.setItem(`secure_${key}`, value);
     return;
   }
 
@@ -130,15 +131,20 @@ export async function setSecureItem(key: string, value: string): Promise<void> {
 
       const request = store.put(data, key);
 
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => {
+        // Also store in localStorage as fallback
+        localStorage.setItem(`secure_${key}`, value);
+        resolve();
+      };
       request.onerror = () => reject(request.error);
 
       transaction.oncomplete = () => db.close();
     });
   } catch (error) {
     console.error('Error storing secure item:', error);
-    // Fallback to sessionStorage
+    // Fallback to sessionStorage and localStorage
     sessionStorage.setItem(`secure_${key}`, value);
+    localStorage.setItem(`secure_${key}`, value);
   }
 }
 
@@ -147,8 +153,8 @@ export async function setSecureItem(key: string, value: string): Promise<void> {
  */
 export async function getSecureItem(key: string): Promise<string | null> {
   if (!isSecureStorageAvailable()) {
-    // Fallback to sessionStorage
-    return sessionStorage.getItem(`secure_${key}`);
+    // Fallback to sessionStorage first, then localStorage
+    return sessionStorage.getItem(`secure_${key}`) || localStorage.getItem(`secure_${key}`);
   }
 
   try {
@@ -162,7 +168,9 @@ export async function getSecureItem(key: string): Promise<string | null> {
       request.onsuccess = async () => {
         const data = request.result;
         if (!data) {
-          resolve(null);
+          // Fallback to localStorage if not in IndexedDB
+          const localStorageValue = localStorage.getItem(`secure_${key}`);
+          resolve(localStorageValue);
           return;
         }
 
@@ -173,7 +181,9 @@ export async function getSecureItem(key: string): Promise<string | null> {
           resolve(plaintext);
         } catch (error) {
           console.error('Error decrypting data:', error);
-          resolve(null);
+          // Fallback to localStorage
+          const localStorageValue = localStorage.getItem(`secure_${key}`);
+          resolve(localStorageValue);
         }
       };
 
@@ -183,8 +193,8 @@ export async function getSecureItem(key: string): Promise<string | null> {
     });
   } catch (error) {
     console.error('Error retrieving secure item:', error);
-    // Fallback to sessionStorage
-    return sessionStorage.getItem(`secure_${key}`);
+    // Fallback to sessionStorage then localStorage
+    return sessionStorage.getItem(`secure_${key}`) || localStorage.getItem(`secure_${key}`);
   }
 }
 
@@ -192,6 +202,9 @@ export async function getSecureItem(key: string): Promise<string | null> {
  * Remove encrypted data
  */
 export async function removeSecureItem(key: string): Promise<void> {
+  // Always clean up localStorage
+  localStorage.removeItem(`secure_${key}`);
+
   if (!isSecureStorageAvailable()) {
     sessionStorage.removeItem(`secure_${key}`);
     return;

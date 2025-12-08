@@ -23,6 +23,7 @@ type Config struct {
 	Email        EmailConfig
 	Embedding    EmbeddingConfig
 	FeatureFlags FeatureFlagsConfig
+	Karma        KarmaConfig
 	Jobs         JobsConfig
 }
 
@@ -131,6 +132,13 @@ type FeatureFlagsConfig struct {
 	DiscoveryLists       bool
 }
 
+// KarmaConfig holds karma system configuration
+type KarmaConfig struct {
+	InitialKarmaPoints         int  // Karma points granted to new users on signup
+	SubmissionKarmaRequired    int  // Minimum karma required to submit clips
+	RequireKarmaForSubmission  bool // Whether to enforce karma requirement for submissions
+}
+
 // JobsConfig holds background job interval configuration
 type JobsConfig struct {
 	HotClipsRefreshIntervalMinutes int
@@ -229,6 +237,11 @@ func Load() (*Config, error) {
 			Analytics:            getEnv("FEATURE_ANALYTICS", "true") == "true",
 			Moderation:           getEnv("FEATURE_MODERATION", "true") == "true",
 			DiscoveryLists:       getEnv("FEATURE_DISCOVERY_LISTS", "false") == "true",
+		},
+		Karma: KarmaConfig{
+			InitialKarmaPoints:        getEnvInt("KARMA_INITIAL_POINTS", 100),
+			SubmissionKarmaRequired:   getEnvInt("KARMA_SUBMISSION_REQUIRED", 100),
+			RequireKarmaForSubmission: getEnv("KARMA_REQUIRE_FOR_SUBMISSION", "true") == "true",
 		},
 		Jobs: JobsConfig{
 			HotClipsRefreshIntervalMinutes: getEnvInt("HOT_CLIPS_REFRESH_INTERVAL_MINUTES", 5),

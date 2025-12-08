@@ -55,13 +55,13 @@ CREATE TABLE ad_frequency_caps (
     window_start TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     window_type VARCHAR(20) NOT NULL, -- 'hourly', 'daily', 'weekly', 'lifetime'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    -- Unique constraint: one cap per user/session, ad, and window type
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Add partial unique indexes for ad_frequency_caps
 CREATE UNIQUE INDEX unique_user_ad_window ON ad_frequency_caps(ad_id, user_id, window_type) WHERE user_id IS NOT NULL;
 CREATE UNIQUE INDEX unique_session_ad_window ON ad_frequency_caps(ad_id, session_id, window_type) WHERE session_id IS NOT NULL;
+
 -- Create ad frequency limits table (configurable per ad)
 CREATE TABLE ad_frequency_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,7 +69,7 @@ CREATE TABLE ad_frequency_limits (
     window_type VARCHAR(20) NOT NULL, -- 'hourly', 'daily', 'weekly', 'lifetime'
     max_impressions INT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT unique_ad_window_limit UNIQUE (ad_id, window_type)
+    UNIQUE (ad_id, window_type)
 );
 
 -- Create indexes for performance

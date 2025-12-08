@@ -17,6 +17,13 @@ var (
 	// Global fallback rate limiters (one per middleware instance)
 	ipFallbackLimiter   *InMemoryRateLimiter
 	userFallbackLimiter *InMemoryRateLimiter
+	
+	// IP whitelist for rate limiting bypass (for testing/trusted IPs)
+	rateLimitWhitelist = map[string]bool{
+		"127.0.0.1":     true,
+		"::1":           true,
+		"173.165.22.142": true, // Your IP
+	}
 )
 
 // RateLimitMiddleware creates rate limiting middleware using sliding window algorithm
@@ -28,6 +35,13 @@ func RateLimitMiddleware(redis *redispkg.Client, requests int, window time.Durat
 	return func(c *gin.Context) {
 		// Get client IP and endpoint for granular rate limiting
 		ip := c.ClientIP()
+		
+		// Skip rate limiting for whitelisted IPs
+		if rateLimitWhitelist[ip] {
+			c.Header("X-RateLimit-Bypass", "whitelisted")
+			c.Next()
+			return
+		}
 		endpoint := c.Request.URL.Path
 		key := fmt.Sprintf("ratelimit:%s:%s", endpoint, ip)
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/utils"
@@ -27,6 +28,7 @@ type SubmissionService struct {
 	abuseDetector       *SubmissionAbuseDetector
 	moderationEvents    *ModerationEventService
 	webhookService      *OutboundWebhookService
+	cfg                 *config.Config
 }
 
 // NewSubmissionService creates a new SubmissionService
@@ -39,15 +41,16 @@ func NewSubmissionService(
 	notificationService *NotificationService,
 	redisClient *redispkg.Client,
 	webhookService *OutboundWebhookService,
+	cfg *config.Config,
 ) *SubmissionService {
 	var abuseDetector *SubmissionAbuseDetector
 	var moderationEvents *ModerationEventService
-	
+
 	if redisClient != nil {
 		abuseDetector = NewSubmissionAbuseDetector(redisClient)
 		moderationEvents = NewModerationEventService(redisClient, notificationService)
 	}
-	
+
 	return &SubmissionService{
 		submissionRepo:      submissionRepo,
 		clipRepo:            clipRepo,
@@ -59,6 +62,7 @@ func NewSubmissionService(
 		abuseDetector:       abuseDetector,
 		moderationEvents:    moderationEvents,
 		webhookService:      webhookService,
+		cfg:                 cfg,
 	}
 }
 
@@ -227,9 +231,9 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, &ValidationError{Field: "user", Message: "Your account has been banned and cannot submit clips. Please contact support if you believe this is an error."}
 	}
 
-	// Check minimum karma requirement (100 karma)
-	if user.KarmaPoints < 100 {
-		return nil, &ValidationError{Field: "karma", Message: "You need at least 100 karma points to submit clips. Earn karma by participating in the community through voting and commenting."}
+	// Check minimum karma requirement (configurable, can be disabled)
+	if s.cfg.Karma.RequireKarmaForSubmission && user.KarmaPoints < s.cfg.Karma.SubmissionKarmaRequired {
+		return nil, &ValidationError{Field: "karma", Message: fmt.Sprintf("You need at least %d karma points to submit clips. Earn karma by participating in the community through voting and commenting.", s.cfg.Karma.SubmissionKarmaRequired)}
 	}
 
 	// Perform abuse detection checks
@@ -247,7 +251,7 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 				}
 				_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventUserCooldownActivated, userID, ip, metadata)
 			}
-			
+
 			return nil, &ValidationError{
 				Field:   "rate_limit",
 				Message: abuseCheck.Reason,
@@ -396,7 +400,7 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		if submission.Status == "approved" {
 			eventType = ModerationEventSubmissionApproved
 		}
-		
+
 		metadata := map[string]interface{}{
 			"submission_id":   submission.ID.String(),
 			"clip_id":         submission.TwitchClipID,
@@ -405,14 +409,14 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 			"is_nsfw":         submission.IsNSFW,
 			"auto_approved":   submission.Status == "approved",
 		}
-		
+
 		if submission.CustomTitle != nil {
 			metadata["custom_title"] = *submission.CustomTitle
 		}
 		if len(submission.Tags) > 0 {
 			metadata["tags"] = submission.Tags
 		}
-		
+
 		if err := s.moderationEvents.EmitSubmissionEvent(ctx, eventType, submission, ip, metadata); err != nil {
 			log.Printf("Failed to emit submission event: %v", err)
 		}
@@ -636,7 +640,7 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 				log.Printf("Failed to track duplicate attempt: %v", err)
 			}
 		}
-		
+
 		// Emit moderation event
 		if s.moderationEvents != nil {
 			metadata := map[string]interface{}{
@@ -647,7 +651,7 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 				log.Printf("Failed to emit duplicate event: %v", err)
 			}
 		}
-		
+
 		return &ValidationError{
 			Field:   "clip_url",
 			Message: "This clip has already been added to our database and cannot be submitted again",
@@ -666,7 +670,7 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 				log.Printf("Failed to track duplicate attempt: %v", err)
 			}
 		}
-		
+
 		if submission.Status == "pending" {
 			// Emit moderation event for duplicate pending submission
 			if s.moderationEvents != nil {
@@ -679,7 +683,7 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 					log.Printf("Failed to emit duplicate event: %v", err)
 				}
 			}
-			
+
 			return &ValidationError{
 				Field:   "clip_url",
 				Message: "This clip is already pending review. You'll be notified once it's been reviewed by our moderators.",
