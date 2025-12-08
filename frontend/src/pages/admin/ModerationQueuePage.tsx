@@ -9,6 +9,7 @@ import {
     Modal,
     Spinner,
     TextArea,
+    UserRoleBadge,
 } from '../../components';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -17,6 +18,7 @@ import {
     rejectSubmission,
 } from '../../lib/submission-api';
 import type { ClipSubmissionWithUser } from '../../types/submission';
+import type { UserRole } from '../../lib/roles';
 
 export function ModerationQueuePage() {
     const { isAuthenticated, isAdmin } = useAuth();
@@ -237,17 +239,7 @@ export function ModerationQueuePage() {
                                                             }{' '}
                                                             karma
                                                         </Badge>
-                                                        {submission.user
-                                                            .role !==
-                                                            'user' && (
-                                                            <Badge variant='success'>
-                                                                {
-                                                                    submission
-                                                                        .user
-                                                                        .role
-                                                                }
-                                                            </Badge>
-                                                        )}
+                                                        <UserRoleBadge role={submission.user.role as UserRole} size="sm" />
                                                     </div>
                                                 )}
 
