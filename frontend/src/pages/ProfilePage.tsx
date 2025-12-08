@@ -279,7 +279,7 @@ export function ProfilePage() {
                                         </p>
                                         <div className='flex gap-3'>
                                             <Link
-                                                to='/admin'
+                                                to='/admin/dashboard'
                                                 className='text-sm text-primary-600 hover:text-primary-700 font-medium'
                                             >
                                                 Dashboard
