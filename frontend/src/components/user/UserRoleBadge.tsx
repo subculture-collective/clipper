@@ -5,6 +5,9 @@ import { USER_ROLES, type UserRole, getRoleDisplayName } from '@/lib/roles';
 export interface UserRoleBadgeProps {
   /**
    * The user's role
+   * - UserRole types (admin, moderator, user) are from the user's account role
+   * - 'creator' is for content creators/submitters in specific contexts
+   * - 'member' is a synonym for 'user', used when emphasizing community membership
    */
   role: UserRole | 'creator' | 'member';
   /**
