@@ -32,11 +32,11 @@ func TestAdminReportsEndpoints(t *testing.T) {
 
 	// Setup database connection
 	dbConfig := &config.DatabaseConfig{
-		Host:     "localhost",
-		Port:     "5436",
-		User:     "clipper",
-		Password: "clipper_password",
-		Name:     "clipper_db",
+		Host:     getEnvOrDefault("DB_HOST", "localhost"),
+		Port:     getEnvOrDefault("DB_PORT", "5436"),
+		User:     getEnvOrDefault("DB_USER", "clipper"),
+		Password: getEnvOrDefault("DB_PASSWORD", "clipper_password"),
+		Name:     getEnvOrDefault("DB_NAME", "clipper_db"),
 		SSLMode:  "disable",
 	}
 
