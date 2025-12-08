@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 backend/.env
+backend/env.production
+frontend/.env
+frontend/env.production
 secrets/
 vault/approle/role_id
 vault/approle/secret_id
@@ -57,3 +60,4 @@ summary.json
 vault/approle/frontend_role_id
 vault/approle/frontend_secret_id
 frontend/frontend.env
+backend/.env.production
