@@ -54,6 +54,7 @@ const AdminCampaignsPage = lazy(() => import('./pages/admin/AdminCampaignsPage')
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
+const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m => ({ default: m.RoleBadgeTestPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -97,6 +98,7 @@ function App() {
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
+                    <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
 
                     {/* Guest Routes (redirect to home if authenticated) */}
                     <Route
