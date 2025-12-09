@@ -92,7 +92,7 @@ export function MiniFooter() {
                   className="block text-sm text-foreground hover:text-primary-500 transition-colors"
                   onClick={() => setIsExpanded(false)}
                 >
-                  About Clipper
+                  About clpr
                 </Link>
                 <a
                   href="https://github.com/subculture-collective/clipper"

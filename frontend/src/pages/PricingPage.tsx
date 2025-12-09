@@ -88,8 +88,8 @@ export default function PricingPage() {
   return (
     <>
       <SEO
-        title="Pricing - Clipper Pro"
-        description="Upgrade to Clipper Pro for an ad-free experience, advanced search and filtering, priority support, and exclusive features. Choose monthly or yearly billing."
+        title="Pricing - clpr Pro"
+        description="Upgrade to clpr Pro for an ad-free experience, advanced search and filtering, priority support, and exclusive features. Choose monthly or yearly billing."
         canonicalUrl="/pricing"
       />
       <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -97,10 +97,10 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">
-            Upgrade to Clipper Pro
+            Upgrade to clpr Pro
           </h1>
           <p className="text-xl text-gray-400">
-            Get the most out of Clipper with exclusive Pro features
+            Get the most out of clpr with exclusive Pro features
           </p>
         </div>
 

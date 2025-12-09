@@ -65,10 +65,10 @@ export function Header() {
                     <Link
                         to='/'
                         className='flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rounded-md'
-                        aria-label='Clipper home'
+                        aria-label='clpr home'
                     >
                         <div className='text-2xl font-bold text-gradient'>
-                            Clipper
+                            clpr
                         </div>
                     </Link>
 

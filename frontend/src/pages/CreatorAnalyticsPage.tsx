@@ -64,7 +64,7 @@ const CreatorAnalyticsPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>{creatorName} Analytics - Clipper</title>
+        <title>{creatorName} Analytics - clpr</title>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

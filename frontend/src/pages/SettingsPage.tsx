@@ -217,7 +217,7 @@ export function SettingsPage() {
     return (
         <>
             <Helmet>
-                <title>Settings - Clipper</title>
+                <title>Settings - clpr</title>
             </Helmet>
 
             <Container className='py-4 xs:py-6 md:py-8'>
@@ -465,7 +465,7 @@ export function SettingsPage() {
                             <Stack direction='vertical' gap={4}>
                                 <Toggle
                                     label='Analytics Tracking'
-                                    helperText='Help us improve Clipper by allowing anonymous usage analytics'
+                                    helperText='Help us improve clpr by allowing anonymous usage analytics'
                                     checked={consent.analytics}
                                     onChange={(e) => {
                                         updateConsent({ analytics: e.target.checked });

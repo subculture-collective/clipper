@@ -223,7 +223,7 @@ func Load() (*Config, error) {
 			SendGridAPIKey:           getEnv("SENDGRID_API_KEY", ""),
 			SendGridWebhookPublicKey: getEnv("SENDGRID_WEBHOOK_PUBLIC_KEY", ""),
 			FromEmail:                getEnv("EMAIL_FROM_ADDRESS", "noreply@clipper.gg"),
-			FromName:                 getEnv("EMAIL_FROM_NAME", "Clipper"),
+			FromName:                 getEnv("EMAIL_FROM_NAME", "clpr"),
 			Enabled:                  getEnv("EMAIL_ENABLED", "false") == "true",
 			SandboxMode:              getEnv("EMAIL_SANDBOX_MODE", "false") == "true",
 			MaxEmailsPerHour:         getEnvInt("EMAIL_MAX_PER_HOUR", 10),

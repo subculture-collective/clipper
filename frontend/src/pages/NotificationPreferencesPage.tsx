@@ -95,7 +95,7 @@ export function NotificationPreferencesPage() {
   return (
     <>
       <Helmet>
-        <title>Notification Preferences - Clipper</title>
+        <title>Notification Preferences - clpr</title>
       </Helmet>
 
       <Container>
