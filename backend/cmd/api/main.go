@@ -584,7 +584,7 @@ func main() {
 		{
 			// Public user profile
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
-			
+
 			// Public reputation endpoints
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
 			users.GET("/:id/karma", reputationHandler.GetUserKarma)
