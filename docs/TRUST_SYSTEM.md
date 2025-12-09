@@ -725,7 +725,7 @@ Any changes to the algorithm weights or formulas require:
 - **[REPUTATION_SYSTEM.md](REPUTATION_SYSTEM.md):** Technical implementation details
 - **[User FAQ](users/faq.md):** User-facing FAQ with trust score basics
 - **[Community Guidelines](users/community-guidelines.md):** Rules affecting trust scores
-- **[Moderation Guide](MODERATION_SYSTEM.md):** How trust scores inform moderation
+- **[Moderation Guide](MODERATION_SYSTEM_SUMMARY.md):** How trust scores inform moderation
 
 ## Appendix: Mathematical Details
 
