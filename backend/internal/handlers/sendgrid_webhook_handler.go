@@ -4,13 +4,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +33,7 @@ func NewSendGridWebhookHandler(emailLogRepo *repository.EmailLogRepository, send
 	if sendgridPublicKey != "" {
 		key, err := parseECDSAPublicKey(sendgridPublicKey)
 		if err != nil {
-			logger.Warn("Failed to parse SendGrid public key, webhook signature verification will be disabled", err)
+			logger.Warn("Failed to parse SendGrid public key, webhook signature verification will be disabled", map[string]interface{}{"error": err.Error()})
 		} else {
 			publicKey = key
 		}
@@ -84,7 +82,7 @@ func (h *SendGridWebhookHandler) HandleWebhook(c *gin.Context) {
 		}
 
 		if err := h.verifySignature(body, signature, timestamp); err != nil {
-			h.logger.Warn("Invalid webhook signature", err)
+			h.logger.Warn("Invalid webhook signature", map[string]interface{}{"error": err.Error()})
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid signature"})
 			return
 		}
@@ -98,13 +96,13 @@ func (h *SendGridWebhookHandler) HandleWebhook(c *gin.Context) {
 		return
 	}
 
-	h.logger.WithField("event_count", len(events)).Info("Received SendGrid webhook events")
+	h.logger.Info("Received SendGrid webhook events", map[string]interface{}{"event_count": len(events)})
 
 	// Process each event
 	for _, event := range events {
 		if err := h.processEvent(c.Request.Context(), &event); err != nil {
 			// Log error but continue processing other events
-			h.logger.Error("Failed to process event", err, map[string]interface{}{"event_type", event.Event})
+			h.logger.Error("Failed to process event", err, map[string]interface{}{"event_type": event.Event})
 		}
 	}
 
@@ -119,15 +117,15 @@ func (h *SendGridWebhookHandler) processEvent(ctx context.Context, event *models
 
 	// Determine status and event type
 	status := h.mapEventToStatus(event.Event)
-	
+
 	// Check if this is a new event or an update to an existing log
 	var existingLog *models.EmailLog
 	var err error
-	
+
 	if event.SgMessageID != "" {
 		existingLog, err = h.emailLogRepo.GetEmailLogByMessageID(ctx, event.SgMessageID)
 		if err != nil {
-			h.logger.Error("Failed to check for existing email log", err, map[string]interface{}{"message_id", event.SgMessageID})
+			h.logger.Error("Failed to check for existing email log", err, map[string]interface{}{"message_id": event.SgMessageID})
 		}
 	}
 
@@ -243,7 +241,7 @@ func (h *SendGridWebhookHandler) setEventSpecificFields(log *models.EmailLog, ev
 func (h *SendGridWebhookHandler) updateExistingLog(log *models.EmailLog, event *models.SendGridWebhookEvent, status string, eventTime time.Time) {
 	// Update status to the latest event
 	log.Status = status
-	
+
 	// Update event-specific timestamps and fields
 	switch event.Event {
 	case "delivered":
@@ -290,11 +288,11 @@ func (h *SendGridWebhookHandler) verifySignature(payload []byte, signature, time
 	if signature == "" {
 		return fmt.Errorf("empty signature")
 	}
-	
+
 	// TODO: Implement proper ECDSA signature verification
 	// The signature verification would follow SendGrid's documentation:
 	// https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security-features
-	
+
 	return nil
 }
 

@@ -26,27 +26,27 @@ func NewEmailMetricsService(emailLogRepo *repository.EmailLogRepository) *EmailM
 
 // AlertThresholds defines the thresholds for triggering alerts
 type AlertThresholds struct {
-	BounceRateWarning      float64 // 5% - Warning threshold for bounce rate
-	BounceRateCritical     float64 // 10% - Critical threshold for bounce rate
-	ComplaintRateWarning   float64 // 0.5% - Warning threshold for complaint/spam rate
-	ComplaintRateCritical  float64 // 1% - Critical threshold for complaint/spam rate
-	OpenRateDropWarning    float64 // 20% - Warning threshold for open rate drop
-	OpenRateDropCritical   float64 // 40% - Critical threshold for open rate drop
-	SendErrorsHourly       int     // 10 - Maximum send errors per hour
-	UnsubscribeSpike       float64 // 200% - Spike percentage for unsubscribes
+	BounceRateWarning     float64 // 5% - Warning threshold for bounce rate
+	BounceRateCritical    float64 // 10% - Critical threshold for bounce rate
+	ComplaintRateWarning  float64 // 0.5% - Warning threshold for complaint/spam rate
+	ComplaintRateCritical float64 // 1% - Critical threshold for complaint/spam rate
+	OpenRateDropWarning   float64 // 20% - Warning threshold for open rate drop
+	OpenRateDropCritical  float64 // 40% - Critical threshold for open rate drop
+	SendErrorsHourly      int     // 10 - Maximum send errors per hour
+	UnsubscribeSpike      float64 // 200% - Spike percentage for unsubscribes
 }
 
 // DefaultAlertThresholds returns the default alert thresholds from the issue requirements
 func DefaultAlertThresholds() *AlertThresholds {
 	return &AlertThresholds{
-		BounceRateWarning:      5.0,
-		BounceRateCritical:     10.0,
-		ComplaintRateWarning:   0.5,
-		ComplaintRateCritical:  1.0,
-		OpenRateDropWarning:    20.0,
-		OpenRateDropCritical:   40.0,
-		SendErrorsHourly:       10,
-		UnsubscribeSpike:       200.0,
+		BounceRateWarning:     5.0,
+		BounceRateCritical:    10.0,
+		ComplaintRateWarning:  0.5,
+		ComplaintRateCritical: 1.0,
+		OpenRateDropWarning:   20.0,
+		OpenRateDropCritical:  40.0,
+		SendErrorsHourly:      10,
+		UnsubscribeSpike:      200.0,
 	}
 }
 
