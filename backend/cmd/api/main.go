@@ -240,7 +240,7 @@ func main() {
 	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
 	}
 
 	// Initialize handlers
