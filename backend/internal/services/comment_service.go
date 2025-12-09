@@ -138,7 +138,7 @@ func (s *CommentService) ValidateCreateComment(ctx context.Context, req *CreateC
 }
 
 // CreateComment creates a new comment
-func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRequest, clipID, userID uuid.UUID) (*models.Comment, error) {
+func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRequest, clipID, userID uuid.UUID) (*repository.CommentWithAuthor, error) {
 	// Validate request
 	if err := s.ValidateCreateComment(ctx, req, clipID); err != nil {
 		return nil, err
@@ -161,6 +161,16 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 	// Save to database
 	if err := s.repo.Create(ctx, comment); err != nil {
 		return nil, fmt.Errorf("failed to create comment: %w", err)
+	}
+
+	// Auto-upvote: Create an upvote from the comment creator
+	// This encourages engagement and shows creator approval
+	// Note: We call the repository method directly instead of s.VoteOnComment() to avoid
+	// giving the user karma for voting on their own comment. The VoteOnComment service
+	// method awards karma to the comment author, which would be circular in this case.
+	if err := s.repo.VoteOnComment(ctx, userID, comment.ID, 1); err != nil {
+		// Log error but don't fail the comment creation
+		fmt.Printf("Warning: failed to auto-upvote comment for user %s: %v\n", userID, err)
 	}
 
 	// Award karma to user
@@ -187,7 +197,16 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 		}
 	}
 
-	return comment, nil
+	// Fetch the complete comment with author info and vote status
+	commentWithAuthor, err := s.repo.GetByID(ctx, comment.ID, &userID)
+	if err != nil {
+		// If we can't get the full comment after creation, this is a serious issue.
+		// Return an error since the API contract expects a complete CommentWithAuthor
+		// with author info and vote status, which we cannot provide.
+		return nil, fmt.Errorf("failed to fetch created comment with author info: %w", err)
+	}
+
+	return commentWithAuthor, nil
 }
 
 // UpdateComment updates a comment's content
