@@ -698,6 +698,131 @@ type TagMetric struct {
 	UsageCount int       `json:"usage_count"`
 }
 
+// UserEngagementScore represents a user's engagement score and its components
+type UserEngagementScore struct {
+	UserID          uuid.UUID                 `json:"user_id" db:"user_id"`
+	Score           int                       `json:"score" db:"score"`                       // 0-100
+	Tier            string                    `json:"tier" db:"tier"`                         // Inactive, Low, Moderate, High, Very High
+	Components      UserEngagementComponents  `json:"components"`
+	CalculatedAt    time.Time                 `json:"calculated_at" db:"calculated_at"`
+	UpdatedAt       time.Time                 `json:"updated_at" db:"updated_at"`
+}
+
+// UserEngagementComponents represents the individual components of engagement score
+type UserEngagementComponents struct {
+	Posts          EngagementComponent `json:"posts"`
+	Comments       EngagementComponent `json:"comments"`
+	Votes          EngagementComponent `json:"votes"`
+	LoginFrequency EngagementComponent `json:"login_frequency"`
+	TimeSpent      EngagementComponent `json:"time_spent"`
+}
+
+// EngagementComponent represents a single component of the engagement score
+type EngagementComponent struct {
+	Score  int     `json:"score"`  // 0-100
+	Count  int     `json:"count"`  // Raw count of activities
+	Weight float64 `json:"weight"` // Weight in overall score (e.g., 0.20 for 20%)
+}
+
+// PlatformHealthMetrics represents platform-wide health indicators
+type PlatformHealthMetrics struct {
+	DAU                int                    `json:"dau" db:"dau"`
+	WAU                int                    `json:"wau" db:"wau"`
+	MAU                int                    `json:"mau" db:"mau"`
+	Stickiness         float64                `json:"stickiness" db:"stickiness"` // DAU/MAU ratio
+	RetentionRates     RetentionRates         `json:"retention"`
+	ChurnRateMonthly   float64                `json:"churn_rate_monthly" db:"churn_rate_monthly"`
+	Trends             PlatformTrends         `json:"trends"`
+	CalculatedAt       time.Time              `json:"calculated_at" db:"calculated_at"`
+}
+
+// RetentionRates represents retention percentages for different periods
+type RetentionRates struct {
+	Day1  float64 `json:"day1" db:"day1_retention"`   // Day 1 retention rate
+	Day7  float64 `json:"day7" db:"day7_retention"`   // Day 7 retention rate
+	Day30 float64 `json:"day30" db:"day30_retention"` // Day 30 retention rate
+}
+
+// PlatformTrends represents week-over-week and month-over-month changes
+type PlatformTrends struct {
+	DAUChangeWoW float64 `json:"dau_change_wow" db:"dau_change_wow"` // Week-over-week % change
+	MAUChangeMoM float64 `json:"mau_change_mom" db:"mau_change_mom"` // Month-over-month % change
+}
+
+// TrendingMetrics represents trending data with week-over-week changes
+type TrendingMetrics struct {
+	Metric            string            `json:"metric"`
+	PeriodDays        int               `json:"period_days"`
+	Data              []TrendingDataPoint `json:"data"`
+	WeekOverWeekChange float64          `json:"week_over_week_change"`
+	Summary           TrendSummary      `json:"summary"`
+}
+
+// TrendingDataPoint represents a single data point in trending metrics with change calculation
+type TrendingDataPoint struct {
+	Date               time.Time `json:"date"`
+	Value              int64     `json:"value"`
+	ChangeFromPrevious float64   `json:"change_from_previous"`
+}
+
+// FromTrendDataPoint converts a TrendDataPoint to TrendingDataPoint
+func (tdp *TrendingDataPoint) FromTrendDataPoint(t TrendDataPoint, prevValue int64) {
+	tdp.Date = t.Date
+	tdp.Value = t.Value
+	if prevValue > 0 {
+		tdp.ChangeFromPrevious = ((float64(t.Value) - float64(prevValue)) / float64(prevValue)) * 100
+	}
+}
+
+// TrendSummary provides summary statistics for a trend
+type TrendSummary struct {
+	Min   int64  `json:"min"`
+	Max   int64  `json:"max"`
+	Avg   int64  `json:"avg"`
+	Trend string `json:"trend"` // increasing, decreasing, stable
+}
+
+// ContentEngagementScore represents engagement metrics for a piece of content
+type ContentEngagementScore struct {
+	ClipID            uuid.UUID `json:"clip_id" db:"clip_id"`
+	Score             int       `json:"score" db:"score"` // 0-100 composite score
+	NormalizedViews   int       `json:"normalized_views" db:"normalized_views"`
+	VoteRatio         float64   `json:"vote_ratio" db:"vote_ratio"`
+	NormalizedComments int      `json:"normalized_comments" db:"normalized_comments"`
+	NormalizedShares  int       `json:"normalized_shares" db:"normalized_shares"`
+	FavoriteRate      float64   `json:"favorite_rate" db:"favorite_rate"`
+	CalculatedAt      time.Time `json:"calculated_at" db:"calculated_at"`
+}
+
+// EngagementAlert represents an alert for engagement metrics
+type EngagementAlert struct {
+	ID             uuid.UUID              `json:"id" db:"id"`
+	AlertType      string                 `json:"alert_type" db:"alert_type"`         // dau_drop, churn_spike, etc.
+	Severity       string                 `json:"severity" db:"severity"`             // P1, P2, P3
+	Metric         string                 `json:"metric" db:"metric"`                 // Which metric triggered the alert
+	CurrentValue   float64                `json:"current_value" db:"current_value"`
+	ThresholdValue float64                `json:"threshold_value" db:"threshold_value"`
+	Message        string                 `json:"message" db:"message"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	TriggeredAt    time.Time              `json:"triggered_at" db:"triggered_at"`
+	AcknowledgedAt *time.Time             `json:"acknowledged_at,omitempty" db:"acknowledged_at"`
+	AcknowledgedBy *uuid.UUID             `json:"acknowledged_by,omitempty" db:"acknowledged_by"`
+	ResolvedAt     *time.Time             `json:"resolved_at,omitempty" db:"resolved_at"`
+}
+
+// CohortRetention represents retention data for a user cohort
+type CohortRetention struct {
+	CohortDate      time.Time `json:"cohort_date" db:"cohort_date"`         // Start date of cohort (e.g., signup month)
+	CohortSize      int       `json:"cohort_size" db:"cohort_size"`         // Total users in cohort
+	Day1Active      int       `json:"day1_active" db:"day1_active"`         // Users active after 1 day
+	Day7Active      int       `json:"day7_active" db:"day7_active"`         // Users active after 7 days
+	Day30Active     int       `json:"day30_active" db:"day30_active"`       // Users active after 30 days
+	Day1Retention   float64   `json:"day1_retention" db:"day1_retention"`   // Percentage
+	Day7Retention   float64   `json:"day7_retention" db:"day7_retention"`   // Percentage
+	Day30Retention  float64   `json:"day30_retention" db:"day30_retention"` // Percentage
+	CalculatedAt    time.Time `json:"calculated_at" db:"calculated_at"`
+}
+
 // GeographyMetric represents audience distribution by country
 type GeographyMetric struct {
 	Country    string `json:"country"`      // ISO country code (e.g., "US", "GB")

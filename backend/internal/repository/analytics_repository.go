@@ -706,3 +706,352 @@ func (r *AnalyticsRepository) GetCreatorAudienceInsights(ctx context.Context, cr
 		TotalViews:   totalViews,
 	}, nil
 }
+
+// GetUserPostsCount returns the number of posts/submissions by a user in the last N days
+func (r *AnalyticsRepository) GetUserPostsCount(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM clip_submissions
+		WHERE user_id = $1
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+	`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserCommentsCount returns the number of comments posted by a user in the last N days
+func (r *AnalyticsRepository) GetUserCommentsCount(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM comments
+		WHERE user_id = $1
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+		  AND is_deleted = false
+	`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserVotesCount returns the number of votes cast by a user in the last N days
+func (r *AnalyticsRepository) GetUserVotesCount(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM votes
+		WHERE user_id = $1
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+	`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserLoginDays returns the number of unique days a user logged in over the last N days
+func (r *AnalyticsRepository) GetUserLoginDays(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT DATE(created_at))
+		FROM analytics_events
+		WHERE user_id = $1
+		  AND event_type = 'login'
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+	`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserAvgDailyMinutes returns average daily minutes spent by a user over the last N days
+func (r *AnalyticsRepository) GetUserAvgDailyMinutes(ctx context.Context, userID uuid.UUID, days int) (float64, error) {
+	query := `
+		SELECT COALESCE(AVG(daily_minutes), 0)
+		FROM (
+			SELECT DATE(created_at) as day,
+			       COUNT(*) * 2 as daily_minutes
+			FROM analytics_events
+			WHERE user_id = $1
+			  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+			  AND event_type IN ('clip_view', 'page_view')
+			GROUP BY DATE(created_at)
+		) as daily_activity
+	`
+	
+	var avgMinutes float64
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&avgMinutes)
+	return avgMinutes, err
+}
+
+// GetDAU returns Daily Active Users count
+func (r *AnalyticsRepository) GetDAU(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT user_id)
+		FROM analytics_events
+		WHERE created_at >= CURRENT_DATE
+		  AND user_id IS NOT NULL
+	`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetWAU returns Weekly Active Users count
+func (r *AnalyticsRepository) GetWAU(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT user_id)
+		FROM analytics_events
+		WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+		  AND user_id IS NOT NULL
+	`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetMAU returns Monthly Active Users count
+func (r *AnalyticsRepository) GetMAU(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT user_id)
+		FROM analytics_events
+		WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+		  AND user_id IS NOT NULL
+	`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetRetentionRate returns the retention rate for users after N days
+func (r *AnalyticsRepository) GetRetentionRate(ctx context.Context, days int) (float64, error) {
+	query := `
+		WITH cohort AS (
+			SELECT DISTINCT user_id,
+			       DATE(created_at) as signup_date
+			FROM users
+			WHERE created_at >= CURRENT_DATE - INTERVAL '60 days'
+		),
+		retained AS (
+			SELECT c.user_id
+			FROM cohort c
+			INNER JOIN analytics_events ae ON c.user_id = ae.user_id
+			WHERE DATE(ae.created_at) = c.signup_date + $1 * INTERVAL '1 day'
+		)
+		SELECT CASE
+			WHEN COUNT(DISTINCT c.user_id) > 0
+			THEN (COUNT(DISTINCT r.user_id)::float / COUNT(DISTINCT c.user_id)::float) * 100
+			ELSE 0
+		END as retention_rate
+		FROM cohort c
+		LEFT JOIN retained r ON c.user_id = r.user_id
+	`
+	
+	var retentionRate float64
+	err := r.db.QueryRow(ctx, query, days).Scan(&retentionRate)
+	return retentionRate, err
+}
+
+// GetMonthlyChurnRate returns the monthly churn rate
+func (r *AnalyticsRepository) GetMonthlyChurnRate(ctx context.Context) (float64, error) {
+	query := `
+		WITH active_last_month AS (
+			SELECT DISTINCT user_id
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '60 days'
+			  AND created_at < CURRENT_DATE - INTERVAL '30 days'
+			  AND user_id IS NOT NULL
+		),
+		churned_users AS (
+			SELECT alm.user_id
+			FROM active_last_month alm
+			WHERE NOT EXISTS (
+				SELECT 1
+				FROM analytics_events ae
+				WHERE ae.user_id = alm.user_id
+				  AND ae.created_at >= CURRENT_DATE - INTERVAL '30 days'
+			)
+		)
+		SELECT CASE
+			WHEN COUNT(DISTINCT alm.user_id) > 0
+			THEN (COUNT(DISTINCT cu.user_id)::float / COUNT(DISTINCT alm.user_id)::float) * 100
+			ELSE 0
+		END as churn_rate
+		FROM active_last_month alm
+		LEFT JOIN churned_users cu ON alm.user_id = cu.user_id
+	`
+	
+	var churnRate float64
+	err := r.db.QueryRow(ctx, query).Scan(&churnRate)
+	return churnRate, err
+}
+
+// GetDAUChangeWoW returns the week-over-week percentage change in DAU
+func (r *AnalyticsRepository) GetDAUChangeWoW(ctx context.Context) (float64, error) {
+	query := `
+		WITH last_week AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+			  AND user_id IS NOT NULL
+		),
+		prev_week AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '14 days'
+			  AND created_at < CURRENT_DATE - INTERVAL '7 days'
+			  AND user_id IS NOT NULL
+		)
+		SELECT CASE
+			WHEN pw.count > 0
+			THEN ((lw.count - pw.count)::float / pw.count::float) * 100
+			ELSE 0
+		END as change
+		FROM last_week lw, prev_week pw
+	`
+	
+	var change float64
+	err := r.db.QueryRow(ctx, query).Scan(&change)
+	return change, err
+}
+
+// GetMAUChangeMoM returns the month-over-month percentage change in MAU
+func (r *AnalyticsRepository) GetMAUChangeMoM(ctx context.Context) (float64, error) {
+	query := `
+		WITH this_month AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+			  AND user_id IS NOT NULL
+		),
+		prev_month AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '60 days'
+			  AND created_at < CURRENT_DATE - INTERVAL '30 days'
+			  AND user_id IS NOT NULL
+		)
+		SELECT CASE
+			WHEN pm.count > 0
+			THEN ((tm.count - pm.count)::float / pm.count::float) * 100
+			ELSE 0
+		END as change
+		FROM this_month tm, prev_month pm
+	`
+	
+	var change float64
+	err := r.db.QueryRow(ctx, query).Scan(&change)
+	return change, err
+}
+
+// GetTrendingData returns trend data points for a specific metric
+func (r *AnalyticsRepository) GetTrendingData(ctx context.Context, metric string, days int) ([]models.TrendDataPoint, error) {
+	var query string
+	
+	switch metric {
+	case "dau":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(DISTINCT user_id) as value
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			  AND user_id IS NOT NULL
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	case "clips":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(*) as value
+			FROM clips
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	case "votes":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(*) as value
+			FROM votes
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	case "comments":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(*) as value
+			FROM comments
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			  AND is_deleted = false
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	default:
+		return nil, fmt.Errorf("unsupported metric: %s", metric)
+	}
+	
+	rows, err := r.db.Query(ctx, query, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var dataPoints []models.TrendDataPoint
+	for rows.Next() {
+		var point models.TrendDataPoint
+		err := rows.Scan(&point.Date, &point.Value)
+		if err != nil {
+			return nil, err
+		}
+		dataPoints = append(dataPoints, point)
+	}
+	
+	return dataPoints, rows.Err()
+}
+
+// GetClipViewCount returns the total view count for a clip
+func (r *AnalyticsRepository) GetClipViewCount(ctx context.Context, clipID uuid.UUID) (int64, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM analytics_events
+		WHERE clip_id = $1
+		  AND event_type = 'clip_view'
+	`
+	
+	var count int64
+	err := r.db.QueryRow(ctx, query, clipID).Scan(&count)
+	return count, err
+}
+
+// GetClipShareCount returns the total share count for a clip
+func (r *AnalyticsRepository) GetClipShareCount(ctx context.Context, clipID uuid.UUID) (int64, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM analytics_events
+		WHERE clip_id = $1
+		  AND event_type = 'clip_share'
+	`
+	
+	var count int64
+	err := r.db.QueryRow(ctx, query, clipID).Scan(&count)
+	return count, err
+}
+
+// GetClipVoteCounts returns the separate upvote and downvote counts for a clip
+func (r *AnalyticsRepository) GetClipVoteCounts(ctx context.Context, clipID uuid.UUID) (upvotes int64, downvotes int64, err error) {
+	query := `
+		SELECT 
+			COUNT(*) FILTER (WHERE vote_type = 1) as upvotes,
+			COUNT(*) FILTER (WHERE vote_type = -1) as downvotes
+		FROM votes
+		WHERE clip_id = $1
+	`
+	
+	err = r.db.QueryRow(ctx, query, clipID).Scan(&upvotes, &downvotes)
+	return upvotes, downvotes, err
+}

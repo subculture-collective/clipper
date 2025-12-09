@@ -169,6 +169,7 @@ func main() {
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
+	engagementService := services.NewEngagementService(analyticsRepo, userRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 
 	// Initialize dunning service before subscription service
@@ -265,6 +266,7 @@ func main() {
 	reputationHandler := handlers.NewReputationHandler(reputationService, authService)
 	notificationHandler := handlers.NewNotificationHandler(notificationService, emailService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService, authService)
+	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
 	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
@@ -485,6 +487,9 @@ func main() {
 			// Clip analytics (public)
 			clips.GET("/:id/analytics", analyticsHandler.GetClipAnalytics)
 			clips.POST("/:id/track-view", analyticsHandler.TrackClipView)
+			
+			// Clip engagement score (public)
+			clips.GET("/:id/engagement", engagementHandler.GetContentEngagementScore)
 
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:id/comments", commentHandler.ListComments)
@@ -589,6 +594,9 @@ func main() {
 
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
+			
+			// User engagement score (authenticated)
+			users.GET("/:userId/engagement", middleware.AuthMiddleware(authService), engagementHandler.GetUserEngagementScore)
 
 			// Profile management (authenticated)
 			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)
@@ -793,6 +801,12 @@ func main() {
 				analytics.GET("/overview", analyticsHandler.GetPlatformOverview)
 				analytics.GET("/content", analyticsHandler.GetContentMetrics)
 				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
+				
+				// Engagement metrics routes
+				analytics.GET("/health", engagementHandler.GetPlatformHealthMetrics)
+				analytics.GET("/trending", engagementHandler.GetTrendingMetrics)
+				analytics.GET("/alerts", engagementHandler.CheckAlerts)
+				analytics.GET("/export", engagementHandler.ExportEngagementData)
 			}
 
 			// Revenue metrics (admin only)
