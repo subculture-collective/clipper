@@ -8,15 +8,9 @@ import type {
 } from '@/types/clip';
 
 /**
- * Fetch clips with pagination and filters
+ * Helper function to build clip query parameters from filters
  */
-export async function fetchClips({
-  pageParam = 1,
-  filters,
-}: {
-  pageParam?: number;
-  filters?: ClipFeedFilters;
-}): Promise<ClipFeedResponse> {
+function buildClipParams(pageParam: number, filters?: ClipFeedFilters): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {
     page: pageParam,
     limit: 10,
@@ -35,6 +29,21 @@ export async function fetchClips({
       params.tag = filters.tags.join(',');
     }
   }
+
+  return params;
+}
+
+/**
+ * Fetch clips with pagination and filters
+ */
+export async function fetchClips({
+  pageParam = 1,
+  filters,
+}: {
+  pageParam?: number;
+  filters?: ClipFeedFilters;
+}): Promise<ClipFeedResponse> {
+  const params = buildClipParams(pageParam, filters);
 
   const response = await apiClient.get<{
     success: boolean;
@@ -68,24 +77,7 @@ export async function fetchScrapedClips({
   pageParam?: number;
   filters?: ClipFeedFilters;
 }): Promise<ClipFeedResponse> {
-  const params: Record<string, string | number | boolean> = {
-    page: pageParam,
-    limit: 10,
-  };
-
-  // Add filters to params, only if they are defined
-  if (filters) {
-    if (filters.sort) params.sort = filters.sort;
-    if (filters.timeframe) params.timeframe = filters.timeframe;
-    if (filters.game_id) params.game_id = filters.game_id;
-    if (filters.creator_id) params.creator_id = filters.creator_id;
-    if (filters.language) params.language = filters.language;
-    if (filters.nsfw !== undefined) params.nsfw = filters.nsfw;
-    if (filters.top10k_streamers !== undefined) params.top10k_streamers = filters.top10k_streamers;
-    if (filters.tags && filters.tags.length > 0) {
-      params.tag = filters.tags.join(',');
-    }
-  }
+  const params = buildClipParams(pageParam, filters);
 
   const response = await apiClient.get<{
     success: boolean;

@@ -300,7 +300,7 @@ export function Header() {
                                     size='sm'
                                     className='w-full justify-start'
                                 >
-                                    🔍 Discover
+                                    🔍 {t('nav.discover')}
                                 </Button>
                             </Link>
                         </nav>

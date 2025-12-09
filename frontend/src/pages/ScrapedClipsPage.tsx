@@ -111,6 +111,8 @@ export function ScrapedClipsPage() {
               <button
                 key={tab.value}
                 onClick={() => handleTabChange(tab.value)}
+                role="tab"
+                aria-selected={activeTab === tab.value}
                 className={`
                   flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-medium transition-colors
                   ${
@@ -148,6 +150,7 @@ export function ScrapedClipsPage() {
               `}
               role="switch"
               aria-checked={top10kEnabled}
+              aria-label="Toggle Top 10k Streamers filter"
             >
               <span
                 className={`
