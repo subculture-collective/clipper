@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/utils"
@@ -48,7 +49,7 @@ func (h *EmailMetricsHandler) GetDashboardMetrics(c *gin.Context) {
 	// Get daily metrics
 	dailyMetrics, err := h.emailMetricsService.GetDailyMetrics(c.Request.Context(), days)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get dashboard metrics")
+		h.logger.Error("Failed to get dashboard metrics", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve metrics"})
 		return
 	}
@@ -58,7 +59,7 @@ func (h *EmailMetricsHandler) GetDashboardMetrics(c *gin.Context) {
 	todayStart := now.Truncate(24 * time.Hour)
 	currentMetrics, err := h.emailMetricsService.GetMetricsForPeriod(c.Request.Context(), todayStart, now, nil)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get current metrics")
+		h.logger.Error("Failed to get current metrics", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve metrics"})
 		return
 	}
@@ -67,22 +68,22 @@ func (h *EmailMetricsHandler) GetDashboardMetrics(c *gin.Context) {
 	weekAgo := now.AddDate(0, 0, -7)
 	templateMetrics, err := h.emailMetricsService.GetMetricsByTemplate(c.Request.Context(), weekAgo, now, 10)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get template metrics")
-		templateMetrics = []interface{}{} // Return empty array on error
+		h.logger.Error("Failed to get template metrics", err)
+		templateMetrics = make([]models.EmailMetricsSummary, 0) // Return empty array on error
 	}
 
 	// Get recent bounces
 	recentBounces, err := h.emailLogRepo.GetRecentBounces(c.Request.Context(), 10)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get recent bounces")
-		recentBounces = []interface{}{} // Return empty array on error
+		h.logger.Error("Failed to get recent bounces", err)
+		recentBounces = make([]models.EmailLog, 0) // Return empty array on error
 	}
 
 	// Get unresolved alerts
 	alerts, err := h.emailMetricsService.GetUnresolvedAlerts(c.Request.Context(), 10)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get alerts")
-		alerts = []interface{}{} // Return empty array on error
+		h.logger.Error("Failed to get alerts", err)
+		alerts = make([]models.EmailAlert, 0) // Return empty array on error
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -142,7 +143,7 @@ func (h *EmailMetricsHandler) GetMetrics(c *gin.Context) {
 
 	metrics, err := h.emailMetricsService.GetMetricsForPeriod(c.Request.Context(), startTime, endTime, template)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get metrics")
+		h.logger.Error("Failed to get metrics", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve metrics"})
 		return
 	}
@@ -199,7 +200,7 @@ func (h *EmailMetricsHandler) GetTemplateMetrics(c *gin.Context) {
 
 	metrics, err := h.emailMetricsService.GetMetricsByTemplate(c.Request.Context(), startTime, endTime, limit)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get template metrics")
+		h.logger.Error("Failed to get template metrics", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve metrics"})
 		return
 	}
@@ -270,7 +271,7 @@ func (h *EmailMetricsHandler) SearchEmailLogs(c *gin.Context) {
 
 	logs, err := h.emailLogRepo.SearchEmailLogs(c.Request.Context(), filters, limit, offset)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to search email logs")
+		h.logger.Error("Failed to search email logs", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search logs"})
 		return
 	}
@@ -312,7 +313,7 @@ func (h *EmailMetricsHandler) GetUserEmailLogs(c *gin.Context) {
 
 	logs, err := h.emailLogRepo.GetEmailLogsByUserID(c.Request.Context(), userID.(uuid.UUID), limit, offset)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get user email logs")
+		h.logger.Error("Failed to get user email logs", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve logs"})
 		return
 	}
@@ -339,7 +340,7 @@ func (h *EmailMetricsHandler) GetAlerts(c *gin.Context) {
 
 	alerts, err := h.emailMetricsService.GetUnresolvedAlerts(c.Request.Context(), limit)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to get alerts")
+		h.logger.Error("Failed to get alerts", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve alerts"})
 		return
 	}
@@ -373,7 +374,7 @@ func (h *EmailMetricsHandler) AcknowledgeAlert(c *gin.Context) {
 	}
 
 	if err := h.emailLogRepo.AcknowledgeAlert(c.Request.Context(), alertID, userID.(uuid.UUID)); err != nil {
-		h.logger.WithError(err).Error("Failed to acknowledge alert")
+		h.logger.Error("Failed to acknowledge alert", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to acknowledge alert"})
 		return
 	}
@@ -400,7 +401,7 @@ func (h *EmailMetricsHandler) ResolveAlert(c *gin.Context) {
 	}
 
 	if err := h.emailLogRepo.ResolveAlert(c.Request.Context(), alertID); err != nil {
-		h.logger.WithError(err).Error("Failed to resolve alert")
+		h.logger.Error("Failed to resolve alert", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resolve alert"})
 		return
 	}

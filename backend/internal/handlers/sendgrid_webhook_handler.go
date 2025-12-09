@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -34,7 +35,7 @@ func NewSendGridWebhookHandler(emailLogRepo *repository.EmailLogRepository, send
 	if sendgridPublicKey != "" {
 		key, err := parseECDSAPublicKey(sendgridPublicKey)
 		if err != nil {
-			logger.WithError(err).Warn("Failed to parse SendGrid public key, webhook signature verification will be disabled")
+			logger.Warn("Failed to parse SendGrid public key, webhook signature verification will be disabled", err)
 		} else {
 			publicKey = key
 		}
@@ -66,7 +67,7 @@ func (h *SendGridWebhookHandler) HandleWebhook(c *gin.Context) {
 	// Read request body
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to read webhook body")
+		h.logger.Error("Failed to read webhook body", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
 		return
 	}
@@ -83,7 +84,7 @@ func (h *SendGridWebhookHandler) HandleWebhook(c *gin.Context) {
 		}
 
 		if err := h.verifySignature(body, signature, timestamp); err != nil {
-			h.logger.WithError(err).Warn("Invalid webhook signature")
+			h.logger.Warn("Invalid webhook signature", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid signature"})
 			return
 		}
@@ -92,7 +93,7 @@ func (h *SendGridWebhookHandler) HandleWebhook(c *gin.Context) {
 	// Parse webhook events (SendGrid sends an array of events)
 	var events []models.SendGridWebhookEvent
 	if err := json.Unmarshal(body, &events); err != nil {
-		h.logger.WithError(err).Error("Failed to parse webhook events")
+		h.logger.Error("Failed to parse webhook events", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event format"})
 		return
 	}
@@ -103,7 +104,7 @@ func (h *SendGridWebhookHandler) HandleWebhook(c *gin.Context) {
 	for _, event := range events {
 		if err := h.processEvent(c.Request.Context(), &event); err != nil {
 			// Log error but continue processing other events
-			h.logger.WithError(err).WithField("event_type", event.Event).Error("Failed to process event")
+			h.logger.Error("Failed to process event", err, map[string]interface{}{"event_type", event.Event})
 		}
 	}
 
@@ -126,7 +127,7 @@ func (h *SendGridWebhookHandler) processEvent(ctx context.Context, event *models
 	if event.SgMessageID != "" {
 		existingLog, err = h.emailLogRepo.GetEmailLogByMessageID(ctx, event.SgMessageID)
 		if err != nil {
-			h.logger.WithError(err).WithField("message_id", event.SgMessageID).Error("Failed to check for existing email log")
+			h.logger.Error("Failed to check for existing email log", err, map[string]interface{}{"message_id", event.SgMessageID})
 		}
 	}
 
@@ -144,7 +145,7 @@ func (h *SendGridWebhookHandler) processEvent(ctx context.Context, event *models
 			return fmt.Errorf("failed to update email log: %w", err)
 		}
 
-		h.logger.WithField("log_id", existingLog.ID).WithField("event_type", event.Event).Info("Updated email log")
+		h.logger.Info("Updated email log", map[string]interface{}{"log_id": existingLog.ID, "event_type": event.Event})
 	} else {
 		// Create new log entry
 		log := &models.EmailLog{
@@ -173,7 +174,7 @@ func (h *SendGridWebhookHandler) processEvent(ctx context.Context, event *models
 			return fmt.Errorf("failed to create email log: %w", err)
 		}
 
-		h.logger.WithField("log_id", log.ID).WithField("event_type", event.Event).Info("Created email log")
+		h.logger.Info("Created email log", map[string]interface{}{"log_id": log.ID, "event_type": event.Event})
 	}
 
 	return nil

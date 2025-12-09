@@ -54,7 +54,7 @@ func DefaultAlertThresholds() *AlertThresholds {
 func (s *EmailMetricsService) GetMetricsForPeriod(ctx context.Context, startTime, endTime time.Time, template *string) (*models.EmailMetricsSummary, error) {
 	metrics, err := s.emailLogRepo.GetMetricsForPeriod(ctx, startTime, endTime, template)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to get metrics for period")
+		s.logger.Error("Failed to get metrics for period", err)
 		return nil, fmt.Errorf("failed to get metrics: %w", err)
 	}
 
@@ -72,7 +72,7 @@ func (s *EmailMetricsService) GetDailyMetrics(ctx context.Context, days int) ([]
 
 		metrics, err := s.emailLogRepo.GetMetricsForPeriod(ctx, dayStart, dayEnd, nil)
 		if err != nil {
-			s.logger.WithError(err).WithField("day", i).Error("Failed to get daily metrics")
+			s.logger.Error("Failed to get daily metrics", err, map[string]interface{}{"day": i})
 			continue
 		}
 
@@ -87,7 +87,7 @@ func (s *EmailMetricsService) GetDailyMetrics(ctx context.Context, days int) ([]
 func (s *EmailMetricsService) GetMetricsByTemplate(ctx context.Context, startTime, endTime time.Time, limit int) ([]models.EmailMetricsSummary, error) {
 	metrics, err := s.emailLogRepo.GetMetricsByTemplate(ctx, startTime, endTime, limit)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to get metrics by template")
+		s.logger.Error("Failed to get metrics by template", err)
 		return nil, fmt.Errorf("failed to get metrics by template: %w", err)
 	}
 
@@ -103,7 +103,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 	hourEnd := time.Now()
 	hourlyMetrics, err := s.emailLogRepo.GetMetricsForPeriod(ctx, hourStart, hourEnd, nil)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to get hourly metrics for alert check")
+		s.logger.Error("Failed to get hourly metrics for alert check", err)
 		return nil, err
 	}
 
@@ -122,7 +122,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 			}
 			alerts = append(alerts, alert)
 			if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-				s.logger.WithError(err).Error("Failed to create bounce rate critical alert")
+				s.logger.Error("Failed to create bounce rate critical alert", err)
 			}
 		} else if *hourlyMetrics.BounceRate >= thresholds.BounceRateWarning {
 			alert := models.EmailAlert{
@@ -137,7 +137,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 			}
 			alerts = append(alerts, alert)
 			if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-				s.logger.WithError(err).Error("Failed to create bounce rate warning alert")
+				s.logger.Error("Failed to create bounce rate warning alert", err)
 			}
 		}
 	}
@@ -157,7 +157,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 			}
 			alerts = append(alerts, alert)
 			if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-				s.logger.WithError(err).Error("Failed to create complaint rate critical alert")
+				s.logger.Error("Failed to create complaint rate critical alert", err)
 			}
 		} else if *hourlyMetrics.SpamRate >= thresholds.ComplaintRateWarning {
 			alert := models.EmailAlert{
@@ -172,7 +172,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 			}
 			alerts = append(alerts, alert)
 			if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-				s.logger.WithError(err).Error("Failed to create complaint rate warning alert")
+				s.logger.Error("Failed to create complaint rate warning alert", err)
 			}
 		}
 	}
@@ -193,7 +193,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 		}
 		alerts = append(alerts, alert)
 		if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-			s.logger.WithError(err).Error("Failed to create send errors alert")
+			s.logger.Error("Failed to create send errors alert", err)
 		}
 	}
 
@@ -217,7 +217,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 				}
 				alerts = append(alerts, alert)
 				if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-					s.logger.WithError(err).Error("Failed to create open rate drop critical alert")
+					s.logger.Error("Failed to create open rate drop critical alert", err)
 				}
 			} else if dropPercent >= thresholds.OpenRateDropWarning {
 				alert := models.EmailAlert{
@@ -232,7 +232,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 				}
 				alerts = append(alerts, alert)
 				if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-					s.logger.WithError(err).Error("Failed to create open rate drop warning alert")
+					s.logger.Error("Failed to create open rate drop warning alert", err)
 				}
 			}
 		}
@@ -254,12 +254,12 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 			}
 			alerts = append(alerts, alert)
 			if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
-				s.logger.WithError(err).Error("Failed to create unsubscribe spike alert")
+				s.logger.Error("Failed to create unsubscribe spike alert", err)
 			}
 		}
 	}
 
-	s.logger.WithField("alert_count", len(alerts)).Info("Alert check completed")
+	s.logger.Info("Alert check completed", map[string]interface{}{"alert_count": len(alerts)})
 	return alerts, nil
 }
 
@@ -267,7 +267,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 func (s *EmailMetricsService) GetUnresolvedAlerts(ctx context.Context, limit int) ([]models.EmailAlert, error) {
 	alerts, err := s.emailLogRepo.GetUnresolvedAlerts(ctx, limit)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to get unresolved alerts")
+		s.logger.Error("Failed to get unresolved alerts", err)
 		return nil, fmt.Errorf("failed to get unresolved alerts: %w", err)
 	}
 
@@ -282,17 +282,17 @@ func (s *EmailMetricsService) CalculateAndStoreDailyMetrics(ctx context.Context)
 
 	metrics, err := s.emailLogRepo.GetMetricsForPeriod(ctx, yesterday, dayEnd, nil)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to calculate daily metrics")
+		s.logger.Error("Failed to calculate daily metrics", err)
 		return err
 	}
 
 	metrics.Granularity = "daily"
 	if err := s.emailLogRepo.CreateMetricsSummary(ctx, metrics); err != nil {
-		s.logger.WithError(err).Error("Failed to store daily metrics")
+		s.logger.Error("Failed to store daily metrics", err)
 		return err
 	}
 
-	s.logger.WithField("date", yesterday.Format("2006-01-02")).Info("Daily metrics calculated and stored")
+	s.logger.Info("Daily metrics calculated and stored", map[string]interface{}{"date": yesterday.Format("2006-01-02")})
 	return nil
 }
 
@@ -302,10 +302,10 @@ func (s *EmailMetricsService) CleanupOldLogs(ctx context.Context) error {
 
 	deleted, err := s.emailLogRepo.DeleteOldLogs(ctx, retentionPeriod)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to cleanup old email logs")
+		s.logger.Error("Failed to cleanup old email logs", err)
 		return err
 	}
 
-	s.logger.WithField("deleted_count", deleted).Info("Old email logs cleaned up")
+	s.logger.Info("Old email logs cleaned up", map[string]interface{}{"deleted_count": deleted})
 	return nil
 }
