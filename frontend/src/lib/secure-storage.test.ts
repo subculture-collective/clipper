@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   isSecureStorageAvailable,
   setSecureItem,
@@ -8,10 +8,27 @@ import {
 } from './secure-storage';
 
 describe('SecureStorage', () => {
+  let originalIndexedDB: IDBFactory | undefined;
+
   beforeEach(() => {
-    // Clear session storage before each test
+    // Clear session storage and local storage before each test
     sessionStorage.clear();
+    localStorage.clear();
     vi.clearAllMocks();
+
+    // Save original IndexedDB
+    originalIndexedDB = globalThis.indexedDB;
+    // Mock to ensure fallback path is used
+    // @ts-expect-error - mocking for test
+    globalThis.indexedDB = undefined;
+  });
+
+  afterEach(() => {
+    // Restore IndexedDB
+    // @ts-expect-error - restoring mock
+    globalThis.indexedDB = originalIndexedDB;
+    sessionStorage.clear();
+    localStorage.clear();
   });
 
   describe('isSecureStorageAvailable', () => {
@@ -23,18 +40,6 @@ describe('SecureStorage', () => {
   });
 
   describe('Fallback to sessionStorage', () => {
-    beforeEach(() => {
-      // Mock to ensure fallback path is used
-      if (typeof indexedDB !== 'undefined') {
-        // Store original
-        const originalIndexedDB = globalThis.indexedDB;
-        // @ts-expect-error - mocking for test
-        globalThis.indexedDB = undefined;
-        return () => {
-          globalThis.indexedDB = originalIndexedDB;
-        };
-      }
-    });
 
     it('should store and retrieve data using sessionStorage fallback', async () => {
       const key = 'test-key';
@@ -112,21 +117,6 @@ describe('SecureStorage', () => {
   });
 
   describe('OAuth flow integration', () => {
-    let originalIndexedDB: IDBFactory | undefined;
-
-    beforeEach(() => {
-      // Force fallback path by disabling IndexedDB for these tests
-      originalIndexedDB = globalThis.indexedDB;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).indexedDB = undefined;
-    });
-
-    afterEach(() => {
-      // Restore IndexedDB after tests
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).indexedDB = originalIndexedDB;
-    });
-
     it('should store and retrieve OAuth parameters', async () => {
       const codeVerifier = 'test-code-verifier-string-that-is-long';
       const state = 'test-state-parameter';
