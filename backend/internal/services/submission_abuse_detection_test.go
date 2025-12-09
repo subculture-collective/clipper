@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/config"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
 func setupTestRedis(t *testing.T) *redispkg.Client {
@@ -20,17 +20,17 @@ func setupTestRedis(t *testing.T) *redispkg.Client {
 		Password: "",
 		DB:       15, // Use a test database
 	}
-	
+
 	client, err := redispkg.NewClient(cfg)
 	if err != nil {
 		t.Skip("Redis not available for testing")
 		return nil
 	}
-	
+
 	// Clear test database
 	ctx := context.Background()
 	_ = client.GetClient().FlushDB(ctx)
-	
+
 	return client
 }
 
@@ -40,15 +40,15 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_AllowsNormalSubmission(t *
 		return
 	}
 	defer redisClient.Close()
-	
+
 	detector := NewSubmissionAbuseDetector(redisClient)
 	ctx := context.Background()
 	userID := uuid.New()
 	ip := "192.168.1.1"
 	deviceFingerprint := "test-browser"
-	
+
 	result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
-	
+
 	require.NoError(t, err)
 	assert.True(t, result.Allowed)
 	assert.Empty(t, result.Reason)
@@ -61,20 +61,20 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_BlocksBurstViolation(t *te
 		return
 	}
 	defer redisClient.Close()
-	
+
 	detector := NewSubmissionAbuseDetector(redisClient)
 	ctx := context.Background()
 	userID := uuid.New()
 	ip := "192.168.1.1"
 	deviceFingerprint := "test-browser"
-	
+
 	// Make burst threshold + 1 submissions
 	for i := 0; i < burstThreshold; i++ {
 		result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
 		require.NoError(t, err)
 		assert.True(t, result.Allowed)
 	}
-	
+
 	// Next submission should be blocked
 	result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
 	require.NoError(t, err)
@@ -90,13 +90,13 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_BlocksVelocityViolation(t 
 		return
 	}
 	defer redisClient.Close()
-	
+
 	detector := NewSubmissionAbuseDetector(redisClient)
 	ctx := context.Background()
 	userID := uuid.New()
 	ip := "192.168.1.1"
 	deviceFingerprint := "test-browser"
-	
+
 	// Make velocity threshold submissions with delays to avoid burst detection
 	for i := 0; i < velocityThreshold; i++ {
 		result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
@@ -104,7 +104,7 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_BlocksVelocityViolation(t 
 		assert.True(t, result.Allowed)
 		time.Sleep(100 * time.Millisecond) // Avoid burst detection with minimal delay
 	}
-	
+
 	// Next submission should be blocked by velocity
 	result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
 	require.NoError(t, err)
@@ -119,12 +119,12 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_DetectsIPSharing(t *testin
 		return
 	}
 	defer redisClient.Close()
-	
+
 	detector := NewSubmissionAbuseDetector(redisClient)
 	ctx := context.Background()
 	ip := "192.168.1.1"
 	deviceFingerprint := "test-browser"
-	
+
 	// Make submissions from multiple users on same IP
 	for i := 0; i < ipSharedThreshold; i++ {
 		userID := uuid.New()
@@ -132,7 +132,7 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_DetectsIPSharing(t *testin
 		require.NoError(t, err)
 		assert.True(t, result.Allowed)
 	}
-	
+
 	// Next user from same IP should get a warning
 	userID := uuid.New()
 	result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
@@ -147,19 +147,19 @@ func TestSubmissionAbuseDetector_TrackDuplicateAttempt(t *testing.T) {
 		return
 	}
 	defer redisClient.Close()
-	
+
 	detector := NewSubmissionAbuseDetector(redisClient)
 	ctx := context.Background()
 	userID := uuid.New()
 	ip := "192.168.1.1"
 	clipID := "TestClipID123"
-	
+
 	// Track multiple duplicate attempts
 	for i := 0; i < duplicateThreshold; i++ {
 		err := detector.TrackDuplicateAttempt(ctx, userID, ip, clipID)
 		require.NoError(t, err)
 	}
-	
+
 	// User should now be in cooldown
 	inCooldown, _ := detector.checkCooldown(ctx, userID)
 	assert.True(t, inCooldown)
@@ -171,16 +171,16 @@ func TestSubmissionAbuseDetector_GetAbuseStats(t *testing.T) {
 		return
 	}
 	defer redisClient.Close()
-	
+
 	detector := NewSubmissionAbuseDetector(redisClient)
 	ctx := context.Background()
 	userID := uuid.New()
 	ip := "192.168.1.1"
 	deviceFingerprint := "test-browser"
-	
+
 	// Make a submission to generate stats
 	_, _ = detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
-	
+
 	stats, err := detector.GetAbuseStats(ctx, userID)
 	require.NoError(t, err)
 	assert.NotNil(t, stats)

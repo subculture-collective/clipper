@@ -132,6 +132,47 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 	return &user, nil
 }
 
+// GetByIDs retrieves multiple users by their IDs in a single query
+func (r *UserRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.User, error) {
+	if len(ids) == 0 {
+		return []*models.User{}, nil
+	}
+
+	query := `
+		SELECT 
+			id, twitch_id, username, display_name, email, avatar_url, bio,
+			karma_points, role, is_banned, created_at, updated_at, last_login_at
+		FROM users
+		WHERE id = ANY($1)
+	`
+
+	rows, err := r.db.Query(ctx, query, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := make([]*models.User, 0, len(ids))
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
+			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
+			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 // Update updates an existing user
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	query := `

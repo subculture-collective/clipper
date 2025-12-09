@@ -715,7 +715,7 @@ func (r *AnalyticsRepository) GetUserPostsCount(ctx context.Context, userID uuid
 		WHERE user_id = $1
 		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
 	`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
 	return count, err
@@ -730,7 +730,7 @@ func (r *AnalyticsRepository) GetUserCommentsCount(ctx context.Context, userID u
 		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
 		  AND is_deleted = false
 	`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
 	return count, err
@@ -744,7 +744,7 @@ func (r *AnalyticsRepository) GetUserVotesCount(ctx context.Context, userID uuid
 		WHERE user_id = $1
 		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
 	`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
 	return count, err
@@ -759,7 +759,7 @@ func (r *AnalyticsRepository) GetUserLoginDays(ctx context.Context, userID uuid.
 		  AND event_type = 'login'
 		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
 	`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
 	return count, err
@@ -779,7 +779,7 @@ func (r *AnalyticsRepository) GetUserAvgDailyMinutes(ctx context.Context, userID
 			GROUP BY DATE(created_at)
 		) as daily_activity
 	`
-	
+
 	var avgMinutes float64
 	err := r.db.QueryRow(ctx, query, userID, days).Scan(&avgMinutes)
 	return avgMinutes, err
@@ -793,7 +793,7 @@ func (r *AnalyticsRepository) GetDAU(ctx context.Context) (int, error) {
 		WHERE created_at >= CURRENT_DATE
 		  AND user_id IS NOT NULL
 	`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query).Scan(&count)
 	return count, err
@@ -807,7 +807,7 @@ func (r *AnalyticsRepository) GetWAU(ctx context.Context) (int, error) {
 		WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
 		  AND user_id IS NOT NULL
 	`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query).Scan(&count)
 	return count, err
@@ -821,7 +821,7 @@ func (r *AnalyticsRepository) GetMAU(ctx context.Context) (int, error) {
 		WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
 		  AND user_id IS NOT NULL
 	`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query).Scan(&count)
 	return count, err
@@ -850,7 +850,7 @@ func (r *AnalyticsRepository) GetRetentionRate(ctx context.Context, days int) (f
 		FROM cohort c
 		LEFT JOIN retained r ON c.user_id = r.user_id
 	`
-	
+
 	var retentionRate float64
 	err := r.db.QueryRow(ctx, query, days).Scan(&retentionRate)
 	return retentionRate, err
@@ -884,7 +884,7 @@ func (r *AnalyticsRepository) GetMonthlyChurnRate(ctx context.Context) (float64,
 		FROM active_last_month alm
 		LEFT JOIN churned_users cu ON alm.user_id = cu.user_id
 	`
-	
+
 	var churnRate float64
 	err := r.db.QueryRow(ctx, query).Scan(&churnRate)
 	return churnRate, err
@@ -913,7 +913,7 @@ func (r *AnalyticsRepository) GetDAUChangeWoW(ctx context.Context) (float64, err
 		END as change
 		FROM last_week lw, prev_week pw
 	`
-	
+
 	var change float64
 	err := r.db.QueryRow(ctx, query).Scan(&change)
 	return change, err
@@ -942,7 +942,7 @@ func (r *AnalyticsRepository) GetMAUChangeMoM(ctx context.Context) (float64, err
 		END as change
 		FROM this_month tm, prev_month pm
 	`
-	
+
 	var change float64
 	err := r.db.QueryRow(ctx, query).Scan(&change)
 	return change, err
@@ -951,7 +951,7 @@ func (r *AnalyticsRepository) GetMAUChangeMoM(ctx context.Context) (float64, err
 // GetTrendingData returns trend data points for a specific metric
 func (r *AnalyticsRepository) GetTrendingData(ctx context.Context, metric string, days int) ([]models.TrendDataPoint, error) {
 	var query string
-	
+
 	switch metric {
 	case "dau":
 		query = `
@@ -994,13 +994,13 @@ func (r *AnalyticsRepository) GetTrendingData(ctx context.Context, metric string
 	default:
 		return nil, fmt.Errorf("unsupported metric: %s", metric)
 	}
-	
+
 	rows, err := r.db.Query(ctx, query, days)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var dataPoints []models.TrendDataPoint
 	for rows.Next() {
 		var point models.TrendDataPoint
@@ -1010,7 +1010,7 @@ func (r *AnalyticsRepository) GetTrendingData(ctx context.Context, metric string
 		}
 		dataPoints = append(dataPoints, point)
 	}
-	
+
 	return dataPoints, rows.Err()
 }
 
@@ -1022,7 +1022,7 @@ func (r *AnalyticsRepository) GetClipViewCount(ctx context.Context, clipID uuid.
 		WHERE clip_id = $1
 		  AND event_type = 'clip_view'
 	`
-	
+
 	var count int64
 	err := r.db.QueryRow(ctx, query, clipID).Scan(&count)
 	return count, err
@@ -1036,7 +1036,7 @@ func (r *AnalyticsRepository) GetClipShareCount(ctx context.Context, clipID uuid
 		WHERE clip_id = $1
 		  AND event_type = 'clip_share'
 	`
-	
+
 	var count int64
 	err := r.db.QueryRow(ctx, query, clipID).Scan(&count)
 	return count, err
@@ -1051,7 +1051,7 @@ func (r *AnalyticsRepository) GetClipVoteCounts(ctx context.Context, clipID uuid
 		FROM votes
 		WHERE clip_id = $1
 	`
-	
+
 	err = r.db.QueryRow(ctx, query, clipID).Scan(&upvotes, &downvotes)
 	return upvotes, downvotes, err
 }

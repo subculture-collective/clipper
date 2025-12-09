@@ -15,11 +15,11 @@ import (
 func TestDocsHandler_GetDocsList(t *testing.T) {
 	// Create a temporary docs directory
 	tmpDir := t.TempDir()
-	
+
 	// Create some test markdown files
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "test1.md"), []byte("# Test 1"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "test2.md"), []byte("# Test 2"), 0644))
-	
+
 	// Create a subdirectory with files
 	subDir := filepath.Join(tmpDir, "subdir")
 	require.NoError(t, os.Mkdir(subDir, 0755))

@@ -33,11 +33,11 @@ type IndexVersion struct {
 
 // IndexVersionInfo contains detailed information about index versions
 type IndexVersionInfo struct {
-	BaseIndex      string         `json:"base_index"`
-	ActiveVersion  *IndexVersion  `json:"active_version,omitempty"`
-	AllVersions    []IndexVersion `json:"all_versions"`
-	TotalVersions  int            `json:"total_versions"`
-	LatestVersion  int            `json:"latest_version"`
+	BaseIndex     string         `json:"base_index"`
+	ActiveVersion *IndexVersion  `json:"active_version,omitempty"`
+	AllVersions   []IndexVersion `json:"all_versions"`
+	TotalVersions int            `json:"total_versions"`
+	LatestVersion int            `json:"latest_version"`
 }
 
 // NewIndexVersionService creates a new IndexVersionService

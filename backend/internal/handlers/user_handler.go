@@ -15,6 +15,7 @@ type UserHandler struct {
 	clipRepo    *repository.ClipRepository
 	voteRepo    *repository.VoteRepository
 	commentRepo *repository.CommentRepository
+	userRepo    *repository.UserRepository
 }
 
 // NewUserHandler creates a new user handler
@@ -22,12 +23,49 @@ func NewUserHandler(
 	clipRepo *repository.ClipRepository,
 	voteRepo *repository.VoteRepository,
 	commentRepo *repository.CommentRepository,
+	userRepo *repository.UserRepository,
 ) *UserHandler {
 	return &UserHandler{
 		clipRepo:    clipRepo,
 		voteRepo:    voteRepo,
 		commentRepo: commentRepo,
+		userRepo:    userRepo,
 	}
+}
+
+// GetUserByUsername retrieves a user's public profile by username
+// GET /api/v1/users/by-username/:username
+func (h *UserHandler) GetUserByUsername(c *gin.Context) {
+	username := c.Param("username")
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username is required"})
+		return
+	}
+
+	user, err := h.userRepo.GetByUsername(c.Request.Context(), username)
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user"})
+		return
+	}
+
+	// Return only public user information
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"id":           user.ID,
+			"username":     user.Username,
+			"display_name": user.DisplayName,
+			"avatar_url":   user.AvatarURL,
+			"bio":          user.Bio,
+			"karma_points": user.KarmaPoints,
+			"role":         user.Role,
+			"created_at":   user.CreatedAt,
+		},
+	})
 }
 
 // GetUserComments retrieves comments by a user

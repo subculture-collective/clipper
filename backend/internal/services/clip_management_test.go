@@ -52,7 +52,7 @@ func TestClipManagementPermissions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Simulate permission check logic
 			canManage := false
-			
+
 			if tt.userRole == "admin" || tt.userRole == "moderator" {
 				canManage = true
 			} else if tt.isCreator {
@@ -63,4 +63,3 @@ func TestClipManagementPermissions(t *testing.T) {
 		})
 	}
 }
-

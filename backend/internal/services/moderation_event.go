@@ -17,38 +17,38 @@ type ModerationEventType string
 
 const (
 	// Submission events
-	ModerationEventSubmissionReceived      ModerationEventType = "submission_received"
-	ModerationEventSubmissionSuspicious    ModerationEventType = "submission_suspicious"
-	ModerationEventSubmissionAutoRejected  ModerationEventType = "submission_auto_rejected"
-	ModerationEventSubmissionApproved      ModerationEventType = "submission_approved"
-	ModerationEventSubmissionRejected      ModerationEventType = "submission_rejected"
-	ModerationEventSubmissionDuplicate     ModerationEventType = "submission_duplicate"
-	
+	ModerationEventSubmissionReceived     ModerationEventType = "submission_received"
+	ModerationEventSubmissionSuspicious   ModerationEventType = "submission_suspicious"
+	ModerationEventSubmissionAutoRejected ModerationEventType = "submission_auto_rejected"
+	ModerationEventSubmissionApproved     ModerationEventType = "submission_approved"
+	ModerationEventSubmissionRejected     ModerationEventType = "submission_rejected"
+	ModerationEventSubmissionDuplicate    ModerationEventType = "submission_duplicate"
+
 	// Abuse events
-	ModerationEventAbuseDetected           ModerationEventType = "abuse_detected"
-	ModerationEventRateLimitExceeded       ModerationEventType = "rate_limit_exceeded"
-	ModerationEventVelocityViolation       ModerationEventType = "velocity_violation"
-	ModerationEventIPShareSuspicious       ModerationEventType = "ip_share_suspicious"
-	ModerationEventUserCooldownActivated   ModerationEventType = "user_cooldown_activated"
+	ModerationEventAbuseDetected         ModerationEventType = "abuse_detected"
+	ModerationEventRateLimitExceeded     ModerationEventType = "rate_limit_exceeded"
+	ModerationEventVelocityViolation     ModerationEventType = "velocity_violation"
+	ModerationEventIPShareSuspicious     ModerationEventType = "ip_share_suspicious"
+	ModerationEventUserCooldownActivated ModerationEventType = "user_cooldown_activated"
 
 	// Queue size limits to prevent unbounded growth
-	maxModerationQueueSize  = 10000 // Maximum events in main moderation queue
-	maxTypeEventListSize    = 1000  // Maximum events per type-based list
+	maxModerationQueueSize = 10000 // Maximum events in main moderation queue
+	maxTypeEventListSize   = 1000  // Maximum events per type-based list
 )
 
 // ModerationEvent represents an event that requires moderation attention
 type ModerationEvent struct {
-	ID           uuid.UUID               `json:"id"`
-	Type         ModerationEventType     `json:"type"`
-	Severity     string                  `json:"severity"` // "info", "warning", "critical"
-	UserID       uuid.UUID               `json:"user_id"`
-	SubmissionID *uuid.UUID              `json:"submission_id,omitempty"`
-	IPAddress    string                  `json:"ip_address"`
-	Metadata     map[string]interface{}  `json:"metadata"`
-	CreatedAt    time.Time               `json:"created_at"`
-	ReviewedBy   *uuid.UUID              `json:"reviewed_by,omitempty"`
-	ReviewedAt   *time.Time              `json:"reviewed_at,omitempty"`
-	Status       string                  `json:"status"` // "pending", "reviewed", "actioned"
+	ID           uuid.UUID              `json:"id"`
+	Type         ModerationEventType    `json:"type"`
+	Severity     string                 `json:"severity"` // "info", "warning", "critical"
+	UserID       uuid.UUID              `json:"user_id"`
+	SubmissionID *uuid.UUID             `json:"submission_id,omitempty"`
+	IPAddress    string                 `json:"ip_address"`
+	Metadata     map[string]interface{} `json:"metadata"`
+	CreatedAt    time.Time              `json:"created_at"`
+	ReviewedBy   *uuid.UUID             `json:"reviewed_by,omitempty"`
+	ReviewedAt   *time.Time             `json:"reviewed_at,omitempty"`
+	Status       string                 `json:"status"` // "pending", "reviewed", "actioned"
 }
 
 // ModerationEventService handles moderation events
@@ -161,7 +161,7 @@ func (s *ModerationEventService) EmitAbuseEvent(ctx context.Context, eventType M
 // GetPendingEvents retrieves pending moderation events
 func (s *ModerationEventService) GetPendingEvents(ctx context.Context, limit int) ([]*ModerationEvent, error) {
 	queueKey := "moderation:queue"
-	
+
 	// Get events from queue (non-destructive peek)
 	items, err := s.redisClient.ListRange(ctx, queueKey, 0, int64(limit-1))
 	if err != nil {
@@ -175,7 +175,7 @@ func (s *ModerationEventService) GetPendingEvents(ctx context.Context, limit int
 			log.Printf("Failed to unmarshal event: %v", err)
 			continue
 		}
-		
+
 		if event.Status == "pending" {
 			events = append(events, &event)
 		}
@@ -187,7 +187,7 @@ func (s *ModerationEventService) GetPendingEvents(ctx context.Context, limit int
 // GetEventsByType retrieves events filtered by type
 func (s *ModerationEventService) GetEventsByType(ctx context.Context, eventType ModerationEventType, limit int) ([]*ModerationEvent, error) {
 	typeKey := fmt.Sprintf("moderation:events:%s", eventType)
-	
+
 	items, err := s.redisClient.ListRange(ctx, typeKey, 0, int64(limit-1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get events by type: %w", err)
@@ -209,7 +209,7 @@ func (s *ModerationEventService) GetEventsByType(ctx context.Context, eventType 
 // MarkEventReviewed marks an event as reviewed
 func (s *ModerationEventService) MarkEventReviewed(ctx context.Context, eventID uuid.UUID, reviewerID uuid.UUID) error {
 	eventKey := fmt.Sprintf("moderation:event:%s", eventID.String())
-	
+
 	// Get event
 	eventJSON, err := s.redisClient.Get(ctx, eventKey)
 	if err != nil {

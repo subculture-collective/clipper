@@ -378,7 +378,7 @@ func TestSearchEvaluationService_EvaluateQuery(t *testing.T) {
 		assert.Equal(t, "test-001", result.QueryID)
 		assert.Equal(t, "test query", result.Query)
 		assert.Equal(t, 1.0, result.NDCG5)
-		assert.Equal(t, 1.0, result.MRR) // First result is relevant (rel >= 2)
+		assert.Equal(t, 1.0, result.MRR)        // First result is relevant (rel >= 2)
 		assert.Equal(t, 0.6, result.Precision5) // 3 relevant in top 5 (rel >= 2)
 		assert.Equal(t, 5, result.RetrievedResults)
 	})
@@ -540,7 +540,7 @@ func TestAggregateMetrics(t *testing.T) {
 func TestConvertClipIDsToUUIDs(t *testing.T) {
 	ids := []string{
 		"550e8400-e29b-41d4-a716-446655440000", // Valid UUID
-		"not-a-uuid",                            // Invalid
+		"not-a-uuid",                           // Invalid
 		"660e8400-e29b-41d4-a716-446655440001", // Valid UUID
 	}
 

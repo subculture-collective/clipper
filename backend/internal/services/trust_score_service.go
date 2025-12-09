@@ -95,18 +95,18 @@ func (s *TrustScoreService) UpdateScore(ctx context.Context, userID uuid.UUID, r
 
 	// Convert breakdown to JSONB for storage
 	componentScores := map[string]interface{}{
-		"account_age_score":  breakdown.AccountAgeScore,
-		"karma_score":        breakdown.KarmaScore,
-		"report_accuracy":    breakdown.ReportAccuracy,
-		"activity_score":     breakdown.ActivityScore,
-		"account_age_days":   breakdown.AccountAgeDays,
-		"karma_points":       breakdown.KarmaPoints,
-		"correct_reports":    breakdown.CorrectReports,
-		"incorrect_reports":  breakdown.IncorrectReports,
-		"total_comments":     breakdown.TotalComments,
-		"total_votes":        breakdown.TotalVotes,
-		"days_active":        breakdown.DaysActive,
-		"is_banned":          breakdown.IsBanned,
+		"account_age_score": breakdown.AccountAgeScore,
+		"karma_score":       breakdown.KarmaScore,
+		"report_accuracy":   breakdown.ReportAccuracy,
+		"activity_score":    breakdown.ActivityScore,
+		"account_age_days":  breakdown.AccountAgeDays,
+		"karma_points":      breakdown.KarmaPoints,
+		"correct_reports":   breakdown.CorrectReports,
+		"incorrect_reports": breakdown.IncorrectReports,
+		"total_comments":    breakdown.TotalComments,
+		"total_votes":       breakdown.TotalVotes,
+		"days_active":       breakdown.DaysActive,
+		"is_banned":         breakdown.IsBanned,
 	}
 
 	// Update in database with history

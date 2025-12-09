@@ -403,10 +403,10 @@ func TestSafeQueryLimits_ApplyLimits(t *testing.T) {
 	limits := DefaultSafeQueryLimits()
 
 	tests := []struct {
-		name          string
-		inputLimit    int
-		inputOffset   int
-		expectedLimit int
+		name           string
+		inputLimit     int
+		inputOffset    int
+		expectedLimit  int
 		expectedOffset int
 	}{
 		{"normal values", 20, 0, 20, 0},

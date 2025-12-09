@@ -43,12 +43,12 @@ func NewExportService(exportRepo ExportRepositoryInterface, emailService *EmailS
 	if err := os.MkdirAll(exportDir, 0755); err != nil {
 		utils.GetLogger().Error("Failed to create export directory", err)
 	}
-	
+
 	// Default to 7 days if not specified
 	if retentionDays <= 0 {
 		retentionDays = 7
 	}
-	
+
 	return &ExportService{
 		exportRepo:    exportRepo,
 		emailService:  emailService,
@@ -97,7 +97,7 @@ func (s *ExportService) GetUserExportRequests(ctx context.Context, userID uuid.U
 // ProcessExportRequest processes a pending export request
 func (s *ExportService) ProcessExportRequest(ctx context.Context, req *models.ExportRequest) error {
 	logger := utils.GetLogger()
-	
+
 	// Update status to processing
 	if err := s.exportRepo.UpdateExportStatus(ctx, req.ID, models.ExportStatusProcessing, nil); err != nil {
 		logger.Error("Failed to update export status to processing", err)
@@ -115,7 +115,7 @@ func (s *ExportService) ProcessExportRequest(ctx context.Context, req *models.Ex
 	// Generate export file
 	var filePath string
 	var fileSize int64
-	
+
 	switch req.Format {
 	case models.ExportFormatCSV:
 		filePath, fileSize, err = s.generateCSVExport(req.ID, clips)
@@ -236,7 +236,7 @@ func (s *ExportService) generateJSONExport(exportID uuid.UUID, clips []*models.C
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
-	
+
 	exportData := map[string]interface{}{
 		"export_id":    exportID,
 		"generated_at": time.Now().Format(time.RFC3339),
@@ -275,7 +275,7 @@ func (s *ExportService) sendExportCompletedEmail(ctx context.Context, req *model
 // CleanupExpiredExports removes expired export files
 func (s *ExportService) CleanupExpiredExports(ctx context.Context) error {
 	logger := utils.GetLogger()
-	
+
 	// Get expired exports
 	expiredExports, err := s.exportRepo.GetExpiredExportRequests(ctx)
 	if err != nil {

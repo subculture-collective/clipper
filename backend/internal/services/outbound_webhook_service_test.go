@@ -80,4 +80,3 @@ func TestGenerateSecret(t *testing.T) {
 	assert.NotEmpty(t, secret2)
 	assert.NotEqual(t, secret1, secret2)
 }
-

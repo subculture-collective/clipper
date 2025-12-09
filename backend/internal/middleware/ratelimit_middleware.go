@@ -20,8 +20,8 @@ var (
 
 	// IP whitelist for rate limiting bypass (for testing/trusted IPs)
 	rateLimitWhitelist = map[string]bool{
-		"127.0.0.1":     true,
-		"::1":           true,
+		"127.0.0.1":      true,
+		"::1":            true,
 		"173.165.22.142": true, // Your IP
 	}
 )

@@ -51,10 +51,11 @@ func NewClipService(
 // ClipWithUserData represents a clip with user-specific data
 type ClipWithUserData struct {
 	models.Clip
-	UserVote      *int16 `json:"user_vote,omitempty"`
-	IsFavorited   bool   `json:"is_favorited"`
-	UpvoteCount   int    `json:"upvote_count"`
-	DownvoteCount int    `json:"downvote_count"`
+	UserVote      *int16                    `json:"user_vote,omitempty"`
+	IsFavorited   bool                      `json:"is_favorited"`
+	UpvoteCount   int                       `json:"upvote_count"`
+	DownvoteCount int                       `json:"downvote_count"`
+	SubmittedBy   *models.ClipSubmitterInfo `json:"submitted_by,omitempty"`
 }
 
 // GetClip retrieves a single clip with user data
@@ -73,6 +74,19 @@ func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uui
 	if err == nil {
 		clipWithData.UpvoteCount = upvotes
 		clipWithData.DownvoteCount = downvotes
+	}
+
+	// Get submitter information if available
+	if clip.SubmittedByUserID != nil {
+		submitter, err := s.userRepo.GetByID(ctx, *clip.SubmittedByUserID)
+		if err == nil && submitter != nil {
+			clipWithData.SubmittedBy = &models.ClipSubmitterInfo{
+				ID:          submitter.ID,
+				Username:    submitter.Username,
+				DisplayName: submitter.DisplayName,
+				AvatarURL:   submitter.AvatarURL,
+			}
+		}
 	}
 
 	// Get user-specific data if authenticated
@@ -119,6 +133,19 @@ func (s *ClipService) GetClipByTwitchID(ctx context.Context, twitchClipID string
 	if err == nil {
 		clipWithData.UpvoteCount = upvotes
 		clipWithData.DownvoteCount = downvotes
+	}
+
+	// Get submitter information if available
+	if clip.SubmittedByUserID != nil {
+		submitter, err := s.userRepo.GetByID(ctx, *clip.SubmittedByUserID)
+		if err == nil && submitter != nil {
+			clipWithData.SubmittedBy = &models.ClipSubmitterInfo{
+				ID:          submitter.ID,
+				Username:    submitter.Username,
+				DisplayName: submitter.DisplayName,
+				AvatarURL:   submitter.AvatarURL,
+			}
+		}
 	}
 
 	// Get user-specific data if authenticated
@@ -200,11 +227,48 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 		}
 	}
 
+	// Collect unique submitter IDs for batch fetching
+	submitterIDSet := make(map[uuid.UUID]struct{})
+	for _, clip := range clips {
+		if clip.SubmittedByUserID != nil {
+			submitterIDSet[*clip.SubmittedByUserID] = struct{}{}
+		}
+	}
+
+	// Convert set to slice for batch query
+	submitterIDs := make([]uuid.UUID, 0, len(submitterIDSet))
+	for id := range submitterIDSet {
+		submitterIDs = append(submitterIDs, id)
+	}
+
+	// Batch fetch submitter information in a single query
+	submitters := make(map[uuid.UUID]*models.ClipSubmitterInfo)
+	if len(submitterIDs) > 0 {
+		users, err := s.userRepo.GetByIDs(ctx, submitterIDs)
+		if err == nil {
+			for _, submitter := range users {
+				submitters[submitter.ID] = &models.ClipSubmitterInfo{
+					ID:          submitter.ID,
+					Username:    submitter.Username,
+					DisplayName: submitter.DisplayName,
+					AvatarURL:   submitter.AvatarURL,
+				}
+			}
+		}
+	}
+
 	// Enrich with user data
 	clipsWithData := make([]ClipWithUserData, len(clips))
 	for i, clip := range clips {
 		clipsWithData[i] = ClipWithUserData{
 			Clip: clip,
+		}
+
+		// Add submitter info if available
+		if clip.SubmittedByUserID != nil {
+			if submitter, ok := submitters[*clip.SubmittedByUserID]; ok {
+				clipsWithData[i].SubmittedBy = submitter
+			}
 		}
 
 		// Get vote counts

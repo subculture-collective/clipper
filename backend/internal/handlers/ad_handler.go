@@ -337,43 +337,43 @@ func (h *AdHandler) ListExperiments(c *gin.Context) {
 
 // CreateCampaignRequest represents the request to create a campaign
 type CreateCampaignRequest struct {
-	Name             string                 `json:"name" binding:"required"`
-	AdvertiserName   string                 `json:"advertiser_name" binding:"required"`
-	AdType           string                 `json:"ad_type" binding:"required,oneof=banner video native"`
-	ContentURL       string                 `json:"content_url" binding:"required,url"`
-	ClickURL         *string                `json:"click_url,omitempty"`
-	AltText          *string                `json:"alt_text,omitempty"`
-	Width            *int                   `json:"width,omitempty"`
-	Height           *int                   `json:"height,omitempty"`
-	Priority         int                    `json:"priority,omitempty"`
-	Weight           int                    `json:"weight,omitempty"`
-	DailyBudgetCents *int64                 `json:"daily_budget_cents,omitempty"`
-	TotalBudgetCents *int64                 `json:"total_budget_cents,omitempty"`
-	CPMCents         int                    `json:"cpm_cents,omitempty"`
-	IsActive         bool                   `json:"is_active"`
-	StartDate        *time.Time             `json:"start_date,omitempty"`
-	EndDate          *time.Time             `json:"end_date,omitempty"`
+	Name              string                 `json:"name" binding:"required"`
+	AdvertiserName    string                 `json:"advertiser_name" binding:"required"`
+	AdType            string                 `json:"ad_type" binding:"required,oneof=banner video native"`
+	ContentURL        string                 `json:"content_url" binding:"required,url"`
+	ClickURL          *string                `json:"click_url,omitempty"`
+	AltText           *string                `json:"alt_text,omitempty"`
+	Width             *int                   `json:"width,omitempty"`
+	Height            *int                   `json:"height,omitempty"`
+	Priority          int                    `json:"priority,omitempty"`
+	Weight            int                    `json:"weight,omitempty"`
+	DailyBudgetCents  *int64                 `json:"daily_budget_cents,omitempty"`
+	TotalBudgetCents  *int64                 `json:"total_budget_cents,omitempty"`
+	CPMCents          int                    `json:"cpm_cents,omitempty"`
+	IsActive          bool                   `json:"is_active"`
+	StartDate         *time.Time             `json:"start_date,omitempty"`
+	EndDate           *time.Time             `json:"end_date,omitempty"`
 	TargetingCriteria map[string]interface{} `json:"targeting_criteria,omitempty"`
 }
 
 // UpdateCampaignRequest represents the request to update a campaign
 type UpdateCampaignRequest struct {
-	Name             *string                `json:"name,omitempty"`
-	AdvertiserName   *string                `json:"advertiser_name,omitempty"`
-	AdType           *string                `json:"ad_type,omitempty"`
-	ContentURL       *string                `json:"content_url,omitempty"`
-	ClickURL         *string                `json:"click_url,omitempty"`
-	AltText          *string                `json:"alt_text,omitempty"`
-	Width            *int                   `json:"width,omitempty"`
-	Height           *int                   `json:"height,omitempty"`
-	Priority         *int                   `json:"priority,omitempty"`
-	Weight           *int                   `json:"weight,omitempty"`
-	DailyBudgetCents *int64                 `json:"daily_budget_cents,omitempty"`
-	TotalBudgetCents *int64                 `json:"total_budget_cents,omitempty"`
-	CPMCents         *int                   `json:"cpm_cents,omitempty"`
-	IsActive         *bool                  `json:"is_active,omitempty"`
-	StartDate        *time.Time             `json:"start_date,omitempty"`
-	EndDate          *time.Time             `json:"end_date,omitempty"`
+	Name              *string                `json:"name,omitempty"`
+	AdvertiserName    *string                `json:"advertiser_name,omitempty"`
+	AdType            *string                `json:"ad_type,omitempty"`
+	ContentURL        *string                `json:"content_url,omitempty"`
+	ClickURL          *string                `json:"click_url,omitempty"`
+	AltText           *string                `json:"alt_text,omitempty"`
+	Width             *int                   `json:"width,omitempty"`
+	Height            *int                   `json:"height,omitempty"`
+	Priority          *int                   `json:"priority,omitempty"`
+	Weight            *int                   `json:"weight,omitempty"`
+	DailyBudgetCents  *int64                 `json:"daily_budget_cents,omitempty"`
+	TotalBudgetCents  *int64                 `json:"total_budget_cents,omitempty"`
+	CPMCents          *int                   `json:"cpm_cents,omitempty"`
+	IsActive          *bool                  `json:"is_active,omitempty"`
+	StartDate         *time.Time             `json:"start_date,omitempty"`
+	EndDate           *time.Time             `json:"end_date,omitempty"`
 	TargetingCriteria map[string]interface{} `json:"targeting_criteria,omitempty"`
 }
 

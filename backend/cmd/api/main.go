@@ -269,7 +269,7 @@ func main() {
 	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
-	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	seoHandler := handlers.NewSEOHandler(clipRepo)
@@ -487,7 +487,7 @@ func main() {
 			// Clip analytics (public)
 			clips.GET("/:id/analytics", analyticsHandler.GetClipAnalytics)
 			clips.POST("/:id/track-view", analyticsHandler.TrackClipView)
-			
+
 			// Clip engagement score (public)
 			clips.GET("/:id/engagement", engagementHandler.GetContentEngagementScore)
 
@@ -582,6 +582,9 @@ func main() {
 		// Reputation routes
 		users := v1.Group("/users")
 		{
+			// Public user profile
+			users.GET("/by-username/:username", userHandler.GetUserByUsername)
+
 			// Public reputation endpoints
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
 			users.GET("/:id/karma", reputationHandler.GetUserKarma)
@@ -594,7 +597,7 @@ func main() {
 
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
-			
+
 			// User engagement score (authenticated)
 			users.GET("/:userId/engagement", middleware.AuthMiddleware(authService), engagementHandler.GetUserEngagementScore)
 
@@ -801,7 +804,7 @@ func main() {
 				analytics.GET("/overview", analyticsHandler.GetPlatformOverview)
 				analytics.GET("/content", analyticsHandler.GetContentMetrics)
 				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
-				
+
 				// Engagement metrics routes
 				analytics.GET("/health", engagementHandler.GetPlatformHealthMetrics)
 				analytics.GET("/trending", engagementHandler.GetTrendingMetrics)

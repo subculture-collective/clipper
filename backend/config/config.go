@@ -135,9 +135,9 @@ type FeatureFlagsConfig struct {
 
 // KarmaConfig holds karma system configuration
 type KarmaConfig struct {
-	InitialKarmaPoints         int  // Karma points granted to new users on signup
-	SubmissionKarmaRequired    int  // Minimum karma required to submit clips
-	RequireKarmaForSubmission  bool // Whether to enforce karma requirement for submissions
+	InitialKarmaPoints        int  // Karma points granted to new users on signup
+	SubmissionKarmaRequired   int  // Minimum karma required to submit clips
+	RequireKarmaForSubmission bool // Whether to enforce karma requirement for submissions
 }
 
 // JobsConfig holds background job interval configuration
