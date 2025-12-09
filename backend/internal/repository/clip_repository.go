@@ -64,7 +64,8 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at
 		FROM clips
 		WHERE twitch_clip_id = $1
 	`
@@ -77,6 +78,7 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 		&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+		&clip.SubmittedByUserID, &clip.SubmittedAt,
 	)
 
 	if err != nil {
@@ -113,6 +115,31 @@ func (r *ClipRepository) ExistsByTwitchClipID(ctx context.Context, twitchClipID 
 	}
 
 	return exists, nil
+}
+
+// ClaimScrapedClip updates a scraped clip to mark it as claimed by a user
+// This includes updating title, tags, NSFW status, and submitter information
+func (r *ClipRepository) ClaimScrapedClip(ctx context.Context, clipID uuid.UUID, userID uuid.UUID, title *string, isNSFW bool, submittedAt time.Time) error {
+	query := `
+		UPDATE clips
+		SET submitted_by_user_id = $2,
+		    submitted_at = $3,
+		    title = COALESCE($4, title),
+		    is_nsfw = $5
+		WHERE id = $1 AND submitted_by_user_id IS NULL
+	`
+
+	result, err := r.pool.Exec(ctx, query, clipID, userID, submittedAt, title, isNSFW)
+	if err != nil {
+		return fmt.Errorf("failed to claim scraped clip: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("clip not found or already claimed")
+	}
+
+	return nil
 }
 
 // GetByID retrieves a clip by its ID

@@ -291,7 +291,72 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		}
 	}
 
-	// Check for duplicates
+	// Check if clip exists and whether it can be claimed
+	clipExistence, err := s.checkClipExistence(ctx, clipID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check clip existence: %w", err)
+	}
+
+	// If clip exists and can be claimed (scraped clip), claim it directly
+	if clipExistence.Exists && clipExistence.CanBeClaimed {
+		now := time.Now()
+		title := req.CustomTitle
+		
+		// Claim the scraped clip
+		if err := s.clipRepo.ClaimScrapedClip(ctx, clipExistence.Clip.ID, userID, title, req.IsNSFW, now); err != nil {
+			return nil, fmt.Errorf("failed to claim scraped clip: %w", err)
+		}
+
+		// Auto-upvote the claimed clip
+		if s.voteRepo != nil {
+			if err := s.voteRepo.UpsertVote(ctx, userID, clipExistence.Clip.ID, 1); err != nil {
+				// Log error but don't fail
+				fmt.Printf("Warning: failed to auto-upvote claimed clip for user %s: %v\n", userID, err)
+			}
+		}
+
+		// Award karma for claiming
+		if err := s.awardKarma(ctx, userID, 10); err != nil {
+			// Log error but don't fail
+			fmt.Printf("Failed to award karma: %v\n", err)
+		}
+
+		// Return a pseudo-submission response showing the clip was claimed
+		// We create a submission object for response compatibility
+		submission := &models.ClipSubmission{
+			ID:           uuid.New(),
+			UserID:       userID,
+			TwitchClipID: clipExistence.Clip.TwitchClipID,
+			TwitchClipURL: clipExistence.Clip.TwitchClipURL,
+			CustomTitle:  title,
+			Title:        &clipExistence.Clip.Title,
+			IsNSFW:       req.IsNSFW,
+			Status:       "approved", // Claimed clips are immediately approved
+			CreatedAt:    now,
+			UpdatedAt:    now,
+			ReviewedAt:   &now,
+			ReviewedBy:   &userID,
+		}
+		
+		return submission, nil
+	}
+
+	// If clip exists but cannot be claimed (already claimed), return error
+	if clipExistence.Exists && !clipExistence.CanBeClaimed {
+		// Track duplicate attempt
+		if s.abuseDetector != nil {
+			if err := s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, clipID); err != nil {
+				log.Printf("Failed to track duplicate attempt: %v", err)
+			}
+		}
+
+		return nil, &ValidationError{
+			Field:   "clip_url",
+			Message: "This clip has already been posted by another user",
+		}
+	}
+
+	// Check for duplicates in submissions table
 	if err := s.checkDuplicates(ctx, clipID, userID, ip); err != nil {
 		return nil, err
 	}
@@ -627,6 +692,38 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 	}
 
 	return nil
+}
+
+// ClipExistenceResult represents the result of checking if a clip exists
+type ClipExistenceResult struct {
+	Exists       bool
+	Clip         *models.Clip
+	CanBeClaimed bool // True if clip exists but submitted_by_user_id is NULL
+}
+
+// CheckClipExistence is a public wrapper for checkClipExistence
+func (s *SubmissionService) CheckClipExistence(ctx context.Context, twitchClipID string) (*ClipExistenceResult, error) {
+	return s.checkClipExistence(ctx, twitchClipID)
+}
+
+// checkClipExistence checks if a clip already exists and whether it can be claimed
+func (s *SubmissionService) checkClipExistence(ctx context.Context, twitchClipID string) (*ClipExistenceResult, error) {
+	clip, err := s.clipRepo.GetByTwitchClipID(ctx, twitchClipID)
+	if err != nil {
+		// If clip not found, that's ok - it doesn't exist yet
+		if strings.Contains(err.Error(), "no rows") {
+			return &ClipExistenceResult{Exists: false, CanBeClaimed: false}, nil
+		}
+		return nil, fmt.Errorf("failed to check clip existence: %w", err)
+	}
+
+	// Clip exists
+	canBeClaimed := clip.SubmittedByUserID == nil
+	return &ClipExistenceResult{
+		Exists:       true,
+		Clip:         clip,
+		CanBeClaimed: canBeClaimed,
+	}, nil
 }
 
 // checkDuplicates checks if clip already exists or was submitted
