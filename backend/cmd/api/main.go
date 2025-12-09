@@ -161,6 +161,7 @@ func main() {
 		FromName:         cfg.Email.FromName,
 		BaseURL:          cfg.Server.BaseURL,
 		Enabled:          cfg.Email.Enabled,
+		SandboxMode:      cfg.Email.SandboxMode,
 		MaxEmailsPerHour: cfg.Email.MaxEmailsPerHour,
 	}, emailNotificationRepo, notificationRepo)
 

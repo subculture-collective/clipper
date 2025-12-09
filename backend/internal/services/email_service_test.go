@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -238,4 +239,102 @@ func TestEmailRateLimit(t *testing.T) {
 	assert.Equal(t, userID, rateLimit.UserID)
 	assert.Equal(t, windowStart, rateLimit.WindowStart)
 	assert.Equal(t, 5, rateLimit.EmailCount)
+}
+
+// TestSandboxMode tests that sandbox mode logs emails without sending
+func TestSandboxMode(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true, // Enable sandbox mode
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+	assert.NotNil(t, service)
+	assert.True(t, service.sandboxMode)
+
+	// Test sending an email in sandbox mode (should not actually send)
+	messageID, err := service.sendViaSendGrid("recipient@example.com", "Test Subject", "<p>Test HTML</p>", "Test Text")
+	assert.NoError(t, err)
+	assert.Contains(t, messageID, "sandbox-") // Should return a sandbox message ID
+}
+
+// TestSendEmailMethod tests the generic SendEmail method
+func TestSendEmailMethod(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true, // Use sandbox mode for testing
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	// Test valid email request
+	req := EmailRequest{
+		To:       []string{"recipient@example.com"},
+		Subject:  "Test Email",
+		Template: "welcome",
+		Data: map[string]interface{}{
+			"name":    "John Doe",
+			"message": "Welcome to our service!",
+		},
+		Tags: []string{"welcome", "onboarding"},
+	}
+
+	err := service.SendEmail(context.Background(), req)
+	assert.NoError(t, err)
+
+	// Test email request with no recipients
+	invalidReq := EmailRequest{
+		To:      []string{},
+		Subject: "Test",
+		Data:    map[string]interface{}{},
+	}
+
+	err = service.SendEmail(context.Background(), invalidReq)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no recipients")
+
+	// Test email request with no subject
+	invalidReq2 := EmailRequest{
+		To:      []string{"test@example.com"},
+		Subject: "",
+		Data:    map[string]interface{}{},
+	}
+
+	err = service.SendEmail(context.Background(), invalidReq2)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "subject is required")
+}
+
+// TestEmailServiceDisabled tests that disabled service doesn't send emails
+func TestEmailServiceDisabled(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          false, // Disabled
+		SandboxMode:      false,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	req := EmailRequest{
+		To:      []string{"recipient@example.com"},
+		Subject: "Test Email",
+		Data:    map[string]interface{}{},
+	}
+
+	err := service.SendEmail(context.Background(), req)
+	assert.NoError(t, err) // Should return nil when disabled
 }
