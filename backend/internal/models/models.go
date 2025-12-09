@@ -505,23 +505,48 @@ type NotificationWithSource struct {
 
 // NotificationPreferences represents user's notification settings
 type NotificationPreferences struct {
-	UserID                     uuid.UUID `json:"user_id" db:"user_id"`
-	InAppEnabled               bool      `json:"in_app_enabled" db:"in_app_enabled"`
-	EmailEnabled               bool      `json:"email_enabled" db:"email_enabled"`
-	EmailDigest                string    `json:"email_digest" db:"email_digest"`
-	NotifyReplies              bool      `json:"notify_replies" db:"notify_replies"`
-	NotifyMentions             bool      `json:"notify_mentions" db:"notify_mentions"`
-	NotifyVotes                bool      `json:"notify_votes" db:"notify_votes"`
-	NotifyBadges               bool      `json:"notify_badges" db:"notify_badges"`
-	NotifyModeration           bool      `json:"notify_moderation" db:"notify_moderation"`
-	NotifyRankUp               bool      `json:"notify_rank_up" db:"notify_rank_up"`
-	NotifyFavoritedClipComment bool      `json:"notify_favorited_clip_comment" db:"notify_favorited_clip_comment"`
+	UserID       uuid.UUID `json:"user_id" db:"user_id"`
+	InAppEnabled bool      `json:"in_app_enabled" db:"in_app_enabled"`
+	EmailEnabled bool      `json:"email_enabled" db:"email_enabled"`
+	EmailDigest  string    `json:"email_digest" db:"email_digest"` // immediate, daily, weekly, never
+
+	// Account & Security
+	NotifyLoginNewDevice  bool `json:"notify_login_new_device" db:"notify_login_new_device"`
+	NotifyFailedLogin     bool `json:"notify_failed_login" db:"notify_failed_login"`
+	NotifyPasswordChanged bool `json:"notify_password_changed" db:"notify_password_changed"`
+	NotifyEmailChanged    bool `json:"notify_email_changed" db:"notify_email_changed"`
+
+	// Content notifications
+	NotifyReplies              bool `json:"notify_replies" db:"notify_replies"`
+	NotifyMentions             bool `json:"notify_mentions" db:"notify_mentions"`
+	NotifySubmissionApproved   bool `json:"notify_submission_approved" db:"notify_submission_approved"`
+	NotifySubmissionRejected   bool `json:"notify_submission_rejected" db:"notify_submission_rejected"`
+	NotifyContentTrending      bool `json:"notify_content_trending" db:"notify_content_trending"`
+	NotifyContentFlagged       bool `json:"notify_content_flagged" db:"notify_content_flagged"`
+	NotifyVotes                bool `json:"notify_votes" db:"notify_votes"`
+	NotifyFavoritedClipComment bool `json:"notify_favorited_clip_comment" db:"notify_favorited_clip_comment"`
+
+	// Community notifications
+	NotifyModeratorMessage bool `json:"notify_moderator_message" db:"notify_moderator_message"`
+	NotifyUserFollowed     bool `json:"notify_user_followed" db:"notify_user_followed"`
+	NotifyCommentOnContent bool `json:"notify_comment_on_content" db:"notify_comment_on_content"`
+	NotifyDiscussionReply  bool `json:"notify_discussion_reply" db:"notify_discussion_reply"`
+	NotifyBadges           bool `json:"notify_badges" db:"notify_badges"`
+	NotifyRankUp           bool `json:"notify_rank_up" db:"notify_rank_up"`
+	NotifyModeration       bool `json:"notify_moderation" db:"notify_moderation"`
+
 	// Creator-specific notification preferences
-	NotifyClipApproved  bool      `json:"notify_clip_approved" db:"notify_clip_approved"`
-	NotifyClipRejected  bool      `json:"notify_clip_rejected" db:"notify_clip_rejected"`
-	NotifyClipComments  bool      `json:"notify_clip_comments" db:"notify_clip_comments"`
-	NotifyClipThreshold bool      `json:"notify_clip_threshold" db:"notify_clip_threshold"`
-	UpdatedAt           time.Time `json:"updated_at" db:"updated_at"`
+	NotifyClipApproved  bool `json:"notify_clip_approved" db:"notify_clip_approved"`
+	NotifyClipRejected  bool `json:"notify_clip_rejected" db:"notify_clip_rejected"`
+	NotifyClipComments  bool `json:"notify_clip_comments" db:"notify_clip_comments"`
+	NotifyClipThreshold bool `json:"notify_clip_threshold" db:"notify_clip_threshold"`
+
+	// Global preferences
+	NotifyMarketing             bool `json:"notify_marketing" db:"notify_marketing"`
+	NotifyPolicyUpdates         bool `json:"notify_policy_updates" db:"notify_policy_updates"`
+	NotifyPlatformAnnouncements bool `json:"notify_platform_announcements" db:"notify_platform_announcements"`
+
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Notification types constants
@@ -554,6 +579,23 @@ const (
 	NotificationTypeClipComment       = "clip_comment"
 	NotificationTypeClipViewThreshold = "clip_view_threshold"
 	NotificationTypeClipVoteThreshold = "clip_vote_threshold"
+	// Account & Security notification types
+	NotificationTypeLoginNewDevice  = "login_new_device"
+	NotificationTypeFailedLogin     = "failed_login"
+	NotificationTypePasswordChanged = "password_changed"
+	NotificationTypeEmailChanged    = "email_changed"
+	// Content notification types (additional)
+	NotificationTypeContentTrending = "content_trending"
+	NotificationTypeContentFlagged  = "content_flagged"
+	// Community notification types (additional)
+	NotificationTypeModeratorMessage = "moderator_message"
+	NotificationTypeUserFollowed     = "user_followed"
+	NotificationTypeCommentOnContent = "comment_on_content"
+	NotificationTypeDiscussionReply  = "discussion_reply"
+	// Global/Marketing notification types
+	NotificationTypeMarketing            = "marketing"
+	NotificationTypePolicyUpdate         = "policy_update"
+	NotificationTypePlatformAnnouncement = "platform_announcement"
 )
 
 // AnalyticsEvent represents a tracked event for analytics

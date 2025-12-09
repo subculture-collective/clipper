@@ -154,7 +154,7 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
 
-	// Initialize email service
+	// Initialize email service with notification repo for preference checking
 	emailService := services.NewEmailService(&services.EmailConfig{
 		SendGridAPIKey:   cfg.Email.SendGridAPIKey,
 		FromEmail:        cfg.Email.FromEmail,
@@ -162,7 +162,7 @@ func main() {
 		BaseURL:          cfg.Server.BaseURL,
 		Enabled:          cfg.Email.Enabled,
 		MaxEmailsPerHour: cfg.Email.MaxEmailsPerHour,
-	}, emailNotificationRepo)
+	}, emailNotificationRepo, notificationRepo)
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
 	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
@@ -689,6 +689,7 @@ func main() {
 			// Get/Update preferences
 			notifications.GET("/preferences", notificationHandler.GetPreferences)
 			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+			notifications.POST("/preferences/reset", notificationHandler.ResetPreferences)
 
 			// Device token registration for push notifications
 			notifications.POST("/register", notificationHandler.RegisterDeviceToken)

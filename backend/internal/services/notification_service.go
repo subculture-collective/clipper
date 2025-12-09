@@ -135,20 +135,48 @@ func (s *NotificationService) CreateNotificationWithEmail(
 // shouldNotify checks if a user should be notified based on their preferences
 func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences, notificationType string) bool {
 	switch notificationType {
+	// Account & Security
+	case models.NotificationTypeLoginNewDevice:
+		return prefs.NotifyLoginNewDevice
+	case models.NotificationTypeFailedLogin:
+		return prefs.NotifyFailedLogin
+	case models.NotificationTypePasswordChanged:
+		return prefs.NotifyPasswordChanged
+	case models.NotificationTypeEmailChanged:
+		return prefs.NotifyEmailChanged
+
+	// Content notifications
 	case models.NotificationTypeReply:
 		return prefs.NotifyReplies
 	case models.NotificationTypeMention:
 		return prefs.NotifyMentions
 	case models.NotificationTypeVoteMilestone:
 		return prefs.NotifyVotes
-	case models.NotificationTypeBadgeEarned, models.NotificationTypeRankUp:
+	case models.NotificationTypeFavoritedClipComment:
+		return prefs.NotifyFavoritedClipComment
+	case models.NotificationTypeContentTrending:
+		return prefs.NotifyContentTrending
+	case models.NotificationTypeContentFlagged:
+		return prefs.NotifyContentFlagged
+
+	// Community notifications
+	case models.NotificationTypeModeratorMessage:
+		return prefs.NotifyModeratorMessage
+	case models.NotificationTypeUserFollowed:
+		return prefs.NotifyUserFollowed
+	case models.NotificationTypeCommentOnContent:
+		return prefs.NotifyCommentOnContent
+	case models.NotificationTypeDiscussionReply:
+		return prefs.NotifyDiscussionReply
+	case models.NotificationTypeBadgeEarned:
 		return prefs.NotifyBadges
+	case models.NotificationTypeRankUp:
+		return prefs.NotifyRankUp
 	case models.NotificationTypeContentRemoved, models.NotificationTypeWarning,
 		models.NotificationTypeBan, models.NotificationTypeAppealDecision:
 		return prefs.NotifyModeration
-	case models.NotificationTypeFavoritedClipComment:
-		return prefs.NotifyFavoritedClipComment
-	// Creator-specific notification preferences
+
+	// Creator-specific notification preferences (including clip submissions)
 	case models.NotificationTypeSubmissionApproved:
 		return prefs.NotifyClipApproved
 	case models.NotificationTypeSubmissionRejected:
@@ -157,6 +185,15 @@ func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences
 		return prefs.NotifyClipComments
 	case models.NotificationTypeClipViewThreshold, models.NotificationTypeClipVoteThreshold:
 		return prefs.NotifyClipThreshold
+
+	// Global/Marketing
+	case models.NotificationTypeMarketing:
+		return prefs.NotifyMarketing
+	case models.NotificationTypePolicyUpdate:
+		return prefs.NotifyPolicyUpdates
+	case models.NotificationTypePlatformAnnouncement:
+		return prefs.NotifyPlatformAnnouncements
+
 	default:
 		return true // Default to notifying for unknown types
 	}
@@ -242,6 +279,16 @@ func (s *NotificationService) UpdatePreferences(ctx context.Context, prefs *mode
 	}
 
 	return nil
+}
+
+// ResetPreferences resets notification preferences to defaults for a user
+func (s *NotificationService) ResetPreferences(ctx context.Context, userID uuid.UUID) (*models.NotificationPreferences, error) {
+	prefs, err := s.repo.ResetPreferences(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reset preferences: %w", err)
+	}
+
+	return prefs, nil
 }
 
 // NotifyCommentReply notifies a user when someone replies to their comment

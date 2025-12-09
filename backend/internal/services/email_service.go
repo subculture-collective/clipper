@@ -25,6 +25,7 @@ type EmailService struct {
 	fromName            string
 	baseURL             string
 	repo                *repository.EmailNotificationRepository
+	notificationRepo    *repository.NotificationRepository
 	enabled             bool
 	maxEmailsPerHour    int
 	tokenExpiryDuration time.Duration
@@ -45,7 +46,7 @@ type EmailConfig struct {
 }
 
 // NewEmailService creates a new EmailService
-func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationRepository) *EmailService {
+func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationRepository, notificationRepo *repository.NotificationRepository) *EmailService {
 	maxPerHour := cfg.MaxEmailsPerHour
 	if maxPerHour <= 0 {
 		maxPerHour = 10 // Default rate limit
@@ -62,6 +63,7 @@ func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationReposit
 		fromName:            cfg.FromName,
 		baseURL:             cfg.BaseURL,
 		repo:                repo,
+		notificationRepo:    notificationRepo,
 		enabled:             cfg.Enabled,
 		maxEmailsPerHour:    maxPerHour,
 		tokenExpiryDuration: tokenExpiry,
@@ -85,6 +87,33 @@ func (s *EmailService) SendNotificationEmail(
 	// Check if user has an email
 	if user.Email == nil || *user.Email == "" {
 		return nil // User has no email
+	}
+
+	// Check user's notification preferences
+	if s.notificationRepo != nil {
+		prefs, err := s.notificationRepo.GetPreferences(ctx, user.ID)
+		if err != nil {
+			// Log but don't fail - allow email if we can't fetch preferences
+			s.logger.Warn("Failed to get notification preferences, sending email anyway", map[string]interface{}{
+				"user_id": user.ID.String(),
+				"error":   err.Error(),
+			})
+		} else {
+			// Check if email notifications are globally disabled
+			if !prefs.EmailEnabled {
+				return nil // User has disabled all email notifications
+			}
+
+			// Check if email digest is set to "never"
+			if prefs.EmailDigest == "never" {
+				return nil // User has disabled all email delivery
+			}
+
+			// Check specific notification type preferences
+			if !s.shouldSendEmailForType(prefs, notificationType) {
+				return nil // User has disabled this type of notification
+			}
+		}
 	}
 
 	// Check rate limit
@@ -188,6 +217,74 @@ func (s *EmailService) sendViaSendGrid(to, subject, htmlContent, textContent str
 		messageID = ids[0]
 	}
 	return messageID, nil
+}
+
+// shouldSendEmailForType checks if the user wants emails for a specific notification type
+func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferences, notificationType string) bool {
+	// Map notification types to preference fields
+	switch notificationType {
+	// Account & Security
+	case models.NotificationTypeLoginNewDevice:
+		return prefs.NotifyLoginNewDevice
+	case models.NotificationTypeFailedLogin:
+		return prefs.NotifyFailedLogin
+	case models.NotificationTypePasswordChanged:
+		return prefs.NotifyPasswordChanged
+	case models.NotificationTypeEmailChanged:
+		return prefs.NotifyEmailChanged
+
+	// Content notifications
+	case models.NotificationTypeReply:
+		return prefs.NotifyReplies
+	case models.NotificationTypeMention:
+		return prefs.NotifyMentions
+	case models.NotificationTypeContentTrending:
+		return prefs.NotifyContentTrending
+	case models.NotificationTypeContentFlagged:
+		return prefs.NotifyContentFlagged
+	case models.NotificationTypeVoteMilestone:
+		return prefs.NotifyVotes
+	case models.NotificationTypeFavoritedClipComment:
+		return prefs.NotifyFavoritedClipComment
+
+	// Community notifications
+	case models.NotificationTypeModeratorMessage:
+		return prefs.NotifyModeratorMessage
+	case models.NotificationTypeUserFollowed:
+		return prefs.NotifyUserFollowed
+	case models.NotificationTypeCommentOnContent:
+		return prefs.NotifyCommentOnContent
+	case models.NotificationTypeDiscussionReply:
+		return prefs.NotifyDiscussionReply
+	case models.NotificationTypeBadgeEarned:
+		return prefs.NotifyBadges
+	case models.NotificationTypeRankUp:
+		return prefs.NotifyRankUp
+	case models.NotificationTypeContentRemoved, models.NotificationTypeWarning, models.NotificationTypeBan:
+		return prefs.NotifyModeration
+
+	// Creator notifications (including clip submissions)
+	case models.NotificationTypeSubmissionApproved:
+		return prefs.NotifyClipApproved
+	case models.NotificationTypeSubmissionRejected:
+		return prefs.NotifyClipRejected
+	case models.NotificationTypeClipComment:
+		return prefs.NotifyClipComments
+	case models.NotificationTypeClipVoteThreshold, models.NotificationTypeClipViewThreshold:
+		return prefs.NotifyClipThreshold
+
+	// Global/Marketing
+	case models.NotificationTypeMarketing:
+		return prefs.NotifyMarketing
+	case models.NotificationTypePolicyUpdate:
+		return prefs.NotifyPolicyUpdates
+	case models.NotificationTypePlatformAnnouncement:
+		return prefs.NotifyPlatformAnnouncements
+
+	default:
+		// For unknown types, allow the email (safer default)
+		return true
+	}
 }
 
 // prepareEmailContent prepares the email subject and body based on notification type

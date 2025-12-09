@@ -20,7 +20,7 @@ func TestEmailServiceCreation(t *testing.T) {
 		MaxEmailsPerHour: 10,
 	}
 
-	service := NewEmailService(cfg, nil)
+	service := NewEmailService(cfg, nil, nil)
 	assert.NotNil(t, service)
 	assert.Equal(t, "test-key", service.apiKey)
 	assert.Equal(t, "test@example.com", service.fromEmail)
@@ -39,7 +39,7 @@ func TestEmailServiceDefaultRateLimit(t *testing.T) {
 		MaxEmailsPerHour: 0, // Should default to 10
 	}
 
-	service := NewEmailService(cfg, nil)
+	service := NewEmailService(cfg, nil, nil)
 	assert.NotNil(t, service)
 	assert.Equal(t, 10, service.maxEmailsPerHour)
 }
@@ -55,7 +55,7 @@ func TestPrepareReplyEmail(t *testing.T) {
 		MaxEmailsPerHour: 10,
 	}
 
-	service := NewEmailService(cfg, nil)
+	service := NewEmailService(cfg, nil, nil)
 
 	data := map[string]interface{}{
 		"AuthorName":     "John Doe",
@@ -91,7 +91,7 @@ func TestPrepareMentionEmail(t *testing.T) {
 		MaxEmailsPerHour: 10,
 	}
 
-	service := NewEmailService(cfg, nil)
+	service := NewEmailService(cfg, nil, nil)
 
 	data := map[string]interface{}{
 		"AuthorName":     "Jane Smith",
@@ -127,7 +127,7 @@ func TestPrepareEmailContent(t *testing.T) {
 		MaxEmailsPerHour: 10,
 	}
 
-	service := NewEmailService(cfg, nil)
+	service := NewEmailService(cfg, nil, nil)
 
 	data := map[string]interface{}{
 		"AuthorName":     "Test User",

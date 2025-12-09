@@ -41,19 +41,42 @@ export interface NotificationPreferences {
   user_id: string;
   in_app_enabled: boolean;
   email_enabled: boolean;
-  email_digest: 'immediate' | 'daily' | 'weekly';
+  email_digest: 'immediate' | 'daily' | 'weekly' | 'never';
+  
+  // Account & Security
+  notify_login_new_device: boolean;
+  notify_failed_login: boolean;
+  notify_password_changed: boolean;
+  notify_email_changed: boolean;
+  
+  // Content notifications
   notify_replies: boolean;
   notify_mentions: boolean;
+  notify_content_trending: boolean;
+  notify_content_flagged: boolean;
   notify_votes: boolean;
-  notify_badges: boolean;
-  notify_moderation: boolean;
-  notify_rank_up: boolean;
   notify_favorited_clip_comment: boolean;
+  
+  // Community notifications
+  notify_moderator_message: boolean;
+  notify_user_followed: boolean;
+  notify_comment_on_content: boolean;
+  notify_discussion_reply: boolean;
+  notify_badges: boolean;
+  notify_rank_up: boolean;
+  notify_moderation: boolean;
+  
   // Creator-specific notification preferences
   notify_clip_approved: boolean;
   notify_clip_rejected: boolean;
   notify_clip_comments: boolean;
   notify_clip_threshold: boolean;
+  
+  // Global preferences
+  notify_marketing: boolean;
+  notify_policy_updates: boolean;
+  notify_platform_announcements: boolean;
+  
   updated_at: string;
 }
 

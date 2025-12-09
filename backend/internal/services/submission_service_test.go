@@ -646,30 +646,30 @@ func TestSubmissionService_AutoUpvote(t *testing.T) {
 		service := &SubmissionService{
 			voteRepo: nil,
 		}
-		
+
 		if service.voteRepo != nil {
 			t.Error("Expected voteRepo to be nil for this test case")
 		}
-		
+
 		// This documents that the service handles nil voteRepo gracefully
 		// The actual integration test would verify the full flow with mocked repositories
 	})
-	
+
 	t.Run("Vote creation logic expectations", func(t *testing.T) {
 		// Document expected vote creation behavior
 		expectations := map[string]string{
-			"vote_type":       "1 (upvote)",
-			"initial_score":   "0 (before trigger)",
-			"final_score":     "1 (after trigger)",
-			"soft_failure":    "Logs error but continues",
-			"nil_protection":  "Checks voteRepo != nil before calling",
+			"vote_type":      "1 (upvote)",
+			"initial_score":  "0 (before trigger)",
+			"final_score":    "1 (after trigger)",
+			"soft_failure":   "Logs error but continues",
+			"nil_protection": "Checks voteRepo != nil before calling",
 		}
-		
+
 		// Verify expectations are documented
 		if len(expectations) != 5 {
 			t.Errorf("Expected 5 documented behaviors, got %d", len(expectations))
 		}
-		
+
 		// The actual behavior is verified by:
 		// 1. Code inspection (lines 837-844 in submission_service.go)
 		// 2. Integration tests with database (would be added separately)
