@@ -100,7 +100,6 @@ Karma is the largest component because it represents direct community validation
 Activity_Score = MIN(
   (total_comments / 10) +
   (total_votes_cast / 100) +
-  (total_clips_submitted / 20) +
   (days_active / 5),
   20
 )
@@ -109,7 +108,6 @@ Activity_Score = MIN(
 **Activity Metrics:**
 - **Comments:** 0.1 points per comment (100 comments = 10 points)
 - **Votes:** 0.01 points per vote (1,000 votes = 10 points)
-- **Clip Submissions:** 0.05 points per clip (100 clips = 5 points)
 - **Days Active:** 0.2 points per day (100 days active = 20 points)
 
 **Days Active:** Counts unique calendar days with any activity (commenting, voting, or submitting)
@@ -117,9 +115,8 @@ Activity_Score = MIN(
 **Example:**
 - User posts 50 comments = 5 points
 - User casts 500 votes = 5 points
-- User submits 20 clips = 1 point
 - User active 45 days = 9 points
-- **Total Activity Score:** 20 points (capped at max)
+- **Total Activity Score:** 19 points (below cap)
 
 ### 4. Report Accuracy (20% - Max 20 Points)
 
@@ -210,7 +207,7 @@ These are tracked but not yet implemented in the score:
 **Profile:**
 - Account age: 15 days
 - Karma: 50 points
-- Activity: 10 comments, 20 votes, 2 clips, 5 days active
+- Activity: 10 comments, 20 votes, 5 days active
 - Reports: None filed
 - Status: Not banned
 
@@ -218,25 +215,12 @@ These are tracked but not yet implemented in the score:
 ```
 Account Age: MIN(15 / 18, 20) = 0.83 points
 Karma: MIN(50 / 250, 40) = 0.20 points
-Activity: MIN((10/10) + (20/100) + (2/20) + (5/5), 20) = MIN(2.3, 20) = 2.3 points
+Activity: MIN((10/10) + (20/100) + (5/5), 20) = MIN(2.2, 20) = 2.2 points
 Report Accuracy: 0 points (no reports)
 Ban Penalty: ×1 (not banned)
 
-Trust Score = (0.83 + 0.20 + 2.3 + 0) × 1 = 3.33 ≈ 3 points (rounded)
+Trust Score = (0.83 + 0.20 + 2.2 + 0) × 1 = 3.23 ≈ 3 points
 ```
-
-**Note:** The calculation shows 3 points, but the example states 12. Let me recalculate more accurately:
-
-```
-Account Age: 15 / 18 = 0.83 points
-Karma: 50 / 250 = 0.20 points  
-Activity: (10/10=1) + (20/100=0.2) + (2/20=0.1) + (5/5=1) = 2.3 points
-Report Accuracy: 0 points
-
-Total: 0.83 + 0.20 + 2.3 + 0 = 3.33 points
-```
-
-After review, a new user would typically have a score of ~3-5 points. Updating the example:
 
 **Trust Score: 3 points** (Very Low - New User)
 
@@ -245,7 +229,7 @@ After review, a new user would typically have a score of ~3-5 points. Updating t
 **Profile:**
 - Account age: 180 days (6 months)
 - Karma: 2,500 points
-- Activity: 150 comments, 800 votes, 30 clips, 90 days active
+- Activity: 150 comments, 800 votes, 90 days active
 - Reports: 15 filed, 12 correct, 3 incorrect
 - Status: Not banned
 
@@ -253,7 +237,7 @@ After review, a new user would typically have a score of ~3-5 points. Updating t
 ```
 Account Age: MIN(180 / 18, 20) = 10 points
 Karma: MIN(2500 / 250, 40) = 10 points
-Activity: MIN((150/10) + (800/100) + (30/20) + (90/5), 20) = MIN(34.5, 20) = 20 points
+Activity: MIN((150/10) + (800/100) + (90/5), 20) = MIN(33, 20) = 20 points (capped)
 Report Accuracy: 20 × (12 / 15) = 20 × 0.80 = 16 points
 Ban Penalty: ×1 (not banned)
 
@@ -267,7 +251,7 @@ Trust Score = (10 + 10 + 20 + 16) × 1 = 56 points
 **Profile:**
 - Account age: 450 days (15 months)
 - Karma: 12,000 points
-- Activity: 500 comments, 3,000 votes, 100 clips, 200 days active
+- Activity: 500 comments, 3,000 votes, 200 days active
 - Reports: 50 filed, 48 correct, 2 incorrect
 - Status: Not banned
 
@@ -275,7 +259,7 @@ Trust Score = (10 + 10 + 20 + 16) × 1 = 56 points
 ```
 Account Age: MIN(450 / 18, 20) = 20 points (capped)
 Karma: MIN(12000 / 250, 40) = 40 points (capped)
-Activity: MIN((500/10) + (3000/100) + (100/20) + (200/5), 20) = MIN(120, 20) = 20 points (capped)
+Activity: MIN((500/10) + (3000/100) + (200/5), 20) = MIN(120, 20) = 20 points (capped)
 Report Accuracy: 20 × (48 / 50) = 20 × 0.96 = 19.2 points
 Ban Penalty: ×1 (not banned)
 
@@ -289,7 +273,7 @@ Trust Score = (20 + 40 + 20 + 19.2) × 1 = 99.2 ≈ 99 points
 **Profile:**
 - Account age: 200 days
 - Karma: 3,000 points
-- Activity: 200 comments, 1,000 votes, 40 clips, 100 days active
+- Activity: 200 comments, 1,000 votes, 100 days active
 - Reports: 20 filed, 16 correct, 4 incorrect
 - Status: **Currently banned** (temporary)
 
@@ -297,7 +281,7 @@ Trust Score = (20 + 40 + 20 + 19.2) × 1 = 99.2 ≈ 99 points
 ```
 Account Age: MIN(200 / 18, 20) = 11.1 points
 Karma: MIN(3000 / 250, 40) = 12 points
-Activity: MIN((200/10) + (1000/100) + (40/20) + (100/5), 20) = MIN(52, 20) = 20 points (capped)
+Activity: MIN((200/10) + (1000/100) + (100/5), 20) = MIN(50, 20) = 20 points (capped)
 Report Accuracy: 20 × (16 / 20) = 20 × 0.80 = 16 points
 Subtotal: 11.1 + 12 + 20 + 16 = 59.1 points
 
@@ -314,7 +298,7 @@ Trust Score = 59.1 × 0.5 = 29.55 ≈ 30 points
 **Profile:**
 - Account age: 365 days (1 year)
 - Karma: 5 points
-- Activity: 5 comments, 200 votes, 0 clips, 30 days active
+- Activity: 5 comments, 200 votes, 30 days active
 - Reports: None filed
 - Status: Not banned
 
@@ -322,7 +306,7 @@ Trust Score = 59.1 × 0.5 = 29.55 ≈ 30 points
 ```
 Account Age: MIN(365 / 18, 20) = 20 points (capped)
 Karma: MIN(5 / 250, 40) = 0.02 points
-Activity: MIN((5/10) + (200/100) + (0/20) + (30/5), 20) = MIN(8.5, 20) = 8.5 points
+Activity: MIN((5/10) + (200/100) + (30/5), 20) = MIN(8.5, 20) = 8.5 points
 Report Accuracy: 0 points (no reports)
 Ban Penalty: ×1 (not banned)
 
