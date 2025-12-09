@@ -321,6 +321,44 @@ See `.env.example` for all available configuration options:
 - Log at appropriate levels (debug, info, warn, error)
 - Include context in log messages
 
+## Scripts
+
+The `scripts/` directory contains standalone utilities for backend operations.
+
+### Clip Scraper
+
+**Purpose**: Targeted scraping of Twitch clips from broadcasters with submissions on the platform.
+
+**Build:**
+```bash
+go build -o bin/scrape_clips ./scripts/scrape_clips.go
+```
+
+**Usage:**
+```bash
+# Basic usage (queries broadcasters from submissions)
+./bin/scrape_clips
+
+# Dry run mode (no database inserts)
+./bin/scrape_clips --dry-run
+
+# With custom options
+./bin/scrape_clips --batch-size 100 --min-views 200 --max-age-days 14
+
+# Scrape specific broadcasters
+./bin/scrape_clips --broadcasters "xQc,Pokimane,shroud"
+```
+
+**Documentation**: See [scripts/README_SCRAPER.md](scripts/README_SCRAPER.md) for:
+- Complete usage guide
+- Configuration options
+- Cron/systemd scheduling
+- Troubleshooting
+
+**Scheduling**:
+- Cron examples: [scripts/cron.example](scripts/cron.example)
+- Systemd service: [scripts/systemd/](scripts/systemd/)
+
 ## Next Steps
 
 1. ✅ ~~Implement database schema and migrations~~
@@ -330,10 +368,11 @@ See `.env.example` for all available configuration options:
 5. ✅ ~~Implement authentication with Twitch OAuth~~
 6. ✅ ~~Integrate Twitch API for clip fetching~~
 7. ✅ ~~Implement clip sync service with scheduler~~
-8. Add more business logic in services layer
-9. Create HTTP handlers for remaining API endpoints
-10. Add comprehensive tests for all components
-11. Add monitoring and metrics
+8. ✅ ~~Create targeted clip scraping script~~
+9. Add more business logic in services layer
+10. Create HTTP handlers for remaining API endpoints
+11. Add comprehensive tests for all components
+12. Add monitoring and metrics
 
 ## Resources
 
