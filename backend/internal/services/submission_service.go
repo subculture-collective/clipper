@@ -21,6 +21,7 @@ type SubmissionService struct {
 	submissionRepo      *repository.SubmissionRepository
 	clipRepo            *repository.ClipRepository
 	userRepo            *repository.UserRepository
+	voteRepo            *repository.VoteRepository
 	auditLogRepo        *repository.AuditLogRepository
 	twitchClient        *twitch.Client
 	redisClient         *redispkg.Client
@@ -36,6 +37,7 @@ func NewSubmissionService(
 	submissionRepo *repository.SubmissionRepository,
 	clipRepo *repository.ClipRepository,
 	userRepo *repository.UserRepository,
+	voteRepo *repository.VoteRepository,
 	auditLogRepo *repository.AuditLogRepository,
 	twitchClient *twitch.Client,
 	notificationService *NotificationService,
@@ -55,6 +57,7 @@ func NewSubmissionService(
 		submissionRepo:      submissionRepo,
 		clipRepo:            clipRepo,
 		userRepo:            userRepo,
+		voteRepo:            voteRepo,
 		auditLogRepo:        auditLogRepo,
 		twitchClient:        twitchClient,
 		redisClient:         redisClient,
@@ -824,9 +827,24 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 		IsNSFW:            submission.IsNSFW,
 		SubmittedByUserID: &submission.UserID,
 		SubmittedAt:       &submission.CreatedAt, // Use submission creation time as when it was submitted
+		VoteScore:         1,                      // Initialize with 1 to reflect auto-upvote
 	}
 
-	return s.clipRepo.Create(ctx, clip)
+	// Create the clip
+	if err := s.clipRepo.Create(ctx, clip); err != nil {
+		return err
+	}
+
+	// Auto-upvote: Create an upvote from the submitter
+	// This encourages engagement and shows creator approval
+	if s.voteRepo != nil {
+		if err := s.voteRepo.UpsertVote(ctx, submission.UserID, clip.ID, 1); err != nil {
+			// Log error but don't fail the clip creation
+			log.Printf("Warning: failed to auto-upvote clip for user %s: %v\n", submission.UserID, err)
+		}
+	}
+
+	return nil
 }
 
 // awardKarma awards karma points to a user
