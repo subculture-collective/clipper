@@ -17,10 +17,10 @@ import (
 
 // IndexRebuildService handles rebuilding search indices with zero-downtime swaps
 type IndexRebuildService struct {
-	db              *database.DB
-	osClient        *opensearch.Client
-	indexer         *SearchIndexerService
-	versionService  *IndexVersionService
+	db             *database.DB
+	osClient       *opensearch.Client
+	indexer        *SearchIndexerService
+	versionService *IndexVersionService
 }
 
 // RebuildConfig contains configuration for index rebuild

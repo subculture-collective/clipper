@@ -966,17 +966,17 @@ func (s *AdService) ValidateCreative(ctx context.Context, contentURL string, adT
 		}
 		// Standard banner sizes (IAB)
 		validSizes := map[string]bool{
-			"728x90":   true, // Leaderboard
-			"300x250":  true, // Medium Rectangle
-			"336x280":  true, // Large Rectangle
-			"300x600":  true, // Half Page
-			"970x250":  true, // Billboard
-			"320x50":   true, // Mobile Leaderboard
-			"160x600":  true, // Wide Skyscraper
-			"300x50":   true, // Mobile Banner
-			"970x90":   true, // Large Leaderboard
-			"250x250":  true, // Square
-			"200x200":  true, // Small Square
+			"728x90":  true, // Leaderboard
+			"300x250": true, // Medium Rectangle
+			"336x280": true, // Large Rectangle
+			"300x600": true, // Half Page
+			"970x250": true, // Billboard
+			"320x50":  true, // Mobile Leaderboard
+			"160x600": true, // Wide Skyscraper
+			"300x50":  true, // Mobile Banner
+			"970x90":  true, // Large Leaderboard
+			"250x250": true, // Square
+			"200x200": true, // Small Square
 		}
 		sizeKey := fmt.Sprintf("%dx%d", *width, *height)
 		if !validSizes[sizeKey] {

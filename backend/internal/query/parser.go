@@ -40,19 +40,19 @@ const (
 
 // Token represents a lexical token
 type Token struct {
-	Type    TokenType
-	Value   string
-	Line    int
-	Column  int
+	Type   TokenType
+	Value  string
+	Line   int
+	Column int
 }
 
 // Lexer tokenizes a query string
 type Lexer struct {
-	input   string
-	pos     int
-	line    int
-	col     int
-	tokens  []Token
+	input  string
+	pos    int
+	line   int
+	col    int
+	tokens []Token
 }
 
 // NewLexer creates a new lexer for the given input

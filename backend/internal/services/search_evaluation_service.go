@@ -19,19 +19,19 @@ type SearchEvaluationService struct {
 
 // EvaluationDataset represents the loaded evaluation dataset
 type EvaluationDataset struct {
-	Version             string                   `yaml:"version"`
-	Description         string                   `yaml:"description"`
-	EvaluationQueries   []EvaluationQuery        `yaml:"evaluation_queries"`
-	MetricTargets       map[string]MetricTarget  `yaml:"metric_targets"`
+	Version              string                  `yaml:"version"`
+	Description          string                  `yaml:"description"`
+	EvaluationQueries    []EvaluationQuery       `yaml:"evaluation_queries"`
+	MetricTargets        map[string]MetricTarget `yaml:"metric_targets"`
 	EvaluationGuidelines []string                `yaml:"evaluation_guidelines"`
 }
 
 // EvaluationQuery represents a single evaluation query with relevance judgments
 type EvaluationQuery struct {
-	ID                 string             `yaml:"id"`
-	Query              string             `yaml:"query"`
-	Description        string             `yaml:"description"`
-	RelevantDocuments  []RelevantDocument `yaml:"relevant_documents"`
+	ID                string             `yaml:"id"`
+	Query             string             `yaml:"query"`
+	Description       string             `yaml:"description"`
+	RelevantDocuments []RelevantDocument `yaml:"relevant_documents"`
 }
 
 // RelevantDocument represents a document with its relevance score
@@ -51,16 +51,16 @@ type MetricTarget struct {
 
 // EvaluationResult contains the results of a search evaluation
 type EvaluationResult struct {
-	QueryID          string             `json:"query_id"`
-	Query            string             `json:"query"`
-	NDCG5            float64            `json:"ndcg_at_5"`
-	NDCG10           float64            `json:"ndcg_at_10"`
-	MRR              float64            `json:"mrr"`
-	Precision5       float64            `json:"precision_at_5"`
-	Recall10         float64            `json:"recall_at_10"`
-	RetrievedResults int                `json:"retrieved_results"`
-	RelevantResults  int                `json:"relevant_results"`
-	QueryResults     []QueryResultItem  `json:"query_results,omitempty"`
+	QueryID          string            `json:"query_id"`
+	Query            string            `json:"query"`
+	NDCG5            float64           `json:"ndcg_at_5"`
+	NDCG10           float64           `json:"ndcg_at_10"`
+	MRR              float64           `json:"mrr"`
+	Precision5       float64           `json:"precision_at_5"`
+	Recall10         float64           `json:"recall_at_10"`
+	RetrievedResults int               `json:"retrieved_results"`
+	RelevantResults  int               `json:"relevant_results"`
+	QueryResults     []QueryResultItem `json:"query_results,omitempty"`
 }
 
 // QueryResultItem represents a single result with its relevance
@@ -83,10 +83,10 @@ type AggregateMetrics struct {
 
 // EvaluationReport contains the full evaluation report
 type EvaluationReport struct {
-	Metrics      AggregateMetrics   `json:"aggregate_metrics"`
-	QueryResults []EvaluationResult `json:"query_results"`
+	Metrics      AggregateMetrics        `json:"aggregate_metrics"`
+	QueryResults []EvaluationResult      `json:"query_results"`
 	Targets      map[string]MetricTarget `json:"targets,omitempty"`
-	Status       map[string]string  `json:"status,omitempty"` // "pass", "warning", "critical"
+	Status       map[string]string       `json:"status,omitempty"` // "pass", "warning", "critical"
 }
 
 // NewSearchEvaluationService creates a new search evaluation service

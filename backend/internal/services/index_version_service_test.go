@@ -56,66 +56,66 @@ func TestGetVersionedIndexName(t *testing.T) {
 
 func TestParseVersionFromIndexName(t *testing.T) {
 	tests := []struct {
-		name       string
-		baseIndex  string
-		indexName  string
-		expected   int
+		name        string
+		baseIndex   string
+		indexName   string
+		expected    int
 		shouldParse bool
 	}{
 		{
-			name:       "clips_v1",
-			baseIndex:  "clips",
-			indexName:  "clips_v1",
-			expected:   1,
+			name:        "clips_v1",
+			baseIndex:   "clips",
+			indexName:   "clips_v1",
+			expected:    1,
 			shouldParse: true,
 		},
 		{
-			name:       "clips_v10",
-			baseIndex:  "clips",
-			indexName:  "clips_v10",
-			expected:   10,
+			name:        "clips_v10",
+			baseIndex:   "clips",
+			indexName:   "clips_v10",
+			expected:    10,
 			shouldParse: true,
 		},
 		{
-			name:       "users_v5",
-			baseIndex:  "users",
-			indexName:  "users_v5",
-			expected:   5,
+			name:        "users_v5",
+			baseIndex:   "users",
+			indexName:   "users_v5",
+			expected:    5,
 			shouldParse: true,
 		},
 		{
-			name:       "non-versioned index",
-			baseIndex:  "clips",
-			indexName:  "clips",
-			expected:   0,
+			name:        "non-versioned index",
+			baseIndex:   "clips",
+			indexName:   "clips",
+			expected:    0,
 			shouldParse: false,
 		},
 		{
-			name:       "different base index",
-			baseIndex:  "clips",
-			indexName:  "users_v1",
-			expected:   0,
+			name:        "different base index",
+			baseIndex:   "clips",
+			indexName:   "users_v1",
+			expected:    0,
 			shouldParse: false,
 		},
 		{
-			name:       "malformed version",
-			baseIndex:  "clips",
-			indexName:  "clips_vABC",
-			expected:   0,
+			name:        "malformed version",
+			baseIndex:   "clips",
+			indexName:   "clips_vABC",
+			expected:    0,
 			shouldParse: false,
 		},
 		{
-			name:       "empty index name",
-			baseIndex:  "clips",
-			indexName:  "",
-			expected:   0,
+			name:        "empty index name",
+			baseIndex:   "clips",
+			indexName:   "",
+			expected:    0,
 			shouldParse: false,
 		},
 		{
-			name:       "clips_v0",
-			baseIndex:  "clips",
-			indexName:  "clips_v0",
-			expected:   0,
+			name:        "clips_v0",
+			baseIndex:   "clips",
+			indexName:   "clips_v0",
+			expected:    0,
 			shouldParse: true,
 		},
 	}

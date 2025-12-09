@@ -361,13 +361,13 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	// Trigger webhook for clip submission
 	if s.webhookService != nil {
 		webhookData := map[string]interface{}{
-			"submission_id":    submission.ID.String(),
-			"user_id":          submission.UserID.String(),
-			"twitch_clip_id":   submission.TwitchClipID,
-			"twitch_clip_url":  submission.TwitchClipURL,
-			"status":           submission.Status,
-			"is_nsfw":          submission.IsNSFW,
-			"created_at":       submission.CreatedAt,
+			"submission_id":   submission.ID.String(),
+			"user_id":         submission.UserID.String(),
+			"twitch_clip_id":  submission.TwitchClipID,
+			"twitch_clip_url": submission.TwitchClipURL,
+			"status":          submission.Status,
+			"is_nsfw":         submission.IsNSFW,
+			"created_at":      submission.CreatedAt,
 		}
 		if submission.CustomTitle != nil {
 			webhookData["custom_title"] = *submission.CustomTitle
@@ -402,12 +402,12 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		}
 
 		metadata := map[string]interface{}{
-			"submission_id":   submission.ID.String(),
-			"clip_id":         submission.TwitchClipID,
-			"clip_url":        submission.TwitchClipURL,
-			"status":          submission.Status,
-			"is_nsfw":         submission.IsNSFW,
-			"auto_approved":   submission.Status == "approved",
+			"submission_id": submission.ID.String(),
+			"clip_id":       submission.TwitchClipID,
+			"clip_url":      submission.TwitchClipURL,
+			"status":        submission.Status,
+			"is_nsfw":       submission.IsNSFW,
+			"auto_approved": submission.Status == "approved",
 		}
 
 		if submission.CustomTitle != nil {
@@ -803,24 +803,27 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	broadcasterNameFallback := utils.StringOrDefault(submission.BroadcasterName, &emptyStr)
 	broadcasterName := utils.StringOrDefault(submission.BroadcasterNameOverride, &broadcasterNameFallback)
 
+	now := time.Now()
 	clip := &models.Clip{
-		ID:              uuid.New(),
-		TwitchClipID:    submission.TwitchClipID,
-		TwitchClipURL:   submission.TwitchClipURL,
-		EmbedURL:        fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", submission.TwitchClipID),
-		Title:           title,
-		CreatorName:     creatorName,
-		CreatorID:       submission.CreatorID,
-		BroadcasterName: broadcasterName,
-		BroadcasterID:   submission.BroadcasterID,
-		GameID:          submission.GameID,
-		GameName:        submission.GameName,
-		ThumbnailURL:    submission.ThumbnailURL,
-		Duration:        submission.Duration,
-		ViewCount:       submission.ViewCount,
-		CreatedAt:       time.Now(),
-		ImportedAt:      time.Now(),
-		IsNSFW:          submission.IsNSFW,
+		ID:                uuid.New(),
+		TwitchClipID:      submission.TwitchClipID,
+		TwitchClipURL:     submission.TwitchClipURL,
+		EmbedURL:          fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", submission.TwitchClipID),
+		Title:             title,
+		CreatorName:       creatorName,
+		CreatorID:         submission.CreatorID,
+		BroadcasterName:   broadcasterName,
+		BroadcasterID:     submission.BroadcasterID,
+		GameID:            submission.GameID,
+		GameName:          submission.GameName,
+		ThumbnailURL:      submission.ThumbnailURL,
+		Duration:          submission.Duration,
+		ViewCount:         submission.ViewCount,
+		CreatedAt:         now,
+		ImportedAt:        now,
+		IsNSFW:            submission.IsNSFW,
+		SubmittedByUserID: &submission.UserID,
+		SubmittedAt:       &submission.CreatedAt, // Use submission creation time as when it was submitted
 	}
 
 	return s.clipRepo.Create(ctx, clip)
@@ -973,13 +976,13 @@ func (s *SubmissionService) RejectSubmission(ctx context.Context, submissionID, 
 	// Trigger webhook for rejection
 	if s.webhookService != nil {
 		webhookData := map[string]interface{}{
-			"submission_id":   submissionID.String(),
-			"user_id":         submission.UserID.String(),
-			"twitch_clip_id":  submission.TwitchClipID,
-			"twitch_clip_url": submission.TwitchClipURL,
-			"reviewer_id":     reviewerID.String(),
+			"submission_id":    submissionID.String(),
+			"user_id":          submission.UserID.String(),
+			"twitch_clip_id":   submission.TwitchClipID,
+			"twitch_clip_url":  submission.TwitchClipURL,
+			"reviewer_id":      reviewerID.String(),
 			"rejection_reason": reason,
-			"rejected_at":     time.Now(),
+			"rejected_at":      time.Now(),
 		}
 		if submission.CustomTitle != nil {
 			webhookData["custom_title"] = *submission.CustomTitle

@@ -75,10 +75,10 @@ func TestParseQuery_SimpleEquality(t *testing.T) {
 
 func TestParseQuery_Comparisons(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantOp   NodeType
-		wantErr  bool
+		name    string
+		input   string
+		wantOp  NodeType
+		wantErr bool
 	}{
 		{"greater than", "score > 50", NodeGreaterThan, false},
 		{"greater than or equal", "score >= 50", NodeGreaterThanOrEqual, false},

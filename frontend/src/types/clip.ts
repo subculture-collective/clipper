@@ -1,3 +1,10 @@
+export interface ClipSubmitter {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url?: string;
+}
+
 export interface Clip {
     id: string;
     twitch_clip_id: string;
@@ -29,6 +36,9 @@ export interface Clip {
     is_favorited?: boolean; // Backend returns is_favorited, not user_favorited
     upvote_count?: number;
     downvote_count?: number;
+    // Submitter attribution
+    submitted_by?: ClipSubmitter;
+    submitted_at?: string;
 }
 
 export interface ClipFeedResponse {
