@@ -30,8 +30,17 @@ export function formatTimestamp(date: Date | string): { display: string; title: 
   const now = new Date();
   const minutesDiff = differenceInMinutes(now, dateObj);
   
-  // For times within the last hour, show relative time
-  if (minutesDiff < 60) {
+  // If the date is in the future, show exact time
+  if (minutesDiff < 0) {
+    const timeDisplay = format(dateObj, 'h:mm a');
+    return {
+      display: timeDisplay,
+      title: format(dateObj, 'PPpp'),
+    };
+  }
+  
+  // For times within the last hour (including "1 hour ago"), show relative time
+  if (minutesDiff <= 60) {
     const relative = formatDistanceToNow(dateObj, { addSuffix: true });
     return {
       display: relative,
@@ -39,11 +48,28 @@ export function formatTimestamp(date: Date | string): { display: string; title: 
     };
   }
   
-  // For times after 1 hour, show exact time
-  const timeDisplay = format(dateObj, 'h:mm a'); // e.g., "3:42 PM"
+  // For times after 1 hour, show exact time with date context
+  const fullTitle = format(dateObj, 'PPpp');
+  const daysDiff = Math.floor(minutesDiff / (60 * 24));
+  
+  let timeDisplay: string;
+  if (daysDiff === 0) {
+    // Today: just show time
+    timeDisplay = format(dateObj, 'h:mm a'); // e.g., "3:42 PM"
+  } else if (daysDiff === 1) {
+    // Yesterday
+    timeDisplay = `Yesterday ${format(dateObj, 'h:mm a')}`;
+  } else if (daysDiff < 365) {
+    // This year: show date and time
+    timeDisplay = format(dateObj, 'MMM d, h:mm a'); // e.g., "Mar 15, 3:42 PM"
+  } else {
+    // Previous years: show full date
+    timeDisplay = format(dateObj, 'MMM d, yyyy'); // e.g., "Mar 15, 2024"
+  }
+  
   return {
     display: timeDisplay,
-    title: format(dateObj, 'PPpp'), // Full date and time
+    title: fullTitle,
   };
 }
 

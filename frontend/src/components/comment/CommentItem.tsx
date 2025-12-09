@@ -129,7 +129,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title={formatTimestamp(comment.created_at).title}
+            title={`${isCollapsed ? 'Expand' : 'Collapse'} thread (${formatTimestamp(comment.created_at).title})`}
           >
             {formatTimestamp(comment.created_at).display}
           </button>
