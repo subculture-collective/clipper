@@ -154,10 +154,6 @@ func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences
 		return prefs.NotifyVotes
 	case models.NotificationTypeFavoritedClipComment:
 		return prefs.NotifyFavoritedClipComment
-	case models.NotificationTypeSubmissionApproved:
-		return prefs.NotifySubmissionApproved
-	case models.NotificationTypeSubmissionRejected:
-		return prefs.NotifySubmissionRejected
 	case models.NotificationTypeContentTrending:
 		return prefs.NotifyContentTrending
 	case models.NotificationTypeContentFlagged:
@@ -180,10 +176,10 @@ func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences
 		models.NotificationTypeBan, models.NotificationTypeAppealDecision:
 		return prefs.NotifyModeration
 
-	// Creator-specific notification preferences
-	case models.NotificationTypeClipApproved:
+	// Creator-specific notification preferences (including clip submissions)
+	case models.NotificationTypeSubmissionApproved:
 		return prefs.NotifyClipApproved
-	case models.NotificationTypeClipRejected:
+	case models.NotificationTypeSubmissionRejected:
 		return prefs.NotifyClipRejected
 	case models.NotificationTypeClipComment:
 		return prefs.NotifyClipComments

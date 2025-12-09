@@ -52,8 +52,6 @@ export interface NotificationPreferences {
   // Content notifications
   notify_replies: boolean;
   notify_mentions: boolean;
-  notify_submission_approved: boolean;
-  notify_submission_rejected: boolean;
   notify_content_trending: boolean;
   notify_content_flagged: boolean;
   notify_votes: boolean;

@@ -212,20 +212,6 @@ export function NotificationPreferencesPage() {
 
               <div className="space-y-4">
                 <ToggleSwitch
-                  label="Submission Approved"
-                  description="When your content submission is approved"
-                  checked={formData.notify_submission_approved ?? true}
-                  onChange={() => handleToggle('notify_submission_approved')}
-                />
-
-                <ToggleSwitch
-                  label="Submission Rejected"
-                  description="When your content submission is rejected"
-                  checked={formData.notify_submission_rejected ?? true}
-                  onChange={() => handleToggle('notify_submission_rejected')}
-                />
-
-                <ToggleSwitch
                   label="Reply to My Comment"
                   description="When someone replies to your comment"
                   checked={formData.notify_replies ?? true}

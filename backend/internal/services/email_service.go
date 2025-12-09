@@ -238,10 +238,6 @@ func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferen
 		return prefs.NotifyReplies
 	case models.NotificationTypeMention:
 		return prefs.NotifyMentions
-	case models.NotificationTypeSubmissionApproved:
-		return prefs.NotifySubmissionApproved
-	case models.NotificationTypeSubmissionRejected:
-		return prefs.NotifySubmissionRejected
 	case models.NotificationTypeContentTrending:
 		return prefs.NotifyContentTrending
 	case models.NotificationTypeContentFlagged:
@@ -267,10 +263,10 @@ func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferen
 	case models.NotificationTypeContentRemoved, models.NotificationTypeWarning, models.NotificationTypeBan:
 		return prefs.NotifyModeration
 
-	// Creator notifications
-	case models.NotificationTypeClipApproved:
+	// Creator notifications (including clip submissions)
+	case models.NotificationTypeSubmissionApproved:
 		return prefs.NotifyClipApproved
-	case models.NotificationTypeClipRejected:
+	case models.NotificationTypeSubmissionRejected:
 		return prefs.NotifyClipRejected
 	case models.NotificationTypeClipComment:
 		return prefs.NotifyClipComments

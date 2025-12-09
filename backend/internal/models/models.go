@@ -592,9 +592,6 @@ const (
 	NotificationTypeUserFollowed     = "user_followed"
 	NotificationTypeCommentOnContent = "comment_on_content"
 	NotificationTypeDiscussionReply  = "discussion_reply"
-	// Creator notification types (additional)
-	NotificationTypeClipApproved = "clip_approved"
-	NotificationTypeClipRejected = "clip_rejected"
 	// Global/Marketing notification types
 	NotificationTypeMarketing            = "marketing"
 	NotificationTypePolicyUpdate         = "policy_update"
