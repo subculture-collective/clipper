@@ -52,8 +52,12 @@ export function TwitchEmbed({
   // Store volume preference when user changes it
   useEffect(() => {
     if (typeof window !== 'undefined' && hasSetPreference) {
-      // Store as 'true' if muted, 'false' if unmuted
-      localStorage.setItem(VOLUME_PREF_KEY, (!userPrefersUnmuted).toString());
+      const newValue = (!userPrefersUnmuted).toString();
+      const currentValue = localStorage.getItem(VOLUME_PREF_KEY);
+      // Only write if value actually changed
+      if (currentValue !== newValue) {
+        localStorage.setItem(VOLUME_PREF_KEY, newValue);
+      }
     }
   }, [userPrefersUnmuted, hasSetPreference]);
 
