@@ -51,6 +51,7 @@ export function formatTimestamp(date: Date | string): { display: string; title: 
   // For times after 1 hour, show exact time with date context
   const fullTitle = format(dateObj, 'PPpp');
   const daysDiff = Math.floor(minutesDiff / (60 * 24));
+  const yearsDiff = now.getFullYear() - dateObj.getFullYear();
   
   let timeDisplay: string;
   if (daysDiff === 0) {
@@ -59,7 +60,7 @@ export function formatTimestamp(date: Date | string): { display: string; title: 
   } else if (daysDiff === 1) {
     // Yesterday
     timeDisplay = `Yesterday ${format(dateObj, 'h:mm a')}`;
-  } else if (daysDiff < 365) {
+  } else if (yearsDiff === 0) {
     // This year: show date and time
     timeDisplay = format(dateObj, 'MMM d, h:mm a'); // e.g., "Mar 15, 3:42 PM"
   } else {

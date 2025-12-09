@@ -77,7 +77,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         )}
                         aria-label={isAuthenticated ? 'Upvote' : 'Log in to upvote'}
                         aria-disabled={!isAuthenticated}
-                        title={isAuthenticated ? `Upvote (${formatNumber(clip.vote_score)})` : 'Log in to vote'}
+                        title={isAuthenticated ? 'Upvote' : 'Log in to vote'}
                     >
                         <svg
                             className='w-6 h-6'
@@ -107,7 +107,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         )}
                         aria-label={isAuthenticated ? 'Downvote' : 'Log in to downvote'}
                         aria-disabled={!isAuthenticated}
-                        title={isAuthenticated ? `Downvote (${formatNumber(clip.vote_score)})` : 'Log in to vote'}
+                        title={isAuthenticated ? 'Downvote' : 'Log in to vote'}
                     >
                         <svg
                             className='w-6 h-6'
