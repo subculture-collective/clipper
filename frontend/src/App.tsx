@@ -18,7 +18,7 @@ const RisingFeedPage = lazy(() => import('./pages/RisingFeedPage').then(m => ({ 
 const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
 const ClipDetailPage = lazy(() => import('./pages/ClipDetailPage').then(m => ({ default: m.ClipDetailPage })));
 const GamePage = lazy(() => import('./pages/GamePage').then(m => ({ default: m.GamePage })));
-const CreatorPage = lazy(() => import('./pages/CreatorPage').then(m => ({ default: m.CreatorPage })));
+const BroadcasterPage = lazy(() => import('./pages/BroadcasterPage').then(m => ({ default: m.BroadcasterPage })));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
 const TagPage = lazy(() => import('./pages/TagPage').then(m => ({ default: m.TagPage })));
 const SearchPage = lazy(() => import('./pages/SearchPage').then(m => ({ default: m.SearchPage })));
@@ -85,7 +85,7 @@ function App() {
                     <Route path="/rising" element={<RisingFeedPage />} />
                     <Route path="/clip/:id" element={<ClipDetailPage />} />
                     <Route path="/game/:gameId" element={<GamePage />} />
-                    <Route path="/creator/:creatorId" element={<CreatorPage />} />
+                    <Route path="/broadcaster/:broadcasterId" element={<BroadcasterPage />} />
                     <Route path="/creator/:creatorName/analytics" element={<CreatorAnalyticsPage />} />
                     <Route path="/user/:username" element={<UserProfilePage />} />
                     <Route path="/tag/:tagSlug" element={<TagPage />} />

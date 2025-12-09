@@ -6,7 +6,7 @@ export { RisingFeedPage } from './RisingFeedPage';
 export { DiscoveryPage } from './DiscoveryPage';
 export { ClipDetailPage } from './ClipDetailPage';
 export { GamePage } from './GamePage';
-export { CreatorPage } from './CreatorPage';
+export { BroadcasterPage } from './BroadcasterPage';
 export { TagPage } from './TagPage';
 export { SearchPage } from './SearchPage';
 export { AboutPage } from './AboutPage';
