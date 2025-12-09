@@ -8,15 +8,9 @@ import type {
 } from '@/types/clip';
 
 /**
- * Fetch clips with pagination and filters
+ * Helper function to build clip query parameters from filters
  */
-export async function fetchClips({
-  pageParam = 1,
-  filters,
-}: {
-  pageParam?: number;
-  filters?: ClipFeedFilters;
-}): Promise<ClipFeedResponse> {
+function buildClipParams(pageParam: number, filters?: ClipFeedFilters): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {
     page: pageParam,
     limit: 10,
@@ -36,6 +30,21 @@ export async function fetchClips({
     }
   }
 
+  return params;
+}
+
+/**
+ * Fetch clips with pagination and filters
+ */
+export async function fetchClips({
+  pageParam = 1,
+  filters,
+}: {
+  pageParam?: number;
+  filters?: ClipFeedFilters;
+}): Promise<ClipFeedResponse> {
+  const params = buildClipParams(pageParam, filters);
+
   const response = await apiClient.get<{
     success: boolean;
     data: Clip[];
@@ -48,6 +57,40 @@ export async function fetchClips({
       has_prev: boolean;
     };
   }>('/clips', { params });
+
+  return {
+    clips: response.data.data,
+    total: response.data.meta.total,
+    page: response.data.meta.page,
+    limit: response.data.meta.limit,
+    has_more: response.data.meta.has_next,
+  };
+}
+
+/**
+ * Fetch scraped clips (not yet submitted by users) with pagination and filters
+ */
+export async function fetchScrapedClips({
+  pageParam = 1,
+  filters,
+}: {
+  pageParam?: number;
+  filters?: ClipFeedFilters;
+}): Promise<ClipFeedResponse> {
+  const params = buildClipParams(pageParam, filters);
+
+  const response = await apiClient.get<{
+    success: boolean;
+    data: Clip[];
+    meta: {
+      page: number;
+      limit: number;
+      total: number;
+      total_pages: number;
+      has_next: boolean;
+      has_prev: boolean;
+    };
+  }>('/scraped-clips', { params });
 
   return {
     clips: response.data.data,

@@ -26,6 +26,19 @@ export const useClipFeed = (filters?: ClipFeedFilters) => {
     });
 };
 
+// Hook for infinite scrolling scraped clips feed
+export const useScrapedClipsFeed = (filters?: ClipFeedFilters) => {
+    return useInfiniteQuery({
+        queryKey: ['scraped-clips', filters],
+        queryFn: ({ pageParam = 1 }) =>
+            clipApi.fetchScrapedClips({ pageParam, filters }),
+        getNextPageParam: (lastPage) => {
+            return lastPage.has_more ? lastPage.page + 1 : undefined;
+        },
+        initialPageParam: 1,
+    });
+};
+
 // Hook for infinite scrolling favorites feed
 export const useFavoritesFeed = (sort: 'newest' | 'top' | 'discussed' = 'newest') => {
     return useInfiniteQuery({
