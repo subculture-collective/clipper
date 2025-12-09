@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS email_logs (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     template VARCHAR(100),
     recipient VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL,  -- sent, delivered, bounce, dropped, open, click, spam_report, unsubscribe
+    status VARCHAR(50) NOT NULL,  -- delivered, processed, bounce, dropped, open, click, spam_report, unsubscribe, deferred
     event_type VARCHAR(50) NOT NULL, -- SendGrid event type
     sendgrid_message_id VARCHAR(255), -- SendGrid message ID for tracking
     sendgrid_event_id VARCHAR(255), -- SendGrid event ID (unique per event)

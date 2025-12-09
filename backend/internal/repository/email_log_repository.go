@@ -209,7 +209,7 @@ func (r *EmailLogRepository) GetRecentBounces(ctx context.Context, limit int) ([
 func (r *EmailLogRepository) GetMetricsForPeriod(ctx context.Context, startTime, endTime time.Time, template *string) (*models.EmailMetricsSummary, error) {
 	query := `
 		SELECT
-			COUNT(*) FILTER (WHERE status = 'sent' OR status = 'delivered' OR status = 'processed') as total_sent,
+			COUNT(*) FILTER (WHERE status = 'delivered' OR status = 'processed') as total_sent,
 			COUNT(*) FILTER (WHERE status = 'delivered') as total_delivered,
 			COUNT(*) FILTER (WHERE status = 'bounce') as total_bounced,
 			COUNT(*) FILTER (WHERE status = 'bounce' AND bounce_type = 'hard') as total_hard_bounced,
@@ -300,7 +300,7 @@ func (r *EmailLogRepository) GetMetricsByTemplate(ctx context.Context, startTime
 	query := `
 		SELECT
 			template,
-			COUNT(*) FILTER (WHERE status = 'sent' OR status = 'delivered' OR status = 'processed') as total_sent,
+			COUNT(*) FILTER (WHERE status = 'delivered' OR status = 'processed') as total_sent,
 			COUNT(*) FILTER (WHERE status = 'delivered') as total_delivered,
 			COUNT(*) FILTER (WHERE status = 'bounce') as total_bounced,
 			COUNT(*) FILTER (WHERE status = 'open' OR opened_at IS NOT NULL) as total_opened,

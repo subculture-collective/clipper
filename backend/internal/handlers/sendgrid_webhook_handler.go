@@ -206,8 +206,10 @@ func (h *SendGridWebhookHandler) mapEventToStatus(eventType string) string {
 func (h *SendGridWebhookHandler) setEventSpecificFields(log *models.EmailLog, event *models.SendGridWebhookEvent, eventTime time.Time) {
 	switch event.Event {
 	case "processed":
+		// 'processed' is when SendGrid has received and validated the message
 		log.SentAt = &eventTime
 	case "delivered":
+		// 'delivered' is when the message was successfully delivered to the receiving server
 		log.DeliveredAt = &eventTime
 	case "bounce":
 		log.BouncedAt = &eventTime
@@ -282,16 +284,33 @@ func (h *SendGridWebhookHandler) updateExistingLog(log *models.EmailLog, event *
 
 // verifySignature verifies the SendGrid webhook signature
 func (h *SendGridWebhookHandler) verifySignature(payload []byte, signature, timestamp string) error {
-	// This is a simplified signature verification
-	// In production, implement proper ECDSA signature verification using SendGrid's public key
-	// For now, we'll just check that the signature exists
+	// SECURITY WARNING: This is a placeholder implementation that does NOT provide real security.
+	// Before using this webhook endpoint in production, you MUST implement proper ECDSA signature verification.
+	//
+	// The current implementation only checks for signature presence but does not verify its authenticity,
+	// making the endpoint vulnerable to spoofed webhook requests.
+	//
+	// To implement proper verification:
+	// 1. Parse the ECDSA public key from h.publicKey (already configured)
+	// 2. Construct the signed payload: timestamp + payload
+	// 3. Decode the base64-encoded signature
+	// 4. Verify the signature using crypto/ecdsa.Verify()
+	//
+	// Reference: https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security-features
+
 	if signature == "" {
 		return fmt.Errorf("empty signature")
 	}
 
-	// TODO: Implement proper ECDSA signature verification
-	// The signature verification would follow SendGrid's documentation:
-	// https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security-features
+	// TODO: Implement ECDSA signature verification before production use
+	// Example implementation:
+	// signedPayload := timestamp + string(payload)
+	// hash := sha256.Sum256([]byte(signedPayload))
+	// sigBytes, _ := base64.StdEncoding.DecodeString(signature)
+	// r, s := parseSignature(sigBytes)
+	// if !ecdsa.Verify(h.publicKey, hash[:], r, s) {
+	//     return fmt.Errorf("invalid signature")
+	// }
 
 	return nil
 }

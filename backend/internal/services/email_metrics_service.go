@@ -238,9 +238,14 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 		}
 	}
 
-	// Check unsubscribe spike (compare with previous day)
-	if yesterdayMetrics != nil && yesterdayMetrics.TotalUnsubscribes > 0 {
-		increasePercent := float64(hourlyMetrics.TotalUnsubscribes-yesterdayMetrics.TotalUnsubscribes) / float64(yesterdayMetrics.TotalUnsubscribes) * 100
+	// Check unsubscribe spike (compare current hour with same hour yesterday)
+	// Get metrics for the same hour window yesterday
+	prevHourStart := hourStart.AddDate(0, 0, -1)
+	prevHourEnd := hourEnd.AddDate(0, 0, -1)
+	prevHourMetrics, err := s.emailLogRepo.GetMetricsForPeriod(ctx, prevHourStart, prevHourEnd, nil)
+	if err == nil && prevHourMetrics.TotalUnsubscribes > 0 {
+		// Calculate increase percentage, safe from division by zero due to check above
+		increasePercent := float64(hourlyMetrics.TotalUnsubscribes-prevHourMetrics.TotalUnsubscribes) / float64(prevHourMetrics.TotalUnsubscribes) * 100
 		if increasePercent >= thresholds.UnsubscribeSpike {
 			alert := models.EmailAlert{
 				AlertType:      models.EmailAlertTypeUnsubscribeSpike,
@@ -250,7 +255,7 @@ func (s *EmailMetricsService) CheckAlerts(ctx context.Context, thresholds *Alert
 				ThresholdValue: &thresholds.UnsubscribeSpike,
 				PeriodStart:    hourStart,
 				PeriodEnd:      hourEnd,
-				Message:        fmt.Sprintf("WARNING: Unsubscribe rate spiked %.2f%% compared to yesterday (threshold: %.2f%%)", increasePercent, thresholds.UnsubscribeSpike),
+				Message:        fmt.Sprintf("WARNING: Unsubscribe rate spiked %.2f%% compared to same hour yesterday (threshold: %.2f%%)", increasePercent, thresholds.UnsubscribeSpike),
 			}
 			alerts = append(alerts, alert)
 			if err := s.emailLogRepo.CreateAlert(ctx, &alert); err != nil {
