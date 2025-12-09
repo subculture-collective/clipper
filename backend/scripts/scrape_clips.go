@@ -33,12 +33,12 @@ type ScraperStats struct {
 
 // ScraperConfig holds scraping configuration
 type ScraperConfig struct {
-	DryRun         bool
-	BatchSize      int
-	MaxAgeDays     int
-	MinViews       int
-	Broadcasters   []string
-	LookbackDays   int
+	DryRun       bool
+	BatchSize    int
+	MaxAgeDays   int
+	MinViews     int
+	Broadcasters []string
+	LookbackDays int
 }
 
 func main() {
