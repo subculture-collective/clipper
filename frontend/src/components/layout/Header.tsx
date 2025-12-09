@@ -109,6 +109,14 @@ export function Header() {
                                 {t('nav.rising')}
                             </Button>
                         </Link>
+                        <Link to='/discover/scraped'>
+                            <Button
+                                variant='ghost'
+                                size='sm'
+                            >
+                                🔍 Discover
+                            </Button>
+                        </Link>
                         <Link to='/leaderboards'>
                             <Button
                                 variant='ghost'
@@ -281,6 +289,18 @@ export function Header() {
                                     className='w-full justify-start'
                                 >
                                     {t('nav.rising')}
+                                </Button>
+                            </Link>
+                            <Link
+                                to='/discover/scraped'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='w-full justify-start'
+                                >
+                                    🔍 Discover
                                 </Button>
                             </Link>
                         </nav>
