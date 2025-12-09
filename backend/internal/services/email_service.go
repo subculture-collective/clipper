@@ -69,7 +69,7 @@ func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationReposit
 	}
 
 	logger := utils.GetLogger()
-	
+
 	// Log sandbox mode status
 	if cfg.SandboxMode {
 		logger.Info("Email service initialized in SANDBOX MODE - emails will be logged but not sent")
@@ -259,14 +259,14 @@ func (s *EmailService) sendViaSendGrid(to, subject, htmlContent, textContent str
 	if ids, ok := response.Headers["X-Message-Id"]; ok && len(ids) > 0 {
 		messageID = ids[0]
 	}
-	
+
 	// Log successful send
 	s.logger.Info("Email sent successfully via SendGrid", map[string]interface{}{
 		"to":         to,
 		"subject":    subject,
 		"message_id": messageID,
 	})
-	
+
 	return messageID, nil
 }
 
