@@ -237,7 +237,7 @@ Trust Score = (0.83 + 0.20 + 2.2 + 0) × 1 = 3.23 ≈ 3 points
 ```
 Account Age: MIN(180 / 18, 20) = 10 points
 Karma: MIN(2500 / 250, 40) = 10 points
-Activity: MIN((150/10) + (800/100) + (90/5), 20) = MIN(33, 20) = 20 points (capped)
+Activity: MIN((150/10) + (800/100) + (90/5), 20) = MIN(41, 20) = 20 points (capped)
 Report Accuracy: 20 × (12 / 15) = 20 × 0.80 = 16 points
 Ban Penalty: ×1 (not banned)
 
