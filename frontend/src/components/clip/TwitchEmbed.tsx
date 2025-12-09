@@ -20,6 +20,13 @@ export function TwitchEmbed({
 }: TwitchEmbedProps) {
   const [isLoaded, setIsLoaded] = useState(autoplay);
   const [hasError, setHasError] = useState(false);
+  const [hasSetPreference, setHasSetPreference] = useState(() => {
+    // Check if user has ever set a preference
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(VOLUME_PREF_KEY) !== null;
+    }
+    return false;
+  });
   const [userPrefersUnmuted, setUserPrefersUnmuted] = useState(() => {
     // Check localStorage for user's volume preference
     // Default to false (start muted first time for compatibility)
@@ -44,11 +51,11 @@ export function TwitchEmbed({
 
   // Store volume preference when user changes it
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && hasSetPreference) {
       // Store as 'true' if muted, 'false' if unmuted
       localStorage.setItem(VOLUME_PREF_KEY, (!userPrefersUnmuted).toString());
     }
-  }, [userPrefersUnmuted]);
+  }, [userPrefersUnmuted, hasSetPreference]);
 
   const handleLoadClick = () => {
     setIsLoaded(true);
@@ -56,6 +63,7 @@ export function TwitchEmbed({
 
   const handleUnmutePreference = () => {
     setUserPrefersUnmuted(true);
+    setHasSetPreference(true);
   };
 
   const handleError = () => {
@@ -140,8 +148,8 @@ export function TwitchEmbed({
         allow="autoplay; fullscreen"
       />
       
-      {/* Muted indicator - shown when video is muted and user hasn't set unmute preference */}
-      {embedMuted && !userPrefersUnmuted && (
+      {/* Muted indicator - shown when video is muted and user hasn't set a preference yet */}
+      {embedMuted && !hasSetPreference && (
         <div 
           className="absolute top-3 left-3 bg-black/70 hover:bg-black/90 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors z-10"
           onClick={handleUnmutePreference}

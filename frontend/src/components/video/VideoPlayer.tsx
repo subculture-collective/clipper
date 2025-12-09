@@ -20,6 +20,13 @@ export function VideoPlayer({
   const { share } = useShare();
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hasSetPreference, setHasSetPreference] = useState(() => {
+    // Check if user has ever set a preference
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(VOLUME_PREF_KEY) !== null;
+    }
+    return false;
+  });
   const [userPrefersUnmuted, setUserPrefersUnmuted] = useState(() => {
     // Check localStorage for user's volume preference
     if (typeof window !== 'undefined') {
@@ -89,13 +96,14 @@ export function VideoPlayer({
 
   // Store volume preference when user changes it
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && hasSetPreference) {
       localStorage.setItem(VOLUME_PREF_KEY, (!userPrefersUnmuted).toString());
     }
-  }, [userPrefersUnmuted]);
+  }, [userPrefersUnmuted, hasSetPreference]);
 
   const handleUnmutePreference = useCallback(() => {
     setUserPrefersUnmuted(true);
+    setHasSetPreference(true);
   }, []);
 
   // Get parent domain for Twitch embed
@@ -180,8 +188,8 @@ export function VideoPlayer({
         </div>
       </div>
 
-      {/* Muted indicator - shown when video is muted and user hasn't set unmute preference */}
-      {embedMuted && !userPrefersUnmuted && (
+      {/* Muted indicator - shown when video is muted and user hasn't set a preference yet */}
+      {embedMuted && !hasSetPreference && (
         <div 
           className="absolute top-16 md:top-20 left-4 bg-black/70 hover:bg-black/90 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 cursor-pointer transition-colors z-10 pointer-events-auto"
           onClick={handleUnmutePreference}
