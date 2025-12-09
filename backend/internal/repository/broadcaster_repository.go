@@ -120,19 +120,20 @@ func (r *BroadcasterRepository) GetBroadcasterByName(ctx context.Context, broadc
 // GetBroadcasterByID returns broadcaster info from clips
 func (r *BroadcasterRepository) GetBroadcasterByID(ctx context.Context, broadcasterID string) (broadcasterName, displayName string, err error) {
 	query := `
-		SELECT broadcaster_name, broadcaster_name
+		SELECT broadcaster_name
 		FROM clips
 		WHERE broadcaster_id = $1
 		LIMIT 1
 	`
-	err = r.pool.QueryRow(ctx, query, broadcasterID).Scan(&broadcasterName, &displayName)
+	err = r.pool.QueryRow(ctx, query, broadcasterID).Scan(&broadcasterName)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", "", sql.ErrNoRows
 		}
 		return "", "", fmt.Errorf("failed to get broadcaster by id: %w", err)
 	}
-	return broadcasterName, displayName, nil
+	// Display name will be fetched from Twitch API in the handler
+	return broadcasterName, broadcasterName, nil
 }
 
 // ListUserFollows returns all broadcasters a user is following

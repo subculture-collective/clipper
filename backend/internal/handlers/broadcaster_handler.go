@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -112,6 +113,7 @@ func (h *BroadcasterHandler) GetBroadcasterProfile(c *gin.Context) {
 		TotalViews:      totalViews,
 		AvgVoteScore:    avgVoteScore,
 		IsFollowing:     isFollowing,
+		UpdatedAt:       time.Now(),
 	}
 
 	c.JSON(http.StatusOK, profile)
