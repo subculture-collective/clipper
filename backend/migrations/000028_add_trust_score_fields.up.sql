@@ -65,6 +65,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Update existing users to have initial trust scores
+-- Note: This uses the existing calculate_trust_score() function from migration 000005
+-- The TrustScoreService in the application layer provides more detailed breakdowns
+-- but uses the same core calculation logic for consistency
 UPDATE users 
 SET trust_score = calculate_trust_score(id),
     trust_score_updated_at = NOW()

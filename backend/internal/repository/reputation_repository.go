@@ -478,15 +478,25 @@ func (r *ReputationRepository) CalculateTrustScoreBreakdown(ctx context.Context,
 
 	// Calculate component scores (matching database function logic)
 	// Account age contribution (max 20 points)
-	breakdown.AccountAgeScore = min(accountAgeDays/18, 20)
+	// Database uses: accountAgeDays / 18, we use proportional calculation
+	if accountAgeDays >= 365 {
+		breakdown.AccountAgeScore = 20
+	} else {
+		breakdown.AccountAgeScore = (accountAgeDays * 20) / 365
+	}
 
 	// Karma contribution (max 40 points)
-	breakdown.KarmaScore = min(karmaPoints/250, 40)
+	// Database uses: karma / 250, we use proportional calculation  
+	if karmaPoints >= 10000 {
+		breakdown.KarmaScore = 40
+	} else {
+		breakdown.KarmaScore = (karmaPoints * 40) / 10000
+	}
 
 	// Report accuracy contribution (max 20 points)
 	totalReports := correctReports + incorrectReports
 	if totalReports > 0 {
-		breakdown.ReportAccuracy = (20 * correctReports) / totalReports
+		breakdown.ReportAccuracy = int((20.0 * float64(correctReports)) / float64(totalReports))
 	} else {
 		breakdown.ReportAccuracy = 0
 	}
@@ -619,6 +629,7 @@ func (r *ReputationRepository) GetTrustScoreLeaderboard(ctx context.Context, lim
 	for rows.Next() {
 		var entry models.LeaderboardEntry
 		var trustScore int
+		var karmaPoints int
 
 		err := rows.Scan(
 			&entry.UserID,
@@ -626,14 +637,14 @@ func (r *ReputationRepository) GetTrustScoreLeaderboard(ctx context.Context, lim
 			&entry.DisplayName,
 			&entry.AvatarURL,
 			&trustScore,
-			&entry.Score, // Using karma_points as secondary score
+			&karmaPoints,
 			&entry.UserRank,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leaderboard entry: %w", err)
 		}
 		entry.Rank = rank
-		entry.Score = trustScore // Override score with trust score
+		entry.Score = trustScore // Use trust score as the primary score
 		rank++
 		entries = append(entries, entry)
 	}
