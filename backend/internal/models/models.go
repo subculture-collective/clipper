@@ -8,21 +8,23 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID             uuid.UUID  `json:"id" db:"id"`
-	TwitchID       string     `json:"twitch_id" db:"twitch_id"`
-	Username       string     `json:"username" db:"username"`
-	DisplayName    string     `json:"display_name" db:"display_name"`
-	Email          *string    `json:"email,omitempty" db:"email"`
-	AvatarURL      *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio            *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints    int        `json:"karma_points" db:"karma_points"`
-	Role           string     `json:"role" db:"role"`
-	IsBanned       bool       `json:"is_banned" db:"is_banned"`
-	DeviceToken    *string    `json:"device_token,omitempty" db:"device_token"`
-	DevicePlatform *string    `json:"device_platform,omitempty" db:"device_platform"`
-	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt    *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	TwitchID             string     `json:"twitch_id" db:"twitch_id"`
+	Username             string     `json:"username" db:"username"`
+	DisplayName          string     `json:"display_name" db:"display_name"`
+	Email                *string    `json:"email,omitempty" db:"email"`
+	AvatarURL            *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio                  *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints          int        `json:"karma_points" db:"karma_points"`
+	TrustScore           int        `json:"trust_score" db:"trust_score"`
+	TrustScoreUpdatedAt  *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
+	Role                 string     `json:"role" db:"role"`
+	IsBanned             bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken          *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt          *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -1333,4 +1335,62 @@ func GetSupportedWebhookEvents() []string {
 		WebhookEventClipApproved,
 		WebhookEventClipRejected,
 	}
+}
+
+// TrustScoreHistory represents a trust score change audit log entry
+type TrustScoreHistory struct {
+	ID              uuid.UUID              `json:"id" db:"id"`
+	UserID          uuid.UUID              `json:"user_id" db:"user_id"`
+	OldScore        int                    `json:"old_score" db:"old_score"`
+	NewScore        int                    `json:"new_score" db:"new_score"`
+	ChangeReason    string                 `json:"change_reason" db:"change_reason"`
+	ComponentScores map[string]interface{} `json:"component_scores,omitempty" db:"component_scores"`
+	ChangedBy       *uuid.UUID             `json:"changed_by,omitempty" db:"changed_by"`
+	Notes           *string                `json:"notes,omitempty" db:"notes"`
+	CreatedAt       time.Time              `json:"created_at" db:"created_at"`
+}
+
+// TrustScoreHistoryWithUser includes user and admin information
+type TrustScoreHistoryWithUser struct {
+	TrustScoreHistory
+	User      *User `json:"user,omitempty"`
+	ChangedBy *User `json:"changed_by_user,omitempty"`
+}
+
+// TrustScoreBreakdown represents the detailed breakdown of a trust score calculation
+type TrustScoreBreakdown struct {
+	TotalScore       int     `json:"total_score"`
+	AccountAgeScore  int     `json:"account_age_score"`
+	KarmaScore       int     `json:"karma_score"`
+	ReportAccuracy   int     `json:"report_accuracy_score"`
+	ActivityScore    int     `json:"activity_score"`
+	MaxScore         int     `json:"max_score"`
+	AccountAgeDays   int     `json:"account_age_days"`
+	KarmaPoints      int     `json:"karma_points"`
+	CorrectReports   int     `json:"correct_reports"`
+	IncorrectReports int     `json:"incorrect_reports"`
+	TotalComments    int     `json:"total_comments"`
+	TotalVotes       int     `json:"total_votes"`
+	DaysActive       int     `json:"days_active"`
+	IsBanned         bool    `json:"is_banned"`
+	BanPenalty       float64 `json:"ban_penalty,omitempty"`
+}
+
+// TrustScoreChangeReason constants for common change reasons
+const (
+	TrustScoreReasonScheduledRecalc    = "scheduled_recalc"
+	TrustScoreReasonSubmissionApproved = "submission_approved"
+	TrustScoreReasonSubmissionRejected = "submission_rejected"
+	TrustScoreReasonReportActioned     = "report_actioned"
+	TrustScoreReasonManualAdjustment   = "manual_adjustment"
+	TrustScoreReasonNewActivity        = "new_activity"
+	TrustScoreReasonBanned             = "banned"
+	TrustScoreReasonUnbanned           = "unbanned"
+)
+
+// ManualTrustScoreAdjustment represents a request to manually adjust a user's trust score
+type ManualTrustScoreAdjustment struct {
+	NewScore int     `json:"new_score" binding:"required,min=0,max=100"`
+	Reason   string  `json:"reason" binding:"required,min=3,max=100"`
+	Notes    *string `json:"notes,omitempty" binding:"omitempty,max=1000"`
 }
