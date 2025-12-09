@@ -142,6 +142,7 @@ func main() {
 	revenueRepo := repository.NewRevenueRepository(db.Pool)
 	adRepo := repository.NewAdRepository(db.Pool)
 	exportRepo := repository.NewExportRepository(db.Pool)
+	broadcasterRepo := repository.NewBroadcasterRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -279,6 +280,7 @@ func main() {
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
 	webhookSubscriptionHandler := handlers.NewWebhookSubscriptionHandler(outboundWebhookService)
 	configHandler := handlers.NewConfigHandler(cfg)
+	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -632,6 +634,20 @@ func main() {
 			creators.GET("/me/exports", middleware.AuthMiddleware(authService), exportHandler.ListExportRequests)
 			creators.GET("/me/export/status/:id", middleware.AuthMiddleware(authService), exportHandler.GetExportStatus)
 			creators.GET("/me/export/download/:id", middleware.AuthMiddleware(authService), exportHandler.DownloadExport)
+		}
+
+		// Broadcaster routes
+		broadcasters := v1.Group("/broadcasters")
+		{
+			// Public broadcaster profile endpoint (with optional auth for follow status)
+			broadcasters.GET("/:id", middleware.OptionalAuthMiddleware(authService), broadcasterHandler.GetBroadcasterProfile)
+
+			// Public broadcaster clips endpoint
+			broadcasters.GET("/:id/clips", broadcasterHandler.ListBroadcasterClips)
+
+			// Protected broadcaster endpoints (require authentication)
+			broadcasters.POST("/:id/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), broadcasterHandler.FollowBroadcaster)
+			broadcasters.DELETE("/:id/follow", middleware.AuthMiddleware(authService), broadcasterHandler.UnfollowBroadcaster)
 		}
 
 		// Leaderboard routes

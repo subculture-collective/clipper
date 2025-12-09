@@ -1535,3 +1535,28 @@ type ManualTrustScoreAdjustment struct {
 	Reason   string  `json:"reason" binding:"required,min=3,max=100"`
 	Notes    *string `json:"notes,omitempty" binding:"omitempty,max=1000"`
 }
+
+// BroadcasterFollow represents a user following a broadcaster
+type BroadcasterFollow struct {
+	ID              uuid.UUID `json:"id" db:"id"`
+	UserID          uuid.UUID `json:"user_id" db:"user_id"`
+	BroadcasterID   string    `json:"broadcaster_id" db:"broadcaster_id"`
+	BroadcasterName string    `json:"broadcaster_name" db:"broadcaster_name"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+}
+
+// BroadcasterProfile represents a broadcaster's profile information
+type BroadcasterProfile struct {
+	BroadcasterID   string    `json:"broadcaster_id"`
+	BroadcasterName string    `json:"broadcaster_name"`
+	DisplayName     string    `json:"display_name"`
+	AvatarURL       *string   `json:"avatar_url,omitempty"`
+	Bio             *string   `json:"bio,omitempty"`
+	TwitchURL       string    `json:"twitch_url"`
+	TotalClips      int       `json:"total_clips"`
+	FollowerCount   int       `json:"follower_count"`
+	TotalViews      int64     `json:"total_views"`
+	AvgVoteScore    float64   `json:"avg_vote_score"`
+	IsFollowing     bool      `json:"is_following"` // Whether the current user is following
+	UpdatedAt       time.Time `json:"updated_at"`
+}
