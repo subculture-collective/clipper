@@ -336,80 +336,80 @@ func TestFormatNumber(t *testing.T) {
 
 // TestNotificationMilestoneDetection tests that milestones are correctly identified
 func TestNotificationMilestoneDetection(t *testing.T) {
-// Test vote milestones
-voteMilestones := []int{10, 25, 50, 100, 250, 500, 1000}
-notMilestones := []int{9, 11, 24, 26, 49, 51, 99, 101, 249, 251, 499, 501, 999, 1001}
+	// Test vote milestones
+	voteMilestones := []int{10, 25, 50, 100, 250, 500, 1000}
+	notMilestones := []int{9, 11, 24, 26, 49, 51, 99, 101, 249, 251, 499, 501, 999, 1001}
 
-t.Run("vote_milestones", func(t *testing.T) {
-for _, score := range voteMilestones {
-t.Run(fmt.Sprintf("score_%d_is_milestone", score), func(t *testing.T) {
-// This would be detected as a milestone in NotifyClipVoteThreshold
-isMilestone := false
-for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
-if score == m {
-isMilestone = true
-break
-}
-}
-if !isMilestone {
-t.Errorf("Score %d should be recognized as a milestone", score)
-}
-})
-}
-})
+	t.Run("vote_milestones", func(t *testing.T) {
+		for _, score := range voteMilestones {
+			t.Run(fmt.Sprintf("score_%d_is_milestone", score), func(t *testing.T) {
+				// This would be detected as a milestone in NotifyClipVoteThreshold
+				isMilestone := false
+				for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
+					if score == m {
+						isMilestone = true
+						break
+					}
+				}
+				if !isMilestone {
+					t.Errorf("Score %d should be recognized as a milestone", score)
+				}
+			})
+		}
+	})
 
-t.Run("not_vote_milestones", func(t *testing.T) {
-for _, score := range notMilestones {
-t.Run(fmt.Sprintf("score_%d_not_milestone", score), func(t *testing.T) {
-isMilestone := false
-for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
-if score == m {
-isMilestone = true
-break
-}
-}
-if isMilestone {
-t.Errorf("Score %d should not be recognized as a milestone", score)
-}
-})
-}
-})
+	t.Run("not_vote_milestones", func(t *testing.T) {
+		for _, score := range notMilestones {
+			t.Run(fmt.Sprintf("score_%d_not_milestone", score), func(t *testing.T) {
+				isMilestone := false
+				for _, m := range []int{10, 25, 50, 100, 250, 500, 1000} {
+					if score == m {
+						isMilestone = true
+						break
+					}
+				}
+				if isMilestone {
+					t.Errorf("Score %d should not be recognized as a milestone", score)
+				}
+			})
+		}
+	})
 
-// Test view milestones
-viewMilestones := []int64{100, 500, 1000, 5000, 10000, 50000, 100000}
-notViewMilestones := []int64{99, 101, 499, 501, 999, 1001, 4999, 5001, 9999, 10001}
+	// Test view milestones
+	viewMilestones := []int64{100, 500, 1000, 5000, 10000, 50000, 100000}
+	notViewMilestones := []int64{99, 101, 499, 501, 999, 1001, 4999, 5001, 9999, 10001}
 
-t.Run("view_milestones", func(t *testing.T) {
-for _, count := range viewMilestones {
-t.Run(fmt.Sprintf("count_%d_is_milestone", count), func(t *testing.T) {
-isMilestone := false
-for _, m := range []int64{100, 500, 1000, 5000, 10000, 50000, 100000} {
-if count == m {
-isMilestone = true
-break
-}
-}
-if !isMilestone {
-t.Errorf("View count %d should be recognized as a milestone", count)
-}
-})
-}
-})
+	t.Run("view_milestones", func(t *testing.T) {
+		for _, count := range viewMilestones {
+			t.Run(fmt.Sprintf("count_%d_is_milestone", count), func(t *testing.T) {
+				isMilestone := false
+				for _, m := range []int64{100, 500, 1000, 5000, 10000, 50000, 100000} {
+					if count == m {
+						isMilestone = true
+						break
+					}
+				}
+				if !isMilestone {
+					t.Errorf("View count %d should be recognized as a milestone", count)
+				}
+			})
+		}
+	})
 
-t.Run("not_view_milestones", func(t *testing.T) {
-for _, count := range notViewMilestones {
-t.Run(fmt.Sprintf("count_%d_not_milestone", count), func(t *testing.T) {
-isMilestone := false
-for _, m := range []int64{100, 500, 1000, 5000, 10000, 50000, 100000} {
-if count == m {
-isMilestone = true
-break
-}
-}
-if isMilestone {
-t.Errorf("View count %d should not be recognized as a milestone", count)
-}
-})
-}
-})
+	t.Run("not_view_milestones", func(t *testing.T) {
+		for _, count := range notViewMilestones {
+			t.Run(fmt.Sprintf("count_%d_not_milestone", count), func(t *testing.T) {
+				isMilestone := false
+				for _, m := range []int64{100, 500, 1000, 5000, 10000, 50000, 100000} {
+					if count == m {
+						isMilestone = true
+						break
+					}
+				}
+				if isMilestone {
+					t.Errorf("View count %d should not be recognized as a milestone", count)
+				}
+			})
+		}
+	})
 }

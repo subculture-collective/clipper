@@ -29,11 +29,11 @@ func NewEngagementHandler(engagementService *services.EngagementService, authSer
 // GET /api/v1/users/:userId/engagement
 func (h *EngagementHandler) GetUserEngagementScore(c *gin.Context) {
 	userIDStr := c.Param("userId")
-	
+
 	// Allow users to use "me" to get their own score
 	var userID uuid.UUID
 	var err error
-	
+
 	if userIDStr == "me" {
 		// Get user from context (set by auth middleware)
 		userInterface, exists := c.Get("user")
@@ -41,7 +41,7 @@ func (h *EngagementHandler) GetUserEngagementScore(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		
+
 		user, ok := userInterface.(*models.User)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
@@ -55,7 +55,7 @@ func (h *EngagementHandler) GetUserEngagementScore(c *gin.Context) {
 			return
 		}
 	}
-	
+
 	// Check if requester is authorized to view this user's engagement
 	// Only the user themselves or admins can view detailed engagement
 	requestUserInterface, exists := c.Get("user")
@@ -72,13 +72,13 @@ func (h *EngagementHandler) GetUserEngagementScore(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	
+
 	score, err := h.engagementService.GetUserEngagementScore(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to calculate engagement score"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, score)
 }
 
@@ -91,19 +91,19 @@ func (h *EngagementHandler) GetPlatformHealthMetrics(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	
+
 	user, ok := userInterface.(*models.User)
 	if !ok || user.Role != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 		return
 	}
-	
+
 	metrics, err := h.engagementService.GetPlatformHealthMetrics(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve platform health metrics"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, metrics)
 }
 
@@ -116,27 +116,27 @@ func (h *EngagementHandler) GetTrendingMetrics(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	
+
 	user, ok := userInterface.(*models.User)
 	if !ok || user.Role != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 		return
 	}
-	
+
 	metric := c.DefaultQuery("metric", "dau")
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "7"))
-	
+
 	if days <= 0 || days > 365 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "days must be between 1 and 365"})
 		return
 	}
-	
+
 	trending, err := h.engagementService.GetTrendingMetrics(c.Request.Context(), metric, days)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve trending metrics"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, trending)
 }
 
@@ -149,13 +149,13 @@ func (h *EngagementHandler) GetContentEngagementScore(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid clip ID"})
 		return
 	}
-	
+
 	score, err := h.engagementService.GetContentEngagementScore(c.Request.Context(), clipID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to calculate content engagement score"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, score)
 }
 
@@ -168,19 +168,19 @@ func (h *EngagementHandler) CheckAlerts(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	
+
 	user, ok := userInterface.(*models.User)
 	if !ok || user.Role != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 		return
 	}
-	
+
 	alerts, err := h.engagementService.CheckAlertThresholds(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check alert thresholds"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"alerts": alerts,
 		"count":  len(alerts),
@@ -196,32 +196,32 @@ func (h *EngagementHandler) ExportEngagementData(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	
+
 	user, ok := userInterface.(*models.User)
 	if !ok || user.Role != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 		return
 	}
-	
+
 	// Get query parameters
 	metricsParam := c.DefaultQuery("metrics", "dau,mau")
 	format := c.DefaultQuery("format", "csv")
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
-	
+
 	// Validate format
 	if format != "csv" && format != "json" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "format must be csv or json"})
 		return
 	}
-	
+
 	// Parse metrics
 	metrics := parseMetricsList(metricsParam)
 	if len(metrics) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "at least one metric must be specified"})
 		return
 	}
-	
+
 	// For now, return a simple response indicating export functionality
 	// In a full implementation, this would generate CSV/JSON export
 	c.JSON(http.StatusOK, gin.H{
@@ -239,7 +239,7 @@ func parseMetricsList(metricsParam string) []string {
 	if metricsParam == "" {
 		return []string{}
 	}
-	
+
 	var metrics []string
 	for _, m := range strings.Split(metricsParam, ",") {
 		m = strings.TrimSpace(m)

@@ -486,7 +486,7 @@ func (r *ReputationRepository) CalculateTrustScoreBreakdown(ctx context.Context,
 	}
 
 	// Karma contribution (max 40 points)
-	// Database uses: karma / 250, we use proportional calculation  
+	// Database uses: karma / 250, we use proportional calculation
 	if karmaPoints >= 10000 {
 		breakdown.KarmaScore = 40
 	} else {

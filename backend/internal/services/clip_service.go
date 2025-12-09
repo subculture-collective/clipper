@@ -51,11 +51,11 @@ func NewClipService(
 // ClipWithUserData represents a clip with user-specific data
 type ClipWithUserData struct {
 	models.Clip
-	UserVote      *int16                     `json:"user_vote,omitempty"`
-	IsFavorited   bool                       `json:"is_favorited"`
-	UpvoteCount   int                        `json:"upvote_count"`
-	DownvoteCount int                        `json:"downvote_count"`
-	SubmittedBy   *models.ClipSubmitterInfo  `json:"submitted_by,omitempty"`
+	UserVote      *int16                    `json:"user_vote,omitempty"`
+	IsFavorited   bool                      `json:"is_favorited"`
+	UpvoteCount   int                       `json:"upvote_count"`
+	DownvoteCount int                       `json:"downvote_count"`
+	SubmittedBy   *models.ClipSubmitterInfo `json:"submitted_by,omitempty"`
 }
 
 // GetClip retrieves a single clip with user data

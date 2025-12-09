@@ -8,23 +8,23 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID                   uuid.UUID  `json:"id" db:"id"`
-	TwitchID             string     `json:"twitch_id" db:"twitch_id"`
-	Username             string     `json:"username" db:"username"`
-	DisplayName          string     `json:"display_name" db:"display_name"`
-	Email                *string    `json:"email,omitempty" db:"email"`
-	AvatarURL            *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio                  *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints          int        `json:"karma_points" db:"karma_points"`
-	TrustScore           int        `json:"trust_score" db:"trust_score"`
-	TrustScoreUpdatedAt  *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
-	Role                 string     `json:"role" db:"role"`
-	IsBanned             bool       `json:"is_banned" db:"is_banned"`
-	DeviceToken          *string    `json:"device_token,omitempty" db:"device_token"`
-	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
-	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt          *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID                  uuid.UUID  `json:"id" db:"id"`
+	TwitchID            string     `json:"twitch_id" db:"twitch_id"`
+	Username            string     `json:"username" db:"username"`
+	DisplayName         string     `json:"display_name" db:"display_name"`
+	Email               *string    `json:"email,omitempty" db:"email"`
+	AvatarURL           *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio                 *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints         int        `json:"karma_points" db:"karma_points"`
+	TrustScore          int        `json:"trust_score" db:"trust_score"`
+	TrustScoreUpdatedAt *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
+	Role                string     `json:"role" db:"role"`
+	IsBanned            bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken         *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform      *string    `json:"device_platform,omitempty" db:"device_platform"`
+	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -716,12 +716,12 @@ type TagMetric struct {
 
 // UserEngagementScore represents a user's engagement score and its components
 type UserEngagementScore struct {
-	UserID          uuid.UUID                 `json:"user_id" db:"user_id"`
-	Score           int                       `json:"score" db:"score"`                       // 0-100
-	Tier            string                    `json:"tier" db:"tier"`                         // Inactive, Low, Moderate, High, Very High
-	Components      UserEngagementComponents  `json:"components"`
-	CalculatedAt    time.Time                 `json:"calculated_at" db:"calculated_at"`
-	UpdatedAt       time.Time                 `json:"updated_at" db:"updated_at"`
+	UserID       uuid.UUID                `json:"user_id" db:"user_id"`
+	Score        int                      `json:"score" db:"score"` // 0-100
+	Tier         string                   `json:"tier" db:"tier"`   // Inactive, Low, Moderate, High, Very High
+	Components   UserEngagementComponents `json:"components"`
+	CalculatedAt time.Time                `json:"calculated_at" db:"calculated_at"`
+	UpdatedAt    time.Time                `json:"updated_at" db:"updated_at"`
 }
 
 // UserEngagementComponents represents the individual components of engagement score
@@ -742,14 +742,14 @@ type EngagementComponent struct {
 
 // PlatformHealthMetrics represents platform-wide health indicators
 type PlatformHealthMetrics struct {
-	DAU                int                    `json:"dau" db:"dau"`
-	WAU                int                    `json:"wau" db:"wau"`
-	MAU                int                    `json:"mau" db:"mau"`
-	Stickiness         float64                `json:"stickiness" db:"stickiness"` // DAU/MAU ratio
-	RetentionRates     RetentionRates         `json:"retention"`
-	ChurnRateMonthly   float64                `json:"churn_rate_monthly" db:"churn_rate_monthly"`
-	Trends             PlatformTrends         `json:"trends"`
-	CalculatedAt       time.Time              `json:"calculated_at" db:"calculated_at"`
+	DAU              int            `json:"dau" db:"dau"`
+	WAU              int            `json:"wau" db:"wau"`
+	MAU              int            `json:"mau" db:"mau"`
+	Stickiness       float64        `json:"stickiness" db:"stickiness"` // DAU/MAU ratio
+	RetentionRates   RetentionRates `json:"retention"`
+	ChurnRateMonthly float64        `json:"churn_rate_monthly" db:"churn_rate_monthly"`
+	Trends           PlatformTrends `json:"trends"`
+	CalculatedAt     time.Time      `json:"calculated_at" db:"calculated_at"`
 }
 
 // RetentionRates represents retention percentages for different periods
@@ -767,11 +767,11 @@ type PlatformTrends struct {
 
 // TrendingMetrics represents trending data with week-over-week changes
 type TrendingMetrics struct {
-	Metric            string            `json:"metric"`
-	PeriodDays        int               `json:"period_days"`
-	Data              []TrendingDataPoint `json:"data"`
-	WeekOverWeekChange float64          `json:"week_over_week_change"`
-	Summary           TrendSummary      `json:"summary"`
+	Metric             string              `json:"metric"`
+	PeriodDays         int                 `json:"period_days"`
+	Data               []TrendingDataPoint `json:"data"`
+	WeekOverWeekChange float64             `json:"week_over_week_change"`
+	Summary            TrendSummary        `json:"summary"`
 }
 
 // TrendingDataPoint represents a single data point in trending metrics with change calculation
@@ -800,22 +800,22 @@ type TrendSummary struct {
 
 // ContentEngagementScore represents engagement metrics for a piece of content
 type ContentEngagementScore struct {
-	ClipID            uuid.UUID `json:"clip_id" db:"clip_id"`
-	Score             int       `json:"score" db:"score"` // 0-100 composite score
-	NormalizedViews   int       `json:"normalized_views" db:"normalized_views"`
-	VoteRatio         float64   `json:"vote_ratio" db:"vote_ratio"`
-	NormalizedComments int      `json:"normalized_comments" db:"normalized_comments"`
-	NormalizedShares  int       `json:"normalized_shares" db:"normalized_shares"`
-	FavoriteRate      float64   `json:"favorite_rate" db:"favorite_rate"`
-	CalculatedAt      time.Time `json:"calculated_at" db:"calculated_at"`
+	ClipID             uuid.UUID `json:"clip_id" db:"clip_id"`
+	Score              int       `json:"score" db:"score"` // 0-100 composite score
+	NormalizedViews    int       `json:"normalized_views" db:"normalized_views"`
+	VoteRatio          float64   `json:"vote_ratio" db:"vote_ratio"`
+	NormalizedComments int       `json:"normalized_comments" db:"normalized_comments"`
+	NormalizedShares   int       `json:"normalized_shares" db:"normalized_shares"`
+	FavoriteRate       float64   `json:"favorite_rate" db:"favorite_rate"`
+	CalculatedAt       time.Time `json:"calculated_at" db:"calculated_at"`
 }
 
 // EngagementAlert represents an alert for engagement metrics
 type EngagementAlert struct {
 	ID             uuid.UUID              `json:"id" db:"id"`
-	AlertType      string                 `json:"alert_type" db:"alert_type"`         // dau_drop, churn_spike, etc.
-	Severity       string                 `json:"severity" db:"severity"`             // P1, P2, P3
-	Metric         string                 `json:"metric" db:"metric"`                 // Which metric triggered the alert
+	AlertType      string                 `json:"alert_type" db:"alert_type"` // dau_drop, churn_spike, etc.
+	Severity       string                 `json:"severity" db:"severity"`     // P1, P2, P3
+	Metric         string                 `json:"metric" db:"metric"`         // Which metric triggered the alert
 	CurrentValue   float64                `json:"current_value" db:"current_value"`
 	ThresholdValue float64                `json:"threshold_value" db:"threshold_value"`
 	Message        string                 `json:"message" db:"message"`
@@ -828,21 +828,21 @@ type EngagementAlert struct {
 
 // CohortRetention represents retention data for a user cohort
 type CohortRetention struct {
-	CohortDate      time.Time `json:"cohort_date" db:"cohort_date"`         // Start date of cohort (e.g., signup month)
-	CohortSize      int       `json:"cohort_size" db:"cohort_size"`         // Total users in cohort
-	Day1Active      int       `json:"day1_active" db:"day1_active"`         // Users active after 1 day
-	Day7Active      int       `json:"day7_active" db:"day7_active"`         // Users active after 7 days
-	Day30Active     int       `json:"day30_active" db:"day30_active"`       // Users active after 30 days
-	Day1Retention   float64   `json:"day1_retention" db:"day1_retention"`   // Percentage
-	Day7Retention   float64   `json:"day7_retention" db:"day7_retention"`   // Percentage
-	Day30Retention  float64   `json:"day30_retention" db:"day30_retention"` // Percentage
-	CalculatedAt    time.Time `json:"calculated_at" db:"calculated_at"`
+	CohortDate     time.Time `json:"cohort_date" db:"cohort_date"`         // Start date of cohort (e.g., signup month)
+	CohortSize     int       `json:"cohort_size" db:"cohort_size"`         // Total users in cohort
+	Day1Active     int       `json:"day1_active" db:"day1_active"`         // Users active after 1 day
+	Day7Active     int       `json:"day7_active" db:"day7_active"`         // Users active after 7 days
+	Day30Active    int       `json:"day30_active" db:"day30_active"`       // Users active after 30 days
+	Day1Retention  float64   `json:"day1_retention" db:"day1_retention"`   // Percentage
+	Day7Retention  float64   `json:"day7_retention" db:"day7_retention"`   // Percentage
+	Day30Retention float64   `json:"day30_retention" db:"day30_retention"` // Percentage
+	CalculatedAt   time.Time `json:"calculated_at" db:"calculated_at"`
 }
 
 // GeographyMetric represents audience distribution by country
 type GeographyMetric struct {
-	Country    string `json:"country"`      // ISO country code (e.g., "US", "GB")
-	ViewCount  int64  `json:"view_count"`   // Number of views from this country
+	Country    string  `json:"country"`    // ISO country code (e.g., "US", "GB")
+	ViewCount  int64   `json:"view_count"` // Number of views from this country
 	Percentage float64 `json:"percentage"` // Percentage of total views
 }
 

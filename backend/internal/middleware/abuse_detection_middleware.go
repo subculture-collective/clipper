@@ -25,13 +25,13 @@ const (
 
 // Endpoints excluded from abuse detection (auth endpoints already have their own rate limiting)
 var abuseDetectionExemptPaths = map[string]bool{
-	"/health":                       true,
-	"/health/ready":                 true,
-	"/health/live":                  true,
-	"/api/v1/auth/twitch":           true,
-	"/api/v1/auth/twitch/callback":  true,
-	"/api/v1/auth/refresh":          true,
-	"/api/v1/auth/me":               true,
+	"/health":                      true,
+	"/health/ready":                true,
+	"/health/live":                 true,
+	"/api/v1/auth/twitch":          true,
+	"/api/v1/auth/twitch/callback": true,
+	"/api/v1/auth/refresh":         true,
+	"/api/v1/auth/me":              true,
 }
 
 // AbuseDetectionMiddleware monitors and blocks abusive IPs

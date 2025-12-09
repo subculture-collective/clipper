@@ -487,7 +487,7 @@ func main() {
 			// Clip analytics (public)
 			clips.GET("/:id/analytics", analyticsHandler.GetClipAnalytics)
 			clips.POST("/:id/track-view", analyticsHandler.TrackClipView)
-			
+
 			// Clip engagement score (public)
 			clips.GET("/:id/engagement", engagementHandler.GetContentEngagementScore)
 
@@ -594,7 +594,7 @@ func main() {
 
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
-			
+
 			// User engagement score (authenticated)
 			users.GET("/:userId/engagement", middleware.AuthMiddleware(authService), engagementHandler.GetUserEngagementScore)
 
@@ -801,7 +801,7 @@ func main() {
 				analytics.GET("/overview", analyticsHandler.GetPlatformOverview)
 				analytics.GET("/content", analyticsHandler.GetContentMetrics)
 				analytics.GET("/trends", analyticsHandler.GetPlatformTrends)
-				
+
 				// Engagement metrics routes
 				analytics.GET("/health", engagementHandler.GetPlatformHealthMetrics)
 				analytics.GET("/trending", engagementHandler.GetTrendingMetrics)

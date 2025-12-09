@@ -202,7 +202,7 @@ func (h *ExportHandler) ListExportRequests(c *gin.Context) {
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}
-	
+
 	responses := make([]models.ExportRequestResponse, len(exportReqs))
 	for i, req := range exportReqs {
 		responses[i] = models.ExportRequestResponse{

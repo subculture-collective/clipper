@@ -24,23 +24,23 @@ func NewSubmissionAbuseDetector(redisClient *redispkg.Client) *SubmissionAbuseDe
 
 const (
 	// Velocity limits - detect rapid submissions
-	velocityWindow        = 5 * time.Minute
-	velocityThreshold     = 3 // max 3 submissions in 5 minutes
-	velocityCooldown      = 30 * time.Minute
+	velocityWindow    = 5 * time.Minute
+	velocityThreshold = 3 // max 3 submissions in 5 minutes
+	velocityCooldown  = 30 * time.Minute
 
 	// Duplicate detection
-	duplicateWindow       = 1 * time.Hour
-	duplicateThreshold    = 3 // max 3 duplicate attempts in 1 hour
-	duplicateCooldown     = 1 * time.Hour
+	duplicateWindow    = 1 * time.Hour
+	duplicateThreshold = 3 // max 3 duplicate attempts in 1 hour
+	duplicateCooldown  = 1 * time.Hour
 
 	// Same IP, different users
-	ipSharedWindow        = 1 * time.Hour
-	ipSharedThreshold     = 5 // max 5 different users from same IP
+	ipSharedWindow    = 1 * time.Hour
+	ipSharedThreshold = 5 // max 5 different users from same IP
 
 	// Burst detection
-	burstWindow           = 1 * time.Minute
-	burstThreshold        = 2 // max 2 submissions in 1 minute
-	burstCooldown         = 15 * time.Minute
+	burstWindow    = 1 * time.Minute
+	burstThreshold = 2 // max 2 submissions in 1 minute
+	burstCooldown  = 15 * time.Minute
 )
 
 // AbuseCheckResult contains the result of an abuse check
@@ -70,7 +70,7 @@ func (d *SubmissionAbuseDetector) CheckSubmissionAbuse(ctx context.Context, user
 		cooldownUntil := time.Now().Add(burstCooldown)
 		_ = d.setCooldown(ctx, userID, burstCooldown, "burst")
 		d.logAbuseAttempt(ctx, userID, ip, "burst_detection", fmt.Sprintf("Exceeded %d submissions in %v", burstThreshold, burstWindow))
-		
+
 		return &AbuseCheckResult{
 			Allowed:       false,
 			Reason:        "You are submitting too quickly. Please slow down and try again in a few minutes.",
@@ -86,7 +86,7 @@ func (d *SubmissionAbuseDetector) CheckSubmissionAbuse(ctx context.Context, user
 		cooldownUntil := time.Now().Add(velocityCooldown)
 		_ = d.setCooldown(ctx, userID, velocityCooldown, "velocity")
 		d.logAbuseAttempt(ctx, userID, ip, "velocity_exceeded", fmt.Sprintf("Exceeded %d submissions in %v", velocityThreshold, velocityWindow))
-		
+
 		return &AbuseCheckResult{
 			Allowed:       false,
 			Reason:        "You have been submitting clips too rapidly. Please wait before submitting more clips.",
@@ -101,7 +101,7 @@ func (d *SubmissionAbuseDetector) CheckSubmissionAbuse(ctx context.Context, user
 	} else if warning {
 		// Log but don't block (could be legitimate shared network)
 		d.logAbuseAttempt(ctx, userID, ip, "ip_sharing_detected", fmt.Sprintf("Multiple users from IP %s", ip))
-		
+
 		return &AbuseCheckResult{
 			Allowed:       true, // Allow but flag
 			Reason:        "",
@@ -177,7 +177,7 @@ func (d *SubmissionAbuseDetector) checkVelocityViolation(ctx context.Context, us
 // checkIPSharing checks if too many users are submitting from the same IP
 func (d *SubmissionAbuseDetector) checkIPSharing(ctx context.Context, userID uuid.UUID, ip string) (bool, error) {
 	key := fmt.Sprintf("submission:ip:%s", ip)
-	
+
 	// Add user to set
 	if err := d.redisClient.SetAdd(ctx, key, userID.String()); err != nil {
 		return false, err

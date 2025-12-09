@@ -15,10 +15,10 @@ import (
 const (
 	// BenchmarkViews is the view count at which content receives 100 engagement points for views
 	BenchmarkViews = 10000
-	
+
 	// BenchmarkComments is the comment count at which content receives 100 engagement points for comments
 	BenchmarkComments = 100
-	
+
 	// BenchmarkShares is the share count at which content receives 100 engagement points for shares
 	BenchmarkShares = 50
 )
@@ -46,52 +46,52 @@ func NewEngagementService(
 // GetUserEngagementScore calculates and returns a user's engagement score
 func (s *EngagementService) GetUserEngagementScore(ctx context.Context, userID uuid.UUID) (*models.UserEngagementScore, error) {
 	now := time.Now()
-	
+
 	// Get activity counts for the user
 	postsCount, err := s.analyticsRepo.GetUserPostsCount(ctx, userID, 7) // Last 7 days
 	if err != nil {
 		return nil, err
 	}
-	
+
 	commentsCount, err := s.analyticsRepo.GetUserCommentsCount(ctx, userID, 7)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	votesCount, err := s.analyticsRepo.GetUserVotesCount(ctx, userID, 7)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	loginDays, err := s.analyticsRepo.GetUserLoginDays(ctx, userID, 30)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	avgDailyMinutes, err := s.analyticsRepo.GetUserAvgDailyMinutes(ctx, userID, 30)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate component scores
 	postsScore := calculateComponentScore(float64(postsCount), 10.0)
 	commentsScore := calculateComponentScore(float64(commentsCount), 20.0)
 	votesScore := calculateComponentScore(float64(votesCount), 50.0)
 	loginScore := calculateComponentScore(float64(loginDays), 30.0)
 	timeScore := calculateComponentScore(avgDailyMinutes, 60.0)
-	
+
 	// Calculate weighted total score
 	totalScore := int(
 		float64(postsScore)*0.20 +
-		float64(commentsScore)*0.25 +
-		float64(votesScore)*0.20 +
-		float64(loginScore)*0.20 +
-		float64(timeScore)*0.15,
+			float64(commentsScore)*0.25 +
+			float64(votesScore)*0.20 +
+			float64(loginScore)*0.20 +
+			float64(timeScore)*0.15,
 	)
-	
+
 	// Determine tier
 	tier := determineEngagementTier(totalScore)
-	
+
 	score := &models.UserEngagementScore{
 		UserID: userID,
 		Score:  totalScore,
@@ -126,69 +126,69 @@ func (s *EngagementService) GetUserEngagementScore(ctx context.Context, userID u
 		CalculatedAt: now,
 		UpdatedAt:    now,
 	}
-	
+
 	return score, nil
 }
 
 // GetPlatformHealthMetrics returns platform-wide health metrics
 func (s *EngagementService) GetPlatformHealthMetrics(ctx context.Context) (*models.PlatformHealthMetrics, error) {
 	now := time.Now()
-	
+
 	// Get active user counts
 	dau, err := s.analyticsRepo.GetDAU(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	wau, err := s.analyticsRepo.GetWAU(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	mau, err := s.analyticsRepo.GetMAU(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate stickiness
 	stickiness := 0.0
 	if mau > 0 {
 		stickiness = float64(dau) / float64(mau)
 	}
-	
+
 	// Get retention rates
 	day1Retention, err := s.analyticsRepo.GetRetentionRate(ctx, 1)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	day7Retention, err := s.analyticsRepo.GetRetentionRate(ctx, 7)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	day30Retention, err := s.analyticsRepo.GetRetentionRate(ctx, 30)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get churn rate
 	churnRate, err := s.analyticsRepo.GetMonthlyChurnRate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get trends
 	dauChangeWoW, err := s.analyticsRepo.GetDAUChangeWoW(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	mauChangeMoM, err := s.analyticsRepo.GetMAUChangeMoM(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	metrics := &models.PlatformHealthMetrics{
 		DAU:        dau,
 		WAU:        wau,
@@ -206,7 +206,7 @@ func (s *EngagementService) GetPlatformHealthMetrics(ctx context.Context) (*mode
 		},
 		CalculatedAt: now,
 	}
-	
+
 	return metrics, nil
 }
 
@@ -215,13 +215,13 @@ func (s *EngagementService) GetTrendingMetrics(ctx context.Context, metric strin
 	if days <= 0 || days > 365 {
 		days = 7
 	}
-	
+
 	// Get trend data points
 	dataPoints, err := s.analyticsRepo.GetTrendingData(ctx, metric, days)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(dataPoints) == 0 {
 		return &models.TrendingMetrics{
 			Metric:     metric,
@@ -230,7 +230,7 @@ func (s *EngagementService) GetTrendingMetrics(ctx context.Context, metric strin
 			Summary:    models.TrendSummary{},
 		}, nil
 	}
-	
+
 	// Calculate changes from previous
 	trendingPoints := make([]models.TrendingDataPoint, len(dataPoints))
 	for i, point := range dataPoints {
@@ -240,7 +240,7 @@ func (s *EngagementService) GetTrendingMetrics(ctx context.Context, metric strin
 		}
 		trendingPoints[i].FromTrendDataPoint(point, prevValue)
 	}
-	
+
 	// Calculate week-over-week change
 	weekOverWeekChange := 0.0
 	if len(trendingPoints) >= 14 {
@@ -250,10 +250,10 @@ func (s *EngagementService) GetTrendingMetrics(ctx context.Context, metric strin
 			weekOverWeekChange = ((lastWeekAvg - prevWeekAvg) / prevWeekAvg) * 100
 		}
 	}
-	
+
 	// Calculate summary
 	summary := calculateTrendSummary(trendingPoints)
-	
+
 	return &models.TrendingMetrics{
 		Metric:             metric,
 		PeriodDays:         days,
@@ -269,52 +269,52 @@ func (s *EngagementService) GetContentEngagementScore(ctx context.Context, clipI
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get view count from analytics
 	viewCount, err := s.analyticsRepo.GetClipViewCount(ctx, clipID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get share count from analytics
 	shareCount, err := s.analyticsRepo.GetClipShareCount(ctx, clipID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate vote ratio as defined in documentation: upvotes / (upvotes + downvotes)
 	upvotes, downvotes, err := s.analyticsRepo.GetClipVoteCounts(ctx, clipID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	voteRatio := 0.5 // Default neutral if no votes
 	totalVotes := upvotes + downvotes
 	if totalVotes > 0 {
 		voteRatio = float64(upvotes) / float64(totalVotes)
 	}
-	
+
 	// Calculate favorite rate
 	favoriteRate := 0.0
 	if viewCount > 0 {
 		favoriteRate = (float64(clip.FavoriteCount) / float64(viewCount)) * 100
 	}
-	
+
 	// Normalize values using benchmark constants (90th percentile values)
 	// These benchmarks should be periodically reviewed and updated based on platform growth
 	normalizedViews := normalizeMetric(viewCount, BenchmarkViews)
 	normalizedComments := normalizeMetric(int64(clip.CommentCount), BenchmarkComments)
 	normalizedShares := normalizeMetric(shareCount, BenchmarkShares)
-	
+
 	// Calculate composite score
 	score := int(
 		float64(normalizedViews)*0.25 +
-		voteRatio*100*0.30 +
-		float64(normalizedComments)*0.20 +
-		float64(normalizedShares)*0.15 +
-		favoriteRate*0.10,
+			voteRatio*100*0.30 +
+			float64(normalizedComments)*0.20 +
+			float64(normalizedShares)*0.15 +
+			favoriteRate*0.10,
 	)
-	
+
 	return &models.ContentEngagementScore{
 		ClipID:             clipID,
 		Score:              score,
@@ -331,7 +331,7 @@ func (s *EngagementService) GetContentEngagementScore(ctx context.Context, clipI
 func (s *EngagementService) CheckAlertThresholds(ctx context.Context) ([]*models.EngagementAlert, error) {
 	alerts := []*models.EngagementAlert{}
 	now := time.Now()
-	
+
 	// Check DAU drop
 	dauChangeWoW, err := s.analyticsRepo.GetDAUChangeWoW(ctx)
 	if err == nil && dauChangeWoW < -20 {
@@ -357,7 +357,7 @@ func (s *EngagementService) CheckAlertThresholds(ctx context.Context) ([]*models
 			TriggeredAt:    now,
 		})
 	}
-	
+
 	// Check churn rate
 	churnRate, err := s.analyticsRepo.GetMonthlyChurnRate(ctx)
 	if err == nil && churnRate > 7 {
@@ -383,7 +383,7 @@ func (s *EngagementService) CheckAlertThresholds(ctx context.Context) ([]*models
 			TriggeredAt:    now,
 		})
 	}
-	
+
 	// Check stickiness
 	dau, _ := s.analyticsRepo.GetDAU(ctx)
 	mau, _ := s.analyticsRepo.GetMAU(ctx)
@@ -391,7 +391,7 @@ func (s *EngagementService) CheckAlertThresholds(ctx context.Context) ([]*models
 	if mau > 0 {
 		stickiness = float64(dau) / float64(mau)
 	}
-	
+
 	if stickiness < 0.15 {
 		alerts = append(alerts, &models.EngagementAlert{
 			ID:             uuid.New(),
@@ -404,7 +404,7 @@ func (s *EngagementService) CheckAlertThresholds(ctx context.Context) ([]*models
 			TriggeredAt:    now,
 		})
 	}
-	
+
 	return alerts, nil
 }
 
@@ -451,11 +451,11 @@ func calculateTrendSummary(points []models.TrendingDataPoint) models.TrendSummar
 	if len(points) == 0 {
 		return models.TrendSummary{}
 	}
-	
+
 	min := points[0].Value
 	max := points[0].Value
 	sum := int64(0)
-	
+
 	for _, p := range points {
 		if p.Value < min {
 			min = p.Value
@@ -465,9 +465,9 @@ func calculateTrendSummary(points []models.TrendingDataPoint) models.TrendSummar
 		}
 		sum += p.Value
 	}
-	
+
 	avg := sum / int64(len(points))
-	
+
 	// Determine trend direction
 	trend := "stable"
 	if len(points) >= 2 {
@@ -479,14 +479,14 @@ func calculateTrendSummary(points []models.TrendingDataPoint) models.TrendSummar
 		} else {
 			change = 0
 		}
-		
+
 		if change > 5 {
 			trend = "increasing"
 		} else if change < -5 {
 			trend = "decreasing"
 		}
 	}
-	
+
 	return models.TrendSummary{
 		Min:   min,
 		Max:   max,
