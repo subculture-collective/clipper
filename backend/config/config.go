@@ -106,12 +106,13 @@ type SentryConfig struct {
 
 // EmailConfig holds email notification configuration
 type EmailConfig struct {
-	SendGridAPIKey   string
-	FromEmail        string
-	FromName         string
-	Enabled          bool
-	SandboxMode      bool // Enable sandbox mode for testing (logs emails without sending)
-	MaxEmailsPerHour int
+	SendGridAPIKey          string
+	SendGridWebhookPublicKey string // ECDSA public key for webhook signature verification
+	FromEmail               string
+	FromName                string
+	Enabled                 bool
+	SandboxMode             bool // Enable sandbox mode for testing (logs emails without sending)
+	MaxEmailsPerHour        int
 }
 
 // EmbeddingConfig holds embedding service configuration
@@ -219,12 +220,13 @@ func Load() (*Config, error) {
 			Enabled:          getEnv("SENTRY_ENABLED", "false") == "true",
 		},
 		Email: EmailConfig{
-			SendGridAPIKey:   getEnv("SENDGRID_API_KEY", ""),
-			FromEmail:        getEnv("EMAIL_FROM_ADDRESS", "noreply@clipper.gg"),
-			FromName:         getEnv("EMAIL_FROM_NAME", "Clipper"),
-			Enabled:          getEnv("EMAIL_ENABLED", "false") == "true",
-			SandboxMode:      getEnv("EMAIL_SANDBOX_MODE", "false") == "true",
-			MaxEmailsPerHour: getEnvInt("EMAIL_MAX_PER_HOUR", 10),
+			SendGridAPIKey:           getEnv("SENDGRID_API_KEY", ""),
+			SendGridWebhookPublicKey: getEnv("SENDGRID_WEBHOOK_PUBLIC_KEY", ""),
+			FromEmail:                getEnv("EMAIL_FROM_ADDRESS", "noreply@clipper.gg"),
+			FromName:                 getEnv("EMAIL_FROM_NAME", "Clipper"),
+			Enabled:                  getEnv("EMAIL_ENABLED", "false") == "true",
+			SandboxMode:              getEnv("EMAIL_SANDBOX_MODE", "false") == "true",
+			MaxEmailsPerHour:         getEnvInt("EMAIL_MAX_PER_HOUR", 10),
 		},
 		Embedding: EmbeddingConfig{
 			OpenAIAPIKey:             getEnv("OPENAI_API_KEY", ""),

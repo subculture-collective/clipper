@@ -143,6 +143,7 @@ func main() {
 	adRepo := repository.NewAdRepository(db.Pool)
 	exportRepo := repository.NewExportRepository(db.Pool)
 	broadcasterRepo := repository.NewBroadcasterRepository(db.Pool)
+	emailLogRepo := repository.NewEmailLogRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -182,6 +183,9 @@ func main() {
 	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
 	revenueService := services.NewRevenueService(revenueRepo, cfg)
 	adService := services.NewAdService(adRepo, redisClient)
+
+	// Initialize email monitoring and metrics service
+	emailMetricsService := services.NewEmailMetricsService(emailLogRepo)
 
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
@@ -282,6 +286,8 @@ func main() {
 	webhookSubscriptionHandler := handlers.NewWebhookSubscriptionHandler(outboundWebhookService)
 	configHandler := handlers.NewConfigHandler(cfg)
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
+	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
+	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -618,6 +624,9 @@ func main() {
 			users.POST("/me/delete", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.RequestAccountDeletion)
 			users.POST("/me/delete/cancel", middleware.AuthMiddleware(authService), userSettingsHandler.CancelAccountDeletion)
 			users.GET("/me/delete/status", middleware.AuthMiddleware(authService), userSettingsHandler.GetDeletionStatus)
+
+			// Email logs for current user (authenticated)
+			users.GET("/me/email-logs", middleware.AuthMiddleware(authService), emailMetricsHandler.GetUserEmailLogs)
 		}
 
 		// Creator analytics routes
@@ -702,6 +711,8 @@ func main() {
 		{
 			// Webhook endpoint (public, no auth required)
 			v1.POST("/webhooks/stripe", subscriptionHandler.HandleWebhook)
+			// SendGrid webhook endpoint (public, no auth required, signature verified internally)
+			v1.POST("/webhooks/sendgrid", sendgridWebhookHandler.HandleWebhook)
 
 			// Protected subscription endpoints (require authentication)
 			subscriptions.Use(middleware.AuthMiddleware(authService))
@@ -866,6 +877,23 @@ func main() {
 				adminAds.GET("/experiments/:id/report", adHandler.GetExperimentReport)
 			}
 
+			// Email monitoring and metrics (admin only)
+			adminEmail := admin.Group("/email")
+			{
+				// Dashboard and metrics
+				adminEmail.GET("/metrics/dashboard", emailMetricsHandler.GetDashboardMetrics)
+				adminEmail.GET("/metrics", emailMetricsHandler.GetMetrics)
+				adminEmail.GET("/metrics/templates", emailMetricsHandler.GetTemplateMetrics)
+
+				// Email logs
+				adminEmail.GET("/logs", emailMetricsHandler.SearchEmailLogs)
+
+				// Alerts
+				adminEmail.GET("/alerts", emailMetricsHandler.GetAlerts)
+				adminEmail.POST("/alerts/:id/acknowledge", emailMetricsHandler.AcknowledgeAlert)
+				adminEmail.POST("/alerts/:id/resolve", emailMetricsHandler.ResolveAlert)
+			}
+
 			// Moderation queue management (admin/moderator only)
 			if moderationHandler != nil {
 				moderation := admin.Group("/moderation")
@@ -919,6 +947,13 @@ func main() {
 	exportScheduler := scheduler.NewExportScheduler(exportService, exportRepo, 2, 10)
 	go exportScheduler.Start(context.Background())
 
+	// Start email metrics scheduler
+	// - Calculate daily metrics every 24 hours
+	// - Check alerts every 30 minutes
+	// - Cleanup old logs every 7 days
+	emailMetricsScheduler := scheduler.NewEmailMetricsScheduler(emailMetricsService, 24, 30, 7)
+	go emailMetricsScheduler.Start(context.Background())
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:              ":" + cfg.Server.Port,
@@ -949,6 +984,7 @@ func main() {
 	webhookRetryScheduler.Stop()
 	outboundWebhookScheduler.Stop()
 	exportScheduler.Stop()
+	emailMetricsScheduler.Stop()
 	if embeddingScheduler != nil {
 		embeddingScheduler.Stop()
 	}
