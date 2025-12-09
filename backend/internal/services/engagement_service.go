@@ -10,6 +10,24 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
+// Content engagement normalization benchmarks (90th percentile)
+// These values represent high-performing content and should be periodically
+// reviewed and updated based on actual platform metrics
+const (
+	// BenchmarkViews is the view count at which content receives 100 engagement points for views
+	BenchmarkViews = 10000
+	
+	// BenchmarkComments is the comment count at which content receives 100 engagement points for comments
+	BenchmarkComments = 100
+	
+	// BenchmarkShares is the share count at which content receives 100 engagement points for shares
+	BenchmarkShares = 50
+	
+	// VoteScoreScale is used to convert net vote scores to a 0-1 ratio
+	// A vote score of ±100 represents the upper/lower bounds for normalization
+	VoteScoreScale = 100.0
+)
+
 // EngagementService handles engagement metrics calculations
 type EngagementService struct {
 	analyticsRepo *repository.AnalyticsRepository
@@ -221,15 +239,11 @@ func (s *EngagementService) GetTrendingMetrics(ctx context.Context, metric strin
 	// Calculate changes from previous
 	trendingPoints := make([]models.TrendingDataPoint, len(dataPoints))
 	for i, point := range dataPoints {
-		changeFromPrevious := 0.0
-		if i > 0 && dataPoints[i-1].Value > 0 {
-			changeFromPrevious = ((float64(point.Value) - float64(dataPoints[i-1].Value)) / float64(dataPoints[i-1].Value)) * 100
+		prevValue := int64(0)
+		if i > 0 {
+			prevValue = dataPoints[i-1].Value
 		}
-		trendingPoints[i] = models.TrendingDataPoint{
-			Date:               point.Date,
-			Value:              point.Value,
-			ChangeFromPrevious: changeFromPrevious,
-		}
+		trendingPoints[i].FromTrendDataPoint(point, prevValue)
 	}
 	
 	// Calculate week-over-week change
@@ -273,13 +287,15 @@ func (s *EngagementService) GetContentEngagementScore(ctx context.Context, clipI
 		return nil, err
 	}
 	
-	// Calculate vote ratio
-	totalVotes := clip.VoteScore // This is net votes, we need to calculate ratio differently
-	// For now, use a simplified calculation based on vote_score
-	voteRatio := 0.5 // Default neutral
-	if totalVotes != 0 {
-		// Assume positive vote_score means more upvotes
-		voteRatio = 0.5 + (float64(totalVotes) / 100.0)
+	// Calculate vote ratio from net vote score
+	// vote_score is the difference between upvotes and downvotes
+	// We normalize it to a 0-1 scale where 0.5 is neutral
+	voteRatio := 0.5 // Default neutral (equal upvotes and downvotes)
+	if clip.VoteScore != 0 {
+		// Scale the vote score: positive scores increase ratio above 0.5, negative decrease it
+		// VoteScoreScale defines how many net votes equals maximum deviation from neutral
+		voteRatio = 0.5 + (float64(clip.VoteScore) / VoteScoreScale)
+		// Clamp to valid range [0.0, 1.0]
 		if voteRatio > 1.0 {
 			voteRatio = 1.0
 		} else if voteRatio < 0.0 {
@@ -293,10 +309,11 @@ func (s *EngagementService) GetContentEngagementScore(ctx context.Context, clipI
 		favoriteRate = (float64(clip.FavoriteCount) / float64(viewCount)) * 100
 	}
 	
-	// Normalize values (using 90th percentile as max)
-	normalizedViews := normalizeMetric(viewCount, 10000)   // 10k views as 90th percentile
-	normalizedComments := normalizeMetric(int64(clip.CommentCount), 100)  // 100 comments as 90th percentile
-	normalizedShares := normalizeMetric(shareCount, 50)    // 50 shares as 90th percentile
+	// Normalize values using benchmark constants (90th percentile values)
+	// These benchmarks should be periodically reviewed and updated based on platform growth
+	normalizedViews := normalizeMetric(viewCount, BenchmarkViews)
+	normalizedComments := normalizeMetric(int64(clip.CommentCount), BenchmarkComments)
+	normalizedShares := normalizeMetric(shareCount, BenchmarkShares)
 	
 	// Calculate composite score
 	score := int(

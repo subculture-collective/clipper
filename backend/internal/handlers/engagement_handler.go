@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -233,43 +234,11 @@ func parseMetricsList(metricsParam string) []string {
 	}
 	
 	var metrics []string
-	for _, m := range splitByComma(metricsParam) {
-		m = trimSpace(m)
+	for _, m := range strings.Split(metricsParam, ",") {
+		m = strings.TrimSpace(m)
 		if m != "" {
 			metrics = append(metrics, m)
 		}
 	}
 	return metrics
-}
-
-func splitByComma(s string) []string {
-	var result []string
-	current := ""
-	for _, char := range s {
-		if char == ',' {
-			result = append(result, current)
-			current = ""
-		} else {
-			current += string(char)
-		}
-	}
-	if current != "" {
-		result = append(result, current)
-	}
-	return result
-}
-
-func trimSpace(s string) string {
-	start := 0
-	end := len(s)
-	
-	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n') {
-		start++
-	}
-	
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n') {
-		end--
-	}
-	
-	return s[start:end]
 }

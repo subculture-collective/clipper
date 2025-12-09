@@ -758,11 +758,20 @@ type TrendingMetrics struct {
 	Summary           TrendSummary      `json:"summary"`
 }
 
-// TrendingDataPoint represents a single data point in trending metrics
+// TrendingDataPoint represents a single data point in trending metrics with change calculation
 type TrendingDataPoint struct {
 	Date               time.Time `json:"date"`
 	Value              int64     `json:"value"`
 	ChangeFromPrevious float64   `json:"change_from_previous"`
+}
+
+// FromTrendDataPoint converts a TrendDataPoint to TrendingDataPoint
+func (tdp *TrendingDataPoint) FromTrendDataPoint(t TrendDataPoint, prevValue int64) {
+	tdp.Date = t.Date
+	tdp.Value = t.Value
+	if prevValue > 0 {
+		tdp.ChangeFromPrevious = ((float64(t.Value) - float64(prevValue)) / float64(prevValue)) * 100
+	}
 }
 
 // TrendSummary provides summary statistics for a trend
