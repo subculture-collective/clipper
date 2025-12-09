@@ -98,7 +98,9 @@ function App() {
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
-                    <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                    {import.meta.env.DEV && (
+                      <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                    )}
 
                     {/* Guest Routes (redirect to home if authenticated) */}
                     <Route

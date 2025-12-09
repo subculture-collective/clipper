@@ -1,12 +1,16 @@
 import React from 'react';
 import { Badge } from '@/components/ui';
-import { USER_ROLES, type UserRole, getRoleDisplayName } from '@/lib/roles';
+import { USER_ROLES, type UserRole, getRoleDisplayName, getRoleBadgeVariant as getBaseRoleBadgeVariant } from '@/lib/roles';
 
 export interface UserRoleBadgeProps {
   /**
    * The user's role
    * - UserRole types (admin, moderator, user) are from the user's account role
    * - 'creator' is for content creators/submitters in specific contexts
+   *   Example: Use 'creator' when showing the original creator of a clip, not the submitter's account role.
+   *   ```tsx
+   *   <UserRoleBadge role="creator" size="sm" />
+   *   ```
    * - 'member' is a synonym for 'user', used when emphasizing community membership
    */
   role: UserRole | 'creator' | 'member';
@@ -28,20 +32,16 @@ export interface UserRoleBadgeProps {
 
 /**
  * Get the badge variant for a role
+ * Extends the base role variant with additional 'creator' and 'member' types
  */
 function getRoleBadgeVariant(role: UserRole | 'creator' | 'member'): 'error' | 'warning' | 'primary' | 'default' {
-  switch (role) {
-    case USER_ROLES.ADMIN:
-      return 'error';
-    case USER_ROLES.MODERATOR:
-      return 'warning';
-    case 'creator':
-      return 'primary';
-    case USER_ROLES.USER:
-    case 'member':
-    default:
-      return 'default';
+  if (role === 'creator') {
+    return 'primary';
   }
+  if (role === 'member') {
+    return 'default';
+  }
+  return getBaseRoleBadgeVariant(role);
 }
 
 /**

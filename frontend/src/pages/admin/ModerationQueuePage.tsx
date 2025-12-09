@@ -239,7 +239,9 @@ export function ModerationQueuePage() {
                                                             }{' '}
                                                             karma
                                                         </Badge>
-                                                        <UserRoleBadge role={submission.user.role as UserRole} size="sm" />
+                                                        {submission.user.role !== 'user' && (
+                                                            <UserRoleBadge role={submission.user.role as UserRole} size="sm" />
+                                                        )}
                                                     </div>
                                                 )}
 
