@@ -19,16 +19,16 @@ import (
 
 // ScraperStats tracks scraping statistics
 type ScraperStats struct {
-	StartTime           time.Time
-	EndTime             time.Time
-	BroadcastersFetched int
-	BroadcastersScraped int
-	ClipsChecked        int
-	ClipsInserted       int
-	ClipsSkipped        int
-	Errors              int
-	LastError           error
-	APICallsMade        int
+	StartTime           time.Time // Time when scraping started
+	EndTime             time.Time // Time when scraping ended
+	BroadcastersFetched int       // Number of broadcasters found in database
+	BroadcastersScraped int       // Number of broadcasters successfully processed
+	ClipsChecked        int       // Total number of clips examined
+	ClipsInserted       int       // Number of new clips inserted into database
+	ClipsSkipped        int       // Number of clips skipped (duplicates or filtered out)
+	Errors              int       // Number of errors encountered
+	LastError           error     // Most recent error (if any)
+	APICallsMade        int       // Number of Twitch API calls made
 }
 
 // ScraperConfig holds scraping configuration
@@ -219,14 +219,14 @@ func getBroadcastersFromSubmissions(ctx context.Context, db *pgxpool.Pool, lookb
 	query := `
 		SELECT DISTINCT broadcaster_name
 		FROM clip_submissions
-		WHERE created_at > NOW() - INTERVAL '%d days'
+		WHERE created_at > NOW() - $1 * INTERVAL '1 day'
 			AND broadcaster_name IS NOT NULL
 			AND broadcaster_name != ''
 		GROUP BY broadcaster_name
 		ORDER BY COUNT(*) DESC
 	`
 
-	rows, err := db.Query(ctx, fmt.Sprintf(query, lookbackDays))
+	rows, err := db.Query(ctx, query, lookbackDays)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
