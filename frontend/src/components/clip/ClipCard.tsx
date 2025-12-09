@@ -160,12 +160,31 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                     {/* Metadata */}
                     <div className='text-muted-foreground flex flex-wrap gap-1.5 xs:gap-2 mb-3 text-xs xs:text-sm'>
-                        <Link
-                            to={`/creator/${clip.creator_id}`}
-                            className='hover:text-foreground transition-colors touch-target cursor-pointer'
-                        >
-                            {clip.creator_name}
-                        </Link>
+                        <span className='flex items-center gap-1'>
+                            <span className='hidden xs:inline'>Clipped by</span>
+                            <a
+                                href={clip.twitch_clip_url}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='hover:text-foreground transition-colors touch-target cursor-pointer'
+                            >
+                                {clip.creator_name}
+                            </a>
+                        </span>
+                        {clip.submitted_by && (
+                            <>
+                                <span className='hidden xs:inline'>•</span>
+                                <span className='flex items-center gap-1'>
+                                    <span className='hidden xs:inline'>Submitted by</span>
+                                    <Link
+                                        to={`/user/${clip.submitted_by.username}`}
+                                        className='hover:text-foreground transition-colors touch-target cursor-pointer'
+                                    >
+                                        {clip.submitted_by.display_name}
+                                    </Link>
+                                </span>
+                            </>
+                        )}
                         <span className='hidden xs:inline'>•</span>
                         {clip.game_name && (
                             <>

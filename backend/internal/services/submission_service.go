@@ -803,24 +803,27 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	broadcasterNameFallback := utils.StringOrDefault(submission.BroadcasterName, &emptyStr)
 	broadcasterName := utils.StringOrDefault(submission.BroadcasterNameOverride, &broadcasterNameFallback)
 
+	now := time.Now()
 	clip := &models.Clip{
-		ID:              uuid.New(),
-		TwitchClipID:    submission.TwitchClipID,
-		TwitchClipURL:   submission.TwitchClipURL,
-		EmbedURL:        fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", submission.TwitchClipID),
-		Title:           title,
-		CreatorName:     creatorName,
-		CreatorID:       submission.CreatorID,
-		BroadcasterName: broadcasterName,
-		BroadcasterID:   submission.BroadcasterID,
-		GameID:          submission.GameID,
-		GameName:        submission.GameName,
-		ThumbnailURL:    submission.ThumbnailURL,
-		Duration:        submission.Duration,
-		ViewCount:       submission.ViewCount,
-		CreatedAt:       time.Now(),
-		ImportedAt:      time.Now(),
-		IsNSFW:          submission.IsNSFW,
+		ID:                uuid.New(),
+		TwitchClipID:      submission.TwitchClipID,
+		TwitchClipURL:     submission.TwitchClipURL,
+		EmbedURL:          fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", submission.TwitchClipID),
+		Title:             title,
+		CreatorName:       creatorName,
+		CreatorID:         submission.CreatorID,
+		BroadcasterName:   broadcasterName,
+		BroadcasterID:     submission.BroadcasterID,
+		GameID:            submission.GameID,
+		GameName:          submission.GameName,
+		ThumbnailURL:      submission.ThumbnailURL,
+		Duration:          submission.Duration,
+		ViewCount:         submission.ViewCount,
+		CreatedAt:         now,
+		ImportedAt:        now,
+		IsNSFW:            submission.IsNSFW,
+		SubmittedByUserID: &submission.UserID,
+		SubmittedAt:       &submission.CreatedAt,
 	}
 
 	return s.clipRepo.Create(ctx, clip)

@@ -96,6 +96,8 @@ type Clip struct {
 	Embedding            []float32  `json:"embedding,omitempty" db:"embedding"`
 	EmbeddingGeneratedAt *time.Time `json:"embedding_generated_at,omitempty" db:"embedding_generated_at"`
 	EmbeddingModel       *string    `json:"embedding_model,omitempty" db:"embedding_model"`
+	SubmittedByUserID    *uuid.UUID `json:"submitted_by_user_id,omitempty" db:"submitted_by_user_id"`
+	SubmittedAt          *time.Time `json:"submitted_at,omitempty" db:"submitted_at"`
 }
 
 // Vote represents a user's vote on a clip
@@ -175,6 +177,20 @@ type Report struct {
 type ClipWithHotScore struct {
 	Clip
 	HotScore float64 `json:"hot_score" db:"hot_score"`
+}
+
+// ClipSubmitterInfo represents basic info about the user who submitted a clip
+type ClipSubmitterInfo struct {
+	ID          uuid.UUID `json:"id"`
+	Username    string    `json:"username"`
+	DisplayName string    `json:"display_name"`
+	AvatarURL   *string   `json:"avatar_url,omitempty"`
+}
+
+// ClipWithSubmitter represents a clip with submitter information
+type ClipWithSubmitter struct {
+	Clip
+	SubmittedBy *ClipSubmitterInfo `json:"submitted_by,omitempty"`
 }
 
 // SearchRequest represents a search query request
