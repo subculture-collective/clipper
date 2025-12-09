@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimestamp } from '../lib/utils';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -260,11 +260,8 @@ export function ProfilePage() {
                                             <span className='text-muted-foreground'>
                                                 Joined:
                                             </span>
-                                            <span className='font-semibold'>
-                                                {formatDistanceToNow(
-                                                    new Date(user.created_at),
-                                                    { addSuffix: true }
-                                                )}
+                                            <span className='font-semibold' title={formatTimestamp(user.created_at).title}>
+                                                {formatTimestamp(user.created_at).display}
                                             </span>
                                         </div>
                                     )}
@@ -486,9 +483,9 @@ export function ProfilePage() {
                                                         <p className='text-foreground'>{comment.content}</p>
                                                         <div className='mt-2 text-sm text-muted-foreground'>
                                                             {comment.vote_score} points •{' '}
-                                                            {formatDistanceToNow(new Date(comment.created_at), {
-                                                                addSuffix: true,
-                                                            })}
+                                                            <span title={formatTimestamp(comment.created_at).title}>
+                                                                {formatTimestamp(comment.created_at).display}
+                                                            </span>
                                                         </div>
                                                     </CardBody>
                                                 </Card>
