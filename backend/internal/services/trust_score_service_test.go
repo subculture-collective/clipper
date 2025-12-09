@@ -214,7 +214,8 @@ func TestManuallyAdjustScore(t *testing.T) {
 
 		cacheKey := "trust_score:" + userID.String()
 
-		mockRepo.On("UpdateUserTrustScore", ctx, userID, newScore, models.TrustScoreReasonManualAdjustment, (*map[string]interface{})(nil), &adminID, &notes).Return(nil)
+		var nilMap map[string]interface{}
+		mockRepo.On("UpdateUserTrustScore", ctx, userID, newScore, models.TrustScoreReasonManualAdjustment, nilMap, &adminID, &notes).Return(nil)
 		mockCache.On("Delete", ctx, cacheKey).Return(nil)
 
 		err := service.ManuallyAdjustScore(ctx, userID, newScore, adminID, "test", &notes)

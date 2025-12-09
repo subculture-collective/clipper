@@ -8,13 +8,26 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
-	"github.com/subculture-collective/clipper/internal/repository"
 )
+
+// TrustScoreRepositoryInterface defines repository operations for trust scores
+type TrustScoreRepositoryInterface interface {
+	CalculateTrustScore(ctx context.Context, userID uuid.UUID) (int, error)
+	CalculateTrustScoreBreakdown(ctx context.Context, userID uuid.UUID) (*models.TrustScoreBreakdown, error)
+	UpdateUserTrustScore(ctx context.Context, userID uuid.UUID, newScore int, reason string, componentScores map[string]interface{}, changedBy *uuid.UUID, notes *string) error
+	GetTrustScoreHistory(ctx context.Context, userID uuid.UUID, limit int) ([]models.TrustScoreHistory, error)
+	GetTrustScoreLeaderboard(ctx context.Context, limit, offset int) ([]models.LeaderboardEntry, error)
+}
+
+// TrustScoreUserRepositoryInterface defines user repository operations needed
+type TrustScoreUserRepositoryInterface interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+}
 
 // TrustScoreService handles trust score calculation and management
 type TrustScoreService struct {
-	reputationRepo *repository.ReputationRepository
-	userRepo       *repository.UserRepository
+	reputationRepo TrustScoreRepositoryInterface
+	userRepo       TrustScoreUserRepositoryInterface
 	cacheService   CacheServiceInterface
 }
 
@@ -27,8 +40,8 @@ type CacheServiceInterface interface {
 
 // NewTrustScoreService creates a new trust score service
 func NewTrustScoreService(
-	reputationRepo *repository.ReputationRepository,
-	userRepo *repository.UserRepository,
+	reputationRepo TrustScoreRepositoryInterface,
+	userRepo TrustScoreUserRepositoryInterface,
 	cacheService CacheServiceInterface,
 ) *TrustScoreService {
 	return &TrustScoreService{

@@ -305,3 +305,122 @@ func (h *ReputationHandler) GetBadgeDefinitions(c *gin.Context) {
 		"badges": badges,
 	})
 }
+
+// GetUserTrustScoreBreakdown retrieves detailed trust score breakdown for a user (admin only)
+// GET /admin/users/:id/trust-score/breakdown
+func (h *ReputationHandler) GetUserTrustScoreBreakdown(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
+		})
+		return
+	}
+
+	// This endpoint requires trust score service, which should be injected
+	// For now, return a placeholder response
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error":   "Not implemented",
+		"code":    "NOT_IMPLEMENTED",
+		"message": "Trust score breakdown endpoint is not yet implemented",
+	})
+}
+
+// GetUserTrustScoreHistory retrieves trust score change history for a user (admin only)
+// GET /admin/users/:id/trust-score/history
+func (h *ReputationHandler) GetUserTrustScoreHistory(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
+		})
+		return
+	}
+
+	// Get limit from query params
+	limitStr := c.DefaultQuery("limit", "50")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 50
+	}
+
+	// This endpoint requires trust score service
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error":   "Not implemented",
+		"code":    "NOT_IMPLEMENTED",
+		"message": "Trust score history endpoint is not yet implemented",
+		"user_id": userID,
+		"limit":   limit,
+	})
+}
+
+// ManuallyAdjustTrustScore allows an admin to manually adjust a user's trust score
+// POST /admin/users/:id/trust-score/adjust
+func (h *ReputationHandler) ManuallyAdjustTrustScore(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid user ID",
+			"code":    "INVALID_USER_ID",
+			"message": "The provided user ID is not valid",
+		})
+		return
+	}
+
+	// Get current admin user
+	currentUser, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"code":    "UNAUTHORIZED",
+			"message": "Authentication required",
+		})
+		return
+	}
+
+	// This endpoint requires trust score service
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error":   "Not implemented",
+		"code":    "NOT_IMPLEMENTED",
+		"message": "Manual trust score adjustment endpoint is not yet implemented",
+		"user_id": userID,
+		"admin":   currentUser,
+	})
+}
+
+// GetTrustScoreLeaderboard retrieves top users by trust score
+// GET /leaderboard/trust-score
+func (h *ReputationHandler) GetTrustScoreLeaderboard(c *gin.Context) {
+	// Get pagination params
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "50")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 50
+	}
+
+	offset := (page - 1) * limit
+
+	// This endpoint requires trust score service
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error":   "Not implemented",
+		"code":    "NOT_IMPLEMENTED",
+		"message": "Trust score leaderboard endpoint is not yet implemented",
+		"page":    page,
+		"limit":   limit,
+		"offset":  offset,
+	})
+}
