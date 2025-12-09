@@ -301,9 +301,10 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	if clipExistence.Exists && clipExistence.CanBeClaimed {
 		now := time.Now()
 		title := req.CustomTitle
+		broadcasterName := req.BroadcasterNameOverride
 		
 		// Claim the scraped clip
-		if err := s.clipRepo.ClaimScrapedClip(ctx, clipExistence.Clip.ID, userID, title, req.IsNSFW, now); err != nil {
+		if err := s.clipRepo.ClaimScrapedClip(ctx, clipExistence.Clip.ID, userID, title, req.IsNSFW, broadcasterName, now); err != nil {
 			return nil, fmt.Errorf("failed to claim scraped clip: %w", err)
 		}
 
@@ -321,21 +322,76 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 			log.Printf("Failed to award karma: %v\n", err)
 		}
 
-		// Return a pseudo-submission response showing the clip was claimed
-		// We create a submission object for response compatibility
+		// Create a real submission record for audit trail and consistency
 		submission := &models.ClipSubmission{
-			ID:           uuid.New(),
-			UserID:       userID,
-			TwitchClipID: clipExistence.Clip.TwitchClipID,
-			TwitchClipURL: clipExistence.Clip.TwitchClipURL,
-			CustomTitle:  title,
-			Title:        &clipExistence.Clip.Title,
-			IsNSFW:       req.IsNSFW,
-			Status:       "approved", // Claimed clips are immediately approved
-			CreatedAt:    now,
-			UpdatedAt:    now,
-			ReviewedAt:   &now,
-			ReviewedBy:   &userID,
+			ID:                      uuid.New(),
+			UserID:                  userID,
+			TwitchClipID:            clipExistence.Clip.TwitchClipID,
+			TwitchClipURL:           clipExistence.Clip.TwitchClipURL,
+			CustomTitle:             title,
+			Title:                   &clipExistence.Clip.Title,
+			IsNSFW:                  req.IsNSFW,
+			Tags:                    req.Tags,
+			SubmissionReason:        req.SubmissionReason,
+			BroadcasterNameOverride: req.BroadcasterNameOverride,
+			Status:                  "approved", // Claimed clips are immediately approved
+			CreatedAt:               now,
+			UpdatedAt:               now,
+			ReviewedAt:              &now,
+			ReviewedBy:              &userID,
+			// Copy metadata from existing clip
+			CreatorName:     &clipExistence.Clip.CreatorName,
+			CreatorID:       clipExistence.Clip.CreatorID,
+			BroadcasterName: &clipExistence.Clip.BroadcasterName,
+			BroadcasterID:   clipExistence.Clip.BroadcasterID,
+			GameID:          clipExistence.Clip.GameID,
+			GameName:        clipExistence.Clip.GameName,
+			ThumbnailURL:    clipExistence.Clip.ThumbnailURL,
+			Duration:        clipExistence.Clip.Duration,
+			ViewCount:       clipExistence.Clip.ViewCount,
+		}
+		
+		// Save submission to database for audit trail
+		if err := s.submissionRepo.Create(ctx, submission); err != nil {
+			return nil, fmt.Errorf("failed to create submission record for claimed clip: %w", err)
+		}
+		
+		// Trigger webhook events for integrations
+		if s.webhookService != nil {
+			webhookData := map[string]interface{}{
+				"submission_id":   submission.ID.String(),
+				"user_id":         userID.String(),
+				"twitch_clip_id":  submission.TwitchClipID,
+				"twitch_clip_url": submission.TwitchClipURL,
+				"clip_id":         clipExistence.Clip.ID.String(),
+				"claimed":         true, // Distinguish from normal submissions
+			}
+			if submission.CustomTitle != nil {
+				webhookData["custom_title"] = *submission.CustomTitle
+			}
+			if len(submission.Tags) > 0 {
+				webhookData["tags"] = submission.Tags
+			}
+			
+			// Trigger clip.submitted event
+			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipSubmitted, submission.ID, webhookData); err != nil {
+				log.Printf("Warning: failed to trigger clip.submitted webhook for claimed clip: %v\n", err)
+			}
+			
+			// Trigger clip.approved event (claimed clips are auto-approved)
+			webhookDataApproved := map[string]interface{}{
+				"submission_id":   submission.ID.String(),
+				"user_id":         userID.String(),
+				"twitch_clip_id":  submission.TwitchClipID,
+				"twitch_clip_url": submission.TwitchClipURL,
+				"clip_id":         clipExistence.Clip.ID.String(),
+				"claimed":         true,
+				"reviewer_id":     userID.String(),
+				"approved_at":     now,
+			}
+			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipApproved, submission.ID, webhookDataApproved); err != nil {
+				log.Printf("Warning: failed to trigger clip.approved webhook for claimed clip: %v\n", err)
+			}
 		}
 		
 		return submission, nil
@@ -701,12 +757,38 @@ type ClipExistenceResult struct {
 	CanBeClaimed bool // True if clip exists but submitted_by_user_id is NULL
 }
 
-// CheckClipExistence is a public wrapper for checkClipExistence
+// CheckClipExistence checks if a clip already exists in the database and whether it can be claimed by a user.
+// This is a public wrapper for the internal checkClipExistence method.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - twitchClipID: The Twitch clip ID to check
+//
+// Returns:
+//   - ClipExistenceResult: Contains information about the clip's existence and claimability
+//   - error: Any error that occurred during the check
+//
+// The CanBeClaimed field in the result will be true when:
+//   - The clip exists in the database (Exists = true)
+//   - The clip has no submitted_by_user_id (it's a scraped/imported clip)
+//
+// Example usage:
+//
+//	result, err := service.CheckClipExistence(ctx, "AwesomeClipID123")
+//	if err != nil {
+//	    return err
+//	}
+//	if result.CanBeClaimed {
+//	    // User can claim this scraped clip
+//	}
 func (s *SubmissionService) CheckClipExistence(ctx context.Context, twitchClipID string) (*ClipExistenceResult, error) {
 	return s.checkClipExistence(ctx, twitchClipID)
 }
 
-// checkClipExistence checks if a clip already exists and whether it can be claimed
+// checkClipExistence is the internal implementation that checks if a clip exists and whether it can be claimed.
+// It queries the clips table by twitch_clip_id and determines if the clip is available for claiming.
+//
+// A clip can be claimed when it exists in the database but has no submitted_by_user_id (i.e., it's a scraped clip).
 func (s *SubmissionService) checkClipExistence(ctx context.Context, twitchClipID string) (*ClipExistenceResult, error) {
 	clip, err := s.clipRepo.GetByTwitchClipID(ctx, twitchClipID)
 	if err != nil {

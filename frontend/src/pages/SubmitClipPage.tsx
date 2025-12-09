@@ -45,7 +45,7 @@ export function SubmitClipPage() {
 
     // Pre-fill from navigation state (e.g., when claiming a scraped clip)
     useEffect(() => {
-        const state = location.state as { clipUrl?: string; fromScrapedClip?: boolean } | null;
+        const state = location.state as { clipUrl?: string } | null;
         if (state?.clipUrl) {
             setFormData((prev) => ({
                 ...prev,

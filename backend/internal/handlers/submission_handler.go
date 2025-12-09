@@ -212,6 +212,8 @@ func (h *SubmissionHandler) GetClipMetadata(c *gin.Context) {
 
 // CheckClipStatus checks if a clip exists and whether it can be claimed
 // GET /submissions/check/:clip_id
+// Note: This endpoint is public to allow users to check clip status before attempting to claim.
+// Sensitive fields are filtered from the response.
 func (h *SubmissionHandler) CheckClipStatus(c *gin.Context) {
 	clipID := c.Param("clip_id")
 	if clipID == "" {
@@ -237,8 +239,17 @@ func (h *SubmissionHandler) CheckClipStatus(c *gin.Context) {
 		"can_be_claimed": result.CanBeClaimed,
 	}
 
+	// If clip exists, return minimal public information only
 	if result.Exists && result.Clip != nil {
-		response["clip"] = result.Clip
+		response["clip"] = gin.H{
+			"id":              result.Clip.ID,
+			"title":           result.Clip.Title,
+			"broadcaster_name": result.Clip.BroadcasterName,
+			"game_name":       result.Clip.GameName,
+			"view_count":      result.Clip.ViewCount,
+			"created_at":      result.Clip.CreatedAt,
+			// Exclude sensitive fields: is_removed, removed_reason, submitted_by_user_id, etc.
+		}
 	}
 
 	c.JSON(http.StatusOK, response)

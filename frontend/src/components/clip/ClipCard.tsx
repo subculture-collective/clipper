@@ -42,8 +42,7 @@ export function ClipCard({ clip }: ClipCardProps) {
         // Navigate to submit page with clip URL pre-filled
         navigate('/submit', { 
             state: { 
-                clipUrl: clip.twitch_clip_url,
-                fromScrapedClip: true 
+                clipUrl: clip.twitch_clip_url
             } 
         });
     };

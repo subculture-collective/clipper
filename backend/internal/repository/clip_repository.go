@@ -117,26 +117,62 @@ func (r *ClipRepository) ExistsByTwitchClipID(ctx context.Context, twitchClipID 
 	return exists, nil
 }
 
-// ClaimScrapedClip updates a scraped clip to mark it as claimed by a user
-// This includes updating title, tags, NSFW status, and submitter information
-func (r *ClipRepository) ClaimScrapedClip(ctx context.Context, clipID uuid.UUID, userID uuid.UUID, title *string, isNSFW bool, submittedAt time.Time) error {
+// ClaimScrapedClip atomically updates a scraped clip to mark it as claimed by a user.
+// This method performs a check-and-update operation to prevent race conditions where
+// multiple users attempt to claim the same clip simultaneously.
+//
+// Parameters:
+//   - ctx: Context for the database operation
+//   - clipID: The UUID of the clip to claim
+//   - userID: The UUID of the user claiming the clip
+//   - title: Optional custom title to override the clip's current title (can be nil)
+//   - isNSFW: Whether the clip should be marked as NSFW
+//   - broadcasterName: Optional broadcaster name override (can be nil)
+//   - submittedAt: The timestamp when the clip was claimed/submitted
+//
+// Returns:
+//   - error: Returns "clip not found" if clip doesn't exist, or "clip has already been claimed by another user" if already claimed
+//
+// The WHERE clause (submitted_by_user_id IS NULL) ensures atomicity - the update will only
+// succeed if the clip hasn't been claimed yet, preventing duplicate claims.
+//
+// Example usage:
+//
+//	err := repo.ClaimScrapedClip(ctx, clipID, userID, &customTitle, false, &broadcasterOverride, time.Now())
+//	if err != nil {
+//	    // Handle error - clip may not exist or already claimed
+//	}
+func (r *ClipRepository) ClaimScrapedClip(ctx context.Context, clipID uuid.UUID, userID uuid.UUID, title *string, isNSFW bool, broadcasterName *string, submittedAt time.Time) error {
 	query := `
 		UPDATE clips
 		SET submitted_by_user_id = $2,
 		    submitted_at = $3,
 		    title = COALESCE($4, title),
-		    is_nsfw = $5
+		    is_nsfw = $5,
+		    broadcaster_name = COALESCE($6, broadcaster_name)
 		WHERE id = $1 AND submitted_by_user_id IS NULL
 	`
 
-	result, err := r.pool.Exec(ctx, query, clipID, userID, submittedAt, title, isNSFW)
+	result, err := r.pool.Exec(ctx, query, clipID, userID, submittedAt, title, isNSFW, broadcasterName)
 	if err != nil {
 		return fmt.Errorf("failed to claim scraped clip: %w", err)
 	}
 
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("clip not found or already claimed")
+		// Check if clip exists at all
+		var exists bool
+		checkQuery := `SELECT EXISTS(SELECT 1 FROM clips WHERE id = $1)`
+		if checkErr := r.pool.QueryRow(ctx, checkQuery, clipID).Scan(&exists); checkErr != nil {
+			return fmt.Errorf("failed to verify clip existence: %w", checkErr)
+		}
+		
+		if !exists {
+			return fmt.Errorf("clip not found")
+		}
+		
+		// Clip exists but update didn't happen - must be already claimed
+		return fmt.Errorf("clip has already been claimed by another user")
 	}
 
 	return nil
