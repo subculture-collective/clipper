@@ -135,28 +135,39 @@ func (s *NotificationService) CreateNotificationWithEmail(
 // shouldNotify checks if a user should be notified based on their preferences
 func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences, notificationType string) bool {
 	switch notificationType {
+	// Content notifications
 	case models.NotificationTypeReply:
 		return prefs.NotifyReplies
 	case models.NotificationTypeMention:
 		return prefs.NotifyMentions
 	case models.NotificationTypeVoteMilestone:
 		return prefs.NotifyVotes
-	case models.NotificationTypeBadgeEarned, models.NotificationTypeRankUp:
+	case models.NotificationTypeFavoritedClipComment:
+		return prefs.NotifyFavoritedClipComment
+	case models.NotificationTypeSubmissionApproved:
+		return prefs.NotifySubmissionApproved
+	case models.NotificationTypeSubmissionRejected:
+		return prefs.NotifySubmissionRejected
+
+	// Community notifications
+	case models.NotificationTypeBadgeEarned:
 		return prefs.NotifyBadges
+	case models.NotificationTypeRankUp:
+		return prefs.NotifyRankUp
 	case models.NotificationTypeContentRemoved, models.NotificationTypeWarning,
 		models.NotificationTypeBan, models.NotificationTypeAppealDecision:
 		return prefs.NotifyModeration
-	case models.NotificationTypeFavoritedClipComment:
-		return prefs.NotifyFavoritedClipComment
+
 	// Creator-specific notification preferences
-	case models.NotificationTypeSubmissionApproved:
+	case models.NotificationTypeClipApproved:
 		return prefs.NotifyClipApproved
-	case models.NotificationTypeSubmissionRejected:
+	case models.NotificationTypeClipRejected:
 		return prefs.NotifyClipRejected
 	case models.NotificationTypeClipComment:
 		return prefs.NotifyClipComments
 	case models.NotificationTypeClipViewThreshold, models.NotificationTypeClipVoteThreshold:
 		return prefs.NotifyClipThreshold
+
 	default:
 		return true // Default to notifying for unknown types
 	}
