@@ -523,6 +523,13 @@ func main() {
 			clips.DELETE("/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), clipHandler.DeleteClip)
 		}
 
+		// Scraped clips routes
+		scrapedClips := v1.Group("/scraped-clips")
+		{
+			// Public endpoint for listing scraped clips (not claimed by users)
+			scrapedClips.GET("", clipHandler.ListScrapedClips)
+		}
+
 		// Comment routes
 		comments := v1.Group("/comments")
 		{

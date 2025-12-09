@@ -282,6 +282,93 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	})
 }
 
+// ListScrapedClips handles GET /scraped-clips
+// Returns clips that have not been claimed/submitted by any user (submitted_by_user_id IS NULL)
+func (h *ClipHandler) ListScrapedClips(c *gin.Context) {
+	// Parse query parameters
+	sort := c.DefaultQuery("sort", "new")
+	timeframe := c.Query("timeframe")
+	gameID := c.Query("game_id")
+	broadcasterID := c.Query("broadcaster_id")
+	tag := c.Query("tag")
+	search := c.Query("search")
+	language := c.Query("language")
+	top10kStreamers := c.Query("top10k_streamers") == "true"
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
+
+	// Validate and constrain parameters
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
+
+	// Build filters
+	filters := repository.ClipFilters{
+		Sort:            sort,
+		Top10kStreamers: top10kStreamers,
+	}
+
+	if gameID != "" {
+		filters.GameID = &gameID
+	}
+	if broadcasterID != "" {
+		filters.BroadcasterID = &broadcasterID
+	}
+	if tag != "" {
+		filters.Tag = &tag
+	}
+	if search != "" {
+		filters.Search = &search
+	}
+	if language != "" {
+		filters.Language = &language
+	}
+	if timeframe != "" {
+		filters.Timeframe = &timeframe
+	}
+
+	// Get user ID if authenticated
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	// Fetch scraped clips only
+	clips, total, err := h.clipService.ListScrapedClips(c.Request.Context(), filters, page, limit, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to fetch scraped clips",
+			},
+		})
+		return
+	}
+
+	// Build pagination metadata
+	totalPages := (total + limit - 1) / limit
+	meta := PaginationMeta{
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+		HasNext:    page < totalPages,
+		HasPrev:    page > 1,
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data:    clips,
+		Meta:    meta,
+	})
+}
+
 // GetClip handles GET /clips/:id
 // Accepts both UUID and Twitch clip ID formats
 func (h *ClipHandler) GetClip(c *gin.Context) {

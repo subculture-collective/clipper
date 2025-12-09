@@ -4,6 +4,7 @@ export { NewFeedPage } from './NewFeedPage';
 export { TopFeedPage } from './TopFeedPage';
 export { RisingFeedPage } from './RisingFeedPage';
 export { DiscoveryPage } from './DiscoveryPage';
+export { ScrapedClipsPage } from './ScrapedClipsPage';
 export { ClipDetailPage } from './ClipDetailPage';
 export { GamePage } from './GamePage';
 export { BroadcasterPage } from './BroadcasterPage';

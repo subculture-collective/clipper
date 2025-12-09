@@ -295,6 +295,88 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 	return clipsWithData, total, nil
 }
 
+// ListScrapedClips retrieves only scraped clips (not claimed by users) with filters and pagination
+func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.ClipFilters, page, limit int, userID *uuid.UUID) ([]ClipWithUserData, int, error) {
+	// Check cache for non-user-specific queries
+	cacheKey := s.buildCacheKey(filters, page, limit) + ":scraped"
+	var cachedClips []models.Clip
+	var cachedTotal int
+
+	if userID == nil {
+		cached, err := s.redisClient.Get(ctx, cacheKey)
+		if err == nil && cached != "" {
+			var cacheData struct {
+				Clips []models.Clip `json:"clips"`
+				Total int           `json:"total"`
+			}
+			if json.Unmarshal([]byte(cached), &cacheData) == nil {
+				cachedClips = cacheData.Clips
+				cachedTotal = cacheData.Total
+			}
+		}
+	}
+
+	var clips []models.Clip
+	var total int
+	var err error
+
+	if cachedClips != nil {
+		clips = cachedClips
+		total = cachedTotal
+	} else {
+		offset := (page - 1) * limit
+		clips, total, err = s.clipRepo.ListScrapedClipsWithFilters(ctx, filters, limit, offset)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Cache non-user-specific results
+		if userID == nil {
+			cacheData := struct {
+				Clips []models.Clip `json:"clips"`
+				Total int           `json:"total"`
+			}{
+				Clips: clips,
+				Total: total,
+			}
+			if data, err := json.Marshal(cacheData); err == nil {
+				ttl := s.getCacheTTL(filters.Sort)
+				_ = s.redisClient.Set(ctx, cacheKey, string(data), ttl)
+			}
+		}
+	}
+
+	// Enrich with user data (scraped clips won't have submitters)
+	clipsWithData := make([]ClipWithUserData, len(clips))
+	for i, clip := range clips {
+		clipsWithData[i] = ClipWithUserData{
+			Clip: clip,
+		}
+
+		// Get vote counts
+		upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+		if err == nil {
+			clipsWithData[i].UpvoteCount = upvotes
+			clipsWithData[i].DownvoteCount = downvotes
+		}
+
+		// Get user-specific data if authenticated
+		if userID != nil {
+			vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+			if err == nil && vote != nil {
+				clipsWithData[i].UserVote = &vote.VoteType
+			}
+
+			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+			if err == nil {
+				clipsWithData[i].IsFavorited = isFavorited
+			}
+		}
+	}
+
+	return clipsWithData, total, nil
+}
+
 // VoteOnClip handles voting on a clip
 func (s *ClipService) VoteOnClip(ctx context.Context, userID, clipID uuid.UUID, voteType int16) error {
 	// Validate vote type
