@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -426,4 +427,216 @@ func (r *ReputationRepository) CheckAndAwardAutomaticBadges(ctx context.Context,
 	}
 
 	return awardedBadges, nil
+}
+
+// CalculateTrustScoreBreakdown calculates trust score with detailed component breakdown
+func (r *ReputationRepository) CalculateTrustScoreBreakdown(ctx context.Context, userID uuid.UUID) (*models.TrustScoreBreakdown, error) {
+	query := `
+		SELECT
+			u.karma_points,
+			u.is_banned,
+			EXTRACT(EPOCH FROM (NOW() - u.created_at))::INT / 86400 as account_age_days,
+			COALESCE(us.correct_reports, 0) as correct_reports,
+			COALESCE(us.incorrect_reports, 0) as incorrect_reports,
+			COALESCE(us.total_comments, 0) as total_comments,
+			COALESCE(us.total_votes_cast, 0) as total_votes_cast,
+			COALESCE(us.days_active, 0) as days_active
+		FROM users u
+		LEFT JOIN user_stats us ON u.id = us.user_id
+		WHERE u.id = $1
+	`
+
+	var breakdown models.TrustScoreBreakdown
+	var accountAgeDays, correctReports, incorrectReports, totalComments, totalVotes, daysActive int
+	var karmaPoints int
+	var isBanned bool
+
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&karmaPoints,
+		&isBanned,
+		&accountAgeDays,
+		&correctReports,
+		&incorrectReports,
+		&totalComments,
+		&totalVotes,
+		&daysActive,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user data for trust score: %w", err)
+	}
+
+	// Store raw data
+	breakdown.AccountAgeDays = accountAgeDays
+	breakdown.KarmaPoints = karmaPoints
+	breakdown.CorrectReports = correctReports
+	breakdown.IncorrectReports = incorrectReports
+	breakdown.TotalComments = totalComments
+	breakdown.TotalVotes = totalVotes
+	breakdown.DaysActive = daysActive
+	breakdown.IsBanned = isBanned
+	breakdown.MaxScore = 100
+
+	// Calculate component scores (matching database function logic)
+	// Account age contribution (max 20 points)
+	breakdown.AccountAgeScore = min(accountAgeDays/18, 20)
+
+	// Karma contribution (max 40 points)
+	breakdown.KarmaScore = min(karmaPoints/250, 40)
+
+	// Report accuracy contribution (max 20 points)
+	totalReports := correctReports + incorrectReports
+	if totalReports > 0 {
+		breakdown.ReportAccuracy = (20 * correctReports) / totalReports
+	} else {
+		breakdown.ReportAccuracy = 0
+	}
+
+	// Activity contribution (max 20 points)
+	activityScore := (totalComments / 10) + (totalVotes / 100) + (daysActive / 5)
+	breakdown.ActivityScore = min(activityScore, 20)
+
+	// Calculate total score
+	breakdown.TotalScore = breakdown.AccountAgeScore + breakdown.KarmaScore + breakdown.ReportAccuracy + breakdown.ActivityScore
+
+	// Apply penalty for banned users
+	if isBanned {
+		breakdown.BanPenalty = 0.5
+		breakdown.TotalScore = breakdown.TotalScore / 2
+	}
+
+	// Clamp to 0-100 range
+	if breakdown.TotalScore < 0 {
+		breakdown.TotalScore = 0
+	}
+	if breakdown.TotalScore > 100 {
+		breakdown.TotalScore = 100
+	}
+
+	return &breakdown, nil
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// UpdateUserTrustScore updates a user's trust score and logs the change
+func (r *ReputationRepository) UpdateUserTrustScore(
+	ctx context.Context,
+	userID uuid.UUID,
+	newScore int,
+	reason string,
+	componentScores map[string]interface{},
+	changedBy *uuid.UUID,
+	notes *string,
+) error {
+	// Convert component scores to JSONB
+	var componentScoresJSON interface{}
+	if componentScores != nil {
+		componentScoresJSON = componentScores
+	}
+
+	query := `SELECT update_user_trust_score($1, $2, $3, $4, $5, $6)`
+
+	_, err := r.db.Exec(ctx, query, userID, newScore, reason, componentScoresJSON, changedBy, notes)
+	if err != nil {
+		return fmt.Errorf("failed to update user trust score: %w", err)
+	}
+
+	return nil
+}
+
+// GetTrustScoreHistory retrieves trust score history for a user
+func (r *ReputationRepository) GetTrustScoreHistory(ctx context.Context, userID uuid.UUID, limit int) ([]models.TrustScoreHistory, error) {
+	query := `
+		SELECT id, user_id, old_score, new_score, change_reason, 
+		       component_scores, changed_by, notes, created_at
+		FROM trust_score_history
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query trust score history: %w", err)
+	}
+	defer rows.Close()
+
+	var history []models.TrustScoreHistory
+	for rows.Next() {
+		var h models.TrustScoreHistory
+		var componentScoresJSON []byte
+
+		err := rows.Scan(
+			&h.ID,
+			&h.UserID,
+			&h.OldScore,
+			&h.NewScore,
+			&h.ChangeReason,
+			&componentScoresJSON,
+			&h.ChangedBy,
+			&h.Notes,
+			&h.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan trust score history: %w", err)
+		}
+
+		// Parse component scores JSON if present
+		if len(componentScoresJSON) > 0 {
+			var scores map[string]interface{}
+			if err := json.Unmarshal(componentScoresJSON, &scores); err == nil {
+				h.ComponentScores = scores
+			}
+		}
+
+		history = append(history, h)
+	}
+
+	return history, rows.Err()
+}
+
+// GetTrustScoreLeaderboard returns top users by trust score
+func (r *ReputationRepository) GetTrustScoreLeaderboard(ctx context.Context, limit, offset int) ([]models.LeaderboardEntry, error) {
+	query := `
+		SELECT id, username, display_name, avatar_url, trust_score, karma_points, rank
+		FROM trust_score_leaderboard
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.db.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query trust score leaderboard: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []models.LeaderboardEntry
+	rank := offset + 1
+	for rows.Next() {
+		var entry models.LeaderboardEntry
+		var trustScore int
+
+		err := rows.Scan(
+			&entry.UserID,
+			&entry.Username,
+			&entry.DisplayName,
+			&entry.AvatarURL,
+			&trustScore,
+			&entry.Score, // Using karma_points as secondary score
+			&entry.UserRank,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan leaderboard entry: %w", err)
+		}
+		entry.Rank = rank
+		entry.Score = trustScore // Override score with trust score
+		rank++
+		entries = append(entries, entry)
+	}
+
+	return entries, rows.Err()
 }

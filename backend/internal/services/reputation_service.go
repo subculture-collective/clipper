@@ -135,7 +135,31 @@ func (s *ReputationService) UpdateUserStats(ctx context.Context, userID uuid.UUI
 	stats.TrustScore = trustScore
 	stats.EngagementScore = engagementScore
 
-	return s.reputationRepo.UpdateUserStats(ctx, stats)
+	// Update user stats table
+	err = s.reputationRepo.UpdateUserStats(ctx, stats)
+	if err != nil {
+		return fmt.Errorf("failed to update user stats: %w", err)
+	}
+
+	// Also update trust score in users table with history tracking
+	breakdown, err := s.reputationRepo.CalculateTrustScoreBreakdown(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to calculate trust score breakdown: %w", err)
+	}
+
+	componentScores := map[string]interface{}{
+		"account_age_score": breakdown.AccountAgeScore,
+		"karma_score":       breakdown.KarmaScore,
+		"report_accuracy":   breakdown.ReportAccuracy,
+		"activity_score":    breakdown.ActivityScore,
+	}
+
+	err = s.reputationRepo.UpdateUserTrustScore(ctx, userID, breakdown.TotalScore, models.TrustScoreReasonScheduledRecalc, componentScores, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to update trust score: %w", err)
+	}
+
+	return nil
 }
 
 // GetKarmaLeaderboard retrieves karma leaderboard
