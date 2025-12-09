@@ -26,7 +26,8 @@ export function useVolumePreference() {
     // Default to false (start muted first time for compatibility)
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(VOLUME_PREF_KEY);
-      return stored === 'false'; // stored 'false' means user wants unmuted
+      // stored 'unmuted' means user wants sound, otherwise muted
+      return stored === 'unmuted';
     }
     return false;
   });
@@ -34,7 +35,7 @@ export function useVolumePreference() {
   // Store volume preference when user changes it
   useEffect(() => {
     if (typeof window !== 'undefined' && hasSetPreference) {
-      const newValue = (!userPrefersUnmuted).toString();
+      const newValue = userPrefersUnmuted ? 'unmuted' : 'muted';
       const currentValue = localStorage.getItem(VOLUME_PREF_KEY);
       // Only write if value actually changed
       if (currentValue !== newValue) {
@@ -48,7 +49,7 @@ export function useVolumePreference() {
     setHasSetPreference(true);
   };
 
-  // Calculate whether embed should be muted
+  // Calculate whether embed should be muted (inverse of user preference)
   const embedMuted = !userPrefersUnmuted;
 
   return {

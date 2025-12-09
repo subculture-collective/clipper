@@ -26,8 +26,9 @@ export function TwitchEmbed({
     : 'localhost';
 
   // Determine mute state for embed:
-  // - If not loaded yet, use the prop default
-  // - If loaded, use user's volume preference
+  // - Before loaded (thumbnail shown): use the prop default (typically muted=true)
+  // - After loaded (iframe shown): use user's volume preference from localStorage
+  // This ensures the iframe URL is generated with the correct mute parameter
   const embedMuted = isLoaded ? volumePreferredMuted : muted;
   const embedUrl = `https://clips.twitch.tv/embed?clip=${clipId}&parent=${parentDomain}&autoplay=${isLoaded ? 'true' : 'false'}&muted=${embedMuted}`;
 
