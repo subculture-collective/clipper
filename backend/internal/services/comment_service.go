@@ -165,6 +165,9 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 
 	// Auto-upvote: Create an upvote from the comment creator
 	// This encourages engagement and shows creator approval
+	// Note: We call the repository method directly instead of s.VoteOnComment() to avoid
+	// giving the user karma for voting on their own comment. The VoteOnComment service
+	// method awards karma to the comment author, which would be circular in this case.
 	if err := s.repo.VoteOnComment(ctx, userID, comment.ID, 1); err != nil {
 		// Log error but don't fail the comment creation
 		fmt.Printf("Warning: failed to auto-upvote comment for user %s: %v\n", userID, err)
