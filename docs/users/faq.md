@@ -76,26 +76,100 @@ Karma is a score that represents your positive contributions to the Clipper comm
 
 - **+1**: Someone upvotes your clip submission
 - **+1**: Someone upvotes your comment
-- **+5**: Your submission reaches 100+ upvotes
-- **+10**: Your submission makes the front page
-- **+2**: Your comment receives helpful award (planned)
 
 **Losing Karma**:
 
 - **-1**: Your submission gets downvoted
 - **-1**: Your comment gets downvoted
-- **-10**: Your content is removed by moderators
-- **-50**: Serious guideline violations
 
 **Karma Benefits**:
 
-- Build community reputation
-- Unlock special flair and badges (planned)
-- Access beta features early (planned)
-- Participate in governance decisions (planned)
-- Higher trust score for submissions (planned)
+- Build community reputation and trust score
+- Unlock features and badges at karma thresholds:
+  - **10 karma**: Create tags
+  - **50 karma**: Report content
+  - **100 karma**: Submit clips
+  - **500 karma**: Nominate featured clips
+- Reach higher rank levels (Newcomer → Legend)
+- Increase your trust score (karma is 40% of trust)
+
+**Karma Ranks**:
+
+| Karma Range | Rank | 
+|------------|------|
+| 0-99 | Newcomer |
+| 100-499 | Member |
+| 500-999 | Regular |
+| 1,000-4,999 | Contributor |
+| 5,000-9,999 | Veteran |
+| 10,000+ | Legend |
 
 **Note**: Karma is primarily a measure of community contribution, not a competitive score. Focus on sharing quality content rather than maximizing karma.
+
+### What is trust score and how does it work?
+
+**Trust Score Overview**:
+Your trust score (0-100) is a measure of your trustworthiness and positive contribution to the Clipper community. It's calculated from multiple factors and helps ensure quality content and interactions.
+
+**How It's Calculated**:
+
+Trust score combines four main components:
+
+1. **Account Age (20%)**: Older accounts are more trusted
+   - New account (0-30 days): 0-2 points
+   - Established (31-180 days): 2-10 points  
+   - Mature (180+ days): 10-20 points
+
+2. **Karma (40%)**: Community validation of your contributions
+   - 0 karma = 0 points
+   - 2,500 karma = 10 points
+   - 5,000 karma = 20 points
+   - 10,000+ karma = 40 points (max)
+
+3. **Activity (20%)**: Regular participation and engagement
+   - Based on comments, votes, submissions, and days active
+   - Consistent participation earns max 20 points
+
+4. **Report Accuracy (20%)**: Quality of reports you file
+   - Based on percentage of correct reports
+   - 100% accuracy = 20 points
+   - No reports filed = 0 points
+
+**Trust Score Ranges**:
+
+| Score | Level | Meaning |
+|-------|-------|---------|
+| 90-100 | Exceptional | Highly trusted community leader |
+| 75-89 | High | Very trusted contributor |
+| 60-74 | Good | Trusted community member |
+| 40-59 | Medium | Average user, building trust |
+| 20-39 | Low | New or inactive user |
+| 0-19 | Very Low | New account or flagged user |
+
+**How Trust Scores Are Used**:
+
+- **Content Filtering**: High-trust content may be auto-approved
+- **Moderation**: High-trust reports are prioritized
+- **Feature Access**: Some features require minimum trust scores
+- **Spam Detection**: Low trust + rapid posting triggers filters
+
+**How to Improve Your Trust Score**:
+
+- **Earn karma** by submitting quality clips and helpful comments
+- **Stay active** with regular participation (not just binge sessions)
+- **File accurate reports** when you see guideline violations
+- **Be patient** - account age improves automatically over time
+- **Avoid violations** - bans cut your trust score in half
+
+**Impact of Bans**:
+
+- Temporary ban: Score halved during ban, restored when ban expires
+- Permanent ban: Score halved indefinitely
+- Example: 80 trust → 40 during ban → 80 after (temporary) or 40 forever (permanent)
+
+**Where to Learn More**:
+
+See our comprehensive [Trust System Documentation](../TRUST_SYSTEM.md) for detailed formulas, examples, and FAQs.
 
 ### How do I submit a clip?
 
