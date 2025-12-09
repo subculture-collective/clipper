@@ -6,13 +6,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"html"
+	"net/mail"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	sendgridmail "github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/pkg/utils"
@@ -48,12 +52,14 @@ type EmailConfig struct {
 }
 
 // EmailRequest represents a generic email sending request with template support
+// Note: This method does NOT check rate limits or user preferences. Use only for system emails.
+// For user-triggered notifications, use SendNotificationEmail instead.
 type EmailRequest struct {
 	To       []string               // List of recipient email addresses
 	Subject  string                 // Email subject line
-	Template string                 // Template ID or name (optional)
+	Template string                 // Template ID or name (TODO: future SendGrid template integration)
 	Data     map[string]interface{} // Template data/variables
-	Tags     []string               // Email tags for categorization and tracking
+	Tags     []string               // Email tags for categorization (TODO: future SendGrid categories API integration)
 }
 
 // NewEmailService creates a new EmailService
@@ -229,10 +235,10 @@ func (s *EmailService) sendViaSendGrid(to, subject, htmlContent, textContent str
 		return fmt.Sprintf("sandbox-%s", uuid.New().String()), nil
 	}
 
-	from := mail.NewEmail(s.fromName, s.fromEmail)
-	toEmail := mail.NewEmail("", to)
+	from := sendgridmail.NewEmail(s.fromName, s.fromEmail)
+	toEmail := sendgridmail.NewEmail("", to)
 
-	message := mail.NewSingleEmail(from, subject, toEmail, textContent, htmlContent)
+	message := sendgridmail.NewSingleEmail(from, subject, toEmail, textContent, htmlContent)
 	client := sendgrid.NewSendClient(s.apiKey)
 
 	response, err := client.Send(message)
@@ -578,6 +584,8 @@ func (s *EmailService) incrementRateLimit(ctx context.Context, userID uuid.UUID)
 
 // SendEmail sends a generic email using the provided EmailRequest
 // This method provides a flexible interface for sending template-based or custom emails
+// WARNING: This method does NOT check rate limits or user preferences. Use only for system emails.
+// For user-triggered notifications that respect preferences and rate limits, use SendNotificationEmail.
 func (s *EmailService) SendEmail(ctx context.Context, req EmailRequest) error {
 	if !s.enabled {
 		return nil // Email service disabled
@@ -589,6 +597,13 @@ func (s *EmailService) SendEmail(ctx context.Context, req EmailRequest) error {
 	}
 	if req.Subject == "" {
 		return fmt.Errorf("subject is required")
+	}
+
+	// Validate email addresses
+	for _, email := range req.To {
+		if _, err := mail.ParseAddress(email); err != nil {
+			return fmt.Errorf("invalid email address: %s", email)
+		}
 	}
 
 	// For now, we'll build a simple HTML/text email from the data
@@ -620,15 +635,22 @@ func (s *EmailService) SendEmail(ctx context.Context, req EmailRequest) error {
 	}
 
 	if len(sendErrors) > 0 {
-		return fmt.Errorf("failed to send %d out of %d emails", len(sendErrors), len(req.To))
+		// Include detailed error messages for debugging
+		errMsgs := make([]string, len(sendErrors))
+		for i, err := range sendErrors {
+			errMsgs[i] = err.Error()
+		}
+		return fmt.Errorf("failed to send %d out of %d emails: %s",
+			len(sendErrors), len(req.To), strings.Join(errMsgs, "; "))
 	}
 
 	return nil
 }
 
 // buildEmailFromData builds a simple HTML email from the provided data
+// Keys are sorted alphabetically for consistent ordering
 func (s *EmailService) buildEmailFromData(data map[string]interface{}) string {
-	html := `<!DOCTYPE html>
+	htmlContent := `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -636,18 +658,38 @@ func (s *EmailService) buildEmailFromData(data map[string]interface{}) string {
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 `
-	for key, value := range data {
-		html += fmt.Sprintf("    <p><strong>%s:</strong> %v</p>\n", key, value)
+	// Sort keys for consistent ordering
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
 	}
-	html += `</body>
+	sort.Strings(keys)
+
+	// Build HTML with escaped values to prevent XSS
+	for _, key := range keys {
+		value := data[key]
+		escapedKey := html.EscapeString(key)
+		escapedValue := html.EscapeString(fmt.Sprintf("%v", value))
+		htmlContent += fmt.Sprintf("    <p><strong>%s:</strong> %s</p>\n", escapedKey, escapedValue)
+	}
+	htmlContent += `</body>
 </html>`
-	return html
+	return htmlContent
 }
 
 // buildTextEmailFromData builds a plain text email from the provided data
+// Keys are sorted alphabetically for consistent ordering
 func (s *EmailService) buildTextEmailFromData(data map[string]interface{}) string {
+	// Sort keys for consistent ordering
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	text := ""
-	for key, value := range data {
+	for _, key := range keys {
+		value := data[key]
 		text += fmt.Sprintf("%s: %v\n", key, value)
 	}
 	return text
