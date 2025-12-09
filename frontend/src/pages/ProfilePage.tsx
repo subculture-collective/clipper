@@ -2,7 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Card, CardBody, Container, Stack, Button, Skeleton, ProfileSkeleton, EmptyStateWithAction } from '../components';
+import { Card, CardBody, Container, Stack, Button, Skeleton, ProfileSkeleton, EmptyStateWithAction, UserRoleBadge } from '../components';
 import { ClipCard } from '../components/clip/ClipCard';
 import { ClipCardSkeleton } from '../components/clip/ClipCardSkeleton';
 import { CommentSkeleton } from '../components/ui';
@@ -16,6 +16,7 @@ import { useToast } from '../context/ToastContext';
 import type { KarmaBreakdown, UserReputation } from '../types/reputation';
 import type { Clip } from '../types/clip';
 import type { Comment } from '../types/comment';
+import type { UserRole } from '../lib/roles';
 import {
     fetchUserComments,
     fetchUserUpvotedClips,
@@ -252,9 +253,7 @@ export function ProfilePage() {
                                         <span className='text-muted-foreground'>
                                             Role:
                                         </span>
-                                        <span className='font-semibold capitalize'>
-                                            {user.role}
-                                        </span>
+                                        <UserRoleBadge role={user.role as UserRole} size="sm" />
                                     </div>
                                     {user.created_at && (
                                         <div className='flex items-center gap-2'>
