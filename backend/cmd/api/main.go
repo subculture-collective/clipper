@@ -687,6 +687,7 @@ func main() {
 			// Get/Update preferences
 			notifications.GET("/preferences", notificationHandler.GetPreferences)
 			notifications.PUT("/preferences", notificationHandler.UpdatePreferences)
+			notifications.POST("/preferences/reset", notificationHandler.ResetPreferences)
 
 			// Device token registration for push notifications
 			notifications.POST("/register", notificationHandler.RegisterDeviceToken)

@@ -244,6 +244,16 @@ func (s *NotificationService) UpdatePreferences(ctx context.Context, prefs *mode
 	return nil
 }
 
+// ResetPreferences resets notification preferences to defaults for a user
+func (s *NotificationService) ResetPreferences(ctx context.Context, userID uuid.UUID) (*models.NotificationPreferences, error) {
+	prefs, err := s.repo.ResetPreferences(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reset preferences: %w", err)
+	}
+
+	return prefs, nil
+}
+
 // NotifyCommentReply notifies a user when someone replies to their comment
 func (s *NotificationService) NotifyCommentReply(
 	ctx context.Context,
