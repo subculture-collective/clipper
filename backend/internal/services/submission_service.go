@@ -311,14 +311,14 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		if s.voteRepo != nil {
 			if err := s.voteRepo.UpsertVote(ctx, userID, clipExistence.Clip.ID, 1); err != nil {
 				// Log error but don't fail
-				fmt.Printf("Warning: failed to auto-upvote claimed clip for user %s: %v\n", userID, err)
+				log.Printf("Warning: failed to auto-upvote claimed clip for user %s: %v\n", userID, err)
 			}
 		}
 
 		// Award karma for claiming
 		if err := s.awardKarma(ctx, userID, 10); err != nil {
 			// Log error but don't fail
-			fmt.Printf("Failed to award karma: %v\n", err)
+			log.Printf("Failed to award karma: %v\n", err)
 		}
 
 		// Return a pseudo-submission response showing the clip was claimed

@@ -676,3 +676,65 @@ func TestSubmissionService_AutoUpvote(t *testing.T) {
 		// 3. Manual testing with real database and triggers
 	})
 }
+
+// TestClipExistenceResult verifies ClipExistenceResult struct behavior
+func TestClipExistenceResult(t *testing.T) {
+	t.Run("ClipExistenceResult with claimable clip", func(t *testing.T) {
+		clip := &models.Clip{
+			ID:                uuid.New(),
+			TwitchClipID:      "TestClipID",
+			SubmittedByUserID: nil, // Unclaimed scraped clip
+		}
+
+		result := &ClipExistenceResult{
+			Exists:       true,
+			Clip:         clip,
+			CanBeClaimed: clip.SubmittedByUserID == nil,
+		}
+
+		if !result.Exists {
+			t.Error("Expected clip to exist")
+		}
+		if !result.CanBeClaimed {
+			t.Error("Expected clip to be claimable when SubmittedByUserID is nil")
+		}
+	})
+
+	t.Run("ClipExistenceResult with claimed clip", func(t *testing.T) {
+		userID := uuid.New()
+		clip := &models.Clip{
+			ID:                uuid.New(),
+			TwitchClipID:      "TestClipID",
+			SubmittedByUserID: &userID, // Claimed clip
+		}
+
+		result := &ClipExistenceResult{
+			Exists:       true,
+			Clip:         clip,
+			CanBeClaimed: clip.SubmittedByUserID == nil,
+		}
+
+		if !result.Exists {
+			t.Error("Expected clip to exist")
+		}
+		if result.CanBeClaimed {
+			t.Error("Expected clip to NOT be claimable when SubmittedByUserID is set")
+		}
+	})
+
+	t.Run("ClipExistenceResult with non-existent clip", func(t *testing.T) {
+		result := &ClipExistenceResult{
+			Exists:       false,
+			Clip:         nil,
+			CanBeClaimed: false,
+		}
+
+		if result.Exists {
+			t.Error("Expected clip to not exist")
+		}
+		if result.CanBeClaimed {
+			t.Error("Non-existent clip should not be claimable")
+		}
+	})
+}
+
