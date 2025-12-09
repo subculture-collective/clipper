@@ -104,6 +104,11 @@ func (s *EmailService) SendNotificationEmail(
 				return nil // User has disabled all email notifications
 			}
 
+			// Check if email digest is set to "never"
+			if prefs.EmailDigest == "never" {
+				return nil // User has disabled all email delivery
+			}
+
 			// Check specific notification type preferences
 			if !s.shouldSendEmailForType(prefs, notificationType) {
 				return nil // User has disabled this type of notification
@@ -219,13 +224,13 @@ func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferen
 	// Map notification types to preference fields
 	switch notificationType {
 	// Account & Security
-	case "login_new_device":
+	case models.NotificationTypeLoginNewDevice:
 		return prefs.NotifyLoginNewDevice
-	case "failed_login":
+	case models.NotificationTypeFailedLogin:
 		return prefs.NotifyFailedLogin
-	case "password_changed":
+	case models.NotificationTypePasswordChanged:
 		return prefs.NotifyPasswordChanged
-	case "email_changed":
+	case models.NotificationTypeEmailChanged:
 		return prefs.NotifyEmailChanged
 
 	// Content notifications
@@ -237,9 +242,9 @@ func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferen
 		return prefs.NotifySubmissionApproved
 	case models.NotificationTypeSubmissionRejected:
 		return prefs.NotifySubmissionRejected
-	case "content_trending":
+	case models.NotificationTypeContentTrending:
 		return prefs.NotifyContentTrending
-	case "content_flagged":
+	case models.NotificationTypeContentFlagged:
 		return prefs.NotifyContentFlagged
 	case models.NotificationTypeVoteMilestone:
 		return prefs.NotifyVotes
@@ -247,13 +252,13 @@ func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferen
 		return prefs.NotifyFavoritedClipComment
 
 	// Community notifications
-	case "moderator_message":
+	case models.NotificationTypeModeratorMessage:
 		return prefs.NotifyModeratorMessage
-	case "user_followed":
+	case models.NotificationTypeUserFollowed:
 		return prefs.NotifyUserFollowed
-	case "comment_on_content":
+	case models.NotificationTypeCommentOnContent:
 		return prefs.NotifyCommentOnContent
-	case "discussion_reply":
+	case models.NotificationTypeDiscussionReply:
 		return prefs.NotifyDiscussionReply
 	case models.NotificationTypeBadgeEarned:
 		return prefs.NotifyBadges
@@ -263,9 +268,9 @@ func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferen
 		return prefs.NotifyModeration
 
 	// Creator notifications
-	case "clip_approved":
+	case models.NotificationTypeClipApproved:
 		return prefs.NotifyClipApproved
-	case "clip_rejected":
+	case models.NotificationTypeClipRejected:
 		return prefs.NotifyClipRejected
 	case models.NotificationTypeClipComment:
 		return prefs.NotifyClipComments
@@ -273,11 +278,11 @@ func (s *EmailService) shouldSendEmailForType(prefs *models.NotificationPreferen
 		return prefs.NotifyClipThreshold
 
 	// Global/Marketing
-	case "marketing":
+	case models.NotificationTypeMarketing:
 		return prefs.NotifyMarketing
-	case "policy_update":
+	case models.NotificationTypePolicyUpdate:
 		return prefs.NotifyPolicyUpdates
-	case "platform_announcement":
+	case models.NotificationTypePlatformAnnouncement:
 		return prefs.NotifyPlatformAnnouncements
 
 	default:

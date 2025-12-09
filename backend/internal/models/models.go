@@ -579,6 +579,26 @@ const (
 	NotificationTypeClipComment       = "clip_comment"
 	NotificationTypeClipViewThreshold = "clip_view_threshold"
 	NotificationTypeClipVoteThreshold = "clip_vote_threshold"
+	// Account & Security notification types
+	NotificationTypeLoginNewDevice  = "login_new_device"
+	NotificationTypeFailedLogin     = "failed_login"
+	NotificationTypePasswordChanged = "password_changed"
+	NotificationTypeEmailChanged    = "email_changed"
+	// Content notification types (additional)
+	NotificationTypeContentTrending = "content_trending"
+	NotificationTypeContentFlagged  = "content_flagged"
+	// Community notification types (additional)
+	NotificationTypeModeratorMessage = "moderator_message"
+	NotificationTypeUserFollowed     = "user_followed"
+	NotificationTypeCommentOnContent = "comment_on_content"
+	NotificationTypeDiscussionReply  = "discussion_reply"
+	// Creator notification types (additional)
+	NotificationTypeClipApproved = "clip_approved"
+	NotificationTypeClipRejected = "clip_rejected"
+	// Global/Marketing notification types
+	NotificationTypeMarketing            = "marketing"
+	NotificationTypePolicyUpdate         = "policy_update"
+	NotificationTypePlatformAnnouncement = "platform_announcement"
 )
 
 // AnalyticsEvent represents a tracked event for analytics
