@@ -827,7 +827,6 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 		IsNSFW:            submission.IsNSFW,
 		SubmittedByUserID: &submission.UserID,
 		SubmittedAt:       &submission.CreatedAt, // Use submission creation time as when it was submitted
-		VoteScore:         1,                      // Initialize with 1 to reflect auto-upvote
 	}
 
 	// Create the clip
