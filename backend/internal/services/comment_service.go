@@ -171,10 +171,6 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 	if err := s.repo.VoteOnComment(ctx, userID, comment.ID, 1); err != nil {
 		// Log error but don't fail the comment creation
 		fmt.Printf("Warning: failed to auto-upvote comment for user %s: %v\n", userID, err)
-	} else {
-		// Update the in-memory vote score to reflect the auto-upvote
-		// The database trigger will have updated it from 0 to 1
-		comment.VoteScore += 1
 	}
 
 	// Award karma to user
@@ -204,13 +200,10 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 	// Fetch the complete comment with author info and vote status
 	commentWithAuthor, err := s.repo.GetByID(ctx, comment.ID, &userID)
 	if err != nil {
-		// If we can't get the full comment, return the basic comment
-		// Log error but don't fail since the comment was created successfully
-		fmt.Printf("Warning: failed to fetch created comment with author info: %v\n", err)
-		// Return a minimal CommentWithAuthor based on what we have
-		return &repository.CommentWithAuthor{
-			Comment: *comment,
-		}, nil
+		// If we can't get the full comment after creation, this is a serious issue.
+		// Return an error since the API contract expects a complete CommentWithAuthor
+		// with author info and vote status, which we cannot provide.
+		return nil, fmt.Errorf("failed to fetch created comment with author info: %w", err)
 	}
 
 	return commentWithAuthor, nil
