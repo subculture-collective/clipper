@@ -18,6 +18,15 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatTimestamp(date: Date | string): { display: string; title: string } {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Validate date
+  if (isNaN(dateObj.getTime())) {
+    return {
+      display: 'Invalid date',
+      title: 'Invalid date',
+    };
+  }
+  
   const now = new Date();
   const minutesDiff = differenceInMinutes(now, dateObj);
   
