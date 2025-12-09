@@ -839,7 +839,7 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	if s.voteRepo != nil {
 		if err := s.voteRepo.UpsertVote(ctx, submission.UserID, clip.ID, 1); err != nil {
 			// Log error but don't fail the clip creation
-			log.Printf("Warning: failed to auto-upvote clip for user %s: %v\n", submission.UserID, err)
+			fmt.Printf("Warning: failed to auto-upvote clip for user %s: %v\n", submission.UserID, err)
 		}
 	}
 
