@@ -20,7 +20,7 @@ OnCalendar=*-*-* 02:00:00
 # Persist timer across reboots
 Persistent=true
 
-# Run immediately if missed (e.g., system was down)
+# Allow up to 1 hour delay for power efficiency (systemd may coalesce timer events)
 AccuracySec=1h
 
 [Install]

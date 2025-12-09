@@ -130,8 +130,7 @@ Common schedules:
 
 ```ini
 # Daily at 2 AM
-OnCalendar=daily
-OnCalendar=02:00:00
+OnCalendar=*-*-* 02:00:00
 
 # Every 6 hours
 OnCalendar=*-*-* 00,06,12,18:00:00

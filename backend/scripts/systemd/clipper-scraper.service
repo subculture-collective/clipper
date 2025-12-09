@@ -32,7 +32,6 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/clipper/backend/exports /var/log/clipper
 
 # Restart policy (for failures)
 Restart=on-failure

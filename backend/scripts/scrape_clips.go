@@ -191,6 +191,7 @@ func runScraper(ctx context.Context, db *pgxpool.Pool, twitchClient *twitch.Clie
 			broadcasterID,
 			broadcasterName,
 			cfg,
+			stats,
 		)
 
 		stats.APICallsMade += apiCalls
@@ -256,6 +257,7 @@ func scrapeClipsForBroadcaster(
 	broadcasterID string,
 	broadcasterName string,
 	cfg ScraperConfig,
+	stats *ScraperStats,
 ) (int, int, int, error) {
 	clipsAdded := 0
 	clipsSkipped := 0
@@ -293,6 +295,8 @@ func scrapeClipsForBroadcaster(
 		exists, err := clipExists(ctx, db, twitchClip.ID)
 		if err != nil {
 			log.Printf("  Warning: Failed to check if clip exists (id=%s): %v", twitchClip.ID, err)
+			stats.Errors++
+			stats.LastError = err
 			continue
 		}
 
@@ -305,6 +309,8 @@ func scrapeClipsForBroadcaster(
 		if !cfg.DryRun {
 			if err := insertClip(ctx, db, &twitchClip); err != nil {
 				log.Printf("  Warning: Failed to insert clip (id=%s): %v", twitchClip.ID, err)
+				stats.Errors++
+				stats.LastError = err
 				continue
 			}
 		}
