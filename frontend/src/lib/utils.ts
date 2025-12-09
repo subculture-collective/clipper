@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatDistanceToNow, format, differenceInMinutes } from 'date-fns';
 
 /**
  * Utility function to merge Tailwind CSS classes
@@ -7,6 +8,70 @@ import { twMerge } from 'tailwind-merge';
  */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Format timestamp with improved UX:
+ * - Shows relative time (e.g., "2 minutes ago") for times within the last hour
+ * - Shows exact time (e.g., "3:42 PM") for times after 1 hour
+ * - Full date shown in title attribute for tooltip
+ */
+export function formatTimestamp(date: Date | string): { display: string; title: string } {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Validate date
+  if (isNaN(dateObj.getTime())) {
+    return {
+      display: 'Invalid date',
+      title: 'Invalid date',
+    };
+  }
+  
+  const now = new Date();
+  const minutesDiff = differenceInMinutes(now, dateObj);
+  
+  // If the date is in the future, show exact time
+  if (minutesDiff < 0) {
+    const timeDisplay = format(dateObj, 'h:mm a');
+    return {
+      display: timeDisplay,
+      title: format(dateObj, 'PPpp'),
+    };
+  }
+  
+  // For times within the last hour (including "1 hour ago"), show relative time
+  if (minutesDiff <= 60) {
+    const relative = formatDistanceToNow(dateObj, { addSuffix: true });
+    return {
+      display: relative,
+      title: format(dateObj, 'PPpp'), // Full date and time
+    };
+  }
+  
+  // For times after 1 hour, show exact time with date context
+  const fullTitle = format(dateObj, 'PPpp');
+  const daysDiff = Math.floor(minutesDiff / (60 * 24));
+  const yearsDiff = now.getFullYear() - dateObj.getFullYear();
+  
+  let timeDisplay: string;
+  if (daysDiff === 0) {
+    // Today: just show time
+    timeDisplay = format(dateObj, 'h:mm a'); // e.g., "3:42 PM"
+  } else if (daysDiff === 1) {
+    // Yesterday
+    timeDisplay = `Yesterday ${format(dateObj, 'h:mm a')}`;
+  } else if (yearsDiff === 0) {
+    // This year: show date and time
+    timeDisplay = format(dateObj, 'MMM d, h:mm a'); // e.g., "Mar 15, 3:42 PM"
+  } else {
+    // Previous years: show full date
+    timeDisplay = format(dateObj, 'MMM d, yyyy'); // e.g., "Mar 15, 2024"
+  }
+  
+  return {
+    display: timeDisplay,
+    title: fullTitle,
+  };
 }
 
 /**

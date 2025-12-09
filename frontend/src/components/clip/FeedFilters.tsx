@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui';
+import { cn } from '@/lib/utils';
 import type { SortOption, TimeFrame } from '@/types/clip';
 
 interface FeedFiltersProps {
@@ -41,7 +42,16 @@ export function FeedFilters({
             variant={sort === option.value ? 'primary' : 'ghost'}
             size="sm"
             onClick={() => onSortChange(option.value)}
+            className={cn(
+              'cursor-pointer',
+              sort === option.value && 'font-bold shadow-md'
+            )}
           >
+            {sort === option.value && (
+              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            )}
             {option.label}
           </Button>
         ))}
@@ -59,7 +69,16 @@ export function FeedFilters({
               variant={timeframe === option.value ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => onTimeframeChange(option.value)}
+              className={cn(
+                'cursor-pointer',
+                timeframe === option.value && 'font-bold shadow-md'
+              )}
             >
+              {timeframe === option.value && (
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
               {option.label}
             </Button>
           ))}
