@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useVolumePreference } from '@/hooks';
+import { MutedIcon } from '@/components/ui';
 
 interface TwitchEmbedProps {
   clipId: string;
@@ -17,13 +19,19 @@ export function TwitchEmbed({
 }: TwitchEmbedProps) {
   const [isLoaded, setIsLoaded] = useState(autoplay);
   const [hasError, setHasError] = useState(false);
+  const { embedMuted: volumePreferredMuted, hasSetPreference, setUnmutedPreference } = useVolumePreference();
 
   // Get the parent domain for Twitch embed
   const parentDomain = typeof window !== 'undefined' 
     ? window.location.hostname 
     : 'localhost';
 
-  const embedUrl = `https://clips.twitch.tv/embed?clip=${clipId}&parent=${parentDomain}&autoplay=${autoplay}&muted=${muted}`;
+  // Determine mute state for embed:
+  // - Before loaded (thumbnail shown): use the prop default (typically muted=true)
+  // - After loaded (iframe shown): use user's volume preference from localStorage
+  // This ensures the iframe URL is generated with the correct mute parameter
+  const embedMuted = isLoaded ? volumePreferredMuted : muted;
+  const embedUrl = `https://clips.twitch.tv/embed?clip=${clipId}&parent=${parentDomain}&autoplay=${isLoaded ? 'true' : 'false'}&muted=${embedMuted}`;
 
   const handleLoadClick = () => {
     setIsLoaded(true);
@@ -59,6 +67,15 @@ export function TwitchEmbed({
       <div 
         className="relative w-full pt-[56.25%] bg-black rounded-lg cursor-pointer group overflow-hidden"
         onClick={handleLoadClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleLoadClick();
+          }
+        }}
+        aria-label="Load and play video"
       >
         {/* Thumbnail */}
         {thumbnailUrl && (
@@ -85,7 +102,7 @@ export function TwitchEmbed({
 
         {/* Watch label */}
         <div className="absolute bottom-4 left-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-          Watch Clip
+          Click to play
         </div>
       </div>
     );
@@ -99,7 +116,29 @@ export function TwitchEmbed({
         allowFullScreen
         title={title}
         onError={handleError}
+        allow="autoplay; fullscreen"
       />
+      
+      {/* Muted indicator - shown when video is muted and user hasn't set a preference yet */}
+      {embedMuted && !hasSetPreference && (
+        <div 
+          className="absolute top-3 left-3 bg-black/70 hover:bg-black/90 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors z-10"
+          onClick={setUnmutedPreference}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setUnmutedPreference();
+            }
+          }}
+          aria-label="Video is muted, click to enable sound on future videos"
+          title="Video starts muted for autoplay compatibility. Click to enable sound on future videos. (Reload this clip to hear it)"
+        >
+          <MutedIcon size="sm" />
+          <span>Muted</span>
+        </div>
+      )}
     </div>
   );
 }
