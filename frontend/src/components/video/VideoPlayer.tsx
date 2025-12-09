@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useShare } from '@/hooks';
+import { useShare, useVolumePreference } from '@/hooks';
 
 export interface VideoPlayerProps {
   clipId: string;
@@ -7,9 +7,6 @@ export interface VideoPlayerProps {
   embedUrl: string;
   twitchClipUrl: string;
 }
-
-// Volume preference key for localStorage
-const VOLUME_PREF_KEY = 'clipper_video_muted';
 
 export function VideoPlayer({
   title,
@@ -20,21 +17,7 @@ export function VideoPlayer({
   const { share } = useShare();
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [hasSetPreference, setHasSetPreference] = useState(() => {
-    // Check if user has ever set a preference
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(VOLUME_PREF_KEY) !== null;
-    }
-    return false;
-  });
-  const [userPrefersUnmuted, setUserPrefersUnmuted] = useState(() => {
-    // Check localStorage for user's volume preference
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(VOLUME_PREF_KEY);
-      return stored === 'false'; // stored 'false' means user wants unmuted
-    }
-    return false;
-  });
+  const { embedMuted, hasSetPreference, setUnmutedPreference } = useVolumePreference();
 
   const handleShare = useCallback(async () => {
     await share({
@@ -94,28 +77,9 @@ export function VideoPlayer({
     };
   }, []);
 
-  // Store volume preference when user changes it
-  useEffect(() => {
-    if (typeof window !== 'undefined' && hasSetPreference) {
-      const newValue = (!userPrefersUnmuted).toString();
-      const currentValue = localStorage.getItem(VOLUME_PREF_KEY);
-      // Only write if value actually changed
-      if (currentValue !== newValue) {
-        localStorage.setItem(VOLUME_PREF_KEY, newValue);
-      }
-    }
-  }, [userPrefersUnmuted, hasSetPreference]);
-
-  const handleUnmutePreference = useCallback(() => {
-    setUserPrefersUnmuted(true);
-    setHasSetPreference(true);
-  }, []);
-
   // Get parent domain for Twitch embed
   const parentDomain = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
   // Enable autoplay on detail pages with user's volume preference
-  // Start muted if user hasn't set preference, unmuted if they have
-  const embedMuted = !userPrefersUnmuted;
   const twitchEmbedUrl = `${embedUrl}&parent=${parentDomain}&autoplay=true&muted=${embedMuted}`;
 
   return (
@@ -197,13 +161,13 @@ export function VideoPlayer({
       {embedMuted && !hasSetPreference && (
         <div 
           className="absolute top-16 md:top-20 left-4 bg-black/70 hover:bg-black/90 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 cursor-pointer transition-colors z-10 pointer-events-auto"
-          onClick={handleUnmutePreference}
+          onClick={setUnmutedPreference}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              handleUnmutePreference();
+              setUnmutedPreference();
             }
           }}
           aria-label="Video is muted, click to enable sound on future videos"
