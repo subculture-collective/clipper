@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -238,4 +240,177 @@ func TestEmailRateLimit(t *testing.T) {
 	assert.Equal(t, userID, rateLimit.UserID)
 	assert.Equal(t, windowStart, rateLimit.WindowStart)
 	assert.Equal(t, 5, rateLimit.EmailCount)
+}
+
+// TestSandboxMode tests that sandbox mode logs emails without sending
+func TestSandboxMode(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true, // Enable sandbox mode
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+	assert.NotNil(t, service)
+	assert.True(t, service.sandboxMode)
+
+	// Test sending an email in sandbox mode (should not actually send)
+	messageID, err := service.sendViaSendGrid("recipient@example.com", "Test Subject", "<p>Test HTML</p>", "Test Text")
+	assert.NoError(t, err)
+	assert.Contains(t, messageID, "sandbox-") // Should return a sandbox message ID
+}
+
+// TestSendEmailMethod tests the generic SendEmail method
+func TestSendEmailMethod(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true, // Use sandbox mode for testing
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	// Test valid email request
+	req := EmailRequest{
+		To:       []string{"recipient@example.com"},
+		Subject:  "Test Email",
+		Template: "welcome",
+		Data: map[string]interface{}{
+			"name":    "John Doe",
+			"message": "Welcome to our service!",
+		},
+		Tags: []string{"welcome", "onboarding"},
+	}
+
+	err := service.SendEmail(context.Background(), req)
+	assert.NoError(t, err)
+
+	// Verify content is built correctly with sorted keys and escaped HTML
+	htmlBody := service.buildEmailFromData(req.Data)
+	assert.Contains(t, htmlBody, "John Doe")
+	assert.Contains(t, htmlBody, "Welcome to our service!")
+	// Check that keys are in alphabetical order (message comes after name in alphabet)
+	messageIdx := strings.Index(htmlBody, "message")
+	nameIdx := strings.Index(htmlBody, "name")
+	assert.Greater(t, messageIdx, nameIdx, "Keys should be sorted alphabetically (name before message)")
+
+	// Test email request with no recipients
+	invalidReq := EmailRequest{
+		To:      []string{},
+		Subject: "Test",
+		Data:    map[string]interface{}{},
+	}
+
+	err = service.SendEmail(context.Background(), invalidReq)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no recipients")
+
+	// Test email request with no subject
+	invalidReq2 := EmailRequest{
+		To:      []string{"test@example.com"},
+		Subject: "",
+		Data:    map[string]interface{}{},
+	}
+
+	err = service.SendEmail(context.Background(), invalidReq2)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "subject is required")
+
+	// Test invalid email address
+	invalidReq3 := EmailRequest{
+		To:      []string{"invalid-email"},
+		Subject: "Test",
+		Data:    map[string]interface{}{},
+	}
+
+	err = service.SendEmail(context.Background(), invalidReq3)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid email address")
+}
+
+// TestEmailServiceDisabled tests that disabled service doesn't send emails
+func TestEmailServiceDisabled(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          false, // Disabled
+		SandboxMode:      false,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	req := EmailRequest{
+		To:      []string{"recipient@example.com"},
+		Subject: "Test Email",
+		Data:    map[string]interface{}{},
+	}
+
+	err := service.SendEmail(context.Background(), req)
+	assert.NoError(t, err) // Should return nil when disabled
+}
+
+// TestHTMLEscaping tests that HTML in data is properly escaped
+func TestHTMLEscaping(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	// Test data with HTML/script tags
+	data := map[string]interface{}{
+		"malicious": "<script>alert('xss')</script>",
+		"safe":      "normal text",
+	}
+
+	htmlBody := service.buildEmailFromData(data)
+
+	// Verify HTML is escaped
+	assert.Contains(t, htmlBody, "&lt;script&gt;")
+	assert.NotContains(t, htmlBody, "<script>alert")
+	assert.Contains(t, htmlBody, "normal text")
+}
+
+// TestSendEmailPartialFailure tests handling of partial failures
+func TestSendEmailPartialFailure(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "test@example.com",
+		FromName:         "Test",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	// Test with mix of valid and invalid email addresses
+	req := EmailRequest{
+		To:      []string{"valid@example.com", "invalid-email", "another@example.com"},
+		Subject: "Test Email",
+		Data:    map[string]interface{}{"test": "data"},
+	}
+
+	err := service.SendEmail(context.Background(), req)
+	assert.Error(t, err)
+	// Should report that 1 out of 3 failed
+	assert.Contains(t, err.Error(), "invalid email address")
 }

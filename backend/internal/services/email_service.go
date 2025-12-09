@@ -6,13 +6,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"html"
+	"net/mail"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	sendgridmail "github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/pkg/utils"
@@ -27,6 +31,7 @@ type EmailService struct {
 	repo                *repository.EmailNotificationRepository
 	notificationRepo    *repository.NotificationRepository
 	enabled             bool
+	sandboxMode         bool // If true, emails are logged but not actually sent
 	maxEmailsPerHour    int
 	tokenExpiryDuration time.Duration
 	logger              *utils.StructuredLogger
@@ -41,8 +46,20 @@ type EmailConfig struct {
 	FromName            string
 	BaseURL             string
 	Enabled             bool
+	SandboxMode         bool          // Enable sandbox mode for testing (logs emails without sending)
 	MaxEmailsPerHour    int
 	TokenExpiryDuration time.Duration // Duration before unsubscribe tokens expire (default: 90 days)
+}
+
+// EmailRequest represents a generic email sending request with template support
+// Note: This method does NOT check rate limits or user preferences. Use only for system emails.
+// For user-triggered notifications, use SendNotificationEmail instead.
+type EmailRequest struct {
+	To       []string               // List of recipient email addresses
+	Subject  string                 // Email subject line
+	Template string                 // Template ID or name (TODO: future SendGrid template integration)
+	Data     map[string]interface{} // Template data/variables
+	Tags     []string               // Email tags for categorization (TODO: future SendGrid categories API integration)
 }
 
 // NewEmailService creates a new EmailService
@@ -57,6 +74,13 @@ func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationReposit
 		tokenExpiry = 90 * 24 * time.Hour // Default: 90 days
 	}
 
+	logger := utils.GetLogger()
+
+	// Log sandbox mode status
+	if cfg.SandboxMode {
+		logger.Info("Email service initialized in SANDBOX MODE - emails will be logged but not sent")
+	}
+
 	return &EmailService{
 		apiKey:              cfg.SendGridAPIKey,
 		fromEmail:           cfg.FromEmail,
@@ -65,9 +89,10 @@ func NewEmailService(cfg *EmailConfig, repo *repository.EmailNotificationReposit
 		repo:                repo,
 		notificationRepo:    notificationRepo,
 		enabled:             cfg.Enabled,
+		sandboxMode:         cfg.SandboxMode,
 		maxEmailsPerHour:    maxPerHour,
 		tokenExpiryDuration: tokenExpiry,
-		logger:              utils.GetLogger(),
+		logger:              logger,
 		shutdown:            make(chan struct{}),
 	}
 }
@@ -196,19 +221,43 @@ func (s *EmailService) SendNotificationEmail(
 
 // sendViaSendGrid sends an email using SendGrid API
 func (s *EmailService) sendViaSendGrid(to, subject, htmlContent, textContent string) (string, error) {
-	from := mail.NewEmail(s.fromName, s.fromEmail)
-	toEmail := mail.NewEmail("", to)
+	// Sandbox mode: log the email but don't actually send it
+	if s.sandboxMode {
+		s.logger.Info("SANDBOX MODE: Email would be sent", map[string]interface{}{
+			"to":           to,
+			"subject":      subject,
+			"html_length":  len(htmlContent),
+			"text_length":  len(textContent),
+			"from_email":   s.fromEmail,
+			"from_name":    s.fromName,
+		})
+		// Return a fake message ID for testing
+		return fmt.Sprintf("sandbox-%s", uuid.New().String()), nil
+	}
 
-	message := mail.NewSingleEmail(from, subject, toEmail, textContent, htmlContent)
+	from := sendgridmail.NewEmail(s.fromName, s.fromEmail)
+	toEmail := sendgridmail.NewEmail("", to)
+
+	message := sendgridmail.NewSingleEmail(from, subject, toEmail, textContent, htmlContent)
 	client := sendgrid.NewSendClient(s.apiKey)
 
 	response, err := client.Send(message)
 	if err != nil {
+		s.logger.Error("SendGrid API error", err, map[string]interface{}{
+			"to":      to,
+			"subject": subject,
+		})
 		return "", err
 	}
 
 	if response.StatusCode >= 400 {
-		return "", fmt.Errorf("sendgrid error: status %d, body: %s", response.StatusCode, response.Body)
+		errMsg := fmt.Errorf("sendgrid error: status %d, body: %s", response.StatusCode, response.Body)
+		s.logger.Error("SendGrid returned error status", errMsg, map[string]interface{}{
+			"status_code": response.StatusCode,
+			"to":          to,
+			"subject":     subject,
+		})
+		return "", errMsg
 	}
 
 	// Extract message ID from headers
@@ -216,6 +265,14 @@ func (s *EmailService) sendViaSendGrid(to, subject, htmlContent, textContent str
 	if ids, ok := response.Headers["X-Message-Id"]; ok && len(ids) > 0 {
 		messageID = ids[0]
 	}
+
+	// Log successful send
+	s.logger.Info("Email sent successfully via SendGrid", map[string]interface{}{
+		"to":         to,
+		"subject":    subject,
+		"message_id": messageID,
+	})
+
 	return messageID, nil
 }
 
@@ -523,6 +580,119 @@ func (s *EmailService) checkRateLimit(ctx context.Context, userID uuid.UUID) (bo
 func (s *EmailService) incrementRateLimit(ctx context.Context, userID uuid.UUID) error {
 	windowStart := time.Now().Truncate(time.Hour)
 	return s.repo.IncrementRateLimit(ctx, userID, windowStart)
+}
+
+// SendEmail sends a generic email using the provided EmailRequest
+// This method provides a flexible interface for sending template-based or custom emails
+// WARNING: This method does NOT check rate limits or user preferences. Use only for system emails.
+// For user-triggered notifications that respect preferences and rate limits, use SendNotificationEmail.
+func (s *EmailService) SendEmail(ctx context.Context, req EmailRequest) error {
+	if !s.enabled {
+		return nil // Email service disabled
+	}
+
+	// Validate request
+	if len(req.To) == 0 {
+		return fmt.Errorf("no recipients specified")
+	}
+	if req.Subject == "" {
+		return fmt.Errorf("subject is required")
+	}
+
+	// Validate email addresses
+	for _, email := range req.To {
+		if _, err := mail.ParseAddress(email); err != nil {
+			return fmt.Errorf("invalid email address: %s", email)
+		}
+	}
+
+	// For now, we'll build a simple HTML/text email from the data
+	// In the future, this could be extended to use SendGrid templates
+	htmlBody := s.buildEmailFromData(req.Data)
+	textBody := s.buildTextEmailFromData(req.Data)
+
+	// Send to each recipient
+	var sendErrors []error
+	for _, recipient := range req.To {
+		messageID, err := s.sendViaSendGrid(recipient, req.Subject, htmlBody, textBody)
+		if err != nil {
+			s.logger.Error("Failed to send email", err, map[string]interface{}{
+				"to":       recipient,
+				"subject":  req.Subject,
+				"template": req.Template,
+				"tags":     req.Tags,
+			})
+			sendErrors = append(sendErrors, fmt.Errorf("failed to send to %s: %w", recipient, err))
+		} else {
+			s.logger.Info("Email sent successfully", map[string]interface{}{
+				"to":         recipient,
+				"subject":    req.Subject,
+				"message_id": messageID,
+				"template":   req.Template,
+				"tags":       req.Tags,
+			})
+		}
+	}
+
+	if len(sendErrors) > 0 {
+		// Include detailed error messages for debugging
+		errMsgs := make([]string, len(sendErrors))
+		for i, err := range sendErrors {
+			errMsgs[i] = err.Error()
+		}
+		return fmt.Errorf("failed to send %d out of %d emails: %s",
+			len(sendErrors), len(req.To), strings.Join(errMsgs, "; "))
+	}
+
+	return nil
+}
+
+// buildEmailFromData builds a simple HTML email from the provided data
+// Keys are sorted alphabetically for consistent ordering
+func (s *EmailService) buildEmailFromData(data map[string]interface{}) string {
+	htmlContent := `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+`
+	// Sort keys for consistent ordering
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Build HTML with escaped values to prevent XSS
+	for _, key := range keys {
+		value := data[key]
+		escapedKey := html.EscapeString(key)
+		escapedValue := html.EscapeString(fmt.Sprintf("%v", value))
+		htmlContent += fmt.Sprintf("    <p><strong>%s:</strong> %s</p>\n", escapedKey, escapedValue)
+	}
+	htmlContent += `</body>
+</html>`
+	return htmlContent
+}
+
+// buildTextEmailFromData builds a plain text email from the provided data
+// Keys are sorted alphabetically for consistent ordering
+func (s *EmailService) buildTextEmailFromData(data map[string]interface{}) string {
+	// Sort keys for consistent ordering
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	text := ""
+	for _, key := range keys {
+		value := data[key]
+		text += fmt.Sprintf("%s: %v\n", key, value)
+	}
+	return text
 }
 
 // GetEmailLogs retrieves email logs for a user
