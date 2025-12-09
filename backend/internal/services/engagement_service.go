@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,10 +21,6 @@ const (
 	
 	// BenchmarkShares is the share count at which content receives 100 engagement points for shares
 	BenchmarkShares = 50
-	
-	// VoteScoreScale is used to convert net vote scores to a 0-1 ratio
-	// A vote score of ±100 represents the upper/lower bounds for normalization
-	VoteScoreScale = 100.0
 )
 
 // EngagementService handles engagement metrics calculations
@@ -248,7 +243,7 @@ func (s *EngagementService) GetTrendingMetrics(ctx context.Context, metric strin
 	
 	// Calculate week-over-week change
 	weekOverWeekChange := 0.0
-	if len(trendingPoints) >= 7 {
+	if len(trendingPoints) >= 14 {
 		lastWeekAvg := calculateAverage(trendingPoints[len(trendingPoints)-7:])
 		prevWeekAvg := calculateAverage(trendingPoints[len(trendingPoints)-14 : len(trendingPoints)-7])
 		if prevWeekAvg > 0 {
@@ -287,20 +282,16 @@ func (s *EngagementService) GetContentEngagementScore(ctx context.Context, clipI
 		return nil, err
 	}
 	
-	// Calculate vote ratio from net vote score
-	// vote_score is the difference between upvotes and downvotes
-	// We normalize it to a 0-1 scale where 0.5 is neutral
-	voteRatio := 0.5 // Default neutral (equal upvotes and downvotes)
-	if clip.VoteScore != 0 {
-		// Scale the vote score: positive scores increase ratio above 0.5, negative decrease it
-		// VoteScoreScale defines how many net votes equals maximum deviation from neutral
-		voteRatio = 0.5 + (float64(clip.VoteScore) / VoteScoreScale)
-		// Clamp to valid range [0.0, 1.0]
-		if voteRatio > 1.0 {
-			voteRatio = 1.0
-		} else if voteRatio < 0.0 {
-			voteRatio = 0.0
-		}
+	// Calculate vote ratio as defined in documentation: upvotes / (upvotes + downvotes)
+	upvotes, downvotes, err := s.analyticsRepo.GetClipVoteCounts(ctx, clipID)
+	if err != nil {
+		return nil, err
+	}
+	
+	voteRatio := 0.5 // Default neutral if no votes
+	totalVotes := upvotes + downvotes
+	if totalVotes > 0 {
+		voteRatio = float64(upvotes) / float64(totalVotes)
 	}
 	
 	// Calculate favorite rate
@@ -482,7 +473,12 @@ func calculateTrendSummary(points []models.TrendingDataPoint) models.TrendSummar
 	if len(points) >= 2 {
 		firstHalf := calculateAverage(points[:len(points)/2])
 		secondHalf := calculateAverage(points[len(points)/2:])
-		change := ((secondHalf - firstHalf) / firstHalf) * 100
+		var change float64
+		if firstHalf != 0 {
+			change = ((secondHalf - firstHalf) / firstHalf) * 100
+		} else {
+			change = 0
+		}
 		
 		if change > 5 {
 			trend = "increasing"
@@ -508,9 +504,4 @@ func normalizeMetric(value, max int64) int {
 		normalized = 100
 	}
 	return normalized
-}
-
-// exponentialDecay calculates the weight based on age using exponential decay
-func exponentialDecay(ageInDays int, lambda float64) float64 {
-	return math.Exp(-lambda * float64(ageInDays))
 }

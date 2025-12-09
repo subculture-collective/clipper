@@ -344,8 +344,7 @@ GET /api/v1/admin/analytics/trending?metric=dau&days=7
       "date": "2025-12-03",
       "value": 1205,
       "change_from_previous": 2.1
-    },
-    // ... more data points
+    }
   ],
   "week_over_week_change": 5.2,
   "summary": {

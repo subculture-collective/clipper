@@ -333,17 +333,17 @@
             "refId": "A"
           },
           {
-            "expr": "count(clipper_user_engagement_score >= 76 and clipper_user_engagement_score < 91)",
+            "expr": "count((clipper_user_engagement_score >= 76) * (clipper_user_engagement_score < 91))",
             "legendFormat": "High (76-90)",
             "refId": "B"
           },
           {
-            "expr": "count(clipper_user_engagement_score >= 51 and clipper_user_engagement_score < 76)",
+            "expr": "count((clipper_user_engagement_score >= 51) * (clipper_user_engagement_score < 76))",
             "legendFormat": "Moderate (51-75)",
             "refId": "C"
           },
           {
-            "expr": "count(clipper_user_engagement_score >= 26 and clipper_user_engagement_score < 51)",
+            "expr": "count((clipper_user_engagement_score >= 26) * (clipper_user_engagement_score < 51))",
             "legendFormat": "Low (26-50)",
             "refId": "D"
           },

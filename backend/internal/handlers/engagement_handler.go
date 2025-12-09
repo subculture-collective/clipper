@@ -58,12 +58,19 @@ func (h *EngagementHandler) GetUserEngagementScore(c *gin.Context) {
 	
 	// Check if requester is authorized to view this user's engagement
 	// Only the user themselves or admins can view detailed engagement
-	if userIDStr != "me" {
-		requestUser, exists := c.Get("user")
-		if !exists || requestUser.(*models.User).Role != "admin" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-			return
-		}
+	requestUserInterface, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	requestUser, ok := requestUserInterface.(*models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+	if requestUser.Role != "admin" && requestUser.ID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
 	}
 	
 	score, err := h.engagementService.GetUserEngagementScore(c.Request.Context(), userID)

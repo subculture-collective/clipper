@@ -286,49 +286,6 @@ func TestNormalizeMetric(t *testing.T) {
 	}
 }
 
-// TestExponentialDecay validates exponential decay calculation
-func TestExponentialDecay(t *testing.T) {
-	tests := []struct {
-		name       string
-		ageInDays  int
-		lambda     float64
-		minWeight  float64
-		maxWeight  float64
-	}{
-		{
-			name:       "Day 0 (today)",
-			ageInDays:  0,
-			lambda:     0.1,
-			minWeight:  0.99, // Should be ~1.0
-			maxWeight:  1.01,
-		},
-		{
-			name:       "Day 7",
-			ageInDays:  7,
-			lambda:     0.1,
-			minWeight:  0.49, // Should be ~0.5
-			maxWeight:  0.51,
-		},
-		{
-			name:       "Day 30",
-			ageInDays:  30,
-			lambda:     0.1,
-			minWeight:  0.04, // Should be ~0.05
-			maxWeight:  0.06,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := exponentialDecay(tt.ageInDays, tt.lambda)
-			if result < tt.minWeight || result > tt.maxWeight {
-				t.Errorf("exponentialDecay(%d, %v) = %v, want between %v and %v", 
-					tt.ageInDays, tt.lambda, result, tt.minWeight, tt.maxWeight)
-			}
-		})
-	}
-}
-
 // TestEngagementServiceStructure validates the service structure
 func TestEngagementServiceStructure(t *testing.T) {
 	// This test ensures the EngagementService is properly structured

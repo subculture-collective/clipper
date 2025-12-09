@@ -1041,3 +1041,17 @@ func (r *AnalyticsRepository) GetClipShareCount(ctx context.Context, clipID uuid
 	err := r.db.QueryRow(ctx, query, clipID).Scan(&count)
 	return count, err
 }
+
+// GetClipVoteCounts returns the separate upvote and downvote counts for a clip
+func (r *AnalyticsRepository) GetClipVoteCounts(ctx context.Context, clipID uuid.UUID) (upvotes int64, downvotes int64, err error) {
+	query := `
+		SELECT 
+			COUNT(*) FILTER (WHERE vote_type = 1) as upvotes,
+			COUNT(*) FILTER (WHERE vote_type = -1) as downvotes
+		FROM votes
+		WHERE clip_id = $1
+	`
+	
+	err = r.db.QueryRow(ctx, query, clipID).Scan(&upvotes, &downvotes)
+	return upvotes, downvotes, err
+}
