@@ -170,8 +170,8 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 		fmt.Printf("Warning: failed to auto-upvote comment for user %s: %v\n", userID, err)
 	} else {
 		// Update the in-memory vote score to reflect the auto-upvote
-		// The database trigger will have updated it, but we want to return the correct value
-		comment.VoteScore = 1
+		// The database trigger will have updated it from 0 to 1
+		comment.VoteScore += 1
 	}
 
 	// Award karma to user
