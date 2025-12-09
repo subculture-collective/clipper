@@ -138,7 +138,7 @@ func (s *CommentService) ValidateCreateComment(ctx context.Context, req *CreateC
 }
 
 // CreateComment creates a new comment
-func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRequest, clipID, userID uuid.UUID) (*models.Comment, error) {
+func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRequest, clipID, userID uuid.UUID) (*repository.CommentWithAuthor, error) {
 	// Validate request
 	if err := s.ValidateCreateComment(ctx, req, clipID); err != nil {
 		return nil, err
@@ -161,6 +161,17 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 	// Save to database
 	if err := s.repo.Create(ctx, comment); err != nil {
 		return nil, fmt.Errorf("failed to create comment: %w", err)
+	}
+
+	// Auto-upvote: Create an upvote from the comment creator
+	// This encourages engagement and shows creator approval
+	if err := s.repo.VoteOnComment(ctx, userID, comment.ID, 1); err != nil {
+		// Log error but don't fail the comment creation
+		fmt.Printf("Warning: failed to auto-upvote comment for user %s: %v\n", userID, err)
+	} else {
+		// Update the in-memory vote score to reflect the auto-upvote
+		// The database trigger will have updated it, but we want to return the correct value
+		comment.VoteScore = 1
 	}
 
 	// Award karma to user
@@ -187,7 +198,19 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 		}
 	}
 
-	return comment, nil
+	// Fetch the complete comment with author info and vote status
+	commentWithAuthor, err := s.repo.GetByID(ctx, comment.ID, &userID)
+	if err != nil {
+		// If we can't get the full comment, return the basic comment
+		// Log error but don't fail since the comment was created successfully
+		fmt.Printf("Warning: failed to fetch created comment with author info: %v\n", err)
+		// Return a minimal CommentWithAuthor based on what we have
+		return &repository.CommentWithAuthor{
+			Comment: *comment,
+		}, nil
+	}
+
+	return commentWithAuthor, nil
 }
 
 // UpdateComment updates a comment's content
