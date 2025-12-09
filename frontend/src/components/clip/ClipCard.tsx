@@ -171,6 +171,20 @@ export function ClipCard({ clip }: ClipCardProps) {
                                 {clip.creator_name}
                             </a>
                         </span>
+                        <span className='hidden xs:inline'>•</span>
+                        <span className='flex items-center gap-1'>
+                            <span className='hidden xs:inline'>From</span>
+                            {clip.broadcaster_id ? (
+                                <Link
+                                    to={`/broadcaster/${clip.broadcaster_id}`}
+                                    className='hover:text-foreground transition-colors touch-target cursor-pointer'
+                                >
+                                    {clip.broadcaster_name}
+                                </Link>
+                            ) : (
+                                <span>{clip.broadcaster_name}</span>
+                            )}
+                        </span>
                         {clip.submitted_by && (
                             <>
                                 <span className='hidden xs:inline'>•</span>

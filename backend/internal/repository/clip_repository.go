@@ -736,6 +736,74 @@ func (r *ClipRepository) ListForSitemap(ctx context.Context) ([]models.Clip, err
 	return clips, nil
 }
 
+// ListClipsByBroadcaster retrieves clips for a specific broadcaster with pagination and sorting
+func (r *ClipRepository) ListClipsByBroadcaster(ctx context.Context, broadcasterID, sort string, limit, offset int) ([]models.Clip, int, error) {
+	// Get total count
+	countQuery := `
+		SELECT COUNT(*)
+		FROM clips
+		WHERE broadcaster_id = $1 AND is_removed = false
+	`
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, broadcasterID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count broadcaster clips: %w", err)
+	}
+
+	// Build order by clause based on sort parameter
+	orderBy := "created_at DESC" // default: recent
+	switch sort {
+	case "popular":
+		orderBy = "vote_score DESC, created_at DESC"
+	case "trending":
+		// Sort by popularity with recency tiebreaker (not true trending/hot score)
+		orderBy = "vote_score DESC, view_count DESC, created_at DESC"
+	}
+
+	// Get clips
+	query := fmt.Sprintf(`
+		SELECT
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count,
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at
+		FROM clips
+		WHERE broadcaster_id = $1 AND is_removed = false
+		ORDER BY %s
+		LIMIT $2 OFFSET $3
+	`, orderBy)
+
+	rows, err := r.pool.Query(ctx, query, broadcasterID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list broadcaster clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		if err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating clips: %w", err)
+	}
+
+	return clips, total, nil
+}
+
 // UpdateMetadata updates the title of a clip
 func (r *ClipRepository) UpdateMetadata(ctx context.Context, clipID uuid.UUID, title *string) error {
 	// Whitelist of allowed fields for metadata update
