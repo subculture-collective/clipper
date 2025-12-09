@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Alert,
     Button,
@@ -19,6 +19,7 @@ import type { ClipSubmission, SubmitClipRequest } from '../types/submission';
 export function SubmitClipPage() {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [formData, setFormData] = useState<SubmitClipRequest>({
         clip_url: '',
         custom_title: '',
@@ -41,6 +42,17 @@ export function SubmitClipPage() {
     // Check if user is authenticated and has enough karma
     const canSubmit = isAuthenticated && user && (!karmaRequirementEnabled || user.karma_points >= karmaRequired);
     const karmaNeeded = user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
+
+    // Pre-fill from navigation state (e.g., when claiming a scraped clip)
+    useEffect(() => {
+        const state = location.state as { clipUrl?: string } | null;
+        if (state?.clipUrl) {
+            setFormData((prev) => ({
+                ...prev,
+                clip_url: state.clipUrl,
+            }));
+        }
+    }, [location.state]);
 
     // Load karma configuration
     useEffect(() => {

@@ -210,6 +210,51 @@ func (h *SubmissionHandler) GetClipMetadata(c *gin.Context) {
 	})
 }
 
+// CheckClipStatus checks if a clip exists and whether it can be claimed
+// GET /submissions/check/:clip_id
+// Note: This endpoint is public to allow users to check clip status before attempting to claim.
+// Sensitive fields are filtered from the response.
+func (h *SubmissionHandler) CheckClipStatus(c *gin.Context) {
+	clipID := c.Param("clip_id")
+	if clipID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Clip ID is required",
+		})
+		return
+	}
+
+	result, err := h.submissionService.CheckClipExistence(c.Request.Context(), clipID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to check clip status",
+		})
+		return
+	}
+
+	response := gin.H{
+		"success":        true,
+		"exists":         result.Exists,
+		"can_be_claimed": result.CanBeClaimed,
+	}
+
+	// If clip exists, return minimal public information only
+	if result.Exists && result.Clip != nil {
+		response["clip"] = gin.H{
+			"id":              result.Clip.ID,
+			"title":           result.Clip.Title,
+			"broadcaster_name": result.Clip.BroadcasterName,
+			"game_name":       result.Clip.GameName,
+			"view_count":      result.Clip.ViewCount,
+			"created_at":      result.Clip.CreatedAt,
+			// Exclude sensitive fields: is_removed, removed_reason, submitted_by_user_id, etc.
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // ListPendingSubmissions lists pending submissions for moderation (admin/moderator only)
 // GET /admin/submissions
 // Supports filters: is_nsfw, broadcaster, creator, tags (comma-separated), start_date (RFC3339), end_date (RFC3339)

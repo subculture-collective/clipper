@@ -571,6 +571,8 @@ func main() {
 				submissions.GET("/stats", submissionHandler.GetSubmissionStats)
 				// Metadata endpoint with rate limiting (100 requests/hour per user)
 				submissions.GET("/metadata", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), submissionHandler.GetClipMetadata)
+				// Check clip status endpoint to see if it can be claimed
+				submissions.GET("/check/:clip_id", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), submissionHandler.CheckClipStatus)
 			}
 		}
 

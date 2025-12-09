@@ -6,6 +6,17 @@ import type {
   SubmissionStatsResponse,
   ModerationQueueResponse,
 } from '../types/submission';
+import type { Clip } from '../types/clip';
+
+/**
+ * Response from checking clip status
+ */
+export interface ClipStatusResponse {
+  success: boolean;
+  exists: boolean;
+  can_be_claimed: boolean;
+  clip?: Clip;
+}
 
 /**
  * Submit a clip for moderation
@@ -16,6 +27,16 @@ export async function submitClip(
   const response = await apiClient.post<SubmissionResponse>(
     '/submissions',
     request
+  );
+  return response.data;
+}
+
+/**
+ * Check if a clip exists and whether it can be claimed
+ */
+export async function checkClipStatus(clipId: string): Promise<ClipStatusResponse> {
+  const response = await apiClient.get<ClipStatusResponse>(
+    `/submissions/check/${clipId}`
   );
   return response.data;
 }

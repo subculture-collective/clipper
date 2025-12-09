@@ -4,7 +4,7 @@ import { useClipFavorite, useClipVote } from '@/hooks/useClips';
 import { useIsAuthenticated, useToast } from '@/hooks';
 import { cn, formatTimestamp } from '@/lib/utils';
 import type { Clip } from '@/types/clip';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TwitchEmbed } from './TwitchEmbed';
 
 interface ClipCardProps {
@@ -16,6 +16,7 @@ export function ClipCard({ clip }: ClipCardProps) {
     const voteMutation = useClipVote();
     const favoriteMutation = useClipFavorite();
     const toast = useToast();
+    const navigate = useNavigate();
 
     const handleVote = (voteType: 1 | -1) => {
         if (!isAuthenticated) {
@@ -31,6 +32,19 @@ export function ClipCard({ clip }: ClipCardProps) {
             return;
         }
         favoriteMutation.mutate({ clip_id: clip.id });
+    };
+
+    const handlePostClip = () => {
+        if (!isAuthenticated) {
+            toast.info('Please log in to post this clip');
+            return;
+        }
+        // Navigate to submit page with clip URL pre-filled
+        navigate('/submit', { 
+            state: { 
+                clipUrl: clip.twitch_clip_url
+            } 
+        });
     };
 
     const formatDuration = (seconds?: number) => {
@@ -320,6 +334,42 @@ export function ClipCard({ clip }: ClipCardProps) {
                             </svg>
                             <span>Share</span>
                         </button>
+
+                        {/* Post This Clip button - only show for scraped clips (no submitter) */}
+                        {!clip.submitted_by && (
+                            <button
+                                onClick={handlePostClip}
+                                disabled={!isAuthenticated}
+                                className={cn(
+                                    'text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px] font-medium',
+                                    !isAuthenticated
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400'
+                                )}
+                                aria-label={
+                                    !isAuthenticated
+                                        ? 'Log in to post this clip'
+                                        : 'Post this clip'
+                                }
+                                title={!isAuthenticated ? 'Log in to post this clip' : 'Post this clip'}
+                            >
+                                <svg
+                                    className='w-5 h-5 shrink-0'
+                                    fill='none'
+                                    stroke='currentColor'
+                                    viewBox='0 0 24 24'
+                                >
+                                    <path
+                                        strokeLinecap='round'
+                                        strokeLinejoin='round'
+                                        strokeWidth={2}
+                                        d='M12 4v16m8-8H4'
+                                    />
+                                </svg>
+                                <span className='hidden sm:inline'>Post This Clip</span>
+                                <span className='sm:hidden'>Post</span>
+                            </button>
+                        )}
 
                         <span className='text-muted-foreground flex items-center gap-1'>
                             <svg
