@@ -2,9 +2,8 @@ import { TagList } from '@/components/tag/TagList';
 import { Badge } from '@/components/ui';
 import { useClipFavorite, useClipVote } from '@/hooks/useClips';
 import { useIsAuthenticated, useToast } from '@/hooks';
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 import type { Clip } from '@/types/clip';
-import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { TwitchEmbed } from './TwitchEmbed';
 
@@ -58,6 +57,8 @@ export function ClipCard({ clip }: ClipCardProps) {
             ? 'text-red-600 dark:text-red-400'
             : 'text-muted-foreground';
 
+    const timestamp = formatTimestamp(clip.created_at);
+
     return (
         <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render'>
             <div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
@@ -69,18 +70,20 @@ export function ClipCard({ clip }: ClipCardProps) {
                         className={cn(
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === 1 &&
-                                'text-green-600 dark:text-green-400',
+                                'text-orange-600 dark:text-orange-400',
                             !isAuthenticated
                                 ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
                                 : 'cursor-pointer'
                         )}
                         aria-label={isAuthenticated ? 'Upvote' : 'Log in to upvote'}
                         aria-disabled={!isAuthenticated}
-                        title={isAuthenticated ? 'Upvote' : 'Log in to vote'}
+                        title={isAuthenticated ? `Upvote (${formatNumber(clip.vote_score)})` : 'Log in to vote'}
                     >
                         <svg
                             className='w-6 h-6'
-                            fill='currentColor'
+                            fill={clip.user_vote === 1 ? 'currentColor' : 'none'}
+                            stroke='currentColor'
+                            strokeWidth={clip.user_vote === 1 ? 0 : 2}
                             viewBox='0 0 24 24'
                         >
                             <path d='M12 4l8 8h-6v8h-4v-8H4z' />
@@ -97,18 +100,20 @@ export function ClipCard({ clip }: ClipCardProps) {
                         className={cn(
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === -1 &&
-                                'text-red-600 dark:text-red-400',
+                                'text-purple-600 dark:text-purple-400',
                             !isAuthenticated
                                 ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
                                 : 'cursor-pointer'
                         )}
                         aria-label={isAuthenticated ? 'Downvote' : 'Log in to downvote'}
                         aria-disabled={!isAuthenticated}
-                        title={isAuthenticated ? 'Downvote' : 'Log in to vote'}
+                        title={isAuthenticated ? `Downvote (${formatNumber(clip.vote_score)})` : 'Log in to vote'}
                     >
                         <svg
                             className='w-6 h-6'
-                            fill='currentColor'
+                            fill={clip.user_vote === -1 ? 'currentColor' : 'none'}
+                            stroke='currentColor'
+                            strokeWidth={clip.user_vote === -1 ? 0 : 2}
                             viewBox='0 0 24 24'
                         >
                             <path d='M12 20l-8-8h6V4h4v8h6z' />
@@ -211,10 +216,8 @@ export function ClipCard({ clip }: ClipCardProps) {
                                 <span className='hidden xs:inline'>•</span>
                             </>
                         )}
-                        <span className='truncate'>
-                            {formatDistanceToNow(new Date(clip.created_at), {
-                                addSuffix: true,
-                            })}
+                        <span className='truncate' title={timestamp.title}>
+                            {timestamp.display}
                         </span>
                     </div>
 

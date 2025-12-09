@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatDistanceToNow, format, differenceInMinutes } from 'date-fns';
 
 /**
  * Utility function to merge Tailwind CSS classes
@@ -7,6 +8,34 @@ import { twMerge } from 'tailwind-merge';
  */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Format timestamp with improved UX:
+ * - Shows relative time (e.g., "2 minutes ago") for times within the last hour
+ * - Shows exact time (e.g., "3:42 PM") for times after 1 hour
+ * - Full date shown in title attribute for tooltip
+ */
+export function formatTimestamp(date: Date | string): { display: string; title: string } {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const minutesDiff = differenceInMinutes(now, dateObj);
+  
+  // For times within the last hour, show relative time
+  if (minutesDiff < 60) {
+    const relative = formatDistanceToNow(dateObj, { addSuffix: true });
+    return {
+      display: relative,
+      title: format(dateObj, 'PPpp'), // Full date and time
+    };
+  }
+  
+  // For times after 1 hour, show exact time
+  const timeDisplay = format(dateObj, 'h:mm a'); // e.g., "3:42 PM"
+  return {
+    display: timeDisplay,
+    title: format(dateObj, 'PPpp'), // Full date and time
+  };
 }
 
 /**
