@@ -228,23 +228,31 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 	}
 
 	// Collect unique submitter IDs for batch fetching
-	submitterIDs := make(map[uuid.UUID]bool)
+	submitterIDSet := make(map[uuid.UUID]struct{})
 	for _, clip := range clips {
 		if clip.SubmittedByUserID != nil {
-			submitterIDs[*clip.SubmittedByUserID] = true
+			submitterIDSet[*clip.SubmittedByUserID] = struct{}{}
 		}
 	}
 
-	// Batch fetch submitter information
+	// Convert set to slice for batch query
+	submitterIDs := make([]uuid.UUID, 0, len(submitterIDSet))
+	for id := range submitterIDSet {
+		submitterIDs = append(submitterIDs, id)
+	}
+
+	// Batch fetch submitter information in a single query
 	submitters := make(map[uuid.UUID]*models.ClipSubmitterInfo)
-	for submitterID := range submitterIDs {
-		submitter, err := s.userRepo.GetByID(ctx, submitterID)
-		if err == nil && submitter != nil {
-			submitters[submitterID] = &models.ClipSubmitterInfo{
-				ID:          submitter.ID,
-				Username:    submitter.Username,
-				DisplayName: submitter.DisplayName,
-				AvatarURL:   submitter.AvatarURL,
+	if len(submitterIDs) > 0 {
+		users, err := s.userRepo.GetByIDs(ctx, submitterIDs)
+		if err == nil {
+			for _, submitter := range users {
+				submitters[submitter.ID] = &models.ClipSubmitterInfo{
+					ID:          submitter.ID,
+					Username:    submitter.Username,
+					DisplayName: submitter.DisplayName,
+					AvatarURL:   submitter.AvatarURL,
+				}
 			}
 		}
 	}

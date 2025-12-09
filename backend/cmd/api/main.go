@@ -269,7 +269,7 @@ func main() {
 	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
-	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	seoHandler := handlers.NewSEOHandler(clipRepo)
@@ -582,6 +582,9 @@ func main() {
 		// Reputation routes
 		users := v1.Group("/users")
 		{
+			// Public user profile
+			users.GET("/by-username/:username", userHandler.GetUserByUsername)
+			
 			// Public reputation endpoints
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
 			users.GET("/:id/karma", reputationHandler.GetUserKarma)
