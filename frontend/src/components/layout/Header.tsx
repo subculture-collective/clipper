@@ -114,7 +114,7 @@ export function Header() {
                                 variant='ghost'
                                 size='sm'
                             >
-                                🔍 Discover
+                                🔍 {t('nav.discover')}
                             </Button>
                         </Link>
                         <Link to='/leaderboards'>
