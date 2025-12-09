@@ -234,7 +234,7 @@ export async function removeSecureItem(key: string): Promise<void> {
  */
 export async function clearSecureStorage(): Promise<void> {
   if (!isSecureStorageAvailable()) {
-    // Clear all secure_* items from sessionStorage
+    // Clear all secure_* items from sessionStorage and localStorage
     const keysToRemove: string[] = [];
     for (let i = 0; i < sessionStorage.length; i++) {
       const key = sessionStorage.key(i);
@@ -243,6 +243,16 @@ export async function clearSecureStorage(): Promise<void> {
       }
     }
     keysToRemove.forEach(key => sessionStorage.removeItem(key));
+
+    // Also clear from localStorage
+    const localStorageKeysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('secure_')) {
+        localStorageKeysToRemove.push(key);
+      }
+    }
+    localStorageKeysToRemove.forEach(key => localStorage.removeItem(key));
     return;
   }
 

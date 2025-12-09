@@ -5,11 +5,11 @@ import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
 import { Button } from '../components/ui';
 import { Spinner } from '../components';
-import { 
-  fetchBroadcasterProfile, 
-  fetchBroadcasterClips, 
-  followBroadcaster, 
-  unfollowBroadcaster 
+import {
+  fetchBroadcasterProfile,
+  fetchBroadcasterClips,
+  followBroadcaster,
+  unfollowBroadcaster
 } from '../lib/broadcaster-api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -23,10 +23,10 @@ export function BroadcasterPage() {
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'trending'>('recent');
 
   // Fetch broadcaster profile
-  const { 
-    data: profile, 
-    isLoading: isLoadingProfile, 
-    error: profileError 
+  const {
+    data: profile,
+    isLoading: isLoadingProfile,
+    error: profileError
   } = useQuery({
     queryKey: ['broadcaster', broadcasterId],
     queryFn: () => fetchBroadcasterProfile(broadcasterId!),
@@ -34,9 +34,9 @@ export function BroadcasterPage() {
   });
 
   // Fetch broadcaster clips
-  const { 
-    data: clipsData, 
-    isLoading: isLoadingClips 
+  const {
+    data: clipsData,
+    isLoading: isLoadingClips
   } = useQuery({
     queryKey: ['broadcasterClips', broadcasterId, page, sortBy],
     queryFn: () => fetchBroadcasterClips(broadcasterId!, { page, limit: 20, sort: sortBy }),
@@ -103,7 +103,7 @@ export function BroadcasterPage() {
 
   return (
     <>
-      <SEO 
+      <SEO
         title={`${profile.display_name} - Broadcaster Profile`}
         description={`View all clips featuring ${profile.display_name} on Clipper`}
       />
@@ -113,20 +113,20 @@ export function BroadcasterPage() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6">
             {/* Avatar */}
             {profile.avatar_url && (
-              <img 
-                src={profile.avatar_url} 
+              <img
+                src={profile.avatar_url}
                 alt={`${profile.display_name} profile picture`}
                 className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-primary"
               />
             )}
-            
+
             {/* Info */}
             <div className="flex-1">
               <h1 className="text-4xl font-bold mb-2">{profile.display_name}</h1>
               {profile.bio && (
                 <p className="text-muted-foreground mb-4">{profile.bio}</p>
               )}
-              
+
               {/* Stats */}
               <div className="flex flex-wrap gap-6 text-sm">
                 <div>
@@ -153,7 +153,7 @@ export function BroadcasterPage() {
               <Button
                 onClick={handleFollowToggle}
                 disabled={followMutation.isPending || unfollowMutation.isPending}
-                variant={profile.is_following ? 'outline' : 'default'}
+                variant={profile.is_following ? 'outline' : 'primary'}
               >
                 {followMutation.isPending || unfollowMutation.isPending ? (
                   <Spinner size="sm" />
@@ -179,7 +179,7 @@ export function BroadcasterPage() {
           <div className="flex gap-2">
             <Button
               size="sm"
-              variant={sortBy === 'recent' ? 'default' : 'outline'}
+              variant={sortBy === 'recent' ? 'primary' : 'outline'}
               onClick={() => {
                 setSortBy('recent');
                 setPage(1);
@@ -190,7 +190,7 @@ export function BroadcasterPage() {
             </Button>
             <Button
               size="sm"
-              variant={sortBy === 'popular' ? 'default' : 'outline'}
+              variant={sortBy === 'popular' ? 'primary' : 'outline'}
               onClick={() => {
                 setSortBy('popular');
                 setPage(1);
@@ -201,7 +201,7 @@ export function BroadcasterPage() {
             </Button>
             <Button
               size="sm"
-              variant={sortBy === 'trending' ? 'default' : 'outline'}
+              variant={sortBy === 'trending' ? 'primary' : 'outline'}
               onClick={() => {
                 setSortBy('trending');
                 setPage(1);

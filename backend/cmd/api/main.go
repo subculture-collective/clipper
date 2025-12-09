@@ -604,7 +604,7 @@ func main() {
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
 
 			// User engagement score (authenticated)
-			users.GET("/:userId/engagement", middleware.AuthMiddleware(authService), engagementHandler.GetUserEngagementScore)
+		users.GET("/:id/engagement", middleware.AuthMiddleware(authService), engagementHandler.GetUserEngagementScore)
 
 			// Profile management (authenticated)
 			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)

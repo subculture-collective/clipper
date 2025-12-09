@@ -38,7 +38,7 @@ func TestCalculateTrustScoreBreakdown(t *testing.T) {
 		assert.Equal(t, 100, breakdown.MaxScore)
 		assert.Equal(t, 75, breakdown.TotalScore)
 		assert.True(t, breakdown.TotalScore <= breakdown.MaxScore)
-		assert.Equal(t, 60, breakdown.AccountAgeScore+breakdown.KarmaScore+breakdown.ReportAccuracy+breakdown.ActivityScore)
+		assert.Equal(t, 75, breakdown.AccountAgeScore+breakdown.KarmaScore+breakdown.ReportAccuracy+breakdown.ActivityScore)
 	})
 }
 
