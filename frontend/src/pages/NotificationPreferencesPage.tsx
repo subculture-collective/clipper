@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from '@dr.pogodin/react-helmet';
 import { Link } from 'react-router-dom';
-import { getNotificationPreferences, updateNotificationPreferences } from '../lib/notification-api';
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  resetNotificationPreferences,
+} from '../lib/notification-api';
 import type { NotificationPreferences } from '../types/notification';
 import { Button } from '../components/ui';
 import { Container } from '../components/layout';
@@ -10,6 +14,7 @@ import { Container } from '../components/layout';
 export function NotificationPreferencesPage() {
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [formData, setFormData] = useState<Partial<NotificationPreferences>>({});
 
   const { data: preferences, isLoading } = useQuery({
@@ -35,10 +40,29 @@ export function NotificationPreferencesPage() {
     },
   });
 
+  const resetMutation = useMutation({
+    mutationFn: resetNotificationPreferences,
+    onSuccess: (data) => {
+      setFormData(data);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      setIsResetting(false);
+    },
+    onError: () => {
+      setIsResetting(false);
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     updateMutation.mutate(formData);
+  };
+
+  const handleReset = () => {
+    if (confirm('Are you sure you want to reset all notification preferences to defaults?')) {
+      setIsResetting(true);
+      resetMutation.mutate();
+    }
   };
 
   const handleToggle = (field: keyof NotificationPreferences) => {
@@ -48,7 +72,7 @@ export function NotificationPreferencesPage() {
     }));
   };
 
-  const handleEmailDigestChange = (value: 'immediate' | 'daily' | 'weekly') => {
+  const handleEmailDigestChange = (value: 'immediate' | 'daily' | 'weekly' | 'never') => {
     setFormData((prev) => ({
       ...prev,
       email_digest: value,
@@ -94,24 +118,17 @@ export function NotificationPreferencesPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* General Settings */}
+            {/* Master Toggle */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                General Settings
+                Master Settings
               </h2>
 
               <div className="space-y-4">
                 <ToggleSwitch
-                  label="In-App Notifications"
-                  description="Show notifications in the app"
-                  checked={formData.in_app_enabled ?? true}
-                  onChange={() => handleToggle('in_app_enabled')}
-                />
-
-                <ToggleSwitch
-                  label="Email Notifications"
-                  description="Receive notifications via email"
-                  checked={formData.email_enabled ?? false}
+                  label="Enable All Email Notifications"
+                  description="Master toggle to enable or disable all email notifications"
+                  checked={formData.email_enabled ?? true}
                   onChange={() => handleToggle('email_enabled')}
                 />
 
@@ -121,52 +138,178 @@ export function NotificationPreferencesPage() {
                       Email Frequency
                     </label>
                     <select
-                      value={formData.email_digest ?? 'daily'}
+                      value={formData.email_digest ?? 'immediate'}
                       onChange={(e) =>
-                        handleEmailDigestChange(e.target.value as 'immediate' | 'daily' | 'weekly')
+                        handleEmailDigestChange(e.target.value as 'immediate' | 'daily' | 'weekly' | 'never')
                       }
                       className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     >
                       <option value="immediate">Immediate</option>
                       <option value="daily">Daily Digest</option>
                       <option value="weekly">Weekly Digest</option>
+                      <option value="never">Never (Disabled)</option>
                     </select>
                   </div>
                 )}
+
+                <ToggleSwitch
+                  label="In-App Notifications"
+                  description="Show notifications within the application"
+                  checked={formData.in_app_enabled ?? true}
+                  onChange={() => handleToggle('in_app_enabled')}
+                />
               </div>
             </div>
 
-            {/* Notification Types */}
+            {/* Account & Security */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Notification Types
+                Account &amp; Security
               </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Important security alerts for your account
+              </p>
 
               <div className="space-y-4">
                 <ToggleSwitch
-                  label="Replies"
+                  label="Login from New Device"
+                  description="Notify when your account is accessed from a new device"
+                  checked={formData.notify_login_new_device ?? true}
+                  onChange={() => handleToggle('notify_login_new_device')}
+                />
+
+                <ToggleSwitch
+                  label="Failed Login Attempts"
+                  description="Alert when there are failed login attempts on your account"
+                  checked={formData.notify_failed_login ?? true}
+                  onChange={() => handleToggle('notify_failed_login')}
+                />
+
+                <ToggleSwitch
+                  label="Password Changed"
+                  description="Notify when your password is changed"
+                  checked={formData.notify_password_changed ?? true}
+                  onChange={() => handleToggle('notify_password_changed')}
+                />
+
+                <ToggleSwitch
+                  label="Email Verified/Changed"
+                  description="Notify when your email is verified or changed"
+                  checked={formData.notify_email_changed ?? true}
+                  onChange={() => handleToggle('notify_email_changed')}
+                />
+              </div>
+            </div>
+
+            {/* Content Notifications */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Content
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Notifications about content and submissions
+              </p>
+
+              <div className="space-y-4">
+                <ToggleSwitch
+                  label="Submission Approved"
+                  description="When your content submission is approved"
+                  checked={formData.notify_submission_approved ?? true}
+                  onChange={() => handleToggle('notify_submission_approved')}
+                />
+
+                <ToggleSwitch
+                  label="Submission Rejected"
+                  description="When your content submission is rejected"
+                  checked={formData.notify_submission_rejected ?? true}
+                  onChange={() => handleToggle('notify_submission_rejected')}
+                />
+
+                <ToggleSwitch
+                  label="Reply to My Comment"
                   description="When someone replies to your comment"
                   checked={formData.notify_replies ?? true}
                   onChange={() => handleToggle('notify_replies')}
                 />
 
                 <ToggleSwitch
-                  label="Mentions"
+                  label="Mention in Comment"
                   description="When someone mentions you in a comment"
                   checked={formData.notify_mentions ?? true}
                   onChange={() => handleToggle('notify_mentions')}
                 />
 
                 <ToggleSwitch
+                  label="Content Trending"
+                  description="When your content starts trending"
+                  checked={formData.notify_content_trending ?? false}
+                  onChange={() => handleToggle('notify_content_trending')}
+                />
+
+                <ToggleSwitch
+                  label="Content Flagged"
+                  description="When your content is flagged for review"
+                  checked={formData.notify_content_flagged ?? true}
+                  onChange={() => handleToggle('notify_content_flagged')}
+                />
+
+                <ToggleSwitch
                   label="Vote Milestones"
-                  description="When your comment reaches vote milestones (10, 25, 50, etc.)"
+                  description="When your comments reach vote milestones (10, 25, 50, etc.)"
                   checked={formData.notify_votes ?? false}
                   onChange={() => handleToggle('notify_votes')}
                 />
 
                 <ToggleSwitch
-                  label="Badges & Achievements"
-                  description="When you earn a badge or rank up"
+                  label="Favorited Clip Comments"
+                  description="When someone comments on a clip you favorited"
+                  checked={formData.notify_favorited_clip_comment ?? true}
+                  onChange={() => handleToggle('notify_favorited_clip_comment')}
+                />
+              </div>
+            </div>
+
+            {/* Community Notifications */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Community
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Notifications about community interactions
+              </p>
+
+              <div className="space-y-4">
+                <ToggleSwitch
+                  label="Community Moderator Message"
+                  description="Messages from community moderators"
+                  checked={formData.notify_moderator_message ?? true}
+                  onChange={() => handleToggle('notify_moderator_message')}
+                />
+
+                <ToggleSwitch
+                  label="User Followed Me"
+                  description="When another user follows you"
+                  checked={formData.notify_user_followed ?? true}
+                  onChange={() => handleToggle('notify_user_followed')}
+                />
+
+                <ToggleSwitch
+                  label="Comment on My Content"
+                  description="When someone comments on your content"
+                  checked={formData.notify_comment_on_content ?? true}
+                  onChange={() => handleToggle('notify_comment_on_content')}
+                />
+
+                <ToggleSwitch
+                  label="Reply to Discussion I'm In"
+                  description="Replies to discussions you're participating in"
+                  checked={formData.notify_discussion_reply ?? true}
+                  onChange={() => handleToggle('notify_discussion_reply')}
+                />
+
+                <ToggleSwitch
+                  label="Badges &amp; Achievements"
+                  description="When you earn a badge or achievement"
                   checked={formData.notify_badges ?? true}
                   onChange={() => handleToggle('notify_badges')}
                 />
@@ -179,13 +322,6 @@ export function NotificationPreferencesPage() {
                 />
 
                 <ToggleSwitch
-                  label="Favorited Clip Comments"
-                  description="When someone comments on a clip you favorited"
-                  checked={formData.notify_favorited_clip_comment ?? true}
-                  onChange={() => handleToggle('notify_favorited_clip_comment')}
-                />
-
-                <ToggleSwitch
                   label="Moderation Actions"
                   description="When your content is removed, warnings, or account actions"
                   checked={formData.notify_moderation ?? true}
@@ -195,7 +331,7 @@ export function NotificationPreferencesPage() {
               </div>
             </div>
 
-            {/* Creator Notification Preferences */}
+            {/* Creator Notifications */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Creator Notifications
@@ -235,14 +371,58 @@ export function NotificationPreferencesPage() {
               </div>
             </div>
 
+            {/* Global Preferences */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Global &amp; Marketing
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Platform updates and promotional emails
+              </p>
+
+              <div className="space-y-4">
+                <ToggleSwitch
+                  label="Marketing &amp; Product Emails"
+                  description="Receive emails about new features, tips, and promotions"
+                  checked={formData.notify_marketing ?? false}
+                  onChange={() => handleToggle('notify_marketing')}
+                />
+
+                <ToggleSwitch
+                  label="Policy Updates"
+                  description="Important updates to terms of service and privacy policy"
+                  checked={formData.notify_policy_updates ?? true}
+                  onChange={() => handleToggle('notify_policy_updates')}
+                />
+
+                <ToggleSwitch
+                  label="Platform Announcements"
+                  description="News about platform updates and changes"
+                  checked={formData.notify_platform_announcements ?? true}
+                  onChange={() => handleToggle('notify_platform_announcements')}
+                />
+              </div>
+            </div>
+
             {/* Actions */}
-            <div className="flex justify-end gap-3">
-              <Link to="/notifications">
-                <Button variant="ghost">Cancel</Button>
-              </Link>
-              <Button type="submit" variant="primary" disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Save Preferences'}
+            <div className="flex justify-between items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleReset}
+                disabled={isResetting}
+              >
+                {isResetting ? 'Resetting...' : 'Reset to Defaults'}
               </Button>
+              
+              <div className="flex gap-3">
+                <Link to="/notifications">
+                  <Button variant="ghost">Cancel</Button>
+                </Link>
+                <Button type="submit" variant="primary" disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </div>
             </div>
 
             {updateMutation.isSuccess && (
@@ -251,9 +431,15 @@ export function NotificationPreferencesPage() {
               </div>
             )}
 
-            {updateMutation.isError && (
+            {resetMutation.isSuccess && (
+              <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-green-800 dark:text-green-200">
+                Preferences reset to defaults successfully!
+              </div>
+            )}
+
+            {(updateMutation.isError || resetMutation.isError) && (
               <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 text-red-800 dark:text-red-200">
-                Failed to save preferences. Please try again.
+                Failed to update preferences. Please try again.
               </div>
             )}
           </form>

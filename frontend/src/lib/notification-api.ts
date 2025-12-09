@@ -80,3 +80,14 @@ export const updateNotificationPreferences = async (
     }>('/notifications/preferences', preferences);
     return response.data.preferences;
 };
+
+/**
+ * Reset notification preferences to defaults
+ */
+export const resetNotificationPreferences =
+    async (): Promise<NotificationPreferences> => {
+        const response = await apiClient.post<{
+            preferences: NotificationPreferences;
+        }>('/notifications/preferences/reset');
+        return response.data.preferences;
+    };
