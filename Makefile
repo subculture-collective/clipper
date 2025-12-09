@@ -25,7 +25,7 @@ build: ## Build backend, frontend, and mobile
 	@echo "Building frontend..."
 	cd frontend && npm run build
 	@echo "Building mobile (iOS)..."
-	cd mobile && npm run ios -- --configuration Release
+	cd mobile && npm run ios -- --configuration Release || echo "⚠ Mobile iOS build skipped (requires macOS)"
 	@echo "✓ Build complete"
 
 test: ## Run all tests
@@ -106,23 +106,23 @@ clean: ## Clean build artifacts
 
 docker-up: ## Start Docker services (PostgreSQL + Redis)
 	@echo "Starting Docker services..."
-	docker compose up -d
+	docker compose -f docker-compose.prod.yml up -d
 	@echo "✓ Docker services started"
 
 docker-build: ## Start Docker services (PostgreSQL + Redis)
 	@echo "Starting Docker build..."
-	docker compose up -d --build --remove-orphans
+	docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
 	@echo "✓ Docker build complete, and services started"
 
 docker-down: ## Stop Docker services
 	@echo "Stopping Docker services..."
-	docker compose down
+	docker compose -f docker-compose.prod.yml down
 	@echo "✓ Docker services stopped"
 
 docker-logs: ## View Docker service logs
 	@echo "Tailing Docker service logs..."
-	docker compose logs -f --tail 500
-	@echo "✓ Docker logs ended"m
+	docker compose -f docker-compose.prod.yml logs -f --tail 500
+	@echo "✓ Docker logs ended"
 
 backend-dev: ## Run backend in development mode
 	@echo "Waiting for PostgreSQL on localhost:5436..."

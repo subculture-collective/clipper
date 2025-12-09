@@ -49,7 +49,7 @@ export function SubmitClipPage() {
         if (state?.clipUrl) {
             setFormData((prev) => ({
                 ...prev,
-                clip_url: state.clipUrl,
+                clip_url: state.clipUrl!,
             }));
         }
     }, [location.state]);
