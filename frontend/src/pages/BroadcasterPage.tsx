@@ -115,7 +115,7 @@ export function BroadcasterPage() {
             {profile.avatar_url && (
               <img 
                 src={profile.avatar_url} 
-                alt={profile.display_name}
+                alt={`${profile.display_name} profile picture`}
                 className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-primary"
               />
             )}
@@ -165,7 +165,7 @@ export function BroadcasterPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => window.open(profile.twitch_url, '_blank')}
+                onClick={() => window.open(profile.twitch_url, '_blank', 'noopener,noreferrer')}
               >
                 View on Twitch
               </Button>
@@ -180,21 +180,33 @@ export function BroadcasterPage() {
             <Button
               size="sm"
               variant={sortBy === 'recent' ? 'default' : 'outline'}
-              onClick={() => setSortBy('recent')}
+              onClick={() => {
+                setSortBy('recent');
+                setPage(1);
+              }}
+              aria-label="Sort clips by most recent"
             >
               Recent
             </Button>
             <Button
               size="sm"
               variant={sortBy === 'popular' ? 'default' : 'outline'}
-              onClick={() => setSortBy('popular')}
+              onClick={() => {
+                setSortBy('popular');
+                setPage(1);
+              }}
+              aria-label="Sort clips by most popular"
             >
               Popular
             </Button>
             <Button
               size="sm"
               variant={sortBy === 'trending' ? 'default' : 'outline'}
-              onClick={() => setSortBy('trending')}
+              onClick={() => {
+                setSortBy('trending');
+                setPage(1);
+              }}
+              aria-label="Sort clips by trending"
             >
               Trending
             </Button>
@@ -206,10 +218,10 @@ export function BroadcasterPage() {
           <div className="flex justify-center items-center min-h-[200px]">
             <Spinner size="lg" />
           </div>
-        ) : clipsData && clipsData.clips.length > 0 ? (
+        ) : clipsData && (clipsData.data ?? []).length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {clipsData.clips.map((clip) => (
+              {(clipsData.data ?? []).map((clip) => (
                 <ClipCard key={clip.id} clip={clip} />
               ))}
             </div>

@@ -755,7 +755,7 @@ func (r *ClipRepository) ListClipsByBroadcaster(ctx context.Context, broadcaster
 	case "popular":
 		orderBy = "vote_score DESC, created_at DESC"
 	case "trending":
-		// Use hot score calculation similar to home feed
+		// Sort by popularity with recency tiebreaker (not true trending/hot score)
 		orderBy = "vote_score DESC, view_count DESC, created_at DESC"
 	}
 

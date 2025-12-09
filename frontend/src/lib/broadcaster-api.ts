@@ -17,7 +17,8 @@ export interface BroadcasterProfile {
 }
 
 export interface BroadcasterClipsResponse {
-  clips: Clip[];
+  success: boolean;
+  data: Clip[];
   meta: {
     page: number;
     limit: number;

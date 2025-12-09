@@ -51,7 +51,7 @@ func (h *BroadcasterHandler) GetBroadcasterProfile(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get broadcaster info from database
-	broadcasterName, displayName, err := h.broadcasterRepo.GetBroadcasterByID(ctx, broadcasterID)
+	broadcasterName, err := h.broadcasterRepo.GetBroadcasterByID(ctx, broadcasterID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "broadcaster not found"})
@@ -61,6 +61,9 @@ func (h *BroadcasterHandler) GetBroadcasterProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get broadcaster"})
 		return
 	}
+
+	// Display name defaults to broadcaster name, will be overridden by Twitch API if available
+	displayName := broadcasterName
 
 	// Get broadcaster stats
 	totalClips, totalViews, avgVoteScore, err := h.broadcasterRepo.GetBroadcasterStats(ctx, broadcasterID)
@@ -143,7 +146,7 @@ func (h *BroadcasterHandler) FollowBroadcaster(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get broadcaster name
-	broadcasterName, _, err := h.broadcasterRepo.GetBroadcasterByID(ctx, broadcasterID)
+	broadcasterName, err := h.broadcasterRepo.GetBroadcasterByID(ctx, broadcasterID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "broadcaster not found"})
@@ -255,7 +258,8 @@ func (h *BroadcasterHandler) ListBroadcasterClips(c *gin.Context) {
 	totalPages := (total + limit - 1) / limit
 
 	c.JSON(http.StatusOK, gin.H{
-		"clips": clips,
+		"success": true,
+		"data":    clips,
 		"meta": gin.H{
 			"page":        page,
 			"limit":       limit,

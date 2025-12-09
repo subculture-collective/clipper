@@ -14,8 +14,5 @@ CREATE INDEX idx_broadcaster_follows_user_id ON broadcaster_follows(user_id);
 -- Index for counting followers of a broadcaster
 CREATE INDEX idx_broadcaster_follows_broadcaster_id ON broadcaster_follows(broadcaster_id);
 
--- Index for broadcaster name lookups
-CREATE INDEX idx_broadcaster_follows_broadcaster_name ON broadcaster_follows(broadcaster_name);
-
 -- Index for created_at for sorting recent follows
 CREATE INDEX idx_broadcaster_follows_created_at ON broadcaster_follows(created_at DESC);

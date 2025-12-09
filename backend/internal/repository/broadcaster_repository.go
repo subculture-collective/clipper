@@ -99,26 +99,28 @@ func (r *BroadcasterRepository) GetBroadcasterStats(ctx context.Context, broadca
 	return totalClips, totalViews, avgVoteScore, nil
 }
 
-// GetBroadcasterByName returns broadcaster info from clips (since we don't have a separate broadcaster table)
-func (r *BroadcasterRepository) GetBroadcasterByName(ctx context.Context, broadcasterName string) (broadcasterID, displayName string, err error) {
+// GetBroadcasterByName returns broadcaster ID from clips table by name.
+// Display name should be fetched from Twitch API separately.
+func (r *BroadcasterRepository) GetBroadcasterByName(ctx context.Context, broadcasterName string) (broadcasterID string, err error) {
 	query := `
-		SELECT broadcaster_id, broadcaster_name
+		SELECT broadcaster_id
 		FROM clips
 		WHERE broadcaster_name = $1
 		LIMIT 1
 	`
-	err = r.pool.QueryRow(ctx, query, broadcasterName).Scan(&broadcasterID, &displayName)
+	err = r.pool.QueryRow(ctx, query, broadcasterName).Scan(&broadcasterID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return "", "", sql.ErrNoRows
+			return "", sql.ErrNoRows
 		}
-		return "", "", fmt.Errorf("failed to get broadcaster by name: %w", err)
+		return "", fmt.Errorf("failed to get broadcaster by name: %w", err)
 	}
-	return broadcasterID, displayName, nil
+	return broadcasterID, nil
 }
 
-// GetBroadcasterByID returns broadcaster info from clips
-func (r *BroadcasterRepository) GetBroadcasterByID(ctx context.Context, broadcasterID string) (broadcasterName, displayName string, err error) {
+// GetBroadcasterByID returns broadcaster name from clips.
+// Display name should be fetched from Twitch API separately.
+func (r *BroadcasterRepository) GetBroadcasterByID(ctx context.Context, broadcasterID string) (broadcasterName string, err error) {
 	query := `
 		SELECT broadcaster_name
 		FROM clips
@@ -128,12 +130,11 @@ func (r *BroadcasterRepository) GetBroadcasterByID(ctx context.Context, broadcas
 	err = r.pool.QueryRow(ctx, query, broadcasterID).Scan(&broadcasterName)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return "", "", sql.ErrNoRows
+			return "", sql.ErrNoRows
 		}
-		return "", "", fmt.Errorf("failed to get broadcaster by id: %w", err)
+		return "", fmt.Errorf("failed to get broadcaster by id: %w", err)
 	}
-	// Display name will be fetched from Twitch API in the handler
-	return broadcasterName, broadcasterName, nil
+	return broadcasterName, nil
 }
 
 // ListUserFollows returns all broadcasters a user is following
