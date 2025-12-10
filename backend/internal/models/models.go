@@ -1776,3 +1776,60 @@ type DiscoveryListBookmark struct {
 	ListID       uuid.UUID `json:"list_id" db:"list_id"`
 	BookmarkedAt time.Time `json:"bookmarked_at" db:"bookmarked_at"`
 }
+
+// Category represents a high-level content category
+type Category struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	Name        string    `json:"name" db:"name"`
+	Slug        string    `json:"slug" db:"slug"`
+	Description *string   `json:"description,omitempty" db:"description"`
+	Icon        *string   `json:"icon,omitempty" db:"icon"`
+	Position    int       `json:"position" db:"position"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Game represents a game from Twitch
+type Game struct {
+	ID            uuid.UUID `json:"id" db:"id"`
+	TwitchGameID  string    `json:"twitch_game_id" db:"twitch_game_id"`
+	Name          string    `json:"name" db:"name"`
+	BoxArtURL     *string   `json:"box_art_url,omitempty" db:"box_art_url"`
+	IGDBID        *string   `json:"igdb_id,omitempty" db:"igdb_id"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// GameWithStats represents a game with additional statistics
+type GameWithStats struct {
+	Game
+	ClipCount     int `json:"clip_count" db:"clip_count"`
+	FollowerCount int `json:"follower_count" db:"follower_count"`
+	IsFollowing   bool `json:"is_following"` // Whether the current user is following
+}
+
+// CategoryGame represents the many-to-many relationship between categories and games
+type CategoryGame struct {
+	GameID     uuid.UUID `json:"game_id" db:"game_id"`
+	CategoryID uuid.UUID `json:"category_id" db:"category_id"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+}
+
+// GameFollow represents a user following a game
+type GameFollow struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	GameID     uuid.UUID `json:"game_id" db:"game_id"`
+	FollowedAt time.Time `json:"followed_at" db:"followed_at"`
+}
+
+// TrendingGame represents a game with trending statistics
+type TrendingGame struct {
+	ID              uuid.UUID `json:"id" db:"id"`
+	TwitchGameID    string    `json:"twitch_game_id" db:"twitch_game_id"`
+	Name            string    `json:"name" db:"name"`
+	BoxArtURL       *string   `json:"box_art_url,omitempty" db:"box_art_url"`
+	RecentClipCount int       `json:"recent_clip_count" db:"recent_clip_count"`
+	TotalVoteScore  int       `json:"total_vote_score" db:"total_vote_score"`
+	FollowerCount   int       `json:"follower_count" db:"follower_count"`
+}
