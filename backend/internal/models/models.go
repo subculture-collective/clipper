@@ -15,6 +15,7 @@ type User struct {
 	Email               *string    `json:"email,omitempty" db:"email"`
 	AvatarURL           *string    `json:"avatar_url,omitempty" db:"avatar_url"`
 	Bio                 *string    `json:"bio,omitempty" db:"bio"`
+	SocialLinks         *string    `json:"social_links,omitempty" db:"social_links"` // JSONB stored as string
 	KarmaPoints         int        `json:"karma_points" db:"karma_points"`
 	TrustScore          int        `json:"trust_score" db:"trust_score"`
 	TrustScoreUpdatedAt *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
@@ -22,6 +23,8 @@ type User struct {
 	IsBanned            bool       `json:"is_banned" db:"is_banned"`
 	DeviceToken         *string    `json:"device_token,omitempty" db:"device_token"`
 	DevicePlatform      *string    `json:"device_platform,omitempty" db:"device_platform"`
+	FollowerCount       int        `json:"follower_count" db:"follower_count"`
+	FollowingCount      int        `json:"following_count" db:"following_count"`
 	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
 	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
@@ -1794,6 +1797,93 @@ type AddClipToFeedRequest struct {
 // ReorderFeedClipsRequest represents the request to reorder clips in a feed
 type ReorderFeedClipsRequest struct {
 	ClipIDs []uuid.UUID `json:"clip_ids" binding:"required"`
+}
+
+// UserFollow represents a user following another user
+type UserFollow struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	FollowerID  uuid.UUID `json:"follower_id" db:"follower_id"`
+	FollowingID uuid.UUID `json:"following_id" db:"following_id"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+}
+
+// UserActivity represents a user activity entry
+type UserActivity struct {
+	ID           uuid.UUID  `json:"id" db:"id"`
+	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
+	ActivityType string     `json:"activity_type" db:"activity_type"`
+	TargetID     *uuid.UUID `json:"target_id,omitempty" db:"target_id"`
+	TargetType   *string    `json:"target_type,omitempty" db:"target_type"`
+	Metadata     *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+}
+
+// Activity type constants
+const (
+	ActivityTypeClipSubmitted      = "clip_submitted"
+	ActivityTypeUpvote             = "upvote"
+	ActivityTypeDownvote           = "downvote"
+	ActivityTypeComment            = "comment"
+	ActivityTypeUserFollowed       = "user_followed"
+	ActivityTypeBroadcasterFollowed = "broadcaster_followed"
+)
+
+// UserProfile represents a complete user profile with stats
+type UserProfile struct {
+	User
+	Stats        UserProfileStats `json:"stats"`
+	IsFollowing  bool             `json:"is_following"`   // Whether the current user is following this user
+	IsFollowedBy bool             `json:"is_followed_by"` // Whether this user is following the current user
+}
+
+// UserProfileStats represents statistics for a user profile
+type UserProfileStats struct {
+	ClipsSubmitted      int `json:"clips_submitted"`
+	TotalUpvotes        int `json:"total_upvotes"`
+	TotalComments       int `json:"total_comments"`
+	ClipsFeatured       int `json:"clips_featured"`
+	BroadcastersFollowed int `json:"broadcasters_followed"`
+}
+
+// UserActivityItem represents a single activity item with expanded data
+type UserActivityItem struct {
+	UserActivity
+	Username     string  `json:"username"`
+	UserAvatar   *string `json:"user_avatar"`
+	ClipTitle    *string `json:"clip_title,omitempty"`
+	ClipID       *string `json:"clip_id,omitempty"`
+	CommentText  *string `json:"comment_text,omitempty"`
+	TargetUser   *string `json:"target_user,omitempty"`
+}
+
+// SocialLinks represents social media links
+type SocialLinks struct {
+	Twitter  *string `json:"twitter,omitempty"`
+	Twitch   *string `json:"twitch,omitempty"`
+	Discord  *string `json:"discord,omitempty"`
+	YouTube  *string `json:"youtube,omitempty"`
+	Website  *string `json:"website,omitempty"`
+}
+
+// UpdateSocialLinksRequest represents the request to update social links
+type UpdateSocialLinksRequest struct {
+	Twitter  *string `json:"twitter,omitempty" binding:"omitempty,max=255"`
+	Twitch   *string `json:"twitch,omitempty" binding:"omitempty,max=255"`
+	Discord  *string `json:"discord,omitempty" binding:"omitempty,max=255"`
+	YouTube  *string `json:"youtube,omitempty" binding:"omitempty,max=255"`
+	Website  *string `json:"website,omitempty" binding:"omitempty,url,max=255"`
+}
+
+// FollowerUser represents a user in a followers/following list
+type FollowerUser struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	Username    string     `json:"username" db:"username"`
+	DisplayName string     `json:"display_name" db:"display_name"`
+	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio         *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints int        `json:"karma_points" db:"karma_points"`
+	FollowedAt  time.Time  `json:"followed_at" db:"followed_at"`
+	IsFollowing bool       `json:"is_following"` // Whether the current user is following this user
 }
 
 // Category represents a high-level content category

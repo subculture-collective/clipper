@@ -613,6 +613,7 @@ func main() {
 		{
 			// Public user profile
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
+			users.GET("/:id", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserProfile)
 
 			// Public reputation endpoints
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
@@ -621,8 +622,16 @@ func main() {
 
 			// User activity endpoints
 			users.GET("/:id/comments", userHandler.GetUserComments)
+			users.GET("/:id/clips", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserClips)
+			users.GET("/:id/activity", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserActivity)
 			users.GET("/:id/upvoted", userHandler.GetUserUpvotedClips)
 			users.GET("/:id/downvoted", userHandler.GetUserDownvotedClips)
+			
+			// User social connections
+			users.GET("/:id/followers", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserFollowers)
+			users.GET("/:id/following", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserFollowing)
+			users.POST("/:id/follow", middleware.AuthMiddleware(authService), userHandler.FollowUser)
+			users.DELETE("/:id/follow", middleware.AuthMiddleware(authService), userHandler.UnfollowUser)
 
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
@@ -632,6 +641,7 @@ func main() {
 
 			// Profile management (authenticated)
 			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)
+			users.PUT("/me/social-links", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSocialLinks)
 			users.GET("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.GetSettings)
 			users.PUT("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSettings)
 
