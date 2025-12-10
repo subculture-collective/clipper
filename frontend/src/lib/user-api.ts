@@ -125,8 +125,6 @@ export interface UserProfile {
     };
     is_following: boolean;
     is_followed_by: boolean;
-    clips_submitted: number;
-    total_upvotes: number;
 }
 
 export interface UserActivityItem {

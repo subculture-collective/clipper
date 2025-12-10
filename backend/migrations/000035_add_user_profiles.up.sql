@@ -8,7 +8,7 @@ CREATE TABLE user_follows (
     following_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(follower_id, following_id),
-    CHECK (follower_id != following_id)
+    CONSTRAINT chk_user_follows_no_self_follow CHECK (follower_id != following_id)
 );
 
 CREATE INDEX idx_user_follows_follower ON user_follows(follower_id);

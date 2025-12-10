@@ -574,27 +574,14 @@ func (r *UserRepository) ClearDeviceToken(ctx context.Context, userID uuid.UUID)
 
 // GetUserProfile retrieves a complete user profile with stats
 func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, currentUserID *uuid.UUID) (*models.UserProfile, error) {
+	// First get basic user info
 	query := `
 		SELECT 
 			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url, u.bio,
 			u.social_links, u.karma_points, u.trust_score, u.trust_score_updated_at,
 			u.role, u.is_banned, u.follower_count, u.following_count,
-			u.created_at, u.updated_at, u.last_login_at,
-			COALESCE(clip_count.count, 0) as clips_submitted,
-			COALESCE(upvotes.total, 0) as total_upvotes
+			u.created_at, u.updated_at, u.last_login_at
 		FROM users u
-		LEFT JOIN (
-			SELECT submitted_by_user_id, COUNT(*) as count
-			FROM clips
-			WHERE submitted_by_user_id = $1
-			GROUP BY submitted_by_user_id
-		) clip_count ON u.id = clip_count.submitted_by_user_id
-		LEFT JOIN (
-			SELECT c.submitted_by_user_id, SUM(c.vote_score) as total
-			FROM clips c
-			WHERE c.submitted_by_user_id = $1
-			GROUP BY c.submitted_by_user_id
-		) upvotes ON u.id = upvotes.submitted_by_user_id
 		WHERE u.id = $1
 	`
 
@@ -605,7 +592,6 @@ func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, c
 		&profile.TrustScore, &profile.TrustScoreUpdatedAt, &profile.Role, &profile.IsBanned,
 		&profile.FollowerCount, &profile.FollowingCount,
 		&profile.CreatedAt, &profile.UpdatedAt, &profile.LastLoginAt,
-		&profile.ClipsSubmitted, &profile.TotalUpvotes,
 	)
 
 	if err != nil {

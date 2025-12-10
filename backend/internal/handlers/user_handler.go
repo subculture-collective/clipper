@@ -52,7 +52,31 @@ func (h *UserHandler) GetUserByUsername(c *gin.Context) {
 		return
 	}
 
-	// Return only public user information
+	// Check if full profile with stats is requested
+	fullProfile := c.Query("full") == "true"
+	if fullProfile {
+		// Get current user ID if authenticated
+		var currentUserID *uuid.UUID
+		if userIDInterface, exists := c.Get("user_id"); exists {
+			if uid, ok := userIDInterface.(uuid.UUID); ok {
+				currentUserID = &uid
+			}
+		}
+
+		profile, err := h.userRepo.GetUserProfile(c.Request.Context(), user.ID, currentUserID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user profile"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    profile,
+		})
+		return
+	}
+
+	// Return only basic public user information
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{

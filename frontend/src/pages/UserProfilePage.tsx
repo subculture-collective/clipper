@@ -25,23 +25,16 @@ export function UserProfilePage() {
     const [activeTab, setActiveTab] = useState<TabType>('clips');
     const queryClient = useQueryClient();
 
-    // First fetch user by username to get ID
-    const { data: basicUserData, isLoading: isLoadingBasic } = useQuery({
-        queryKey: ['user-by-username', username],
+    // Fetch user profile by username with full stats
+    const { data: userData, isLoading, error } = useQuery({
+        queryKey: ['user-profile-by-username', username],
         queryFn: async () => {
             const response = await api.get<{ success: boolean; data: UserProfile }>(
-                `/api/v1/users/by-username/${username}`
+                `/api/v1/users/by-username/${username}?full=true`
             );
             return response.data.data;
         },
         enabled: !!username,
-    });
-
-    // Then fetch full profile with stats
-    const { data: userData, isLoading, error } = useQuery({
-        queryKey: ['user-profile', basicUserData?.id],
-        queryFn: () => fetchUserProfile(basicUserData!.id),
-        enabled: !!basicUserData?.id,
     });
 
     // If viewing own profile, redirect to /profile
@@ -53,43 +46,43 @@ export function UserProfilePage() {
     const followMutation = useMutation({
         mutationFn: (userId: string) => followUser(userId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['user-profile', basicUserData?.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username', username] });
         },
     });
 
     const unfollowMutation = useMutation({
         mutationFn: (userId: string) => unfollowUser(userId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['user-profile', basicUserData?.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username', username] });
         },
     });
 
     // Fetch data based on active tab
     const { data: clipsData } = useQuery({
-        queryKey: ['user-clips', basicUserData?.id, 1],
-        queryFn: () => fetchUserClips(basicUserData!.id, 1, 20),
-        enabled: !!basicUserData?.id && activeTab === 'clips',
+        queryKey: ['user-clips', userData?.id, 1],
+        queryFn: () => fetchUserClips(userData!.id, 1, 20),
+        enabled: !!userData?.id && activeTab === 'clips',
     });
 
     const { data: activityData } = useQuery({
-        queryKey: ['user-activity', basicUserData?.id, 1],
-        queryFn: () => fetchUserActivity(basicUserData!.id, 1, 20),
-        enabled: !!basicUserData?.id && activeTab === 'activity',
+        queryKey: ['user-activity', userData?.id, 1],
+        queryFn: () => fetchUserActivity(userData!.id, 1, 20),
+        enabled: !!userData?.id && activeTab === 'activity',
     });
 
     const { data: followersData } = useQuery({
-        queryKey: ['user-followers', basicUserData?.id, 1],
-        queryFn: () => fetchUserFollowers(basicUserData!.id, 1, 20),
-        enabled: !!basicUserData?.id && activeTab === 'followers',
+        queryKey: ['user-followers', userData?.id, 1],
+        queryFn: () => fetchUserFollowers(userData!.id, 1, 20),
+        enabled: !!userData?.id && activeTab === 'followers',
     });
 
     const { data: followingData } = useQuery({
-        queryKey: ['user-following', basicUserData?.id, 1],
-        queryFn: () => fetchUserFollowing(basicUserData!.id, 1, 20),
-        enabled: !!basicUserData?.id && activeTab === 'following',
+        queryKey: ['user-following', userData?.id, 1],
+        queryFn: () => fetchUserFollowing(userData!.id, 1, 20),
+        enabled: !!userData?.id && activeTab === 'following',
     });
 
-    if (isLoadingBasic || isLoading) {
+    if (isLoading) {
         return (
             <>
                 <SEO title="Loading Profile..." noindex />

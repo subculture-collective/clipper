@@ -1831,11 +1831,9 @@ const (
 // UserProfile represents a complete user profile with stats
 type UserProfile struct {
 	User
-	Stats          UserProfileStats `json:"stats"`
-	IsFollowing    bool             `json:"is_following"`     // Whether the current user is following this user
-	IsFollowedBy   bool             `json:"is_followed_by"`   // Whether this user is following the current user
-	ClipsSubmitted int              `json:"clips_submitted"`  // Total clips submitted
-	TotalUpvotes   int              `json:"total_upvotes"`    // Total upvotes received on clips
+	Stats        UserProfileStats `json:"stats"`
+	IsFollowing  bool             `json:"is_following"`   // Whether the current user is following this user
+	IsFollowedBy bool             `json:"is_followed_by"` // Whether this user is following the current user
 }
 
 // UserProfileStats represents statistics for a user profile
