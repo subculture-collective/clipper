@@ -35,7 +35,7 @@ var (
 // - Unauthenticated: uses IP-based limits
 func getUserRateLimitMultiplier(c *gin.Context) (float64, bool) {
 	// Check if user is authenticated
-	userID, exists := c.Get("user_id")
+	_, exists := c.Get("user_id")
 	if !exists {
 		return 1.0, false
 	}
@@ -54,13 +54,7 @@ func getUserRateLimitMultiplier(c *gin.Context) (float64, bool) {
 		}
 	}
 
-	// Default: basic user (1x multiplier)
-	// Only applies if user_id exists
-	if userID != nil {
-		return 1.0, false
-	}
-
-	// Unauthenticated
+	// Default: basic authenticated user (1x multiplier)
 	return 1.0, false
 }
 
