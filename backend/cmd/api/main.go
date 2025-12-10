@@ -249,10 +249,12 @@ func main() {
 
 	var clipSyncService *services.ClipSyncService
 	var submissionService *services.SubmissionService
+	var liveStatusService *services.LiveStatusService
 	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
 		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
+		liveStatusService = services.NewLiveStatusService(broadcasterRepo, twitchClient)
 	}
 
 	// Initialize handlers
@@ -302,6 +304,7 @@ func main() {
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
+	var liveStatusHandler *handlers.LiveStatusHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
@@ -313,6 +316,9 @@ func main() {
 		if abuseDetector != nil && moderationEventService != nil {
 			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector)
 		}
+	}
+	if liveStatusService != nil {
+		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 
 	// Initialize router
@@ -697,11 +703,22 @@ func main() {
 		// Broadcaster routes
 		broadcasters := v1.Group("/broadcasters")
 		{
+			// Live status endpoints (must come before /:id route)
+			if liveStatusHandler != nil {
+				// Public list of all live broadcasters
+				broadcasters.GET("/live", liveStatusHandler.ListLiveBroadcasters)
+			}
+
 			// Public broadcaster profile endpoint (with optional auth for follow status)
 			broadcasters.GET("/:id", middleware.OptionalAuthMiddleware(authService), broadcasterHandler.GetBroadcasterProfile)
 
 			// Public broadcaster clips endpoint
 			broadcasters.GET("/:id/clips", broadcasterHandler.ListBroadcasterClips)
+
+			// Live status for specific broadcaster
+			if liveStatusHandler != nil {
+				broadcasters.GET("/:id/live-status", liveStatusHandler.GetBroadcasterLiveStatus)
+			}
 
 			// Protected broadcaster endpoints (require authentication)
 			broadcasters.POST("/:id/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), broadcasterHandler.FollowBroadcaster)
@@ -762,6 +779,11 @@ func main() {
 			// Public feed discovery endpoints
 			feeds.GET("/discover", feedHandler.DiscoverFeeds)
 			feeds.GET("/search", feedHandler.SearchFeeds)
+		}
+
+		// Live feed (authenticated)
+		if liveStatusHandler != nil {
+			v1.GET("/feed/live", middleware.AuthMiddleware(authService), liveStatusHandler.GetFollowedLiveBroadcasters)
 		}
 
 		// Notification routes
@@ -1060,6 +1082,13 @@ func main() {
 	emailMetricsScheduler := scheduler.NewEmailMetricsScheduler(emailMetricsService, 24, 30, 7)
 	go emailMetricsScheduler.Start(context.Background())
 
+	// Start live status scheduler (runs every 60 seconds if Twitch client is available)
+	var liveStatusScheduler *scheduler.LiveStatusScheduler
+	if liveStatusService != nil {
+		liveStatusScheduler = scheduler.NewLiveStatusScheduler(liveStatusService, db.Pool, 60)
+		go liveStatusScheduler.Start(context.Background())
+	}
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:              ":" + cfg.Server.Port,
@@ -1093,6 +1122,9 @@ func main() {
 	emailMetricsScheduler.Stop()
 	if embeddingScheduler != nil {
 		embeddingScheduler.Stop()
+	}
+	if liveStatusScheduler != nil {
+		liveStatusScheduler.Stop()
 	}
 
 	// Close embedding service if running

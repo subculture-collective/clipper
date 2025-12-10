@@ -175,3 +175,185 @@ func (r *BroadcasterRepository) ListUserFollows(ctx context.Context, userID uuid
 
 	return follows, total, nil
 }
+
+// UpsertLiveStatus updates or inserts broadcaster live status
+func (r *BroadcasterRepository) UpsertLiveStatus(ctx context.Context, status *models.BroadcasterLiveStatus) error {
+	query := `
+		INSERT INTO broadcaster_live_status (
+			broadcaster_id, is_live, stream_title, game_name, viewer_count, started_at, last_checked
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (broadcaster_id) 
+		DO UPDATE SET
+			is_live = EXCLUDED.is_live,
+			stream_title = EXCLUDED.stream_title,
+			game_name = EXCLUDED.game_name,
+			viewer_count = EXCLUDED.viewer_count,
+			started_at = EXCLUDED.started_at,
+			last_checked = EXCLUDED.last_checked,
+			updated_at = NOW()
+	`
+	_, err := r.pool.Exec(ctx, query,
+		status.BroadcasterID,
+		status.IsLive,
+		status.StreamTitle,
+		status.GameName,
+		status.ViewerCount,
+		status.StartedAt,
+		status.LastChecked,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to upsert live status: %w", err)
+	}
+	return nil
+}
+
+// GetLiveStatus retrieves live status for a broadcaster
+func (r *BroadcasterRepository) GetLiveStatus(ctx context.Context, broadcasterID string) (*models.BroadcasterLiveStatus, error) {
+	query := `
+		SELECT broadcaster_id, is_live, stream_title, game_name, viewer_count, 
+		       started_at, last_checked, created_at, updated_at
+		FROM broadcaster_live_status
+		WHERE broadcaster_id = $1
+	`
+	var status models.BroadcasterLiveStatus
+	err := r.pool.QueryRow(ctx, query, broadcasterID).Scan(
+		&status.BroadcasterID,
+		&status.IsLive,
+		&status.StreamTitle,
+		&status.GameName,
+		&status.ViewerCount,
+		&status.StartedAt,
+		&status.LastChecked,
+		&status.CreatedAt,
+		&status.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, sql.ErrNoRows
+		}
+		return nil, fmt.Errorf("failed to get live status: %w", err)
+	}
+	return &status, nil
+}
+
+// ListLiveBroadcasters retrieves all currently live broadcasters
+func (r *BroadcasterRepository) ListLiveBroadcasters(ctx context.Context, limit, offset int) ([]models.BroadcasterLiveStatus, int, error) {
+	// Get total count of live broadcasters
+	countQuery := `SELECT COUNT(*) FROM broadcaster_live_status WHERE is_live = true`
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count live broadcasters: %w", err)
+	}
+
+	// Get paginated results, ordered by viewer count
+	query := `
+		SELECT broadcaster_id, is_live, stream_title, game_name, viewer_count,
+		       started_at, last_checked, created_at, updated_at
+		FROM broadcaster_live_status
+		WHERE is_live = true
+		ORDER BY viewer_count DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := r.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list live broadcasters: %w", err)
+	}
+	defer rows.Close()
+
+	var broadcasters []models.BroadcasterLiveStatus
+	for rows.Next() {
+		var status models.BroadcasterLiveStatus
+		if err := rows.Scan(
+			&status.BroadcasterID,
+			&status.IsLive,
+			&status.StreamTitle,
+			&status.GameName,
+			&status.ViewerCount,
+			&status.StartedAt,
+			&status.LastChecked,
+			&status.CreatedAt,
+			&status.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan live broadcaster: %w", err)
+		}
+		broadcasters = append(broadcasters, status)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating live broadcasters: %w", err)
+	}
+
+	return broadcasters, total, nil
+}
+
+// GetFollowedLiveBroadcasters retrieves live broadcasters that a user follows
+func (r *BroadcasterRepository) GetFollowedLiveBroadcasters(ctx context.Context, userID uuid.UUID) ([]models.BroadcasterLiveStatus, error) {
+	query := `
+		SELECT bls.broadcaster_id, bls.is_live, bls.stream_title, bls.game_name, 
+		       bls.viewer_count, bls.started_at, bls.last_checked, 
+		       bls.created_at, bls.updated_at
+		FROM broadcaster_live_status bls
+		INNER JOIN broadcaster_follows bf ON bls.broadcaster_id = bf.broadcaster_id
+		WHERE bf.user_id = $1 AND bls.is_live = true
+		ORDER BY bls.viewer_count DESC
+	`
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get followed live broadcasters: %w", err)
+	}
+	defer rows.Close()
+
+	var broadcasters []models.BroadcasterLiveStatus
+	for rows.Next() {
+		var status models.BroadcasterLiveStatus
+		if err := rows.Scan(
+			&status.BroadcasterID,
+			&status.IsLive,
+			&status.StreamTitle,
+			&status.GameName,
+			&status.ViewerCount,
+			&status.StartedAt,
+			&status.LastChecked,
+			&status.CreatedAt,
+			&status.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan followed live broadcaster: %w", err)
+		}
+		broadcasters = append(broadcasters, status)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating followed live broadcasters: %w", err)
+	}
+
+	return broadcasters, nil
+}
+
+// GetFollowedBroadcasterIDs retrieves broadcaster IDs that a user follows
+func (r *BroadcasterRepository) GetFollowedBroadcasterIDs(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	query := `
+		SELECT broadcaster_id
+		FROM broadcaster_follows
+		WHERE user_id = $1
+	`
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get followed broadcaster IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var broadcasterIDs []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("failed to scan broadcaster ID: %w", err)
+		}
+		broadcasterIDs = append(broadcasterIDs, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating broadcaster IDs: %w", err)
+	}
+
+	return broadcasterIDs, nil
+}

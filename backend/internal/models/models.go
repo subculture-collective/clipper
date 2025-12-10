@@ -2000,3 +2000,16 @@ type AddClipToListRequest struct {
 type ReorderListClipsRequest struct {
 	ClipIDs []uuid.UUID `json:"clip_ids" binding:"required,min=1,max=200"`
 }
+
+// BroadcasterLiveStatus represents the live streaming status of a broadcaster
+type BroadcasterLiveStatus struct {
+	BroadcasterID string     `json:"broadcaster_id" db:"broadcaster_id"`
+	IsLive        bool       `json:"is_live" db:"is_live"`
+	StreamTitle   *string    `json:"stream_title,omitempty" db:"stream_title"`
+	GameName      *string    `json:"game_name,omitempty" db:"game_name"`
+	ViewerCount   int        `json:"viewer_count" db:"viewer_count"`
+	StartedAt     *time.Time `json:"started_at,omitempty" db:"started_at"`
+	LastChecked   time.Time  `json:"last_checked" db:"last_checked"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}

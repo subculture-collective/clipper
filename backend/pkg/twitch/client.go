@@ -485,3 +485,50 @@ func (c *Client) GetCachedGame(ctx context.Context, gameID string) (*Game, error
 
 	return &game, nil
 }
+
+// GetStreams fetches live streams for specified user IDs
+// Can fetch up to 100 streams at once
+func (c *Client) GetStreams(ctx context.Context, userIDs []string) (*StreamsResponse, error) {
+	if len(userIDs) == 0 {
+		return &StreamsResponse{Data: []Stream{}}, nil
+	}
+
+	// Twitch allows max 100 user_id parameters
+	if len(userIDs) > 100 {
+		userIDs = userIDs[:100]
+	}
+
+	params := url.Values{}
+	for _, id := range userIDs {
+		params.Add("user_id", id)
+	}
+
+	// Check cache first
+	cacheKey := fmt.Sprintf("%sstreams:%v", cacheKeyPrefix, userIDs)
+	if cached, err := c.redis.Get(ctx, cacheKey); err == nil {
+		var streamsResp StreamsResponse
+		if err := json.Unmarshal([]byte(cached), &streamsResp); err == nil {
+			log.Printf("[Twitch API] Using cached streams data for %d users", len(userIDs))
+			return &streamsResp, nil
+		}
+	}
+
+	resp, err := c.doRequest(ctx, "GET", "/streams", params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch streams: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var streamsResp StreamsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&streamsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode streams response: %w", err)
+	}
+
+	// Cache for 30 seconds
+	if data, err := json.Marshal(streamsResp); err == nil {
+		_ = c.redis.Set(ctx, cacheKey, string(data), 30*time.Second)
+	}
+
+	log.Printf("[Twitch API] Fetched %d live streams out of %d requested users", len(streamsResp.Data), len(userIDs))
+	return &streamsResp, nil
+}
