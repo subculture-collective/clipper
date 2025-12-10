@@ -269,7 +269,7 @@ func (r *SearchRepository) searchCreators(ctx context.Context, tsQuery string, r
 }
 
 // searchGames searches for games (aggregated from clips)
-func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req *models.SearchRequest) ([]models.Game, int, error) {
+func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req *models.SearchRequest) ([]models.GameSearchResult, int, error) {
 	whereClause := "c.game_id IS NOT NULL AND c.game_name IS NOT NULL AND c.is_removed = false"
 	args := []interface{}{}
 	argPos := 1
@@ -315,9 +315,9 @@ func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req 
 	}
 	defer rows.Close()
 
-	var games []models.Game
+	var games []models.GameSearchResult
 	for rows.Next() {
-		var game models.Game
+		var game models.GameSearchResult
 		err := rows.Scan(&game.ID, &game.Name, &game.ClipCount)
 		if err != nil {
 			return nil, 0, err

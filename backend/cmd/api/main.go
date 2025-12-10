@@ -193,7 +193,7 @@ func main() {
 	emailMetricsService := services.NewEmailMetricsService(emailLogRepo)
 
 	// Initialize feed service
-	feedService := services.NewFeedService(feedRepo, clipRepo)
+	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
 
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo)
@@ -288,7 +288,7 @@ func main() {
 	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
-	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	seoHandler := handlers.NewSEOHandler(clipRepo)
@@ -641,8 +641,14 @@ func main() {
 			// User social connections
 			users.GET("/:id/followers", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserFollowers)
 			users.GET("/:id/following", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserFollowing)
+			users.GET("/:id/following/broadcasters", middleware.OptionalAuthMiddleware(authService), userHandler.GetFollowedBroadcasters)
 			users.POST("/:id/follow", middleware.AuthMiddleware(authService), userHandler.FollowUser)
 			users.DELETE("/:id/follow", middleware.AuthMiddleware(authService), userHandler.UnfollowUser)
+			
+			// User blocking
+			users.POST("/:id/block", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), userHandler.BlockUser)
+			users.DELETE("/:id/block", middleware.AuthMiddleware(authService), userHandler.UnblockUser)
+			users.GET("/me/blocked", middleware.AuthMiddleware(authService), userHandler.GetBlockedUsers)
 
 			// Personal statistics (authenticated)
 			users.GET("/me/stats", middleware.AuthMiddleware(authService), analyticsHandler.GetUserStats)
@@ -789,6 +795,9 @@ func main() {
 			// Public feed discovery endpoints
 			feeds.GET("/discover", feedHandler.DiscoverFeeds)
 			feeds.GET("/search", feedHandler.SearchFeeds)
+			
+			// Following feed (authenticated)
+			feeds.GET("/following", middleware.AuthMiddleware(authService), feedHandler.GetFollowingFeed)
 		}
 
 		// Live feed (authenticated)
