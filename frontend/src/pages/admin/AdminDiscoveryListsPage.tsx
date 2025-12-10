@@ -7,6 +7,10 @@ import { discoveryListApi } from '../../lib/discovery-list-api';
 import type { DiscoveryListWithStats } from '../../types/discoveryList';
 import { useToast } from '../../context/ToastContext';
 
+// Constants
+const DEFAULT_LIST_LIMIT = 100;
+const DELETE_CONFIRMATION_TIMEOUT = 5000;
+
 export function AdminDiscoveryListsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const { showToast } = useToast();
@@ -15,7 +19,7 @@ export function AdminDiscoveryListsPage() {
   // Fetch all discovery lists
   const { data: lists, isLoading } = useQuery({
     queryKey: ['admin', 'discovery-lists'],
-    queryFn: () => discoveryListApi.admin.listAllDiscoveryLists({ limit: 100 }),
+    queryFn: () => discoveryListApi.admin.listAllDiscoveryLists({ limit: DEFAULT_LIST_LIMIT }),
   });
 
   // Delete mutation
@@ -49,8 +53,8 @@ export function AdminDiscoveryListsPage() {
       deleteMutation.mutate(listId);
     } else {
       setDeleteConfirm(listId);
-      // Auto-cancel confirm after 5 seconds
-      setTimeout(() => setDeleteConfirm(null), 5000);
+      // Auto-cancel confirm after timeout
+      setTimeout(() => setDeleteConfirm(null), DELETE_CONFIRMATION_TIMEOUT);
     }
   };
 

@@ -512,6 +512,7 @@ func (r *DiscoveryListRepository) DeleteDiscoveryList(ctx context.Context, listI
 // AddClipToList adds a clip to a discovery list (admin only)
 func (r *DiscoveryListRepository) AddClipToList(ctx context.Context, listID, clipID uuid.UUID) error {
 	// Get the current max display order
+	// Using -1 as default to start from 0 when there are no clips
 	var maxOrder int
 	err := r.db.GetContext(ctx, &maxOrder, 
 		"SELECT COALESCE(MAX(display_order), -1) FROM discovery_list_clips WHERE list_id = $1", listID)

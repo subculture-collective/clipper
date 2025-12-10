@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, X, GripVertical, Search } from 'lucide-react';
+import { ArrowLeft, Plus, X, ChevronUp, ChevronDown, Search } from 'lucide-react';
 import {
   Container,
   Card,
@@ -16,6 +16,9 @@ import { discoveryListApi } from '../../lib/discovery-list-api';
 import { clipApi } from '../../lib/clip-api';
 import { useToast } from '../../context/ToastContext';
 import type { Clip } from '../../types/clip';
+
+// Constants
+const MAX_CLIPS_PER_LIST = 200;
 
 export function AdminDiscoveryListFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +47,7 @@ export function AdminDiscoveryListFormPage() {
   // Fetch clips for the list if editing
   const { data: listClipsData, isLoading: isLoadingClips } = useQuery({
     queryKey: ['admin', 'discovery-list-clips', id],
-    queryFn: () => discoveryListApi.getDiscoveryListClips(id!, { limit: 200 }),
+    queryFn: () => discoveryListApi.getDiscoveryListClips(id!, { limit: MAX_CLIPS_PER_LIST }),
     enabled: isEditing,
   });
 
@@ -380,16 +383,18 @@ export function AdminDiscoveryListFormPage() {
                           onClick={() => moveClip(index, 'up')}
                           disabled={index === 0}
                           className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                          title="Move up"
                         >
-                          <GripVertical className="w-4 h-4" />
+                          <ChevronUp className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => moveClip(index, 'down')}
                           disabled={index === clips.length - 1}
                           className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                          title="Move down"
                         >
-                          <GripVertical className="w-4 h-4" />
+                          <ChevronDown className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="text-sm text-muted-foreground w-8">{index + 1}</div>

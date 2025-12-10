@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -754,6 +755,11 @@ func (h *DiscoveryListHandler) AdminRemoveClipFromList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Clip removed from list successfully"})
 }
 
+const (
+	// MaxReorderClipsLimit defines the maximum number of clips that can be reordered at once
+	MaxReorderClipsLimit = 200
+)
+
 // AdminReorderListClips godoc
 // @Summary Reorder clips in a discovery list (admin)
 // @Description Reorder clips in a discovery list by providing ordered clip IDs
@@ -786,8 +792,8 @@ func (h *DiscoveryListHandler) AdminReorderListClips(c *gin.Context) {
 	}
 
 	// Validate clip count
-	if len(req.ClipIDs) > 200 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot reorder more than 200 clips at once"})
+	if len(req.ClipIDs) > MaxReorderClipsLimit {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Cannot reorder more than %d clips at once", MaxReorderClipsLimit)})
 		return
 	}
 
