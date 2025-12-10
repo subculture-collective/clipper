@@ -762,7 +762,7 @@ func (s *IndexRebuildService) indexGamesToVersionedIndex(ctx context.Context, in
 	return totalIndexed, nil
 }
 
-func (s *IndexRebuildService) bulkIndexGamesToIndex(ctx context.Context, indexName string, games []models.Game) error {
+func (s *IndexRebuildService) bulkIndexGamesToIndex(ctx context.Context, indexName string, games []models.GameSearchResult) error {
 	if len(games) == 0 {
 		return nil
 	}

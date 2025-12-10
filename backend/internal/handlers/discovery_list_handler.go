@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/utils"
 	pkgutils "github.com/subculture-collective/clipper/pkg/utils"
@@ -67,7 +68,7 @@ func (h *DiscoveryListHandler) ListDiscoveryLists(c *gin.Context) {
 	// Get lists from repository
 	lists, err := h.repo.ListDiscoveryLists(ctx, featuredOnly, userID, limit, offset)
 	if err != nil {
-		logger.Error("Failed to list discovery lists", "error", err)
+		logger.Error("Failed to list discovery lists", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve discovery lists"})
 		return
 	}
@@ -106,7 +107,7 @@ func (h *DiscoveryListHandler) GetDiscoveryList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 			return
 		}
-		logger.Error("Failed to get discovery list", "error", err, "id", idOrSlug)
+		logger.Error("Failed to get discovery list", err, map[string]interface{}{"id": idOrSlug})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve discovery list"})
 		return
 	}
@@ -114,7 +115,12 @@ func (h *DiscoveryListHandler) GetDiscoveryList(c *gin.Context) {
 	// Track list view for analytics
 	if h.analyticsRepo != nil {
 		go func() {
-			_ = h.analyticsRepo.TrackEvent(ctx, "discovery_list_view", userID, &list.ID, nil)
+			event := &models.AnalyticsEvent{
+				EventType: "discovery_list_view",
+				UserID:    userID,
+			}
+			// Note: We can't easily track the list ID as clip_id here since the schema expects a clip
+			_ = h.analyticsRepo.TrackEvent(ctx, event)
 		}()
 	}
 
@@ -159,7 +165,7 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 				return
 			}
-			logger.Error("Failed to resolve discovery list slug", "error", err2, "slug", listIDStr)
+			logger.Error("Failed to resolve discovery list slug", err2, map[string]interface{}{"slug": listIDStr})
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve discovery list"})
 			return
 		}
@@ -181,7 +187,7 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 	// Get clips from repository
 	clips, err := h.repo.GetListClips(ctx, listID, userID, limit, offset)
 	if err != nil {
-		logger.Error("Failed to get discovery list clips", "error", err, "list_id", listID)
+		logger.Error("Failed to get discovery list clips", err, map[string]interface{}{"list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve clips"})
 		return
 	}
@@ -189,7 +195,7 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 	// Get total count for pagination
 	total, err := h.repo.GetListClipsCount(ctx, listID)
 	if err != nil {
-		logger.Error("Failed to get list clips count", "error", err, "list_id", listID)
+		logger.Error("Failed to get list clips count", err, map[string]interface{}{"list_id": listID})
 		// Don't fail the request, just set total to length of clips
 		total = len(clips)
 	}
@@ -246,7 +252,7 @@ func (h *DiscoveryListHandler) FollowDiscoveryList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 			return
 		}
-		logger.Error("Failed to verify discovery list", "error", err, "id", listIDStr)
+		logger.Error("Failed to verify discovery list", err, map[string]interface{}{"id": listIDStr})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to follow list"})
 		return
 	}
@@ -254,7 +260,7 @@ func (h *DiscoveryListHandler) FollowDiscoveryList(c *gin.Context) {
 	// Follow list
 	err = h.repo.FollowList(ctx, userID, listID)
 	if err != nil {
-		logger.Error("Failed to follow discovery list", "error", err, "user_id", userID, "list_id", listID)
+		logger.Error("Failed to follow discovery list", err, map[string]interface{}{"user_id": userID, "list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to follow list"})
 		return
 	}
@@ -262,7 +268,11 @@ func (h *DiscoveryListHandler) FollowDiscoveryList(c *gin.Context) {
 	// Track follow event for analytics
 	if h.analyticsRepo != nil {
 		go func() {
-			_ = h.analyticsRepo.TrackEvent(ctx, "discovery_list_follow", &userID, &listID, nil)
+			event := &models.AnalyticsEvent{
+				EventType: "discovery_list_follow",
+				UserID:    &userID,
+			}
+			_ = h.analyticsRepo.TrackEvent(ctx, event)
 		}()
 	}
 
@@ -308,7 +318,7 @@ func (h *DiscoveryListHandler) UnfollowDiscoveryList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Not following this list"})
 			return
 		}
-		logger.Error("Failed to unfollow discovery list", "error", err, "user_id", userID, "list_id", listID)
+		logger.Error("Failed to unfollow discovery list", err, map[string]interface{}{"user_id": userID, "list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unfollow list"})
 		return
 	}
@@ -316,7 +326,11 @@ func (h *DiscoveryListHandler) UnfollowDiscoveryList(c *gin.Context) {
 	// Track unfollow event for analytics
 	if h.analyticsRepo != nil {
 		go func() {
-			_ = h.analyticsRepo.TrackEvent(ctx, "discovery_list_unfollow", &userID, &listID, nil)
+			event := &models.AnalyticsEvent{
+				EventType: "discovery_list_unfollow",
+				UserID:    &userID,
+			}
+			_ = h.analyticsRepo.TrackEvent(ctx, event)
 		}()
 	}
 
@@ -362,7 +376,7 @@ func (h *DiscoveryListHandler) BookmarkDiscoveryList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 			return
 		}
-		logger.Error("Failed to verify discovery list", "error", err, "id", listIDStr)
+		logger.Error("Failed to verify discovery list", err, map[string]interface{}{"id": listIDStr})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to bookmark list"})
 		return
 	}
@@ -370,7 +384,7 @@ func (h *DiscoveryListHandler) BookmarkDiscoveryList(c *gin.Context) {
 	// Bookmark list
 	err = h.repo.BookmarkList(ctx, userID, listID)
 	if err != nil {
-		logger.Error("Failed to bookmark discovery list", "error", err, "user_id", userID, "list_id", listID)
+		logger.Error("Failed to bookmark discovery list", err, map[string]interface{}{"user_id": userID, "list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to bookmark list"})
 		return
 	}
@@ -378,7 +392,11 @@ func (h *DiscoveryListHandler) BookmarkDiscoveryList(c *gin.Context) {
 	// Track bookmark event for analytics
 	if h.analyticsRepo != nil {
 		go func() {
-			_ = h.analyticsRepo.TrackEvent(ctx, "discovery_list_bookmark", &userID, &listID, nil)
+			event := &models.AnalyticsEvent{
+				EventType: "discovery_list_bookmark",
+				UserID:    &userID,
+			}
+			_ = h.analyticsRepo.TrackEvent(ctx, event)
 		}()
 	}
 
@@ -424,7 +442,7 @@ func (h *DiscoveryListHandler) UnbookmarkDiscoveryList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "List not bookmarked"})
 			return
 		}
-		logger.Error("Failed to unbookmark discovery list", "error", err, "user_id", userID, "list_id", listID)
+		logger.Error("Failed to unbookmark discovery list", err, map[string]interface{}{"user_id": userID, "list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unbookmark list"})
 		return
 	}
@@ -432,7 +450,11 @@ func (h *DiscoveryListHandler) UnbookmarkDiscoveryList(c *gin.Context) {
 	// Track unbookmark event for analytics
 	if h.analyticsRepo != nil {
 		go func() {
-			_ = h.analyticsRepo.TrackEvent(ctx, "discovery_list_unbookmark", &userID, &listID, nil)
+			event := &models.AnalyticsEvent{
+				EventType: "discovery_list_unbookmark",
+				UserID:    &userID,
+			}
+			_ = h.analyticsRepo.TrackEvent(ctx, event)
 		}()
 	}
 
@@ -477,7 +499,7 @@ func (h *DiscoveryListHandler) GetUserFollowedLists(c *gin.Context) {
 	// Get followed lists from repository
 	lists, err := h.repo.GetUserFollowedLists(ctx, userID, limit, offset)
 	if err != nil {
-		logger.Error("Failed to get user followed lists", "error", err, "user_id", userID)
+		logger.Error("Failed to get user followed lists", err, map[string]interface{}{"user_id": userID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve followed lists"})
 		return
 	}
@@ -517,7 +539,7 @@ func (h *DiscoveryListHandler) AdminListDiscoveryLists(c *gin.Context) {
 	// Get all lists from repository
 	lists, err := h.repo.ListAllDiscoveryLists(ctx, limit, offset)
 	if err != nil {
-		logger.Error("Failed to list all discovery lists", "error", err)
+		logger.Error("Failed to list all discovery lists", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve discovery lists"})
 		return
 	}
@@ -573,7 +595,7 @@ func (h *DiscoveryListHandler) AdminCreateDiscoveryList(c *gin.Context) {
 	// Create list
 	list, err := h.repo.CreateDiscoveryList(ctx, req.Name, slug, description, isFeatured, userID)
 	if err != nil {
-		logger.Error("Failed to create discovery list", "error", err)
+		logger.Error("Failed to create discovery list", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create discovery list"})
 		return
 	}
@@ -620,7 +642,7 @@ func (h *DiscoveryListHandler) AdminUpdateDiscoveryList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 			return
 		}
-		logger.Error("Failed to update discovery list", "error", err, "list_id", listID)
+		logger.Error("Failed to update discovery list", err, map[string]interface{}{"list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update discovery list"})
 		return
 	}
@@ -659,7 +681,7 @@ func (h *DiscoveryListHandler) AdminDeleteDiscoveryList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 			return
 		}
-		logger.Error("Failed to delete discovery list", "error", err, "list_id", listID)
+		logger.Error("Failed to delete discovery list", err, map[string]interface{}{"list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete discovery list"})
 		return
 	}
@@ -701,7 +723,7 @@ func (h *DiscoveryListHandler) AdminAddClipToList(c *gin.Context) {
 	// Add clip to list
 	err = h.repo.AddClipToList(ctx, listID, req.ClipID)
 	if err != nil {
-		logger.Error("Failed to add clip to list", "error", err, "list_id", listID, "clip_id", req.ClipID)
+		logger.Error("Failed to add clip to list", err, map[string]interface{}{"list_id": listID, "clip_id": req.ClipID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add clip to list"})
 		return
 	}
@@ -748,7 +770,7 @@ func (h *DiscoveryListHandler) AdminRemoveClipFromList(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Clip not found in list"})
 			return
 		}
-		logger.Error("Failed to remove clip from list", "error", err, "list_id", listID, "clip_id", clipID)
+		logger.Error("Failed to remove clip from list", err, map[string]interface{}{"list_id": listID, "clip_id": clipID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove clip from list"})
 		return
 	}
@@ -801,7 +823,7 @@ func (h *DiscoveryListHandler) AdminReorderListClips(c *gin.Context) {
 	// Reorder clips
 	err = h.repo.ReorderListClips(ctx, listID, req.ClipIDs)
 	if err != nil {
-		logger.Error("Failed to reorder clips", "error", err, "list_id", listID)
+		logger.Error("Failed to reorder clips", err, map[string]interface{}{"list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reorder clips"})
 		return
 	}

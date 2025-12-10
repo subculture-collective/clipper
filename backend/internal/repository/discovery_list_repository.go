@@ -2,12 +2,12 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
@@ -21,11 +21,11 @@ var (
 
 // DiscoveryListRepository handles database operations for discovery lists
 type DiscoveryListRepository struct {
-	db *sqlx.DB
+	db *pgxpool.Pool
 }
 
 // NewDiscoveryListRepository creates a new repository instance
-func NewDiscoveryListRepository(db *sqlx.DB) *DiscoveryListRepository {
+func NewDiscoveryListRepository(db *pgxpool.Pool) *DiscoveryListRepository {
 	return &DiscoveryListRepository{db: db}
 }
 

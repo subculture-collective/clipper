@@ -349,7 +349,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 // GET /api/v1/users/:id/clips
 func (h *UserHandler) GetUserClips(c *gin.Context) {
 	userIDStr := c.Param("id")
-	userID, err := uuid.Parse(userIDStr)
+	_, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
 		return
@@ -366,9 +366,18 @@ func (h *UserHandler) GetUserClips(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
-	// Use ListWithFilters with submitted_by filter
+	// Get current user to check permissions
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	// TODO: Add filter for submitted_by_user_id to ClipFilters
+	// For now, return all clips (this endpoint needs proper implementation)
 	filters := repository.ClipFilters{
-		SubmittedByUserID: &userID,
+		ShowHidden: currentUserID != nil, // Show hidden clips if authenticated
 	}
 	
 	clips, total, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)

@@ -240,7 +240,7 @@ func (s *OpenSearchService) searchGames(ctx context.Context, req *models.SearchR
 		return nil, 0, err
 	}
 
-	games := make([]models.Game, 0, len(hits))
+	games := make([]models.GameSearchResult, 0, len(hits))
 	for _, hit := range hits {
 		var game models.GameSearchResult
 		if err := json.Unmarshal(hit, &game); err != nil {
