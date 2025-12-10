@@ -148,9 +148,15 @@ func (u *User) IsModeratorOrAdmin() bool {
 	return u.Role == RoleModerator || u.Role == RoleAdmin
 }
 
-// Can checks if a user has a specific permission based on their account type
+// Can checks if a user has a specific permission based on their account type.
+// Note: This system supports dual permission paths for backward compatibility:
+// - Role (admin/moderator/user): Legacy system for basic access control
+// - AccountType (admin/moderator/broadcaster/member): New granular permission system
+// Both Role=admin and AccountType=admin grant all permissions.
+// In most cases, AccountType should be the primary source of permissions,
+// while Role is used for basic authentication and route protection.
 func (u *User) Can(permission string) bool {
-	// Admins have all permissions
+	// Admins have all permissions (checks both Role and AccountType for compatibility)
 	if u.IsAdmin() || u.AccountType == AccountTypeAdmin {
 		return true
 	}

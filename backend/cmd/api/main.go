@@ -956,9 +956,9 @@ func main() {
 			// Account type management (admin only)
 			adminAccountTypes := admin.Group("/account-types")
 			{
-				adminAccountTypes.GET("/stats", accountTypeHandler.GetAccountTypeStats)
-				adminAccountTypes.GET("/conversions", accountTypeHandler.GetRecentConversions)
-				adminAccountTypes.POST("/users/:id/convert-to-moderator", accountTypeHandler.ConvertToModerator)
+				adminAccountTypes.GET("/stats", middleware.RequirePermission(models.PermissionManageUsers), accountTypeHandler.GetAccountTypeStats)
+				adminAccountTypes.GET("/conversions", middleware.RequirePermission(models.PermissionManageUsers), accountTypeHandler.GetRecentConversions)
+				adminAccountTypes.POST("/users/:id/convert-to-moderator", middleware.RequirePermission(models.PermissionManageUsers), accountTypeHandler.ConvertToModerator)
 			}
 
 			// Analytics routes (admin only)

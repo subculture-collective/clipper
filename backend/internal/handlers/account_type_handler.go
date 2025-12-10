@@ -356,7 +356,7 @@ func (h *AccountTypeHandler) GetRecentConversions(c *gin.Context) {
 		}
 	}
 
-	conversions, err := h.accountTypeService.GetRecentConversions(c.Request.Context(), limit, offset)
+	conversions, total, err := h.accountTypeService.GetRecentConversions(c.Request.Context(), limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -372,6 +372,7 @@ func (h *AccountTypeHandler) GetRecentConversions(c *gin.Context) {
 		"success": true,
 		"data": gin.H{
 			"conversions": conversions,
+			"total":       total,
 			"limit":       limit,
 			"offset":      offset,
 		},

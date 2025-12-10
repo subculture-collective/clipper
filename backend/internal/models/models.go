@@ -2045,8 +2045,7 @@ type ConvertToBroadcasterRequest struct {
 
 // ConvertToModeratorRequest represents the request to convert to moderator account type
 type ConvertToModeratorRequest struct {
-	UserID uuid.UUID `json:"user_id" binding:"required"`
-	Reason *string   `json:"reason,omitempty" binding:"omitempty,max=500"`
+	Reason *string `json:"reason,omitempty" binding:"omitempty,max=500"`
 }
 
 // AccountTypeResponse represents the response for account type queries

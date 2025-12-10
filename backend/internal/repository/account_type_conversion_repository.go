@@ -251,12 +251,24 @@ func (r *AccountTypeConversionRepository) GetRecentConversions(ctx context.Conte
 	return conversions, nil
 }
 
-// CountByAccountType returns the count of conversions to a specific account type
-func (r *AccountTypeConversionRepository) CountByAccountType(ctx context.Context, accountType string) (int, error) {
+// CountTotal returns the total number of conversions
+func (r *AccountTypeConversionRepository) CountTotal(ctx context.Context) (int, error) {
 	query := `
 		SELECT COUNT(*)
 		FROM account_type_conversions
-		WHERE new_type = $1
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// CountByAccountType returns the current count of users with a specific account type
+func (r *AccountTypeConversionRepository) CountByAccountType(ctx context.Context, accountType string) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM users
+		WHERE account_type = $1
 	`
 
 	var count int

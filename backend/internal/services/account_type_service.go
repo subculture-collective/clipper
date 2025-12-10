@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,11 +89,13 @@ func (s *AccountTypeService) ConvertToBroadcaster(ctx context.Context, userID uu
 		return nil
 	}
 
-	// For now, we allow broadcaster conversion without strict verification
-	// In production, you might want to verify the user has a Twitch broadcaster profile
+	// Note: Broadcaster verification is currently disabled to allow self-service conversions.
+	// In production, enable strict Twitch broadcaster verification by uncommenting below:
 	// if !twitchVerified {
 	//     return ErrBroadcasterVerificationFailed
 	// }
+	// This allows testing and MVP deployment without requiring Twitch API integration.
+	// Consider adding a feature flag to toggle verification: cfg.Features.RequireBroadcasterVerification
 
 	// Update account type
 	err = s.userRepo.UpdateAccountType(ctx, userID, models.AccountTypeBroadcaster)
@@ -116,8 +119,8 @@ func (s *AccountTypeService) ConvertToBroadcaster(ctx context.Context, userID uu
 
 	err = s.conversionRepo.Create(ctx, conversion)
 	if err != nil {
-		// Log error but don't fail the conversion
-		// In production, you might want to handle this more carefully
+		// Log error but don't fail the conversion - audit trail is important but not critical
+		log.Printf("WARNING: Failed to create conversion audit log for user %s: %v", userID, err)
 	}
 
 	return nil
@@ -164,7 +167,8 @@ func (s *AccountTypeService) ConvertToModerator(ctx context.Context, targetUserI
 
 	err = s.conversionRepo.Create(ctx, conversion)
 	if err != nil {
-		// Log error but don't fail the conversion
+		// Log error but don't fail the conversion - audit trail is important but not critical
+		log.Printf("WARNING: Failed to create conversion audit log for user %s: %v", targetUserID, err)
 	}
 
 	// Create audit log entry
@@ -182,7 +186,9 @@ func (s *AccountTypeService) ConvertToModerator(ctx context.Context, targetUserI
 			},
 			CreatedAt: time.Now(),
 		}
-		_ = s.auditLogRepo.Create(ctx, auditLog)
+		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
+			log.Printf("WARNING: Failed to create moderation audit log for user %s: %v", targetUserID, err)
+		}
 	}
 
 	return nil
@@ -224,7 +230,8 @@ func (s *AccountTypeService) ConvertToAdmin(ctx context.Context, targetUserID, a
 
 	err = s.conversionRepo.Create(ctx, conversion)
 	if err != nil {
-		// Log error but don't fail the conversion
+		// Log error but don't fail the conversion - audit trail is important but not critical
+		log.Printf("WARNING: Failed to create conversion audit log for user %s: %v", targetUserID, err)
 	}
 
 	// Create audit log entry
@@ -242,7 +249,9 @@ func (s *AccountTypeService) ConvertToAdmin(ctx context.Context, targetUserID, a
 			},
 			CreatedAt: time.Now(),
 		}
-		_ = s.auditLogRepo.Create(ctx, auditLog)
+		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
+			log.Printf("WARNING: Failed to create moderation audit log for user %s: %v", targetUserID, err)
+		}
 	}
 
 	return nil
@@ -264,8 +273,18 @@ func (s *AccountTypeService) GetConversionHistory(ctx context.Context, userID uu
 }
 
 // GetRecentConversions retrieves recent conversions across all users (admin only)
-func (s *AccountTypeService) GetRecentConversions(ctx context.Context, limit, offset int) ([]models.AccountTypeConversion, error) {
-	return s.conversionRepo.GetRecentConversions(ctx, limit, offset)
+func (s *AccountTypeService) GetRecentConversions(ctx context.Context, limit, offset int) ([]models.AccountTypeConversion, int, error) {
+	conversions, err := s.conversionRepo.GetRecentConversions(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	total, err := s.conversionRepo.CountTotal(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return conversions, total, nil
 }
 
 // GetAccountTypeStats returns statistics about account type distribution
