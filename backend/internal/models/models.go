@@ -1815,6 +1815,17 @@ type UserBlock struct {
 	BlockedAt     time.Time `json:"blocked_at" db:"blocked_at"`
 }
 
+// BlockedUser represents a user in a blocked users list
+type BlockedUser struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	Username    string     `json:"username" db:"username"`
+	DisplayName string     `json:"display_name" db:"display_name"`
+	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio         *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints int        `json:"karma_points" db:"karma_points"`
+	BlockedAt   time.Time  `json:"blocked_at" db:"blocked_at"`
+}
+
 // UserActivity represents a user activity entry
 type UserActivity struct {
 	ID           uuid.UUID  `json:"id" db:"id"`

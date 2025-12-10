@@ -250,15 +250,15 @@ func (s *FeedService) SearchFeeds(ctx context.Context, query string, limit, offs
 	return s.feedRepo.SearchFeeds(ctx, query, limit, offset)
 }
 
-// GetFollowingFeed retrieves clips from followed users and broadcasters
 func (s *FeedService) GetFollowingFeed(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.ClipWithSubmitter, int, error) {
-// This method will need to:
-// 1. Get list of followed users
-// 2. Get list of followed broadcasters
-// 3. Query clips submitted by followed users OR from followed broadcasters
-// 4. Return ordered by creation date (most recent first)
+// GetFollowingFeed retrieves clips from followed users and broadcasters
+	// Validate that the user exists
+	_, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("user not found: %w", err)
+	}
 
-// For now, return clips from the clip repository filtered by followed users/broadcasters
+	// Get clips from followed users and broadcasters
 // This would ideally be a single optimized query
 clips, total, err := s.clipRepo.GetFollowingFeedClips(ctx, userID, limit, offset)
 if err != nil {

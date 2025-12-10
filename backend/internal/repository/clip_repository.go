@@ -1100,6 +1100,10 @@ SELECT following_id FROM user_follows WHERE follower_id = $1
 followed_broadcasters AS (
 SELECT broadcaster_id FROM broadcaster_follows WHERE user_id = $1
 )
+,
+blocked_users AS (
+SELECT blocked_user_id FROM user_blocks WHERE user_id = $1
+)
 SELECT 
 c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url,
 c.title, c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
@@ -1117,6 +1121,7 @@ AND (
 c.submitted_by_user_id IN (SELECT following_id FROM followed_users)
 OR c.broadcaster_id IN (SELECT broadcaster_id FROM followed_broadcasters)
 )
+AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 ORDER BY c.created_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -1170,6 +1175,10 @@ SELECT following_id FROM user_follows WHERE follower_id = $1
 ),
 followed_broadcasters AS (
 SELECT broadcaster_id FROM broadcaster_follows WHERE user_id = $1
+,
+blocked_users AS (
+SELECT blocked_user_id FROM user_blocks WHERE user_id = $1
+)
 )
 SELECT COUNT(*)
 FROM clips c
@@ -1178,6 +1187,7 @@ AND c.is_hidden = false
 AND (
 c.submitted_by_user_id IN (SELECT following_id FROM followed_users)
 OR c.broadcaster_id IN (SELECT broadcaster_id FROM followed_broadcasters)
+AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 )
 `
 

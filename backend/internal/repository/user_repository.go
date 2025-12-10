@@ -16,6 +16,8 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	// ErrUserAlreadyExists is returned when trying to create a duplicate user
 	ErrUserAlreadyExists = errors.New("user already exists")
+	// ErrBlockNotFound is returned when a block relationship is not found
+	ErrBlockNotFound = errors.New("block not found")
 )
 
 // UserRepository handles user database operations
@@ -944,7 +946,7 @@ return exists, err
 }
 
 // GetBlockedUsers retrieves users blocked by the specified user
-func (r *UserRepository) GetBlockedUsers(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.FollowerUser, int, error) {
+func (r *UserRepository) GetBlockedUsers(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.BlockedUser, int, error) {
 // Get blocked users with their info
 query := `
 SELECT 
@@ -963,17 +965,16 @@ return nil, 0, err
 }
 defer rows.Close()
 
-var blockedUsers []models.FollowerUser
+var blockedUsers []models.BlockedUser
 for rows.Next() {
-var user models.FollowerUser
+var user models.BlockedUser
 err := rows.Scan(
 &user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
-&user.Bio, &user.KarmaPoints, &user.FollowedAt, // Reusing FollowedAt for BlockedAt
+&user.Bio, &user.KarmaPoints, &user.BlockedAt,
 )
 if err != nil {
 return nil, 0, err
 }
-user.IsFollowing = false // Always false for blocked users
 blockedUsers = append(blockedUsers, user)
 }
 

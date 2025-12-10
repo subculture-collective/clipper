@@ -665,6 +665,14 @@ return
 }
 
 // Create block relationship
+
+	// Check if target user has already blocked the current user
+	isBlocked, err := h.userRepo.IsBlocked(c.Request.Context(), targetUserID, blockerUUID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check block status"})
+		return
+	}
+
 err = h.userRepo.BlockUser(c.Request.Context(), blockerUUID, targetUserID)
 if err != nil {
 c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to block user"})
@@ -675,10 +683,17 @@ return
 _ = h.userRepo.UnfollowUser(c.Request.Context(), blockerUUID, targetUserID)
 _ = h.userRepo.UnfollowUser(c.Request.Context(), targetUserID, blockerUUID)
 
-c.JSON(http.StatusOK, gin.H{
-"success": true,
-"message": "user blocked successfully",
-})
+	response := gin.H{
+		"success": true,
+		"message": "user blocked successfully",
+	}
+
+	// If there's a mutual block, add that to the response
+	if isBlocked {
+		response["note"] = "both users have blocked each other"
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // UnblockUser removes a block relationship
