@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Container, Spinner, ClipCard } from '../components';
+import { Container, Spinner, ClipCard, Button } from '../components';
 import { categoryApi } from '../lib/category-api';
 import type { Category } from '../types/category';
 import type { GameWithStats } from '../types/game';
@@ -191,12 +191,12 @@ export function CategoryPage() {
           {/* Pagination */}
           {hasMore && (
             <div className="flex justify-center mt-8">
-              <button
+              <Button
                 onClick={() => setSearchParams({ sort, ...(timeframe && { timeframe }), page: String(page + 1) })}
-                className="px-6 py-2 border rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                variant="outline"
               >
                 Load More
-              </button>
+              </Button>
             </div>
           )}
         </>

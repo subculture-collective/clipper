@@ -136,9 +136,9 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 	}
 
 	// Get games in category (to filter clips by game IDs)
-	// For now, we'll need to fetch clips and filter - this could be optimized
-	// by adding a direct query in the repository
-	games, err := h.categoryRepo.GetGamesInCategory(c.Request.Context(), category.ID, 1000, 0)
+	// Note: This currently fetches clips from the first game only
+	// TODO: Optimize to properly aggregate clips from all games in the category
+	games, err := h.categoryRepo.GetGamesInCategory(c.Request.Context(), category.ID, 100, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch category games",
