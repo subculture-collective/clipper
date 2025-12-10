@@ -107,10 +107,10 @@ func (r *FeedRepository) AddClipToFeed(ctx context.Context, feedItem *models.Fee
 	// Get the next position
 	var maxPosition *int
 	err := r.pool.QueryRow(ctx, `SELECT MAX(position) FROM feed_items WHERE feed_id = $1`, feedItem.FeedID).Scan(&maxPosition)
-	if err != nil && err != pgx.ErrNoRows {
+	if err != nil {
 		return err
 	}
-	
+
 	position := 0
 	if maxPosition != nil {
 		position = *maxPosition + 1
@@ -120,7 +120,7 @@ func (r *FeedRepository) AddClipToFeed(ctx context.Context, feedItem *models.Fee
 	query := `
 		INSERT INTO feed_items (id, feed_id, clip_id, position, added_at)
 		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (feed_id, clip_id) DO NOTHING
+		ON CONFLICT (feed_id, clip_id) DO UPDATE SET position = EXCLUDED.position
 		RETURNING id, position, added_at
 	`
 	return r.pool.QueryRow(ctx, query,
@@ -214,15 +214,17 @@ func (r *FeedRepository) FollowFeed(ctx context.Context, feedFollow *models.Feed
 	err = tx.QueryRow(ctx, query,
 		feedFollow.ID, feedFollow.UserID, feedFollow.FeedID, feedFollow.FollowedAt,
 	).Scan(&feedFollow.ID, &feedFollow.FollowedAt)
-	if err != nil && err != pgx.ErrNoRows {
-		return err
-	}
 
-	// Update follower count
-	updateQuery := `UPDATE feeds SET follower_count = follower_count + 1 WHERE id = $1`
-	_, err = tx.Exec(ctx, updateQuery, feedFollow.FeedID)
-	if err != nil {
-		return err
+	// Only update follower count if a new row was inserted
+	if err != pgx.ErrNoRows {
+		if err != nil {
+			return err
+		}
+		updateQuery := `UPDATE feeds SET follower_count = follower_count + 1 WHERE id = $1`
+		_, err = tx.Exec(ctx, updateQuery, feedFollow.FeedID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit(ctx)

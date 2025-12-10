@@ -312,8 +312,18 @@ func (h *FeedHandler) UnfollowFeed(c *gin.Context) {
 
 // DiscoverFeeds retrieves public feeds for discovery
 func (h *FeedHandler) DiscoverFeeds(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if err != nil || limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
 
 	feeds, err := h.feedService.DiscoverPublicFeeds(c.Request.Context(), limit, offset)
 	if err != nil {
@@ -332,8 +342,18 @@ func (h *FeedHandler) SearchFeeds(c *gin.Context) {
 		return
 	}
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if err != nil || limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
 
 	feeds, err := h.feedService.SearchFeeds(c.Request.Context(), query, limit, offset)
 	if err != nil {
