@@ -16,6 +16,7 @@ import (
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/handlers"
 	"github.com/subculture-collective/clipper/internal/middleware"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/scheduler"
 	"github.com/subculture-collective/clipper/internal/services"
@@ -369,6 +370,9 @@ func main() {
 		c.Set("environment", cfg.Server.Environment)
 		c.Next()
 	})
+
+	// Enrich authenticated requests with subscription information for rate limiting
+	r.Use(middleware.EnrichWithSubscriptionMiddleware(subscriptionService))
 
 	// SEO endpoints (sitemap, robots.txt)
 	r.GET("/sitemap.xml", seoHandler.GetSitemap)
