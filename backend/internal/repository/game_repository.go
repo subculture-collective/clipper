@@ -103,13 +103,13 @@ func (r *GameRepository) GetWithStats(ctx context.Context, gameID uuid.UUID, use
 			g.created_at, g.updated_at,
 			COALESCE(COUNT(DISTINCT c.id), 0) as clip_count,
 			COALESCE(COUNT(DISTINCT gf.id), 0) as follower_count,
-			CASE WHEN ugf.id IS NOT NULL THEN true ELSE false END as is_following
+			BOOL_OR(ugf.id IS NOT NULL) as is_following
 		FROM games g
 		LEFT JOIN clips c ON c.game_id = g.twitch_game_id AND c.is_removed = false
 		LEFT JOIN game_follows gf ON gf.game_id = g.id
 		LEFT JOIN game_follows ugf ON ugf.game_id = g.id AND ugf.user_id = $2
 		WHERE g.id = $1
-		GROUP BY g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id, g.created_at, g.updated_at, ugf.id
+		GROUP BY g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id, g.created_at, g.updated_at
 	`
 
 	var game models.GameWithStats

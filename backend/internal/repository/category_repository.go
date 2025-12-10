@@ -105,24 +105,26 @@ func (r *CategoryRepository) GetBySlug(ctx context.Context, slug string) (*model
 }
 
 // GetGamesInCategory retrieves games that belong to a specific category
-func (r *CategoryRepository) GetGamesInCategory(ctx context.Context, categoryID uuid.UUID, limit, offset int) ([]*models.GameWithStats, error) {
+func (r *CategoryRepository) GetGamesInCategory(ctx context.Context, categoryID uuid.UUID, userID *uuid.UUID, limit, offset int) ([]*models.GameWithStats, error) {
 	query := `
 		SELECT 
 			g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id, 
 			g.created_at, g.updated_at,
 			COALESCE(COUNT(DISTINCT c.id), 0) as clip_count,
-			COALESCE(COUNT(DISTINCT gf.id), 0) as follower_count
+			COALESCE(COUNT(DISTINCT gf.id), 0) as follower_count,
+			BOOL_OR(ugf.id IS NOT NULL) as is_following
 		FROM games g
 		INNER JOIN category_games cg ON g.id = cg.game_id
 		LEFT JOIN clips c ON c.game_id = g.twitch_game_id AND c.is_removed = false
 		LEFT JOIN game_follows gf ON gf.game_id = g.id
+		LEFT JOIN game_follows ugf ON ugf.game_id = g.id AND ugf.user_id = $2
 		WHERE cg.category_id = $1
 		GROUP BY g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id, g.created_at, g.updated_at
 		ORDER BY clip_count DESC, g.name ASC
-		LIMIT $2 OFFSET $3
+		LIMIT $3 OFFSET $4
 	`
 
-	rows, err := r.pool.Query(ctx, query, categoryID, limit, offset)
+	rows, err := r.pool.Query(ctx, query, categoryID, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get games in category: %w", err)
 	}
@@ -134,7 +136,7 @@ func (r *CategoryRepository) GetGamesInCategory(ctx context.Context, categoryID 
 		err := rows.Scan(
 			&game.ID, &game.TwitchGameID, &game.Name, &game.BoxArtURL, &game.IGDBID,
 			&game.CreatedAt, &game.UpdatedAt,
-			&game.ClipCount, &game.FollowerCount,
+			&game.ClipCount, &game.FollowerCount, &game.IsFollowing,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan game: %w", err)

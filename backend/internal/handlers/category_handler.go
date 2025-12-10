@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
@@ -78,6 +79,14 @@ func (h *CategoryHandler) ListCategoryGames(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
+	// Get user ID if authenticated
+	var userID *uuid.UUID
+	if user, exists := c.Get("user"); exists {
+		if u, ok := user.(*models.User); ok {
+			userID = &u.ID
+		}
+	}
+
 	// Get category
 	category, err := h.categoryRepo.GetBySlug(c.Request.Context(), slug)
 	if err != nil {
@@ -88,7 +97,7 @@ func (h *CategoryHandler) ListCategoryGames(c *gin.Context) {
 	}
 
 	// Get games in category
-	games, err := h.categoryRepo.GetGamesInCategory(c.Request.Context(), category.ID, limit, offset)
+	games, err := h.categoryRepo.GetGamesInCategory(c.Request.Context(), category.ID, userID, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch games",
@@ -135,10 +144,18 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 		return
 	}
 
+	// Get user ID if authenticated (for is_following field)
+	var userID *uuid.UUID
+	if user, exists := c.Get("user"); exists {
+		if u, ok := user.(*models.User); ok {
+			userID = &u.ID
+		}
+	}
+
 	// Get games in category (to filter clips by game IDs)
 	// Note: This currently fetches clips from the first game only
 	// TODO: Optimize to properly aggregate clips from all games in the category
-	games, err := h.categoryRepo.GetGamesInCategory(c.Request.Context(), category.ID, 100, 0)
+	games, err := h.categoryRepo.GetGamesInCategory(c.Request.Context(), category.ID, userID, 100, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch category games",
