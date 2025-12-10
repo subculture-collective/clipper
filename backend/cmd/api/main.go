@@ -144,6 +144,7 @@ func main() {
 	exportRepo := repository.NewExportRepository(db.Pool)
 	broadcasterRepo := repository.NewBroadcasterRepository(db.Pool)
 	emailLogRepo := repository.NewEmailLogRepository(db.Pool)
+	discoveryListRepo := repository.NewDiscoveryListRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -288,6 +289,7 @@ func main() {
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
+	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -634,6 +636,9 @@ func main() {
 
 			// Email logs for current user (authenticated)
 			users.GET("/me/email-logs", middleware.AuthMiddleware(authService), emailMetricsHandler.GetUserEmailLogs)
+
+			// Discovery list follows for current user (authenticated)
+			users.GET("/me/discovery-list-follows", middleware.AuthMiddleware(authService), discoveryListHandler.GetUserFollowedLists)
 		}
 
 		// Creator analytics routes
@@ -667,6 +672,21 @@ func main() {
 			// Protected broadcaster endpoints (require authentication)
 			broadcasters.POST("/:id/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), broadcasterHandler.FollowBroadcaster)
 			broadcasters.DELETE("/:id/follow", middleware.AuthMiddleware(authService), broadcasterHandler.UnfollowBroadcaster)
+		}
+
+		// Discovery list routes
+		discoveryLists := v1.Group("/discovery-lists")
+		{
+			// Public discovery list endpoints
+			discoveryLists.GET("", middleware.OptionalAuthMiddleware(authService), discoveryListHandler.ListDiscoveryLists)
+			discoveryLists.GET("/:id", middleware.OptionalAuthMiddleware(authService), discoveryListHandler.GetDiscoveryList)
+			discoveryLists.GET("/:id/clips", middleware.OptionalAuthMiddleware(authService), discoveryListHandler.GetDiscoveryListClips)
+
+			// Protected discovery list endpoints (require authentication)
+			discoveryLists.POST("/:id/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), discoveryListHandler.FollowDiscoveryList)
+			discoveryLists.DELETE("/:id/follow", middleware.AuthMiddleware(authService), discoveryListHandler.UnfollowDiscoveryList)
+			discoveryLists.POST("/:id/bookmark", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), discoveryListHandler.BookmarkDiscoveryList)
+			discoveryLists.DELETE("/:id/bookmark", middleware.AuthMiddleware(authService), discoveryListHandler.UnbookmarkDiscoveryList)
 		}
 
 		// Leaderboard routes
