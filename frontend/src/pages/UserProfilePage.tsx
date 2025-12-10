@@ -69,7 +69,7 @@ export function UserProfilePage() {
         <>
             <SEO 
                 title={`${userData.display_name} (@${userData.username})`}
-                description={userData.bio || `View ${userData.display_name}'s profile on Clipper`}
+                description={userData.bio || `View ${userData.display_name}'s profile on clpr`}
             />
             <Container className="py-8">
                 <div className="max-w-4xl mx-auto">

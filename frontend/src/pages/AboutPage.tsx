@@ -8,32 +8,32 @@ export function AboutPage() {
     <>
       <SEO
         title="About"
-        description="Learn about Clipper - a modern, open-source platform for discovering and sharing the best Twitch clips. Join our community of gamers and streamers."
+        description="Learn about clpr - a modern, open-source platform for discovering and sharing the best Twitch clips. Join our community of gamers and streamers."
         canonicalUrl="/about"
       />
       <Container className="py-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-4">About Clipper</h1>
+        <h1 className="text-4xl font-bold mb-4">About clpr</h1>
         <p className="text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
       </div>
 
       <div className="space-y-6">
-        {/* What is Clipper */}
-        <Card id="what-is-clipper">
+        {/* What is clpr */}
+        <Card id="what-is-clpr">
           <CardBody>
-            <h2 className="text-2xl font-semibold mb-4">What is Clipper?</h2>
+            <h2 className="text-2xl font-semibold mb-4">What is clpr?</h2>
             <p className="text-muted-foreground mb-4">
-              Clipper is a modern, open-source platform for discovering and sharing gaming highlights from Twitch. 
+              clpr is a modern, open-source platform for discovering and sharing gaming highlights from Twitch. 
               We aggregate the best clips from your favorite games and streamers, making them easy to find, watch, 
               and share with the gaming community.
             </p>
             <p className="text-muted-foreground mb-4">
               Our mission is to celebrate great gaming moments and connect the gaming community through shared experiences. 
               Whether you're looking for the latest esports plays, hilarious streamer reactions, or incredible speedrun achievements, 
-              Clipper brings it all together in one place.
+              clpr brings it all together in one place.
             </p>
             <p className="text-muted-foreground">
-              Built with React, TypeScript, and modern web technologies, Clipper is designed to be fast, responsive, 
+              Built with React, TypeScript, and modern web technologies, clpr is designed to be fast, responsive, 
               and accessible on any device.
             </p>
           </CardBody>
@@ -131,7 +131,7 @@ export function AboutPage() {
           <CardBody>
             <h2 className="text-2xl font-semibold mb-4">Open Source & Community</h2>
             <p className="text-muted-foreground mb-4">
-              Clipper is proudly open source! Our code is available on GitHub, and we welcome contributions 
+              clpr is proudly open source! Our code is available on GitHub, and we welcome contributions 
               from developers, designers, and gaming enthusiasts.
             </p>
             <div className="flex flex-wrap gap-4">
@@ -168,7 +168,7 @@ export function AboutPage() {
           <CardBody>
             <h2 className="text-2xl font-semibold mb-4">Technology Stack</h2>
             <p className="text-muted-foreground mb-4">
-              Clipper is built with modern, production-ready technologies:
+              clpr is built with modern, production-ready technologies:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

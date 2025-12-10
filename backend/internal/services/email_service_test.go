@@ -437,14 +437,14 @@ func TestPrepareWelcomeEmail(t *testing.T) {
 	htmlBody, textBody := service.prepareWelcomeEmail(data)
 
 	// Check HTML content
-	assert.Contains(t, htmlBody, "Welcome to Clipper")
+	assert.Contains(t, htmlBody, "Welcome to clpr")
 	assert.Contains(t, htmlBody, "TestUser")
 	assert.Contains(t, htmlBody, "Explore Clips")
 	assert.Contains(t, htmlBody, "Getting Started")
 	assert.Contains(t, htmlBody, "Unsubscribe")
 
 	// Check text content
-	assert.Contains(t, textBody, "Welcome to Clipper")
+	assert.Contains(t, textBody, "Welcome to clpr")
 	assert.Contains(t, textBody, "TestUser")
 	assert.Contains(t, textBody, "Explore Clips")
 }
@@ -790,14 +790,14 @@ func TestPrepareEmailContentWithNewTemplates(t *testing.T) {
 	}{
 		{
 			notificationType: "welcome",
-			expectedSubject:  "Welcome to Clipper! 🎬",
+			expectedSubject:  "Welcome to clpr! 🎬",
 			data: map[string]interface{}{
 				"Username": "TestUser",
 			},
 		},
 		{
 			notificationType: "password_reset",
-			expectedSubject:  "Reset Your Clipper Password",
+			expectedSubject:  "Reset Your clpr Password",
 			data: map[string]interface{}{
 				"ResetURL":    "http://test.com/reset",
 				"ExpiryHours": 24,

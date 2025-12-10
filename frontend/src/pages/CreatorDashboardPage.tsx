@@ -90,7 +90,7 @@ export function CreatorDashboardPage() {
   return (
     <>
       <Helmet>
-        <title>Creator Dashboard - Clipper</title>
+        <title>Creator Dashboard - clpr</title>
       </Helmet>
 
       <Container className="py-8">

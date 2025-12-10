@@ -51,7 +51,7 @@ func main() {
 	lookbackDays := flag.Int("lookback-days", 30, "Number of days to look back for submissions")
 	flag.Parse()
 
-	log.Println("=== Clipper Targeted Scraper ===")
+	log.Println("=== clpr Targeted Scraper ===")
 	log.Printf("Configuration:")
 	log.Printf("  Dry Run: %t", *dryRun)
 	log.Printf("  Batch Size: %d clips per broadcaster", *batchSize)

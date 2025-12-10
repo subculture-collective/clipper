@@ -605,7 +605,7 @@ func (s *NotificationService) NotifySubmissionApproved(
 	clipTitle string,
 ) error {
 	title := "Your clip submission was approved!"
-	message := fmt.Sprintf("\"%s\" is now live on Clipper", clipTitle)
+	message := fmt.Sprintf("\"%s\" is now live on clpr", clipTitle)
 	link := fmt.Sprintf("/clips/submissions")
 
 	contentType := "submission"

@@ -148,7 +148,7 @@ export function PaywallModal({
   const savingsPercent = calculateSavingsPercent(monthlyPrice, yearlyPrice);
 
   const modalTitle = title || `${featureName ? `${featureName} is` : 'This feature is'} a Pro Feature`;
-  const modalDescription = description || 'Upgrade to Clipper Pro to unlock this feature and many more.';
+  const modalDescription = description || 'Upgrade to clpr Pro to unlock this feature and many more.';
 
   return (
     <>

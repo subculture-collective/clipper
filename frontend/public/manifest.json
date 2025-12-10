@@ -1,6 +1,6 @@
 {
-  "name": "Clipper - Community-Driven Twitch Clip Curation",
-  "short_name": "Clipper",
+  "name": "clpr - Community-Driven Twitch Clip Curation",
+  "short_name": "clpr",
   "description": "Discover, share, and vote on the best Twitch clips. Join our community to curate and enjoy the most entertaining moments from your favorite streamers.",
   "start_url": "/",
   "scope": "/",

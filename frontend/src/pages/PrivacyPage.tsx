@@ -7,7 +7,7 @@ export function PrivacyPage() {
     <>
       <SEO
         title="Privacy Policy"
-        description="Learn how Clipper collects, uses, and protects your personal information. Read our Privacy Policy to understand your data rights and our privacy practices."
+        description="Learn how clpr collects, uses, and protects your personal information. Read our Privacy Policy to understand your data rights and our privacy practices."
         canonicalUrl="/privacy"
       />
       <Container className="py-8 max-w-4xl">
@@ -21,12 +21,12 @@ export function PrivacyPage() {
         <Card>
           <CardBody>
             <p className="text-muted-foreground mb-4">
-              At Clipper, we take your privacy seriously. This Privacy Policy explains how we collect, use, 
+              At clpr, we take your privacy seriously. This Privacy Policy explains how we collect, use, 
               disclose, and safeguard your information when you use our platform. Please read this policy 
               carefully to understand our practices regarding your personal data.
             </p>
             <p className="text-muted-foreground">
-              By using Clipper, you agree to the collection and use of information in accordance with this policy. 
+              By using clpr, you agree to the collection and use of information in accordance with this policy. 
               If you do not agree with our policies and practices, please do not use our platform.
             </p>
           </CardBody>
@@ -54,7 +54,7 @@ export function PrivacyPage() {
               <div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground">Automatically Collected Information</h3>
                 <p className="text-muted-foreground mb-2">
-                  When you access Clipper, we automatically collect:
+                  When you access clpr, we automatically collect:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>Device information (browser type, operating system)</li>
@@ -127,7 +127,7 @@ export function PrivacyPage() {
               <div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground">Analytics Cookies</h3>
                 <p className="text-muted-foreground">
-                  Help us understand how you use Clipper so we can improve the platform. These are optional 
+                  Help us understand how you use clpr so we can improve the platform. These are optional 
                   and can be disabled in your browser settings.
                 </p>
               </div>
@@ -145,7 +145,7 @@ export function PrivacyPage() {
           <CardBody>
             <h2 className="text-2xl font-semibold mb-4">Advertising and Personalization</h2>
             <p className="text-muted-foreground mb-4">
-              Clipper displays advertisements to support our free service. We offer you control over how 
+              clpr displays advertisements to support our free service. We offer you control over how 
               ads are personalized based on your preferences and behavior.
             </p>
             
@@ -301,7 +301,7 @@ export function PrivacyPage() {
           <CardBody>
             <h2 className="text-2xl font-semibold mb-4">Children's Privacy</h2>
             <p className="text-muted-foreground">
-              Clipper is not intended for users under the age of 13. We do not knowingly collect personal 
+              clpr is not intended for users under the age of 13. We do not knowingly collect personal 
               information from children under 13. If you believe we have collected information from a child 
               under 13, please contact us immediately, and we will take steps to delete such information.
             </p>
@@ -314,7 +314,7 @@ export function PrivacyPage() {
             <h2 className="text-2xl font-semibold mb-4">International Data Transfers</h2>
             <p className="text-muted-foreground">
               Your information may be transferred to and processed in countries other than your own. These 
-              countries may have different data protection laws. By using Clipper, you consent to the transfer 
+              countries may have different data protection laws. By using clpr, you consent to the transfer 
               of your information to our servers and third-party service providers, wherever they may be located.
             </p>
           </CardBody>

@@ -65,7 +65,7 @@ describe('MiniFooter', () => {
     fireEvent.click(expandButton);
     
     // Check for internal links
-    expect(screen.getByRole('link', { name: /about clipper/i })).toHaveAttribute('href', '/about');
+    expect(screen.getByRole('link', { name: /about clpr/i })).toHaveAttribute('href', '/about');
     expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', '/privacy');
     expect(screen.getByRole('link', { name: /terms of service/i })).toHaveAttribute('href', '/terms');
   });
@@ -100,7 +100,7 @@ describe('MiniFooter', () => {
     fireEvent.click(expandButton);
     
     // Click an internal link
-    const aboutLink = screen.getByRole('link', { name: /about clipper/i });
+    const aboutLink = screen.getByRole('link', { name: /about clpr/i });
     fireEvent.click(aboutLink);
     
     // Should collapse (Quick Links text should disappear)
