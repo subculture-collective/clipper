@@ -160,7 +160,7 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                   />
                 </div>
                 <p id="analytics-description" className="text-sm text-muted-foreground">
-                  Help us understand how you use Clipper so we can improve the platform. 
+                  Help us understand how you use clpr so we can improve the platform. 
                   This includes page views, feature usage, and error tracking.
                 </p>
               </div>

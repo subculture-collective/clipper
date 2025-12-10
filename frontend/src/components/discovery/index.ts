@@ -1,0 +1,1 @@
+export { DiscoveryListCard } from './DiscoveryListCard';

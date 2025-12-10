@@ -75,10 +75,10 @@ export default function PricingScreen() {
         {/* Header */}
         <View className="px-6 pt-8 pb-6">
           <Text className="text-3xl font-bold text-white text-center mb-2">
-            Upgrade to Clipper Pro
+            Upgrade to clpr Pro
           </Text>
           <Text className="text-lg text-gray-400 text-center">
-            Get the most out of Clipper with exclusive Pro features
+            Get the most out of clpr with exclusive Pro features
           </Text>
         </View>
 

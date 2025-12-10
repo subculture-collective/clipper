@@ -1602,3 +1602,253 @@ type BroadcasterProfile struct {
 	IsFollowing     bool      `json:"is_following"` // Whether the current user is following
 	UpdatedAt       time.Time `json:"updated_at"`
 }
+
+// EmailLog represents a comprehensive email event log from SendGrid webhooks
+type EmailLog struct {
+	ID                 uuid.UUID  `json:"id" db:"id"`
+	UserID             *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
+	Template           *string    `json:"template,omitempty" db:"template"`
+	Recipient          string     `json:"recipient" db:"recipient"`
+	Status             string     `json:"status" db:"status"`
+	EventType          string     `json:"event_type" db:"event_type"`
+	SendGridMessageID  *string    `json:"sendgrid_message_id,omitempty" db:"sendgrid_message_id"`
+	SendGridEventID    *string    `json:"sendgrid_event_id,omitempty" db:"sendgrid_event_id"`
+	BounceType         *string    `json:"bounce_type,omitempty" db:"bounce_type"`
+	BounceReason       *string    `json:"bounce_reason,omitempty" db:"bounce_reason"`
+	SpamReportReason   *string    `json:"spam_report_reason,omitempty" db:"spam_report_reason"`
+	LinkURL            *string    `json:"link_url,omitempty" db:"link_url"`
+	IPAddress          *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent          *string    `json:"user_agent,omitempty" db:"user_agent"`
+	Metadata           *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+	SentAt             *time.Time `json:"sent_at,omitempty" db:"sent_at"`
+	DeliveredAt        *time.Time `json:"delivered_at,omitempty" db:"delivered_at"`
+	OpenedAt           *time.Time `json:"opened_at,omitempty" db:"opened_at"`
+	ClickedAt          *time.Time `json:"clicked_at,omitempty" db:"clicked_at"`
+	BouncedAt          *time.Time `json:"bounced_at,omitempty" db:"bounced_at"`
+	SpamReportedAt     *time.Time `json:"spam_reported_at,omitempty" db:"spam_reported_at"`
+	UnsubscribedAt     *time.Time `json:"unsubscribed_at,omitempty" db:"unsubscribed_at"`
+	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// EmailMetricsSummary represents aggregated email metrics
+type EmailMetricsSummary struct {
+	ID                uuid.UUID  `json:"id" db:"id"`
+	PeriodStart       time.Time  `json:"period_start" db:"period_start"`
+	PeriodEnd         time.Time  `json:"period_end" db:"period_end"`
+	Granularity       string     `json:"granularity" db:"granularity"` // hourly, daily
+	Template          *string    `json:"template,omitempty" db:"template"`
+	TotalSent         int        `json:"total_sent" db:"total_sent"`
+	TotalDelivered    int        `json:"total_delivered" db:"total_delivered"`
+	TotalBounced      int        `json:"total_bounced" db:"total_bounced"`
+	TotalHardBounced  int        `json:"total_hard_bounced" db:"total_hard_bounced"`
+	TotalSoftBounced  int        `json:"total_soft_bounced" db:"total_soft_bounced"`
+	TotalDropped      int        `json:"total_dropped" db:"total_dropped"`
+	TotalOpened       int        `json:"total_opened" db:"total_opened"`
+	TotalClicked      int        `json:"total_clicked" db:"total_clicked"`
+	TotalSpamReports  int        `json:"total_spam_reports" db:"total_spam_reports"`
+	TotalUnsubscribes int        `json:"total_unsubscribes" db:"total_unsubscribes"`
+	UniqueOpened      int        `json:"unique_opened" db:"unique_opened"`
+	UniqueClicked     int        `json:"unique_clicked" db:"unique_clicked"`
+	BounceRate        *float64   `json:"bounce_rate,omitempty" db:"bounce_rate"`
+	OpenRate          *float64   `json:"open_rate,omitempty" db:"open_rate"`
+	ClickRate         *float64   `json:"click_rate,omitempty" db:"click_rate"`
+	SpamRate          *float64   `json:"spam_rate,omitempty" db:"spam_rate"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// EmailAlert represents an alert triggered by email metrics
+type EmailAlert struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	AlertType       string     `json:"alert_type" db:"alert_type"` // high_bounce_rate, high_complaint_rate, etc.
+	Severity        string     `json:"severity" db:"severity"`     // warning, critical
+	MetricName      string     `json:"metric_name" db:"metric_name"`
+	CurrentValue    *float64   `json:"current_value,omitempty" db:"current_value"`
+	ThresholdValue  *float64   `json:"threshold_value,omitempty" db:"threshold_value"`
+	PeriodStart     time.Time  `json:"period_start" db:"period_start"`
+	PeriodEnd       time.Time  `json:"period_end" db:"period_end"`
+	Message         string     `json:"message" db:"message"`
+	Metadata        *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+	TriggeredAt     time.Time  `json:"triggered_at" db:"triggered_at"`
+	AcknowledgedAt  *time.Time `json:"acknowledged_at,omitempty" db:"acknowledged_at"`
+	AcknowledgedBy  *uuid.UUID `json:"acknowledged_by,omitempty" db:"acknowledged_by"`
+	ResolvedAt      *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+}
+
+// Email log status constants
+const (
+	EmailLogStatusSent         = "sent"
+	EmailLogStatusDelivered    = "delivered"
+	EmailLogStatusBounce       = "bounce"
+	EmailLogStatusDropped      = "dropped"
+	EmailLogStatusOpen         = "open"
+	EmailLogStatusClick        = "click"
+	EmailLogStatusSpamReport   = "spam_report"
+	EmailLogStatusUnsubscribe  = "unsubscribe"
+	EmailLogStatusDeferred     = "deferred"
+	EmailLogStatusProcessed    = "processed"
+)
+
+// Email alert types
+const (
+	EmailAlertTypeHighBounceRate      = "high_bounce_rate"
+	EmailAlertTypeHighComplaintRate   = "high_complaint_rate"
+	EmailAlertTypeSendErrors          = "send_errors"
+	EmailAlertTypeOpenRateDrop        = "open_rate_drop"
+	EmailAlertTypeUnsubscribeSpike    = "unsubscribe_spike"
+)
+
+// Email alert severities
+const (
+	EmailAlertSeverityWarning  = "warning"
+	EmailAlertSeverityCritical = "critical"
+)
+
+// SendGridWebhookEvent represents an incoming webhook event from SendGrid
+type SendGridWebhookEvent struct {
+	Email           string                 `json:"email"`
+	Timestamp       int64                  `json:"timestamp"`
+	Event           string                 `json:"event"`
+	SgMessageID     string                 `json:"sg_message_id"`
+	SgEventID       string                 `json:"sg_event_id"`
+	Category        []string               `json:"category,omitempty"`
+	Type            string                 `json:"type,omitempty"`      // For bounce events: bounce, blocked, etc.
+	Reason          string                 `json:"reason,omitempty"`    // Bounce/drop reason
+	Status          string                 `json:"status,omitempty"`    // Bounce status code
+	URL             string                 `json:"url,omitempty"`       // Clicked URL
+	IP              string                 `json:"ip,omitempty"`        // IP address
+	UserAgent       string                 `json:"useragent,omitempty"` // User agent
+	Response        string                 `json:"response,omitempty"`  // SMTP response
+	Attempt         string                 `json:"attempt,omitempty"`   // Deferred attempt number
+	CustomArgs      map[string]interface{} `json:"custom_args,omitempty"`
+	ASMGroupID      int                    `json:"asm_group_id,omitempty"`      // Unsubscribe group ID
+	MarketingCampaignID string             `json:"marketing_campaign_id,omitempty"`
+	MarketingCampaignName string           `json:"marketing_campaign_name,omitempty"`
+}
+
+// Feed represents a user-created feed
+type Feed struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	Name          string     `json:"name" db:"name"`
+	Description   *string    `json:"description,omitempty" db:"description"`
+	Icon          *string    `json:"icon,omitempty" db:"icon"`
+	IsPublic      bool       `json:"is_public" db:"is_public"`
+	FollowerCount int        `json:"follower_count" db:"follower_count"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// FeedWithOwner includes owner information
+type FeedWithOwner struct {
+	Feed
+	Owner *User `json:"owner,omitempty"`
+}
+
+// FeedItem represents a clip in a feed
+type FeedItem struct {
+	ID       uuid.UUID `json:"id" db:"id"`
+	FeedID   uuid.UUID `json:"feed_id" db:"feed_id"`
+	ClipID   uuid.UUID `json:"clip_id" db:"clip_id"`
+	Position int       `json:"position" db:"position"`
+	AddedAt  time.Time `json:"added_at" db:"added_at"`
+}
+
+// FeedItemWithClip includes clip information
+type FeedItemWithClip struct {
+	FeedItem
+	Clip *Clip `json:"clip,omitempty"`
+}
+
+// FeedFollow represents a user following a feed
+type FeedFollow struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	FeedID     uuid.UUID `json:"feed_id" db:"feed_id"`
+	FollowedAt time.Time `json:"followed_at" db:"followed_at"`
+}
+
+// CreateFeedRequest represents the request to create a feed
+type CreateFeedRequest struct {
+	Name        string  `json:"name" binding:"required,min=1,max=255"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=1000"`
+	Icon        *string `json:"icon,omitempty" binding:"omitempty,max=100"`
+	IsPublic    *bool   `json:"is_public,omitempty"`
+}
+
+// UpdateFeedRequest represents the request to update a feed
+type UpdateFeedRequest struct {
+	Name        *string `json:"name,omitempty" binding:"omitempty,min=1,max=255"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=1000"`
+	Icon        *string `json:"icon,omitempty" binding:"omitempty,max=100"`
+	IsPublic    *bool   `json:"is_public,omitempty"`
+}
+
+// AddClipToFeedRequest represents the request to add a clip to a feed
+type AddClipToFeedRequest struct {
+	ClipID uuid.UUID `json:"clip_id" binding:"required"`
+}
+
+// ReorderFeedClipsRequest represents the request to reorder clips in a feed
+type ReorderFeedClipsRequest struct {
+	ClipIDs []uuid.UUID `json:"clip_ids" binding:"required"`
+}
+
+// Category represents a high-level content category
+type Category struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	Name        string    `json:"name" db:"name"`
+	Slug        string    `json:"slug" db:"slug"`
+	Description *string   `json:"description,omitempty" db:"description"`
+	Icon        *string   `json:"icon,omitempty" db:"icon"`
+	Position    int       `json:"position" db:"position"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Game represents a game from Twitch
+type Game struct {
+	ID            uuid.UUID `json:"id" db:"id"`
+	TwitchGameID  string    `json:"twitch_game_id" db:"twitch_game_id"`
+	Name          string    `json:"name" db:"name"`
+	BoxArtURL     *string   `json:"box_art_url,omitempty" db:"box_art_url"`
+	IGDBID        *string   `json:"igdb_id,omitempty" db:"igdb_id"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// GameWithStats represents a game with additional statistics
+type GameWithStats struct {
+	Game
+	ClipCount     int `json:"clip_count" db:"clip_count"`
+	FollowerCount int `json:"follower_count" db:"follower_count"`
+	IsFollowing   bool `json:"is_following"` // Whether the current user is following
+}
+
+// CategoryGame represents the many-to-many relationship between categories and games
+type CategoryGame struct {
+	GameID     uuid.UUID `json:"game_id" db:"game_id"`
+	CategoryID uuid.UUID `json:"category_id" db:"category_id"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+}
+
+// GameFollow represents a user following a game
+type GameFollow struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	GameID     uuid.UUID `json:"game_id" db:"game_id"`
+	FollowedAt time.Time `json:"followed_at" db:"followed_at"`
+}
+
+// TrendingGame represents a game with trending statistics
+type TrendingGame struct {
+	ID              uuid.UUID `json:"id" db:"id"`
+	TwitchGameID    string    `json:"twitch_game_id" db:"twitch_game_id"`
+	Name            string    `json:"name" db:"name"`
+	BoxArtURL       *string   `json:"box_art_url,omitempty" db:"box_art_url"`
+	RecentClipCount int       `json:"recent_clip_count" db:"recent_clip_count"`
+	TotalVoteScore  int       `json:"total_vote_score" db:"total_vote_score"`
+	FollowerCount   int       `json:"follower_count" db:"follower_count"`
+}

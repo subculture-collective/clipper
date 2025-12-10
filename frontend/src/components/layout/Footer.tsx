@@ -50,7 +50,7 @@ export function Footer() {
                   to="/about"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  About Clipper
+                  About clpr
                 </Link>
               </li>
               <li>
@@ -158,7 +158,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-border text-center text-muted-foreground">
-          <p>© {currentYear} Clipper. Built with React, TypeScript, and TailwindCSS 💜</p>
+          <p>© {currentYear} clpr. Built with React, TypeScript, and TailwindCSS 💜</p>
         </div>
       </div>
     </footer>

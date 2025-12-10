@@ -82,7 +82,7 @@ export default function LeaderboardPage() {
                     Leaderboards
                 </h1>
                 <p className='text-gray-400'>
-                    Top contributors in the Clipper community
+                    Top contributors in the clpr community
                 </p>
             </div>
 

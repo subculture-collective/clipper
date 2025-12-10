@@ -1,5 +1,5 @@
 /**
- * Pricing constants for Clipper Pro subscription
+ * Pricing constants for clpr Pro subscription
  */
 
 export const PRICING = {

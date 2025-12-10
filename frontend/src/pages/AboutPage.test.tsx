@@ -25,7 +25,7 @@ describe('AboutPage', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByText('About Clipper')).toBeInTheDocument();
+        expect(screen.getByText('About clpr')).toBeInTheDocument();
     });
 
     it('displays the last updated date', () => {
@@ -45,7 +45,7 @@ describe('AboutPage', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByText('What is Clipper?')).toBeInTheDocument();
+        expect(screen.getByText('What is clpr?')).toBeInTheDocument();
         expect(screen.getByText('How It Works')).toBeInTheDocument();
         expect(screen.getByText('Key Features')).toBeInTheDocument();
         expect(screen.getByText('Open Source & Community')).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('AboutPage', () => {
             </MemoryRouter>
         );
 
-        expect(container.querySelector('#what-is-clipper')).toBeInTheDocument();
+        expect(container.querySelector('#what-is-clpr')).toBeInTheDocument();
         expect(container.querySelector('#how-it-works')).toBeInTheDocument();
         expect(container.querySelector('#features')).toBeInTheDocument();
         expect(container.querySelector('#open-source')).toBeInTheDocument();

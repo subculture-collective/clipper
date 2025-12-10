@@ -16,8 +16,12 @@ const NewFeedPage = lazy(() => import('./pages/NewFeedPage').then(m => ({ defaul
 const TopFeedPage = lazy(() => import('./pages/TopFeedPage').then(m => ({ default: m.TopFeedPage })));
 const RisingFeedPage = lazy(() => import('./pages/RisingFeedPage').then(m => ({ default: m.RisingFeedPage })));
 const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
+const DiscoveryListsPage = lazy(() => import('./pages/DiscoveryListsPage').then(m => ({ default: m.DiscoveryListsPage })));
+const DiscoveryListDetailPage = lazy(() => import('./pages/DiscoveryListDetailPage').then(m => ({ default: m.DiscoveryListDetailPage })));
+const ScrapedClipsPage = lazy(() => import('./pages/ScrapedClipsPage').then(m => ({ default: m.ScrapedClipsPage })));
 const ClipDetailPage = lazy(() => import('./pages/ClipDetailPage').then(m => ({ default: m.ClipDetailPage })));
 const GamePage = lazy(() => import('./pages/GamePage').then(m => ({ default: m.GamePage })));
+const CategoryPage = lazy(() => import('./pages/CategoryPage').then(m => ({ default: m.CategoryPage })));
 const BroadcasterPage = lazy(() => import('./pages/BroadcasterPage').then(m => ({ default: m.BroadcasterPage })));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
 const TagPage = lazy(() => import('./pages/TagPage').then(m => ({ default: m.TagPage })));
@@ -80,11 +84,15 @@ function App() {
                     {/* Public Routes */}
                     <Route path="/" element={<HomePage />} />
                     <Route path="/discover" element={<DiscoveryPage />} />
+                    <Route path="/discover/lists" element={<DiscoveryListsPage />} />
+                    <Route path="/discover/lists/:id" element={<DiscoveryListDetailPage />} />
+                    <Route path="/discover/scraped" element={<ScrapedClipsPage />} />
                     <Route path="/new" element={<NewFeedPage />} />
                     <Route path="/top" element={<TopFeedPage />} />
                     <Route path="/rising" element={<RisingFeedPage />} />
                     <Route path="/clip/:id" element={<ClipDetailPage />} />
                     <Route path="/game/:gameId" element={<GamePage />} />
+                    <Route path="/category/:categorySlug" element={<CategoryPage />} />
                     <Route path="/broadcaster/:broadcasterId" element={<BroadcasterPage />} />
                     <Route path="/creator/:creatorName/analytics" element={<CreatorAnalyticsPage />} />
                     <Route path="/user/:username" element={<UserProfilePage />} />

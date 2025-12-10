@@ -52,7 +52,7 @@ export interface ClipFeedResponse {
     has_prev?: boolean;
 }
 
-export type SortOption = "hot" | "new" | "top" | "rising" | "discussed";
+export type SortOption = "hot" | "new" | "top" | "rising" | "discussed" | "views" | "trending";
 export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
 
 export interface ClipFeedFilters {

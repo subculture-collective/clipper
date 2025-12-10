@@ -375,10 +375,10 @@ func (s *EmailService) prepareEmailContent(
 
 	// Account & Auth notifications
 	case "welcome":
-		subject = "Welcome to Clipper! 🎬"
+		subject = "Welcome to clpr! 🎬"
 		htmlBody, textBody = s.prepareWelcomeEmail(data)
 	case "password_reset":
-		subject = "Reset Your Clipper Password"
+		subject = "Reset Your clpr Password"
 		htmlBody, textBody = s.preparePasswordResetEmail(data)
 	case "email_verification":
 		subject = "Verify Your Email Address"
@@ -441,7 +441,7 @@ func (s *EmailService) prepareReplyEmail(data map[string]interface{}) (html, tex
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">💬 New Reply on Clipper</h1>
+        <h1 style="color: white; margin: 0; font-size: 24px;">💬 New Reply on clpr</h1>
     </div>
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
@@ -469,7 +469,7 @@ func (s *EmailService) prepareReplyEmail(data map[string]interface{}) (html, tex
 </html>
 `, authorName, clipTitle, commentPreview, clipURL, unsubURL, s.baseURL)
 
-	text = fmt.Sprintf(`New Reply on Clipper
+	text = fmt.Sprintf(`New Reply on clpr
 
 %s replied to your comment on "%s"
 
@@ -531,7 +531,7 @@ func (s *EmailService) prepareMentionEmail(data map[string]interface{}) (html, t
 </html>
 `, authorName, clipTitle, commentPreview, clipURL, unsubURL, s.baseURL)
 
-	text = fmt.Sprintf(`You Were Mentioned on Clipper!
+	text = fmt.Sprintf(`You Were Mentioned on clpr!
 
 %s mentioned you in a comment on "%s"
 
@@ -1133,7 +1133,7 @@ Tax: %v`, subtotal, taxAmount)
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         
         <p style="font-size: 12px; color: #999; text-align: center;">
-            This invoice is for your subscription to Clipper Pro.<br>
+            This invoice is for your subscription to clpr Pro.<br>
             If you have any questions about this invoice, please contact our support team.
         </p>
     </div>
@@ -1153,7 +1153,7 @@ View Online: %s
 Note: This invoice includes all applicable taxes based on your location.
 
 ---
-This invoice is for your subscription to Clipper Pro.
+This invoice is for your subscription to clpr Pro.
 If you have any questions about this invoice, please contact our support team.
 `, invoiceNumber, taxSectionText, total, pdfURL, hostedURL)
 
@@ -1171,11 +1171,11 @@ func (s *EmailService) prepareWelcomeEmail(data map[string]interface{}) (html, t
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Clipper</title>
+    <title>Welcome to clpr</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">🎬 Welcome to Clipper!</h1>
+        <h1 style="color: white; margin: 0; font-size: 28px;">🎬 Welcome to clpr!</h1>
     </div>
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
@@ -1216,7 +1216,7 @@ func (s *EmailService) prepareWelcomeEmail(data map[string]interface{}) (html, t
 </html>
 `, username, s.baseURL, s.baseURL, s.baseURL, unsubURL, s.baseURL)
 
-	text = fmt.Sprintf(`Welcome to Clipper!
+	text = fmt.Sprintf(`Welcome to clpr!
 
 Hi %s,
 
@@ -1261,7 +1261,7 @@ func (s *EmailService) preparePasswordResetEmail(data map[string]interface{}) (h
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <p style="font-size: 16px; margin-bottom: 20px;">
-            We received a request to reset your Clipper password. Click the button below to create a new password.
+            We received a request to reset your clpr password. Click the button below to create a new password.
         </p>
         
         <p style="text-align: center; margin: 30px 0;">
@@ -1296,7 +1296,7 @@ func (s *EmailService) preparePasswordResetEmail(data map[string]interface{}) (h
 
 	text = fmt.Sprintf(`Reset Your Password
 
-We received a request to reset your Clipper password. Click the link below to create a new password.
+We received a request to reset your clpr password. Click the link below to create a new password.
 
 Reset Password: %s
 
@@ -1333,7 +1333,7 @@ func (s *EmailService) prepareEmailVerificationEmail(data map[string]interface{}
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <p style="font-size: 16px; margin-bottom: 20px;">
-            Thanks for signing up! Please verify your email address to get started with Clipper.
+            Thanks for signing up! Please verify your email address to get started with clpr.
         </p>
         
         <p style="text-align: center; margin: 30px 0;">
@@ -1368,7 +1368,7 @@ func (s *EmailService) prepareEmailVerificationEmail(data map[string]interface{}
 
 	text = fmt.Sprintf(`Verify Your Email
 
-Thanks for signing up! Please verify your email address to get started with Clipper.
+Thanks for signing up! Please verify your email address to get started with clpr.
 
 Verify Email Address: %s
 
@@ -1407,7 +1407,7 @@ func (s *EmailService) prepareSubmissionApprovedEmail(data map[string]interface{
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <p style="font-size: 16px; margin-bottom: 20px;">
-            Great news! Your submission <strong>"%s"</strong> has been approved and is now live on Clipper!
+            Great news! Your submission <strong>"%s"</strong> has been approved and is now live on clpr!
         </p>
         
         <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border: 2px solid #4ade80;">
@@ -1439,7 +1439,7 @@ func (s *EmailService) prepareSubmissionApprovedEmail(data map[string]interface{
 
 	text = fmt.Sprintf(`Your Clip Has Been Approved!
 
-Great news! Your submission "%s" has been approved and is now live on Clipper!
+Great news! Your submission "%s" has been approved and is now live on clpr!
 
 Stats Snapshot:
 - Views: %v
@@ -1480,7 +1480,7 @@ func (s *EmailService) prepareSubmissionRejectedEmail(data map[string]interface{
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <p style="font-size: 16px; margin-bottom: 20px;">
-            Thank you for submitting <strong>"%s"</strong> to Clipper. After review, we're unable to approve this submission at this time.
+            Thank you for submitting <strong>"%s"</strong> to clpr. After review, we're unable to approve this submission at this time.
         </p>
         
         <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
@@ -1517,7 +1517,7 @@ func (s *EmailService) prepareSubmissionRejectedEmail(data map[string]interface{
 
 	text = fmt.Sprintf(`Submission Status Update
 
-Thank you for submitting "%s" to Clipper. After review, we're unable to approve this submission at this time.
+Thank you for submitting "%s" to clpr. After review, we're unable to approve this submission at this time.
 
 Reason: %s
 
@@ -1562,7 +1562,7 @@ func (s *EmailService) prepareClipTrendingEmail(data map[string]interface{}) (ht
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <p style="font-size: 16px; margin-bottom: 20px;">
-            Congratulations! Your clip <strong>"%s"</strong> is gaining traction and trending on Clipper!
+            Congratulations! Your clip <strong>"%s"</strong> is gaining traction and trending on clpr!
         </p>
         
         <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border: 2px solid #fc4a1a;">
@@ -1606,7 +1606,7 @@ func (s *EmailService) prepareClipTrendingEmail(data map[string]interface{}) (ht
 
 	text = fmt.Sprintf(`Your Clip is Trending!
 
-Congratulations! Your clip "%s" is gaining traction and trending on Clipper!
+Congratulations! Your clip "%s" is gaining traction and trending on clpr!
 
 Current Stats:
 - Views: %v
@@ -1733,7 +1733,7 @@ func (s *EmailService) prepareBanSuspensionEmail(data map[string]interface{}) (h
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <p style="font-size: 16px; margin-bottom: 20px;">
-            Your Clipper account has been %s due to a violation of our community guidelines.
+            Your clpr account has been %s due to a violation of our community guidelines.
         </p>
         
         <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 5px;">
@@ -1768,7 +1768,7 @@ func (s *EmailService) prepareBanSuspensionEmail(data map[string]interface{}) (h
 
 	text = fmt.Sprintf(`Account Status Update - %s
 
-Your Clipper account has been %s due to a violation of our community guidelines.
+Your clpr account has been %s due to a violation of our community guidelines.
 
 Reason: %s
 Duration: %s
@@ -1813,7 +1813,7 @@ func (s *EmailService) prepareSecurityAlertEmail(data map[string]interface{}) (h
     
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <p style="font-size: 16px; margin-bottom: 20px;">
-            We detected a new login to your Clipper account from an unrecognized device.
+            We detected a new login to your clpr account from an unrecognized device.
         </p>
         
         <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545;">
@@ -1851,7 +1851,7 @@ func (s *EmailService) prepareSecurityAlertEmail(data map[string]interface{}) (h
 
 	text = fmt.Sprintf(`New Login Detected - Security Alert
 
-We detected a new login to your Clipper account from an unrecognized device.
+We detected a new login to your clpr account from an unrecognized device.
 
 Login Details:
 - Device: %s
@@ -1907,7 +1907,7 @@ func (s *EmailService) preparePolicyUpdateEmail(data map[string]interface{}) (ht
         <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
             <p style="margin: 0; color: #0c5460;">
                 <strong>Effective Date:</strong> %s<br>
-                These changes will take effect on the date shown above. By continuing to use Clipper, you agree to these updated terms.
+                These changes will take effect on the date shown above. By continuing to use clpr, you agree to these updated terms.
             </p>
         </div>
         
@@ -1938,7 +1938,7 @@ What Changed:
 %s
 
 Effective Date: %s
-These changes will take effect on the date shown above. By continuing to use Clipper, you agree to these updated terms.
+These changes will take effect on the date shown above. By continuing to use clpr, you agree to these updated terms.
 
 Read Full Policy: %s
 

@@ -50,7 +50,7 @@ export default function LoginScreen() {
         <View className="flex-1 bg-white items-center justify-center p-6">
             <Text className="text-4xl mb-2">🎬</Text>
             <Text className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome to Clipper
+                Welcome to clpr
             </Text>
             <Text className="text-base text-gray-600 text-center mb-8">
                 Discover and share the best Twitch clips

@@ -7,7 +7,7 @@ const PRO_FEATURES = [
   {
     icon: '🚫',
     title: 'Ad-Free Experience',
-    description: 'Enjoy Clipper without any advertisements',
+    description: 'Enjoy clpr without any advertisements',
   },
   {
     icon: '⭐',
@@ -67,7 +67,7 @@ export default function SubscriptionSuccessPage() {
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">
-            🎉 Welcome to Clipper Pro!
+            🎉 Welcome to clpr Pro!
           </h1>
 
           <p className="text-xl text-gray-400 mb-2">
@@ -141,7 +141,7 @@ export default function SubscriptionSuccessPage() {
             onClick={() => navigate('/')}
             className="w-full py-4 px-6 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors text-lg"
           >
-            Start Exploring Clipper Pro
+            Start Exploring clpr Pro
           </button>
 
           <div className="grid grid-cols-2 gap-3">
