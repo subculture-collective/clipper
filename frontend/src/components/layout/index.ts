@@ -11,4 +11,5 @@ export { Header } from './Header';
 export { Footer } from './Footer';
 export { MiniFooter } from './MiniFooter';
 export { AppLayout } from './AppLayout';
+export { CategoriesNav } from './CategoriesNav';
 export { LanguageSwitcher } from './LanguageSwitcher';
