@@ -124,6 +124,21 @@ docker-logs: ## View Docker service logs
 	docker compose -f docker-compose.prod.yml logs -f --tail 500
 	@echo "✓ Docker logs ended"
 
+docker-logs-backend: ## Stream backend container logs
+	docker logs -f clipper-backend
+
+docker-logs-frontend: ## Stream frontend container logs
+	docker logs -f clipper-frontend
+
+docker-logs-postgres: ## Stream postgres container logs
+	docker logs -f clipper-postgres
+
+docker-logs-redis: ## Stream redis container logs
+	docker logs -f clipper-redis
+
+docker-logs-vault: ## Stream vault-agent container logs
+	docker logs -f clipper-vault-agent
+
 backend-dev: ## Run backend in development mode
 	@echo "Waiting for PostgreSQL on localhost:5436..."
 	@bash -c 'until pg_isready -h localhost -p 5436 -U clipper -d clipper_db >/dev/null 2>&1; do sleep 1; done'
