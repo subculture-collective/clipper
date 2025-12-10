@@ -1,6 +1,10 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
 
 // StringPtr returns a pointer to a string. If the string is empty, it returns nil.
 func StringPtr(s string) *string {
@@ -51,4 +55,27 @@ func Min(a, b int) int {
 // For example, SQLPlaceholder(1) returns "$1", SQLPlaceholder(2) returns "$2", etc.
 func SQLPlaceholder(position int) string {
 	return fmt.Sprintf("$%d", position)
+}
+
+// GenerateSlug creates a URL-friendly slug from the given text
+func GenerateSlug(text string) string {
+	// Convert to lowercase
+	slug := strings.ToLower(text)
+	
+	// Replace spaces and underscores with hyphens
+	slug = strings.ReplaceAll(slug, " ", "-")
+	slug = strings.ReplaceAll(slug, "_", "-")
+	
+	// Remove all non-alphanumeric characters except hyphens
+	reg := regexp.MustCompile("[^a-z0-9-]+")
+	slug = reg.ReplaceAllString(slug, "")
+	
+	// Replace multiple consecutive hyphens with a single hyphen
+	reg = regexp.MustCompile("-+")
+	slug = reg.ReplaceAllString(slug, "-")
+	
+	// Trim hyphens from start and end
+	slug = strings.Trim(slug, "-")
+	
+	return slug
 }

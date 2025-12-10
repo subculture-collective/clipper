@@ -1950,3 +1950,61 @@ type TrendingGame struct {
 	TotalVoteScore  int       `json:"total_vote_score" db:"total_vote_score"`
 	FollowerCount   int       `json:"follower_count" db:"follower_count"`
 }
+
+// DiscoveryList represents a curated list of clips
+type DiscoveryList struct {
+	ID           uuid.UUID  `json:"id" db:"id"`
+	Name         string     `json:"name" db:"name"`
+	Slug         string     `json:"slug" db:"slug"`
+	Description  *string    `json:"description,omitempty" db:"description"`
+	IsFeatured   bool       `json:"is_featured" db:"is_featured"`
+	IsActive     bool       `json:"is_active" db:"is_active"`
+	DisplayOrder int        `json:"display_order" db:"display_order"`
+	CreatedBy    *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// DiscoveryListWithStats includes additional statistics about the list
+type DiscoveryListWithStats struct {
+	DiscoveryList
+	ClipCount     int     `json:"clip_count" db:"clip_count"`
+	FollowerCount int     `json:"follower_count" db:"follower_count"`
+	IsFollowing   bool    `json:"is_following"`
+	IsBookmarked  bool    `json:"is_bookmarked"`
+	PreviewClips  []Clip  `json:"preview_clips,omitempty"`
+}
+
+// DiscoveryListClip represents the relationship between a list and a clip
+type DiscoveryListClip struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	ListID       uuid.UUID `json:"list_id" db:"list_id"`
+	ClipID       uuid.UUID `json:"clip_id" db:"clip_id"`
+	DisplayOrder int       `json:"display_order" db:"display_order"`
+	AddedAt      time.Time `json:"added_at" db:"added_at"`
+}
+
+// CreateDiscoveryListRequest represents the request to create a discovery list
+type CreateDiscoveryListRequest struct {
+	Name        string  `json:"name" binding:"required,min=1,max=200"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=1000"`
+	IsFeatured  *bool   `json:"is_featured,omitempty"`
+}
+
+// UpdateDiscoveryListRequest represents the request to update a discovery list
+type UpdateDiscoveryListRequest struct {
+	Name        *string `json:"name,omitempty" binding:"omitempty,min=1,max=200"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=1000"`
+	IsFeatured  *bool   `json:"is_featured,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+}
+
+// AddClipToListRequest represents the request to add a clip to a discovery list
+type AddClipToListRequest struct {
+	ClipID uuid.UUID `json:"clip_id" binding:"required"`
+}
+
+// ReorderListClipsRequest represents the request to reorder clips in a discovery list
+type ReorderListClipsRequest struct {
+	ClipIDs []uuid.UUID `json:"clip_ids" binding:"required,min=1,max=200"`
+}
