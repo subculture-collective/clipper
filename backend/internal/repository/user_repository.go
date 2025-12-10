@@ -571,3 +571,346 @@ func (r *UserRepository) ClearDeviceToken(ctx context.Context, userID uuid.UUID)
 	_, err := r.db.Exec(ctx, query, userID)
 	return err
 }
+
+// GetUserProfile retrieves a complete user profile with stats
+func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, currentUserID *uuid.UUID) (*models.UserProfile, error) {
+	query := `
+		SELECT 
+			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url, u.bio,
+			u.social_links, u.karma_points, u.trust_score, u.trust_score_updated_at,
+			u.role, u.is_banned, u.follower_count, u.following_count,
+			u.created_at, u.updated_at, u.last_login_at,
+			COALESCE(clip_count.count, 0) as clips_submitted,
+			COALESCE(upvotes.total, 0) as total_upvotes
+		FROM users u
+		LEFT JOIN (
+			SELECT submitted_by_user_id, COUNT(*) as count
+			FROM clips
+			WHERE submitted_by_user_id = $1
+			GROUP BY submitted_by_user_id
+		) clip_count ON u.id = clip_count.submitted_by_user_id
+		LEFT JOIN (
+			SELECT c.submitted_by_user_id, SUM(c.vote_score) as total
+			FROM clips c
+			WHERE c.submitted_by_user_id = $1
+			GROUP BY c.submitted_by_user_id
+		) upvotes ON u.id = upvotes.submitted_by_user_id
+		WHERE u.id = $1
+	`
+
+	var profile models.UserProfile
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&profile.ID, &profile.TwitchID, &profile.Username, &profile.DisplayName, &profile.Email,
+		&profile.AvatarURL, &profile.Bio, &profile.SocialLinks, &profile.KarmaPoints,
+		&profile.TrustScore, &profile.TrustScoreUpdatedAt, &profile.Role, &profile.IsBanned,
+		&profile.FollowerCount, &profile.FollowingCount,
+		&profile.CreatedAt, &profile.UpdatedAt, &profile.LastLoginAt,
+		&profile.ClipsSubmitted, &profile.TotalUpvotes,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	// Check if current user is following this user
+	if currentUserID != nil {
+		followQuery := `SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`
+		err = r.db.QueryRow(ctx, followQuery, *currentUserID, userID).Scan(&profile.IsFollowing)
+		if err != nil {
+			return nil, err
+		}
+
+		followBackQuery := `SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`
+		err = r.db.QueryRow(ctx, followBackQuery, userID, *currentUserID).Scan(&profile.IsFollowedBy)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Get additional stats
+	statsQuery := `
+		SELECT
+			COALESCE(clip_count.count, 0) as clips_submitted,
+			COALESCE(upvotes.total, 0) as total_upvotes,
+			COALESCE(comment_count.count, 0) as total_comments,
+			COALESCE(featured_count.count, 0) as clips_featured,
+			COALESCE(broadcaster_count.count, 0) as broadcasters_followed
+		FROM users u
+		LEFT JOIN (
+			SELECT submitted_by_user_id, COUNT(*) as count
+			FROM clips
+			WHERE submitted_by_user_id = $1
+			GROUP BY submitted_by_user_id
+		) clip_count ON u.id = clip_count.submitted_by_user_id
+		LEFT JOIN (
+			SELECT c.submitted_by_user_id, SUM(c.vote_score) as total
+			FROM clips c
+			WHERE c.submitted_by_user_id = $1
+			GROUP BY c.submitted_by_user_id
+		) upvotes ON u.id = upvotes.submitted_by_user_id
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) as count
+			FROM comments
+			WHERE user_id = $1
+			GROUP BY user_id
+		) comment_count ON u.id = comment_count.user_id
+		LEFT JOIN (
+			SELECT submitted_by_user_id, COUNT(*) as count
+			FROM clips
+			WHERE submitted_by_user_id = $1 AND is_featured = true
+			GROUP BY submitted_by_user_id
+		) featured_count ON u.id = featured_count.submitted_by_user_id
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) as count
+			FROM broadcaster_follows
+			WHERE user_id = $1
+			GROUP BY user_id
+		) broadcaster_count ON u.id = broadcaster_count.user_id
+		WHERE u.id = $1
+	`
+
+	err = r.db.QueryRow(ctx, statsQuery, userID).Scan(
+		&profile.Stats.ClipsSubmitted,
+		&profile.Stats.TotalUpvotes,
+		&profile.Stats.TotalComments,
+		&profile.Stats.ClipsFeatured,
+		&profile.Stats.BroadcastersFollowed,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &profile, nil
+}
+
+// UpdateSocialLinks updates a user's social media links
+func (r *UserRepository) UpdateSocialLinks(ctx context.Context, userID uuid.UUID, socialLinks string) error {
+	query := `
+		UPDATE users
+		SET social_links = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+
+	_, err := r.db.Exec(ctx, query, socialLinks, userID)
+	return err
+}
+
+// FollowUser creates a follow relationship between two users
+func (r *UserRepository) FollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	query := `
+		INSERT INTO user_follows (follower_id, following_id)
+		VALUES ($1, $2)
+		ON CONFLICT (follower_id, following_id) DO NOTHING
+	`
+
+	_, err := r.db.Exec(ctx, query, followerID, followingID)
+	return err
+}
+
+// UnfollowUser removes a follow relationship between two users
+func (r *UserRepository) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	query := `
+		DELETE FROM user_follows
+		WHERE follower_id = $1 AND following_id = $2
+	`
+
+	result, err := r.db.Exec(ctx, query, followerID, followingID)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("follow relationship not found")
+	}
+
+	return nil
+}
+
+// GetFollowers retrieves a list of users who follow the specified user
+func (r *UserRepository) GetFollowers(ctx context.Context, userID uuid.UUID, currentUserID *uuid.UUID, limit, offset int) ([]models.FollowerUser, int, error) {
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM user_follows WHERE following_id = $1`
+	var total int
+	err := r.db.QueryRow(ctx, countQuery, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get followers
+	query := `
+		SELECT 
+			u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points, uf.created_at
+		FROM user_follows uf
+		JOIN users u ON u.id = uf.follower_id
+		WHERE uf.following_id = $1
+		ORDER BY uf.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	followers := []models.FollowerUser{}
+	for rows.Next() {
+		var follower models.FollowerUser
+		err := rows.Scan(
+			&follower.ID, &follower.Username, &follower.DisplayName, &follower.AvatarURL,
+			&follower.Bio, &follower.KarmaPoints, &follower.FollowedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Check if current user is following this follower
+		if currentUserID != nil {
+			followQuery := `SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`
+			err = r.db.QueryRow(ctx, followQuery, *currentUserID, follower.ID).Scan(&follower.IsFollowing)
+			if err != nil {
+				return nil, 0, err
+			}
+		}
+
+		followers = append(followers, follower)
+	}
+
+	return followers, total, nil
+}
+
+// GetFollowing retrieves a list of users that the specified user follows
+func (r *UserRepository) GetFollowing(ctx context.Context, userID uuid.UUID, currentUserID *uuid.UUID, limit, offset int) ([]models.FollowerUser, int, error) {
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM user_follows WHERE follower_id = $1`
+	var total int
+	err := r.db.QueryRow(ctx, countQuery, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get following
+	query := `
+		SELECT 
+			u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points, uf.created_at
+		FROM user_follows uf
+		JOIN users u ON u.id = uf.following_id
+		WHERE uf.follower_id = $1
+		ORDER BY uf.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	following := []models.FollowerUser{}
+	for rows.Next() {
+		var user models.FollowerUser
+		err := rows.Scan(
+			&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
+			&user.Bio, &user.KarmaPoints, &user.FollowedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Check if current user is following this user
+		if currentUserID != nil {
+			followQuery := `SELECT EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2)`
+			err = r.db.QueryRow(ctx, followQuery, *currentUserID, user.ID).Scan(&user.IsFollowing)
+			if err != nil {
+				return nil, 0, err
+			}
+		}
+
+		following = append(following, user)
+	}
+
+	return following, total, nil
+}
+
+// GetUserActivity retrieves a user's activity feed
+func (r *UserRepository) GetUserActivity(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.UserActivityItem, int, error) {
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM user_activity WHERE user_id = $1`
+	var total int
+	err := r.db.QueryRow(ctx, countQuery, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get activity items
+	query := `
+		SELECT 
+			ua.id, ua.user_id, ua.activity_type, ua.target_id, ua.target_type,
+			ua.metadata, ua.created_at,
+			u.username, u.avatar_url,
+			c.title as clip_title, c.id as clip_id,
+			co.content as comment_text,
+			u2.username as target_user
+		FROM user_activity ua
+		JOIN users u ON u.id = ua.user_id
+		LEFT JOIN clips c ON c.id = ua.target_id AND ua.target_type = 'clip'
+		LEFT JOIN comments co ON co.id = ua.target_id AND ua.target_type = 'comment'
+		LEFT JOIN users u2 ON u2.id = ua.target_id AND ua.target_type = 'user'
+		WHERE ua.user_id = $1
+		ORDER BY ua.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	activities := []models.UserActivityItem{}
+	for rows.Next() {
+		var activity models.UserActivityItem
+		var clipID *uuid.UUID
+		err := rows.Scan(
+			&activity.ID, &activity.UserID, &activity.ActivityType, &activity.TargetID,
+			&activity.TargetType, &activity.Metadata, &activity.CreatedAt,
+			&activity.Username, &activity.UserAvatar,
+			&activity.ClipTitle, &clipID,
+			&activity.CommentText,
+			&activity.TargetUser,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if clipID != nil {
+			clipIDStr := clipID.String()
+			activity.ClipID = &clipIDStr
+		}
+
+		activities = append(activities, activity)
+	}
+
+	return activities, total, nil
+}
+
+// CreateUserActivity records a user activity
+func (r *UserRepository) CreateUserActivity(ctx context.Context, activity *models.UserActivity) error {
+	query := `
+		INSERT INTO user_activity (id, user_id, activity_type, target_id, target_type, metadata)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING created_at
+	`
+
+	err := r.db.QueryRow(
+		ctx, query,
+		activity.ID, activity.UserID, activity.ActivityType, activity.TargetID,
+		activity.TargetType, activity.Metadata,
+	).Scan(&activity.CreatedAt)
+
+	return err
+}

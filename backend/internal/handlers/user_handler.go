@@ -282,3 +282,309 @@ func (h *UserHandler) getUserVotedClips(c *gin.Context, voteType int16) {
 		},
 	})
 }
+
+// GetUserProfile retrieves a user's complete profile with stats
+// GET /api/v1/users/:id
+func (h *UserHandler) GetUserProfile(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID if authenticated
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	profile, err := h.userRepo.GetUserProfile(c.Request.Context(), userID, currentUserID)
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    profile,
+	})
+}
+
+// GetUserClips retrieves clips submitted by a user
+// GET /api/v1/users/:id/clips
+func (h *UserHandler) GetUserClips(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	// Use ListWithFilters with submitted_by filter
+	filters := repository.ClipFilters{
+		SubmittedByUserID: &userID,
+	}
+	
+	clips, total, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve clips"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    clips,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// GetUserActivity retrieves a user's activity feed
+// GET /api/v1/users/:id/activity
+func (h *UserHandler) GetUserActivity(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	activities, total, err := h.userRepo.GetUserActivity(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user activity"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    activities,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// GetUserFollowers retrieves users who follow the specified user
+// GET /api/v1/users/:id/followers
+func (h *UserHandler) GetUserFollowers(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID if authenticated
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	followers, total, err := h.userRepo.GetFollowers(c.Request.Context(), userID, currentUserID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followers"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    followers,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// GetUserFollowing retrieves users that the specified user follows
+// GET /api/v1/users/:id/following
+func (h *UserHandler) GetUserFollowing(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID if authenticated
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	following, total, err := h.userRepo.GetFollowing(c.Request.Context(), userID, currentUserID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve following"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    following,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// FollowUser creates a follow relationship
+// POST /api/v1/users/:id/follow
+func (h *UserHandler) FollowUser(c *gin.Context) {
+	userIDStr := c.Param("id")
+	followingID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID
+	followerID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	followerUUID := followerID.(uuid.UUID)
+
+	// Can't follow yourself
+	if followerUUID == followingID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot follow yourself"})
+		return
+	}
+
+	// Create follow relationship
+	err = h.userRepo.FollowUser(c.Request.Context(), followerUUID, followingID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to follow user"})
+		return
+	}
+
+	// Record activity
+	activity := &models.UserActivity{
+		ID:           uuid.New(),
+		UserID:       followerUUID,
+		ActivityType: models.ActivityTypeUserFollowed,
+		TargetID:     &followingID,
+		TargetType:   strPtr("user"),
+	}
+	_ = h.userRepo.CreateUserActivity(c.Request.Context(), activity)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "user followed successfully",
+	})
+}
+
+// UnfollowUser removes a follow relationship
+// DELETE /api/v1/users/:id/follow
+func (h *UserHandler) UnfollowUser(c *gin.Context) {
+	userIDStr := c.Param("id")
+	followingID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID
+	followerID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	followerUUID := followerID.(uuid.UUID)
+
+	// Remove follow relationship
+	err = h.userRepo.UnfollowUser(c.Request.Context(), followerUUID, followingID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unfollow user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "user unfollowed successfully",
+	})
+}
+
+// Helper function
+func strPtr(s string) *string {
+	return &s
+}
