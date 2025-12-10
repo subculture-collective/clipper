@@ -2034,3 +2034,204 @@ type BroadcasterLiveStatus struct {
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
+
+// Community represents a community space
+type Community struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	Name        string     `json:"name" db:"name"`
+	Slug        string     `json:"slug" db:"slug"`
+	Description *string    `json:"description,omitempty" db:"description"`
+	Icon        *string    `json:"icon,omitempty" db:"icon"`
+	OwnerID     uuid.UUID  `json:"owner_id" db:"owner_id"`
+	IsPublic    bool       `json:"is_public" db:"is_public"`
+	MemberCount int        `json:"member_count" db:"member_count"`
+	Rules       *string    `json:"rules,omitempty" db:"rules"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// CommunityWithOwner includes owner information
+type CommunityWithOwner struct {
+	Community
+	Owner *User `json:"owner,omitempty"`
+}
+
+// CommunityWithStats includes additional statistics
+type CommunityWithStats struct {
+	Community
+	ClipCount       int  `json:"clip_count" db:"clip_count"`
+	DiscussionCount int  `json:"discussion_count" db:"discussion_count"`
+	IsMember        bool `json:"is_member"`
+	UserRole        *string `json:"user_role,omitempty"` // admin, mod, member, or null if not a member
+}
+
+// CommunityMember represents a member of a community
+type CommunityMember struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	CommunityID uuid.UUID `json:"community_id" db:"community_id"`
+	UserID      uuid.UUID `json:"user_id" db:"user_id"`
+	Role        string    `json:"role" db:"role"` // admin, mod, member
+	JoinedAt    time.Time `json:"joined_at" db:"joined_at"`
+}
+
+// CommunityMemberWithUser includes user information
+type CommunityMemberWithUser struct {
+	CommunityMember
+	User *User `json:"user,omitempty"`
+}
+
+// CommunityBan represents a banned user in a community
+type CommunityBan struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	CommunityID     uuid.UUID  `json:"community_id" db:"community_id"`
+	BannedUserID    uuid.UUID  `json:"banned_user_id" db:"banned_user_id"`
+	BannedByUserID  *uuid.UUID `json:"banned_by_user_id,omitempty" db:"banned_by_user_id"`
+	Reason          *string    `json:"reason,omitempty" db:"reason"`
+	BannedAt        time.Time  `json:"banned_at" db:"banned_at"`
+}
+
+// CommunityBanWithUser includes user information
+type CommunityBanWithUser struct {
+	CommunityBan
+	BannedUser  *User `json:"banned_user,omitempty"`
+	BannedByUser *User `json:"banned_by_user,omitempty"`
+}
+
+// CommunityClip represents a clip in a community feed
+type CommunityClip struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	CommunityID   uuid.UUID  `json:"community_id" db:"community_id"`
+	ClipID        uuid.UUID  `json:"clip_id" db:"clip_id"`
+	AddedByUserID *uuid.UUID `json:"added_by_user_id,omitempty" db:"added_by_user_id"`
+	AddedAt       time.Time  `json:"added_at" db:"added_at"`
+}
+
+// CommunityClipWithClip includes clip information
+type CommunityClipWithClip struct {
+	CommunityClip
+	Clip *Clip `json:"clip,omitempty"`
+}
+
+// CommunityDiscussion represents a discussion thread in a community
+type CommunityDiscussion struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	CommunityID  uuid.UUID `json:"community_id" db:"community_id"`
+	UserID       uuid.UUID `json:"user_id" db:"user_id"`
+	Title        string    `json:"title" db:"title"`
+	Content      string    `json:"content" db:"content"`
+	IsPinned     bool      `json:"is_pinned" db:"is_pinned"`
+	IsResolved   bool      `json:"is_resolved" db:"is_resolved"`
+	VoteScore    int       `json:"vote_score" db:"vote_score"`
+	CommentCount int       `json:"comment_count" db:"comment_count"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// CommunityDiscussionWithUser includes user information
+type CommunityDiscussionWithUser struct {
+	CommunityDiscussion
+	User *User `json:"user,omitempty"`
+}
+
+// CommunityDiscussionComment represents a comment on a discussion thread
+type CommunityDiscussionComment struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	DiscussionID    uuid.UUID  `json:"discussion_id" db:"discussion_id"`
+	UserID          uuid.UUID  `json:"user_id" db:"user_id"`
+	ParentCommentID *uuid.UUID `json:"parent_comment_id,omitempty" db:"parent_comment_id"`
+	Content         string     `json:"content" db:"content"`
+	VoteScore       int        `json:"vote_score" db:"vote_score"`
+	IsEdited        bool       `json:"is_edited" db:"is_edited"`
+	IsRemoved       bool       `json:"is_removed" db:"is_removed"`
+	RemovedReason   *string    `json:"removed_reason,omitempty" db:"removed_reason"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// CommunityDiscussionCommentWithUser includes user information
+type CommunityDiscussionCommentWithUser struct {
+	CommunityDiscussionComment
+	User *User `json:"user,omitempty"`
+}
+
+// CommunityDiscussionVote represents a vote on a discussion or comment
+type CommunityDiscussionVote struct {
+	ID           uuid.UUID  `json:"id" db:"id"`
+	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
+	DiscussionID *uuid.UUID `json:"discussion_id,omitempty" db:"discussion_id"`
+	CommentID    *uuid.UUID `json:"comment_id,omitempty" db:"comment_id"`
+	VoteType     int16      `json:"vote_type" db:"vote_type"` // 1 for upvote, -1 for downvote
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+}
+
+// CreateCommunityRequest represents the request to create a community
+type CreateCommunityRequest struct {
+	Name        string  `json:"name" binding:"required,min=3,max=255"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=5000"`
+	Icon        *string `json:"icon,omitempty" binding:"omitempty,max=100"`
+	IsPublic    *bool   `json:"is_public,omitempty"`
+	Rules       *string `json:"rules,omitempty" binding:"omitempty,max=10000"`
+}
+
+// UpdateCommunityRequest represents the request to update a community
+type UpdateCommunityRequest struct {
+	Name        *string `json:"name,omitempty" binding:"omitempty,min=3,max=255"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=5000"`
+	Icon        *string `json:"icon,omitempty" binding:"omitempty,max=100"`
+	IsPublic    *bool   `json:"is_public,omitempty"`
+	Rules       *string `json:"rules,omitempty" binding:"omitempty,max=10000"`
+}
+
+// AddMemberRequest represents the request to add a member to a community
+type AddMemberRequest struct {
+	UserID uuid.UUID `json:"user_id" binding:"required"`
+	Role   *string   `json:"role,omitempty" binding:"omitempty,oneof=admin mod member"`
+}
+
+// UpdateMemberRoleRequest represents the request to update a member's role
+type UpdateMemberRoleRequest struct {
+	Role string `json:"role" binding:"required,oneof=admin mod member"`
+}
+
+// BanMemberRequest represents the request to ban a member from a community
+type BanMemberRequest struct {
+	UserID uuid.UUID `json:"user_id" binding:"required"`
+	Reason *string   `json:"reason,omitempty" binding:"omitempty,max=1000"`
+}
+
+// AddClipToCommunityRequest represents the request to add a clip to a community
+type AddClipToCommunityRequest struct {
+	ClipID uuid.UUID `json:"clip_id" binding:"required"`
+}
+
+// CreateDiscussionRequest represents the request to create a discussion thread
+type CreateDiscussionRequest struct {
+	Title   string `json:"title" binding:"required,min=3,max=500"`
+	Content string `json:"content" binding:"required,min=10,max=10000"`
+}
+
+// UpdateDiscussionRequest represents the request to update a discussion thread
+type UpdateDiscussionRequest struct {
+	Title    *string `json:"title,omitempty" binding:"omitempty,min=3,max=500"`
+	Content  *string `json:"content,omitempty" binding:"omitempty,min=10,max=10000"`
+	IsPinned *bool   `json:"is_pinned,omitempty"`
+	IsResolved *bool `json:"is_resolved,omitempty"`
+}
+
+// CreateDiscussionCommentRequest represents the request to create a comment on a discussion
+type CreateDiscussionCommentRequest struct {
+	Content         string     `json:"content" binding:"required,min=1,max=10000"`
+	ParentCommentID *uuid.UUID `json:"parent_comment_id,omitempty"`
+}
+
+// UpdateDiscussionCommentRequest represents the request to update a discussion comment
+type UpdateDiscussionCommentRequest struct {
+	Content string `json:"content" binding:"required,min=1,max=10000"`
+}
+
+// Community role constants
+const (
+	CommunityRoleAdmin  = "admin"
+	CommunityRoleMod    = "mod"
+	CommunityRoleMember = "member"
+)
