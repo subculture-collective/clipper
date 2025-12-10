@@ -25,6 +25,7 @@ type Config struct {
 	FeatureFlags FeatureFlagsConfig
 	Karma        KarmaConfig
 	Jobs         JobsConfig
+	RateLimit    RateLimitConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -149,6 +150,30 @@ type JobsConfig struct {
 	WebhookRetryBatchSize          int
 }
 
+// RateLimitConfig holds rate limiting configuration
+type RateLimitConfig struct {
+	// Unauthenticated user limits
+	UnauthenticatedRequests int // requests per window
+	UnauthenticatedWindow   int // window in minutes
+
+	// Authenticated user limits by tier
+	BasicUserRequests   int // requests per hour
+	PremiumUserRequests int // requests per hour
+
+	// Endpoint-specific limits (per minute)
+	ClipsListLimit       int // GET /api/v1/clips
+	ClipsCreateLimit     int // POST /api/v1/clips
+	FeedLimit            int // GET /api/v1/feed
+	UserProfileLimit     int // GET /api/v1/users/{id}
+	CommentCreateLimit   int // POST /api/v1/clips/:id/comments
+	VoteLimit            int // POST votes
+	FollowLimit          int // POST follow actions
+	SubmissionLimit      int // POST /api/v1/submissions
+	ReportLimit          int // POST /api/v1/reports
+	ExportLimit          int // GET export endpoints
+	AccountDeletionLimit int // POST account deletion
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -253,6 +278,29 @@ func Load() (*Config, error) {
 			HotClipsRefreshIntervalMinutes: getEnvInt("HOT_CLIPS_REFRESH_INTERVAL_MINUTES", 5),
 			WebhookRetryIntervalMinutes:    getEnvInt("WEBHOOK_RETRY_INTERVAL_MINUTES", 1),
 			WebhookRetryBatchSize:          getEnvInt("WEBHOOK_RETRY_BATCH_SIZE", 100),
+		},
+		RateLimit: RateLimitConfig{
+			// Unauthenticated: 100 requests per 15 minutes per IP
+			UnauthenticatedRequests: getEnvInt("RATE_LIMIT_UNAUTH_REQUESTS", 100),
+			UnauthenticatedWindow:   getEnvInt("RATE_LIMIT_UNAUTH_WINDOW_MINUTES", 15),
+
+			// Authenticated: Basic user: 1,000 requests per hour
+			BasicUserRequests: getEnvInt("RATE_LIMIT_BASIC_REQUESTS", 1000),
+			// Authenticated: Premium user: 5,000 requests per hour
+			PremiumUserRequests: getEnvInt("RATE_LIMIT_PREMIUM_REQUESTS", 5000),
+
+			// Endpoint-specific limits (per minute)
+			ClipsListLimit:       getEnvInt("RATE_LIMIT_CLIPS_LIST", 100),
+			ClipsCreateLimit:     getEnvInt("RATE_LIMIT_CLIPS_CREATE", 10),
+			FeedLimit:            getEnvInt("RATE_LIMIT_FEED", 30),
+			UserProfileLimit:     getEnvInt("RATE_LIMIT_USER_PROFILE", 200),
+			CommentCreateLimit:   getEnvInt("RATE_LIMIT_COMMENT_CREATE", 10),
+			VoteLimit:            getEnvInt("RATE_LIMIT_VOTE", 20),
+			FollowLimit:          getEnvInt("RATE_LIMIT_FOLLOW", 20),
+			SubmissionLimit:      getEnvInt("RATE_LIMIT_SUBMISSION", 5),
+			ReportLimit:          getEnvInt("RATE_LIMIT_REPORT", 10),
+			ExportLimit:          getEnvInt("RATE_LIMIT_EXPORT", 1),
+			AccountDeletionLimit: getEnvInt("RATE_LIMIT_ACCOUNT_DELETION", 1),
 		},
 	}
 

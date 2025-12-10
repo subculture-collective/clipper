@@ -101,3 +101,42 @@ func RequireActiveSubscription(subscriptionService SubscriptionChecker, auditLog
 		c.Next()
 	}
 }
+
+// EnrichWithSubscriptionMiddleware adds subscription tier information to the context
+// This should be used after AuthMiddleware to enrich authenticated requests with subscription data
+func EnrichWithSubscriptionMiddleware(subscriptionService SubscriptionChecker) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Only enrich if user is authenticated
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.Next()
+			return
+		}
+
+		// Get user ID as UUID
+		var uid uuid.UUID
+		switch v := userID.(type) {
+		case uuid.UUID:
+			uid = v
+		case string:
+			parsed, err := uuid.Parse(v)
+			if err != nil {
+				c.Next()
+				return
+			}
+			uid = parsed
+		default:
+			c.Next()
+			return
+		}
+
+		// Check if user has pro subscription
+		if subscriptionService.IsProUser(c.Request.Context(), uid) {
+			c.Set("subscription_tier", "pro")
+		} else {
+			c.Set("subscription_tier", "free")
+		}
+
+		c.Next()
+	}
+}
