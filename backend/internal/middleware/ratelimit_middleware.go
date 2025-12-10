@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/subculture-collective/clipper/internal/models"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
