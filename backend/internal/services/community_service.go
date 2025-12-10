@@ -175,8 +175,14 @@ func (s *CommunityService) UpdateCommunity(ctx context.Context, communityID, use
 	}
 
 	if req.Name != nil {
+		newSlug := generateSlug(*req.Name)
+		// Check if slug already exists (and is not the current community)
+		existing, _ := s.communityRepo.GetCommunityBySlug(ctx, newSlug)
+		if existing != nil && existing.ID != communityID {
+			return nil, fmt.Errorf("community with this name already exists")
+		}
 		community.Name = *req.Name
-		community.Slug = generateSlug(*req.Name)
+		community.Slug = newSlug
 	}
 	if req.Description != nil {
 		community.Description = req.Description

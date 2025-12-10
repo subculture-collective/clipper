@@ -1,3 +1,5 @@
+import type { Clip } from './clip';
+
 export interface Community {
     id: string;
     name: string;
@@ -168,7 +170,7 @@ export interface CommunityDiscussionsResponse {
 }
 
 export interface CommunityFeedResponse {
-    clips: any[]; // Uses existing Clip type
+    clips: Clip[];
     pagination: {
         page: number;
         limit: number;

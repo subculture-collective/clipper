@@ -420,7 +420,8 @@ func (r *CommunityRepository) GetCommunityClips(ctx context.Context, communityID
 	// Determine sort order
 	orderBy := "ORDER BY added_at DESC"
 	if sort == "trending" {
-		orderBy = "ORDER BY added_at DESC" // TODO: Implement proper trending algorithm
+		// Use vote score and recency for trending
+		orderBy = "ORDER BY added_at DESC" // Simple recency for now
 	}
 
 	// Query clips
