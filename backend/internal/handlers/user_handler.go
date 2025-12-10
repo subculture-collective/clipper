@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -569,7 +570,9 @@ func (h *UserHandler) FollowUser(c *gin.Context) {
 		TargetID:     &followingID,
 		TargetType:   strPtr("user"),
 	}
-	_ = h.userRepo.CreateUserActivity(c.Request.Context(), activity)
+	if err := h.userRepo.CreateUserActivity(c.Request.Context(), activity); err != nil {
+		log.Printf("Warning: Failed to record follow activity for user %s: %v", followerUUID, err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
