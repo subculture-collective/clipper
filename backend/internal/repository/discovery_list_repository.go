@@ -3,11 +3,20 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/subculture-collective/clipper/internal/models"
+)
+
+// Sentinel errors for discovery list operations
+var (
+	// ErrDiscoveryListNotFound is returned when a discovery list is not found
+	ErrDiscoveryListNotFound = errors.New("discovery list not found")
+	// ErrClipNotFoundInList is returned when a clip is not found in a discovery list
+	ErrClipNotFoundInList = errors.New("clip not found in list")
 )
 
 // DiscoveryListRepository handles database operations for discovery lists
@@ -484,7 +493,7 @@ func (r *DiscoveryListRepository) UpdateDiscoveryList(ctx context.Context, listI
 	err := r.db.GetContext(ctx, &list, query, args...)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("discovery list not found")
+			return nil, ErrDiscoveryListNotFound
 		}
 		return nil, fmt.Errorf("failed to update discovery list: %w", err)
 	}
@@ -503,7 +512,7 @@ func (r *DiscoveryListRepository) DeleteDiscoveryList(ctx context.Context, listI
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("discovery list not found")
+		return ErrDiscoveryListNotFound
 	}
 
 	return nil
@@ -552,7 +561,7 @@ func (r *DiscoveryListRepository) RemoveClipFromList(ctx context.Context, listID
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("clip not found in list")
+		return ErrClipNotFoundInList
 	}
 
 	// Update the list's updated_at timestamp

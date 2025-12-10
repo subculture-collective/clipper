@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -615,7 +616,7 @@ func (h *DiscoveryListHandler) AdminUpdateDiscoveryList(c *gin.Context) {
 	// Update list
 	list, err := h.repo.UpdateDiscoveryList(ctx, listID, req.Name, req.Description, req.IsFeatured, req.IsActive)
 	if err != nil {
-		if err.Error() == "discovery list not found" {
+		if errors.Is(err, repository.ErrDiscoveryListNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 			return
 		}
@@ -654,7 +655,7 @@ func (h *DiscoveryListHandler) AdminDeleteDiscoveryList(c *gin.Context) {
 	// Delete list
 	err = h.repo.DeleteDiscoveryList(ctx, listID)
 	if err != nil {
-		if err.Error() == "discovery list not found" {
+		if errors.Is(err, repository.ErrDiscoveryListNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
 			return
 		}
@@ -743,7 +744,7 @@ func (h *DiscoveryListHandler) AdminRemoveClipFromList(c *gin.Context) {
 	// Remove clip from list
 	err = h.repo.RemoveClipFromList(ctx, listID, clipID)
 	if err != nil {
-		if err.Error() == "clip not found in list" {
+		if errors.Is(err, repository.ErrClipNotFoundInList) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Clip not found in list"})
 			return
 		}
