@@ -233,3 +233,23 @@ func (s *UserSettingsService) CancelAccountDeletion(ctx context.Context, userID 
 func (s *UserSettingsService) GetPendingDeletion(ctx context.Context, userID uuid.UUID) (*models.AccountDeletion, error) {
 	return s.accountDeletionRepo.GetPendingByUserID(ctx, userID)
 }
+
+// UpdateSocialLinks updates user's social media links
+func (s *UserSettingsService) UpdateSocialLinks(ctx context.Context, userID uuid.UUID, req *models.UpdateSocialLinksRequest) error {
+	// Convert request to JSON
+	socialLinks := models.SocialLinks{
+		Twitter: req.Twitter,
+		Twitch:  req.Twitch,
+		Discord: req.Discord,
+		YouTube: req.YouTube,
+		Website: req.Website,
+	}
+
+	jsonData, err := json.Marshal(socialLinks)
+	if err != nil {
+		return err
+	}
+
+	// Update in database
+	return s.userRepo.UpdateSocialLinks(ctx, userID, string(jsonData))
+}

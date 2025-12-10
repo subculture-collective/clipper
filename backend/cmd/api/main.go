@@ -641,6 +641,7 @@ func main() {
 
 			// Profile management (authenticated)
 			users.PUT("/me/profile", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateProfile)
+			users.PUT("/me/social-links", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSocialLinks)
 			users.GET("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.GetSettings)
 			users.PUT("/me/settings", middleware.AuthMiddleware(authService), userSettingsHandler.UpdateSettings)
 
