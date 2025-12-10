@@ -7,7 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/pkg/utils"
+	"github.com/subculture-collective/clipper/internal/utils"
+	pkgutils "github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // DiscoveryListHandler handles discovery list-related requests
@@ -37,7 +38,7 @@ func NewDiscoveryListHandler(repo *repository.DiscoveryListRepository, analytics
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/discovery-lists [get]
 func (h *DiscoveryListHandler) ListDiscoveryLists(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 
 	// Parse query parameters
@@ -84,7 +85,7 @@ func (h *DiscoveryListHandler) ListDiscoveryLists(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/discovery-lists/{id} [get]
 func (h *DiscoveryListHandler) GetDiscoveryList(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 	idOrSlug := c.Param("id")
 
@@ -133,7 +134,7 @@ func (h *DiscoveryListHandler) GetDiscoveryList(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/discovery-lists/{id}/clips [get]
 func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 	listIDStr := c.Param("id")
 
@@ -217,7 +218,7 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/discovery-lists/{id}/follow [post]
 func (h *DiscoveryListHandler) FollowDiscoveryList(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 	listIDStr := c.Param("id")
 
@@ -279,7 +280,7 @@ func (h *DiscoveryListHandler) FollowDiscoveryList(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/discovery-lists/{id}/follow [delete]
 func (h *DiscoveryListHandler) UnfollowDiscoveryList(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 	listIDStr := c.Param("id")
 
@@ -333,7 +334,7 @@ func (h *DiscoveryListHandler) UnfollowDiscoveryList(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/discovery-lists/{id}/bookmark [post]
 func (h *DiscoveryListHandler) BookmarkDiscoveryList(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 	listIDStr := c.Param("id")
 
@@ -395,7 +396,7 @@ func (h *DiscoveryListHandler) BookmarkDiscoveryList(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/discovery-lists/{id}/bookmark [delete]
 func (h *DiscoveryListHandler) UnbookmarkDiscoveryList(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 	listIDStr := c.Param("id")
 
@@ -448,7 +449,7 @@ func (h *DiscoveryListHandler) UnbookmarkDiscoveryList(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/users/me/discovery-list-follows [get]
 func (h *DiscoveryListHandler) GetUserFollowedLists(c *gin.Context) {
-	logger := utils.GetLogger()
+	logger := pkgutils.GetLogger()
 	ctx := c.Request.Context()
 
 	// Get user ID from context
@@ -480,4 +481,323 @@ func (h *DiscoveryListHandler) GetUserFollowedLists(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, lists)
+}
+
+// Admin-only handlers
+
+// AdminListDiscoveryLists godoc
+// @Summary List all discovery lists (admin)
+// @Description Get all discovery lists including inactive ones
+// @Tags admin, discovery-lists
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of lists to return" default(50)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {array} models.DiscoveryListWithStats
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/discovery-lists [get]
+func (h *DiscoveryListHandler) AdminListDiscoveryLists(c *gin.Context) {
+	logger := pkgutils.GetLogger()
+	ctx := c.Request.Context()
+
+	// Parse query parameters
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate limits
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Get all lists from repository
+	lists, err := h.repo.ListAllDiscoveryLists(ctx, limit, offset)
+	if err != nil {
+		logger.Error("Failed to list all discovery lists", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve discovery lists"})
+		return
+	}
+
+	c.JSON(http.StatusOK, lists)
+}
+
+// AdminCreateDiscoveryList godoc
+// @Summary Create a discovery list (admin)
+// @Description Create a new discovery list
+// @Tags admin, discovery-lists
+// @Accept json
+// @Produce json
+// @Param list body models.CreateDiscoveryListRequest true "List details"
+// @Success 201 {object} models.DiscoveryList
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/discovery-lists [post]
+func (h *DiscoveryListHandler) AdminCreateDiscoveryList(c *gin.Context) {
+	logger := pkgutils.GetLogger()
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req models.CreateDiscoveryListRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		return
+	}
+
+	// Generate slug from name
+	slug := utils.GenerateSlug(req.Name)
+
+	// Set default for IsFeatured
+	isFeatured := false
+	if req.IsFeatured != nil {
+		isFeatured = *req.IsFeatured
+	}
+
+	// Set default description
+	description := ""
+	if req.Description != nil {
+		description = *req.Description
+	}
+
+	// Create list
+	list, err := h.repo.CreateDiscoveryList(ctx, req.Name, slug, description, isFeatured, userID)
+	if err != nil {
+		logger.Error("Failed to create discovery list", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create discovery list"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, list)
+}
+
+// AdminUpdateDiscoveryList godoc
+// @Summary Update a discovery list (admin)
+// @Description Update an existing discovery list
+// @Tags admin, discovery-lists
+// @Accept json
+// @Produce json
+// @Param id path string true "List ID"
+// @Param list body models.UpdateDiscoveryListRequest true "Updated list details"
+// @Success 200 {object} models.DiscoveryList
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/discovery-lists/{id} [put]
+func (h *DiscoveryListHandler) AdminUpdateDiscoveryList(c *gin.Context) {
+	logger := pkgutils.GetLogger()
+	ctx := c.Request.Context()
+	listIDStr := c.Param("id")
+
+	// Parse list ID
+	listID, err := uuid.Parse(listIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid list ID"})
+		return
+	}
+
+	// Parse request body
+	var req models.UpdateDiscoveryListRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		return
+	}
+
+	// Update list
+	list, err := h.repo.UpdateDiscoveryList(ctx, listID, req.Name, req.Description, req.IsFeatured, req.IsActive)
+	if err != nil {
+		if err.Error() == "discovery list not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
+			return
+		}
+		logger.Error("Failed to update discovery list", "error", err, "list_id", listID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update discovery list"})
+		return
+	}
+
+	c.JSON(http.StatusOK, list)
+}
+
+// AdminDeleteDiscoveryList godoc
+// @Summary Delete a discovery list (admin)
+// @Description Delete a discovery list permanently
+// @Tags admin, discovery-lists
+// @Accept json
+// @Produce json
+// @Param id path string true "List ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/discovery-lists/{id} [delete]
+func (h *DiscoveryListHandler) AdminDeleteDiscoveryList(c *gin.Context) {
+	logger := pkgutils.GetLogger()
+	ctx := c.Request.Context()
+	listIDStr := c.Param("id")
+
+	// Parse list ID
+	listID, err := uuid.Parse(listIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid list ID"})
+		return
+	}
+
+	// Delete list
+	err = h.repo.DeleteDiscoveryList(ctx, listID)
+	if err != nil {
+		if err.Error() == "discovery list not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
+			return
+		}
+		logger.Error("Failed to delete discovery list", "error", err, "list_id", listID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete discovery list"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Discovery list deleted successfully"})
+}
+
+// AdminAddClipToList godoc
+// @Summary Add a clip to a discovery list (admin)
+// @Description Add a clip to a discovery list
+// @Tags admin, discovery-lists
+// @Accept json
+// @Produce json
+// @Param id path string true "List ID"
+// @Param clip body models.AddClipToListRequest true "Clip to add"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/discovery-lists/{id}/clips [post]
+func (h *DiscoveryListHandler) AdminAddClipToList(c *gin.Context) {
+	logger := pkgutils.GetLogger()
+	ctx := c.Request.Context()
+	listIDStr := c.Param("id")
+
+	// Parse list ID
+	listID, err := uuid.Parse(listIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid list ID"})
+		return
+	}
+
+	// Parse request body
+	var req models.AddClipToListRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		return
+	}
+
+	// Add clip to list
+	err = h.repo.AddClipToList(ctx, listID, req.ClipID)
+	if err != nil {
+		logger.Error("Failed to add clip to list", "error", err, "list_id", listID, "clip_id", req.ClipID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add clip to list"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Clip added to list successfully"})
+}
+
+// AdminRemoveClipFromList godoc
+// @Summary Remove a clip from a discovery list (admin)
+// @Description Remove a clip from a discovery list
+// @Tags admin, discovery-lists
+// @Accept json
+// @Produce json
+// @Param id path string true "List ID"
+// @Param clipId path string true "Clip ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/discovery-lists/{id}/clips/{clipId} [delete]
+func (h *DiscoveryListHandler) AdminRemoveClipFromList(c *gin.Context) {
+	logger := pkgutils.GetLogger()
+	ctx := c.Request.Context()
+	listIDStr := c.Param("id")
+	clipIDStr := c.Param("clipId")
+
+	// Parse IDs
+	listID, err := uuid.Parse(listIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid list ID"})
+		return
+	}
+
+	clipID, err := uuid.Parse(clipIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid clip ID"})
+		return
+	}
+
+	// Remove clip from list
+	err = h.repo.RemoveClipFromList(ctx, listID, clipID)
+	if err != nil {
+		if err.Error() == "clip not found in list" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Clip not found in list"})
+			return
+		}
+		logger.Error("Failed to remove clip from list", "error", err, "list_id", listID, "clip_id", clipID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove clip from list"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Clip removed from list successfully"})
+}
+
+// AdminReorderListClips godoc
+// @Summary Reorder clips in a discovery list (admin)
+// @Description Reorder clips in a discovery list by providing ordered clip IDs
+// @Tags admin, discovery-lists
+// @Accept json
+// @Produce json
+// @Param id path string true "List ID"
+// @Param clips body models.ReorderListClipsRequest true "Ordered clip IDs"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/discovery-lists/{id}/clips/reorder [put]
+func (h *DiscoveryListHandler) AdminReorderListClips(c *gin.Context) {
+	logger := pkgutils.GetLogger()
+	ctx := c.Request.Context()
+	listIDStr := c.Param("id")
+
+	// Parse list ID
+	listID, err := uuid.Parse(listIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid list ID"})
+		return
+	}
+
+	// Parse request body
+	var req models.ReorderListClipsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		return
+	}
+
+	// Validate clip count
+	if len(req.ClipIDs) > 200 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot reorder more than 200 clips at once"})
+		return
+	}
+
+	// Reorder clips
+	err = h.repo.ReorderListClips(ctx, listID, req.ClipIDs)
+	if err != nil {
+		logger.Error("Failed to reorder clips", "error", err, "list_id", listID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reorder clips"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Clips reordered successfully"})
 }
