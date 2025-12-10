@@ -11,14 +11,18 @@ import (
 )
 
 type FeedService struct {
-	feedRepo *repository.FeedRepository
-	clipRepo *repository.ClipRepository
+	feedRepo        *repository.FeedRepository
+	clipRepo        *repository.ClipRepository
+	userRepo        *repository.UserRepository
+	broadcasterRepo *repository.BroadcasterRepository
 }
 
-func NewFeedService(feedRepo *repository.FeedRepository, clipRepo *repository.ClipRepository) *FeedService {
+func NewFeedService(feedRepo *repository.FeedRepository, clipRepo *repository.ClipRepository, userRepo *repository.UserRepository, broadcasterRepo *repository.BroadcasterRepository) *FeedService {
 	return &FeedService{
-		feedRepo: feedRepo,
-		clipRepo: clipRepo,
+		feedRepo:        feedRepo,
+		clipRepo:        clipRepo,
+		userRepo:        userRepo,
+		broadcasterRepo: broadcasterRepo,
 	}
 }
 
@@ -244,4 +248,22 @@ func (s *FeedService) SearchFeeds(ctx context.Context, query string, limit, offs
 		limit = 20
 	}
 	return s.feedRepo.SearchFeeds(ctx, query, limit, offset)
+}
+
+func (s *FeedService) GetFollowingFeed(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.ClipWithSubmitter, int, error) {
+// GetFollowingFeed retrieves clips from followed users and broadcasters
+	// Validate that the user exists
+	_, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("user not found: %w", err)
+	}
+
+	// Get clips from followed users and broadcasters
+// This would ideally be a single optimized query
+clips, total, err := s.clipRepo.GetFollowingFeedClips(ctx, userID, limit, offset)
+if err != nil {
+return nil, 0, fmt.Errorf("failed to get following feed clips: %w", err)
+}
+
+return clips, total, nil
 }

@@ -727,9 +727,9 @@ func (s *IndexRebuildService) indexGamesToVersionedIndex(ctx context.Context, in
 			return totalIndexed, fmt.Errorf("failed to fetch games: %w", err)
 		}
 
-		var games []models.Game
+		var games []models.GameSearchResult
 		for rows.Next() {
-			var game models.Game
+			var game models.GameSearchResult
 			err := rows.Scan(&game.ID, &game.Name, &game.ClipCount)
 			if err != nil {
 				rows.Close()
@@ -762,7 +762,7 @@ func (s *IndexRebuildService) indexGamesToVersionedIndex(ctx context.Context, in
 	return totalIndexed, nil
 }
 
-func (s *IndexRebuildService) bulkIndexGamesToIndex(ctx context.Context, indexName string, games []models.Game) error {
+func (s *IndexRebuildService) bulkIndexGamesToIndex(ctx context.Context, indexName string, games []models.GameSearchResult) error {
 	if len(games) == 0 {
 		return nil
 	}

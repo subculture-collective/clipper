@@ -223,10 +223,10 @@ type SearchResponse struct {
 
 // SearchResultsByType groups results by type
 type SearchResultsByType struct {
-	Clips    []Clip `json:"clips,omitempty"`
-	Creators []User `json:"creators,omitempty"`
-	Games    []Game `json:"games,omitempty"`
-	Tags     []Tag  `json:"tags,omitempty"`
+	Clips    []Clip             `json:"clips,omitempty"`
+	Creators []User             `json:"creators,omitempty"`
+	Games    []GameSearchResult `json:"games,omitempty"`
+	Tags     []Tag              `json:"tags,omitempty"`
 }
 
 // SearchCounts holds counts for each result type
@@ -269,8 +269,8 @@ type DateRangeFacet struct {
 	Older     int `json:"older"`
 }
 
-// Game represents a game (aggregated from clips)
-type Game struct {
+// GameSearchResult represents a game in search results (aggregated from clips)
+type GameSearchResult struct {
 	ID        string `json:"id" db:"game_id"`
 	Name      string `json:"name" db:"game_name"`
 	ClipCount int    `json:"clip_count" db:"clip_count"`
@@ -1805,6 +1805,25 @@ type UserFollow struct {
 	FollowerID  uuid.UUID `json:"follower_id" db:"follower_id"`
 	FollowingID uuid.UUID `json:"following_id" db:"following_id"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+}
+
+// UserBlock represents a user blocking another user
+type UserBlock struct {
+	ID            uuid.UUID `json:"id" db:"id"`
+	UserID        uuid.UUID `json:"user_id" db:"user_id"`
+	BlockedUserID uuid.UUID `json:"blocked_user_id" db:"blocked_user_id"`
+	BlockedAt     time.Time `json:"blocked_at" db:"blocked_at"`
+}
+
+// BlockedUser represents a user in a blocked users list
+type BlockedUser struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	Username    string     `json:"username" db:"username"`
+	DisplayName string     `json:"display_name" db:"display_name"`
+	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio         *string    `json:"bio,omitempty" db:"bio"`
+	KarmaPoints int        `json:"karma_points" db:"karma_points"`
+	BlockedAt   time.Time  `json:"blocked_at" db:"blocked_at"`
 }
 
 // UserActivity represents a user activity entry

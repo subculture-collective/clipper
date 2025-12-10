@@ -268,14 +268,14 @@ func backfillGames(ctx context.Context, db *database.DB, indexer *services.Searc
 
 		count := 0
 		for rows.Next() {
-			var game models.Game
+			var game models.GameSearchResult
 			err := rows.Scan(&game.ID, &game.Name, &game.ClipCount)
 			if err != nil {
 				rows.Close()
 				return fmt.Errorf("failed to scan game: %w", err)
 			}
 
-			if err := indexer.IndexGame(ctx, &game); err != nil {
+			if err := indexer.IndexGameSearchResult(ctx, &game); err != nil {
 				log.Printf("WARNING: Failed to index game %s: %v", game.ID, err)
 			} else {
 				count++
