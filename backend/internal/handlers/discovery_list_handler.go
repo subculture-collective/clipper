@@ -185,19 +185,11 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 	}
 
 	// Get clips from repository
-	clips, err := h.repo.GetListClips(ctx, listID, userID, limit, offset)
+	clips, total, err := h.repo.GetListClips(ctx, listID, userID, limit, offset)
 	if err != nil {
 		logger.Error("Failed to get discovery list clips", err, map[string]interface{}{"list_id": listID})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve clips"})
 		return
-	}
-
-	// Get total count for pagination
-	total, err := h.repo.GetListClipsCount(ctx, listID)
-	if err != nil {
-		logger.Error("Failed to get list clips count", err, map[string]interface{}{"list_id": listID})
-		// Don't fail the request, just set total to length of clips
-		total = len(clips)
 	}
 
 	// Calculate pagination metadata
@@ -636,7 +628,7 @@ func (h *DiscoveryListHandler) AdminUpdateDiscoveryList(c *gin.Context) {
 	}
 
 	// Update list
-	list, err := h.repo.UpdateDiscoveryList(ctx, listID, req.Name, req.Description, req.IsFeatured, req.IsActive)
+	list, err := h.repo.UpdateDiscoveryList(ctx, listID, req.Name, req.Description, req.IsFeatured)
 	if err != nil {
 		if errors.Is(err, repository.ErrDiscoveryListNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
