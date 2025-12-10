@@ -1121,7 +1121,7 @@ ORDER BY c.created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
 if err != nil {
 return nil, 0, err
 }
@@ -1182,7 +1182,7 @@ OR c.broadcaster_id IN (SELECT broadcaster_id FROM followed_broadcasters)
 `
 
 var total int
-err = r.db.QueryRow(ctx, countQuery, userID).Scan(&total)
+	err = r.pool.QueryRow(ctx, countQuery, userID).Scan(&total)
 if err != nil {
 return nil, 0, err
 }

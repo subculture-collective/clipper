@@ -223,10 +223,10 @@ type SearchResponse struct {
 
 // SearchResultsByType groups results by type
 type SearchResultsByType struct {
-	Clips    []Clip `json:"clips,omitempty"`
-	Creators []User `json:"creators,omitempty"`
-	Games    []Game `json:"games,omitempty"`
-	Tags     []Tag  `json:"tags,omitempty"`
+	Clips    []Clip             `json:"clips,omitempty"`
+	Creators []User             `json:"creators,omitempty"`
+	Games    []GameSearchResult `json:"games,omitempty"`
+	Tags     []Tag              `json:"tags,omitempty"`
 }
 
 // SearchCounts holds counts for each result type
@@ -269,8 +269,8 @@ type DateRangeFacet struct {
 	Older     int `json:"older"`
 }
 
-// Game represents a game (aggregated from clips)
-type Game struct {
+// GameSearchResult represents a game in search results (aggregated from clips)
+type GameSearchResult struct {
 	ID        string `json:"id" db:"game_id"`
 	Name      string `json:"name" db:"game_name"`
 	ClipCount int    `json:"clip_count" db:"clip_count"`
