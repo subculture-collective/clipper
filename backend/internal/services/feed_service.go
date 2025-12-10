@@ -129,7 +129,7 @@ func (s *FeedService) AddClipToFeed(ctx context.Context, feedID, userID, clipID 
 	}
 
 	// Verify clip exists
-	_, err = s.clipRepo.GetClipByID(ctx, clipID)
+	_, err = s.clipRepo.GetByID(ctx, clipID)
 	if err != nil {
 		return nil, fmt.Errorf("clip not found")
 	}

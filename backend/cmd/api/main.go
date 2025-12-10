@@ -144,6 +144,7 @@ func main() {
 	exportRepo := repository.NewExportRepository(db.Pool)
 	broadcasterRepo := repository.NewBroadcasterRepository(db.Pool)
 	emailLogRepo := repository.NewEmailLogRepository(db.Pool)
+	feedRepo := repository.NewFeedRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -186,6 +187,9 @@ func main() {
 
 	// Initialize email monitoring and metrics service
 	emailMetricsService := services.NewEmailMetricsService(emailLogRepo)
+
+	// Initialize feed service
+	feedService := services.NewFeedService(feedRepo, clipRepo)
 
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
@@ -288,6 +292,7 @@ func main() {
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
+	feedHandler := handlers.NewFeedHandler(feedService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -634,6 +639,19 @@ func main() {
 
 			// Email logs for current user (authenticated)
 			users.GET("/me/email-logs", middleware.AuthMiddleware(authService), emailMetricsHandler.GetUserEmailLogs)
+
+			// User feeds routes
+			users.GET("/:id/feeds", middleware.OptionalAuthMiddleware(authService), feedHandler.ListUserFeeds)
+			users.POST("/:id/feeds", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), feedHandler.CreateFeed)
+			users.GET("/:id/feeds/:feedId", middleware.OptionalAuthMiddleware(authService), feedHandler.GetFeed)
+			users.PUT("/:id/feeds/:feedId", middleware.AuthMiddleware(authService), feedHandler.UpdateFeed)
+			users.DELETE("/:id/feeds/:feedId", middleware.AuthMiddleware(authService), feedHandler.DeleteFeed)
+			users.GET("/:id/feeds/:feedId/clips", middleware.OptionalAuthMiddleware(authService), feedHandler.GetFeedClips)
+			users.POST("/:id/feeds/:feedId/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), feedHandler.AddClipToFeed)
+			users.DELETE("/:id/feeds/:feedId/clips/:clipId", middleware.AuthMiddleware(authService), feedHandler.RemoveClipFromFeed)
+			users.PUT("/:id/feeds/:feedId/clips/reorder", middleware.AuthMiddleware(authService), feedHandler.ReorderFeedClips)
+			users.POST("/:id/feeds/:feedId/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), feedHandler.FollowFeed)
+			users.DELETE("/:id/feeds/:feedId/follow", middleware.AuthMiddleware(authService), feedHandler.UnfollowFeed)
 		}
 
 		// Creator analytics routes
@@ -678,6 +696,14 @@ func main() {
 
 		// Badge definitions (public)
 		v1.GET("/badges", reputationHandler.GetBadgeDefinitions)
+
+		// Feed discovery and search routes
+		feeds := v1.Group("/feeds")
+		{
+			// Public feed discovery endpoints
+			feeds.GET("/discover", feedHandler.DiscoverFeeds)
+			feeds.GET("/search", feedHandler.SearchFeeds)
+		}
 
 		// Notification routes
 		notifications := v1.Group("/notifications")
