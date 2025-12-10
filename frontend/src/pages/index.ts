@@ -9,6 +9,7 @@ export { DiscoveryListDetailPage } from './DiscoveryListDetailPage';
 export { ScrapedClipsPage } from './ScrapedClipsPage';
 export { ClipDetailPage } from './ClipDetailPage';
 export { GamePage } from './GamePage';
+export { CategoryPage } from './CategoryPage';
 export { BroadcasterPage } from './BroadcasterPage';
 export { TagPage } from './TagPage';
 export { SearchPage } from './SearchPage';
