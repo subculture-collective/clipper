@@ -1807,6 +1807,14 @@ type UserFollow struct {
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
+// UserBlock represents a user blocking another user
+type UserBlock struct {
+	ID            uuid.UUID `json:"id" db:"id"`
+	UserID        uuid.UUID `json:"user_id" db:"user_id"`
+	BlockedUserID uuid.UUID `json:"blocked_user_id" db:"blocked_user_id"`
+	BlockedAt     time.Time `json:"blocked_at" db:"blocked_at"`
+}
+
 // UserActivity represents a user activity entry
 type UserActivity struct {
 	ID           uuid.UUID  `json:"id" db:"id"`

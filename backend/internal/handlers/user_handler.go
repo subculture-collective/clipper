@@ -13,10 +13,11 @@ import (
 
 // UserHandler handles user-related HTTP requests
 type UserHandler struct {
-	clipRepo    *repository.ClipRepository
-	voteRepo    *repository.VoteRepository
-	commentRepo *repository.CommentRepository
-	userRepo    *repository.UserRepository
+	clipRepo         *repository.ClipRepository
+	voteRepo         *repository.VoteRepository
+	commentRepo      *repository.CommentRepository
+	userRepo         *repository.UserRepository
+	broadcasterRepo  *repository.BroadcasterRepository
 }
 
 // NewUserHandler creates a new user handler
@@ -25,12 +26,14 @@ func NewUserHandler(
 	voteRepo *repository.VoteRepository,
 	commentRepo *repository.CommentRepository,
 	userRepo *repository.UserRepository,
+	broadcasterRepo *repository.BroadcasterRepository,
 ) *UserHandler {
 	return &UserHandler{
-		clipRepo:    clipRepo,
-		voteRepo:    voteRepo,
-		commentRepo: commentRepo,
-		userRepo:    userRepo,
+		clipRepo:         clipRepo,
+		voteRepo:         voteRepo,
+		commentRepo:      commentRepo,
+		userRepo:         userRepo,
+		broadcasterRepo:  broadcasterRepo,
 	}
 }
 
@@ -614,4 +617,193 @@ func (h *UserHandler) UnfollowUser(c *gin.Context) {
 // Helper function
 func strPtr(s string) *string {
 	return &s
+}
+
+// BlockUser creates a block relationship
+// POST /api/v1/users/:id/block
+func (h *UserHandler) BlockUser(c *gin.Context) {
+// Get target user ID from URL parameter
+targetUserIDStr := c.Param("id")
+targetUserID, err := uuid.Parse(targetUserIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
+return
+}
+
+// Get current user ID from auth middleware
+blockerIDInterface, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+return
+}
+blockerUUID := blockerIDInterface.(uuid.UUID)
+
+// Prevent self-blocking
+if blockerUUID == targetUserID {
+c.JSON(http.StatusBadRequest, gin.H{"error": "cannot block yourself"})
+return
+}
+
+// Check if target user exists
+_, err = h.userRepo.GetByID(c.Request.Context(), targetUserID)
+if err != nil {
+if err == repository.ErrUserNotFound {
+c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+return
+}
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find user"})
+return
+}
+
+// Create block relationship
+err = h.userRepo.BlockUser(c.Request.Context(), blockerUUID, targetUserID)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to block user"})
+return
+}
+
+// If they were following each other, remove the follow relationships
+_ = h.userRepo.UnfollowUser(c.Request.Context(), blockerUUID, targetUserID)
+_ = h.userRepo.UnfollowUser(c.Request.Context(), targetUserID, blockerUUID)
+
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"message": "user blocked successfully",
+})
+}
+
+// UnblockUser removes a block relationship
+// DELETE /api/v1/users/:id/block
+func (h *UserHandler) UnblockUser(c *gin.Context) {
+// Get target user ID from URL parameter
+targetUserIDStr := c.Param("id")
+targetUserID, err := uuid.Parse(targetUserIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
+return
+}
+
+// Get current user ID from auth middleware
+blockerIDInterface, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+return
+}
+blockerUUID := blockerIDInterface.(uuid.UUID)
+
+// Remove block relationship
+err = h.userRepo.UnblockUser(c.Request.Context(), blockerUUID, targetUserID)
+if err != nil {
+if err == repository.ErrUserNotFound {
+c.JSON(http.StatusNotFound, gin.H{"error": "block relationship not found"})
+return
+}
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unblock user"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"message": "user unblocked successfully",
+})
+}
+
+// GetBlockedUsers retrieves users blocked by the current user
+// GET /api/v1/users/me/blocked
+func (h *UserHandler) GetBlockedUsers(c *gin.Context) {
+// Get current user ID from auth middleware
+userIDInterface, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+return
+}
+userUUID := userIDInterface.(uuid.UUID)
+
+// Parse pagination parameters
+limit := 20
+offset := 0
+
+if limitStr := c.Query("limit"); limitStr != "" {
+if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+limit = parsedLimit
+}
+}
+
+if offsetStr := c.Query("offset"); offsetStr != "" {
+if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+offset = parsedOffset
+}
+}
+
+// Get blocked users
+blockedUsers, total, err := h.userRepo.GetBlockedUsers(c.Request.Context(), userUUID, limit, offset)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve blocked users"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"data":    blockedUsers,
+"pagination": gin.H{
+"limit":  limit,
+"offset": offset,
+"total":  total,
+},
+})
+}
+
+// GetFollowedBroadcasters retrieves broadcasters followed by the specified user
+// GET /api/v1/users/:id/following/broadcasters
+func (h *UserHandler) GetFollowedBroadcasters(c *gin.Context) {
+userIDStr := c.Param("id")
+userID, err := uuid.Parse(userIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
+return
+}
+
+// Check if user exists
+_, err = h.userRepo.GetByID(c.Request.Context(), userID)
+if err != nil {
+if err == repository.ErrUserNotFound {
+c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+return
+}
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find user"})
+return
+}
+
+// Parse pagination parameters
+limit := 20
+offset := 0
+
+if limitStr := c.Query("limit"); limitStr != "" {
+if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+limit = parsedLimit
+}
+}
+
+if offsetStr := c.Query("offset"); offsetStr != "" {
+if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+offset = parsedOffset
+}
+}
+
+// Get followed broadcasters
+follows, total, err := h.broadcasterRepo.ListUserFollows(c.Request.Context(), userID, limit, offset)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followed broadcasters"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"data":    follows,
+"pagination": gin.H{
+"limit":  limit,
+"offset": offset,
+"total":  total,
+},
+})
 }

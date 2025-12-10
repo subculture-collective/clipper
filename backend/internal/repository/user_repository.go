@@ -897,3 +897,97 @@ func (r *UserRepository) CreateUserActivity(ctx context.Context, activity *model
 
 	return err
 }
+
+// BlockUser creates a block relationship between two users
+func (r *UserRepository) BlockUser(ctx context.Context, userID, blockedUserID uuid.UUID) error {
+query := `
+INSERT INTO user_blocks (user_id, blocked_user_id)
+VALUES ($1, $2)
+ON CONFLICT (user_id, blocked_user_id) DO NOTHING
+`
+
+_, err := r.db.Exec(ctx, query, userID, blockedUserID)
+return err
+}
+
+// UnblockUser removes a block relationship between two users
+func (r *UserRepository) UnblockUser(ctx context.Context, userID, blockedUserID uuid.UUID) error {
+query := `
+DELETE FROM user_blocks
+WHERE user_id = $1 AND blocked_user_id = $2
+`
+
+commandTag, err := r.db.Exec(ctx, query, userID, blockedUserID)
+if err != nil {
+return err
+}
+
+if commandTag.RowsAffected() == 0 {
+return ErrUserNotFound // Reusing this error for simplicity
+}
+
+return nil
+}
+
+// IsBlocked checks if userID has blocked blockedUserID
+func (r *UserRepository) IsBlocked(ctx context.Context, userID, blockedUserID uuid.UUID) (bool, error) {
+query := `
+SELECT EXISTS(
+SELECT 1 FROM user_blocks
+WHERE user_id = $1 AND blocked_user_id = $2
+)
+`
+
+var exists bool
+err := r.db.QueryRow(ctx, query, userID, blockedUserID).Scan(&exists)
+return exists, err
+}
+
+// GetBlockedUsers retrieves users blocked by the specified user
+func (r *UserRepository) GetBlockedUsers(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.FollowerUser, int, error) {
+// Get blocked users with their info
+query := `
+SELECT 
+u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points,
+ub.blocked_at
+FROM user_blocks ub
+JOIN users u ON u.id = ub.blocked_user_id
+WHERE ub.user_id = $1
+ORDER BY ub.blocked_at DESC
+LIMIT $2 OFFSET $3
+`
+
+rows, err := r.db.Query(ctx, query, userID, limit, offset)
+if err != nil {
+return nil, 0, err
+}
+defer rows.Close()
+
+var blockedUsers []models.FollowerUser
+for rows.Next() {
+var user models.FollowerUser
+err := rows.Scan(
+&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
+&user.Bio, &user.KarmaPoints, &user.FollowedAt, // Reusing FollowedAt for BlockedAt
+)
+if err != nil {
+return nil, 0, err
+}
+user.IsFollowing = false // Always false for blocked users
+blockedUsers = append(blockedUsers, user)
+}
+
+if err = rows.Err(); err != nil {
+return nil, 0, err
+}
+
+// Get total count
+var total int
+countQuery := `SELECT COUNT(*) FROM user_blocks WHERE user_id = $1`
+err = r.db.QueryRow(ctx, countQuery, userID).Scan(&total)
+if err != nil {
+return nil, 0, err
+}
+
+return blockedUsers, total, nil
+}
