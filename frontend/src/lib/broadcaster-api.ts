@@ -91,3 +91,76 @@ export async function unfollowBroadcaster(
   );
   return response.data;
 }
+
+/**
+ * Live status response interface
+ */
+export interface BroadcasterLiveStatus {
+  broadcaster_id: string;
+  is_live: boolean;
+  stream_title?: string;
+  game_name?: string;
+  viewer_count: number;
+  started_at?: string;
+  last_checked: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Live broadcasters response interface
+ */
+export interface LiveBroadcastersResponse {
+  success: boolean;
+  data: BroadcasterLiveStatus[];
+  meta: {
+    page: number;
+    limit: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
+
+/**
+ * Followed live broadcasters response interface
+ */
+export interface FollowedLiveBroadcastersResponse {
+  success: boolean;
+  data: BroadcasterLiveStatus[];
+}
+
+/**
+ * Fetch live status for a specific broadcaster
+ */
+export async function fetchBroadcasterLiveStatus(
+  broadcasterId: string
+): Promise<BroadcasterLiveStatus> {
+  const response = await apiClient.get<BroadcasterLiveStatus>(
+    `/broadcasters/${broadcasterId}/live-status`
+  );
+  return response.data;
+}
+
+/**
+ * Fetch all currently live broadcasters
+ */
+export async function fetchLiveBroadcasters(
+  page: number = 1,
+  limit: number = 50
+): Promise<LiveBroadcastersResponse> {
+  const response = await apiClient.get<LiveBroadcastersResponse>(
+    `/broadcasters/live`,
+    { params: { page, limit } }
+  );
+  return response.data;
+}
+
+/**
+ * Fetch live broadcasters that the authenticated user follows
+ */
+export async function fetchFollowedLiveBroadcasters(): Promise<FollowedLiveBroadcastersResponse> {
+  const response = await apiClient.get<FollowedLiveBroadcastersResponse>(
+    `/feed/live`
+  );
+  return response.data;
+}
