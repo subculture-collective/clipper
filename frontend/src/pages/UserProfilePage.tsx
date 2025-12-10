@@ -272,7 +272,7 @@ export function UserProfilePage() {
                                             <ClipCard key={clip.id} clip={clip} />
                                         ))}
                                     </div>
-                                    {clipsData.has_more && (
+                                    {(pagination.clips > 1 || clipsData.has_more) && (
                                         <div className="flex justify-center gap-2 mt-6">
                                             <Button
                                                 onClick={() => handlePageChange('clips', pagination.clips - 1)}
@@ -346,7 +346,7 @@ export function UserProfilePage() {
                                             </div>
                                         ))}
                                     </div>
-                                    {activityData.meta.has_next && (
+                                    {(pagination.activity > 1 || activityData.meta.has_next) && (
                                         <div className="flex justify-center gap-2 mt-6">
                                             <Button
                                                 onClick={() => handlePageChange('activity', pagination.activity - 1)}
@@ -415,7 +415,7 @@ export function UserProfilePage() {
                                             </div>
                                         ))}
                                     </div>
-                                    {followersData.meta.has_next && (
+                                    {(pagination.followers > 1 || followersData.meta.has_next) && (
                                         <div className="flex justify-center gap-2 mt-6">
                                             <Button
                                                 onClick={() => handlePageChange('followers', pagination.followers - 1)}
@@ -484,7 +484,7 @@ export function UserProfilePage() {
                                             </div>
                                         ))}
                                     </div>
-                                    {followingData.meta.has_next && (
+                                    {(pagination.following > 1 || followingData.meta.has_next) && (
                                         <div className="flex justify-center gap-2 mt-6">
                                             <Button
                                                 onClick={() => handlePageChange('following', pagination.following - 1)}

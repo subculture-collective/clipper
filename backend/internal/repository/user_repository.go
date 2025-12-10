@@ -616,14 +616,22 @@ func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, c
 		}
 	}
 
-	// Get additional stats - using direct subqueries without redundant joins
+	// Get additional stats - using optimized queries with conditional aggregation
 	statsQuery := `
 		SELECT
-			COALESCE((SELECT COUNT(*) FROM clips WHERE submitted_by_user_id = $1), 0) AS clips_submitted,
-			COALESCE((SELECT SUM(vote_score) FROM clips WHERE submitted_by_user_id = $1), 0) AS total_upvotes,
+			COALESCE(clips.total_count, 0) AS clips_submitted,
+			COALESCE(clips.total_upvotes, 0) AS total_upvotes,
+			COALESCE(clips.featured_count, 0) AS clips_featured,
 			COALESCE((SELECT COUNT(*) FROM comments WHERE user_id = $1), 0) AS total_comments,
-			COALESCE((SELECT COUNT(*) FROM clips WHERE submitted_by_user_id = $1 AND is_featured = true), 0) AS clips_featured,
 			COALESCE((SELECT COUNT(*) FROM broadcaster_follows WHERE user_id = $1), 0) AS broadcasters_followed
+		FROM (
+			SELECT 
+				COUNT(*) AS total_count,
+				COALESCE(SUM(vote_score), 0) AS total_upvotes,
+				COUNT(*) FILTER (WHERE is_featured = true) AS featured_count
+			FROM clips
+			WHERE submitted_by_user_id = $1
+		) clips
 	`
 
 	err = r.db.QueryRow(ctx, statsQuery, userID).Scan(
