@@ -19,6 +19,7 @@ const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ de
 const DiscoveryListsPage = lazy(() => import('./pages/DiscoveryListsPage').then(m => ({ default: m.DiscoveryListsPage })));
 const DiscoveryListDetailPage = lazy(() => import('./pages/DiscoveryListDetailPage').then(m => ({ default: m.DiscoveryListDetailPage })));
 const ScrapedClipsPage = lazy(() => import('./pages/ScrapedClipsPage').then(m => ({ default: m.ScrapedClipsPage })));
+const LiveFeedPage = lazy(() => import('./pages/LiveFeedPage').then(m => ({ default: m.LiveFeedPage })));
 const ClipDetailPage = lazy(() => import('./pages/ClipDetailPage').then(m => ({ default: m.ClipDetailPage })));
 const GamePage = lazy(() => import('./pages/GamePage').then(m => ({ default: m.GamePage })));
 const CategoryPage = lazy(() => import('./pages/CategoryPage').then(m => ({ default: m.CategoryPage })));
@@ -89,6 +90,7 @@ function App() {
                     <Route path="/discover/lists" element={<DiscoveryListsPage />} />
                     <Route path="/discover/lists/:id" element={<DiscoveryListDetailPage />} />
                     <Route path="/discover/scraped" element={<ScrapedClipsPage />} />
+                    <Route path="/discover/live" element={<ProtectedRoute><LiveFeedPage /></ProtectedRoute>} />
                     <Route path="/new" element={<NewFeedPage />} />
                     <Route path="/top" element={<TopFeedPage />} />
                     <Route path="/rising" element={<RisingFeedPage />} />

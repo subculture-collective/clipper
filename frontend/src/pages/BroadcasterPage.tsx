@@ -5,11 +5,13 @@ import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
 import { Button } from '../components/ui';
 import { Spinner } from '../components';
+import { LiveBadge } from '../components/broadcaster';
 import {
   fetchBroadcasterProfile,
   fetchBroadcasterClips,
   followBroadcaster,
-  unfollowBroadcaster
+  unfollowBroadcaster,
+  fetchBroadcasterLiveStatus
 } from '../lib/broadcaster-api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -31,6 +33,14 @@ export function BroadcasterPage() {
     queryKey: ['broadcaster', broadcasterId],
     queryFn: () => fetchBroadcasterProfile(broadcasterId!),
     enabled: !!broadcasterId,
+  });
+
+  // Fetch live status
+  const { data: liveStatus } = useQuery({
+    queryKey: ['broadcasterLiveStatus', broadcasterId],
+    queryFn: () => fetchBroadcasterLiveStatus(broadcasterId!),
+    enabled: !!broadcasterId,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Fetch broadcaster clips
@@ -122,7 +132,17 @@ export function BroadcasterPage() {
 
             {/* Info */}
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2">{profile.display_name}</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-bold">{profile.display_name}</h1>
+                <LiveBadge
+                  liveStatus={liveStatus}
+                  showViewers={true}
+                  showDuration={true}
+                  size="lg"
+                  clickable={true}
+                  onClick={() => window.open(`https://twitch.tv/${broadcasterId}`, '_blank', 'noopener,noreferrer')}
+                />
+              </div>
               {profile.bio && (
                 <p className="text-muted-foreground mb-4">{profile.bio}</p>
               )}
