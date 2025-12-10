@@ -148,6 +148,7 @@ func main() {
 	discoveryListRepo := repository.NewDiscoveryListRepository(db.Pool)
 	categoryRepo := repository.NewCategoryRepository(db.Pool)
 	gameRepo := repository.NewGameRepository(db.Pool)
+	accountTypeConversionRepo := repository.NewAccountTypeConversionRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -193,6 +194,9 @@ func main() {
 
 	// Initialize feed service
 	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
+
+	// Initialize account type service
+	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo)
 
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
@@ -301,6 +305,7 @@ func main() {
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
 	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
+	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -668,6 +673,11 @@ func main() {
 			// Email logs for current user (authenticated)
 			users.GET("/me/email-logs", middleware.AuthMiddleware(authService), emailMetricsHandler.GetUserEmailLogs)
 
+			// Account type endpoints
+			users.GET("/:id/account-type", middleware.OptionalAuthMiddleware(authService), accountTypeHandler.GetAccountType)
+			users.GET("/:id/account-type/history", middleware.OptionalAuthMiddleware(authService), accountTypeHandler.GetConversionHistory)
+			users.POST("/me/convert-to-broadcaster", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 3, 24*time.Hour), accountTypeHandler.ConvertToBroadcaster)
+
 			// Discovery list follows for current user (authenticated)
 			users.GET("/me/discovery-list-follows", middleware.AuthMiddleware(authService), discoveryListHandler.GetUserFollowedLists)
 
@@ -950,6 +960,14 @@ func main() {
 			{
 				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
 				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
+			}
+
+			// Account type management (admin only)
+			adminAccountTypes := admin.Group("/account-types")
+			{
+				adminAccountTypes.GET("/stats", middleware.RequirePermission(models.PermissionManageUsers), accountTypeHandler.GetAccountTypeStats)
+				adminAccountTypes.GET("/conversions", middleware.RequirePermission(models.PermissionManageUsers), accountTypeHandler.GetRecentConversions)
+				adminAccountTypes.POST("/users/:id/convert-to-moderator", middleware.RequirePermission(models.PermissionManageUsers), accountTypeHandler.ConvertToModerator)
 			}
 
 			// Analytics routes (admin only)

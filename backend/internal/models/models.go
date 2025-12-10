@@ -8,26 +8,28 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID                  uuid.UUID  `json:"id" db:"id"`
-	TwitchID            string     `json:"twitch_id" db:"twitch_id"`
-	Username            string     `json:"username" db:"username"`
-	DisplayName         string     `json:"display_name" db:"display_name"`
-	Email               *string    `json:"email,omitempty" db:"email"`
-	AvatarURL           *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio                 *string    `json:"bio,omitempty" db:"bio"`
-	SocialLinks         *string    `json:"social_links,omitempty" db:"social_links"` // JSONB stored as string
-	KarmaPoints         int        `json:"karma_points" db:"karma_points"`
-	TrustScore          int        `json:"trust_score" db:"trust_score"`
-	TrustScoreUpdatedAt *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
-	Role                string     `json:"role" db:"role"`
-	IsBanned            bool       `json:"is_banned" db:"is_banned"`
-	DeviceToken         *string    `json:"device_token,omitempty" db:"device_token"`
-	DevicePlatform      *string    `json:"device_platform,omitempty" db:"device_platform"`
-	FollowerCount       int        `json:"follower_count" db:"follower_count"`
-	FollowingCount      int        `json:"following_count" db:"following_count"`
-	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID                    uuid.UUID  `json:"id" db:"id"`
+	TwitchID              string     `json:"twitch_id" db:"twitch_id"`
+	Username              string     `json:"username" db:"username"`
+	DisplayName           string     `json:"display_name" db:"display_name"`
+	Email                 *string    `json:"email,omitempty" db:"email"`
+	AvatarURL             *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio                   *string    `json:"bio,omitempty" db:"bio"`
+	SocialLinks           *string    `json:"social_links,omitempty" db:"social_links"` // JSONB stored as string
+	KarmaPoints           int        `json:"karma_points" db:"karma_points"`
+	TrustScore            int        `json:"trust_score" db:"trust_score"`
+	TrustScoreUpdatedAt   *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
+	Role                  string     `json:"role" db:"role"`
+	AccountType           string     `json:"account_type" db:"account_type"`
+	AccountTypeUpdatedAt  *time.Time `json:"account_type_updated_at,omitempty" db:"account_type_updated_at"`
+	IsBanned              bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken           *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform        *string    `json:"device_platform,omitempty" db:"device_platform"`
+	FollowerCount         int        `json:"follower_count" db:"follower_count"`
+	FollowingCount        int        `json:"following_count" db:"following_count"`
+	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt           *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -1917,8 +1919,8 @@ type Category struct {
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// Game represents a game from Twitch
-type Game struct {
+// GameEntity represents a full game entity from Twitch (with database fields)
+type GameEntity struct {
 	ID            uuid.UUID `json:"id" db:"id"`
 	TwitchGameID  string    `json:"twitch_game_id" db:"twitch_game_id"`
 	Name          string    `json:"name" db:"name"`
@@ -1930,7 +1932,7 @@ type Game struct {
 
 // GameWithStats represents a game with additional statistics
 type GameWithStats struct {
-	Game
+	GameEntity
 	ClipCount     int `json:"clip_count" db:"clip_count"`
 	FollowerCount int `json:"follower_count" db:"follower_count"`
 	IsFollowing   bool `json:"is_following"` // Whether the current user is following
@@ -2033,4 +2035,42 @@ type BroadcasterLiveStatus struct {
 	LastChecked   time.Time  `json:"last_checked" db:"last_checked"`
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// AccountTypeConversion represents a conversion from one account type to another
+type AccountTypeConversion struct {
+	ID          uuid.UUID              `json:"id" db:"id"`
+	UserID      uuid.UUID              `json:"user_id" db:"user_id"`
+	OldType     string                 `json:"old_type" db:"old_type"`
+	NewType     string                 `json:"new_type" db:"new_type"`
+	Reason      *string                `json:"reason,omitempty" db:"reason"`
+	ConvertedBy *uuid.UUID             `json:"converted_by,omitempty" db:"converted_by"`
+	ConvertedAt time.Time              `json:"converted_at" db:"converted_at"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
+}
+
+// AccountTypeConversionWithUser includes user and converter information
+type AccountTypeConversionWithUser struct {
+	AccountTypeConversion
+	User        *User `json:"user,omitempty"`
+	ConvertedBy *User `json:"converted_by_user,omitempty"`
+}
+
+// ConvertToBroadcasterRequest represents the request to convert to broadcaster account type
+type ConvertToBroadcasterRequest struct {
+	Reason *string `json:"reason,omitempty" binding:"omitempty,max=500"`
+}
+
+// ConvertToModeratorRequest represents the request to convert to moderator account type
+type ConvertToModeratorRequest struct {
+	Reason *string `json:"reason,omitempty" binding:"omitempty,max=500"`
+}
+
+// AccountTypeResponse represents the response for account type queries
+type AccountTypeResponse struct {
+	AccountType    string                `json:"account_type"`
+	UpdatedAt      *time.Time            `json:"updated_at,omitempty"`
+	Permissions    []string              `json:"permissions"`
+	ConversionHistory []AccountTypeConversion `json:"conversion_history,omitempty"`
 }
