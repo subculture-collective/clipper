@@ -34,7 +34,6 @@ export function useDiscoveryListClips(
 
 export function useFollowDiscoveryList() {
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
 
   return useMutation({
     mutationFn: (listId: string) => discoveryListApi.followDiscoveryList(listId),

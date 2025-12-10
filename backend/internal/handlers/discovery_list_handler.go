@@ -137,11 +137,30 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 	ctx := c.Request.Context()
 	listIDStr := c.Param("id")
 
-	// Parse list ID
+	// Get user ID if authenticated
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if id, ok := userIDVal.(uuid.UUID); ok {
+			userID = &id
+		}
+	}
+
+	// Resolve listIDStr to UUID (accept both UUID and slug)
+	var listID uuid.UUID
 	listID, err := uuid.Parse(listIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid list ID"})
-		return
+		// Not a UUID, try to resolve as slug
+		list, err2 := h.repo.GetDiscoveryList(ctx, listIDStr, userID)
+		if err2 != nil {
+			if err2.Error() == "discovery list not found" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
+				return
+			}
+			logger.Error("Failed to resolve discovery list slug", "error", err2, "slug", listIDStr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve discovery list"})
+			return
+		}
+		listID = list.ID
 	}
 
 	// Parse query parameters
@@ -156,26 +175,6 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 		offset = 0
 	}
 
-	// Get user ID if authenticated
-	var userID *uuid.UUID
-	if userIDVal, exists := c.Get("user_id"); exists {
-		if id, ok := userIDVal.(uuid.UUID); ok {
-			userID = &id
-		}
-	}
-
-	// Verify list exists
-	_, err = h.repo.GetDiscoveryList(ctx, listIDStr, userID)
-	if err != nil {
-		if err.Error() == "discovery list not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Discovery list not found"})
-			return
-		}
-		logger.Error("Failed to verify discovery list", "error", err, "id", listIDStr)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve discovery list"})
-		return
-	}
-
 	// Get clips from repository
 	clips, err := h.repo.GetListClips(ctx, listID, userID, limit, offset)
 	if err != nil {
@@ -184,7 +183,25 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, clips)
+	// Get total count for pagination
+	total, err := h.repo.GetListClipsCount(ctx, listID)
+	if err != nil {
+		logger.Error("Failed to get list clips count", "error", err, "list_id", listID)
+		// Don't fail the request, just set total to length of clips
+		total = len(clips)
+	}
+
+	// Calculate pagination metadata
+	page := offset / limit
+	hasMore := len(clips) == limit && (offset+limit) < total
+
+	c.JSON(http.StatusOK, gin.H{
+		"clips":    clips,
+		"total":    total,
+		"page":     page,
+		"limit":    limit,
+		"has_more": hasMore,
+	})
 }
 
 // FollowDiscoveryList godoc

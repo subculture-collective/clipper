@@ -5,12 +5,12 @@ import { Button } from '../components/ui';
 import { useState } from 'react';
 
 export function DiscoveryListsPage() {
-  const [page, setPage] = useState(0);
+  const [offset, setOffset] = useState(0);
   const pageSize = 12;
 
   const { data: lists, isLoading } = useDiscoveryLists({
     limit: pageSize,
-    offset: page * pageSize,
+    offset,
   });
 
   return (
@@ -54,7 +54,7 @@ export function DiscoveryListsPage() {
               {lists.length === pageSize && (
                 <div className="text-center pt-8">
                   <Button
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => setOffset((o) => o + pageSize)}
                     variant="outline"
                     size="lg"
                   >

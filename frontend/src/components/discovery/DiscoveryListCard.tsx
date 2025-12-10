@@ -82,6 +82,7 @@ export function DiscoveryListCard({
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -93,12 +94,12 @@ export function DiscoveryListCard({
             <span>{formatNumber(list.clip_count)} clips</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Users className="w-4 h-4" />
+            <Users className="w-4 h-4" aria-hidden="true" />
             <span>{formatNumber(list.follower_count)} followers</span>
           </div>
           {list.is_bookmarked && (
             <div className="flex items-center gap-1.5 ml-auto">
-              <Bookmark className="w-4 h-4 fill-current text-primary-500" />
+              <Bookmark className="w-4 h-4 fill-current text-primary-500" aria-hidden="true" />
             </div>
           )}
         </div>

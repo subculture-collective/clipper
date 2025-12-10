@@ -107,13 +107,50 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 		}
 	}
 
-	// Get preview clips (first 4) for each list
-	for i := range lists {
-		previewClips, err := r.GetListPreviewClips(ctx, lists[i].ID, 4)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get preview clips: %w", err)
+	// Batch fetch preview clips for all lists
+	if len(lists) > 0 {
+		listIDs := make([]uuid.UUID, len(lists))
+		for i, list := range lists {
+			listIDs[i] = list.ID
 		}
-		lists[i].PreviewClips = previewClips
+
+		// Fetch preview clips for all lists in a single query using window function
+		previewQuery := `
+			WITH ranked_clips AS (
+				SELECT 
+					c.*,
+					dlc.list_id,
+					ROW_NUMBER() OVER (PARTITION BY dlc.list_id ORDER BY dlc.display_order ASC, dlc.added_at DESC) as rn
+				FROM discovery_list_clips dlc
+				INNER JOIN clips c ON dlc.clip_id = c.id
+				WHERE dlc.list_id = ANY($1) AND c.is_removed = false
+			)
+			SELECT * FROM ranked_clips WHERE rn <= 4 ORDER BY list_id, rn
+		`
+
+		var allPreviewClips []struct {
+			models.Clip
+			ListID uuid.UUID `db:"list_id"`
+			RN     int       `db:"rn"`
+		}
+		err = r.db.SelectContext(ctx, &allPreviewClips, previewQuery, listIDs)
+		if err != nil {
+			// Don't fail the whole request if preview clips can't be fetched
+			return lists, nil
+		}
+
+		// Group clips by list ID
+		clipsByList := make(map[uuid.UUID][]models.Clip)
+		for _, preview := range allPreviewClips {
+			clipsByList[preview.ListID] = append(clipsByList[preview.ListID], preview.Clip)
+		}
+
+		// Assign preview clips to lists
+		for i := range lists {
+			if clips, ok := clipsByList[lists[i].ID]; ok {
+				lists[i].PreviewClips = clips
+			}
+		}
 	}
 
 	return lists, nil
@@ -197,15 +234,42 @@ func (r *DiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.
 		return nil, fmt.Errorf("failed to get list clips: %w", err)
 	}
 
-	// Get submitter info for clips that have been submitted
-	for i := range clips {
-		if clips[i].SubmittedByUserID != nil {
-			var submitter models.ClipSubmitterInfo
-			err := r.db.GetContext(ctx, &submitter,
-				`SELECT id, username, display_name, avatar_url FROM users WHERE id = $1`,
-				clips[i].SubmittedByUserID)
-			if err == nil {
-				clips[i].SubmittedBy = &submitter
+	// Batch fetch submitter info for clips that have been submitted
+	// Collect unique submitter IDs
+	submitterIDs := make(map[uuid.UUID]bool)
+	for _, clip := range clips {
+		if clip.SubmittedByUserID != nil {
+			submitterIDs[*clip.SubmittedByUserID] = true
+		}
+	}
+
+	// Fetch all submitters in a single query if there are any
+	if len(submitterIDs) > 0 {
+		ids := make([]uuid.UUID, 0, len(submitterIDs))
+		for id := range submitterIDs {
+			ids = append(ids, id)
+		}
+
+		var submitters []models.ClipSubmitterInfo
+		submitterQuery := `SELECT id, username, display_name, avatar_url FROM users WHERE id = ANY($1)`
+		err = r.db.SelectContext(ctx, &submitters, submitterQuery, ids)
+		if err != nil {
+			// Don't fail the whole request if submitters can't be fetched
+			return clips, nil
+		}
+
+		// Map submitters by ID for O(1) lookup
+		submitterMap := make(map[uuid.UUID]*models.ClipSubmitterInfo)
+		for i := range submitters {
+			submitterMap[submitters[i].ID] = &submitters[i]
+		}
+
+		// Attach submitters to clips
+		for i := range clips {
+			if clips[i].SubmittedByUserID != nil {
+				if submitter, ok := submitterMap[*clips[i].SubmittedByUserID]; ok {
+					clips[i].SubmittedBy = submitter
+				}
 			}
 		}
 	}
@@ -231,6 +295,24 @@ func (r *DiscoveryListRepository) GetListPreviewClips(ctx context.Context, listI
 	}
 
 	return clips, nil
+}
+
+// GetListClipsCount retrieves the total count of clips in a discovery list
+func (r *DiscoveryListRepository) GetListClipsCount(ctx context.Context, listID uuid.UUID) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM discovery_list_clips dlc
+		INNER JOIN clips c ON dlc.clip_id = c.id
+		WHERE dlc.list_id = $1 AND c.is_removed = false
+	`
+
+	var count int
+	err := r.db.GetContext(ctx, &count, query, listID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get list clips count: %w", err)
+	}
+
+	return count, nil
 }
 
 // FollowList adds a follow relationship between user and list

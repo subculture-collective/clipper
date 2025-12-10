@@ -18,13 +18,13 @@ export function DiscoveryListDetailPage() {
   const { id } = useParams<{ id: string }>();
   const isAuthenticated = useIsAuthenticated();
   const toast = useToast();
-  const [page, setPage] = useState(0);
+  const [offset, setOffset] = useState(0);
   const pageSize = 20;
 
   const { data: list, isLoading: listLoading } = useDiscoveryList(id || '');
   const { data: clipsData, isLoading: clipsLoading } = useDiscoveryListClips(
     id || '',
-    { limit: pageSize, offset: page * pageSize }
+    { limit: pageSize, offset }
   );
 
   const followMutation = useFollowDiscoveryList();
@@ -160,6 +160,7 @@ export function DiscoveryListDetailPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -174,7 +175,7 @@ export function DiscoveryListDetailPage() {
                 <span>clips</span>
               </div>
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
+                <Users className="w-5 h-5" aria-hidden="true" />
                 <span className="font-medium text-foreground">
                   {formatNumber(list.follower_count)}
                 </span>
@@ -229,17 +230,17 @@ export function DiscoveryListDetailPage() {
                 <div key={i} className="h-48 bg-accent rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : clipsData && clipsData.length > 0 ? (
+          ) : clipsData && clipsData.clips && clipsData.clips.length > 0 ? (
             <div className="space-y-4">
-              {clipsData.map((clip) => (
+              {clipsData.clips.map((clip) => (
                 <ClipCard key={clip.id} clip={clip} />
               ))}
 
               {/* Load More Button */}
-              {clipsData.length === pageSize && (
+              {clipsData.has_more && (
                 <div className="text-center pt-4">
                   <Button
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => setOffset((o) => o + pageSize)}
                     variant="outline"
                   >
                     Load More
