@@ -1728,51 +1728,70 @@ type SendGridWebhookEvent struct {
 	MarketingCampaignName string           `json:"marketing_campaign_name,omitempty"`
 }
 
-// DiscoveryList represents a curated collection of clips
-type DiscoveryList struct {
-	ID           uuid.UUID  `json:"id" db:"id"`
-	Name         string     `json:"name" db:"name"`
-	Slug         string     `json:"slug" db:"slug"`
-	Description  *string    `json:"description,omitempty" db:"description"`
-	IsFeatured   bool       `json:"is_featured" db:"is_featured"`
-	IsActive     bool       `json:"is_active" db:"is_active"`
-	DisplayOrder int        `json:"display_order" db:"display_order"`
-	CreatedBy    *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+// Feed represents a user-created feed
+type Feed struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	Name          string     `json:"name" db:"name"`
+	Description   *string    `json:"description,omitempty" db:"description"`
+	Icon          *string    `json:"icon,omitempty" db:"icon"`
+	IsPublic      bool       `json:"is_public" db:"is_public"`
+	FollowerCount int        `json:"follower_count" db:"follower_count"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
 
-// DiscoveryListWithStats includes additional stats about the list
-type DiscoveryListWithStats struct {
-	DiscoveryList
-	ClipCount      int       `json:"clip_count" db:"clip_count"`
-	FollowerCount  int       `json:"follower_count" db:"follower_count"`
-	IsFollowing    bool      `json:"is_following"`    // Whether the current user is following
-	IsBookmarked   bool      `json:"is_bookmarked"`   // Whether the current user has bookmarked
-	PreviewClips   []Clip    `json:"preview_clips,omitempty"` // First 3-4 clips for preview
+// FeedWithOwner includes owner information
+type FeedWithOwner struct {
+	Feed
+	Owner *User `json:"owner,omitempty"`
 }
 
-// DiscoveryListClip represents a clip in a discovery list
-type DiscoveryListClip struct {
-	ID           uuid.UUID `json:"id" db:"id"`
-	ListID       uuid.UUID `json:"list_id" db:"list_id"`
-	ClipID       uuid.UUID `json:"clip_id" db:"clip_id"`
-	DisplayOrder int       `json:"display_order" db:"display_order"`
-	AddedAt      time.Time `json:"added_at" db:"added_at"`
+// FeedItem represents a clip in a feed
+type FeedItem struct {
+	ID       uuid.UUID `json:"id" db:"id"`
+	FeedID   uuid.UUID `json:"feed_id" db:"feed_id"`
+	ClipID   uuid.UUID `json:"clip_id" db:"clip_id"`
+	Position int       `json:"position" db:"position"`
+	AddedAt  time.Time `json:"added_at" db:"added_at"`
 }
 
-// DiscoveryListFollow represents a user following a discovery list
-type DiscoveryListFollow struct {
+// FeedItemWithClip includes clip information
+type FeedItemWithClip struct {
+	FeedItem
+	Clip *Clip `json:"clip,omitempty"`
+}
+
+// FeedFollow represents a user following a feed
+type FeedFollow struct {
 	ID         uuid.UUID `json:"id" db:"id"`
 	UserID     uuid.UUID `json:"user_id" db:"user_id"`
-	ListID     uuid.UUID `json:"list_id" db:"list_id"`
+	FeedID     uuid.UUID `json:"feed_id" db:"feed_id"`
 	FollowedAt time.Time `json:"followed_at" db:"followed_at"`
 }
 
-// DiscoveryListBookmark represents a user bookmarking a discovery list
-type DiscoveryListBookmark struct {
-	ID           uuid.UUID `json:"id" db:"id"`
-	UserID       uuid.UUID `json:"user_id" db:"user_id"`
-	ListID       uuid.UUID `json:"list_id" db:"list_id"`
-	BookmarkedAt time.Time `json:"bookmarked_at" db:"bookmarked_at"`
+// CreateFeedRequest represents the request to create a feed
+type CreateFeedRequest struct {
+	Name        string  `json:"name" binding:"required,min=1,max=255"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=1000"`
+	Icon        *string `json:"icon,omitempty" binding:"omitempty,max=100"`
+	IsPublic    *bool   `json:"is_public,omitempty"`
+}
+
+// UpdateFeedRequest represents the request to update a feed
+type UpdateFeedRequest struct {
+	Name        *string `json:"name,omitempty" binding:"omitempty,min=1,max=255"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=1000"`
+	Icon        *string `json:"icon,omitempty" binding:"omitempty,max=100"`
+	IsPublic    *bool   `json:"is_public,omitempty"`
+}
+
+// AddClipToFeedRequest represents the request to add a clip to a feed
+type AddClipToFeedRequest struct {
+	ClipID uuid.UUID `json:"clip_id" binding:"required"`
+}
+
+// ReorderFeedClipsRequest represents the request to reorder clips in a feed
+type ReorderFeedClipsRequest struct {
+	ClipIDs []uuid.UUID `json:"clip_ids" binding:"required"`
 }
