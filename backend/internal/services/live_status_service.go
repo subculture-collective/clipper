@@ -52,16 +52,18 @@ func (s *LiveStatusService) UpdateLiveStatusForBroadcasters(ctx context.Context,
 
 	// Fetch stream data from Twitch (max 100 at a time)
 	batchSize := 100
+	totalBatches := (len(broadcasterIDs) + batchSize - 1) / batchSize
 	for i := 0; i < len(broadcasterIDs); i += batchSize {
 		end := i + batchSize
 		if end > len(broadcasterIDs) {
 			end = len(broadcasterIDs)
 		}
 		batch := broadcasterIDs[i:end]
+		batchNum := (i / batchSize) + 1
 
 		streams, err := s.twitchClient.GetStreams(ctx, batch)
 		if err != nil {
-			log.Printf("Failed to fetch streams for batch: %v", err)
+			log.Printf("Failed to fetch streams for batch %d/%d: %v", batchNum, totalBatches, err)
 			continue
 		}
 
@@ -84,6 +86,8 @@ func (s *LiveStatusService) UpdateLiveStatusForBroadcasters(ctx context.Context,
 
 			if stream, isLive := liveMap[broadcasterID]; isLive && stream.Type == "live" {
 				status.IsLive = true
+				status.UserLogin = &stream.UserLogin
+				status.UserName = &stream.UserName
 				status.StreamTitle = &stream.Title
 				status.GameName = &stream.GameName
 				status.ViewerCount = stream.ViewerCount

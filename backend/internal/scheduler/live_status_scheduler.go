@@ -5,8 +5,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // LiveStatusServiceInterface defines the interface required by the live status scheduler
@@ -21,24 +19,24 @@ type BroadcasterRepositoryInterface interface {
 
 // LiveStatusScheduler manages periodic live status updates
 type LiveStatusScheduler struct {
-	liveStatusService LiveStatusServiceInterface
-	pool              *pgxpool.Pool
-	interval          time.Duration
-	stopChan          chan struct{}
-	stopOnce          sync.Once
+	liveStatusService   LiveStatusServiceInterface
+	broadcasterRepo     BroadcasterRepositoryInterface
+	interval            time.Duration
+	stopChan            chan struct{}
+	stopOnce            sync.Once
 }
 
 // NewLiveStatusScheduler creates a new live status scheduler
 func NewLiveStatusScheduler(
 	liveStatusService LiveStatusServiceInterface,
-	pool *pgxpool.Pool,
+	broadcasterRepo BroadcasterRepositoryInterface,
 	intervalSeconds int,
 ) *LiveStatusScheduler {
 	return &LiveStatusScheduler{
-		liveStatusService: liveStatusService,
-		pool:              pool,
-		interval:          time.Duration(intervalSeconds) * time.Second,
-		stopChan:          make(chan struct{}),
+		liveStatusService:   liveStatusService,
+		broadcasterRepo:     broadcasterRepo,
+		interval:            time.Duration(intervalSeconds) * time.Second,
+		stopChan:            make(chan struct{}),
 	}
 }
 
@@ -78,26 +76,11 @@ func (s *LiveStatusScheduler) updateLiveStatuses(ctx context.Context) {
 	log.Println("Starting scheduled live status update...")
 	startTime := time.Now()
 
-	// Get all unique broadcaster IDs from follows
-	query := `
-		SELECT DISTINCT broadcaster_id 
-		FROM broadcaster_follows
-	`
-	rows, err := s.pool.Query(ctx, query)
+	// Get all unique broadcaster IDs from follows using repository
+	broadcasterIDs, err := s.broadcasterRepo.GetAllFollowedBroadcasterIDs(ctx)
 	if err != nil {
 		log.Printf("Failed to get followed broadcasters: %v", err)
 		return
-	}
-	defer rows.Close()
-
-	var broadcasterIDs []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			log.Printf("Failed to scan broadcaster ID: %v", err)
-			continue
-		}
-		broadcasterIDs = append(broadcasterIDs, id)
 	}
 
 	if len(broadcasterIDs) == 0 {

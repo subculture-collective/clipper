@@ -97,6 +97,8 @@ export async function unfollowBroadcaster(
  */
 export interface BroadcasterLiveStatus {
   broadcaster_id: string;
+  user_login?: string;
+  user_name?: string;
   is_live: boolean;
   stream_title?: string;
   game_name?: string;

@@ -1085,7 +1085,7 @@ func main() {
 	// Start live status scheduler (runs every 60 seconds if Twitch client is available)
 	var liveStatusScheduler *scheduler.LiveStatusScheduler
 	if liveStatusService != nil {
-		liveStatusScheduler = scheduler.NewLiveStatusScheduler(liveStatusService, db.Pool, 60)
+		liveStatusScheduler = scheduler.NewLiveStatusScheduler(liveStatusService, broadcasterRepo, 60)
 		go liveStatusScheduler.Start(context.Background())
 	}
 

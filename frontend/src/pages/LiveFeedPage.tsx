@@ -96,11 +96,11 @@ export function LiveFeedPage() {
                         to={`/broadcaster/${broadcaster.broadcaster_id}`}
                         className="text-lg font-semibold hover:text-purple-600 dark:hover:text-purple-400 transition-colors line-clamp-1"
                       >
-                        {broadcaster.broadcaster_id}
+                        {broadcaster.user_name || broadcaster.user_login || broadcaster.broadcaster_id}
                       </Link>
                     </div>
                     <a
-                      href={`https://twitch.tv/${broadcaster.broadcaster_id}`}
+                      href={`https://twitch.tv/${broadcaster.user_login || broadcaster.broadcaster_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-shrink-0 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
@@ -129,14 +129,19 @@ export function LiveFeedPage() {
                         {broadcaster.viewer_count.toLocaleString()} viewers
                       </span>
                     </div>
-                    {broadcaster.started_at && (
-                      <span>
-                        Started{' '}
-                        {formatDistanceToNow(new Date(broadcaster.started_at), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                    )}
+                    {(() => {
+                      if (!broadcaster.started_at) return null;
+                      const startedAtDate = new Date(broadcaster.started_at);
+                      if (isNaN(startedAtDate.getTime())) return null;
+                      return (
+                        <span>
+                          Started{' '}
+                          {formatDistanceToNow(startedAtDate, {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

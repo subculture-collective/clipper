@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -503,8 +505,11 @@ func (c *Client) GetStreams(ctx context.Context, userIDs []string) (*StreamsResp
 		params.Add("user_id", id)
 	}
 
-	// Check cache first
-	cacheKey := fmt.Sprintf("%sstreams:%v", cacheKeyPrefix, userIDs)
+	// Check cache first - use sorted IDs for consistent cache key
+	sortedIDs := make([]string, len(userIDs))
+	copy(sortedIDs, userIDs)
+	sort.Strings(sortedIDs)
+	cacheKey := fmt.Sprintf("%sstreams:%s", cacheKeyPrefix, strings.Join(sortedIDs, ","))
 	if cached, err := c.redis.Get(ctx, cacheKey); err == nil {
 		var streamsResp StreamsResponse
 		if err := json.Unmarshal([]byte(cached), &streamsResp); err == nil {

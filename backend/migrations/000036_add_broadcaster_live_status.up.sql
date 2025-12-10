@@ -1,6 +1,8 @@
 -- Add broadcaster live status tracking table
 CREATE TABLE IF NOT EXISTS broadcaster_live_status (
     broadcaster_id VARCHAR(100) PRIMARY KEY,
+    user_login VARCHAR(100),
+    user_name VARCHAR(100),
     is_live BOOLEAN DEFAULT false,
     stream_title VARCHAR(255),
     game_name VARCHAR(255),

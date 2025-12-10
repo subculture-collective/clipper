@@ -2004,6 +2004,8 @@ type ReorderListClipsRequest struct {
 // BroadcasterLiveStatus represents the live streaming status of a broadcaster
 type BroadcasterLiveStatus struct {
 	BroadcasterID string     `json:"broadcaster_id" db:"broadcaster_id"`
+	UserLogin     *string    `json:"user_login,omitempty" db:"user_login"`
+	UserName      *string    `json:"user_name,omitempty" db:"user_name"`
 	IsLive        bool       `json:"is_live" db:"is_live"`
 	StreamTitle   *string    `json:"stream_title,omitempty" db:"stream_title"`
 	GameName      *string    `json:"game_name,omitempty" db:"game_name"`

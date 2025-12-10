@@ -42,9 +42,12 @@ export function LiveBadge({
     ? formatDistanceToNow(new Date(liveStatus.started_at), { addSuffix: false })
     : null;
 
-  const formattedViewers = liveStatus.viewer_count >= 1000
-    ? `${(liveStatus.viewer_count / 1000).toFixed(1)}K`
-    : liveStatus.viewer_count.toString();
+  const formattedViewers =
+    liveStatus.viewer_count >= 1_000_000
+      ? `${(liveStatus.viewer_count / 1_000_000).toFixed(1)}M`
+      : liveStatus.viewer_count >= 1000
+      ? `${(liveStatus.viewer_count / 1000).toFixed(1)}K`
+      : liveStatus.viewer_count.toString();
 
   return (
     <div
