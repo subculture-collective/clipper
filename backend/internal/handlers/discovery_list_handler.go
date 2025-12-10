@@ -198,7 +198,7 @@ func (h *DiscoveryListHandler) GetDiscoveryListClips(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/users/me/discovery-lists/{id}/follow [post]
+// @Router /api/v1/discovery-lists/{id}/follow [post]
 func (h *DiscoveryListHandler) FollowDiscoveryList(c *gin.Context) {
 	logger := utils.GetLogger()
 	ctx := c.Request.Context()
@@ -260,7 +260,7 @@ func (h *DiscoveryListHandler) FollowDiscoveryList(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/users/me/discovery-lists/{id}/follow [delete]
+// @Router /api/v1/discovery-lists/{id}/follow [delete]
 func (h *DiscoveryListHandler) UnfollowDiscoveryList(c *gin.Context) {
 	logger := utils.GetLogger()
 	ctx := c.Request.Context()
@@ -314,7 +314,7 @@ func (h *DiscoveryListHandler) UnfollowDiscoveryList(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/users/me/discovery-lists/{id}/bookmark [post]
+// @Router /api/v1/discovery-lists/{id}/bookmark [post]
 func (h *DiscoveryListHandler) BookmarkDiscoveryList(c *gin.Context) {
 	logger := utils.GetLogger()
 	ctx := c.Request.Context()
@@ -376,7 +376,7 @@ func (h *DiscoveryListHandler) BookmarkDiscoveryList(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/users/me/discovery-lists/{id}/bookmark [delete]
+// @Router /api/v1/discovery-lists/{id}/bookmark [delete]
 func (h *DiscoveryListHandler) UnbookmarkDiscoveryList(c *gin.Context) {
 	logger := utils.GetLogger()
 	ctx := c.Request.Context()

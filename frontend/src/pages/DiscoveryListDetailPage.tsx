@@ -11,7 +11,7 @@ import {
   useUnbookmarkDiscoveryList,
 } from '../hooks/useDiscoveryLists';
 import { useIsAuthenticated, useToast } from '../hooks';
-import { Heart, Users, ChevronLeft, Bookmark, Bell, BellOff } from 'lucide-react';
+import { Users, ChevronLeft, Bookmark, Bell, BellOff } from 'lucide-react';
 import { useState } from 'react';
 
 export function DiscoveryListDetailPage() {
@@ -212,9 +212,9 @@ export function DiscoveryListDetailPage() {
                   bookmarkMutation.isPending || unbookmarkMutation.isPending
                 }
               >
-                <Heart
+                <Bookmark
                   className={`w-4 h-4 mr-2 ${
-                    list.is_bookmarked ? 'fill-current text-red-500' : ''
+                    list.is_bookmarked ? 'fill-current text-primary-500' : ''
                   }`}
                 />
                 {list.is_bookmarked ? 'Bookmarked' : 'Bookmark'}

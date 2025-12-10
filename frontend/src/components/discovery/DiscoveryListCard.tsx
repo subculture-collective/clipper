@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Heart, Users } from 'lucide-react';
-import type { DiscoveryListWithStats } from '@/types/discoveryList';
-import { cn } from '@/lib/utils';
+import { Bookmark, Users } from 'lucide-react';
+import type { DiscoveryListWithStats } from '../../types/discoveryList';
+import { cn } from '../../lib/utils';
 
 interface DiscoveryListCardProps {
   list: DiscoveryListWithStats;
@@ -98,7 +98,7 @@ export function DiscoveryListCard({
           </div>
           {list.is_bookmarked && (
             <div className="flex items-center gap-1.5 ml-auto">
-              <Heart className="w-4 h-4 fill-current text-red-500" />
+              <Bookmark className="w-4 h-4 fill-current text-primary-500" />
             </div>
           )}
         </div>
