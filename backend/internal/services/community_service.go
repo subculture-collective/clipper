@@ -366,7 +366,7 @@ func (s *CommunityService) AddClipToCommunity(ctx context.Context, communityID, 
 	}
 
 	// Verify clip exists
-	_, err = s.clipRepo.GetClipByID(ctx, clipID)
+	_, err = s.clipRepo.GetByID(ctx, clipID)
 	if err != nil {
 		return fmt.Errorf("clip not found")
 	}
