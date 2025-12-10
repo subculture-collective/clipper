@@ -225,10 +225,10 @@ type SearchResponse struct {
 
 // SearchResultsByType groups results by type
 type SearchResultsByType struct {
-	Clips    []Clip             `json:"clips,omitempty"`
-	Creators []User             `json:"creators,omitempty"`
-	Games    []GameSearchResult `json:"games,omitempty"`
-	Tags     []Tag              `json:"tags,omitempty"`
+	Clips    []Clip `json:"clips,omitempty"`
+	Creators []User `json:"creators,omitempty"`
+	Games    []Game `json:"games,omitempty"`
+	Tags     []Tag  `json:"tags,omitempty"`
 }
 
 // SearchCounts holds counts for each result type
@@ -271,8 +271,8 @@ type DateRangeFacet struct {
 	Older     int `json:"older"`
 }
 
-// GameSearchResult represents a game (aggregated from clips) for search results
-type GameSearchResult struct {
+// Game represents a game (aggregated from clips) for search results
+type Game struct {
 	ID        string `json:"id" db:"game_id"`
 	Name      string `json:"name" db:"game_name"`
 	ClipCount int    `json:"clip_count" db:"clip_count"`
@@ -1900,8 +1900,8 @@ type Category struct {
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// Game represents a game from Twitch
-type Game struct {
+// GameEntity represents a full game entity from Twitch (with database fields)
+type GameEntity struct {
 	ID            uuid.UUID `json:"id" db:"id"`
 	TwitchGameID  string    `json:"twitch_game_id" db:"twitch_game_id"`
 	Name          string    `json:"name" db:"name"`
@@ -1913,7 +1913,7 @@ type Game struct {
 
 // GameWithStats represents a game with additional statistics
 type GameWithStats struct {
-	Game
+	GameEntity
 	ClipCount     int `json:"clip_count" db:"clip_count"`
 	FollowerCount int `json:"follower_count" db:"follower_count"`
 	IsFollowing   bool `json:"is_following"` // Whether the current user is following

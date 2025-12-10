@@ -23,7 +23,7 @@ func NewGameRepository(pool *pgxpool.Pool) *GameRepository {
 }
 
 // Create inserts a new game into the database
-func (r *GameRepository) Create(ctx context.Context, game *models.Game) error {
+func (r *GameRepository) Create(ctx context.Context, game *models.GameEntity) error {
 	query := `
 		INSERT INTO games (id, twitch_game_id, name, box_art_url, igdb_id, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -48,14 +48,14 @@ func (r *GameRepository) Create(ctx context.Context, game *models.Game) error {
 }
 
 // GetByID retrieves a game by its internal ID
-func (r *GameRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Game, error) {
+func (r *GameRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.GameEntity, error) {
 	query := `
 		SELECT id, twitch_game_id, name, box_art_url, igdb_id, created_at, updated_at
 		FROM games
 		WHERE id = $1
 	`
 
-	var game models.Game
+	var game models.GameEntity
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&game.ID, &game.TwitchGameID, &game.Name, &game.BoxArtURL,
 		&game.IGDBID, &game.CreatedAt, &game.UpdatedAt,
@@ -72,14 +72,14 @@ func (r *GameRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Gam
 }
 
 // GetByTwitchGameID retrieves a game by its Twitch game ID
-func (r *GameRepository) GetByTwitchGameID(ctx context.Context, twitchGameID string) (*models.Game, error) {
+func (r *GameRepository) GetByTwitchGameID(ctx context.Context, twitchGameID string) (*models.GameEntity, error) {
 	query := `
 		SELECT id, twitch_game_id, name, box_art_url, igdb_id, created_at, updated_at
 		FROM games
 		WHERE twitch_game_id = $1
 	`
 
-	var game models.Game
+	var game models.GameEntity
 	err := r.pool.QueryRow(ctx, query, twitchGameID).Scan(
 		&game.ID, &game.TwitchGameID, &game.Name, &game.BoxArtURL,
 		&game.IGDBID, &game.CreatedAt, &game.UpdatedAt,
