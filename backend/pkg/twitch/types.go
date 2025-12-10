@@ -77,3 +77,27 @@ type GamesResponse struct {
 type Pagination struct {
 	Cursor string `json:"cursor"`
 }
+
+// Stream represents a Twitch stream from the API
+type Stream struct {
+	ID           string    `json:"id"`
+	UserID       string    `json:"user_id"`
+	UserLogin    string    `json:"user_login"`
+	UserName     string    `json:"user_name"`
+	GameID       string    `json:"game_id"`
+	GameName     string    `json:"game_name"`
+	Type         string    `json:"type"` // "live" or ""
+	Title        string    `json:"title"`
+	ViewerCount  int       `json:"viewer_count"`
+	StartedAt    time.Time `json:"started_at"`
+	Language     string    `json:"language"`
+	ThumbnailURL string    `json:"thumbnail_url"`
+	TagIDs       []string  `json:"tag_ids"`
+	IsMature     bool      `json:"is_mature"`
+}
+
+// StreamsResponse represents the response from the streams endpoint
+type StreamsResponse struct {
+	Data       []Stream   `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
