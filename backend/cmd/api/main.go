@@ -146,6 +146,8 @@ func main() {
 	emailLogRepo := repository.NewEmailLogRepository(db.Pool)
 	feedRepo := repository.NewFeedRepository(db.Pool)
 	discoveryListRepo := repository.NewDiscoveryListRepository(db.Pool)
+	categoryRepo := repository.NewCategoryRepository(db.Pool)
+	gameRepo := repository.NewGameRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -295,6 +297,8 @@ func main() {
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
 	feedHandler := handlers.NewFeedHandler(feedService, authService)
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
+	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -642,6 +646,11 @@ func main() {
 			// Email logs for current user (authenticated)
 			users.GET("/me/email-logs", middleware.AuthMiddleware(authService), emailMetricsHandler.GetUserEmailLogs)
 
+			// Discovery list follows for current user (authenticated)
+			users.GET("/me/discovery-list-follows", middleware.AuthMiddleware(authService), discoveryListHandler.GetUserFollowedLists)
+
+			// Game follows for a user
+			users.GET("/:userId/games/following", gameHandler.GetFollowedGames)
 			// User feeds routes
 			users.GET("/:id/feeds", middleware.OptionalAuthMiddleware(authService), feedHandler.ListUserFeeds)
 			users.POST("/:id/feeds", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), feedHandler.CreateFeed)
@@ -687,6 +696,29 @@ func main() {
 			// Protected broadcaster endpoints (require authentication)
 			broadcasters.POST("/:id/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), broadcasterHandler.FollowBroadcaster)
 			broadcasters.DELETE("/:id/follow", middleware.AuthMiddleware(authService), broadcasterHandler.UnfollowBroadcaster)
+		}
+
+		// Category routes
+		categories := v1.Group("/categories")
+		{
+			// Public category endpoints
+			categories.GET("", categoryHandler.ListCategories)
+			categories.GET("/:slug", categoryHandler.GetCategory)
+			categories.GET("/:slug/games", categoryHandler.ListCategoryGames)
+			categories.GET("/:slug/clips", categoryHandler.ListCategoryClips)
+		}
+
+		// Game routes
+		games := v1.Group("/games")
+		{
+			// Public game endpoints
+			games.GET("/trending", gameHandler.GetTrendingGames)
+			games.GET("/:gameId", middleware.OptionalAuthMiddleware(authService), gameHandler.GetGame)
+			games.GET("/:gameId/clips", gameHandler.ListGameClips)
+
+			// Protected game endpoints (require authentication)
+			games.POST("/:gameId/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), gameHandler.FollowGame)
+			games.DELETE("/:gameId/follow", middleware.AuthMiddleware(authService), gameHandler.UnfollowGame)
 		}
 
 		// Discovery list routes

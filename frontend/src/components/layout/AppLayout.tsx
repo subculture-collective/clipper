@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { SkipLink } from '../ui';
 import { Footer } from './Footer';
 import { Header } from './Header';
+import { CategoriesNav } from './CategoriesNav';
 import { OfflineIndicator } from '../OfflineIndicator';
 import { useOfflineCacheInit } from '@/hooks/useOfflineCache';
 import { useSyncManager } from '@/hooks/useSyncManager';
@@ -117,6 +118,7 @@ export function AppLayout() {
                 label='Skip to main content'
             />
             <Header />
+            <CategoriesNav />
             <main
                 id='main-content'
                 className='flex-1'
