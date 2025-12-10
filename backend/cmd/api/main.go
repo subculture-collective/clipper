@@ -1001,6 +1001,20 @@ func main() {
 					moderation.GET("/abuse/:userId", moderationHandler.GetUserAbuseStats)
 				}
 			}
+
+			// Discovery list management (admin/moderator only)
+			adminDiscoveryLists := admin.Group("/discovery-lists")
+			{
+				adminDiscoveryLists.GET("", discoveryListHandler.AdminListDiscoveryLists)
+				adminDiscoveryLists.POST("", discoveryListHandler.AdminCreateDiscoveryList)
+				adminDiscoveryLists.GET("/:id", discoveryListHandler.GetDiscoveryList)
+				adminDiscoveryLists.PUT("/:id", discoveryListHandler.AdminUpdateDiscoveryList)
+				adminDiscoveryLists.DELETE("/:id", discoveryListHandler.AdminDeleteDiscoveryList)
+				adminDiscoveryLists.GET("/:id/clips", discoveryListHandler.GetDiscoveryListClips)
+				adminDiscoveryLists.POST("/:id/clips", discoveryListHandler.AdminAddClipToList)
+				adminDiscoveryLists.DELETE("/:id/clips/:clipId", discoveryListHandler.AdminRemoveClipFromList)
+				adminDiscoveryLists.PUT("/:id/clips/reorder", discoveryListHandler.AdminReorderListClips)
+			}
 		}
 	}
 

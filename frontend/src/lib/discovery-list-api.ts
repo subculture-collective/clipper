@@ -76,4 +76,80 @@ export const discoveryListApi = {
     );
     return response.data;
   },
+
+  // Admin API methods
+  admin: {
+    // List all discovery lists (including inactive)
+    listAllDiscoveryLists: async (params?: {
+      limit?: number;
+      offset?: number;
+    }) => {
+      const response = await apiClient.get<DiscoveryListWithStats[]>(
+        '/admin/discovery-lists',
+        { params }
+      );
+      return response.data;
+    },
+
+    // Create a discovery list
+    createDiscoveryList: async (data: {
+      name: string;
+      description?: string;
+      is_featured?: boolean;
+    }) => {
+      const response = await apiClient.post('/admin/discovery-lists', data);
+      return response.data;
+    },
+
+    // Update a discovery list
+    updateDiscoveryList: async (
+      listId: string,
+      data: {
+        name?: string;
+        description?: string;
+        is_featured?: boolean;
+        is_active?: boolean;
+      }
+    ) => {
+      const response = await apiClient.put(
+        `/admin/discovery-lists/${listId}`,
+        data
+      );
+      return response.data;
+    },
+
+    // Delete a discovery list
+    deleteDiscoveryList: async (listId: string) => {
+      const response = await apiClient.delete<{ message: string }>(
+        `/admin/discovery-lists/${listId}`
+      );
+      return response.data;
+    },
+
+    // Add a clip to a list
+    addClipToList: async (listId: string, clipId: string) => {
+      const response = await apiClient.post<{ message: string }>(
+        `/admin/discovery-lists/${listId}/clips`,
+        { clip_id: clipId }
+      );
+      return response.data;
+    },
+
+    // Remove a clip from a list
+    removeClipFromList: async (listId: string, clipId: string) => {
+      const response = await apiClient.delete<{ message: string }>(
+        `/admin/discovery-lists/${listId}/clips/${clipId}`
+      );
+      return response.data;
+    },
+
+    // Reorder clips in a list
+    reorderListClips: async (listId: string, clipIds: string[]) => {
+      const response = await apiClient.put<{ message: string }>(
+        `/admin/discovery-lists/${listId}/clips/reorder`,
+        { clip_ids: clipIds }
+      );
+      return response.data;
+    },
+  },
 };

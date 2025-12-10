@@ -56,6 +56,8 @@ const PersonalStatsPage = lazy(() => import('./pages/PersonalStatsPage'));
 const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
 const AdminRevenuePage = lazy(() => import('./pages/admin/AdminRevenuePage'));
 const AdminCampaignsPage = lazy(() => import('./pages/admin/AdminCampaignsPage'));
+const AdminDiscoveryListsPage = lazy(() => import('./pages/admin/AdminDiscoveryListsPage').then(m => ({ default: m.AdminDiscoveryListsPage })));
+const AdminDiscoveryListFormPage = lazy(() => import('./pages/admin/AdminDiscoveryListFormPage').then(m => ({ default: m.AdminDiscoveryListFormPage })));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
@@ -277,6 +279,22 @@ function App() {
                       element={
                         <AdminRoute>
                           <ModerationQueuePage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/discovery-lists"
+                      element={
+                        <AdminRoute>
+                          <AdminDiscoveryListsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/discovery-lists/:id/edit"
+                      element={
+                        <AdminRoute>
+                          <AdminDiscoveryListFormPage />
                         </AdminRoute>
                       }
                     />

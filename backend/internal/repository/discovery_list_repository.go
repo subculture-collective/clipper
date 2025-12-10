@@ -3,11 +3,20 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/subculture-collective/clipper/internal/models"
+)
+
+// Sentinel errors for discovery list operations
+var (
+	// ErrDiscoveryListNotFound is returned when a discovery list is not found
+	ErrDiscoveryListNotFound = errors.New("discovery list not found")
+	// ErrClipNotFoundInList is returned when a clip is not found in a discovery list
+	ErrClipNotFoundInList = errors.New("clip not found in list")
 )
 
 // DiscoveryListRepository handles database operations for discovery lists
@@ -428,6 +437,202 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 			return nil, fmt.Errorf("failed to get preview clips: %w", err)
 		}
 		lists[i].PreviewClips = previewClips
+	}
+
+	return lists, nil
+}
+
+// CreateDiscoveryList creates a new discovery list (admin only)
+func (r *DiscoveryListRepository) CreateDiscoveryList(ctx context.Context, name, slug, description string, isFeatured bool, createdBy uuid.UUID) (*models.DiscoveryList, error) {
+	query := `
+		INSERT INTO discovery_lists (name, slug, description, is_featured, created_by)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, name, slug, description, is_featured, is_active, display_order, created_by, created_at, updated_at
+	`
+
+	var list models.DiscoveryList
+	err := r.db.GetContext(ctx, &list, query, name, slug, description, isFeatured, createdBy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create discovery list: %w", err)
+	}
+
+	return &list, nil
+}
+
+// UpdateDiscoveryList updates an existing discovery list (admin only)
+func (r *DiscoveryListRepository) UpdateDiscoveryList(ctx context.Context, listID uuid.UUID, name, description *string, isFeatured, isActive *bool) (*models.DiscoveryList, error) {
+	// Build dynamic update query
+	query := "UPDATE discovery_lists SET updated_at = NOW()"
+	args := []interface{}{listID}
+	argIdx := 2
+
+	if name != nil {
+		query += fmt.Sprintf(", name = $%d", argIdx)
+		args = append(args, *name)
+		argIdx++
+	}
+	if description != nil {
+		query += fmt.Sprintf(", description = $%d", argIdx)
+		args = append(args, *description)
+		argIdx++
+	}
+	if isFeatured != nil {
+		query += fmt.Sprintf(", is_featured = $%d", argIdx)
+		args = append(args, *isFeatured)
+		argIdx++
+	}
+	if isActive != nil {
+		query += fmt.Sprintf(", is_active = $%d", argIdx)
+		args = append(args, *isActive)
+		argIdx++
+	}
+
+	query += " WHERE id = $1 RETURNING id, name, slug, description, is_featured, is_active, display_order, created_by, created_at, updated_at"
+
+	var list models.DiscoveryList
+	err := r.db.GetContext(ctx, &list, query, args...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrDiscoveryListNotFound
+		}
+		return nil, fmt.Errorf("failed to update discovery list: %w", err)
+	}
+
+	return &list, nil
+}
+
+// DeleteDiscoveryList deletes a discovery list (admin only)
+func (r *DiscoveryListRepository) DeleteDiscoveryList(ctx context.Context, listID uuid.UUID) error {
+	query := "DELETE FROM discovery_lists WHERE id = $1"
+
+	result, err := r.db.ExecContext(ctx, query, listID)
+	if err != nil {
+		return fmt.Errorf("failed to delete discovery list: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return ErrDiscoveryListNotFound
+	}
+
+	return nil
+}
+
+// AddClipToList adds a clip to a discovery list (admin only)
+func (r *DiscoveryListRepository) AddClipToList(ctx context.Context, listID, clipID uuid.UUID) error {
+	// Get the current max display order
+	// Using -1 as default to start from 0 when there are no clips
+	var maxOrder int
+	err := r.db.GetContext(ctx, &maxOrder, 
+		"SELECT COALESCE(MAX(display_order), -1) FROM discovery_list_clips WHERE list_id = $1", listID)
+	if err != nil {
+		return fmt.Errorf("failed to get max display order: %w", err)
+	}
+
+	// Insert the clip with the next display order
+	query := `
+		INSERT INTO discovery_list_clips (list_id, clip_id, display_order)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (list_id, clip_id) DO NOTHING
+	`
+
+	_, err = r.db.ExecContext(ctx, query, listID, clipID, maxOrder+1)
+	if err != nil {
+		return fmt.Errorf("failed to add clip to list: %w", err)
+	}
+
+	// Update the list's updated_at timestamp
+	_, err = r.db.ExecContext(ctx, "UPDATE discovery_lists SET updated_at = NOW() WHERE id = $1", listID)
+	if err != nil {
+		return fmt.Errorf("failed to update list timestamp: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveClipFromList removes a clip from a discovery list (admin only)
+func (r *DiscoveryListRepository) RemoveClipFromList(ctx context.Context, listID, clipID uuid.UUID) error {
+	query := "DELETE FROM discovery_list_clips WHERE list_id = $1 AND clip_id = $2"
+
+	result, err := r.db.ExecContext(ctx, query, listID, clipID)
+	if err != nil {
+		return fmt.Errorf("failed to remove clip from list: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return ErrClipNotFoundInList
+	}
+
+	// Update the list's updated_at timestamp
+	_, err = r.db.ExecContext(ctx, "UPDATE discovery_lists SET updated_at = NOW() WHERE id = $1", listID)
+	if err != nil {
+		return fmt.Errorf("failed to update list timestamp: %w", err)
+	}
+
+	return nil
+}
+
+// ReorderListClips reorders clips in a discovery list (admin only)
+func (r *DiscoveryListRepository) ReorderListClips(ctx context.Context, listID uuid.UUID, clipIDs []uuid.UUID) error {
+	// Start a transaction
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Update display order for each clip
+	for i, clipID := range clipIDs {
+		query := "UPDATE discovery_list_clips SET display_order = $1 WHERE list_id = $2 AND clip_id = $3"
+		_, err := tx.ExecContext(ctx, query, i, listID, clipID)
+		if err != nil {
+			return fmt.Errorf("failed to update clip order: %w", err)
+		}
+	}
+
+	// Update the list's updated_at timestamp
+	_, err = tx.ExecContext(ctx, "UPDATE discovery_lists SET updated_at = NOW() WHERE id = $1", listID)
+	if err != nil {
+		return fmt.Errorf("failed to update list timestamp: %w", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// ListAllDiscoveryLists retrieves all discovery lists including inactive ones (admin only)
+func (r *DiscoveryListRepository) ListAllDiscoveryLists(ctx context.Context, limit, offset int) ([]models.DiscoveryListWithStats, error) {
+	query := `
+		SELECT 
+			dl.id,
+			dl.name,
+			dl.slug,
+			dl.description,
+			dl.is_featured,
+			dl.is_active,
+			dl.display_order,
+			dl.created_by,
+			dl.created_at,
+			dl.updated_at,
+			COUNT(DISTINCT dlc.clip_id) as clip_count,
+			COUNT(DISTINCT dlf.user_id) as follower_count
+		FROM discovery_lists dl
+		LEFT JOIN discovery_list_clips dlc ON dl.id = dlc.list_id
+		LEFT JOIN discovery_list_follows dlf ON dl.id = dlf.list_id
+		GROUP BY dl.id
+		ORDER BY dl.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	var lists []models.DiscoveryListWithStats
+	err := r.db.SelectContext(ctx, &lists, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all discovery lists: %w", err)
 	}
 
 	return lists, nil
