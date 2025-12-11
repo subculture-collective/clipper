@@ -164,7 +164,7 @@ func (s *LiveStatusService) UpdateLiveStatusForBroadcasters(ctx context.Context,
 // notifyFollowers sends notifications to all followers when a broadcaster goes live
 func (s *LiveStatusService) notifyFollowers(ctx context.Context, broadcasterID string, stream *twitch.Stream) {
 	if s.notificationService == nil {
-		log.Printf("Notification service not available, skipping notifications for broadcaster %s", broadcasterID)
+		log.Printf("WARNING: Notification service not initialized, cannot send notifications for broadcaster %s", broadcasterID)
 		return
 	}
 
@@ -183,6 +183,9 @@ func (s *LiveStatusService) notifyFollowers(ctx context.Context, broadcasterID s
 	broadcasterName := stream.UserName
 	if broadcasterName == "" {
 		broadcasterName = stream.UserLogin
+	}
+	if broadcasterName == "" {
+		broadcasterName = broadcasterID
 	}
 
 	title := fmt.Sprintf("%s is now live!", broadcasterName)
