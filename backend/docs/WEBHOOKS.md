@@ -478,6 +478,6 @@ Use tools like [webhook.site](https://webhook.site) or [ngrok](https://ngrok.com
 ## Support
 
 For issues or questions:
-- Check the [API documentation](https://docs.clipper.example.com)
-- Contact support at support@clipper.example.com
+- Check the [API documentation](https://docs.clpr.tv)
+- Contact support at support@clpr.tv
 - GitHub issues: https://github.com/subculture-collective/clipper/issues

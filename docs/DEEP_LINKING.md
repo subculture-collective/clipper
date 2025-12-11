@@ -65,7 +65,7 @@ The following routes can be opened via deep links:
    Add to your app's entitlements:
 
    ```
-   applinks:clipper.example.com
+   applinks:clpr.tv
    ```
 
 ### Hosting Requirements
@@ -141,7 +141,7 @@ The following routes can be opened via deep links:
      <category android:name="android.intent.category.DEFAULT" />
      <category android:name="android.intent.category.BROWSABLE" />
      <data android:scheme="https"
-           android:host="clipper.example.com"
+           android:host="clpr.tv"
            android:pathPrefix="/clip" />
    </intent-filter>
    ```
@@ -226,7 +226,7 @@ if (sharedData) {
 ```typescript
 import { isValidDeepLink } from '@/lib/deep-linking';
 
-if (isValidDeepLink('https://clipper.example.com/clip/abc123')) {
+if (isValidDeepLink('https://clpr.tv/clip/abc123')) {
   // Valid deep link
 }
 ```
@@ -236,7 +236,7 @@ if (isValidDeepLink('https://clipper.example.com/clip/abc123')) {
 ```typescript
 import { parseDeepLink } from '@/lib/deep-linking';
 
-const internalRoute = parseDeepLink('https://clipper.example.com/clip/abc123');
+const internalRoute = parseDeepLink('https://clpr.tv/clip/abc123');
 // Returns: '/clip/abc123'
 ```
 
@@ -247,7 +247,7 @@ import { handleDeepLink } from '@/lib/deep-linking';
 import { useNavigate } from 'react-router-dom';
 
 const navigate = useNavigate();
-const route = handleDeepLink('https://clipper.example.com/clip/abc123');
+const route = handleDeepLink('https://clpr.tv/clip/abc123');
 
 if (route) {
   navigate(route);
@@ -260,7 +260,7 @@ if (route) {
 import { generateDeepLink } from '@/lib/deep-linking';
 
 const deepLink = generateDeepLink('/clip/abc123');
-// Returns: 'https://clipper.example.com/clip/abc123'
+// Returns: 'https://clpr.tv/clip/abc123'
 ```
 
 ### Check if opened via deep link

@@ -354,8 +354,8 @@ sudo systemctl reload nginx
 
 ```bash
 # Set your domain and email
-export DOMAIN=clipper.example.com
-export EMAIL=admin@example.com
+export DOMAIN=clpr.tv
+export EMAIL=admin@clpr.tv
 
 # Run SSL setup script
 sudo ./scripts/setup-ssl.sh
@@ -368,7 +368,7 @@ sudo ./scripts/setup-ssl.sh
 sudo apt install -y certbot python3-certbot-nginx
 
 # Obtain certificate
-sudo certbot --nginx -d clipper.example.com -d www.clipper.example.com
+sudo certbot --nginx -d clpr.tv -d www.clpr.tv
 
 # Test auto-renewal
 sudo certbot renew --dry-run

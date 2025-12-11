@@ -389,7 +389,7 @@ docker-compose logs postgres
 Verify DNS:
 
 ```bash
-dig +short clipper.example.com
+dig +short clpr.tv
 ```
 
 Check port 80:
@@ -401,7 +401,7 @@ sudo netstat -tlnp | grep :80
 Test Certbot manually:
 
 ```bash
-sudo certbot certonly --dry-run --nginx -d clipper.example.com
+sudo certbot certonly --dry-run --nginx -d clpr.tv
 ```
 
 ## Best Practices

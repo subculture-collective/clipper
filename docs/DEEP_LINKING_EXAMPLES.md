@@ -10,7 +10,7 @@ This document provides practical examples of how deep linking works in the Clipp
 
 **Flow**:
 
-1. User views a clip at `https://clipper.example.com/clip/abc123`
+1. User views a clip at `https://clpr.tv/clip/abc123`
 2. User shares the link via messaging app
 3. Friend taps the link on their mobile device
 4. If Clipper PWA is installed: App opens directly to the clip
@@ -23,7 +23,7 @@ import { generateDeepLink } from '@/lib/deep-linking';
 
 // Generate shareable link
 const clipLink = generateDeepLink('/clip/abc123');
-// Result: 'https://clipper.example.com/clip/abc123'
+// Result: 'https://clpr.tv/clip/abc123'
 
 // Share via Web Share API
 if (navigator.share) {
@@ -80,7 +80,7 @@ function SubmitClipPage() {
 **Flow**:
 
 1. User searches "Clipper valorant clips"
-2. Google shows result: `https://clipper.example.com/tag/valorant`
+2. Google shows result: `https://clpr.tv/tag/valorant`
 3. User taps the link
 4. If Clipper PWA is installed: App opens to the tag page
 5. If not installed: Browser opens to the tag page
@@ -91,7 +91,7 @@ function SubmitClipPage() {
 
 **Flow**:
 
-1. Backend sends email with link: `https://clipper.example.com/clip/xyz789`
+1. Backend sends email with link: `https://clpr.tv/clip/xyz789`
 2. User taps link on their phone
 3. Universal link is detected
 4. Clipper app opens directly to the clip (if installed)
@@ -102,7 +102,7 @@ function SubmitClipPage() {
 
 **Flow**:
 
-1. Physical poster has QR code linking to `https://clipper.example.com/discover`
+1. Physical poster has QR code linking to `https://clpr.tv/discover`
 2. User scans QR code with phone camera
 3. Universal link opens Clipper app to discovery page
 4. Or opens browser if app not installed
@@ -113,14 +113,14 @@ function SubmitClipPage() {
 
 ```bash
 # iOS Test (via iMessage)
-1. Send this link in iMessage: https://clipper.example.com/clip/test123
+1. Send this link in iMessage: https://clpr.tv/clip/test123
 2. Long press the link
 3. Should show "Open in Clipper" option
 4. Tap to open - should go directly to clip detail page
 
 # Android Test (via ADB)
 adb shell am start -W -a android.intent.action.VIEW \
-  -d "https://clipper.example.com/clip/test123" \
+  -d "https://clpr.tv/clip/test123" \
   com.subculture.clipper
 ```
 
@@ -140,7 +140,7 @@ adb shell am start -W -a android.intent.action.VIEW \
 
 ```bash
 # Test Profile Deep Link
-1. Open link: https://clipper.example.com/profile
+1. Open link: https://clpr.tv/profile
 2. If logged in, should open user profile
 3. If not logged in, should redirect to login then profile
 ```
@@ -279,53 +279,53 @@ function handleExternalLink(url: string) {
 
 ```
 # Clip detail
-https://clipper.example.com/clip/abc123
-https://clipper.example.com/clip/xyz-789
+https://clpr.tv/clip/abc123
+https://clpr.tv/clip/xyz-789
 
 # Profile
-https://clipper.example.com/profile
-https://clipper.example.com/profile/stats
+https://clpr.tv/profile
+https://clpr.tv/profile/stats
 
 # Search
-https://clipper.example.com/search
-https://clipper.example.com/search?q=valorant
+https://clpr.tv/search
+https://clpr.tv/search?q=valorant
 
 # Submit
-https://clipper.example.com/submit
-https://clipper.example.com/submit?url=https://twitch.tv/...
+https://clpr.tv/submit
+https://clpr.tv/submit?url=https://twitch.tv/...
 
 # Game
-https://clipper.example.com/game/valorant
-https://clipper.example.com/game/league-of-legends
+https://clpr.tv/game/valorant
+https://clpr.tv/game/league-of-legends
 
 # Creator
-https://clipper.example.com/creator/shroud
-https://clipper.example.com/creator/shroud/analytics
+https://clpr.tv/creator/shroud
+https://clpr.tv/creator/shroud/analytics
 
 # Tag
-https://clipper.example.com/tag/funny
-https://clipper.example.com/tag/esports
+https://clpr.tv/tag/funny
+https://clpr.tv/tag/esports
 
 # Feeds
-https://clipper.example.com/discover
-https://clipper.example.com/new
-https://clipper.example.com/top
-https://clipper.example.com/rising
+https://clpr.tv/discover
+https://clpr.tv/new
+https://clpr.tv/top
+https://clpr.tv/rising
 ```
 
 ### Invalid Deep Links (Fall back to web)
 
 ```
 # Admin routes (not supported for security)
-https://clipper.example.com/admin/dashboard
+https://clpr.tv/admin/dashboard
 
 # Auth routes (handled separately)
-https://clipper.example.com/login
-https://clipper.example.com/auth/success
+https://clpr.tv/login
+https://clpr.tv/auth/success
 
 # Settings routes (require authentication, handled separately)
-https://clipper.example.com/settings
-https://clipper.example.com/notifications
+https://clpr.tv/settings
+https://clpr.tv/notifications
 ```
 
 ## Troubleshooting Examples
@@ -342,7 +342,7 @@ https://clipper.example.com/notifications
 **Solution 2: Verify Association File**
 
 ```bash
-curl -v https://clipper.example.com/.well-known/apple-app-site-association
+curl -v https://clpr.tv/.well-known/apple-app-site-association
 
 # Should return:
 # - Status: 200 OK
@@ -360,7 +360,7 @@ adb shell dumpsys package domain-preferred-apps
 
 # Should show:
 # Package: com.subculture.clipper
-#   Domains: clipper.example.com
+#   Domains: clpr.tv
 #   Status: verified
 ```
 
@@ -402,7 +402,7 @@ npm run build
 const link = generateDeepLink('/clip/abc123');
 
 // ❌ Bad
-const link = 'https://clipper.example.com/clip/abc123';
+const link = 'https://clpr.tv/clip/abc123';
 ```
 
 ### 2. Validate Before Opening

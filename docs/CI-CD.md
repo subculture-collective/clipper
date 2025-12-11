@@ -210,8 +210,8 @@ Configure in Settings > Secrets and variables > Actions:
 | Secret | Description | Example |
 |--------|-------------|---------|
 | `CODECOV_TOKEN` | Codecov project token | `abc123...` |
-| `STAGING_HOST` | Staging server hostname | `staging.clipper.example.com` |
-| `PRODUCTION_HOST` | Production server hostname | `clipper.example.com` |
+| `STAGING_HOST` | Staging server hostname | `staging.clpr.tv` |
+| `PRODUCTION_HOST` | Production server hostname | `clpr.tv` |
 | `DEPLOY_SSH_KEY` | SSH private key | `-----BEGIN RSA PRIVATE KEY-----...` |
 
 ### Server Configuration
@@ -339,11 +339,11 @@ Check workflow status:
 
 **Staging:**
 
-- Health check: <http://staging.clipper.example.com/health>
+- Health check: <http://staging.clpr.tv/health>
 
 **Production:**
 
-- Health check: <https://clipper.example.com/health>
+- Health check: <https://clpr.tv/health>
 - Automatic rollback on failure
 
 ### Logs

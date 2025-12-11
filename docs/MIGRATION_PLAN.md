@@ -638,11 +638,11 @@ migrate -path backend/migrations -database "$DATABASE_URL" up
 time migrate -path backend/migrations -database "$DATABASE_URL" up
 
 # 4. Test application with new schema
-curl https://staging.clipper.example.com/health
+curl https://staging.clpr.tv/health
 
 # 5. Test rollback
 migrate -path backend/migrations -database "$DATABASE_URL" down 1
-curl https://staging.clipper.example.com/health
+curl https://staging.clpr.tv/health
 migrate -path backend/migrations -database "$DATABASE_URL" up
 
 # 6. Load test after migration
@@ -709,8 +709,8 @@ psql -d clipper_db -f backend/migrations/health_check.sql
 ./scripts/health-check.sh
 
 # 8. Test critical user flows
-curl -X POST https://clipper.example.com/api/v1/auth/login -d '...'
-curl https://clipper.example.com/api/v1/clips?sort=hot&limit=10
+curl -X POST https://clpr.tv/api/v1/auth/login -d '...'
+curl https://clpr.tv/api/v1/clips?sort=hot&limit=10
 
 # 9. Monitor error rates in Sentry
 # (Check Sentry dashboard for spike in errors)

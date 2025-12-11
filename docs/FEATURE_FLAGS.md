@@ -529,7 +529,7 @@ sed -i 's/FEATURE_SEMANTIC_SEARCH=true/FEATURE_SEMANTIC_SEARCH=false/' .env
 docker-compose restart backend
 
 # 4. Verify feature disabled
-curl https://clipper.example.com/api/v1/config/features | jq '.semanticSearch'
+curl https://clpr.tv/api/v1/config/features | jq '.semanticSearch'
 # Should return: false
 
 # 5. Monitor for stabilization

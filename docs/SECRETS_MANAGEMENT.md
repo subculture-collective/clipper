@@ -135,7 +135,7 @@ Rotate Twitch credentials every 90 days or immediately if compromised:
 
    ```bash
    # Test authentication flow
-   curl -X GET https://clipper.example.com/api/v1/auth/twitch
+   curl -X GET https://clpr.tv/api/v1/auth/twitch
    
    # Check logs for errors
    docker-compose logs -f backend | grep -i twitch
