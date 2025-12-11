@@ -257,12 +257,12 @@ import {
   trackEvent 
 } from '../lib/google-analytics';
 
-// Pre-defined event tracking
-trackClipSubmission(clipId, creatorName);
+// Pre-defined event tracking (no PII included)
+trackClipSubmission(clipId);
 trackUpvote(clipId);
 trackComment(clipId);
 trackShare(clipId, 'twitter');
-trackFollow('creator', creatorId);
+trackFollow('creator');
 
 // Custom event tracking
 trackEvent('custom_action', {
@@ -275,7 +275,9 @@ trackEvent('custom_action', {
 
 - Events are only tracked if user has granted analytics consent
 - All events respect Do Not Track (DNT) signals
-- Domain context (`clpr.tv`) is automatically added to all events
+- Domain context is automatically added to all events
+- **No PII is sent**: user IDs, names, and search queries are excluded
+- Analytics can be globally disabled via `VITE_ENABLE_ANALYTICS=false`
 
 ### Client-Side Tracking
 

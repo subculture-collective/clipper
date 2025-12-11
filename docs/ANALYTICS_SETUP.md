@@ -76,12 +76,14 @@ While our implementation automatically tracks custom events, you can create cust
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 VITE_ENABLE_ANALYTICS=false  # Typically disabled in dev to avoid test data
 # Set to true when testing analytics integration
+VITE_DOMAIN=localhost  # Optional: defaults to window.location.hostname
 ```
 
 **Production (.env.production):**
 ```bash
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 VITE_ENABLE_ANALYTICS=true
+VITE_DOMAIN=clpr.tv  # Optional: defaults to window.location.hostname
 ```
 
 **Kubernetes ConfigMap:**

@@ -7,6 +7,8 @@
 
 // Google Analytics configuration
 export const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
+const ANALYTICS_ENABLED = import.meta.env.VITE_ENABLE_ANALYTICS === 'true';
+const DOMAIN = import.meta.env.VITE_DOMAIN || window.location.hostname;
 
 // Track if GA is initialized
 let gaInitialized = false;
@@ -16,6 +18,11 @@ let gaInitialized = false;
  * Should be called after user grants analytics consent
  */
 export function initGoogleAnalytics(): void {
+    if (!ANALYTICS_ENABLED) {
+        console.log('Google Analytics is disabled via VITE_ENABLE_ANALYTICS');
+        return;
+    }
+
     if (!GA_MEASUREMENT_ID) {
         console.log('Google Analytics is not configured (no measurement ID)');
         return;
@@ -123,7 +130,7 @@ export function trackEvent(
     // Add domain context to all events
     const params = {
         ...eventParams,
-        domain: 'clpr.tv',
+        domain: DOMAIN,
     };
 
     gtag('event', eventName, params);
@@ -133,10 +140,9 @@ export function trackEvent(
  * Pre-defined event tracking functions for common actions
  */
 
-export function trackClipSubmission(clipId: string, creatorName: string): void {
+export function trackClipSubmission(clipId: string): void {
     trackEvent('clip_submitted', {
         clip_id: clipId,
-        creator_name: creatorName,
     });
 }
 
@@ -165,10 +171,9 @@ export function trackShare(clipId: string, platform: string): void {
     });
 }
 
-export function trackFollow(targetType: 'creator' | 'user' | 'community', targetId: string): void {
+export function trackFollow(targetType: 'creator' | 'user' | 'community'): void {
     trackEvent('follow_action', {
         target_type: targetType,
-        target_id: targetId,
     });
 }
 
