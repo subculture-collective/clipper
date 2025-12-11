@@ -259,18 +259,18 @@ Set up SSL/TLS certificates using Let's Encrypt.
 
 ```bash
 # Set up SSL certificate
-sudo DOMAIN=clipper.example.com EMAIL=admin@example.com ./scripts/setup-ssl.sh
+sudo DOMAIN=clpr.tv EMAIL=admin@clpr.tv ./scripts/setup-ssl.sh
 
 # Or export variables first
-export DOMAIN=clipper.example.com
-export EMAIL=admin@example.com
+export DOMAIN=clpr.tv
+export EMAIL=admin@clpr.tv
 sudo ./scripts/setup-ssl.sh
 ```
 
 **Environment Variables**:
 
-- `DOMAIN`: Your domain name (default: `clipper.example.com`)
-- `EMAIL`: Admin email for Let's Encrypt (default: `admin@example.com`)
+- `DOMAIN`: Your domain name (default: `clpr.tv`)
+- `EMAIL`: Admin email for Let's Encrypt (default: `admin@clpr.tv`)
 - `WEBROOT`: Webroot for ACME challenge (default: `/var/www/certbot`)
 
 **Requirements**:
@@ -284,10 +284,10 @@ sudo ./scripts/setup-ssl.sh
 
 ```
 === SSL/TLS Certificate Setup (Let's Encrypt) ===
-Domain: clipper.example.com
-Email: admin@example.com
+Domain: clpr.tv
+Email: admin@clpr.tv
 
-[INFO] Checking if clipper.example.com resolves to this server...
+[INFO] Checking if clpr.tv resolves to this server...
 [INFO] Obtaining SSL certificate from Let's Encrypt...
 [INFO] Certificate obtained successfully!
 [INFO] Setting up automatic certificate renewal...
@@ -296,21 +296,21 @@ Email: admin@example.com
 [INFO] Certificate renewal test passed
 
 Certificate Information:
-  Certificate Name: clipper.example.com
+  Certificate Name: clpr.tv
     Serial Number: 1234567890abcdef
-    Domains: clipper.example.com www.clipper.example.com
+    Domains: clpr.tv www.clpr.tv
     Expiry Date: 2024-04-01 00:00:00+00:00 (89 days)
 
 Certificate files location:
-  Certificate: /etc/letsencrypt/live/clipper.example.com/fullchain.pem
-  Private Key: /etc/letsencrypt/live/clipper.example.com/privkey.pem
-  Chain: /etc/letsencrypt/live/clipper.example.com/chain.pem
+  Certificate: /etc/letsencrypt/live/clpr.tv/fullchain.pem
+  Private Key: /etc/letsencrypt/live/clpr.tv/privkey.pem
+  Chain: /etc/letsencrypt/live/clpr.tv/chain.pem
 
 Next steps:
   1. Update your nginx configuration to use the SSL certificate
   2. Test nginx config: nginx -t
   3. Reload nginx: systemctl reload nginx
-  4. Test SSL: https://clipper.example.com
+  4. Test SSL: https://clpr.tv
 
 === SSL Setup Complete ===
 ```

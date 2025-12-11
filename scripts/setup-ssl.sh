@@ -8,8 +8,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-DOMAIN="${DOMAIN:-clipper.example.com}"
-EMAIL="${EMAIL:-admin@example.com}"
+DOMAIN="${DOMAIN:-clpr.tv}"
+EMAIL="${EMAIL:-admin@clpr.tv}"
 WEBROOT="${WEBROOT:-/var/www/certbot}"
 
 echo -e "${GREEN}=== SSL/TLS Certificate Setup (Let's Encrypt) ===${NC}"
