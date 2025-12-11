@@ -432,7 +432,7 @@ import Constants from 'expo-constants';
 
 const API_BASE_URL =
   Constants.expoConfig?.extra?.apiUrl ||
-  'https://api.clpr.tv';
+  'https://api.clpr.tv/v1';
 
 export const apiClient = new ApiClient(
   API_BASE_URL,
