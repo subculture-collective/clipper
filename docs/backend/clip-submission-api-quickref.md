@@ -1,3 +1,28 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clip Submission API - Quick Reference](#clip-submission-api---quick-reference)
+  - [Authentication](#authentication)
+  - [Endpoints](#endpoints)
+  - [Quick Examples](#quick-examples)
+    - [1. Fetch Metadata](#1-fetch-metadata)
+    - [2. Submit Clip](#2-submit-clip)
+  - [Request Body (POST /submissions)](#request-body-post-submissions)
+  - [Response Examples](#response-examples)
+    - [Success (Auto-Approved)](#success-auto-approved)
+    - [Success (Pending Review)](#success-pending-review)
+    - [Error (Duplicate)](#error-duplicate)
+    - [Error (Rate Limit)](#error-rate-limit)
+  - [Supported Clip URL Formats](#supported-clip-url-formats)
+  - [Requirements](#requirements)
+  - [Auto-Approval Rules](#auto-approval-rules)
+  - [Status Codes](#status-codes)
+  - [Common Errors](#common-errors)
+  - [TypeScript Types](#typescript-types)
+  - [Full Documentation](#full-documentation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Clip Submission API - Quick Reference"
 summary: "```bash"

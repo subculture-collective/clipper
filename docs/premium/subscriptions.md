@@ -1,3 +1,53 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Stripe Subscriptions](#stripe-subscriptions)
+  - [Overview](#overview)
+  - [Getting Started](#getting-started)
+    - [1. Create a Stripe Account](#1-create-a-stripe-account)
+    - [2. Get Your API Keys](#2-get-your-api-keys)
+    - [3. Create Products and Prices](#3-create-products-and-prices)
+    - [4. Set Up Webhooks](#4-set-up-webhooks)
+    - [5. Configure Redirect URLs](#5-configure-redirect-urls)
+  - [Testing with Stripe CLI (Local Development)](#testing-with-stripe-cli-local-development)
+    - [Install Stripe CLI](#install-stripe-cli)
+  - [Test Cards](#test-cards)
+  - [API Endpoints](#api-endpoints)
+    - [Create Checkout Session](#create-checkout-session)
+    - [Create Customer Portal Session](#create-customer-portal-session)
+    - [Get Current Subscription](#get-current-subscription)
+    - [Change Subscription Plan](#change-subscription-plan)
+    - [Webhook Handler](#webhook-handler)
+  - [Subscription Status Values](#subscription-status-values)
+  - [Coupons and Discounts](#coupons-and-discounts)
+    - [Creating Coupons in Stripe](#creating-coupons-in-stripe)
+    - [Using Coupons in Checkout](#using-coupons-in-checkout)
+    - [Common Coupon Patterns](#common-coupon-patterns)
+  - [Proration](#proration)
+    - [How Proration Works](#how-proration-works)
+    - [Proration Behavior](#proration-behavior)
+    - [Testing Proration](#testing-proration)
+  - [Feature Gating](#feature-gating)
+    - [Require Pro Subscription](#require-pro-subscription)
+    - [Require Any Active Subscription](#require-any-active-subscription)
+  - [Webhook Events](#webhook-events)
+    - [customer.subscription.created](#customersubscriptioncreated)
+    - [customer.subscription.updated](#customersubscriptionupdated)
+    - [customer.subscription.deleted](#customersubscriptiondeleted)
+    - [invoice.paid](#invoicepaid)
+    - [invoice.payment_failed](#invoicepayment_failed)
+  - [Audit Logging](#audit-logging)
+  - [Idempotency](#idempotency)
+  - [Security Best Practices](#security-best-practices)
+  - [Troubleshooting](#troubleshooting)
+    - [Webhooks not working](#webhooks-not-working)
+    - [Subscription not updating](#subscription-not-updating)
+    - [Payment fails in test mode](#payment-fails-in-test-mode)
+  - [Production Deployment](#production-deployment)
+  - [Support](#support)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Stripe Subscriptions"
 summary: "This document describes how to set up and manage Stripe subscriptions in the Clipper application."

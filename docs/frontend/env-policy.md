@@ -1,3 +1,10 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Frontend Environment Variable Policy](#frontend-environment-variable-policy)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Frontend Environment Variable Policy"
 summary: "Only `VITE_*` variables may be used at build-time for the frontend. These values are inlined into th"

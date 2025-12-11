@@ -1,3 +1,44 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Entitlement Matrix](#entitlement-matrix)
+  - [Executive Summary](#executive-summary)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [Entitlement Principles](#entitlement-principles)
+    - [Platform Coverage](#platform-coverage)
+  - [Tier Definitions](#tier-definitions)
+  - [Feature Categories](#feature-categories)
+    - [Category 1: Core Features (All Tiers)](#category-1-core-features-all-tiers)
+    - [Category 2: Content Submission](#category-2-content-submission)
+    - [Category 3: Organization & Collections](#category-3-organization--collections)
+    - [Category 4: Search & Discovery](#category-4-search--discovery)
+    - [Category 5: Experience & UI](#category-5-experience--ui)
+    - [Category 6: Data & Export](#category-6-data--export)
+    - [Category 7: Sync & Multi-Device](#category-7-sync--multi-device)
+    - [Category 8: Community & Social](#category-8-community--social)
+    - [Category 9: Early Access & Beta](#category-9-early-access--beta)
+    - [Category 10: Analytics & Insights](#category-10-analytics--insights)
+  - [Platform Matrix](#platform-matrix)
+    - [Web Platform (React Frontend)](#web-platform-react-frontend)
+    - [Mobile Platform (Future Native Apps)](#mobile-platform-future-native-apps)
+    - [API Platform (REST API v1)](#api-platform-rest-api-v1)
+  - [Implementation Guidelines](#implementation-guidelines)
+    - [Backend Implementation](#backend-implementation)
+    - [Frontend Implementation](#frontend-implementation)
+    - [Mobile Implementation (Future)](#mobile-implementation-future)
+  - [Rate Limits and Quotas](#rate-limits-and-quotas)
+    - [Rate Limit Tiers](#rate-limit-tiers)
+    - [Quota Enforcement Strategy](#quota-enforcement-strategy)
+    - [Error Responses](#error-responses)
+  - [Testing Checklist](#testing-checklist)
+    - [Backend Tests](#backend-tests)
+    - [Frontend Tests](#frontend-tests)
+    - [Integration Tests](#integration-tests)
+  - [Related Documentation](#related-documentation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Entitlement Matrix"
 summary: "**Status**: Approved for Beta Milestone"

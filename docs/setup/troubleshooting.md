@@ -1,3 +1,18 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Troubleshooting](#troubleshooting)
+  - [Docker Services Won't Start](#docker-services-wont-start)
+  - [Backend Cannot Connect to Database](#backend-cannot-connect-to-database)
+  - [OpenSearch Health Red/Yellow](#opensearch-health-redyellow)
+  - [Embeddings Missing](#embeddings-missing)
+  - [Frontend Can't Reach API](#frontend-cant-reach-api)
+  - [Tests Failing Randomly](#tests-failing-randomly)
+  - [Rate Limit Errors](#rate-limit-errors)
+  - [Useful Commands](#useful-commands)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Troubleshooting"
 summary: "Common issues and quick fixes for Clipper development and operations."

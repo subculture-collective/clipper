@@ -1,3 +1,33 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Development Workflow for Live Deployments](#development-workflow-for-live-deployments)
+  - [Overview](#overview)
+  - [Quick Reference](#quick-reference)
+  - [Detailed Workflow](#detailed-workflow)
+    - [1. Setting Up Local Development](#1-setting-up-local-development)
+    - [2. Creating a Feature Branch](#2-creating-a-feature-branch)
+    - [3. Testing Your Changes](#3-testing-your-changes)
+    - [4. Push and Create PR](#4-push-and-create-pr)
+    - [5. Code Review & Merge](#5-code-review--merge)
+    - [6. Testing on Staging](#6-testing-on-staging)
+    - [7. Promotion to Production](#7-promotion-to-production)
+  - [Handling the Chunking Issue](#handling-the-chunking-issue)
+  - [Zero-Downtime Deployments](#zero-downtime-deployments)
+  - [Avoiding Common Issues](#avoiding-common-issues)
+    - [❌ Don't do this:](#-dont-do-this)
+    - [✅ Do this instead:](#-do-this-instead)
+  - [Deployment Environments](#deployment-environments)
+    - [Development (Local)](#development-local)
+    - [Staging](#staging)
+    - [Production](#production)
+  - [Release Process](#release-process)
+  - [Monitoring & Alerts](#monitoring--alerts)
+  - [Key Files](#key-files)
+  - [Questions?](#questions)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Development Workflow for Live Deployments"
 summary: "This guide describes best practices for working on Clipper while it's deployed and serving users."

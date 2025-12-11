@@ -1,3 +1,32 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Security Summary - Clip Management API](#security-summary---clip-management-api)
+  - [Security Analysis Date](#security-analysis-date)
+  - [CodeQL Security Scan Results](#codeql-security-scan-results)
+  - [Security Measures Implemented](#security-measures-implemented)
+    - [Authentication & Authorization](#authentication--authorization)
+    - [Input Validation](#input-validation)
+    - [SQL Injection Prevention](#sql-injection-prevention)
+    - [Rate Limiting](#rate-limiting)
+    - [Data Protection](#data-protection)
+    - [API Security](#api-security)
+  - [Potential Security Considerations](#potential-security-considerations)
+    - [Low Risk Items](#low-risk-items)
+    - [No Risk Items](#no-risk-items)
+  - [Security Best Practices Followed](#security-best-practices-followed)
+  - [Recommendations for Production](#recommendations-for-production)
+    - [Required Before Deployment](#required-before-deployment)
+    - [Recommended Enhancements](#recommended-enhancements)
+    - [Ongoing Security](#ongoing-security)
+  - [Compliance Notes](#compliance-notes)
+    - [GDPR Considerations](#gdpr-considerations)
+    - [Data Retention](#data-retention)
+  - [Security Testing Performed](#security-testing-performed)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Security Summary - Clip Management API
 
 ## Security Analysis Date

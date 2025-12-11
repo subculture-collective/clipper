@@ -1,3 +1,28 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Mobile Clip Feed Implementation](#mobile-clip-feed-implementation)
+  - [Overview](#overview)
+  - [Features Implemented](#features-implemented)
+    - [1. Pull-to-Refresh (Mobile Web)](#1-pull-to-refresh-mobile-web)
+    - [2. Performance Optimizations](#2-performance-optimizations)
+    - [3. Infinite Scroll](#3-infinite-scroll)
+    - [4. Loading States](#4-loading-states)
+    - [5. Mobile-Specific Improvements](#5-mobile-specific-improvements)
+  - [Performance Characteristics](#performance-characteristics)
+    - [Memory Management](#memory-management)
+    - [Scroll Performance](#scroll-performance)
+    - [Network Efficiency](#network-efficiency)
+  - [Testing](#testing)
+  - [Browser Compatibility](#browser-compatibility)
+    - [Pull-to-Refresh](#pull-to-refresh)
+    - [Performance Features](#performance-features)
+  - [Usage](#usage)
+  - [Future Enhancements](#future-enhancements)
+  - [Metrics to Monitor](#metrics-to-monitor)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Mobile Clip Feed Implementation
 
 ## Overview

@@ -1,3 +1,49 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Notification System Implementation Summary](#notification-system-implementation-summary)
+  - [Overview](#overview)
+  - [Implementation Details](#implementation-details)
+    - [Backend Implementation](#backend-implementation)
+    - [Frontend Implementation](#frontend-implementation)
+  - [Features Implemented](#features-implemented)
+    - [Notification Types](#notification-types)
+    - [User Experience](#user-experience)
+    - [Backend Features](#backend-features)
+  - [Technical Decisions](#technical-decisions)
+    - [Database Design](#database-design)
+    - [Backend Architecture](#backend-architecture)
+    - [Frontend Architecture](#frontend-architecture)
+    - [Performance Optimizations](#performance-optimizations)
+  - [Testing](#testing)
+    - [Backend Tests](#backend-tests)
+    - [Frontend Testing](#frontend-testing)
+  - [Future Enhancements (Not Implemented)](#future-enhancements-not-implemented)
+    - [Phase 2 Features](#phase-2-features)
+    - [Phase 3 Features](#phase-3-features)
+    - [Moderation Integration](#moderation-integration)
+  - [Integration Points](#integration-points)
+    - [Ready for Integration](#ready-for-integration)
+    - [Example Integration](#example-integration)
+  - [Files Changed/Created](#files-changedcreated)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+  - [Running the Application](#running-the-application)
+    - [Database Migration](#database-migration)
+    - [Backend](#backend-1)
+    - [Frontend](#frontend-1)
+  - [API Documentation](#api-documentation)
+    - [List Notifications](#list-notifications)
+    - [Get Unread Count](#get-unread-count)
+    - [Mark as Read](#mark-as-read)
+    - [Mark All as Read](#mark-all-as-read)
+    - [Delete Notification](#delete-notification)
+    - [Get Preferences](#get-preferences)
+    - [Update Preferences](#update-preferences)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Notification System Implementation Summary
 
 ## Overview

@@ -1,3 +1,29 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Stripe Subscription Testing Guide](#stripe-subscription-testing-guide)
+  - [Prerequisites](#prerequisites)
+  - [Part 1: Stripe Setup](#part-1-stripe-setup)
+    - [1. Get Test API Keys](#1-get-test-api-keys)
+    - [2. Create Products and Prices](#2-create-products-and-prices)
+    - [3. Create Test Coupons](#3-create-test-coupons)
+    - [4. Setup Webhook Forwarding](#4-setup-webhook-forwarding)
+  - [Part 2: Test Checklist](#part-2-test-checklist)
+    - [✓ Basic Subscription Flow](#%E2%9C%93-basic-subscription-flow)
+    - [✓ Coupon Functionality](#%E2%9C%93-coupon-functionality)
+    - [✓ Plan Changes with Proration](#%E2%9C%93-plan-changes-with-proration)
+    - [✓ Customer Portal](#%E2%9C%93-customer-portal)
+    - [✓ Webhook Processing](#%E2%9C%93-webhook-processing)
+  - [Part 3: Quick API Tests](#part-3-quick-api-tests)
+  - [Part 4: Expected Behaviors](#part-4-expected-behaviors)
+    - [Coupon Applied](#coupon-applied)
+    - [Proration Example](#proration-example)
+    - [Webhook Flow](#webhook-flow)
+  - [Troubleshooting](#troubleshooting)
+  - [Production Readiness](#production-readiness)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Stripe Subscription Testing Guide"
 summary: "This guide walks through testing the complete Stripe subscription integration."

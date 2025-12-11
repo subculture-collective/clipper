@@ -1,3 +1,53 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Production Infrastructure Implementation Summary](#production-infrastructure-implementation-summary)
+  - [📋 Implementation Overview](#-implementation-overview)
+  - [✅ What Was Implemented](#-what-was-implemented)
+    - [1. Deployment Automation Scripts](#1-deployment-automation-scripts)
+    - [2. Enhanced Health Check Endpoints](#2-enhanced-health-check-endpoints)
+    - [3. Advanced Nginx Configuration](#3-advanced-nginx-configuration)
+    - [4. Comprehensive Documentation](#4-comprehensive-documentation)
+    - [5. Monitoring Stack Configuration](#5-monitoring-stack-configuration)
+    - [6. Updated Main Documentation](#6-updated-main-documentation)
+  - [🏗️ Directory Structure](#-directory-structure)
+  - [🔧 Technical Details](#-technical-details)
+    - [Backend Changes](#backend-changes)
+    - [Scripts Implementation](#scripts-implementation)
+    - [Security](#security)
+  - [📊 Metrics](#-metrics)
+    - [Code Added](#code-added)
+    - [Documentation Coverage](#documentation-coverage)
+    - [Features Implemented](#features-implemented)
+  - [🚀 Usage Examples](#-usage-examples)
+    - [Standard Deployment Flow](#standard-deployment-flow)
+    - [Emergency Rollback](#emergency-rollback)
+    - [Scheduled Backups](#scheduled-backups)
+    - [SSL Setup](#ssl-setup)
+    - [Monitoring Stack](#monitoring-stack)
+  - [🎯 Integration with Existing Infrastructure](#-integration-with-existing-infrastructure)
+    - [CI/CD Integration](#cicd-integration)
+    - [Docker Integration](#docker-integration)
+    - [Documentation Integration](#documentation-integration)
+  - [✨ Benefits](#-benefits)
+    - [For Developers](#for-developers)
+    - [For Operations](#for-operations)
+    - [For the Project](#for-the-project)
+  - [📈 Next Steps](#-next-steps)
+    - [Immediate](#immediate)
+    - [Short-term (1-2 weeks)](#short-term-1-2-weeks)
+    - [Long-term (1-3 months)](#long-term-1-3-months)
+  - [🔒 Security Summary](#-security-summary)
+    - [Security Scanning Results](#security-scanning-results)
+    - [Security Features Implemented](#security-features-implemented)
+    - [Security Best Practices Documented](#security-best-practices-documented)
+  - [🎓 Documentation Quality](#-documentation-quality)
+  - [🏁 Conclusion](#-conclusion)
+  - [📞 Support](#-support)
+  - [📚 References](#-references)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Production Infrastructure Implementation Summary
 
 This document summarizes the production infrastructure and deployment pipeline implementation for the Clipper project.

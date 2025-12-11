@@ -1,3 +1,35 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clip Management API Documentation](#clip-management-api-documentation)
+  - [Overview](#overview)
+  - [Base URL](#base-url)
+  - [Authentication](#authentication)
+  - [Endpoints](#endpoints)
+    - [1. List Clips](#1-list-clips)
+    - [2. Get Single Clip](#2-get-single-clip)
+    - [3. Vote on Clip](#3-vote-on-clip)
+    - [4. Add to Favorites](#4-add-to-favorites)
+    - [5. Remove from Favorites](#5-remove-from-favorites)
+    - [6. Get Related Clips](#6-get-related-clips)
+    - [7. Update Clip (Admin)](#7-update-clip-admin)
+    - [8. Delete Clip (Admin)](#8-delete-clip-admin)
+  - [Error Responses](#error-responses)
+    - [Common Error Codes](#common-error-codes)
+  - [Caching](#caching)
+  - [Rate Limits](#rate-limits)
+  - [Database Performance](#database-performance)
+    - [Indexes](#indexes)
+    - [Database Functions](#database-functions)
+    - [Query Optimization](#query-optimization)
+  - [Examples](#examples)
+    - [JavaScript (Fetch API)](#javascript-fetch-api)
+    - [cURL](#curl)
+  - [Changelog](#changelog)
+    - [Version 1.0 (Current)](#version-10-current)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Clip Management API Documentation"
 summary: "The Clip Management API provides comprehensive endpoints for managing clips with CRUD operations, fi"

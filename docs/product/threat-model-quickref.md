@@ -1,3 +1,33 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Security Threat Model - Quick Reference Guide](#security-threat-model---quick-reference-guide)
+  - [🚨 Critical Action Items](#-critical-action-items)
+  - [🟡 High Priority Items](#-high-priority-items)
+  - [📊 At a Glance](#-at-a-glance)
+    - [What We Found](#what-we-found)
+    - [What's Covered](#whats-covered)
+  - [🛡️ Current Security Strengths](#-current-security-strengths)
+  - [🎯 Key Security Gaps](#-key-security-gaps)
+    - [1. Admin Account Protection](#1-admin-account-protection)
+    - [2. Secrets Management](#2-secrets-management)
+    - [3. Authorization Testing](#3-authorization-testing)
+    - [4. Query Injection](#4-query-injection)
+    - [5. Resource Exhaustion](#5-resource-exhaustion)
+  - [📅 Implementation Timeline](#-implementation-timeline)
+  - [🔍 For Developers](#-for-developers)
+    - [When Writing Code](#when-writing-code)
+    - [When Reviewing Code](#when-reviewing-code)
+  - [📚 Full Documentation](#-full-documentation)
+  - [🆘 Security Incident?](#-security-incident)
+  - [📈 Success Metrics](#-success-metrics)
+    - [Phase 1 (Q1 2025) - Critical Items](#phase-1-q1-2025---critical-items)
+    - [Phase 2 (Q2 2025) - High Priority](#phase-2-q2-2025---high-priority)
+  - [🔄 Review Schedule](#-review-schedule)
+  - [Quick Links](#quick-links)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Security Threat Model - Quick Reference Guide"
 summary: "> **TL;DR:** This threat model identified 70 security threats. 3 are critical, 8 are high priority. "

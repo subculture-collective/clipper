@@ -1,3 +1,35 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Production Deployment & Live Development Guide](#production-deployment--live-development-guide)
+  - [Quick Start: Chunking Fix](#quick-start-chunking-fix)
+  - [Architecture Overview](#architecture-overview)
+  - [Working on Production Code](#working-on-production-code)
+    - [Development Workflow](#development-workflow)
+  - [Zero-Downtime Deployment](#zero-downtime-deployment)
+    - [Option 1: Automated Blue-Green Deployment](#option-1-automated-blue-green-deployment)
+    - [Option 2: Manual Blue-Green Deployment](#option-2-manual-blue-green-deployment)
+  - [Nginx Configuration](#nginx-configuration)
+    - [Switching Traffic Manually](#switching-traffic-manually)
+  - [Health Checks](#health-checks)
+    - [Quick Health Check](#quick-health-check)
+    - [What to Monitor](#what-to-monitor)
+  - [Troubleshooting](#troubleshooting)
+    - [Chunking Still Not Working](#chunking-still-not-working)
+    - [Chunks Not Loading (404 errors)](#chunks-not-loading-404-errors)
+    - [Deployment Stuck](#deployment-stuck)
+    - [Can't Switch Back to Blue](#cant-switch-back-to-blue)
+  - [Database Migrations](#database-migrations)
+  - [Monitoring Production](#monitoring-production)
+  - [Rollback Procedure](#rollback-procedure)
+    - [Immediate Rollback (after traffic switch)](#immediate-rollback-after-traffic-switch)
+    - [Git-based Rollback](#git-based-rollback)
+  - [Performance Tips](#performance-tips)
+  - [Recovery Checklist](#recovery-checklist)
+  - [Additional Resources](#additional-resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Production Deployment & Live Development Guide"
 summary: "This guide covers deploying Clipper to production while maintaining the ability to work on the codeb"

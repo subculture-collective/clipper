@@ -1,3 +1,20 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [React Chunking Error Fix](#react-chunking-error-fix)
+  - [Problem](#problem)
+  - [Root Cause](#root-cause)
+  - [Solution](#solution)
+    - [Why This Works](#why-this-works)
+    - [Trade-offs](#trade-offs)
+    - [Current Strategy](#current-strategy)
+  - [Build Output](#build-output)
+  - [Testing](#testing)
+  - [Prevention](#prevention)
+  - [Related Files](#related-files)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # React Chunking Error Fix
 
 ## Problem

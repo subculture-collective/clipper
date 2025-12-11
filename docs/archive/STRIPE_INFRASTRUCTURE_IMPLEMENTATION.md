@@ -1,3 +1,37 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Stripe Integration Infrastructure - Implementation Complete](#stripe-integration-infrastructure---implementation-complete)
+  - [Overview](#overview)
+  - [Implementation Date](#implementation-date)
+  - [Status](#status)
+  - [Changes Made](#changes-made)
+    - [1. Database Schema (Migration 000040)](#1-database-schema-migration-000040)
+    - [2. Webhook Event Handlers](#2-webhook-event-handlers)
+    - [3. Event Router Enhancement](#3-event-router-enhancement)
+    - [4. Documentation Updates](#4-documentation-updates)
+  - [Infrastructure Already in Place](#infrastructure-already-in-place)
+    - [Existing Tables](#existing-tables)
+    - [Existing Services](#existing-services)
+    - [Existing Webhook Handlers](#existing-webhook-handlers)
+  - [Testing & Validation](#testing--validation)
+    - [Build Status](#build-status)
+    - [Code Review](#code-review)
+    - [Security Scan](#security-scan)
+    - [Existing Tests](#existing-tests)
+  - [Configuration](#configuration)
+  - [Acceptance Criteria](#acceptance-criteria)
+  - [Error Handling & Recovery](#error-handling--recovery)
+  - [Security](#security)
+  - [Migration Instructions](#migration-instructions)
+  - [Next Steps (Optional Enhancements)](#next-steps-optional-enhancements)
+  - [Files Modified](#files-modified)
+    - [New Files](#new-files)
+    - [Modified Files](#modified-files)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Stripe Integration Infrastructure - Implementation Complete
 
 ## Overview

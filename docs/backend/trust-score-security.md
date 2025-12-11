@@ -1,3 +1,27 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Trust Score Implementation - Security Summary](#trust-score-implementation---security-summary)
+  - [Security Analysis](#security-analysis)
+    - [CodeQL Scan Results](#codeql-scan-results)
+  - [Security Considerations](#security-considerations)
+    - [Data Privacy](#data-privacy)
+    - [Access Control](#access-control)
+    - [Input Validation](#input-validation)
+    - [Audit Trail](#audit-trail)
+    - [Database Security](#database-security)
+    - [Caching Security](#caching-security)
+    - [Performance & DoS Protection](#performance--dos-protection)
+  - [Recommendations](#recommendations)
+    - [Implemented Safeguards](#implemented-safeguards)
+    - [Future Enhancements](#future-enhancements)
+  - [Compliance Notes](#compliance-notes)
+    - [GDPR Considerations](#gdpr-considerations)
+    - [Audit Requirements](#audit-requirements)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Trust Score Implementation - Security Summary"
 summary: "✅ **No security vulnerabilities detected**"

@@ -1,3 +1,40 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Webhook Integration Guide](#webhook-integration-guide)
+  - [Overview](#overview)
+  - [Supported Events](#supported-events)
+  - [Getting Started](#getting-started)
+    - [1. Create a Webhook Subscription](#1-create-a-webhook-subscription)
+    - [2. Webhook URL Requirements](#2-webhook-url-requirements)
+    - [3. Verify Webhook Signatures](#3-verify-webhook-signatures)
+  - [Webhook Payload Structure](#webhook-payload-structure)
+    - [Event-Specific Fields](#event-specific-fields)
+  - [Retry Behavior](#retry-behavior)
+  - [Managing Webhook Subscriptions](#managing-webhook-subscriptions)
+    - [List Your Subscriptions](#list-your-subscriptions)
+    - [Get Subscription Details](#get-subscription-details)
+    - [Update Subscription](#update-subscription)
+    - [Delete Subscription](#delete-subscription)
+    - [Regenerate Secret](#regenerate-secret)
+    - [View Delivery History](#view-delivery-history)
+  - [Best Practices](#best-practices)
+    - [1. Use HTTPS](#1-use-https)
+    - [2. Validate Signatures](#2-validate-signatures)
+    - [3. Return Quickly](#3-return-quickly)
+    - [4. Handle Duplicates](#4-handle-duplicates)
+    - [5. Monitor Your Endpoints](#5-monitor-your-endpoints)
+    - [6. Test Webhooks](#6-test-webhooks)
+  - [Rate Limits](#rate-limits)
+  - [Troubleshooting](#troubleshooting)
+    - [Webhooks Not Received](#webhooks-not-received)
+    - [Signature Verification Fails](#signature-verification-fails)
+    - [High Failure Rate](#high-failure-rate)
+  - [Security Considerations](#security-considerations)
+  - [Support](#support)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Webhook Integration Guide"
 summary: "This guide explains how to integrate with Clipper's outbound webhooks to receive real-time notificat"

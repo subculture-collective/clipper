@@ -1,3 +1,43 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [CI/CD Secrets Setup Guide](#cicd-secrets-setup-guide)
+  - [Overview](#overview)
+  - [Required Secrets](#required-secrets)
+    - [Repository Secrets (Settings → Secrets and variables → Actions)](#repository-secrets-settings-%E2%86%92-secrets-and-variables-%E2%86%92-actions)
+  - [Environment Secrets](#environment-secrets)
+    - [Staging Environment Secrets](#staging-environment-secrets)
+    - [Production Environment Secrets](#production-environment-secrets)
+  - [Setting Up Secrets](#setting-up-secrets)
+    - [Via GitHub Web Interface](#via-github-web-interface)
+    - [Via GitHub CLI](#via-github-cli)
+  - [Generating Secrets](#generating-secrets)
+    - [SSH Keys for Deployment](#ssh-keys-for-deployment)
+    - [Sentry Auth Token](#sentry-auth-token)
+  - [Verification](#verification)
+    - [Test CI Workflows](#test-ci-workflows)
+    - [Test Deployment Workflows](#test-deployment-workflows)
+  - [Secret Rotation](#secret-rotation)
+    - [Rotation Schedule](#rotation-schedule)
+    - [How to Rotate Secrets](#how-to-rotate-secrets)
+  - [Security Best Practices](#security-best-practices)
+    - [✅ Do's](#-dos)
+    - [❌ Don'ts](#-donts)
+  - [Secret Masking in Workflows](#secret-masking-in-workflows)
+  - [Troubleshooting](#troubleshooting)
+    - [Secret Not Available in Workflow](#secret-not-available-in-workflow)
+    - [Deployment Fails with SSH Error](#deployment-fails-with-ssh-error)
+    - [Codecov Upload Fails](#codecov-upload-fails)
+    - [Sentry Sourcemap Upload Fails](#sentry-sourcemap-upload-fails)
+  - [Monitoring & Auditing](#monitoring--auditing)
+    - [View Secret Usage](#view-secret-usage)
+    - [Audit Secret Access](#audit-secret-access)
+    - [Set Up Alerts](#set-up-alerts)
+  - [Additional Resources](#additional-resources)
+  - [Support](#support)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "CI/CD Secrets Setup Guide"
 summary: "This document outlines all the secrets required for CI/CD pipelines and how to configure them."

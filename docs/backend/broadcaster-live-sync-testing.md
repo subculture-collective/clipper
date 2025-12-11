@@ -1,3 +1,33 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Broadcaster Live Status Sync - Testing Guide](#broadcaster-live-status-sync---testing-guide)
+  - [Overview](#overview)
+  - [Features Implemented](#features-implemented)
+    - [1. Database Schema](#1-database-schema)
+    - [2. Live Status Service Enhancements](#2-live-status-service-enhancements)
+    - [3. Notification System](#3-notification-system)
+    - [4. Scheduler Updates](#4-scheduler-updates)
+  - [Manual Testing Steps](#manual-testing-steps)
+    - [Prerequisites](#prerequisites)
+    - [Test Scenarios](#test-scenarios)
+    - [Database Queries for Verification](#database-queries-for-verification)
+  - [API Endpoints to Test](#api-endpoints-to-test)
+    - [Get Live Status](#get-live-status)
+    - [Get Followed Live Broadcasters](#get-followed-live-broadcasters)
+    - [List All Live Broadcasters](#list-all-live-broadcasters)
+    - [Update Notification Preferences](#update-notification-preferences)
+  - [Expected Metrics](#expected-metrics)
+    - [Performance](#performance)
+    - [Reliability](#reliability)
+  - [Monitoring](#monitoring)
+    - [Logs to Watch](#logs-to-watch)
+    - [Potential Issues](#potential-issues)
+  - [Rollback Plan](#rollback-plan)
+  - [Notes](#notes)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Broadcaster Live Status Sync - Testing Guide"
 summary: "This implementation adds automatic synchronization of broadcaster live status and notifications to f"

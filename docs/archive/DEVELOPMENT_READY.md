@@ -1,3 +1,43 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Development Environment - Ready to Launch! 🚀](#development-environment---ready-to-launch-)
+  - [Summary](#summary)
+  - [What's Been Done](#whats-been-done)
+    - [1. ✅ Fixed Chunking Issue (Previous Session)](#1--fixed-chunking-issue-previous-session)
+    - [2. ✅ Fixed Backend Configuration (This Session)](#2--fixed-backend-configuration-this-session)
+    - [3. ✅ Established Development Workflows](#3--established-development-workflows)
+    - [4. ✅ Created Documentation](#4--created-documentation)
+  - [Quick Start (Right Now)](#quick-start-right-now)
+    - [Terminal 1: Start Database & Services](#terminal-1-start-database--services)
+    - [Terminal 2: Start Backend](#terminal-2-start-backend)
+    - [Terminal 3: Start Frontend](#terminal-3-start-frontend)
+    - [Browser](#browser)
+  - [Development Commands](#development-commands)
+  - [Feature Development Process](#feature-development-process)
+    - [1. Create Feature Branch](#1-create-feature-branch)
+    - [2. Start Development](#2-start-development)
+    - [3. Make Changes](#3-make-changes)
+    - [4. Commit & Push](#4-commit--push)
+    - [5. Create PR on GitHub](#5-create-pr-on-github)
+    - [6. After Review & Merge](#6-after-review--merge)
+  - [Environment Configuration](#environment-configuration)
+    - [Backend (.env files)](#backend-env-files)
+    - [Frontend (.env files)](#frontend-env-files)
+    - [Services Running](#services-running)
+  - [Git Workflow](#git-workflow)
+  - [Common Issues & Solutions](#common-issues--solutions)
+  - [Documentation References](#documentation-references)
+  - [Current Git State](#current-git-state)
+  - [Next Actions](#next-actions)
+    - [Immediate (Now)](#immediate-now)
+    - [Today](#today)
+    - [This Week](#this-week)
+  - [Need Help?](#need-help)
+  - [Summary](#summary-1)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Development Environment - Ready to Launch! 🚀
 
 ## Summary

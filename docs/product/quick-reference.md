@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Quick Reference Card](#quick-reference-card)
+  - [Chunking Fix](#chunking-fix)
+  - [Local Development](#local-development)
+  - [Feature Development](#feature-development)
+  - [Promote to Production](#promote-to-production)
+  - [Zero-Downtime Deployment](#zero-downtime-deployment)
+  - [Health Checks](#health-checks)
+  - [Emergency Rollback](#emergency-rollback)
+  - [Troubleshooting](#troubleshooting)
+  - [Files to Know](#files-to-know)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Quick Reference Card"
 summary: "```bash"

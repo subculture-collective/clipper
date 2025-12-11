@@ -1,3 +1,31 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Type Safety Improvements for failedQueue](#type-safety-improvements-for-failedqueue)
+  - [Issue Reference](#issue-reference)
+  - [Problem](#problem)
+  - [Solution](#solution)
+  - [Benefits](#benefits)
+    - [1. Full Type Safety](#1-full-type-safety)
+    - [2. Better Developer Experience](#2-better-developer-experience)
+    - [3. Clearer Intent](#3-clearer-intent)
+    - [4. Error Handling](#4-error-handling)
+  - [Implementation Details](#implementation-details)
+    - [Type Definitions](#type-definitions)
+    - [Queue Processing](#queue-processing)
+    - [Queue Usage](#queue-usage)
+  - [Additional Fixes](#additional-fixes)
+    - [useClips.ts](#useclipsts)
+    - [Import Organization](#import-organization)
+  - [Testing](#testing)
+    - [Validation Steps](#validation-steps)
+    - [Build Output](#build-output)
+  - [Security Considerations](#security-considerations)
+  - [Files Changed](#files-changed)
+  - [Compatibility](#compatibility)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Type Safety Improvements for failedQueue
 
 ## Issue Reference

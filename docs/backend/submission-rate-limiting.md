@@ -1,3 +1,30 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clip Submission Rate Limiting & Moderation](#clip-submission-rate-limiting--moderation)
+  - [Rate Limits](#rate-limits)
+    - [User-Based Limits](#user-based-limits)
+    - [Minimum Requirements](#minimum-requirements)
+  - [Abuse Detection](#abuse-detection)
+    - [Detection Rules](#detection-rules)
+    - [Cooldown System](#cooldown-system)
+  - [Moderation Events](#moderation-events)
+    - [Event Types](#event-types)
+    - [Event Severity Levels](#event-severity-levels)
+    - [Event Queue](#event-queue)
+  - [Admin API Endpoints](#admin-api-endpoints)
+    - [Event Management](#event-management)
+    - [Abuse Stats](#abuse-stats)
+  - [Integration with Submission Flow](#integration-with-submission-flow)
+    - [Pre-Submission Checks](#pre-submission-checks)
+    - [Event Emission](#event-emission)
+    - [Response to User](#response-to-user)
+  - [Monitoring and Logging](#monitoring-and-logging)
+  - [Best Practices for Moderators](#best-practices-for-moderators)
+  - [Future Enhancements](#future-enhancements)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Clip Submission Rate Limiting & Moderation"
 summary: "This document describes the rate limiting, abuse detection, and moderation system for clip submissio"

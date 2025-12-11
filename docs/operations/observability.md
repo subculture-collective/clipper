@@ -1,3 +1,49 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Observability Configuration Guide](#observability-configuration-guide)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+  - [Structured Logging](#structured-logging)
+    - [Configuration](#configuration)
+    - [Log Format](#log-format)
+    - [Log Levels](#log-levels)
+    - [Environment Variables](#environment-variables)
+  - [Sentry Error Tracking](#sentry-error-tracking)
+    - [Setup](#setup)
+    - [Features](#features)
+    - [Example Error](#example-error)
+  - [OpenTelemetry Tracing](#opentelemetry-tracing)
+    - [Setup](#setup-1)
+    - [Distributed Tracing](#distributed-tracing)
+    - [Trace Context](#trace-context)
+  - [Prometheus Metrics](#prometheus-metrics)
+    - [Exposed Metrics](#exposed-metrics)
+    - [Configuration](#configuration-1)
+  - [Grafana Dashboards](#grafana-dashboards)
+    - [Setup](#setup-2)
+    - [Available Dashboards](#available-dashboards)
+  - [Alerting](#alerting)
+    - [Alertmanager Configuration](#alertmanager-configuration)
+    - [Alert Rules](#alert-rules)
+  - [Log Aggregation](#log-aggregation)
+    - [Using ELK Stack (Optional)](#using-elk-stack-optional)
+    - [Using Loki (Recommended)](#using-loki-recommended)
+  - [Best Practices](#best-practices)
+    - [1. Correlation IDs](#1-correlation-ids)
+    - [2. Structured Context](#2-structured-context)
+    - [3. Error Context](#3-error-context)
+    - [4. Performance Tracking](#4-performance-tracking)
+    - [5. Privacy](#5-privacy)
+  - [Troubleshooting](#troubleshooting)
+    - [Logs Not Appearing](#logs-not-appearing)
+    - [Metrics Not Updating](#metrics-not-updating)
+    - [Traces Not Visible](#traces-not-visible)
+    - [Alerts Not Firing](#alerts-not-firing)
+  - [References](#references)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Observability Configuration Guide"
 summary: "This document describes the observability stack for Clipper, including logging, monitoring, tracing,"

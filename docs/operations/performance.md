@@ -1,3 +1,34 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Performance Optimizations](#performance-optimizations)
+  - [Bundle Size & Code Splitting](#bundle-size--code-splitting)
+    - [Route-Level Code Splitting](#route-level-code-splitting)
+    - [Current Bundle Analysis](#current-bundle-analysis)
+    - [Vendor Chunk Strategy](#vendor-chunk-strategy)
+  - [Image Optimization](#image-optimization)
+    - [Lazy Loading](#lazy-loading)
+    - [Responsive Images](#responsive-images)
+    - [Image Component Features](#image-component-features)
+  - [Layout Shift Prevention (CLS)](#layout-shift-prevention-cls)
+    - [Fixed Aspect Ratios](#fixed-aspect-ratios)
+    - [Image Dimension Attributes](#image-dimension-attributes)
+  - [Build Configuration](#build-configuration)
+    - [Vite Optimizations](#vite-optimizations)
+    - [Tree Shaking](#tree-shaking)
+  - [Tailwind CSS v4 Migration](#tailwind-css-v4-migration)
+    - [Custom Breakpoint Configuration](#custom-breakpoint-configuration)
+  - [Testing Recommendations](#testing-recommendations)
+    - [Lighthouse Audits](#lighthouse-audits)
+    - [Core Web Vitals Targets](#core-web-vitals-targets)
+    - [Bundle Size Analysis](#bundle-size-analysis)
+  - [Future Improvements](#future-improvements)
+    - [Potential Optimizations](#potential-optimizations)
+    - [Monitoring](#monitoring)
+  - [Resources](#resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Performance Optimizations"
 summary: "This document outlines the performance optimizations implemented to improve Core Web Vitals (LCP, CL"

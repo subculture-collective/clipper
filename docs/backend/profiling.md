@@ -1,3 +1,44 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Performance Profiling Guide](#performance-profiling-guide)
+  - [Overview](#overview)
+  - [Quick Start](#quick-start)
+    - [1. Start the Backend with Profiling Enabled](#1-start-the-backend-with-profiling-enabled)
+    - [2. Run Load Tests](#2-run-load-tests)
+    - [3. Collect Profiling Data](#3-collect-profiling-data)
+    - [4. Analyze Prometheus Metrics](#4-analyze-prometheus-metrics)
+  - [Automated Profiling Script](#automated-profiling-script)
+  - [Common Profiling Workflows](#common-profiling-workflows)
+    - [Identifying CPU Bottlenecks](#identifying-cpu-bottlenecks)
+    - [Identifying Memory Leaks](#identifying-memory-leaks)
+    - [Identifying Database N+1 Queries](#identifying-database-n1-queries)
+    - [Identifying Cache Issues](#identifying-cache-issues)
+  - [Profiling Cheat Sheet](#profiling-cheat-sheet)
+    - [pprof Commands](#pprof-commands)
+    - [pprof Interactive Commands](#pprof-interactive-commands)
+  - [Performance Targets (SLOs)](#performance-targets-slos)
+  - [Common Optimization Strategies](#common-optimization-strategies)
+    - [1. Database Optimizations](#1-database-optimizations)
+    - [2. Caching Optimizations](#2-caching-optimizations)
+    - [3. Query Optimizations](#3-query-optimizations)
+    - [4. Application Optimizations](#4-application-optimizations)
+  - [Reporting Template](#reporting-template)
+    - [Executive Summary](#executive-summary)
+    - [Baseline Metrics](#baseline-metrics)
+    - [Bottleneck Analysis](#bottleneck-analysis)
+    - [Optimization Recommendations](#optimization-recommendations)
+    - [Before/After Metrics](#beforeafter-metrics)
+  - [Security Considerations](#security-considerations)
+  - [Tools and Resources](#tools-and-resources)
+  - [Troubleshooting](#troubleshooting)
+    - [pprof not working](#pprof-not-working)
+    - [High memory usage in profiles](#high-memory-usage-in-profiles)
+    - [Slow queries not showing in logs](#slow-queries-not-showing-in-logs)
+  - [Next Steps](#next-steps)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Performance Profiling Guide"
 summary: "This guide explains how to profile the Clipper backend to identify performance bottlenecks and optim"

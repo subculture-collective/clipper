@@ -1,3 +1,50 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Trust Score System Implementation](#trust-score-system-implementation)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+    - [Components](#components)
+  - [Trust Score Calculation](#trust-score-calculation)
+    - [Formula](#formula)
+    - [Components](#components-1)
+  - [Caching Strategy](#caching-strategy)
+    - [Cache Keys](#cache-keys)
+    - [Cache Hit Rate Target](#cache-hit-rate-target)
+  - [Performance Targets](#performance-targets)
+    - [Calculation Performance](#calculation-performance)
+    - [Batch Job Performance](#batch-job-performance)
+  - [Real-time Updates](#real-time-updates)
+    - [Triggering Events](#triggering-events)
+    - [Implementation Pattern](#implementation-pattern)
+    - [Graceful Degradation](#graceful-degradation)
+  - [Scheduled Recalculation](#scheduled-recalculation)
+    - [Daily Job](#daily-job)
+    - [Integration](#integration)
+  - [Admin Features](#admin-features)
+    - [Score Breakdown View](#score-breakdown-view)
+    - [Manual Adjustment](#manual-adjustment)
+    - [Audit Trail](#audit-trail)
+  - [Testing](#testing)
+    - [Unit Tests](#unit-tests)
+    - [Integration Tests](#integration-tests)
+    - [Performance Tests](#performance-tests)
+  - [Monitoring](#monitoring)
+    - [Metrics to Track](#metrics-to-track)
+    - [Alerts](#alerts)
+  - [Migration Guide](#migration-guide)
+    - [Database Migration](#database-migration)
+    - [Backwards Compatibility](#backwards-compatibility)
+  - [Future Enhancements](#future-enhancements)
+    - [Potential Improvements](#potential-improvements)
+    - [API Enhancements](#api-enhancements)
+  - [Troubleshooting](#troubleshooting)
+    - [Score Not Updating](#score-not-updating)
+    - [Performance Issues](#performance-issues)
+    - [Incorrect Scores](#incorrect-scores)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Trust Score System Implementation"
 summary: "This document describes the trust score system implementation for the Clipper platform. The trust sc"

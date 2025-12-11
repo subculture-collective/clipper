@@ -1,3 +1,43 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Offline Caching and Background Sync](#offline-caching-and-background-sync)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+    - [Components](#components)
+  - [Features](#features)
+    - [1. Normalized Cache](#1-normalized-cache)
+    - [2. Background Sync](#2-background-sync)
+    - [3. Conflict Resolution](#3-conflict-resolution)
+    - [4. Optimistic Updates](#4-optimistic-updates)
+    - [5. Cache Expiration](#5-cache-expiration)
+  - [Usage](#usage)
+    - [Initialization](#initialization)
+    - [Using Offline-Aware APIs](#using-offline-aware-apis)
+    - [Using in React Query](#using-in-react-query)
+    - [Network Status Monitoring](#network-status-monitoring)
+  - [User Experience](#user-experience)
+    - [Offline Indicator](#offline-indicator)
+    - [Offline Functionality](#offline-functionality)
+  - [Testing](#testing)
+    - [Unit Tests](#unit-tests)
+    - [Integration Tests](#integration-tests)
+    - [Manual Testing](#manual-testing)
+  - [Performance](#performance)
+    - [Cache Statistics](#cache-statistics)
+    - [Storage Limits](#storage-limits)
+    - [Performance Targets](#performance-targets)
+  - [Maintenance](#maintenance)
+    - [Clear Cache](#clear-cache)
+    - [Cache Versioning](#cache-versioning)
+  - [Troubleshooting](#troubleshooting)
+    - [Cache Not Working](#cache-not-working)
+    - [Sync Issues](#sync-issues)
+  - [Future Enhancements](#future-enhancements)
+  - [References](#references)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Offline Caching and Background Sync"
 summary: "This document describes the offline caching and background sync implementation for the Clipper mobil"

@@ -1,3 +1,42 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Deep Linking and Universal Links Setup](#deep-linking-and-universal-links-setup)
+  - [Overview](#overview)
+  - [Supported Routes](#supported-routes)
+  - [iOS Universal Links Setup](#ios-universal-links-setup)
+    - [Prerequisites](#prerequisites)
+    - [Configuration](#configuration)
+    - [Hosting Requirements](#hosting-requirements)
+    - [Testing iOS Universal Links](#testing-ios-universal-links)
+  - [Android App Links Setup](#android-app-links-setup)
+    - [Prerequisites](#prerequisites-1)
+    - [Configuration](#configuration-1)
+    - [Hosting Requirements](#hosting-requirements-1)
+    - [Testing Android App Links](#testing-android-app-links)
+  - [Web Share Target API](#web-share-target-api)
+    - [Configuration](#configuration-2)
+    - [Usage](#usage)
+    - [Accessing Share Data](#accessing-share-data)
+  - [Programmatic Usage](#programmatic-usage)
+    - [Check if URL is a valid deep link](#check-if-url-is-a-valid-deep-link)
+    - [Parse deep link to internal route](#parse-deep-link-to-internal-route)
+    - [Handle deep link navigation](#handle-deep-link-navigation)
+    - [Generate deep link URL](#generate-deep-link-url)
+    - [Check if opened via deep link](#check-if-opened-via-deep-link)
+  - [Deployment Checklist](#deployment-checklist)
+  - [Troubleshooting](#troubleshooting)
+    - [iOS Universal Links Not Working](#ios-universal-links-not-working)
+    - [Android App Links Not Working](#android-app-links-not-working)
+    - [Share Target Not Working](#share-target-not-working)
+  - [Testing](#testing)
+  - [Browser and Platform Support](#browser-and-platform-support)
+  - [Security Considerations](#security-considerations)
+  - [Future Enhancements](#future-enhancements)
+  - [Resources](#resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Deep Linking and Universal Links Setup"
 summary: "This document describes the deep linking and universal links implementation for the Clipper PWA."

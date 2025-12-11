@@ -1,3 +1,15 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Development Setup Verification Checklist](#development-setup-verification-checklist)
+  - [Run this checklist to verify everything is configured correctly](#run-this-checklist-to-verify-everything-is-configured-correctly)
+  - [Files Checklist](#files-checklist)
+  - [Services Status](#services-status)
+  - [Next Steps](#next-steps)
+  - [Support](#support)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Development Setup Verification Checklist
 
 ## Run this checklist to verify everything is configured correctly

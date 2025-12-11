@@ -1,3 +1,16 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Environment Setup](#environment-setup)
+  - [Environment Files](#environment-files)
+  - [Required Variables (Common)](#required-variables-common)
+  - [Backend](#backend)
+  - [Frontend](#frontend)
+  - [Mobile](#mobile)
+  - [Production Notes](#production-notes)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Environment Variables"
 summary: "Complete reference for environment variables across backend, frontend, and mobile services."

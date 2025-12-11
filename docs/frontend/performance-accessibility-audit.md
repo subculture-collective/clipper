@@ -1,3 +1,29 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Performance and Accessibility Audit Report](#performance-and-accessibility-audit-report)
+  - [Creator Dashboard and Analytics Pages](#creator-dashboard-and-analytics-pages)
+  - [Executive Summary](#executive-summary)
+  - [Performance Findings](#performance-findings)
+    - [Critical Issues (P0)](#critical-issues-p0)
+    - [High Priority Issues (P1)](#high-priority-issues-p1)
+  - [Accessibility Findings](#accessibility-findings)
+    - [Critical Issues (WCAG Level A)](#critical-issues-wcag-level-a)
+    - [High Priority Issues (WCAG Level AA)](#high-priority-issues-wcag-level-aa)
+  - [Prioritized Implementation Plan](#prioritized-implementation-plan)
+    - [Phase 1: Critical Fixes (Week 1)](#phase-1-critical-fixes-week-1)
+    - [Phase 2: High Priority (Week 2)](#phase-2-high-priority-week-2)
+    - [Phase 3: Performance Optimization (Week 3)](#phase-3-performance-optimization-week-3)
+  - [Testing Requirements](#testing-requirements)
+    - [Performance Testing](#performance-testing)
+    - [Accessibility Testing](#accessibility-testing)
+  - [Success Metrics](#success-metrics)
+    - [Performance](#performance)
+    - [Accessibility](#accessibility)
+  - [Implementation Status](#implementation-status)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Performance and Accessibility Audit Report"
 summary: "**Date:** December 6, 2025"

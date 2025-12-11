@@ -1,3 +1,46 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Trials and Discounts Policy](#trials-and-discounts-policy)
+  - [Executive Summary](#executive-summary)
+  - [Table of Contents](#table-of-contents)
+  - [Trial Policy](#trial-policy)
+    - [Standard Free Trial](#standard-free-trial)
+    - [Extended Trial Program](#extended-trial-program)
+    - [Trial-to-Paid Optimization](#trial-to-paid-optimization)
+  - [Discount Programs](#discount-programs)
+    - [Annual Plan Discount](#annual-plan-discount)
+    - [Promotional Discounts](#promotional-discounts)
+    - [Tiered Discount Strategy](#tiered-discount-strategy)
+  - [Promotional Campaigns](#promotional-campaigns)
+    - [Campaign Types](#campaign-types)
+    - [Campaign Calendar (Example Year)](#campaign-calendar-example-year)
+  - [Coupon System](#coupon-system)
+    - [Coupon Architecture](#coupon-architecture)
+    - [Coupon Code Format](#coupon-code-format)
+    - [Coupon Configuration](#coupon-configuration)
+    - [Coupon Management](#coupon-management)
+    - [Coupon Validation](#coupon-validation)
+  - [Referral Program](#referral-program)
+    - [Program Structure](#program-structure)
+    - [Referral Tracking](#referral-tracking)
+    - [Reward Distribution](#reward-distribution)
+    - [Referral Analytics](#referral-analytics)
+  - [Student & Non-Profit Discounts](#student--non-profit-discounts)
+    - [Student Discount Program](#student-discount-program)
+    - [Non-Profit Discount](#non-profit-discount)
+    - [Application Process](#application-process)
+  - [Implementation Guidelines](#implementation-guidelines)
+    - [Backend Implementation](#backend-implementation)
+    - [Frontend Implementation](#frontend-implementation)
+  - [Analytics & Tracking](#analytics--tracking)
+    - [Key Metrics](#key-metrics)
+    - [Stripe Analytics](#stripe-analytics)
+    - [Custom Analytics](#custom-analytics)
+  - [Related Documentation](#related-documentation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Trials and Discounts Policy"
 summary: "**Status**: Approved for Beta Milestone"

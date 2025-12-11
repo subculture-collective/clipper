@@ -1,3 +1,53 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Redis Operations Guide](#redis-operations-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Connection](#connection)
+    - [Local Development](#local-development)
+    - [Production](#production)
+    - [Using Redis from Go Code](#using-redis-from-go-code)
+  - [Basic Operations](#basic-operations)
+    - [View All Keys](#view-all-keys)
+    - [Get/Set Values](#getset-values)
+    - [Delete Keys](#delete-keys)
+    - [Check TTL](#check-ttl)
+    - [Inspect Key Type and Size](#inspect-key-type-and-size)
+  - [Debugging Cache Issues](#debugging-cache-issues)
+    - [Find Problematic Keys](#find-problematic-keys)
+    - [Inspect Cache Contents](#inspect-cache-contents)
+    - [Monitor Cache Activity](#monitor-cache-activity)
+    - [Trace Cache Misses](#trace-cache-misses)
+  - [Performance Monitoring](#performance-monitoring)
+    - [Get Redis Stats](#get-redis-stats)
+    - [Key Performance Metrics](#key-performance-metrics)
+    - [Continuous Monitoring](#continuous-monitoring)
+    - [Calculate Hit Rate](#calculate-hit-rate)
+  - [Maintenance Tasks](#maintenance-tasks)
+    - [Backup Redis Data](#backup-redis-data)
+    - [Restore from Backup](#restore-from-backup)
+    - [Clear Cache Safely](#clear-cache-safely)
+    - [Optimize Memory](#optimize-memory)
+  - [Production Operations](#production-operations)
+    - [Pre-Deployment Tasks](#pre-deployment-tasks)
+    - [Post-Deployment Tasks](#post-deployment-tasks)
+    - [Rolling Restart](#rolling-restart)
+    - [Scale Redis](#scale-redis)
+  - [Troubleshooting](#troubleshooting)
+    - [High Memory Usage](#high-memory-usage)
+    - [Low Hit Rate](#low-hit-rate)
+    - [Connection Issues](#connection-issues)
+    - [Slow Performance](#slow-performance)
+    - [Data Loss](#data-loss)
+  - [Useful Scripts](#useful-scripts)
+    - [Cache Stats Dashboard](#cache-stats-dashboard)
+    - [Clear Old Sessions](#clear-old-sessions)
+    - [Export Cache Keys](#export-cache-keys)
+  - [Best Practices](#best-practices)
+  - [Resources](#resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Redis Operations Guide"
 summary: "This guide covers common Redis operations for development, debugging, and production maintenance."

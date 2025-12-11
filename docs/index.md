@@ -1,3 +1,28 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clipper Documentation](#clipper-documentation)
+  - [🚀 Quick Start](#-quick-start)
+  - [📚 Documentation Sections](#-documentation-sections)
+    - [For Users](#for-users)
+    - [For Developers](#for-developers)
+    - [Premium & Monetization](#premium--monetization)
+    - [Operations & Deployment](#operations--deployment)
+    - [Architecture Decisions](#architecture-decisions)
+    - [Product](#product)
+  - [📖 Additional Resources](#-additional-resources)
+  - [🏗️ Project Status](#-project-status)
+    - [Implementation Status](#implementation-status)
+  - [🔗 External Links](#-external-links)
+  - [💡 Using This Documentation](#-using-this-documentation)
+    - [Navigation Tips](#navigation-tips)
+    - [Markdown Conventions](#markdown-conventions)
+    - [Contributing to Docs](#contributing-to-docs)
+  - [📝 Documentation Validation](#-documentation-validation)
+  - [🆘 Getting Help](#-getting-help)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Clipper Documentation"
 summary: "Complete documentation hub for the Clipper platform - a modern, community-driven Twitch clip curation platform."

@@ -1,3 +1,49 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Comment System API Documentation](#comment-system-api-documentation)
+  - [Overview](#overview)
+  - [Endpoints](#endpoints)
+    - [List Comments for a Clip](#list-comments-for-a-clip)
+    - [Create Comment](#create-comment)
+    - [Get Replies to a Comment](#get-replies-to-a-comment)
+    - [Edit Comment](#edit-comment)
+    - [Delete Comment](#delete-comment)
+    - [Vote on Comment](#vote-on-comment)
+  - [Markdown Support](#markdown-support)
+    - [Allowed Elements](#allowed-elements)
+    - [Blocked Elements](#blocked-elements)
+    - [Example](#example)
+  - [Security Features](#security-features)
+    - [XSS Prevention](#xss-prevention)
+    - [Rate Limiting](#rate-limiting)
+    - [Authentication & Authorization](#authentication--authorization)
+    - [SQL Injection Prevention](#sql-injection-prevention)
+  - [Performance Considerations](#performance-considerations)
+    - [Pagination](#pagination)
+    - [Database Optimization](#database-optimization)
+    - [Future Optimizations](#future-optimizations)
+  - [Error Responses](#error-responses)
+    - [400 Bad Request](#400-bad-request)
+    - [401 Unauthorized](#401-unauthorized)
+    - [403 Forbidden](#403-forbidden)
+    - [429 Too Many Requests](#429-too-many-requests)
+    - [500 Internal Server Error](#500-internal-server-error)
+  - [Best Practices](#best-practices)
+    - [For Clients](#for-clients)
+    - [For Moderators](#for-moderators)
+    - [For Users](#for-users)
+  - [Karma System](#karma-system)
+    - [How Karma Works](#how-karma-works)
+    - [Karma Display](#karma-display)
+  - [Constants](#constants)
+  - [Database Schema](#database-schema)
+    - [Comments Table](#comments-table)
+    - [Comment Votes Table](#comment-votes-table)
+    - [Triggers](#triggers)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Comment System API Documentation"
 summary: "The comment system provides threaded discussions on clips with markdown support, voting, and moderat"

@@ -1,3 +1,48 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clipper Development Plan](#clipper-development-plan)
+  - [Current System Status](#current-system-status)
+    - [Running Services](#running-services)
+  - [Architecture](#architecture)
+  - [Development Workflows](#development-workflows)
+    - [Workflow 1: Local Development (Recommended for Features)](#workflow-1-local-development-recommended-for-features)
+    - [Workflow 2: Staging Testing](#workflow-2-staging-testing)
+    - [Workflow 3: Production Deployment](#workflow-3-production-deployment)
+  - [Environment Setup](#environment-setup)
+    - [Prerequisites](#prerequisites)
+    - [First-Time Setup](#first-time-setup)
+  - [Development Commands](#development-commands)
+    - [Database](#database)
+    - [Testing](#testing)
+    - [Building](#building)
+    - [Development](#development)
+  - [Git Workflow](#git-workflow)
+    - [Branch Strategy](#branch-strategy)
+    - [Commit Messages](#commit-messages)
+    - [Pull Requests](#pull-requests)
+  - [Common Development Tasks](#common-development-tasks)
+    - [Adding a New API Endpoint](#adding-a-new-api-endpoint)
+    - [Adding Frontend Component](#adding-frontend-component)
+    - [Debugging Issues](#debugging-issues)
+  - [Troubleshooting](#troubleshooting)
+    - [Backend won't connect to database](#backend-wont-connect-to-database)
+    - [Frontend can't reach backend](#frontend-cant-reach-backend)
+    - [Hot reload not working](#hot-reload-not-working)
+    - [Tests failing](#tests-failing)
+  - [Performance Optimization](#performance-optimization)
+    - [Frontend Bundle Size](#frontend-bundle-size)
+    - [Database Queries](#database-queries)
+    - [Caching Strategy](#caching-strategy)
+  - [Monitoring in Development](#monitoring-in-development)
+    - [Logs](#logs)
+    - [Health Checks](#health-checks)
+    - [Metrics (Staging/Production)](#metrics-stagingproduction)
+  - [Next Steps](#next-steps)
+  - [Resources](#resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Clipper Development Plan
 
 ## Current System Status

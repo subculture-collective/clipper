@@ -1,3 +1,44 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Mobile-First CSS & Responsive Design QA Checklist](#mobile-first-css--responsive-design-qa-checklist)
+  - [Responsive Breakpoints](#responsive-breakpoints)
+  - [General Requirements](#general-requirements)
+    - [✅ Mobile (≤375px)](#-mobile-%E2%89%A4375px)
+    - [✅ Tablet (768px)](#-tablet-768px)
+    - [✅ Desktop (≥1024px)](#-desktop-%E2%89%A51024px)
+  - [Safe Areas](#safe-areas)
+  - [Page-Specific Checks](#page-specific-checks)
+    - [Home Page (`/`)](#home-page-)
+    - [Clip Detail Page (`/clip/:id`)](#clip-detail-page-clipid)
+    - [Search Page (`/search`)](#search-page-search)
+    - [Submit Clip Page (`/submit`)](#submit-clip-page-submit)
+    - [Profile Page (`/profile`)](#profile-page-profile)
+    - [Settings Page (`/settings`)](#settings-page-settings)
+    - [Admin Pages (`/admin/*`)](#admin-pages-admin)
+  - [Component-Specific Checks](#component-specific-checks)
+    - [Navigation Header](#navigation-header)
+    - [Footer](#footer)
+    - [Clip Card Component](#clip-card-component)
+    - [Modal/Dialog Components](#modaldialog-components)
+    - [Form Elements](#form-elements)
+  - [Typography Scale Verification](#typography-scale-verification)
+    - [Mobile (xs)](#mobile-xs)
+    - [Tablet & Above](#tablet--above)
+  - [Performance Checks](#performance-checks)
+  - [Accessibility Checks](#accessibility-checks)
+  - [Testing Devices](#testing-devices)
+    - [Physical Devices (Recommended)](#physical-devices-recommended)
+    - [Browser DevTools Testing](#browser-devtools-testing)
+  - [Browser Compatibility](#browser-compatibility)
+  - [Dark Mode](#dark-mode)
+  - [Sign-off](#sign-off)
+    - [Completed By](#completed-by)
+    - [Issues Found](#issues-found)
+    - [Screenshots](#screenshots)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Mobile-First CSS & Responsive Design QA Checklist"
 summary: "This document provides a comprehensive checklist for verifying mobile-first design and responsive la"

@@ -1,3 +1,52 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Email Service Integration Guide](#email-service-integration-guide)
+  - [Overview](#overview)
+  - [Table of Contents](#table-of-contents)
+  - [SendGrid Account Setup](#sendgrid-account-setup)
+    - [1. Create SendGrid Account](#1-create-sendgrid-account)
+    - [2. Add Custom Domain](#2-add-custom-domain)
+    - [3. Set Up SPF and DKIM Records](#3-set-up-spf-and-dkim-records)
+    - [4. Verify Domain](#4-verify-domain)
+  - [API Key Configuration](#api-key-configuration)
+    - [Create API Key with Restricted Permissions](#create-api-key-with-restricted-permissions)
+    - [Secure the API Key](#secure-the-api-key)
+  - [Backend Configuration](#backend-configuration)
+    - [Environment Variables](#environment-variables)
+    - [Configuration File](#configuration-file)
+  - [Email Service Interface](#email-service-interface)
+    - [Basic Email Service Interface](#basic-email-service-interface)
+    - [Supported Notification Types](#supported-notification-types)
+    - [Email Templates](#email-templates)
+  - [Testing with Sandbox Mode](#testing-with-sandbox-mode)
+    - [Enable Sandbox Mode](#enable-sandbox-mode)
+    - [Sandbox Mode Features](#sandbox-mode-features)
+    - [Log Output Example](#log-output-example)
+    - [Testing Checklist](#testing-checklist)
+  - [Monitoring and Alerting](#monitoring-and-alerting)
+    - [Key Metrics to Track](#key-metrics-to-track)
+    - [SendGrid Dashboard Monitoring](#sendgrid-dashboard-monitoring)
+    - [Alerts to Configure](#alerts-to-configure)
+    - [Logging](#logging)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debug Mode](#debug-mode)
+    - [Test Email Send](#test-email-send)
+  - [Best Practices](#best-practices)
+    - [Security](#security)
+    - [Deliverability](#deliverability)
+    - [Performance](#performance)
+    - [Compliance](#compliance)
+  - [Feature Flags](#feature-flags)
+  - [Support](#support)
+  - [Appendix](#appendix)
+    - [SendGrid Rate Limits](#sendgrid-rate-limits)
+    - [Email Size Limits](#email-size-limits)
+    - [Related Documentation](#related-documentation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Email Service Integration Guide"
 summary: "The Clipper backend uses SendGrid for transactional email delivery. This document provides comprehen"

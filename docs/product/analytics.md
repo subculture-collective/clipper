@@ -1,3 +1,48 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Analytics System](#analytics-system)
+  - [Overview](#overview)
+  - [Analytics Components](#analytics-components)
+    - [1. Google Analytics (GA4)](#1-google-analytics-ga4)
+    - [2. Custom Analytics API](#2-custom-analytics-api)
+    - [3. Sentry Error Tracking](#3-sentry-error-tracking)
+  - [Architecture](#architecture)
+    - [Database Schema](#database-schema)
+    - [Privacy & Security](#privacy--security)
+    - [Performance Optimizations](#performance-optimizations)
+  - [API Endpoints](#api-endpoints)
+    - [Creator Analytics](#creator-analytics)
+    - [Clip Analytics](#clip-analytics)
+    - [User Analytics](#user-analytics)
+    - [Admin Analytics](#admin-analytics)
+  - [Frontend Pages](#frontend-pages)
+    - [Creator Analytics Page](#creator-analytics-page)
+    - [Admin Analytics Dashboard](#admin-analytics-dashboard)
+    - [Personal Stats Page](#personal-stats-page)
+  - [Components](#components)
+    - [Analytics Components](#analytics-components-1)
+    - [Usage Example](#usage-example)
+  - [Event Tracking](#event-tracking)
+    - [Google Analytics Event Tracking](#google-analytics-event-tracking)
+    - [Client-Side Tracking](#client-side-tracking)
+    - [Backend Event Types](#backend-event-types)
+    - [Event Metadata](#event-metadata)
+  - [Database Migrations](#database-migrations)
+  - [Setup & Configuration](#setup--configuration)
+    - [Google Analytics Setup](#google-analytics-setup)
+    - [Sentry Setup](#sentry-setup)
+    - [Custom Analytics Configuration](#custom-analytics-configuration)
+    - [Monitoring Dashboard Access](#monitoring-dashboard-access)
+  - [Future Enhancements (Phase 3)](#future-enhancements-phase-3)
+  - [Testing](#testing)
+  - [Dependencies](#dependencies)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+  - [Support](#support)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Analytics System"
 summary: "This document describes the analytics system implemented in Clipper for tracking and displaying plat"

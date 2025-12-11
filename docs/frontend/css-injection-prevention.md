@@ -1,3 +1,27 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [CSS Injection Prevention](#css-injection-prevention)
+  - [Overview](#overview)
+  - [Background](#background)
+  - [Security Risk](#security-risk)
+    - [Example Attack Vectors](#example-attack-vectors)
+  - [Solution](#solution)
+    - [`sanitizeColor()` Utility Function](#sanitizecolor-utility-function)
+    - [Function Signature](#function-signature)
+  - [Usage](#usage)
+    - [Safe Component Implementation](#safe-component-implementation)
+    - [❌ Unsafe Implementation (DO NOT USE)](#-unsafe-implementation-do-not-use)
+  - [Testing](#testing)
+  - [Security Analysis](#security-analysis)
+    - [CodeQL Results](#codeql-results)
+    - [Defense Layers](#defense-layers)
+  - [Best Practices](#best-practices)
+  - [References](#references)
+  - [Future Improvements](#future-improvements)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "CSS Injection Prevention"
 summary: "This document describes the CSS injection prevention measures implemented in the Clipper application"

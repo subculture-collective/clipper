@@ -1,3 +1,35 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Premium Deliverables Summary](#premium-deliverables-summary)
+  - [Deliverables Status](#deliverables-status)
+    - [✅ 1. Pricing Tiers and Benefits Document](#-1-pricing-tiers-and-benefits-document)
+    - [✅ 2. Entitlement Matrix per Feature and Platform](#-2-entitlement-matrix-per-feature-and-platform)
+    - [✅ 3. Trials and Discounts Policy](#-3-trials-and-discounts-policy)
+    - [✅ Supporting Documents](#-supporting-documents)
+  - [Acceptance Criteria Verification](#acceptance-criteria-verification)
+    - [✅ Approved Plan in Docs with Stakeholder Signoff](#-approved-plan-in-docs-with-stakeholder-signoff)
+    - [✅ Features Mapped to Entitlements](#-features-mapped-to-entitlements)
+  - [Documentation Statistics](#documentation-statistics)
+  - [Cross-References](#cross-references)
+  - [Implementation Readiness](#implementation-readiness)
+    - [Backend (Go)](#backend-go)
+    - [Frontend (React/TypeScript)](#frontend-reacttypescript)
+    - [API](#api)
+  - [Quality Assurance](#quality-assurance)
+    - [Documentation Quality](#documentation-quality)
+    - [Technical Accuracy](#technical-accuracy)
+    - [Completeness](#completeness)
+  - [Next Steps for Team](#next-steps-for-team)
+    - [Product Team](#product-team)
+    - [Engineering Team](#engineering-team)
+    - [Design Team](#design-team)
+    - [Marketing Team](#marketing-team)
+    - [Support Team](#support-team)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Premium Deliverables Summary
 
 **Issue**: Premium: Define pricing plans, entitlements, and gating matrix

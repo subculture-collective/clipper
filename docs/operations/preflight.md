@@ -1,3 +1,20 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Preflight Checklist](#preflight-checklist)
+  - [Quick Checklist](#quick-checklist)
+    - [Code Quality ✅](#code-quality-)
+    - [Environment ✅](#environment-)
+    - [Database ✅](#database-)
+    - [Infrastructure ✅](#infrastructure-)
+    - [Staging Rehearsal ✅](#staging-rehearsal-)
+  - [Automated Check](#automated-check)
+  - [Rollback Criteria](#rollback-criteria)
+  - [Post-Deployment](#post-deployment)
+  - [Full Checklist](#full-checklist)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Preflight Checklist"
 summary: "Pre-deployment validation checklist for production deployments."

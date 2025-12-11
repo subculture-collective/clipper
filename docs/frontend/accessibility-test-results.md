@@ -1,3 +1,39 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Accessibility Audit Test Results](#accessibility-audit-test-results)
+  - [Executive Summary](#executive-summary)
+    - [Overall Score](#overall-score)
+  - [Automated Test Results](#automated-test-results)
+    - [Component-Level Accessibility Tests (41 tests)](#component-level-accessibility-tests-41-tests)
+    - [LiveRegion Component Tests (12 tests)](#liveregion-component-tests-12-tests)
+  - [WCAG 2.1 AA Criteria Compliance](#wcag-21-aa-criteria-compliance)
+    - [Level A (Must Have)](#level-a-must-have)
+    - [Level AA (Target Compliance)](#level-aa-target-compliance)
+  - [Key Strengths](#key-strengths)
+    - [1. Comprehensive Testing Infrastructure](#1-comprehensive-testing-infrastructure)
+    - [2. Strong Foundation](#2-strong-foundation)
+    - [3. Documentation](#3-documentation)
+    - [4. Component Library](#4-component-library)
+  - [Areas Requiring Manual Testing](#areas-requiring-manual-testing)
+    - [1. Color Contrast (High Priority)](#1-color-contrast-high-priority)
+    - [2. Screen Reader Testing (High Priority)](#2-screen-reader-testing-high-priority)
+    - [3. Keyboard-Only Navigation (Medium Priority)](#3-keyboard-only-navigation-medium-priority)
+    - [4. Mobile Accessibility (Medium Priority)](#4-mobile-accessibility-medium-priority)
+  - [Known Limitations & Exceptions](#known-limitations--exceptions)
+    - [Documented Exceptions](#documented-exceptions)
+    - [Technical Debt](#technical-debt)
+  - [Recommendations](#recommendations)
+    - [Immediate Actions (Before GA Release)](#immediate-actions-before-ga-release)
+    - [Future Enhancements](#future-enhancements)
+  - [Resources](#resources)
+    - [Testing Tools Used](#testing-tools-used)
+    - [Documentation Created](#documentation-created)
+    - [External Resources](#external-resources)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Accessibility Audit Test Results"
 summary: "**Date**: 2025-10-29"

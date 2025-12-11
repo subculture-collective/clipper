@@ -1,3 +1,20 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Roadmap](#roadmap)
+  - [Current Status](#current-status)
+  - [Milestones](#milestones)
+    - [v0.1.0 - MVP (Q1 2025)](#v010---mvp-q1-2025)
+    - [v0.2.0 - Search & Discovery (Q1 2025)](#v020---search--discovery-q1-2025)
+    - [v0.3.0 - Mobile Apps (Q2 2025)](#v030---mobile-apps-q2-2025)
+    - [v1.0.0 - General Availability (Q2 2025)](#v100---general-availability-q2-2025)
+    - [v1.1.0 - Growth (Q3 2025)](#v110---growth-q3-2025)
+    - [v1.2.0 - Community (Q4 2025)](#v120---community-q4-2025)
+  - [Future Considerations](#future-considerations)
+  - [Feature Requests](#feature-requests)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Roadmap"
 summary: "Product roadmap and upcoming features for Clipper."

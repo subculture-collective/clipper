@@ -1,3 +1,12 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Contributing to Clipper](#contributing-to-clipper)
+  - [Documentation Contributions](#documentation-contributions)
+  - [Quick Links](#quick-links)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Contributing"
 summary: "How to contribute to the Clipper project."

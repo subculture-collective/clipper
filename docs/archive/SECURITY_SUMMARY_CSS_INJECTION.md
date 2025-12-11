@@ -1,3 +1,33 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Security Summary - CSS Injection Prevention](#security-summary---css-injection-prevention)
+  - [Issue Addressed](#issue-addressed)
+  - [Problem Statement](#problem-statement)
+  - [Solution Implemented](#solution-implemented)
+    - [1. Color Sanitization Utility Function](#1-color-sanitization-utility-function)
+    - [2. Usage Example](#2-usage-example)
+    - [3. Comprehensive Documentation](#3-comprehensive-documentation)
+  - [Testing](#testing)
+    - [Functional Testing](#functional-testing)
+    - [Build & Lint Verification](#build--lint-verification)
+    - [Security Scanning](#security-scanning)
+  - [Security Impact](#security-impact)
+    - [Risk Mitigation](#risk-mitigation)
+    - [Attack Vectors Mitigated](#attack-vectors-mitigated)
+  - [Compliance & Best Practices](#compliance--best-practices)
+    - [OWASP Guidelines](#owasp-guidelines)
+    - [Code Quality](#code-quality)
+  - [Files Modified/Created](#files-modifiedcreated)
+    - [Modified](#modified)
+    - [Created](#created)
+  - [Recommendations for Future Use](#recommendations-for-future-use)
+    - [When Implementing Tag Display](#when-implementing-tag-display)
+    - [Monitoring Recommendations](#monitoring-recommendations)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Security Summary - CSS Injection Prevention
 
 ## Issue Addressed

@@ -1,3 +1,26 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Mobile Architecture](#mobile-architecture)
+  - [Overview](#overview)
+  - [Platform Support](#platform-support)
+  - [Project Structure](#project-structure)
+  - [Navigation](#navigation)
+  - [State Management](#state-management)
+  - [Styling](#styling)
+  - [Shared Code](#shared-code)
+  - [Platform-Specific Features](#platform-specific-features)
+    - [Video Playback](#video-playback)
+    - [Deep Linking](#deep-linking)
+    - [Push Notifications](#push-notifications)
+    - [Camera (for QR code scanning)](#camera-for-qr-code-scanning)
+  - [Authentication](#authentication)
+  - [Offline Support](#offline-support)
+  - [Performance](#performance)
+  - [Build & Deploy](#build--deploy)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Mobile Architecture"
 summary: "React Native app architecture for iOS and Android."

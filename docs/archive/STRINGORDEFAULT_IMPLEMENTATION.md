@@ -1,3 +1,18 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [StringOrDefault Function Implementation](#stringordefault-function-implementation)
+  - [Overview](#overview)
+  - [Issue Resolution](#issue-resolution)
+  - [Solution](#solution)
+    - [StringOrDefault](#stringordefault)
+    - [Float64OrDefault](#float64ordefault)
+  - [Congruence with Existing Functions](#congruence-with-existing-functions)
+  - [Tests](#tests)
+  - [Security Summary](#security-summary)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # StringOrDefault Function Implementation
 
 ## Overview

@@ -1,3 +1,22 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [useClipById Hook Verification](#useclipbyid-hook-verification)
+  - [Issue Summary](#issue-summary)
+  - [Analysis](#analysis)
+    - [Original Implementation (Incorrect)](#original-implementation-incorrect)
+    - [New Implementation (Correct)](#new-implementation-correct)
+  - [Why This Change is Correct](#why-this-change-is-correct)
+    - [1. Purpose Alignment](#1-purpose-alignment)
+    - [2. Return Value Structure](#2-return-value-structure)
+    - [3. Parameter Requirements](#3-parameter-requirements)
+    - [4. Usage Pattern](#4-usage-pattern)
+  - [Verification Results](#verification-results)
+  - [Conclusion](#conclusion)
+  - [Related Hooks](#related-hooks)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # useClipById Hook Verification
 
 ## Issue Summary

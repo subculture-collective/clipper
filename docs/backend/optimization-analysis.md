@@ -1,3 +1,40 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Performance Optimization Analysis](#performance-optimization-analysis)
+  - [Overview](#overview)
+  - [1. Database Optimization Opportunities](#1-database-optimization-opportunities)
+    - [1.1 Identified N+1 Query Patterns](#11-identified-n1-query-patterns)
+    - [1.2 Missing Indexes Analysis](#12-missing-indexes-analysis)
+    - [1.3 Query Optimization](#13-query-optimization)
+  - [2. Caching Strategy Optimization](#2-caching-strategy-optimization)
+    - [2.1 Current Cache Usage Analysis](#21-current-cache-usage-analysis)
+    - [2.2 Recommended Caching Strategy](#22-recommended-caching-strategy)
+    - [2.3 Cache Invalidation Strategy](#23-cache-invalidation-strategy)
+  - [3. Connection Pool Optimization](#3-connection-pool-optimization)
+    - [3.1 Database Connection Pool](#31-database-connection-pool)
+    - [3.2 Redis Connection Pool](#32-redis-connection-pool)
+  - [4. Application-Level Optimizations](#4-application-level-optimizations)
+    - [4.1 JSON Serialization Optimization](#41-json-serialization-optimization)
+    - [4.2 Batch Operations](#42-batch-operations)
+    - [4.3 Goroutine Pool](#43-goroutine-pool)
+  - [5. Implementation Roadmap](#5-implementation-roadmap)
+    - [Phase 1: Quick Wins (Week 1) - Expected 40-60% improvement](#phase-1-quick-wins-week-1---expected-40-60%25-improvement)
+    - [Phase 2: Core Optimizations (Week 1-2) - Expected 60-80% improvement](#phase-2-core-optimizations-week-1-2---expected-60-80%25-improvement)
+    - [Phase 3: Advanced Optimizations (Week 2) - Expected 80-90% improvement](#phase-3-advanced-optimizations-week-2---expected-80-90%25-improvement)
+    - [Phase 4: Tuning (Week 2-3) - Expected 90-95% improvement](#phase-4-tuning-week-2-3---expected-90-95%25-improvement)
+  - [6. Monitoring and Validation](#6-monitoring-and-validation)
+    - [Key Metrics to Track](#key-metrics-to-track)
+    - [Success Criteria](#success-criteria)
+  - [7. Risk Assessment](#7-risk-assessment)
+    - [Low Risk](#low-risk)
+    - [Medium Risk](#medium-risk)
+    - [High Risk](#high-risk)
+  - [8. Rollback Plan](#8-rollback-plan)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Performance Optimization Analysis"
 summary: "This document provides a comprehensive analysis of potential bottlenecks in the Clipper backend and "

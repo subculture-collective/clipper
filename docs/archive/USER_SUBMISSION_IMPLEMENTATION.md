@@ -1,3 +1,31 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [User-Submitted Clip System Implementation](#user-submitted-clip-system-implementation)
+  - [Overview](#overview)
+  - [Features Implemented](#features-implemented)
+    - [Backend Implementation](#backend-implementation)
+    - [Frontend Implementation](#frontend-implementation)
+    - [Routes Added](#routes-added)
+  - [Security Considerations](#security-considerations)
+    - [Authentication & Authorization](#authentication--authorization)
+    - [Input Validation](#input-validation)
+    - [Data Protection](#data-protection)
+  - [Testing](#testing)
+    - [Backend Tests](#backend-tests)
+    - [Security Scanning](#security-scanning)
+  - [Database Migration](#database-migration)
+  - [Configuration](#configuration)
+  - [Future Enhancements](#future-enhancements)
+  - [Usage Examples](#usage-examples)
+    - [Submitting a Clip (User)](#submitting-a-clip-user)
+    - [Moderating Submissions (Admin)](#moderating-submissions-admin)
+    - [Tracking Submissions (User)](#tracking-submissions-user)
+  - [Performance Considerations](#performance-considerations)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # User-Submitted Clip System Implementation
 
 ## Overview

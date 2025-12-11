@@ -1,3 +1,37 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Webhook Retry and Dead-Letter Queue System](#webhook-retry-and-dead-letter-queue-system)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+  - [Retry Strategy](#retry-strategy)
+    - [Exponential Backoff](#exponential-backoff)
+    - [Configuration](#configuration)
+  - [Database Schema](#database-schema)
+    - [webhook_retry_queue](#webhook_retry_queue)
+    - [webhook_dead_letter_queue](#webhook_dead_letter_queue)
+  - [Event Types Handled](#event-types-handled)
+  - [Monitoring and Observability](#monitoring-and-observability)
+    - [Structured Logging](#structured-logging)
+    - [Monitoring Endpoint](#monitoring-endpoint)
+    - [Metrics (TODO)](#metrics-todo)
+  - [Operations](#operations)
+    - [Processing Pending Retries](#processing-pending-retries)
+    - [Investigating DLQ Items](#investigating-dlq-items)
+    - [Manually Retrying DLQ Items](#manually-retrying-dlq-items)
+  - [Error Handling](#error-handling)
+    - [Transient Errors](#transient-errors)
+    - [Permanent Errors](#permanent-errors)
+  - [Security Considerations](#security-considerations)
+  - [Best Practices](#best-practices)
+  - [Troubleshooting](#troubleshooting)
+    - [High Retry Queue Size](#high-retry-queue-size)
+    - [Events in DLQ](#events-in-dlq)
+    - [Missing Events](#missing-events)
+  - [Future Enhancements](#future-enhancements)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Webhook Retry and Dead-Letter Queue System"
 summary: "This document describes the webhook retry and dead-letter queue (DLQ) system for Stripe subscription"
