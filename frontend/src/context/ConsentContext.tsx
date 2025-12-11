@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { initGoogleAnalytics, disableGoogleAnalytics, enableGoogleAnalytics } from '../lib/google-analytics';
 
 /**
  * Consent categories for different types of tracking/personalization
@@ -132,6 +133,11 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
       setConsent(storedConsent);
       setHasConsented(true);
       setShowConsentBanner(false);
+      
+      // Initialize Google Analytics if user has consented and DNT is not enabled
+      if (storedConsent.analytics && !dnt) {
+        initGoogleAnalytics();
+      }
     } else {
       // No stored consent - show banner
       // If DNT is enabled, we default to privacy-preserving settings
@@ -151,11 +157,19 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString(),
       };
       saveConsent(updatedPreferences);
+      
+      // Handle Google Analytics based on analytics consent
+      if (updatedPreferences.analytics && !doNotTrack) {
+        enableGoogleAnalytics();
+      } else {
+        disableGoogleAnalytics();
+      }
+      
       return updatedPreferences;
     });
     setHasConsented(true);
     setShowConsentBanner(false);
-  }, []);
+  }, [doNotTrack]);
 
   /**
    * Accept all optional consent categories
@@ -188,6 +202,10 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore storage errors
     }
+    
+    // Disable Google Analytics when consent is reset
+    disableGoogleAnalytics();
+    
     setConsent(DEFAULT_CONSENT);
     setHasConsented(false);
     setShowConsentBanner(true);

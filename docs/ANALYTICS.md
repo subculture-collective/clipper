@@ -10,6 +10,53 @@ The analytics system provides comprehensive insights for:
 - **Admins**: Monitor platform health, user growth, and content trends
 - **Users**: View personal statistics and engagement metrics
 
+## Analytics Components
+
+### 1. Google Analytics (GA4)
+
+Google Analytics provides client-side tracking for:
+
+- Page views and navigation patterns
+- User engagement and session metrics
+- Custom events (clips, votes, comments, follows)
+- Core Web Vitals and performance metrics
+
+**Configuration:**
+
+```bash
+# Frontend environment variable
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+**Privacy-First Approach:**
+
+- Respects user consent preferences (GDPR compliant)
+- Honors Do Not Track (DNT) browser signals
+- IP anonymization enabled by default
+- No advertising features or personalization signals
+- Integration with ConsentContext for user privacy
+
+**Tracked Events:**
+
+- `page_view`: Page navigation
+- `clip_submitted`: New clip submission
+- `clip_upvoted` / `clip_downvoted`: Vote actions
+- `comment_posted`: Comment creation
+- `clip_shared`: Clip sharing (with platform info)
+- `follow_action`: User/creator/community follows
+- `user_registration`: New user signups
+- `search`: Search queries with result counts
+- `community_joined`: Community membership
+- `feed_followed`: Feed subscription
+
+### 2. Custom Analytics API
+
+Server-side analytics system for detailed metrics and aggregations.
+
+### 3. Sentry Error Tracking
+
+Application Performance Monitoring (APM) and error tracking for both frontend and backend.
+
 ## Architecture
 
 ### Database Schema
@@ -26,9 +73,12 @@ The analytics system uses several tables:
 ### Privacy & Security
 
 - **IP Anonymization**: Last octet of IP addresses is removed before storage
+- **Consent Management**: User consent required before initializing Google Analytics
+- **DNT Respect**: Do Not Track browser signals disable all tracking
 - **Authentication**: Analytics endpoints require proper authentication
 - **Authorization**: Admin analytics require admin/moderator role
 - **User Privacy**: Personal stats only accessible by the user themselves
+- **Data Scrubbing**: Sensitive data removed from Sentry events
 
 ### Performance Optimizations
 
@@ -193,6 +243,40 @@ import { MetricCard, LineChartComponent } from '../components/analytics';
 
 ## Event Tracking
 
+### Google Analytics Event Tracking
+
+Track user actions with Google Analytics:
+
+```typescript
+import { 
+  trackClipSubmission, 
+  trackUpvote, 
+  trackComment,
+  trackShare,
+  trackFollow,
+  trackEvent 
+} from '../lib/google-analytics';
+
+// Pre-defined event tracking
+trackClipSubmission(clipId, creatorName);
+trackUpvote(clipId);
+trackComment(clipId);
+trackShare(clipId, 'twitter');
+trackFollow('creator', creatorId);
+
+// Custom event tracking
+trackEvent('custom_action', {
+  category: 'engagement',
+  value: 123,
+});
+```
+
+**Privacy Considerations:**
+
+- Events are only tracked if user has granted analytics consent
+- All events respect Do Not Track (DNT) signals
+- Domain context (`clpr.tv`) is automatically added to all events
+
 ### Client-Side Tracking
 
 Use the analytics API to track events:
@@ -243,6 +327,132 @@ To rollback:
 ```bash
 make migrate-down
 ```
+
+## Setup & Configuration
+
+### Google Analytics Setup
+
+**1. Create GA4 Property:**
+
+1. Go to [Google Analytics](https://analytics.google.com/)
+2. Create a new property:
+   - Property name: "clpr.tv"
+   - Reporting time zone: Select your timezone
+   - Currency: Select your currency
+3. Create a Web data stream:
+   - Website URL: `https://clpr.tv`
+   - Stream name: "clpr.tv Web"
+4. Copy the **Measurement ID** (format: `G-XXXXXXXXXX`)
+
+**2. Configure Data Retention:**
+
+1. Go to Admin → Data Settings → Data Retention
+2. Set event data retention: **14 months** (recommended)
+3. Enable "Reset user data on new activity"
+
+**3. Enable Enhanced Measurement (Optional):**
+
+In your data stream settings, enable:
+- Page views (automatic)
+- Scrolls
+- Outbound clicks
+- Site search
+- Video engagement
+- File downloads
+
+**4. Set Environment Variables:**
+
+Frontend:
+```bash
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+VITE_ENABLE_ANALYTICS=true
+```
+
+**5. Configure Custom Events:**
+
+Custom events are automatically tracked via the `google-analytics.ts` utility. No additional configuration needed in GA4 dashboard.
+
+### Sentry Setup
+
+**1. Create Sentry Projects:**
+
+Create two separate projects at [sentry.io](https://sentry.io/):
+
+**Frontend Project:**
+- Project name: "clpr-frontend" or "clpr-web"
+- Platform: React
+- Alert settings: Configure for new issues, error threshold
+
+**Backend Project:**
+- Project name: "clpr-backend" or "clpr-api"
+- Platform: Go
+- Alert settings: Configure for new issues, performance regressions
+
+**2. Configure Frontend Sentry:**
+
+Copy the DSN from Sentry → Settings → Projects → [Project] → Client Keys (DSN)
+
+```bash
+# Frontend environment variables
+VITE_SENTRY_ENABLED=true
+VITE_SENTRY_DSN=https://xxxxx@o0000.ingest.sentry.io/0000000
+VITE_SENTRY_ENVIRONMENT=production
+VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+```
+
+**3. Configure Backend Sentry:**
+
+```bash
+# Backend environment variables
+SENTRY_ENABLED=true
+SENTRY_DSN=https://xxxxx@o0000.ingest.sentry.io/0000000
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.1
+```
+
+**4. Setup Sentry Alerts:**
+
+Configure alerts in Sentry dashboard:
+- **New issues**: Notify on first occurrence
+- **Error threshold**: Alert when error rate exceeds 1% (configurable)
+- **Performance regressions**: Alert on significant slowdowns
+- **Release tracking**: Enable release health monitoring
+
+**5. Performance Monitoring:**
+
+Adjust sample rates based on traffic:
+- Development: `1.0` (100%)
+- Staging: `0.5` (50%)
+- Production: `0.1` (10%) - adjust based on volume
+
+**Lower sample rates in production reduce costs while maintaining visibility.**
+
+### Custom Analytics Configuration
+
+The custom analytics API is configured via feature flags:
+
+```bash
+FEATURE_ANALYTICS=true
+```
+
+No additional setup required - uses existing PostgreSQL database.
+
+### Monitoring Dashboard Access
+
+**Admin Analytics:**
+- Route: `/admin/analytics`
+- Requires: Admin or moderator role
+- Displays: Platform KPIs, trends, content metrics
+
+**Creator Analytics:**
+- Route: `/creator/:creatorName/analytics`
+- Requires: No authentication (public)
+- Displays: Creator performance, top clips, trends
+
+**Personal Stats:**
+- Route: `/profile/stats`
+- Requires: Authentication
+- Displays: User activity and engagement
 
 ## Future Enhancements (Phase 3)
 
