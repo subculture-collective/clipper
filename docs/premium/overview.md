@@ -1,3 +1,16 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Premium Overview](#premium-overview)
+  - [Tiers](#tiers)
+  - [Core Philosophy](#core-philosophy)
+  - [Premium Features](#premium-features)
+  - [Implementation](#implementation)
+  - [User Flow](#user-flow)
+  - [Analytics](#analytics)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Premium Overview"
 summary: "Subscription model with Free and Pro tiers, feature gating, and Stripe integration."

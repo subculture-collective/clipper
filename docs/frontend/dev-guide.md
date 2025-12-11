@@ -1,3 +1,33 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Frontend Development Guide](#frontend-development-guide)
+  - [Quick Start](#quick-start)
+  - [Development Workflow](#development-workflow)
+    - [Project Scripts](#project-scripts)
+    - [File Organization](#file-organization)
+    - [API Integration](#api-integration)
+    - [Routing](#routing)
+  - [Styling](#styling)
+    - [TailwindCSS](#tailwindcss)
+    - [CSS Modules](#css-modules)
+  - [Testing](#testing)
+    - [Unit Tests (Vitest)](#unit-tests-vitest)
+    - [E2E Tests (Playwright)](#e2e-tests-playwright)
+  - [Environment Variables](#environment-variables)
+  - [Code Quality](#code-quality)
+    - [ESLint](#eslint)
+    - [Prettier](#prettier)
+    - [TypeScript](#typescript)
+  - [Build Process](#build-process)
+    - [Development Build](#development-build)
+    - [Production Build](#production-build)
+    - [Preview Production Build](#preview-production-build)
+  - [Deployment](#deployment)
+  - [Best Practices](#best-practices)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Frontend Development Guide"
 summary: "Setup, workflow, and best practices for React frontend development."

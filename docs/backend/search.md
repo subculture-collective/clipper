@@ -1,3 +1,35 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Search Platform](#search-platform)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+    - [Components](#components)
+    - [Indices](#indices)
+  - [Setup](#setup)
+    - [1. Start OpenSearch](#1-start-opensearch)
+    - [2. Environment](#2-environment)
+    - [3. Initialize Indices](#3-initialize-indices)
+    - [4. Backfill Existing Data](#4-backfill-existing-data)
+  - [API Usage](#api-usage)
+    - [Search Endpoint](#search-endpoint)
+    - [Advanced Query Language](#advanced-query-language)
+    - [Legacy Parameters (Deprecated)](#legacy-parameters-deprecated)
+  - [Features](#features)
+    - [Typo Tolerance](#typo-tolerance)
+    - [Autocomplete](#autocomplete)
+    - [Multi-Field Search](#multi-field-search)
+    - [Filters and Sorting](#filters-and-sorting)
+  - [Index Mappings](#index-mappings)
+    - [Clips](#clips)
+    - [Custom Analyzer](#custom-analyzer)
+  - [PostgreSQL Fallback](#postgresql-fallback)
+  - [Performance](#performance)
+  - [Monitoring](#monitoring)
+  - [Troubleshooting](#troubleshooting)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Search Platform"
 summary: "OpenSearch-based search with hybrid BM25 + semantic vector ranking."

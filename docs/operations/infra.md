@@ -1,3 +1,18 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Operations: Infrastructure](#operations-infrastructure)
+  - [Architecture](#architecture)
+  - [Cloud Providers](#cloud-providers)
+  - [Load Balancing](#load-balancing)
+  - [Scaling](#scaling)
+  - [Database Backups](#database-backups)
+  - [Secrets Management](#secrets-management)
+  - [Monitoring & Alerting](#monitoring--alerting)
+  - [Disaster Recovery](#disaster-recovery)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Infrastructure"
 summary: "Infrastructure architecture, cloud providers, scaling, and disaster recovery."

@@ -1,3 +1,36 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Content Moderation and Reporting System - Implementation Summary](#content-moderation-and-reporting-system---implementation-summary)
+  - [Overview](#overview)
+  - [What Was Implemented](#what-was-implemented)
+    - [Backend (Go)](#backend-go)
+    - [Frontend (React + TypeScript)](#frontend-react--typescript)
+  - [Features](#features)
+    - [User Reporting](#user-reporting)
+    - [Admin Moderation](#admin-moderation)
+    - [Security](#security)
+  - [Database Schema](#database-schema)
+  - [Usage](#usage)
+    - [Adding Report Button to Components](#adding-report-button-to-components)
+    - [Accessing Admin Interface](#accessing-admin-interface)
+  - [Testing](#testing)
+    - [Backend Tests](#backend-tests)
+    - [Security Scan](#security-scan)
+  - [Future Enhancements](#future-enhancements)
+    - [Automated Moderation](#automated-moderation)
+    - [User Management](#user-management)
+    - [Moderator Tools](#moderator-tools)
+    - [Notifications](#notifications)
+    - [Analytics](#analytics)
+  - [Technical Details](#technical-details)
+    - [Rate Limiting](#rate-limiting)
+    - [Duplicate Prevention](#duplicate-prevention)
+    - [Action Execution](#action-execution)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Content Moderation and Reporting System - Implementation Summary
 
 ## Overview

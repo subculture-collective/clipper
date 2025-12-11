@@ -1,3 +1,46 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Paywall UI Implementation Summary](#paywall-ui-implementation-summary)
+  - [Overview](#overview)
+  - [Components Implemented](#components-implemented)
+    - [Web Components (Frontend)](#web-components-frontend)
+    - [Mobile Components](#mobile-components)
+  - [Analytics Architecture](#analytics-architecture)
+    - [Event Flow](#event-flow)
+    - [Conversion Funnel](#conversion-funnel)
+    - [Integration Points](#integration-points)
+  - [Key Metrics Enabled](#key-metrics-enabled)
+  - [Design Decisions](#design-decisions)
+    - [1. Unified Analytics Module](#1-unified-analytics-module)
+    - [2. Modal vs Page](#2-modal-vs-page)
+    - [3. Mobile Strategy](#3-mobile-strategy)
+    - [4. Analytics Privacy](#4-analytics-privacy)
+    - [5. Performance](#5-performance)
+  - [Testing](#testing)
+    - [Current Coverage](#current-coverage)
+    - [Future Testing](#future-testing)
+  - [Documentation](#documentation)
+  - [Integration Checklist](#integration-checklist)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+    - [Mobile](#mobile)
+    - [Monitoring](#monitoring)
+  - [Performance Impact](#performance-impact)
+  - [Browser/Device Support](#browserdevice-support)
+    - [Web](#web)
+    - [Mobile](#mobile-1)
+  - [Accessibility](#accessibility)
+  - [Security](#security)
+  - [Future Enhancements](#future-enhancements)
+    - [Short Term](#short-term)
+    - [Medium Term](#medium-term)
+    - [Long Term](#long-term)
+  - [Success Metrics](#success-metrics)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Paywall UI Implementation Summary
 
 ## Overview

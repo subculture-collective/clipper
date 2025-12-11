@@ -1,3 +1,43 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clipper 🎬](#clipper-)
+  - [✨ Key Features](#-key-features)
+  - [📚 Documentation](#-documentation)
+    - [Quick Links](#quick-links)
+  - [🚦 Project Status](#-project-status)
+  - [🏗️ Architecture](#-architecture)
+    - [Tech Stack](#tech-stack)
+  - [🚀 Quick Start](#-quick-start)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
+  - [🛠️ Development](#-development)
+    - [Available Commands](#available-commands)
+    - [Backend Development](#backend-development)
+    - [Frontend Development](#frontend-development)
+  - [📝 API Documentation](#-api-documentation)
+  - [🧪 Testing](#-testing)
+    - [Quick Start](#quick-start)
+    - [Backend Tests](#backend-tests)
+    - [Frontend Tests](#frontend-tests)
+    - [Coverage Status](#coverage-status)
+    - [Performance Targets](#performance-targets)
+  - [📦 Building for Production](#-building-for-production)
+  - [🐳 Docker](#-docker)
+  - [🚢 Deployment](#-deployment)
+    - [CI/CD Pipeline](#cicd-pipeline)
+    - [Docker Images](#docker-images)
+    - [Deployment Environments](#deployment-environments)
+    - [Required Secrets](#required-secrets)
+    - [Manual Deployment](#manual-deployment)
+    - [Deployment Scripts](#deployment-scripts)
+  - [🤝 Contributing](#-contributing)
+  - [📄 License](#-license)
+  - [🔗 Resources](#-resources)
+  - [📧 Support](#-support)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Clipper 🎬
 
 [![CI](https://github.com/subculture-collective/clipper/actions/workflows/ci.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/ci.yml)
@@ -37,7 +77,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - [Frontend Architecture](docs/frontend/architecture.md) - React frontend patterns
 - [Mobile Architecture](docs/mobile/architecture.md) - React Native app architecture
 - [API Reference](docs/backend/api.md) - Complete REST API documentation
-- [Clip Submission API Guide](docs/CLIP_SUBMISSION_API_GUIDE.md) - Submit clips with TypeScript/cURL examples
+- [Clip Submission API Guide](docs/backend/clip-submission-api-guide.md) - Submit clips with TypeScript/cURL examples
 - [OpenAPI Specifications](docs/openapi/) - Machine-readable API specs
 - [Database Guide](docs/backend/database.md) - Schema, migrations, and queries
 - [Testing Guide](docs/backend/testing.md) - Testing strategy and tools
