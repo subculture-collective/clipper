@@ -27,7 +27,7 @@ STRIPE_PRICE_ID_YEARLY=price_...
 ```
 
 3. Configure webhook endpoint in Stripe Dashboard:
-   - URL: `https://api.clipper.app/webhooks/stripe`
+   - URL: `https://api.clpr.tv/v1/webhooks/stripe`
    - Events: `checkout.session.completed`, `customer.subscription.*`, `invoice.payment_*`
 
 ## Checkout Flow
