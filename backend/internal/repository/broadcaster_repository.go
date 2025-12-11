@@ -399,19 +399,21 @@ func (r *BroadcasterRepository) GetAllFollowedBroadcasterIDs(ctx context.Context
 // UpsertSyncStatus updates or inserts broadcaster sync status
 func (r *BroadcasterRepository) UpsertSyncStatus(ctx context.Context, status *models.BroadcasterSyncStatus) error {
 	query := `
-INSERT INTO broadcaster_sync_status (
-broadcaster_id, is_live, stream_started_at, last_synced, game_name, viewer_count, stream_title
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (broadcaster_id) 
-DO UPDATE SET
-is_live = EXCLUDED.is_live,
-stream_started_at = EXCLUDED.stream_started_at,
-last_synced = EXCLUDED.last_synced,
-game_name = EXCLUDED.game_name,
-viewer_count = EXCLUDED.viewer_count,
-stream_title = EXCLUDED.stream_title,
-updated_at = NOW()
-`
+		INSERT INTO broadcaster_sync_status (
+			broadcaster_id, is_live, stream_started_at, last_synced, game_name, viewer_count, stream_title
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7
+		)
+		ON CONFLICT (broadcaster_id) 
+		DO UPDATE SET
+			is_live = EXCLUDED.is_live,
+			stream_started_at = EXCLUDED.stream_started_at,
+			last_synced = EXCLUDED.last_synced,
+			game_name = EXCLUDED.game_name,
+			viewer_count = EXCLUDED.viewer_count,
+			stream_title = EXCLUDED.stream_title,
+			updated_at = NOW()
+	`
 	_, err := r.pool.Exec(ctx, query,
 		status.BroadcasterID,
 		status.IsLive,

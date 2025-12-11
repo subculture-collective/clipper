@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +32,9 @@ func NewLiveStatusService(
 	}
 }
 
-// SetNotificationService sets the notification service (for dependency injection after initialization)
+// SetNotificationService sets the notification service after initialization.
+// This is done separately from the constructor to avoid circular dependencies,
+// as NotificationService may itself depend on LiveStatusService or related components.
 func (s *LiveStatusService) SetNotificationService(notificationService *NotificationService) {
 	s.notificationService = notificationService
 }
@@ -199,26 +202,50 @@ func (s *LiveStatusService) notifyFollowers(ctx context.Context, broadcasterID s
 		message = fmt.Sprintf("%s - Playing %s", message, stream.GameName)
 	}
 
-	// Create link to Twitch channel
-	link := fmt.Sprintf("https://twitch.tv/%s", stream.UserLogin)
-
-	// Send notification to each follower
-	for _, followerID := range followerIDs {
-		_, err := s.notificationService.CreateNotification(
-			ctx,
-			followerID,
-			models.NotificationTypeBroadcasterLive,
-			title,
-			message,
-			&link,
-			nil, // no source user
-			nil, // no source content
-			nil, // no source content type
-		)
-		if err != nil {
-			log.Printf("Failed to send notification to user %s for broadcaster %s: %v", followerID, broadcasterID, err)
-		}
+	// Create link to Twitch channel - validate UserLogin to avoid malformed URLs
+	var link string
+	if stream.UserLogin != "" {
+		link = fmt.Sprintf("https://twitch.tv/%s", stream.UserLogin)
+	} else if broadcasterID != "" {
+		// Fallback to broadcaster ID if UserLogin is missing
+		link = fmt.Sprintf("https://www.twitch.tv/directory/following?id=%s", broadcasterID)
 	}
+
+	// Send notification to each follower in parallel using a worker pool
+	const workerCount = 10
+	followerCh := make(chan uuid.UUID, len(followerIDs))
+	var wg sync.WaitGroup
+
+	// Start worker pool
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for followerID := range followerCh {
+				_, err := s.notificationService.CreateNotification(
+					ctx,
+					followerID,
+					models.NotificationTypeBroadcasterLive,
+					title,
+					message,
+					&link,
+					nil, // no source user
+					nil, // no source content
+					nil, // no source content type
+				)
+				if err != nil {
+					log.Printf("Failed to send notification to user %s for broadcaster %s: %v", followerID, broadcasterID, err)
+				}
+			}
+		}()
+	}
+
+	// Send followers to worker pool
+	for _, followerID := range followerIDs {
+		followerCh <- followerID
+	}
+	close(followerCh)
+	wg.Wait()
 
 	log.Printf("Sent live notifications for broadcaster %s (%s) to %d followers", broadcasterID, broadcasterName, len(followerIDs))
 }
