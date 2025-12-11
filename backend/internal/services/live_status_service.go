@@ -21,6 +21,11 @@ type LiveStatusService struct {
 	notificationService *NotificationService
 }
 
+const (
+	// notificationWorkerCount defines the number of concurrent workers for sending notifications
+	notificationWorkerCount = 10
+)
+
 // NewLiveStatusService creates a new live status service
 func NewLiveStatusService(
 	broadcasterRepo *repository.BroadcasterRepository,
@@ -206,18 +211,17 @@ func (s *LiveStatusService) notifyFollowers(ctx context.Context, broadcasterID s
 	var link string
 	if stream.UserLogin != "" {
 		link = fmt.Sprintf("https://twitch.tv/%s", stream.UserLogin)
-	} else if broadcasterID != "" {
-		// Fallback to broadcaster ID if UserLogin is missing
-		link = fmt.Sprintf("https://www.twitch.tv/directory/following?id=%s", broadcasterID)
 	}
+	// Note: If UserLogin is empty, link will be an empty string.
+	// Notification system handles empty links gracefully.
 
 	// Send notification to each follower in parallel using a worker pool
-	const workerCount = 10
-	followerCh := make(chan uuid.UUID, len(followerIDs))
+	// Use unbuffered channel to avoid excessive memory usage with many followers
+	followerCh := make(chan uuid.UUID)
 	var wg sync.WaitGroup
 
 	// Start worker pool
-	for i := 0; i < workerCount; i++ {
+	for i := 0; i < notificationWorkerCount; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -241,10 +245,13 @@ func (s *LiveStatusService) notifyFollowers(ctx context.Context, broadcasterID s
 	}
 
 	// Send followers to worker pool
-	for _, followerID := range followerIDs {
-		followerCh <- followerID
-	}
-	close(followerCh)
+	go func() {
+		for _, followerID := range followerIDs {
+			followerCh <- followerID
+		}
+		close(followerCh)
+	}()
+
 	wg.Wait()
 
 	log.Printf("Sent live notifications for broadcaster %s (%s) to %d followers", broadcasterID, broadcasterName, len(followerIDs))
