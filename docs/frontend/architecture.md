@@ -1,3 +1,27 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Frontend Architecture](#frontend-architecture)
+  - [Overview](#overview)
+  - [Project Structure](#project-structure)
+  - [Component Architecture](#component-architecture)
+    - [Component Hierarchy](#component-hierarchy)
+    - [Component Patterns](#component-patterns)
+  - [State Management](#state-management)
+    - [Server State (TanStack Query)](#server-state-tanstack-query)
+    - [Client State (Zustand)](#client-state-zustand)
+  - [Routing](#routing)
+  - [Styling](#styling)
+    - [TailwindCSS](#tailwindcss)
+    - [CSS Modules](#css-modules)
+    - [Dark Mode](#dark-mode)
+  - [API Integration](#api-integration)
+  - [Authentication](#authentication)
+  - [Performance](#performance)
+  - [Build & Deploy](#build--deploy)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Frontend Architecture"
 summary: "React frontend architecture, components, state management, and patterns."

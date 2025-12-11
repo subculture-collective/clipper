@@ -1,3 +1,46 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Testing Guide](#testing-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [Coverage Targets](#coverage-targets)
+  - [Backend Testing](#backend-testing)
+    - [Running Tests](#running-tests)
+    - [Unit Tests](#unit-tests)
+    - [Integration Tests](#integration-tests)
+    - [Test Fixtures](#test-fixtures)
+    - [Mocking](#mocking)
+  - [Frontend Testing](#frontend-testing)
+    - [Running Tests](#running-tests-1)
+    - [Unit Tests](#unit-tests-1)
+    - [Integration Tests](#integration-tests-1)
+  - [E2E Testing](#e2e-testing)
+    - [Running E2E Tests](#running-e2e-tests)
+    - [Writing E2E Tests](#writing-e2e-tests)
+  - [Load Testing](#load-testing)
+    - [Running Load Tests](#running-load-tests)
+    - [Available Load Test Scenarios](#available-load-test-scenarios)
+    - [Performance Targets](#performance-targets)
+  - [CI/CD Integration](#cicd-integration)
+    - [GitHub Actions](#github-actions)
+    - [Coverage Reports](#coverage-reports)
+  - [Best Practices](#best-practices)
+    - [Test Structure (AAA Pattern)](#test-structure-aaa-pattern)
+    - [Test Naming](#test-naming)
+    - [Test Independence](#test-independence)
+    - [Mock External Dependencies](#mock-external-dependencies)
+    - [Test Error Cases](#test-error-cases)
+    - [Keep Tests Fast](#keep-tests-fast)
+    - [Test Documentation](#test-documentation)
+  - [Troubleshooting](#troubleshooting)
+    - [Tests Timing Out](#tests-timing-out)
+    - [Flaky Tests](#flaky-tests)
+    - [Coverage Not Increasing](#coverage-not-increasing)
+  - [Resources](#resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Testing Guide"
 summary: "Comprehensive testing strategy covering unit, integration, E2E, and load tests."

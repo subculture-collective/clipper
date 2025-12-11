@@ -1,3 +1,37 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Performance Optimization Summary](#performance-optimization-summary)
+  - [Overview](#overview)
+  - [✅ Implementation Status: Complete](#-implementation-status-complete)
+  - [Key Improvements](#key-improvements)
+    - [1. Image Optimization ✅](#1-image-optimization-)
+    - [2. Layout Shift Prevention (CLS) ✅](#2-layout-shift-prevention-cls-)
+    - [3. Code Splitting & Bundle Optimization ✅](#3-code-splitting--bundle-optimization-)
+    - [4. Connection Optimization ✅](#4-connection-optimization-)
+    - [5. Tailwind CSS v4 Migration ✅](#5-tailwind-css-v4-migration-)
+  - [Bundle Analysis](#bundle-analysis)
+    - [Before Changes](#before-changes)
+    - [After Changes](#after-changes)
+  - [Files Changed](#files-changed)
+    - [New Files](#new-files)
+    - [Modified Files](#modified-files)
+  - [Testing](#testing)
+    - [Manual Testing](#manual-testing)
+    - [Performance Testing Required](#performance-testing-required)
+  - [Expected Improvements](#expected-improvements)
+  - [Usage Examples](#usage-examples)
+    - [Using OptimizedImage Component](#using-optimizedimage-component)
+    - [Analyzing Bundle](#analyzing-bundle)
+  - [Maintenance](#maintenance)
+    - [Regular Checks](#regular-checks)
+    - [When to Use OptimizedImage](#when-to-use-optimizedimage)
+  - [Documentation](#documentation)
+  - [Support](#support)
+  - [Next Steps](#next-steps)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Performance Optimization Summary
 
 ## Overview

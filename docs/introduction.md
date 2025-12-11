@@ -1,3 +1,28 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Introduction to Clipper](#introduction-to-clipper)
+  - [What is Clipper?](#what-is-clipper)
+  - [Key Features](#key-features)
+    - [🎮 Discovery & Browsing](#-discovery--browsing)
+    - [🔍 Advanced Search](#-advanced-search)
+    - [⬆️ Community Curation](#-community-curation)
+    - [🔐 Authentication & Security](#-authentication--security)
+    - [📱 Multi-Platform](#-multi-platform)
+    - [💎 Premium Features](#-premium-features)
+  - [Architecture Overview](#architecture-overview)
+    - [Tech Stack](#tech-stack)
+  - [Core Concepts](#core-concepts)
+    - [Clips](#clips)
+    - [Users](#users)
+    - [Karma System](#karma-system)
+    - [Search Index](#search-index)
+    - [Premium Entitlements](#premium-entitlements)
+  - [Development Workflow](#development-workflow)
+  - [Getting Help](#getting-help)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Introduction to Clipper"
 summary: "Project overview, key features, architecture, and core concepts of the Clipper platform."

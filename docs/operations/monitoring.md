@@ -1,3 +1,21 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Operations: Monitoring](#operations-monitoring)
+  - [Metrics](#metrics)
+    - [Application Metrics (Prometheus)](#application-metrics-prometheus)
+    - [System Metrics](#system-metrics)
+    - [Business Metrics](#business-metrics)
+  - [Logging](#logging)
+  - [Tracing](#tracing)
+  - [Dashboards](#dashboards)
+  - [Alerts](#alerts)
+  - [Health Checks](#health-checks)
+  - [SLOs (Service Level Objectives)](#slos-service-level-objectives)
+  - [Incident Response](#incident-response)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Monitoring"
 summary: "Observability, metrics, logging, and alerting configuration."

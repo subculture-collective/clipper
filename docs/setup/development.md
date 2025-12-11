@@ -1,3 +1,17 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Development Setup](#development-setup)
+  - [Prerequisites](#prerequisites)
+  - [Quick Start (All Services)](#quick-start-all-services)
+  - [Backend (Go)](#backend-go)
+  - [Frontend (Web)](#frontend-web)
+  - [Mobile (React Native)](#mobile-react-native)
+  - [Data & Utilities](#data--utilities)
+  - [Common Dev Tasks](#common-dev-tasks)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Development Setup"
 summary: "Complete guide to running Clipper locally for web, backend, and mobile development."

@@ -1,3 +1,43 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Production Hardening Implementation Summary](#production-hardening-implementation-summary)
+  - [Overview](#overview)
+  - [Implementation Checklist](#implementation-checklist)
+    - [✅ 1. Secrets Management & Security](#-1-secrets-management--security)
+    - [✅ 2. Structured Logging & Observability](#-2-structured-logging--observability)
+    - [✅ 3. Backup & Recovery](#-3-backup--recovery)
+    - [✅ 4. Redis Caching Strategy](#-4-redis-caching-strategy)
+    - [✅ 5. Runbook & SLOs](#-5-runbook--slos)
+    - [✅ 6. Testing & Validation](#-6-testing--validation)
+  - [Technical Architecture](#technical-architecture)
+    - [Security Layer](#security-layer)
+    - [Observability Stack](#observability-stack)
+    - [Backup Flow](#backup-flow)
+  - [Deployment Checklist](#deployment-checklist)
+    - [Pre-Deployment](#pre-deployment)
+    - [Deployment](#deployment)
+    - [Post-Deployment](#post-deployment)
+  - [Operational Procedures](#operational-procedures)
+    - [Daily Operations](#daily-operations)
+    - [Weekly Operations](#weekly-operations)
+    - [Monthly Operations](#monthly-operations)
+  - [Monitoring & Alerting](#monitoring--alerting)
+    - [SLO-Based Alerts](#slo-based-alerts)
+    - [Infrastructure Alerts](#infrastructure-alerts)
+  - [Security Summary](#security-summary)
+    - [Security Measures Implemented](#security-measures-implemented)
+  - [Performance Targets](#performance-targets)
+    - [Achieved Baselines](#achieved-baselines)
+    - [Scalability](#scalability)
+  - [Known Limitations & Future Work](#known-limitations--future-work)
+  - [Documentation Index](#documentation-index)
+  - [Validation](#validation)
+  - [Acceptance Criteria ✅](#acceptance-criteria-)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Production Hardening Implementation Summary
 
 **Status:** ✅ COMPLETE

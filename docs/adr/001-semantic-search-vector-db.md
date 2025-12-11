@@ -1,3 +1,38 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [ADR-001: Semantic Search Vector Database Selection](#adr-001-semantic-search-vector-database-selection)
+  - [Context](#context)
+    - [Requirements](#requirements)
+    - [Current Architecture](#current-architecture)
+  - [Decision](#decision)
+    - [Architecture Overview](#architecture-overview)
+  - [Alternatives Considered](#alternatives-considered)
+    - [1. Managed Vector Database Services](#1-managed-vector-database-services)
+    - [2. OpenSearch k-NN Plugin](#2-opensearch-k-nn-plugin)
+    - [3. PostgreSQL with pgvector Extension (Selected)](#3-postgresql-with-pgvector-extension-selected)
+    - [4. Redis with RediSearch + RedisAI](#4-redis-with-redisearch--redisai)
+  - [Consequences](#consequences)
+    - [Positive](#positive)
+    - [Negative](#negative)
+    - [Mitigation Strategies](#mitigation-strategies)
+  - [Implementation Plan](#implementation-plan)
+    - [Phase 1: Foundation (Week 1-2)](#phase-1-foundation-week-1-2)
+    - [Phase 2: Embedding Generation (Week 3-4)](#phase-2-embedding-generation-week-3-4)
+    - [Phase 3: Hybrid Search (Week 5-6)](#phase-3-hybrid-search-week-5-6)
+    - [Phase 4: Monitoring & Optimization (Week 7-8)](#phase-4-monitoring--optimization-week-7-8)
+  - [Infrastructure Requirements](#infrastructure-requirements)
+    - [Current Resources](#current-resources)
+    - [Additional Requirements](#additional-requirements)
+    - [Storage Calculation](#storage-calculation)
+    - [Performance Targets](#performance-targets)
+  - [Success Criteria](#success-criteria)
+  - [Review Schedule](#review-schedule)
+  - [References](#references)
+  - [Appendix: Cost Comparison](#appendix-cost-comparison)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # ADR-001: Semantic Search Vector Database Selection
 
 **Status**: Accepted

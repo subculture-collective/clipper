@@ -1,3 +1,43 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Deployment Readiness Summary](#deployment-readiness-summary)
+  - [Overview](#overview)
+  - [Deliverables Completed](#deliverables-completed)
+    - [✅ 1. Preflight Checklist](#-1-preflight-checklist)
+    - [✅ 2. Migration Plan](#-2-migration-plan)
+    - [✅ 3. Feature Flags Documentation](#-3-feature-flags-documentation)
+    - [✅ 4. Automated Preflight Check Script](#-4-automated-preflight-check-script)
+    - [✅ 5. Staging Rehearsal Script](#-5-staging-rehearsal-script)
+    - [✅ 6. Backend Feature Flags](#-6-backend-feature-flags)
+    - [✅ 7. Documentation Updates](#-7-documentation-updates)
+  - [Testing & Validation](#testing--validation)
+    - [✅ Code Quality](#-code-quality)
+    - [✅ Security](#-security)
+    - [✅ Functionality](#-functionality)
+  - [Acceptance Criteria Status](#acceptance-criteria-status)
+  - [Usage Guide](#usage-guide)
+    - [For Deployment Engineers](#for-deployment-engineers)
+    - [For Database Administrators](#for-database-administrators)
+    - [For Feature Owners](#for-feature-owners)
+  - [Next Steps](#next-steps)
+    - [Immediate (Before Production Deploy)](#immediate-before-production-deploy)
+    - [Production Deployment Day](#production-deployment-day)
+    - [Post-Deployment](#post-deployment)
+  - [Benefits of This Implementation](#benefits-of-this-implementation)
+    - [Risk Reduction](#risk-reduction)
+    - [Efficiency](#efficiency)
+    - [Visibility](#visibility)
+    - [Knowledge Sharing](#knowledge-sharing)
+  - [Maintenance](#maintenance)
+    - [Regular Updates](#regular-updates)
+  - [Support & Contacts](#support--contacts)
+    - [Documentation](#documentation)
+    - [Questions?](#questions)
+  - [Summary](#summary)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Deployment Readiness Summary
 
 **Generated**: 2025-11-14  

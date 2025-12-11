@@ -1,3 +1,33 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clip Submission API Examples](#clip-submission-api-examples)
+  - [Available Examples](#available-examples)
+    - [1. Shell Script Example (`clip-submission-test.sh`)](#1-shell-script-example-clip-submission-testsh)
+    - [2. TypeScript/JavaScript Example (`clip-submission-example.ts`)](#2-typescriptjavascript-example-clip-submission-examplets)
+    - [3. React Hook Example](#3-react-hook-example)
+  - [Running the Examples](#running-the-examples)
+    - [Quick Test with cURL](#quick-test-with-curl)
+    - [Using the TypeScript SDK](#using-the-typescript-sdk)
+  - [Error Handling Examples](#error-handling-examples)
+    - [TypeScript Error Handling](#typescript-error-handling)
+    - [Shell Script Error Handling](#shell-script-error-handling)
+  - [Testing Tips](#testing-tips)
+    - [1. Test with Invalid Inputs](#1-test-with-invalid-inputs)
+    - [2. Test Rate Limits](#2-test-rate-limits)
+    - [3. Test Different Clip Formats](#3-test-different-clip-formats)
+  - [Environment Variables](#environment-variables)
+  - [Troubleshooting](#troubleshooting)
+    - ["jq: command not found"](#jq-command-not-found)
+    - ["Unauthorized" Error](#unauthorized-error)
+    - ["Clip not found on Twitch"](#clip-not-found-on-twitch)
+    - [TypeScript Compilation Errors](#typescript-compilation-errors)
+  - [Additional Resources](#additional-resources)
+  - [Contributing](#contributing)
+  - [Support](#support)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Clip Submission API Examples
 
 This directory contains practical examples for using the Clip Submission API.

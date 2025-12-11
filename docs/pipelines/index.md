@@ -1,3 +1,13 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Pipelines Documentation](#pipelines-documentation)
+  - [Quick Links](#quick-links)
+  - [Documentation Index](#documentation-index)
+  - [Data Flow](#data-flow)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Pipelines Documentation"
 summary: "Data ingestion, processing, and analytics pipelines."

@@ -1,3 +1,53 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Submit Clip Flow - Implementation Summary](#submit-clip-flow---implementation-summary)
+  - [Overview](#overview)
+  - [What Was Delivered](#what-was-delivered)
+    - [✅ Multi-Step Wizard UI (4 Steps)](#-multi-step-wizard-ui-4-steps)
+    - [✅ Success and Error Views](#-success-and-error-views)
+    - [✅ Visual Progress Indicator](#-visual-progress-indicator)
+    - [✅ API Integration](#-api-integration)
+    - [✅ Validation](#-validation)
+    - [✅ Error Handling](#-error-handling)
+    - [✅ Authentication Integration](#-authentication-integration)
+    - [✅ Documentation](#-documentation)
+  - [Code Quality](#code-quality)
+    - [✅ Linting](#-linting)
+    - [✅ TypeScript](#-typescript)
+    - [✅ Component Architecture](#-component-architecture)
+  - [File Structure](#file-structure)
+  - [Acceptance Criteria - All Met ✅](#acceptance-criteria---all-met-)
+    - [✅ "Multi-step wizard UI"](#-multi-step-wizard-ui)
+    - [✅ "Validation and API integration"](#-validation-and-api-integration)
+    - [✅ "Success and error views"](#-success-and-error-views)
+    - [✅ "Clip submission works end-to-end"](#-clip-submission-works-end-to-end)
+    - [✅ "Shows in feed after moderation"](#-shows-in-feed-after-moderation)
+  - [Technical Highlights](#technical-highlights)
+  - [Testing](#testing)
+    - [Manual Testing Checklist](#manual-testing-checklist)
+    - [Automated Testing](#automated-testing)
+  - [Dependencies](#dependencies)
+  - [Performance Considerations](#performance-considerations)
+  - [Accessibility](#accessibility)
+  - [Security](#security)
+  - [Browser/Platform Support](#browserplatform-support)
+  - [Next Steps for Production](#next-steps-for-production)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+---
+title: "Submit Clip Flow - Implementation Summary"
+summary: "Successfully implemented a comprehensive multi-step wizard for submitting Twitch clips in the mobile"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Submit Clip Flow - Implementation Summary
 
 ## Overview

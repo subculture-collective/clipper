@@ -1,3 +1,47 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Stripe Subscriptions Integration - Implementation Summary](#stripe-subscriptions-integration---implementation-summary)
+  - [Overview](#overview)
+  - [Implementation Status: ✅ COMPLETE](#implementation-status--complete)
+  - [Deliverables](#deliverables)
+    - [✅ 1. Stripe Setup (Products, Prices)](#-1-stripe-setup-products-prices)
+    - [✅ 2. Hosted Checkout Session Creation](#-2-hosted-checkout-session-creation)
+    - [✅ 3. Billing Portal Access Link](#-3-billing-portal-access-link)
+    - [✅ 4. Environment Config and Secrets](#-4-environment-config-and-secrets)
+    - [✅ 5. Coupons and Promotion Codes](#-5-coupons-and-promotion-codes)
+    - [✅ 6. Proration](#-6-proration)
+  - [Technical Architecture](#technical-architecture)
+    - [Database Schema](#database-schema)
+    - [API Endpoints](#api-endpoints)
+    - [Webhook Events Handled](#webhook-events-handled)
+    - [Webhook Processing Features](#webhook-processing-features)
+  - [Code Quality](#code-quality)
+    - [Tests](#tests)
+    - [Build Status](#build-status)
+    - [Code Review](#code-review)
+    - [Security](#security)
+  - [Documentation](#documentation)
+    - [User-Facing Documentation](#user-facing-documentation)
+    - [Developer Resources](#developer-resources)
+  - [Testing](#testing)
+    - [Provided Testing Tools](#provided-testing-tools)
+    - [Test Scenarios Covered](#test-scenarios-covered)
+  - [Acceptance Criteria Verification](#acceptance-criteria-verification)
+    - [✅ Users can purchase and manage subscriptions](#-users-can-purchase-and-manage-subscriptions)
+    - [✅ Test mode end-to-end works in staging](#-test-mode-end-to-end-works-in-staging)
+  - [Production Readiness Checklist](#production-readiness-checklist)
+  - [Files Changed](#files-changed)
+    - [Backend](#backend)
+    - [New Files](#new-files)
+    - [Documentation](#documentation-1)
+    - [Database](#database)
+  - [Dependencies](#dependencies)
+  - [Support and Resources](#support-and-resources)
+  - [Conclusion](#conclusion)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Stripe Subscriptions Integration - Implementation Summary
 
 ## Overview
@@ -57,8 +101,6 @@ All deliverables from issue #258 have been successfully implemented and tested.
   ```env
   STRIPE_SECRET_KEY=sk_test_...
   STRIPE_WEBHOOK_SECRET=whsec_...
-  STRIPE_WEBHOOK_SECRET_ALT=
-  STRIPE_WEBHOOK_SECRETS=
   STRIPE_PRO_MONTHLY_PRICE_ID=price_...
   STRIPE_PRO_YEARLY_PRICE_ID=price_...
   STRIPE_SUCCESS_URL=http://localhost:5173/subscription/success
@@ -99,15 +141,53 @@ All deliverables from issue #258 have been successfully implemented and tested.
 
 ### Database Schema
 
+#### Core Subscription Tables
 - **Table**: `subscriptions`
   - User subscription records
   - Stripe customer and subscription IDs
   - Current period dates
   - Trial information
   - Cancellation details
+  - Grace period support for dunning
 - **Table**: `subscription_events`
   - Audit log of all subscription lifecycle events
   - Webhook event deduplication via `stripe_event_id`
+
+#### Stripe Infrastructure Tables (Migration 000040)
+- **Table**: `stripe_customers`
+  - Tracks Stripe customer sync with user accounts
+  - Stores customer metadata and email
+  - Foreign key to users table
+- **Table**: `stripe_subscriptions`
+  - Detailed subscription lifecycle tracking
+  - Separate from internal subscriptions table
+  - Stores subscription metadata and period details
+- **Table**: `stripe_payment_intents`
+  - Tracks all payment intent attempts
+  - Supports idempotency keys
+  - Records payment status and metadata
+- **Table**: `stripe_webhooks_log`
+  - Comprehensive webhook event audit log
+  - Tracks processing status and errors
+  - Enables debugging and replay
+
+#### Webhook Retry Infrastructure
+- **Table**: `webhook_retry_queue`
+  - Failed webhook events pending retry
+  - Exponential backoff support
+  - Retry count and error tracking
+- **Table**: `webhook_dead_letter_queue`
+  - Permanently failed webhook events
+  - Manual review and recovery
+
+#### Dunning Tables
+- **Table**: `payment_failures`
+  - Failed payment tracking
+  - Retry scheduling
+  - Resolution status
+- **Table**: `dunning_attempts`
+  - Communication attempts to users
+  - Email notification tracking
 
 ### API Endpoints
 
@@ -126,8 +206,20 @@ All deliverables from issue #258 have been successfully implemented and tested.
 | `customer.subscription.created` | `handleSubscriptionCreated` | Initialize subscription |
 | `customer.subscription.updated` | `handleSubscriptionUpdated` | Update subscription details |
 | `customer.subscription.deleted` | `handleSubscriptionDeleted` | Mark as canceled |
-| `invoice.paid` | `handleInvoicePaid` | Log successful payment |
-| `invoice.payment_failed` | `handleInvoicePaymentFailed` | Update to past_due |
+| `invoice.paid` / `invoice.payment_succeeded` | `handleInvoicePaid` | Log successful payment |
+| `invoice.payment_failed` | `handleInvoicePaymentFailed` | Update to past_due, trigger dunning |
+| `invoice.finalized` | `handleInvoiceFinalized` | Send invoice PDF notifications |
+| `payment_intent.succeeded` | `handlePaymentIntentSucceeded` | Log successful payment intent |
+| `payment_intent.payment_failed` | `handlePaymentIntentFailed` | Log failed payment intent with error details |
+
+### Webhook Processing Features
+
+- **Signature Verification**: Multi-secret support for different webhook endpoints
+- **Idempotency**: Duplicate event detection via `stripe_event_id`
+- **Retry Mechanism**: Exponential backoff for failed webhook processing
+- **Dead Letter Queue**: Failed events after max retries for manual review
+- **Comprehensive Logging**: All webhook events logged to `stripe_webhooks_log` table
+- **Error Recovery**: Automatic retry for transient failures
 
 ## Code Quality
 
