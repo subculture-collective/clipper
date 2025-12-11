@@ -25,6 +25,8 @@ services:
       - /bin/sh
       - -c
       - |
+<<<<<<< HEAD
+<<<<<<< HEAD
         set -e
         until [ -s /vault-agent/rendered/backend.env ]; do
           echo "[clipper-backend] waiting for Vault secrets..."
@@ -50,14 +52,60 @@ services:
         exec ./api
     volumes_from:
       - vault-agent  # Share tmpfs mounts from vault-agent container
+=======
+        set -eu
+        until [ -s /vault/secrets/backend.env ]; do
+=======
+        set -e
+        until [ -s /vault-agent/rendered/backend.env ]; do
+>>>>>>> main
+          echo "[clipper-backend] waiting for Vault secrets..."
+          sleep 1
+        done
+        echo "[clipper-backend] Sourcing secrets..."
+        set -a
+        . /vault-agent/rendered/backend.env
+        set +a
+        # Decode base64-encoded JWT keys
+        if [ -n "$${JWT_PRIVATE_KEY_B64:-}" ]; then
+          export JWT_PRIVATE_KEY=$$(echo "$$JWT_PRIVATE_KEY_B64" | base64 -d)
+          echo "[clipper-backend] Decoded JWT_PRIVATE_KEY"
+        else
+          echo "[clipper-backend] No JWT_PRIVATE_KEY_B64 found"
+        fi
+        if [ -n "$${JWT_PUBLIC_KEY_B64:-}" ]; then
+          export JWT_PUBLIC_KEY=$$(echo "$$JWT_PUBLIC_KEY_B64" | base64 -d)
+          echo "[clipper-backend] Decoded JWT_PUBLIC_KEY"
+        else
+          echo "[clipper-backend] No JWT_PUBLIC_KEY_B64 found"
+        fi
+        exec ./api
+<<<<<<< HEAD
+    volumes:
+      - vault_backend_env:/vault/secrets:ro
+>>>>>>> main
+=======
+    volumes_from:
+      - vault-agent  # Share tmpfs mounts from vault-agent container
+>>>>>>> main
     networks:
       - clipper-network
       - web
 
   frontend:
+<<<<<<< HEAD
+<<<<<<< HEAD
     build:
       context: ./frontend
       dockerfile: Dockerfile
+=======
+    image: ghcr.io/subculture-collective/clipper/frontend:latest
+>>>>>>> main
+=======
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+>>>>>>> main
     container_name: clipper-frontend
     restart: unless-stopped
     depends_on:
@@ -115,6 +163,8 @@ services:
     image: hashicorp/vault:1.17.5
     container_name: clipper-vault-agent
     restart: unless-stopped
+<<<<<<< HEAD
+<<<<<<< HEAD
     cap_add:
       - IPC_LOCK  # Required for mlock() to prevent secrets from being swapped to disk
     command:
@@ -134,6 +184,34 @@ services:
       - ./vault/config/clipper-backend-agent.hcl:/vault-agent/config.hcl:ro
       - ./vault/templates:/vault-agent/templates:ro
       - vault_agent_data:/vault-agent:rw  # Single volume for all vault-agent writable data
+=======
+=======
+    cap_add:
+      - IPC_LOCK  # Required for mlock() to prevent secrets from being swapped to disk
+>>>>>>> main
+    command:
+      - /bin/sh
+      - -c
+      - |
+        # Create directories with proper permissions
+        mkdir -p /vault-agent/pid /vault-agent/rendered
+        chown -R 1000:1000 /vault-agent 2>/dev/null || true
+        chmod -R 755 /vault-agent
+        # Run vault agent as user 1000 (who owns the secrets)
+        exec su-exec 1000:1000 vault agent -config=/vault-agent/config.hcl
+    environment:
+      VAULT_ADDR: https://vault.subcult.tv
+      SKIP_SETCAP: "true"  # Skip setcap since we're using cap_add
+    volumes:
+      - ./vault/config/clipper-backend-agent.hcl:/vault-agent/config.hcl:ro
+      - ./vault/templates:/vault-agent/templates:ro
+<<<<<<< HEAD
+      - vault_backend_env:/vault-agent/rendered
+      - vault_agent_pid:/vault-agent/pid
+>>>>>>> main
+=======
+      - vault_agent_data:/vault-agent:rw  # Single volume for all vault-agent writable data
+>>>>>>> main
     secrets:
       - clipper_backend_role_id
       - clipper_backend_secret_id
@@ -145,7 +223,17 @@ volumes:
     driver: local
   redis_data:
     driver: local
+<<<<<<< HEAD
+<<<<<<< HEAD
   vault_agent_data:
+=======
+  vault_backend_env:
+    driver: local
+  vault_agent_pid:
+>>>>>>> main
+=======
+  vault_agent_data:
+>>>>>>> main
     driver: local
 
 networks:
