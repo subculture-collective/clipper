@@ -33,6 +33,13 @@ func NewCommunityService(
 	}
 }
 
+// Role hierarchy levels (admin > mod > member)
+var roleHierarchy = map[string]int{
+	models.CommunityRoleAdmin:  3,
+	models.CommunityRoleMod:    2,
+	models.CommunityRoleMember: 1,
+}
+
 // generateSlug generates a URL-friendly slug from a name
 func generateSlug(name string) string {
 	// Convert to lowercase
@@ -335,13 +342,6 @@ func (s *CommunityService) BanMember(ctx context.Context, communityID, requestin
 		return err
 	}
 	if targetMember != nil {
-		// Role hierarchy: admin > mod > member
-		roleHierarchy := map[string]int{
-			models.CommunityRoleAdmin:  3,
-			models.CommunityRoleMod:    2,
-			models.CommunityRoleMember: 1,
-		}
-		
 		requestingRoleLevel := roleHierarchy[requestingMember.Role]
 		targetRoleLevel := roleHierarchy[targetMember.Role]
 		
@@ -434,50 +434,40 @@ func (s *CommunityService) RemoveClipFromCommunity(ctx context.Context, communit
 		return fmt.Errorf("unauthorized to remove clips")
 	}
 
-	// Get the clip from community to check who added it
-	clips, _, err := s.communityRepo.GetCommunityClips(ctx, communityID, "recent", 1000, 0)
+	// Get requesting user's member info
+	requestingMember, err := s.communityRepo.GetMember(ctx, communityID, userID)
+	if err != nil {
+		return err
+	}
+	if requestingMember == nil {
+		return fmt.Errorf("requesting user is not a member")
+	}
+
+	// Query to get who added this specific clip
+	clips, _, err := s.communityRepo.GetCommunityClips(ctx, communityID, "recent", 100, 0)
 	if err != nil {
 		return fmt.Errorf("failed to get community clips: %w", err)
 	}
 
-	// Find the clip that matches clipID
-	var addedByUserID *uuid.UUID
+	// Find the clip and check role hierarchy if needed
 	for _, c := range clips {
 		if c.ClipID == clipID {
-			addedByUserID = c.AddedByUserID
+			if c.AddedByUserID != nil {
+				addedByMember, err := s.communityRepo.GetMember(ctx, communityID, *c.AddedByUserID)
+				if err != nil {
+					return err
+				}
+				if addedByMember != nil {
+					requestingRoleLevel := roleHierarchy[requestingMember.Role]
+					addedByRoleLevel := roleHierarchy[addedByMember.Role]
+					
+					// Cannot remove clips added by users with equal or higher role
+					if addedByRoleLevel >= requestingRoleLevel {
+						return fmt.Errorf("cannot remove clips added by users with equal or higher role")
+					}
+				}
+			}
 			break
-		}
-	}
-
-	// If clip was added by someone, check role hierarchy
-	if addedByUserID != nil {
-		requestingMember, err := s.communityRepo.GetMember(ctx, communityID, userID)
-		if err != nil {
-			return err
-		}
-		if requestingMember == nil {
-			return fmt.Errorf("requesting user is not a member")
-		}
-
-		addedByMember, err := s.communityRepo.GetMember(ctx, communityID, *addedByUserID)
-		if err != nil {
-			return err
-		}
-		if addedByMember != nil {
-			// Role hierarchy: admin > mod > member
-			roleHierarchy := map[string]int{
-				models.CommunityRoleAdmin:  3,
-				models.CommunityRoleMod:    2,
-				models.CommunityRoleMember: 1,
-			}
-			
-			requestingRoleLevel := roleHierarchy[requestingMember.Role]
-			addedByRoleLevel := roleHierarchy[addedByMember.Role]
-			
-			// Cannot remove clips added by users with equal or higher role
-			if addedByRoleLevel >= requestingRoleLevel {
-				return fmt.Errorf("cannot remove clips added by users with equal or higher role")
-			}
 		}
 	}
 
