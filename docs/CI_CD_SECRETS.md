@@ -26,8 +26,8 @@ Configure the following secrets in your GitHub repository:
 
 | Secret Name | Description | Required For | How to Get |
 |------------|-------------|--------------|------------|
-| `STAGING_HOST` | Hostname of staging server | Staging deployments | Your staging server's hostname (e.g., `staging.clipper.example.com`) |
-| `PRODUCTION_HOST` | Hostname of production server | Production deployments | Your production server's hostname (e.g., `clipper.example.com`) |
+| `STAGING_HOST` | Hostname of staging server | Staging deployments | Your staging server's hostname (e.g., `staging.clpr.tv`) |
+| `PRODUCTION_HOST` | Hostname of production server | Production deployments | Your production server's hostname (e.g., `clpr.tv`) |
 | `DEPLOY_SSH_KEY` | Private SSH key for deployment access | Staging & Production deployments | Generate with: `ssh-keygen -t ed25519 -C "github-actions-deploy"`|
 
 5. Add public key to server's `~/.ssh/authorized_keys`
