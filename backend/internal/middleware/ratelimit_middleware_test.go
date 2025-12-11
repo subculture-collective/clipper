@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
@@ -217,7 +218,7 @@ func TestRateLimitMiddleware_AdminBypass(t *testing.T) {
 	})
 	router.Use(func(c *gin.Context) {
 		// Check admin bypass logic
-		_, isAdmin := getUserRateLimitMultiplier(c)
+		_, isAdmin := getUserRateLimitMultiplier(c, nil)
 		if isAdmin {
 			c.Header("X-RateLimit-Bypass", "admin")
 			c.Next()
@@ -264,7 +265,7 @@ func TestRateLimitMiddleware_PremiumMultiplier(t *testing.T) {
 	})
 	router.Use(func(c *gin.Context) {
 		// Test multiplier calculation
-		multiplier, _ := getUserRateLimitMultiplier(c)
+		multiplier, _ := getUserRateLimitMultiplier(c, nil)
 		baseLimit := 2
 		effectiveLimit := int(float64(baseLimit) * multiplier)
 		
@@ -328,7 +329,7 @@ func TestRateLimitMiddleware_BasicUserLimit(t *testing.T) {
 	})
 	router.Use(func(c *gin.Context) {
 		// Test multiplier calculation
-		multiplier, _ := getUserRateLimitMultiplier(c)
+		multiplier, _ := getUserRateLimitMultiplier(c, nil)
 		baseLimit := 3
 		effectiveLimit := int(float64(baseLimit) * multiplier)
 		
@@ -379,6 +380,11 @@ func TestRateLimitMiddleware_BasicUserLimit(t *testing.T) {
 func TestGetUserRateLimitMultiplier(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	// Generate test UUIDs
+	adminUUID := uuid.New()
+	premiumUUID := uuid.New()
+	basicUUID := uuid.New()
+
 	tests := []struct {
 		name             string
 		userID           interface{}
@@ -393,23 +399,30 @@ func TestGetUserRateLimitMultiplier(t *testing.T) {
 			wantIsAdmin:    false,
 		},
 		{
-			name:           "admin user",
-			userID:         "admin-123",
+			name:           "admin user with UUID",
+			userID:         adminUUID,
 			userRole:       "admin",
 			wantMultiplier: 0,
 			wantIsAdmin:    true,
 		},
 		{
-			name:             "premium user",
-			userID:           "premium-123",
+			name:           "admin user with string UUID",
+			userID:         adminUUID.String(),
+			userRole:       "admin",
+			wantMultiplier: 0,
+			wantIsAdmin:    true,
+		},
+		{
+			name:             "premium user with UUID",
+			userID:           premiumUUID,
 			userRole:         "user",
 			subscriptionTier: "pro",
 			wantMultiplier:   5.0,
 			wantIsAdmin:      false,
 		},
 		{
-			name:             "basic user",
-			userID:           "basic-123",
+			name:             "basic user with UUID",
+			userID:           basicUUID,
 			userRole:         "user",
 			subscriptionTier: "free",
 			wantMultiplier:   1.0,
@@ -431,7 +444,7 @@ func TestGetUserRateLimitMultiplier(t *testing.T) {
 				c.Set("subscription_tier", tt.subscriptionTier)
 			}
 
-			multiplier, isAdmin := getUserRateLimitMultiplier(c)
+			multiplier, isAdmin := getUserRateLimitMultiplier(c, nil)
 
 			if multiplier != tt.wantMultiplier {
 				t.Errorf("got multiplier=%f, want %f", multiplier, tt.wantMultiplier)

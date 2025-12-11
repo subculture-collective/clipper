@@ -371,8 +371,8 @@ func main() {
 		c.Next()
 	})
 
-	// Enrich authenticated requests with subscription information for rate limiting
-	r.Use(middleware.EnrichWithSubscriptionMiddleware(subscriptionService))
+	// Note: Subscription enrichment is now handled on-demand within rate limit middleware
+	// to avoid unnecessary database calls for routes that don't use rate limiting
 
 	// SEO endpoints (sitemap, robots.txt)
 	r.GET("/sitemap.xml", seoHandler.GetSitemap)
