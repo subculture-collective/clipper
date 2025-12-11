@@ -49,12 +49,14 @@ func NewCircuitBreaker(failureLimit int, timeout time.Duration) *CircuitBreaker 
 
 // Allow checks if requests should be allowed
 func (cb *CircuitBreaker) Allow() error {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
 
 	if cb.state == "open" {
 		if time.Since(cb.lastFailure) > cb.timeout {
-			return nil // Will transition to half-open
+			// Transition to half-open state
+			cb.state = "half-open"
+			return nil
 		}
 		return &CircuitBreakerError{Message: "circuit breaker is open, API unavailable"}
 	}

@@ -47,9 +47,16 @@ func (c *RedisCache) Set(key string, value interface{}, ttl time.Duration) {
 	switch v := value.(type) {
 	case string:
 		strVal = v
+	case []byte:
+		strVal = string(v)
 	default:
-		// For non-string values, try to convert
-		strVal = fmt.Sprintf("%v", v)
+		// For complex types, marshal to JSON
+		if jsonBytes, err := json.Marshal(v); err == nil {
+			strVal = string(jsonBytes)
+		} else {
+			// Fallback to string formatting only for simple types
+			strVal = fmt.Sprintf("%v", v)
+		}
 	}
 	_ = c.client.Set(ctx, key, strVal, ttl)
 }

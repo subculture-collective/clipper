@@ -41,18 +41,25 @@ func (rl *RateLimiter) Wait(ctx context.Context) error {
 		if waitTime > 0 {
 			log.Printf("Rate limit reached, waiting %v", waitTime)
 
-			// Unlock while waiting
+			// Release lock while waiting to avoid blocking other operations
 			rl.mu.Unlock()
 			timer := time.NewTimer(waitTime)
-			defer timer.Stop()
 
 			select {
 			case <-timer.C:
+				// Reacquire lock and refill
 				rl.mu.Lock()
-				rl.tokens = rl.maxTokens
-				rl.refillAt = time.Now().Add(time.Minute)
+				// Recheck state as it may have changed
+				if time.Now().After(rl.refillAt) {
+					rl.tokens = rl.maxTokens
+					rl.refillAt = time.Now().Add(time.Minute)
+				}
+				// Don't defer unlock here as we already have deferred unlock at function level
+				return nil
 			case <-ctx.Done():
 				timer.Stop()
+				// Need to reacquire lock to satisfy defer unlock
+				rl.mu.Lock()
 				return ctx.Err()
 			}
 		}
