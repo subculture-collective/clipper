@@ -1,5 +1,6 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<!-- To update: npm run docs:toc -->
 
 - [Database Schema Implementation - Completion Summary](#database-schema-implementation---completion-summary)
   - [✅ Implementation Complete](#-implementation-complete)

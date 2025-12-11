@@ -1,6 +1,9 @@
 {
   "version": "0.2",
   "language": "en",
+  "_notes": {
+    "Valorant_case_variants": "Both 'Valorant' and 'valorant' are included because the game name appears at sentence start (capitalized) and mid-sentence (lowercase) in documentation and code examples"
+  },
   "ignorePaths": [
     "node_modules",
     "frontend/node_modules",
@@ -75,7 +78,6 @@
     "valorant",
     "testdata",
     "omitempty",
-    "follo",
     "gofmt",
     "keyspace",
     "FLUSHDB",

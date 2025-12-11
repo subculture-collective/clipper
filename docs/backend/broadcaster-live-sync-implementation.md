@@ -29,7 +29,7 @@
 
 ---
 title: "Broadcaster Live Status Sync Implementation"
-summary: "This implementation fulfills the requirement to synchronize broadcaster live status and notify follo"
+summary: "Synchronizes broadcaster live status and notifies followers when broadcasters go live"
 tags: ['backend']
 area: "backend"
 status: "stable"
