@@ -86,12 +86,19 @@ export function enableGoogleAnalytics(): void {
 }
 
 /**
+ * Helper to get gtag function from window
+ */
+function getGtag(): ((...args: unknown[]) => void) | undefined {
+    return (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+}
+
+/**
  * Track a page view
  */
 export function trackPageView(path: string, title?: string): void {
     if (!gaInitialized || !GA_MEASUREMENT_ID) return;
 
-    const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+    const gtag = getGtag();
     if (!gtag) return;
 
     gtag('event', 'page_view', {
@@ -110,7 +117,7 @@ export function trackEvent(
 ): void {
     if (!gaInitialized || !GA_MEASUREMENT_ID) return;
 
-    const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+    const gtag = getGtag();
     if (!gtag) return;
 
     // Add domain context to all events
@@ -165,16 +172,14 @@ export function trackFollow(targetType: 'creator' | 'user' | 'community', target
     });
 }
 
-export function trackUserRegistration(userId: string, method: string): void {
+export function trackUserRegistration(method: string): void {
     trackEvent('user_registration', {
-        user_id: userId,
         registration_method: method,
     });
 }
 
-export function trackSearch(query: string, resultsCount: number): void {
+export function trackSearch(resultsCount: number): void {
     trackEvent('search', {
-        search_term: query,
         results_count: resultsCount,
     });
 }
