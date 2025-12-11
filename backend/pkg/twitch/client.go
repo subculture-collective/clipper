@@ -3,7 +3,6 @@ package twitch
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/subculture-collective/clipper/config"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 const (
@@ -72,6 +72,9 @@ func (cb *CircuitBreaker) RecordSuccess() {
 	if cb.state == "half-open" {
 		cb.state = "closed"
 		cb.failureCount = 0
+	} else if cb.state == "closed" {
+		// Reset failure count on success in closed state
+		cb.failureCount = 0
 	}
 }
 
@@ -85,7 +88,11 @@ func (cb *CircuitBreaker) RecordFailure() {
 
 	if cb.failureCount >= cb.failureLimit {
 		cb.state = "open"
-		log.Printf("[Circuit Breaker] Opening circuit after %d failures", cb.failureCount)
+		logger := utils.GetLogger()
+		logger.Warn("Circuit breaker opening", map[string]interface{}{
+			"failure_count": cb.failureCount,
+			"component":     "twitch_client",
+		})
 	}
 }
 
@@ -165,14 +172,24 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 		req.Header.Set("Authorization", "Bearer "+token) // #nosec G101 (value is an OAuth token, not hardcoded secret)
 		req.Header.Set("Client-Id", c.clientID)
 
-		log.Printf("[Twitch API] %s %s", method, endpoint)
+		logger := utils.GetLogger()
+		logger.Debug("Twitch API request", map[string]interface{}{
+			"method":   method,
+			"endpoint": endpoint,
+		})
 
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
 			c.circuitBreaker.RecordFailure()
 			if attempt < maxRetries-1 {
 				delay := baseDelay * time.Duration(1<<uint(attempt))
-				log.Printf("Request failed (attempt %d/%d): %v, retrying in %v", attempt+1, maxRetries, err, delay)
+				logger := utils.GetLogger()
+				logger.Warn("Request failed, retrying", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+					"delay":   delay.String(),
+					"error":   err.Error(),
+				})
 				time.Sleep(delay)
 				continue
 			}
@@ -192,9 +209,17 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 				return nil, &AuthError{Message: "failed to refresh token", Err: err}
 			}
 			// Get new token for retry
-			token, _ = c.authManager.GetToken(ctx)
+			token, err = c.authManager.GetToken(ctx)
+			if err != nil {
+				c.circuitBreaker.RecordFailure()
+				return nil, &AuthError{Message: "failed to get token after refresh", Err: err}
+			}
 			if attempt < maxRetries-1 {
-				log.Printf("Token refreshed, retrying request (attempt %d/%d)", attempt+1, maxRetries)
+				logger := utils.GetLogger()
+				logger.Info("Token refreshed, retrying request", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+				})
 				continue
 			}
 		case http.StatusTooManyRequests:
@@ -202,7 +227,12 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 			// Rate limited by Twitch, back off
 			delay := baseDelay * time.Duration(1<<uint(attempt))
 			if attempt < maxRetries-1 {
-				log.Printf("Rate limited by Twitch (attempt %d/%d), backing off for %v", attempt+1, maxRetries, delay)
+				logger := utils.GetLogger()
+				logger.Warn("Rate limited by Twitch", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+					"delay":   delay.String(),
+				})
 				time.Sleep(delay)
 				continue
 			}
@@ -213,7 +243,13 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 			c.circuitBreaker.RecordFailure()
 			delay := baseDelay * time.Duration(1<<uint(attempt))
 			if attempt < maxRetries-1 {
-				log.Printf("Twitch service unavailable (attempt %d/%d), retrying in %v", attempt+1, maxRetries, delay)
+				logger := utils.GetLogger()
+				logger.Warn("Twitch service unavailable", map[string]interface{}{
+					"attempt":     attempt + 1,
+					"max":         maxRetries,
+					"delay":       delay.String(),
+					"status_code": resp.StatusCode,
+				})
 				time.Sleep(delay)
 				continue
 			}
