@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // GetClips fetches clips from Twitch API
@@ -50,7 +51,7 @@ func (c *Client) GetClips(ctx context.Context, params *ClipParams) (*ClipsRespon
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("clips request failed: %s", string(body)),
@@ -62,7 +63,10 @@ func (c *Client) GetClips(ctx context.Context, params *ClipParams) (*ClipsRespon
 		return nil, fmt.Errorf("failed to decode clips response: %w", err)
 	}
 
-	log.Printf("[Twitch API] Fetched %d clips", len(clipsResp.Data))
+	logger := utils.GetLogger()
+	logger.Debug("Fetched clips", map[string]interface{}{
+		"count": len(clipsResp.Data),
+	})
 	return &clipsResp, nil
 }
 
@@ -84,7 +88,7 @@ func (c *Client) GetUsers(ctx context.Context, userIDs, logins []string) (*Users
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("users request failed: %s", string(body)),
@@ -97,14 +101,20 @@ func (c *Client) GetUsers(ctx context.Context, userIDs, logins []string) (*Users
 	}
 
 	// Cache user data
+	logger := utils.GetLogger()
 	for i := range usersResp.Data {
 		user := &usersResp.Data[i]
 		if err := c.cache.CacheUser(ctx, user, time.Hour); err != nil {
-			log.Printf("Failed to cache user data for user ID %s: %v", user.ID, err)
+			logger.Warn("Failed to cache user data", map[string]interface{}{
+				"user_id": user.ID,
+				"error":   err.Error(),
+			})
 		}
 	}
 
-	log.Printf("[Twitch API] Fetched %d users", len(usersResp.Data))
+	logger.Debug("Fetched users", map[string]interface{}{
+		"count": len(usersResp.Data),
+	})
 	return &usersResp, nil
 }
 
@@ -112,7 +122,10 @@ func (c *Client) GetUsers(ctx context.Context, userIDs, logins []string) (*Users
 func (c *Client) GetUser(ctx context.Context, userID string) (*User, error) {
 	// Try cache first
 	if user, err := c.cache.CachedUser(ctx, userID); err == nil {
-		log.Printf("[Twitch API] Using cached user data for user ID %s", userID)
+		logger := utils.GetLogger()
+		logger.Debug("Using cached user data", map[string]interface{}{
+			"user_id": userID,
+		})
 		return user, nil
 	}
 
@@ -150,7 +163,7 @@ func (c *Client) GetGames(ctx context.Context, gameIDs, names []string) (*GamesR
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("games request failed: %s", string(body)),
@@ -163,14 +176,20 @@ func (c *Client) GetGames(ctx context.Context, gameIDs, names []string) (*GamesR
 	}
 
 	// Cache game data
+	logger := utils.GetLogger()
 	for i := range gamesResp.Data {
 		game := &gamesResp.Data[i]
 		if err := c.cache.CacheGame(ctx, game, 4*time.Hour); err != nil {
-			log.Printf("Failed to cache game data for game ID %s: %v", game.ID, err)
+			logger.Warn("Failed to cache game data", map[string]interface{}{
+				"game_id": game.ID,
+				"error":   err.Error(),
+			})
 		}
 	}
 
-	log.Printf("[Twitch API] Fetched %d games", len(gamesResp.Data))
+	logger.Debug("Fetched games", map[string]interface{}{
+		"count": len(gamesResp.Data),
+	})
 	return &gamesResp, nil
 }
 
@@ -200,7 +219,10 @@ func (c *Client) GetStreams(ctx context.Context, userIDs []string) (*StreamsResp
 		if cachedStr, ok := cached.(string); ok {
 			var streamsResp StreamsResponse
 			if err := json.Unmarshal([]byte(cachedStr), &streamsResp); err == nil {
-				log.Printf("[Twitch API] Using cached streams data for %d users", len(userIDs))
+				logger := utils.GetLogger()
+				logger.Debug("Using cached streams data", map[string]interface{}{
+					"user_count": len(userIDs),
+				})
 				return &streamsResp, nil
 			}
 		}
@@ -213,7 +235,7 @@ func (c *Client) GetStreams(ctx context.Context, userIDs []string) (*StreamsResp
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("streams request failed: %s", string(body)),
@@ -230,7 +252,11 @@ func (c *Client) GetStreams(ctx context.Context, userIDs []string) (*StreamsResp
 		c.cache.Set(cacheKey, string(data), 30*time.Second)
 	}
 
-	log.Printf("[Twitch API] Fetched %d live streams out of %d requested users", len(streamsResp.Data), len(userIDs))
+	logger := utils.GetLogger()
+	logger.Debug("Fetched live streams", map[string]interface{}{
+		"live_count":      len(streamsResp.Data),
+		"requested_users": len(userIDs),
+	})
 	return &streamsResp, nil
 }
 
@@ -250,13 +276,19 @@ func (c *Client) GetChannels(ctx context.Context, broadcasterIDs []string) (*Cha
 		params.Add("broadcaster_id", id)
 	}
 
-	// Check cache first
-	cacheKey := fmt.Sprintf("%schannels:%s", cacheKeyPrefix, strings.Join(broadcasterIDs, ","))
+	// Check cache first - sort IDs for consistent cache key
+	sortedIDs := make([]string, len(broadcasterIDs))
+	copy(sortedIDs, broadcasterIDs)
+	sort.Strings(sortedIDs)
+	cacheKey := fmt.Sprintf("%schannels:%s", cacheKeyPrefix, strings.Join(sortedIDs, ","))
 	if cached, ok := c.cache.Get(cacheKey); ok {
 		if cachedStr, ok := cached.(string); ok {
 			var channelsResp ChannelsResponse
 			if err := json.Unmarshal([]byte(cachedStr), &channelsResp); err == nil {
-				log.Printf("[Twitch API] Using cached channels data for %d broadcasters", len(broadcasterIDs))
+				logger := utils.GetLogger()
+				logger.Debug("Using cached channels data", map[string]interface{}{
+					"broadcaster_count": len(broadcasterIDs),
+				})
 				return &channelsResp, nil
 			}
 		}
@@ -269,7 +301,7 @@ func (c *Client) GetChannels(ctx context.Context, broadcasterIDs []string) (*Cha
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("channels request failed: %s", string(body)),
@@ -286,7 +318,10 @@ func (c *Client) GetChannels(ctx context.Context, broadcasterIDs []string) (*Cha
 		c.cache.Set(cacheKey, string(data), time.Hour)
 	}
 
-	log.Printf("[Twitch API] Fetched %d channels", len(channelsResp.Data))
+	logger := utils.GetLogger()
+	logger.Debug("Fetched channels", map[string]interface{}{
+		"count": len(channelsResp.Data),
+	})
 	return &channelsResp, nil
 }
 
@@ -320,7 +355,7 @@ func (c *Client) GetVideos(ctx context.Context, userID, gameID string, videoIDs 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("videos request failed: %s", string(body)),
@@ -332,7 +367,10 @@ func (c *Client) GetVideos(ctx context.Context, userID, gameID string, videoIDs 
 		return nil, fmt.Errorf("failed to decode videos response: %w", err)
 	}
 
-	log.Printf("[Twitch API] Fetched %d videos", len(videosResp.Data))
+	logger := utils.GetLogger()
+	logger.Debug("Fetched videos", map[string]interface{}{
+		"count": len(videosResp.Data),
+	})
 	return &videosResp, nil
 }
 
@@ -358,7 +396,7 @@ func (c *Client) GetChannelFollowers(ctx context.Context, broadcasterID string, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("followers request failed: %s", string(body)),
@@ -370,6 +408,10 @@ func (c *Client) GetChannelFollowers(ctx context.Context, broadcasterID string, 
 		return nil, fmt.Errorf("failed to decode followers response: %w", err)
 	}
 
-	log.Printf("[Twitch API] Fetched %d followers for broadcaster %s", len(followersResp.Data), broadcasterID)
+	logger := utils.GetLogger()
+	logger.Debug("Fetched followers", map[string]interface{}{
+		"count":          len(followersResp.Data),
+		"broadcaster_id": broadcasterID,
+	})
 	return &followersResp, nil
 }

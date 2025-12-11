@@ -22,7 +22,7 @@ const (
 type Client struct {
 	clientID       string
 	httpClient     *http.Client
-	cache          *RedisCache
+	cache          TwitchCache
 	authManager    *AuthManager
 	rateLimiter    *RateLimiter
 	circuitBreaker *CircuitBreaker
@@ -122,7 +122,10 @@ func NewClient(cfg *config.TwitchConfig, redis *redispkg.Client) (*Client, error
 
 	// Try to load token from cache
 	if err := authManager.LoadFromCache(context.Background()); err != nil {
-		log.Printf("Failed to load token from cache: %v", err)
+		logger := utils.GetLogger()
+		logger.Warn("Failed to load token from cache", map[string]interface{}{
+			"error": err.Error(),
+		})
 		// Get a new token
 		if err := authManager.RefreshToken(context.Background()); err != nil {
 			return nil, fmt.Errorf("failed to get access token: %w", err)

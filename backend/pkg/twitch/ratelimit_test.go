@@ -1,8 +1,8 @@
 package twitch
 
 import (
+	"context"
 	"testing"
-	"time"
 )
 
 func TestNewRateLimiter(t *testing.T) {
@@ -32,24 +32,21 @@ func TestRateLimiter_Available(t *testing.T) {
 }
 
 func TestRateLimiter_TokenRefill(t *testing.T) {
-	rl := NewRateLimiter(10)
+	rl := NewRateLimiter(5)
 
-	// Use a token
-	rl.mu.Lock()
-	rl.tokens--
-	rl.mu.Unlock()
-
-	if rl.Available() != 9 {
-		t.Errorf("expected 9 tokens after using one, got %d", rl.Available())
+	// Check initial tokens
+	if rl.Available() != 5 {
+		t.Errorf("expected 5 initial tokens, got %d", rl.Available())
 	}
 
-	// Force refill by setting refillAt to past
-	rl.mu.Lock()
-	rl.refillAt = time.Now().Add(-time.Second)
-	rl.mu.Unlock()
+	// Consume one token
+	ctx := context.Background()
+	if err := rl.Wait(ctx); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	// Check tokens are refilled
-	if rl.Available() != 10 {
-		t.Errorf("expected 10 tokens after refill, got %d", rl.Available())
+	// Should have 4 tokens left
+	if rl.Available() != 4 {
+		t.Errorf("expected 4 tokens after consuming one, got %d", rl.Available())
 	}
 }

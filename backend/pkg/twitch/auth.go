@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 const (
@@ -129,9 +130,14 @@ func (am *AuthManager) RefreshToken(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		const maxErrBody = 4096 // 4KB
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrBody))
+		msg := fmt.Sprintf("token request failed with status %d: %s", resp.StatusCode, string(body))
+		if len(body) == maxErrBody {
+			msg += " [truncated]"
+		}
 		return &AuthError{
-			Message: fmt.Sprintf("token request failed with status %d: %s", resp.StatusCode, string(body)),
+			Message: msg,
 		}
 	}
 
@@ -153,9 +159,15 @@ func (am *AuthManager) RefreshToken(ctx context.Context) error {
 
 	// Save to cache
 	if err := am.SaveToCache(ctx); err != nil {
-		log.Printf("Failed to cache token: %v", err)
+		logger := utils.GetLogger()
+		logger.Warn("Failed to cache token", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 
-	log.Printf("Successfully obtained new Twitch access token (expires in %d seconds)", tokenResp.ExpiresIn)
+	logger := utils.GetLogger()
+	logger.Info("Obtained new Twitch access token", map[string]interface{}{
+		"expires_in": tokenResp.ExpiresIn,
+	})
 	return nil
 }

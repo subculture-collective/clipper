@@ -3,6 +3,7 @@ package twitch
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,6 +32,59 @@ func (m *MockCache) Set(key string, value interface{}, ttl time.Duration) {
 
 func (m *MockCache) Delete(key string) {
 	delete(m.data, key)
+}
+
+// mockCacheWrapper wraps MockCache to implement RedisCache interface
+type mockCacheWrapper struct {
+	mockCache *MockCache
+}
+
+func (m *mockCacheWrapper) Get(key string) (interface{}, bool) {
+	return m.mockCache.Get(key)
+}
+
+func (m *mockCacheWrapper) Set(key string, value interface{}, ttl time.Duration) {
+	m.mockCache.Set(key, value, ttl)
+}
+
+func (m *mockCacheWrapper) Delete(key string) {
+	m.mockCache.Delete(key)
+}
+
+func (m *mockCacheWrapper) CachedUser(ctx context.Context, userID string) (*User, error) {
+	cacheKey := "twitch:user:" + userID
+	val, ok := m.mockCache.Get(cacheKey)
+	if !ok {
+		return nil, fmt.Errorf("user not found in cache")
+	}
+	if user, ok := val.(*User); ok {
+		return user, nil
+	}
+	return nil, fmt.Errorf("invalid type in cache")
+}
+
+func (m *mockCacheWrapper) CacheUser(ctx context.Context, user *User, ttl time.Duration) error {
+	cacheKey := "twitch:user:" + user.ID
+	m.mockCache.Set(cacheKey, user, ttl)
+	return nil
+}
+
+func (m *mockCacheWrapper) CachedGame(ctx context.Context, gameID string) (*Game, error) {
+	cacheKey := "twitch:game:" + gameID
+	val, ok := m.mockCache.Get(cacheKey)
+	if !ok {
+		return nil, fmt.Errorf("game not found in cache")
+	}
+	if game, ok := val.(*Game); ok {
+		return game, nil
+	}
+	return nil, fmt.Errorf("invalid type in cache")
+}
+
+func (m *mockCacheWrapper) CacheGame(ctx context.Context, game *Game, ttl time.Duration) error {
+	cacheKey := "twitch:game:" + game.ID
+	m.mockCache.Set(cacheKey, game, ttl)
+	return nil
 }
 
 func TestGetClips(t *testing.T) {
@@ -67,10 +121,13 @@ func TestGetClips(t *testing.T) {
 		tokenExpiry:  time.Now().Add(time.Hour),
 	}
 
+	// Create mock cache wrapper
+	mockCache := &mockCacheWrapper{mockCache: cache}
+
 	client := &Client{
 		clientID:       "test-client-id",
 		httpClient:     httpClient,
-		cache:          &RedisCache{client: nil}, // Mock cache
+		cache:          mockCache,
 		authManager:    authManager,
 		rateLimiter:    NewRateLimiter(100),
 		circuitBreaker: NewCircuitBreaker(5, 30*time.Second),
@@ -123,10 +180,11 @@ func TestGetStreams(t *testing.T) {
 		tokenExpiry:  time.Now().Add(time.Hour),
 	}
 
+	mockCache := &mockCacheWrapper{mockCache: cache}
 	client := &Client{
 		clientID:       "test-client-id",
 		httpClient:     httpClient,
-		cache:          &RedisCache{client: nil},
+		cache:          mockCache,
 		authManager:    authManager,
 		rateLimiter:    NewRateLimiter(100),
 		circuitBreaker: NewCircuitBreaker(5, 30*time.Second),
@@ -162,10 +220,11 @@ func TestGetChannels(t *testing.T) {
 		tokenExpiry:  time.Now().Add(time.Hour),
 	}
 
+	mockCache := &mockCacheWrapper{mockCache: cache}
 	client := &Client{
 		clientID:       "test-client-id",
 		httpClient:     httpClient,
-		cache:          &RedisCache{client: nil},
+		cache:          mockCache,
 		authManager:    authManager,
 		rateLimiter:    NewRateLimiter(100),
 		circuitBreaker: NewCircuitBreaker(5, 30*time.Second),

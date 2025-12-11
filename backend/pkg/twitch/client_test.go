@@ -47,24 +47,35 @@ func TestCircuitBreaker_Allow(t *testing.T) {
 }
 
 func TestCircuitBreaker_RecordSuccess(t *testing.T) {
-	cb := NewCircuitBreaker(2, 5*time.Second)
+	cb := NewCircuitBreaker(2, 100*time.Millisecond)
 
+	// Trigger enough failures to open the circuit
 	cb.RecordFailure()
-	cb.RecordSuccess()
+	cb.RecordFailure()
 
-	// After recording success in half-open, should transition to closed
-	cb.mu.Lock()
-	cb.state = "half-open"
-	cb.mu.Unlock()
+	// Wait for the timeout to elapse so the circuit transitions to half-open
+	time.Sleep(120 * time.Millisecond)
 
+	// The next Allow should transition the circuit to half-open
+	err := cb.Allow()
+	if err != nil {
+		t.Fatalf("expected Allow to succeed in half-open state, got %v", err)
+	}
+
+	// Now, record a success, which should transition the circuit to closed
 	cb.RecordSuccess()
 
 	cb.mu.RLock()
 	state := cb.state
+	failureCount := cb.failureCount
 	cb.mu.RUnlock()
 
 	if state != "closed" {
 		t.Errorf("expected state 'closed' after success in half-open, got %s", state)
+	}
+
+	if failureCount != 0 {
+		t.Errorf("expected failureCount=0 after success, got %d", failureCount)
 	}
 }
 

@@ -2,9 +2,10 @@ package twitch
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // RateLimiter implements token bucket rate limiting for Twitch API
@@ -39,7 +40,10 @@ func (rl *RateLimiter) Wait(ctx context.Context) error {
 	if rl.tokens <= 0 {
 		waitTime := time.Until(rl.refillAt)
 		if waitTime > 0 {
-			log.Printf("Rate limit reached, waiting %v", waitTime)
+			logger := utils.GetLogger()
+			logger.Warn("Rate limit reached, waiting", map[string]interface{}{
+				"wait_time": waitTime.String(),
+			})
 
 			// Release lock while waiting to avoid blocking other operations
 			rl.mu.Unlock()
