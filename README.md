@@ -37,7 +37,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - [Frontend Architecture](docs/frontend/architecture.md) - React frontend patterns
 - [Mobile Architecture](docs/mobile/architecture.md) - React Native app architecture
 - [API Reference](docs/backend/api.md) - Complete REST API documentation
-- [Clip Submission API Guide](docs/CLIP_SUBMISSION_API_GUIDE.md) - Submit clips with TypeScript/cURL examples
+- [Clip Submission API Guide](docs/backend/clip-submission-api-guide.md) - Submit clips with TypeScript/cURL examples
 - [OpenAPI Specifications](docs/openapi/) - Machine-readable API specs
 - [Database Guide](docs/backend/database.md) - Schema, migrations, and queries
 - [Testing Guide](docs/backend/testing.md) - Testing strategy and tools
