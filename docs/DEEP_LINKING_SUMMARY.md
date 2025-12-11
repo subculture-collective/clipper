@@ -184,7 +184,7 @@ npm run preview
   - Get from: `keytool -list -v -keystore your-keystore.keystore`
 
 - [ ] **Update Domain URLs**
-  - Replace `clpr.tv` with your actual domain
+  - Ensure domain is set to `clpr.tv`
   - Update in both iOS and Android config files
 
 ### After Deployment
