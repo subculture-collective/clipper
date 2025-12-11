@@ -130,6 +130,47 @@ Guides for using the Clipper platform:
 - 📋 Advanced moderation tools
 - 📋 Machine learning recommendations
 
+## 📊 Documentation Overview (Dataview)
+
+### All Documentation by Area
+
+```dataview
+TABLE title, summary, status, last_reviewed
+FROM "docs"
+WHERE area AND file.name != "index"
+SORT area ASC, title ASC
+```
+
+### Documentation Needing Review
+
+```dataview
+TABLE title, area, last_reviewed, status
+FROM "docs"
+WHERE status = "draft" OR status = "wip" OR status = "review" OR last_reviewed < date(today) - dur(90 days)
+SORT last_reviewed ASC
+LIMIT 20
+```
+
+### Recently Updated Documentation
+
+```dataview
+TABLE title, area, last_reviewed, status
+FROM "docs"
+WHERE last_reviewed
+SORT last_reviewed DESC
+LIMIT 15
+```
+
+### Documentation by Status
+
+```dataview
+TABLE rows.file.link AS "Document", rows.area AS "Area"
+FROM "docs"
+WHERE status
+GROUP BY status
+SORT status ASC
+```
+
 ## 🔗 External Links
 
 - [GitHub Repository](https://github.com/subculture-collective/clipper)

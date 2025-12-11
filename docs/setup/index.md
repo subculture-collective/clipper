@@ -6,7 +6,7 @@ area: "setup"
 status: "stable"
 owner: "team-core"
 version: "1.0"
-last_reviewed: 2025-12-01
+last_reviewed: 2025-12-11
 aliases: ["setup hub", "configuration"]
 ---
 
@@ -34,6 +34,29 @@ SORT title ASC
 1. Start with [[development|Development Setup]] for prerequisites and quick start
 2. Configure your environment using [[environment|Environment Variables]]
 3. If you run into issues, check [[troubleshooting|Troubleshooting]]
+
+## Environment Configuration by Service
+
+For complete environment variable documentation, see [[environment|Environment Variables Reference]].
+
+### Backend Environment
+- Database connection (PostgreSQL)
+- Redis cache configuration
+- OpenSearch/vector search  
+- Twitch API credentials
+- JWT secrets
+- CORS and security settings
+
+### Frontend Environment
+- API endpoint URLs
+- Twitch OAuth client ID
+- Feature flags
+- Analytics configuration
+
+### Mobile Environment
+- API endpoints
+- OAuth configuration
+- App-specific settings
 
 ---
 
