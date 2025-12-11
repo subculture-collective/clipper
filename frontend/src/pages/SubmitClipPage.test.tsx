@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../context/AuthContext';
 import * as submissionApi from '../lib/submission-api';
+import * as configApi from '../lib/config-api';
 import { render, screen, waitFor } from '../test/test-utils';
 import { SubmitClipPage } from './SubmitClipPage';
 
@@ -9,6 +10,11 @@ import { SubmitClipPage } from './SubmitClipPage';
 vi.mock('../lib/submission-api', () => ({
     submitClip: vi.fn(),
     getUserSubmissions: vi.fn(),
+}));
+
+// Mock the config API
+vi.mock('../lib/config-api', () => ({
+    getPublicConfig: vi.fn(),
 }));
 
 // Mock the AuthContext
@@ -40,6 +46,7 @@ describe('SubmitClipPage', () => {
 
     const mockSubmitClip = vi.mocked(submissionApi.submitClip);
     const mockGetUserSubmissions = vi.mocked(submissionApi.getUserSubmissions);
+    const mockGetPublicConfig = vi.mocked(configApi.getPublicConfig);
     const mockUseAuth = vi.mocked(useAuth);
 
     beforeEach(() => {
@@ -52,6 +59,13 @@ describe('SubmitClipPage', () => {
                 limit: 5,
                 total: 0,
                 total_pages: 0,
+            },
+        });
+        mockGetPublicConfig.mockResolvedValue({
+            karma: {
+                initial_karma_points: 100,
+                submission_karma_required: 100,
+                require_karma_for_submission: true,
             },
         });
     });

@@ -16,6 +16,7 @@ import {
     Toggle,
 } from '../components';
 import { useAuth } from '../context/AuthContext';
+import { useConsent } from '../context/ConsentContext';
 import type {
     DeleteAccountRequest,
     UpdateProfileRequest,
@@ -34,6 +35,7 @@ import {
 export function SettingsPage() {
     const { user, refreshUser } = useAuth();
     const queryClient = useQueryClient();
+    const { consent, updateConsent, doNotTrack, resetConsent } = useConsent();
 
     // Profile state
     const [profileData, setProfileData] = useState<UpdateProfileRequest>({
@@ -49,6 +51,9 @@ export function SettingsPage() {
     const [isSavingSettings, setIsSavingSettings] = useState(false);
     const [settingsSuccess, setSettingsSuccess] = useState(false);
     const [settingsError, setSettingsError] = useState<string | null>(null);
+
+    // Consent state
+    const [consentSuccess, setConsentSuccess] = useState(false);
 
     // Export state
     const [isExporting, setIsExporting] = useState(false);
@@ -212,7 +217,7 @@ export function SettingsPage() {
     return (
         <>
             <Helmet>
-                <title>Settings - Clipper</title>
+                <title>Settings - clpr</title>
             </Helmet>
 
             <Container className='py-4 xs:py-6 md:py-8'>
@@ -440,6 +445,80 @@ export function SettingsPage() {
                                     </Stack>
                                 </form>
                             )}
+                        </CardBody>
+                    </Card>
+
+                    {/* Advertising & Privacy Consent */}
+                    <Card className='mb-6'>
+                        <CardHeader>
+                            <h2 className='text-xl font-semibold'>
+                                Advertising & Privacy
+                            </h2>
+                        </CardHeader>
+                        <CardBody>
+                            {doNotTrack && (
+                                <Alert variant='info' className='mb-4'>
+                                    <strong>Do Not Track enabled:</strong> Your browser has Do Not Track enabled. 
+                                    Personalized ads and analytics will be automatically disabled regardless of your consent settings.
+                                </Alert>
+                            )}
+                            <Stack direction='vertical' gap={4}>
+                                <Toggle
+                                    label='Analytics Tracking'
+                                    helperText='Help us improve clpr by allowing anonymous usage analytics'
+                                    checked={consent.analytics}
+                                    onChange={(e) => {
+                                        updateConsent({ analytics: e.target.checked });
+                                        setConsentSuccess(true);
+                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                    }}
+                                    disabled={doNotTrack}
+                                />
+                                <Toggle
+                                    label='Personalized Advertising'
+                                    helperText='Allow ads tailored to your interests. Without this, you will see contextual ads based on page content.'
+                                    checked={consent.personalizedAds}
+                                    onChange={(e) => {
+                                        updateConsent({ personalizedAds: e.target.checked });
+                                        setConsentSuccess(true);
+                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                    }}
+                                    disabled={doNotTrack}
+                                />
+                                <Toggle
+                                    label='Performance Features'
+                                    helperText='Enable content caching and personalized recommendations'
+                                    checked={consent.performance}
+                                    onChange={(e) => {
+                                        updateConsent({ performance: e.target.checked });
+                                        setConsentSuccess(true);
+                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                    }}
+                                    disabled={doNotTrack}
+                                />
+                                <div className='pt-2 border-t border-border'>
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        onClick={() => {
+                                            resetConsent();
+                                        }}
+                                    >
+                                        Reset Consent (Show Banner Again)
+                                    </Button>
+                                </div>
+                                {consentSuccess && (
+                                    <Alert variant='success'>
+                                        Privacy preferences updated!
+                                    </Alert>
+                                )}
+                                <p className='text-xs text-muted-foreground'>
+                                    Learn more about how we use your data in our{' '}
+                                    <Link to='/privacy' className='text-primary-500 hover:underline'>
+                                        Privacy Policy
+                                    </Link>
+                                </p>
+                            </Stack>
                         </CardBody>
                     </Card>
 

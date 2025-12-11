@@ -41,14 +41,14 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 
 	switch sortBy {
 	case "new":
-		orderClause = "c.created_at DESC"
+		orderClause = "created_at DESC"
 	case "old":
-		orderClause = "c.created_at ASC"
+		orderClause = "created_at ASC"
 	case "controversial":
 		// Controversial: high vote count but score near zero
 		orderClause = `
-			(ABS(c.vote_score) / NULLIF(GREATEST(ABS(c.vote_score), 1), 0)) DESC,
-			ABS(c.vote_score) DESC
+			(ABS(vote_score) / NULLIF(GREATEST(ABS(vote_score), 1), 0)) DESC,
+			ABS(vote_score) DESC
 		`
 	case "best":
 		fallthrough
@@ -56,22 +56,22 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 		// Wilson score confidence interval for "best" sorting
 		// Uses vote counts from the CTE to avoid N+1 query pattern
 		orderClause = `
-			CASE 
+			CASE
 				WHEN total_votes = 0 THEN 0
 				ELSE (
-					((upvotes + 1.9208) / total_votes - 
+					((upvotes + 1.9208) / total_votes -
 					1.96 * SQRT((upvotes * downvotes) / total_votes + 0.9604) / total_votes)
 				) / (1 + 3.8416 / total_votes)
 			END DESC,
-			c.vote_score DESC,
-			c.created_at DESC
+			vote_score DESC,
+			created_at DESC
 		`
 	}
 
 	query := fmt.Sprintf(`
 		WITH vote_counts AS (
 			-- Pre-calculate vote counts to avoid N+1 query pattern
-			SELECT 
+			SELECT
 				comment_id,
 				COUNT(*) AS total_votes,
 				COUNT(*) FILTER (WHERE vote_type = 1) AS upvotes,
@@ -84,7 +84,7 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 		),
 		comment_tree AS (
 			-- Get top-level comments for this clip
-			SELECT 
+			SELECT
 				c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
 				c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
 				c.created_at, c.updated_at,
@@ -153,7 +153,7 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 // GetReplies retrieves replies to a comment
 func (r *CommentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, limit, offset int, userID *uuid.UUID) ([]CommentWithAuthor, error) {
 	query := `
-		SELECT 
+		SELECT
 			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
 			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
 			c.created_at, c.updated_at,
@@ -211,7 +211,7 @@ func (r *CommentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, 
 // GetByID retrieves a comment by ID with author info
 func (r *CommentRepository) GetByID(ctx context.Context, id uuid.UUID, userID *uuid.UUID) (*CommentWithAuthor, error) {
 	query := `
-		SELECT 
+		SELECT
 			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
 			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
 			c.created_at, c.updated_at,
@@ -333,9 +333,9 @@ func (r *CommentRepository) GetNestingDepth(ctx context.Context, parentID uuid.U
 			SELECT id, parent_comment_id, 1 AS depth
 			FROM comments
 			WHERE id = $1
-			
+
 			UNION ALL
-			
+
 			SELECT c.id, c.parent_comment_id, pc.depth + 1
 			FROM comments c
 			INNER JOIN parent_chain pc ON c.id = pc.parent_comment_id
@@ -357,7 +357,7 @@ func (r *CommentRepository) VoteOnComment(ctx context.Context, userID, commentID
 	query := `
 		INSERT INTO comment_votes (id, user_id, comment_id, vote_type, created_at)
 		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (user_id, comment_id) 
+		ON CONFLICT (user_id, comment_id)
 		DO UPDATE SET vote_type = EXCLUDED.vote_type
 	`
 
@@ -403,8 +403,8 @@ func (r *CommentRepository) GetUserVote(ctx context.Context, userID, commentID u
 // CanUserEdit checks if a user can edit a comment (within time limit)
 func (r *CommentRepository) CanUserEdit(ctx context.Context, commentID, userID uuid.UUID, editWindowMinutes int) (bool, error) {
 	query := `
-		SELECT 
-			user_id = $2 AND 
+		SELECT
+			user_id = $2 AND
 			created_at > NOW() - INTERVAL '1 minute' * $3
 		FROM comments
 		WHERE id = $1
@@ -457,7 +457,7 @@ func (r *CommentRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 
 	// Get comments
 	query := `
-		SELECT 
+		SELECT
 			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
 			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
 			c.created_at, c.updated_at,

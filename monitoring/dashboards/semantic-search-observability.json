@@ -1,0 +1,563 @@
+{
+  "dashboard": {
+    "title": "Clipper Semantic Search Observability",
+    "tags": ["clipper", "search", "semantic", "observability", "embeddings"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "description": "Dashboard for monitoring semantic search performance, embedding generation, and indexing metrics",
+    "annotations": {
+      "list": [
+        {
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": false,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Deployments",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Search Performance Overview",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "title": "Search Query Rate",
+        "description": "Number of search queries per second by type",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(search_queries_total{search_type=\"hybrid\", status=\"success\"}[5m]))",
+            "legendFormat": "Hybrid (success)",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(search_queries_total{search_type=\"bm25\", status=\"success\"}[5m]))",
+            "legendFormat": "BM25 (success)",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(search_queries_total{status=\"error\"}[5m]))",
+            "legendFormat": "Errors",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Search Latency (P95)",
+        "description": "95th percentile search latency by type",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "orange", "value": 200},
+                {"color": "red", "value": 500}
+              ]
+            }
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(search_query_duration_ms_bucket{search_type=\"hybrid\"}[5m])) by (le))",
+            "legendFormat": "Hybrid P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(search_query_duration_ms_bucket{search_type=\"bm25\"}[5m])) by (le))",
+            "legendFormat": "BM25 P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(search_query_duration_ms_bucket{search_type=\"hybrid\"}[5m])) by (le))",
+            "legendFormat": "Hybrid P50",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Search Success Rate",
+        "description": "Percentage of successful search queries",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 4, "x": 0, "y": 9},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.95},
+                {"color": "green", "value": 0.99}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(search_queries_total{status=\"success\"}[5m])) / sum(rate(search_queries_total[5m]))",
+            "legendFormat": "Success Rate",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Zero Result Rate",
+        "description": "Percentage of searches returning no results",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 4, "x": 4, "y": 9},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.05},
+                {"color": "red", "value": 0.1}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(search_zero_results_total[5m])) / sum(rate(search_queries_total[5m]))",
+            "legendFormat": "Zero Results",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Fallback Rate",
+        "description": "Rate of search fallbacks to BM25",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 4, "x": 8, "y": 9},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.01},
+                {"color": "red", "value": 0.05}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(search_fallback_total[5m])) / sum(rate(search_queries_total[5m]))",
+            "legendFormat": "Fallback Rate",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Avg Results Count",
+        "description": "Average number of search results returned",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 4, "x": 12, "y": 9},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "green", "value": 10}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(search_results_count_bucket[5m])) by (le))",
+            "legendFormat": "Median Results",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Search Component Latency",
+        "description": "Breakdown of search latency by component",
+        "type": "timeseries",
+        "gridPos": {"h": 4, "w": 8, "x": 16, "y": 9},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(bm25_search_duration_ms_bucket[5m])) by (le))",
+            "legendFormat": "BM25 Candidates P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(vector_search_duration_ms_bucket[5m])) by (le))",
+            "legendFormat": "Vector Re-rank P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(embedding_generation_duration_ms_bucket{type=\"query\"}[5m])) by (le))",
+            "legendFormat": "Query Embedding P95",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Embedding Service",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 13},
+        "collapsed": false
+      },
+      {
+        "id": 10,
+        "title": "Embedding Cache Hit Rate",
+        "description": "Percentage of embedding requests served from cache",
+        "type": "gauge",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 14},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.50},
+                {"color": "green", "value": 0.80}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])) OR on() vector(0)",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Embedding Generation Rate",
+        "description": "Rate of embedding generation by type",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 9, "x": 6, "y": 14},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "rate(embedding_generation_total{type=\"query\"}[5m])",
+            "legendFormat": "Query Embeddings",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(embedding_generation_total{type=\"clip\"}[5m])",
+            "legendFormat": "Clip Embeddings",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(embedding_generation_errors_total{type=\"query\"}[5m])",
+            "legendFormat": "Query Errors",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(embedding_generation_errors_total{type=\"clip\"}[5m])",
+            "legendFormat": "Clip Errors",
+            "refId": "D"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Embedding Latency",
+        "description": "Embedding generation latency by type",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 9, "x": 15, "y": 14},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 500}
+              ]
+            }
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(embedding_generation_duration_ms_bucket{type=\"query\"}[5m])) by (le))",
+            "legendFormat": "Query P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(embedding_generation_duration_ms_bucket{type=\"clip\"}[5m])) by (le))",
+            "legendFormat": "Clip P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(embedding_generation_duration_ms_bucket{type=\"query\"}[5m])) by (le))",
+            "legendFormat": "Query P50",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Indexing & Coverage",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 20},
+        "collapsed": false
+      },
+      {
+        "id": 14,
+        "title": "Embedding Coverage",
+        "description": "Percentage of clips with embeddings",
+        "type": "gauge",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 21},
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.80},
+                {"color": "green", "value": 0.95}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "clips_with_embeddings / (clips_with_embeddings + clips_without_embeddings) OR on() vector(0)",
+            "legendFormat": "Coverage",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Clips With/Without Embeddings",
+        "description": "Number of clips with and without embeddings",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 21},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "textMode": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "targets": [
+          {
+            "expr": "clips_with_embeddings",
+            "legendFormat": "With Embeddings",
+            "refId": "A"
+          },
+          {
+            "expr": "clips_without_embeddings",
+            "legendFormat": "Without Embeddings",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Indexing Job Status",
+        "description": "Indexing job success/failure rate",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 21},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "increase(indexing_jobs_total{status=\"success\"}[1h])",
+            "legendFormat": "Success",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(indexing_jobs_total{status=\"partial\"}[1h])",
+            "legendFormat": "Partial",
+            "refId": "B"
+          },
+          {
+            "expr": "increase(indexing_jobs_total{status=\"failed\"}[1h])",
+            "legendFormat": "Failed",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Indexing Job Duration",
+        "description": "Duration of indexing jobs",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 21},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(indexing_job_duration_seconds_bucket[1h])) by (le))",
+            "legendFormat": "P95 Duration",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(indexing_job_duration_seconds_bucket[1h])) by (le))",
+            "legendFormat": "P50 Duration",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Fallback Analysis",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27},
+        "collapsed": false
+      },
+      {
+        "id": 19,
+        "title": "Fallback Reasons",
+        "description": "Breakdown of search fallback reasons",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 28},
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right"},
+          "pieType": "pie"
+        },
+        "targets": [
+          {
+            "expr": "sum by (reason) (increase(search_fallback_total[1h]))",
+            "legendFormat": "{{reason}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Fallback Rate Over Time",
+        "description": "Rate of fallbacks by reason",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 16, "x": 8, "y": 28},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "list", "placement": "bottom"}
+        },
+        "targets": [
+          {
+            "expr": "sum by (reason) (rate(search_fallback_total[5m]))",
+            "legendFormat": "{{reason}}",
+            "refId": "A"
+          }
+        ]
+      }
+    ]
+  }
+}

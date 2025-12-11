@@ -8,9 +8,9 @@ interface MetaProps {
   type?: string;
 }
 
-const DEFAULT_TITLE = 'Clipper - Discover Gaming Highlights';
+const DEFAULT_TITLE = 'clpr - Discover Gaming Highlights';
 const DEFAULT_DESCRIPTION =
-  'Clipper is the best place to discover and share gaming highlights from Twitch. Browse clips by game, creator, or trending topics.';
+  'clpr is the best place to discover and share gaming highlights from Twitch. Browse clips by game, creator, or trending topics.';
 const DEFAULT_IMAGE = '/og-image.png';
 
 export function Meta({
@@ -20,7 +20,7 @@ export function Meta({
   url,
   type = 'website',
 }: MetaProps) {
-  const fullTitle = title === DEFAULT_TITLE ? title : `${title} | Clipper`;
+  const fullTitle = title === DEFAULT_TITLE ? title : `${title} | clpr`;
   const fullUrl = url || window.location.href;
 
   return (

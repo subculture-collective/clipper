@@ -1,3 +1,10 @@
+export interface ClipSubmitter {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url?: string;
+}
+
 export interface Clip {
     id: string;
     twitch_clip_id: string;
@@ -23,22 +30,29 @@ export interface Clip {
     is_nsfw: boolean;
     is_removed: boolean;
     removed_reason?: string;
+    is_hidden?: boolean;
     // User interaction state (from API or local)
     user_vote?: 1 | -1 | null;
     is_favorited?: boolean; // Backend returns is_favorited, not user_favorited
     upvote_count?: number;
     downvote_count?: number;
+    // Submitter attribution
+    submitted_by?: ClipSubmitter;
+    submitted_at?: string;
 }
 
 export interface ClipFeedResponse {
     clips: Clip[];
     total: number;
     page: number;
-    limit: number;
+    limit?: number;
+    total_pages?: number;
     has_more: boolean;
+    has_next?: boolean;
+    has_prev?: boolean;
 }
 
-export type SortOption = "hot" | "new" | "top" | "rising" | "discussed";
+export type SortOption = "hot" | "new" | "top" | "rising" | "discussed" | "views" | "trending";
 export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
 
 export interface ClipFeedFilters {

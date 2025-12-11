@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -12,9 +13,11 @@ import (
 
 // UserHandler handles user-related HTTP requests
 type UserHandler struct {
-	clipRepo    *repository.ClipRepository
-	voteRepo    *repository.VoteRepository
-	commentRepo *repository.CommentRepository
+	clipRepo         *repository.ClipRepository
+	voteRepo         *repository.VoteRepository
+	commentRepo      *repository.CommentRepository
+	userRepo         *repository.UserRepository
+	broadcasterRepo  *repository.BroadcasterRepository
 }
 
 // NewUserHandler creates a new user handler
@@ -22,12 +25,75 @@ func NewUserHandler(
 	clipRepo *repository.ClipRepository,
 	voteRepo *repository.VoteRepository,
 	commentRepo *repository.CommentRepository,
+	userRepo *repository.UserRepository,
+	broadcasterRepo *repository.BroadcasterRepository,
 ) *UserHandler {
 	return &UserHandler{
-		clipRepo:    clipRepo,
-		voteRepo:    voteRepo,
-		commentRepo: commentRepo,
+		clipRepo:         clipRepo,
+		voteRepo:         voteRepo,
+		commentRepo:      commentRepo,
+		userRepo:         userRepo,
+		broadcasterRepo:  broadcasterRepo,
 	}
+}
+
+// GetUserByUsername retrieves a user's public profile by username
+// GET /api/v1/users/by-username/:username
+func (h *UserHandler) GetUserByUsername(c *gin.Context) {
+	username := c.Param("username")
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username is required"})
+		return
+	}
+
+	user, err := h.userRepo.GetByUsername(c.Request.Context(), username)
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user"})
+		return
+	}
+
+	// Check if full profile with stats is requested
+	fullProfile := c.Query("full") == "true"
+	if fullProfile {
+		// Get current user ID if authenticated
+		var currentUserID *uuid.UUID
+		if userIDInterface, exists := c.Get("user_id"); exists {
+			if uid, ok := userIDInterface.(uuid.UUID); ok {
+				currentUserID = &uid
+			}
+		}
+
+		profile, err := h.userRepo.GetUserProfile(c.Request.Context(), user.ID, currentUserID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user profile"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    profile,
+		})
+		return
+	}
+
+	// Return only basic public user information
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"id":           user.ID,
+			"username":     user.Username,
+			"display_name": user.DisplayName,
+			"avatar_url":   user.AvatarURL,
+			"bio":          user.Bio,
+			"karma_points": user.KarmaPoints,
+			"role":         user.Role,
+			"created_at":   user.CreatedAt,
+		},
+	})
 }
 
 // GetUserComments retrieves comments by a user
@@ -243,4 +309,525 @@ func (h *UserHandler) getUserVotedClips(c *gin.Context, voteType int16) {
 			"has_prev":    page > 1,
 		},
 	})
+}
+
+// GetUserProfile retrieves a user's complete profile with stats
+// GET /api/v1/users/:id
+func (h *UserHandler) GetUserProfile(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID if authenticated
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	profile, err := h.userRepo.GetUserProfile(c.Request.Context(), userID, currentUserID)
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    profile,
+	})
+}
+
+// GetUserClips retrieves clips submitted by a user
+// GET /api/v1/users/:id/clips
+func (h *UserHandler) GetUserClips(c *gin.Context) {
+	userIDStr := c.Param("id")
+	_, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	// Get current user to check permissions
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	// TODO: Add filter for submitted_by_user_id to ClipFilters
+	// For now, return all clips (this endpoint needs proper implementation)
+	filters := repository.ClipFilters{
+		ShowHidden: currentUserID != nil, // Show hidden clips if authenticated
+	}
+	
+	clips, total, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve clips"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    clips,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// GetUserActivity retrieves a user's activity feed
+// GET /api/v1/users/:id/activity
+func (h *UserHandler) GetUserActivity(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	activities, total, err := h.userRepo.GetUserActivity(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user activity"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    activities,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// GetUserFollowers retrieves users who follow the specified user
+// GET /api/v1/users/:id/followers
+func (h *UserHandler) GetUserFollowers(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID if authenticated
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	followers, total, err := h.userRepo.GetFollowers(c.Request.Context(), userID, currentUserID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followers"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    followers,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// GetUserFollowing retrieves users that the specified user follows
+// GET /api/v1/users/:id/following
+func (h *UserHandler) GetUserFollowing(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID if authenticated
+	var currentUserID *uuid.UUID
+	if userIDInterface, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDInterface.(uuid.UUID); ok {
+			currentUserID = &uid
+		}
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	following, total, err := h.userRepo.GetFollowing(c.Request.Context(), userID, currentUserID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve following"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    following,
+		"meta": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_next":    page < totalPages,
+			"has_prev":    page > 1,
+		},
+	})
+}
+
+// FollowUser creates a follow relationship
+// POST /api/v1/users/:id/follow
+func (h *UserHandler) FollowUser(c *gin.Context) {
+	userIDStr := c.Param("id")
+	followingID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID
+	followerID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	followerUUID := followerID.(uuid.UUID)
+
+	// Can't follow yourself
+	if followerUUID == followingID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot follow yourself"})
+		return
+	}
+
+	// Create follow relationship
+	err = h.userRepo.FollowUser(c.Request.Context(), followerUUID, followingID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to follow user"})
+		return
+	}
+
+	// Record activity
+	activity := &models.UserActivity{
+		ID:           uuid.New(),
+		UserID:       followerUUID,
+		ActivityType: models.ActivityTypeUserFollowed,
+		TargetID:     &followingID,
+		TargetType:   strPtr("user"),
+	}
+	if err := h.userRepo.CreateUserActivity(c.Request.Context(), activity); err != nil {
+		log.Printf("Warning: Failed to record follow activity for user %s: %v", followerUUID, err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "user followed successfully",
+	})
+}
+
+// UnfollowUser removes a follow relationship
+// DELETE /api/v1/users/:id/follow
+func (h *UserHandler) UnfollowUser(c *gin.Context) {
+	userIDStr := c.Param("id")
+	followingID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	// Get current user ID
+	followerID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	followerUUID := followerID.(uuid.UUID)
+
+	// Remove follow relationship
+	err = h.userRepo.UnfollowUser(c.Request.Context(), followerUUID, followingID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unfollow user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "user unfollowed successfully",
+	})
+}
+
+// Helper function
+func strPtr(s string) *string {
+	return &s
+}
+
+// BlockUser creates a block relationship
+// POST /api/v1/users/:id/block
+func (h *UserHandler) BlockUser(c *gin.Context) {
+// Get target user ID from URL parameter
+targetUserIDStr := c.Param("id")
+targetUserID, err := uuid.Parse(targetUserIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
+return
+}
+
+// Get current user ID from auth middleware
+blockerIDInterface, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+return
+}
+blockerUUID := blockerIDInterface.(uuid.UUID)
+
+// Prevent self-blocking
+if blockerUUID == targetUserID {
+c.JSON(http.StatusBadRequest, gin.H{"error": "cannot block yourself"})
+return
+}
+
+// Check if target user exists
+_, err = h.userRepo.GetByID(c.Request.Context(), targetUserID)
+if err != nil {
+if err == repository.ErrUserNotFound {
+c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+return
+}
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find user"})
+return
+}
+
+// Create block relationship
+
+	// Check if target user has already blocked the current user
+	isBlocked, err := h.userRepo.IsBlocked(c.Request.Context(), targetUserID, blockerUUID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check block status"})
+		return
+	}
+
+err = h.userRepo.BlockUser(c.Request.Context(), blockerUUID, targetUserID)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to block user"})
+return
+}
+
+// If they were following each other, remove the follow relationships
+_ = h.userRepo.UnfollowUser(c.Request.Context(), blockerUUID, targetUserID)
+_ = h.userRepo.UnfollowUser(c.Request.Context(), targetUserID, blockerUUID)
+
+	response := gin.H{
+		"success": true,
+		"message": "user blocked successfully",
+	}
+
+	// If there's a mutual block, add that to the response
+	if isBlocked {
+		response["note"] = "both users have blocked each other"
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UnblockUser removes a block relationship
+// DELETE /api/v1/users/:id/block
+func (h *UserHandler) UnblockUser(c *gin.Context) {
+// Get target user ID from URL parameter
+targetUserIDStr := c.Param("id")
+targetUserID, err := uuid.Parse(targetUserIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
+return
+}
+
+// Get current user ID from auth middleware
+blockerIDInterface, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+return
+}
+blockerUUID := blockerIDInterface.(uuid.UUID)
+
+// Remove block relationship
+err = h.userRepo.UnblockUser(c.Request.Context(), blockerUUID, targetUserID)
+if err != nil {
+if err == repository.ErrUserNotFound {
+c.JSON(http.StatusNotFound, gin.H{"error": "block relationship not found"})
+return
+}
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unblock user"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"message": "user unblocked successfully",
+})
+}
+
+// GetBlockedUsers retrieves users blocked by the current user
+// GET /api/v1/users/me/blocked
+func (h *UserHandler) GetBlockedUsers(c *gin.Context) {
+// Get current user ID from auth middleware
+userIDInterface, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+return
+}
+userUUID := userIDInterface.(uuid.UUID)
+
+// Parse pagination parameters
+limit := 20
+offset := 0
+
+if limitStr := c.Query("limit"); limitStr != "" {
+if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+limit = parsedLimit
+}
+}
+
+if offsetStr := c.Query("offset"); offsetStr != "" {
+if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+offset = parsedOffset
+}
+}
+
+// Get blocked users
+blockedUsers, total, err := h.userRepo.GetBlockedUsers(c.Request.Context(), userUUID, limit, offset)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve blocked users"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"data":    blockedUsers,
+"pagination": gin.H{
+"limit":  limit,
+"offset": offset,
+"total":  total,
+},
+})
+}
+
+// GetFollowedBroadcasters retrieves broadcasters followed by the specified user
+// GET /api/v1/users/:id/following/broadcasters
+func (h *UserHandler) GetFollowedBroadcasters(c *gin.Context) {
+userIDStr := c.Param("id")
+userID, err := uuid.Parse(userIDStr)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
+return
+}
+
+// Check if user exists
+_, err = h.userRepo.GetByID(c.Request.Context(), userID)
+if err != nil {
+if err == repository.ErrUserNotFound {
+c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+return
+}
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find user"})
+return
+}
+
+// Parse pagination parameters
+limit := 20
+offset := 0
+
+if limitStr := c.Query("limit"); limitStr != "" {
+if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+limit = parsedLimit
+}
+}
+
+if offsetStr := c.Query("offset"); offsetStr != "" {
+if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+offset = parsedOffset
+}
+}
+
+// Get followed broadcasters
+follows, total, err := h.broadcasterRepo.ListUserFollows(c.Request.Context(), userID, limit, offset)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve followed broadcasters"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{
+"success": true,
+"data":    follows,
+"pagination": gin.H{
+"limit":  limit,
+"offset": offset,
+"total":  total,
+},
+})
 }

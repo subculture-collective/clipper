@@ -18,7 +18,7 @@ interface BarChartComponentProps {
   color?: string;
 }
 
-const BarChartComponent: React.FC<BarChartComponentProps> = ({
+const BarChartComponent: React.FC<BarChartComponentProps> = React.memo(({
   data,
   title,
   valueLabel = 'Value',
@@ -62,6 +62,8 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({
       </ResponsiveContainer>
     </div>
   );
-};
+});
+
+BarChartComponent.displayName = 'BarChartComponent';
 
 export default BarChartComponent;

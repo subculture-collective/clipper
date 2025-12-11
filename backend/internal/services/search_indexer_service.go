@@ -161,14 +161,17 @@ func (s *SearchIndexerService) IndexTag(ctx context.Context, tag *models.Tag) er
 }
 
 // IndexGame indexes a single game
-func (s *SearchIndexerService) IndexGame(ctx context.Context, game *models.Game) error {
+func (s *SearchIndexerService) IndexGame(ctx context.Context, game *models.GameEntity) error {
+	// For search indexing, we need the game ID as a string (TwitchGameID)
+	// and the clip count which requires querying or passing in
 	doc := map[string]interface{}{
-		"id":         game.ID,
-		"name":       game.Name,
-		"clip_count": game.ClipCount,
+		"id":   game.TwitchGameID,
+		"name": game.Name,
+		// Note: clip_count would need to be computed or passed separately
+		// For now, omitting it to avoid errors
 	}
 
-	return s.indexDocument(ctx, GamesIndex, game.ID, doc)
+	return s.indexDocument(ctx, GamesIndex, game.TwitchGameID, doc)
 }
 
 // indexDocument is a helper to index any document
@@ -555,4 +558,15 @@ func getTagIndexMapping() string {
 }
 }
 }`
+}
+
+// IndexGameSearchResult indexes a game search result (aggregated game data with clip count)
+func (s *SearchIndexerService) IndexGameSearchResult(ctx context.Context, game *models.GameSearchResult) error {
+doc := map[string]interface{}{
+"id":         game.ID,
+"name":       game.Name,
+"clip_count": game.ClipCount,
+}
+
+return s.indexDocument(ctx, GamesIndex, game.ID, doc)
 }

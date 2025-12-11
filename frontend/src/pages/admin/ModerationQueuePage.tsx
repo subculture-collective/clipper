@@ -9,6 +9,7 @@ import {
     Modal,
     Spinner,
     TextArea,
+    UserRoleBadge,
 } from '../../components';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -17,6 +18,7 @@ import {
     rejectSubmission,
 } from '../../lib/submission-api';
 import type { ClipSubmissionWithUser } from '../../types/submission';
+import type { UserRole } from '../../lib/roles';
 
 export function ModerationQueuePage() {
     const { isAuthenticated, isAdmin } = useAuth();
@@ -43,7 +45,7 @@ export function ModerationQueuePage() {
             setIsLoading(true);
             setError(null);
             const response = await getPendingSubmissions(page, 20);
-            setSubmissions(response.data);
+            setSubmissions(response.data || []);
             setTotalPages(response.meta.total_pages);
             setTotal(response.meta.total);
         } catch (err: unknown) {
@@ -165,7 +167,7 @@ export function ModerationQueuePage() {
                         <div className='flex justify-center py-12'>
                             <Spinner size='lg' />
                         </div>
-                    ) : submissions.length === 0 ? (
+                    ) : !submissions || submissions.length === 0 ? (
                         <div className='py-12 text-center'>
                             <p className='text-muted-foreground'>
                                 No pending submissions to review.
@@ -237,16 +239,8 @@ export function ModerationQueuePage() {
                                                             }{' '}
                                                             karma
                                                         </Badge>
-                                                        {submission.user
-                                                            .role !==
-                                                            'user' && (
-                                                            <Badge variant='success'>
-                                                                {
-                                                                    submission
-                                                                        .user
-                                                                        .role
-                                                                }
-                                                            </Badge>
+                                                        {submission.user.role !== 'user' && (
+                                                            <UserRoleBadge role={submission.user.role as UserRole} size="sm" />
                                                         )}
                                                     </div>
                                                 )}

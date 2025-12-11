@@ -1,8 +1,8 @@
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimestamp } from '../lib/utils';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Card, CardBody, Container, Stack, Button, Skeleton, ProfileSkeleton, EmptyStateWithAction } from '../components';
+import { Card, CardBody, Container, Stack, Button, Skeleton, ProfileSkeleton, EmptyStateWithAction, UserRoleBadge } from '../components';
 import { ClipCard } from '../components/clip/ClipCard';
 import { ClipCardSkeleton } from '../components/clip/ClipCardSkeleton';
 import { CommentSkeleton } from '../components/ui';
@@ -16,6 +16,7 @@ import { useToast } from '../context/ToastContext';
 import type { KarmaBreakdown, UserReputation } from '../types/reputation';
 import type { Clip } from '../types/clip';
 import type { Comment } from '../types/comment';
+import type { UserRole } from '../lib/roles';
 import {
     fetchUserComments,
     fetchUserUpvotedClips,
@@ -35,7 +36,7 @@ export function ProfilePage() {
     const [loadingReputation, setLoadingReputation] = useState(true);
     const [reputationError, setReputationError] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
-    
+
     // Tab-specific data states
     const [comments, setComments] = useState<Comment[]>([]);
     const [upvotedClips, setUpvotedClips] = useState<Clip[]>([]);
@@ -64,7 +65,7 @@ export function ProfilePage() {
             setLoadingReputation(false);
         }
     }, [user]);
-    
+
     const fetchKarmaBreakdown = useCallback(async () => {
         if (!user) return;
         try {
@@ -82,7 +83,7 @@ export function ProfilePage() {
 
     const fetchTabData = useCallback(async (tab: TabType, page: number = 1, append: boolean = false) => {
         if (!user) return;
-        
+
         setLoadingTabData(true);
         try {
             switch (tab) {
@@ -183,7 +184,7 @@ export function ProfilePage() {
                                         Account Restricted
                                     </h3>
                                     <p className='mt-1 text-sm xs:text-base text-red-800 dark:text-red-200'>
-                                        Your account has been restricted from interacting with certain content. 
+                                        Your account has been restricted from interacting with certain content.
                                         Please contact support if you believe this is an error.
                                     </p>
                                 </div>
@@ -252,20 +253,15 @@ export function ProfilePage() {
                                         <span className='text-muted-foreground'>
                                             Role:
                                         </span>
-                                        <span className='font-semibold capitalize'>
-                                            {user.role}
-                                        </span>
+                                        <UserRoleBadge role={user.role as UserRole} size="sm" />
                                     </div>
                                     {user.created_at && (
                                         <div className='flex items-center gap-2'>
                                             <span className='text-muted-foreground'>
                                                 Joined:
                                             </span>
-                                            <span className='font-semibold'>
-                                                {formatDistanceToNow(
-                                                    new Date(user.created_at),
-                                                    { addSuffix: true }
-                                                )}
+                                            <span className='font-semibold' title={formatTimestamp(user.created_at).title}>
+                                                {formatTimestamp(user.created_at).display}
                                             </span>
                                         </div>
                                     )}
@@ -279,7 +275,7 @@ export function ProfilePage() {
                                         </p>
                                         <div className='flex gap-3'>
                                             <Link
-                                                to='/admin'
+                                                to='/admin/dashboard'
                                                 className='text-sm text-primary-600 hover:text-primary-700 font-medium'
                                             >
                                                 Dashboard
@@ -436,6 +432,7 @@ export function ProfilePage() {
                                             ))}
                                         </div>
                                     ) : reputation &&
+                                      reputation.badges &&
                                       reputation.badges.length > 0 ? (
                                         <BadgeGrid
                                             badges={reputation.badges}
@@ -486,9 +483,9 @@ export function ProfilePage() {
                                                         <p className='text-foreground'>{comment.content}</p>
                                                         <div className='mt-2 text-sm text-muted-foreground'>
                                                             {comment.vote_score} points •{' '}
-                                                            {formatDistanceToNow(new Date(comment.created_at), {
-                                                                addSuffix: true,
-                                                            })}
+                                                            <span title={formatTimestamp(comment.created_at).title}>
+                                                                {formatTimestamp(comment.created_at).display}
+                                                            </span>
                                                         </div>
                                                     </CardBody>
                                                 </Card>

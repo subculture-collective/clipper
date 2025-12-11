@@ -8,6 +8,7 @@ import (
 
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/pkg/database"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // EmbeddingServiceInterface defines the interface required by the scheduler
@@ -100,6 +101,7 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 	rows, err := s.db.Pool.Query(ctx, query)
 	if err != nil {
 		log.Printf("Failed to fetch clips for embedding: %v", err)
+		metrics.IndexingJobsTotal.WithLabelValues("failed").Inc()
 		return
 	}
 	defer rows.Close()
@@ -125,6 +127,8 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 
 	if len(clips) == 0 {
 		log.Println("No clips need embeddings - all up to date")
+		// Update embedding coverage metrics
+		s.updateEmbeddingCoverageMetrics(ctx)
 		return
 	}
 
@@ -167,4 +171,47 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 	duration := time.Since(startTime)
 	log.Printf("Scheduled embedding generation completed: processed=%d failed=%d duration=%v",
 		processed, failed, duration)
+
+	// Record indexing job metrics
+	if failed == 0 {
+		metrics.IndexingJobsTotal.WithLabelValues("success").Inc()
+	} else if processed > 0 {
+		metrics.IndexingJobsTotal.WithLabelValues("partial").Inc()
+	} else {
+		metrics.IndexingJobsTotal.WithLabelValues("failed").Inc()
+	}
+	metrics.IndexingJobDuration.Observe(duration.Seconds())
+
+	// Update embedding coverage metrics
+	s.updateEmbeddingCoverageMetrics(ctx)
+}
+
+// updateEmbeddingCoverageMetrics updates the Prometheus gauges for embedding coverage
+func (s *EmbeddingScheduler) updateEmbeddingCoverageMetrics(ctx context.Context) {
+	if s.db == nil {
+		return
+	}
+
+	var withEmbeddings, withoutEmbeddings int64
+
+	// Count clips with embeddings
+	err := s.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM clips WHERE is_removed = false AND embedding IS NOT NULL
+	`).Scan(&withEmbeddings)
+	if err != nil {
+		log.Printf("Failed to count clips with embeddings: %v", err)
+		return
+	}
+
+	// Count clips without embeddings
+	err = s.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM clips WHERE is_removed = false AND embedding IS NULL
+	`).Scan(&withoutEmbeddings)
+	if err != nil {
+		log.Printf("Failed to count clips without embeddings: %v", err)
+		return
+	}
+
+	metrics.ClipsWithEmbeddings.Set(float64(withEmbeddings))
+	metrics.ClipsWithoutEmbeddings.Set(float64(withoutEmbeddings))
 }

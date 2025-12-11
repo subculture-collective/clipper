@@ -11,12 +11,17 @@ import {
   MetricCard,
   LineChartComponent,
   DateRangeSelector,
+  AudienceInsightsSection,
 } from '../components/analytics';
+import { useDebounce } from '../hooks/useDebounce';
 
 const CreatorAnalyticsPage: React.FC = () => {
   const { creatorName } = useParams<{ creatorName: string }>();
   const [timeRange, setTimeRange] = useState(30);
   const [sortBy, setSortBy] = useState('views');
+  
+  // Debounce time range changes to avoid excessive API calls
+  const debouncedTimeRange = useDebounce(timeRange, 300);
 
   // Fetch analytics overview
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -32,19 +37,19 @@ const CreatorAnalyticsPage: React.FC = () => {
     enabled: !!creatorName,
   });
 
-  // Fetch views trend
+  // Fetch views trend (using debounced time range)
   const { data: viewsTrend, isLoading: viewsTrendLoading } = useQuery({
-    queryKey: ['creatorTrends', creatorName, 'clip_views', timeRange],
+    queryKey: ['creatorTrends', creatorName, 'clip_views', debouncedTimeRange],
     queryFn: () =>
-      getCreatorTrends(creatorName!, { metric: 'clip_views', days: timeRange }),
+      getCreatorTrends(creatorName!, { metric: 'clip_views', days: debouncedTimeRange }),
     enabled: !!creatorName,
   });
 
-  // Fetch votes trend
+  // Fetch votes trend (using debounced time range)
   const { data: votesTrend, isLoading: votesTrendLoading } = useQuery({
-    queryKey: ['creatorTrends', creatorName, 'votes', timeRange],
+    queryKey: ['creatorTrends', creatorName, 'votes', debouncedTimeRange],
     queryFn: () =>
-      getCreatorTrends(creatorName!, { metric: 'votes', days: timeRange }),
+      getCreatorTrends(creatorName!, { metric: 'votes', days: debouncedTimeRange }),
     enabled: !!creatorName,
   });
 
@@ -59,7 +64,7 @@ const CreatorAnalyticsPage: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>{creatorName} Analytics - Clipper</title>
+        <title>{creatorName} Analytics - clpr</title>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -127,10 +132,15 @@ const CreatorAnalyticsPage: React.FC = () => {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               Top Performing Clips
             </h2>
+            <label htmlFor="clip-sort" className="sr-only">
+              Sort clips by
+            </label>
             <select
+              id="clip-sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              aria-label="Sort clips by metric"
             >
               <option value="views">By Views</option>
               <option value="votes">By Votes</option>
@@ -152,21 +162,24 @@ const CreatorAnalyticsPage: React.FC = () => {
           ) : topClips?.clips && topClips.clips.length > 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <caption className="sr-only">
+                  Top performing clips sorted by {sortBy}
+                </caption>
                 <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Clip
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Views
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Votes
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Comments
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Engagement
                     </th>
                   </tr>
@@ -242,6 +255,14 @@ const CreatorAnalyticsPage: React.FC = () => {
               />
             ) : null}
           </div>
+        </div>
+
+        {/* Audience Insights Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Audience Insights
+          </h2>
+          <AudienceInsightsSection creatorName={creatorName} />
         </div>
       </div>
     </>

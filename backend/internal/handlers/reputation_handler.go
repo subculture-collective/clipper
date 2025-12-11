@@ -305,3 +305,8 @@ func (h *ReputationHandler) GetBadgeDefinitions(c *gin.Context) {
 		"badges": badges,
 	})
 }
+
+// Note: Trust score admin endpoints (breakdown, history, manual adjustment, leaderboard)
+// are defined but not yet wired to the TrustScoreService.
+// These will be implemented in a follow-up PR once the service is integrated into the main application.
+// See backend/docs/trust-score-implementation.md for integration details.

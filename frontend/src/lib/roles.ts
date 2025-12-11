@@ -85,3 +85,19 @@ export function getRoleBadgeColor(role: UserRole): string {
       return 'bg-muted text-muted-foreground';
   }
 }
+
+/**
+ * Get a badge variant for a role
+ * Used by the UserRoleBadge component
+ */
+export function getRoleBadgeVariant(role: UserRole): 'error' | 'warning' | 'default' {
+  switch (role) {
+    case USER_ROLES.ADMIN:
+      return 'error';
+    case USER_ROLES.MODERATOR:
+      return 'warning';
+    case USER_ROLES.USER:
+    default:
+      return 'default';
+  }
+}

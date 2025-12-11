@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimestamp } from '@/lib/utils';
 import type { Notification } from '../../types/notification';
 
 interface NotificationItemProps {
@@ -90,8 +90,8 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
           )}
 
           {/* Timestamp */}
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2" title={formatTimestamp(notification.created_at).title}>
+            {formatTimestamp(notification.created_at).display}
           </p>
         </div>
       </div>

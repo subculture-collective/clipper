@@ -1,5 +1,5 @@
 path "kv/data/clipper/backend" {
-  capabilities = ["read"]
+  capabilities = ["read", "create", "update"]
 }
 
 path "kv/metadata/clipper/backend" {

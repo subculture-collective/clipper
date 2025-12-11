@@ -65,10 +65,10 @@ export function Header() {
                     <Link
                         to='/'
                         className='flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rounded-md'
-                        aria-label='Clipper home'
+                        aria-label='clpr home'
                     >
                         <div className='text-2xl font-bold text-gradient'>
-                            Clipper
+                            clpr
                         </div>
                     </Link>
 
@@ -107,6 +107,14 @@ export function Header() {
                                 size='sm'
                             >
                                 {t('nav.rising')}
+                            </Button>
+                        </Link>
+                        <Link to='/discover/scraped'>
+                            <Button
+                                variant='ghost'
+                                size='sm'
+                            >
+                                🔍 {t('nav.discover')}
                             </Button>
                         </Link>
                         <Link to='/leaderboards'>
@@ -281,6 +289,18 @@ export function Header() {
                                     className='w-full justify-start'
                                 >
                                     {t('nav.rising')}
+                                </Button>
+                            </Link>
+                            <Link
+                                to='/discover/scraped'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='w-full justify-start'
+                                >
+                                    🔍 {t('nav.discover')}
                                 </Button>
                             </Link>
                         </nav>

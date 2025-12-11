@@ -1,8 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> main
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import type { Mocked } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+<<<<<<< HEAD
 import { MemoryRouter } from 'react-router-dom';
 import { DocsPage } from './DocsPage';
 import axios from 'axios';
@@ -11,6 +15,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { DocsPage } from './DocsPage';
+>>>>>>> main
+=======
+import { MemoryRouter } from 'react-router-dom';
+import { DocsPage } from './DocsPage';
+import axios from 'axios';
 >>>>>>> main
 
 // Mock the components
@@ -22,6 +31,9 @@ vi.mock('../components', () => ({
 }));
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> main
 vi.mock('axios');
 
 const mockedAxios = axios as Mocked<typeof axios>;
@@ -85,11 +97,16 @@ afterEach(() => {
   mockedAxios.get.mockClear();
 });
 
+<<<<<<< HEAD
 describe('DocsPage', () => {
   it('renders the documentation hub heading and doc tree once data loads', async () => {
 =======
 describe('DocsPage', () => {
   it('renders the documentation hub heading', () => {
+>>>>>>> main
+=======
+describe('DocsPage', () => {
+  it('renders the documentation hub heading and doc tree once data loads', async () => {
 >>>>>>> main
     render(
       <MemoryRouter>
@@ -97,6 +114,7 @@ describe('DocsPage', () => {
       </MemoryRouter>
     );
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     expect(await screen.findByRole('heading', { name: /documentation hub/i })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /user guide/i })).toBeInTheDocument();
@@ -110,6 +128,14 @@ describe('DocsPage', () => {
 
   it('renders all major documentation sections', () => {
 >>>>>>> main
+=======
+    expect(await screen.findByRole('heading', { name: /documentation hub/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /user guide/i })).toBeInTheDocument();
+  });
+
+  it('allows opening a document from the tree', async () => {
+    const user = userEvent.setup();
+>>>>>>> main
     render(
       <MemoryRouter>
         <DocsPage />
@@ -117,6 +143,9 @@ describe('DocsPage', () => {
     );
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> main
     const docButton = await screen.findByRole('button', { name: /user guide/i });
     await user.click(docButton);
 
@@ -124,6 +153,7 @@ describe('DocsPage', () => {
       expect(screen.getByText(/getting started/i)).toBeInTheDocument();
     });
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/docs/getting-started/user-guide.md');
+<<<<<<< HEAD
   });
 
   it('renders external resources links', async () => {
@@ -143,12 +173,18 @@ describe('DocsPage', () => {
 
   it('renders quick links section', () => {
 >>>>>>> main
+=======
+  });
+
+  it('renders external resources links', async () => {
+>>>>>>> main
     render(
       <MemoryRouter>
         <DocsPage />
       </MemoryRouter>
     );
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     expect(await screen.findByRole('heading', { name: /external resources/i })).toBeInTheDocument();
     expect(screen.getByText('GitHub Repository')).toBeInTheDocument();
@@ -216,6 +252,13 @@ describe('DocsPage', () => {
     );
     
     expect(githubLinks.length).toBeGreaterThan(0);
+  });
+>>>>>>> main
+=======
+    expect(await screen.findByRole('heading', { name: /external resources/i })).toBeInTheDocument();
+    expect(screen.getByText('GitHub Repository')).toBeInTheDocument();
+    expect(screen.getByText('Issue Tracker')).toBeInTheDocument();
+    expect(screen.getByText('Discussions')).toBeInTheDocument();
   });
 >>>>>>> main
 });

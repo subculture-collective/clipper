@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMenuKeyboard } from '../../hooks/useMenuKeyboard';
+import { UserRoleBadge } from '../user';
+import type { UserRole } from '../../lib/roles';
 
 export function UserMenu() {
   const { user, logout, isModeratorOrAdmin } = useAuth();
@@ -93,9 +95,13 @@ export function UserMenu() {
           <div className="px-4 py-3 border-b border-border">
             <p className="font-semibold">{user.display_name}</p>
             <p className="text-sm text-muted-foreground">@{user.username}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {user.karma_points} karma
-            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-xs text-muted-foreground">
+                {user.karma_points} karma
+              </p>
+              <span className="text-xs text-muted-foreground">•</span>
+              <UserRoleBadge role={user.role as UserRole} size="sm" />
+            </div>
           </div>
 
           {/* Menu Items */}

@@ -19,3 +19,6 @@ export type { SEOProps } from './SEO';
 
 // Re-export video components
 export * from './video';
+
+// Re-export user components
+export * from './user';

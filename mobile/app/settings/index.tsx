@@ -106,7 +106,7 @@ export default function SettingsScreen() {
   const handleExportData = () => {
     Alert.alert(
       'Export Data',
-      'Data export is currently only available through the web version of Clipper. Please visit the website to export your data.',
+      'Data export is currently only available through the web version of clpr. Please visit the website to export your data.',
       [
         { text: 'OK', style: 'default' },
       ]
@@ -360,7 +360,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity className="py-3">
-          <Text className="text-base text-gray-900">About Clipper</Text>
+          <Text className="text-base text-gray-900">About clpr</Text>
         </TouchableOpacity>
       </View>
 

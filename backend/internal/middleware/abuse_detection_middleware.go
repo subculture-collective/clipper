@@ -15,7 +15,7 @@ import (
 const (
 	// Abuse detection thresholds
 	abuseDetectionWindow = 1 * time.Hour
-	abuseThreshold       = 100 // requests per hour
+	abuseThreshold       = 1000 // requests per hour (increased for legitimate use with multiple API calls per page)
 	abuseBanDuration     = 24 * time.Hour
 
 	// Progressive rate limit penalties
@@ -23,11 +23,22 @@ const (
 	criticalThreshold = 0.95 // 95% of rate limit
 )
 
+// Endpoints excluded from abuse detection (auth endpoints already have their own rate limiting)
+var abuseDetectionExemptPaths = map[string]bool{
+	"/health":                      true,
+	"/health/ready":                true,
+	"/health/live":                 true,
+	"/api/v1/auth/twitch":          true,
+	"/api/v1/auth/twitch/callback": true,
+	"/api/v1/auth/refresh":         true,
+	"/api/v1/auth/me":              true,
+}
+
 // AbuseDetectionMiddleware monitors and blocks abusive IPs
 func AbuseDetectionMiddleware(redis *redispkg.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip health check endpoints
-		if c.Request.URL.Path == "/health" || c.Request.URL.Path == "/health/ready" || c.Request.URL.Path == "/health/live" {
+		// Skip exempt endpoints (health checks and auth endpoints)
+		if abuseDetectionExemptPaths[c.Request.URL.Path] {
 			c.Next()
 			return
 		}

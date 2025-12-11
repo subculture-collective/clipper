@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -492,4 +494,564 @@ WHERE is_removed = false
 	}
 
 	return avgScore, nil
+}
+
+// parseDeviceType categorizes user agents into device types for analytics purposes.
+//
+// Returns one of:
+//   - "mobile": for smartphones (e.g., Android, iPhone, etc.), explicitly excluding iPads.
+//   - "tablet": for tablets and iPads (e.g., "ipad", "tablet", "kindle", "playbook").
+//   - "desktop": for computers and known desktop browsers (e.g., "windows", "macintosh", "linux", "chrome", "firefox", "safari", "edge").
+//   - "unknown": for user agents that do not match any known keywords.
+//
+// Keywords are checked in order: mobile, then tablet, then desktop.
+// If a user agent matches multiple categories, the first matching category in this order is returned.
+// For example, "ipad" is excluded from "mobile" and included in "tablet".
+// The function is case-insensitive and returns "unknown" for empty or unrecognized user agents.
+func parseDeviceType(userAgent string) string {
+	if userAgent == "" {
+		return "unknown"
+	}
+
+	ua := strings.ToLower(userAgent)
+
+	// Check for mobile devices
+	mobileKeywords := []string{"mobile", "android", "iphone", "ipod", "blackberry", "windows phone"}
+	for _, keyword := range mobileKeywords {
+		if strings.Contains(ua, keyword) && !strings.Contains(ua, "ipad") {
+			return "mobile"
+		}
+	}
+
+	// Check for tablets
+	tabletKeywords := []string{"ipad", "tablet", "kindle", "playbook"}
+	for _, keyword := range tabletKeywords {
+		if strings.Contains(ua, keyword) {
+			return "tablet"
+		}
+	}
+
+	// Check for desktop/known browsers
+	desktopKeywords := []string{"windows", "macintosh", "linux", "chrome", "firefox", "safari", "edge"}
+	for _, keyword := range desktopKeywords {
+		if strings.Contains(ua, keyword) {
+			return "desktop"
+		}
+	}
+
+	return "unknown"
+}
+
+// extractCountryFromIP extracts a country code from an IP address
+// This is a simplified implementation that returns "XX" (unknown) for all IPs
+// In production, this would use a GeoIP database like MaxMind GeoLite2
+func extractCountryFromIP(ipAddress string) string {
+	// Use empty string to represent invalid or missing IP addresses
+	if ipAddress == "" {
+		return "XX" // Unknown country code
+	}
+
+	// For now, return XX (unknown) for all IPs
+	// In production, you would use a GeoIP library:
+	// - github.com/oschwald/geoip2-golang with MaxMind GeoLite2 database
+	// - or use a GeoIP service API
+	return "XX"
+}
+
+// GetCreatorAudienceInsights retrieves audience insights (geography and devices) for a creator
+func (r *AnalyticsRepository) GetCreatorAudienceInsights(ctx context.Context, creatorName string, limit int) (*models.CreatorAudienceInsights, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	// Get all clip IDs for this creator
+	clipsQuery := `
+		SELECT id FROM clips
+		WHERE creator_name = $1 AND is_removed = false
+	`
+
+	rows, err := r.db.Query(ctx, clipsQuery, creatorName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clipIDs []uuid.UUID
+	for rows.Next() {
+		var clipID uuid.UUID
+		if err := rows.Scan(&clipID); err != nil {
+			return nil, err
+		}
+		clipIDs = append(clipIDs, clipID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(clipIDs) == 0 {
+		// No clips for this creator
+		return &models.CreatorAudienceInsights{
+			TopCountries: []models.GeographyMetric{},
+			DeviceTypes:  []models.DeviceMetric{},
+			TotalViews:   0,
+		}, nil
+	}
+
+	// Query analytics events for these clips
+	eventsQuery := `
+		SELECT user_agent, ip_address
+		FROM analytics_events
+		WHERE event_type = 'clip_view'
+		  AND clip_id = ANY($1)
+		  AND created_at >= CURRENT_DATE - INTERVAL '90 days'
+	`
+
+	eventsRows, err := r.db.Query(ctx, eventsQuery, clipIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer eventsRows.Close()
+
+	// Count views by device type and country
+	deviceCounts := make(map[string]int64)
+	countryCounts := make(map[string]int64)
+	totalViews := int64(0)
+
+	for eventsRows.Next() {
+		var userAgent, ipAddress *string
+		if err := eventsRows.Scan(&userAgent, &ipAddress); err != nil {
+			return nil, err
+		}
+
+		totalViews++
+
+		// Parse device type
+		ua := ""
+		if userAgent != nil {
+			ua = *userAgent
+		}
+		deviceType := parseDeviceType(ua)
+		deviceCounts[deviceType]++
+
+		// Extract country
+		ip := ""
+		if ipAddress != nil {
+			ip = *ipAddress
+		}
+		country := extractCountryFromIP(ip)
+		countryCounts[country]++
+	}
+
+	if err := eventsRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Convert device counts to sorted slice
+	deviceMetrics := make([]models.DeviceMetric, 0, len(deviceCounts))
+	for deviceType, count := range deviceCounts {
+		percentage := 0.0
+		if totalViews > 0 {
+			percentage = float64(count) / float64(totalViews) * 100
+		}
+		deviceMetrics = append(deviceMetrics, models.DeviceMetric{
+			DeviceType: deviceType,
+			ViewCount:  count,
+			Percentage: percentage,
+		})
+	}
+
+	// Sort device metrics by view count (descending)
+	sort.Slice(deviceMetrics, func(i, j int) bool {
+		return deviceMetrics[i].ViewCount > deviceMetrics[j].ViewCount
+	})
+
+	// Convert country counts to sorted slice (top N countries)
+	type countryCount struct {
+		country string
+		count   int64
+	}
+	countryCountsSlice := make([]countryCount, 0, len(countryCounts))
+	for country, count := range countryCounts {
+		countryCountsSlice = append(countryCountsSlice, countryCount{country, count})
+	}
+
+	// Sort by count (descending)
+	sort.Slice(countryCountsSlice, func(i, j int) bool {
+		return countryCountsSlice[i].count > countryCountsSlice[j].count
+	})
+
+	// Take top N countries
+	topN := limit
+	if topN > len(countryCountsSlice) {
+		topN = len(countryCountsSlice)
+	}
+
+	geographyMetrics := make([]models.GeographyMetric, topN)
+	for i := 0; i < topN; i++ {
+		percentage := 0.0
+		if totalViews > 0 {
+			percentage = float64(countryCountsSlice[i].count) / float64(totalViews) * 100
+		}
+		geographyMetrics[i] = models.GeographyMetric{
+			Country:    countryCountsSlice[i].country,
+			ViewCount:  countryCountsSlice[i].count,
+			Percentage: percentage,
+		}
+	}
+
+	return &models.CreatorAudienceInsights{
+		TopCountries: geographyMetrics,
+		DeviceTypes:  deviceMetrics,
+		TotalViews:   totalViews,
+	}, nil
+}
+
+// GetUserPostsCount returns the number of posts/submissions by a user in the last N days
+func (r *AnalyticsRepository) GetUserPostsCount(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM clip_submissions
+		WHERE user_id = $1
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserCommentsCount returns the number of comments posted by a user in the last N days
+func (r *AnalyticsRepository) GetUserCommentsCount(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM comments
+		WHERE user_id = $1
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+		  AND is_deleted = false
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserVotesCount returns the number of votes cast by a user in the last N days
+func (r *AnalyticsRepository) GetUserVotesCount(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM votes
+		WHERE user_id = $1
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserLoginDays returns the number of unique days a user logged in over the last N days
+func (r *AnalyticsRepository) GetUserLoginDays(ctx context.Context, userID uuid.UUID, days int) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT DATE(created_at))
+		FROM analytics_events
+		WHERE user_id = $1
+		  AND event_type = 'login'
+		  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&count)
+	return count, err
+}
+
+// GetUserAvgDailyMinutes returns average daily minutes spent by a user over the last N days
+func (r *AnalyticsRepository) GetUserAvgDailyMinutes(ctx context.Context, userID uuid.UUID, days int) (float64, error) {
+	query := `
+		SELECT COALESCE(AVG(daily_minutes), 0)
+		FROM (
+			SELECT DATE(created_at) as day,
+			       COUNT(*) * 2 as daily_minutes
+			FROM analytics_events
+			WHERE user_id = $1
+			  AND created_at >= CURRENT_DATE - $2 * INTERVAL '1 day'
+			  AND event_type IN ('clip_view', 'page_view')
+			GROUP BY DATE(created_at)
+		) as daily_activity
+	`
+
+	var avgMinutes float64
+	err := r.db.QueryRow(ctx, query, userID, days).Scan(&avgMinutes)
+	return avgMinutes, err
+}
+
+// GetDAU returns Daily Active Users count
+func (r *AnalyticsRepository) GetDAU(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT user_id)
+		FROM analytics_events
+		WHERE created_at >= CURRENT_DATE
+		  AND user_id IS NOT NULL
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetWAU returns Weekly Active Users count
+func (r *AnalyticsRepository) GetWAU(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT user_id)
+		FROM analytics_events
+		WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+		  AND user_id IS NOT NULL
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetMAU returns Monthly Active Users count
+func (r *AnalyticsRepository) GetMAU(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT user_id)
+		FROM analytics_events
+		WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+		  AND user_id IS NOT NULL
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetRetentionRate returns the retention rate for users after N days
+func (r *AnalyticsRepository) GetRetentionRate(ctx context.Context, days int) (float64, error) {
+	query := `
+		WITH cohort AS (
+			SELECT DISTINCT user_id,
+			       DATE(created_at) as signup_date
+			FROM users
+			WHERE created_at >= CURRENT_DATE - INTERVAL '60 days'
+		),
+		retained AS (
+			SELECT c.user_id
+			FROM cohort c
+			INNER JOIN analytics_events ae ON c.user_id = ae.user_id
+			WHERE DATE(ae.created_at) = c.signup_date + $1 * INTERVAL '1 day'
+		)
+		SELECT CASE
+			WHEN COUNT(DISTINCT c.user_id) > 0
+			THEN (COUNT(DISTINCT r.user_id)::float / COUNT(DISTINCT c.user_id)::float) * 100
+			ELSE 0
+		END as retention_rate
+		FROM cohort c
+		LEFT JOIN retained r ON c.user_id = r.user_id
+	`
+
+	var retentionRate float64
+	err := r.db.QueryRow(ctx, query, days).Scan(&retentionRate)
+	return retentionRate, err
+}
+
+// GetMonthlyChurnRate returns the monthly churn rate
+func (r *AnalyticsRepository) GetMonthlyChurnRate(ctx context.Context) (float64, error) {
+	query := `
+		WITH active_last_month AS (
+			SELECT DISTINCT user_id
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '60 days'
+			  AND created_at < CURRENT_DATE - INTERVAL '30 days'
+			  AND user_id IS NOT NULL
+		),
+		churned_users AS (
+			SELECT alm.user_id
+			FROM active_last_month alm
+			WHERE NOT EXISTS (
+				SELECT 1
+				FROM analytics_events ae
+				WHERE ae.user_id = alm.user_id
+				  AND ae.created_at >= CURRENT_DATE - INTERVAL '30 days'
+			)
+		)
+		SELECT CASE
+			WHEN COUNT(DISTINCT alm.user_id) > 0
+			THEN (COUNT(DISTINCT cu.user_id)::float / COUNT(DISTINCT alm.user_id)::float) * 100
+			ELSE 0
+		END as churn_rate
+		FROM active_last_month alm
+		LEFT JOIN churned_users cu ON alm.user_id = cu.user_id
+	`
+
+	var churnRate float64
+	err := r.db.QueryRow(ctx, query).Scan(&churnRate)
+	return churnRate, err
+}
+
+// GetDAUChangeWoW returns the week-over-week percentage change in DAU
+func (r *AnalyticsRepository) GetDAUChangeWoW(ctx context.Context) (float64, error) {
+	query := `
+		WITH last_week AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+			  AND user_id IS NOT NULL
+		),
+		prev_week AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '14 days'
+			  AND created_at < CURRENT_DATE - INTERVAL '7 days'
+			  AND user_id IS NOT NULL
+		)
+		SELECT CASE
+			WHEN pw.count > 0
+			THEN ((lw.count - pw.count)::float / pw.count::float) * 100
+			ELSE 0
+		END as change
+		FROM last_week lw, prev_week pw
+	`
+
+	var change float64
+	err := r.db.QueryRow(ctx, query).Scan(&change)
+	return change, err
+}
+
+// GetMAUChangeMoM returns the month-over-month percentage change in MAU
+func (r *AnalyticsRepository) GetMAUChangeMoM(ctx context.Context) (float64, error) {
+	query := `
+		WITH this_month AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+			  AND user_id IS NOT NULL
+		),
+		prev_month AS (
+			SELECT COUNT(DISTINCT user_id) as count
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - INTERVAL '60 days'
+			  AND created_at < CURRENT_DATE - INTERVAL '30 days'
+			  AND user_id IS NOT NULL
+		)
+		SELECT CASE
+			WHEN pm.count > 0
+			THEN ((tm.count - pm.count)::float / pm.count::float) * 100
+			ELSE 0
+		END as change
+		FROM this_month tm, prev_month pm
+	`
+
+	var change float64
+	err := r.db.QueryRow(ctx, query).Scan(&change)
+	return change, err
+}
+
+// GetTrendingData returns trend data points for a specific metric
+func (r *AnalyticsRepository) GetTrendingData(ctx context.Context, metric string, days int) ([]models.TrendDataPoint, error) {
+	var query string
+
+	switch metric {
+	case "dau":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(DISTINCT user_id) as value
+			FROM analytics_events
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			  AND user_id IS NOT NULL
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	case "clips":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(*) as value
+			FROM clips
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	case "votes":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(*) as value
+			FROM votes
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	case "comments":
+		query = `
+			SELECT DATE(created_at) as date,
+			       COUNT(*) as value
+			FROM comments
+			WHERE created_at >= CURRENT_DATE - $1 * INTERVAL '1 day'
+			  AND is_deleted = false
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+	default:
+		return nil, fmt.Errorf("unsupported metric: %s", metric)
+	}
+
+	rows, err := r.db.Query(ctx, query, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dataPoints []models.TrendDataPoint
+	for rows.Next() {
+		var point models.TrendDataPoint
+		err := rows.Scan(&point.Date, &point.Value)
+		if err != nil {
+			return nil, err
+		}
+		dataPoints = append(dataPoints, point)
+	}
+
+	return dataPoints, rows.Err()
+}
+
+// GetClipViewCount returns the total view count for a clip
+func (r *AnalyticsRepository) GetClipViewCount(ctx context.Context, clipID uuid.UUID) (int64, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM analytics_events
+		WHERE clip_id = $1
+		  AND event_type = 'clip_view'
+	`
+
+	var count int64
+	err := r.db.QueryRow(ctx, query, clipID).Scan(&count)
+	return count, err
+}
+
+// GetClipShareCount returns the total share count for a clip
+func (r *AnalyticsRepository) GetClipShareCount(ctx context.Context, clipID uuid.UUID) (int64, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM analytics_events
+		WHERE clip_id = $1
+		  AND event_type = 'clip_share'
+	`
+
+	var count int64
+	err := r.db.QueryRow(ctx, query, clipID).Scan(&count)
+	return count, err
+}
+
+// GetClipVoteCounts returns the separate upvote and downvote counts for a clip
+func (r *AnalyticsRepository) GetClipVoteCounts(ctx context.Context, clipID uuid.UUID) (upvotes int64, downvotes int64, err error) {
+	query := `
+		SELECT 
+			COUNT(*) FILTER (WHERE vote_type = 1) as upvotes,
+			COUNT(*) FILTER (WHERE vote_type = -1) as downvotes
+		FROM votes
+		WHERE clip_id = $1
+	`
+
+	err = r.db.QueryRow(ctx, query, clipID).Scan(&upvotes, &downvotes)
+	return upvotes, downvotes, err
 }

@@ -80,6 +80,12 @@ func NewAuthService(
 	}
 }
 
+// GetStateValue retrieves the state value from Redis without consuming it
+// Used by handlers to check if PKCE was used without deleting the state
+func (s *AuthService) GetStateValue(ctx context.Context, stateKey string) (string, error) {
+	return s.redis.Get(ctx, stateKey)
+}
+
 // GenerateAuthURL generates the Twitch OAuth authorization URL
 // Supports PKCE: if codeChallenge is provided, stores it for later verification
 func (s *AuthService) GenerateAuthURL(ctx context.Context, codeChallenge, codeChallengeMethod, clientState string) (string, error) {
@@ -388,7 +394,7 @@ func (s *AuthService) createOrUpdateUser(ctx context.Context, twitchUser *Twitch
 		Email:       &twitchUser.Email,
 		AvatarURL:   &twitchUser.ProfileImageURL,
 		Role:        "user",
-		KarmaPoints: 0,
+		KarmaPoints: s.cfg.Karma.InitialKarmaPoints,
 		IsBanned:    false,
 		LastLoginAt: &now,
 	}

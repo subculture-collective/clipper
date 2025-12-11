@@ -3,13 +3,16 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/utils"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 )
 
@@ -18,9 +21,15 @@ type SubmissionService struct {
 	submissionRepo      *repository.SubmissionRepository
 	clipRepo            *repository.ClipRepository
 	userRepo            *repository.UserRepository
+	voteRepo            *repository.VoteRepository
 	auditLogRepo        *repository.AuditLogRepository
 	twitchClient        *twitch.Client
+	redisClient         *redispkg.Client
 	notificationService *NotificationService
+	abuseDetector       *SubmissionAbuseDetector
+	moderationEvents    *ModerationEventService
+	webhookService      *OutboundWebhookService
+	cfg                 *config.Config
 }
 
 // NewSubmissionService creates a new SubmissionService
@@ -28,18 +37,46 @@ func NewSubmissionService(
 	submissionRepo *repository.SubmissionRepository,
 	clipRepo *repository.ClipRepository,
 	userRepo *repository.UserRepository,
+	voteRepo *repository.VoteRepository,
 	auditLogRepo *repository.AuditLogRepository,
 	twitchClient *twitch.Client,
 	notificationService *NotificationService,
+	redisClient *redispkg.Client,
+	webhookService *OutboundWebhookService,
+	cfg *config.Config,
 ) *SubmissionService {
+	var abuseDetector *SubmissionAbuseDetector
+	var moderationEvents *ModerationEventService
+
+	if redisClient != nil {
+		abuseDetector = NewSubmissionAbuseDetector(redisClient)
+		moderationEvents = NewModerationEventService(redisClient, notificationService)
+	}
+
 	return &SubmissionService{
 		submissionRepo:      submissionRepo,
 		clipRepo:            clipRepo,
 		userRepo:            userRepo,
+		voteRepo:            voteRepo,
 		auditLogRepo:        auditLogRepo,
 		twitchClient:        twitchClient,
+		redisClient:         redisClient,
 		notificationService: notificationService,
+		abuseDetector:       abuseDetector,
+		moderationEvents:    moderationEvents,
+		webhookService:      webhookService,
+		cfg:                 cfg,
 	}
+}
+
+// GetAbuseDetector returns the abuse detector instance
+func (s *SubmissionService) GetAbuseDetector() *SubmissionAbuseDetector {
+	return s.abuseDetector
+}
+
+// GetModerationEventService returns the moderation event service instance
+func (s *SubmissionService) GetModerationEventService() *ModerationEventService {
+	return s.moderationEvents
 }
 
 // SubmitClipRequest represents a clip submission request
@@ -62,8 +99,126 @@ func (e *ValidationError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, e.Message)
 }
 
+// TwitchAPIError represents an error from the Twitch API
+type TwitchAPIError struct {
+	Message string
+}
+
+func (e *TwitchAPIError) Error() string {
+	return e.Message
+}
+
+// ClipMetadata represents the metadata returned from the Twitch API for a clip
+type ClipMetadata struct {
+	ClipID       string    `json:"clip_id"`
+	Title        string    `json:"title"`
+	StreamerName string    `json:"streamer_name"`
+	GameName     string    `json:"game_name,omitempty"`
+	ViewCount    int       `json:"view_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	ThumbnailURL string    `json:"thumbnail_url"`
+	Duration     float64   `json:"duration"`
+	URL          string    `json:"url"`
+}
+
+const (
+	clipMetadataCacheKeyPrefix = "twitch:clip:metadata:"
+	clipMetadataCacheTTL       = 1 * time.Hour
+)
+
+// GetClipMetadata fetches clip metadata from Twitch API with Redis caching
+func (s *SubmissionService) GetClipMetadata(ctx context.Context, clipURLOrID string) (*ClipMetadata, error) {
+	// Validate input
+	if strings.TrimSpace(clipURLOrID) == "" {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "Clip URL or ID is required",
+		}
+	}
+
+	// Normalize and extract clip ID
+	clipID, normalizedURL := s.normalizeClipURL(clipURLOrID)
+	if clipID == "" {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "Invalid Twitch clip URL. Please provide a valid URL like 'https://clips.twitch.tv/ClipID' or 'https://www.twitch.tv/username/clip/ClipID'",
+		}
+	}
+
+	// Check cache first
+	if s.redisClient != nil {
+		cacheKey := clipMetadataCacheKeyPrefix + clipID
+		var cachedMetadata ClipMetadata
+		err := s.redisClient.GetJSON(ctx, cacheKey, &cachedMetadata)
+		if err == nil {
+			// Cache hit
+			return &cachedMetadata, nil
+		}
+		// Cache miss or error, continue to fetch from Twitch
+	}
+
+	// Check Twitch client is configured
+	if s.twitchClient == nil {
+		return nil, fmt.Errorf("Twitch API is not configured")
+	}
+
+	// Fetch from Twitch API
+	params := &twitch.ClipParams{
+		ClipIDs: []string{clipID},
+	}
+
+	resp, err := s.twitchClient.GetClips(ctx, params)
+	if err != nil {
+		return nil, &TwitchAPIError{
+			Message: "Unable to fetch clip information from Twitch. Please verify the URL is correct and try again later.",
+		}
+	}
+
+	if len(resp.Data) == 0 {
+		return nil, &ValidationError{
+			Field:   "url",
+			Message: "This clip was not found on Twitch. It may have been deleted or the URL is incorrect.",
+		}
+	}
+
+	clip := resp.Data[0]
+
+	// Resolve game name if game ID is present
+	gameName := ""
+	if clip.GameID != "" {
+		gamesResp, err := s.twitchClient.GetGames(ctx, []string{clip.GameID}, nil)
+		if err == nil && len(gamesResp.Data) > 0 {
+			gameName = gamesResp.Data[0].Name
+		}
+		// If game lookup fails, continue without game name (optional field)
+	}
+
+	metadata := &ClipMetadata{
+		ClipID:       clip.ID,
+		Title:        clip.Title,
+		StreamerName: clip.BroadcasterName,
+		GameName:     gameName,
+		ViewCount:    clip.ViewCount,
+		CreatedAt:    clip.CreatedAt,
+		ThumbnailURL: clip.ThumbnailURL,
+		Duration:     clip.Duration,
+		URL:          normalizedURL,
+	}
+
+	// Cache the result
+	if s.redisClient != nil {
+		cacheKey := clipMetadataCacheKeyPrefix + clipID
+		if cacheErr := s.redisClient.SetJSON(ctx, cacheKey, metadata, clipMetadataCacheTTL); cacheErr != nil {
+			// Log cache error but don't fail the request
+			log.Printf("Failed to cache clip metadata: %v", cacheErr)
+		}
+	}
+
+	return metadata, nil
+}
+
 // SubmitClip handles clip submission with validation and duplicate detection
-func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, req *SubmitClipRequest) (*models.ClipSubmission, error) {
+func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, req *SubmitClipRequest, ip string, deviceFingerprint string) (*models.ClipSubmission, error) {
 	// Validate and normalize input fields first
 	if err := s.validateSubmissionInput(req); err != nil {
 		return nil, err
@@ -79,13 +234,51 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, &ValidationError{Field: "user", Message: "Your account has been banned and cannot submit clips. Please contact support if you believe this is an error."}
 	}
 
-	// Check minimum karma requirement (100 karma)
-	if user.KarmaPoints < 100 {
-		return nil, &ValidationError{Field: "karma", Message: "You need at least 100 karma points to submit clips. Earn karma by participating in the community through voting and commenting."}
+	// Check minimum karma requirement (configurable, can be disabled)
+	if s.cfg.Karma.RequireKarmaForSubmission && user.KarmaPoints < s.cfg.Karma.SubmissionKarmaRequired {
+		return nil, &ValidationError{Field: "karma", Message: fmt.Sprintf("You need at least %d karma points to submit clips. Earn karma by participating in the community through voting and commenting.", s.cfg.Karma.SubmissionKarmaRequired)}
+	}
+
+	// Perform abuse detection checks
+	if s.abuseDetector != nil {
+		abuseCheck, err := s.abuseDetector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
+		if err != nil {
+			log.Printf("Error checking abuse: %v", err)
+		} else if !abuseCheck.Allowed {
+			// Emit abuse event
+			if s.moderationEvents != nil {
+				metadata := map[string]interface{}{
+					"reason":         abuseCheck.Reason,
+					"severity":       abuseCheck.Severity,
+					"cooldown_until": abuseCheck.CooldownUntil,
+				}
+				_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventUserCooldownActivated, userID, ip, metadata)
+			}
+
+			return nil, &ValidationError{
+				Field:   "rate_limit",
+				Message: abuseCheck.Reason,
+			}
+		} else if abuseCheck.Severity == "warning" {
+			// Log warning but allow submission
+			if s.moderationEvents != nil {
+				metadata := map[string]interface{}{
+					"warning": "IP sharing detected",
+				}
+				_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventIPShareSuspicious, userID, ip, metadata)
+			}
+		}
 	}
 
 	// Check rate limits (5 per hour, 20 per day)
 	if err := s.checkRateLimits(ctx, userID); err != nil {
+		// Emit rate limit event
+		if s.moderationEvents != nil {
+			metadata := map[string]interface{}{
+				"error": err.Error(),
+			}
+			_ = s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventRateLimitExceeded, userID, ip, metadata)
+		}
 		return nil, err
 	}
 
@@ -98,8 +291,129 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		}
 	}
 
-	// Check for duplicates
-	if err := s.checkDuplicates(ctx, clipID); err != nil {
+	// Check if clip exists and whether it can be claimed
+	clipExistence, err := s.checkClipExistence(ctx, clipID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check clip existence: %w", err)
+	}
+
+	// If clip exists and can be claimed (scraped clip), claim it directly
+	if clipExistence.Exists && clipExistence.CanBeClaimed {
+		now := time.Now()
+		title := req.CustomTitle
+		broadcasterName := req.BroadcasterNameOverride
+		
+		// Claim the scraped clip
+		if err := s.clipRepo.ClaimScrapedClip(ctx, clipExistence.Clip.ID, userID, title, req.IsNSFW, broadcasterName, now); err != nil {
+			return nil, fmt.Errorf("failed to claim scraped clip: %w", err)
+		}
+
+		// Auto-upvote the claimed clip
+		if s.voteRepo != nil {
+			if err := s.voteRepo.UpsertVote(ctx, userID, clipExistence.Clip.ID, 1); err != nil {
+				// Log error but don't fail
+				log.Printf("Warning: failed to auto-upvote claimed clip for user %s: %v\n", userID, err)
+			}
+		}
+
+		// Award karma for claiming
+		if err := s.awardKarma(ctx, userID, 10); err != nil {
+			// Log error but don't fail
+			log.Printf("Failed to award karma: %v\n", err)
+		}
+
+		// Create a real submission record for audit trail and consistency
+		submission := &models.ClipSubmission{
+			ID:                      uuid.New(),
+			UserID:                  userID,
+			TwitchClipID:            clipExistence.Clip.TwitchClipID,
+			TwitchClipURL:           clipExistence.Clip.TwitchClipURL,
+			CustomTitle:             title,
+			Title:                   &clipExistence.Clip.Title,
+			IsNSFW:                  req.IsNSFW,
+			Tags:                    req.Tags,
+			SubmissionReason:        req.SubmissionReason,
+			BroadcasterNameOverride: req.BroadcasterNameOverride,
+			Status:                  "approved", // Claimed clips are immediately approved
+			CreatedAt:               now,
+			UpdatedAt:               now,
+			ReviewedAt:              &now,
+			ReviewedBy:              &userID,
+			// Copy metadata from existing clip
+			CreatorName:     &clipExistence.Clip.CreatorName,
+			CreatorID:       clipExistence.Clip.CreatorID,
+			BroadcasterName: &clipExistence.Clip.BroadcasterName,
+			BroadcasterID:   clipExistence.Clip.BroadcasterID,
+			GameID:          clipExistence.Clip.GameID,
+			GameName:        clipExistence.Clip.GameName,
+			ThumbnailURL:    clipExistence.Clip.ThumbnailURL,
+			Duration:        clipExistence.Clip.Duration,
+			ViewCount:       clipExistence.Clip.ViewCount,
+		}
+		
+		// Save submission to database for audit trail
+		if err := s.submissionRepo.Create(ctx, submission); err != nil {
+			return nil, fmt.Errorf("failed to create submission record for claimed clip: %w", err)
+		}
+		
+		// Trigger webhook events for integrations
+		if s.webhookService != nil {
+			webhookData := map[string]interface{}{
+				"submission_id":   submission.ID.String(),
+				"user_id":         userID.String(),
+				"twitch_clip_id":  submission.TwitchClipID,
+				"twitch_clip_url": submission.TwitchClipURL,
+				"clip_id":         clipExistence.Clip.ID.String(),
+				"claimed":         true, // Distinguish from normal submissions
+			}
+			if submission.CustomTitle != nil {
+				webhookData["custom_title"] = *submission.CustomTitle
+			}
+			if len(submission.Tags) > 0 {
+				webhookData["tags"] = submission.Tags
+			}
+			
+			// Trigger clip.submitted event
+			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipSubmitted, submission.ID, webhookData); err != nil {
+				log.Printf("Warning: failed to trigger clip.submitted webhook for claimed clip: %v\n", err)
+			}
+			
+			// Trigger clip.approved event (claimed clips are auto-approved)
+			webhookDataApproved := map[string]interface{}{
+				"submission_id":   submission.ID.String(),
+				"user_id":         userID.String(),
+				"twitch_clip_id":  submission.TwitchClipID,
+				"twitch_clip_url": submission.TwitchClipURL,
+				"clip_id":         clipExistence.Clip.ID.String(),
+				"claimed":         true,
+				"reviewer_id":     userID.String(),
+				"approved_at":     now,
+			}
+			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipApproved, submission.ID, webhookDataApproved); err != nil {
+				log.Printf("Warning: failed to trigger clip.approved webhook for claimed clip: %v\n", err)
+			}
+		}
+		
+		return submission, nil
+	}
+
+	// If clip exists but cannot be claimed (already claimed), return error
+	if clipExistence.Exists && !clipExistence.CanBeClaimed {
+		// Track duplicate attempt
+		if s.abuseDetector != nil {
+			if err := s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, clipID); err != nil {
+				log.Printf("Failed to track duplicate attempt: %v", err)
+			}
+		}
+
+		return nil, &ValidationError{
+			Field:   "clip_url",
+			Message: "This clip has already been posted by another user",
+		}
+	}
+
+	// Check for duplicates in submissions table
+	if err := s.checkDuplicates(ctx, clipID, userID, ip); err != nil {
 		return nil, err
 	}
 
@@ -166,6 +480,70 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	// Save submission
 	if err := s.submissionRepo.Create(ctx, submission); err != nil {
 		return nil, fmt.Errorf("failed to create submission: %w", err)
+	}
+
+	// Trigger webhook for clip submission
+	if s.webhookService != nil {
+		webhookData := map[string]interface{}{
+			"submission_id":   submission.ID.String(),
+			"user_id":         submission.UserID.String(),
+			"twitch_clip_id":  submission.TwitchClipID,
+			"twitch_clip_url": submission.TwitchClipURL,
+			"status":          submission.Status,
+			"is_nsfw":         submission.IsNSFW,
+			"created_at":      submission.CreatedAt,
+		}
+		if submission.CustomTitle != nil {
+			webhookData["custom_title"] = *submission.CustomTitle
+		}
+		if len(submission.Tags) > 0 {
+			webhookData["tags"] = submission.Tags
+		}
+
+		// Always send clip.submitted event
+		if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipSubmitted, submission.ID, webhookData); err != nil {
+			log.Printf("Failed to trigger webhook event: %v", err)
+		}
+
+		// If auto-approved, also send clip.approved event with auto_approved field
+		if submission.Status == "approved" {
+			webhookDataApproved := make(map[string]interface{})
+			for k, v := range webhookData {
+				webhookDataApproved[k] = v
+			}
+			webhookDataApproved["auto_approved"] = true
+			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipApproved, submission.ID, webhookDataApproved); err != nil {
+				log.Printf("Failed to trigger webhook event: %v", err)
+			}
+		}
+	}
+
+	// Emit moderation event for new submission
+	if s.moderationEvents != nil {
+		eventType := ModerationEventSubmissionReceived
+		if submission.Status == "approved" {
+			eventType = ModerationEventSubmissionApproved
+		}
+
+		metadata := map[string]interface{}{
+			"submission_id": submission.ID.String(),
+			"clip_id":       submission.TwitchClipID,
+			"clip_url":      submission.TwitchClipURL,
+			"status":        submission.Status,
+			"is_nsfw":       submission.IsNSFW,
+			"auto_approved": submission.Status == "approved",
+		}
+
+		if submission.CustomTitle != nil {
+			metadata["custom_title"] = *submission.CustomTitle
+		}
+		if len(submission.Tags) > 0 {
+			metadata["tags"] = submission.Tags
+		}
+
+		if err := s.moderationEvents.EmitSubmissionEvent(ctx, eventType, submission, ip, metadata); err != nil {
+			log.Printf("Failed to emit submission event: %v", err)
+		}
 	}
 
 	return submission, nil
@@ -372,14 +750,90 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 	return nil
 }
 
+// ClipExistenceResult represents the result of checking if a clip exists
+type ClipExistenceResult struct {
+	Exists       bool
+	Clip         *models.Clip
+	CanBeClaimed bool // True if clip exists but submitted_by_user_id is NULL
+}
+
+// CheckClipExistence checks if a clip already exists in the database and whether it can be claimed by a user.
+// This is a public wrapper for the internal checkClipExistence method.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - twitchClipID: The Twitch clip ID to check
+//
+// Returns:
+//   - ClipExistenceResult: Contains information about the clip's existence and claimability
+//   - error: Any error that occurred during the check
+//
+// The CanBeClaimed field in the result will be true when:
+//   - The clip exists in the database (Exists = true)
+//   - The clip has no submitted_by_user_id (it's a scraped/imported clip)
+//
+// Example usage:
+//
+//	result, err := service.CheckClipExistence(ctx, "AwesomeClipID123")
+//	if err != nil {
+//	    return err
+//	}
+//	if result.CanBeClaimed {
+//	    // User can claim this scraped clip
+//	}
+func (s *SubmissionService) CheckClipExistence(ctx context.Context, twitchClipID string) (*ClipExistenceResult, error) {
+	return s.checkClipExistence(ctx, twitchClipID)
+}
+
+// checkClipExistence is the internal implementation that checks if a clip exists and whether it can be claimed.
+// It queries the clips table by twitch_clip_id and determines if the clip is available for claiming.
+//
+// A clip can be claimed when it exists in the database but has no submitted_by_user_id (i.e., it's a scraped clip).
+func (s *SubmissionService) checkClipExistence(ctx context.Context, twitchClipID string) (*ClipExistenceResult, error) {
+	clip, err := s.clipRepo.GetByTwitchClipID(ctx, twitchClipID)
+	if err != nil {
+		// If clip not found, that's ok - it doesn't exist yet
+		if strings.Contains(err.Error(), "no rows") {
+			return &ClipExistenceResult{Exists: false, CanBeClaimed: false}, nil
+		}
+		return nil, fmt.Errorf("failed to check clip existence: %w", err)
+	}
+
+	// Clip exists
+	canBeClaimed := clip.SubmittedByUserID == nil
+	return &ClipExistenceResult{
+		Exists:       true,
+		Clip:         clip,
+		CanBeClaimed: canBeClaimed,
+	}, nil
+}
+
 // checkDuplicates checks if clip already exists or was submitted
-func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID string) error {
+func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID string, userID uuid.UUID, ip string) error {
 	// Check if clip already exists in clips table
 	exists, err := s.clipRepo.ExistsByTwitchClipID(ctx, twitchClipID)
 	if err != nil {
 		return fmt.Errorf("failed to check clip existence: %w", err)
 	}
 	if exists {
+		// Track duplicate attempt
+		if s.abuseDetector != nil {
+			if err := s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID); err != nil {
+				log.Printf("Failed to track duplicate attempt: %v", err)
+			}
+		}
+
+		// Emit moderation event
+		if s.moderationEvents != nil {
+			metadata := map[string]interface{}{
+				"clip_id": twitchClipID,
+				"reason":  "clip_already_exists",
+			}
+			if err := s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata); err != nil {
+				log.Printf("Failed to emit duplicate event: %v", err)
+			}
+		}
+
 		return &ValidationError{
 			Field:   "clip_url",
 			Message: "This clip has already been added to our database and cannot be submitted again",
@@ -392,7 +846,26 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 		return fmt.Errorf("failed to check submission existence: %w", err)
 	}
 	if submission != nil {
+		// Track duplicate attempt
+		if s.abuseDetector != nil {
+			if err := s.abuseDetector.TrackDuplicateAttempt(ctx, userID, ip, twitchClipID); err != nil {
+				log.Printf("Failed to track duplicate attempt: %v", err)
+			}
+		}
+
 		if submission.Status == "pending" {
+			// Emit moderation event for duplicate pending submission
+			if s.moderationEvents != nil {
+				metadata := map[string]interface{}{
+					"clip_id":       twitchClipID,
+					"reason":        "submission_pending",
+					"submission_id": submission.ID.String(),
+				}
+				if err := s.moderationEvents.EmitAbuseEvent(ctx, ModerationEventSubmissionDuplicate, userID, ip, metadata); err != nil {
+					log.Printf("Failed to emit duplicate event: %v", err)
+				}
+			}
+
 			return &ValidationError{
 				Field:   "clip_url",
 				Message: "This clip is already pending review. You'll be notified once it's been reviewed by our moderators.",
@@ -512,27 +985,44 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	broadcasterNameFallback := utils.StringOrDefault(submission.BroadcasterName, &emptyStr)
 	broadcasterName := utils.StringOrDefault(submission.BroadcasterNameOverride, &broadcasterNameFallback)
 
+	now := time.Now()
 	clip := &models.Clip{
-		ID:              uuid.New(),
-		TwitchClipID:    submission.TwitchClipID,
-		TwitchClipURL:   submission.TwitchClipURL,
-		EmbedURL:        fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", submission.TwitchClipID),
-		Title:           title,
-		CreatorName:     creatorName,
-		CreatorID:       submission.CreatorID,
-		BroadcasterName: broadcasterName,
-		BroadcasterID:   submission.BroadcasterID,
-		GameID:          submission.GameID,
-		GameName:        submission.GameName,
-		ThumbnailURL:    submission.ThumbnailURL,
-		Duration:        submission.Duration,
-		ViewCount:       submission.ViewCount,
-		CreatedAt:       time.Now(),
-		ImportedAt:      time.Now(),
-		IsNSFW:          submission.IsNSFW,
+		ID:                uuid.New(),
+		TwitchClipID:      submission.TwitchClipID,
+		TwitchClipURL:     submission.TwitchClipURL,
+		EmbedURL:          fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", submission.TwitchClipID),
+		Title:             title,
+		CreatorName:       creatorName,
+		CreatorID:         submission.CreatorID,
+		BroadcasterName:   broadcasterName,
+		BroadcasterID:     submission.BroadcasterID,
+		GameID:            submission.GameID,
+		GameName:          submission.GameName,
+		ThumbnailURL:      submission.ThumbnailURL,
+		Duration:          submission.Duration,
+		ViewCount:         submission.ViewCount,
+		CreatedAt:         now,
+		ImportedAt:        now,
+		IsNSFW:            submission.IsNSFW,
+		SubmittedByUserID: &submission.UserID,
+		SubmittedAt:       &submission.CreatedAt, // Use submission creation time as when it was submitted
 	}
 
-	return s.clipRepo.Create(ctx, clip)
+	// Create the clip
+	if err := s.clipRepo.Create(ctx, clip); err != nil {
+		return err
+	}
+
+	// Auto-upvote: Create an upvote from the submitter
+	// This encourages engagement and shows creator approval
+	if s.voteRepo != nil {
+		if err := s.voteRepo.UpsertVote(ctx, submission.UserID, clip.ID, 1); err != nil {
+			// Log error but don't fail the clip creation
+			fmt.Printf("Warning: failed to auto-upvote clip for user %s: %v\n", submission.UserID, err)
+		}
+	}
+
+	return nil
 }
 
 // awardKarma awards karma points to a user
@@ -609,6 +1099,25 @@ func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID,
 		}
 	}
 
+	// Trigger webhook for approval
+	if s.webhookService != nil {
+		webhookData := map[string]interface{}{
+			"submission_id":   submissionID.String(),
+			"user_id":         submission.UserID.String(),
+			"twitch_clip_id":  submission.TwitchClipID,
+			"twitch_clip_url": submission.TwitchClipURL,
+			"reviewer_id":     reviewerID.String(),
+			"approved_at":     time.Now(),
+		}
+		if submission.CustomTitle != nil {
+			webhookData["custom_title"] = *submission.CustomTitle
+		}
+
+		if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipApproved, submissionID, webhookData); err != nil {
+			log.Printf("Failed to trigger webhook event: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -657,6 +1166,26 @@ func (s *SubmissionService) RejectSubmission(ctx context.Context, submissionID, 
 		if err := s.notificationService.NotifySubmissionRejected(ctx, submission.UserID, submissionID, clipTitle, reason); err != nil {
 			// Log error but don't fail
 			fmt.Printf("Failed to send notification: %v\n", err)
+		}
+	}
+
+	// Trigger webhook for rejection
+	if s.webhookService != nil {
+		webhookData := map[string]interface{}{
+			"submission_id":    submissionID.String(),
+			"user_id":          submission.UserID.String(),
+			"twitch_clip_id":   submission.TwitchClipID,
+			"twitch_clip_url":  submission.TwitchClipURL,
+			"reviewer_id":      reviewerID.String(),
+			"rejection_reason": reason,
+			"rejected_at":      time.Now(),
+		}
+		if submission.CustomTitle != nil {
+			webhookData["custom_title"] = *submission.CustomTitle
+		}
+
+		if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipRejected, submissionID, webhookData); err != nil {
+			log.Printf("Failed to trigger webhook event: %v", err)
 		}
 	}
 
@@ -797,12 +1326,28 @@ func (s *SubmissionService) GetSubmissionStats(ctx context.Context, userID uuid.
 
 // extractClipIDFromURL extracts the clip ID from a Twitch clip URL or returns the ID if already provided
 func extractClipIDFromURL(clipURLOrID string) string {
-	// If it's already just an ID (alphanumeric), return it
-	if len(clipURLOrID) > 0 && clipURLOrID[0] != 'h' {
-		return clipURLOrID
+	// Trim whitespace first
+	clipURLOrID = strings.TrimSpace(clipURLOrID)
+
+	// Handle trailing slashes
+	clipURLOrID = strings.TrimSuffix(clipURLOrID, "/")
+
+	// If it's empty, return empty
+	if len(clipURLOrID) == 0 {
+		return ""
 	}
 
-	// Handle full URLs
+	// If it's already just an ID (not starting with http), return it
+	if !strings.HasPrefix(clipURLOrID, "http") {
+		// Still need to strip query params and fragments if someone passes "ClipID?param=value"
+		clipID := clipURLOrID
+		if idx := strings.IndexAny(clipID, "?#"); idx != -1 {
+			clipID = clipID[:idx]
+		}
+		return clipID
+	}
+
+	// Handle full URLs - find the last path segment
 	parts := []rune(clipURLOrID)
 	lastSlash := -1
 	for i := len(parts) - 1; i >= 0; i-- {
@@ -818,17 +1363,9 @@ func extractClipIDFromURL(clipURLOrID string) string {
 
 	clipID := string(parts[lastSlash+1:])
 
-	// Remove query parameters if present
-	queryStart := -1
-	for i, r := range clipID {
-		if r == '?' {
-			queryStart = i
-			break
-		}
-	}
-
-	if queryStart != -1 {
-		clipID = clipID[:queryStart]
+	// Remove query parameters and fragment identifiers if present
+	if idx := strings.IndexAny(clipID, "?#"); idx != -1 {
+		clipID = clipID[:idx]
 	}
 
 	return clipID

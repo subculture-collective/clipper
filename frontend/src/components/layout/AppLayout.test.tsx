@@ -1,8 +1,12 @@
 import { render, waitFor } from '@testing-library/react';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import userEvent from '@testing-library/user-event';
 =======
 import { act } from 'react';
+>>>>>>> main
+=======
+import userEvent from '@testing-library/user-event';
 >>>>>>> main
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -73,8 +77,12 @@ describe('AppLayout', () => {
         window.scrollTo = scrollToMock;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         const user = userEvent.setup();
 =======
+>>>>>>> main
+=======
+        const user = userEvent.setup();
 >>>>>>> main
         const { getByText } = render(
             <MemoryRouter initialEntries={['/']}>
@@ -111,9 +119,13 @@ describe('AppLayout', () => {
         // Navigate to /about
         const button = getByText('Go to About');
 <<<<<<< HEAD
+<<<<<<< HEAD
         await user.click(button);
 =======
         button.click();
+>>>>>>> main
+=======
+        await user.click(button);
 >>>>>>> main
 
         // Wait for navigation and scroll
@@ -128,8 +140,12 @@ describe('AppLayout', () => {
 
     it('resets body overflow on route change', async () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
         const user = userEvent.setup();
 =======
+>>>>>>> main
+=======
+        const user = userEvent.setup();
 >>>>>>> main
         const { getByText } = render(
             <MemoryRouter initialEntries={['/']}>
@@ -164,11 +180,15 @@ describe('AppLayout', () => {
         // Navigate to /submit
         const button = getByText('Go to Submit');
 <<<<<<< HEAD
+<<<<<<< HEAD
         await user.click(button);
 =======
         await act(async () => {
             button.click();
         });
+>>>>>>> main
+=======
+        await user.click(button);
 >>>>>>> main
 
         await waitFor(() => {
@@ -186,8 +206,12 @@ describe('AppLayout', () => {
         document.body.style.overflow = 'hidden';
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         const user = userEvent.setup();
 =======
+>>>>>>> main
+=======
+        const user = userEvent.setup();
 >>>>>>> main
         const { getByText } = render(
             <MemoryRouter initialEntries={['/submit']}>
@@ -221,11 +245,15 @@ describe('AppLayout', () => {
         // Navigate back to home (simulating browser back)
         const button = getByText('Go to Home');
 <<<<<<< HEAD
+<<<<<<< HEAD
         await user.click(button);
 =======
         await act(async () => {
             button.click();
         });
+>>>>>>> main
+=======
+        await user.click(button);
 >>>>>>> main
 
         await waitFor(() => {

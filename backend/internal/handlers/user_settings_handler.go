@@ -291,3 +291,46 @@ func (h *UserSettingsHandler) GetDeletionStatus(c *gin.Context) {
 		"requested_at":  deletion.RequestedAt,
 	})
 }
+
+// UpdateSocialLinks handles PUT /api/v1/users/me/social-links
+func (h *UserSettingsHandler) UpdateSocialLinks(c *gin.Context) {
+	// Get user ID from context (set by auth middleware)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.UpdateSocialLinksRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// Update social links
+	err := h.userSettingsService.UpdateSocialLinks(c.Request.Context(), userID, &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update social links",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Social links updated successfully",
+	})
+}

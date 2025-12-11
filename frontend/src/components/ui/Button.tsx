@@ -34,13 +34,13 @@ export interface ButtonProps
 
 const variantClasses = {
     primary:
-        'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-700 dark:text-white shadow-sm',
+        'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-700 dark:text-white shadow-sm cursor-pointer',
     secondary:
-        'bg-secondary-500 text-white hover:bg-secondary-600 active:bg-secondary-700',
-    ghost: 'bg-transparent hover:bg-neutral-100 active:bg-neutral-200 dark:hover:bg-neutral-800 dark:active:bg-neutral-700 text-foreground',
-    danger: 'bg-error-500 text-white hover:bg-error-600 active:bg-error-700',
+        'bg-secondary-500 text-white hover:bg-secondary-600 active:bg-secondary-700 cursor-pointer',
+    ghost: 'bg-transparent hover:bg-neutral-100 active:bg-neutral-200 dark:hover:bg-neutral-800 dark:active:bg-neutral-700 text-foreground cursor-pointer',
+    danger: 'bg-error-500 text-white hover:bg-error-600 active:bg-error-700 cursor-pointer',
     outline:
-        'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950',
+        'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950 cursor-pointer',
 };
 
 const sizeClasses = {

@@ -2,10 +2,9 @@ import { TagList } from '@/components/tag/TagList';
 import { Badge } from '@/components/ui';
 import { useClipFavorite, useClipVote } from '@/hooks/useClips';
 import { useIsAuthenticated, useToast } from '@/hooks';
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 import type { Clip } from '@/types/clip';
-import { formatDistanceToNow } from 'date-fns';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TwitchEmbed } from './TwitchEmbed';
 
 interface ClipCardProps {
@@ -17,6 +16,7 @@ export function ClipCard({ clip }: ClipCardProps) {
     const voteMutation = useClipVote();
     const favoriteMutation = useClipFavorite();
     const toast = useToast();
+    const navigate = useNavigate();
 
     const handleVote = (voteType: 1 | -1) => {
         if (!isAuthenticated) {
@@ -32,6 +32,19 @@ export function ClipCard({ clip }: ClipCardProps) {
             return;
         }
         favoriteMutation.mutate({ clip_id: clip.id });
+    };
+
+    const handlePostClip = () => {
+        if (!isAuthenticated) {
+            toast.info('Please log in to post this clip');
+            return;
+        }
+        // Navigate to submit page with clip URL pre-filled
+        navigate('/submit', { 
+            state: { 
+                clipUrl: clip.twitch_clip_url
+            } 
+        });
     };
 
     const formatDuration = (seconds?: number) => {
@@ -58,6 +71,8 @@ export function ClipCard({ clip }: ClipCardProps) {
             ? 'text-red-600 dark:text-red-400'
             : 'text-muted-foreground';
 
+    const timestamp = formatTimestamp(clip.created_at);
+
     return (
         <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render'>
             <div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
@@ -69,7 +84,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         className={cn(
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === 1 &&
-                                'text-green-600 dark:text-green-400',
+                                'text-orange-600 dark:text-orange-400',
                             !isAuthenticated
                                 ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
                                 : 'cursor-pointer'
@@ -80,7 +95,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                     >
                         <svg
                             className='w-6 h-6'
-                            fill='currentColor'
+                            fill={clip.user_vote === 1 ? 'currentColor' : 'none'}
+                            stroke='currentColor'
+                            strokeWidth={clip.user_vote === 1 ? 0 : 2}
                             viewBox='0 0 24 24'
                         >
                             <path d='M12 4l8 8h-6v8h-4v-8H4z' />
@@ -97,7 +114,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         className={cn(
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === -1 &&
-                                'text-red-600 dark:text-red-400',
+                                'text-purple-600 dark:text-purple-400',
                             !isAuthenticated
                                 ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
                                 : 'cursor-pointer'
@@ -108,7 +125,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                     >
                         <svg
                             className='w-6 h-6'
-                            fill='currentColor'
+                            fill={clip.user_vote === -1 ? 'currentColor' : 'none'}
+                            stroke='currentColor'
+                            strokeWidth={clip.user_vote === -1 ? 0 : 2}
                             viewBox='0 0 24 24'
                         >
                             <path d='M12 20l-8-8h6V4h4v8h6z' />
@@ -160,12 +179,45 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                     {/* Metadata */}
                     <div className='text-muted-foreground flex flex-wrap gap-1.5 xs:gap-2 mb-3 text-xs xs:text-sm'>
-                        <Link
-                            to={`/creator/${clip.creator_id}`}
-                            className='hover:text-foreground transition-colors touch-target cursor-pointer'
-                        >
-                            {clip.creator_name}
-                        </Link>
+                        <span className='flex items-center gap-1'>
+                            <span className='hidden xs:inline'>Clipped by</span>
+                            <a
+                                href={clip.twitch_clip_url}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='hover:text-foreground transition-colors touch-target cursor-pointer'
+                            >
+                                {clip.creator_name}
+                            </a>
+                        </span>
+                        <span className='hidden xs:inline'>•</span>
+                        <span className='flex items-center gap-1'>
+                            <span className='hidden xs:inline'>From</span>
+                            {clip.broadcaster_id ? (
+                                <Link
+                                    to={`/broadcaster/${clip.broadcaster_id}`}
+                                    className='hover:text-foreground transition-colors touch-target cursor-pointer'
+                                >
+                                    {clip.broadcaster_name}
+                                </Link>
+                            ) : (
+                                <span>{clip.broadcaster_name}</span>
+                            )}
+                        </span>
+                        {clip.submitted_by && (
+                            <>
+                                <span className='hidden xs:inline'>•</span>
+                                <span className='flex items-center gap-1'>
+                                    <span className='hidden xs:inline'>Submitted by</span>
+                                    <Link
+                                        to={`/user/${clip.submitted_by.username}`}
+                                        className='hover:text-foreground transition-colors touch-target cursor-pointer'
+                                    >
+                                        {clip.submitted_by.display_name}
+                                    </Link>
+                                </span>
+                            </>
+                        )}
                         <span className='hidden xs:inline'>•</span>
                         {clip.game_name && (
                             <>
@@ -178,10 +230,8 @@ export function ClipCard({ clip }: ClipCardProps) {
                                 <span className='hidden xs:inline'>•</span>
                             </>
                         )}
-                        <span className='truncate'>
-                            {formatDistanceToNow(new Date(clip.created_at), {
-                                addSuffix: true,
-                            })}
+                        <span className='truncate' title={timestamp.title}>
+                            {timestamp.display}
                         </span>
                     </div>
 
@@ -284,6 +334,42 @@ export function ClipCard({ clip }: ClipCardProps) {
                             </svg>
                             <span>Share</span>
                         </button>
+
+                        {/* Post This Clip button - only show for scraped clips (no submitter) */}
+                        {!clip.submitted_by && (
+                            <button
+                                onClick={handlePostClip}
+                                disabled={!isAuthenticated}
+                                className={cn(
+                                    'text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-[44px] font-medium',
+                                    !isAuthenticated
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400'
+                                )}
+                                aria-label={
+                                    !isAuthenticated
+                                        ? 'Log in to post this clip'
+                                        : 'Post this clip'
+                                }
+                                title={!isAuthenticated ? 'Log in to post this clip' : 'Post this clip'}
+                            >
+                                <svg
+                                    className='w-5 h-5 shrink-0'
+                                    fill='none'
+                                    stroke='currentColor'
+                                    viewBox='0 0 24 24'
+                                >
+                                    <path
+                                        strokeLinecap='round'
+                                        strokeLinejoin='round'
+                                        strokeWidth={2}
+                                        d='M12 4v16m8-8H4'
+                                    />
+                                </svg>
+                                <span className='hidden sm:inline'>Post This Clip</span>
+                                <span className='sm:hidden'>Post</span>
+                            </button>
+                        )}
 
                         <span className='text-muted-foreground flex items-center gap-1'>
                             <svg

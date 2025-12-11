@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { formatDistanceToNow } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { Avatar, Badge } from '@/components/ui';
+import { cn, formatTimestamp } from '@/lib/utils';
+import { Avatar } from '@/components/ui';
+import { UserRoleBadge } from '@/components/user';
 import { CommentVoteButtons } from './CommentVoteButtons';
 import { CommentActions } from './CommentActions';
 import { CommentForm } from './CommentForm';
@@ -114,16 +114,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           />
           <span className="font-medium text-foreground">{comment.username}</span>
 
-          {comment.user_role === 'admin' && (
-            <Badge variant="error" size="sm">
-              Admin
-            </Badge>
-          )}
-
-          {comment.user_role === 'moderator' && (
-            <Badge variant="primary" size="sm">
-              Mod
-            </Badge>
+          {comment.user_role && comment.user_role !== 'user' && (
+            <UserRoleBadge role={comment.user_role} size="sm" />
           )}
 
           {comment.user_karma !== undefined && (
@@ -136,10 +128,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            title={isCollapsed ? 'Expand thread' : 'Collapse thread'}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title={`${isCollapsed ? 'Expand' : 'Collapse'} thread (${formatTimestamp(comment.created_at).title})`}
           >
-            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+            {formatTimestamp(comment.created_at).display}
           </button>
 
           {comment.edited_at && (
@@ -154,7 +146,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         {isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
-            className="text-sm text-primary-500 hover:text-primary-600 transition-colors"
+            className="text-sm text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
           >
             [{hasReplies ? `${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}` : 'expand'}]
           </button>
@@ -260,7 +252,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             {shouldShowContinueThread && (
               <a
                 href={`/clips/${clipId}/comments/${comment.id}`}
-                className="mt-4 inline-block text-sm text-primary-500 hover:text-primary-600 transition-colors"
+                className="mt-4 inline-block text-sm text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
               >
                 Continue thread →
               </a>

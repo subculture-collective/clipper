@@ -25,7 +25,7 @@ build: ## Build backend, frontend, and mobile
 	@echo "Building frontend..."
 	cd frontend && npm run build
 	@echo "Building mobile (iOS)..."
-	cd mobile && npm run ios -- --configuration Release
+	cd mobile && npm run ios -- --configuration Release || echo "⚠ Mobile iOS build skipped (requires macOS)"
 	@echo "✓ Build complete"
 
 test: ## Run all tests
@@ -106,23 +106,38 @@ clean: ## Clean build artifacts
 
 docker-up: ## Start Docker services (PostgreSQL + Redis)
 	@echo "Starting Docker services..."
-	docker compose up -d
+	docker compose -f docker-compose.prod.yml up -d
 	@echo "✓ Docker services started"
 
 docker-build: ## Start Docker services (PostgreSQL + Redis)
 	@echo "Starting Docker build..."
-	docker compose up -d --build --remove-orphans
+	docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
 	@echo "✓ Docker build complete, and services started"
 
 docker-down: ## Stop Docker services
 	@echo "Stopping Docker services..."
-	docker compose down
+	docker compose -f docker-compose.prod.yml down
 	@echo "✓ Docker services stopped"
 
 docker-logs: ## View Docker service logs
 	@echo "Tailing Docker service logs..."
-	docker compose logs -f --tail 500
-	@echo "✓ Docker logs ended"m
+	docker compose -f docker-compose.prod.yml logs -f --tail 500
+	@echo "✓ Docker logs ended"
+
+docker-logs-backend: ## Stream backend container logs
+	docker logs -f clipper-backend
+
+docker-logs-frontend: ## Stream frontend container logs
+	docker logs -f clipper-frontend
+
+docker-logs-postgres: ## Stream postgres container logs
+	docker logs -f clipper-postgres
+
+docker-logs-redis: ## Stream redis container logs
+	docker logs -f clipper-redis
+
+docker-logs-vault: ## Stream vault-agent container logs
+	docker logs -f clipper-vault-agent
 
 backend-dev: ## Run backend in development mode
 	@echo "Waiting for PostgreSQL on localhost:5436..."
@@ -240,3 +255,16 @@ migrate-seed-load-test: ## Seed database with load test data (includes sample da
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed_load_test.sql
 	@echo "✓ Load test data seeded"
+
+# Search Evaluation
+evaluate-search: ## Run search quality evaluation
+	@echo "Running search evaluation..."
+	@cd backend && go build -o bin/evaluate-search ./cmd/evaluate-search
+	@cd backend && ./bin/evaluate-search -verbose
+	@echo "✓ Search evaluation complete"
+
+evaluate-search-json: ## Run search evaluation and output JSON
+	@echo "Running search evaluation..."
+	@cd backend && go build -o bin/evaluate-search ./cmd/evaluate-search
+	@cd backend && ./bin/evaluate-search -output evaluation-results.json
+	@echo "✓ Results saved to backend/evaluation-results.json"

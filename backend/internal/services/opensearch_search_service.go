@@ -224,7 +224,7 @@ func (s *OpenSearchService) searchCreators(ctx context.Context, req *models.Sear
 }
 
 // searchGames searches for games in OpenSearch
-func (s *OpenSearchService) searchGames(ctx context.Context, req *models.SearchRequest) ([]models.Game, int, error) {
+func (s *OpenSearchService) searchGames(ctx context.Context, req *models.SearchRequest) ([]models.GameSearchResult, int, error) {
 	query := s.buildGameQuery(req)
 
 	from := (req.Page - 1) * req.Limit
@@ -240,9 +240,9 @@ func (s *OpenSearchService) searchGames(ctx context.Context, req *models.SearchR
 		return nil, 0, err
 	}
 
-	games := make([]models.Game, 0, len(hits))
+	games := make([]models.GameSearchResult, 0, len(hits))
 	for _, hit := range hits {
-		var game models.Game
+		var game models.GameSearchResult
 		if err := json.Unmarshal(hit, &game); err != nil {
 			continue
 		}
@@ -748,7 +748,7 @@ func (s *OpenSearchService) GetSuggestions(ctx context.Context, query string, li
 	gameHits, _, err := s.executeSearch(ctx, GamesIndex, gameQuery)
 	if err == nil {
 		for _, hit := range gameHits {
-			var game models.Game
+			var game models.GameEntity
 			if err := json.Unmarshal(hit, &game); err == nil {
 				suggestions = append(suggestions, models.SearchSuggestion{
 					Text: game.Name,

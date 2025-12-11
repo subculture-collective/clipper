@@ -46,7 +46,11 @@ func (h *SubmissionHandler) SubmitClip(c *gin.Context) {
 		return
 	}
 
-	submission, err := h.submissionService.SubmitClip(c.Request.Context(), userID, &req)
+	// Get IP address and device fingerprint for abuse detection
+	ip := c.ClientIP()
+	deviceFingerprint := c.GetHeader("User-Agent") // Simple fingerprint using user agent
+
+	submission, err := h.submissionService.SubmitClip(c.Request.Context(), userID, &req, ip, deviceFingerprint)
 	if err != nil {
 		// Check if it's a validation error
 		if valErr, ok := err.(*services.ValidationError); ok {
@@ -148,6 +152,107 @@ func (h *SubmissionHandler) GetSubmissionStats(c *gin.Context) {
 		"success": true,
 		"data":    stats,
 	})
+}
+
+// GetClipMetadata fetches clip metadata from Twitch API
+// GET /submissions/metadata?url={twitchClipUrl}
+func (h *SubmissionHandler) GetClipMetadata(c *gin.Context) {
+	clipURL := c.Query("url")
+	if clipURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "URL parameter is required",
+			"field":   "url",
+		})
+		return
+	}
+
+	metadata, err := h.submissionService.GetClipMetadata(c.Request.Context(), clipURL)
+	if err != nil {
+		// Check if it's a validation error
+		if valErr, ok := err.(*services.ValidationError); ok {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   valErr.Message,
+				"field":   valErr.Field,
+			})
+			return
+		}
+
+		// Check for Twitch API errors (502 Bad Gateway)
+		if _, ok := err.(*services.TwitchAPIError); ok {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"success": false,
+				"error":   "Unable to fetch clip metadata from Twitch. Please try again later.",
+			})
+			return
+		}
+
+		// Check for Twitch API not configured error
+		if strings.Contains(err.Error(), "not configured") {
+			c.JSON(http.StatusBadGateway, gin.H{
+				"success": false,
+				"error":   "Unable to fetch clip metadata from Twitch. Please try again later.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch clip metadata",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    metadata,
+	})
+}
+
+// CheckClipStatus checks if a clip exists and whether it can be claimed
+// GET /submissions/check/:clip_id
+// Note: This endpoint is public to allow users to check clip status before attempting to claim.
+// Sensitive fields are filtered from the response.
+func (h *SubmissionHandler) CheckClipStatus(c *gin.Context) {
+	clipID := c.Param("clip_id")
+	if clipID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Clip ID is required",
+		})
+		return
+	}
+
+	result, err := h.submissionService.CheckClipExistence(c.Request.Context(), clipID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to check clip status",
+		})
+		return
+	}
+
+	response := gin.H{
+		"success":        true,
+		"exists":         result.Exists,
+		"can_be_claimed": result.CanBeClaimed,
+	}
+
+	// If clip exists, return minimal public information only
+	if result.Exists && result.Clip != nil {
+		response["clip"] = gin.H{
+			"id":              result.Clip.ID,
+			"title":           result.Clip.Title,
+			"broadcaster_name": result.Clip.BroadcasterName,
+			"game_name":       result.Clip.GameName,
+			"view_count":      result.Clip.ViewCount,
+			"created_at":      result.Clip.CreatedAt,
+			// Exclude sensitive fields: is_removed, removed_reason, submitted_by_user_id, etc.
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // ListPendingSubmissions lists pending submissions for moderation (admin/moderator only)

@@ -7,6 +7,88 @@ const (
 	RoleAdmin     = "admin"
 )
 
+// Account type constants
+const (
+	AccountTypeMember      = "member"
+	AccountTypeBroadcaster = "broadcaster"
+	AccountTypeModerator   = "moderator"
+	AccountTypeAdmin       = "admin"
+)
+
+// Permission constants
+const (
+	// Member permissions
+	PermissionCreateSubmission = "create:submission"
+	PermissionCreateComment    = "create:comment"
+	PermissionCreateVote       = "create:vote"
+	PermissionCreateFollow     = "create:follow"
+
+	// Broadcaster permissions (includes all member permissions)
+	PermissionViewBroadcasterAnalytics = "view:broadcaster_analytics"
+	PermissionClaimBroadcasterProfile  = "claim:broadcaster_profile"
+
+	// Moderator permissions (includes all broadcaster permissions)
+	PermissionModerateContent       = "moderate:content"
+	PermissionModerateUsers         = "moderate:users"
+	PermissionCreateDiscoveryLists  = "create:discovery_lists"
+
+	// Admin permissions (includes all permissions)
+	PermissionManageUsers           = "manage:users"
+	PermissionManageSystem          = "manage:system"
+	PermissionViewAnalyticsDashboard = "view:analytics_dashboard"
+	PermissionModerateOverride      = "moderate:override"
+)
+
+// accountTypePermissions maps account types to their permissions
+var accountTypePermissions = map[string][]string{
+	AccountTypeMember: {
+		PermissionCreateSubmission,
+		PermissionCreateComment,
+		PermissionCreateVote,
+		PermissionCreateFollow,
+	},
+	AccountTypeBroadcaster: {
+		// All member permissions
+		PermissionCreateSubmission,
+		PermissionCreateComment,
+		PermissionCreateVote,
+		PermissionCreateFollow,
+		// Broadcaster-specific permissions
+		PermissionViewBroadcasterAnalytics,
+		PermissionClaimBroadcasterProfile,
+	},
+	AccountTypeModerator: {
+		// All broadcaster permissions
+		PermissionCreateSubmission,
+		PermissionCreateComment,
+		PermissionCreateVote,
+		PermissionCreateFollow,
+		PermissionViewBroadcasterAnalytics,
+		PermissionClaimBroadcasterProfile,
+		// Moderator-specific permissions
+		PermissionModerateContent,
+		PermissionModerateUsers,
+		PermissionCreateDiscoveryLists,
+	},
+	AccountTypeAdmin: {
+		// All moderator permissions
+		PermissionCreateSubmission,
+		PermissionCreateComment,
+		PermissionCreateVote,
+		PermissionCreateFollow,
+		PermissionViewBroadcasterAnalytics,
+		PermissionClaimBroadcasterProfile,
+		PermissionModerateContent,
+		PermissionModerateUsers,
+		PermissionCreateDiscoveryLists,
+		// Admin-specific permissions
+		PermissionManageUsers,
+		PermissionManageSystem,
+		PermissionViewAnalyticsDashboard,
+		PermissionModerateOverride,
+	},
+}
+
 // IsValidRole checks if a role string is valid
 func IsValidRole(role string) bool {
 	switch role {
@@ -15,6 +97,25 @@ func IsValidRole(role string) bool {
 	default:
 		return false
 	}
+}
+
+// IsValidAccountType checks if an account type string is valid
+func IsValidAccountType(accountType string) bool {
+	switch accountType {
+	case AccountTypeMember, AccountTypeBroadcaster, AccountTypeModerator, AccountTypeAdmin:
+		return true
+	default:
+		return false
+	}
+}
+
+// GetAccountTypePermissions returns all permissions for a given account type
+func GetAccountTypePermissions(accountType string) []string {
+	if permissions, ok := accountTypePermissions[accountType]; ok {
+		return permissions
+	}
+	// Default to member permissions if account type is unknown
+	return accountTypePermissions[AccountTypeMember]
 }
 
 // HasRole checks if a user has the specified role
@@ -45,4 +146,41 @@ func (u *User) IsModerator() bool {
 // IsModeratorOrAdmin checks if the user is a moderator or admin
 func (u *User) IsModeratorOrAdmin() bool {
 	return u.Role == RoleModerator || u.Role == RoleAdmin
+}
+
+// Can checks if a user has a specific permission based on their account type.
+// Note: This system supports dual permission paths for backward compatibility:
+// - Role (admin/moderator/user): Legacy system for basic access control
+// - AccountType (admin/moderator/broadcaster/member): New granular permission system
+// Both Role=admin and AccountType=admin grant all permissions.
+// In most cases, AccountType should be the primary source of permissions,
+// while Role is used for basic authentication and route protection.
+func (u *User) Can(permission string) bool {
+	// Admins have all permissions (checks both Role and AccountType for compatibility)
+	if u.IsAdmin() || u.AccountType == AccountTypeAdmin {
+		return true
+	}
+
+	// Check if the user's account type has this permission
+	permissions := GetAccountTypePermissions(u.AccountType)
+	for _, p := range permissions {
+		if p == permission {
+			return true
+		}
+	}
+	return false
+}
+
+// GetAccountType returns the user's account type, with fallback to member
+func (u *User) GetAccountType() string {
+	if u.AccountType == "" {
+		return AccountTypeMember
+	}
+	return u.AccountType
+}
+
+// GetPermissions returns all permissions for the user's account type
+func (u *User) GetPermissions() []string {
+	accountType := u.GetAccountType()
+	return GetAccountTypePermissions(accountType)
 }

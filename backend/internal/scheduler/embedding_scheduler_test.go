@@ -73,3 +73,19 @@ func TestEmbeddingScheduler_StopWithContext(t *testing.T) {
 
 	// Scheduler should have stopped cleanly
 }
+
+func TestUpdateEmbeddingCoverageMetrics_NilDB(t *testing.T) {
+	mockService := &MockEmbeddingService{}
+	scheduler := NewEmbeddingScheduler(nil, mockService, 60, "test-model")
+
+	// Should not panic with nil db
+	scheduler.updateEmbeddingCoverageMetrics(context.Background())
+}
+
+func TestRunEmbedding_NilDB(t *testing.T) {
+	mockService := &MockEmbeddingService{}
+	scheduler := NewEmbeddingScheduler(nil, mockService, 60, "test-model")
+
+	// Should not panic and should return early with nil db
+	scheduler.runEmbedding(context.Background())
+}

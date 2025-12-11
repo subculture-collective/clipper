@@ -189,3 +189,38 @@ func (s *AuditLogService) LogEntitlementDenial(ctx context.Context, userID uuid.
 
 	return s.auditLogRepo.Create(ctx, log)
 }
+
+// LogClipMetadataUpdate logs when a creator updates clip metadata
+func (s *AuditLogService) LogClipMetadataUpdate(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, changes map[string]interface{}) error {
+	log := &models.ModerationAuditLog{
+		Action:      "clip_metadata_updated",
+		EntityType:  "clip",
+		EntityID:    clipID,
+		ModeratorID: userID,
+		Metadata:    changes,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}
+
+// LogClipVisibilityChange logs when a creator changes clip visibility
+func (s *AuditLogService) LogClipVisibilityChange(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, isHidden bool) error {
+	metadata := map[string]interface{}{
+		"is_hidden": isHidden,
+	}
+
+	action := "clip_hidden"
+	if !isHidden {
+		action = "clip_unhidden"
+	}
+
+	log := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  "clip",
+		EntityID:    clipID,
+		ModeratorID: userID,
+		Metadata:    metadata,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}

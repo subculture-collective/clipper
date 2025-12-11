@@ -178,6 +178,26 @@ func (h *AnalyticsHandler) GetPlatformTrends(c *gin.Context) {
 	})
 }
 
+// GetCreatorAudienceInsights returns audience insights (geography and devices) for a creator
+// GET /api/v1/creators/:creatorName/analytics/audience?limit=10
+func (h *AnalyticsHandler) GetCreatorAudienceInsights(c *gin.Context) {
+	creatorName := c.Param("creatorName")
+	if creatorName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "creator name is required"})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	insights, err := h.analyticsService.GetCreatorAudienceInsights(c.Request.Context(), creatorName, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve audience insights"})
+		return
+	}
+
+	c.JSON(http.StatusOK, insights)
+}
+
 // TrackClipView tracks a clip view event
 // POST /api/v1/clips/:id/track-view
 func (h *AnalyticsHandler) TrackClipView(c *gin.Context) {

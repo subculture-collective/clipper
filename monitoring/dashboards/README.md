@@ -21,6 +21,62 @@ Provides a high-level view of application health and SLO compliance.
 - Database Connection Pool
 - Cache Hit Rate
 
+### 2. Search Quality Metrics (`search-quality.json`)
+
+Tracks semantic search quality metrics and performance over time.
+
+**Offline Metrics Panels:**
+
+- nDCG@5 (target: 0.75) - Ranking quality for top 5 results
+- nDCG@10 (target: 0.80) - Ranking quality for top 10 results
+- MRR (target: 0.70) - Mean Reciprocal Rank
+- Precision@5 (target: 0.60) - Fraction of top 5 that are relevant
+- Search Quality Metrics Trend - Historical view with targets
+
+**Performance Panels:**
+
+- Search Query Latency (P95) - By search type (hybrid, BM25, vector)
+- Search Query Rate - Queries per second by type
+- Embedding Cache Hit Rate
+- Embedding Generation Rate
+- Embedding Coverage
+
+**Online Metrics Panels:**
+
+- Click-Through Rate (CTR)
+- Zero Result Rate
+- Average Click Position
+- Session Success Rate
+
+### 3. Engagement Metrics (`engagement-metrics.json`)
+
+Tracks user engagement, platform health, and content performance metrics.
+
+**Platform Health Panels:**
+
+- Active Users (DAU/WAU/MAU) - Daily, weekly, and monthly active users
+- Platform Stickiness (DAU/MAU) - User retention indicator with thresholds
+- Retention Rates - Day 1, Day 7, and Day 30 retention percentages
+- Churn Rate - Monthly churn rate with alert threshold
+- Week-over-Week Changes - Trending metrics comparing to previous periods
+
+**User Engagement Panels:**
+
+- User Engagement Score Distribution - P50, P90, P95 percentiles
+- Engagement Tier Distribution - Count of users in each tier (Inactive, Low, Moderate, High, Very High)
+- User Activity Heatmap - Activity patterns by hour of day
+
+**Content Engagement Panels:**
+
+- Content Engagement Scores - Average and P90 content scores
+- Active Engagement Alerts - Table of current alerts requiring attention
+
+**Alert Thresholds:**
+
+- Critical (P1): DAU drop > 20%, Churn > 7%, Stickiness < 15%
+- Warning (P2): DAU drop > 10%, Churn > 5%
+- Info (P3): Engagement score drops, content performance issues
+
 ## Importing Dashboards
 
 ### Via Grafana UI

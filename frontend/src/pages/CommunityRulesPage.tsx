@@ -15,8 +15,8 @@ export function CommunityRulesPage() {
         <Card>
           <CardBody>
             <p className="text-muted-foreground">
-              Welcome to Clipper! Our community is built on respect, authenticity, and a shared passion for gaming. 
-              These rules help ensure Clipper remains a positive space for everyone to discover, share, and celebrate 
+              Welcome to clpr! Our community is built on respect, authenticity, and a shared passion for gaming. 
+              These rules help ensure clpr remains a positive space for everyone to discover, share, and celebrate 
               amazing gaming moments.
             </p>
           </CardBody>
@@ -43,7 +43,7 @@ export function CommunityRulesPage() {
           <CardBody>
             <h2 className="text-2xl font-semibold mb-4">2. Share Authentic Content</h2>
             <p className="text-muted-foreground mb-4">
-              Clipper is for genuine gaming highlights. Help maintain quality and authenticity in our community.
+              clpr is for genuine gaming highlights. Help maintain quality and authenticity in our community.
             </p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
               <li>Only submit clips from legitimate Twitch streams</li>
@@ -76,7 +76,7 @@ export function CommunityRulesPage() {
           <CardBody>
             <h2 className="text-2xl font-semibold mb-4">4. Keep Content Safe and Appropriate</h2>
             <p className="text-muted-foreground mb-4">
-              Clipper should be accessible to a wide gaming audience. Some content doesn't belong here.
+              clpr should be accessible to a wide gaming audience. Some content doesn't belong here.
             </p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
               <li>No NSFW (Not Safe For Work) content</li>
@@ -149,7 +149,7 @@ export function CommunityRulesPage() {
               <li><strong>Permanent Ban:</strong> Serious or repeated violations may result in permanent account termination</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              All moderation decisions are made at the discretion of the Clipper team. We review each case individually 
+              All moderation decisions are made at the discretion of the clpr team. We review each case individually 
               and aim to be fair and consistent in our enforcement.
             </p>
           </CardBody>
@@ -168,7 +168,7 @@ export function CommunityRulesPage() {
               <li>Join our community Discord for general questions</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              Thank you for being part of the Clipper community and helping make it a great place for all gamers! 🎮
+              Thank you for being part of the clpr community and helping make it a great place for all gamers! 🎮
             </p>
           </CardBody>
         </Card>

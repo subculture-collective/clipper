@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Container, Spinner, CommentSection, SEO, VideoPlayer } from '../components';
 import { useClipById, useUser, useClipVote, useClipFavorite, useIsAuthenticated, useToast } from '../hooks';
 import { cn } from '@/lib/utils';
@@ -136,7 +136,31 @@ export function ClipDetailPage() {
           <div className="mb-4 xs:mb-6">
             <h1 className="text-2xl xs:text-3xl font-bold mb-2">{clip.title}</h1>
             <div className="flex flex-wrap gap-2 xs:gap-4 text-xs xs:text-sm text-muted-foreground">
-              <span>By {clip.creator_name}</span>
+              <span>
+                Clipped by{' '}
+                <a
+                  href={clip.twitch_clip_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors"
+                >
+                  {clip.creator_name}
+                </a>
+              </span>
+              {clip.submitted_by && (
+                <>
+                  <span className="hidden xs:inline">•</span>
+                  <span>
+                    Submitted by{' '}
+                    <Link
+                      to={`/user/${clip.submitted_by.username}`}
+                      className="hover:text-foreground transition-colors"
+                    >
+                      {clip.submitted_by.display_name}
+                    </Link>
+                  </span>
+                </>
+              )}
               <span className="hidden xs:inline">•</span>
               <span>{clip.view_count.toLocaleString()} views</span>
               <span className="hidden xs:inline">•</span>

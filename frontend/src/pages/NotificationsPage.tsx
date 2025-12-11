@@ -57,7 +57,7 @@ export function NotificationsPage() {
   return (
     <>
       <Helmet>
-        <title>Notifications - Clipper</title>
+        <title>Notifications - clpr</title>
       </Helmet>
 
       <Container>

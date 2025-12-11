@@ -417,6 +417,7 @@ export function DocsPage() {
   );
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
   // Documentation sections organized by category
@@ -800,4 +801,6 @@ export function DocsPage() {
     </>
   );
 }
+>>>>>>> main
+=======
 >>>>>>> main

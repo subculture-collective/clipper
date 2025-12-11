@@ -100,3 +100,202 @@ export async function reauthorizeTwitch(): Promise<{ auth_url: string }> {
     );
     return response.data;
 }
+
+export interface UserProfile {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url?: string;
+    bio?: string;
+    social_links?: string; // JSON string
+    karma_points: number;
+    trust_score: number;
+    role: string;
+    is_banned: boolean;
+    follower_count: number;
+    following_count: number;
+    created_at: string;
+    updated_at: string;
+    stats: {
+        clips_submitted: number;
+        total_upvotes: number;
+        total_comments: number;
+        clips_featured: number;
+        broadcasters_followed: number;
+    };
+    is_following: boolean;
+    is_followed_by: boolean;
+}
+
+export interface UserActivityItem {
+    id: string;
+    user_id: string;
+    activity_type: string;
+    target_id?: string;
+    target_type?: string;
+    metadata?: string;
+    created_at: string;
+    username: string;
+    user_avatar?: string;
+    clip_title?: string;
+    clip_id?: string;
+    comment_text?: string;
+    target_user?: string;
+}
+
+export interface FollowerUser {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url?: string;
+    bio?: string;
+    karma_points: number;
+    followed_at: string;
+    is_following: boolean;
+}
+
+export interface UserActivityResponse {
+    success: boolean;
+    data: UserActivityItem[];
+    meta: {
+        page: number;
+        limit: number;
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_prev: boolean;
+    };
+}
+
+export interface UserFollowersResponse {
+    success: boolean;
+    data: FollowerUser[];
+    meta: {
+        page: number;
+        limit: number;
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_prev: boolean;
+    };
+}
+
+/**
+ * Fetch a user's complete profile with stats
+ */
+export async function fetchUserProfile(userId: string): Promise<UserProfile> {
+    const response = await apiClient.get<{ success: boolean; data: UserProfile }>(
+        `/users/${userId}`
+    );
+    return response.data.data;
+}
+
+/**
+ * Fetch clips submitted by a user
+ */
+export async function fetchUserClips(
+    userId: string,
+    page: number = 1,
+    limit: number = 20
+): Promise<ClipFeedResponse> {
+    const response = await apiClient.get<{
+        success: boolean;
+        data: Clip[];
+        meta: {
+            page: number;
+            limit: number;
+            total: number;
+            total_pages: number;
+            has_next: boolean;
+            has_prev: boolean;
+        };
+    }>(`/users/${userId}/clips`, {
+        params: { page, limit },
+    });
+
+    return {
+        clips: response.data.data,
+        total: response.data.meta.total,
+        page: response.data.meta.page,
+        limit: response.data.meta.limit,
+        has_more: response.data.meta.has_next,
+    };
+}
+
+/**
+ * Fetch a user's activity feed
+ */
+export async function fetchUserActivity(
+    userId: string,
+    page: number = 1,
+    limit: number = 20
+): Promise<UserActivityResponse> {
+    const response = await apiClient.get<UserActivityResponse>(
+        `/users/${userId}/activity`,
+        {
+            params: { page, limit },
+        }
+    );
+    return response.data;
+}
+
+/**
+ * Fetch a user's followers
+ */
+export async function fetchUserFollowers(
+    userId: string,
+    page: number = 1,
+    limit: number = 20
+): Promise<UserFollowersResponse> {
+    const response = await apiClient.get<UserFollowersResponse>(
+        `/users/${userId}/followers`,
+        {
+            params: { page, limit },
+        }
+    );
+    return response.data;
+}
+
+/**
+ * Fetch users that a user is following
+ */
+export async function fetchUserFollowing(
+    userId: string,
+    page: number = 1,
+    limit: number = 20
+): Promise<UserFollowersResponse> {
+    const response = await apiClient.get<UserFollowersResponse>(
+        `/users/${userId}/following`,
+        {
+            params: { page, limit },
+        }
+    );
+    return response.data;
+}
+
+/**
+ * Follow a user
+ */
+export async function followUser(userId: string): Promise<void> {
+    await apiClient.post(`/users/${userId}/follow`);
+}
+
+/**
+ * Unfollow a user
+ */
+export async function unfollowUser(userId: string): Promise<void> {
+    await apiClient.delete(`/users/${userId}/follow`);
+}
+
+/**
+ * Update social links
+ */
+export async function updateSocialLinks(socialLinks: {
+    twitter?: string;
+    twitch?: string;
+    discord?: string;
+    youtube?: string;
+    website?: string;
+}): Promise<void> {
+    await apiClient.put('/users/me/social-links', socialLinks);
+}

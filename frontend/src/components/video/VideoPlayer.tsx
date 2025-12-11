@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useShare } from '@/hooks';
+import { useShare, useVolumePreference } from '@/hooks';
+import { MutedIcon } from '@/components/ui';
 
 export interface VideoPlayerProps {
   clipId: string;
@@ -17,6 +18,7 @@ export function VideoPlayer({
   const { share } = useShare();
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { embedMuted, hasSetPreference, setUnmutedPreference } = useVolumePreference();
 
   const handleShare = useCallback(async () => {
     await share({
@@ -78,7 +80,8 @@ export function VideoPlayer({
 
   // Get parent domain for Twitch embed
   const parentDomain = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  const twitchEmbedUrl = `${embedUrl}&parent=${parentDomain}&autoplay=false`;
+  // Enable autoplay on detail pages with user's volume preference
+  const twitchEmbedUrl = `${embedUrl}&parent=${parentDomain}&autoplay=true&muted=${embedMuted}`;
 
   return (
     <div
@@ -154,6 +157,27 @@ export function VideoPlayer({
           </div>
         </div>
       </div>
+
+      {/* Muted indicator - shown when video is muted and user hasn't set a preference yet */}
+      {embedMuted && !hasSetPreference && (
+        <div 
+          className="absolute top-16 md:top-20 left-4 bg-black/70 hover:bg-black/90 text-white px-3 py-2 rounded text-sm font-medium flex items-center gap-2 cursor-pointer transition-colors z-10 pointer-events-auto"
+          onClick={setUnmutedPreference}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setUnmutedPreference();
+            }
+          }}
+          aria-label="Video is muted, click to enable sound on future videos"
+          title="Video starts muted for autoplay compatibility. Click to enable sound on future videos. (Reload this clip to hear it)"
+        >
+          <MutedIcon size="md" />
+          <span>Video is muted - Click to enable sound</span>
+        </div>
+      )}
 
       {/* Info Note */}
       <div className="absolute bottom-16 md:bottom-20 left-4 right-4 text-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">

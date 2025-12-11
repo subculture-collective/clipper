@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,13 +13,18 @@ import (
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
+// ErrUnauthorized is returned when a user doesn't have permission to manage a clip
+var ErrUnauthorized = errors.New("user does not have permission to manage this clip")
+
 // ClipService handles business logic for clips
 type ClipService struct {
-	clipRepo     *repository.ClipRepository
-	voteRepo     *repository.VoteRepository
-	favoriteRepo *repository.FavoriteRepository
-	userRepo     *repository.UserRepository
-	redisClient  *redispkg.Client
+	clipRepo            *repository.ClipRepository
+	voteRepo            *repository.VoteRepository
+	favoriteRepo        *repository.FavoriteRepository
+	userRepo            *repository.UserRepository
+	redisClient         *redispkg.Client
+	auditLogRepo        *repository.AuditLogRepository
+	notificationService *NotificationService
 }
 
 // NewClipService creates a new ClipService
@@ -28,23 +34,28 @@ func NewClipService(
 	favoriteRepo *repository.FavoriteRepository,
 	userRepo *repository.UserRepository,
 	redisClient *redispkg.Client,
+	auditLogRepo *repository.AuditLogRepository,
+	notificationService *NotificationService,
 ) *ClipService {
 	return &ClipService{
-		clipRepo:     clipRepo,
-		voteRepo:     voteRepo,
-		favoriteRepo: favoriteRepo,
-		userRepo:     userRepo,
-		redisClient:  redisClient,
+		clipRepo:            clipRepo,
+		voteRepo:            voteRepo,
+		favoriteRepo:        favoriteRepo,
+		userRepo:            userRepo,
+		redisClient:         redisClient,
+		auditLogRepo:        auditLogRepo,
+		notificationService: notificationService,
 	}
 }
 
 // ClipWithUserData represents a clip with user-specific data
 type ClipWithUserData struct {
 	models.Clip
-	UserVote      *int16 `json:"user_vote,omitempty"`
-	IsFavorited   bool   `json:"is_favorited"`
-	UpvoteCount   int    `json:"upvote_count"`
-	DownvoteCount int    `json:"downvote_count"`
+	UserVote      *int16                    `json:"user_vote,omitempty"`
+	IsFavorited   bool                      `json:"is_favorited"`
+	UpvoteCount   int                       `json:"upvote_count"`
+	DownvoteCount int                       `json:"downvote_count"`
+	SubmittedBy   *models.ClipSubmitterInfo `json:"submitted_by,omitempty"`
 }
 
 // GetClip retrieves a single clip with user data
@@ -65,6 +76,19 @@ func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uui
 		clipWithData.DownvoteCount = downvotes
 	}
 
+	// Get submitter information if available
+	if clip.SubmittedByUserID != nil {
+		submitter, err := s.userRepo.GetByID(ctx, *clip.SubmittedByUserID)
+		if err == nil && submitter != nil {
+			clipWithData.SubmittedBy = &models.ClipSubmitterInfo{
+				ID:          submitter.ID,
+				Username:    submitter.Username,
+				DisplayName: submitter.DisplayName,
+				AvatarURL:   submitter.AvatarURL,
+			}
+		}
+	}
+
 	// Get user-specific data if authenticated
 	if userID != nil {
 		vote, err := s.voteRepo.GetVote(ctx, *userID, clipID)
@@ -78,9 +102,75 @@ func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uui
 		}
 	}
 
-	// Increment view count (async, don't block on errors)
+	// Increment view count and check for threshold notifications (async, don't block on errors)
 	go func() {
-		_ = s.clipRepo.IncrementViewCount(context.Background(), clipID)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		newViewCount, err := s.clipRepo.IncrementViewCount(timeoutCtx, clipID)
+		if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+			// Check if we reached a view threshold
+			_ = s.notificationService.NotifyClipViewThreshold(timeoutCtx, clipID, newViewCount, *clip.CreatorID)
+		}
+	}()
+
+	return clipWithData, nil
+}
+
+// GetClipByTwitchID retrieves a single clip by Twitch clip ID with user data
+func (s *ClipService) GetClipByTwitchID(ctx context.Context, twitchClipID string, userID *uuid.UUID) (*ClipWithUserData, error) {
+	clip, err := s.clipRepo.GetByTwitchClipID(ctx, twitchClipID)
+	if err != nil {
+		return nil, err
+	}
+
+	clipWithData := &ClipWithUserData{
+		Clip: *clip,
+	}
+
+	// Get vote counts
+	upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+	if err == nil {
+		clipWithData.UpvoteCount = upvotes
+		clipWithData.DownvoteCount = downvotes
+	}
+
+	// Get submitter information if available
+	if clip.SubmittedByUserID != nil {
+		submitter, err := s.userRepo.GetByID(ctx, *clip.SubmittedByUserID)
+		if err == nil && submitter != nil {
+			clipWithData.SubmittedBy = &models.ClipSubmitterInfo{
+				ID:          submitter.ID,
+				Username:    submitter.Username,
+				DisplayName: submitter.DisplayName,
+				AvatarURL:   submitter.AvatarURL,
+			}
+		}
+	}
+
+	// Get user-specific data if authenticated
+	if userID != nil {
+		vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+		if err == nil && vote != nil {
+			clipWithData.UserVote = &vote.VoteType
+		}
+
+		isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+		if err == nil {
+			clipWithData.IsFavorited = isFavorited
+		}
+	}
+
+	// Increment view count and check for threshold notifications (async, don't block on errors)
+	go func() {
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		newViewCount, err := s.clipRepo.IncrementViewCount(timeoutCtx, clip.ID)
+		if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+			// Check if we reached a view threshold
+			_ = s.notificationService.NotifyClipViewThreshold(timeoutCtx, clip.ID, newViewCount, *clip.CreatorID)
+		}
 	}()
 
 	return clipWithData, nil
@@ -137,7 +227,126 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 		}
 	}
 
+	// Collect unique submitter IDs for batch fetching
+	submitterIDSet := make(map[uuid.UUID]struct{})
+	for _, clip := range clips {
+		if clip.SubmittedByUserID != nil {
+			submitterIDSet[*clip.SubmittedByUserID] = struct{}{}
+		}
+	}
+
+	// Convert set to slice for batch query
+	submitterIDs := make([]uuid.UUID, 0, len(submitterIDSet))
+	for id := range submitterIDSet {
+		submitterIDs = append(submitterIDs, id)
+	}
+
+	// Batch fetch submitter information in a single query
+	submitters := make(map[uuid.UUID]*models.ClipSubmitterInfo)
+	if len(submitterIDs) > 0 {
+		users, err := s.userRepo.GetByIDs(ctx, submitterIDs)
+		if err == nil {
+			for _, submitter := range users {
+				submitters[submitter.ID] = &models.ClipSubmitterInfo{
+					ID:          submitter.ID,
+					Username:    submitter.Username,
+					DisplayName: submitter.DisplayName,
+					AvatarURL:   submitter.AvatarURL,
+				}
+			}
+		}
+	}
+
 	// Enrich with user data
+	clipsWithData := make([]ClipWithUserData, len(clips))
+	for i, clip := range clips {
+		clipsWithData[i] = ClipWithUserData{
+			Clip: clip,
+		}
+
+		// Add submitter info if available
+		if clip.SubmittedByUserID != nil {
+			if submitter, ok := submitters[*clip.SubmittedByUserID]; ok {
+				clipsWithData[i].SubmittedBy = submitter
+			}
+		}
+
+		// Get vote counts
+		upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+		if err == nil {
+			clipsWithData[i].UpvoteCount = upvotes
+			clipsWithData[i].DownvoteCount = downvotes
+		}
+
+		// Get user-specific data if authenticated
+		if userID != nil {
+			vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+			if err == nil && vote != nil {
+				clipsWithData[i].UserVote = &vote.VoteType
+			}
+
+			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+			if err == nil {
+				clipsWithData[i].IsFavorited = isFavorited
+			}
+		}
+	}
+
+	return clipsWithData, total, nil
+}
+
+// ListScrapedClips retrieves only scraped clips (not claimed by users) with filters and pagination
+func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.ClipFilters, page, limit int, userID *uuid.UUID) ([]ClipWithUserData, int, error) {
+	// Check cache for non-user-specific queries
+	cacheKey := s.buildCacheKey(filters, page, limit) + ":scraped"
+	var cachedClips []models.Clip
+	var cachedTotal int
+
+	if userID == nil {
+		cached, err := s.redisClient.Get(ctx, cacheKey)
+		if err == nil && cached != "" {
+			var cacheData struct {
+				Clips []models.Clip `json:"clips"`
+				Total int           `json:"total"`
+			}
+			if json.Unmarshal([]byte(cached), &cacheData) == nil {
+				cachedClips = cacheData.Clips
+				cachedTotal = cacheData.Total
+			}
+		}
+	}
+
+	var clips []models.Clip
+	var total int
+	var err error
+
+	if cachedClips != nil {
+		clips = cachedClips
+		total = cachedTotal
+	} else {
+		offset := (page - 1) * limit
+		clips, total, err = s.clipRepo.ListScrapedClipsWithFilters(ctx, filters, limit, offset)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Cache non-user-specific results
+		if userID == nil {
+			cacheData := struct {
+				Clips []models.Clip `json:"clips"`
+				Total int           `json:"total"`
+			}{
+				Clips: clips,
+				Total: total,
+			}
+			if data, err := json.Marshal(cacheData); err == nil {
+				ttl := s.getCacheTTL(filters.Sort)
+				_ = s.redisClient.Set(ctx, cacheKey, string(data), ttl)
+			}
+		}
+	}
+
+	// Enrich with user data (scraped clips won't have submitters)
 	clipsWithData := make([]ClipWithUserData, len(clips))
 	for i, clip := range clips {
 		clipsWithData[i] = ClipWithUserData{
@@ -192,10 +401,33 @@ func (s *ClipService) VoteOnClip(ctx context.Context, userID, clipID uuid.UUID, 
 		return nil
 	}
 
+	// Calculate if this vote will increase the score (only notify on increases)
+	scoreWillIncrease := false
+	if oldVote == nil {
+		// New vote - increases if upvote
+		scoreWillIncrease = (voteType == 1)
+	} else if oldVote.VoteType != voteType {
+		// Changed vote - increases if changing from downvote to upvote
+		scoreWillIncrease = (oldVote.VoteType == -1 && voteType == 1)
+	}
+
 	// Upsert vote
 	err = s.voteRepo.UpsertVote(ctx, userID, clipID, voteType)
 	if err != nil {
 		return err
+	}
+
+	// Only check for vote thresholds if the score increased
+	if scoreWillIncrease {
+		clip, err := s.clipRepo.GetByID(ctx, clipID)
+		if err == nil && clip.CreatorID != nil && s.notificationService != nil {
+			// Check if we reached a vote threshold (async with timeout)
+			go func() {
+				timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				_ = s.notificationService.NotifyClipVoteThreshold(timeoutCtx, clipID, clip.VoteScore, *clip.CreatorID)
+			}()
+		}
 	}
 
 	// Update user karma (async)
@@ -332,4 +564,168 @@ func (s *ClipService) invalidateCache(ctx context.Context) {
 	// Invalidate all clip list caches
 	pattern := "clips:list:*"
 	_ = s.redisClient.DeletePattern(ctx, pattern)
+}
+
+// CanManageClip checks if a user can manage a specific clip
+func (s *ClipService) CanManageClip(ctx context.Context, userID uuid.UUID, clipID uuid.UUID) (bool, error) {
+	// Get user to check role
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Admins and moderators can manage any clip
+	if user.Role == "admin" || user.Role == "moderator" {
+		return true, nil
+	}
+
+	// Get clip to check creator
+	clip, err := s.clipRepo.GetByID(ctx, clipID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get clip: %w", err)
+	}
+
+	// Check if user is the creator (by matching Twitch ID)
+	if clip.CreatorID != nil && user.TwitchID == *clip.CreatorID {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// UpdateClipMetadata updates clip metadata (title) - only accessible by creator or admin
+func (s *ClipService) UpdateClipMetadata(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, title *string) error {
+	// Check authorization
+	canManage, err := s.CanManageClip(ctx, userID, clipID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return ErrUnauthorized
+	}
+
+	// Update metadata
+	err = s.clipRepo.UpdateMetadata(ctx, clipID, title)
+	if err != nil {
+		return err
+	}
+
+	// Log the change
+	changes := make(map[string]interface{})
+	if title != nil {
+		changes["title"] = *title
+	}
+
+	if len(changes) > 0 {
+		auditLog := &models.ModerationAuditLog{
+			Action:      "clip_metadata_updated",
+			EntityType:  "clip",
+			EntityID:    clipID,
+			ModeratorID: userID,
+			Metadata:    changes,
+		}
+		_ = s.auditLogRepo.Create(ctx, auditLog)
+	}
+
+	// Invalidate cache
+	s.invalidateCache(ctx)
+
+	return nil
+}
+
+// UpdateClipVisibility updates clip visibility (hidden status) - only accessible by creator or admin
+func (s *ClipService) UpdateClipVisibility(ctx context.Context, userID uuid.UUID, clipID uuid.UUID, isHidden bool) error {
+	// Check authorization
+	canManage, err := s.CanManageClip(ctx, userID, clipID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return ErrUnauthorized
+	}
+
+	// Update visibility
+	err = s.clipRepo.UpdateVisibility(ctx, clipID, isHidden)
+	if err != nil {
+		return err
+	}
+
+	// Log the change
+	action := "clip_hidden"
+	if !isHidden {
+		action = "clip_unhidden"
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  "clip",
+		EntityID:    clipID,
+		ModeratorID: userID,
+		Metadata:    map[string]interface{}{"is_hidden": isHidden},
+	}
+	_ = s.auditLogRepo.Create(ctx, auditLog)
+
+	// Invalidate cache
+	s.invalidateCache(ctx)
+
+	return nil
+}
+
+// ListCreatorClips retrieves clips created by a specific creator (including hidden ones if the user is the creator)
+func (s *ClipService) ListCreatorClips(ctx context.Context, creatorTwitchID string, userID *uuid.UUID, page, limit int) ([]ClipWithUserData, int, error) {
+	offset := (page - 1) * limit
+
+	// Determine if we should show hidden clips
+	showHidden := false
+	if userID != nil {
+		user, err := s.userRepo.GetByID(ctx, *userID)
+		if err == nil {
+			// Show hidden clips if user is the creator or an admin/moderator
+			if user.TwitchID == creatorTwitchID || user.Role == "admin" || user.Role == "moderator" {
+				showHidden = true
+			}
+		}
+	}
+
+	// Get clips with creator filter
+	filters := repository.ClipFilters{
+		CreatorID:  &creatorTwitchID,
+		Sort:       "new",
+		ShowHidden: showHidden,
+	}
+
+	clips, total, err := s.clipRepo.ListWithFilters(ctx, filters, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to ClipWithUserData
+	clipsWithData := make([]ClipWithUserData, len(clips))
+	for i, clip := range clips {
+		clipsWithData[i] = ClipWithUserData{
+			Clip: clip,
+		}
+
+		// Get vote counts
+		upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+		if err == nil {
+			clipsWithData[i].UpvoteCount = upvotes
+			clipsWithData[i].DownvoteCount = downvotes
+		}
+
+		// Get user-specific data if authenticated
+		if userID != nil {
+			vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+			if err == nil && vote != nil {
+				clipsWithData[i].UserVote = &vote.VoteType
+			}
+
+			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+			if err == nil {
+				clipsWithData[i].IsFavorited = isFavorited
+			}
+		}
+	}
+
+	return clipsWithData, total, nil
 }

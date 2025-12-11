@@ -322,6 +322,40 @@ func (h *NotificationHandler) UpdatePreferences(c *gin.Context) {
 	})
 }
 
+// ResetPreferences handles POST /notifications/preferences/reset
+func (h *NotificationHandler) ResetPreferences(c *gin.Context) {
+	// Get user ID from context (set by auth middleware)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	// Reset preferences to defaults
+	prefs, err := h.notificationService.ResetPreferences(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to reset notification preferences",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "Notification preferences reset to defaults",
+		"preferences": prefs,
+	})
+}
+
 // Unsubscribe handles GET /notifications/unsubscribe (email unsubscribe)
 func (h *NotificationHandler) Unsubscribe(c *gin.Context) {
 	token := c.Query("token")

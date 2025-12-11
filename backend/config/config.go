@@ -23,7 +23,9 @@ type Config struct {
 	Email        EmailConfig
 	Embedding    EmbeddingConfig
 	FeatureFlags FeatureFlagsConfig
+	Karma        KarmaConfig
 	Jobs         JobsConfig
+	RateLimit    RateLimitConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -32,6 +34,8 @@ type ServerConfig struct {
 	GinMode     string
 	BaseURL     string
 	Environment string
+	ExportDir   string
+	DocsPath    string
 }
 
 // DatabaseConfig holds database connection configuration
@@ -80,12 +84,16 @@ type OpenSearchConfig struct {
 
 // StripeConfig holds Stripe payment configuration
 type StripeConfig struct {
-	SecretKey         string
-	WebhookSecrets    []string
-	ProMonthlyPriceID string
-	ProYearlyPriceID  string
-	SuccessURL        string
-	CancelURL         string
+	SecretKey            string
+	WebhookSecrets       []string
+	ProMonthlyPriceID    string
+	ProYearlyPriceID     string
+	ProMonthlyPriceCents int // Monthly price in cents (e.g., 999 for $9.99)
+	ProYearlyPriceCents  int // Full yearly price in cents (e.g., 9999 for $99.99/year) - service layer converts to monthly equivalent
+	SuccessURL           string
+	CancelURL            string
+	TaxEnabled           bool // Enable automatic tax calculation via Stripe Tax
+	InvoicePDFEnabled    bool // Enable sending invoice PDFs via email
 }
 
 // SentryConfig holds Sentry error tracking configuration
@@ -99,11 +107,13 @@ type SentryConfig struct {
 
 // EmailConfig holds email notification configuration
 type EmailConfig struct {
-	SendGridAPIKey   string
-	FromEmail        string
-	FromName         string
-	Enabled          bool
-	MaxEmailsPerHour int
+	SendGridAPIKey          string
+	SendGridWebhookPublicKey string // ECDSA public key for webhook signature verification
+	FromEmail               string
+	FromName                string
+	Enabled                 bool
+	SandboxMode             bool // Enable sandbox mode for testing (logs emails without sending)
+	MaxEmailsPerHour        int
 }
 
 // EmbeddingConfig holds embedding service configuration
@@ -126,11 +136,42 @@ type FeatureFlagsConfig struct {
 	DiscoveryLists       bool
 }
 
+// KarmaConfig holds karma system configuration
+type KarmaConfig struct {
+	InitialKarmaPoints        int  // Karma points granted to new users on signup
+	SubmissionKarmaRequired   int  // Minimum karma required to submit clips
+	RequireKarmaForSubmission bool // Whether to enforce karma requirement for submissions
+}
+
 // JobsConfig holds background job interval configuration
 type JobsConfig struct {
-	HotClipsRefreshIntervalMinutes  int
-	WebhookRetryIntervalMinutes     int
-	WebhookRetryBatchSize           int
+	HotClipsRefreshIntervalMinutes int
+	WebhookRetryIntervalMinutes    int
+	WebhookRetryBatchSize          int
+}
+
+// RateLimitConfig holds rate limiting configuration
+type RateLimitConfig struct {
+	// Unauthenticated user limits
+	UnauthenticatedRequests int // requests per window
+	UnauthenticatedWindow   int // window in minutes
+
+	// Authenticated user limits by tier
+	BasicUserRequests   int // requests per hour
+	PremiumUserRequests int // requests per hour
+
+	// Endpoint-specific limits (per minute)
+	ClipsListLimit       int // GET /api/v1/clips
+	ClipsCreateLimit     int // POST /api/v1/clips
+	FeedLimit            int // GET /api/v1/feed
+	UserProfileLimit     int // GET /api/v1/users/{id}
+	CommentCreateLimit   int // POST /api/v1/clips/:id/comments
+	VoteLimit            int // POST votes
+	FollowLimit          int // POST follow actions
+	SubmissionLimit      int // POST /api/v1/submissions
+	ReportLimit          int // POST /api/v1/reports
+	ExportLimit          int // GET export endpoints
+	AccountDeletionLimit int // POST account deletion
 }
 
 // Load loads configuration from environment variables
@@ -149,6 +190,8 @@ func Load() (*Config, error) {
 			GinMode:     getEnv("GIN_MODE", "debug"),
 			BaseURL:     getEnv("BASE_URL", "http://localhost:5173"),
 			Environment: getEnv("ENVIRONMENT", "development"),
+			ExportDir:   getEnv("EXPORT_DIR", "./exports"),
+			DocsPath:    getEnv("DOCS_PATH", "../docs"),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -183,12 +226,16 @@ func Load() (*Config, error) {
 			InsecureSkipVerify: getEnv("OPENSEARCH_INSECURE_SKIP_VERIFY", "true") == "true",
 		},
 		Stripe: StripeConfig{
-			SecretKey:         getEnv("STRIPE_SECRET_KEY", ""),
-			WebhookSecrets:    collectStripeWebhookSecrets(),
-			ProMonthlyPriceID: getEnv("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
-			ProYearlyPriceID:  getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
-			SuccessURL:        getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
-			CancelURL:         getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
+			SecretKey:            getEnv("STRIPE_SECRET_KEY", ""),
+			WebhookSecrets:       collectStripeWebhookSecrets(),
+			ProMonthlyPriceID:    getEnv("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
+			ProYearlyPriceID:     getEnv("STRIPE_PRO_YEARLY_PRICE_ID", ""),
+			ProMonthlyPriceCents: getEnvInt("STRIPE_PRO_MONTHLY_PRICE_CENTS", 999), // Default: $9.99/month
+			ProYearlyPriceCents:  getEnvInt("STRIPE_PRO_YEARLY_PRICE_CENTS", 9999), // Default: $99.99/year (full yearly price)
+			SuccessURL:           getEnv("STRIPE_SUCCESS_URL", "http://localhost:5173/subscription/success"),
+			CancelURL:            getEnv("STRIPE_CANCEL_URL", "http://localhost:5173/subscription/cancel"),
+			TaxEnabled:           getEnv("STRIPE_TAX_ENABLED", "false") == "true",
+			InvoicePDFEnabled:    getEnv("STRIPE_INVOICE_PDF_ENABLED", "false") == "true",
 		},
 		Sentry: SentryConfig{
 			DSN:              getEnv("SENTRY_DSN", ""),
@@ -198,11 +245,13 @@ func Load() (*Config, error) {
 			Enabled:          getEnv("SENTRY_ENABLED", "false") == "true",
 		},
 		Email: EmailConfig{
-			SendGridAPIKey:   getEnv("SENDGRID_API_KEY", ""),
-			FromEmail:        getEnv("EMAIL_FROM_ADDRESS", "noreply@clipper.gg"),
-			FromName:         getEnv("EMAIL_FROM_NAME", "Clipper"),
-			Enabled:          getEnv("EMAIL_ENABLED", "false") == "true",
-			MaxEmailsPerHour: getEnvInt("EMAIL_MAX_PER_HOUR", 10),
+			SendGridAPIKey:           getEnv("SENDGRID_API_KEY", ""),
+			SendGridWebhookPublicKey: getEnv("SENDGRID_WEBHOOK_PUBLIC_KEY", ""),
+			FromEmail:                getEnv("EMAIL_FROM_ADDRESS", "noreply@clipper.gg"),
+			FromName:                 getEnv("EMAIL_FROM_NAME", "clpr"),
+			Enabled:                  getEnv("EMAIL_ENABLED", "false") == "true",
+			SandboxMode:              getEnv("EMAIL_SANDBOX_MODE", "false") == "true",
+			MaxEmailsPerHour:         getEnvInt("EMAIL_MAX_PER_HOUR", 10),
 		},
 		Embedding: EmbeddingConfig{
 			OpenAIAPIKey:             getEnv("OPENAI_API_KEY", ""),
@@ -220,10 +269,38 @@ func Load() (*Config, error) {
 			Moderation:           getEnv("FEATURE_MODERATION", "true") == "true",
 			DiscoveryLists:       getEnv("FEATURE_DISCOVERY_LISTS", "false") == "true",
 		},
+		Karma: KarmaConfig{
+			InitialKarmaPoints:        getEnvInt("KARMA_INITIAL_POINTS", 100),
+			SubmissionKarmaRequired:   getEnvInt("KARMA_SUBMISSION_REQUIRED", 100),
+			RequireKarmaForSubmission: getEnv("KARMA_REQUIRE_FOR_SUBMISSION", "true") == "true",
+		},
 		Jobs: JobsConfig{
 			HotClipsRefreshIntervalMinutes: getEnvInt("HOT_CLIPS_REFRESH_INTERVAL_MINUTES", 5),
 			WebhookRetryIntervalMinutes:    getEnvInt("WEBHOOK_RETRY_INTERVAL_MINUTES", 1),
 			WebhookRetryBatchSize:          getEnvInt("WEBHOOK_RETRY_BATCH_SIZE", 100),
+		},
+		RateLimit: RateLimitConfig{
+			// Unauthenticated: 100 requests per 15 minutes per IP
+			UnauthenticatedRequests: getEnvInt("RATE_LIMIT_UNAUTH_REQUESTS", 100),
+			UnauthenticatedWindow:   getEnvInt("RATE_LIMIT_UNAUTH_WINDOW_MINUTES", 15),
+
+			// Authenticated: Basic user: 1,000 requests per hour
+			BasicUserRequests: getEnvInt("RATE_LIMIT_BASIC_REQUESTS", 1000),
+			// Authenticated: Premium user: 5,000 requests per hour
+			PremiumUserRequests: getEnvInt("RATE_LIMIT_PREMIUM_REQUESTS", 5000),
+
+			// Endpoint-specific limits (per minute)
+			ClipsListLimit:       getEnvInt("RATE_LIMIT_CLIPS_LIST", 100),
+			ClipsCreateLimit:     getEnvInt("RATE_LIMIT_CLIPS_CREATE", 10),
+			FeedLimit:            getEnvInt("RATE_LIMIT_FEED", 30),
+			UserProfileLimit:     getEnvInt("RATE_LIMIT_USER_PROFILE", 200),
+			CommentCreateLimit:   getEnvInt("RATE_LIMIT_COMMENT_CREATE", 10),
+			VoteLimit:            getEnvInt("RATE_LIMIT_VOTE", 20),
+			FollowLimit:          getEnvInt("RATE_LIMIT_FOLLOW", 20),
+			SubmissionLimit:      getEnvInt("RATE_LIMIT_SUBMISSION", 5),
+			ReportLimit:          getEnvInt("RATE_LIMIT_REPORT", 10),
+			ExportLimit:          getEnvInt("RATE_LIMIT_EXPORT", 1),
+			AccountDeletionLimit: getEnvInt("RATE_LIMIT_ACCOUNT_DELETION", 1),
 		},
 	}
 
