@@ -66,7 +66,7 @@ func getUserRateLimitMultiplier(c *gin.Context, subscriptionService Subscription
 				uid = parsed
 			}
 		}
-		
+
 		if uid != uuid.Nil && subscriptionService.IsProUser(c.Request.Context(), uid) {
 			// Cache the result in context for subsequent checks
 			c.Set("subscription_tier", "pro")
