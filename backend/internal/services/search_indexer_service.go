@@ -161,7 +161,7 @@ func (s *SearchIndexerService) IndexTag(ctx context.Context, tag *models.Tag) er
 }
 
 // IndexGame indexes a single game
-func (s *SearchIndexerService) IndexGame(ctx context.Context, game *models.Game) error {
+func (s *SearchIndexerService) IndexGame(ctx context.Context, game *models.GameEntity) error {
 	// For search indexing, we need the game ID as a string (TwitchGameID)
 	// and the clip count which requires querying or passing in
 	doc := map[string]interface{}{
