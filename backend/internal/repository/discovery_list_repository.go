@@ -113,30 +113,30 @@ func (r *DiscoveryListRepository) ReorderClips(ctx context.Context, listID uuid.
 
 // GetListClipsCount is an alias for GetListClipCount
 func (r *DiscoveryListRepository) GetListClipsCount(ctx context.Context, listID uuid.UUID) (int, error) {
-return r.GetListClipCount(ctx, listID)
+	return r.GetListClipCount(ctx, listID)
 }
 
 // ListAllDiscoveryLists retrieves all discovery lists
 func (r *DiscoveryListRepository) ListAllDiscoveryLists(ctx context.Context, limit, offset int) ([]models.DiscoveryListWithStats, error) {
-return []models.DiscoveryListWithStats{}, nil
+	return []models.DiscoveryListWithStats{}, nil
 }
 
 // CreateDiscoveryList is an alias for CreateList
 func (r *DiscoveryListRepository) CreateDiscoveryList(ctx context.Context, name, slug, description string, isFeatured bool, createdBy uuid.UUID) (*models.DiscoveryList, error) {
-return r.CreateList(ctx, name, slug, description, isFeatured, createdBy)
+	return r.CreateList(ctx, name, slug, description, isFeatured, createdBy)
 }
 
 // UpdateDiscoveryList is an alias for UpdateList
 func (r *DiscoveryListRepository) UpdateDiscoveryList(ctx context.Context, listID uuid.UUID, name, description *string, isFeatured *bool) (*models.DiscoveryList, error) {
-return r.UpdateList(ctx, listID, name, description, isFeatured)
+	return r.UpdateList(ctx, listID, name, description, isFeatured)
 }
 
 // DeleteDiscoveryList is an alias for DeleteList
 func (r *DiscoveryListRepository) DeleteDiscoveryList(ctx context.Context, listID uuid.UUID) error {
-return r.DeleteList(ctx, listID)
+	return r.DeleteList(ctx, listID)
 }
 
 // ReorderListClips is an alias for ReorderClips
 func (r *DiscoveryListRepository) ReorderListClips(ctx context.Context, listID uuid.UUID, clipIDs []uuid.UUID) error {
-return r.ReorderClips(ctx, listID, clipIDs)
+	return r.ReorderClips(ctx, listID, clipIDs)
 }

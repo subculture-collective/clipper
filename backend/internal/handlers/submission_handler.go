@@ -242,12 +242,12 @@ func (h *SubmissionHandler) CheckClipStatus(c *gin.Context) {
 	// If clip exists, return minimal public information only
 	if result.Exists && result.Clip != nil {
 		response["clip"] = gin.H{
-			"id":              result.Clip.ID,
-			"title":           result.Clip.Title,
+			"id":               result.Clip.ID,
+			"title":            result.Clip.Title,
 			"broadcaster_name": result.Clip.BroadcasterName,
-			"game_name":       result.Clip.GameName,
-			"view_count":      result.Clip.ViewCount,
-			"created_at":      result.Clip.CreatedAt,
+			"game_name":        result.Clip.GameName,
+			"view_count":       result.Clip.ViewCount,
+			"created_at":       result.Clip.CreatedAt,
 			// Exclude sensitive fields: is_removed, removed_reason, submitted_by_user_id, etc.
 		}
 	}

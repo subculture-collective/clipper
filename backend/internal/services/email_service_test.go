@@ -749,11 +749,11 @@ func TestPreparePolicyUpdateEmail(t *testing.T) {
 	service := NewEmailService(cfg, nil, nil)
 
 	data := map[string]interface{}{
-		"PolicyName":      "Terms of Service",
-		"ChangesSummary":  "Updated privacy policy and data retention",
-		"EffectiveDate":   "January 1, 2026",
-		"FullPolicyURL":   "http://localhost:5173/terms",
-		"UnsubscribeURL":  "http://localhost:5173/unsubscribe?token=abc123",
+		"PolicyName":     "Terms of Service",
+		"ChangesSummary": "Updated privacy policy and data retention",
+		"EffectiveDate":  "January 1, 2026",
+		"FullPolicyURL":  "http://localhost:5173/terms",
+		"UnsubscribeURL": "http://localhost:5173/unsubscribe?token=abc123",
 	}
 
 	htmlBody, textBody := service.preparePolicyUpdateEmail(data)

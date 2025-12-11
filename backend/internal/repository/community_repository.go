@@ -141,7 +141,7 @@ func (r *CommunityRepository) ListCommunities(ctx context.Context, limit, offset
 // SearchCommunities searches communities by name
 func (r *CommunityRepository) SearchCommunities(ctx context.Context, query string, limit, offset int) ([]*models.Community, int, error) {
 	searchPattern := "%" + strings.ToLower(query) + "%"
-	
+
 	// Count total
 	countQuery := `
 		SELECT COUNT(*)
@@ -440,7 +440,7 @@ func (r *CommunityRepository) GetCommunityClips(ctx context.Context, communityID
 		%s
 		LIMIT $2 OFFSET $3
 	`, orderBy)
-	
+
 	rows, err := r.pool.Query(ctx, query, communityID, limit, offset)
 	if err != nil {
 		return nil, 0, err
@@ -532,7 +532,7 @@ func (r *CommunityRepository) ListDiscussions(ctx context.Context, communityID u
 		%s
 		LIMIT $2 OFFSET $3
 	`, orderBy)
-	
+
 	rows, err := r.pool.Query(ctx, query, communityID, limit, offset)
 	if err != nil {
 		return nil, 0, err

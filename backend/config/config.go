@@ -107,13 +107,13 @@ type SentryConfig struct {
 
 // EmailConfig holds email notification configuration
 type EmailConfig struct {
-	SendGridAPIKey          string
+	SendGridAPIKey           string
 	SendGridWebhookPublicKey string // ECDSA public key for webhook signature verification
-	FromEmail               string
-	FromName                string
-	Enabled                 bool
-	SandboxMode             bool // Enable sandbox mode for testing (logs emails without sending)
-	MaxEmailsPerHour        int
+	FromEmail                string
+	FromName                 string
+	Enabled                  bool
+	SandboxMode              bool // Enable sandbox mode for testing (logs emails without sending)
+	MaxEmailsPerHour         int
 }
 
 // EmbeddingConfig holds embedding service configuration
