@@ -1,3 +1,29 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [API Reference](#api-reference)
+  - [Base URL](#base-url)
+  - [Authentication](#authentication)
+  - [Common Patterns](#common-patterns)
+    - [Success Response](#success-response)
+    - [Error Response](#error-response)
+    - [HTTP Status Codes](#http-status-codes)
+    - [Pagination](#pagination)
+  - [Endpoints](#endpoints)
+    - [Health Check](#health-check)
+    - [Authentication](#authentication-1)
+    - [Clips](#clips)
+    - [Comments](#comments)
+    - [Search](#search)
+    - [Users](#users)
+    - [Premium](#premium)
+  - [Rate Limiting](#rate-limiting)
+  - [Versioning](#versioning)
+  - [WebSockets (Future)](#websockets-future)
+  - [Related Documentation](#related-documentation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "API Reference"
 summary: "Complete REST API documentation including endpoints, authentication, pagination, and error handling."
@@ -21,7 +47,7 @@ Complete API documentation for the Clipper backend.
 
 ```
 Development: http://localhost:8080/api/v1
-Production: https://api.clipper.app/api/v1
+Production: https://api.clpr.tv/v1
 ```
 
 ## Authentication

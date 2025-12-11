@@ -413,3 +413,37 @@ func TestNotificationMilestoneDetection(t *testing.T) {
 		}
 	})
 }
+
+func TestShouldNotifyBroadcasterLive(t *testing.T) {
+	service := &NotificationService{}
+
+	tests := []struct {
+		name     string
+		prefs    *models.NotificationPreferences
+		expected bool
+	}{
+		{
+			name: "should notify for broadcaster live when enabled",
+			prefs: &models.NotificationPreferences{
+				NotifyBroadcasterLive: true,
+			},
+			expected: true,
+		},
+		{
+			name: "should not notify for broadcaster live when disabled",
+			prefs: &models.NotificationPreferences{
+				NotifyBroadcasterLive: false,
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.shouldNotify(tt.prefs, models.NotificationTypeBroadcasterLive)
+			if result != tt.expected {
+				t.Errorf("shouldNotify() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}

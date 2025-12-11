@@ -1,3 +1,28 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Clipper Documentation](#clipper-documentation)
+  - [🚀 Quick Start](#-quick-start)
+  - [📚 Documentation Sections](#-documentation-sections)
+    - [For Users](#for-users)
+    - [For Developers](#for-developers)
+    - [Premium & Monetization](#premium--monetization)
+    - [Operations & Deployment](#operations--deployment)
+    - [Architecture Decisions](#architecture-decisions)
+    - [Product](#product)
+  - [📖 Additional Resources](#-additional-resources)
+  - [🏗️ Project Status](#-project-status)
+    - [Implementation Status](#implementation-status)
+  - [🔗 External Links](#-external-links)
+  - [💡 Using This Documentation](#-using-this-documentation)
+    - [Navigation Tips](#navigation-tips)
+    - [Markdown Conventions](#markdown-conventions)
+    - [Contributing to Docs](#contributing-to-docs)
+  - [📝 Documentation Validation](#-documentation-validation)
+  - [🆘 Getting Help](#-getting-help)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Clipper Documentation"
 summary: "Complete documentation hub for the Clipper platform - a modern, community-driven Twitch clip curation platform."
@@ -40,30 +65,41 @@ Guides for using the Clipper platform:
 - **[[setup/development|Development Setup]]** - Environment setup, dependencies, and quick start
 - **[[setup/environment|Environment Variables]]** - Configuration reference for all services
 - **[[setup/troubleshooting|Troubleshooting]]** - Common issues and solutions
+- **[[setup/development-workflow|Development Workflow]]** - Git workflow and best practices
 
 #### Backend (Go + PostgreSQL)
 
 - **[[backend/architecture|Architecture]]** - System design, components, and data flow
 - **[[backend/api|API Reference]]** - REST API endpoints, authentication, and examples
-- **[[CLIP_SUBMISSION_API_DOCUMENTATION_SUMMARY|Clip Submission API - Documentation Hub]]** - Navigate all submission API resources
-- **[[CLIP_SUBMISSION_API_GUIDE|Clip Submission API Guide]]** - Complete guide with TypeScript and cURL examples
-- **[[CLIP_SUBMISSION_API_QUICKREF|Clip Submission Quick Reference]]** - Quick reference card for developers
+- **[[backend/clip-submission-api-hub|Clip Submission API Hub]]** - Navigate all submission API resources
+- **[[backend/clip-submission-api-guide|Clip Submission API Guide]]** - Complete guide with TypeScript and cURL examples
+- **[[backend/clip-submission-api-quickref|Clip Submission Quick Reference]]** - Quick reference card for developers
+- **[[backend/clip-api|Clip API]]** - Clip CRUD operations and management
+- **[[backend/comment-api|Comment API]]** - Comment system with markdown support
+- **[[backend/webhooks|Webhooks]]** - Outbound webhook integration
 - **[[openapi/README|OpenAPI Specifications]]** - Machine-readable API specifications
 - **[[backend/database|Database]]** - Schema, migrations, maintenance, and optimization
 - **[[backend/search|Search Platform]]** - OpenSearch setup, indexing, and querying
 - **[[backend/semantic-search|Semantic Search]]** - Vector search and hybrid BM25+embedding architecture
+- **[[backend/caching-strategy|Caching Strategy]]** - Redis caching patterns
 - **[[backend/rbac|RBAC]]** - Role-based access control and permissions
+- **[[backend/security|Security]]** - Security best practices and threat mitigation
 - **[[backend/testing|Testing]]** - Testing strategy, tools, and best practices
 
 #### Frontend (React + TypeScript)
 
 - **[[frontend/architecture|Architecture]]** - Component structure, state management, and patterns
 - **[[frontend/dev-guide|Development Guide]]** - Component creation, styling, and best practices
+- **[[frontend/component-library|Component Library]]** - Reusable UI components
+- **[[frontend/accessibility|Accessibility]]** - WCAG compliance and best practices
 
 #### Mobile (React Native + Expo)
 
 - **[[mobile/architecture|Architecture]]** - App structure, navigation, and platform considerations
 - **[[mobile/implementation|Implementation Guide]]** - Features, OAuth, search, comments, and submit flow
+- **[[mobile/deep-linking|Deep Linking]]** - Universal links and app navigation
+- **[[mobile/offline-caching|Offline Caching]]** - Offline-first architecture
+- **[[mobile/i18n|Internationalization]]** - Multi-language support
 
 #### Data Pipelines
 
@@ -77,7 +113,9 @@ Guides for using the Clipper platform:
 - **[[premium/tiers|Pricing Tiers]]** - Free vs Pro benefits, pricing strategy
 - **[[premium/entitlements|Entitlements]]** - Feature gates and access control implementation
 - **[[premium/stripe|Stripe Integration]]** - Billing, trials, discounts, and payment recovery
-- **[[AD_SLOT_SPECIFICATION|Ad Slot Specification]]** - Ad taxonomy, placements, sizes, and fallback rules
+- **[[premium/dunning|Dunning]]** - Payment recovery process
+- **[[premium/trials-and-discounts|Trials & Discounts]]** - Trial periods and discount codes
+- **[[product/ad-slot-specification|Ad Slot Specification]]** - Ad taxonomy, placements, sizes, and fallback rules
 
 ### Operations & Deployment
 
@@ -89,6 +127,9 @@ Guides for using the Clipper platform:
 - **[[operations/monitoring|Monitoring]]** - Error tracking, logging, and observability
 - **[[operations/runbook|Runbook]]** - Incident response and operational procedures
 - **[[operations/feature-flags|Feature Flags]]** - Gradual rollout and feature toggles
+- **[[operations/secrets-management|Secrets Management]]** - Secure credential handling
+- **[[operations/security-scanning|Security Scanning]]** - Automated security checks
+- **[[operations/observability|Observability]]** - Distributed tracing and metrics
 
 ### Architecture Decisions
 
@@ -100,6 +141,11 @@ Guides for using the Clipper platform:
 
 - **[[product/features|Features]]** - Complete feature list
 - **[[product/roadmap|Roadmap]]** - Upcoming features and milestones
+- **[[product/reputation-system|Reputation System]]** - Karma and trust scores
+- **[[product/trust-system|Trust System]]** - User trust and moderation
+- **[[product/tagging-system|Tagging System]]** - Clip categorization
+- **[[product/analytics|Analytics]]** - User engagement tracking
+- **[[product/query-grammar|Query Grammar]]** - Advanced search syntax
 
 ## 📖 Additional Resources
 

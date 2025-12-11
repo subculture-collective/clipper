@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Changelog](#changelog)
+  - [[Unreleased]](#unreleased)
+    - [Added](#added)
+    - [Changed](#changed)
+    - [Deprecated](#deprecated)
+    - [Removed](#removed)
+    - [Fixed](#fixed)
+    - [Security](#security)
+  - [Release Notes](#release-notes)
+    - [Upcoming Releases](#upcoming-releases)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Changelog"
 summary: "Version history and release notes for Clipper."

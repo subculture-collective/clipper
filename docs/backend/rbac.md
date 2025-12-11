@@ -1,3 +1,47 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [Design Principles](#design-principles)
+  - [Roles](#roles)
+    - [User (Default)](#user-default)
+    - [Moderator](#moderator)
+    - [Admin](#admin)
+  - [Role Matrix](#role-matrix)
+  - [Backend Implementation](#backend-implementation)
+    - [Role Constants](#role-constants)
+    - [Middleware](#middleware)
+    - [Route Protection](#route-protection)
+    - [JWT Claims](#jwt-claims)
+  - [Frontend Implementation](#frontend-implementation)
+    - [Type Definitions](#type-definitions)
+    - [Auth Context](#auth-context)
+    - [Route Guards](#route-guards)
+    - [Conditional Rendering](#conditional-rendering)
+    - [403 Forbidden State](#403-forbidden-state)
+  - [Audit Logging](#audit-logging)
+    - [Logged Actions](#logged-actions)
+    - [Audit Log Structure](#audit-log-structure)
+    - [Viewing Audit Logs](#viewing-audit-logs)
+  - [Local Development Setup](#local-development-setup)
+    - [Setting Up Admin/Moderator Users](#setting-up-adminmoderator-users)
+    - [Seeding Test Moderators](#seeding-test-moderators)
+  - [Production User Management](#production-user-management)
+    - [Promoting Users to Moderator/Admin](#promoting-users-to-moderatoradmin)
+    - [Best Practices](#best-practices)
+    - [Revoking Access](#revoking-access)
+  - [Security Considerations](#security-considerations)
+  - [Troubleshooting](#troubleshooting)
+    - [User Can't Access Admin Panel](#user-cant-access-admin-panel)
+    - [403 Forbidden Error](#403-forbidden-error)
+    - [Audit Logs Not Appearing](#audit-logs-not-appearing)
+  - [Future Enhancements](#future-enhancements)
+  - [Related Documentation](#related-documentation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Role-Based Access Control (RBAC)"
 summary: "User roles, permissions, and access control configuration."

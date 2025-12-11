@@ -1,3 +1,22 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Stripe Integration](#stripe-integration)
+  - [Setup](#setup)
+  - [Checkout Flow](#checkout-flow)
+    - [1. Create Checkout Session](#1-create-checkout-session)
+    - [2. User Completes Payment](#2-user-completes-payment)
+    - [3. Webhook Confirms Subscription](#3-webhook-confirms-subscription)
+  - [Subscription Management](#subscription-management)
+  - [Webhooks](#webhooks)
+    - [Events Handled](#events-handled)
+    - [Webhook Handler](#webhook-handler)
+  - [Subscription States](#subscription-states)
+  - [Dunning](#dunning)
+  - [Testing](#testing)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Stripe Integration"
 summary: "Payment processing, subscription management, and webhook handling."
@@ -27,7 +46,7 @@ STRIPE_PRICE_ID_YEARLY=price_...
 ```
 
 3. Configure webhook endpoint in Stripe Dashboard:
-   - URL: `https://api.clipper.app/webhooks/stripe`
+   - URL: `https://api.clpr.tv/v1/webhooks/stripe`
    - Events: `checkout.session.completed`, `customer.subscription.*`, `invoice.payment_*`
 
 ## Checkout Flow

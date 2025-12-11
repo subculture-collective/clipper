@@ -1,3 +1,16 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Pricing Tiers](#pricing-tiers)
+  - [Tier Comparison](#tier-comparison)
+  - [Billing](#billing)
+  - [Quotas](#quotas)
+    - [Free Tier](#free-tier)
+    - [Pro Tier](#pro-tier)
+  - [Future Tiers (Planned)](#future-tiers-planned)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Pricing Tiers"
 summary: "Free and Pro tier comparison with feature breakdown and pricing strategy."

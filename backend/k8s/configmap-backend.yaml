@@ -29,7 +29,7 @@ data:
   OPENSEARCH_INSECURE_SKIP_VERIFY: "false"
   STRIPE_SUCCESS_URL: "https://clpr.tv/subscription/success"
   STRIPE_CANCEL_URL: "https://clpr.tv/subscription/cancel"
-  SENTRY_ENABLED: "false"
+  SENTRY_ENABLED: "true"
   SENTRY_ENVIRONMENT: "production"
   SENTRY_TRACES_SAMPLE_RATE: "0.1"
   EMAIL_ENABLED: "false"

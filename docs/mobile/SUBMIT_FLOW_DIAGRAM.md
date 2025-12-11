@@ -1,3 +1,34 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Submit Clip Flow - User Journey](#submit-clip-flow---user-journey)
+  - [Visual Flow Diagram](#visual-flow-diagram)
+  - [Step Details](#step-details)
+    - [Step 1: URL Input](#step-1-url-input)
+    - [Step 2: Metadata Override](#step-2-metadata-override)
+    - [Step 3: Tags & NSFW](#step-3-tags--nsfw)
+    - [Step 4: Review & Submit](#step-4-review--submit)
+    - [Success View](#success-view)
+    - [Error View](#error-view)
+  - [Progress Indicator](#progress-indicator)
+  - [Data Flow](#data-flow)
+  - [Error Handling Flow](#error-handling-flow)
+  - [Navigation Flow](#navigation-flow)
+  - [Mobile UI Patterns Used](#mobile-ui-patterns-used)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+---
+title: "Submit Clip Flow - User Journey"
+summary: "```"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Submit Clip Flow - User Journey
 
 ## Visual Flow Diagram

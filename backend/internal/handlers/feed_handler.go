@@ -368,50 +368,50 @@ func (h *FeedHandler) SearchFeeds(c *gin.Context) {
 // GetFollowingFeed retrieves clips from followed users and broadcasters
 // GET /api/v1/feed/following
 func (h *FeedHandler) GetFollowingFeed(c *gin.Context) {
-// Get current user ID from auth middleware
-userIDInterface, exists := c.Get("user_id")
-if !exists {
-c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-return
-}
-userID := userIDInterface.(uuid.UUID)
+	// Get current user ID from auth middleware
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID := userIDInterface.(uuid.UUID)
 
-// Parse pagination and filter parameters
-page := 1
-limit := 20
+	// Parse pagination and filter parameters
+	page := 1
+	limit := 20
 
-if pageStr := c.Query("page"); pageStr != "" {
-if parsedPage, err := strconv.Atoi(pageStr); err == nil && parsedPage > 0 {
-page = parsedPage
-}
-}
+	if pageStr := c.Query("page"); pageStr != "" {
+		if parsedPage, err := strconv.Atoi(pageStr); err == nil && parsedPage > 0 {
+			page = parsedPage
+		}
+	}
 
-if limitStr := c.Query("limit"); limitStr != "" {
-if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
-limit = parsedLimit
-}
-}
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+			limit = parsedLimit
+		}
+	}
 
-offset := (page - 1) * limit
+	offset := (page - 1) * limit
 
-// Get clips from the following feed
-clips, total, err := h.feedService.GetFollowingFeed(c.Request.Context(), userID, limit, offset)
-if err != nil {
-log.Printf("Error retrieving following feed: %v", err)
-c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve following feed"})
-return
-}
+	// Get clips from the following feed
+	clips, total, err := h.feedService.GetFollowingFeed(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		log.Printf("Error retrieving following feed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve following feed"})
+		return
+	}
 
-totalPages := (total + limit - 1) / limit
+	totalPages := (total + limit - 1) / limit
 
-c.JSON(http.StatusOK, gin.H{
-"success": true,
-"data":    clips,
-"pagination": gin.H{
-"page":        page,
-"limit":       limit,
-"total":       total,
-"total_pages": totalPages,
-},
-})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    clips,
+		"pagination": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+		},
+	})
 }

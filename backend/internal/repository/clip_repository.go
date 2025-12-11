@@ -166,11 +166,11 @@ func (r *ClipRepository) ClaimScrapedClip(ctx context.Context, clipID uuid.UUID,
 		if checkErr := r.pool.QueryRow(ctx, checkQuery, clipID).Scan(&exists); checkErr != nil {
 			return fmt.Errorf("failed to verify clip existence: %w", checkErr)
 		}
-		
+
 		if !exists {
 			return fmt.Errorf("clip not found")
 		}
-		
+
 		// Clip exists but update didn't happen - must be already claimed
 		return fmt.Errorf("clip has already been claimed by another user")
 	}
@@ -1093,7 +1093,7 @@ WHERE id = $1
 
 // GetFollowingFeedClips retrieves clips from users and broadcasters that the user follows
 func (r *ClipRepository) GetFollowingFeedClips(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.ClipWithSubmitter, int, error) {
-query := `
+	query := `
 WITH followed_users AS (
 SELECT following_id FROM user_follows WHERE follower_id = $1
 ),
@@ -1127,49 +1127,49 @@ LIMIT $2 OFFSET $3
 `
 
 	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
-if err != nil {
-return nil, 0, err
-}
-defer rows.Close()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
 
-var clips []*models.ClipWithSubmitter
-for rows.Next() {
-var clip models.ClipWithSubmitter
-var submitterID *uuid.UUID
-var submitterUsername, submitterDisplayName *string
-var submitterAvatarURL *string
+	var clips []*models.ClipWithSubmitter
+	for rows.Next() {
+		var clip models.ClipWithSubmitter
+		var submitterID *uuid.UUID
+		var submitterUsername, submitterDisplayName *string
+		var submitterAvatarURL *string
 
-err := rows.Scan(
-&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
-&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName, &clip.BroadcasterID,
-&clip.GameID, &clip.GameName, &clip.Language, &clip.ThumbnailURL, &clip.Duration,
-&clip.ViewCount, &clip.CreatedAt, &clip.ImportedAt, &clip.VoteScore, &clip.CommentCount,
-&clip.FavoriteCount, &clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
-&clip.IsHidden, &clip.SubmittedByUserID, &clip.SubmittedAt,
-&submitterID, &submitterUsername, &submitterDisplayName, &submitterAvatarURL,
-)
-if err != nil {
-return nil, 0, err
-}
+		err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName, &clip.BroadcasterID,
+			&clip.GameID, &clip.GameName, &clip.Language, &clip.ThumbnailURL, &clip.Duration,
+			&clip.ViewCount, &clip.CreatedAt, &clip.ImportedAt, &clip.VoteScore, &clip.CommentCount,
+			&clip.FavoriteCount, &clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.IsHidden, &clip.SubmittedByUserID, &clip.SubmittedAt,
+			&submitterID, &submitterUsername, &submitterDisplayName, &submitterAvatarURL,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
 
-if submitterID != nil {
-clip.SubmittedBy = &models.ClipSubmitterInfo{
-ID:          *submitterID,
-Username:    *submitterUsername,
-DisplayName: *submitterDisplayName,
-AvatarURL:   submitterAvatarURL,
-}
-}
+		if submitterID != nil {
+			clip.SubmittedBy = &models.ClipSubmitterInfo{
+				ID:          *submitterID,
+				Username:    *submitterUsername,
+				DisplayName: *submitterDisplayName,
+				AvatarURL:   submitterAvatarURL,
+			}
+		}
 
-clips = append(clips, &clip)
-}
+		clips = append(clips, &clip)
+	}
 
-if err = rows.Err(); err != nil {
-return nil, 0, err
-}
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
+	}
 
-// Get total count
-countQuery := `
+	// Get total count
+	countQuery := `
 WITH followed_users AS (
 SELECT following_id FROM user_follows WHERE follower_id = $1
 ),
@@ -1191,11 +1191,11 @@ AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 )
 `
 
-var total int
+	var total int
 	err = r.pool.QueryRow(ctx, countQuery, userID).Scan(&total)
-if err != nil {
-return nil, 0, err
-}
+	if err != nil {
+		return nil, 0, err
+	}
 
-return clips, total, nil
+	return clips, total, nil
 }

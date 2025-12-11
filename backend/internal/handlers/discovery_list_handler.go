@@ -16,8 +16,8 @@ import (
 
 // DiscoveryListHandler handles discovery list-related requests
 type DiscoveryListHandler struct {
-	repo             *repository.DiscoveryListRepository
-	analyticsRepo    *repository.AnalyticsRepository
+	repo          *repository.DiscoveryListRepository
+	analyticsRepo *repository.AnalyticsRepository
 }
 
 // NewDiscoveryListHandler creates a new handler instance

@@ -1,3 +1,37 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Deep Linking Implementation Summary](#deep-linking-implementation-summary)
+  - [Overview](#overview)
+  - [What Was Implemented](#what-was-implemented)
+    - [1. Configuration Files](#1-configuration-files)
+    - [2. Code Implementation](#2-code-implementation)
+    - [3. Documentation](#3-documentation)
+  - [Supported Deep Link Routes](#supported-deep-link-routes)
+  - [How It Works](#how-it-works)
+    - [User Journey: Opening a Clip Link](#user-journey-opening-a-clip-link)
+    - [User Journey: Sharing Content](#user-journey-sharing-content)
+  - [Integration Guide](#integration-guide)
+    - [Quick Start](#quick-start)
+    - [Testing Integration](#testing-integration)
+  - [Deployment Checklist](#deployment-checklist)
+    - [Before Deployment](#before-deployment)
+    - [After Deployment](#after-deployment)
+  - [Troubleshooting](#troubleshooting)
+    - [iOS Universal Links Not Working](#ios-universal-links-not-working)
+    - [Android App Links Not Working](#android-app-links-not-working)
+    - [Share Target Not Appearing](#share-target-not-appearing)
+  - [Performance Considerations](#performance-considerations)
+  - [Security Considerations](#security-considerations)
+  - [Testing Status](#testing-status)
+  - [Browser Support](#browser-support)
+  - [Future Enhancements](#future-enhancements)
+  - [Resources](#resources)
+  - [Support](#support)
+  - [Summary](#summary)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Deep Linking Implementation Summary
 
 ## Overview
@@ -95,7 +129,7 @@ useIsDeepLink(): boolean
 
 ### User Journey: Opening a Clip Link
 
-1. **User receives link**: `https://clipper.example.com/clip/abc123`
+1. **User receives link**: `https://clpr.tv/clip/abc123`
 2. **User taps link** on their mobile device
 3. **OS checks** for associated app:
    - iOS: Checks `apple-app-site-association` file
@@ -184,7 +218,7 @@ npm run preview
   - Get from: `keytool -list -v -keystore your-keystore.keystore`
 
 - [ ] **Update Domain URLs**
-  - Replace `clipper.example.com` with your actual domain
+  - Ensure domain is set to `clpr.tv`
   - Update in both iOS and Android config files
 
 ### After Deployment

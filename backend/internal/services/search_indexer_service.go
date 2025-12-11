@@ -562,11 +562,11 @@ func getTagIndexMapping() string {
 
 // IndexGameSearchResult indexes a game search result (aggregated game data with clip count)
 func (s *SearchIndexerService) IndexGameSearchResult(ctx context.Context, game *models.GameSearchResult) error {
-doc := map[string]interface{}{
-"id":         game.ID,
-"name":       game.Name,
-"clip_count": game.ClipCount,
-}
+	doc := map[string]interface{}{
+		"id":         game.ID,
+		"name":       game.Name,
+		"clip_count": game.ClipCount,
+	}
 
-return s.indexDocument(ctx, GamesIndex, game.ID, doc)
+	return s.indexDocument(ctx, GamesIndex, game.ID, doc)
 }

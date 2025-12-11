@@ -38,7 +38,7 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 	// Try to parse as UUID first (internal ID)
 	gameID, err := uuid.Parse(gameIDStr)
 	var game *models.GameWithStats
-	
+
 	// Get user ID if authenticated
 	var userID *uuid.UUID
 	if user, exists := c.Get("user"); exists {
@@ -255,7 +255,7 @@ func (h *GameHandler) UnfollowGame(c *gin.Context) {
 // GetFollowedGames handles GET /api/v1/users/:userId/games/following
 func (h *GameHandler) GetFollowedGames(c *gin.Context) {
 	userIDStr := c.Param("userId")
-	
+
 	// Parse user ID
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {

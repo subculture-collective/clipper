@@ -1,3 +1,28 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Deployment](#deployment)
+  - [Overview](#overview)
+  - [Environments](#environments)
+  - [Docker Images](#docker-images)
+    - [Multi-Stage Builds](#multi-stage-builds)
+  - [Deployment Process](#deployment-process)
+    - [Staging Deployment](#staging-deployment)
+    - [Production Deployment](#production-deployment)
+  - [Server Setup](#server-setup)
+    - [Prerequisites](#prerequisites)
+    - [Initial Setup](#initial-setup)
+    - [Environment Configuration](#environment-configuration)
+  - [Rollback](#rollback)
+    - [Automatic Rollback](#automatic-rollback)
+    - [Manual Rollback](#manual-rollback)
+  - [Health Checks](#health-checks)
+  - [Troubleshooting](#troubleshooting)
+    - [Deployment Fails](#deployment-fails)
+    - [Zero Downtime Deployment](#zero-downtime-deployment)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Deployment"
 summary: "Production and staging deployment procedures using Docker and GitHub Actions."

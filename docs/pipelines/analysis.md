@@ -1,3 +1,16 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Pipelines: Analytics](#pipelines-analytics)
+  - [Overview](#overview)
+  - [Data Collection](#data-collection)
+  - [Storage](#storage)
+  - [Privacy](#privacy)
+  - [Metrics](#metrics)
+  - [Reporting](#reporting)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Analytics Pipeline"
 summary: "User behavior tracking and analytics for Clipper."

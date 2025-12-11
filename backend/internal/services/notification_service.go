@@ -186,6 +186,10 @@ func (s *NotificationService) shouldNotify(prefs *models.NotificationPreferences
 	case models.NotificationTypeClipViewThreshold, models.NotificationTypeClipVoteThreshold:
 		return prefs.NotifyClipThreshold
 
+	// Broadcaster notifications
+	case models.NotificationTypeBroadcasterLive:
+		return prefs.NotifyBroadcasterLive
+
 	// Global/Marketing
 	case models.NotificationTypeMarketing:
 		return prefs.NotifyMarketing

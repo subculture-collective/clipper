@@ -18,7 +18,7 @@ jobs:
       packages: write
     environment:
       name: staging
-      url: https://staging.clipper.example.com
+      url: https://staging.clpr.tv
     
     steps:
       - name: Checkout repository

@@ -251,7 +251,7 @@ func (s *FeedService) SearchFeeds(ctx context.Context, query string, limit, offs
 }
 
 func (s *FeedService) GetFollowingFeed(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.ClipWithSubmitter, int, error) {
-// GetFollowingFeed retrieves clips from followed users and broadcasters
+	// GetFollowingFeed retrieves clips from followed users and broadcasters
 	// Validate that the user exists
 	_, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -259,11 +259,11 @@ func (s *FeedService) GetFollowingFeed(ctx context.Context, userID uuid.UUID, li
 	}
 
 	// Get clips from followed users and broadcasters
-// This would ideally be a single optimized query
-clips, total, err := s.clipRepo.GetFollowingFeedClips(ctx, userID, limit, offset)
-if err != nil {
-return nil, 0, fmt.Errorf("failed to get following feed clips: %w", err)
-}
+	// This would ideally be a single optimized query
+	clips, total, err := s.clipRepo.GetFollowingFeedClips(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get following feed clips: %w", err)
+	}
 
-return clips, total, nil
+	return clips, total, nil
 }

@@ -1,3 +1,16 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Pipelines: Clipping Workflow](#pipelines-clipping-workflow)
+  - [Lifecycle](#lifecycle)
+  - [Metadata Enrichment](#metadata-enrichment)
+  - [Search Indexing](#search-indexing)
+  - [Embedding Generation](#embedding-generation)
+  - [Updates & Deletions](#updates--deletions)
+  - [Monitoring](#monitoring)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Clipping Workflow"
 summary: "How clips move through the system after ingestion."

@@ -1,3 +1,13 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Frontend Documentation](#frontend-documentation)
+  - [Quick Links](#quick-links)
+  - [Documentation Index](#documentation-index)
+  - [Tech Stack](#tech-stack)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: "Frontend Documentation"
 summary: "React frontend architecture, components, and development guides."

@@ -20,6 +20,8 @@ This section covers production operations, deployment, and infrastructure for Cl
 - [[runbook|Runbook]] - Operational procedures
 - [[infra|Infrastructure]] - Server setup and scaling
 - [[monitoring|Monitoring]] - Metrics and alerting
+- [[secrets-management|Secrets Management]] - Secure credential handling
+- [[security-scanning|Security Scanning]] - Automated security checks
 
 ## On-Call Playbooks
 
@@ -46,7 +48,13 @@ SORT title ASC
 
 - [[infra|Infrastructure]] - Cloud providers, scaling, backups
 - [[cicd|CI/CD Pipeline]] - GitHub Actions workflows
+- [[ci-cd-secrets|CI/CD Secrets]] - Managing deployment secrets
+- [[quick-start-cicd|Quick Start CI/CD]] - Getting started with CI/CD
 - [[feature-flags|Feature Flags]] - Gradual rollouts
+- [[feature-flags-guide|Feature Flags Guide]] - Implementation guide
+- [[observability|Observability]] - Distributed tracing and metrics
+- [[performance|Performance]] - Performance optimization
+- [[deployment-live-development|Live Development Deployment]] - Development deployment
 
 ---
 

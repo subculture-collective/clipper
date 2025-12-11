@@ -36,7 +36,7 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-changeme}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://monitoring.clipper.example.com
+      - GF_SERVER_ROOT_URL=https://monitoring.clpr.tv
     volumes:
       - grafana_data:/var/lib/grafana
       - ./dashboards:/etc/grafana/provisioning/dashboards

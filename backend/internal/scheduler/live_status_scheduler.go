@@ -19,11 +19,11 @@ type BroadcasterRepositoryInterface interface {
 
 // LiveStatusScheduler manages periodic live status updates
 type LiveStatusScheduler struct {
-	liveStatusService   LiveStatusServiceInterface
-	broadcasterRepo     BroadcasterRepositoryInterface
-	interval            time.Duration
-	stopChan            chan struct{}
-	stopOnce            sync.Once
+	liveStatusService LiveStatusServiceInterface
+	broadcasterRepo   BroadcasterRepositoryInterface
+	interval          time.Duration
+	stopChan          chan struct{}
+	stopOnce          sync.Once
 }
 
 // NewLiveStatusScheduler creates a new live status scheduler
@@ -33,10 +33,10 @@ func NewLiveStatusScheduler(
 	intervalSeconds int,
 ) *LiveStatusScheduler {
 	return &LiveStatusScheduler{
-		liveStatusService:   liveStatusService,
-		broadcasterRepo:     broadcasterRepo,
-		interval:            time.Duration(intervalSeconds) * time.Second,
-		stopChan:            make(chan struct{}),
+		liveStatusService: liveStatusService,
+		broadcasterRepo:   broadcasterRepo,
+		interval:          time.Duration(intervalSeconds) * time.Second,
+		stopChan:          make(chan struct{}),
 	}
 }
 

@@ -300,12 +300,16 @@ func (s *SubscriptionService) processWebhookWithRetry(ctx context.Context, event
 		return s.handleSubscriptionUpdated(ctx, event)
 	case "customer.subscription.deleted":
 		return s.handleSubscriptionDeleted(ctx, event)
-	case "invoice.paid":
+	case "invoice.paid", "invoice.payment_succeeded":
 		return s.handleInvoicePaid(ctx, event)
 	case "invoice.payment_failed":
 		return s.handleInvoicePaymentFailed(ctx, event)
 	case "invoice.finalized":
 		return s.handleInvoiceFinalized(ctx, event)
+	case "payment_intent.succeeded":
+		return s.handlePaymentIntentSucceeded(ctx, event)
+	case "payment_intent.payment_failed":
+		return s.handlePaymentIntentFailed(ctx, event)
 	default:
 		log.Printf("[WEBHOOK] Unhandled event type: %s", event.Type)
 		return nil
@@ -832,6 +836,92 @@ func (s *SubscriptionService) isInGracePeriod(sub *models.Subscription) bool {
 		return false
 	}
 	return time.Now().Before(*sub.GracePeriodEnd)
+}
+
+// handlePaymentIntentSucceeded processes payment_intent.succeeded events
+func (s *SubscriptionService) handlePaymentIntentSucceeded(ctx context.Context, event stripe.Event) error {
+	var paymentIntent stripe.PaymentIntent
+	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal payment_intent.succeeded event %s: %v", event.ID, err)
+		return fmt.Errorf("failed to unmarshal payment intent: %w", err)
+	}
+
+	customerID := ""
+	if paymentIntent.Customer != nil {
+		customerID = paymentIntent.Customer.ID
+	}
+
+	log.Printf("[WEBHOOK] Processing payment_intent.succeeded for payment intent: %s, customer: %s, amount: %d %s",
+		paymentIntent.ID, customerID, paymentIntent.Amount, paymentIntent.Currency)
+
+	// Log successful payment
+	if s.auditLogSvc != nil {
+		metadata := map[string]interface{}{
+			"payment_intent_id": paymentIntent.ID,
+			"amount_cents":      paymentIntent.Amount,
+			"currency":          paymentIntent.Currency,
+			"status":            string(paymentIntent.Status),
+		}
+		if paymentIntent.Customer != nil {
+			metadata["stripe_customer_id"] = paymentIntent.Customer.ID
+		}
+
+		// Try to get user ID from subscription if available
+		if paymentIntent.Invoice != nil && paymentIntent.Invoice.Subscription != nil {
+			sub, err := s.repo.GetByStripeSubscriptionID(ctx, paymentIntent.Invoice.Subscription.ID)
+			if err == nil {
+				_ = s.auditLogSvc.LogSubscriptionEvent(ctx, sub.UserID, "payment_intent_succeeded", metadata)
+			}
+		}
+	}
+
+	log.Printf("[WEBHOOK] Successfully processed payment_intent.succeeded for %s", paymentIntent.ID)
+	return nil
+}
+
+// handlePaymentIntentFailed processes payment_intent.payment_failed events
+func (s *SubscriptionService) handlePaymentIntentFailed(ctx context.Context, event stripe.Event) error {
+	var paymentIntent stripe.PaymentIntent
+	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal payment_intent.payment_failed event %s: %v", event.ID, err)
+		return fmt.Errorf("failed to unmarshal payment intent: %w", err)
+	}
+
+	customerID := ""
+	if paymentIntent.Customer != nil {
+		customerID = paymentIntent.Customer.ID
+	}
+
+	log.Printf("[WEBHOOK] Processing payment_intent.payment_failed for payment intent: %s, customer: %s, amount: %d %s",
+		paymentIntent.ID, customerID, paymentIntent.Amount, paymentIntent.Currency)
+
+	// Log failed payment
+	if s.auditLogSvc != nil {
+		metadata := map[string]interface{}{
+			"payment_intent_id": paymentIntent.ID,
+			"amount_cents":      paymentIntent.Amount,
+			"currency":          paymentIntent.Currency,
+			"status":            string(paymentIntent.Status),
+		}
+		if paymentIntent.LastPaymentError != nil {
+			metadata["error_code"] = paymentIntent.LastPaymentError.Code
+			metadata["error_message"] = paymentIntent.LastPaymentError.Msg
+		}
+		if paymentIntent.Customer != nil {
+			metadata["stripe_customer_id"] = paymentIntent.Customer.ID
+		}
+
+		// Try to get user ID from subscription if available
+		if paymentIntent.Invoice != nil && paymentIntent.Invoice.Subscription != nil {
+			sub, err := s.repo.GetByStripeSubscriptionID(ctx, paymentIntent.Invoice.Subscription.ID)
+			if err == nil {
+				_ = s.auditLogSvc.LogSubscriptionEvent(ctx, sub.UserID, "payment_intent_failed", metadata)
+			}
+		}
+	}
+
+	log.Printf("[WEBHOOK] Successfully processed payment_intent.payment_failed for %s", paymentIntent.ID)
+	return nil
 }
 
 // timePtr returns a pointer to a time.Time
