@@ -1930,6 +1930,9 @@ type GameEntity struct {
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
 
+// Game is an alias for GameEntity for backward compatibility
+type Game = GameEntity
+
 // GameWithStats represents a game with additional statistics
 type GameWithStats struct {
 	GameEntity
