@@ -395,3 +395,113 @@ func (r *BroadcasterRepository) GetAllFollowedBroadcasterIDs(ctx context.Context
 
 	return broadcasterIDs, nil
 }
+
+// UpsertSyncStatus updates or inserts broadcaster sync status
+func (r *BroadcasterRepository) UpsertSyncStatus(ctx context.Context, status *models.BroadcasterSyncStatus) error {
+	query := `
+		INSERT INTO broadcaster_sync_status (
+			broadcaster_id, is_live, stream_started_at, last_synced, game_name, viewer_count, stream_title
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7
+		)
+		ON CONFLICT (broadcaster_id) 
+		DO UPDATE SET
+			is_live = EXCLUDED.is_live,
+			stream_started_at = EXCLUDED.stream_started_at,
+			last_synced = EXCLUDED.last_synced,
+			game_name = EXCLUDED.game_name,
+			viewer_count = EXCLUDED.viewer_count,
+			stream_title = EXCLUDED.stream_title,
+			updated_at = NOW()
+	`
+	_, err := r.pool.Exec(ctx, query,
+		status.BroadcasterID,
+		status.IsLive,
+		status.StreamStartedAt,
+		status.LastSynced,
+		status.GameName,
+		status.ViewerCount,
+		status.StreamTitle,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to upsert sync status: %w", err)
+	}
+	return nil
+}
+
+// GetSyncStatus retrieves sync status for a broadcaster
+func (r *BroadcasterRepository) GetSyncStatus(ctx context.Context, broadcasterID string) (*models.BroadcasterSyncStatus, error) {
+	query := `
+SELECT broadcaster_id, is_live, stream_started_at, last_synced, game_name, viewer_count, 
+       stream_title, created_at, updated_at
+FROM broadcaster_sync_status
+WHERE broadcaster_id = $1
+`
+	var status models.BroadcasterSyncStatus
+	err := r.pool.QueryRow(ctx, query, broadcasterID).Scan(
+		&status.BroadcasterID,
+		&status.IsLive,
+		&status.StreamStartedAt,
+		&status.LastSynced,
+		&status.GameName,
+		&status.ViewerCount,
+		&status.StreamTitle,
+		&status.CreatedAt,
+		&status.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, sql.ErrNoRows
+		}
+		return nil, fmt.Errorf("failed to get sync status: %w", err)
+	}
+	return &status, nil
+}
+
+// CreateSyncLog creates a new sync log entry
+func (r *BroadcasterRepository) CreateSyncLog(ctx context.Context, log *models.BroadcasterSyncLog) error {
+	query := `
+INSERT INTO broadcaster_sync_log (id, broadcaster_id, sync_time, status_change, error)
+VALUES ($1, $2, $3, $4, $5)
+`
+	_, err := r.pool.Exec(ctx, query,
+		log.ID,
+		log.BroadcasterID,
+		log.SyncTime,
+		log.StatusChange,
+		log.Error,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create sync log: %w", err)
+	}
+	return nil
+}
+
+// GetFollowerUserIDs retrieves user IDs that follow a broadcaster
+func (r *BroadcasterRepository) GetFollowerUserIDs(ctx context.Context, broadcasterID string) ([]uuid.UUID, error) {
+	query := `
+SELECT user_id
+FROM broadcaster_follows
+WHERE broadcaster_id = $1
+`
+	rows, err := r.pool.Query(ctx, query, broadcasterID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get follower user IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var userIDs []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("failed to scan user ID: %w", err)
+		}
+		userIDs = append(userIDs, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating user IDs: %w", err)
+	}
+
+	return userIDs, nil
+}

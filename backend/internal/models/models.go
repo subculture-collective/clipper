@@ -8,28 +8,28 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID                    uuid.UUID  `json:"id" db:"id"`
-	TwitchID              string     `json:"twitch_id" db:"twitch_id"`
-	Username              string     `json:"username" db:"username"`
-	DisplayName           string     `json:"display_name" db:"display_name"`
-	Email                 *string    `json:"email,omitempty" db:"email"`
-	AvatarURL             *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio                   *string    `json:"bio,omitempty" db:"bio"`
-	SocialLinks           *string    `json:"social_links,omitempty" db:"social_links"` // JSONB stored as string
-	KarmaPoints           int        `json:"karma_points" db:"karma_points"`
-	TrustScore            int        `json:"trust_score" db:"trust_score"`
-	TrustScoreUpdatedAt   *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
-	Role                  string     `json:"role" db:"role"`
-	AccountType           string     `json:"account_type" db:"account_type"`
-	AccountTypeUpdatedAt  *time.Time `json:"account_type_updated_at,omitempty" db:"account_type_updated_at"`
-	IsBanned              bool       `json:"is_banned" db:"is_banned"`
-	DeviceToken           *string    `json:"device_token,omitempty" db:"device_token"`
-	DevicePlatform        *string    `json:"device_platform,omitempty" db:"device_platform"`
-	FollowerCount         int        `json:"follower_count" db:"follower_count"`
-	FollowingCount        int        `json:"following_count" db:"following_count"`
-	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt           *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	TwitchID             string     `json:"twitch_id" db:"twitch_id"`
+	Username             string     `json:"username" db:"username"`
+	DisplayName          string     `json:"display_name" db:"display_name"`
+	Email                *string    `json:"email,omitempty" db:"email"`
+	AvatarURL            *string    `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio                  *string    `json:"bio,omitempty" db:"bio"`
+	SocialLinks          *string    `json:"social_links,omitempty" db:"social_links"` // JSONB stored as string
+	KarmaPoints          int        `json:"karma_points" db:"karma_points"`
+	TrustScore           int        `json:"trust_score" db:"trust_score"`
+	TrustScoreUpdatedAt  *time.Time `json:"trust_score_updated_at,omitempty" db:"trust_score_updated_at"`
+	Role                 string     `json:"role" db:"role"`
+	AccountType          string     `json:"account_type" db:"account_type"`
+	AccountTypeUpdatedAt *time.Time `json:"account_type_updated_at,omitempty" db:"account_type_updated_at"`
+	IsBanned             bool       `json:"is_banned" db:"is_banned"`
+	DeviceToken          *string    `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
+	FollowerCount        int        `json:"follower_count" db:"follower_count"`
+	FollowingCount       int        `json:"following_count" db:"following_count"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt          *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -546,6 +546,9 @@ type NotificationPreferences struct {
 	NotifyClipComments  bool `json:"notify_clip_comments" db:"notify_clip_comments"`
 	NotifyClipThreshold bool `json:"notify_clip_threshold" db:"notify_clip_threshold"`
 
+	// Broadcaster notifications
+	NotifyBroadcasterLive bool `json:"notify_broadcaster_live" db:"notify_broadcaster_live"`
+
 	// Global preferences
 	NotifyMarketing             bool `json:"notify_marketing" db:"notify_marketing"`
 	NotifyPolicyUpdates         bool `json:"notify_policy_updates" db:"notify_policy_updates"`
@@ -597,6 +600,8 @@ const (
 	NotificationTypeUserFollowed     = "user_followed"
 	NotificationTypeCommentOnContent = "comment_on_content"
 	NotificationTypeDiscussionReply  = "discussion_reply"
+	// Broadcaster notification types
+	NotificationTypeBroadcasterLive = "broadcaster_live"
 	// Global/Marketing notification types
 	NotificationTypeMarketing            = "marketing"
 	NotificationTypePolicyUpdate         = "policy_update"
@@ -1610,99 +1615,99 @@ type BroadcasterProfile struct {
 
 // EmailLog represents a comprehensive email event log from SendGrid webhooks
 type EmailLog struct {
-	ID                 uuid.UUID  `json:"id" db:"id"`
-	UserID             *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
-	Template           *string    `json:"template,omitempty" db:"template"`
-	Recipient          string     `json:"recipient" db:"recipient"`
-	Status             string     `json:"status" db:"status"`
-	EventType          string     `json:"event_type" db:"event_type"`
-	SendGridMessageID  *string    `json:"sendgrid_message_id,omitempty" db:"sendgrid_message_id"`
-	SendGridEventID    *string    `json:"sendgrid_event_id,omitempty" db:"sendgrid_event_id"`
-	BounceType         *string    `json:"bounce_type,omitempty" db:"bounce_type"`
-	BounceReason       *string    `json:"bounce_reason,omitempty" db:"bounce_reason"`
-	SpamReportReason   *string    `json:"spam_report_reason,omitempty" db:"spam_report_reason"`
-	LinkURL            *string    `json:"link_url,omitempty" db:"link_url"`
-	IPAddress          *string    `json:"ip_address,omitempty" db:"ip_address"`
-	UserAgent          *string    `json:"user_agent,omitempty" db:"user_agent"`
-	Metadata           *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
-	SentAt             *time.Time `json:"sent_at,omitempty" db:"sent_at"`
-	DeliveredAt        *time.Time `json:"delivered_at,omitempty" db:"delivered_at"`
-	OpenedAt           *time.Time `json:"opened_at,omitempty" db:"opened_at"`
-	ClickedAt          *time.Time `json:"clicked_at,omitempty" db:"clicked_at"`
-	BouncedAt          *time.Time `json:"bounced_at,omitempty" db:"bounced_at"`
-	SpamReportedAt     *time.Time `json:"spam_reported_at,omitempty" db:"spam_reported_at"`
-	UnsubscribedAt     *time.Time `json:"unsubscribed_at,omitempty" db:"unsubscribed_at"`
-	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at" db:"updated_at"`
-}
-
-// EmailMetricsSummary represents aggregated email metrics
-type EmailMetricsSummary struct {
 	ID                uuid.UUID  `json:"id" db:"id"`
-	PeriodStart       time.Time  `json:"period_start" db:"period_start"`
-	PeriodEnd         time.Time  `json:"period_end" db:"period_end"`
-	Granularity       string     `json:"granularity" db:"granularity"` // hourly, daily
+	UserID            *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
 	Template          *string    `json:"template,omitempty" db:"template"`
-	TotalSent         int        `json:"total_sent" db:"total_sent"`
-	TotalDelivered    int        `json:"total_delivered" db:"total_delivered"`
-	TotalBounced      int        `json:"total_bounced" db:"total_bounced"`
-	TotalHardBounced  int        `json:"total_hard_bounced" db:"total_hard_bounced"`
-	TotalSoftBounced  int        `json:"total_soft_bounced" db:"total_soft_bounced"`
-	TotalDropped      int        `json:"total_dropped" db:"total_dropped"`
-	TotalOpened       int        `json:"total_opened" db:"total_opened"`
-	TotalClicked      int        `json:"total_clicked" db:"total_clicked"`
-	TotalSpamReports  int        `json:"total_spam_reports" db:"total_spam_reports"`
-	TotalUnsubscribes int        `json:"total_unsubscribes" db:"total_unsubscribes"`
-	UniqueOpened      int        `json:"unique_opened" db:"unique_opened"`
-	UniqueClicked     int        `json:"unique_clicked" db:"unique_clicked"`
-	BounceRate        *float64   `json:"bounce_rate,omitempty" db:"bounce_rate"`
-	OpenRate          *float64   `json:"open_rate,omitempty" db:"open_rate"`
-	ClickRate         *float64   `json:"click_rate,omitempty" db:"click_rate"`
-	SpamRate          *float64   `json:"spam_rate,omitempty" db:"spam_rate"`
+	Recipient         string     `json:"recipient" db:"recipient"`
+	Status            string     `json:"status" db:"status"`
+	EventType         string     `json:"event_type" db:"event_type"`
+	SendGridMessageID *string    `json:"sendgrid_message_id,omitempty" db:"sendgrid_message_id"`
+	SendGridEventID   *string    `json:"sendgrid_event_id,omitempty" db:"sendgrid_event_id"`
+	BounceType        *string    `json:"bounce_type,omitempty" db:"bounce_type"`
+	BounceReason      *string    `json:"bounce_reason,omitempty" db:"bounce_reason"`
+	SpamReportReason  *string    `json:"spam_report_reason,omitempty" db:"spam_report_reason"`
+	LinkURL           *string    `json:"link_url,omitempty" db:"link_url"`
+	IPAddress         *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent         *string    `json:"user_agent,omitempty" db:"user_agent"`
+	Metadata          *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+	SentAt            *time.Time `json:"sent_at,omitempty" db:"sent_at"`
+	DeliveredAt       *time.Time `json:"delivered_at,omitempty" db:"delivered_at"`
+	OpenedAt          *time.Time `json:"opened_at,omitempty" db:"opened_at"`
+	ClickedAt         *time.Time `json:"clicked_at,omitempty" db:"clicked_at"`
+	BouncedAt         *time.Time `json:"bounced_at,omitempty" db:"bounced_at"`
+	SpamReportedAt    *time.Time `json:"spam_reported_at,omitempty" db:"spam_reported_at"`
+	UnsubscribedAt    *time.Time `json:"unsubscribed_at,omitempty" db:"unsubscribed_at"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
 }
 
+// EmailMetricsSummary represents aggregated email metrics
+type EmailMetricsSummary struct {
+	ID                uuid.UUID `json:"id" db:"id"`
+	PeriodStart       time.Time `json:"period_start" db:"period_start"`
+	PeriodEnd         time.Time `json:"period_end" db:"period_end"`
+	Granularity       string    `json:"granularity" db:"granularity"` // hourly, daily
+	Template          *string   `json:"template,omitempty" db:"template"`
+	TotalSent         int       `json:"total_sent" db:"total_sent"`
+	TotalDelivered    int       `json:"total_delivered" db:"total_delivered"`
+	TotalBounced      int       `json:"total_bounced" db:"total_bounced"`
+	TotalHardBounced  int       `json:"total_hard_bounced" db:"total_hard_bounced"`
+	TotalSoftBounced  int       `json:"total_soft_bounced" db:"total_soft_bounced"`
+	TotalDropped      int       `json:"total_dropped" db:"total_dropped"`
+	TotalOpened       int       `json:"total_opened" db:"total_opened"`
+	TotalClicked      int       `json:"total_clicked" db:"total_clicked"`
+	TotalSpamReports  int       `json:"total_spam_reports" db:"total_spam_reports"`
+	TotalUnsubscribes int       `json:"total_unsubscribes" db:"total_unsubscribes"`
+	UniqueOpened      int       `json:"unique_opened" db:"unique_opened"`
+	UniqueClicked     int       `json:"unique_clicked" db:"unique_clicked"`
+	BounceRate        *float64  `json:"bounce_rate,omitempty" db:"bounce_rate"`
+	OpenRate          *float64  `json:"open_rate,omitempty" db:"open_rate"`
+	ClickRate         *float64  `json:"click_rate,omitempty" db:"click_rate"`
+	SpamRate          *float64  `json:"spam_rate,omitempty" db:"spam_rate"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
+}
+
 // EmailAlert represents an alert triggered by email metrics
 type EmailAlert struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	AlertType       string     `json:"alert_type" db:"alert_type"` // high_bounce_rate, high_complaint_rate, etc.
-	Severity        string     `json:"severity" db:"severity"`     // warning, critical
-	MetricName      string     `json:"metric_name" db:"metric_name"`
-	CurrentValue    *float64   `json:"current_value,omitempty" db:"current_value"`
-	ThresholdValue  *float64   `json:"threshold_value,omitempty" db:"threshold_value"`
-	PeriodStart     time.Time  `json:"period_start" db:"period_start"`
-	PeriodEnd       time.Time  `json:"period_end" db:"period_end"`
-	Message         string     `json:"message" db:"message"`
-	Metadata        *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
-	TriggeredAt     time.Time  `json:"triggered_at" db:"triggered_at"`
-	AcknowledgedAt  *time.Time `json:"acknowledged_at,omitempty" db:"acknowledged_at"`
-	AcknowledgedBy  *uuid.UUID `json:"acknowledged_by,omitempty" db:"acknowledged_by"`
-	ResolvedAt      *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
-	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	ID             uuid.UUID  `json:"id" db:"id"`
+	AlertType      string     `json:"alert_type" db:"alert_type"` // high_bounce_rate, high_complaint_rate, etc.
+	Severity       string     `json:"severity" db:"severity"`     // warning, critical
+	MetricName     string     `json:"metric_name" db:"metric_name"`
+	CurrentValue   *float64   `json:"current_value,omitempty" db:"current_value"`
+	ThresholdValue *float64   `json:"threshold_value,omitempty" db:"threshold_value"`
+	PeriodStart    time.Time  `json:"period_start" db:"period_start"`
+	PeriodEnd      time.Time  `json:"period_end" db:"period_end"`
+	Message        string     `json:"message" db:"message"`
+	Metadata       *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+	TriggeredAt    time.Time  `json:"triggered_at" db:"triggered_at"`
+	AcknowledgedAt *time.Time `json:"acknowledged_at,omitempty" db:"acknowledged_at"`
+	AcknowledgedBy *uuid.UUID `json:"acknowledged_by,omitempty" db:"acknowledged_by"`
+	ResolvedAt     *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 }
 
 // Email log status constants
 const (
-	EmailLogStatusSent         = "sent"
-	EmailLogStatusDelivered    = "delivered"
-	EmailLogStatusBounce       = "bounce"
-	EmailLogStatusDropped      = "dropped"
-	EmailLogStatusOpen         = "open"
-	EmailLogStatusClick        = "click"
-	EmailLogStatusSpamReport   = "spam_report"
-	EmailLogStatusUnsubscribe  = "unsubscribe"
-	EmailLogStatusDeferred     = "deferred"
-	EmailLogStatusProcessed    = "processed"
+	EmailLogStatusSent        = "sent"
+	EmailLogStatusDelivered   = "delivered"
+	EmailLogStatusBounce      = "bounce"
+	EmailLogStatusDropped     = "dropped"
+	EmailLogStatusOpen        = "open"
+	EmailLogStatusClick       = "click"
+	EmailLogStatusSpamReport  = "spam_report"
+	EmailLogStatusUnsubscribe = "unsubscribe"
+	EmailLogStatusDeferred    = "deferred"
+	EmailLogStatusProcessed   = "processed"
 )
 
 // Email alert types
 const (
-	EmailAlertTypeHighBounceRate      = "high_bounce_rate"
-	EmailAlertTypeHighComplaintRate   = "high_complaint_rate"
-	EmailAlertTypeSendErrors          = "send_errors"
-	EmailAlertTypeOpenRateDrop        = "open_rate_drop"
-	EmailAlertTypeUnsubscribeSpike    = "unsubscribe_spike"
+	EmailAlertTypeHighBounceRate    = "high_bounce_rate"
+	EmailAlertTypeHighComplaintRate = "high_complaint_rate"
+	EmailAlertTypeSendErrors        = "send_errors"
+	EmailAlertTypeOpenRateDrop      = "open_rate_drop"
+	EmailAlertTypeUnsubscribeSpike  = "unsubscribe_spike"
 )
 
 // Email alert severities
@@ -1713,37 +1718,37 @@ const (
 
 // SendGridWebhookEvent represents an incoming webhook event from SendGrid
 type SendGridWebhookEvent struct {
-	Email           string                 `json:"email"`
-	Timestamp       int64                  `json:"timestamp"`
-	Event           string                 `json:"event"`
-	SgMessageID     string                 `json:"sg_message_id"`
-	SgEventID       string                 `json:"sg_event_id"`
-	Category        []string               `json:"category,omitempty"`
-	Type            string                 `json:"type,omitempty"`      // For bounce events: bounce, blocked, etc.
-	Reason          string                 `json:"reason,omitempty"`    // Bounce/drop reason
-	Status          string                 `json:"status,omitempty"`    // Bounce status code
-	URL             string                 `json:"url,omitempty"`       // Clicked URL
-	IP              string                 `json:"ip,omitempty"`        // IP address
-	UserAgent       string                 `json:"useragent,omitempty"` // User agent
-	Response        string                 `json:"response,omitempty"`  // SMTP response
-	Attempt         string                 `json:"attempt,omitempty"`   // Deferred attempt number
-	CustomArgs      map[string]interface{} `json:"custom_args,omitempty"`
-	ASMGroupID      int                    `json:"asm_group_id,omitempty"`      // Unsubscribe group ID
-	MarketingCampaignID string             `json:"marketing_campaign_id,omitempty"`
-	MarketingCampaignName string           `json:"marketing_campaign_name,omitempty"`
+	Email                 string                 `json:"email"`
+	Timestamp             int64                  `json:"timestamp"`
+	Event                 string                 `json:"event"`
+	SgMessageID           string                 `json:"sg_message_id"`
+	SgEventID             string                 `json:"sg_event_id"`
+	Category              []string               `json:"category,omitempty"`
+	Type                  string                 `json:"type,omitempty"`      // For bounce events: bounce, blocked, etc.
+	Reason                string                 `json:"reason,omitempty"`    // Bounce/drop reason
+	Status                string                 `json:"status,omitempty"`    // Bounce status code
+	URL                   string                 `json:"url,omitempty"`       // Clicked URL
+	IP                    string                 `json:"ip,omitempty"`        // IP address
+	UserAgent             string                 `json:"useragent,omitempty"` // User agent
+	Response              string                 `json:"response,omitempty"`  // SMTP response
+	Attempt               string                 `json:"attempt,omitempty"`   // Deferred attempt number
+	CustomArgs            map[string]interface{} `json:"custom_args,omitempty"`
+	ASMGroupID            int                    `json:"asm_group_id,omitempty"` // Unsubscribe group ID
+	MarketingCampaignID   string                 `json:"marketing_campaign_id,omitempty"`
+	MarketingCampaignName string                 `json:"marketing_campaign_name,omitempty"`
 }
 
 // Feed represents a user-created feed
 type Feed struct {
-	ID            uuid.UUID  `json:"id" db:"id"`
-	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
-	Name          string     `json:"name" db:"name"`
-	Description   *string    `json:"description,omitempty" db:"description"`
-	Icon          *string    `json:"icon,omitempty" db:"icon"`
-	IsPublic      bool       `json:"is_public" db:"is_public"`
-	FollowerCount int        `json:"follower_count" db:"follower_count"`
-	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID `json:"id" db:"id"`
+	UserID        uuid.UUID `json:"user_id" db:"user_id"`
+	Name          string    `json:"name" db:"name"`
+	Description   *string   `json:"description,omitempty" db:"description"`
+	Icon          *string   `json:"icon,omitempty" db:"icon"`
+	IsPublic      bool      `json:"is_public" db:"is_public"`
+	FollowerCount int       `json:"follower_count" db:"follower_count"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // FeedWithOwner includes owner information
@@ -1819,13 +1824,13 @@ type UserBlock struct {
 
 // BlockedUser represents a user in a blocked users list
 type BlockedUser struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	Username    string     `json:"username" db:"username"`
-	DisplayName string     `json:"display_name" db:"display_name"`
-	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio         *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints int        `json:"karma_points" db:"karma_points"`
-	BlockedAt   time.Time  `json:"blocked_at" db:"blocked_at"`
+	ID          uuid.UUID `json:"id" db:"id"`
+	Username    string    `json:"username" db:"username"`
+	DisplayName string    `json:"display_name" db:"display_name"`
+	AvatarURL   *string   `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio         *string   `json:"bio,omitempty" db:"bio"`
+	KarmaPoints int       `json:"karma_points" db:"karma_points"`
+	BlockedAt   time.Time `json:"blocked_at" db:"blocked_at"`
 }
 
 // UserActivity represents a user activity entry
@@ -1841,11 +1846,11 @@ type UserActivity struct {
 
 // Activity type constants
 const (
-	ActivityTypeClipSubmitted      = "clip_submitted"
-	ActivityTypeUpvote             = "upvote"
-	ActivityTypeDownvote           = "downvote"
-	ActivityTypeComment            = "comment"
-	ActivityTypeUserFollowed       = "user_followed"
+	ActivityTypeClipSubmitted       = "clip_submitted"
+	ActivityTypeUpvote              = "upvote"
+	ActivityTypeDownvote            = "downvote"
+	ActivityTypeComment             = "comment"
+	ActivityTypeUserFollowed        = "user_followed"
 	ActivityTypeBroadcasterFollowed = "broadcaster_followed"
 )
 
@@ -1859,52 +1864,52 @@ type UserProfile struct {
 
 // UserProfileStats represents statistics for a user profile
 type UserProfileStats struct {
-	ClipsSubmitted      int `json:"clips_submitted"`
-	TotalUpvotes        int `json:"total_upvotes"`
-	TotalComments       int `json:"total_comments"`
-	ClipsFeatured       int `json:"clips_featured"`
+	ClipsSubmitted       int `json:"clips_submitted"`
+	TotalUpvotes         int `json:"total_upvotes"`
+	TotalComments        int `json:"total_comments"`
+	ClipsFeatured        int `json:"clips_featured"`
 	BroadcastersFollowed int `json:"broadcasters_followed"`
 }
 
 // UserActivityItem represents a single activity item with expanded data
 type UserActivityItem struct {
 	UserActivity
-	Username     string  `json:"username"`
-	UserAvatar   *string `json:"user_avatar"`
-	ClipTitle    *string `json:"clip_title,omitempty"`
-	ClipID       *string `json:"clip_id,omitempty"`
-	CommentText  *string `json:"comment_text,omitempty"`
-	TargetUser   *string `json:"target_user,omitempty"`
+	Username    string  `json:"username"`
+	UserAvatar  *string `json:"user_avatar"`
+	ClipTitle   *string `json:"clip_title,omitempty"`
+	ClipID      *string `json:"clip_id,omitempty"`
+	CommentText *string `json:"comment_text,omitempty"`
+	TargetUser  *string `json:"target_user,omitempty"`
 }
 
 // SocialLinks represents social media links
 type SocialLinks struct {
-	Twitter  *string `json:"twitter,omitempty"`
-	Twitch   *string `json:"twitch,omitempty"`
-	Discord  *string `json:"discord,omitempty"`
-	YouTube  *string `json:"youtube,omitempty"`
-	Website  *string `json:"website,omitempty"`
+	Twitter *string `json:"twitter,omitempty"`
+	Twitch  *string `json:"twitch,omitempty"`
+	Discord *string `json:"discord,omitempty"`
+	YouTube *string `json:"youtube,omitempty"`
+	Website *string `json:"website,omitempty"`
 }
 
 // UpdateSocialLinksRequest represents the request to update social links
 type UpdateSocialLinksRequest struct {
-	Twitter  *string `json:"twitter,omitempty" binding:"omitempty,max=255"`
-	Twitch   *string `json:"twitch,omitempty" binding:"omitempty,max=255"`
-	Discord  *string `json:"discord,omitempty" binding:"omitempty,max=255"`
-	YouTube  *string `json:"youtube,omitempty" binding:"omitempty,max=255"`
-	Website  *string `json:"website,omitempty" binding:"omitempty,url,max=255"`
+	Twitter *string `json:"twitter,omitempty" binding:"omitempty,max=255"`
+	Twitch  *string `json:"twitch,omitempty" binding:"omitempty,max=255"`
+	Discord *string `json:"discord,omitempty" binding:"omitempty,max=255"`
+	YouTube *string `json:"youtube,omitempty" binding:"omitempty,max=255"`
+	Website *string `json:"website,omitempty" binding:"omitempty,url,max=255"`
 }
 
 // FollowerUser represents a user in a followers/following list
 type FollowerUser struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	Username    string     `json:"username" db:"username"`
-	DisplayName string     `json:"display_name" db:"display_name"`
-	AvatarURL   *string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	Bio         *string    `json:"bio,omitempty" db:"bio"`
-	KarmaPoints int        `json:"karma_points" db:"karma_points"`
-	FollowedAt  time.Time  `json:"followed_at" db:"followed_at"`
-	IsFollowing bool       `json:"is_following"` // Whether the current user is following this user
+	ID          uuid.UUID `json:"id" db:"id"`
+	Username    string    `json:"username" db:"username"`
+	DisplayName string    `json:"display_name" db:"display_name"`
+	AvatarURL   *string   `json:"avatar_url,omitempty" db:"avatar_url"`
+	Bio         *string   `json:"bio,omitempty" db:"bio"`
+	KarmaPoints int       `json:"karma_points" db:"karma_points"`
+	FollowedAt  time.Time `json:"followed_at" db:"followed_at"`
+	IsFollowing bool      `json:"is_following"` // Whether the current user is following this user
 }
 
 // Category represents a high-level content category
@@ -1921,13 +1926,13 @@ type Category struct {
 
 // GameEntity represents a full game entity from Twitch (with database fields)
 type GameEntity struct {
-	ID            uuid.UUID `json:"id" db:"id"`
-	TwitchGameID  string    `json:"twitch_game_id" db:"twitch_game_id"`
-	Name          string    `json:"name" db:"name"`
-	BoxArtURL     *string   `json:"box_art_url,omitempty" db:"box_art_url"`
-	IGDBID        *string   `json:"igdb_id,omitempty" db:"igdb_id"`
-	CreatedAt     time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
+	ID           uuid.UUID `json:"id" db:"id"`
+	TwitchGameID string    `json:"twitch_game_id" db:"twitch_game_id"`
+	Name         string    `json:"name" db:"name"`
+	BoxArtURL    *string   `json:"box_art_url,omitempty" db:"box_art_url"`
+	IGDBID       *string   `json:"igdb_id,omitempty" db:"igdb_id"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Game is an alias for GameEntity for backward compatibility
@@ -1936,8 +1941,8 @@ type Game = GameEntity
 // GameWithStats represents a game with additional statistics
 type GameWithStats struct {
 	GameEntity
-	ClipCount     int `json:"clip_count" db:"clip_count"`
-	FollowerCount int `json:"follower_count" db:"follower_count"`
+	ClipCount     int  `json:"clip_count" db:"clip_count"`
+	FollowerCount int  `json:"follower_count" db:"follower_count"`
 	IsFollowing   bool `json:"is_following"` // Whether the current user is following
 }
 
@@ -1984,11 +1989,11 @@ type DiscoveryList struct {
 // DiscoveryListWithStats includes additional statistics about the list
 type DiscoveryListWithStats struct {
 	DiscoveryList
-	ClipCount     int     `json:"clip_count" db:"clip_count"`
-	FollowerCount int     `json:"follower_count" db:"follower_count"`
-	IsFollowing   bool    `json:"is_following"`
-	IsBookmarked  bool    `json:"is_bookmarked"`
-	PreviewClips  []Clip  `json:"preview_clips,omitempty"`
+	ClipCount     int    `json:"clip_count" db:"clip_count"`
+	FollowerCount int    `json:"follower_count" db:"follower_count"`
+	IsFollowing   bool   `json:"is_following"`
+	IsBookmarked  bool   `json:"is_bookmarked"`
+	PreviewClips  []Clip `json:"preview_clips,omitempty"`
 }
 
 // DiscoveryListClip represents the relationship between a list and a clip
@@ -2040,19 +2045,42 @@ type BroadcasterLiveStatus struct {
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
 
+// BroadcasterSyncStatus represents the sync status for broadcaster live tracking
+type BroadcasterSyncStatus struct {
+	BroadcasterID   string     `json:"broadcaster_id" db:"broadcaster_id"`
+	IsLive          bool       `json:"is_live" db:"is_live"`
+	StreamStartedAt *time.Time `json:"stream_started_at,omitempty" db:"stream_started_at"`
+	LastSynced      time.Time  `json:"last_synced" db:"last_synced"`
+	GameName        *string    `json:"game_name,omitempty" db:"game_name"`
+	ViewerCount     int        `json:"viewer_count" db:"viewer_count"`
+	StreamTitle     *string    `json:"stream_title,omitempty" db:"stream_title"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// BroadcasterSyncLog represents a log entry for broadcaster sync events
+type BroadcasterSyncLog struct {
+	ID            uuid.UUID `json:"id" db:"id"`
+	BroadcasterID string    `json:"broadcaster_id" db:"broadcaster_id"`
+	SyncTime      time.Time `json:"sync_time" db:"sync_time"`
+	StatusChange  *string   `json:"status_change,omitempty" db:"status_change"`
+	Error         *string   `json:"error,omitempty" db:"error"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+}
+
 // Community represents a community space
 type Community struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	Name        string     `json:"name" db:"name"`
-	Slug        string     `json:"slug" db:"slug"`
-	Description *string    `json:"description,omitempty" db:"description"`
-	Icon        *string    `json:"icon,omitempty" db:"icon"`
-	OwnerID     uuid.UUID  `json:"owner_id" db:"owner_id"`
-	IsPublic    bool       `json:"is_public" db:"is_public"`
-	MemberCount int        `json:"member_count" db:"member_count"`
-	Rules       *string    `json:"rules,omitempty" db:"rules"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID `json:"id" db:"id"`
+	Name        string    `json:"name" db:"name"`
+	Slug        string    `json:"slug" db:"slug"`
+	Description *string   `json:"description,omitempty" db:"description"`
+	Icon        *string   `json:"icon,omitempty" db:"icon"`
+	OwnerID     uuid.UUID `json:"owner_id" db:"owner_id"`
+	IsPublic    bool      `json:"is_public" db:"is_public"`
+	MemberCount int       `json:"member_count" db:"member_count"`
+	Rules       *string   `json:"rules,omitempty" db:"rules"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // CommunityWithOwner includes owner information
@@ -2064,9 +2092,9 @@ type CommunityWithOwner struct {
 // CommunityWithStats includes additional statistics
 type CommunityWithStats struct {
 	Community
-	ClipCount       int  `json:"clip_count" db:"clip_count"`
-	DiscussionCount int  `json:"discussion_count" db:"discussion_count"`
-	IsMember        bool `json:"is_member"`
+	ClipCount       int     `json:"clip_count" db:"clip_count"`
+	DiscussionCount int     `json:"discussion_count" db:"discussion_count"`
+	IsMember        bool    `json:"is_member"`
 	UserRole        *string `json:"user_role,omitempty"` // admin, mod, member, or null if not a member
 }
 
@@ -2087,18 +2115,18 @@ type CommunityMemberWithUser struct {
 
 // CommunityBan represents a banned user in a community
 type CommunityBan struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	CommunityID     uuid.UUID  `json:"community_id" db:"community_id"`
-	BannedUserID    uuid.UUID  `json:"banned_user_id" db:"banned_user_id"`
-	BannedByUserID  *uuid.UUID `json:"banned_by_user_id,omitempty" db:"banned_by_user_id"`
-	Reason          *string    `json:"reason,omitempty" db:"reason"`
-	BannedAt        time.Time  `json:"banned_at" db:"banned_at"`
+	ID             uuid.UUID  `json:"id" db:"id"`
+	CommunityID    uuid.UUID  `json:"community_id" db:"community_id"`
+	BannedUserID   uuid.UUID  `json:"banned_user_id" db:"banned_user_id"`
+	BannedByUserID *uuid.UUID `json:"banned_by_user_id,omitempty" db:"banned_by_user_id"`
+	Reason         *string    `json:"reason,omitempty" db:"reason"`
+	BannedAt       time.Time  `json:"banned_at" db:"banned_at"`
 }
 
 // CommunityBanWithUser includes user information
 type CommunityBanWithUser struct {
 	CommunityBan
-	BannedUser  *User `json:"banned_user,omitempty"`
+	BannedUser   *User `json:"banned_user,omitempty"`
 	BannedByUser *User `json:"banned_by_user,omitempty"`
 }
 
@@ -2217,10 +2245,10 @@ type CreateDiscussionRequest struct {
 
 // UpdateDiscussionRequest represents the request to update a discussion thread
 type UpdateDiscussionRequest struct {
-	Title    *string `json:"title,omitempty" binding:"omitempty,min=3,max=500"`
-	Content  *string `json:"content,omitempty" binding:"omitempty,min=10,max=10000"`
-	IsPinned *bool   `json:"is_pinned,omitempty"`
-	IsResolved *bool `json:"is_resolved,omitempty"`
+	Title      *string `json:"title,omitempty" binding:"omitempty,min=3,max=500"`
+	Content    *string `json:"content,omitempty" binding:"omitempty,min=10,max=10000"`
+	IsPinned   *bool   `json:"is_pinned,omitempty"`
+	IsResolved *bool   `json:"is_resolved,omitempty"`
 }
 
 // CreateDiscussionCommentRequest represents the request to create a comment on a discussion
@@ -2273,8 +2301,8 @@ type ConvertToModeratorRequest struct {
 
 // AccountTypeResponse represents the response for account type queries
 type AccountTypeResponse struct {
-	AccountType    string                `json:"account_type"`
-	UpdatedAt      *time.Time            `json:"updated_at,omitempty"`
-	Permissions    []string              `json:"permissions"`
+	AccountType       string                  `json:"account_type"`
+	UpdatedAt         *time.Time              `json:"updated_at,omitempty"`
+	Permissions       []string                `json:"permissions"`
 	ConversionHistory []AccountTypeConversion `json:"conversion_history,omitempty"`
 }

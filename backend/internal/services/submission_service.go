@@ -302,7 +302,7 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		now := time.Now()
 		title := req.CustomTitle
 		broadcasterName := req.BroadcasterNameOverride
-		
+
 		// Claim the scraped clip
 		if err := s.clipRepo.ClaimScrapedClip(ctx, clipExistence.Clip.ID, userID, title, req.IsNSFW, broadcasterName, now); err != nil {
 			return nil, fmt.Errorf("failed to claim scraped clip: %w", err)
@@ -350,12 +350,12 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 			Duration:        clipExistence.Clip.Duration,
 			ViewCount:       clipExistence.Clip.ViewCount,
 		}
-		
+
 		// Save submission to database for audit trail
 		if err := s.submissionRepo.Create(ctx, submission); err != nil {
 			return nil, fmt.Errorf("failed to create submission record for claimed clip: %w", err)
 		}
-		
+
 		// Trigger webhook events for integrations
 		if s.webhookService != nil {
 			webhookData := map[string]interface{}{
@@ -372,12 +372,12 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 			if len(submission.Tags) > 0 {
 				webhookData["tags"] = submission.Tags
 			}
-			
+
 			// Trigger clip.submitted event
 			if err := s.webhookService.TriggerEvent(ctx, models.WebhookEventClipSubmitted, submission.ID, webhookData); err != nil {
 				log.Printf("Warning: failed to trigger clip.submitted webhook for claimed clip: %v\n", err)
 			}
-			
+
 			// Trigger clip.approved event (claimed clips are auto-approved)
 			webhookDataApproved := map[string]interface{}{
 				"submission_id":   submission.ID.String(),
@@ -393,7 +393,7 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 				log.Printf("Warning: failed to trigger clip.approved webhook for claimed clip: %v\n", err)
 			}
 		}
-		
+
 		return submission, nil
 	}
 

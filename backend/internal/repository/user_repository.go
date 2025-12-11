@@ -710,7 +710,7 @@ func (r *UserRepository) GetFollowers(ctx context.Context, userID uuid.UUID, cur
 	// Get followers with follow status in a single query
 	var query string
 	var rows pgx.Rows
-	
+
 	if currentUserID != nil {
 		query = `
 			SELECT 
@@ -772,7 +772,7 @@ func (r *UserRepository) GetFollowing(ctx context.Context, userID uuid.UUID, cur
 	// Get following with follow status in a single query
 	var query string
 	var rows pgx.Rows
-	
+
 	if currentUserID != nil {
 		query = `
 			SELECT 

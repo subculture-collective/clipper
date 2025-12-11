@@ -268,17 +268,17 @@ func TestRateLimitMiddleware_PremiumMultiplier(t *testing.T) {
 		multiplier, _ := getUserRateLimitMultiplier(c, nil)
 		baseLimit := 2
 		effectiveLimit := int(float64(baseLimit) * multiplier)
-		
+
 		// Use fallback limiter with effective limit
 		key := fmt.Sprintf("test-premium-%v", c.GetString("user_id"))
 		allowed, remaining := userFallbackLimiter.Allow(key)
-		
+
 		if !allowed {
 			c.JSON(http.StatusTooManyRequests, gin.H{"error": "rate limited"})
 			c.Abort()
 			return
 		}
-		
+
 		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", effectiveLimit))
 		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
 		c.Next()
@@ -332,17 +332,17 @@ func TestRateLimitMiddleware_BasicUserLimit(t *testing.T) {
 		multiplier, _ := getUserRateLimitMultiplier(c, nil)
 		baseLimit := 3
 		effectiveLimit := int(float64(baseLimit) * multiplier)
-		
+
 		// Use fallback limiter
 		key := fmt.Sprintf("test-basic-%v", c.GetString("user_id"))
 		allowed, remaining := userFallbackLimiter.Allow(key)
-		
+
 		if !allowed {
 			c.JSON(http.StatusTooManyRequests, gin.H{"error": "rate limited"})
 			c.Abort()
 			return
 		}
-		
+
 		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", effectiveLimit))
 		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
 		c.Next()
