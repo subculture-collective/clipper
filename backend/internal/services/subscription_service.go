@@ -846,8 +846,13 @@ func (s *SubscriptionService) handlePaymentIntentSucceeded(ctx context.Context, 
 		return fmt.Errorf("failed to unmarshal payment intent: %w", err)
 	}
 
+	customerID := ""
+	if paymentIntent.Customer != nil {
+		customerID = paymentIntent.Customer.ID
+	}
+
 	log.Printf("[WEBHOOK] Processing payment_intent.succeeded for payment intent: %s, customer: %s, amount: %d %s",
-		paymentIntent.ID, paymentIntent.Customer.ID, paymentIntent.Amount, paymentIntent.Currency)
+		paymentIntent.ID, customerID, paymentIntent.Amount, paymentIntent.Currency)
 
 	// Log successful payment
 	if s.auditLogSvc != nil {
@@ -882,8 +887,13 @@ func (s *SubscriptionService) handlePaymentIntentFailed(ctx context.Context, eve
 		return fmt.Errorf("failed to unmarshal payment intent: %w", err)
 	}
 
+	customerID := ""
+	if paymentIntent.Customer != nil {
+		customerID = paymentIntent.Customer.ID
+	}
+
 	log.Printf("[WEBHOOK] Processing payment_intent.payment_failed for payment intent: %s, customer: %s, amount: %d %s",
-		paymentIntent.ID, paymentIntent.Customer.ID, paymentIntent.Amount, paymentIntent.Currency)
+		paymentIntent.ID, customerID, paymentIntent.Amount, paymentIntent.Currency)
 
 	// Log failed payment
 	if s.auditLogSvc != nil {
