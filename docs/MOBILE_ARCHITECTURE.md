@@ -432,7 +432,7 @@ import Constants from 'expo-constants';
 
 const API_BASE_URL =
   Constants.expoConfig?.extra?.apiUrl ||
-  'https://api.clipper.app';
+  'https://api.clpr.tv';
 
 export const apiClient = new ApiClient(
   API_BASE_URL,
@@ -775,7 +775,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   integrations: [
     new Sentry.ReactNativeTracing({
-      tracingOrigins: ['api.clipper.app'],
+      tracingOrigins: ['api.clpr.tv'],
       routingInstrumentation: new Sentry.ReactNavigationInstrumentation(),
     }),
   ],

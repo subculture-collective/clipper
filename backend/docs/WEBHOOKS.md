@@ -439,7 +439,7 @@ Use tools like [webhook.site](https://webhook.site) or [ngrok](https://ngrok.com
 1. **Check subscription is active:**
    ```bash
    curl -H "Authorization: Bearer YOUR_TOKEN" \
-     https://api.clipper.example.com/api/v1/webhooks
+     https://api.clpr.tv/v1/webhooks
    ```
 
 2. **Verify URL is accessible:**
@@ -450,7 +450,7 @@ Use tools like [webhook.site](https://webhook.site) or [ngrok](https://ngrok.com
 3. **Check delivery history:**
    ```bash
    curl -H "Authorization: Bearer YOUR_TOKEN" \
-     https://api.clipper.example.com/api/v1/webhooks/{id}/deliveries
+     https://api.clpr.tv/v1/webhooks/{id}/deliveries
    ```
 
 ### Signature Verification Fails

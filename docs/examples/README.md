@@ -23,7 +23,7 @@ chmod +x clip-submission-test.sh
 ./clip-submission-test.sh https://clips.twitch.tv/YourClipID
 
 # Use custom API endpoint (optional)
-API_BASE_URL="https://api.clipper.app/api/v1" ./clip-submission-test.sh
+API_BASE_URL="https://api.clpr.tv/v1" ./clip-submission-test.sh
 ```
 
 **What it does:**

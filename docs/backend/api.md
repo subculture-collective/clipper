@@ -21,7 +21,7 @@ Complete API documentation for the Clipper backend.
 
 ```
 Development: http://localhost:8080/api/v1
-Production: https://api.clipper.app/api/v1
+Production: https://api.clpr.tv/v1
 ```
 
 ## Authentication
