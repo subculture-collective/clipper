@@ -1,3 +1,14 @@
+---
+title: "Mobile-First CSS Changes - Visual Examples"
+summary: "This document provides before/after examples of the key responsive design improvements."
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Mobile-First CSS Changes - Visual Examples
 
 This document provides before/after examples of the key responsive design improvements.

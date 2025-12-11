@@ -1,3 +1,14 @@
+---
+title: "Security Threat Model - Quick Reference Guide"
+summary: "> **TL;DR:** This threat model identified 70 security threats. 3 are critical, 8 are high priority. "
+tags: ['product', 'guide']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Security Threat Model - Quick Reference Guide
 
 > **TL;DR:** This threat model identified 70 security threats. 3 are critical, 8 are high priority. See the [full threat model](THREAT_MODEL.md) for details.

@@ -1,3 +1,14 @@
+---
+title: "Observability Configuration Guide"
+summary: "This document describes the observability stack for Clipper, including logging, monitoring, tracing,"
+tags: ['operations']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Observability Configuration Guide
 
 This document describes the observability stack for Clipper, including logging, monitoring, tracing, and error tracking.

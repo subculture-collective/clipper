@@ -1,3 +1,14 @@
+---
+title: "Secrets Management Guide"
+summary: "This document outlines best practices for managing secrets in production environments."
+tags: ['operations']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Secrets Management Guide
 
 This document outlines best practices for managing secrets in production environments.

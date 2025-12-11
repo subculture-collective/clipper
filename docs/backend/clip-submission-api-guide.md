@@ -1,3 +1,14 @@
+---
+title: "Clip Submission API - Developer Guide"
+summary: "- [Overview](#overview)"
+tags: ['backend', 'api', 'guide']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Clip Submission API - Developer Guide
 
 ## Table of Contents

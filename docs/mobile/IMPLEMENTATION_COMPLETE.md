@@ -1,3 +1,14 @@
+---
+title: "Mobile Submit Clip Flow - Final Implementation Report"
+summary: "**Issue**: Mobile: Submit Clip flow with validation and upload"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Mobile Submit Clip Flow - Final Implementation Report
 
 ## 🎉 Implementation Complete

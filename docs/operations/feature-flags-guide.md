@@ -1,3 +1,14 @@
+---
+title: "Feature Flags Guide"
+summary: "This document describes the feature flag system in Clipper and how to use it for gradual rollouts an"
+tags: ['operations', 'guide']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Feature Flags Guide
 
 This document describes the feature flag system in Clipper and how to use it for gradual rollouts and testing.

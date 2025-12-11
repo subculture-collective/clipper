@@ -1,3 +1,14 @@
+---
+title: "Performance and Accessibility Audit Report"
+summary: "**Date:** December 6, 2025"
+tags: ['frontend']
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Performance and Accessibility Audit Report
 ## Creator Dashboard and Analytics Pages
 

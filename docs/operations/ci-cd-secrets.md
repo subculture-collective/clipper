@@ -1,3 +1,14 @@
+---
+title: "CI/CD Secrets Setup Guide"
+summary: "This document outlines all the secrets required for CI/CD pipelines and how to configure them."
+tags: ['operations']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # CI/CD Secrets Setup Guide
 
 This document outlines all the secrets required for CI/CD pipelines and how to configure them.

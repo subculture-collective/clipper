@@ -1,3 +1,14 @@
+---
+title: "Performance Optimizations"
+summary: "This document outlines the performance optimizations implemented to improve Core Web Vitals (LCP, CL"
+tags: ['operations']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Performance Optimizations
 
 This document outlines the performance optimizations implemented to improve Core Web Vitals (LCP, CLS, INP) for the Clipper application.

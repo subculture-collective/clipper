@@ -1,3 +1,14 @@
+---
+title: "Subscription Privileges Matrix"
+summary: "This document defines the features, limits, and privileges for each subscription tier in Clipper. Us"
+tags: ['premium', 'payments']
+area: "premium"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Subscription Privileges Matrix
 
 This document defines the features, limits, and privileges for each subscription tier in Clipper. Use this as the authoritative reference for implementing and gating subscription features.

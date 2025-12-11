@@ -1,3 +1,14 @@
+---
+title: "Scraped Clips Feature Documentation"
+summary: "The Scraped Clips feature provides a separate UI section for discovering clips that have been automa"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Scraped Clips Feature Documentation
 
 ## Overview

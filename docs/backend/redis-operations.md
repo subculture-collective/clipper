@@ -1,3 +1,14 @@
+---
+title: "Redis Operations Guide"
+summary: "This guide covers common Redis operations for development, debugging, and production maintenance."
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Redis Operations Guide
 
 This guide covers common Redis operations for development, debugging, and production maintenance.

@@ -1,3 +1,14 @@
+---
+title: "Documentation Hosting Implementation"
+summary: "The Clipper documentation is now hosted within the application and accessible from the admin panel a"
+tags: ['operations']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Documentation Hosting Implementation
 
 ## Overview

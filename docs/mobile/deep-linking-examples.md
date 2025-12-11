@@ -1,3 +1,14 @@
+---
+title: "Deep Linking Examples"
+summary: "This document provides practical examples of how deep linking works in the Clipper PWA."
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Deep Linking Examples
 
 This document provides practical examples of how deep linking works in the Clipper PWA.

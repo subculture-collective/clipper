@@ -1,3 +1,14 @@
+---
+title: "Clipper Query Language Grammar v1.0.0"
+summary: "This document provides the formal grammar specification for the Clipper Advanced Query Language usin"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Clipper Query Language Grammar v1.0.0
 
 This document provides the formal grammar specification for the Clipper Advanced Query Language using Extended Backus-Naur Form (EBNF) notation.

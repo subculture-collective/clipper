@@ -1,3 +1,14 @@
+---
+title: "Security Hardening Documentation"
+summary: "This document describes the security features implemented in the Clipper application."
+tags: ['backend', 'security']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Security Hardening Documentation
 
 This document describes the security features implemented in the Clipper application.

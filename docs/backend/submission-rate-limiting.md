@@ -1,3 +1,14 @@
+---
+title: "Clip Submission Rate Limiting & Moderation"
+summary: "This document describes the rate limiting, abuse detection, and moderation system for clip submissio"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Clip Submission Rate Limiting & Moderation
 
 This document describes the rate limiting, abuse detection, and moderation system for clip submissions.

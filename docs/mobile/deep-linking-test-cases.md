@@ -1,3 +1,14 @@
+---
+title: "Deep Linking Test Cases"
+summary: "This document outlines the test cases for validating deep linking and universal links functionality "
+tags: ['mobile', 'testing']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Deep Linking Test Cases
 
 This document outlines the test cases for validating deep linking and universal links functionality in the Clipper mobile app.

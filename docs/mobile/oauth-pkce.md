@@ -1,3 +1,14 @@
+---
+title: "OAuth PKCE Implementation"
+summary: "This document describes the OAuth PKCE (Proof Key for Code Exchange) implementation for enhanced sec"
+tags: ['mobile', 'security']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # OAuth PKCE Implementation
 
 This document describes the OAuth PKCE (Proof Key for Code Exchange) implementation for enhanced security in the Clipper mobile/PWA application.

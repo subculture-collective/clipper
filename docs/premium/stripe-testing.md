@@ -1,3 +1,14 @@
+---
+title: "Stripe Subscription Testing Guide"
+summary: "This guide walks through testing the complete Stripe subscription integration."
+tags: ['premium', 'testing', 'payments']
+area: "premium"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Stripe Subscription Testing Guide
 
 This guide walks through testing the complete Stripe subscription integration.

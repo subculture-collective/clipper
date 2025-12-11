@@ -1,3 +1,14 @@
+---
+title: "Clip Submission API - Quick Reference"
+summary: "```bash"
+tags: ['backend', 'api', 'guide']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Clip Submission API - Quick Reference
 
 ## Authentication

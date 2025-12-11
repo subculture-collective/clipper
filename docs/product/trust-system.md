@@ -1,3 +1,14 @@
+---
+title: "Trust Score Algorithm"
+summary: "The Trust Score is a 0-100 metric that measures user trustworthiness and positive community contribu"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Trust Score Algorithm
 
 ## Executive Summary

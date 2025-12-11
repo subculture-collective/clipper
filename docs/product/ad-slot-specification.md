@@ -1,3 +1,14 @@
+---
+title: "Ad Slot Specification"
+summary: "**Status**: Pending Approval"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Ad Slot Specification
 
 **Status**: Pending Approval

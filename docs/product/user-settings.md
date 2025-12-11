@@ -1,3 +1,14 @@
+---
+title: "User Settings and Account Management"
+summary: "This document describes the user settings and account management features implemented in Clipper, in"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # User Settings and Account Management
 
 This document describes the user settings and account management features implemented in Clipper, including profile management, privacy settings, data export, and GDPR-compliant account deletion.

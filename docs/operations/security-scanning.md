@@ -1,3 +1,14 @@
+---
+title: "Security Scanning and Vulnerability Management"
+summary: "**Last Updated**: 2025-11-14"
+tags: ['operations', 'security']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Security Scanning and Vulnerability Management
 
 **Last Updated**: 2025-11-14  

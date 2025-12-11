@@ -1,3 +1,14 @@
+---
+title: "Trials and Discounts Policy"
+summary: "**Status**: Approved for Beta Milestone"
+tags: ['premium']
+area: "premium"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Trials and Discounts Policy
 
 **Status**: Approved for Beta Milestone  

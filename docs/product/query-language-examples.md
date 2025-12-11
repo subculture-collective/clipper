@@ -1,3 +1,14 @@
+---
+title: "Query Language Examples and Test Cases"
+summary: "This document provides comprehensive examples and test cases for the Clipper Advanced Query Language"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Query Language Examples and Test Cases
 
 This document provides comprehensive examples and test cases for the Clipper Advanced Query Language.

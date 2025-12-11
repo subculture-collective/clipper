@@ -1,3 +1,14 @@
+---
+title: "Email Service Integration Guide"
+summary: "The Clipper backend uses SendGrid for transactional email delivery. This document provides comprehen"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Email Service Integration Guide
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: "CI/CD Quick Start Guide"
+summary: "A quick reference for developers working with the Clipper CI/CD pipeline."
+tags: ['operations']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # CI/CD Quick Start Guide
 
 A quick reference for developers working with the Clipper CI/CD pipeline.

@@ -1,3 +1,14 @@
+---
+title: "Test Coverage Roadmap"
+summary: "This document tracks the progress of implementing comprehensive test coverage across the Clipper pro"
+tags: ['backend', 'testing']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Test Coverage Roadmap
 
 This document tracks the progress of implementing comprehensive test coverage across the Clipper project.

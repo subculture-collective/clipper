@@ -1,3 +1,14 @@
+---
+title: "Trust Score System Implementation"
+summary: "This document describes the trust score system implementation for the Clipper platform. The trust sc"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Trust Score System Implementation
 
 ## Overview

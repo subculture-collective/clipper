@@ -1,3 +1,14 @@
+---
+title: "Email Templates Documentation"
+summary: "This document provides an overview of all email templates used in the Clipper platform."
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Email Templates Documentation
 
 This document provides an overview of all email templates used in the Clipper platform.

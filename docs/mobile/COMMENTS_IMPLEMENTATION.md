@@ -1,3 +1,14 @@
+---
+title: "Mobile Comments UI Implementation"
+summary: "This document describes the implementation of the comments UI for the mobile app, including threaded"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Mobile Comments UI Implementation
 
 This document describes the implementation of the comments UI for the mobile app, including threaded replies, voting, and all supporting features.

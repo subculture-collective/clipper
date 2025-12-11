@@ -1,3 +1,14 @@
+---
+title: "Mobile Submit Clip Flow - Implementation Documentation"
+summary: "This document describes the implementation of the mobile clip submission flow, a multi-step wizard t"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Mobile Submit Clip Flow - Implementation Documentation
 
 ## Overview

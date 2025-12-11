@@ -1,3 +1,14 @@
+---
+title: "Broadcaster Live Status Sync Implementation"
+summary: "This implementation fulfills the requirement to synchronize broadcaster live status and notify follo"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Broadcaster Live Status Sync Implementation
 
 ## Summary

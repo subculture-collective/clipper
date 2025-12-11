@@ -1,3 +1,14 @@
+---
+title: "Analytics & Monitoring Setup for clpr.tv"
+summary: "This guide covers the complete setup of analytics and monitoring for the clpr.tv domain."
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Analytics & Monitoring Setup for clpr.tv
 
 This guide covers the complete setup of analytics and monitoring for the clpr.tv domain.

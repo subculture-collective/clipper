@@ -1,3 +1,14 @@
+---
+title: "Quick Reference Card"
+summary: "```bash"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Quick Reference Card
 
 ## Chunking Fix

@@ -1,3 +1,14 @@
+---
+title: "Performance Profiling Guide"
+summary: "This guide explains how to profile the Clipper backend to identify performance bottlenecks and optim"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Performance Profiling Guide
 
 This guide explains how to profile the Clipper backend to identify performance bottlenecks and optimize the system.

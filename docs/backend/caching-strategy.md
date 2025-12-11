@@ -1,3 +1,14 @@
+---
+title: "Redis Caching Strategy"
+summary: "This document describes the comprehensive caching strategy implemented in the Clipper backend."
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Redis Caching Strategy
 
 This document describes the comprehensive caching strategy implemented in the Clipper backend.

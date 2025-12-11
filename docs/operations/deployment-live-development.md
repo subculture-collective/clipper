@@ -1,3 +1,14 @@
+---
+title: "Production Deployment & Live Development Guide"
+summary: "This guide covers deploying Clipper to production while maintaining the ability to work on the codeb"
+tags: ['operations']
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Production Deployment & Live Development Guide
 
 This guide covers deploying Clipper to production while maintaining the ability to work on the codebase without interrupting service.

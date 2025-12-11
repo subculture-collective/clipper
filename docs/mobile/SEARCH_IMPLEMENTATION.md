@@ -1,3 +1,14 @@
+---
+title: "Search Screen Implementation Summary"
+summary: "- **300ms debounce** applied to search queries to reduce API calls"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Search Screen Implementation Summary
 
 ## Features Implemented

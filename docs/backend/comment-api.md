@@ -1,3 +1,14 @@
+---
+title: "Comment System API Documentation"
+summary: "The comment system provides threaded discussions on clips with markdown support, voting, and moderat"
+tags: ['backend', 'api']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Comment System API Documentation
 
 ## Overview

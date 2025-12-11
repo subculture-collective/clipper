@@ -1,3 +1,14 @@
+---
+title: "Paywall Analytics Events"
+summary: "This document describes the analytics events tracked for the premium subscription paywall and upgrad"
+tags: ['premium']
+area: "premium"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Paywall Analytics Events
 
 This document describes the analytics events tracked for the premium subscription paywall and upgrade flow.

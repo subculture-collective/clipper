@@ -1,3 +1,14 @@
+---
+title: "Broadcaster Live Status Sync - Testing Guide"
+summary: "This implementation adds automatic synchronization of broadcaster live status and notifications to f"
+tags: ['backend', 'testing']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Broadcaster Live Status Sync - Testing Guide
 
 ## Overview

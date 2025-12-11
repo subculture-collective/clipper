@@ -1,3 +1,14 @@
+---
+title: "Clipper Threat Model and Risk Assessment"
+summary: "**Version:** 1.0"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Clipper Threat Model and Risk Assessment
 
 ## Document Information

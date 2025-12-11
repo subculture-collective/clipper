@@ -1,3 +1,14 @@
+---
+title: "Discovery Lists Feature"
+summary: "This document describes the Discovery Lists feature that provides Top, New, and Discussed clip feeds"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Discovery Lists Feature
 
 This document describes the Discovery Lists feature that provides Top, New, and Discussed clip feeds with optional filtering by top 10k streamers.

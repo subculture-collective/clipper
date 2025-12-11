@@ -1,3 +1,14 @@
+---
+title: "Webhook Integration Guide"
+summary: "This guide explains how to integrate with Clipper's outbound webhooks to receive real-time notificat"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Webhook Integration Guide
 
 This guide explains how to integrate with Clipper's outbound webhooks to receive real-time notifications when clips are submitted, approved, or rejected.

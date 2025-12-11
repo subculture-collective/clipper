@@ -1,3 +1,14 @@
+---
+title: "CSS Injection Prevention"
+summary: "This document describes the CSS injection prevention measures implemented in the Clipper application"
+tags: ['frontend']
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # CSS Injection Prevention
 
 ## Overview

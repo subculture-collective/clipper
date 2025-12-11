@@ -1,3 +1,14 @@
+---
+title: "Keyboard Shortcuts"
+summary: "Clipper is fully keyboard accessible. This document lists all available keyboard shortcuts for effic"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Keyboard Shortcuts
 
 Clipper is fully keyboard accessible. This document lists all available keyboard shortcuts for efficient navigation and interaction.

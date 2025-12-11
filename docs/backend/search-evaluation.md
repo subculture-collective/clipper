@@ -1,3 +1,14 @@
+---
+title: "Search Evaluation"
+summary: "This document describes the search evaluation system for Clipper's semantic search, including evalua"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Search Evaluation
 
 This document describes the search evaluation system for Clipper's semantic search, including evaluation datasets, metrics, and how to run offline evaluations.

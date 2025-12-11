@@ -1,3 +1,14 @@
+---
+title: "Stripe Subscriptions"
+summary: "This document describes how to set up and manage Stripe subscriptions in the Clipper application."
+tags: ['premium', 'payments']
+area: "premium"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Stripe Subscriptions
 
 This document describes how to set up and manage Stripe subscriptions in the Clipper application.

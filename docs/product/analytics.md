@@ -1,3 +1,14 @@
+---
+title: "Analytics System"
+summary: "This document describes the analytics system implemented in Clipper for tracking and displaying plat"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Analytics System
 
 This document describes the analytics system implemented in Clipper for tracking and displaying platform metrics.

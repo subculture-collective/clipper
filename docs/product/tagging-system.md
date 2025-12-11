@@ -1,3 +1,14 @@
+---
+title: "Tagging System Implementation"
+summary: "This document describes the implementation of the comprehensive tagging system for Clipper."
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Tagging System Implementation
 
 This document describes the implementation of the comprehensive tagging system for Clipper.

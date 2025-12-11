@@ -1,3 +1,14 @@
+---
+title: "Clipper Component Library"
+summary: "A comprehensive, production-ready component library built with React, TypeScript, and TailwindCSS v4"
+tags: ['frontend']
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Clipper Component Library
 
 A comprehensive, production-ready component library built with React, TypeScript, and TailwindCSS v4.

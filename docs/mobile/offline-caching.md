@@ -1,3 +1,14 @@
+---
+title: "Offline Caching and Background Sync"
+summary: "This document describes the offline caching and background sync implementation for the Clipper mobil"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Offline Caching and Background Sync
 
 This document describes the offline caching and background sync implementation for the Clipper mobile web application.

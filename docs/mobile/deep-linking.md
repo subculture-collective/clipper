@@ -1,3 +1,14 @@
+---
+title: "Deep Linking and Universal Links Setup"
+summary: "This document describes the deep linking and universal links implementation for the Clipper PWA."
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Deep Linking and Universal Links Setup
 
 This document describes the deep linking and universal links implementation for the Clipper PWA.

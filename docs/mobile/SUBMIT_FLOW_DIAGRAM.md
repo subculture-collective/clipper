@@ -1,3 +1,14 @@
+---
+title: "Submit Clip Flow - User Journey"
+summary: "```"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Submit Clip Flow - User Journey
 
 ## Visual Flow Diagram

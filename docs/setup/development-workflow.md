@@ -1,3 +1,14 @@
+---
+title: "Development Workflow for Live Deployments"
+summary: "This guide describes best practices for working on Clipper while it's deployed and serving users."
+tags: ['setup']
+area: "setup"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Development Workflow for Live Deployments
 
 This guide describes best practices for working on Clipper while it's deployed and serving users.

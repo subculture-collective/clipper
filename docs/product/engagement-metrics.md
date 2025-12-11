@@ -1,3 +1,14 @@
+---
+title: "Engagement Metrics"
+summary: "This document defines the engagement metrics system used to measure user activity and platform healt"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Engagement Metrics
 
 ## Overview

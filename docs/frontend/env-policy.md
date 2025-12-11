@@ -1,3 +1,14 @@
+---
+title: "Frontend Environment Variable Policy"
+summary: "Only `VITE_*` variables may be used at build-time for the frontend. These values are inlined into th"
+tags: ['frontend']
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Frontend Environment Variable Policy
 
 Only `VITE_*` variables may be used at build-time for the frontend. These values are inlined into the static bundle and are public.

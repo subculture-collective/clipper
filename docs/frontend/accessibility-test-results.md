@@ -1,3 +1,14 @@
+---
+title: "Accessibility Audit Test Results"
+summary: "**Date**: 2025-10-29"
+tags: ['frontend', 'testing']
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Accessibility Audit Test Results
 
 **Date**: 2025-10-29

@@ -1,3 +1,14 @@
+---
+title: "Semantic Search Architecture"
+summary: "This document describes the architecture for semantic search in Clipper, implementing hybrid BM25 + "
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Semantic Search Architecture
 
 This document describes the architecture for semantic search in Clipper, implementing hybrid BM25 + vector similarity re-ranking for improved search relevance.

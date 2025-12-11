@@ -1,3 +1,14 @@
+---
+title: "Twitch API Integration"
+summary: "This package provides a comprehensive Twitch API integration for fetching and syncing Twitch clips."
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Twitch API Integration
 
 This package provides a comprehensive Twitch API integration for fetching and syncing Twitch clips.

@@ -1,3 +1,14 @@
+---
+title: "Accessibility Guidelines"
+summary: "This document outlines the accessibility features, standards, and best practices for the Clipper app"
+tags: ['frontend']
+area: "frontend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Accessibility Guidelines
 
 This document outlines the accessibility features, standards, and best practices for the Clipper application.

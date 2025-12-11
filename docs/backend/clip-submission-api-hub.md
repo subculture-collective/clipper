@@ -1,3 +1,14 @@
+---
+title: "Clip Submission API Documentation Summary"
+summary: "This document summarizes all documentation resources for the Clip Submission API. Use this as a navi"
+tags: ['backend', 'api']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Clip Submission API Documentation Summary
 
 ## Overview

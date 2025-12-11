@@ -1,3 +1,14 @@
+---
+title: "Mobile-First CSS & Responsive Design QA Checklist"
+summary: "This document provides a comprehensive checklist for verifying mobile-first design and responsive la"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Mobile-First CSS & Responsive Design QA Checklist
 
 This document provides a comprehensive checklist for verifying mobile-first design and responsive layouts across all pages in the Clipper application.

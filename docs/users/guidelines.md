@@ -1,3 +1,14 @@
+---
+title: "Community Guidelines"
+summary: "Welcome to Clipper! These guidelines help ensure our community remains friendly, inclusive, and focu"
+tags: ['users', 'guide']
+area: "users"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Community Guidelines
 
 Welcome to Clipper! These guidelines help ensure our community remains friendly, inclusive, and focused on sharing great Twitch content.

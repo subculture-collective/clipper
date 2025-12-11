@@ -1,3 +1,14 @@
+---
+title: "Webhook Retry and Dead-Letter Queue System"
+summary: "This document describes the webhook retry and dead-letter queue (DLQ) system for Stripe subscription"
+tags: ['backend']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Webhook Retry and Dead-Letter Queue System
 
 This document describes the webhook retry and dead-letter queue (DLQ) system for Stripe subscription webhooks.

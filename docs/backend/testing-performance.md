@@ -1,3 +1,14 @@
+---
+title: "Testing Performance Improvements"
+summary: "This guide explains how to verify the performance improvements and measure Core Web Vitals."
+tags: ['backend', 'testing']
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Testing Performance Improvements
 
 This guide explains how to verify the performance improvements and measure Core Web Vitals.

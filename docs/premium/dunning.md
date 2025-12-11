@@ -1,3 +1,14 @@
+---
+title: "Dunning and Failed Payment Recovery"
+summary: "**Status**: ✅ Implemented"
+tags: ['premium']
+area: "premium"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Dunning and Failed Payment Recovery
 
 **Status**: ✅ Implemented

@@ -1,3 +1,14 @@
+---
+title: "User Reputation System"
+summary: "This document describes the implementation of the user reputation system in Clipper, including karma"
+tags: ['product']
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # User Reputation System
 
 This document describes the implementation of the user reputation system in Clipper, including karma, badges, ranks, and leaderboards.

@@ -1,3 +1,14 @@
+---
+title: "Submit Clip Flow - Implementation Summary"
+summary: "Successfully implemented a comprehensive multi-step wizard for submitting Twitch clips in the mobile"
+tags: ['mobile']
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2025-12-11
+---
+
 # Submit Clip Flow - Implementation Summary
 
 ## Overview
