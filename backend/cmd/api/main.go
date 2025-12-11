@@ -264,6 +264,8 @@ func main() {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
 		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
 		liveStatusService = services.NewLiveStatusService(broadcasterRepo, twitchClient)
+		// Set notification service for live status notifications
+		liveStatusService.SetNotificationService(notificationService)
 	}
 
 	// Initialize handlers
@@ -1155,10 +1157,10 @@ func main() {
 	emailMetricsScheduler := scheduler.NewEmailMetricsScheduler(emailMetricsService, 24, 30, 7)
 	go emailMetricsScheduler.Start(context.Background())
 
-	// Start live status scheduler (runs every 60 seconds if Twitch client is available)
+	// Start live status scheduler (runs every 30 seconds if Twitch client is available)
 	var liveStatusScheduler *scheduler.LiveStatusScheduler
 	if liveStatusService != nil {
-		liveStatusScheduler = scheduler.NewLiveStatusScheduler(liveStatusService, broadcasterRepo, 60)
+		liveStatusScheduler = scheduler.NewLiveStatusScheduler(liveStatusService, broadcasterRepo, 30)
 		go liveStatusScheduler.Start(context.Background())
 	}
 

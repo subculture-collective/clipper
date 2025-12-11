@@ -546,6 +546,9 @@ type NotificationPreferences struct {
 	NotifyClipComments  bool `json:"notify_clip_comments" db:"notify_clip_comments"`
 	NotifyClipThreshold bool `json:"notify_clip_threshold" db:"notify_clip_threshold"`
 
+	// Broadcaster notifications
+	NotifyBroadcasterLive bool `json:"notify_broadcaster_live" db:"notify_broadcaster_live"`
+
 	// Global preferences
 	NotifyMarketing             bool `json:"notify_marketing" db:"notify_marketing"`
 	NotifyPolicyUpdates         bool `json:"notify_policy_updates" db:"notify_policy_updates"`
@@ -597,6 +600,8 @@ const (
 	NotificationTypeUserFollowed     = "user_followed"
 	NotificationTypeCommentOnContent = "comment_on_content"
 	NotificationTypeDiscussionReply  = "discussion_reply"
+	// Broadcaster notification types
+	NotificationTypeBroadcasterLive = "broadcaster_live"
 	// Global/Marketing notification types
 	NotificationTypeMarketing            = "marketing"
 	NotificationTypePolicyUpdate         = "policy_update"
@@ -2038,6 +2043,29 @@ type BroadcasterLiveStatus struct {
 	LastChecked   time.Time  `json:"last_checked" db:"last_checked"`
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// BroadcasterSyncStatus represents the sync status for broadcaster live tracking
+type BroadcasterSyncStatus struct {
+	BroadcasterID   string     `json:"broadcaster_id" db:"broadcaster_id"`
+	IsLive          bool       `json:"is_live" db:"is_live"`
+	StreamStartedAt *time.Time `json:"stream_started_at,omitempty" db:"stream_started_at"`
+	LastSynced      time.Time  `json:"last_synced" db:"last_synced"`
+	GameName        *string    `json:"game_name,omitempty" db:"game_name"`
+	ViewerCount     int        `json:"viewer_count" db:"viewer_count"`
+	StreamTitle     *string    `json:"stream_title,omitempty" db:"stream_title"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// BroadcasterSyncLog represents a log entry for broadcaster sync events
+type BroadcasterSyncLog struct {
+	ID            uuid.UUID `json:"id" db:"id"`
+	BroadcasterID string    `json:"broadcaster_id" db:"broadcaster_id"`
+	SyncTime      time.Time `json:"sync_time" db:"sync_time"`
+	StatusChange  *string   `json:"status_change,omitempty" db:"status_change"`
+	Error         *string   `json:"error,omitempty" db:"error"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
 // Community represents a community space
