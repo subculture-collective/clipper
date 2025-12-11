@@ -34,7 +34,7 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	query := `
 		INSERT INTO users (
-			id, twitch_id, username, display_name, email, 
+			id, twitch_id, username, display_name, email,
 			avatar_url, bio, role, last_login_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING created_at, updated_at
@@ -56,7 +56,7 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 // GetByID retrieves a user by ID
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
 			karma_points, role, is_banned, created_at, updated_at, last_login_at
 		FROM users
@@ -83,7 +83,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 // GetByTwitchID retrieves a user by Twitch ID
 func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*models.User, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
 			karma_points, role, is_banned, created_at, updated_at, last_login_at
 		FROM users
@@ -110,7 +110,7 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 // GetByUsername retrieves a user by username (case-insensitive)
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
 			karma_points, role, is_banned, created_at, updated_at, last_login_at
 		FROM users
@@ -141,7 +141,7 @@ func (r *UserRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*mode
 	}
 
 	query := `
-		SELECT 
+		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
 			karma_points, role, is_banned, created_at, updated_at, last_login_at
 		FROM users
@@ -578,7 +578,7 @@ func (r *UserRepository) ClearDeviceToken(ctx context.Context, userID uuid.UUID)
 func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, currentUserID *uuid.UUID) (*models.UserProfile, error) {
 	// First get basic user info
 	query := `
-		SELECT 
+		SELECT
 			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url, u.bio,
 			u.social_links, u.karma_points, u.trust_score, u.trust_score_updated_at,
 			u.role, u.is_banned, u.follower_count, u.following_count,
@@ -627,7 +627,7 @@ func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, c
 			COALESCE((SELECT COUNT(*) FROM comments WHERE user_id = $1), 0) AS total_comments,
 			COALESCE((SELECT COUNT(*) FROM broadcaster_follows WHERE user_id = $1), 0) AS broadcasters_followed
 		FROM (
-			SELECT 
+			SELECT
 				COUNT(*) AS total_count,
 				COALESCE(SUM(vote_score), 0) AS total_upvotes,
 				COUNT(*) FILTER (WHERE is_featured = true) AS featured_count
@@ -710,10 +710,10 @@ func (r *UserRepository) GetFollowers(ctx context.Context, userID uuid.UUID, cur
 	// Get followers with follow status in a single query
 	var query string
 	var rows pgx.Rows
-	
+
 	if currentUserID != nil {
 		query = `
-			SELECT 
+			SELECT
 				u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points, uf.created_at,
 				EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $2 AND following_id = u.id) AS is_following
 			FROM user_follows uf
@@ -725,7 +725,7 @@ func (r *UserRepository) GetFollowers(ctx context.Context, userID uuid.UUID, cur
 		rows, err = r.db.Query(ctx, query, userID, *currentUserID, limit, offset)
 	} else {
 		query = `
-			SELECT 
+			SELECT
 				u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points, uf.created_at,
 				false AS is_following
 			FROM user_follows uf
@@ -772,10 +772,10 @@ func (r *UserRepository) GetFollowing(ctx context.Context, userID uuid.UUID, cur
 	// Get following with follow status in a single query
 	var query string
 	var rows pgx.Rows
-	
+
 	if currentUserID != nil {
 		query = `
-			SELECT 
+			SELECT
 				u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points, uf.created_at,
 				EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $2 AND following_id = u.id) AS is_following
 			FROM user_follows uf
@@ -787,7 +787,7 @@ func (r *UserRepository) GetFollowing(ctx context.Context, userID uuid.UUID, cur
 		rows, err = r.db.Query(ctx, query, userID, *currentUserID, limit, offset)
 	} else {
 		query = `
-			SELECT 
+			SELECT
 				u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points, uf.created_at,
 				false AS is_following
 			FROM user_follows uf
@@ -833,7 +833,7 @@ func (r *UserRepository) GetUserActivity(ctx context.Context, userID uuid.UUID, 
 
 	// Get activity items
 	query := `
-		SELECT 
+		SELECT
 			ua.id, ua.user_id, ua.activity_type, ua.target_id, ua.target_type,
 			ua.metadata, ua.created_at,
 			u.username, u.avatar_url,
@@ -991,7 +991,7 @@ func (r *UserRepository) IsBlocked(ctx context.Context, userID, blockedUserID uu
 func (r *UserRepository) GetBlockedUsers(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.BlockedUser, int, error) {
 	// Get blocked users with their info
 	query := `
-		SELECT 
+		SELECT
 			u.id, u.username, u.display_name, u.avatar_url, u.bio, u.karma_points,
 			ub.blocked_at
 		FROM user_blocks ub

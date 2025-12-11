@@ -646,14 +646,14 @@ func main() {
 			users.GET("/:id/activity", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserActivity)
 			users.GET("/:id/upvoted", userHandler.GetUserUpvotedClips)
 			users.GET("/:id/downvoted", userHandler.GetUserDownvotedClips)
-			
+
 			// User social connections
 			users.GET("/:id/followers", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserFollowers)
 			users.GET("/:id/following", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserFollowing)
 			users.GET("/:id/following/broadcasters", middleware.OptionalAuthMiddleware(authService), userHandler.GetFollowedBroadcasters)
 			users.POST("/:id/follow", middleware.AuthMiddleware(authService), userHandler.FollowUser)
 			users.DELETE("/:id/follow", middleware.AuthMiddleware(authService), userHandler.UnfollowUser)
-			
+
 			// User blocking
 			users.POST("/:id/block", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), userHandler.BlockUser)
 			users.DELETE("/:id/block", middleware.AuthMiddleware(authService), userHandler.UnblockUser)
@@ -804,7 +804,7 @@ func main() {
 			// Public feed discovery endpoints
 			feeds.GET("/discover", feedHandler.DiscoverFeeds)
 			feeds.GET("/search", feedHandler.SearchFeeds)
-			
+
 			// Following feed (authenticated)
 			feeds.GET("/following", middleware.AuthMiddleware(authService), feedHandler.GetFollowingFeed)
 		}
@@ -930,21 +930,21 @@ func main() {
 			communities.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), communityHandler.CreateCommunity)
 			communities.PUT("/:id", middleware.AuthMiddleware(authService), communityHandler.UpdateCommunity)
 			communities.DELETE("/:id", middleware.AuthMiddleware(authService), communityHandler.DeleteCommunity)
-			
+
 			// Member management
 			communities.POST("/:id/join", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), communityHandler.JoinCommunity)
 			communities.POST("/:id/leave", middleware.AuthMiddleware(authService), communityHandler.LeaveCommunity)
 			communities.PUT("/:id/members/:userId/role", middleware.AuthMiddleware(authService), communityHandler.UpdateMemberRole)
-			
+
 			// Moderation
 			communities.POST("/:id/ban", middleware.AuthMiddleware(authService), communityHandler.BanMember)
 			communities.DELETE("/:id/ban/:userId", middleware.AuthMiddleware(authService), communityHandler.UnbanMember)
 			communities.GET("/:id/bans", middleware.AuthMiddleware(authService), communityHandler.GetBannedMembers)
-			
+
 			// Community feed management
 			communities.POST("/:id/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), communityHandler.AddClipToCommunity)
 			communities.DELETE("/:id/clips/:clipId", middleware.AuthMiddleware(authService), communityHandler.RemoveClipFromCommunity)
-			
+
 			// Discussions
 			communities.POST("/:id/discussions", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), communityHandler.CreateDiscussion)
 			communities.PUT("/:id/discussions/:discussionId", middleware.AuthMiddleware(authService), communityHandler.UpdateDiscussion)
