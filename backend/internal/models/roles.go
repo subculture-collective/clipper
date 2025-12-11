@@ -28,15 +28,15 @@ const (
 	PermissionClaimBroadcasterProfile  = "claim:broadcaster_profile"
 
 	// Moderator permissions (includes all broadcaster permissions)
-	PermissionModerateContent       = "moderate:content"
-	PermissionModerateUsers         = "moderate:users"
-	PermissionCreateDiscoveryLists  = "create:discovery_lists"
+	PermissionModerateContent      = "moderate:content"
+	PermissionModerateUsers        = "moderate:users"
+	PermissionCreateDiscoveryLists = "create:discovery_lists"
 
 	// Admin permissions (includes all permissions)
-	PermissionManageUsers           = "manage:users"
-	PermissionManageSystem          = "manage:system"
+	PermissionManageUsers            = "manage:users"
+	PermissionManageSystem           = "manage:system"
 	PermissionViewAnalyticsDashboard = "view:analytics_dashboard"
-	PermissionModerateOverride      = "moderate:override"
+	PermissionModerateOverride       = "moderate:override"
 )
 
 // accountTypePermissions maps account types to their permissions

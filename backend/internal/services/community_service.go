@@ -57,12 +57,12 @@ func generateSlug(name string) string {
 func (s *CommunityService) CreateCommunity(ctx context.Context, ownerID uuid.UUID, req *models.CreateCommunityRequest) (*models.Community, error) {
 	// Generate slug from name
 	slug := generateSlug(req.Name)
-	
+
 	// Validate slug is not empty
 	if slug == "" {
 		return nil, fmt.Errorf("community name must contain at least one alphanumeric character")
 	}
-	
+
 	// Check if slug already exists
 	existing, _ := s.communityRepo.GetCommunityBySlug(ctx, slug)
 	if existing != nil {
@@ -344,7 +344,7 @@ func (s *CommunityService) BanMember(ctx context.Context, communityID, requestin
 	if targetMember != nil {
 		requestingRoleLevel := roleHierarchy[requestingMember.Role]
 		targetRoleLevel := roleHierarchy[targetMember.Role]
-		
+
 		if targetRoleLevel >= requestingRoleLevel {
 			return fmt.Errorf("cannot ban users with equal or higher role")
 		}
@@ -460,7 +460,7 @@ func (s *CommunityService) RemoveClipFromCommunity(ctx context.Context, communit
 				if addedByMember != nil {
 					requestingRoleLevel := roleHierarchy[requestingMember.Role]
 					addedByRoleLevel := roleHierarchy[addedByMember.Role]
-					
+
 					// Cannot remove clips added by users with equal or higher role
 					if addedByRoleLevel >= requestingRoleLevel {
 						return fmt.Errorf("cannot remove clips added by users with equal or higher role")

@@ -76,6 +76,7 @@ type GamesResponse struct {
 // Pagination contains cursor information for paginated responses
 type Pagination struct {
 	Cursor string `json:"cursor"`
+	Total  int    `json:"total,omitempty"`
 }
 
 // Stream represents a Twitch stream from the API
@@ -99,5 +100,70 @@ type Stream struct {
 // StreamsResponse represents the response from the streams endpoint
 type StreamsResponse struct {
 	Data       []Stream   `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
+
+// Channel represents channel information from the API
+type Channel struct {
+	BroadcasterID       string   `json:"broadcaster_id"`
+	BroadcasterLogin    string   `json:"broadcaster_login"`
+	BroadcasterName     string   `json:"broadcaster_name"`
+	BroadcasterLanguage string   `json:"broadcaster_language"`
+	GameID              string   `json:"game_id"`
+	GameName            string   `json:"game_name"`
+	Title               string   `json:"title"`
+	Delay               int      `json:"delay"`
+	Tags                []string `json:"tags"`
+	ContentLabels       []string `json:"content_classification_labels"`
+	IsBrandedContent    bool     `json:"is_branded_content"`
+}
+
+// ChannelsResponse represents the response from the channels endpoint
+type ChannelsResponse struct {
+	Data []Channel `json:"data"`
+}
+
+// Video represents a video from the API
+type Video struct {
+	ID            string    `json:"id"`
+	StreamID      string    `json:"stream_id"`
+	UserID        string    `json:"user_id"`
+	UserLogin     string    `json:"user_login"`
+	UserName      string    `json:"user_name"`
+	Title         string    `json:"title"`
+	Description   string    `json:"description"`
+	CreatedAt     time.Time `json:"created_at"`
+	PublishedAt   time.Time `json:"published_at"`
+	URL           string    `json:"url"`
+	ThumbnailURL  string    `json:"thumbnail_url"`
+	Viewable      string    `json:"viewable"`
+	ViewCount     int       `json:"view_count"`
+	Language      string    `json:"language"`
+	Type          string    `json:"type"`
+	Duration      string    `json:"duration"`
+	MutedSegments []struct {
+		Duration int `json:"duration"`
+		Offset   int `json:"offset"`
+	} `json:"muted_segments"`
+}
+
+// VideosResponse represents the response from the videos endpoint
+type VideosResponse struct {
+	Data       []Video    `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
+
+// Follower represents a follower relationship from the API
+type Follower struct {
+	UserID     string    `json:"user_id"`
+	UserLogin  string    `json:"user_login"`
+	UserName   string    `json:"user_name"`
+	FollowedAt time.Time `json:"followed_at"`
+}
+
+// FollowersResponse represents the response from the followers endpoint
+type FollowersResponse struct {
+	Data       []Follower `json:"data"`
+	Total      int        `json:"total"`
 	Pagination Pagination `json:"pagination"`
 }

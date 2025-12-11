@@ -405,8 +405,8 @@ sudo crontab -e
 
 ```bash
 # One-time SSL setup
-export DOMAIN=clipper.example.com
-export EMAIL=admin@example.com
+export DOMAIN=clpr.tv
+export EMAIL=admin@clpr.tv
 sudo ./scripts/setup-ssl.sh
 
 # Certificates auto-renew via systemd timer

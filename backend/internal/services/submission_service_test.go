@@ -737,4 +737,3 @@ func TestClipExistenceResult(t *testing.T) {
 		}
 	})
 }
-

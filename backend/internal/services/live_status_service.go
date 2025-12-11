@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,9 +16,15 @@ import (
 
 // LiveStatusService handles live status updates and queries
 type LiveStatusService struct {
-	broadcasterRepo *repository.BroadcasterRepository
-	twitchClient    *twitch.Client
+	broadcasterRepo     *repository.BroadcasterRepository
+	twitchClient        *twitch.Client
+	notificationService *NotificationService
 }
+
+const (
+	// notificationWorkerCount defines the number of concurrent workers for sending notifications
+	notificationWorkerCount = 10
+)
 
 // NewLiveStatusService creates a new live status service
 func NewLiveStatusService(
@@ -27,6 +35,13 @@ func NewLiveStatusService(
 		broadcasterRepo: broadcasterRepo,
 		twitchClient:    twitchClient,
 	}
+}
+
+// SetNotificationService sets the notification service after initialization.
+// This is done separately from the constructor to avoid circular dependencies,
+// as NotificationService may itself depend on LiveStatusService or related components.
+func (s *LiveStatusService) SetNotificationService(notificationService *NotificationService) {
+	s.notificationService = notificationService
 }
 
 // UpdateLiveStatusForUser checks and updates live status for all broadcasters a user follows
@@ -64,6 +79,11 @@ func (s *LiveStatusService) UpdateLiveStatusForBroadcasters(ctx context.Context,
 		streams, err := s.twitchClient.GetStreams(ctx, batch)
 		if err != nil {
 			log.Printf("Failed to fetch streams for batch %d/%d: %v", batchNum, totalBatches, err)
+			// Log error to sync log
+			for _, broadcasterID := range batch {
+				errMsg := err.Error()
+				s.logSyncEvent(ctx, broadcasterID, nil, &errMsg)
+			}
 			continue
 		}
 
@@ -77,6 +97,13 @@ func (s *LiveStatusService) UpdateLiveStatusForBroadcasters(ctx context.Context,
 		// Update status for each broadcaster in batch
 		now := time.Now()
 		for _, broadcasterID := range batch {
+			// Get previous sync status to detect changes
+			oldSyncStatus, err := s.broadcasterRepo.GetSyncStatus(ctx, broadcasterID)
+			if err != nil && err != sql.ErrNoRows {
+				log.Printf("Failed to get previous sync status for broadcaster %s: %v", broadcasterID, err)
+			}
+
+			// Prepare new status
 			status := &models.BroadcasterLiveStatus{
 				BroadcasterID: broadcasterID,
 				IsLive:        false,
@@ -84,6 +111,14 @@ func (s *LiveStatusService) UpdateLiveStatusForBroadcasters(ctx context.Context,
 				LastChecked:   now,
 			}
 
+			syncStatus := &models.BroadcasterSyncStatus{
+				BroadcasterID: broadcasterID,
+				IsLive:        false,
+				LastSynced:    now,
+				ViewerCount:   0,
+			}
+
+			var statusChange *string
 			if stream, isLive := liveMap[broadcasterID]; isLive && stream.Type == "live" {
 				status.IsLive = true
 				status.UserLogin = &stream.UserLogin
@@ -92,15 +127,150 @@ func (s *LiveStatusService) UpdateLiveStatusForBroadcasters(ctx context.Context,
 				status.GameName = &stream.GameName
 				status.ViewerCount = stream.ViewerCount
 				status.StartedAt = &stream.StartedAt
+
+				syncStatus.IsLive = true
+				syncStatus.StreamStartedAt = &stream.StartedAt
+				syncStatus.GameName = &stream.GameName
+				syncStatus.ViewerCount = stream.ViewerCount
+				syncStatus.StreamTitle = &stream.Title
+
+				// Detect status change: offline -> live
+				if oldSyncStatus == nil || !oldSyncStatus.IsLive {
+					changeMsg := "went_live"
+					statusChange = &changeMsg
+					// Notify followers
+					s.notifyFollowers(ctx, broadcasterID, stream)
+				}
+			} else {
+				// Broadcaster is offline
+				if oldSyncStatus != nil && oldSyncStatus.IsLive {
+					changeMsg := "went_offline"
+					statusChange = &changeMsg
+				}
 			}
 
+			// Update live status
 			if err := s.broadcasterRepo.UpsertLiveStatus(ctx, status); err != nil {
 				log.Printf("Failed to update live status for broadcaster %s: %v", broadcasterID, err)
+			}
+
+			// Update sync status
+			if err := s.broadcasterRepo.UpsertSyncStatus(ctx, syncStatus); err != nil {
+				log.Printf("Failed to update sync status for broadcaster %s: %v", broadcasterID, err)
+			}
+
+			// Log sync event if there was a status change
+			if statusChange != nil {
+				s.logSyncEvent(ctx, broadcasterID, statusChange, nil)
 			}
 		}
 	}
 
 	return nil
+}
+
+// notifyFollowers sends notifications to all followers when a broadcaster goes live
+func (s *LiveStatusService) notifyFollowers(ctx context.Context, broadcasterID string, stream *twitch.Stream) {
+	if s.notificationService == nil {
+		log.Printf("WARNING: Notification service not initialized, cannot send notifications for broadcaster %s", broadcasterID)
+		return
+	}
+
+	// Get all followers of this broadcaster
+	followerIDs, err := s.broadcasterRepo.GetFollowerUserIDs(ctx, broadcasterID)
+	if err != nil {
+		log.Printf("Failed to get followers for broadcaster %s: %v", broadcasterID, err)
+		return
+	}
+
+	if len(followerIDs) == 0 {
+		return
+	}
+
+	// Prepare notification content
+	broadcasterName := stream.UserName
+	if broadcasterName == "" {
+		broadcasterName = stream.UserLogin
+	}
+	if broadcasterName == "" {
+		broadcasterName = broadcasterID
+	}
+
+	title := fmt.Sprintf("%s is now live!", broadcasterName)
+	message := stream.Title
+	if message == "" {
+		message = "Streaming now on Twitch"
+	}
+
+	// Add game info if available
+	if stream.GameName != "" {
+		message = fmt.Sprintf("%s - Playing %s", message, stream.GameName)
+	}
+
+	// Create link to Twitch channel - validate UserLogin to avoid malformed URLs
+	var link string
+	if stream.UserLogin != "" {
+		link = fmt.Sprintf("https://twitch.tv/%s", stream.UserLogin)
+	}
+	// Note: If UserLogin is empty, link will be an empty string.
+	// Notification system handles empty links gracefully.
+
+	// Send notification to each follower in parallel using a worker pool
+	// Use unbuffered channel to avoid excessive memory usage with many followers
+	followerCh := make(chan uuid.UUID)
+	var wg sync.WaitGroup
+
+	// Start worker pool
+	for i := 0; i < notificationWorkerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for followerID := range followerCh {
+				_, err := s.notificationService.CreateNotification(
+					ctx,
+					followerID,
+					models.NotificationTypeBroadcasterLive,
+					title,
+					message,
+					&link,
+					nil, // no source user
+					nil, // no source content
+					nil, // no source content type
+				)
+				if err != nil {
+					log.Printf("Failed to send notification to user %s for broadcaster %s: %v", followerID, broadcasterID, err)
+				}
+			}
+		}()
+	}
+
+	// Send followers to worker pool
+	go func() {
+		for _, followerID := range followerIDs {
+			followerCh <- followerID
+		}
+		close(followerCh)
+	}()
+
+	wg.Wait()
+
+	log.Printf("Sent live notifications for broadcaster %s (%s) to %d followers", broadcasterID, broadcasterName, len(followerIDs))
+}
+
+// logSyncEvent logs a sync event to the database
+func (s *LiveStatusService) logSyncEvent(ctx context.Context, broadcasterID string, statusChange, errorMsg *string) {
+	syncLog := &models.BroadcasterSyncLog{
+		ID:            uuid.New(),
+		BroadcasterID: broadcasterID,
+		SyncTime:      time.Now(),
+		StatusChange:  statusChange,
+		Error:         errorMsg,
+		CreatedAt:     time.Now(),
+	}
+
+	if err := s.broadcasterRepo.CreateSyncLog(ctx, syncLog); err != nil {
+		log.Printf("Failed to create sync log for broadcaster %s: %v", broadcasterID, err)
+	}
 }
 
 // GetLiveStatus retrieves live status for a broadcaster

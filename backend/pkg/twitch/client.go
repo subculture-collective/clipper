@@ -2,46 +2,98 @@ package twitch
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/subculture-collective/clipper/config"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 const (
 	baseURL         = "https://api.twitch.tv/helix"
-	tokenURL        = "https://id.twitch.tv/oauth2/token" // #nosec G101 -- not a credential, just OAuth endpoint URL
 	rateLimitPerMin = 800
-	cacheKeyPrefix  = "twitch:"
 )
 
 // Client wraps the Twitch API with authentication, rate limiting, and caching
 type Client struct {
-	clientID     string
-	clientSecret string
-	httpClient   *http.Client
-	redis        *redispkg.Client
-	mu           sync.RWMutex
-	accessToken  string
-	tokenExpiry  time.Time
-	rateLimiter  *RateLimiter
+	clientID       string
+	httpClient     *http.Client
+	cache          TwitchCache
+	authManager    *AuthManager
+	rateLimiter    *RateLimiter
+	circuitBreaker *CircuitBreaker
 }
 
-// RateLimiter implements token bucket rate limiting
-type RateLimiter struct {
-	tokens    int
-	maxTokens int
-	refillAt  time.Time
-	mu        sync.Mutex
+// CircuitBreaker implements circuit breaker pattern for API availability
+type CircuitBreaker struct {
+	mu           sync.RWMutex
+	failureCount int
+	lastFailure  time.Time
+	state        string // "closed", "open", "half-open"
+	failureLimit int
+	timeout      time.Duration
+}
+
+// NewCircuitBreaker creates a new circuit breaker
+func NewCircuitBreaker(failureLimit int, timeout time.Duration) *CircuitBreaker {
+	return &CircuitBreaker{
+		state:        "closed",
+		failureLimit: failureLimit,
+		timeout:      timeout,
+	}
+}
+
+// Allow checks if requests should be allowed
+func (cb *CircuitBreaker) Allow() error {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+
+	if cb.state == "open" {
+		if time.Since(cb.lastFailure) > cb.timeout {
+			// Transition to half-open state
+			cb.state = "half-open"
+			return nil
+		}
+		return &CircuitBreakerError{Message: "circuit breaker is open, API unavailable"}
+	}
+
+	return nil
+}
+
+// RecordSuccess records a successful request
+func (cb *CircuitBreaker) RecordSuccess() {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+
+	if cb.state == "half-open" {
+		cb.state = "closed"
+		cb.failureCount = 0
+	} else if cb.state == "closed" {
+		// Reset failure count on success in closed state
+		cb.failureCount = 0
+	}
+}
+
+// RecordFailure records a failed request
+func (cb *CircuitBreaker) RecordFailure() {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+
+	cb.failureCount++
+	cb.lastFailure = time.Now()
+
+	if cb.failureCount >= cb.failureLimit {
+		cb.state = "open"
+		logger := utils.GetLogger()
+		logger.Warn("Circuit breaker opening", map[string]interface{}{
+			"failure_count": cb.failureCount,
+			"component":     "twitch_client",
+		})
+	}
 }
 
 // NewClient creates a new Twitch API client
@@ -50,28 +102,32 @@ func NewClient(cfg *config.TwitchConfig, redis *redispkg.Client) (*Client, error
 		return nil, fmt.Errorf("twitch client ID and secret are required")
 	}
 
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	cache := NewRedisCache(redis)
+	authManager := NewAuthManager(cfg.ClientID, cfg.ClientSecret, httpClient, cache)
+	rateLimiter := NewRateLimiter(rateLimitPerMin)
+	circuitBreaker := NewCircuitBreaker(5, 30*time.Second)
+
 	client := &Client{
-		clientID:     cfg.ClientID,
-		clientSecret: cfg.ClientSecret,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		redis: redis,
-		rateLimiter: &RateLimiter{
-			tokens:    rateLimitPerMin,
-			maxTokens: rateLimitPerMin,
-			refillAt:  time.Now().Add(time.Minute),
-		},
+		clientID:       cfg.ClientID,
+		httpClient:     httpClient,
+		cache:          cache,
+		authManager:    authManager,
+		rateLimiter:    rateLimiter,
+		circuitBreaker: circuitBreaker,
 	}
 
 	// Try to load token from cache
-	if err := client.loadTokenFromCache(context.Background()); err != nil {
-		log.Printf("Failed to load token from cache: %v", err)
-	}
-
-	// If no cached token, get a new one
-	if client.accessToken == "" || time.Now().After(client.tokenExpiry) {
-		if err := client.refreshAccessToken(context.Background()); err != nil {
+	if err := authManager.LoadFromCache(context.Background()); err != nil {
+		logger := utils.GetLogger()
+		logger.Warn("Failed to load token from cache", map[string]interface{}{
+			"error": err.Error(),
+		})
+		// Get a new token
+		if err := authManager.RefreshToken(context.Background()); err != nil {
 			return nil, fmt.Errorf("failed to get access token: %w", err)
 		}
 	}
@@ -79,159 +135,23 @@ func NewClient(cfg *config.TwitchConfig, redis *redispkg.Client) (*Client, error
 	return client, nil
 }
 
-// loadTokenFromCache loads the access token from Redis cache
-func (c *Client) loadTokenFromCache(ctx context.Context) error {
-	token, err := c.redis.Get(ctx, cacheKeyPrefix+"access_token")
-	if err != nil {
-		return err
-	}
-
-	expiryStr, err := c.redis.Get(ctx, cacheKeyPrefix+"token_expiry")
-	if err != nil {
-		return err
-	}
-
-	expiry, err := time.Parse(time.RFC3339, expiryStr)
-	if err != nil {
-		return err
-	}
-
-	c.mu.Lock()
-	c.accessToken = token
-	c.tokenExpiry = expiry
-	c.mu.Unlock()
-
-	return nil
-}
-
-// saveTokenToCache saves the access token to Redis cache
-func (c *Client) saveTokenToCache(ctx context.Context) error {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	ttl := time.Until(c.tokenExpiry)
-	if ttl <= 0 {
-		return nil
-	}
-
-	if err := c.redis.Set(ctx, cacheKeyPrefix+"access_token", c.accessToken, ttl); err != nil {
-		return err
-	}
-
-	if err := c.redis.Set(ctx, cacheKeyPrefix+"token_expiry", c.tokenExpiry.Format(time.RFC3339), ttl); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// refreshAccessToken obtains a new app access token
-func (c *Client) refreshAccessToken(ctx context.Context) error {
-	data := url.Values{}
-	data.Set("client_id", c.clientID)
-	data.Set("client_secret", c.clientSecret)
-	data.Set("grant_type", "client_credentials")
-
-	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, http.NoBody)
-	if err != nil {
-		return fmt.Errorf("failed to create token request: %w", err)
-	}
-
-	req.URL.RawQuery = data.Encode()
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to request token: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("token request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var tokenResp struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-		TokenType   string `json:"token_type"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		return fmt.Errorf("failed to decode token response: %w", err)
-	}
-
-	c.mu.Lock()
-	c.accessToken = tokenResp.AccessToken
-	// Refresh 5 minutes before actual expiry to be safe
-	c.tokenExpiry = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
-	c.mu.Unlock()
-
-	// Save to cache
-	if err := c.saveTokenToCache(ctx); err != nil {
-		log.Printf("Failed to cache token: %v", err)
-	}
-
-	log.Printf("Successfully obtained new Twitch access token (expires in %d seconds)", tokenResp.ExpiresIn)
-	return nil
-}
-
-// ensureValidToken checks if the token is valid and refreshes if needed
-func (c *Client) ensureValidToken(ctx context.Context) error {
-	c.mu.RLock()
-	needsRefresh := time.Now().After(c.tokenExpiry)
-	c.mu.RUnlock()
-
-	if needsRefresh {
-		return c.refreshAccessToken(ctx)
-	}
-
-	return nil
-}
-
-// waitForRateLimit implements rate limiting with token bucket algorithm
-func (c *Client) waitForRateLimit(ctx context.Context) error {
-	c.rateLimiter.mu.Lock()
-	defer c.rateLimiter.mu.Unlock()
-
-	// Refill tokens if minute has passed
-	if time.Now().After(c.rateLimiter.refillAt) {
-		c.rateLimiter.tokens = c.rateLimiter.maxTokens
-		c.rateLimiter.refillAt = time.Now().Add(time.Minute)
-	}
-
-	// Wait if no tokens available
-	if c.rateLimiter.tokens <= 0 {
-		waitTime := time.Until(c.rateLimiter.refillAt)
-		if waitTime > 0 {
-			log.Printf("Rate limit reached, waiting %v", waitTime)
-			timer := time.NewTimer(waitTime)
-			defer timer.Stop()
-
-			select {
-			case <-timer.C:
-				c.rateLimiter.tokens = c.rateLimiter.maxTokens
-				c.rateLimiter.refillAt = time.Now().Add(time.Minute)
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		}
-	}
-
-	c.rateLimiter.tokens--
-	return nil
-}
-
-// doRequest performs an HTTP request with authentication, rate limiting, and retry logic
+// doRequest performs an HTTP request with authentication, rate limiting, retry logic, and circuit breaker
 // nolint:gocyclo // Complexity stems from retry and status handling; kept readable.
 func (c *Client) doRequest(ctx context.Context, method, endpoint string, params url.Values) (*http.Response, error) {
-	// Ensure token is valid
-	if err := c.ensureValidToken(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure valid token: %w", err)
+	// Check circuit breaker
+	if err := c.circuitBreaker.Allow(); err != nil {
+		return nil, err
+	}
+
+	// Get valid token
+	token, err := c.authManager.GetToken(ctx)
+	if err != nil {
+		c.circuitBreaker.RecordFailure()
+		return nil, err
 	}
 
 	// Apply rate limiting
-	if err := c.waitForRateLimit(ctx); err != nil {
+	if err := c.rateLimiter.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("rate limit wait cancelled: %w", err)
 	}
 
@@ -252,19 +172,27 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 			return nil, fmt.Errorf("failed to create request: %w", reqErr)
 		}
 
-		c.mu.RLock()
-		req.Header.Set("Authorization", "Bearer "+c.accessToken) // #nosec G101 (value is an OAuth token, not hardcoded secret)
-		c.mu.RUnlock()
+		req.Header.Set("Authorization", "Bearer "+token) // #nosec G101 (value is an OAuth token, not hardcoded secret)
 		req.Header.Set("Client-Id", c.clientID)
 
-		log.Printf("[Twitch API] %s %s", method, endpoint)
+		logger := utils.GetLogger()
+		logger.Debug("Twitch API request", map[string]interface{}{
+			"method":   method,
+			"endpoint": endpoint,
+		})
 
-		var err error
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
+			c.circuitBreaker.RecordFailure()
 			if attempt < maxRetries-1 {
 				delay := baseDelay * time.Duration(1<<uint(attempt))
-				log.Printf("Request failed (attempt %d/%d): %v, retrying in %v", attempt+1, maxRetries, err, delay)
+				logger := utils.GetLogger()
+				logger.Warn("Request failed, retrying", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+					"delay":   delay.String(),
+					"error":   err.Error(),
+				})
 				time.Sleep(delay)
 				continue
 			}
@@ -274,15 +202,27 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 		// Handle specific status codes
 		switch resp.StatusCode {
 		case http.StatusOK:
+			c.circuitBreaker.RecordSuccess()
 			return resp, nil
 		case http.StatusUnauthorized:
 			resp.Body.Close()
 			// Token might be invalid, refresh and retry
-			if err := c.refreshAccessToken(ctx); err != nil {
-				return nil, fmt.Errorf("failed to refresh token: %w", err)
+			if err := c.authManager.RefreshToken(ctx); err != nil {
+				c.circuitBreaker.RecordFailure()
+				return nil, &AuthError{Message: "failed to refresh token", Err: err}
+			}
+			// Get new token for retry
+			token, err = c.authManager.GetToken(ctx)
+			if err != nil {
+				c.circuitBreaker.RecordFailure()
+				return nil, &AuthError{Message: "failed to get token after refresh", Err: err}
 			}
 			if attempt < maxRetries-1 {
-				log.Printf("Token refreshed, retrying request (attempt %d/%d)", attempt+1, maxRetries)
+				logger := utils.GetLogger()
+				logger.Info("Token refreshed, retrying request", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+				})
 				continue
 			}
 		case http.StatusTooManyRequests:
@@ -290,250 +230,53 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, params 
 			// Rate limited by Twitch, back off
 			delay := baseDelay * time.Duration(1<<uint(attempt))
 			if attempt < maxRetries-1 {
-				log.Printf("Rate limited by Twitch (attempt %d/%d), backing off for %v", attempt+1, maxRetries, delay)
+				logger := utils.GetLogger()
+				logger.Warn("Rate limited by Twitch", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+					"delay":   delay.String(),
+				})
 				time.Sleep(delay)
 				continue
 			}
-		case http.StatusServiceUnavailable:
+			return nil, &RateLimitError{Message: "rate limited by Twitch", RetryAfter: int(delay.Seconds())}
+		case http.StatusServiceUnavailable, http.StatusBadGateway, http.StatusGatewayTimeout:
 			resp.Body.Close()
 			// Twitch is down, retry with backoff
+			c.circuitBreaker.RecordFailure()
 			delay := baseDelay * time.Duration(1<<uint(attempt))
 			if attempt < maxRetries-1 {
-				log.Printf("Twitch service unavailable (attempt %d/%d), retrying in %v", attempt+1, maxRetries, delay)
+				logger := utils.GetLogger()
+				logger.Warn("Twitch service unavailable", map[string]interface{}{
+					"attempt":     attempt + 1,
+					"max":         maxRetries,
+					"delay":       delay.String(),
+					"status_code": resp.StatusCode,
+				})
 				time.Sleep(delay)
 				continue
 			}
 		case http.StatusNotFound:
-			// Don't retry on 404
+			// Don't retry on 404, don't count as failure
+			c.circuitBreaker.RecordSuccess()
 			return resp, nil
 		default:
-			// Other errors, don't retry
+			// Other errors, don't retry but don't count as circuit breaker failure
+			c.circuitBreaker.RecordSuccess()
 			return resp, nil
 		}
 	}
 
+	c.circuitBreaker.RecordFailure()
 	return resp, fmt.Errorf("request failed after %d attempts", maxRetries)
-}
-
-// GetClips fetches clips from Twitch API
-func (c *Client) GetClips(ctx context.Context, params *ClipParams) (*ClipsResponse, error) {
-	urlParams := url.Values{}
-
-	if params.BroadcasterID != "" {
-		urlParams.Set("broadcaster_id", params.BroadcasterID)
-	}
-	if params.GameID != "" {
-		urlParams.Set("game_id", params.GameID)
-	}
-	if len(params.ClipIDs) > 0 {
-		for _, id := range params.ClipIDs {
-			urlParams.Add("id", id)
-		}
-	}
-	if !params.StartedAt.IsZero() {
-		urlParams.Set("started_at", params.StartedAt.Format(time.RFC3339))
-	}
-	if !params.EndedAt.IsZero() {
-		urlParams.Set("ended_at", params.EndedAt.Format(time.RFC3339))
-	}
-	if params.First > 0 {
-		urlParams.Set("first", fmt.Sprintf("%d", params.First))
-	}
-	if params.After != "" {
-		urlParams.Set("after", params.After)
-	}
-	if params.Before != "" {
-		urlParams.Set("before", params.Before)
-	}
-
-	resp, err := c.doRequest(ctx, "GET", "/clips", urlParams)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("clips request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var clipsResp ClipsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&clipsResp); err != nil {
-		return nil, fmt.Errorf("failed to decode clips response: %w", err)
-	}
-
-	log.Printf("[Twitch API] Fetched %d clips", len(clipsResp.Data))
-	return &clipsResp, nil
-}
-
-// GetUsers fetches user information from Twitch API
-func (c *Client) GetUsers(ctx context.Context, userIDs, logins []string) (*UsersResponse, error) {
-	urlParams := url.Values{}
-
-	for _, id := range userIDs {
-		urlParams.Add("id", id)
-	}
-	for _, login := range logins {
-		urlParams.Add("login", login)
-	}
-
-	resp, err := c.doRequest(ctx, "GET", "/users", urlParams)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("users request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var usersResp UsersResponse
-	if err := json.NewDecoder(resp.Body).Decode(&usersResp); err != nil {
-		return nil, fmt.Errorf("failed to decode users response: %w", err)
-	}
-
-	// Cache user data
-	for i := range usersResp.Data {
-		user := &usersResp.Data[i]
-		cacheKey := fmt.Sprintf("%suser:%s", cacheKeyPrefix, user.ID)
-		userData, err := json.Marshal(user)
-		if err != nil {
-			log.Printf("Failed to marshal user data for user ID %s: %v", user.ID, err)
-			continue
-		}
-		if err := c.redis.Set(ctx, cacheKey, string(userData), time.Hour); err != nil {
-			log.Printf("Failed to cache user data for user ID %s: %v", user.ID, err)
-		}
-	}
-
-	log.Printf("[Twitch API] Fetched %d users", len(usersResp.Data))
-	return &usersResp, nil
-}
-
-// GetGames fetches game information from Twitch API
-func (c *Client) GetGames(ctx context.Context, gameIDs, names []string) (*GamesResponse, error) {
-	urlParams := url.Values{}
-
-	for _, id := range gameIDs {
-		urlParams.Add("id", id)
-	}
-	for _, name := range names {
-		urlParams.Add("name", name)
-	}
-
-	resp, err := c.doRequest(ctx, "GET", "/games", urlParams)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("games request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var gamesResp GamesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&gamesResp); err != nil {
-		return nil, fmt.Errorf("failed to decode games response: %w", err)
-	}
-
-	// Cache game data
-	for i := range gamesResp.Data {
-		game := &gamesResp.Data[i]
-		cacheKey := fmt.Sprintf("%sgame:%s", cacheKeyPrefix, game.ID)
-		gameData, err := json.Marshal(game)
-		if err != nil {
-			log.Printf("Failed to marshal game data for game ID %s: %v", game.ID, err)
-			continue
-		}
-		if err := c.redis.Set(ctx, cacheKey, string(gameData), time.Hour); err != nil {
-			log.Printf("Failed to cache game data: %v", err)
-		}
-	}
-
-	log.Printf("[Twitch API] Fetched %d games", len(gamesResp.Data))
-	return &gamesResp, nil
 }
 
 // GetCachedUser retrieves user data from cache
 func (c *Client) GetCachedUser(ctx context.Context, userID string) (*User, error) {
-	cacheKey := fmt.Sprintf("%suser:%s", cacheKeyPrefix, userID)
-	userData, err := c.redis.Get(ctx, cacheKey)
-	if err != nil {
-		return nil, err
-	}
-
-	var user User
-	if err := json.Unmarshal([]byte(userData), &user); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
+	return c.cache.CachedUser(ctx, userID)
 }
 
 // GetCachedGame retrieves game data from cache
 func (c *Client) GetCachedGame(ctx context.Context, gameID string) (*Game, error) {
-	cacheKey := fmt.Sprintf("%sgame:%s", cacheKeyPrefix, gameID)
-	gameData, err := c.redis.Get(ctx, cacheKey)
-	if err != nil {
-		return nil, err
-	}
-
-	var game Game
-	if err := json.Unmarshal([]byte(gameData), &game); err != nil {
-		return nil, err
-	}
-
-	return &game, nil
-}
-
-// GetStreams fetches live streams for specified user IDs
-// Can fetch up to 100 streams at once
-func (c *Client) GetStreams(ctx context.Context, userIDs []string) (*StreamsResponse, error) {
-	if len(userIDs) == 0 {
-		return &StreamsResponse{Data: []Stream{}}, nil
-	}
-
-	// Twitch allows max 100 user_id parameters
-	if len(userIDs) > 100 {
-		userIDs = userIDs[:100]
-	}
-
-	params := url.Values{}
-	for _, id := range userIDs {
-		params.Add("user_id", id)
-	}
-
-	// Check cache first - use sorted IDs for consistent cache key
-	sortedIDs := make([]string, len(userIDs))
-	copy(sortedIDs, userIDs)
-	sort.Strings(sortedIDs)
-	cacheKey := fmt.Sprintf("%sstreams:%s", cacheKeyPrefix, strings.Join(sortedIDs, ","))
-	if cached, err := c.redis.Get(ctx, cacheKey); err == nil {
-		var streamsResp StreamsResponse
-		if err := json.Unmarshal([]byte(cached), &streamsResp); err == nil {
-			log.Printf("[Twitch API] Using cached streams data for %d users", len(userIDs))
-			return &streamsResp, nil
-		}
-	}
-
-	resp, err := c.doRequest(ctx, "GET", "/streams", params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch streams: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var streamsResp StreamsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&streamsResp); err != nil {
-		return nil, fmt.Errorf("failed to decode streams response: %w", err)
-	}
-
-	// Cache for 30 seconds
-	if data, err := json.Marshal(streamsResp); err == nil {
-		_ = c.redis.Set(ctx, cacheKey, string(data), 30*time.Second)
-	}
-
-	log.Printf("[Twitch API] Fetched %d live streams out of %d requested users", len(streamsResp.Data), len(userIDs))
-	return &streamsResp, nil
+	return c.cache.CachedGame(ctx, gameID)
 }

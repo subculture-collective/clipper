@@ -213,7 +213,7 @@ err := emailService.SendNotificationEmail(
 ### Generic Email (New)
 ```go
 req := services.EmailRequest{
-    To:       []string{"user@example.com", "admin@example.com"},
+    To:       []string{"user1@example.com", "user2@example.com"},
     Subject:  "Weekly Digest",
     Template: "weekly-digest",
     Data: map[string]interface{}{
