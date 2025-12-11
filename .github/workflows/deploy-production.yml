@@ -20,7 +20,7 @@ jobs:
       packages: write
     environment:
       name: production
-      url: https://clipper.example.com
+      url: https://clpr.tv
     
     steps:
       - name: Checkout repository

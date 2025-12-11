@@ -439,7 +439,7 @@ Use tools like [webhook.site](https://webhook.site) or [ngrok](https://ngrok.com
 1. **Check subscription is active:**
    ```bash
    curl -H "Authorization: Bearer YOUR_TOKEN" \
-     https://api.clipper.example.com/api/v1/webhooks
+     https://clpr.tv/api/v1/webhooks
    ```
 
 2. **Verify URL is accessible:**
@@ -450,7 +450,7 @@ Use tools like [webhook.site](https://webhook.site) or [ngrok](https://ngrok.com
 3. **Check delivery history:**
    ```bash
    curl -H "Authorization: Bearer YOUR_TOKEN" \
-     https://api.clipper.example.com/api/v1/webhooks/{id}/deliveries
+     https://clpr.tv/api/v1/webhooks/{id}/deliveries
    ```
 
 ### Signature Verification Fails
@@ -478,6 +478,6 @@ Use tools like [webhook.site](https://webhook.site) or [ngrok](https://ngrok.com
 ## Support
 
 For issues or questions:
-- Check the [API documentation](https://docs.clipper.example.com)
-- Contact support at support@clipper.example.com
+- Check the [API documentation](https://docs.clpr.tv)
+- Contact support at support@clpr.tv
 - GitHub issues: https://github.com/subculture-collective/clipper/issues

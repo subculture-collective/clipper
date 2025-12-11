@@ -87,10 +87,10 @@ Before any production deployment, verify:
 
    ```bash
    # Check health endpoints
-   curl https://clipper.example.com/health
+   curl https://clpr.tv/health
 
    # Test API endpoints
-   curl https://clipper.example.com/api/v1/ping
+   curl https://clpr.tv/api/v1/ping
 
    # Check logs
    ssh deploy@production-server
@@ -168,13 +168,13 @@ docker-compose logs -f --tail=50
 
 ```bash
 # Test homepage
-curl -I https://clipper.example.com
+curl -I https://clpr.tv
 
 # Test API
-curl https://clipper.example.com/api/v1/ping
+curl https://clpr.tv/api/v1/ping
 
 # Test authentication (if applicable)
-# curl -X POST https://clipper.example.com/api/v1/login -d '...'
+# curl -X POST https://clpr.tv/api/v1/login -d '...'
 ```
 
 #### Step 8: Monitor
@@ -862,7 +862,7 @@ find /var/backups -mtime +30 -delete
 ping 8.8.8.8
 
 # Check DNS
-nslookup clipper.example.com
+nslookup clpr.tv
 
 # Check ports
 sudo netstat -tlnp | grep -E '80|443|8080'
@@ -1084,7 +1084,7 @@ Based on 99.5% availability SLO:
 
 #### External Communication
 
-1. **Status Page**: Update <https://status.clipper.example.com>
+1. **Status Page**: Update <https://status.clpr.tv>
 2. **Twitter**: Post updates for major incidents
 3. **Email**: Notify affected users if data loss or security issue
 

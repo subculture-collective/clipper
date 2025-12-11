@@ -157,8 +157,8 @@ docker run -p 80:80 clipper-frontend
 | Secret            | Description                    | Example                              |
 | ----------------- | ------------------------------ | ------------------------------------ |
 | `CODECOV_TOKEN`   | Codecov project token          | `abc123...`                          |
-| `STAGING_HOST`    | Staging server hostname        | `staging.clipper.example.com`        |
-| `PRODUCTION_HOST` | Production server hostname     | `clipper.example.com`                |
+| `STAGING_HOST`    | Staging server hostname        | `staging.clpr.tv`        |
+| `PRODUCTION_HOST` | Production server hostname     | `clpr.tv`                |
 | `DEPLOY_SSH_KEY`  | SSH private key for deployment | `-----BEGIN RSA PRIVATE KEY-----...` |
 
 **Setting secrets:**

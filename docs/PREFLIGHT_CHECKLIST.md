@@ -221,7 +221,7 @@ Run the preflight check script to validate all required environment variables:
 
 - [ ] SSL certificates valid and not expiring soon (>30 days)
   ```bash
-  echo | openssl s_client -connect clipper.example.com:443 2>/dev/null | openssl x509 -noout -dates
+  echo | openssl s_client -connect clpr.tv:443 2>/dev/null | openssl x509 -noout -dates
   ```
 - [ ] Certificate chain complete
 - [ ] Strong ciphers enabled, weak ciphers disabled
@@ -253,7 +253,7 @@ Run the preflight check script to validate all required environment variables:
 - [ ] OWASP Top 10 vulnerabilities addressed
 - [ ] Security headers tested
   ```bash
-  curl -I https://clipper.example.com
+  curl -I https://clpr.tv
   ```
 
 ## Infrastructure Checks
@@ -304,8 +304,8 @@ Run the preflight check script to validate all required environment variables:
 
 - [ ] DNS records correct
   ```bash
-  dig clipper.example.com
-  dig www.clipper.example.com
+  dig clpr.tv
+  dig www.clpr.tv
   ```
 - [ ] Load balancer configured (if applicable)
 - [ ] Firewall rules appropriate
@@ -492,8 +492,8 @@ After deployment, verify the following within 1 hour:
 
 - [ ] Health check endpoints responding
   ```bash
-  curl https://clipper.example.com/health
-  curl https://clipper.example.com/api/v1/ping
+  curl https://clpr.tv/health
+  curl https://clpr.tv/api/v1/ping
   ```
 - [ ] No error spikes in Sentry
 - [ ] Response times within normal range
