@@ -748,7 +748,7 @@ func (s *OpenSearchService) GetSuggestions(ctx context.Context, query string, li
 	gameHits, _, err := s.executeSearch(ctx, GamesIndex, gameQuery)
 	if err == nil {
 		for _, hit := range gameHits {
-			var game models.Game
+			var game models.GameEntity
 			if err := json.Unmarshal(hit, &game); err == nil {
 				suggestions = append(suggestions, models.SearchSuggestion{
 					Text: game.Name,

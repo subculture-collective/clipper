@@ -16,6 +16,7 @@ import (
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/handlers"
 	"github.com/subculture-collective/clipper/internal/middleware"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/scheduler"
 	"github.com/subculture-collective/clipper/internal/services"
@@ -148,6 +149,7 @@ func main() {
 	discoveryListRepo := repository.NewDiscoveryListRepository(db.Pool)
 	categoryRepo := repository.NewCategoryRepository(db.Pool)
 	gameRepo := repository.NewGameRepository(db.Pool)
+	communityRepo := repository.NewCommunityRepository(db.Pool)
 	accountTypeConversionRepo := repository.NewAccountTypeConversionRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -194,6 +196,9 @@ func main() {
 
 	// Initialize feed service
 	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
+
+	// Initialize community service
+	communityService := services.NewCommunityService(communityRepo, clipRepo, userRepo, notificationService)
 
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo)
@@ -302,6 +307,7 @@ func main() {
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
 	feedHandler := handlers.NewFeedHandler(feedService, authService)
+	communityHandler := handlers.NewCommunityHandler(communityService, authService)
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
 	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
@@ -903,6 +909,43 @@ func main() {
 			docs.GET("/search", docsHandler.SearchDocs)
 			// Catch-all route must be last
 			docs.GET("/:path", docsHandler.GetDoc) // Changed from /*path to /:path to avoid conflict
+		}
+
+		// Community routes
+		communities := v1.Group("/communities")
+		{
+			// Public community endpoints
+			communities.GET("", communityHandler.ListCommunities)
+			communities.GET("/search", communityHandler.SearchCommunities)
+			communities.GET("/:id", middleware.OptionalAuthMiddleware(authService), communityHandler.GetCommunity)
+			communities.GET("/:id/members", communityHandler.GetMembers)
+			communities.GET("/:id/feed", communityHandler.GetCommunityFeed)
+			communities.GET("/:id/discussions", communityHandler.ListDiscussions)
+			communities.GET("/:id/discussions/:discussionId", communityHandler.GetDiscussion)
+
+			// Protected community endpoints (require authentication)
+			communities.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), communityHandler.CreateCommunity)
+			communities.PUT("/:id", middleware.AuthMiddleware(authService), communityHandler.UpdateCommunity)
+			communities.DELETE("/:id", middleware.AuthMiddleware(authService), communityHandler.DeleteCommunity)
+			
+			// Member management
+			communities.POST("/:id/join", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), communityHandler.JoinCommunity)
+			communities.POST("/:id/leave", middleware.AuthMiddleware(authService), communityHandler.LeaveCommunity)
+			communities.PUT("/:id/members/:userId/role", middleware.AuthMiddleware(authService), communityHandler.UpdateMemberRole)
+			
+			// Moderation
+			communities.POST("/:id/ban", middleware.AuthMiddleware(authService), communityHandler.BanMember)
+			communities.DELETE("/:id/ban/:userId", middleware.AuthMiddleware(authService), communityHandler.UnbanMember)
+			communities.GET("/:id/bans", middleware.AuthMiddleware(authService), communityHandler.GetBannedMembers)
+			
+			// Community feed management
+			communities.POST("/:id/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), communityHandler.AddClipToCommunity)
+			communities.DELETE("/:id/clips/:clipId", middleware.AuthMiddleware(authService), communityHandler.RemoveClipFromCommunity)
+			
+			// Discussions
+			communities.POST("/:id/discussions", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), communityHandler.CreateDiscussion)
+			communities.PUT("/:id/discussions/:discussionId", middleware.AuthMiddleware(authService), communityHandler.UpdateDiscussion)
+			communities.DELETE("/:id/discussions/:discussionId", middleware.AuthMiddleware(authService), communityHandler.DeleteDiscussion)
 		}
 
 		// Admin routes
