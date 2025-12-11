@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
     stripe_customer_id VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255),
     metadata JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_stripe_customers_user_id ON stripe_customers(user_id);
@@ -19,15 +19,15 @@ CREATE TABLE IF NOT EXISTS stripe_subscriptions (
     stripe_customer_id VARCHAR(255) NOT NULL,
     stripe_price_id VARCHAR(255),
     status VARCHAR(50) NOT NULL,
-    current_period_start TIMESTAMPTZ,
-    current_period_end TIMESTAMPTZ,
+    current_period_start TIMESTAMP,
+    current_period_end TIMESTAMP,
     cancel_at_period_end BOOLEAN DEFAULT FALSE,
-    canceled_at TIMESTAMPTZ,
-    trial_start TIMESTAMPTZ,
-    trial_end TIMESTAMPTZ,
+    canceled_at TIMESTAMP,
+    trial_start TIMESTAMP,
+    trial_end TIMESTAMP,
     metadata JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_stripe_subscriptions_subscription_id ON stripe_subscriptions(stripe_subscription_id);
@@ -46,8 +46,8 @@ CREATE TABLE IF NOT EXISTS stripe_payment_intents (
     payment_method_type VARCHAR(50),
     metadata JSONB,
     idempotency_key VARCHAR(255),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_stripe_payment_intents_intent_id ON stripe_payment_intents(stripe_intent_id);
@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS stripe_webhooks_log (
     processed BOOLEAN DEFAULT FALSE,
     processing_error TEXT,
     processing_attempts INT DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    processed_at TIMESTAMPTZ
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP
 );
 
 CREATE INDEX idx_stripe_webhooks_log_event_id ON stripe_webhooks_log(event_id);
@@ -78,7 +78,7 @@ CREATE INDEX idx_stripe_webhooks_log_created_at ON stripe_webhooks_log(created_a
 CREATE OR REPLACE FUNCTION update_stripe_customers_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -91,7 +91,7 @@ CREATE TRIGGER trigger_stripe_customers_updated_at
 CREATE OR REPLACE FUNCTION update_stripe_subscriptions_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -104,7 +104,7 @@ CREATE TRIGGER trigger_stripe_subscriptions_updated_at
 CREATE OR REPLACE FUNCTION update_stripe_payment_intents_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
