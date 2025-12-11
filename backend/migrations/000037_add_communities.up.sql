@@ -199,8 +199,8 @@ CREATE TRIGGER update_discussion_vote_score_trigger
 AFTER INSERT OR UPDATE OR DELETE ON community_discussion_votes
 FOR EACH ROW EXECUTE FUNCTION update_discussion_vote_score();
 
--- Function to update communities updated_at timestamp
-CREATE OR REPLACE FUNCTION update_communities_updated_at()
+-- Function to update updated_at timestamp (generic for all tables)
+CREATE OR REPLACE FUNCTION update_updated_at_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -211,14 +211,14 @@ $$ LANGUAGE plpgsql;
 -- Trigger to automatically update communities updated_at
 CREATE TRIGGER update_communities_updated_at_trigger
 BEFORE UPDATE ON communities
-FOR EACH ROW EXECUTE FUNCTION update_communities_updated_at();
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_timestamp();
 
 -- Trigger to automatically update discussions updated_at
 CREATE TRIGGER update_discussions_updated_at_trigger
 BEFORE UPDATE ON community_discussions
-FOR EACH ROW EXECUTE FUNCTION update_communities_updated_at();
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_timestamp();
 
 -- Trigger to automatically update discussion comments updated_at
 CREATE TRIGGER update_discussion_comments_updated_at_trigger
 BEFORE UPDATE ON community_discussion_comments
-FOR EACH ROW EXECUTE FUNCTION update_communities_updated_at();
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_timestamp();

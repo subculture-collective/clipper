@@ -188,12 +188,12 @@ func (r *CommunityRepository) SearchCommunities(ctx context.Context, query strin
 func (r *CommunityRepository) UpdateCommunity(ctx context.Context, community *models.Community) error {
 	query := `
 		UPDATE communities
-		SET name = $2, description = $3, icon = $4, is_public = $5, rules = $6, updated_at = NOW()
+		SET name = $2, slug = $3, description = $4, icon = $5, is_public = $6, rules = $7, updated_at = NOW()
 		WHERE id = $1
 		RETURNING updated_at
 	`
 	return r.pool.QueryRow(ctx, query,
-		community.ID, community.Name, community.Description, community.Icon, community.IsPublic, community.Rules,
+		community.ID, community.Name, community.Slug, community.Description, community.Icon, community.IsPublic, community.Rules,
 	).Scan(&community.UpdatedAt)
 }
 
@@ -407,8 +407,8 @@ func (r *CommunityRepository) RemoveClipFromCommunity(ctx context.Context, commu
 	return err
 }
 
-// GetCommunityClips retrieves clips from a community feed
-func (r *CommunityRepository) GetCommunityClips(ctx context.Context, communityID uuid.UUID, sort string, limit, offset int) ([]*models.CommunityClip, int, error) {
+// GetCommunityClips retrieves clips from a community feed with full clip data
+func (r *CommunityRepository) GetCommunityClips(ctx context.Context, communityID uuid.UUID, sort string, limit, offset int) ([]*models.CommunityClipWithClip, int, error) {
 	// Count total
 	countQuery := `SELECT COUNT(*) FROM community_clips WHERE community_id = $1`
 	var total int
@@ -418,17 +418,25 @@ func (r *CommunityRepository) GetCommunityClips(ctx context.Context, communityID
 	}
 
 	// Determine sort order
-	orderBy := "ORDER BY added_at DESC"
+	orderBy := "ORDER BY cc.added_at DESC"
 	if sort == "trending" {
 		// Use vote score and recency for trending
-		orderBy = "ORDER BY added_at DESC" // Simple recency for now
+		orderBy = "ORDER BY c.vote_score DESC, cc.added_at DESC"
 	}
 
-	// Query clips
+	// Query clips with JOIN to get full clip data
 	query := fmt.Sprintf(`
-		SELECT id, community_id, clip_id, added_by_user_id, added_at
-		FROM community_clips
-		WHERE community_id = $1
+		SELECT 
+			cc.id, cc.community_id, cc.clip_id, cc.added_by_user_id, cc.added_at,
+			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+			c.view_count, c.created_at, c.imported_at, c.vote_score,
+			c.comment_count, c.favorite_count, c.is_featured, c.is_nsfw,
+			c.is_removed, c.removed_reason, c.is_hidden
+		FROM community_clips cc
+		JOIN clips c ON cc.clip_id = c.id
+		WHERE cc.community_id = $1
 		%s
 		LIMIT $2 OFFSET $3
 	`, orderBy)
@@ -439,16 +447,27 @@ func (r *CommunityRepository) GetCommunityClips(ctx context.Context, communityID
 	}
 	defer rows.Close()
 
-	clips := []*models.CommunityClip{}
+	clips := []*models.CommunityClipWithClip{}
 	for rows.Next() {
-		clip := &models.CommunityClip{}
+		communityClip := &models.CommunityClip{}
+		clip := &models.Clip{}
 		err := rows.Scan(
-			&clip.ID, &clip.CommunityID, &clip.ClipID, &clip.AddedByUserID, &clip.AddedAt,
+			&communityClip.ID, &communityClip.CommunityID, &communityClip.ClipID, &communityClip.AddedByUserID, &communityClip.AddedAt,
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL, &clip.Title,
+			&clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName, &clip.BroadcasterID,
+			&clip.GameID, &clip.GameName, &clip.Language, &clip.ThumbnailURL, &clip.Duration,
+			&clip.ViewCount, &clip.CreatedAt, &clip.ImportedAt, &clip.VoteScore,
+			&clip.CommentCount, &clip.FavoriteCount, &clip.IsFeatured, &clip.IsNSFW,
+			&clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
 		)
 		if err != nil {
 			return nil, 0, err
 		}
-		clips = append(clips, clip)
+		clipWithClip := &models.CommunityClipWithClip{
+			CommunityClip: *communityClip,
+			Clip:          clip,
+		}
+		clips = append(clips, clipWithClip)
 	}
 	return clips, total, rows.Err()
 }

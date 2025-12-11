@@ -42,6 +42,7 @@ func generateSlug(name string) string {
 	slug = reg.ReplaceAllString(slug, "-")
 	// Remove leading/trailing hyphens
 	slug = strings.Trim(slug, "-")
+	// Return empty string if no valid characters remain
 	return slug
 }
 
@@ -49,6 +50,11 @@ func generateSlug(name string) string {
 func (s *CommunityService) CreateCommunity(ctx context.Context, ownerID uuid.UUID, req *models.CreateCommunityRequest) (*models.Community, error) {
 	// Generate slug from name
 	slug := generateSlug(req.Name)
+	
+	// Validate slug is not empty
+	if slug == "" {
+		return nil, fmt.Errorf("community name must contain at least one alphanumeric character")
+	}
 	
 	// Check if slug already exists
 	existing, _ := s.communityRepo.GetCommunityBySlug(ctx, slug)
@@ -64,7 +70,7 @@ func (s *CommunityService) CreateCommunity(ctx context.Context, ownerID uuid.UUI
 		Icon:        req.Icon,
 		OwnerID:     ownerID,
 		IsPublic:    true,
-		MemberCount: 1, // Owner is automatically a member
+		MemberCount: 0, // Let DB trigger increment when owner is added
 		Rules:       req.Rules,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
@@ -315,6 +321,35 @@ func (s *CommunityService) BanMember(ctx context.Context, communityID, requestin
 		return fmt.Errorf("cannot ban the community owner")
 	}
 
+	// Check role hierarchy: cannot ban users with equal or higher role
+	requestingMember, err := s.communityRepo.GetMember(ctx, communityID, requestingUserID)
+	if err != nil {
+		return err
+	}
+	if requestingMember == nil {
+		return fmt.Errorf("requesting user is not a member")
+	}
+
+	targetMember, err := s.communityRepo.GetMember(ctx, communityID, targetUserID)
+	if err != nil {
+		return err
+	}
+	if targetMember != nil {
+		// Role hierarchy: admin > mod > member
+		roleHierarchy := map[string]int{
+			models.CommunityRoleAdmin:  3,
+			models.CommunityRoleMod:    2,
+			models.CommunityRoleMember: 1,
+		}
+		
+		requestingRoleLevel := roleHierarchy[requestingMember.Role]
+		targetRoleLevel := roleHierarchy[targetMember.Role]
+		
+		if targetRoleLevel >= requestingRoleLevel {
+			return fmt.Errorf("cannot ban users with equal or higher role")
+		}
+	}
+
 	// Remove user from community if they are a member
 	_ = s.communityRepo.RemoveMember(ctx, communityID, targetUserID)
 
@@ -399,11 +434,58 @@ func (s *CommunityService) RemoveClipFromCommunity(ctx context.Context, communit
 		return fmt.Errorf("unauthorized to remove clips")
 	}
 
+	// Get the clip from community to check who added it
+	clips, _, err := s.communityRepo.GetCommunityClips(ctx, communityID, "recent", 1000, 0)
+	if err != nil {
+		return fmt.Errorf("failed to get community clips: %w", err)
+	}
+
+	// Find the clip that matches clipID
+	var addedByUserID *uuid.UUID
+	for _, c := range clips {
+		if c.ClipID == clipID {
+			addedByUserID = c.AddedByUserID
+			break
+		}
+	}
+
+	// If clip was added by someone, check role hierarchy
+	if addedByUserID != nil {
+		requestingMember, err := s.communityRepo.GetMember(ctx, communityID, userID)
+		if err != nil {
+			return err
+		}
+		if requestingMember == nil {
+			return fmt.Errorf("requesting user is not a member")
+		}
+
+		addedByMember, err := s.communityRepo.GetMember(ctx, communityID, *addedByUserID)
+		if err != nil {
+			return err
+		}
+		if addedByMember != nil {
+			// Role hierarchy: admin > mod > member
+			roleHierarchy := map[string]int{
+				models.CommunityRoleAdmin:  3,
+				models.CommunityRoleMod:    2,
+				models.CommunityRoleMember: 1,
+			}
+			
+			requestingRoleLevel := roleHierarchy[requestingMember.Role]
+			addedByRoleLevel := roleHierarchy[addedByMember.Role]
+			
+			// Cannot remove clips added by users with equal or higher role
+			if addedByRoleLevel >= requestingRoleLevel {
+				return fmt.Errorf("cannot remove clips added by users with equal or higher role")
+			}
+		}
+	}
+
 	return s.communityRepo.RemoveClipFromCommunity(ctx, communityID, clipID)
 }
 
 // GetCommunityFeed retrieves the community feed
-func (s *CommunityService) GetCommunityFeed(ctx context.Context, communityID uuid.UUID, sort string, page, limit int) ([]*models.CommunityClip, int, error) {
+func (s *CommunityService) GetCommunityFeed(ctx context.Context, communityID uuid.UUID, sort string, page, limit int) ([]*models.CommunityClipWithClip, int, error) {
 	offset := (page - 1) * limit
 	return s.communityRepo.GetCommunityClips(ctx, communityID, sort, limit, offset)
 }

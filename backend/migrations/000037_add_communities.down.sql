@@ -10,7 +10,7 @@ DROP TRIGGER IF EXISTS update_discussion_comment_count_trigger ON community_disc
 DROP TRIGGER IF EXISTS update_community_member_count_trigger ON community_members;
 
 -- Drop functions
-DROP FUNCTION IF EXISTS update_communities_updated_at();
+DROP FUNCTION IF EXISTS update_updated_at_timestamp();
 DROP FUNCTION IF EXISTS update_discussion_vote_score();
 DROP FUNCTION IF EXISTS update_discussion_comment_count();
 DROP FUNCTION IF EXISTS update_community_member_count();

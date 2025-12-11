@@ -434,10 +434,16 @@ func (h *CommunityHandler) GetCommunityFeed(c *gin.Context) {
 		limit = 20
 	}
 
-	clips, total, err := h.communityService.GetCommunityFeed(c.Request.Context(), communityID, sort, page, limit)
+	communityClips, total, err := h.communityService.GetCommunityFeed(c.Request.Context(), communityID, sort, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Extract just the clips for the response
+	clips := make([]*models.Clip, len(communityClips))
+	for i, cc := range communityClips {
+		clips[i] = cc.Clip
 	}
 
 	c.JSON(http.StatusOK, gin.H{
