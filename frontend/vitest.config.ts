@@ -35,6 +35,9 @@ export default defineConfig({
         env: {
             VITE_STRIPE_PRO_MONTHLY_PRICE_ID: 'price_test_monthly',
             VITE_STRIPE_PRO_YEARLY_PRICE_ID: 'price_test_yearly',
+            VITE_GA_MEASUREMENT_ID: 'G-TEST123456',
+            VITE_ENABLE_ANALYTICS: 'true',
+            VITE_DOMAIN: 'test.clpr.tv',
         },
     },
 });

@@ -5,7 +5,6 @@ import { Container, Spinner, SEO, Button } from '../components';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { 
-    fetchUserProfile, 
     fetchUserClips, 
     fetchUserActivity, 
     fetchUserFollowers, 
@@ -169,7 +168,7 @@ export function UserProfilePage() {
                                     {user && user.id !== userData.id && (
                                         <Button
                                             onClick={handleFollowToggle}
-                                            variant={userData.is_following ? 'outline' : 'default'}
+                                            variant={userData.is_following ? 'outline' : 'primary'}
                                             size="sm"
                                             disabled={followMutation.isPending || unfollowMutation.isPending}
                                         >
