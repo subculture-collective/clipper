@@ -30,6 +30,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage').then(m => ({ default:
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const DMCAPage = lazy(() => import('./pages/DMCAPage').then(m => ({ default: m.DMCAPage })));
 const CommunityRulesPage = lazy(() => import('./pages/CommunityRulesPage').then(m => ({ default: m.CommunityRulesPage })));
 const ContactPage = lazy(() => import('./pages/ContactPage').then(m => ({ default: m.ContactPage })));
 const DocsPage = lazy(() => import('./pages/DocsPage').then(m => ({ default: m.DocsPage })));
@@ -105,6 +106,7 @@ function App() {
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
                     <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/legal/dmca" element={<DMCAPage />} />
                     <Route path="/community-rules" element={<CommunityRulesPage />} />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/docs" element={<DocsPage />} />
