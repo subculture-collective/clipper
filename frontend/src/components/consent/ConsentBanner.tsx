@@ -26,19 +26,19 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
 
   const [showDetails, setShowDetails] = useState(false);
   const [localPreferences, setLocalPreferences] = useState({
+    functional: consent.functional,
     analytics: consent.analytics,
-    personalizedAds: consent.personalizedAds,
-    performance: consent.performance,
+    advertising: consent.advertising,
   });
 
   // Sync local preferences when consent changes (e.g., from settings page)
   useEffect(() => {
     setLocalPreferences({
+      functional: consent.functional,
       analytics: consent.analytics,
-      personalizedAds: consent.personalizedAds,
-      performance: consent.performance,
+      advertising: consent.advertising,
     });
-  }, [consent.analytics, consent.personalizedAds, consent.performance]);
+  }, [consent.functional, consent.analytics, consent.advertising]);
 
   if (!showConsentBanner) {
     return null;
@@ -145,6 +145,26 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 </p>
               </div>
 
+              {/* Functional */}
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium">Functional</h3>
+                  <Toggle
+                    checked={localPreferences.functional}
+                    onChange={(e) => setLocalPreferences(prev => ({ 
+                      ...prev, 
+                      functional: e.target.checked 
+                    }))}
+                    disabled={doNotTrack}
+                    aria-describedby="functional-description"
+                  />
+                </div>
+                <p id="functional-description" className="text-sm text-muted-foreground">
+                  Remember your preferences like language, theme, and other settings 
+                  to enhance your experience.
+                </p>
+              </div>
+
               {/* Analytics */}
               <div className="p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
@@ -165,43 +185,23 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 </p>
               </div>
 
-              {/* Personalized Ads */}
+              {/* Advertising */}
               <div className="p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium">Personalized Ads</h3>
+                  <h3 className="font-medium">Advertising</h3>
                   <Toggle
-                    checked={localPreferences.personalizedAds}
+                    checked={localPreferences.advertising}
                     onChange={(e) => setLocalPreferences(prev => ({ 
                       ...prev, 
-                      personalizedAds: e.target.checked 
+                      advertising: e.target.checked 
                     }))}
                     disabled={doNotTrack}
-                    aria-describedby="personalized-ads-description"
+                    aria-describedby="advertising-description"
                   />
                 </div>
-                <p id="personalized-ads-description" className="text-sm text-muted-foreground">
+                <p id="advertising-description" className="text-sm text-muted-foreground">
                   Allow us to show ads tailored to your interests based on your viewing history 
                   and preferences. Without this, you'll see contextual ads instead.
-                </p>
-              </div>
-
-              {/* Performance */}
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium">Performance</h3>
-                  <Toggle
-                    checked={localPreferences.performance}
-                    onChange={(e) => setLocalPreferences(prev => ({ 
-                      ...prev, 
-                      performance: e.target.checked 
-                    }))}
-                    disabled={doNotTrack}
-                    aria-describedby="performance-description"
-                  />
-                </div>
-                <p id="performance-description" className="text-sm text-muted-foreground">
-                  Enable features that enhance site performance like content caching 
-                  and personalized recommendations.
                 </p>
               </div>
             </div>

@@ -464,6 +464,17 @@ export function SettingsPage() {
                             )}
                             <Stack direction='vertical' gap={4}>
                                 <Toggle
+                                    label='Functional Cookies'
+                                    helperText='Remember your preferences like language, theme, and other settings'
+                                    checked={consent.functional}
+                                    onChange={(e) => {
+                                        updateConsent({ functional: e.target.checked });
+                                        setConsentSuccess(true);
+                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                    }}
+                                    disabled={doNotTrack}
+                                />
+                                <Toggle
                                     label='Analytics Tracking'
                                     helperText='Help us improve clpr by allowing anonymous usage analytics'
                                     checked={consent.analytics}
@@ -477,20 +488,9 @@ export function SettingsPage() {
                                 <Toggle
                                     label='Personalized Advertising'
                                     helperText='Allow ads tailored to your interests. Without this, you will see contextual ads based on page content.'
-                                    checked={consent.personalizedAds}
+                                    checked={consent.advertising}
                                     onChange={(e) => {
-                                        updateConsent({ personalizedAds: e.target.checked });
-                                        setConsentSuccess(true);
-                                        setTimeout(() => setConsentSuccess(false), 3000);
-                                    }}
-                                    disabled={doNotTrack}
-                                />
-                                <Toggle
-                                    label='Performance Features'
-                                    helperText='Enable content caching and personalized recommendations'
-                                    checked={consent.performance}
-                                    onChange={(e) => {
-                                        updateConsent({ performance: e.target.checked });
+                                        updateConsent({ advertising: e.target.checked });
                                         setConsentSuccess(true);
                                         setTimeout(() => setConsentSuccess(false), 3000);
                                     }}

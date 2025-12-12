@@ -71,6 +71,30 @@ type DeleteAccountRequest struct {
 	Confirmation string  `json:"confirmation" binding:"required,eq=DELETE MY ACCOUNT"`
 }
 
+// CookieConsent represents a user's cookie consent preferences
+type CookieConsent struct {
+	ID           uuid.UUID  `json:"id" db:"id"`
+	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
+	Essential    bool       `json:"essential" db:"essential"`
+	Functional   bool       `json:"functional" db:"functional"`
+	Analytics    bool       `json:"analytics" db:"analytics"`
+	Advertising  bool       `json:"advertising" db:"advertising"`
+	ConsentDate  time.Time  `json:"consent_date" db:"consent_date"`
+	IPAddress    *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent    *string    `json:"user_agent,omitempty" db:"user_agent"`
+	ExpiresAt    time.Time  `json:"expires_at" db:"expires_at"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// UpdateConsentRequest represents the request to update cookie consent
+type UpdateConsentRequest struct {
+	Essential   bool `json:"essential"`
+	Functional  bool `json:"functional"`
+	Analytics   bool `json:"analytics"`
+	Advertising bool `json:"advertising"`
+}
+
 // Clip represents a Twitch clip
 type Clip struct {
 	ID                   uuid.UUID  `json:"id" db:"id"`
