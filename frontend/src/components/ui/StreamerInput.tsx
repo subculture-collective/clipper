@@ -43,7 +43,7 @@ export function StreamerInput({
             const normalizedResults = Array.isArray(results) ? results : [];
             // Filter to only show creator suggestions
             const creatorSuggestions = normalizedResults.filter(
-                (s) => s.type === 'creator'
+                s => s.type === 'creator'
             );
             setSuggestions(creatorSuggestions);
             setShowSuggestions(true);
@@ -75,13 +75,13 @@ export function StreamerInput({
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
-                setSelectedIndex((prev) =>
+                setSelectedIndex(prev =>
                     prev < suggestions.length - 1 ? prev + 1 : prev
                 );
                 break;
             case 'ArrowUp':
                 e.preventDefault();
-                setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
                 break;
             case 'Enter':
                 e.preventDefault();
@@ -134,7 +134,8 @@ export function StreamerInput({
                     htmlFor={id || 'streamer_input'}
                     className='block text-sm font-medium'
                 >
-                    Streamer {required && <span className='text-red-500'>*</span>}
+                    Streamer{' '}
+                    {required && <span className='text-red-500'>*</span>}
                 </label>
                 {autoDetected && (
                     <Badge variant='info' size='sm'>
@@ -176,7 +177,9 @@ export function StreamerInput({
                                         <button
                                             type='button'
                                             onClick={() =>
-                                                handleSuggestionClick(suggestion)
+                                                handleSuggestionClick(
+                                                    suggestion
+                                                )
                                             }
                                             className={`w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-3 ${
                                                 index === selectedIndex
