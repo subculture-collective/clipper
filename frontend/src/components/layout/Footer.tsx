@@ -86,6 +86,14 @@ export function Footer() {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/legal/dmca"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  DMCA Policy
+                </Link>
+              </li>
             </ul>
           </div>
 
