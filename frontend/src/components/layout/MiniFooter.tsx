@@ -124,6 +124,13 @@ export function MiniFooter() {
                 >
                   Terms of Service
                 </Link>
+                <Link
+                  to="/legal/dmca"
+                  className="block text-sm text-foreground hover:text-primary-500 transition-colors"
+                  onClick={() => setIsExpanded(false)}
+                >
+                  DMCA Policy
+                </Link>
               </div>
             </div>
 
