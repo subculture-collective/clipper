@@ -29,14 +29,14 @@ CREATE TABLE IF NOT EXISTS email_logs (
 );
 
 -- Create indexes for efficient queries
-CREATE INDEX idx_email_logs_user_id ON email_logs(user_id);
-CREATE INDEX idx_email_logs_status ON email_logs(status);
-CREATE INDEX idx_email_logs_sent_at ON email_logs(sent_at DESC);
-CREATE INDEX idx_email_logs_template ON email_logs(template) WHERE template IS NOT NULL;
-CREATE INDEX idx_email_logs_recipient ON email_logs(recipient);
-CREATE INDEX idx_email_logs_sendgrid_message_id ON email_logs(sendgrid_message_id) WHERE sendgrid_message_id IS NOT NULL;
-CREATE INDEX idx_email_logs_sendgrid_event_id ON email_logs(sendgrid_event_id) WHERE sendgrid_event_id IS NOT NULL;
-CREATE INDEX idx_email_logs_created_at ON email_logs(created_at DESC);
+CREATE INDEX idx_email_webhook_logs_user_id ON email_logs(user_id);
+CREATE INDEX idx_email_webhook_logs_status ON email_logs(status);
+CREATE INDEX idx_email_webhook_logs_sent_at ON email_logs(sent_at DESC);
+CREATE INDEX idx_email_webhook_logs_template ON email_logs(template) WHERE template IS NOT NULL;
+CREATE INDEX idx_email_webhook_logs_recipient ON email_logs(recipient);
+CREATE INDEX idx_email_webhook_logs_sendgrid_msg_id ON email_logs(sendgrid_message_id) WHERE sendgrid_message_id IS NOT NULL;
+CREATE INDEX idx_email_webhook_logs_sendgrid_evt_id ON email_logs(sendgrid_event_id) WHERE sendgrid_event_id IS NOT NULL;
+CREATE INDEX idx_email_webhook_logs_created_at ON email_logs(created_at DESC);
 
 -- Email metrics summary table for aggregated daily/hourly stats
 CREATE TABLE IF NOT EXISTS email_metrics_summary (

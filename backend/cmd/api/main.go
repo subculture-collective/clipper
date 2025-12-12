@@ -693,7 +693,7 @@ func main() {
 			users.GET("/me/discovery-list-follows", middleware.AuthMiddleware(authService), discoveryListHandler.GetUserFollowedLists)
 
 			// Game follows for a user
-			users.GET("/:userId/games/following", gameHandler.GetFollowedGames)
+			users.GET("/:id/games/following", gameHandler.GetFollowedGames)
 			// User feeds routes
 			users.GET("/:id/feeds", middleware.OptionalAuthMiddleware(authService), feedHandler.ListUserFeeds)
 			users.POST("/:id/feeds", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), feedHandler.CreateFeed)
