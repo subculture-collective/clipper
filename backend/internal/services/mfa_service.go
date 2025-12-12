@@ -207,7 +207,7 @@ func (s *MFAService) VerifyEnrollment(ctx context.Context, userID uuid.UUID, cod
 	_ = s.createAuditLog(ctx, userID, models.MFAActionEnrollComplete, true, nil)
 
 	// Send notification email
-	user, _ := s.userRepo.GetUserByID(ctx, userID)
+	user, _ := s.userRepo.GetByID(ctx, userID)
 	if user != nil && user.Email != nil {
 		_ = s.emailSvc.SendMFAEnabledEmail(ctx, *user.Email, user.Username)
 	}
@@ -360,7 +360,7 @@ func (s *MFAService) RegenerateBackupCodes(ctx context.Context, userID uuid.UUID
 	_ = s.createAuditLog(ctx, userID, models.MFAActionBackupCodeRegen, true, nil)
 
 	// Send notification email
-	user, _ := s.userRepo.GetUserByID(ctx, userID)
+	user, _ := s.userRepo.GetByID(ctx, userID)
 	if user != nil && user.Email != nil {
 		_ = s.emailSvc.SendMFABackupCodesRegeneratedEmail(ctx, *user.Email, user.Username)
 	}
@@ -371,7 +371,7 @@ func (s *MFAService) RegenerateBackupCodes(ctx context.Context, userID uuid.UUID
 // DisableMFA disables MFA for a user after verification
 func (s *MFAService) DisableMFA(ctx context.Context, userID uuid.UUID, password, code string) error {
 	// Verify password
-	user, err := s.userRepo.GetUserByID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
