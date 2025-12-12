@@ -195,7 +195,7 @@ func main() {
 
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo, webhookRepo, cfg, auditLogService, dunningService, emailService)
 	webhookRetryService := services.NewWebhookRetryService(webhookRepo, subscriptionService)
-	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, auditLogService)
+	userSettingsService := services.NewUserSettingsService(userRepo, userSettingsRepo, accountDeletionRepo, clipRepo, voteRepo, favoriteRepo, commentRepo, submissionRepo, searchRepo, subscriptionRepo, consentRepo, auditLogService)
 	revenueService := services.NewRevenueService(revenueRepo, cfg)
 	adService := services.NewAdService(adRepo, redisClient)
 

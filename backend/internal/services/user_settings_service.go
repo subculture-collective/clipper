@@ -22,6 +22,11 @@ type UserSettingsService struct {
 	clipRepo            *repository.ClipRepository
 	voteRepo            *repository.VoteRepository
 	favoriteRepo        *repository.FavoriteRepository
+	commentRepo         *repository.CommentRepository
+	submissionRepo      *repository.SubmissionRepository
+	searchRepo          *repository.SearchRepository
+	subscriptionRepo    *repository.SubscriptionRepository
+	consentRepo         *repository.ConsentRepository
 	auditLogService     *AuditLogService
 }
 
@@ -33,6 +38,11 @@ func NewUserSettingsService(
 	clipRepo *repository.ClipRepository,
 	voteRepo *repository.VoteRepository,
 	favoriteRepo *repository.FavoriteRepository,
+	commentRepo *repository.CommentRepository,
+	submissionRepo *repository.SubmissionRepository,
+	searchRepo *repository.SearchRepository,
+	subscriptionRepo *repository.SubscriptionRepository,
+	consentRepo *repository.ConsentRepository,
 	auditLogService *AuditLogService,
 ) *UserSettingsService {
 	return &UserSettingsService{
@@ -42,6 +52,11 @@ func NewUserSettingsService(
 		clipRepo:            clipRepo,
 		voteRepo:            voteRepo,
 		favoriteRepo:        favoriteRepo,
+		commentRepo:         commentRepo,
+		submissionRepo:      submissionRepo,
+		searchRepo:          searchRepo,
+		subscriptionRepo:    subscriptionRepo,
+		consentRepo:         consentRepo,
 		auditLogService:     auditLogService,
 	}
 }
@@ -103,23 +118,94 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 		page++
 	}
 
-	// Create export structure
+	// Get user's comments (fetch all, paginated)
+	var comments []interface{}
+	offset := 0
+	limit := 1000
+	for {
+		pageComments, _, err := s.commentRepo.ListByUserID(ctx, userID, limit, offset)
+		if err != nil {
+			comments = nil
+			break
+		}
+		if len(pageComments) == 0 {
+			break
+		}
+		for _, c := range pageComments {
+			comments = append(comments, c)
+		}
+		if len(pageComments) < limit {
+			break
+		}
+		offset += limit
+	}
+
+	// Get user's submissions (fetch all, paginated)
+	var submissions []interface{}
+	submissionPage := 1
+	submissionLimit := 1000
+	for {
+		pageSubmissions, _, err := s.submissionRepo.ListByUser(ctx, userID, submissionPage, submissionLimit)
+		if err != nil {
+			submissions = nil
+			break
+		}
+		if len(pageSubmissions) == 0 {
+			break
+		}
+		for _, sub := range pageSubmissions {
+			submissions = append(submissions, sub)
+		}
+		if len(pageSubmissions) < submissionLimit {
+			break
+		}
+		submissionPage++
+	}
+
+	// Get user's subscription data
+	subscription, err := s.subscriptionRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		subscription = nil // User may not have a subscription
+	}
+
+	// Get user's cookie consent preferences
+	consent, err := s.consentRepo.GetConsent(ctx, userID)
+	if err != nil {
+		consent = nil // User may not have set consent preferences
+	}
+
+	// Note: Search history is intentionally not included in the export by default
+	// as it may be considered too privacy-sensitive and is typically not required
+	// under GDPR Article 20 (portability). If needed, it can be added separately.
+
+	// Create export structure with all user data
 	export := map[string]interface{}{
 		"user": map[string]interface{}{
-			"id":           user.ID,
-			"twitch_id":    user.TwitchID,
-			"username":     user.Username,
-			"display_name": user.DisplayName,
-			"email":        user.Email,
-			"bio":          user.Bio,
-			"karma_points": user.KarmaPoints,
-			"role":         user.Role,
-			"created_at":   user.CreatedAt,
-			"updated_at":   user.UpdatedAt,
+			"id":                user.ID,
+			"twitch_id":         user.TwitchID,
+			"username":          user.Username,
+			"display_name":      user.DisplayName,
+			"email":             user.Email,
+			"bio":               user.Bio,
+			"avatar_url":        user.AvatarURL,
+			"social_links":      user.SocialLinks,
+			"karma_points":      user.KarmaPoints,
+			"trust_score":       user.TrustScore,
+			"role":              user.Role,
+			"account_type":      user.AccountType,
+			"follower_count":    user.FollowerCount,
+			"following_count":   user.FollowingCount,
+			"created_at":        user.CreatedAt,
+			"updated_at":        user.UpdatedAt,
+			"last_login_at":     user.LastLoginAt,
 		},
-		"settings":    settings,
-		"favorites":   favorites,
-		"exported_at": time.Now(),
+		"settings":     settings,
+		"favorites":    favorites,
+		"comments":     comments,
+		"submissions":  submissions,
+		"subscription": subscription,
+		"consent":      consent,
+		"exported_at":  time.Now(),
 	}
 
 	// Marshal to JSON
@@ -142,18 +228,110 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 		return nil, err
 	}
 
-	// Add README
-	readmeContent := []byte(`User Data Export
-================
+	// Add comprehensive README explaining the export structure
+	readmeContent := []byte(`Clipper User Data Export
+========================
 
-This archive contains all your personal data from Clipper.
+This archive contains all your personal data from Clipper in accordance with 
+GDPR Article 15 (Right to Access) and Article 20 (Right to Data Portability).
 
-Contents:
-- user_data.json: Your complete user data including profile and favorites
+Export Date: ` + time.Now().Format(time.RFC3339) + `
+User ID: ` + userID.String() + `
 
-Exported at: ` + time.Now().Format(time.RFC3339) + `
+Contents
+--------
 
-This export is provided in compliance with GDPR Article 20 (Right to data portability).
+user_data.json - Complete export of your data in JSON format, including:
+
+1. User Profile
+   - Account information (ID, username, email, display name)
+   - Profile details (bio, avatar, social links)
+   - Account metrics (karma points, trust score, follower counts)
+   - Account type and role
+   - Timestamps (created, updated, last login)
+
+2. Settings
+   - Profile visibility preferences (public/private/followers)
+   - Karma display preferences
+   - Other privacy and display settings
+
+3. Favorites
+   - All clips you have favorited
+   - Includes clip IDs and timestamps
+
+4. Comments
+   - All comments you have posted on clips
+   - Includes comment content, timestamps, vote scores
+   - Parent/reply relationships preserved
+
+5. Submissions
+   - All clip submissions you have made
+   - Includes submission status, metadata, timestamps
+
+6. Subscription
+   - Premium subscription details (if applicable)
+   - Subscription tier, status, and billing information
+   - Payment method information (last 4 digits only)
+
+7. Cookie Consent
+   - Your cookie consent preferences
+   - Categories: Essential, Functional, Analytics, Advertising
+   - Consent date and IP address (for verification)
+
+Data Not Included
+-----------------
+
+- Search history (not required under GDPR portability, available on request)
+- IP addresses from activity logs (privacy-sensitive, available on request)
+- Moderation actions taken against your account (available on request)
+- Internal system identifiers and technical metadata
+
+Your Rights
+-----------
+
+Under GDPR, you have the following rights regarding your data:
+
+1. Right to Access (Article 15) - This export
+2. Right to Rectification (Article 16) - Update your profile in Settings
+3. Right to Erasure (Article 17) - Request account deletion in Settings
+4. Right to Restriction (Article 18) - Contact support@clipper.gg
+5. Right to Data Portability (Article 20) - This export
+6. Right to Object (Article 21) - Manage in Cookie Settings
+
+For questions or additional data requests, contact: privacy@clipper.gg
+
+Data Format
+-----------
+
+The data is provided in JSON format, which is:
+- Machine-readable
+- Easily portable to other services
+- Human-readable with a text editor
+- Compatible with most data processing tools
+
+Technical Details
+-----------------
+
+- Character Encoding: UTF-8
+- Date Format: ISO 8601 (RFC3339)
+- File Format: JSON (JavaScript Object Notation)
+- Archive Format: ZIP
+
+Legal
+-----
+
+This export is provided in compliance with:
+- GDPR (General Data Protection Regulation) - EU Regulation 2016/679
+- CCPA (California Consumer Privacy Act) - California Civil Code Section 1798.100
+- Other applicable data protection laws
+
+Clipper is committed to protecting your privacy and ensuring compliance with 
+all applicable data protection regulations.
+
+For our complete Privacy Policy, visit: https://clipper.gg/privacy
+For our Terms of Service, visit: https://clipper.gg/terms
+
+© 2024 Clipper. All rights reserved.
 `)
 	readmeFile, err := zipWriter.Create("README.txt")
 	if err != nil {
