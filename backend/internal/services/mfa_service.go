@@ -61,10 +61,10 @@ const (
 
 // MFAService handles MFA operations
 type MFAService struct {
-	cfg         *config.Config
-	mfaRepo     *repository.MFARepository
-	userRepo    *repository.UserRepository
-	emailSvc    *EmailService
+	cfg           *config.Config
+	mfaRepo       *repository.MFARepository
+	userRepo      *repository.UserRepository
+	emailSvc      *EmailService
 	encryptionKey []byte
 }
 
@@ -77,7 +77,7 @@ func NewMFAService(
 ) (*MFAService, error) {
 	// Get encryption key from config (should be 32 bytes for AES-256)
 	encryptionKey := []byte(cfg.Security.MFAEncryptionKey)
-	
+
 	// Validate encryption key - it must be set and exactly 32 bytes for AES-256
 	if len(encryptionKey) == 0 {
 		return nil, errors.New("MFA_ENCRYPTION_KEY environment variable must be set to enable MFA functionality. The key must be exactly 32 bytes for AES-256 encryption.")
@@ -87,10 +87,10 @@ func NewMFAService(
 	}
 
 	return &MFAService{
-		cfg:         cfg,
-		mfaRepo:     mfaRepo,
-		userRepo:    userRepo,
-		emailSvc:    emailSvc,
+		cfg:           cfg,
+		mfaRepo:       mfaRepo,
+		userRepo:      userRepo,
+		emailSvc:      emailSvc,
 		encryptionKey: encryptionKey,
 	}, nil
 }
@@ -526,20 +526,20 @@ func generateRandomCode(length int) (string, error) {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	const maxByte = 255
 	const charsetLen = len(charset)
-	
+
 	// Calculate the largest multiple of charsetLen that fits in a byte
 	// to avoid modulo bias
 	maxUsableByte := maxByte - (maxByte % charsetLen)
-	
+
 	result := make([]byte, length)
 	randomBytes := make([]byte, length*2) // Buffer to reduce rejection rate
-	
+
 	for i := 0; i < length; {
 		// Get random bytes
 		if _, err := rand.Read(randomBytes); err != nil {
 			return "", err
 		}
-		
+
 		// Use rejection sampling to avoid modulo bias
 		for _, b := range randomBytes {
 			if i >= length {
@@ -552,7 +552,7 @@ func generateRandomCode(length int) (string, error) {
 			}
 		}
 	}
-	
+
 	return string(result), nil
 }
 

@@ -32,7 +32,7 @@ func (r *MFARepository) GetMFAByUserID(ctx context.Context, userID uuid.UUID) (*
 	`
 
 	var mfa models.UserMFA
-	
+
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&mfa.ID,
 		&mfa.UserID,
@@ -62,7 +62,7 @@ func (r *MFARepository) CreateMFA(ctx context.Context, mfa *models.UserMFA) erro
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at
 	`
-	
+
 	err := r.db.QueryRow(
 		ctx,
 		query,
@@ -90,7 +90,7 @@ func (r *MFARepository) UpdateMFA(ctx context.Context, mfa *models.UserMFA) erro
 		WHERE user_id = $6
 		RETURNING updated_at
 	`
-	
+
 	err := r.db.QueryRow(
 		ctx,
 		query,
@@ -112,7 +112,7 @@ func (r *MFARepository) UpdateMFA(ctx context.Context, mfa *models.UserMFA) erro
 // DeleteMFA deletes MFA configuration for a user
 func (r *MFARepository) DeleteMFA(ctx context.Context, userID uuid.UUID) error {
 	query := `DELETE FROM user_mfa WHERE user_id = $1`
-	
+
 	_, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete MFA config: %w", err)
@@ -263,7 +263,7 @@ func (r *MFARepository) UpdateTrustedDeviceLastUsed(ctx context.Context, deviceI
 // DeleteTrustedDevice deletes a trusted device by ID
 func (r *MFARepository) DeleteTrustedDevice(ctx context.Context, userID uuid.UUID, deviceID int) error {
 	query := `DELETE FROM mfa_trusted_devices WHERE id = $1 AND user_id = $2`
-	
+
 	result, err := r.db.Exec(ctx, query, deviceID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete trusted device: %w", err)
@@ -280,7 +280,7 @@ func (r *MFARepository) DeleteTrustedDevice(ctx context.Context, userID uuid.UUI
 // DeleteAllTrustedDevices deletes all trusted devices for a user
 func (r *MFARepository) DeleteAllTrustedDevices(ctx context.Context, userID uuid.UUID) error {
 	query := `DELETE FROM mfa_trusted_devices WHERE user_id = $1`
-	
+
 	_, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete all trusted devices: %w", err)
@@ -384,7 +384,7 @@ func (r *MFARepository) GetFailedLoginAttempts(ctx context.Context, userID uuid.
 // CleanupExpiredTrustedDevices removes expired trusted devices
 func (r *MFARepository) CleanupExpiredTrustedDevices(ctx context.Context) error {
 	query := `DELETE FROM mfa_trusted_devices WHERE expires_at < NOW()`
-	
+
 	_, err := r.db.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup expired devices: %w", err)

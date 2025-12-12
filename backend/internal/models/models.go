@@ -73,18 +73,18 @@ type DeleteAccountRequest struct {
 
 // CookieConsent represents a user's cookie consent preferences
 type CookieConsent struct {
-	ID           uuid.UUID  `json:"id" db:"id"`
-	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
-	Essential    bool       `json:"essential" db:"essential"`
-	Functional   bool       `json:"functional" db:"functional"`
-	Analytics    bool       `json:"analytics" db:"analytics"`
-	Advertising  bool       `json:"advertising" db:"advertising"`
-	ConsentDate  time.Time  `json:"consent_date" db:"consent_date"`
-	IPAddress    *string    `json:"ip_address,omitempty" db:"ip_address"`
-	UserAgent    *string    `json:"user_agent,omitempty" db:"user_agent"`
-	ExpiresAt    time.Time  `json:"expires_at" db:"expires_at"`
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID `json:"id" db:"id"`
+	UserID      uuid.UUID `json:"user_id" db:"user_id"`
+	Essential   bool      `json:"essential" db:"essential"`
+	Functional  bool      `json:"functional" db:"functional"`
+	Analytics   bool      `json:"analytics" db:"analytics"`
+	Advertising bool      `json:"advertising" db:"advertising"`
+	ConsentDate time.Time `json:"consent_date" db:"consent_date"`
+	IPAddress   *string   `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent   *string   `json:"user_agent,omitempty" db:"user_agent"`
+	ExpiresAt   time.Time `json:"expires_at" db:"expires_at"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // UpdateConsentRequest represents the request to update cookie consent
@@ -2333,29 +2333,29 @@ type AccountTypeResponse struct {
 
 // UserMFA represents multi-factor authentication configuration for a user
 type UserMFA struct {
-	ID                      int        `json:"id" db:"id"`
-	UserID                  uuid.UUID  `json:"user_id" db:"user_id"`
-	Secret                  string     `json:"-" db:"secret"` // Never expose encrypted secret in JSON
-	Enabled                 bool       `json:"enabled" db:"enabled"`
-	EnrolledAt              *time.Time `json:"enrolled_at,omitempty" db:"enrolled_at"`
-	BackupCodes             []string   `json:"-" db:"backup_codes"` // Never expose hashed codes
-	BackupCodesGeneratedAt  *time.Time `json:"backup_codes_generated_at,omitempty" db:"backup_codes_generated_at"`
-	CreatedAt               time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt               time.Time  `json:"updated_at" db:"updated_at"`
+	ID                     int        `json:"id" db:"id"`
+	UserID                 uuid.UUID  `json:"user_id" db:"user_id"`
+	Secret                 string     `json:"-" db:"secret"` // Never expose encrypted secret in JSON
+	Enabled                bool       `json:"enabled" db:"enabled"`
+	EnrolledAt             *time.Time `json:"enrolled_at,omitempty" db:"enrolled_at"`
+	BackupCodes            []string   `json:"-" db:"backup_codes"` // Never expose hashed codes
+	BackupCodesGeneratedAt *time.Time `json:"backup_codes_generated_at,omitempty" db:"backup_codes_generated_at"`
+	CreatedAt              time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt              time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // MFATrustedDevice represents a trusted device that can skip MFA for a period
 type MFATrustedDevice struct {
-	ID                int        `json:"id" db:"id"`
-	UserID            uuid.UUID  `json:"user_id" db:"user_id"`
-	DeviceFingerprint string     `json:"device_fingerprint" db:"device_fingerprint"`
-	DeviceName        *string    `json:"device_name,omitempty" db:"device_name"`
-	IPAddress         *string    `json:"ip_address,omitempty" db:"ip_address"`
-	UserAgent         *string    `json:"user_agent,omitempty" db:"user_agent"`
-	TrustedAt         time.Time  `json:"trusted_at" db:"trusted_at"`
-	ExpiresAt         time.Time  `json:"expires_at" db:"expires_at"`
-	LastUsedAt        time.Time  `json:"last_used_at" db:"last_used_at"`
-	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	ID                int       `json:"id" db:"id"`
+	UserID            uuid.UUID `json:"user_id" db:"user_id"`
+	DeviceFingerprint string    `json:"device_fingerprint" db:"device_fingerprint"`
+	DeviceName        *string   `json:"device_name,omitempty" db:"device_name"`
+	IPAddress         *string   `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent         *string   `json:"user_agent,omitempty" db:"user_agent"`
+	TrustedAt         time.Time `json:"trusted_at" db:"trusted_at"`
+	ExpiresAt         time.Time `json:"expires_at" db:"expires_at"`
+	LastUsedAt        time.Time `json:"last_used_at" db:"last_used_at"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
 }
 
 // MFAAuditLog represents an audit log entry for MFA-related actions
@@ -2372,26 +2372,26 @@ type MFAAuditLog struct {
 
 // MFA action constants for audit logging
 const (
-	MFAActionEnrollStart       = "mfa_enroll_start"
-	MFAActionEnrollComplete    = "mfa_enroll_complete"
-	MFAActionEnrollFailed      = "mfa_enroll_failed"
-	MFAActionLoginSuccess      = "mfa_login_success"
-	MFAActionLoginFailed       = "mfa_login_failed"
-	MFAActionBackupCodeUsed    = "mfa_backup_code_used"
-	MFAActionBackupCodeFailed  = "mfa_backup_code_failed"
-	MFAActionBackupCodeRegen   = "mfa_backup_codes_regenerated"
-	MFAActionDisabled          = "mfa_disabled"
-	MFAActionRecoveryRequested = "mfa_recovery_requested"
-	MFAActionRecoveryUsed      = "mfa_recovery_used"
-	MFAActionTrustedDeviceAdded = "mfa_trusted_device_added"
+	MFAActionEnrollStart          = "mfa_enroll_start"
+	MFAActionEnrollComplete       = "mfa_enroll_complete"
+	MFAActionEnrollFailed         = "mfa_enroll_failed"
+	MFAActionLoginSuccess         = "mfa_login_success"
+	MFAActionLoginFailed          = "mfa_login_failed"
+	MFAActionBackupCodeUsed       = "mfa_backup_code_used"
+	MFAActionBackupCodeFailed     = "mfa_backup_code_failed"
+	MFAActionBackupCodeRegen      = "mfa_backup_codes_regenerated"
+	MFAActionDisabled             = "mfa_disabled"
+	MFAActionRecoveryRequested    = "mfa_recovery_requested"
+	MFAActionRecoveryUsed         = "mfa_recovery_used"
+	MFAActionTrustedDeviceAdded   = "mfa_trusted_device_added"
 	MFAActionTrustedDeviceRevoked = "mfa_trusted_device_revoked"
 )
 
 // EnrollMFAResponse represents the response when starting MFA enrollment
 type EnrollMFAResponse struct {
-	Secret      string   `json:"secret"`        // Base32 encoded secret for manual entry
-	QRCodeURL   string   `json:"qr_code_url"`   // Data URL for QR code image
-	BackupCodes []string `json:"backup_codes"`  // Plain text backup codes (shown once)
+	Secret      string   `json:"secret"`       // Base32 encoded secret for manual entry
+	QRCodeURL   string   `json:"qr_code_url"`  // Data URL for QR code image
+	BackupCodes []string `json:"backup_codes"` // Plain text backup codes (shown once)
 }
 
 // VerifyMFAEnrollmentRequest represents the request to verify MFA enrollment

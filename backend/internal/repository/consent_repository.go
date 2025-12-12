@@ -14,7 +14,7 @@ import (
 var (
 	// ErrConsentNotFound is returned when consent record is not found
 	ErrConsentNotFound = errors.New("consent not found")
-	
+
 	// ConsentExpirationDuration is 12 months (365 days)
 	ConsentExpirationDuration = 365 * 24 * time.Hour
 )
@@ -33,7 +33,7 @@ func NewConsentRepository(db *pgxpool.Pool) *ConsentRepository {
 func (r *ConsentRepository) SaveConsent(ctx context.Context, consent *models.CookieConsent, ipAddress, userAgent string) error {
 	// Calculate expiration once to avoid race condition
 	expiresAt := time.Now().Add(ConsentExpirationDuration)
-	
+
 	query := `
 		INSERT INTO user_cookie_consents (
 			user_id, essential, functional, analytics, advertising, 
