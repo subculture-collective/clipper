@@ -23,6 +23,12 @@ This section covers production operations, deployment, and infrastructure for Cl
 - [[secrets-management|Secrets Management]] - Secure credential handling
 - [[security-scanning|Security Scanning]] - Automated security checks
 
+## Security & Compliance
+
+- [Security Audit Report](./SECURITY_AUDIT_REPORT.md) - Comprehensive pre-launch security audit
+- [Security Audit Executive Summary](./SECURITY_AUDIT_EXECUTIVE_SUMMARY.md) - Executive overview and key findings
+- [Security Audit Checklist](./SECURITY_AUDIT_CHECKLIST.md) - Detailed security audit checklist (250 items)
+
 ## On-Call Playbooks
 
 - [[playbooks/search-incidents|Search Incidents]] - Semantic search troubleshooting
