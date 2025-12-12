@@ -55,13 +55,13 @@ Clipper is a community-driven Twitch clip curation platform operated by Subcultu
 
 **Legal Entity:** Subculture Collective  
 **Service Name:** Clipper  
-**Website:** https://clipper.example  
-**Contact Email:** privacy@clipper.example
+**Website:** https://clpr.tv  
+**Contact Email:** privacy@clpr.tv
 
 ### 1.2 What This Policy Covers
 
 This Privacy Policy applies to all information collected through:
-- Our website (https://clipper.example)
+- Our website (https://clpr.tv)
 - Our mobile applications (iOS and Android)
 - Our API and related services
 - Email, text, and other electronic communications
@@ -488,7 +488,7 @@ You may designate an authorized agent to make CCPA requests on your behalf. The 
 
 To exercise any of the above rights, please:
 
-**Email us:** privacy@clipper.example  
+**Email us:** privacy@clpr.tv  
 **Subject line:** "Privacy Rights Request - [Your Name]"  
 **Include:**
 - Your full name
@@ -498,7 +498,7 @@ To exercise any of the above rights, please:
 - Proof of identity (for security purposes)
 
 **Account Settings:**
-- You can access, update, and delete certain information directly in your account settings at: https://clipper.example/settings/privacy
+- You can access, update, and delete certain information directly in your account settings at: https://clpr.tv/settings/privacy
 
 **Response Time:**
 - We will respond to your request within 30 days (GDPR) or 45 days (CCPA)
@@ -525,7 +525,7 @@ Note: Some data may be retained for legal obligations, fraud prevention, or disp
 To opt-out of marketing emails:
 - Click "Unsubscribe" in any marketing email
 - Update preferences in Settings > Notifications
-- Email privacy@clipper.example with "Unsubscribe" in subject line
+- Email privacy@clpr.tv with "Unsubscribe" in subject line
 
 You will continue to receive transactional emails (account security, billing) even after opting out of marketing.
 
@@ -815,7 +815,7 @@ If you are located in the European Economic Area (EEA), United Kingdom, or Switz
 - We use the European Commission's Standard Contractual Clauses (also known as Model Clauses) for transfers to third countries
 - SCCs are a set of contractual terms that provide adequate data protection safeguards
 - We have SCCs in place with AWS, Stripe, Sentry, and other US-based processors
-- You can request a copy of our SCCs by emailing privacy@clipper.example
+- You can request a copy of our SCCs by emailing privacy@clpr.tv
 
 **Supplementary Measures:**
 - Encryption in transit (TLS 1.3) and at rest (AES-256)
@@ -872,7 +872,7 @@ If not required, remove this section.
 We have appointed a Data Protection Officer to oversee our data protection practices:
 
 **Data Protection Officer:** [TO BE DETERMINED - Required if processing at large scale or sensitive data]  
-**Email:** dpo@clipper.example  
+**Email:** dpo@clpr.tv  
 **Responsibilities:**
 - Monitor GDPR compliance
 - Advise on data protection obligations
@@ -915,7 +915,7 @@ If you are between 13 and 17 years old:
 - Parents/guardians can request access to their child's data
 - Parents/guardians can request deletion of their child's data
 - Parents/guardians can refuse further collection or use of their child's data
-- Contact us at privacy@clipper.example with proof of guardianship
+- Contact us at privacy@clpr.tv with proof of guardianship
 
 ### 12.4 If We Discover Underage Users
 
@@ -928,7 +928,7 @@ If we become aware that we have collected personal information from a child unde
 ### 12.5 How to Report Underage Users
 
 If you believe a user is under 13, please contact us immediately:
-- Email: privacy@clipper.example
+- Email: privacy@clpr.tv
 - Subject line: "Underage User Report"
 - Include: Username, evidence of age (if available), your relationship to the user
 
@@ -984,7 +984,7 @@ For minor changes (e.g., clarifications, formatting, contact info updates), we w
 ### 13.4 Reviewing Changes
 
 - We will maintain an archive of previous versions of this policy
-- You can view the change history at https://clipper.example/legal/privacy-policy/history
+- You can view the change history at https://clpr.tv/legal/privacy-policy/history
 - We will highlight significant changes in the updated policy
 
 ### 13.5 Your Choices After Changes
@@ -1001,7 +1001,7 @@ If you do not agree with the updated Privacy Policy:
 
 For questions, concerns, or requests regarding this Privacy Policy or our data practices:
 
-**Email:** privacy@clipper.example  
+**Email:** privacy@clpr.tv  
 **Subject line:** "Privacy Inquiry - [Brief Description]"  
 **Response time:** Within 5 business days
 
@@ -1009,7 +1009,7 @@ For questions, concerns, or requests regarding this Privacy Policy or our data p
 
 To exercise your GDPR or CCPA rights (access, deletion, portability, etc.):
 
-**Email:** privacy@clipper.example  
+**Email:** privacy@clpr.tv  
 **Subject line:** "Data Rights Request - [Specific Right]"  
 **Include:** Full name, email address, account username, specific request details  
 **Response time:** Within 30 days (GDPR) or 45 days (CCPA)
@@ -1018,7 +1018,7 @@ To exercise your GDPR or CCPA rights (access, deletion, portability, etc.):
 
 For GDPR-related matters:
 
-**Email:** dpo@clipper.example  
+**Email:** dpo@clpr.tv  
 **Role:** Oversee GDPR compliance, handle complaints, liaise with supervisory authorities
 
 ### 14.4 EU Representative
@@ -1043,8 +1043,8 @@ For EU residents to contact our EU representative:
 
 For general support inquiries (not privacy-related):
 
-**Email:** support@clipper.example  
-**Help Center:** https://clipper.example/help
+**Email:** support@clpr.tv  
+**Help Center:** https://clpr.tv/help
 
 ---
 
