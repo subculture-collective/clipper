@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -312,14 +311,6 @@ func Load() (*Config, error) {
 		Security: SecurityConfig{
 			MFAEncryptionKey: getEnv("MFA_ENCRYPTION_KEY", ""),
 		},
-	}
-
-	// Validate MFA encryption key
-	if config.Security.MFAEncryptionKey == "" {
-		return nil, errors.New("MFA_ENCRYPTION_KEY environment variable must be set to a 32-byte hex string")
-	}
-	if len(config.Security.MFAEncryptionKey) != 32 {
-		return nil, fmt.Errorf("MFA_ENCRYPTION_KEY must be exactly 32 bytes, got %d bytes", len(config.Security.MFAEncryptionKey))
 	}
 
 	return config, nil

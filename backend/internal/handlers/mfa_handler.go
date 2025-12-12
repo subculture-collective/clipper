@@ -344,7 +344,7 @@ func (h *MFAHandler) DisableMFA(c *gin.Context) {
 		return
 	}
 
-	err := h.mfaService.DisableMFA(c.Request.Context(), userIDUUID, req.Password, req.Code)
+	err := h.mfaService.DisableMFA(c.Request.Context(), userIDUUID, req.Code)
 	if err != nil {
 		if err == services.ErrInvalidMFACode {
 			c.JSON(http.StatusBadRequest, gin.H{

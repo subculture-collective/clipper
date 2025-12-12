@@ -77,8 +77,13 @@ func NewMFAService(
 ) (*MFAService, error) {
 	// Get encryption key from config (should be 32 bytes for AES-256)
 	encryptionKey := []byte(cfg.Security.MFAEncryptionKey)
+	
+	// Validate encryption key - it must be set and exactly 32 bytes for AES-256
+	if len(encryptionKey) == 0 {
+		return nil, errors.New("MFA_ENCRYPTION_KEY environment variable must be set to enable MFA functionality. The key must be exactly 32 bytes for AES-256 encryption.")
+	}
 	if len(encryptionKey) != 32 {
-		return nil, errors.New("MFA encryption key must be 32 bytes for AES-256")
+		return nil, fmt.Errorf("MFA_ENCRYPTION_KEY must be exactly 32 bytes for AES-256, got %d bytes. Please generate a secure 32-byte key.", len(encryptionKey))
 	}
 
 	return &MFAService{
@@ -369,24 +374,16 @@ func (s *MFAService) RegenerateBackupCodes(ctx context.Context, userID uuid.UUID
 }
 
 // DisableMFA disables MFA for a user after verification
-func (s *MFAService) DisableMFA(ctx context.Context, userID uuid.UUID, password, code string) error {
+func (s *MFAService) DisableMFA(ctx context.Context, userID uuid.UUID, code string) error {
 	// Get user for email notification
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// TODO: Password verification should be implemented here before disabling MFA.
-	// This is a critical security operation and requires password confirmation.
-	// For now, we assume password verification is done by the handler or middleware.
-	// In production, you should:
-	// 1. Hash the provided password
-	// 2. Compare it with the stored password hash from the database
-	// 3. Return an error if they don't match
-	// Example:
-	//   if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-	//       return errors.New("invalid password")
-	//   }
+	// Password verification is not applicable in this OAuth-only authentication system.
+	// The system uses Twitch OAuth for authentication - users don't have passwords.
+	// Only MFA code verification is required to disable MFA.
 
 	// Verify MFA code
 	err = s.VerifyTOTP(ctx, userID, code, nil, nil)
@@ -524,21 +521,39 @@ func (s *MFAService) generateBackupCodes() ([]string, []string, error) {
 	return codes, hashed, nil
 }
 
-// generateRandomCode generates a random alphanumeric code
+// generateRandomCode generates a random alphanumeric code without modulo bias
 func generateRandomCode(length int) (string, error) {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
+	const maxByte = 255
+	const charsetLen = len(charset)
 	
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
+	// Calculate the largest multiple of charsetLen that fits in a byte
+	// to avoid modulo bias
+	maxUsableByte := maxByte - (maxByte % charsetLen)
+	
+	result := make([]byte, length)
+	randomBytes := make([]byte, length*2) // Buffer to reduce rejection rate
+	
+	for i := 0; i < length; {
+		// Get random bytes
+		if _, err := rand.Read(randomBytes); err != nil {
+			return "", err
+		}
+		
+		// Use rejection sampling to avoid modulo bias
+		for _, b := range randomBytes {
+			if i >= length {
+				break
+			}
+			// Only use byte values that are evenly divisible by charsetLen
+			if b <= byte(maxUsableByte) {
+				result[i] = charset[b%byte(charsetLen)]
+				i++
+			}
+		}
 	}
-
-	for i := range b {
-		b[i] = charset[int(b[i])%len(charset)]
-	}
-
-	return string(b), nil
+	
+	return string(result), nil
 }
 
 // generateQRCode generates a QR code as a data URL

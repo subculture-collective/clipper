@@ -2393,8 +2393,7 @@ type RegenerateBackupCodesResponse struct {
 
 // DisableMFARequest represents the request to disable MFA
 type DisableMFARequest struct {
-	Password string `json:"password" binding:"required"`
-	Code     string `json:"code" binding:"required"`
+	Code string `json:"code" binding:"required"`
 }
 
 // MFAStatusResponse represents the current MFA status for a user

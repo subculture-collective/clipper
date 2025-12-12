@@ -16,14 +16,13 @@ func (s *EmailService) SendMFAEnabledEmail(ctx context.Context, toEmail, usernam
 		"base_url": s.baseURL,
 	}
 
-	subject := "Multi-Factor Authentication Enabled"
+	subject, htmlBody, textBody, err := s.prepareEmailContent("mfa_enabled", data, "")
+	if err != nil {
+		return fmt.Errorf("failed to prepare MFA enabled email: %w", err)
+	}
 
-	return s.SendEmail(ctx, EmailRequest{
-		To:      []string{toEmail},
-		Subject: subject,
-		Template: "mfa_enabled",
-		Data:    data,
-	})
+	_, err = s.sendViaSendGrid(toEmail, subject, htmlBody, textBody)
+	return err
 }
 
 // SendMFADisabledEmail sends a notification when MFA is disabled
@@ -37,14 +36,13 @@ func (s *EmailService) SendMFADisabledEmail(ctx context.Context, toEmail, userna
 		"base_url": s.baseURL,
 	}
 
-	subject := "Multi-Factor Authentication Disabled"
+	subject, htmlBody, textBody, err := s.prepareEmailContent("mfa_disabled", data, "")
+	if err != nil {
+		return fmt.Errorf("failed to prepare MFA disabled email: %w", err)
+	}
 
-	return s.SendEmail(ctx, EmailRequest{
-		To:      []string{toEmail},
-		Subject: subject,
-		Template: "mfa_disabled",
-		Data:    data,
-	})
+	_, err = s.sendViaSendGrid(toEmail, subject, htmlBody, textBody)
+	return err
 }
 
 // SendMFABackupCodesRegeneratedEmail sends a notification when backup codes are regenerated
@@ -58,14 +56,13 @@ func (s *EmailService) SendMFABackupCodesRegeneratedEmail(ctx context.Context, t
 		"base_url": s.baseURL,
 	}
 
-	subject := "MFA Backup Codes Regenerated"
+	subject, htmlBody, textBody, err := s.prepareEmailContent("mfa_backup_codes_regenerated", data, "")
+	if err != nil {
+		return fmt.Errorf("failed to prepare MFA backup codes regenerated email: %w", err)
+	}
 
-	return s.SendEmail(ctx, EmailRequest{
-		To:      []string{toEmail},
-		Subject: subject,
-		Template: "mfa_backup_codes_regenerated",
-		Data:    data,
-	})
+	_, err = s.sendViaSendGrid(toEmail, subject, htmlBody, textBody)
+	return err
 }
 
 // prepareMFAEnabledEmail prepares the MFA enabled email content

@@ -24,9 +24,9 @@ CREATE TABLE mfa_trusted_devices (
     device_name VARCHAR(255), -- e.g., "Chrome on macOS"
     ip_address INET,
     user_agent TEXT,
-    trusted_at TIMESTAMP DEFAULT NOW(),
-    expires_at TIMESTAMP NOT NULL, -- 30 days from trusted_at
-    last_used_at TIMESTAMP DEFAULT NOW(),
+    trusted_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL, -- 30 days from trusted_at
+    last_used_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(user_id, device_fingerprint)
 );
@@ -44,7 +44,7 @@ CREATE TABLE mfa_audit_logs (
     ip_address INET,
     user_agent TEXT,
     details TEXT, -- Additional context (JSON)
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_mfa_audit_logs_user_id ON mfa_audit_logs(user_id);
