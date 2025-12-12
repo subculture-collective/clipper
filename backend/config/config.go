@@ -26,6 +26,7 @@ type Config struct {
 	Karma        KarmaConfig
 	Jobs         JobsConfig
 	RateLimit    RateLimitConfig
+	Security     SecurityConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -174,6 +175,11 @@ type RateLimitConfig struct {
 	AccountDeletionLimit int // POST account deletion
 }
 
+// SecurityConfig holds security-related configuration
+type SecurityConfig struct {
+	MFAEncryptionKey string // 32-byte key for AES-256 encryption of MFA secrets
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -301,6 +307,9 @@ func Load() (*Config, error) {
 			ReportLimit:          getEnvInt("RATE_LIMIT_REPORT", 10),
 			ExportLimit:          getEnvInt("RATE_LIMIT_EXPORT", 1),
 			AccountDeletionLimit: getEnvInt("RATE_LIMIT_ACCOUNT_DELETION", 1),
+		},
+		Security: SecurityConfig{
+			MFAEncryptionKey: getEnv("MFA_ENCRYPTION_KEY", ""),
 		},
 	}
 
