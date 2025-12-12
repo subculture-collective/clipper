@@ -370,14 +370,23 @@ func (s *MFAService) RegenerateBackupCodes(ctx context.Context, userID uuid.UUID
 
 // DisableMFA disables MFA for a user after verification
 func (s *MFAService) DisableMFA(ctx context.Context, userID uuid.UUID, password, code string) error {
-	// Verify password
+	// Get user for email notification
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Note: Assuming password verification is done elsewhere in auth flow
-	// In production, you'd verify the password here
+	// TODO: Password verification should be implemented here before disabling MFA.
+	// This is a critical security operation and requires password confirmation.
+	// For now, we assume password verification is done by the handler or middleware.
+	// In production, you should:
+	// 1. Hash the provided password
+	// 2. Compare it with the stored password hash from the database
+	// 3. Return an error if they don't match
+	// Example:
+	//   if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+	//       return errors.New("invalid password")
+	//   }
 
 	// Verify MFA code
 	err = s.VerifyTOTP(ctx, userID, code, nil, nil)

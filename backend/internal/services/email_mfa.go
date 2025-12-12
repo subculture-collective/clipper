@@ -16,8 +16,6 @@ func (s *EmailService) SendMFAEnabledEmail(ctx context.Context, toEmail, usernam
 		"base_url": s.baseURL,
 	}
 
-	_, _ = s.prepareMFAEnabledEmail(data)
-
 	subject := "Multi-Factor Authentication Enabled"
 
 	return s.SendEmail(ctx, EmailRequest{
@@ -39,8 +37,6 @@ func (s *EmailService) SendMFADisabledEmail(ctx context.Context, toEmail, userna
 		"base_url": s.baseURL,
 	}
 
-	_, _ = s.prepareMFADisabledEmail(data)
-
 	subject := "Multi-Factor Authentication Disabled"
 
 	return s.SendEmail(ctx, EmailRequest{
@@ -61,8 +57,6 @@ func (s *EmailService) SendMFABackupCodesRegeneratedEmail(ctx context.Context, t
 		"username": username,
 		"base_url": s.baseURL,
 	}
-
-	_, _ = s.prepareMFABackupCodesRegeneratedEmail(data)
 
 	subject := "MFA Backup Codes Regenerated"
 
