@@ -21,9 +21,9 @@ CREATE INDEX IF NOT EXISTS idx_user_cookie_consents_user_id ON user_cookie_conse
 CREATE INDEX IF NOT EXISTS idx_user_cookie_consents_consent_date ON user_cookie_consents(consent_date DESC);
 CREATE INDEX IF NOT EXISTS idx_user_cookie_consents_expires_at ON user_cookie_consents(expires_at);
 
--- Only keep the most recent consent record per user (for active consent)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_user_cookie_consents_user_latest 
-    ON user_cookie_consents(user_id, consent_date DESC);
+-- One consent record per user (upsert pattern in handler)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_cookie_consents_unique_user 
+    ON user_cookie_consents(user_id);
 
 COMMENT ON TABLE user_cookie_consents IS 'Stores user consent preferences for GDPR/CCPA compliance';
 COMMENT ON COLUMN user_cookie_consents.essential IS 'Always true - required for site functionality';

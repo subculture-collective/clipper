@@ -497,15 +497,25 @@ export function SettingsPage() {
                                     disabled={doNotTrack}
                                 />
                                 <div className='pt-2 border-t border-border'>
-                                    <Button
-                                        variant='ghost'
-                                        size='sm'
-                                        onClick={() => {
-                                            resetConsent();
-                                        }}
-                                    >
-                                        Reset Consent (Show Banner Again)
-                                    </Button>
+                                    <div className='flex flex-wrap gap-2'>
+                                        <Link to='/settings/cookies'>
+                                            <Button
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                Manage Cookie Settings
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            variant='ghost'
+                                            size='sm'
+                                            onClick={() => {
+                                                resetConsent();
+                                            }}
+                                        >
+                                            Reset Consent (Show Banner Again)
+                                        </Button>
+                                    </div>
                                 </div>
                                 {consentSuccess && (
                                     <Alert variant='success'>
