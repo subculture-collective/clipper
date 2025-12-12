@@ -10,10 +10,10 @@ import {
   Button,
   Spinner,
   Input,
-  Textarea,
+  TextArea,
 } from '../../components';
 import { discoveryListApi } from '../../lib/discovery-list-api';
-import { clipApi } from '../../lib/clip-api';
+import { searchApi } from '../../lib/search-api';
 import { useToast } from '../../context/ToastContext';
 import type { Clip } from '../../types/clip';
 
@@ -54,7 +54,7 @@ export function AdminDiscoveryListFormPage() {
   // Search clips
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ['clip-search', searchQuery],
-    queryFn: () => clipApi.searchClips(searchQuery, { limit: 20 }),
+    queryFn: () => searchApi.search({ query: searchQuery, type: 'clips', limit: 20 }),
     enabled: searchQuery.length >= 3,
   });
 
@@ -236,7 +236,7 @@ export function AdminDiscoveryListFormPage() {
               <label htmlFor="description" className="block text-sm font-medium mb-2">
                 Description
               </label>
-              <Textarea
+              <TextArea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -325,9 +325,9 @@ export function AdminDiscoveryListFormPage() {
                     </div>
                   )}
 
-                  {searchQuery.length >= 3 && searchResults && searchResults.clips.length > 0 && (
+                  {searchQuery.length >= 3 && searchResults && searchResults.results.clips && searchResults.results.clips.length > 0 && (
                     <div className="space-y-2 max-h-80 overflow-y-auto">
-                      {searchResults.clips.map((clip) => (
+                      {searchResults.results.clips.map((clip: Clip) => (
                         <div
                           key={clip.id}
                           className="flex items-center gap-3 p-2 hover:bg-accent rounded transition-colors"
@@ -356,7 +356,7 @@ export function AdminDiscoveryListFormPage() {
                     </div>
                   )}
 
-                  {searchQuery.length >= 3 && searchResults && searchResults.clips.length === 0 && (
+                  {searchQuery.length >= 3 && searchResults && searchResults.results.clips && searchResults.results.clips.length === 0 && (
                     <div className="text-center py-4 text-muted-foreground">
                       No clips found
                     </div>

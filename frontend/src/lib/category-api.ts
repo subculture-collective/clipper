@@ -1,6 +1,5 @@
 import { apiClient } from "./api";
 import type {
-  Category,
   CategoryListResponse,
   CategoryDetailResponse,
 } from "../types/category";
