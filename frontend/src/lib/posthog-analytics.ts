@@ -19,6 +19,8 @@ let posthogInstance: unknown = null;
 
 /**
  * Dynamically loads PostHog script
+ * Note: This loads from CDN for lightweight integration. For production,
+ * consider hosting locally or adding SRI (Subresource Integrity) checks.
  */
 function loadPostHogScript(): Promise<void> {
   return new Promise((resolve, reject) => {

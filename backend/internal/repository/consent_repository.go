@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 )
@@ -13,6 +14,9 @@ import (
 var (
 	// ErrConsentNotFound is returned when consent record is not found
 	ErrConsentNotFound = errors.New("consent not found")
+	
+	// ConsentExpirationDuration is 12 months (365 days)
+	ConsentExpirationDuration = 365 * 24 * time.Hour
 )
 
 // ConsentRepository handles cookie consent database operations
@@ -55,7 +59,7 @@ func (r *ConsentRepository) SaveConsent(ctx context.Context, consent *models.Coo
 		consent.Advertising,
 		ipAddress,
 		userAgent,
-		time.Now().Add(365 * 24 * time.Hour), // 12 months from now
+		time.Now().Add(ConsentExpirationDuration),
 	).Scan(&consent.ID, &consent.ConsentDate, &consent.CreatedAt, &consent.UpdatedAt)
 
 	if err != nil {
@@ -64,7 +68,7 @@ func (r *ConsentRepository) SaveConsent(ctx context.Context, consent *models.Coo
 
 	consent.IPAddress = &ipAddress
 	consent.UserAgent = &userAgent
-	consent.ExpiresAt = time.Now().Add(365 * 24 * time.Hour)
+	consent.ExpiresAt = time.Now().Add(ConsentExpirationDuration)
 
 	return nil
 }
@@ -98,7 +102,7 @@ func (r *ConsentRepository) GetConsent(ctx context.Context, userID uuid.UUID) (*
 	)
 
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if err == pgx.ErrNoRows {
 			return nil, ErrConsentNotFound
 		}
 		return nil, err

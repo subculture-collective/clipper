@@ -74,6 +74,8 @@ export interface ConsentContextType {
 
 const CONSENT_STORAGE_KEY = '@clipper_consent_preferences';
 const CONSENT_VERSION = '1.0';
+// Consent expiration period - 365 days (approximately 12 months)
+const CONSENT_EXPIRATION_MS = 365 * 24 * 60 * 60 * 1000;
 
 const ConsentContext = createContext<ConsentContextType | undefined>(undefined);
 
@@ -217,8 +219,8 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
         async (preferences: Partial<ConsentPreferences>) => {
             const now = new Date();
             const expiresAt = new Date(
-                now.getTime() + 365 * 24 * 60 * 60 * 1000
-            ); // 12 months
+                now.getTime() + CONSENT_EXPIRATION_MS
+            );
 
             const updatedPreferences: ConsentPreferences = {
                 ...consent,
