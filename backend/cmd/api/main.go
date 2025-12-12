@@ -173,6 +173,13 @@ func main() {
 		MaxEmailsPerHour: cfg.Email.MaxEmailsPerHour,
 	}, emailNotificationRepo, notificationRepo)
 
+	// Initialize MFA repository and service
+	mfaRepo := repository.NewMFARepository(db.Pool)
+	mfaService, mfaErr := services.NewMFAService(cfg, mfaRepo, userRepo, emailService)
+	if mfaErr != nil {
+		log.Fatalf("Failed to initialize MFA service: %v", mfaErr)
+	}
+
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
 	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
@@ -270,6 +277,7 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg)
+	mfaHandler := handlers.NewMFAHandler(mfaService, cfg)
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
 	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService)
 	commentHandler := handlers.NewCommentHandler(commentService)
@@ -513,6 +521,29 @@ func main() {
 			// Protected auth endpoints
 			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetCurrentUser)
 			auth.POST("/twitch/reauthorize", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 3, time.Hour), authHandler.ReauthorizeTwitch)
+
+			// MFA routes (protected)
+			mfa := auth.Group("/mfa")
+			mfa.Use(middleware.AuthMiddleware(authService))
+			{
+				// MFA enrollment
+				mfa.POST("/enroll", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), mfaHandler.StartEnrollment)
+				mfa.POST("/verify-enrollment", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), mfaHandler.VerifyEnrollment)
+				
+				// MFA status
+				mfa.GET("/status", mfaHandler.GetStatus)
+				
+				// MFA management
+				mfa.POST("/regenerate-backup-codes", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), mfaHandler.RegenerateBackupCodes)
+				mfa.POST("/disable", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), mfaHandler.DisableMFA)
+				
+				// Trusted devices
+				mfa.GET("/trusted-devices", mfaHandler.GetTrustedDevices)
+				mfa.DELETE("/trusted-devices/:id", mfaHandler.RevokeTrustedDevice)
+			}
+
+			// MFA login verification (special case - uses different middleware)
+			auth.POST("/mfa/verify-login", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), mfaHandler.VerifyLogin)
 		}
 
 		// Clip routes

@@ -400,6 +400,17 @@ func (s *EmailService) prepareEmailContent(
 		subject = "Important Update to Our Policies"
 		htmlBody, textBody = s.preparePolicyUpdateEmail(data)
 
+	// MFA notifications
+	case "mfa_enabled":
+		subject = "Multi-Factor Authentication Enabled"
+		htmlBody, textBody = s.prepareMFAEnabledEmail(data)
+	case "mfa_disabled":
+		subject = "Multi-Factor Authentication Disabled"
+		htmlBody, textBody = s.prepareMFADisabledEmail(data)
+	case "mfa_backup_codes_regenerated":
+		subject = "MFA Backup Codes Regenerated"
+		htmlBody, textBody = s.prepareMFABackupCodesRegeneratedEmail(data)
+
 	// Payment notifications
 	case models.NotificationTypePaymentFailed:
 		subject = "Payment Failed - Action Required"
