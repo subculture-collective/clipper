@@ -187,7 +187,7 @@ export function DiscoveryListDetailPage() {
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleFollow}
-                variant={list.is_following ? 'outline' : 'default'}
+                variant={list.is_following ? 'outline' : 'primary'}
                 size="sm"
                 disabled={
                   followMutation.isPending || unfollowMutation.isPending

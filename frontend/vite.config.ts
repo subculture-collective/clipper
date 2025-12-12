@@ -42,7 +42,6 @@ export default defineConfig(({ mode }) => ({
     build: {
         // Generate source maps for production
         sourcemap: true,
-<<<<<<< HEAD
         // Eliminate React init races by bundling entry as a single JS file
         // so React and ReactDOM initialize in the same execution unit.
         rollupOptions: {
@@ -53,42 +52,14 @@ export default defineConfig(({ mode }) => ({
                 inlineDynamicImports: true,
                 entryFileNames: 'assets/app-[hash].js',
                 chunkFileNames: 'assets/chunk-[hash].js',
-=======
-        rollupOptions: {
-            output: {
-                // Smart vendor chunking: Keep React with app bundle to avoid race conditions
-                // Split only truly heavy optional dependencies
-                manualChunks(id) {
-                    // Split heavy optional dependencies into separate chunks
-                    // These are loaded on-demand and don't need to be in critical path
-                    if (id.includes('node_modules/recharts')) {
-                        return 'recharts';
-                    }
-                    if (id.includes('node_modules/react-markdown') ||
-                        id.includes('node_modules/remark')) {
-                        return 'markdown';
-                    }
-                    if (id.includes('node_modules/lodash')) {
-                        return 'lodash';
-                    }
-                    // Everything else (including React) stays in main bundle
-                },
-                entryFileNames: 'assets/app-[hash].js',
-                chunkFileNames: 'assets/chunk-[name]-[hash].js',
->>>>>>> main
                 assetFileNames: 'assets/[name]-[hash][extname]',
             },
             treeshake: true,
         },
         // Keep CSS in the same output for consistent load ordering
         cssCodeSplit: false,
-<<<<<<< HEAD
         // Increase chunk size warning limit since we may have a larger single bundle
         chunkSizeWarningLimit: 1200,
-=======
-        // Reasonable chunk size warning limit
-        chunkSizeWarningLimit: 600,
->>>>>>> main
         // Use esbuild minifier (default, faster than terser)
         minify: 'esbuild',
     },
