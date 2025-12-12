@@ -31,6 +31,9 @@ func NewConsentRepository(db *pgxpool.Pool) *ConsentRepository {
 
 // SaveConsent saves or updates user cookie consent preferences
 func (r *ConsentRepository) SaveConsent(ctx context.Context, consent *models.CookieConsent, ipAddress, userAgent string) error {
+	// Calculate expiration once to avoid race condition
+	expiresAt := time.Now().Add(ConsentExpirationDuration)
+	
 	query := `
 		INSERT INTO user_cookie_consents (
 			user_id, essential, functional, analytics, advertising, 
@@ -59,7 +62,7 @@ func (r *ConsentRepository) SaveConsent(ctx context.Context, consent *models.Coo
 		consent.Advertising,
 		ipAddress,
 		userAgent,
-		time.Now().Add(ConsentExpirationDuration),
+		expiresAt,
 	).Scan(&consent.ID, &consent.ConsentDate, &consent.CreatedAt, &consent.UpdatedAt)
 
 	if err != nil {
@@ -68,7 +71,7 @@ func (r *ConsentRepository) SaveConsent(ctx context.Context, consent *models.Coo
 
 	consent.IPAddress = &ipAddress
 	consent.UserAgent = &userAgent
-	consent.ExpiresAt = time.Now().Add(ConsentExpirationDuration)
+	consent.ExpiresAt = expiresAt
 
 	return nil
 }

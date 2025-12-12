@@ -709,9 +709,9 @@ func main() {
 			// Data export (authenticated, rate limited)
 			users.GET("/me/export", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.ExportData)
 
-			// Cookie consent management (authenticated)
+			// Cookie consent management (authenticated, rate limited)
 			users.GET("/me/consent", middleware.AuthMiddleware(authService), consentHandler.GetConsent)
-			users.POST("/me/consent", middleware.AuthMiddleware(authService), consentHandler.SaveConsent)
+			users.POST("/me/consent", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), consentHandler.SaveConsent)
 
 			// Account deletion (authenticated, rate limited)
 			users.POST("/me/delete", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.RequestAccountDeletion)

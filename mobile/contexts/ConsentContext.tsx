@@ -182,6 +182,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
         useState<ConsentPreferences>(DEFAULT_CONSENT);
     const [hasConsented, setHasConsented] = useState(false);
     const [showConsentModal, setShowConsentModal] = useState(false);
+    const [isLoadingConsent, setIsLoadingConsent] = useState(true);
 
     // Initialize consent state on mount
     useEffect(() => {
@@ -194,12 +195,13 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
                 // No stored consent - show modal
                 setShowConsentModal(true);
             }
+            setIsLoadingConsent(false);
         });
     }, []);
 
     // Load consent from backend for logged-in users
     useEffect(() => {
-        if (!user) return;
+        if (!user || isLoadingConsent) return;
 
         loadConsentFromBackend().then((backendConsent) => {
             if (backendConsent && !isConsentExpired(backendConsent)) {
@@ -210,7 +212,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
                 saveConsent(backendConsent); // Sync to local storage
             }
         });
-    }, [user]);
+    }, [user, isLoadingConsent]);
 
     /**
      * Update consent preferences

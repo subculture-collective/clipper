@@ -232,39 +232,40 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
   /**
    * Update consent preferences
    */
-  const updateConsent = useCallback((preferences: Partial<ConsentPreferences>) => {
-    setConsent((prevConsent) => {
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 12 months
-      
-      const updatedPreferences: ConsentPreferences = {
-        ...prevConsent,
-        ...preferences,
-        essential: true, // Always keep essential enabled
-        updatedAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-      };
-      saveConsent(updatedPreferences);
-      
-      // Sync to backend if user is logged in
-      if (user) {
-        syncConsentToBackend(updatedPreferences);
-      }
-      
-      // Handle Google Analytics based on analytics consent
-      if (updatedPreferences.analytics && !doNotTrack) {
-        enableGoogleAnalytics();
-        enablePostHog();
-      } else {
-        disableGoogleAnalytics();
-        disablePostHog();
-      }
-      
-      return updatedPreferences;
-    });
+  const updateConsent = useCallback(async (preferences: Partial<ConsentPreferences>) => {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 12 months
+    
+    const updatedPreferences: ConsentPreferences = {
+      ...consent,
+      ...preferences,
+      essential: true, // Always keep essential enabled
+      updatedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    };
+    
+    // Update state first
+    setConsent(updatedPreferences);
     setHasConsented(true);
     setShowConsentBanner(false);
-  }, [doNotTrack, user]);
+    
+    // Save to local storage
+    saveConsent(updatedPreferences);
+    
+    // Sync to backend if user is logged in (non-blocking)
+    if (user) {
+      syncConsentToBackend(updatedPreferences);
+    }
+    
+    // Handle analytics based on analytics consent
+    if (updatedPreferences.analytics && !doNotTrack) {
+      enableGoogleAnalytics();
+      enablePostHog();
+    } else {
+      disableGoogleAnalytics();
+      disablePostHog();
+    }
+  }, [consent, doNotTrack, user]);
 
   /**
    * Accept all optional consent categories

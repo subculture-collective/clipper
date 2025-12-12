@@ -19,8 +19,35 @@ let posthogInstance: unknown = null;
 
 /**
  * Dynamically loads PostHog script
- * Note: This loads from CDN for lightweight integration. For production,
- * consider hosting locally or adding SRI (Subresource Integrity) checks.
+ * 
+ * SECURITY NOTE: This implementation loads PostHog from jsDelivr CDN without
+ * Subresource Integrity (SRI) verification for development convenience and
+ * automatic updates. For production environments with strict security requirements,
+ * consider one of the following alternatives:
+ * 
+ * 1. Self-host the PostHog library:
+ *    - Download posthog-js from npm
+ *    - Bundle it with your application or serve from your domain
+ *    - This provides full control and eliminates third-party dependencies
+ * 
+ * 2. Add SRI verification:
+ *    - Generate hash: openssl dgst -sha384 -binary posthog.min.js | openssl base64 -A
+ *    - Add integrity="sha384-HASH" and crossOrigin="anonymous" to script tag
+ *    - Note: Hash must be updated whenever PostHog version changes
+ * 
+ * 3. Use Content Security Policy (CSP):
+ *    - Add script-src directive to allow only trusted CDN sources
+ *    - Example: script-src 'self' https://cdn.jsdelivr.net
+ * 
+ * Current implementation prioritizes:
+ * - Lightweight integration without build dependencies
+ * - Automatic version updates via CDN
+ * - Lazy loading only when consent is granted
+ * 
+ * Risk assessment: Low-Medium
+ * - PostHog only loads after explicit user consent
+ * - jsDelivr is a reputable CDN with good security track record
+ * - Analytics data is non-critical (no PII or sensitive operations)
  */
 function loadPostHogScript(): Promise<void> {
   return new Promise((resolve, reject) => {

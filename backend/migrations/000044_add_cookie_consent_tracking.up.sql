@@ -8,12 +8,12 @@ CREATE TABLE IF NOT EXISTS user_cookie_consents (
     functional BOOLEAN NOT NULL DEFAULT false,
     analytics BOOLEAN NOT NULL DEFAULT false,
     advertising BOOLEAN NOT NULL DEFAULT false,
-    consent_date TIMESTAMP NOT NULL DEFAULT NOW(),
+    consent_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ip_address INET,
     user_agent TEXT,
-    expires_at TIMESTAMP NOT NULL DEFAULT NOW() + INTERVAL '12 months',
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    expires_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP + INTERVAL '12 months',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for efficient queries

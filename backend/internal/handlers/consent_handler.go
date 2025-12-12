@@ -22,7 +22,7 @@ func NewConsentHandler(consentRepo *repository.ConsentRepository) *ConsentHandle
 }
 
 // SaveConsent saves or updates user cookie consent preferences
-// POST /api/v1/consent
+// POST /api/v1/users/me/consent
 func (h *ConsentHandler) SaveConsent(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
 	userIDInterface, exists := c.Get("user_id")
@@ -71,7 +71,7 @@ func (h *ConsentHandler) SaveConsent(c *gin.Context) {
 }
 
 // GetConsent retrieves the current consent preferences for a user
-// GET /api/v1/consent
+// GET /api/v1/users/me/consent
 func (h *ConsentHandler) GetConsent(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
 	userIDInterface, exists := c.Get("user_id")
