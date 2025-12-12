@@ -120,12 +120,14 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 
 	// Get user's comments (fetch all, paginated)
 	var comments []interface{}
+	var commentsError error
 	offset := 0
 	limit := 1000
 	for {
 		pageComments, _, err := s.commentRepo.ListByUserID(ctx, userID, limit, offset)
 		if err != nil {
-			comments = nil
+			log.Printf("Error fetching user comments during export: %v", err)
+			commentsError = err
 			break
 		}
 		if len(pageComments) == 0 {
@@ -142,12 +144,14 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 
 	// Get user's submissions (fetch all, paginated)
 	var submissions []interface{}
+	var submissionsError error
 	submissionPage := 1
 	submissionLimit := 1000
 	for {
 		pageSubmissions, _, err := s.submissionRepo.ListByUser(ctx, userID, submissionPage, submissionLimit)
 		if err != nil {
-			submissions = nil
+			log.Printf("Error fetching user submissions during export: %v", err)
+			submissionsError = err
 			break
 		}
 		if len(pageSubmissions) == 0 {
@@ -165,18 +169,37 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 	// Get user's subscription data
 	subscription, err := s.subscriptionRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		subscription = nil // User may not have a subscription
+		log.Printf("Error fetching user subscription during export: %v", err)
+		subscription = nil // User may not have a subscription or error occurred
 	}
 
 	// Get user's cookie consent preferences
 	consent, err := s.consentRepo.GetConsent(ctx, userID)
 	if err != nil {
-		consent = nil // User may not have set consent preferences
+		log.Printf("Error fetching user consent during export: %v", err)
+		consent = nil // User may not have set consent preferences or error occurred
 	}
 
-	// Note: Search history is intentionally not included in the export by default
-	// as it may be considered too privacy-sensitive and is typically not required
-	// under GDPR Article 20 (portability). If needed, it can be added separately.
+	// Build export metadata to indicate data completeness
+	exportMeta := map[string]interface{}{
+		"exported_at": time.Now(),
+		"complete":    true,
+		"warnings":    []string{},
+	}
+
+	// Track any partial data warnings
+	warnings := []string{}
+	if commentsError != nil {
+		warnings = append(warnings, "Comments data may be incomplete due to an error during export")
+		exportMeta["complete"] = false
+	}
+	if submissionsError != nil {
+		warnings = append(warnings, "Submissions data may be incomplete due to an error during export")
+		exportMeta["complete"] = false
+	}
+	if len(warnings) > 0 {
+		exportMeta["warnings"] = warnings
+	}
 
 	// Create export structure with all user data
 	export := map[string]interface{}{
@@ -205,7 +228,7 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 		"submissions":  submissions,
 		"subscription": subscription,
 		"consent":      consent,
-		"exported_at":  time.Now(),
+		"export_meta":  exportMeta,
 	}
 
 	// Marshal to JSON
@@ -278,10 +301,24 @@ user_data.json - Complete export of your data in JSON format, including:
    - Categories: Essential, Functional, Analytics, Advertising
    - Consent date and IP address (for verification)
 
+8. Export Metadata
+   - Export timestamp
+   - Data completeness status
+   - Warnings (if any data collection encountered errors)
+
+Data Completeness
+-----------------
+
+The export metadata includes information about data completeness. If any warnings
+are present, it means some data could not be retrieved due to temporary errors.
+In such cases, you may request a new export or contact privacy@clipper.gg for
+assistance.
+
 Data Not Included
 -----------------
 
-- Search history (not required under GDPR portability, available on request)
+The following data is not included by default but can be requested separately:
+- Search history (contact privacy@clipper.gg)
 - IP addresses from activity logs (privacy-sensitive, available on request)
 - Moderation actions taken against your account (available on request)
 - Internal system identifiers and technical metadata
