@@ -464,6 +464,17 @@ export function SettingsPage() {
                             )}
                             <Stack direction='vertical' gap={4}>
                                 <Toggle
+                                    label='Functional Cookies'
+                                    helperText='Remember your preferences like language, theme, and other settings'
+                                    checked={consent.functional}
+                                    onChange={(e) => {
+                                        updateConsent({ functional: e.target.checked });
+                                        setConsentSuccess(true);
+                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                    }}
+                                    disabled={doNotTrack}
+                                />
+                                <Toggle
                                     label='Analytics Tracking'
                                     helperText='Help us improve clpr by allowing anonymous usage analytics'
                                     checked={consent.analytics}
@@ -477,35 +488,34 @@ export function SettingsPage() {
                                 <Toggle
                                     label='Personalized Advertising'
                                     helperText='Allow ads tailored to your interests. Without this, you will see contextual ads based on page content.'
-                                    checked={consent.personalizedAds}
+                                    checked={consent.advertising}
                                     onChange={(e) => {
-                                        updateConsent({ personalizedAds: e.target.checked });
-                                        setConsentSuccess(true);
-                                        setTimeout(() => setConsentSuccess(false), 3000);
-                                    }}
-                                    disabled={doNotTrack}
-                                />
-                                <Toggle
-                                    label='Performance Features'
-                                    helperText='Enable content caching and personalized recommendations'
-                                    checked={consent.performance}
-                                    onChange={(e) => {
-                                        updateConsent({ performance: e.target.checked });
+                                        updateConsent({ advertising: e.target.checked });
                                         setConsentSuccess(true);
                                         setTimeout(() => setConsentSuccess(false), 3000);
                                     }}
                                     disabled={doNotTrack}
                                 />
                                 <div className='pt-2 border-t border-border'>
-                                    <Button
-                                        variant='ghost'
-                                        size='sm'
-                                        onClick={() => {
-                                            resetConsent();
-                                        }}
-                                    >
-                                        Reset Consent (Show Banner Again)
-                                    </Button>
+                                    <div className='flex flex-wrap gap-2'>
+                                        <Link to='/settings/cookies'>
+                                            <Button
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                Manage Cookie Settings
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            variant='ghost'
+                                            size='sm'
+                                            onClick={() => {
+                                                resetConsent();
+                                            }}
+                                        >
+                                            Reset Consent (Show Banner Again)
+                                        </Button>
+                                    </div>
                                 </div>
                                 {consentSuccess && (
                                     <Alert variant='success'>
