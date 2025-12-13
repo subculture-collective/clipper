@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 )
@@ -24,7 +25,6 @@ type UserSettingsService struct {
 	favoriteRepo        *repository.FavoriteRepository
 	commentRepo         *repository.CommentRepository
 	submissionRepo      *repository.SubmissionRepository
-	searchRepo          *repository.SearchRepository
 	subscriptionRepo    *repository.SubscriptionRepository
 	consentRepo         *repository.ConsentRepository
 	auditLogService     *AuditLogService
@@ -40,7 +40,6 @@ func NewUserSettingsService(
 	favoriteRepo *repository.FavoriteRepository,
 	commentRepo *repository.CommentRepository,
 	submissionRepo *repository.SubmissionRepository,
-	searchRepo *repository.SearchRepository,
 	subscriptionRepo *repository.SubscriptionRepository,
 	consentRepo *repository.ConsentRepository,
 	auditLogService *AuditLogService,
@@ -54,7 +53,6 @@ func NewUserSettingsService(
 		favoriteRepo:        favoriteRepo,
 		commentRepo:         commentRepo,
 		submissionRepo:      submissionRepo,
-		searchRepo:          searchRepo,
 		subscriptionRepo:    subscriptionRepo,
 		consentRepo:         consentRepo,
 		auditLogService:     auditLogService,
@@ -169,15 +167,21 @@ func (s *UserSettingsService) ExportUserData(ctx context.Context, userID uuid.UU
 	// Get user's subscription data
 	subscription, err := s.subscriptionRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		log.Printf("Error fetching user subscription during export: %v", err)
-		subscription = nil // User may not have a subscription or error occurred
+		// Only log if it's not a "no rows" error (user may not have a subscription)
+		if !errors.Is(err, pgx.ErrNoRows) {
+			log.Printf("Error fetching user subscription during export: %v", err)
+		}
+		subscription = nil
 	}
 
 	// Get user's cookie consent preferences
 	consent, err := s.consentRepo.GetConsent(ctx, userID)
 	if err != nil {
-		log.Printf("Error fetching user consent during export: %v", err)
-		consent = nil // User may not have set consent preferences or error occurred
+		// Only log if it's not a "not found" error (user may not have set consent preferences)
+		if !errors.Is(err, repository.ErrConsentNotFound) {
+			log.Printf("Error fetching user consent during export: %v", err)
+		}
+		consent = nil
 	}
 
 	// Build export metadata to indicate data completeness
