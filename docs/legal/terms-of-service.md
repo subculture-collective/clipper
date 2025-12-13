@@ -148,9 +148,39 @@ We reserve the right to investigate and take appropriate action against anyone w
 
 <!-- ATTORNEY NOTE: Review prohibited conduct list for completeness and enforceability -->
 
-## 6. Premium Subscriptions
+## 6. Copyright and DMCA Policy
 
-### 6.1 Premium Features
+### 6.1 Copyright Infringement
+
+Clipper respects the intellectual property rights of others and expects users to do the same. Posting content that infringes copyright or other intellectual property rights is strictly prohibited and may result in account termination.
+
+### 6.2 DMCA Compliance
+
+We comply with the Digital Millennium Copyright Act (DMCA), 17 U.S.C. § 512. If you believe your copyrighted work has been infringed on Clipper, you may submit a DMCA takedown notice to our designated DMCA agent.
+
+For complete information about our DMCA procedures, including:
+- How to file a DMCA takedown notice
+- How to file a counter-notice if your content was removed
+- Our repeat infringer policy
+- Contact information for our designated DMCA agent
+
+Please see our full [DMCA Copyright Policy](./dmca-policy.md).
+
+### 6.3 Repeat Infringer Policy
+
+In accordance with the DMCA, Clipper has adopted a policy of terminating, in appropriate circumstances, users who are repeat infringers of copyright. We maintain a three-strike system for copyright violations. See our DMCA Policy for complete details.
+
+### 6.4 User Responsibilities
+
+By submitting content to Clipper, you represent and warrant that:
+- You own or have the necessary rights to submit the content
+- Your content does not infringe any third-party copyrights, trademarks, or other intellectual property rights
+- You have obtained all necessary permissions and releases
+- You will comply with our DMCA Policy and all applicable copyright laws
+
+## 7. Premium Subscriptions
+
+### 7.1 Premium Features
 
 Clipper offers premium subscription plans ("Premium Subscription") that provide access to additional features and benefits. The specific features, pricing, and terms are described on our website and in the Service.
 
@@ -197,17 +227,17 @@ We may offer free trial periods for Premium Subscriptions. If you sign up for a 
 - We may limit free trial eligibility to prevent abuse
 - Free trial terms may vary and will be disclosed at the time of signup
 
-## 7. Third-Party Services and Content
+## 8. Third-Party Services and Content
 
-### 7.1 Twitch Integration
+### 8.1 Twitch Integration
 
 The Service integrates with Twitch and displays content from Twitch. Your use of Twitch content through the Service is subject to [Twitch's Terms of Service](https://www.twitch.tv/p/legal/terms-of-service/) and [Twitch's Community Guidelines](https://www.twitch.tv/p/legal/community-guidelines/). We are not responsible for Twitch content or any interruption in Twitch's services.
 
-### 7.2 Third-Party Links
+### 8.2 Third-Party Links
 
 The Service may contain links to third-party websites, services, or resources. We are not responsible for the content, policies, or practices of any third-party websites or services. You access third-party links at your own risk.
 
-### 7.3 App Stores
+### 8.3 App Stores
 
 If you access the Service through a mobile application downloaded from Apple's App Store or Google Play Store, your use is also subject to the applicable app store's terms of service:
 
@@ -216,7 +246,7 @@ If you access the Service through a mobile application downloaded from Apple's A
 
 <!-- ATTORNEY NOTE: Verify app store compliance requirements are adequately addressed -->
 
-## 8. Disclaimer of Warranties
+## 9. Disclaimer of Warranties
 
 **THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.**
 
@@ -240,7 +270,7 @@ Some jurisdictions do not allow the exclusion of certain warranties, so some of 
 
 <!-- ATTORNEY NOTE: Review warranty disclaimers for enforceability -->
 
-## 9. Limitation of Liability
+## 10. Limitation of Liability
 
 **TO THE MAXIMUM EXTENT PERMITTED BY LAW, CLIPPER AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, LICENSORS, AND SERVICE PROVIDERS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE, ARISING OUT OF OR RELATED TO THESE TERMS OR YOUR USE OF THE SERVICE, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.**
 
@@ -254,7 +284,7 @@ The limitations in this section apply to the fullest extent permitted by law, bu
 
 <!-- ATTORNEY NOTE: Review limitation of liability caps and exclusions for enforceability -->
 
-## 10. Indemnification
+## 11. Indemnification
 
 You agree to indemnify, defend, and hold harmless Clipper and its officers, directors, employees, agents, licensors, and service providers from and against any claims, liabilities, damages, losses, costs, expenses, or fees (including reasonable attorneys' fees) arising out of or related to:
 
@@ -268,19 +298,19 @@ We reserve the right to assume the exclusive defense and control of any matter s
 
 <!-- ATTORNEY NOTE: Validate indemnification clause language and scope -->
 
-## 11. Dispute Resolution
+## 12. Dispute Resolution
 
-### 11.1 Governing Law
+### 15.1 Governing Law
 
 These Terms and any disputes arising out of or related to these Terms or the Service shall be governed by and construed in accordance with the laws of the State of [DELAWARE/CALIFORNIA], without regard to its conflict of law principles.
 
 <!-- ATTORNEY NOTE: Confirm governing law selection (Delaware or California) based on company incorporation -->
 
-### 11.2 Informal Resolution
+### 15.2 Informal Resolution
 
 Before filing a claim, you agree to contact us at [LEGAL_EMAIL@clipper.com] and attempt to resolve the dispute informally. We will attempt to resolve the dispute informally by contacting you via email. If a dispute is not resolved within 30 days of submission, either party may bring a formal proceeding.
 
-### 11.3 Arbitration Agreement
+### 15.3 Arbitration Agreement
 
 **YOU AND CLIPPER AGREE THAT ANY DISPUTE, CLAIM, OR CONTROVERSY BETWEEN YOU AND CLIPPER ARISING OUT OF OR RELATING TO THESE TERMS OR THE SERVICE SHALL BE RESOLVED EXCLUSIVELY THROUGH BINDING INDIVIDUAL ARBITRATION, EXCEPT AS PROVIDED BELOW.**
 
@@ -290,7 +320,7 @@ The arbitration shall take place in [LOCATION] or at another mutually agreeable 
 
 <!-- ATTORNEY NOTE: Review arbitration clause for enforceability in target jurisdictions -->
 
-### 11.4 Class Action Waiver
+### 15.4 Class Action Waiver
 
 **YOU AND CLIPPER AGREE THAT EACH PARTY MAY BRING CLAIMS AGAINST THE OTHER ONLY IN AN INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS, CONSOLIDATED, OR REPRESENTATIVE PROCEEDING.**
 
@@ -298,7 +328,7 @@ The arbitrator may not consolidate more than one person's claims and may not oth
 
 <!-- ATTORNEY NOTE: Validate class action waiver enforceability -->
 
-### 11.5 Exceptions
+### 12.5 Exceptions
 
 Notwithstanding the arbitration agreement:
 
@@ -306,21 +336,21 @@ Notwithstanding the arbitration agreement:
 - Either party may seek injunctive or equitable relief in court to prevent infringement of intellectual property rights or unauthorized access to the Service
 - You may file a complaint with the Federal Trade Commission or equivalent consumer protection agency
 
-### 11.6 Opt-Out
+### 12.6 Opt-Out
 
 You have the right to opt out of this arbitration agreement by sending written notice of your decision to opt out to [LEGAL_EMAIL@clipper.com] within 30 days of first accepting these Terms. If you opt out, you and Clipper agree to resolve disputes in accordance with Section 11.7 below.
 
-### 11.7 Jurisdiction and Venue
+### 12.7 Jurisdiction and Venue
 
 If the arbitration agreement does not apply or you have opted out, you agree that any judicial proceeding shall be brought exclusively in the federal or state courts located in [COUNTY, STATE], and you consent to personal jurisdiction in those courts.
 
-## 12. Termination Rights
+## 13. Termination Rights
 
-### 12.1 Termination by You
+### 15.1 Termination by You
 
 You may terminate these Terms at any time by deleting your account and discontinuing use of the Service. Termination does not relieve you of any obligations incurred prior to termination.
 
-### 12.2 Termination by Clipper
+### 15.2 Termination by Clipper
 
 We may suspend or terminate your access to the Service at any time, with or without cause, with or without notice, effective immediately. Reasons for termination may include, but are not limited to:
 
@@ -332,22 +362,22 @@ We may suspend or terminate your access to the Service at any time, with or with
 - Extended periods of inactivity
 - Failure to pay subscription fees
 
-### 12.3 Effect of Termination
+### 15.3 Effect of Termination
 
 Upon termination:
 
 - Your right to access and use the Service will immediately cease
 - We may delete your account and all associated User Content
 - You remain liable for any obligations incurred prior to termination
-- Provisions of these Terms that by their nature should survive termination shall survive, including but not limited to Sections 3.2 (License Grant), 4 (Intellectual Property), 8 (Disclaimers), 9 (Limitation of Liability), 10 (Indemnification), 11 (Dispute Resolution), and 12.3 (Effect of Termination)
+- Provisions of these Terms that by their nature should survive termination shall survive, including but not limited to Sections 3.2 (License Grant), 4 (Intellectual Property), 9 (Disclaimers), 10 (Limitation of Liability), 11 (Indemnification), 12 (Dispute Resolution), and 13.3 (Effect of Termination)
 
-### 12.4 No Refunds Upon Termination
+### 15.4 No Refunds Upon Termination
 
 If we terminate your account for violation of these Terms, you will not receive a refund of any subscription fees or other fees paid.
 
-## 13. Changes to Terms
+## 14. Changes to Terms
 
-### 13.1 Right to Modify
+### 15.1 Right to Modify
 
 We reserve the right to modify these Terms at any time. If we make material changes, we will notify you by:
 
@@ -355,60 +385,60 @@ We reserve the right to modify these Terms at any time. If we make material chan
 - Sending an email to the address associated with your account
 - Providing notice through the Service interface
 
-### 13.2 Effective Date of Changes
+### 15.2 Effective Date of Changes
 
 Changes to these Terms will be effective:
 
 - For material changes: 30 days after we provide notice
 - For non-material changes: immediately upon posting
 
-### 13.3 Acceptance of Changes
+### 15.3 Acceptance of Changes
 
 Your continued use of the Service after the effective date of any changes constitutes your acceptance of the modified Terms. If you do not agree to the modified Terms, you must stop using the Service and delete your account.
 
-### 13.4 Revisions
+### 15.4 Revisions
 
 We will update the "Last Updated" date at the top of these Terms when we make changes. We encourage you to review these Terms periodically.
 
-## 14. General Provisions
+## 15. General Provisions
 
-### 14.1 Entire Agreement
+### 15.1 Entire Agreement
 
 These Terms, together with our Privacy Policy and any additional terms that apply to specific features, constitute the entire agreement between you and Clipper regarding the Service and supersede all prior agreements and understandings.
 
-### 14.2 Severability
+### 15.2 Severability
 
 If any provision of these Terms is found to be invalid or unenforceable, the remaining provisions will remain in full force and effect, and the invalid provision will be modified to the minimum extent necessary to make it valid and enforceable.
 
-### 14.3 Waiver
+### 15.3 Waiver
 
 Our failure to enforce any right or provision of these Terms will not constitute a waiver of that right or provision. Any waiver must be in writing and signed by an authorized representative of Clipper.
 
-### 14.4 Assignment
+### 15.4 Assignment
 
 You may not assign or transfer these Terms or your rights under these Terms without our prior written consent. We may assign or transfer these Terms without restriction. Any attempted assignment in violation of this section shall be void.
 
-### 14.5 Force Majeure
+### 15.5 Force Majeure
 
 We shall not be liable for any failure or delay in performing our obligations under these Terms due to circumstances beyond our reasonable control, including but not limited to acts of God, natural disasters, war, terrorism, riots, embargoes, acts of civil or military authorities, fire, floods, accidents, pandemics, strikes, or shortages of transportation facilities, fuel, energy, labor, or materials.
 
-### 14.6 Relationship
+### 15.6 Relationship
 
 These Terms do not create any agency, partnership, joint venture, employment, or franchise relationship between you and Clipper. You may not make any representations on behalf of or bind Clipper in any manner.
 
-### 14.7 Notices
+### 15.7 Notices
 
 We may provide notices to you via email to the address associated with your account or through the Service. You agree that electronic notices satisfy any legal requirement that notices be in writing. Notices to us should be sent to [LEGAL_EMAIL@clipper.com].
 
-### 14.8 Export Control
+### 15.8 Export Control
 
 You may not use, export, or re-export the Service except as authorized by United States law and the laws of the jurisdiction in which the Service was obtained. You represent that you are not located in a country subject to U.S. government embargo or designated as a "terrorist supporting" country, and that you are not on any U.S. government list of prohibited or restricted parties.
 
-### 14.9 U.S. Government Rights
+### 15.9 U.S. Government Rights
 
 If you are a U.S. government entity, the Service is a "commercial item" as defined in 48 C.F.R. § 2.101, and your use is governed by these Terms.
 
-## 15. Contact Information
+## 16. Contact Information
 
 If you have questions, concerns, or feedback about these Terms or the Service, please contact us:
 

@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { initGoogleAnalytics, disableGoogleAnalytics, enableGoogleAnalytics } from '../lib/google-analytics';
+import { initPostHog, disablePostHog, enablePostHog } from '../lib/posthog-analytics';
+import { useAuth } from './AuthContext';
+import axios from 'axios';
 
 /**
  * Consent categories for different types of tracking/personalization
@@ -7,14 +10,16 @@ import { initGoogleAnalytics, disableGoogleAnalytics, enableGoogleAnalytics } fr
 export interface ConsentPreferences {
   /** Essential cookies/storage - always true, required for site function */
   essential: boolean;
+  /** Functional cookies - language, theme, preferences */
+  functional: boolean;
   /** Analytics tracking consent */
   analytics: boolean;
   /** Personalized advertising consent */
-  personalizedAds: boolean;
-  /** Performance/functionality cookies */
-  performance: boolean;
+  advertising: boolean;
   /** Timestamp of last consent update */
   updatedAt: string | null;
+  /** Expiration timestamp (12 months from consent) */
+  expiresAt: string | null;
 }
 
 /**
@@ -23,10 +28,11 @@ export interface ConsentPreferences {
  */
 const DEFAULT_CONSENT: ConsentPreferences = {
   essential: true, // Always required
+  functional: false,
   analytics: false,
-  personalizedAds: false,
-  performance: false,
+  advertising: false,
   updatedAt: null,
+  expiresAt: null,
 };
 
 /**
@@ -80,6 +86,14 @@ function detectDoNotTrack(): boolean {
 }
 
 /**
+ * Checks if consent has expired (12 months)
+ */
+function isConsentExpired(preferences: ConsentPreferences): boolean {
+  if (!preferences.expiresAt) return true;
+  return new Date() > new Date(preferences.expiresAt);
+}
+
+/**
  * Loads consent from localStorage
  */
 function loadStoredConsent(): ConsentPreferences | null {
@@ -93,6 +107,12 @@ function loadStoredConsent(): ConsentPreferences | null {
       // Version mismatch - treat as if no consent given
       return null;
     }
+    
+    // Check if consent has expired
+    if (isConsentExpired(parsed.preferences)) {
+      return null;
+    }
+    
     return parsed.preferences;
   } catch {
     return null;
@@ -114,10 +134,52 @@ function saveConsent(preferences: ConsentPreferences): void {
 }
 
 /**
+ * Syncs consent to backend (for logged-in users)
+ */
+async function syncConsentToBackend(preferences: ConsentPreferences): Promise<void> {
+  try {
+    await axios.post('/api/v1/users/me/consent', {
+      essential: preferences.essential,
+      functional: preferences.functional,
+      analytics: preferences.analytics,
+      advertising: preferences.advertising,
+    });
+  } catch (error) {
+    // Silent fail - consent is still saved locally
+    console.error('Failed to sync consent to backend:', error);
+  }
+}
+
+/**
+ * Loads consent from backend (for logged-in users)
+ */
+async function loadConsentFromBackend(): Promise<ConsentPreferences | null> {
+  try {
+    const response = await axios.get('/api/v1/users/me/consent');
+    if (response.data?.success && response.data?.data) {
+      const data = response.data.data;
+      return {
+        essential: data.essential ?? true,
+        functional: data.functional ?? false,
+        analytics: data.analytics ?? false,
+        advertising: data.advertising ?? false,
+        updatedAt: data.consent_date || data.updated_at || null,
+        expiresAt: data.expires_at || null,
+      };
+    }
+    return null;
+  } catch {
+    // Silent fail - use local consent
+    return null;
+  }
+}
+
+/**
  * Consent Provider component
  * Manages user consent for tracking, analytics, and personalized ads
  */
 export function ConsentProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [consent, setConsent] = useState<ConsentPreferences>(DEFAULT_CONSENT);
   const [hasConsented, setHasConsented] = useState(false);
   const [doNotTrack, setDoNotTrack] = useState(false);
@@ -134,9 +196,10 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
       setHasConsented(true);
       setShowConsentBanner(false);
       
-      // Initialize Google Analytics if user has consented and DNT is not enabled
+      // Initialize analytics if user has consented and DNT is not enabled
       if (storedConsent.analytics && !dnt) {
         initGoogleAnalytics();
+        initPostHog();
       }
     } else {
       // No stored consent - show banner
@@ -145,40 +208,73 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Load consent from backend for logged-in users
+  useEffect(() => {
+    if (!user) return;
+    
+    loadConsentFromBackend().then((backendConsent) => {
+      if (backendConsent && !isConsentExpired(backendConsent)) {
+        // Backend consent exists and is valid - use it
+        setConsent(backendConsent);
+        setHasConsented(true);
+        setShowConsentBanner(false);
+        saveConsent(backendConsent); // Sync to local storage
+        
+        // Initialize analytics if consented
+        if (backendConsent.analytics && !doNotTrack) {
+          initGoogleAnalytics();
+          initPostHog();
+        }
+      }
+    });
+  }, [user, doNotTrack]);
+
   /**
    * Update consent preferences
    */
-  const updateConsent = useCallback((preferences: Partial<ConsentPreferences>) => {
-    setConsent((prevConsent) => {
-      const updatedPreferences: ConsentPreferences = {
-        ...prevConsent,
-        ...preferences,
-        essential: true, // Always keep essential enabled
-        updatedAt: new Date().toISOString(),
-      };
-      saveConsent(updatedPreferences);
-      
-      // Handle Google Analytics based on analytics consent
-      if (updatedPreferences.analytics && !doNotTrack) {
-        enableGoogleAnalytics();
-      } else {
-        disableGoogleAnalytics();
-      }
-      
-      return updatedPreferences;
-    });
+  const updateConsent = useCallback(async (preferences: Partial<ConsentPreferences>) => {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 12 months
+    
+    const updatedPreferences: ConsentPreferences = {
+      ...consent,
+      ...preferences,
+      essential: true, // Always keep essential enabled
+      updatedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    };
+    
+    // Update state first
+    setConsent(updatedPreferences);
     setHasConsented(true);
     setShowConsentBanner(false);
-  }, [doNotTrack]);
+    
+    // Save to local storage
+    saveConsent(updatedPreferences);
+    
+    // Sync to backend if user is logged in (non-blocking)
+    if (user) {
+      syncConsentToBackend(updatedPreferences);
+    }
+    
+    // Handle analytics based on analytics consent
+    if (updatedPreferences.analytics && !doNotTrack) {
+      enableGoogleAnalytics();
+      enablePostHog();
+    } else {
+      disableGoogleAnalytics();
+      disablePostHog();
+    }
+  }, [consent, doNotTrack, user]);
 
   /**
    * Accept all optional consent categories
    */
   const acceptAll = useCallback(() => {
     updateConsent({
+      functional: true,
       analytics: true,
-      personalizedAds: true,
-      performance: true,
+      advertising: true,
     });
   }, [updateConsent]);
 
@@ -187,9 +283,9 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
    */
   const rejectAll = useCallback(() => {
     updateConsent({
+      functional: false,
       analytics: false,
-      personalizedAds: false,
-      performance: false,
+      advertising: false,
     });
   }, [updateConsent]);
 
@@ -203,8 +299,9 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
       // Ignore storage errors
     }
     
-    // Disable Google Analytics when consent is reset
+    // Disable analytics when consent is reset
     disableGoogleAnalytics();
+    disablePostHog();
     
     setConsent(DEFAULT_CONSENT);
     setHasConsented(false);
@@ -213,7 +310,7 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
 
   // Compute derived values
   // Personalized ads require explicit consent AND no DNT signal
-  const canShowPersonalizedAds = hasConsented && consent.personalizedAds && !doNotTrack;
+  const canShowPersonalizedAds = hasConsented && consent.advertising && !doNotTrack;
   
   // Analytics tracking also respects DNT and consent
   const canTrackAnalytics = hasConsented && consent.analytics && !doNotTrack;

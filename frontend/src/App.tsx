@@ -30,6 +30,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage').then(m => ({ default:
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const DMCAPage = lazy(() => import('./pages/DMCAPage').then(m => ({ default: m.DMCAPage })));
 const CommunityRulesPage = lazy(() => import('./pages/CommunityRulesPage').then(m => ({ default: m.CommunityRulesPage })));
 const ContactPage = lazy(() => import('./pages/ContactPage').then(m => ({ default: m.ContactPage })));
 const DocsPage = lazy(() => import('./pages/DocsPage').then(m => ({ default: m.DocsPage })));
@@ -41,6 +42,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ defaul
 const SubmitClipPage = lazy(() => import('./pages/SubmitClipPage').then(m => ({ default: m.SubmitClipPage })));
 const UserSubmissionsPage = lazy(() => import('./pages/UserSubmissionsPage').then(m => ({ default: m.UserSubmissionsPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const CookieSettingsPage = lazy(() => import('./pages/CookieSettingsPage').then(m => ({ default: m.CookieSettingsPage })));
 const CreatorDashboardPage = lazy(() => import('./pages/CreatorDashboardPage').then(m => ({ default: m.CreatorDashboardPage })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminClipsPage = lazy(() => import('./pages/admin/AdminClipsPage').then(m => ({ default: m.AdminClipsPage })));
@@ -105,6 +107,7 @@ function App() {
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
                     <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/legal/dmca" element={<DMCAPage />} />
                     <Route path="/community-rules" element={<CommunityRulesPage />} />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/docs" element={<DocsPage />} />
@@ -151,6 +154,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <SettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings/cookies"
+                      element={
+                        <ProtectedRoute>
+                          <CookieSettingsPage />
                         </ProtectedRoute>
                       }
                     />

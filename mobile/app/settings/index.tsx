@@ -6,6 +6,7 @@ import { View, Text, Switch, TouchableOpacity, Alert, ScrollView, ActivityIndica
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useConsent } from '@/contexts/ConsentContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
     getUserSettings,
@@ -19,6 +20,7 @@ import {
 export default function SettingsScreen() {
   const { isAuthenticated } = useAuth();
   const { isNotificationsEnabled, enableNotifications, disableNotifications } = useNotifications();
+  const { consent, updateConsent } = useConsent();
   const [notifications, setNotifications] = useState(isNotificationsEnabled);
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -297,6 +299,54 @@ export default function SettingsScreen() {
                   </View>
                 )}
               </View>
+            </View>
+          </View>
+
+          <View className="bg-white p-4 mb-2">
+            <Text className="text-xs font-semibold text-gray-500 uppercase mb-2">
+              Privacy & Tracking
+            </Text>
+            
+            <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
+              <View className="flex-1">
+                <Text className="text-base text-gray-900">Functional Cookies</Text>
+                <Text className="text-xs text-gray-500 mt-1">
+                  Remember your preferences like language and theme
+                </Text>
+              </View>
+              <Switch
+                value={consent.functional}
+                onValueChange={(value) => updateConsent({ functional: value })}
+                trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
+              />
+            </View>
+
+            <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
+              <View className="flex-1">
+                <Text className="text-base text-gray-900">Analytics Tracking</Text>
+                <Text className="text-xs text-gray-500 mt-1">
+                  Help us improve the app with anonymous analytics
+                </Text>
+              </View>
+              <Switch
+                value={consent.analytics}
+                onValueChange={(value) => updateConsent({ analytics: value })}
+                trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
+              />
+            </View>
+
+            <View className="flex-row items-center justify-between py-3">
+              <View className="flex-1">
+                <Text className="text-base text-gray-900">Personalized Advertising</Text>
+                <Text className="text-xs text-gray-500 mt-1">
+                  Allow ads tailored to your interests
+                </Text>
+              </View>
+              <Switch
+                value={consent.advertising}
+                onValueChange={(value) => updateConsent({ advertising: value })}
+                trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
+              />
             </View>
           </View>
 

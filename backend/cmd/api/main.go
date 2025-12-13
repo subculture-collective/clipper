@@ -122,6 +122,7 @@ func main() {
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
 	userSettingsRepo := repository.NewUserSettingsRepository(db.Pool)
 	accountDeletionRepo := repository.NewAccountDeletionRepository(db.Pool)
+	consentRepo := repository.NewConsentRepository(db.Pool)
 	clipRepo := repository.NewClipRepository(db.Pool)
 	commentRepo := repository.NewCommentRepository(db.Pool)
 	voteRepo := repository.NewVoteRepository(db.Pool)
@@ -305,6 +306,7 @@ func main() {
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
 	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
+	consentHandler := handlers.NewConsentHandler(consentRepo)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
 	seoHandler := handlers.NewSEOHandler(clipRepo)
 	docsHandler := handlers.NewDocsHandler(cfg.Server.DocsPath, "subculture-collective", "clipper", "main")
@@ -706,6 +708,10 @@ func main() {
 
 			// Data export (authenticated, rate limited)
 			users.GET("/me/export", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.ExportData)
+
+			// Cookie consent management (authenticated, rate limited)
+			users.GET("/me/consent", middleware.AuthMiddleware(authService), consentHandler.GetConsent)
+			users.POST("/me/consent", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), consentHandler.SaveConsent)
 
 			// Account deletion (authenticated, rate limited)
 			users.POST("/me/delete", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 1, time.Hour), userSettingsHandler.RequestAccountDeletion)
