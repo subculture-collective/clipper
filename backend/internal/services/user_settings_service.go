@@ -321,11 +321,13 @@ assistance.
 Data Not Included
 -----------------
 
-The following data is not included by default but can be requested separately:
-- Search history (contact privacy@clipper.gg)
-- IP addresses from activity logs (privacy-sensitive, available on request)
-- Moderation actions taken against your account (available on request)
+The following data is intentionally not included in the automated export:
+- Search history (privacy-sensitive data, not required under GDPR portability)
+- IP addresses from activity logs (privacy-sensitive, available via support if needed)
+- Moderation actions taken against your account (available via support if needed)
 - Internal system identifiers and technical metadata
+
+For any additional data requests, contact privacy@clipper.gg
 
 Your Rights
 -----------
