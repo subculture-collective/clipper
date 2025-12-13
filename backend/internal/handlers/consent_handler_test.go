@@ -49,12 +49,12 @@ func (m *mockConsentRepository) IsConsentExpired(ctx context.Context, userID uui
 // TestSaveConsent_EssentialAlwaysTrue tests that essential cookies are always set to true
 func TestSaveConsent_EssentialAlwaysTrue(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	
+
 	mockRepo := repository.NewConsentRepository(nil) // We can't use a mock because handler expects concrete type
-	
+
 	// Since we can't easily mock the concrete repository, we'll test the handler logic
 	// by verifying it properly validates required fields and auth
-	
+
 	handler := NewConsentHandler(mockRepo)
 
 	// Test that request without user_id is rejected

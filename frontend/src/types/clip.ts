@@ -52,18 +52,26 @@ export interface ClipFeedResponse {
     has_prev?: boolean;
 }
 
-export type SortOption = "hot" | "new" | "top" | "rising" | "discussed" | "views" | "trending";
-export type TimeFrame = "hour" | "day" | "week" | "month" | "year" | "all";
+export type SortOption =
+    | 'hot'
+    | 'new'
+    | 'top'
+    | 'rising'
+    | 'discussed'
+    | 'views'
+    | 'trending';
+export type TimeFrame = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
 
 export interface ClipFeedFilters {
-  sort?: SortOption;
-  timeframe?: TimeFrame;
-  game_id?: string;
-  creator_id?: string;
-  tags?: string[];
-  language?: string;
-  nsfw?: boolean;
-  top10k_streamers?: boolean;
+    sort?: SortOption;
+    timeframe?: TimeFrame;
+    game_id?: string;
+    creator_id?: string;
+    tags?: string[];
+    language?: string;
+    nsfw?: boolean;
+    top10k_streamers?: boolean;
+    show_all_clips?: boolean; // If true, show both user-submitted and scraped clips (for discovery)
 }
 
 export interface VotePayload {

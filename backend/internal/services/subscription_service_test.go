@@ -149,8 +149,8 @@ func TestPaymentIntentWebhookHandlers(t *testing.T) {
 	t.Run("includes customer ID when present", func(t *testing.T) {
 		// Verify that customer ID is included in metadata when available
 		metadata := map[string]interface{}{
-			"payment_intent_id":   "pi_test_789",
-			"stripe_customer_id":  "cus_test_123",
+			"payment_intent_id":  "pi_test_789",
+			"stripe_customer_id": "cus_test_123",
 		}
 		assert.Contains(t, metadata, "stripe_customer_id")
 		assert.Equal(t, "cus_test_123", metadata["stripe_customer_id"])
@@ -171,7 +171,7 @@ func TestPaymentIntentWebhookHandlers(t *testing.T) {
 		// Verify the event types are correctly defined
 		succeededEvent := "payment_intent.succeeded"
 		failedEvent := "payment_intent.payment_failed"
-		
+
 		assert.Equal(t, "payment_intent.succeeded", succeededEvent)
 		assert.Equal(t, "payment_intent.payment_failed", failedEvent)
 	})

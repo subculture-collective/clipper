@@ -207,6 +207,8 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	search := c.Query("search")
 	language := c.Query("language")
 	top10kStreamers := c.Query("top10k_streamers") == "true"
+	// By default, only show user-submitted clips. Set show_all_clips=true to include scraped clips (for discovery)
+	showAllClips := c.Query("show_all_clips") == "true"
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
 
@@ -220,8 +222,9 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 
 	// Build filters
 	filters := repository.ClipFilters{
-		Sort:            sort,
-		Top10kStreamers: top10kStreamers,
+		Sort:              sort,
+		Top10kStreamers:   top10kStreamers,
+		UserSubmittedOnly: !showAllClips, // Only show user-submitted unless explicitly requesting all
 	}
 
 	if gameID != "" {

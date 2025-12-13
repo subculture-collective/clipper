@@ -6,7 +6,8 @@
 *.dylib
 bin/
 dist/
-api
+# Ignore generated API binary/source at backend/api but allow cmd/api
+/api
 cmd/api/api
 
 # Test binary, built with `go test -c`

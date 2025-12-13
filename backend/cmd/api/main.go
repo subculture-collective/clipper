@@ -531,14 +531,14 @@ func main() {
 				// MFA enrollment
 				mfa.POST("/enroll", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), mfaHandler.StartEnrollment)
 				mfa.POST("/verify-enrollment", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), mfaHandler.VerifyEnrollment)
-				
+
 				// MFA status
 				mfa.GET("/status", mfaHandler.GetStatus)
-				
+
 				// MFA management
 				mfa.POST("/regenerate-backup-codes", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), mfaHandler.RegenerateBackupCodes)
 				mfa.POST("/disable", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), mfaHandler.DisableMFA)
-				
+
 				// Trusted devices
 				mfa.GET("/trusted-devices", mfaHandler.GetTrustedDevices)
 				mfa.DELETE("/trusted-devices/:id", mfaHandler.RevokeTrustedDevice)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -40,28 +40,19 @@ export function DocsPage() {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [searching, setSearching] = useState(false);
 
-    useEffect(() => {
-        fetchDocsList();
-
-        // Check for doc parameter in URL
-        const docParam = searchParams.get('doc');
-        if (docParam) {
-            fetchDoc(docParam);
-        }
-    }, [searchParams]);
-
-    const fetchDocsList = async () => {
+    const fetchDocsList = useCallback(async () => {
         try {
             const response = await axios.get('/api/v1/docs');
             setDocs(response.data.docs);
             setLoading(false);
         } catch (err) {
+            console.error('Failed to load documentation', err);
             setError('Failed to load documentation');
             setLoading(false);
         }
-    };
+    }, []);
 
-    const fetchDoc = async (path: string) => {
+    const fetchDoc = useCallback(async (path: string) => {
         try {
             setLoading(true);
             const response = await axios.get(`/api/v1/docs/${path}`);
@@ -70,10 +61,21 @@ export function DocsPage() {
             setLoading(false);
             window.scrollTo(0, 0);
         } catch (err) {
+            console.error('Failed to load document', err);
             setError('Failed to load document');
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchDocsList();
+
+        // Check for doc parameter in URL
+        const docParam = searchParams.get('doc');
+        if (docParam) {
+            fetchDoc(docParam);
+        }
+    }, [fetchDoc, fetchDocsList, searchParams]);
 
     const handleBackToIndex = () => {
         setViewingDoc(false);

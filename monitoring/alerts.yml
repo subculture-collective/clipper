@@ -244,15 +244,18 @@ groups:
       - alert: LowCacheHitRate
         expr: |
           (
+            rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])
+          ) > 0.5
+          and (
             rate(redis_keyspace_hits_total[5m])
             / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))
           ) < 0.8
-        for: 10m
+        for: 30m
         labels:
           severity: info
         annotations:
           summary: "Low Redis cache hit rate"
-          description: "Redis cache hit rate is {{ $value | humanizePercentage }}."
+          description: "Redis cache hit rate is {{ $value | humanizePercentage }} (only alerts when >0.5 req/s traffic)."
 
   - name: clipper_ssl_alerts
     interval: 1d

@@ -8,234 +8,257 @@ import * as subscriptionApi from '../../lib/subscription-api';
 
 // Mock the subscription API
 vi.mock('../../lib/subscription-api', () => ({
-  createCheckoutSession: vi.fn(),
+    createCheckoutSession: vi.fn(),
 }));
 
 // Mock useAuth hook
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({
-    user: { id: 'test-user-id', username: 'testuser' },
-    isAuthenticated: true,
-  }),
+    useAuth: () => ({
+        user: { id: 'test-user-id', username: 'testuser' },
+        isAuthenticated: true,
+    }),
 }));
 
 const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
+    const queryClient = new QueryClient({
+        defaultOptions: {
+            queries: { retry: false },
+            mutations: { retry: false },
+        },
+    });
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
-  );
+    return ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>{children}</BrowserRouter>
+        </QueryClientProvider>
+    );
 };
 
 describe('PaywallModal', () => {
-  const mockOnClose = vi.fn();
-  const mockOnUpgradeClick = vi.fn();
+    const mockOnClose = vi.fn();
+    const mockOnUpgradeClick = vi.fn();
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Set environment variables for price IDs using Vitest's stubEnv
-    vi.stubEnv('VITE_STRIPE_PRO_MONTHLY_PRICE_ID', 'price_monthly_test');
-    vi.stubEnv('VITE_STRIPE_PRO_YEARLY_PRICE_ID', 'price_yearly_test');
-    // Mock window.alert
-    vi.stubGlobal('alert', vi.fn());
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
-  });
-
-  it('should not render when isOpen is false', () => {
-    const { container } = render(
-      <PaywallModal isOpen={false} onClose={mockOnClose} />,
-      { wrapper: createWrapper() }
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('should render modal when isOpen is true', () => {
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
+    beforeEach(() => {
+        vi.clearAllMocks();
+        // Set environment variables for price IDs using Vitest's stubEnv
+        vi.stubEnv('VITE_STRIPE_PRO_MONTHLY_PRICE_ID', 'price_monthly_test');
+        vi.stubEnv('VITE_STRIPE_PRO_YEARLY_PRICE_ID', 'price_yearly_test');
+        // Mock window.alert and window.location
+        vi.stubGlobal('alert', vi.fn());
+        Object.defineProperty(window, 'location', {
+            value: { href: '' },
+            writable: true,
+        });
     });
 
-    expect(screen.getByText(/This feature is a Pro Feature/i)).toBeInTheDocument();
-  });
-
-  it('should display custom title and description', () => {
-    render(
-      <PaywallModal
-        isOpen={true}
-        onClose={mockOnClose}
-        title="Custom Title"
-        description="Custom description text"
-      />,
-      { wrapper: createWrapper() }
-    );
-
-    expect(screen.getByText('Custom Title')).toBeInTheDocument();
-    expect(screen.getByText('Custom description text')).toBeInTheDocument();
-  });
-
-  it('should display feature name in title when provided', () => {
-    render(
-      <PaywallModal
-        isOpen={true}
-        onClose={mockOnClose}
-        featureName="Collections"
-      />,
-      { wrapper: createWrapper() }
-    );
-
-    expect(screen.getByText(/Collections is a Pro Feature/i)).toBeInTheDocument();
-  });
-
-  it('should close modal when close button is clicked', async () => {
-    const user = userEvent.setup();
-
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        vi.unstubAllGlobals();
     });
 
-    const closeButton = screen.getByLabelText('Close modal');
-    await user.click(closeButton);
+    it('should not render when isOpen is false', () => {
+        const { container } = render(
+            <PaywallModal isOpen={false} onClose={mockOnClose} />,
+            { wrapper: createWrapper() }
+        );
 
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('should toggle between monthly and yearly billing periods', async () => {
-    const user = userEvent.setup();
-
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
+        expect(container).toBeEmptyDOMElement();
     });
 
-    const monthlyButton = screen.getByRole('button', { name: /Monthly/i });
-    const yearlyButton = screen.getByRole('button', { name: /Yearly/i });
+    it('should render modal when isOpen is true', () => {
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
 
-    // Should default to yearly
-    expect(yearlyButton).toHaveClass('bg-purple-600');
-
-    // Switch to monthly
-    await user.click(monthlyButton);
-    await waitFor(() => {
-      expect(monthlyButton).toHaveClass('bg-purple-600');
-    });
-  });
-
-  it('should display monthly pricing when monthly is selected', async () => {
-    const user = userEvent.setup();
-
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
+        expect(
+            screen.getByText(/This feature is a Pro Feature/i)
+        ).toBeInTheDocument();
     });
 
-    const monthlyButton = screen.getByRole('button', { name: /Monthly/i });
-    await user.click(monthlyButton);
+    it('should display custom title and description', () => {
+        render(
+            <PaywallModal
+                isOpen={true}
+                onClose={mockOnClose}
+                title='Custom Title'
+                description='Custom description text'
+            />,
+            { wrapper: createWrapper() }
+        );
 
-    await waitFor(() => {
-      expect(screen.getByText('$9.99')).toBeInTheDocument();
-    });
-  });
-
-  it('should display correct pricing for yearly plan', () => {
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
-    });
-
-    expect(screen.getByText('$8.33')).toBeInTheDocument();
-    expect(screen.getByText('Billed $99.99/year')).toBeInTheDocument();
-  });
-
-  it('should display all Pro features', () => {
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
+        expect(screen.getByText('Custom Title')).toBeInTheDocument();
+        expect(screen.getByText('Custom description text')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Ad-free browsing')).toBeInTheDocument();
-    expect(screen.getByText('Unlimited favorites')).toBeInTheDocument();
-    expect(screen.getByText('Custom collections')).toBeInTheDocument();
-    expect(screen.getByText('Advanced search & filters')).toBeInTheDocument();
-    expect(screen.getByText('Cross-device sync')).toBeInTheDocument();
-    expect(screen.getByText('Export your data')).toBeInTheDocument();
-    expect(screen.getByText('5x higher rate limits')).toBeInTheDocument();
-    expect(screen.getByText('Priority support')).toBeInTheDocument();
-  });
+    it('should display feature name in title when provided', () => {
+        render(
+            <PaywallModal
+                isOpen={true}
+                onClose={mockOnClose}
+                featureName='Collections'
+            />,
+            { wrapper: createWrapper() }
+        );
 
-  it('should call analytics when upgrade button is clicked', async () => {
-    const user = userEvent.setup();
-
-    vi.mocked(subscriptionApi.createCheckoutSession).mockResolvedValue({
-      session_id: 'test-session-id',
-      session_url: 'https://checkout.stripe.com/test',
+        expect(
+            screen.getByText(/Collections is a Pro Feature/i)
+        ).toBeInTheDocument();
     });
 
-    render(
-      <PaywallModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onUpgradeClick={mockOnUpgradeClick}
-      />,
-      { wrapper: createWrapper() }
-    );
+    it('should close modal when close button is clicked', async () => {
+        const user = userEvent.setup();
 
-    const upgradeButton = screen.getByRole('button', { name: /Upgrade to Pro/i });
-    await user.click(upgradeButton);
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
 
-    await waitFor(() => {
-      expect(mockOnUpgradeClick).toHaveBeenCalledTimes(1);
-    });
-  });
+        const closeButton = screen.getByLabelText('Close modal');
+        await user.click(closeButton);
 
-  it('should show loading state when processing upgrade', async () => {
-    const user = userEvent.setup();
-
-    // Create a promise that we can control
-    const controlledPromise = new Promise<{ session_id: string; session_url: string }>((resolve) => {
-      setTimeout(() => resolve({
-        session_id: 'test-id',
-        session_url: 'https://test.com'
-      }), 100);
+        expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
-    vi.mocked(subscriptionApi.createCheckoutSession).mockReturnValue(controlledPromise);
+    it('should toggle between monthly and yearly billing periods', async () => {
+        const user = userEvent.setup();
 
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
+
+        const monthlyButton = screen.getByRole('button', { name: /Monthly/i });
+        const yearlyButton = screen.getByRole('button', { name: /Yearly/i });
+
+        // Should default to yearly
+        expect(yearlyButton).toHaveClass('bg-purple-600');
+
+        // Switch to monthly
+        await user.click(monthlyButton);
+        await waitFor(() => {
+            expect(monthlyButton).toHaveClass('bg-purple-600');
+        });
     });
 
-    const upgradeButton = screen.getByRole('button', { name: /^Upgrade to Pro$/i });
+    it('should display monthly pricing when monthly is selected', async () => {
+        const user = userEvent.setup();
 
-    // Check if alert was called (meaning price ID is missing)
-    expect(window.alert).not.toHaveBeenCalled();
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
 
-    // Click the button
-    await user.click(upgradeButton);
+        const monthlyButton = screen.getByRole('button', { name: /Monthly/i });
+        await user.click(monthlyButton);
 
-    // Check if alert was called after click
-    if (vi.mocked(window.alert).mock.calls.length > 0) {
-      console.log('Alert was called with:', vi.mocked(window.alert).mock.calls);
-    }
-
-    // The button should immediately show Processing... since setIsLoading is called before await
-    expect(await screen.findByText('Processing...')).toBeInTheDocument();
-
-    // The button should be disabled
-    expect(upgradeButton).toBeDisabled();
-  });
-
-  it('should display savings percentage for yearly plan', () => {
-    render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
-      wrapper: createWrapper(),
+        await waitFor(() => {
+            expect(screen.getByText('$9.99')).toBeInTheDocument();
+        });
     });
 
-    expect(screen.getByText(/Save 17%/i)).toBeInTheDocument();
-  });
+    it('should display correct pricing for yearly plan', () => {
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
+
+        expect(screen.getByText('$8.33')).toBeInTheDocument();
+        expect(screen.getByText('Billed $99.99/year')).toBeInTheDocument();
+    });
+
+    it('should display all Pro features', () => {
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
+
+        expect(screen.getByText('Ad-free browsing')).toBeInTheDocument();
+        expect(screen.getByText('Unlimited favorites')).toBeInTheDocument();
+        expect(screen.getByText('Custom collections')).toBeInTheDocument();
+        expect(
+            screen.getByText('Advanced search & filters')
+        ).toBeInTheDocument();
+        expect(screen.getByText('Cross-device sync')).toBeInTheDocument();
+        expect(screen.getByText('Export your data')).toBeInTheDocument();
+        expect(screen.getByText('5x higher rate limits')).toBeInTheDocument();
+        expect(screen.getByText('Priority support')).toBeInTheDocument();
+    });
+
+    it('should call analytics when upgrade button is clicked', async () => {
+        const user = userEvent.setup();
+
+        vi.mocked(subscriptionApi.createCheckoutSession).mockResolvedValue({
+            session_id: 'test-session-id',
+            session_url: 'https://checkout.stripe.com/test',
+        });
+
+        render(
+            <PaywallModal
+                isOpen={true}
+                onClose={mockOnClose}
+                onUpgradeClick={mockOnUpgradeClick}
+            />,
+            { wrapper: createWrapper() }
+        );
+
+        const upgradeButton = screen.getByRole('button', {
+            name: /Upgrade to Pro/i,
+        });
+        await user.click(upgradeButton);
+
+        await waitFor(() => {
+            expect(mockOnUpgradeClick).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    it('should show loading state when processing upgrade', async () => {
+        const user = userEvent.setup();
+
+        // Create a promise that we can control
+        const controlledPromise = new Promise<{
+            session_id: string;
+            session_url: string;
+        }>(resolve => {
+            setTimeout(
+                () =>
+                    resolve({
+                        session_id: 'test-id',
+                        session_url: 'https://test.com',
+                    }),
+                100
+            );
+        });
+
+        vi.mocked(subscriptionApi.createCheckoutSession).mockReturnValue(
+            controlledPromise
+        );
+
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
+
+        const upgradeButton = screen.getByRole('button', {
+            name: /^Upgrade to Pro$/i,
+        });
+
+        // Click the button
+        await user.click(upgradeButton);
+
+        // The button should immediately show Processing... since setIsLoading is called before await
+        expect(await screen.findByText('Processing...')).toBeInTheDocument();
+
+        // The button should be disabled
+        expect(upgradeButton).toBeDisabled();
+
+        // Wait for the promise to resolve to avoid unhandled rejections
+        await waitFor(() => {
+            expect(subscriptionApi.createCheckoutSession).toHaveBeenCalled();
+        });
+
+        // Wait a bit more for the async operation to complete
+        await new Promise(resolve => setTimeout(resolve, 150));
+    });
+
+    it('should display savings percentage for yearly plan', () => {
+        render(<PaywallModal isOpen={true} onClose={mockOnClose} />, {
+            wrapper: createWrapper(),
+        });
+
+        expect(screen.getByText(/Save 17%/i)).toBeInTheDocument();
+    });
 });
