@@ -26,3 +26,4 @@ Clip
 Email
     - set it all up
 
+if someone shares a clip, remove it from discovery.  if a clip has already been posted in the last 14 days, block the post and link the user to the post

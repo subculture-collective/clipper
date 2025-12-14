@@ -50,8 +50,8 @@ const (
 	backupCodeLength = 8
 
 	// Security configuration
-	maxFailedAttempts = 5
-	lockoutDuration   = 1 * time.Hour
+	// maxFailedAttempts = 5
+	// lockoutDuration   = 1 * time.Hour
 	trustedDeviceTTL  = 30 * 24 * time.Hour // 30 days
 
 	// Rate limiting
@@ -75,12 +75,6 @@ func NewMFAService(
 	userRepo *repository.UserRepository,
 	emailSvc *EmailService,
 ) (*MFAService, error) {
-	// Get encryption key from config (should be 32 bytes for AES-256)
-	encryptionKey := []byte(cfg.Security.MFAEncryptionKey)
-
-	// Validate encryption key - it must be set and exactly 32 bytes for AES-256
-	if len(encryptionKey) == 0 {
-		return nil, errors.New("MFA_ENCRYPTION_KEY environment variable must be set to enable MFA functionality. The key must be exactly 32 bytes for AES-256 encryption.")
 	// Get encryption key from config. Accept a raw 32-byte string or a base64-encoded value that decodes to 32 bytes (AES-256).
 	var encryptionKey []byte
 	rawKey := cfg.Security.MFAEncryptionKey

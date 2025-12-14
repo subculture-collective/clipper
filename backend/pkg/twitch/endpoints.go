@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
@@ -191,6 +192,49 @@ func (c *Client) GetGames(ctx context.Context, gameIDs, names []string) (*GamesR
 		"count": len(gamesResp.Data),
 	})
 	return &gamesResp, nil
+}
+
+// GetTopGames fetches the current top games on Twitch
+func (c *Client) GetTopGames(ctx context.Context, first int, after string) (*TopGamesResponse, error) {
+	params := url.Values{}
+
+	if first <= 0 {
+		first = 10
+	}
+	if first > 100 {
+		first = 100
+	}
+	params.Set("first", fmt.Sprintf("%d", first))
+
+	if after != "" {
+		params.Set("after", after)
+	}
+
+	resp, err := c.doRequest(ctx, "GET", "/games/top", params)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("top games request failed: %s", string(body)),
+		}
+	}
+
+	var topGamesResp TopGamesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&topGamesResp); err != nil {
+		return nil, fmt.Errorf("failed to decode top games response: %w", err)
+	}
+
+	logger := utils.GetLogger()
+	logger.Debug("Fetched top games", map[string]interface{}{
+		"count": len(topGamesResp.Data),
+	})
+
+	return &topGamesResp, nil
 }
 
 // GetStreams fetches live streams for specified user IDs

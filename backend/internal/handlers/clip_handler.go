@@ -31,11 +31,13 @@ func NewClipSyncHandler(syncService *services.ClipSyncService, cfg *config.Confi
 // POST /admin/sync/clips
 func (h *ClipSyncHandler) TriggerSync(c *gin.Context) {
 	var req struct {
-		GameID        string `json:"game_id"`
-		BroadcasterID string `json:"broadcaster_id"`
-		Hours         int    `json:"hours"`
-		Limit         int    `json:"limit"`
-		Strategy      string `json:"strategy"` // "game", "broadcaster", "trending"
+		GameID          string `json:"game_id"`
+		BroadcasterID   string `json:"broadcaster_id"`
+		Hours           int    `json:"hours"`
+		Limit           int    `json:"limit"`
+		Strategy        string `json:"strategy"` // "game", "broadcaster", "trending"
+		RespectRotation bool   `json:"respect_rotation"`
+		Language        string `json:"language"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -74,7 +76,7 @@ func (h *ClipSyncHandler) TriggerSync(c *gin.Context) {
 			})
 			return
 		}
-		stats, err = h.syncService.SyncClipsByGame(c.Request.Context(), req.GameID, req.Hours, req.Limit)
+		stats, _, err = h.syncService.SyncClipsByGame(c.Request.Context(), req.GameID, req.Hours, req.Limit, &services.SyncClipsByGameOptions{LanguageFilter: req.Language})
 	case "broadcaster":
 		if req.BroadcasterID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -82,13 +84,13 @@ func (h *ClipSyncHandler) TriggerSync(c *gin.Context) {
 			})
 			return
 		}
-		stats, err = h.syncService.SyncClipsByBroadcaster(c.Request.Context(), req.BroadcasterID, req.Hours, req.Limit)
+		stats, err = h.syncService.SyncClipsByBroadcaster(c.Request.Context(), req.BroadcasterID, req.Hours, req.Limit, &services.SyncClipsByBroadcasterOptions{LanguageFilter: req.Language})
 	case "trending":
-		clipsPerGame := req.Limit / 10 // Distribute across ~10 games
-		if clipsPerGame < 10 {
-			clipsPerGame = 10
-		}
-		stats, err = h.syncService.SyncTrendingClips(c.Request.Context(), req.Hours, clipsPerGame)
+		respectRotation := req.RespectRotation
+		stats, err = h.syncService.SyncTrendingClips(c.Request.Context(), req.Hours, &services.TrendingSyncOptions{
+			ForceResetPagination: !respectRotation,
+			LanguageFilter:       req.Language,
+		})
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid strategy. Must be 'game', 'broadcaster', or 'trending'",

@@ -73,6 +73,12 @@ type GamesResponse struct {
 	Data []Game `json:"data"`
 }
 
+// TopGamesResponse represents the response from the top games endpoint
+type TopGamesResponse struct {
+	Data       []Game     `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
+
 // Pagination contains cursor information for paginated responses
 type Pagination struct {
 	Cursor string `json:"cursor"`
