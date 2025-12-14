@@ -93,7 +93,6 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 				u.avatar_url AS author_avatar_url,
 				u.karma_points AS author_karma,
 				u.role AS author_role,
-				(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
 				COALESCE(cv.vote_type, NULL) AS user_vote,
 				0 AS depth,
 				COALESCE(vc.total_votes, 0) AS total_votes,
@@ -131,10 +130,10 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 		var totalVotes, upvotes, downvotes int // Vote count columns from CTE
 		err := rows.Scan(
 			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
-			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 			&c.CreatedAt, &c.UpdatedAt,
 			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
-			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
 			&depth, &totalVotes, &upvotes, &downvotes,
 		)
 		if err != nil {
