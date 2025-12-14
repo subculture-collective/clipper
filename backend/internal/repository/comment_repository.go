@@ -188,10 +188,10 @@ func (r *CommentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, 
 		var c CommentWithAuthor
 		err := rows.Scan(
 			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
-			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 			&c.CreatedAt, &c.UpdatedAt,
 			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
-			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan reply: %w", err)
@@ -630,10 +630,10 @@ func (r *CommentRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 		var c CommentWithAuthor
 		if err := rows.Scan(
 			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
-			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 			&c.CreatedAt, &c.UpdatedAt,
 			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
-			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan comment: %w", err)
 		}
