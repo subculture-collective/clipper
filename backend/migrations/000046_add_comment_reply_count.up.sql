@@ -1,6 +1,8 @@
 -- Add reply_count column to comments table for denormalized reply tracking
 ALTER TABLE comments ADD COLUMN reply_count INT DEFAULT 0 NOT NULL;
 
+-- Drop old full index on parent_comment_id to avoid redundancy
+DROP INDEX IF EXISTS idx_comments_parent;
 -- Create index on parent_comment_id for efficient reply queries
 CREATE INDEX IF NOT EXISTS idx_comments_parent_comment_id ON comments(parent_comment_id) WHERE parent_comment_id IS NOT NULL;
 
