@@ -15,10 +15,6 @@ install: ## Install all dependencies
 	cd mobile && npm install
 	@echo "✓ All dependencies installed"
 
-dev: ## Start all services in development mode (Note: mobile must be started separately with 'make mobile-dev')
-	@echo "Starting development environment..."
-	@make -j3 docker-up backend-dev frontend-dev
-
 build: ## Build backend, frontend, and mobile
 	@echo "Building backend..."
 	cd backend && go build -o bin/api ./cmd/api
@@ -122,6 +118,26 @@ docker-down: ## Stop Docker services
 docker-logs: ## View Docker service logs
 	@echo "Tailing Docker service logs..."
 	docker compose -f docker-compose.prod.yml logs -f --tail 500
+	@echo "✓ Docker logs ended"
+
+docker-dev-up: ## Start Docker services for development (PostgreSQL + Redis)
+	@echo "Starting Docker services..."
+	docker compose -f docker-compose.yml up -d
+	@echo "✓ Docker services started"
+
+docker-dev-build: ## Build & start Docker services for development (PostgreSQL + Redis)
+	@echo "Starting Docker build..."
+	docker compose -f docker-compose.yml up -d --build --remove-orphans
+	@echo "✓ Docker build complete, and services started"
+
+docker-dev-down: ## Stop Docker services for development
+	@echo "Stopping Docker services..."
+	docker compose -f docker-compose.yml down
+	@echo "✓ Docker services stopped"
+
+docker-dev-logs: ## View Docker service logs for development
+	@echo "Tailing Docker service logs..."
+	docker compose -f docker-compose.yml logs -f --tail 500
 	@echo "✓ Docker logs ended"
 
 docker-logs-backend: ## Stream backend container logs
