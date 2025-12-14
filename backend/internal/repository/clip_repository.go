@@ -299,16 +299,17 @@ func (r *ClipRepository) GetLastSyncTime(ctx context.Context) (*time.Time, error
 
 // ClipFilters represents filters for listing clips
 type ClipFilters struct {
-	GameID          *string
-	BroadcasterID   *string
-	Tag             *string
-	Search          *string
-	Language        *string // Language code (e.g., en, es, fr)
-	Timeframe       *string // hour, day, week, month, year, all
-	Sort            string  // hot, new, top, rising, discussed
-	Top10kStreamers bool    // Filter clips to only top 10k streamers
-	ShowHidden      bool    // If true, include hidden clips (for owners/admins)
-	CreatorID       *string // Filter by creator ID (for creator dashboard)
+	GameID            *string
+	BroadcasterID     *string
+	Tag               *string
+	Search            *string
+	Language          *string // Language code (e.g., en, es, fr)
+	Timeframe         *string // hour, day, week, month, year, all
+	Sort              string  // hot, new, top, rising, discussed
+	Top10kStreamers   bool    // Filter clips to only top 10k streamers
+	ShowHidden        bool    // If true, include hidden clips (for owners/admins)
+	CreatorID         *string // Filter by creator ID (for creator dashboard)
+	UserSubmittedOnly bool    // If true, only show clips with submitted_by_user_id IS NOT NULL
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
@@ -319,6 +320,11 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	// Filter hidden clips unless ShowHidden is true
 	if !filters.ShowHidden {
 		whereClauses = append(whereClauses, "c.is_hidden = false")
+	}
+
+	// Filter to only user-submitted clips if UserSubmittedOnly is true
+	if filters.UserSubmittedOnly {
+		whereClauses = append(whereClauses, "c.submitted_by_user_id IS NOT NULL")
 	}
 
 	args := []interface{}{}
@@ -1104,7 +1110,7 @@ SELECT broadcaster_id FROM broadcaster_follows WHERE user_id = $1
 blocked_users AS (
 SELECT blocked_user_id FROM user_blocks WHERE user_id = $1
 )
-SELECT 
+SELECT
 c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url,
 c.title, c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -1115,7 +1121,7 @@ u.id as submitter_id, u.username as submitter_username,
 u.display_name as submitter_display_name, u.avatar_url as submitter_avatar_url
 FROM clips c
 LEFT JOIN users u ON c.submitted_by_user_id = u.id
-WHERE c.is_removed = false 
+WHERE c.is_removed = false
 AND c.is_hidden = false
 AND (
 c.submitted_by_user_id IN (SELECT following_id FROM followed_users)
@@ -1182,7 +1188,7 @@ SELECT blocked_user_id FROM user_blocks WHERE user_id = $1
 )
 SELECT COUNT(*)
 FROM clips c
-WHERE c.is_removed = false 
+WHERE c.is_removed = false
 AND c.is_hidden = false
 AND (
 c.submitted_by_user_id IN (SELECT following_id FROM followed_users)

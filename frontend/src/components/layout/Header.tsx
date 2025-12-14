@@ -150,11 +150,11 @@ export function Header() {
                     <div className='flex items-center gap-2'>
                         {/* Language Switcher */}
                         <div className='hidden md:flex'>
-                            <LanguageSwitcher />
+                          {/* <LanguageSwitcher /> */}
                         </div>
 
                         {/* Theme Toggle */}
-                        <div
+                        {/* <div
                             className='hidden md:flex gap-1'
                             role='group'
                             aria-label='Theme selection'
@@ -189,7 +189,7 @@ export function Header() {
                             >
                                 🌙
                             </Button>
-                        </div>
+                        </div> */}
 
                         {/* User Menu or Login */}
                         {isAuthenticated ? (

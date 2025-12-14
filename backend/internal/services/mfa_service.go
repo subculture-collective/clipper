@@ -81,9 +81,29 @@ func NewMFAService(
 	// Validate encryption key - it must be set and exactly 32 bytes for AES-256
 	if len(encryptionKey) == 0 {
 		return nil, errors.New("MFA_ENCRYPTION_KEY environment variable must be set to enable MFA functionality. The key must be exactly 32 bytes for AES-256 encryption.")
+	// Get encryption key from config. Accept a raw 32-byte string or a base64-encoded value that decodes to 32 bytes (AES-256).
+	var encryptionKey []byte
+	rawKey := cfg.Security.MFAEncryptionKey
+
+	// Validate encryption key presence
+	if len(rawKey) == 0 {
+		return nil, errors.New("MFA_ENCRYPTION_KEY environment variable must be set to enable MFA functionality. Provide a raw 32-byte string or a base64-encoded value that decodes to 32 bytes.")
 	}
+
+	// Try to detect and decode base64; otherwise treat as raw
+	if strings.ContainsAny(rawKey, "+/=") || len(rawKey) >= 43 {
+		decoded, err := base64.StdEncoding.DecodeString(rawKey)
+		if err != nil {
+			return nil, fmt.Errorf("MFA_ENCRYPTION_KEY must be a valid base64 string encoding 32 bytes; decode error: %v", err)
+		}
+		encryptionKey = decoded
+	} else {
+		encryptionKey = []byte(rawKey)
+	}
+
+	// Validate length after optional decoding
 	if len(encryptionKey) != 32 {
-		return nil, fmt.Errorf("MFA_ENCRYPTION_KEY must be exactly 32 bytes for AES-256, got %d bytes. Please generate a secure 32-byte key.", len(encryptionKey))
+		return nil, fmt.Errorf("MFA_ENCRYPTION_KEY must be exactly 32 bytes for AES-256 after optional base64 decoding, got %d bytes.", len(encryptionKey))
 	}
 
 	return &MFAService{

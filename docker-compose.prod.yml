@@ -58,8 +58,13 @@ services:
         volumes_from:
             - vault-agent # Share tmpfs mounts from vault-agent container
         networks:
-            - clipper-network
-            - web
+            clipper-network:
+                aliases:
+                    - backend
+                    - clipper-backend
+            web:
+                aliases:
+                    - clipper-backend
 
     frontend:
         build:
@@ -101,7 +106,11 @@ services:
         volumes:
             - postgres_data:/var/lib/postgresql/data
         healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-clipper}']
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U ${POSTGRES_USER:-clipper} -d ${POSTGRES_DB:-clipper_db}',
+                ]
             interval: 10s
             timeout: 5s
             retries: 5
