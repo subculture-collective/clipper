@@ -230,6 +230,8 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	isAdmin := user.Role == models.RoleAdmin
+
 	if user.IsBanned {
 		return nil, &ValidationError{Field: "user", Message: "Your account has been banned and cannot submit clips. Please contact support if you believe this is an error."}
 	}
@@ -239,8 +241,8 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		return nil, &ValidationError{Field: "karma", Message: fmt.Sprintf("You need at least %d karma points to submit clips. Earn karma by participating in the community through voting and commenting.", s.cfg.Karma.SubmissionKarmaRequired)}
 	}
 
-	// Perform abuse detection checks
-	if s.abuseDetector != nil {
+	// Perform abuse detection checks (skip for admins)
+	if s.abuseDetector != nil && !isAdmin {
 		abuseCheck, err := s.abuseDetector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
 		if err != nil {
 			log.Printf("Error checking abuse: %v", err)
@@ -270,7 +272,7 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		}
 	}
 
-	// Check rate limits (5 per hour, 20 per day)
+	// Check rate limits (5 per hour, 20 per day) — admins are bypassed inside checkRateLimits
 	if err := s.checkRateLimits(ctx, userID); err != nil {
 		// Emit rate limit event
 		if s.moderationEvents != nil {
@@ -723,6 +725,15 @@ func (s *SubmissionService) normalizeClipURL(clipURLOrID string) (clipID string,
 
 // checkRateLimits validates rate limits for submissions
 func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUID) error {
+	// Admins should not be rate limited for submissions
+	if s.userRepo != nil {
+		if user, err := s.userRepo.GetByID(ctx, userID); err == nil {
+			if user.Role == models.RoleAdmin {
+				return nil
+			}
+		}
+	}
+
 	// Check hourly limit (5 per hour)
 	hourlyCount, err := s.submissionRepo.CountUserSubmissions(ctx, userID, time.Now().Add(-1*time.Hour))
 	if err != nil {

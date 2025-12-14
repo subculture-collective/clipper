@@ -269,7 +269,7 @@ func main() {
 	var liveStatusService *services.LiveStatusService
 	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
-		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo)
+		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, redisClient)
 		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
 		liveStatusService = services.NewLiveStatusService(broadcasterRepo, twitchClient)
 		// Set notification service for live status notifications

@@ -102,6 +102,10 @@ backend/
 
    ```bash
    make migrate-seed
+   # or run the helper script (respects backend/.env)
+   ./backend/scripts/seed_db.sh
+   # include load-test dataset (more clips/users):
+   ./backend/scripts/seed_db.sh --load-test
    ```
 
 8. Run the server:

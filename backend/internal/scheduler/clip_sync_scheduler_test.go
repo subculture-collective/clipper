@@ -13,7 +13,7 @@ import (
 type MockClipSyncService struct{}
 
 // SyncTrendingClips is a mock implementation that matches the interface
-func (m *MockClipSyncService) SyncTrendingClips(ctx context.Context, hours, limit int) (*services.SyncStats, error) {
+func (m *MockClipSyncService) SyncTrendingClips(ctx context.Context, hours int, opts *services.TrendingSyncOptions) (*services.SyncStats, error) {
 	return &services.SyncStats{
 		ClipsFetched: 5,
 		ClipsCreated: 5,

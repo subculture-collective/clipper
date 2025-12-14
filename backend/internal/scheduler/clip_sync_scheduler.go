@@ -11,7 +11,7 @@ import (
 
 // ClipSyncServiceInterface defines the interface required by the scheduler
 type ClipSyncServiceInterface interface {
-	SyncTrendingClips(ctx context.Context, hours, limit int) (*services.SyncStats, error)
+	SyncTrendingClips(ctx context.Context, hours int, opts *services.TrendingSyncOptions) (*services.SyncStats, error)
 }
 
 // ClipSyncScheduler manages periodic clip synchronization
@@ -67,8 +67,8 @@ func (s *ClipSyncScheduler) runSync(ctx context.Context) {
 	log.Println("Starting scheduled clip sync...")
 
 	// Sync trending clips from the last 24 hours
-	// Fetch 10 clips per game from top 10 games = ~100 clips total
-	stats, err := s.syncService.SyncTrendingClips(ctx, 24, 10)
+	// Rotate pagination over a fixed window to keep volume low
+	stats, err := s.syncService.SyncTrendingClips(ctx, 24, &services.TrendingSyncOptions{MaxPages: services.DefaultTrendingPageWindow})
 	if err != nil {
 		log.Printf("Scheduled sync failed: %v", err)
 		return

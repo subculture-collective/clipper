@@ -5,16 +5,39 @@ import * as submissionApi from '../lib/submission-api';
 import * as configApi from '../lib/config-api';
 import { render, screen, waitFor } from '../test/test-utils';
 import { SubmitClipPage } from './SubmitClipPage';
+import { tagApi } from '../lib/tag-api';
 
 // Mock the API calls
 vi.mock('../lib/submission-api', () => ({
     submitClip: vi.fn(),
     getUserSubmissions: vi.fn(),
+    checkClipStatus: vi.fn(),
 }));
 
 // Mock the config API
 vi.mock('../lib/config-api', () => ({
     getPublicConfig: vi.fn(),
+}));
+
+// Mock tag API to avoid network calls in TagSelector
+vi.mock('../lib/tag-api', () => ({
+    tagApi: {
+        searchTags: vi.fn().mockResolvedValue({ tags: [] }),
+        createTag: vi.fn().mockImplementation(async payload => {
+            const name = payload?.name || 'new-tag';
+            const slug = payload?.slug || name.toLowerCase();
+
+            return {
+                tag: {
+                    id: `tag-${slug}`,
+                    name,
+                    slug,
+                    usage_count: 0,
+                    created_at: new Date().toISOString(),
+                },
+            };
+        }),
+    },
 }));
 
 // Mock the AuthContext
@@ -46,8 +69,11 @@ describe('SubmitClipPage', () => {
 
     const mockSubmitClip = vi.mocked(submissionApi.submitClip);
     const mockGetUserSubmissions = vi.mocked(submissionApi.getUserSubmissions);
+    const mockCheckClipStatus = vi.mocked(submissionApi.checkClipStatus);
     const mockGetPublicConfig = vi.mocked(configApi.getPublicConfig);
     const mockUseAuth = vi.mocked(useAuth);
+    const mockSearchTags = vi.mocked(tagApi.searchTags);
+    const mockCreateTag = vi.mocked(tagApi.createTag);
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -67,6 +93,12 @@ describe('SubmitClipPage', () => {
                 submission_karma_required: 100,
                 require_karma_for_submission: true,
             },
+        });
+        mockSearchTags.mockResolvedValue({ tags: [] });
+        mockCheckClipStatus.mockResolvedValue({
+            success: true,
+            exists: false,
+            can_be_claimed: true,
         });
     });
 
@@ -297,11 +329,11 @@ describe('SubmitClipPage', () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const tagInput = screen.getByPlaceholderText('Add tags...');
-            const addButton = screen.getByRole('button', { name: 'Add' });
+            const tagInput = screen.getByPlaceholderText(
+                'Search or add tags...'
+            );
 
-            await user.type(tagInput, 'clutch');
-            await user.click(addButton);
+            await user.type(tagInput, 'clutch{Enter}');
 
             expect(screen.getByText('clutch')).toBeInTheDocument();
             expect(tagInput).toHaveValue('');
@@ -311,26 +343,27 @@ describe('SubmitClipPage', () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const tagInput = screen.getByPlaceholderText('Add tags...');
+            const tagInput = screen.getByPlaceholderText(
+                'Search or add tags...'
+            );
             await user.type(tagInput, 'epic{Enter}');
 
-            expect(screen.getByText('epic')).toBeInTheDocument();
+            expect(await screen.findByText('epic')).toBeInTheDocument();
         });
 
         it('prevents adding duplicate tags', async () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const tagInput = screen.getByPlaceholderText('Add tags...');
-            const addButton = screen.getByRole('button', { name: 'Add' });
+            const tagInput = screen.getByPlaceholderText(
+                'Search or add tags...'
+            );
 
-            // Add first tag
-            await user.type(tagInput, 'clutch');
-            await user.click(addButton);
+            // Add first tag via enter
+            await user.type(tagInput, 'clutch{Enter}');
 
             // Try to add duplicate
-            await user.type(tagInput, 'clutch');
-            await user.click(addButton);
+            await user.type(tagInput, 'clutch{Enter}');
 
             // Should only have one instance
             const tags = screen.getAllByText('clutch');
@@ -341,12 +374,14 @@ describe('SubmitClipPage', () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const tagInput = screen.getByPlaceholderText('Add tags...');
+            const tagInput = screen.getByPlaceholderText(
+                'Search or add tags...'
+            );
             await user.type(tagInput, 'clutch{Enter}');
 
             expect(screen.getByText('clutch')).toBeInTheDocument();
 
-            const removeButton = screen.getByRole('button', { name: '×' });
+            const removeButton = screen.getByLabelText('Remove clutch tag');
             await user.click(removeButton);
 
             expect(screen.queryByText('clutch')).not.toBeInTheDocument();
@@ -356,14 +391,16 @@ describe('SubmitClipPage', () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const tagInput = screen.getByPlaceholderText('Add tags...');
+            const tagInput = screen.getByPlaceholderText(
+                'Search or add tags...'
+            );
             await user.type(tagInput, '  clutch  {Enter}');
 
             expect(screen.getByText('clutch')).toBeInTheDocument();
         });
     });
 
-    describe('Auto-detect Streamer Banner', () => {
+    describe('Streamer override', () => {
         beforeEach(() => {
             mockUseAuth.mockReturnValue({
                 user: mockUser,
@@ -378,97 +415,15 @@ describe('SubmitClipPage', () => {
             });
         });
 
-        it('shows auto-detect banner when valid clip URL is entered', async () => {
-            const user = userEvent.setup();
+        it('no longer shows manual streamer input (auto-detected by backend)', () => {
             render(<SubmitClipPage />);
 
-            const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(
-                clipUrlInput,
-                'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage'
-            );
-
-            await waitFor(() => {
-                // The StreamerInput component should show auto-detected state
-                expect(
-                    screen.getByText('Will be auto-detected from clip')
-                ).toBeInTheDocument();
-            });
-        });
-
-        it('clears auto-detect when URL is invalid', async () => {
-            const user = userEvent.setup();
-            render(<SubmitClipPage />);
-
-            const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-
-            // Enter valid URL first
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/ValidClip');
-
-            await waitFor(() => {
-                expect(
-                    screen.getByText('Will be auto-detected from clip')
-                ).toBeInTheDocument();
-            });
-
-            // Clear the input
-            await user.clear(clipUrlInput);
-
-            await waitFor(() => {
-                // Auto-detect banner should be gone
-                expect(
-                    screen.queryByText('Will be auto-detected from clip')
-                ).not.toBeInTheDocument();
-            });
-        });
-    });
-
-    describe('Override Flow', () => {
-        beforeEach(() => {
-            mockUseAuth.mockReturnValue({
-                user: mockUser,
-                isAuthenticated: true,
-                login: vi.fn(),
-                logout: vi.fn(),
-                isLoading: false,
-                isAdmin: false,
-                isModerator: false,
-                isModeratorOrAdmin: false,
-                refreshUser: vi.fn(),
-            });
-        });
-
-        it('allows manual streamer name override', async () => {
-            const user = userEvent.setup();
-            render(<SubmitClipPage />);
-
-            const streamerInput = screen.getByPlaceholderText(
-                'Enter streamer name...'
-            );
-            await user.type(streamerInput, 'CustomStreamer');
-
-            expect(streamerInput).toHaveValue('CustomStreamer');
-        });
-
-        it('clears auto-detect state when user manually changes streamer', async () => {
-            const user = userEvent.setup();
-            render(<SubmitClipPage />);
-
-            const clipUrlInput = screen.getByLabelText(/Twitch Clip URL/);
-            await user.type(clipUrlInput, 'https://clips.twitch.tv/TestClip');
-
-            await waitFor(() => {
-                expect(
-                    screen.getByText('Will be auto-detected from clip')
-                ).toBeInTheDocument();
-            });
-
-            const streamerInput = screen.getByPlaceholderText(
-                'Enter streamer name...'
-            );
-            await user.type(streamerInput, 'ManualOverride');
-
-            expect(streamerInput).toHaveValue('ManualOverride');
+            expect(
+                screen.queryByPlaceholderText('Enter streamer name...')
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByText('Will be auto-detected from clip')
+            ).not.toBeInTheDocument();
         });
     });
 
@@ -522,14 +477,15 @@ describe('SubmitClipPage', () => {
             await user.click(submitButton);
 
             await waitFor(() => {
-                expect(mockSubmitClip).toHaveBeenCalledWith({
+                const submission = mockSubmitClip.mock.calls[0][0];
+                expect(submission).toMatchObject({
                     clip_url: 'https://clips.twitch.tv/TestClip123',
                     custom_title: '',
                     tags: [],
                     is_nsfw: false,
                     submission_reason: '',
-                    broadcaster_name_override: '',
                 });
+                expect(submission.broadcaster_name_override).toBeUndefined();
             });
         });
 
@@ -567,13 +523,11 @@ describe('SubmitClipPage', () => {
             const customTitleInput = screen.getByLabelText(/Custom Title/);
             await user.type(customTitleInput, 'Custom Title');
 
-            const streamerInput = screen.getByPlaceholderText(
-                'Enter streamer name...'
+            const tagInput = screen.getByPlaceholderText(
+                'Search or add tags...'
             );
-            await user.type(streamerInput, 'OverrideStreamer');
-
-            const tagInput = screen.getByPlaceholderText('Add tags...');
             await user.type(tagInput, 'clutch{Enter}');
+            expect(await screen.findByText('clutch')).toBeInTheDocument();
 
             const nsfwCheckbox = screen.getByLabelText(/Mark as NSFW/);
             await user.click(nsfwCheckbox);
@@ -587,21 +541,22 @@ describe('SubmitClipPage', () => {
             await user.click(submitButton);
 
             await waitFor(() => {
-                expect(mockSubmitClip).toHaveBeenCalledWith({
+                const submission = mockSubmitClip.mock.calls[0][0];
+                expect(submission).toMatchObject({
                     clip_url: 'https://clips.twitch.tv/TestClip123',
                     custom_title: 'Custom Title',
                     tags: ['clutch'],
                     is_nsfw: true,
                     submission_reason: 'Amazing play',
-                    broadcaster_name_override: 'OverrideStreamer',
                 });
+                expect(submission.broadcaster_name_override).toBeUndefined();
             });
         });
 
         it('shows loading state during submission', async () => {
             const user = userEvent.setup();
             mockSubmitClip.mockImplementation(
-                () => new Promise((resolve) => setTimeout(resolve, 1000))
+                () => new Promise(resolve => setTimeout(resolve, 1000))
             );
 
             render(<SubmitClipPage />);

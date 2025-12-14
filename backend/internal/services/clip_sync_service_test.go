@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -129,6 +130,31 @@ func TestTransformTwitchClip(t *testing.T) {
 	}
 }
 
+func TestLanguageMatches(t *testing.T) {
+	tests := []struct {
+		name    string
+		clip    string
+		filter  string
+		expects bool
+	}{
+		{"empty filter allows all", "en", "", true},
+		{"all keyword allows all", "fr", "all", true},
+		{"exact match", "en", "en", true},
+		{"case insensitive", "EN", "en", true},
+		{"prefix match", "en-us", "en", true},
+		{"non match", "fr", "en", false},
+		{"empty clip lang", "", "en", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := languageMatches(tt.clip, tt.filter); got != tt.expects {
+				t.Fatalf("languageMatches(%q, %q) = %v, want %v", tt.clip, tt.filter, got, tt.expects)
+			}
+		})
+	}
+}
+
 func TestStringPtr(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -231,5 +257,120 @@ func TestMin(t *testing.T) {
 				t.Errorf("utils.Min(%d, %d) = %d, want %d", tt.a, tt.b, result, tt.expected)
 			}
 		})
+	}
+}
+
+type mockTrendingStateStore struct {
+	cursorState map[string]*TrendingCursorState
+	gameIDs     []string
+}
+
+func newMockTrendingStateStore(gameIDs []string) *mockTrendingStateStore {
+	return &mockTrendingStateStore{cursorState: make(map[string]*TrendingCursorState), gameIDs: gameIDs}
+}
+
+func (m *mockTrendingStateStore) GetCursor(_ context.Context, gameID string) (*TrendingCursorState, error) {
+	return m.cursorState[gameID], nil
+}
+
+func (m *mockTrendingStateStore) SaveCursor(_ context.Context, gameID string, state *TrendingCursorState) error {
+	m.cursorState[gameID] = state
+	return nil
+}
+
+func (m *mockTrendingStateStore) ClearCursor(_ context.Context, gameID string) error {
+	delete(m.cursorState, gameID)
+	return nil
+}
+
+func (m *mockTrendingStateStore) SaveGameIDs(_ context.Context, gameIDs []string) error {
+	m.gameIDs = gameIDs
+	return nil
+}
+
+func (m *mockTrendingStateStore) LoadGameIDs(_ context.Context) ([]string, error) {
+	return m.gameIDs, nil
+}
+
+func TestEnsureJustChattingGameIDs(t *testing.T) {
+	ids := []string{"111", justChattingGameID, "222", "111"}
+	result := ensureJustChattingGameIDs(ids)
+
+	if len(result) == 0 || result[0] != justChattingGameID {
+		t.Fatalf("expected Just Chatting (%s) to be first, got %v", justChattingGameID, result)
+	}
+
+	seen := map[string]bool{}
+	for _, id := range result {
+		if seen[id] {
+			t.Fatalf("duplicate id %s in result %v", id, result)
+		}
+		seen[id] = true
+	}
+
+	if len(result) > maxTrendingGames {
+		t.Fatalf("expected result to be trimmed to %d ids, got %d", maxTrendingGames, len(result))
+	}
+}
+
+func TestBuildTrendingGameConfigs(t *testing.T) {
+	configs := buildTrendingGameConfigs([]string{justChattingGameID, "111"})
+	if len(configs) != 2 {
+		t.Fatalf("expected 2 configs, got %d", len(configs))
+	}
+
+	if configs[0].Limit != justChattingPerGameLimit {
+		t.Fatalf("expected Just Chatting limit %d, got %d", justChattingPerGameLimit, configs[0].Limit)
+	}
+	if configs[1].Limit != defaultPerGameLimit {
+		t.Fatalf("expected default per-game limit %d, got %d", defaultPerGameLimit, configs[1].Limit)
+	}
+}
+
+func TestApplyTrendingDefaults(t *testing.T) {
+	store := newMockTrendingStateStore(nil)
+	svc := &ClipSyncService{maxPages: 5, stateStore: store}
+
+	resolved := svc.applyTrendingDefaults(nil)
+	if resolved.MaxPages != 5 {
+		t.Fatalf("expected max pages 5 from service defaults, got %d", resolved.MaxPages)
+	}
+	if resolved.StateStore != store {
+		t.Fatal("expected state store to default to service store")
+	}
+
+	customStore := newMockTrendingStateStore(nil)
+	opts := &TrendingSyncOptions{MaxPages: 2, StateStore: customStore, ForceResetPagination: true, Games: []TrendingGameConfig{{GameID: "123", Limit: 5}}}
+	resolved = svc.applyTrendingDefaults(opts)
+	if resolved.MaxPages != 2 {
+		t.Fatalf("expected max pages 2 from options, got %d", resolved.MaxPages)
+	}
+	if resolved.StateStore != customStore {
+		t.Fatal("expected state store override from options")
+	}
+	if !resolved.ForceResetPagination {
+		t.Fatal("expected force reset pagination to be true")
+	}
+	if len(resolved.Games) != 1 || resolved.Games[0].GameID != "123" {
+		t.Fatalf("expected custom games to be copied, got %+v", resolved.Games)
+	}
+}
+
+func TestResolveTrendingGamesUsesCachedList(t *testing.T) {
+	cached := []string{"999", "888"}
+	store := newMockTrendingStateStore(cached)
+	svc := &ClipSyncService{stateStore: store}
+
+	configs, err := svc.resolveTrendingGames(context.Background(), store)
+	if err != nil {
+		t.Fatalf("expected no error when using cached games, got %v", err)
+	}
+
+	if len(configs) < 2 {
+		t.Fatalf("expected cached games to be used, got %d configs", len(configs))
+	}
+
+	if configs[0].GameID != justChattingGameID {
+		t.Fatalf("expected Just Chatting to be first, got %s", configs[0].GameID)
 	}
 }

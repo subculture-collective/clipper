@@ -15,4 +15,15 @@ Navbar
     - better breakpoints, prevent overflow
 
 Home
-    - the feed should be user submitted, the 
+    - a submit button on the mobile view
+    - more tags and categories than twitch
+
+Clip
+    - ability to unvote
+    - color of vote
+
+    - replies need to be in a tree format
+Email
+    - set it all up
+
+if someone shares a clip, remove it from discovery.  if a clip has already been posted in the last 14 days, block the post and link the user to the post

@@ -61,7 +61,7 @@ describe('ModerationQueuePage', () => {
             // Mock API to return null data
             mockGetPendingSubmissions.mockResolvedValue({
                 success: true,
-                data: null as any, // Simulating null response
+                data: null, // Simulating null response
                 meta: {
                     page: 1,
                     limit: 20,

@@ -25,6 +25,7 @@ var (
 		"127.0.0.1":      true,
 		"::1":            true,
 		"173.165.22.142": true, // Your IP
+		"10.0.0.201":     true, // User-requested internal IP
 	}
 )
 
