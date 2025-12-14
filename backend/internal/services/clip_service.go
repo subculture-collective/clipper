@@ -532,6 +532,9 @@ func (s *ClipService) buildCacheKey(filters repository.ClipFilters, page, limit 
 	if filters.BroadcasterID != nil {
 		key += fmt.Sprintf(":broadcaster:%s", *filters.BroadcasterID)
 	}
+	if filters.CreatorID != nil {
+		key += fmt.Sprintf(":creator:%s", *filters.CreatorID)
+	}
 	if filters.Tag != nil {
 		key += fmt.Sprintf(":tag:%s", *filters.Tag)
 	}
@@ -541,6 +544,13 @@ func (s *ClipService) buildCacheKey(filters repository.ClipFilters, page, limit 
 	if filters.Timeframe != nil {
 		key += fmt.Sprintf(":timeframe:%s", *filters.Timeframe)
 	}
+	if filters.Language != nil {
+		key += fmt.Sprintf(":language:%s", *filters.Language)
+	}
+
+	key += fmt.Sprintf(":top10k:%t", filters.Top10kStreamers)
+	key += fmt.Sprintf(":show_hidden:%t", filters.ShowHidden)
+	key += fmt.Sprintf(":user_submitted_only:%t", filters.UserSubmittedOnly)
 
 	return key
 }

@@ -186,7 +186,8 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at
 		FROM clips
 		WHERE id = $1 AND is_removed = false
 	`
@@ -199,6 +200,7 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 		&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+		&clip.SubmittedByUserID, &clip.SubmittedAt,
 	)
 
 	if err != nil {
@@ -227,7 +229,8 @@ func (r *ClipRepository) GetRecentClips(ctx context.Context, hours int, limit in
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+			submitted_by_user_id, submitted_at
 		FROM clips
 		WHERE is_removed = false AND created_at > NOW() - INTERVAL '1 hour' * $1
 		ORDER BY view_count DESC, created_at DESC
@@ -250,6 +253,7 @@ func (r *ClipRepository) GetRecentClips(ctx context.Context, hours int, limit in
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan clip: %w", err)
@@ -456,7 +460,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
-			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
+			c.submitted_by_user_id, c.submitted_at
 		FROM clips c
 		%s
 		%s
@@ -479,6 +484,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
@@ -637,7 +643,8 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
-			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
+			c.submitted_by_user_id, c.submitted_at
 		FROM clips c
 		%s
 		%s
@@ -660,6 +667,7 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan scraped clip: %w", err)
@@ -908,7 +916,8 @@ func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]m
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+			submitted_by_user_id, submitted_at
 		FROM clips
 		WHERE id = ANY($1)
 	`
@@ -930,6 +939,7 @@ func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]m
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan clip: %w", err)
 		}

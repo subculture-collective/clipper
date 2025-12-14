@@ -60,7 +60,7 @@ export function ClipFeed({
     const filters: ClipFeedFilters = {
         sort,
         timeframe: sort === 'top' ? timeframe : undefined,
-        language: i18n.language, // Use current language for filtering
+        // Do not filter by UI language by default; include language only if explicitly provided
         ...additionalFilters,
     };
 
