@@ -152,6 +152,7 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 		ParentCommentID: req.ParentCommentID,
 		Content:         strings.TrimSpace(req.Content),
 		VoteScore:       0,
+		ReplyCount:      0,
 		IsEdited:        false,
 		IsRemoved:       false,
 		CreatedAt:       time.Now(),
