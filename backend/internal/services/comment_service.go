@@ -424,8 +424,11 @@ func (s *CommentService) buildReplyTree(ctx context.Context, parentID uuid.UUID,
 		return []CommentTreeNode{}, nil
 	}
 
-	// Get direct replies to this comment (no pagination for nested replies)
-	replies, err := s.repo.GetReplies(ctx, parentID, 100, 0, userID)
+	// Get direct replies to this comment
+	// Use a reasonable limit for nested replies to prevent performance issues
+	// We fetch more replies than typical pagination to provide a better UX for nested threads
+	const maxRepliesPerLevel = 50
+	replies, err := s.repo.GetReplies(ctx, parentID, maxRepliesPerLevel, 0, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get replies: %w", err)
 	}

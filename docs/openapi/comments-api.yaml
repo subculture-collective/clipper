@@ -122,32 +122,55 @@ paths:
                         reply_count: 2
                         is_edited: false
                         is_removed: false
+                        removed_reason: null
                         created_at: "2025-12-14T10:30:00Z"
                         updated_at: "2025-12-14T10:30:00Z"
                         author_username: "user123"
                         author_display_name: "User Name"
+                        author_avatar_url: "https://example.com/avatar.jpg"
                         author_karma: 150
                         author_role: "user"
                         user_vote: 1
                         rendered_content: "<p>Top-level comment</p>"
                         replies:
                           - id: "550e8400-e29b-41d4-a716-446655440002"
+                            clip_id: "550e8400-e29b-41d4-a716-446655440000"
                             user_id: "550e8400-e29b-41d4-a716-446655440011"
+                            parent_comment_id: "550e8400-e29b-41d4-a716-446655440001"
                             content: "First reply"
                             vote_score: 10
                             reply_count: 1
                             is_edited: false
                             is_removed: false
+                            removed_reason: null
                             created_at: "2025-12-14T10:31:00Z"
+                            updated_at: "2025-12-14T10:31:00Z"
                             author_username: "user456"
                             author_display_name: "Another User"
+                            author_avatar_url: "https://example.com/avatar2.jpg"
+                            author_karma: 80
+                            author_role: "user"
+                            user_vote: null
                             rendered_content: "<p>First reply</p>"
                             replies:
                               - id: "550e8400-e29b-41d4-a716-446655440003"
+                                clip_id: "550e8400-e29b-41d4-a716-446655440000"
+                                user_id: "550e8400-e29b-41d4-a716-446655440012"
+                                parent_comment_id: "550e8400-e29b-41d4-a716-446655440002"
                                 content: "Nested reply"
                                 vote_score: 5
                                 reply_count: 0
+                                is_edited: false
+                                is_removed: false
+                                removed_reason: null
                                 created_at: "2025-12-14T10:32:00Z"
+                                updated_at: "2025-12-14T10:32:00Z"
+                                author_username: "user789"
+                                author_display_name: "Third User"
+                                author_avatar_url: null
+                                author_karma: 25
+                                author_role: "user"
+                                user_vote: 1
                                 rendered_content: "<p>Nested reply</p>"
                                 replies: []
                     next_cursor: 50
