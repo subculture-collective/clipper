@@ -86,14 +86,13 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 			-- Get top-level comments for this clip
 			SELECT
 				c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
-				c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+				c.vote_score, c.reply_count, c.is_edited, c.is_removed, c.removed_reason,
 				c.created_at, c.updated_at,
 				u.username AS author_username,
 				u.display_name AS author_display_name,
 				u.avatar_url AS author_avatar_url,
 				u.karma_points AS author_karma,
 				u.role AS author_role,
-				(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
 				COALESCE(cv.vote_type, NULL) AS user_vote,
 				0 AS depth,
 				COALESCE(vc.total_votes, 0) AS total_votes,
@@ -131,10 +130,10 @@ func (r *CommentRepository) ListByClipID(ctx context.Context, clipID uuid.UUID, 
 		var totalVotes, upvotes, downvotes int // Vote count columns from CTE
 		err := rows.Scan(
 			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
-			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 			&c.CreatedAt, &c.UpdatedAt,
 			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
-			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
 			&depth, &totalVotes, &upvotes, &downvotes,
 		)
 		if err != nil {
@@ -155,14 +154,13 @@ func (r *CommentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, 
 	query := `
 		SELECT
 			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
-			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+			c.vote_score, c.reply_count, c.is_edited, c.is_removed, c.removed_reason,
 			c.created_at, c.updated_at,
 			u.username AS author_username,
 			u.display_name AS author_display_name,
 			u.avatar_url AS author_avatar_url,
 			u.karma_points AS author_karma,
 			u.role AS author_role,
-			(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
 			COALESCE(cv.vote_type, NULL) AS user_vote
 		FROM comments c
 		INNER JOIN users u ON c.user_id = u.id
@@ -190,10 +188,10 @@ func (r *CommentRepository) GetReplies(ctx context.Context, parentID uuid.UUID, 
 		var c CommentWithAuthor
 		err := rows.Scan(
 			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
-			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 			&c.CreatedAt, &c.UpdatedAt,
 			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
-			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan reply: %w", err)
@@ -213,14 +211,13 @@ func (r *CommentRepository) GetByID(ctx context.Context, id uuid.UUID, userID *u
 	query := `
 		SELECT
 			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
-			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+			c.vote_score, c.reply_count, c.is_edited, c.is_removed, c.removed_reason,
 			c.created_at, c.updated_at,
 			u.username AS author_username,
 			u.display_name AS author_display_name,
 			u.avatar_url AS author_avatar_url,
 			u.karma_points AS author_karma,
 			u.role AS author_role,
-			(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
 			COALESCE(cv.vote_type, NULL) AS user_vote
 		FROM comments c
 		INNER JOIN users u ON c.user_id = u.id
@@ -259,15 +256,15 @@ func (r *CommentRepository) Create(ctx context.Context, comment *models.Comment)
 	query := `
 		INSERT INTO comments (
 			id, clip_id, user_id, parent_comment_id, content,
-			vote_score, is_edited, is_removed, created_at, updated_at
+			vote_score, reply_count, is_edited, is_removed, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 		)
 	`
 
 	_, err := r.pool.Exec(ctx, query,
 		comment.ID, comment.ClipID, comment.UserID, comment.ParentCommentID,
-		comment.Content, comment.VoteScore, comment.IsEdited, comment.IsRemoved,
+		comment.Content, comment.VoteScore, comment.ReplyCount, comment.IsEdited, comment.IsRemoved,
 		comment.CreatedAt, comment.UpdatedAt,
 	)
 
@@ -446,6 +443,154 @@ func (r *CommentRepository) RemoveComment(ctx context.Context, commentID uuid.UU
 	return err
 }
 
+// GetCommentTree retrieves a full nested comment tree starting from a parent comment
+// This method uses a recursive CTE to efficiently fetch the entire subtree in a single query
+func (r *CommentRepository) GetCommentTree(ctx context.Context, parentID uuid.UUID, userID *uuid.UUID) ([]CommentWithAuthor, error) {
+	query := `
+		WITH RECURSIVE comment_tree AS (
+			-- Base case: get the parent comment
+			SELECT
+				c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
+				c.vote_score, c.reply_count, c.is_edited, c.is_removed, c.removed_reason,
+				c.created_at, c.updated_at,
+				u.username AS author_username,
+				u.display_name AS author_display_name,
+				u.avatar_url AS author_avatar_url,
+				u.karma_points AS author_karma,
+				u.role AS author_role,
+				COALESCE(cv.vote_type, NULL) AS user_vote,
+				0 AS depth,
+				ARRAY[c.created_at] AS path
+			FROM comments c
+			INNER JOIN users u ON c.user_id = u.id
+			LEFT JOIN comment_votes cv ON c.id = cv.comment_id AND cv.user_id = $2
+			WHERE c.id = $1
+
+			UNION ALL
+
+			-- Recursive case: get all replies
+			SELECT
+				c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
+				c.vote_score, c.reply_count, c.is_edited, c.is_removed, c.removed_reason,
+				c.created_at, c.updated_at,
+				u.username AS author_username,
+				u.display_name AS author_display_name,
+				u.avatar_url AS author_avatar_url,
+				u.karma_points AS author_karma,
+				u.role AS author_role,
+				COALESCE(cv.vote_type, NULL) AS user_vote,
+				ct.depth + 1,
+				ct.path || c.created_at
+			FROM comments c
+			INNER JOIN users u ON c.user_id = u.id
+			INNER JOIN comment_tree ct ON c.parent_comment_id = ct.id
+			LEFT JOIN comment_votes cv ON c.id = cv.comment_id AND cv.user_id = $2
+			WHERE ct.depth < 10 -- Prevent infinite recursion
+		)
+		SELECT
+			id, clip_id, user_id, parent_comment_id, content,
+			vote_score, reply_count, is_edited, is_removed, removed_reason,
+			created_at, updated_at,
+			author_username, author_display_name, author_avatar_url,
+			author_karma, author_role, user_vote
+		FROM comment_tree
+		ORDER BY path
+	`
+
+	var args []interface{}
+	if userID != nil {
+		args = []interface{}{parentID, *userID}
+	} else {
+		args = []interface{}{parentID, uuid.Nil}
+	}
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get comment tree: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []CommentWithAuthor
+	for rows.Next() {
+		var c CommentWithAuthor
+		err := rows.Scan(
+			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.CreatedAt, &c.UpdatedAt,
+			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan comment in tree: %w", err)
+		}
+		comments = append(comments, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating comment tree: %w", err)
+	}
+
+	return comments, nil
+}
+
+// GetTopLevelComments retrieves top-level comments for a clip with pagination
+// This is optimized for the initial page load of a comment section
+func (r *CommentRepository) GetTopLevelComments(ctx context.Context, clipID uuid.UUID, limit, offset int, userID *uuid.UUID) ([]CommentWithAuthor, error) {
+	query := `
+		SELECT
+			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
+			c.vote_score, c.reply_count, c.is_edited, c.is_removed, c.removed_reason,
+			c.created_at, c.updated_at,
+			u.username AS author_username,
+			u.display_name AS author_display_name,
+			u.avatar_url AS author_avatar_url,
+			u.karma_points AS author_karma,
+			u.role AS author_role,
+			COALESCE(cv.vote_type, NULL) AS user_vote
+		FROM comments c
+		INNER JOIN users u ON c.user_id = u.id
+		LEFT JOIN comment_votes cv ON c.id = cv.comment_id AND cv.user_id = $2
+		WHERE c.clip_id = $1 AND c.parent_comment_id IS NULL
+		ORDER BY c.vote_score DESC, c.created_at DESC
+		LIMIT $3 OFFSET $4
+	`
+
+	var args []interface{}
+	if userID != nil {
+		args = []interface{}{clipID, *userID, limit, offset}
+	} else {
+		args = []interface{}{clipID, uuid.Nil, limit, offset}
+	}
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get top-level comments: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []CommentWithAuthor
+	for rows.Next() {
+		var c CommentWithAuthor
+		err := rows.Scan(
+			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.CreatedAt, &c.UpdatedAt,
+			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan top-level comment: %w", err)
+		}
+		comments = append(comments, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating top-level comments: %w", err)
+	}
+
+	return comments, nil
+}
+
 // ListByUserID retrieves comments by a user with pagination
 func (r *CommentRepository) ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]CommentWithAuthor, int, error) {
 	// Get total count
@@ -459,14 +604,13 @@ func (r *CommentRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 	query := `
 		SELECT
 			c.id, c.clip_id, c.user_id, c.parent_comment_id, c.content,
-			c.vote_score, c.is_edited, c.is_removed, c.removed_reason,
+			c.vote_score, c.reply_count, c.is_edited, c.is_removed, c.removed_reason,
 			c.created_at, c.updated_at,
 			u.username AS author_username,
 			u.display_name AS author_display_name,
 			u.avatar_url AS author_avatar_url,
 			u.karma_points AS author_karma,
 			u.role AS author_role,
-			(SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) AS reply_count,
 			NULL AS user_vote
 		FROM comments c
 		INNER JOIN users u ON c.user_id = u.id
@@ -486,10 +630,10 @@ func (r *CommentRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 		var c CommentWithAuthor
 		if err := rows.Scan(
 			&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
-			&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+			&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 			&c.CreatedAt, &c.UpdatedAt,
 			&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
-			&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+			&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan comment: %w", err)
 		}
