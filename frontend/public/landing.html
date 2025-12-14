@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CLPR.TV — Coming soon</title>
+    <meta name="description" content="Clpr.tv — a better way to find, follow, and share gaming clips. Beta waitlist." />
+    <link rel="preload" href="/landing.css" as="style" />
+    <link rel="stylesheet" href="/landing.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo"></div>
+        <div>
+          <div class="title">clpr.tv</div>
+          <div class="subtitle">Give us a minute—we're busy building. Want in early?</div>
+        </div>
+      </div>
+
+      <div class="card grid">
+        <div>
+          <h2 style="margin:0 0 8px 0">Reserve your spot</h2>
+          <p class="small">We'll ping you when the beta opens. No spam—promise.</p>
+          <form id="waitlist-form">
+            <input id="email" type="email" class="input" placeholder="you@awesome.gg" required />
+            <div style="display:flex; gap:10px; margin-top:10px">
+              <button id="submit" class="button" type="submit">Join the waitlist</button>
+              <a class="link" href="/api/v1/auth/twitch" style="flex:0 0 auto">Sign in with Twitch</a>
+            </div>
+          </form>
+          <div id="status" class="status" style="margin-top:10px"></div>
+          <hr class="hr" />
+          <p class="small">By joining, you agree to our <a class="link" href="/api/v1/docs/introduction" style="padding:0 6px">Terms</a>. We only use your email to notify you about the beta.</p>
+        </div>
+        <div>
+          <h3 style="margin:0 0 8px 0">What's clpr?</h3>
+          <p class="small">A curated feed of top gaming clips, smart search, creator tools, and a community built around the best moments.</p>
+          <div class="links" style="margin-top:10px">
+            <a class="link" href="https://github.com/subculture-collective/clipper" target="_blank" rel="noreferrer">GitHub</a>
+            <a class="link" href="https://twitter.com/intent/follow?screen_name=subculture_tv" target="_blank" rel="noreferrer">Twitter</a>
+            <a class="link" href="/api/v1/docs/index" >Docs</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">© <span id="year"></span> clpr.tv — all clips belong to their creators.</div>
+    </div>
+
+    <script>
+      const form = document.getElementById('waitlist-form');
+      const emailInput = document.getElementById('email');
+      const statusEl = document.getElementById('status');
+      const submitBtn = document.getElementById('submit');
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      function setStatus(msg, ok) {
+        statusEl.textContent = msg;
+        statusEl.className = 'status ' + (ok ? 'ok' : 'err');
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = emailInput.value.trim().toLowerCase();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          setStatus('Please enter a valid email.', false);
+          return;
+        }
+        submitBtn.disabled = true;
+        setStatus('Submitting…', true);
+        try {
+          const res = await fetch('/api/v1/waitlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok) {
+            setStatus('All set! You\'re on the list.', true);
+            emailInput.value = '';
+          } else {
+            setStatus(data.error || 'Something went wrong. Try again.', false);
+          }
+        } catch (err) {
+          setStatus('Network error. Please try again.', false);
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

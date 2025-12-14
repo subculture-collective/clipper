@@ -323,6 +323,7 @@ func main() {
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
 	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
+	waitlistHandler := handlers.NewWaitlistHandler()
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -509,6 +510,9 @@ func main() {
 
 		// Public config endpoint
 		v1.GET("/config", configHandler.GetPublicConfig)
+
+		// Simple waitlist endpoint
+		v1.POST("/waitlist", middleware.RateLimitMiddleware(redisClient, 60, time.Hour), waitlistHandler.SubmitEmail)
 
 		// Auth routes
 		auth := v1.Group("/auth")

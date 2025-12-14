@@ -5,29 +5,137 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)" />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
 
-    <!-- Preconnect to external domains for better performance -->
-    <link rel="preconnect" href="https://clips.twitch.tv" crossorigin />
-    <link rel="preconnect" href="https://static-cdn.jtvnw.net" crossorigin />
-
-    <!-- Default SEO tags (will be overridden by react-helmet-async) -->
-    <title>clpr - Community-Driven Twitch Clip Curation</title>
-    <meta name="description" content="Discover, share, and vote on the best Twitch clips. Join our community to curate and enjoy the most entertaining moments from your favorite streamers." />
-
-    <!-- Default Open Graph tags -->
-    <meta property="og:site_name" content="clpr" />
+    <!-- SEO -->
+    <title>clpr.tv — Coming soon</title>
+    <meta name="description" content="clpr is a community-driven Twitch clip curation platform. We're building something fun — join the waitlist to get updates." />
+    <meta property="og:site_name" content="clpr.tv" />
     <meta property="og:type" content="website" />
-
-    <!-- Default Twitter Card tags -->
+    <meta property="og:title" content="clpr.tv — Coming soon" />
+    <meta property="og:description" content="A community-driven way to discover and curate the best Twitch clips. Sign up to get updates while we build." />
+    <meta property="og:image" content="/og-image.svg" />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        background: linear-gradient(180deg, rgba(12,12,12,1) 0%, rgba(18,18,18,1) 100%);
+        color: #eaeaea;
+        display: grid;
+        place-items: center;
+      }
+      .container {
+        width: 100%;
+        max-width: 960px;
+        padding: 2rem;
+      }
+      .card {
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        background: rgba(255,255,255,0.02);
+        backdrop-filter: blur(6px);
+        padding: 2rem;
+      }
+      h1 {
+        font-size: clamp(2rem, 3vw, 3rem);
+        line-height: 1.1;
+        margin: 0 0 0.75rem 0;
+      }
+      .sub {
+        font-size: 1.1rem;
+        color: #bfbfbf;
+        margin-bottom: 1.5rem;
+      }
+      .row { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+      @media (min-width: 640px) { .row { grid-template-columns: 1fr auto; } }
+
+      .email-box {
+        display: flex; gap: 0.75rem; flex-wrap: wrap;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 0.5rem;
+        background: rgba(255,255,255,0.03);
+      }
+      input[type="email"] {
+        flex: 1 1 240px;
+        min-width: 0;
+        padding: 0.75rem 1rem;
+        border: 0;
+        outline: none;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.06);
+        color: inherit;
+      }
+      button {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: #2a2a2a;
+        color: #fff;
+        cursor: pointer;
+      }
+      button:hover { filter: brightness(1.1); }
+      .links { display: grid; gap: 0.5rem; margin-top: 1.5rem; }
+      .links a { color: #9fd4ff; text-decoration: none; }
+      .links a:hover { text-decoration: underline; }
+      .footer {
+        margin-top: 2rem; font-size: 0.9rem; color: #9a9a9a;
+      }
+      .badge {
+        display: inline-block; font-size: 0.8rem; padding: 0.25rem 0.5rem; border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12); color: #bfbfbf;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <main class="container">
+      <section class="card">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+          <img src="/vite.svg" alt="clpr logo" width="28" height="28" />
+          <span class="badge">beta · in development</span>
+        </div>
+        <h1>clpr — community-driven Twitch clip curation</h1>
+        <p class="sub">We're heads‑down building the first release. While that cooks, here’s a simple landing page. Join the waitlist and we’ll email you when the app is ready.</p>
+
+        <form id="waitlist" class="email-box" onsubmit="joinWaitlist(event)">
+          <input id="email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+          <button type="submit">Join the waitlist</button>
+        </form>
+
+        <div class="links" aria-label="Useful links">
+          <a href="https://github.com/subculture-collective/clipper" rel="noopener" target="_blank">GitHub repository</a>
+          <a href="https://github.com/subculture-collective/clipper/tree/main/docs" rel="noopener" target="_blank">Project docs</a>
+          <a href="https://github.com/subculture-collective/clipper/discussions" rel="noopener" target="_blank">Community discussions</a>
+        </div>
+
+        <p class="footer">No tracking, no cookies here. Just a friendly holding page while development continues. ❤️</p>
+      </section>
+    </main>
+
+    <script>
+      // Update this to your inbox before deploying if you want email-subscribe via mailto.
+      const MAILTO_ADDRESS = 'clipper.waitlist@example.com';
+      function joinWaitlist(e) {
+        e.preventDefault();
+        const input = document.getElementById('email');
+        const email = (input && input.value || '').trim();
+        if (!email) return;
+        const subject = encodeURIComponent('clpr waitlist');
+        const body = encodeURIComponent(`Please add me to the clpr waitlist.\nEmail: ${email}`);
+        const href = `mailto:${MAILTO_ADDRESS}?subject=${subject}&body=${body}`;
+        window.location.href = href;
+      }
+    </script>
   </body>
 </html>
