@@ -1,0 +1,113 @@
+# Minimal compose for testing landing page + waitlist endpoint locally
+# Usage: docker-compose -f docker-compose.landing.yml up --build
+
+version: '3.8'
+
+services:
+  # Minimal backend (no vault, no full DB setup needed for waitlist)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clipper-backend-landing
+    restart: unless-stopped
+    environment:
+      # Minimal required env for backend to start
+      - PORT=8080
+      - GIN_MODE=debug
+      - BASE_URL=http://localhost
+      - ENVIRONMENT=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=clipper
+      - DB_PASSWORD=clipper_password
+      - DB_NAME=clipper_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - CORS_ALLOWED_ORIGINS=http://localhost
+      - LOG_LEVEL=debug
+      # Twitch (optional—leave blank for local testing)
+      - TWITCH_CLIENT_ID=
+      - TWITCH_CLIENT_SECRET=
+      - TWITCH_REDIRECT_URI=http://localhost/api/v1/auth/twitch/callback
+      # Search (optional)
+      - OPENSEARCH_URL=http://opensearch:9200
+      - OPENSEARCH_INSECURE_SKIP_VERIFY=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    ports:
+      - "8080:8080"
+    networks:
+      - landing-network
+
+  # Frontend with Nginx serving landing page
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clipper-frontend-landing
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/health.html"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    ports:
+      - "80:80"
+    networks:
+      - landing-network
+
+  # PostgreSQL (minimal setup)
+  postgres:
+    image: postgres:17-alpine
+    container_name: clipper-postgres-landing
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=clipper_db
+      - POSTGRES_USER=clipper
+      - POSTGRES_PASSWORD=clipper_password
+    volumes:
+      - postgres_data_landing:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clipper"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - landing-network
+
+  # Redis (minimal setup)
+  redis:
+    image: redis:7-alpine
+    container_name: clipper-redis-landing
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - landing-network
+
+volumes:
+  postgres_data_landing:
+    driver: local
+
+networks:
+  landing-network:
+    driver: bridge
