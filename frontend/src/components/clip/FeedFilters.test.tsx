@@ -22,14 +22,17 @@ describe('FeedFilters', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: 'Hot' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Top' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Rising' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Discussed' })).toBeInTheDocument();
+      const select = screen.getByRole('combobox', { name: 'Sort by' });
+      expect(select).toBeInTheDocument();
+
+      expect(screen.getByRole('option', { name: 'Hot' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'New' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Top' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Rising' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Discussed' })).toBeInTheDocument();
     });
 
-    it('applies primary variant to selected sort option', () => {
+    it('shows selected sort value', () => {
       render(
         <FeedFilters
           sort="hot"
@@ -38,18 +41,11 @@ describe('FeedFilters', () => {
         />
       );
 
-      const hotButton = screen.getByRole('button', { name: 'Hot' });
-      const newButton = screen.getByRole('button', { name: 'New' });
-
-      // Selected button should have primary variant classes
-      expect(hotButton.className).toContain('bg-primary-500');
-      expect(hotButton.className).toContain('text-white');
-      
-      // Unselected button should have ghost variant classes
-      expect(newButton.className).toContain('bg-transparent');
+      const select = screen.getByRole('combobox', { name: 'Sort by' });
+      expect(select).toHaveValue('hot');
     });
 
-    it('applies primary variant to different selected sort', () => {
+    it('shows different selected sort', () => {
       render(
         <FeedFilters
           sort="new"
@@ -58,20 +54,13 @@ describe('FeedFilters', () => {
         />
       );
 
-      const hotButton = screen.getByRole('button', { name: 'Hot' });
-      const newButton = screen.getByRole('button', { name: 'New' });
-
-      // Now 'new' should be selected with primary variant
-      expect(newButton.className).toContain('bg-primary-500');
-      expect(newButton.className).toContain('text-white');
-      
-      // 'hot' should be unselected with ghost variant
-      expect(hotButton.className).toContain('bg-transparent');
+      const select = screen.getByRole('combobox', { name: 'Sort by' });
+      expect(select).toHaveValue('new');
     });
   });
 
   describe('Sort option interaction', () => {
-    it('calls onSortChange when clicking a sort option', async () => {
+    it('calls onSortChange when selecting a sort option', async () => {
       const user = userEvent.setup();
       render(
         <FeedFilters
@@ -81,8 +70,8 @@ describe('FeedFilters', () => {
         />
       );
 
-      const newButton = screen.getByRole('button', { name: 'New' });
-      await user.click(newButton);
+      const select = screen.getByRole('combobox', { name: 'Sort by' });
+      await user.selectOptions(select, 'new');
 
       expect(mockOnSortChange).toHaveBeenCalledWith('new');
       expect(mockOnSortChange).toHaveBeenCalledTimes(1);
@@ -99,10 +88,10 @@ describe('FeedFilters', () => {
       );
 
       const sortOptions: SortOption[] = ['hot', 'new', 'top', 'rising', 'discussed'];
+      const select = screen.getByRole('combobox', { name: 'Sort by' });
 
       for (const option of sortOptions) {
-        const button = screen.getByRole('button', { name: option.charAt(0).toUpperCase() + option.slice(1) });
-        await user.click(button);
+        await user.selectOptions(select, option);
       }
 
       expect(mockOnSortChange).toHaveBeenCalledTimes(5);

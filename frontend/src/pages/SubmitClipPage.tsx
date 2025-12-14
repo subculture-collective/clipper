@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Alert,
@@ -7,14 +7,20 @@ import {
     Checkbox,
     Container,
     Input,
-    StreamerInput,
     SubmissionConfirmation,
     TextArea,
 } from '../components';
 import { useAuth } from '../context/AuthContext';
-import { getUserSubmissions, submitClip } from '../lib/submission-api';
+import {
+    checkClipStatus,
+    getUserSubmissions,
+    submitClip,
+} from '../lib/submission-api';
 import { getPublicConfig } from '../lib/config-api';
 import type { ClipSubmission, SubmitClipRequest } from '../types/submission';
+import { TagSelector } from '../components/tag/TagSelector';
+import { tagApi } from '../lib/tag-api';
+import type { Tag } from '../types/tag';
 
 export function SubmitClipPage() {
     const { user, isAuthenticated } = useAuth();
@@ -23,31 +29,37 @@ export function SubmitClipPage() {
     const [formData, setFormData] = useState<SubmitClipRequest>({
         clip_url: '',
         custom_title: '',
-        tags: [],
         is_nsfw: false,
         submission_reason: '',
         broadcaster_name_override: '',
     });
-    const [tagInput, setTagInput] = useState('');
+    const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+    const [tagQueryLoading, setTagQueryLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(null);
+    const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(
+        null
+    );
     const [recentSubmissions, setRecentSubmissions] = useState<
         ClipSubmission[]
     >([]);
-    const [isStreamerAutoDetected, setIsStreamerAutoDetected] = useState(false);
     const [karmaRequired, setKarmaRequired] = useState(100);
-    const [karmaRequirementEnabled, setKarmaRequirementEnabled] = useState(true);
+    const [karmaRequirementEnabled, setKarmaRequirementEnabled] =
+        useState(true);
 
     // Check if user is authenticated and has enough karma
-    const canSubmit = isAuthenticated && user && (!karmaRequirementEnabled || user.karma_points >= karmaRequired);
-    const karmaNeeded = user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
+    const canSubmit =
+        isAuthenticated &&
+        user &&
+        (!karmaRequirementEnabled || user.karma_points >= karmaRequired);
+    const karmaNeeded =
+        user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
 
     // Pre-fill from navigation state (e.g., when claiming a scraped clip)
     useEffect(() => {
         const state = location.state as { clipUrl?: string } | null;
         if (state?.clipUrl) {
-            setFormData((prev) => ({
+            setFormData(prev => ({
                 ...prev,
                 clip_url: state.clipUrl!,
             }));
@@ -57,11 +69,13 @@ export function SubmitClipPage() {
     // Load karma configuration
     useEffect(() => {
         getPublicConfig()
-            .then((config) => {
+            .then(config => {
                 setKarmaRequired(config.karma.submission_karma_required);
-                setKarmaRequirementEnabled(config.karma.require_karma_for_submission);
+                setKarmaRequirementEnabled(
+                    config.karma.require_karma_for_submission
+                );
             })
-            .catch((err) => {
+            .catch(err => {
                 console.error('Failed to load config:', err);
                 // Use defaults if config fails to load
             });
@@ -73,12 +87,12 @@ export function SubmitClipPage() {
 
         if (isAuthenticated) {
             getUserSubmissions(1, 5)
-                .then((response) => {
+                .then(response => {
                     if (isMounted) {
                         setRecentSubmissions(response.data || []);
                     }
                 })
-                .catch((err) => {
+                .catch(err => {
                     if (isMounted) {
                         console.error('Failed to load submissions:', err);
                         setRecentSubmissions([]);
@@ -110,33 +124,75 @@ export function SubmitClipPage() {
         return null;
     };
 
-    // Auto-detect streamer when URL changes
+    // Auto-set NSFW if clip already marked (best effort) when URL changes
     useEffect(() => {
         const clipID = extractClipIDFromURL(formData.clip_url);
+        if (!clipID) return;
 
-        // If we have a valid clip ID and no streamer name set yet (or it was auto-detected)
-        if (clipID && (!formData.broadcaster_name_override || isStreamerAutoDetected)) {
-            // For now, we show a note that the streamer will be detected
-            // The backend will fetch the actual metadata
-            // In a future enhancement, we could add a preview API endpoint
-            setIsStreamerAutoDetected(true);
-        } else if (!clipID && isStreamerAutoDetected) {
-            // Clear auto-detection if URL is invalid
-            setIsStreamerAutoDetected(false);
-            setFormData((prev) => ({
-                ...prev,
-                broadcaster_name_override: '',
-            }));
+        let isActive = true;
+        checkClipStatus(clipID)
+            .then(resp => {
+                if (!isActive) return;
+                if (resp?.clip?.is_nsfw) {
+                    setFormData(prev => ({ ...prev, is_nsfw: true }));
+                }
+            })
+            .catch(() => {
+                // ignore; optional helper
+            });
+
+        return () => {
+            isActive = false;
+        };
+    }, [formData.clip_url]);
+
+    const slugify = useMemo(
+        () => (value: string) =>
+            value
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, ''),
+        []
+    );
+
+    const handleCreateTag = async (name: string): Promise<Tag | null> => {
+        const slug = slugify(name);
+        setTagQueryLoading(true);
+        try {
+            const resp = await tagApi.createTag({ name: name.trim(), slug });
+            return resp.tag;
+        } catch (err) {
+            // Fallback: return a local tag representation even if API fails
+            console.error('Failed to create tag, using local fallback', err);
+            return {
+                id: `temp-${slug}`,
+                name: name.trim(),
+                slug,
+                usage_count: 0,
+                created_at: new Date().toISOString(),
+            } as Tag;
+        } finally {
+            setTagQueryLoading(false);
         }
-    }, [formData.clip_url, formData.broadcaster_name_override, isStreamerAutoDetected]);
+    };
 
+    const handleTagsChange = (tags: Tag[]) => {
+        setSelectedTags(tags);
+    };
+
+    const tagsToSubmit = selectedTags.map(tag => tag.slug || slugify(tag.name));
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!canSubmit) {
             if (karmaRequirementEnabled) {
-                setError(`You need at least ${karmaRequired} karma points to submit clips`);
+                setError(
+                    `You need at least ${karmaRequired} karma points to submit clips`
+                );
             } else {
                 setError('You must be logged in to submit clips');
             }
@@ -148,7 +204,15 @@ export function SubmitClipPage() {
         setIsSubmitting(true);
 
         try {
-            const response = await submitClip(formData);
+            const response = await submitClip({
+                ...formData,
+                tags: tagsToSubmit,
+                // omit broadcaster override if empty to let backend auto-detect
+                broadcaster_name_override:
+                    formData.broadcaster_name_override?.trim() ?
+                        formData.broadcaster_name_override
+                    :   undefined,
+            });
             // Set the submitted clip to show confirmation
             setSubmittedClip(response.submission);
 
@@ -156,13 +220,11 @@ export function SubmitClipPage() {
             setFormData({
                 clip_url: '',
                 custom_title: '',
-                tags: [],
                 is_nsfw: false,
                 submission_reason: '',
                 broadcaster_name_override: '',
             });
-            setTagInput('');
-            setIsStreamerAutoDetected(false);
+            setSelectedTags([]);
         } catch (err: unknown) {
             const error = err as { response?: { data?: { error?: string } } };
             const errorMessage =
@@ -171,24 +233,6 @@ export function SubmitClipPage() {
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const handleAddTag = () => {
-        const tag = tagInput.trim();
-        if (tag && !formData.tags?.includes(tag)) {
-            setFormData({
-                ...formData,
-                tags: [...(formData.tags || []), tag],
-            });
-            setTagInput('');
-        }
-    };
-
-    const handleRemoveTag = (tagToRemove: string) => {
-        setFormData({
-            ...formData,
-            tags: formData.tags?.filter((t) => t !== tagToRemove) || [],
-        });
     };
 
     const handleSubmitAnother = () => {
@@ -200,7 +244,9 @@ export function SubmitClipPage() {
         return (
             <Container className='py-4 xs:py-6 md:py-8'>
                 <Card className='max-w-2xl mx-auto p-4 xs:p-6 md:p-8 text-center'>
-                    <h1 className='text-2xl xs:text-3xl font-bold mb-4'>Submit a Clip</h1>
+                    <h1 className='text-2xl xs:text-3xl font-bold mb-4'>
+                        Submit a Clip
+                    </h1>
                     <p className='text-sm xs:text-base text-muted-foreground mb-6'>
                         You must be logged in to submit clips.
                     </p>
@@ -226,17 +272,16 @@ export function SubmitClipPage() {
         <Container className='py-4 xs:py-6 md:py-8'>
             <div className='max-w-3xl mx-auto'>
                 <div className='mb-4 xs:mb-6'>
-                    <h1 className='text-2xl xs:text-3xl font-bold mb-2'>Submit a Clip</h1>
+                    <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
+                        Submit a Clip
+                    </h1>
                     <p className='text-sm xs:text-base text-muted-foreground'>
                         Share your favorite gaming moments with the community
                     </p>
                 </div>
 
                 {!canSubmit && (
-                    <Alert
-                        variant='warning'
-                        className='mb-4 xs:mb-6'
-                    >
+                    <Alert variant='warning' className='mb-4 xs:mb-6'>
                         You need {karmaNeeded} more karma points to submit
                         clips. Earn karma by commenting, voting, and
                         contributing to the community.
@@ -244,10 +289,7 @@ export function SubmitClipPage() {
                 )}
 
                 {error && (
-                    <Alert
-                        variant='error'
-                        className='mb-6'
-                    >
+                    <Alert variant='error' className='mb-6'>
                         {error}
                     </Alert>
                 )}
@@ -268,7 +310,7 @@ export function SubmitClipPage() {
                                     id='clip_url'
                                     type='url'
                                     value={formData.clip_url}
-                                    onChange={(e) =>
+                                    onChange={e =>
                                         setFormData({
                                             ...formData,
                                             clip_url: e.target.value,
@@ -283,25 +325,6 @@ export function SubmitClipPage() {
                                 </p>
                             </div>
 
-                            {/* Streamer Input */}
-                            <StreamerInput
-                                id='broadcaster_name_override'
-                                value={formData.broadcaster_name_override || ''}
-                                onChange={(value) => {
-                                    setFormData({
-                                        ...formData,
-                                        broadcaster_name_override: value,
-                                    });
-                                    // If user manually changes, it's no longer auto-detected
-                                    if (isStreamerAutoDetected) {
-                                        setIsStreamerAutoDetected(false);
-                                    }
-                                }}
-                                autoDetected={isStreamerAutoDetected}
-                                disabled={!canSubmit}
-                                required={false}
-                            />
-
                             {/* Custom Title */}
                             <div>
                                 <label
@@ -314,13 +337,13 @@ export function SubmitClipPage() {
                                     id='custom_title'
                                     type='text'
                                     value={formData.custom_title}
-                                    onChange={(e) =>
+                                    onChange={e =>
                                         setFormData({
                                             ...formData,
                                             custom_title: e.target.value,
                                         })
                                     }
-                                    placeholder="Override the clip's original title"
+                                    placeholder='Give your clip a catchy title (optional)'
                                     disabled={!canSubmit}
                                 />
                             </div>
@@ -333,55 +356,19 @@ export function SubmitClipPage() {
                                 >
                                     Tags (Optional)
                                 </label>
-                                <div className='flex gap-2 mb-2'>
-                                    <Input
-                                        id='tags'
-                                        type='text'
-                                        value={tagInput}
-                                        onChange={(e) =>
-                                            setTagInput(e.target.value)
-                                        }
-                                        onKeyPress={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                handleAddTag();
-                                            }
-                                        }}
-                                        placeholder='Add tags...'
-                                        disabled={!canSubmit}
-                                    />
-                                    <Button
-                                        type='button'
-                                        onClick={handleAddTag}
-                                        disabled={
-                                            !tagInput.trim() || !canSubmit
-                                        }
-                                        variant='secondary'
-                                    >
-                                        Add
-                                    </Button>
-                                </div>
-                                {formData.tags && formData.tags.length > 0 && (
-                                    <div className='flex flex-wrap gap-2'>
-                                        {formData.tags.map((tag) => (
-                                            <span
-                                                key={tag}
-                                                className='inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm'
-                                            >
-                                                {tag}
-                                                <button
-                                                    type='button'
-                                                    onClick={() =>
-                                                        handleRemoveTag(tag)
-                                                    }
-                                                    className='hover:text-red-500'
-                                                    disabled={!canSubmit}
-                                                >
-                                                    ×
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </div>
+                                <TagSelector
+                                    selectedTags={selectedTags}
+                                    onTagsChange={handleTagsChange}
+                                    maxTags={10}
+                                    allowCreate
+                                    onCreateTag={handleCreateTag}
+                                    helperText='Search popular tags or add your own. New tags will be saved.'
+                                    placeholder='Search or add tags...'
+                                />
+                                {tagQueryLoading && (
+                                    <p className='text-xs text-muted-foreground mt-1'>
+                                        Creating tag...
+                                    </p>
                                 )}
                             </div>
 
@@ -390,7 +377,7 @@ export function SubmitClipPage() {
                                 <Checkbox
                                     id='is_nsfw'
                                     checked={formData.is_nsfw}
-                                    onChange={(e) =>
+                                    onChange={e =>
                                         setFormData({
                                             ...formData,
                                             is_nsfw: e.target.checked,
@@ -417,7 +404,7 @@ export function SubmitClipPage() {
                                 <TextArea
                                     id='submission_reason'
                                     value={formData.submission_reason}
-                                    onChange={(e) =>
+                                    onChange={e =>
                                         setFormData({
                                             ...formData,
                                             submission_reason: e.target.value,
@@ -440,9 +427,9 @@ export function SubmitClipPage() {
                                     }
                                     className='flex-1'
                                 >
-                                    {isSubmitting
-                                        ? 'Submitting...'
-                                        : 'Submit Clip'}
+                                    {isSubmitting ?
+                                        'Submitting...'
+                                    :   'Submit Clip'}
                                 </Button>
                                 <Button
                                     type='button'
@@ -457,46 +444,52 @@ export function SubmitClipPage() {
                 </Card>
 
                 {/* Recent Submissions */}
-                {Array.isArray(recentSubmissions) && recentSubmissions.length > 0 && (
-                    <Card className='p-6'>
-                        <h2 className='text-xl font-bold mb-4'>
-                            Your Recent Submissions
-                        </h2>
-                        <div className='space-y-3'>
-                            {recentSubmissions.map((submission) => (
-                                <div
-                                    key={submission.id}
-                                    className='flex items-center justify-between p-3 bg-background-secondary rounded-lg'
-                                >
-                                    <div className='flex-1'>
-                                        <p className='font-medium truncate'>
-                                            {submission.custom_title ||
-                                                submission.title ||
-                                                'Untitled'}
-                                        </p>
-                                        <p className='text-xs text-muted-foreground'>
-                                            {new Date(
-                                                submission.created_at
-                                            ).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                    <span
-                                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                            submission.status === 'approved'
-                                                ? 'bg-green-500/20 text-green-500'
-                                                : submission.status ===
-                                                  'rejected'
-                                                ? 'bg-red-500/20 text-red-500'
-                                                : 'bg-yellow-500/20 text-yellow-500'
-                                        }`}
+                {Array.isArray(recentSubmissions) &&
+                    recentSubmissions.length > 0 && (
+                        <Card className='p-6'>
+                            <h2 className='text-xl font-bold mb-4'>
+                                Your Recent Submissions
+                            </h2>
+                            <div className='space-y-3'>
+                                {recentSubmissions.map(submission => (
+                                    <div
+                                        key={submission.id}
+                                        className='flex items-center justify-between p-3 bg-background-secondary rounded-lg'
                                     >
-                                        {submission.status}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                )}
+                                        <div className='flex-1'>
+                                            <p className='font-medium truncate'>
+                                                {submission.custom_title ||
+                                                    submission.title ||
+                                                    'Untitled'}
+                                            </p>
+                                            <p className='text-xs text-muted-foreground'>
+                                                {new Date(
+                                                    submission.created_at
+                                                ).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <span
+                                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                                (
+                                                    submission.status ===
+                                                    'approved'
+                                                ) ?
+                                                    'bg-green-500/20 text-green-500'
+                                                : (
+                                                    submission.status ===
+                                                    'rejected'
+                                                ) ?
+                                                    'bg-red-500/20 text-red-500'
+                                                :   'bg-yellow-500/20 text-yellow-500'
+                                            }`}
+                                        >
+                                            {submission.status}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
             </div>
         </Container>
     );

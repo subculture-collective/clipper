@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { format } from 'date-fns';
 import { formatTimestamp } from './utils';
 
 describe('formatTimestamp', () => {
@@ -30,7 +31,7 @@ describe('formatTimestamp', () => {
         it('should show exact time for future dates', () => {
             const futureDate = new Date('2024-03-15T16:00:00.000Z'); // 1 hour in future
             const result = formatTimestamp(futureDate);
-            expect(result.display).toBe('4:00 PM'); // UTC+0 time
+            expect(result.display).toBe(format(futureDate, 'h:mm a'));
             expect(result.title).toContain('Mar 15, 2024');
         });
     });
@@ -70,21 +71,23 @@ describe('formatTimestamp', () => {
         it('should show time for 61 minutes ago (today)', () => {
             const sixtyOneMinutesAgo = new Date('2024-03-15T13:59:00.000Z');
             const result = formatTimestamp(sixtyOneMinutesAgo);
-            expect(result.display).toBe('1:59 PM');
+            expect(result.display).toBe(format(sixtyOneMinutesAgo, 'h:mm a'));
             expect(result.title).toContain('Mar 15, 2024');
         });
 
         it('should show "Yesterday" with time for yesterday', () => {
             const yesterday = new Date('2024-03-14T14:30:00.000Z');
             const result = formatTimestamp(yesterday);
-            expect(result.display).toBe('Yesterday 2:30 PM');
+            expect(result.display).toBe(
+                `Yesterday ${format(yesterday, 'h:mm a')}`
+            );
             expect(result.title).toContain('Mar 14, 2024');
         });
 
         it('should show date and time for this year', () => {
             const lastWeek = new Date('2024-03-08T10:15:00.000Z');
             const result = formatTimestamp(lastWeek);
-            expect(result.display).toBe('Mar 8, 10:15 AM');
+            expect(result.display).toBe(format(lastWeek, 'MMM d, h:mm a'));
             expect(result.title).toContain('Mar 8, 2024');
         });
 
