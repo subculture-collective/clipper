@@ -222,6 +222,62 @@ describe('useComments', () => {
         expect(result.current.isPending).toBe(true);
       });
     });
+
+    it('should optimistically update child_count when creating a reply', async () => {
+      const parentComment: Comment = {
+        ...mockComment,
+        id: 'parent-1',
+        child_count: 2,
+        replies: [],
+      };
+
+      const replyComment: Comment = {
+        ...mockComment,
+        id: 'reply-1',
+        parent_id: 'parent-1',
+        content: 'Reply comment',
+      };
+
+      vi.mocked(commentApi.createComment).mockResolvedValue(replyComment);
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+
+      // Pre-populate the query cache with parent comment
+      queryClient.setQueryData(['comments', 'clip-1'], {
+        pages: [{
+          comments: [parentComment],
+          total: 1,
+          page: 1,
+          limit: 10,
+          has_more: false,
+        }],
+        pageParams: [1],
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children);
+
+      const { result } = renderHook(() => useCreateComment(), { wrapper });
+
+      const payload: CreateCommentPayload = {
+        clip_id: 'clip-1',
+        content: 'Reply comment',
+        parent_id: 'parent-1',
+      };
+
+      result.current.mutate(payload);
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Verify child_count was updated
+      const updatedData = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      expect(updatedData.pages[0].comments[0].child_count).toBe(3);
+    });
   });
 
   describe('useUpdateComment hook', () => {
