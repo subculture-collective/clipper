@@ -37,7 +37,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
 
     const queryClient = useQueryClient();
 
-    // Query for top-level comments
+    // Query for comments with nested replies
     const {
         data: commentsData,
         isLoading,
@@ -52,6 +52,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
             const result = await listComments(clipId, {
                 sort: sortBy,
                 cursor: pageParam,
+                include_replies: true, // Fetch nested replies
             });
             return result;
         },
@@ -301,12 +302,13 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
 
     const allComments = commentsData?.pages.flatMap((page) => page.comments) || [];
 
-    // Render nested comment tree
+    // Render nested comment tree recursively
     const renderCommentTree = (
         comment: Comment,
         depth: number = 0
     ): React.ReactNode[] => {
         const nodes: React.ReactNode[] = [];
+        const maxDepth = 10;
 
         nodes.push(
             <CommentItem
@@ -322,15 +324,13 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                 isReplying={replyingCommentId === comment.id && createCommentMutation.isPending}
                 showReplies={expandedComments.has(comment.id)}
                 currentUserId={currentUserId}
+                maxDepth={maxDepth}
             />
         );
 
-        // Render replies if expanded
-        if (expandedComments.has(comment.id)) {
-            const replies = allComments.filter(
-                (c) => c.parent_comment_id === comment.id
-            );
-            replies.forEach((reply) => {
+        // Render nested replies if expanded and available
+        if (expandedComments.has(comment.id) && comment.replies && comment.replies.length > 0 && depth < maxDepth) {
+            comment.replies.forEach((reply) => {
                 nodes.push(...renderCommentTree(reply, depth + 1));
             });
         }
@@ -338,6 +338,7 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
         return nodes;
     };
 
+    // Top-level comments (those without parent_comment_id)
     const topLevelComments = allComments.filter((c) => !c.parent_comment_id);
 
     if (isLoading) {

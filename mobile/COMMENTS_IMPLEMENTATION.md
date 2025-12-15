@@ -6,12 +6,15 @@ This document describes the implementation of the comments UI for the mobile app
 
 The comments system provides a comprehensive UI for users to read, write, and interact with comments on video clips. It includes:
 
-- **Threaded replies** with nested comments up to 5 levels deep
+- **Nested comment tree** with threaded replies up to 10 levels deep
+- **Optimized tree API** using `include_replies=true` to fetch nested structure
+- **Collapse/expand badges** with reply counts (↓/↑ arrows)
 - **Voting** with upvote/downvote functionality and optimistic UI updates
 - **Sorting** options (best, new, top)
 - **Pagination** with cursor-based infinite scroll
 - **Comment moderation** states (removed, edited)
 - **User actions** (reply, edit, delete) for own comments
+- **Deep thread links** for threads exceeding max depth (10 levels)
 
 ## Architecture
 
@@ -24,11 +27,12 @@ The main container component that manages the comments state and orchestrates al
 **Features:**
 
 - Fetches comments using React Query's `useInfiniteQuery` for pagination
+- Uses optimized tree API with `include_replies=true` to get nested structure
 - Manages sorting state (best/new/top)
 - Handles collapse/expand state for comment threads
 - Provides mutations for create, vote, update, and delete operations
 - Implements optimistic updates for instant UI feedback
-- Renders comment trees with proper nesting
+- Renders comment trees with proper nesting using nested `replies` field
 
 **Props:**
 
@@ -41,10 +45,11 @@ interface CommentListProps {
 
 **Key Features:**
 
+- **Tree API Integration**: Fetches comments with `include_replies=true` for optimized nested structure
 - **Optimistic Updates**: When voting or creating comments, the UI updates immediately before the server responds
 - **Error Rollback**: If an operation fails, the UI reverts to the previous state
 - **Pagination**: Uses cursor-based pagination with "Load More" button
-- **Threading**: Renders nested comment trees recursively
+- **Nested Rendering**: Renders nested comment trees recursively using `comment.replies` field
 
 #### 2. CommentItem (`/components/CommentItem.tsx`)
 
@@ -55,16 +60,17 @@ Renders a single comment with all its interactive elements.
 - Displays comment metadata (username, timestamp, edited flag)
 - Shows vote buttons with current score
 - Provides reply, edit, and delete actions
-- Handles collapse/expand for replies
+- Displays collapse/expand badge with reply count and arrow icons (↓/↑)
 - Inline editing with CommentComposer
-- Visual indentation based on nesting depth
+- Visual indentation based on nesting depth (16px per level)
+- Deep thread continuation link for threads at max depth (10 levels)
 
 **Props:**
 
 ```typescript
 interface CommentItemProps {
     comment: Comment;                           // The comment to render
-    depth?: number;                             // Nesting depth (0-5)
+    depth?: number;                             // Nesting depth (0-10)
     onVote: (id: string, vote: 1|-1|0) => void; // Vote handler
     onReply: (parentId: string, content: string) => void; // Reply handler
     onEdit?: (id: string, content: string) => void;       // Edit handler
@@ -74,16 +80,24 @@ interface CommentItemProps {
     isReplying?: boolean;                       // Loading state for replies
     showReplies?: boolean;                      // Whether replies are expanded
     currentUserId?: string;                     // For ownership checks
-    maxDepth?: number;                          // Max nesting level (default: 5)
+    maxDepth?: number;                          // Max nesting level (default: 10)
 }
 ```
 
 **Visual States:**
 
-- Normal: Full comment display
+- Normal: Full comment display with collapse/expand badge
 - Removed: Shows "[removed]" with optional reason
 - Editing: Shows CommentComposer inline
 - Replying: Shows CommentComposer below comment
+- Max depth: Shows "View X more replies →" link instead of nested rendering
+
+**Collapse/Expand Badge:**
+
+- Shows reply count with arrow icon (↓ for collapsed, ↑ for expanded)
+- Styled with blue background and border for visibility
+- Only shown for comments with replies
+- Clicking toggles the expanded state managed by parent CommentList
 
 #### 3. CommentComposer (`/components/CommentComposer.tsx`)
 
@@ -143,12 +157,20 @@ API client for all comment-related operations.
 
 **Endpoints:**
 
-- `listComments(clipId, options)` - GET `/clips/:id/comments`
+- `listComments(clipId, options)` - GET `/clips/:id/comments?include_replies=true`
 - `getReplies(commentId, options)` - GET `/comments/:id/replies`
 - `createComment(clipId, input)` - POST `/clips/:id/comments`
 - `updateComment(commentId, input)` - PUT `/comments/:id`
 - `deleteComment(commentId)` - DELETE `/comments/:id`
 - `voteOnComment(commentId, vote)` - POST `/comments/:id/vote`
+
+**Tree API Integration:**
+
+The `listComments` function now supports an `include_replies` parameter. When set to `true`, the backend returns comments with nested `replies` arrays, eliminating the need to manually reconstruct the tree structure on the client side. This provides:
+
+- **Better Performance**: Single API call instead of N+1 queries
+- **Consistent Tree Structure**: Server-side tree building ensures correctness
+- **Optimized Data Transfer**: Backend efficiently fetches all nested data
 
 **Types:**
 
@@ -162,12 +184,15 @@ export type Comment = {
     content: string;
     vote_score: number;
     user_vote?: number | null;    // 1 = upvote, -1 = downvote, null = no vote
-    reply_count?: number;
+    reply_count?: number;         // Direct replies count
+    child_count?: number;         // Total nested replies count
+    depth?: number;               // Nesting depth (0-10)
     is_edited: boolean;
     is_removed: boolean;
     removed_reason?: string;
     created_at: string;
     updated_at: string;
+    replies?: Comment[];          // Nested replies (present when include_replies=true)
 };
 ```
 
@@ -217,10 +242,18 @@ const { user } = useAuth();
 
 ### Expanding/Collapsing Threads
 
-1. User clicks on "▶ N replies" button
-2. Replies expand and button changes to "▼ N replies"
-3. Clicking again collapses the thread
-4. State managed locally for instant response
+1. User clicks on "↓ N replies" badge on a comment
+2. Replies expand and badge changes to "↑ N replies"
+3. Nested comments are rendered recursively from `comment.replies` array
+4. Clicking again collapses the thread
+5. State managed locally in CommentList for instant response
+
+### Deep Thread Continuation
+
+1. When a comment is at max depth (10 levels) and has replies
+2. Show "View X more replies →" link instead of rendering nested comments
+3. This prevents excessive nesting and maintains performance
+4. Users can understand there are more replies without overloading the UI
 
 ### Editing Own Comment
 
@@ -247,7 +280,15 @@ const { user } = useAuth();
 
 All mutations (create, vote, update, delete) use optimistic updates to provide instant feedback. If an operation fails, the UI rolls back to the previous state.
 
-### 2. React Query Caching
+### 2. Tree API Integration
+
+Using `include_replies=true` eliminates N+1 query problems:
+- Single API call fetches entire comment tree
+- Backend efficiently builds nested structure
+- No client-side tree reconstruction needed
+- Reduced network overhead
+
+### 3. React Query Caching
 
 Comments are cached by React Query with the key `['comments', clipId, sortBy]`. This means:
 
@@ -255,17 +296,18 @@ Comments are cached by React Query with the key `['comments', clipId, sortBy]`. 
 - No unnecessary re-fetches
 - Background updates when stale
 
-### 3. Memoized Callbacks
+### 4. Memoized Callbacks
 
 All event handlers use `useCallback` to prevent unnecessary re-renders of child components.
 
-### 4. Efficient Rendering
+### 5. Efficient Rendering
 
 - Uses simple `View` instead of `FlatList` to avoid ScrollView nesting
-- Comments render recursively only when expanded
+- Comments with nested `replies` render recursively only when expanded
 - No virtualization needed for typical comment counts (< 100)
+- Max depth limit (10) prevents excessive nesting
 
-### 5. Pagination
+### 6. Pagination
 
 Cursor-based pagination loads comments in batches (default 50) with a "Load More" button instead of infinite scroll to reduce memory usage.
 
@@ -273,11 +315,13 @@ Cursor-based pagination loads comments in batches (default 50) with a "Load More
 
 The UI uses NativeWind (Tailwind CSS) for styling:
 
-- **Colors**: Primary blue (#0ea5e9) for interactive elements
+- **Colors**: Primary blue (#0ea5e9) for interactive elements, blue badge for collapse/expand
 - **Spacing**: Consistent padding and margins (p-2, p-3, p-4)
 - **Typography**: Font sizes from text-xs to text-2xl
 - **Layout**: Flexbox for all layouts
 - **Indentation**: 16px per nesting level for threaded comments
+- **Badges**: Blue background with border for reply count badges
+- **Arrows**: ↓ for collapsed threads, ↑ for expanded threads
 
 ## Accessibility
 
@@ -307,7 +351,9 @@ All API operations include error handling:
 - [ ] Remove vote (toggle)
 - [ ] Edit own comment
 - [ ] Delete own comment
-- [ ] Expand/collapse threads
+- [ ] Expand/collapse threads with badge UI
+- [ ] Max depth limit (10 levels)
+- [ ] Deep thread continuation links
 - [ ] Sort by best/new/top
 - [ ] Load more comments
 - [ ] Error handling (network offline)
@@ -316,10 +362,11 @@ All API operations include error handling:
 ### Performance Testing
 
 - Test with 100+ comments
-- Test with deeply nested threads (5 levels)
+- Test with deeply nested threads (10 levels)
 - Test rapid voting (spam clicking)
 - Test on slow network
 - Monitor memory usage
+- Verify no N+1 queries with tree API
 
 ## Future Enhancements
 
@@ -340,12 +387,19 @@ Potential improvements for future iterations:
 
 The backend must provide these endpoints:
 
-- `GET /clips/:id/comments` - List comments (with sort, cursor, limit params)
+- `GET /clips/:id/comments` - List comments with optional `include_replies=true` param for nested tree
 - `POST /clips/:id/comments` - Create comment (requires auth)
-- `GET /comments/:id/replies` - Get replies for a comment
+- `GET /comments/:id/replies` - Get replies for a comment (legacy, tree API preferred)
 - `PUT /comments/:id` - Update comment (requires auth, ownership)
 - `DELETE /comments/:id` - Delete comment (requires auth, ownership)
 - `POST /comments/:id/vote` - Vote on comment (requires auth)
+
+**Tree API Parameters:**
+
+- `sort` - Sort option (best, new, top)
+- `cursor` - Pagination cursor (offset)
+- `limit` - Results per page (default 50, max 100)
+- `include_replies` - Boolean to include nested replies (default false)
 
 ## Dependencies
 
