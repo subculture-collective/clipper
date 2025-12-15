@@ -53,6 +53,9 @@ export const useCreateComment = () => {
       });
 
       // Optimistically update by incrementing child_count on parent if this is a reply
+      // Note: We update all queries for this clip_id to maintain consistency across
+      // different sort views. This is lightweight (just incrementing a counter) and
+      // prevents inconsistencies if users switch between sort options.
       if (variables.parent_id) {
         queryClient.setQueriesData({ queryKey: ['comments', variables.clip_id] }, (old: unknown) => {
           if (!old || typeof old !== 'object') return old;
