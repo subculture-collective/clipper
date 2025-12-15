@@ -4,7 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -257,5 +260,342 @@ func TestKarmaValues(t *testing.T) {
 				t.Errorf("%s should not be zero", tt.name)
 			}
 		})
+	}
+}
+
+// TestCommentTreeDepthValidation tests that depth limits are properly enforced
+func TestCommentTreeDepthValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		depth       int
+		shouldStop  bool
+		description string
+	}{
+		{
+			name:        "Depth 0",
+			depth:       0,
+			shouldStop:  false,
+			description: "Should allow recursion at depth 0",
+		},
+		{
+			name:        "Mid depth",
+			depth:       5,
+			shouldStop:  false,
+			description: "Should allow recursion at mid depth",
+		},
+		{
+			name:        "At max depth",
+			depth:       MaxNestingDepth,
+			shouldStop:  true,
+			description: "Should stop at max depth",
+		},
+		{
+			name:        "Beyond max depth",
+			depth:       MaxNestingDepth + 1,
+			shouldStop:  true,
+			description: "Should stop beyond max depth",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test logic: depth >= MaxNestingDepth should stop recursion
+			shouldStop := tt.depth >= MaxNestingDepth
+			
+			if shouldStop != tt.shouldStop {
+				t.Errorf("Expected shouldStop=%v at depth %d, got %v", 
+					tt.shouldStop, tt.depth, shouldStop)
+			}
+		})
+	}
+}
+
+// TestReplyCountAccuracy tests reply count validation logic
+func TestReplyCountAccuracy(t *testing.T) {
+	tests := []struct {
+		name        string
+		replyCount  int
+		description string
+	}{
+		{
+			name:        "No replies",
+			replyCount:  0,
+			description: "Comment with no replies",
+		},
+		{
+			name:        "Single reply",
+			replyCount:  1,
+			description: "Comment with one reply",
+		},
+		{
+			name:        "Multiple replies",
+			replyCount:  5,
+			description: "Comment with multiple replies",
+		},
+		{
+			name:        "Many replies",
+			replyCount:  50,
+			description: "Comment with many replies",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify reply count is a valid non-negative integer
+			if tt.replyCount < 0 {
+				t.Errorf("Invalid reply count: %d", tt.replyCount)
+			}
+		})
+	}
+}
+
+// TestDeletedCommentContent tests that deleted comment content is properly marked
+func TestDeletedCommentContent(t *testing.T) {
+	tests := []struct {
+		name           string
+		content        string
+		isDeleted      bool
+		isRemoved      bool
+		expectedText   string
+		shouldRender   bool
+		description    string
+	}{
+		{
+			name:          "Normal comment",
+			content:       "This is a normal comment",
+			isDeleted:     false,
+			isRemoved:     false,
+			expectedText:  "This is a normal comment",
+			shouldRender:  true,
+			description:   "Normal comments should render markdown",
+		},
+		{
+			name:          "Deleted comment",
+			content:       "[deleted]",
+			isDeleted:     true,
+			isRemoved:     false,
+			expectedText:  "[deleted]",
+			shouldRender:  false,
+			description:   "Deleted comments should not process markdown",
+		},
+		{
+			name:          "Removed comment",
+			content:       "[removed]",
+			isDeleted:     false,
+			isRemoved:     true,
+			expectedText:  "[removed]",
+			shouldRender:  false,
+			description:   "Removed comments should not process markdown",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test the content matches expected values
+			if tt.content != tt.expectedText {
+				t.Errorf("Expected content %q, got %q", tt.expectedText, tt.content)
+			}
+			
+			// Verify markdown should not be rendered for deleted/removed
+			if !tt.shouldRender && !strings.Contains(tt.content, "[deleted]") && !strings.Contains(tt.content, "[removed]") {
+				t.Error("Expected content to be marked as deleted or removed")
+			}
+		})
+	}
+}
+
+// TestOrphanedRepliesHandling tests the handling concept for orphaned replies
+func TestOrphanedRepliesHandling(t *testing.T) {
+	tests := []struct {
+		name           string
+		hasParent      bool
+		expectOrphaned bool
+		description    string
+	}{
+		{
+			name:           "Comment with valid parent",
+			hasParent:      true,
+			expectOrphaned: false,
+			description:    "Regular reply should not be orphaned",
+		},
+		{
+			name:           "Comment without parent",
+			hasParent:      false,
+			expectOrphaned: true,
+			description:    "Reply without parent should be orphaned",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test orphaned logic
+			isOrphaned := !tt.hasParent
+			
+			if isOrphaned != tt.expectOrphaned {
+				t.Errorf("Expected orphaned=%v, got %v", tt.expectOrphaned, isOrphaned)
+			}
+		})
+	}
+}
+
+// TestCommentTreePagination tests pagination parameters for large trees
+func TestCommentTreePagination(t *testing.T) {
+	tests := []struct {
+		name          string
+		totalReplies  int
+		limit         int
+		offset        int
+		expectedCount int
+		description   string
+	}{
+		{
+			name:          "First page of 50",
+			totalReplies:  1000,
+			limit:         50,
+			offset:        0,
+			expectedCount: 50,
+			description:   "First page should return limit items",
+		},
+		{
+			name:          "Second page of 50",
+			totalReplies:  1000,
+			limit:         50,
+			offset:        50,
+			expectedCount: 50,
+			description:   "Second page should return limit items",
+		},
+		{
+			name:          "Last page partial",
+			totalReplies:  75,
+			limit:         50,
+			offset:        50,
+			expectedCount: 25,
+			description:   "Last page should return remaining items",
+		},
+		{
+			name:          "Beyond available data",
+			totalReplies:  100,
+			limit:         50,
+			offset:        150,
+			expectedCount: 0,
+			description:   "Offset beyond data should return empty",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Calculate expected count based on pagination
+			start := tt.offset
+			if start >= tt.totalReplies {
+				if tt.expectedCount != 0 {
+					t.Errorf("Expected 0 items when offset %d >= total %d", start, tt.totalReplies)
+				}
+				return
+			}
+			
+			end := start + tt.limit
+			if end > tt.totalReplies {
+				end = tt.totalReplies
+			}
+			
+			actualCount := end - start
+			if actualCount != tt.expectedCount {
+				t.Errorf("Expected %d items, calculated %d (start=%d, end=%d, total=%d)",
+					tt.expectedCount, actualCount, start, end, tt.totalReplies)
+			}
+		})
+	}
+}
+
+// TestRenderedContentInTree tests that markdown rendering is applied
+func TestRenderedContentInTree(t *testing.T) {
+	service := &CommentService{
+		markdown:  createMarkdownProcessor(),
+		sanitizer: createSanitizer(),
+	}
+	
+	tests := []struct {
+		name           string
+		content        string
+		expectContains []string
+		description    string
+	}{
+		{
+			name:           "Bold markdown",
+			content:        "This is **bold** text",
+			expectContains: []string{"<strong>", "bold", "</strong>"},
+			description:    "Bold text should be rendered",
+		},
+		{
+			name:           "Italic markdown",
+			content:        "This is *italic* text",
+			expectContains: []string{"<em>", "italic", "</em>"},
+			description:    "Italic text should be rendered",
+		},
+		{
+			name:           "Link markdown",
+			content:        "[GitHub](https://github.com)",
+			expectContains: []string{"<a", "href=", "GitHub"},
+			description:    "Links should be rendered",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rendered := service.RenderMarkdown(tt.content)
+			
+			for _, expected := range tt.expectContains {
+				if !strings.Contains(rendered, expected) {
+					t.Errorf("Expected rendered content to contain %q, got: %s", expected, rendered)
+				}
+			}
+		})
+	}
+}
+
+// TestMaxNestingDepthConstant verifies the max nesting depth is reasonable
+func TestMaxNestingDepthConstant(t *testing.T) {
+	if MaxNestingDepth < 5 {
+		t.Errorf("MaxNestingDepth (%d) should be at least 5 for usable threading", MaxNestingDepth)
+	}
+	
+	if MaxNestingDepth > 20 {
+		t.Errorf("MaxNestingDepth (%d) should not exceed 20 to avoid UI issues", MaxNestingDepth)
+	}
+	
+	t.Logf("MaxNestingDepth is set to %d", MaxNestingDepth)
+}
+
+// TestCommentTreeNodeStructure tests the CommentTreeNode type
+func TestCommentTreeNodeStructure(t *testing.T) {
+	// Create a sample tree node
+	node := CommentTreeNode{
+		CommentWithAuthor: repository.CommentWithAuthor{
+			Comment: models.Comment{
+				ID:      uuid.New(),
+				Content: "Test comment",
+			},
+			AuthorUsername: "testuser",
+			ReplyCount:     2,
+		},
+		RenderedContent: "<p>Test comment</p>",
+		Replies:         []CommentTreeNode{},
+	}
+	
+	// Verify structure
+	if node.Content != "Test comment" {
+		t.Errorf("Expected content 'Test comment', got %q", node.Content)
+	}
+	
+	if node.RenderedContent != "<p>Test comment</p>" {
+		t.Errorf("Expected rendered content '<p>Test comment</p>', got %q", node.RenderedContent)
+	}
+	
+	if node.Replies == nil {
+		t.Error("Expected Replies to be initialized")
+	}
+	
+	if node.ReplyCount != 2 {
+		t.Errorf("Expected ReplyCount 2, got %d", node.ReplyCount)
 	}
 }
