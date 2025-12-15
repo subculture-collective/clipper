@@ -1,16 +1,23 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
-	"github.com/subculture-collective/clipper/internal/services"
 )
 
+// MFAServiceInterface defines the interface for MFA service operations used by middleware
+type MFAServiceInterface interface {
+	IsAdminActionAllowed(ctx context.Context, userID uuid.UUID) (bool, string, error)
+	CheckMFARequired(ctx context.Context, userID uuid.UUID) (required bool, enabled bool, inGracePeriod bool, err error)
+	SetMFARequired(ctx context.Context, userID uuid.UUID) error
+}
+
 // RequireMFAForAdminMiddleware creates middleware that enforces MFA for admin/moderator actions
-func RequireMFAForAdminMiddleware(mfaService *services.MFAService) gin.HandlerFunc {
+func RequireMFAForAdminMiddleware(mfaService MFAServiceInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get user from context (set by auth middleware)
 		userInterface, exists := c.Get("user")
@@ -82,7 +89,7 @@ func RequireMFAForAdminMiddleware(mfaService *services.MFAService) gin.HandlerFu
 
 // CheckMFARequirementMiddleware checks if MFA should be required for a user after role change
 // This is used after role/account_type updates to trigger MFA requirement
-func CheckMFARequirementMiddleware(mfaService *services.MFAService) gin.HandlerFunc {
+func CheckMFARequirementMiddleware(mfaService MFAServiceInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next() // Execute the handler first
 
