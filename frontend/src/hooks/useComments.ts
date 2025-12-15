@@ -152,7 +152,7 @@ export const useUpdateComment = () => {
           }
 
           // Recursively update nested replies
-          if (comment.replies && comment.replies.length > 0) {
+          if (comment.replies) {
             return {
               ...comment,
               replies: comment.replies.map(updateComment),
@@ -227,7 +227,7 @@ export const useDeleteComment = () => {
           }
 
           // Recursively update nested replies
-          if (comment.replies && comment.replies.length > 0) {
+          if (comment.replies) {
             return {
               ...comment,
               replies: comment.replies.map(updateComment),
