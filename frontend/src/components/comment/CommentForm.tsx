@@ -2,11 +2,12 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
-import { useCreateComment, useUpdateComment } from '@/hooks';
+import { useCreateComment, useUpdateComment, useToast } from '@/hooks';
 
 interface CommentFormProps {
   clipId: string;
   parentId?: string | null;
+  parentUsername?: string;
   editCommentId?: string;
   initialContent?: string;
   onCancel?: () => void;
@@ -18,11 +19,12 @@ interface CommentFormProps {
 export const CommentForm: React.FC<CommentFormProps> = ({
   clipId,
   parentId,
+  parentUsername,
   editCommentId,
   initialContent = '',
   onCancel,
   onSuccess,
-  placeholder = 'Write a comment...',
+  placeholder,
   className,
 }) => {
   const [content, setContent] = React.useState(initialContent);
@@ -31,10 +33,18 @@ export const CommentForm: React.FC<CommentFormProps> = ({
 
   const { mutate: createComment, isPending: isCreating } = useCreateComment();
   const { mutate: updateComment, isPending: isUpdating } = useUpdateComment();
+  const toast = useToast();
 
   const isPending = isCreating || isUpdating;
   const maxLength = 10000;
   const isEmpty = content.trim().length === 0;
+
+  // Generate default placeholder based on context
+  const defaultPlaceholder = React.useMemo(() => {
+    if (placeholder) return placeholder;
+    if (parentId && parentUsername) return `Reply to @${parentUsername}...`;
+    return 'Write a comment...';
+  }, [placeholder, parentId, parentUsername]);
 
   React.useEffect(() => {
     // Focus textarea on mount
@@ -57,7 +67,15 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         {
           onSuccess: () => {
             setContent('');
+            toast.success('Comment updated successfully');
             onSuccess?.();
+          },
+          onError: (error) => {
+            toast.error(
+              error instanceof Error 
+                ? error.message 
+                : 'Failed to update comment. Please try again.'
+            );
           },
         }
       );
@@ -71,7 +89,15 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         {
           onSuccess: () => {
             setContent('');
+            toast.success(parentId ? 'Reply posted successfully' : 'Comment posted successfully');
             onSuccess?.();
+          },
+          onError: (error) => {
+            toast.error(
+              error instanceof Error 
+                ? error.message 
+                : 'Failed to post comment. Please try again.'
+            );
           },
         }
       );
@@ -252,7 +278,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={defaultPlaceholder}
             maxLength={maxLength}
             className="w-full px-3 py-2 min-h-[120px] resize-y bg-background text-foreground placeholder:text-muted-foreground focus:outline-none"
             aria-label="Comment content"

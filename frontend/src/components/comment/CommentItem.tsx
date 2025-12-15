@@ -213,6 +213,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 createdAt={comment.created_at}
                 onReply={handleReply}
                 onEdit={handleEdit}
+                depth={depth}
+                maxDepth={maxDepth}
                 className="mb-3"
               />
             )}
@@ -222,9 +224,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               <CommentForm
                 clipId={clipId}
                 parentId={comment.id}
+                parentUsername={comment.username}
                 onCancel={handleCancelReply}
                 onSuccess={handleReplySuccess}
-                placeholder="Write a reply..."
                 className="mb-3"
               />
             )}
