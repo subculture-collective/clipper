@@ -380,6 +380,86 @@ func (s *CommentService) ListComments(ctx context.Context, clipID uuid.UUID, sor
 	return nodes, nil
 }
 
+// ListCommentsWithReplies retrieves comments for a clip with optional nested replies
+func (s *CommentService) ListCommentsWithReplies(ctx context.Context, clipID uuid.UUID, sortBy string, limit, offset int, userID *uuid.UUID, includeReplies bool) ([]CommentTreeNode, error) {
+	// Get top-level comments
+	comments, err := s.repo.ListByClipID(ctx, clipID, sortBy, limit, offset, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list comments: %w", err)
+	}
+
+	// Return empty slice if no comments (not nil)
+	if len(comments) == 0 {
+		return []CommentTreeNode{}, nil
+	}
+
+	// Build tree nodes with rendered content
+	var nodes []CommentTreeNode
+	for _, c := range comments {
+		node := CommentTreeNode{
+			CommentWithAuthor: c,
+			RenderedContent:   s.RenderMarkdown(c.Content),
+			Replies:           []CommentTreeNode{},
+		}
+
+		// Recursively load replies if requested
+		if includeReplies {
+			replies, err := s.buildReplyTree(ctx, c.ID, userID, 1)
+			if err != nil {
+				return nil, fmt.Errorf("failed to build reply tree: %w", err)
+			}
+			node.Replies = replies
+		}
+
+		nodes = append(nodes, node)
+	}
+
+	return nodes, nil
+}
+
+// buildReplyTree recursively builds a tree of replies up to MaxNestingDepth
+func (s *CommentService) buildReplyTree(ctx context.Context, parentID uuid.UUID, userID *uuid.UUID, currentDepth int) ([]CommentTreeNode, error) {
+	// Stop recursion if we've reached max depth
+	if currentDepth >= MaxNestingDepth {
+		return []CommentTreeNode{}, nil
+	}
+
+	// Get direct replies to this comment
+	// Use a reasonable limit for nested replies to prevent performance issues
+	// We fetch more replies than typical pagination to provide a better UX for nested threads
+	const maxRepliesPerLevel = 50
+	replies, err := s.repo.GetReplies(ctx, parentID, maxRepliesPerLevel, 0, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get replies: %w", err)
+	}
+
+	// Return empty slice if no replies
+	if len(replies) == 0 {
+		return []CommentTreeNode{}, nil
+	}
+
+	// Build tree nodes with rendered content and recursively load their replies
+	var nodes []CommentTreeNode
+	for _, r := range replies {
+		node := CommentTreeNode{
+			CommentWithAuthor: r,
+			RenderedContent:   s.RenderMarkdown(r.Content),
+			Replies:           []CommentTreeNode{},
+		}
+
+		// Recursively load nested replies
+		nestedReplies, err := s.buildReplyTree(ctx, r.ID, userID, currentDepth+1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build nested reply tree: %w", err)
+		}
+		node.Replies = nestedReplies
+
+		nodes = append(nodes, node)
+	}
+
+	return nodes, nil
+}
+
 // GetReplies retrieves replies to a comment
 func (s *CommentService) GetReplies(ctx context.Context, parentID uuid.UUID, limit, offset int, userID *uuid.UUID) ([]CommentTreeNode, error) {
 	replies, err := s.repo.GetReplies(ctx, parentID, limit, offset, userID)

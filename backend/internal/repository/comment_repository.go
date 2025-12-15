@@ -235,10 +235,10 @@ func (r *CommentRepository) GetByID(ctx context.Context, id uuid.UUID, userID *u
 
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&c.ID, &c.ClipID, &c.UserID, &c.ParentCommentID, &c.Content,
-		&c.VoteScore, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
+		&c.VoteScore, &c.ReplyCount, &c.IsEdited, &c.IsRemoved, &c.RemovedReason,
 		&c.CreatedAt, &c.UpdatedAt,
 		&c.AuthorUsername, &c.AuthorDisplayName, &c.AuthorAvatarURL,
-		&c.AuthorKarma, &c.AuthorRole, &c.ReplyCount, &c.UserVote,
+		&c.AuthorKarma, &c.AuthorRole, &c.UserVote,
 	)
 
 	if err != nil {

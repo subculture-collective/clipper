@@ -1,0 +1,462 @@
+openapi: 3.0.3
+info:
+  title: Clipper Comments API
+  description: API endpoints for managing comments on clips with nested threading support
+  version: 1.0.0
+  contact:
+    name: Clipper API Team
+    url: https://github.com/subculture-collective/clipper
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.clipper.gg/api/v1
+    description: Production server
+
+paths:
+  /clips/{clipId}/comments:
+    get:
+      summary: List comments for a clip
+      description: |
+        Retrieves top-level comments for a specified clip. By default, returns a flat array
+        of top-level comments only (comments with no parent). Use the `include_replies=true`
+        query parameter to retrieve a fully nested tree structure.
+      operationId: listComments
+      tags:
+        - Comments
+      parameters:
+        - name: clipId
+          in: path
+          required: true
+          description: UUID of the clip
+          schema:
+            type: string
+            format: uuid
+        - name: sort
+          in: query
+          required: false
+          description: Sort order for comments
+          schema:
+            type: string
+            enum: [best, new, old, controversial]
+            default: best
+        - name: limit
+          in: query
+          required: false
+          description: Number of comments to return (1-100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: include_replies
+          in: query
+          required: false
+          description: Whether to include nested replies in the response (up to 10 levels deep)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successfully retrieved comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommentTreeNode'
+                  next_cursor:
+                    type: integer
+                    description: Cursor for the next page of results
+                  has_more:
+                    type: boolean
+                    description: Whether there are more comments to fetch
+              examples:
+                flat:
+                  summary: Flat list (include_replies=false)
+                  value:
+                    comments:
+                      - id: "550e8400-e29b-41d4-a716-446655440001"
+                        clip_id: "550e8400-e29b-41d4-a716-446655440000"
+                        user_id: "550e8400-e29b-41d4-a716-446655440010"
+                        parent_comment_id: null
+                        content: "This is a top-level comment"
+                        vote_score: 42
+                        reply_count: 3
+                        is_edited: false
+                        is_removed: false
+                        removed_reason: null
+                        created_at: "2025-12-14T10:30:00Z"
+                        updated_at: "2025-12-14T10:30:00Z"
+                        author_username: "user123"
+                        author_display_name: "User Name"
+                        author_avatar_url: "https://example.com/avatar.jpg"
+                        author_karma: 150
+                        author_role: "user"
+                        user_vote: 1
+                        rendered_content: "<p>This is a top-level comment</p>"
+                        replies: []
+                    next_cursor: 50
+                    has_more: true
+                nested:
+                  summary: Nested tree (include_replies=true)
+                  value:
+                    comments:
+                      - id: "550e8400-e29b-41d4-a716-446655440001"
+                        clip_id: "550e8400-e29b-41d4-a716-446655440000"
+                        user_id: "550e8400-e29b-41d4-a716-446655440010"
+                        parent_comment_id: null
+                        content: "Top-level comment"
+                        vote_score: 42
+                        reply_count: 2
+                        is_edited: false
+                        is_removed: false
+                        removed_reason: null
+                        created_at: "2025-12-14T10:30:00Z"
+                        updated_at: "2025-12-14T10:30:00Z"
+                        author_username: "user123"
+                        author_display_name: "User Name"
+                        author_avatar_url: "https://example.com/avatar.jpg"
+                        author_karma: 150
+                        author_role: "user"
+                        user_vote: 1
+                        rendered_content: "<p>Top-level comment</p>"
+                        replies:
+                          - id: "550e8400-e29b-41d4-a716-446655440002"
+                            clip_id: "550e8400-e29b-41d4-a716-446655440000"
+                            user_id: "550e8400-e29b-41d4-a716-446655440011"
+                            parent_comment_id: "550e8400-e29b-41d4-a716-446655440001"
+                            content: "First reply"
+                            vote_score: 10
+                            reply_count: 1
+                            is_edited: false
+                            is_removed: false
+                            removed_reason: null
+                            created_at: "2025-12-14T10:31:00Z"
+                            updated_at: "2025-12-14T10:31:00Z"
+                            author_username: "user456"
+                            author_display_name: "Another User"
+                            author_avatar_url: "https://example.com/avatar2.jpg"
+                            author_karma: 80
+                            author_role: "user"
+                            user_vote: null
+                            rendered_content: "<p>First reply</p>"
+                            replies:
+                              - id: "550e8400-e29b-41d4-a716-446655440003"
+                                clip_id: "550e8400-e29b-41d4-a716-446655440000"
+                                user_id: "550e8400-e29b-41d4-a716-446655440012"
+                                parent_comment_id: "550e8400-e29b-41d4-a716-446655440002"
+                                content: "Nested reply"
+                                vote_score: 5
+                                reply_count: 0
+                                is_edited: false
+                                is_removed: false
+                                removed_reason: null
+                                created_at: "2025-12-14T10:32:00Z"
+                                updated_at: "2025-12-14T10:32:00Z"
+                                author_username: "user789"
+                                author_display_name: "Third User"
+                                author_avatar_url: null
+                                author_karma: 25
+                                author_role: "user"
+                                user_vote: 1
+                                rendered_content: "<p>Nested reply</p>"
+                                replies: []
+                    next_cursor: 50
+                    has_more: false
+        '400':
+          description: Invalid clip ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a comment on a clip
+      description: Creates a new comment on the specified clip (requires authentication)
+      operationId: createComment
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: clipId
+          in: path
+          required: true
+          description: UUID of the clip
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 10000
+                  description: Content of the comment (supports markdown)
+                parent_comment_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: ID of parent comment if this is a reply
+            examples:
+              top_level:
+                summary: Top-level comment
+                value:
+                  content: "This is an amazing clip!"
+              reply:
+                summary: Reply to another comment
+                value:
+                  content: "I agree with your point"
+                  parent_comment_id: "550e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentWithAuthor'
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /comments/{commentId}/replies:
+    get:
+      summary: Get direct replies to a comment
+      description: |
+        Retrieves direct replies (1 level deep) to a specified comment.
+        Returns a flat array of comments that have the specified comment as their parent.
+      operationId: getReplies
+      tags:
+        - Comments
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          description: UUID of the parent comment
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: Number of replies to return (1-100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Successfully retrieved replies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommentTreeNode'
+                    description: Array of direct replies (always has empty replies array)
+                  next_cursor:
+                    type: integer
+                  has_more:
+                    type: boolean
+              example:
+                replies:
+                  - id: "550e8400-e29b-41d4-a716-446655440002"
+                    user_id: "550e8400-e29b-41d4-a716-446655440011"
+                    parent_comment_id: "550e8400-e29b-41d4-a716-446655440001"
+                    content: "This is a reply"
+                    vote_score: 10
+                    reply_count: 2
+                    is_edited: false
+                    is_removed: false
+                    created_at: "2025-12-14T10:31:00Z"
+                    author_username: "user456"
+                    author_display_name: "Another User"
+                    user_vote: null
+                    rendered_content: "<p>This is a reply</p>"
+                    replies: []
+                next_cursor: 50
+                has_more: false
+        '400':
+          description: Invalid comment ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CommentTreeNode:
+      type: object
+      description: A comment with optional nested replies
+      required:
+        - id
+        - clip_id
+        - user_id
+        - content
+        - vote_score
+        - reply_count
+        - is_edited
+        - is_removed
+        - created_at
+        - updated_at
+        - author_username
+        - author_display_name
+        - author_karma
+        - author_role
+        - rendered_content
+        - replies
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the comment
+        clip_id:
+          type: string
+          format: uuid
+          description: ID of the clip this comment belongs to
+        user_id:
+          type: string
+          format: uuid
+          description: ID of the user who created the comment
+        parent_comment_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of parent comment if this is a reply
+        content:
+          type: string
+          description: Raw markdown content of the comment
+        vote_score:
+          type: integer
+          description: Net vote score (upvotes - downvotes)
+        reply_count:
+          type: integer
+          description: Total number of direct replies to this comment
+        is_edited:
+          type: boolean
+          description: Whether the comment has been edited
+        is_removed:
+          type: boolean
+          description: Whether the comment has been removed
+        removed_reason:
+          type: string
+          nullable: true
+          description: Reason for removal (if removed by moderator)
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when comment was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when comment was last updated
+        author_username:
+          type: string
+          description: Username of the comment author
+        author_display_name:
+          type: string
+          description: Display name of the comment author
+        author_avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to author's avatar image
+        author_karma:
+          type: integer
+          description: Karma points of the comment author
+        author_role:
+          type: string
+          description: Role of the comment author
+          enum: [user, moderator, admin]
+        user_vote:
+          type: integer
+          nullable: true
+          description: Current user's vote on this comment (1 for upvote, -1 for downvote, null for no vote)
+          enum: [1, -1, null]
+        rendered_content:
+          type: string
+          description: HTML-rendered content from markdown
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentTreeNode'
+          description: Nested array of replies (populated when include_replies=true, otherwise empty)
+
+    CommentWithAuthor:
+      type: object
+      description: A single comment with author information (without nested structure)
+      allOf:
+        - $ref: '#/components/schemas/CommentTreeNode'
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
