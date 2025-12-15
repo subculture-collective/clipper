@@ -6,6 +6,7 @@ import { UserRoleBadge } from '@/components/user';
 import { CommentVoteButtons } from './CommentVoteButtons';
 import { CommentActions } from './CommentActions';
 import { CommentForm } from './CommentForm';
+import { CommentTree } from './CommentTree';
 import type { Comment } from '@/types/comment';
 
 interface CommentItemProps {
@@ -72,19 +73,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           </div>
           {/* Still show replies */}
           {hasReplies && !isCollapsed && (
-            <div className="ml-4 space-y-4 border-l-2 border-border pl-4">
-              {comment.replies!.map((reply) => (
-                <CommentItem
-                  key={reply.id}
-                  comment={reply}
-                  clipId={clipId}
-                  currentUserId={currentUserId}
-                  isAdmin={isAdmin}
-                  depth={depth + 1}
-                  maxDepth={maxDepth}
-                />
-              ))}
-            </div>
+            <CommentTree
+              comments={comment.replies!}
+              clipId={clipId}
+              currentUserId={currentUserId}
+              isAdmin={isAdmin}
+              depth={depth + 1}
+              maxDepth={maxDepth}
+            />
           )}
         </div>
       </div>
@@ -233,18 +229,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
             {/* Nested replies */}
             {hasReplies && !shouldShowContinueThread && (
-              <div className="mt-4 space-y-4 border-l-2 border-border pl-4">
-                {comment.replies!.map((reply) => (
-                  <CommentItem
-                    key={reply.id}
-                    comment={reply}
-                    clipId={clipId}
-                    currentUserId={currentUserId}
-                    isAdmin={isAdmin}
-                    depth={depth + 1}
-                    maxDepth={maxDepth}
-                  />
-                ))}
+              <div className="mt-4">
+                <CommentTree
+                  comments={comment.replies!}
+                  clipId={clipId}
+                  currentUserId={currentUserId}
+                  isAdmin={isAdmin}
+                  depth={depth + 1}
+                  maxDepth={maxDepth}
+                />
               </div>
             )}
 

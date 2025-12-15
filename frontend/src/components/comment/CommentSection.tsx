@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button, Spinner } from '@/components/ui';
-import { CommentItem } from './CommentItem';
+import { CommentTree } from './CommentTree';
 import { CommentForm } from './CommentForm';
 import { useComments } from '@/hooks';
 import type { CommentSortOption } from '@/types/comment';
@@ -115,17 +115,14 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
       ) : (
         <>
           {/* Comments list */}
-          <div className="space-y-6">
-            {allComments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                clipId={clipId}
-                currentUserId={currentUserId}
-                isAdmin={isAdmin}
-              />
-            ))}
-          </div>
+          <CommentTree
+            comments={allComments}
+            clipId={clipId}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            depth={0}
+            maxDepth={10}
+          />
 
           {/* Load more button */}
           {hasNextPage && (
