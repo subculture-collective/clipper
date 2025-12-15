@@ -233,7 +233,7 @@
         "gridPos": {"h": 4, "w": 6, "x": 0, "y": 32},
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{path=~\"/.*\\\\.(html|js|css)\"}[5m])) by (le)) * 1000",
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{path=~\"/.*\\.(html|js|css)\"}[5m])) by (le)) * 1000",
             "refId": "A"
           }
         ],
