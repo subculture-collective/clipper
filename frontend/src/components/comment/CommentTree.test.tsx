@@ -296,10 +296,10 @@ describe('CommentTree', () => {
 
   describe('Performance', () => {
     it('should render large comment trees efficiently', () => {
-      // Create 50 top-level comments
+      // Create 50 top-level comments with plain IDs (will become comment-1, comment-2, etc.)
       const comments = Array.from({ length: 50 }, (_, i) =>
         createMockComment({
-          id: `comment-${i}`,
+          id: `${i}`,
           content: `Comment ${i}`,
         })
       );
@@ -308,7 +308,7 @@ describe('CommentTree', () => {
         <CommentTree comments={comments} clipId="clip-1" />
       );
       
-      // Should render all comments
+      // Should render all comments (CommentItem creates IDs as "comment-${comment.id}")
       expect(container.querySelectorAll('[id^="comment-"]').length).toBe(50);
     });
 

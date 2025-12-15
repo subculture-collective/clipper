@@ -73,14 +73,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           </div>
           {/* Still show replies */}
           {hasReplies && !isCollapsed && (
-            <CommentTree
-              comments={comment.replies!}
-              clipId={clipId}
-              currentUserId={currentUserId}
-              isAdmin={isAdmin}
-              depth={depth + 1}
-              maxDepth={maxDepth}
-            />
+            <div className="mt-4">
+              <CommentTree
+                comments={comment.replies!}
+                clipId={clipId}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                depth={depth + 1}
+                maxDepth={maxDepth}
+              />
+            </div>
           )}
         </div>
       </div>
