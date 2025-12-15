@@ -99,7 +99,7 @@ export const useCreateComment = () => {
 
       return { previousComments };
     },
-    onError: (_err, variables, context) => {
+    onError: (_err, _variables, context) => {
       // Revert on error
       if (context?.previousComments) {
         context.previousComments.forEach(([queryKey, data]) => {
