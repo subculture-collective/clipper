@@ -277,10 +277,10 @@ func hashForLogging(value string) string {
 var (
 	// Email pattern
 	emailPattern = regexp.MustCompile(`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`)
+	// Credit card pattern (must come before phone to avoid conflicts with dashes)
+	creditCardPattern = regexp.MustCompile(`\b\d{4}[-\s]\d{4}[-\s]\d{4}[-\s]\d{4}\b`)
 	// Phone number patterns (various formats)
 	phonePattern = regexp.MustCompile(`\b(\+?1[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b`)
-	// Credit card pattern (basic)
-	creditCardPattern = regexp.MustCompile(`\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b`)
 	// SSN pattern
 	ssnPattern = regexp.MustCompile(`\b\d{3}-\d{2}-\d{4}\b`)
 	// API key/token pattern (common formats)
@@ -295,10 +295,10 @@ var (
 func RedactPII(text string) string {
 	// Redact emails
 	text = emailPattern.ReplaceAllString(text, "[REDACTED_EMAIL]")
+	// Redact credit cards (must come before phone)
+	text = creditCardPattern.ReplaceAllString(text, "[REDACTED_CARD]")
 	// Redact phone numbers
 	text = phonePattern.ReplaceAllString(text, "[REDACTED_PHONE]")
-	// Redact credit cards
-	text = creditCardPattern.ReplaceAllString(text, "[REDACTED_CARD]")
 	// Redact SSNs
 	text = ssnPattern.ReplaceAllString(text, "[REDACTED_SSN]")
 	// Redact passwords and secrets in key-value pairs

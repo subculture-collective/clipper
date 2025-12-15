@@ -138,7 +138,10 @@ class StructuredLogger {
     if (!fields) return undefined;
 
     const redacted: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(fields)) {
+    for (const key in fields) {
+      if (!Object.prototype.hasOwnProperty.call(fields, key)) continue;
+      
+      const value = fields[key];
       const lowerKey = key.toLowerCase();
 
       // Redact sensitive field names

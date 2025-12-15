@@ -114,7 +114,10 @@ class StructuredLogger {
     if (!fields) return undefined;
 
     const redacted: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(fields)) {
+    for (const key in fields) {
+      if (!Object.prototype.hasOwnProperty.call(fields, key)) continue;
+      
+      const value = fields[key];
       const lowerKey = key.toLowerCase();
 
       // Redact sensitive field names
@@ -155,8 +158,11 @@ class StructuredLogger {
       entry.fields = this.redactPIIFromFields(entry.fields);
     }
 
+    // Check if in production mode (process.env is available in Vite)
+    const isProduction = typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
+    
     // In production, send to log aggregation service
-    if (import.meta.env.PROD) {
+    if (isProduction) {
       // Log to console for now, can be extended to send to backend
       console.log(JSON.stringify(entry));
       
@@ -231,7 +237,9 @@ export function initLogger(minLevel: LogLevel = LogLevel.INFO): void {
 
 export function getLogger(): StructuredLogger {
   if (!logger) {
-    logger = new StructuredLogger(import.meta.env.DEV ? LogLevel.DEBUG : LogLevel.INFO);
+    // Check if in development mode
+    const isDev = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
+    logger = new StructuredLogger(isDev ? LogLevel.DEBUG : LogLevel.INFO);
   }
   return logger;
 }
