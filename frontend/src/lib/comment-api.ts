@@ -17,11 +17,13 @@ export async function fetchComments({
   sort = 'best',
   pageParam = 1,
   limit = 10,
+  includeReplies = false,
 }: {
   clipId: string;
   sort?: CommentSortOption;
   pageParam?: number;
   limit?: number;
+  includeReplies?: boolean;
 }): Promise<CommentFeedResponse> {
   const response = await apiClient.get<{
     comments: Comment[];
@@ -33,6 +35,7 @@ export async function fetchComments({
       sort,
       cursor: (pageParam - 1) * limit,
       limit,
+      include_replies: includeReplies,
     },
   });
 

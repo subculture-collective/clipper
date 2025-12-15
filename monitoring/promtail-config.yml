@@ -9,6 +9,7 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+  # Docker container logs with JSON parsing
   - job_name: docker
     static_configs:
       - targets: ['localhost']
@@ -16,6 +17,44 @@ scrape_configs:
           job: docker
           host: uplink-01
           __path__: /var/lib/docker/containers/*/*log
+    
+    pipeline_stages:
+      # Parse Docker JSON format
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            timestamp: time
+      
+      # Parse application JSON logs from the log field
+      - json:
+          expressions:
+            level: level
+            message: message
+            service: service
+            trace_id: trace_id
+            user_id: user_id
+            method: method
+            path: path
+            status_code: status_code
+            error: error
+          source: output
+      
+      # Extract labels from parsed fields
+      - labels:
+          level:
+          service:
+      
+      # Set timestamp from log entry
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      
+      # Output the message
+      - output:
+          source: output
+
+  # System journal logs
   - job_name: system-journal
     journal:
       path: /var/log/journal
@@ -23,3 +62,74 @@ scrape_configs:
     relabel_configs:
       - source_labels: ['__journal__systemd_unit']
         target_label: 'unit'
+  
+  # Backend application logs (if logs are written to files)
+  - job_name: backend-logs
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: backend
+          app: clipper-backend
+          __path__: /var/log/clipper/backend/*.log
+    
+    pipeline_stages:
+      # Parse JSON logs
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            service: service
+            trace_id: trace_id
+            user_id: user_id
+            method: method
+            path: path
+            status_code: status_code
+            error: error
+      
+      # Extract labels
+      - labels:
+          level:
+          service:
+      
+      # Set timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      
+      # Output the full log
+      - output:
+          source: message
+  
+  # Frontend application logs (if collected separately)
+  - job_name: frontend-logs
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: frontend
+          app: clipper-frontend
+          __path__: /var/log/clipper/frontend/*.log
+    
+    pipeline_stages:
+      # Parse JSON logs
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            service: service
+            trace_id: trace_id
+            user_id: user_id
+            url: url
+            error: error
+      
+      # Extract labels
+      - labels:
+          level:
+          service:
+      
+      # Set timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+

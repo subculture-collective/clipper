@@ -19,11 +19,14 @@ export type Comment = {
     vote_score: number;
     user_vote?: number; // 1 for upvote, -1 for downvote, 0 for no vote
     reply_count?: number;
+    child_count?: number; // Total count of nested replies
+    depth?: number; // Nesting depth (0-10)
     is_edited: boolean;
     is_removed: boolean;
     removed_reason?: string;
     created_at: string;
     updated_at: string;
+    replies?: Comment[]; // Nested replies (only present when include_replies=true)
 };
 
 export type CommentsResponse = {
@@ -50,11 +53,12 @@ export async function listComments(
         sort?: 'best' | 'new' | 'top';
         cursor?: number;
         limit?: number;
+        include_replies?: boolean;
     }
 ) {
-    const { sort = 'best', cursor = 0, limit = 50 } = options || {};
+    const { sort = 'best', cursor = 0, limit = 50, include_replies = false } = options || {};
     const res = await api.get<CommentsResponse>(`/clips/${clipId}/comments`, {
-        params: { sort, cursor, limit },
+        params: { sort, cursor, limit, include_replies },
     });
     return res.data;
 }

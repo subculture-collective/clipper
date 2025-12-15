@@ -51,19 +51,66 @@ docker-compose -f docker-compose.monitoring.yml ps
 ### 4. Configure Grafana
 
 1. Log in to Grafana (admin / your_password)
-2. Go to Configuration > Data Sources
-3. Add Prometheus:
-   - URL: <http://prometheus:9090>
-   - Click "Save & Test"
-4. Add Loki:
-   - URL: <http://loki:3100>
-   - Click "Save & Test"
-5. Import dashboards:
-   - Go to Dashboards > Import
-   - Import ID: 1860 (Node Exporter Full)
-   - Import ID: 9628 (PostgreSQL)
-   - Import ID: 11835 (Redis)
-   - Import ID: 12708 (Docker Containers)
+2. Data sources are automatically provisioned via `datasources/datasources.yml`
+3. Dashboards are automatically provisioned from the `dashboards/` directory
+
+**Available Dashboards:**
+- **System Health Dashboard** - CPU, memory, disk, network metrics
+- **API Performance Dashboard** - Request rate, latency, throughput, errors
+- **Database Dashboard** - Connections, query time, slow queries, cache hits
+- **User Experience Dashboard** - Page load times, error rates, active users
+- **Application Overview** - High-level SLO metrics and health
+- **Search Quality Metrics** - Semantic search performance
+- **Engagement Metrics** - User engagement and retention
+- **Logging Dashboard** - Centralized logging and security events
+- **Semantic Search Observability** - Search service monitoring
+
+You can also import community dashboards:
+- Go to Dashboards > Import
+- Import ID: 1860 (Node Exporter Full)
+- Import ID: 9628 (PostgreSQL)
+- Import ID: 11835 (Redis)
+- Import ID: 12708 (Docker Containers)
+
+## Centralized Logging
+
+The monitoring stack includes **Grafana Loki** for centralized log aggregation with structured JSON logging across all services.
+
+### Features
+
+- **90-day log retention** for compliance and debugging
+- **Structured JSON logs** from backend, frontend, and mobile
+- **PII redaction** for passwords, tokens, emails, and sensitive data
+- **Log-based alerts** for security events and error spikes
+- **Search and filtering** with LogQL in Grafana
+
+### Quick Access
+
+**Grafana Log Explorer**: <http://localhost:3000/explore>
+
+Example queries:
+```logql
+# All error logs
+{level="error"}
+
+# Backend errors in the last hour
+{service="clipper-backend", level="error"} [1h]
+
+# Failed authentication attempts
+{message=~".*authentication failed.*"}
+
+# High latency requests
+{service="clipper-backend"} | json | latency > 1s
+```
+
+### Documentation
+
+See [Centralized Logging Documentation](../docs/operations/centralized-logging.md) for:
+- Detailed logging guide
+- Best practices
+- Query examples
+- Security considerations
+- Troubleshooting
 
 ## Configuration Files
 
@@ -83,6 +130,34 @@ Alert rules for various conditions:
 - Database issues
 - Redis issues
 - SSL certificate expiring
+- **Log-based alerts**:
+  - High error log rate
+  - Critical error spike
+  - Failed authentication spike
+  - SQL injection attempts
+  - Security events
+  - Application panics
+  - Database connection errors
+  - Redis connection errors
+
+### loki-config.yml
+
+Loki configuration with 90-day log retention:
+
+- Retention period: 2160 hours (90 days)
+- Automatic compaction every 10 minutes
+- TSDB-based storage for better performance
+- Query result caching for faster searches
+
+### promtail-config.yml
+
+Promtail configuration for log collection:
+
+- Docker container logs with JSON parsing
+- System journal logs
+- Backend application logs
+- Frontend application logs
+- Automatic label extraction from structured logs
 
 ### alertmanager.yml
 

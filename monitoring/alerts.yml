@@ -113,6 +113,21 @@ groups:
           summary: "High error rate on {{ $labels.job }}"
           description: "{{ $labels.job }} has an error rate of {{ $value | humanizePercentage }} over the last 5 minutes."
 
+      # Critical Error Rate (P1)
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (job)
+            /
+            sum(rate(http_requests_total[5m])) by (job)
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} has a critical error rate of {{ $value | humanizePercentage }} (threshold: > 1%)."
+
       # High Response Time
       - alert: HighResponseTime
         expr: |
@@ -409,3 +424,141 @@ groups:
           summary: "BM25 candidate search is slow"
           description: "BM25 search P95 latency is {{ $value }}ms, target is < 50ms."
           runbook: "docs/operations/playbooks/search-incidents.md#bm25-search-slow"
+
+  - name: clipper_logging_alerts
+    interval: 30s
+    rules:
+      # High Error Log Rate
+      - alert: HighErrorLogRate
+        expr: |
+          sum(rate({level="error"}[5m])) by (service) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error log rate in {{ $labels.service }}"
+          description: "{{ $labels.service }} is generating {{ $value }} error logs per second."
+          runbook: "Check logs for error patterns and investigate root cause."
+
+      # Critical Error Spike
+      - alert: CriticalErrorSpike
+        expr: |
+          sum(rate({level="error"}[5m])) by (service) > 50
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error spike in {{ $labels.service }}"
+          description: "{{ $labels.service }} is experiencing {{ $value }} errors/sec. Immediate action required."
+          runbook: "Investigate error patterns, consider rollback if recent deployment."
+
+      # Security Event: Failed Authentication
+      - alert: FailedAuthenticationSpike
+        expr: |
+          sum(rate({message=~".*authentication failed.*|.*login failed.*|.*unauthorized.*"}[5m])) by (service) > 5
+        for: 3m
+        labels:
+          severity: warning
+          security: true
+        annotations:
+          summary: "Failed authentication spike in {{ $labels.service }}"
+          description: "{{ $labels.service }} has {{ $value }} failed auth attempts per second."
+          runbook: "Check for brute force attacks, review IP addresses, consider rate limiting."
+
+      # Security Event: SQL Injection Attempt
+      - alert: SQLInjectionAttempt
+        expr: |
+          count_over_time({level="error",message=~".*(?i)(union.*select|insert.*into|drop.*table|delete.*from).*"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          security: true
+        annotations:
+          summary: "Potential SQL injection attempt detected"
+          description: "{{ $value }} potential SQL injection patterns detected in logs."
+          runbook: "Review logs immediately, block suspicious IPs, verify input validation."
+
+      # Security Event: Suspicious Activity
+      - alert: SuspiciousSecurityEvent
+        expr: |
+          sum(rate({message=~".*(?i)(security|breach|intrusion|malicious|exploit).*",level="warn"}[5m])) by (service) > 1
+        for: 2m
+        labels:
+          severity: critical
+          security: true
+        annotations:
+          summary: "Suspicious security events in {{ $labels.service }}"
+          description: "{{ $labels.service }} has {{ $value }} security-related warnings per second."
+          runbook: "Investigate security logs, check for breach indicators, notify security team."
+
+      # Application Panic/Crash
+      - alert: ApplicationPanic
+        expr: |
+          count_over_time({message=~".*(?i)(panic|crash|fatal).*"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Application panic detected in {{ $labels.service }}"
+          description: "{{ $value }} panic/crash events detected. Application may be unstable."
+          runbook: "Check stack traces, review recent deployments, consider rollback."
+
+      # No Logs Received
+      - alert: NoLogsReceived
+        expr: |
+          absent_over_time(({job="backend"} or {job="frontend"})[10m])
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No logs received from {{ $labels.job }}"
+          description: "No logs have been received from {{ $labels.job }} for 10 minutes."
+          runbook: "Check if application is running, verify log shipping configuration."
+
+      # High Log Volume
+      - alert: HighLogVolume
+        expr: |
+          sum(rate({job=~"backend|frontend"}[5m])) by (service) > 1000
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "High log volume from {{ $labels.service }}"
+          description: "{{ $labels.service }} is generating {{ $value }} logs per second."
+          runbook: "Review if this is expected behavior or indicates an issue."
+
+      # Repeated Error Pattern (optimized query)
+      - alert: RepeatedErrorPattern
+        expr: |
+          count(count_over_time({level="error",service=~".+"} [1h])) by (service) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Repeated error pattern detected in {{ $labels.service }}"
+          description: "{{ $labels.service }} has {{ $value }} error occurrences in the last hour."
+          runbook: "Investigate root cause of repeated errors in the service."
+
+      # Database Connection Errors in Logs
+      - alert: DatabaseConnectionErrors
+        expr: |
+          sum(rate({message=~".*(?i)(database.*connection.*failed|postgres.*error|connection.*refused).*",level="error"}[5m])) by (service) > 1
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection errors in {{ $labels.service }}"
+          description: "{{ $labels.service }} has {{ $value }} database connection errors per second."
+          runbook: "Check database health, verify connection pool configuration."
+
+      # Redis Connection Errors in Logs
+      - alert: RedisConnectionErrors
+        expr: |
+          sum(rate({message=~".*(?i)(redis.*connection.*failed|redis.*error|redis.*timeout).*",level="error"}[5m])) by (service) > 1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connection errors in {{ $labels.service }}"
+          description: "{{ $labels.service }} has {{ $value }} Redis connection errors per second."
+          runbook: "Check Redis health, verify connection configuration."

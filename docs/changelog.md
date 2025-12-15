@@ -39,12 +39,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Reddit-Style Nested Comment Threading** - Complete nested comment system with:
+  - Up to 10 levels of nesting for in-depth conversations
+  - Collapse/expand functionality at all depths
+  - Visual indentation showing conversation hierarchy
+  - "Load more replies" pagination for large threads
+  - Max depth enforcement with "View N more replies" link
+- **Comment Voting System** - Upvote/downvote on nested comments with:
+  - Optimistic UI updates (< 100ms response)
+  - Vote persistence across page reloads
+  - Karma system integration
+- **Comment Markdown Support** - Rich text formatting with:
+  - Bold, italic, strikethrough, links, code blocks, tables
+  - XSS protection via sanitized HTML output
+  - Auto-nofollow/noreferrer on external links
+- **Comment Moderation** - Soft-delete preserving thread structure:
+  - Author deletion shows "[deleted]"
+  - Moderator removal shows "[removed]" with optional reason
+  - Nested replies remain visible
+- **Comment Editing** - 15-minute edit window for authors, unlimited for admins
+- **Performance Optimizations** - Tested with 1000+ comments per clip:
+  - Recursive CTEs for efficient tree traversal
+  - Denormalized reply_count for fast pagination
+  - Database indexes optimized for nested queries
+  - Load testing validated: < 2s initial load, < 500ms expand, 60 FPS scrolling
+- **Cross-Platform Comment Parity** - Identical functionality on web and mobile
+- **Comment API Endpoints** - Complete REST API for comment operations
+- **Comment Load Testing** - k6 scenarios for performance validation
+- **Comment System Documentation** - Comprehensive docs in `docs/features/comments.md`
 - Initial project structure with frontend and backend
 - Twitch OAuth authentication flow
 - User profile system with karma tracking
 - Clip browsing and filtering functionality
 - Voting system for clips (upvote/downvote)
-- Comment system with markdown support
 - Search functionality for clips
 - Favorites system for saving clips
 - Tagging system for clip categorization

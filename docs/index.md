@@ -58,6 +58,12 @@ Guides for using the Clipper platform:
 - **[[users/faq|FAQ]]** - Frequently asked questions
 - **[[users/community-guidelines|Community Guidelines]]** - Rules, content policy, and moderation
 
+### Features
+
+In-depth documentation for major platform features:
+
+- **[[features/comments|Comment System]]** - Reddit-style nested threading, E2E testing, and performance optimization
+
 ### For Developers
 
 #### Getting Started
