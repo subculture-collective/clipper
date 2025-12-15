@@ -1,0 +1,67 @@
+# Systemd service for credential rotation reminder
+# Install to /etc/systemd/system/clipper-rotation-reminder.service
+
+[Unit]
+Description=Clipper Credential Rotation Reminder
+Documentation=https://github.com/subculture-collective/clipper/docs/operations/credential-rotation-runbook.md
+After=network.target
+
+[Service]
+Type=oneshot
+User=clipper
+Group=clipper
+WorkingDirectory=/opt/clipper
+
+# Check rotation log and send reminder if credentials are due for rotation
+ExecStart=/bin/bash -c '\
+  ROTATION_LOG="/opt/clipper/rotation-log.txt"; \
+  ALERT_THRESHOLD=7; \
+  \
+  check_rotation() { \
+    local name=$1; \
+    local days=$2; \
+    local last_rotated=$(grep "$name" "$ROTATION_LOG" 2>/dev/null | tail -1 | cut -d" " -f1); \
+    \
+    if [ -z "$last_rotated" ]; then \
+      echo "WARNING: $name has never been rotated!"; \
+      return 1; \
+    fi; \
+    \
+    local days_since=$(( ($(date +%s) - $(date -d "$last_rotated" +%s)) / 86400 )); \
+    local days_remaining=$(( days - days_since )); \
+    \
+    if [ $days_remaining -le $ALERT_THRESHOLD ]; then \
+      echo "ALERT: $name rotation due in $days_remaining days (last rotated: $last_rotated)"; \
+      return 1; \
+    elif [ $days_remaining -le 14 ]; then \
+      echo "REMINDER: $name rotation due in $days_remaining days (last rotated: $last_rotated)"; \
+    else \
+      echo "OK: $name - next rotation in $days_remaining days"; \
+    fi; \
+    return 0; \
+  }; \
+  \
+  echo "=== Credential Rotation Status ==="; \
+  ALERTS=0; \
+  check_rotation "Database password" 90 || ALERTS=$((ALERTS+1)); \
+  check_rotation "JWT signing keys" 90 || ALERTS=$((ALERTS+1)); \
+  check_rotation "Stripe API keys" 180 || ALERTS=$((ALERTS+1)); \
+  check_rotation "Twitch OAuth" 90 || ALERTS=$((ALERTS+1)); \
+  check_rotation "OpenAI API key" 180 || ALERTS=$((ALERTS+1)); \
+  check_rotation "Redis password" 90 || ALERTS=$((ALERTS+1)); \
+  check_rotation "Vault AppRole" 30 || ALERTS=$((ALERTS+1)); \
+  \
+  if [ $ALERTS -gt 0 ]; then \
+    echo ""; \
+    echo "$ALERTS credential(s) require attention!"; \
+    echo "See: /opt/clipper/docs/operations/credential-rotation-runbook.md"; \
+    exit 1; \
+  fi; \
+  echo "All credentials are up to date."; \
+'
+
+# Send email notification on failure (requires mail command)
+# OnFailure=clipper-rotation-alert.service
+
+[Install]
+WantedBy=multi-user.target
