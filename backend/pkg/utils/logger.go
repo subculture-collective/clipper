@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,7 @@ const (
 	LogLevelInfo  LogLevel = "info"
 	LogLevelWarn  LogLevel = "warn"
 	LogLevelError LogLevel = "error"
+	LogLevelFatal LogLevel = "fatal"
 )
 
 // StructuredLogger provides JSON structured logging
@@ -62,6 +65,7 @@ func (l *StructuredLogger) shouldLog(level LogLevel) bool {
 		LogLevelInfo:  1,
 		LogLevelWarn:  2,
 		LogLevelError: 3,
+		LogLevelFatal: 4,
 	}
 	return levels[level] >= levels[l.minLevel]
 }
@@ -73,6 +77,18 @@ func (l *StructuredLogger) log(entry *LogEntry) {
 	}
 
 	entry.Timestamp = time.Now().UTC().Format(time.RFC3339)
+	
+	// Redact PII from message and error
+	entry.Message = RedactPII(entry.Message)
+	if entry.Error != "" {
+		entry.Error = RedactPII(entry.Error)
+	}
+	
+	// Redact PII from fields
+	if entry.Fields != nil {
+		entry.Fields = RedactPIIFromFields(entry.Fields)
+	}
+	
 	data, err := json.Marshal(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to marshal log entry: %v\n", err)
@@ -229,8 +245,108 @@ func Error(message string, err error, fields ...map[string]interface{}) {
 	GetLogger().Error(message, err, fields...)
 }
 
+// Fatal logs a fatal message
+func (l *StructuredLogger) Fatal(message string, err error, fields ...map[string]interface{}) {
+	entry := LogEntry{
+		Level:   string(LogLevelFatal),
+		Message: message,
+		Service: "clipper-backend",
+	}
+	if err != nil {
+		entry.Error = err.Error()
+	}
+	if len(fields) > 0 {
+		entry.Fields = fields[0]
+	}
+	l.log(&entry)
+	os.Exit(1)
+}
+
+// Fatal logs a fatal message using the global logger
+func Fatal(message string, err error, fields ...map[string]interface{}) {
+	GetLogger().Fatal(message, err, fields...)
+}
+
 // hashForLogging creates a SHA-256 hash prefix for PII protection in logs
 func hashForLogging(value string) string {
 	hash := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(hash[:8]) // Use first 8 bytes for shorter hash
+}
+
+// Patterns for PII redaction
+var (
+	// Email pattern
+	emailPattern = regexp.MustCompile(`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`)
+	// Phone number patterns (various formats)
+	phonePattern = regexp.MustCompile(`\b(\+?1[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b`)
+	// Credit card pattern (basic)
+	creditCardPattern = regexp.MustCompile(`\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b`)
+	// SSN pattern
+	ssnPattern = regexp.MustCompile(`\b\d{3}-\d{2}-\d{4}\b`)
+	// API key/token pattern (common formats)
+	tokenPattern = regexp.MustCompile(`\b[A-Za-z0-9_-]{32,}\b`)
+	// Password in query strings or JSON
+	passwordPattern = regexp.MustCompile(`(?i)(password|passwd|pwd|secret|token|apikey|api_key|access_token|auth_token)["']?\s*[:=]\s*["']?([^"'\s,}&]+)`)
+	// Bearer tokens
+	bearerPattern = regexp.MustCompile(`(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*`)
+)
+
+// RedactPII redacts personally identifiable information from a string
+func RedactPII(text string) string {
+	// Redact emails
+	text = emailPattern.ReplaceAllString(text, "[REDACTED_EMAIL]")
+	// Redact phone numbers
+	text = phonePattern.ReplaceAllString(text, "[REDACTED_PHONE]")
+	// Redact credit cards
+	text = creditCardPattern.ReplaceAllString(text, "[REDACTED_CARD]")
+	// Redact SSNs
+	text = ssnPattern.ReplaceAllString(text, "[REDACTED_SSN]")
+	// Redact passwords and secrets in key-value pairs
+	text = passwordPattern.ReplaceAllString(text, `$1="[REDACTED]"`)
+	// Redact Bearer tokens
+	text = bearerPattern.ReplaceAllString(text, "Bearer [REDACTED_TOKEN]")
+	return text
+}
+
+// RedactPIIFromFields redacts PII from log entry fields
+func RedactPIIFromFields(fields map[string]interface{}) map[string]interface{} {
+	if fields == nil {
+		return nil
+	}
+	
+	redacted := make(map[string]interface{})
+	for key, value := range fields {
+		lowerKey := strings.ToLower(key)
+		
+		// Redact sensitive field names
+		if strings.Contains(lowerKey, "password") ||
+			strings.Contains(lowerKey, "secret") ||
+			strings.Contains(lowerKey, "token") ||
+			strings.Contains(lowerKey, "api_key") ||
+			strings.Contains(lowerKey, "apikey") ||
+			strings.Contains(lowerKey, "authorization") ||
+			strings.Contains(lowerKey, "auth") {
+			redacted[key] = "[REDACTED]"
+			continue
+		}
+		
+		// Redact PII from string values
+		if str, ok := value.(string); ok {
+			redacted[key] = RedactPII(str)
+		} else {
+			redacted[key] = value
+		}
+	}
+	return redacted
+}
+
+// PIIRedactionMiddleware returns a Gin middleware that redacts PII from logs
+func PIIRedactionMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Store original values for processing
+		c.Next()
+		
+		// No actual modification needed here as redaction happens at log time
+		// This middleware serves as a marker that PII redaction is enabled
+	}
 }
