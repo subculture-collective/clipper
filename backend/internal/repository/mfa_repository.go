@@ -417,10 +417,17 @@ func (r *MFARepository) SetMFARequired(ctx context.Context, userID uuid.UUID, gr
 		ON CONFLICT (user_id) 
 		DO UPDATE SET 
 			mfa_required = true,
-			mfa_required_at = COALESCE(user_mfa.mfa_required_at, $2),
-			grace_period_end = COALESCE(user_mfa.grace_period_end, $3),
+			mfa_required_at = CASE 
+				WHEN user_mfa.mfa_required = false THEN $2 
+				ELSE user_mfa.mfa_required_at 
+			END,
+			grace_period_end = CASE 
+				WHEN user_mfa.mfa_required = false THEN $3
+				WHEN user_mfa.grace_period_end IS NULL THEN $3
+				WHEN user_mfa.grace_period_end < NOW() THEN $3
+				ELSE user_mfa.grace_period_end 
+			END,
 			updated_at = NOW()
-		WHERE user_mfa.mfa_required = false
 	`
 
 	_, err := r.db.Exec(ctx, query, userID, now, gracePeriodEnd)

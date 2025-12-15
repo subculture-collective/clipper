@@ -197,8 +197,14 @@ func (s *AccountTypeService) ConvertToModerator(ctx context.Context, targetUserI
 	// Trigger MFA requirement for moderator role
 	if s.mfaService != nil {
 		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
-			log.Printf("WARNING: Failed to set MFA requirement for user %s: %v", targetUserID, err)
+			// This is a critical security function - log prominently and continue
+			// The conversion succeeded, but MFA enforcement may not be in place
+			log.Printf("SECURITY WARNING: Failed to set MFA requirement for user %s after moderator promotion: %v", targetUserID, err)
+			log.Printf("SECURITY WARNING: Manually verify MFA requirement for user %s", targetUserID)
 		}
+	} else {
+		// MFA service is required for security - this should not happen
+		log.Printf("CRITICAL: MFA service not available when promoting user %s to moderator", targetUserID)
 	}
 
 	return nil
@@ -267,8 +273,14 @@ func (s *AccountTypeService) ConvertToAdmin(ctx context.Context, targetUserID, a
 	// Trigger MFA requirement for admin role
 	if s.mfaService != nil {
 		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
-			log.Printf("WARNING: Failed to set MFA requirement for user %s: %v", targetUserID, err)
+			// This is a critical security function - log prominently and continue
+			// The conversion succeeded, but MFA enforcement may not be in place
+			log.Printf("SECURITY WARNING: Failed to set MFA requirement for user %s after admin promotion: %v", targetUserID, err)
+			log.Printf("SECURITY WARNING: Manually verify MFA requirement for user %s", targetUserID)
 		}
+	} else {
+		// MFA service is required for security - this should not happen
+		log.Printf("CRITICAL: MFA service not available when promoting user %s to admin", targetUserID)
 	}
 
 	return nil

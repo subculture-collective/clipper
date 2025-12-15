@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -118,13 +119,18 @@ func CheckMFARequirementMiddleware(mfaService MFAServiceInterface) gin.HandlerFu
 			// Check if MFA is already set as required
 			required, enabled, _, err := mfaService.CheckMFARequired(c.Request.Context(), user.ID)
 			if err != nil {
-				// Log error but don't fail the request
+				// Log error - this is a security critical operation
+				// Continue processing but log for investigation
+				c.Error(fmt.Errorf("SECURITY WARNING: Failed to check MFA requirement for user %s: %w", user.ID, err))
 				return
 			}
 
 			// If MFA is not yet required and not enabled, set it as required
 			if !required && !enabled {
-				_ = mfaService.SetMFARequired(c.Request.Context(), user.ID)
+				if err := mfaService.SetMFARequired(c.Request.Context(), user.ID); err != nil {
+					// Log error - this is a security critical operation
+					c.Error(fmt.Errorf("SECURITY WARNING: Failed to set MFA requirement for user %s: %w", user.ID, err))
+				}
 			}
 		}
 	}
