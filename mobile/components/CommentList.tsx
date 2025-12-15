@@ -302,13 +302,15 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
 
     const allComments = commentsData?.pages.flatMap((page) => page.comments) || [];
 
+    // Maximum nesting depth for comments
+    const MAX_COMMENT_DEPTH = 10;
+
     // Render nested comment tree recursively
     const renderCommentTree = (
         comment: Comment,
         depth: number = 0
     ): React.ReactNode[] => {
         const nodes: React.ReactNode[] = [];
-        const maxDepth = 10;
 
         nodes.push(
             <CommentItem
@@ -324,12 +326,12 @@ export function CommentList({ clipId, currentUserId }: CommentListProps) {
                 isReplying={replyingCommentId === comment.id && createCommentMutation.isPending}
                 showReplies={expandedComments.has(comment.id)}
                 currentUserId={currentUserId}
-                maxDepth={maxDepth}
+                maxDepth={MAX_COMMENT_DEPTH}
             />
         );
 
         // Render nested replies if expanded and available
-        if (expandedComments.has(comment.id) && comment.replies && comment.replies.length > 0 && depth < maxDepth) {
+        if (expandedComments.has(comment.id) && comment.replies && comment.replies.length > 0 && depth < MAX_COMMENT_DEPTH) {
             comment.replies.forEach((reply) => {
                 nodes.push(...renderCommentTree(reply, depth + 1));
             });

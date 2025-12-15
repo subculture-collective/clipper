@@ -90,7 +90,7 @@ interface CommentItemProps {
 - Removed: Shows "[removed]" with optional reason
 - Editing: Shows CommentComposer inline
 - Replying: Shows CommentComposer below comment
-- Max depth: Shows "View X more replies →" link instead of nested rendering
+- Max depth: Shows non-interactive text "X more reply/replies (max depth reached)" instead of nested rendering
 
 **Collapse/Expand Badge:**
 
@@ -251,7 +251,7 @@ const { user } = useAuth();
 ### Deep Thread Continuation
 
 1. When a comment is at max depth (10 levels) and has replies
-2. Show "View X more replies →" link instead of rendering nested comments
+2. Show non-interactive text "X more reply/replies (max depth reached)" instead of rendering nested comments
 3. This prevents excessive nesting and maintains performance
 4. Users can understand there are more replies without overloading the UI
 
