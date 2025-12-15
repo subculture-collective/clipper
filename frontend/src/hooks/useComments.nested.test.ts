@@ -10,6 +10,7 @@ import {
 import * as commentApi from '@/lib/comment-api';
 import type {
   Comment,
+  CommentFeedResponse,
   UpdateCommentPayload,
   CommentVotePayload,
 } from '@/types/comment';
@@ -17,20 +18,10 @@ import type {
 // Mock the comment API
 vi.mock('@/lib/comment-api');
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-      mutations: {
-        retry: false,
-      },
-    },
-  });
-
-  return ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client: queryClient }, children);
+// Type for paginated query data
+type PaginatedCommentData = {
+  pages: CommentFeedResponse[];
+  pageParams: number[];
 };
 
 const createNestedCommentStructure = (): Comment => {
@@ -166,7 +157,7 @@ describe('useComments - Nested Comment Operations', () => {
 
       // Check optimistic update happened
       await waitFor(() => {
-        const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+        const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
         const nestedReply = data.pages[0].comments[0].replies[0].replies[0];
         expect(nestedReply.content).toBe('Updated nested reply content');
         expect(nestedReply.edited_at).toBeDefined();
@@ -214,7 +205,7 @@ describe('useComments - Nested Comment Operations', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       // Verify structure is maintained
-      const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
       expect(data.pages[0].comments[0].replies).toHaveLength(2);
       expect(data.pages[0].comments[0].replies[0].replies).toHaveLength(1);
       expect(data.pages[0].comments[0].child_count).toBe(2); // Parent still has 2 children
@@ -258,7 +249,7 @@ describe('useComments - Nested Comment Operations', () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       // Verify rollback happened
-      const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
       expect(data.pages[0].comments[0].replies[0].content).toBe(originalContent);
       expect(result.current.error).toEqual(error);
     });
@@ -299,7 +290,7 @@ describe('useComments - Nested Comment Operations', () => {
 
       // Check optimistic update happened
       await waitFor(() => {
-        const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+        const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
         const nestedReply = data.pages[0].comments[0].replies[0].replies[0];
         expect(nestedReply.is_deleted).toBe(true);
         expect(nestedReply.content).toBe('[deleted by user]');
@@ -344,7 +335,7 @@ describe('useComments - Nested Comment Operations', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       // Verify structure is maintained (comment is marked deleted but structure intact)
-      const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
       expect(data.pages[0].comments[0].replies).toHaveLength(2); // Still 2 replies
       expect(data.pages[0].comments[0].replies[0].is_deleted).toBe(true);
       expect(data.pages[0].comments[0].replies[0].replies).toHaveLength(1); // Nested reply still exists
@@ -385,7 +376,7 @@ describe('useComments - Nested Comment Operations', () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       // Verify rollback happened
-      const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
       expect(data.pages[0].comments[0].replies[0].is_deleted).toBe(false);
       expect(data.pages[0].comments[0].replies[0].content).toBe('First reply');
       expect(result.current.error).toEqual(error);
@@ -431,7 +422,7 @@ describe('useComments - Nested Comment Operations', () => {
 
       // Check optimistic update happened
       await waitFor(() => {
-        const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+        const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
         const nestedReply = data.pages[0].comments[0].replies[0].replies[0];
         expect(nestedReply.vote_score).toBe(3); // Was 2, now 3
         expect(nestedReply.user_vote).toBe(1);
@@ -478,7 +469,7 @@ describe('useComments - Nested Comment Operations', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       // Verify structure is maintained
-      const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
       expect(data.pages[0].comments[0].replies).toHaveLength(2);
       expect(data.pages[0].comments[0].replies[0].replies).toHaveLength(1);
       expect(data.pages[0].comments[0].child_count).toBe(2);
@@ -525,7 +516,7 @@ describe('useComments - Nested Comment Operations', () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       // Verify rollback happened
-      const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
       expect(data.pages[0].comments[0].replies[0].vote_score).toBe(originalScore);
       expect(data.pages[0].comments[0].replies[0].user_vote).toBeNull();
       expect(result.current.error).toEqual(error);
@@ -571,7 +562,7 @@ describe('useComments - Nested Comment Operations', () => {
 
       // Check optimistic update - vote should be removed
       await waitFor(() => {
-        const data = queryClient.getQueryData(['comments', 'clip-1']) as any;
+        const data = queryClient.getQueryData(['comments', 'clip-1']) as PaginatedCommentData;
         const nestedReply = data.pages[0].comments[0].replies[0].replies[0];
         expect(nestedReply.vote_score).toBe(2); // Was 3, now 2 (removed upvote)
         expect(nestedReply.user_vote).toBeNull();
