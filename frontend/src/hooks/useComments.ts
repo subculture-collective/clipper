@@ -26,6 +26,7 @@ export const useComments = (clipId: string, sort: CommentSortOption = 'best') =>
         sort,
         pageParam,
         limit: ITEMS_PER_PAGE,
+        includeReplies: true, // Fetch nested replies for tree structure
       }),
     getNextPageParam: (lastPage) => {
       return lastPage.has_more ? lastPage.page + 1 : undefined;

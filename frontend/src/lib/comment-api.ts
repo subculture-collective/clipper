@@ -17,7 +17,7 @@ export async function fetchComments({
   sort = 'best',
   pageParam = 1,
   limit = 10,
-  includeReplies = true,
+  includeReplies = false,
 }: {
   clipId: string;
   sort?: CommentSortOption;
