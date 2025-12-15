@@ -84,7 +84,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         {
           clip_id: clipId,
           content,
-          parent_id: parentId,
+          parent_comment_id: parentId,
         },
         {
           onSuccess: () => {

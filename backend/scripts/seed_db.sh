@@ -7,18 +7,24 @@ MIGRATIONS_DIR="${BACKEND_DIR}/migrations"
 
 ENV_FILE="${ENV_FILE:-${BACKEND_DIR}/.env}"
 BASE_SEED_FILE="${BASE_SEED_FILE:-${MIGRATIONS_DIR}/seed.sql}"
+COMMENTS_SEED_FILE="${COMMENTS_SEED_FILE:-${MIGRATIONS_DIR}/seed_comments.sql}"
 LOAD_TEST_SEED_FILE="${LOAD_TEST_SEED_FILE:-${MIGRATIONS_DIR}/seed_load_test.sql}"
 RUN_LOAD_TEST=false
+RUN_COMMENTS_AUTO=true
+RUN_COMMENTS_EXPLICIT=false
 
 usage() {
     cat <<'EOF'
 Usage: seed_db.sh [options]
 
 Options:
-  --env-file PATH        Path to .env file to load (default: backend/.env)
-  --seed-file PATH       Override base seed file (default: migrations/seed.sql)
-  --load-test            Also apply load-test seed data (migrations/seed_load_test.sql)
-  --load-test-file PATH  Override load-test seed file
+    --env-file PATH         Path to .env file to load (default: backend/.env)
+    --seed-file PATH        Override base seed file (default: migrations/seed.sql)
+    --comments              Explicitly apply comments/nesting seed (migrations/seed_comments.sql)
+    --no-comments           Skip comments/nesting seed even if file exists
+    --comments-file PATH    Override comments seed file
+    --load-test             Also apply load-test seed data (migrations/seed_load_test.sql)
+    --load-test-file PATH   Override load-test seed file
   -h, --help             Show this help message
 
 Notes:
@@ -35,6 +41,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         --seed-file)
             BASE_SEED_FILE="$2"
+            shift
+            ;;
+        --comments)
+            RUN_COMMENTS_EXPLICIT=true
+            RUN_COMMENTS_AUTO=false
+            ;;
+        --no-comments)
+            RUN_COMMENTS_AUTO=false
+            RUN_COMMENTS_EXPLICIT=false
+            ;;
+        --comments-file)
+            COMMENTS_SEED_FILE="$2"
             shift
             ;;
         --load-test)
@@ -79,6 +97,9 @@ DB_PASSWORD="${DB_PASSWORD:-clipper_password}"
 DB_NAME="${DB_NAME:-clipper_db}"
 DB_URL="${DB_URL:-}" # Optional Postgres connection string
 
+# psql safety flags: stop on first error, ignore ~/.psqlrc, single-transaction per file
+PSQL_FLAGS=(-v ON_ERROR_STOP=1 -X -1)
+
 run_seed() {
     local file="$1"
     if [[ ! -f "${file}" ]]; then
@@ -88,18 +109,28 @@ run_seed() {
 
     echo "[INFO] Seeding database with ${file}"
     if [[ -n "${DB_URL}" ]]; then
-        PGPASSWORD="${DB_PASSWORD}" psql "${DB_URL}" -f "${file}"
+        PGPASSWORD="${DB_PASSWORD}" psql "${DB_URL}" "${PSQL_FLAGS[@]}" -f "${file}"
     else
         PGPASSWORD="${DB_PASSWORD}" psql \
             -h "${DB_HOST}" \
             -p "${DB_PORT}" \
             -U "${DB_USER}" \
             -d "${DB_NAME}" \
+            "${PSQL_FLAGS[@]}" \
             -f "${file}"
     fi
 }
 
 run_seed "${BASE_SEED_FILE}"
+
+if [[ "${RUN_COMMENTS_EXPLICIT}" == true ]]; then
+    run_seed "${COMMENTS_SEED_FILE}"
+elif [[ "${RUN_COMMENTS_AUTO}" == true && -f "${COMMENTS_SEED_FILE}" ]]; then
+    echo "[INFO] Detected comments seed at ${COMMENTS_SEED_FILE}; applying"
+    run_seed "${COMMENTS_SEED_FILE}"
+else
+    echo "[INFO] Skipping comments seed"
+fi
 
 if [[ "${RUN_LOAD_TEST}" == true ]]; then
     run_seed "${LOAD_TEST_SEED_FILE}"

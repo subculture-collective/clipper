@@ -6,7 +6,8 @@ INSERT INTO users (twitch_id, username, display_name, email, avatar_url, bio, ka
 ('12345', 'testuser1', 'Test User 1', 'testuser1@example.com', 'https://static-cdn.jtvnw.net/jtv_user_pictures/avatar1.png', 'This is a test user bio', 100, 'user'),
 ('12346', 'testuser2', 'Test User 2', 'testuser2@example.com', 'https://static-cdn.jtvnw.net/jtv_user_pictures/avatar2.png', 'Another test user', 50, 'user'),
 ('12347', 'testmod', 'Test Moderator', 'testmod@example.com', 'https://static-cdn.jtvnw.net/jtv_user_pictures/avatar3.png', 'I am a moderator', 500, 'moderator'),
-('12348', 'testadmin', 'Test Admin', 'testadmin@example.com', 'https://static-cdn.jtvnw.net/jtv_user_pictures/avatar4.png', 'I am an admin', 1000, 'admin');
+('12348', 'testadmin', 'Test Admin', 'testadmin@example.com', 'https://static-cdn.jtvnw.net/jtv_user_pictures/avatar4.png', 'I am an admin', 1000, 'admin')
+ON CONFLICT (twitch_id) DO NOTHING;
 
 -- Insert sample tags
 INSERT INTO tags (name, slug, description, color, usage_count) VALUES
@@ -17,7 +18,8 @@ INSERT INTO tags (name, slug, description, color, usage_count) VALUES
 ('Creative', 'creative', 'Creative and artistic content', '#F38181', 0),
 ('Speedrun', 'speedrun', 'Speedrunning moments', '#AA96DA', 0),
 ('PvP', 'pvp', 'Player vs Player action', '#FCBAD3', 0),
-('Tutorial', 'tutorial', 'Educational and tutorial content', '#FFFFD2', 0);
+('Tutorial', 'tutorial', 'Educational and tutorial content', '#FFFFD2', 0)
+ON CONFLICT (name) DO NOTHING;
 
 -- Insert sample user-submitted clips (these are submitted by users via the form)
 DO $$
@@ -25,6 +27,12 @@ DECLARE
     user1_id UUID;
     user2_id UUID;
 BEGIN
+    -- Skip if we've already seeded the user-submitted clips
+    IF EXISTS (SELECT 1 FROM clips WHERE twitch_clip_id = 'UserSubmittedClip1') THEN
+        RAISE NOTICE 'User-submitted clip seed already present; skipping.';
+        RETURN;
+    END IF;
+
     SELECT id INTO user1_id FROM users WHERE twitch_id = '12345';
     SELECT id INTO user2_id FROM users WHERE twitch_id = '12346';
 
@@ -262,7 +270,8 @@ INSERT INTO clips (
     0,
     0,
     0
-);
+)
+ON CONFLICT (twitch_clip_id) DO NOTHING;
 
 -- Get clip IDs for seeding relationships
 DO $$
@@ -298,6 +307,12 @@ BEGIN
     SELECT id INTO tag3_id FROM tags WHERE slug = 'fail';
     SELECT id INTO tag4_id FROM tags WHERE slug = 'highlight';
 
+    -- Skip if relationships already seeded
+    IF EXISTS (SELECT 1 FROM votes WHERE user_id = user1_id AND clip_id = clip2_id) THEN
+        RAISE NOTICE 'Relationship seed already present; skipping.';
+        RETURN;
+    END IF;
+
     -- Insert votes
     INSERT INTO votes (user_id, clip_id, vote_type) VALUES
         (user1_id, clip2_id, 1),
@@ -325,6 +340,13 @@ BEGIN
         (user2_id, clip3_id),
         (user3_id, clip1_id),
         (user3_id, clip3_id);
+
+    -- Refresh aggregated clip stats based on inserted votes/comments/favorites
+    UPDATE clips SET
+        vote_score = COALESCE((SELECT SUM(vote_type) FROM votes WHERE clip_id = clips.id), 0),
+        comment_count = COALESCE((SELECT COUNT(*) FROM comments WHERE clip_id = clips.id), 0),
+        favorite_count = COALESCE((SELECT COUNT(*) FROM favorites WHERE clip_id = clips.id), 0)
+    WHERE id IN (clip1_id, clip2_id, clip3_id, clip4_id);
 
     -- Insert clip tags
     INSERT INTO clip_tags (clip_id, tag_id) VALUES

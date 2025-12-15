@@ -415,15 +415,17 @@ describe('SubmitClipPage', () => {
             });
         });
 
-        it('no longer shows manual streamer input (auto-detected by backend)', () => {
+        it('no longer shows manual streamer input (auto-detected by backend)', async () => {
             render(<SubmitClipPage />);
 
-            expect(
-                screen.queryByPlaceholderText('Enter streamer name...')
-            ).not.toBeInTheDocument();
-            expect(
-                screen.queryByText('Will be auto-detected from clip')
-            ).not.toBeInTheDocument();
+            await waitFor(() => {
+                expect(
+                    screen.queryByPlaceholderText('Enter streamer name...')
+                ).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('Will be auto-detected from clip')
+                ).not.toBeInTheDocument();
+            });
         });
     });
 

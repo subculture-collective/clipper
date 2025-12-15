@@ -33,13 +33,14 @@ const createMockComment = (overrides: Partial<Comment> = {}): Comment => ({
   user_avatar: 'https://example.com/avatar.png',
   user_karma: 1234,
   user_role: 'user',
-  parent_id: null,
+  parent_comment_id: null,
   content: 'Test comment',
   vote_score: 5,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   is_deleted: false,
   is_removed: false,
+  reply_count: 0,
   depth: 0,
   child_count: 0,
   user_vote: null,
@@ -76,12 +77,13 @@ describe('useComments - Sorting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(commentApi.fetchComments).toHaveBeenCalledWith({
+      expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
         clipId: 'clip-1',
         sort: 'best',
         pageParam: 1,
         limit: 10,
-      });
+        includeReplies: true,
+      }));
 
       expect(result.current.data?.pages[0].comments).toHaveLength(3);
     });
@@ -111,12 +113,13 @@ describe('useComments - Sorting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(commentApi.fetchComments).toHaveBeenCalledWith({
+      expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
         clipId: 'clip-1',
         sort: 'top',
         pageParam: 1,
         limit: 10,
-      });
+        includeReplies: true,
+      }));
 
       // Verify comments are returned (backend handles sorting)
       expect(result.current.data?.pages[0].comments).toHaveLength(3);
@@ -157,12 +160,13 @@ describe('useComments - Sorting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(commentApi.fetchComments).toHaveBeenCalledWith({
+      expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
         clipId: 'clip-1',
         sort: 'new',
         pageParam: 1,
         limit: 10,
-      });
+        includeReplies: true,
+      }));
 
       expect(result.current.data?.pages[0].comments).toHaveLength(3);
     });
@@ -201,12 +205,13 @@ describe('useComments - Sorting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(commentApi.fetchComments).toHaveBeenCalledWith({
+      expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
         clipId: 'clip-1',
         sort: 'old',
         pageParam: 1,
         limit: 10,
-      });
+        includeReplies: true,
+      }));
 
       expect(result.current.data?.pages[0].comments).toHaveLength(3);
     });
@@ -236,12 +241,13 @@ describe('useComments - Sorting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(commentApi.fetchComments).toHaveBeenCalledWith({
+      expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
         clipId: 'clip-1',
         sort: 'controversial',
         pageParam: 1,
         limit: 10,
-      });
+        includeReplies: true,
+      }));
 
       expect(result.current.data?.pages[0].comments).toHaveLength(3);
     });
@@ -311,12 +317,14 @@ describe('useComments - Sorting', () => {
         sort: 'best',
         pageParam: 1,
         limit: 10,
+        includeReplies: true,
       });
       expect(commentApi.fetchComments).toHaveBeenNthCalledWith(2, {
         clipId: 'clip-1',
         sort: 'new',
         pageParam: 1,
         limit: 10,
+        includeReplies: true,
       });
     });
 
@@ -366,8 +374,8 @@ describe('useComments - Sorting', () => {
       expect(commentApi.fetchComments).toHaveBeenCalledTimes(2);
 
       // Verify separate cache entries exist
-      const bestCache = queryClient.getQueryData(['comments', 'clip-1', 'best']);
-      const topCache = queryClient.getQueryData(['comments', 'clip-1', 'top']);
+      const bestCache = queryClient.getQueryData(['comments', 'clip-1', 'best', 'with-replies']);
+      const topCache = queryClient.getQueryData(['comments', 'clip-1', 'top', 'with-replies']);
 
       expect(bestCache).toBeDefined();
       expect(topCache).toBeDefined();
@@ -393,12 +401,13 @@ describe('useComments - Sorting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(commentApi.fetchComments).toHaveBeenCalledWith({
+      expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
         clipId: 'clip-1',
         sort: 'best',
         pageParam: 1,
         limit: 10,
-      });
+        includeReplies: true,
+      }));
     });
   });
 
@@ -443,6 +452,7 @@ describe('useComments - Sorting', () => {
         sort: 'top',
         pageParam: 2,
         limit: 10,
+        includeReplies: true,
       });
     });
   });

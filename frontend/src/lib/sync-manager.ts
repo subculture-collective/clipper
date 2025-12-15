@@ -316,7 +316,7 @@ export class SyncManager {
 
         case 'comment': {
           if (operation.type === 'create') {
-            const data = operation.data as { clip_id: string; content: string; parent_id?: string };
+            const data = operation.data as { clip_id: string; content: string; parent_comment_id?: string | null };
             await createComment(data);
           } else if (operation.type === 'update') {
             const data = operation.data as { id: string; content: string };
