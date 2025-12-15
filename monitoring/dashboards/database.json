@@ -97,13 +97,14 @@
       },
       {
         "id": 5,
-        "title": "Query Duration (P95)",
+        "title": "Query Duration (Average)",
         "type": "graph",
         "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "description": "Average query execution time. Note: Requires pg_stat_statements extension enabled in PostgreSQL.",
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, sum(rate(pg_stat_statements_mean_exec_time_bucket[5m])) by (le))",
-            "legendFormat": "P95 Query Time",
+            "expr": "avg(pg_stat_statements_mean_time_ms)",
+            "legendFormat": "Avg Query Time",
             "refId": "A"
           }
         ],
@@ -129,18 +130,19 @@
       },
       {
         "id": 6,
-        "title": "Slow Queries (> 1s)",
+        "title": "Long Running Queries",
         "type": "graph",
         "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "description": "Number of queries running longer than expected",
         "targets": [
           {
-            "expr": "rate(pg_stat_activity_max_tx_duration[5m])",
-            "legendFormat": "Slow Query Count",
+            "expr": "pg_stat_activity_count{state=\"active\"}",
+            "legendFormat": "Active Queries",
             "refId": "A"
           }
         ],
         "yaxes": [
-          {"format": "ops"},
+          {"format": "short"},
           {"format": "short"}
         ]
       },

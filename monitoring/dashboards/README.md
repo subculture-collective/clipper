@@ -69,6 +69,8 @@ PostgreSQL database performance monitoring with query and connection metrics.
 - Identify slow queries
 - Track database growth
 
+**Note:** Some advanced metrics require the `pg_stat_statements` extension to be enabled in PostgreSQL. The dashboard will gracefully handle missing metrics.
+
 ### 4. User Experience Dashboard (`user-experience.json`) 🆕
 
 Frontend and user-facing metrics for monitoring end-user experience.
@@ -90,6 +92,8 @@ Frontend and user-facing metrics for monitoring end-user experience.
 - Track page performance
 - Identify UX issues
 - Monitor user engagement
+
+**Note:** Some metrics like `active_users_current` and `user_session_duration_seconds` require additional instrumentation in the application. The dashboard will show 0 if these metrics are not exposed.
 
 ### 5. Application Overview (`app-overview.json`)
 

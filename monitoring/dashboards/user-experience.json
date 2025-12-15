@@ -92,9 +92,10 @@
         "title": "Active Users",
         "type": "graph",
         "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "description": "Current active users. Note: This metric must be exposed by the application via Prometheus client.",
         "targets": [
           {
-            "expr": "active_users_current",
+            "expr": "active_users_current or vector(0)",
             "legendFormat": "Active Users",
             "refId": "A"
           }
@@ -175,14 +176,15 @@
         "title": "User Session Duration",
         "type": "graph",
         "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "description": "Session duration metrics. Note: Requires session tracking middleware to expose user_session_duration_seconds metric.",
         "targets": [
           {
-            "expr": "histogram_quantile(0.50, sum(rate(user_session_duration_seconds_bucket[5m])) by (le))",
+            "expr": "histogram_quantile(0.50, sum(rate(user_session_duration_seconds_bucket[5m])) by (le)) or vector(0)",
             "legendFormat": "P50 Session Duration",
             "refId": "A"
           },
           {
-            "expr": "histogram_quantile(0.95, sum(rate(user_session_duration_seconds_bucket[5m])) by (le))",
+            "expr": "histogram_quantile(0.95, sum(rate(user_session_duration_seconds_bucket[5m])) by (le)) or vector(0)",
             "legendFormat": "P95 Session Duration",
             "refId": "B"
           }
@@ -279,9 +281,10 @@
         "title": "Active Users Now",
         "type": "stat",
         "gridPos": {"h": 4, "w": 6, "x": 12, "y": 32},
+        "description": "Current active users (optional metric)",
         "targets": [
           {
-            "expr": "active_users_current",
+            "expr": "active_users_current or vector(0)",
             "refId": "A"
           }
         ],
