@@ -43,6 +43,73 @@ export const useCreateComment = () => {
     mutationFn: async (payload: CreateCommentPayload) => {
       return commentApi.createComment(payload);
     },
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['comments', variables.clip_id] });
+
+      // Snapshot the previous value
+      const previousComments = queryClient.getQueriesData({ 
+        queryKey: ['comments', variables.clip_id] 
+      });
+
+      // Optimistically update by incrementing child_count on parent if this is a reply
+      // Note: We update all queries for this clip_id to maintain consistency across
+      // different sort views. This is lightweight (just incrementing a counter) and
+      // prevents inconsistencies if users switch between sort options.
+      if (variables.parent_id) {
+        queryClient.setQueriesData({ queryKey: ['comments', variables.clip_id] }, (old: unknown) => {
+          if (!old || typeof old !== 'object') return old;
+
+          const updateComment = (comment: Comment): Comment => {
+            // If this is the parent comment, increment child_count
+            if (comment.id === variables.parent_id) {
+              return {
+                ...comment,
+                child_count: comment.child_count + 1,
+              };
+            }
+
+            // Recursively update nested replies
+            if (comment.replies && comment.replies.length > 0) {
+              return {
+                ...comment,
+                replies: comment.replies.map(updateComment),
+              };
+            }
+
+            return comment;
+          };
+
+          // Handle paginated data structure
+          if ('pages' in old && Array.isArray(old.pages)) {
+            return {
+              ...old,
+              pages: old.pages.map((page: CommentFeedResponse) => ({
+                ...page,
+                comments: page.comments.map(updateComment),
+              })),
+            };
+          } else if ('comments' in old && Array.isArray(old.comments)) {
+            return {
+              ...old,
+              comments: old.comments.map(updateComment),
+            };
+          }
+
+          return old;
+        });
+      }
+
+      return { previousComments };
+    },
+    onError: (_err, _variables, context) => {
+      // Revert on error
+      if (context?.previousComments) {
+        context.previousComments.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
     onSuccess: (_data, variables) => {
       // Invalidate comments query to refetch
       queryClient.invalidateQueries({ queryKey: ['comments', variables.clip_id] });
