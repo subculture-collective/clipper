@@ -55,7 +55,7 @@ docker-compose -f docker-compose.monitoring.yml ps
 3. Add Prometheus:
    - URL: <http://prometheus:9090>
    - Click "Save & Test"
-4. Add Loki:
+4. Add Loki (for centralized logging):
    - URL: <http://loki:3100>
    - Click "Save & Test"
 5. Import dashboards:
@@ -64,6 +64,47 @@ docker-compose -f docker-compose.monitoring.yml ps
    - Import ID: 9628 (PostgreSQL)
    - Import ID: 11835 (Redis)
    - Import ID: 12708 (Docker Containers)
+   - Import `monitoring/dashboards/logging-dashboard.json` (Centralized Logging)
+
+## Centralized Logging
+
+The monitoring stack includes **Grafana Loki** for centralized log aggregation with structured JSON logging across all services.
+
+### Features
+
+- **90-day log retention** for compliance and debugging
+- **Structured JSON logs** from backend, frontend, and mobile
+- **PII redaction** for passwords, tokens, emails, and sensitive data
+- **Log-based alerts** for security events and error spikes
+- **Search and filtering** with LogQL in Grafana
+
+### Quick Access
+
+**Grafana Log Explorer**: <http://localhost:3000/explore>
+
+Example queries:
+```logql
+# All error logs
+{level="error"}
+
+# Backend errors in the last hour
+{service="clipper-backend", level="error"} [1h]
+
+# Failed authentication attempts
+{message=~".*authentication failed.*"}
+
+# High latency requests
+{service="clipper-backend"} | json | latency > 1s
+```
+
+### Documentation
+
+See [Centralized Logging Documentation](../docs/operations/centralized-logging.md) for:
+- Detailed logging guide
+- Best practices
+- Query examples
+- Security considerations
+- Troubleshooting
 
 ## Configuration Files
 
@@ -83,6 +124,34 @@ Alert rules for various conditions:
 - Database issues
 - Redis issues
 - SSL certificate expiring
+- **Log-based alerts**:
+  - High error log rate
+  - Critical error spike
+  - Failed authentication spike
+  - SQL injection attempts
+  - Security events
+  - Application panics
+  - Database connection errors
+  - Redis connection errors
+
+### loki-config.yml
+
+Loki configuration with 90-day log retention:
+
+- Retention period: 2160 hours (90 days)
+- Automatic compaction every 10 minutes
+- TSDB-based storage for better performance
+- Query result caching for faster searches
+
+### promtail-config.yml
+
+Promtail configuration for log collection:
+
+- Docker container logs with JSON parsing
+- System journal logs
+- Backend application logs
+- Frontend application logs
+- Automatic label extraction from structured logs
 
 ### alertmanager.yml
 
