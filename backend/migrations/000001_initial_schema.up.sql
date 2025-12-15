@@ -5,7 +5,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Enable vector extension for semantic search embeddings
-CREATE EXTENSION IF NOT EXISTS "vector";
+-- Temporarily disabled due to segfault with postgres:17
+-- CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- Users table
 CREATE TABLE users (

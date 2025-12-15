@@ -47,13 +47,14 @@ const mockComment: Comment = {
   user_avatar: 'https://example.com/avatar.png',
   user_karma: 1234,
   user_role: 'user',
-  parent_id: null,
+  parent_comment_id: null,
   content: 'Test comment',
   vote_score: 5,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   is_deleted: false,
   is_removed: false,
+  reply_count: 0,
   depth: 0,
   child_count: 0,
   user_vote: null,
@@ -89,6 +90,7 @@ describe('useComments', () => {
         sort: 'best',
         pageParam: 1,
         limit: 10,
+        includeReplies: true,
       });
     });
 
@@ -141,6 +143,7 @@ describe('useComments', () => {
         sort: 'new',
         pageParam: 1,
         limit: 10,
+        includeReplies: true,
       });
     });
 
@@ -173,7 +176,7 @@ describe('useComments', () => {
       const payload: CreateCommentPayload = {
         clip_id: 'clip-1',
         content: 'New comment',
-        parent_id: null,
+        parent_comment_id: null,
       };
 
       result.current.mutate(payload);
@@ -227,6 +230,7 @@ describe('useComments', () => {
       const parentComment: Comment = {
         ...mockComment,
         id: 'parent-1',
+        reply_count: 2,
         child_count: 2,
         replies: [],
       };
@@ -234,8 +238,9 @@ describe('useComments', () => {
       const replyComment: Comment = {
         ...mockComment,
         id: 'reply-1',
-        parent_id: 'parent-1',
+        parent_comment_id: 'parent-1',
         content: 'Reply comment',
+        reply_count: 0,
       };
 
       vi.mocked(commentApi.createComment).mockResolvedValue(replyComment);
@@ -267,7 +272,7 @@ describe('useComments', () => {
       const payload: CreateCommentPayload = {
         clip_id: 'clip-1',
         content: 'Reply comment',
-        parent_id: 'parent-1',
+        parent_comment_id: 'parent-1',
       };
 
       result.current.mutate(payload);
@@ -317,7 +322,7 @@ describe('useComments', () => {
       const payload: CreateCommentPayload = {
         clip_id: 'clip-1',
         content: 'Reply comment',
-        parent_id: 'parent-1',
+        parent_comment_id: 'parent-1',
       };
 
       result.current.mutate(payload);
