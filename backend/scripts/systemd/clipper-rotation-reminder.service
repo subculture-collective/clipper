@@ -2,7 +2,8 @@
 # Install to /etc/systemd/system/clipper-rotation-reminder.service
 #
 # Note: This service uses GNU date (date -d) which is Linux-specific.
-# It is designed to run on Linux servers where systemd is available.
+# This is intentional since systemd itself is Linux-only. For macOS users,
+# use cron with the portable date handling from the rotation scripts instead.
 
 [Unit]
 Description=Clipper Credential Rotation Reminder

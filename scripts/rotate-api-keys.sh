@@ -83,11 +83,11 @@ update_vault_key() {
   local value="$2"
   
   if [ "$DRY_RUN" = true ]; then
-    log_warn "DRY RUN: Would execute: vault kv patch $VAULT_PATH $field='***'"
+    log_warn "DRY RUN: Would execute: vault kv patch \"$VAULT_PATH\" \"${field}=***\""
     return 0
   fi
   
-  vault kv patch "$VAULT_PATH" "$field=$value" > /dev/null 2>&1
+  vault kv patch "$VAULT_PATH" "${field}=${value}" > /dev/null 2>&1
   
   if [ $? -eq 0 ]; then
     log_info "✓ Vault updated successfully"

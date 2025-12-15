@@ -79,8 +79,11 @@ update_database_password() {
   # Use POSTGRES_PASSWORD env var if available, otherwise current DB_PASSWORD
   local admin_password="${POSTGRES_PASSWORD:-$(get_current_password)}"
   
+  # Escape single quotes in the password for SQL safety
+  local escaped_password="${new_password//\'/\'\'}"
+  
   PGPASSWORD="$admin_password" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c \
-    "ALTER USER $DB_USER WITH PASSWORD '$new_password';" > /dev/null 2>&1
+    "ALTER USER $DB_USER WITH PASSWORD '$escaped_password';" > /dev/null 2>&1
   
   if [ $? -eq 0 ]; then
     log_info "✓ Database password updated successfully"

@@ -14,6 +14,15 @@ VAULT_PATH="${VAULT_PATH:-kv/clipper/backend}"
 DRY_RUN=false
 TEMP_DIR="/tmp/jwt-rotation-$$"
 
+# Detect base64 command for portability (GNU vs BSD)
+if base64 --version >/dev/null 2>&1; then
+  # GNU base64 (Linux)
+  BASE64_ENCODE="base64 -w 0"
+else
+  # BSD base64 (macOS) - outputs without wrapping by default
+  BASE64_ENCODE="base64"
+fi
+
 # Parse arguments
 for arg in "$@"; do
   case $arg in
@@ -133,9 +142,9 @@ update_vault_keys() {
     return 0
   fi
   
-  # Base64 encode the new keys
-  local private_key_b64=$(base64 -w 0 < "$TEMP_DIR/private.pem")
-  local public_key_b64=$(base64 -w 0 < "$TEMP_DIR/public.pem")
+  # Base64 encode the new keys (using portable command)
+  local private_key_b64=$($BASE64_ENCODE < "$TEMP_DIR/private.pem")
+  local public_key_b64=$($BASE64_ENCODE < "$TEMP_DIR/public.pem")
   
   # Update Vault with new keys
   vault kv patch "$VAULT_PATH" \
