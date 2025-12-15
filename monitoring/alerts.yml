@@ -453,7 +453,7 @@ groups:
       # Security Event: SQL Injection Attempt
       - alert: SQLInjectionAttempt
         expr: |
-          count_over_time({message=~".*(?i)(union.*select|insert.*into|drop.*table|delete.*from).*"}[5m]) > 0
+          count_over_time({level="error",message=~".*(?i)(union.*select|insert.*into|drop.*table|delete.*from).*"}[5m]) > 0
         for: 1m
         labels:
           severity: critical
