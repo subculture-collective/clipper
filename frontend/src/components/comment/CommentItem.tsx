@@ -70,7 +70,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           <div className="w-12" /> {/* Spacer for vote buttons */}
           
           {/* Collapse/Expand badge */}
-          {comment.child_count > 0 && (
+          {comment.child_count > 0 && !shouldShowContinueThread && (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer py-1 px-2 rounded flex items-center gap-1"
@@ -88,8 +88,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             {comment.is_deleted ? '[deleted by user]' : '[removed by moderator]'}
             {comment.removed_reason && isAdmin && ` - ${comment.removed_reason}`}
           </div>
-          {/* Still show replies */}
-          {hasReplies && !isCollapsed && (
+          {/* Nested replies */}
+          {hasReplies && !shouldShowContinueThread && !isCollapsed && (
             <div className="mt-4">
               <CommentTree
                 comments={comment.replies!}
@@ -100,6 +100,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 maxDepth={maxDepth}
               />
             </div>
+          )}
+          
+          {/* Continue thread link for max depth */}
+          {shouldShowContinueThread && (
+            <a
+              href={`/clips/${clipId}/comments/${comment.id}`}
+              className="mt-4 inline-block text-sm text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
+            >
+              Continue thread →
+            </a>
           )}
         </div>
       </div>
@@ -169,7 +179,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           )}
         </div>
 
-        {/* Collapsed state - only show if collapsed */}
+        {/* Show content only when expanded (not collapsed) */}
         {!isCollapsed && (
           <>
             {/* Content */}
