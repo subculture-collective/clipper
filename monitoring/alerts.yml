@@ -512,17 +512,17 @@ groups:
           description: "{{ $labels.service }} is generating {{ $value }} logs per second."
           runbook: "Review if this is expected behavior or indicates an issue."
 
-      # Repeated Error Pattern
+      # Repeated Error Pattern (optimized query)
       - alert: RepeatedErrorPattern
         expr: |
-          count(count_over_time({level="error"} | json | line_format "{{.message}}" [1h])) by (message) > 100
+          count(count_over_time({level="error",service=~".+"} [1h])) by (service) > 100
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Repeated error pattern detected"
-          description: "Error '{{ $labels.message }}' occurred {{ $value }} times in the last hour."
-          runbook: "Investigate root cause of repeated error."
+          summary: "Repeated error pattern detected in {{ $labels.service }}"
+          description: "{{ $labels.service }} has {{ $value }} error occurrences in the last hour."
+          runbook: "Investigate root cause of repeated errors in the service."
 
       # Database Connection Errors in Logs
       - alert: DatabaseConnectionErrors

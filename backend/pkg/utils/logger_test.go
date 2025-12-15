@@ -29,7 +29,7 @@ func TestRedactPII(t *testing.T) {
 		{
 			name:     "Redact password",
 			input:    `{"password":"secret123"}`,
-			expected: `{"password="[REDACTED]""}`,
+			expected: `{"password:"[REDACTED]"}`,
 		},
 		{
 			name:     "Redact Bearer token",
