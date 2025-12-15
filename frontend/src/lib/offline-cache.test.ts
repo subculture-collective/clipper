@@ -12,7 +12,7 @@ describe('OfflineCache', () => {
 
   beforeEach(async () => {
     // Create a new cache instance for each test with unique DB name
-    cache = new OfflineCache({ 
+    cache = new OfflineCache({
       dbName: `test-cache-${Date.now()}`,
       defaultTTL: 1000 * 60 * 60, // 1 hour
     });
@@ -78,7 +78,7 @@ describe('OfflineCache', () => {
       ];
 
       await cache.setClips(clips);
-      
+
       const clip1 = await cache.getClip('clip-1');
       const clip2 = await cache.getClip('clip-2');
 
@@ -91,7 +91,7 @@ describe('OfflineCache', () => {
 
       await cache.setClip(clip);
       await cache.deleteClip('clip-1');
-      
+
       const retrieved = await cache.getClip('clip-1');
       expect(retrieved).toBeNull();
     });
@@ -101,10 +101,10 @@ describe('OfflineCache', () => {
 
       // Set with very short TTL
       await cache.setClip(clip, 10); // 10ms
-      
+
       // Wait for expiration
       await new Promise(resolve => setTimeout(resolve, 20));
-      
+
       const retrieved = await cache.getClip('clip-1');
       expect(retrieved).toBeNull();
     });
@@ -149,7 +149,7 @@ describe('OfflineCache', () => {
       ];
 
       await cache.setComments(comments);
-      
+
       const clip1Comments = await cache.getCommentsByClipId('clip-1');
       expect(clip1Comments).toHaveLength(2);
       expect(clip1Comments.map(c => c.id)).toContain('comment-1');

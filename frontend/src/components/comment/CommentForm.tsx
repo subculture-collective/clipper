@@ -72,8 +72,8 @@ export const CommentForm: React.FC<CommentFormProps> = ({
           },
           onError: (error) => {
             toast.error(
-              error instanceof Error 
-                ? error.message 
+              error instanceof Error
+                ? error.message
                 : 'Failed to update comment. Please try again.'
             );
           },
@@ -94,8 +94,8 @@ export const CommentForm: React.FC<CommentFormProps> = ({
           },
           onError: (error) => {
             toast.error(
-              error instanceof Error 
-                ? error.message 
+              error instanceof Error
+                ? error.message
                 : 'Failed to post comment. Please try again.'
             );
           },

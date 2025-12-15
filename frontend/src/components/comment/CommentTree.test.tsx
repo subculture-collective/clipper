@@ -74,9 +74,9 @@ describe('CommentTree', () => {
 
     it('should render single comment', () => {
       const comments = [createMockComment({ content: 'Single comment' })];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" />);
-      
+
       expect(screen.getByText(/Single comment/i)).toBeInTheDocument();
     });
 
@@ -86,9 +86,9 @@ describe('CommentTree', () => {
         createMockComment({ id: 'comment-2', content: 'Second comment' }),
         createMockComment({ id: 'comment-3', content: 'Third comment' }),
       ];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" />);
-      
+
       expect(screen.getByText(/First comment/i)).toBeInTheDocument();
       expect(screen.getByText(/Second comment/i)).toBeInTheDocument();
       expect(screen.getByText(/Third comment/i)).toBeInTheDocument();
@@ -101,11 +101,11 @@ describe('CommentTree', () => {
       const { container } = renderWithClient(
         <CommentTree comments={comments} clipId="clip-1" depth={0} />
       );
-      
+
       // Top level should have space-y-6 class
       const treeContainer = container.querySelector('.space-y-6');
       expect(treeContainer).toBeInTheDocument();
-      
+
       // Should not have left border at top level
       const borderElement = container.querySelector('.border-l-2');
       expect(borderElement).toBeNull();
@@ -116,7 +116,7 @@ describe('CommentTree', () => {
       const { container } = renderWithClient(
         <CommentTree comments={comments} clipId="clip-1" depth={1} />
       );
-      
+
       // Nested level should have ml-4, border-l-2, and pl-4 classes
       const treeContainer = container.querySelector('.ml-4.border-l-2.pl-4');
       expect(treeContainer).toBeInTheDocument();
@@ -144,9 +144,9 @@ describe('CommentTree', () => {
           ],
         }),
       ];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" depth={0} />);
-      
+
       expect(screen.getByText('Parent comment')).toBeInTheDocument();
       expect(screen.getByText('Child comment')).toBeInTheDocument();
       expect(screen.getByText('Grandchild comment')).toBeInTheDocument();
@@ -156,20 +156,20 @@ describe('CommentTree', () => {
   describe('MaxDepth handling', () => {
     it('should use default maxDepth of 10', () => {
       const comments = [createMockComment()];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" />);
-      
+
       // Component should render (testing default behavior)
       expect(screen.getByText(/Test comment/i)).toBeInTheDocument();
     });
 
     it('should pass maxDepth prop to CommentItem components', () => {
       const comments = [createMockComment()];
-      
+
       renderWithClient(
         <CommentTree comments={comments} clipId="clip-1" maxDepth={5} />
       );
-      
+
       expect(screen.getByText(/Test comment/i)).toBeInTheDocument();
     });
 
@@ -179,23 +179,23 @@ describe('CommentTree', () => {
         id: 'comment-3',
         content: 'Deep comment at level 2',
       });
-      
+
       const midComment = createMockComment({
         id: 'comment-2',
         content: 'Mid comment at level 1',
         replies: [deepComment],
       });
-      
+
       const topComment = createMockComment({
         id: 'comment-1',
         content: 'Top comment',
         replies: [midComment],
       });
-      
+
       renderWithClient(
         <CommentTree comments={[topComment]} clipId="clip-1" maxDepth={10} />
       );
-      
+
       expect(screen.getByText(/Top comment/i)).toBeInTheDocument();
       expect(screen.getByText(/Mid comment at level 1/i)).toBeInTheDocument();
       expect(screen.getByText(/Deep comment at level 2/i)).toBeInTheDocument();
@@ -205,7 +205,7 @@ describe('CommentTree', () => {
   describe('User permissions', () => {
     it('should pass currentUserId to child components', () => {
       const comments = [createMockComment({ user_id: 'user-1' })];
-      
+
       renderWithClient(
         <CommentTree
           comments={comments}
@@ -213,18 +213,18 @@ describe('CommentTree', () => {
           currentUserId="user-1"
         />
       );
-      
+
       // User should see their own comment
       expect(screen.getByText(/Test comment/i)).toBeInTheDocument();
     });
 
     it('should pass isAdmin flag to child components', () => {
       const comments = [createMockComment()];
-      
+
       renderWithClient(
         <CommentTree comments={comments} clipId="clip-1" isAdmin={true} />
       );
-      
+
       // Admin flag should be passed (testing that component renders)
       expect(screen.getByText(/Test comment/i)).toBeInTheDocument();
     });
@@ -238,11 +238,11 @@ describe('CommentTree', () => {
           replies: [createMockComment({ id: 'comment-2' })],
         }),
       ];
-      
+
       renderWithClient(
         <CommentTree comments={comments} clipId="test-clip-123" />
       );
-      
+
       // Both comments should render (clipId propagated correctly)
       expect(screen.getAllByText(/Test comment/i).length).toBeGreaterThan(0);
     });
@@ -251,17 +251,17 @@ describe('CommentTree', () => {
   describe('Edge cases', () => {
     it('should handle null replies gracefully', () => {
       const comments = [createMockComment({ replies: undefined })];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" />);
-      
+
       expect(screen.getByText(/Test comment/i)).toBeInTheDocument();
     });
 
     it('should handle empty replies array', () => {
       const comments = [createMockComment({ replies: [] })];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" />);
-      
+
       expect(screen.getByText(/Test comment/i)).toBeInTheDocument();
     });
 
@@ -272,9 +272,9 @@ describe('CommentTree', () => {
           content: 'This should not be visible',
         }),
       ];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" />);
-      
+
       expect(screen.getByText(/\[deleted by user\]/i)).toBeInTheDocument();
     });
 
@@ -286,11 +286,11 @@ describe('CommentTree', () => {
           content: 'This should not be visible',
         }),
       ];
-      
+
       renderWithClient(
         <CommentTree comments={comments} clipId="clip-1" isAdmin={true} />
       );
-      
+
       expect(screen.getByText(/\[removed by moderator\]/i)).toBeInTheDocument();
     });
   });
@@ -304,11 +304,11 @@ describe('CommentTree', () => {
           content: `Comment ${i}`,
         })
       );
-      
+
       const { container } = renderWithClient(
         <CommentTree comments={comments} clipId="clip-1" />
       );
-      
+
       // Should render all comments (CommentItem creates IDs as "comment-${comment.id}")
       expect(container.querySelectorAll('[id^="comment-"]').length).toBe(50);
     });
@@ -325,16 +325,16 @@ describe('CommentTree', () => {
       const { container } = renderWithClient(
         <CommentTree comments={comments} clipId="clip-1" />
       );
-      
+
       // Should have proper div structure
       expect(container.querySelector('div')).toBeInTheDocument();
     });
 
     it('should maintain proper comment IDs for anchor links', () => {
       const comments = [createMockComment({ id: 'comment-123' })];
-      
+
       renderWithClient(<CommentTree comments={comments} clipId="clip-1" />);
-      
+
       // CommentItem should render with proper ID
       const commentElement = document.getElementById('comment-comment-123');
       expect(commentElement).toBeInTheDocument();

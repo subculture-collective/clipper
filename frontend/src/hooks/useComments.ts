@@ -49,8 +49,8 @@ export const useCreateComment = () => {
       await queryClient.cancelQueries({ queryKey: ['comments', variables.clip_id] });
 
       // Snapshot the previous value
-      const previousComments = queryClient.getQueriesData({ 
-        queryKey: ['comments', variables.clip_id] 
+      const previousComments = queryClient.getQueriesData({
+        queryKey: ['comments', variables.clip_id]
       });
 
       // Optimistically update by incrementing child_count on parent if this is a reply

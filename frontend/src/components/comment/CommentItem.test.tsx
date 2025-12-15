@@ -253,7 +253,7 @@ describe('CommentItem - Collapse/Expand Badge', () => {
       renderWithClient(<CommentItem comment={comment} clipId="clip-1" />);
 
       const badge = screen.getByTitle('Collapse thread');
-      
+
       // Check for expected classes
       expect(badge).toHaveClass('text-xs');
       expect(badge).toHaveClass('text-muted-foreground');
@@ -422,7 +422,7 @@ describe('CommentItem - Collapse/Expand Badge', () => {
 
       // Should not show continue thread link
       expect(screen.queryByText(/View.*more.*in thread/i)).not.toBeInTheDocument();
-      
+
       // Should show replies normally
       expect(screen.getByText('Reply 1')).toBeInTheDocument();
       expect(screen.getByText('Reply 2')).toBeInTheDocument();
@@ -454,7 +454,7 @@ describe('CommentItem - Collapse/Expand Badge', () => {
       // Replies should not be rendered
       expect(screen.queryByText('Hidden Reply 1')).not.toBeInTheDocument();
       expect(screen.queryByText('Hidden Reply 2')).not.toBeInTheDocument();
-      
+
       // Should show continue thread link instead
       expect(screen.getByText(/View 2 more replies in thread/i)).toBeInTheDocument();
     });
@@ -474,7 +474,7 @@ describe('CommentItem - Collapse/Expand Badge', () => {
 
       // Should show deleted message
       expect(screen.getByText('[deleted by user]')).toBeInTheDocument();
-      
+
       // Should show continue thread link with count
       expect(screen.getByText(/View 3 more replies in thread/i)).toBeInTheDocument();
     });
@@ -488,7 +488,7 @@ describe('CommentItem - Collapse/Expand Badge', () => {
       renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
 
       const link = screen.getByText(/View 5 more replies in thread/i);
-      
+
       // Check for expected classes
       expect(link).toHaveClass('text-sm');
       expect(link).toHaveClass('text-primary-500');
