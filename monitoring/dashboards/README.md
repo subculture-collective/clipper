@@ -4,7 +4,94 @@ This directory contains Grafana dashboard configurations for monitoring Clipper.
 
 ## Available Dashboards
 
-### 1. Application Overview (`app-overview.json`)
+### 1. System Health Dashboard (`system-health.json`) 🆕
+
+Monitors system-level infrastructure metrics for servers and containers.
+
+**Panels:**
+
+- CPU Usage (%) - Per instance with thresholds at 70%/80%
+- Memory Usage (%) - Per instance with thresholds at 70%/80%
+- Disk Usage (%) - Per mountpoint with thresholds at 80%/90%
+- Disk I/O - Read/write rates
+- Network Traffic - Receive/transmit rates
+- System Load Average - 1m, 5m, 15m load
+- Current CPU/Memory/Disk stats
+- System Uptime
+
+**Use Cases:**
+- Monitor server resource utilization
+- Identify capacity issues before they impact performance
+- Track infrastructure health trends
+
+### 2. API Performance Dashboard (`api-performance.json`) 🆕
+
+Comprehensive API monitoring for request performance, throughput, and errors.
+
+**Panels:**
+
+- Request Rate - Requests per second by HTTP method
+- Error Rate (%) - With thresholds at 0.5%/1%
+- Latency (P50, P95, P99) - Response time percentiles
+- Throughput by Endpoint - Top 10 busiest endpoints
+- Status Code Distribution - 2xx, 4xx, 5xx breakdown
+- In-Flight Requests - Current concurrent requests
+- Request/Response Size - Data transfer metrics
+- Current stats - Request rate, error rate, P95 latency, active requests
+
+**Use Cases:**
+- Monitor API health and performance
+- Identify slow endpoints
+- Track error patterns
+- Capacity planning
+
+### 3. Database Dashboard (`database.json`) 🆕
+
+PostgreSQL database performance monitoring with query and connection metrics.
+
+**Panels:**
+
+- Active Connections - Connection pool usage with threshold at 80
+- Database Size - Storage growth over time
+- Query Rate - Queries per second
+- Transaction Rate - Commits and rollbacks
+- Query Duration (P95) - Query performance with threshold at 1s
+- Slow Queries - Queries taking > 1 second
+- Cache Hit Ratio - Buffer cache effectiveness (target: >95%)
+- Deadlocks - Database deadlock rate
+- Tuple Operations - Inserts, updates, deletes
+- Connection Pool Status - Active connections by database
+- Current stats - Connections, cache hit ratio, size, query rate
+
+**Use Cases:**
+- Optimize database query performance
+- Monitor connection pool health
+- Identify slow queries
+- Track database growth
+
+### 4. User Experience Dashboard (`user-experience.json`) 🆕
+
+Frontend and user-facing metrics for monitoring end-user experience.
+
+**Panels:**
+
+- Page Load Times - P50, P95, P99 latencies with thresholds
+- Error Rate by Status Code - 4xx and 5xx errors
+- Active Users - Current concurrent users
+- Request Success Rate - Target: >99.5%
+- API Response Time by Endpoint - P95 for top endpoints
+- Errors by Endpoint - Error rates by path
+- User Session Duration - P50 and P95 session lengths
+- Client Errors (4xx) - Breakdown by specific status codes
+- Current stats - Frontend load time, error rate, active users, success rate
+
+**Use Cases:**
+- Monitor end-user experience
+- Track page performance
+- Identify UX issues
+- Monitor user engagement
+
+### 5. Application Overview (`app-overview.json`)
 
 Provides a high-level view of application health and SLO compliance.
 
@@ -21,7 +108,7 @@ Provides a high-level view of application health and SLO compliance.
 - Database Connection Pool
 - Cache Hit Rate
 
-### 2. Search Quality Metrics (`search-quality.json`)
+### 6. Search Quality Metrics (`search-quality.json`)
 
 Tracks semantic search quality metrics and performance over time.
 
@@ -48,7 +135,7 @@ Tracks semantic search quality metrics and performance over time.
 - Average Click Position
 - Session Success Rate
 
-### 3. Engagement Metrics (`engagement-metrics.json`)
+### 7. Engagement Metrics (`engagement-metrics.json`)
 
 Tracks user engagement, platform health, and content performance metrics.
 

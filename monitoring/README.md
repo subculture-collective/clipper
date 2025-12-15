@@ -51,20 +51,26 @@ docker-compose -f docker-compose.monitoring.yml ps
 ### 4. Configure Grafana
 
 1. Log in to Grafana (admin / your_password)
-2. Go to Configuration > Data Sources
-3. Add Prometheus:
-   - URL: <http://prometheus:9090>
-   - Click "Save & Test"
-4. Add Loki (for centralized logging):
-   - URL: <http://loki:3100>
-   - Click "Save & Test"
-5. Import dashboards:
-   - Go to Dashboards > Import
-   - Import ID: 1860 (Node Exporter Full)
-   - Import ID: 9628 (PostgreSQL)
-   - Import ID: 11835 (Redis)
-   - Import ID: 12708 (Docker Containers)
-   - Import `monitoring/dashboards/logging-dashboard.json` (Centralized Logging)
+2. Data sources are automatically provisioned via `datasources/datasources.yml`
+3. Dashboards are automatically provisioned from the `dashboards/` directory
+
+**Available Dashboards:**
+- **System Health Dashboard** - CPU, memory, disk, network metrics
+- **API Performance Dashboard** - Request rate, latency, throughput, errors
+- **Database Dashboard** - Connections, query time, slow queries, cache hits
+- **User Experience Dashboard** - Page load times, error rates, active users
+- **Application Overview** - High-level SLO metrics and health
+- **Search Quality Metrics** - Semantic search performance
+- **Engagement Metrics** - User engagement and retention
+- **Logging Dashboard** - Centralized logging and security events
+- **Semantic Search Observability** - Search service monitoring
+
+You can also import community dashboards:
+- Go to Dashboards > Import
+- Import ID: 1860 (Node Exporter Full)
+- Import ID: 9628 (PostgreSQL)
+- Import ID: 11835 (Redis)
+- Import ID: 12708 (Docker Containers)
 
 ## Centralized Logging
 

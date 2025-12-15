@@ -1,0 +1,338 @@
+{
+  "dashboard": {
+    "title": "Database Dashboard",
+    "tags": ["clipper", "database", "postgresql"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Connections",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(pg_stat_database_numbackends) by (datname)",
+            "legendFormat": "{{ datname }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short"},
+          {"format": "short"}
+        ],
+        "thresholds": [
+          {"value": 80, "colorMode": "critical", "op": "gt", "fill": false, "line": true}
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 60, "color": "yellow"},
+                {"value": 80, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Database Size",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "pg_database_size_bytes",
+            "legendFormat": "{{ datname }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "bytes"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Query Rate (queries/sec)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_xact_commit[5m]) + rate(pg_stat_database_xact_rollback[5m])",
+            "legendFormat": "{{ datname }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Transaction Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_xact_commit[5m])",
+            "legendFormat": "{{ datname }} - Commits",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(pg_stat_database_xact_rollback[5m])",
+            "legendFormat": "{{ datname }} - Rollbacks",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Query Duration (P95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(pg_stat_statements_mean_exec_time_bucket[5m])) by (le))",
+            "legendFormat": "P95 Query Time",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms"},
+          {"format": "short"}
+        ],
+        "thresholds": [
+          {"value": 1000, "colorMode": "critical", "op": "gt", "fill": false, "line": true}
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 500, "color": "yellow"},
+                {"value": 1000, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Slow Queries (> 1s)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(pg_stat_activity_max_tx_duration[5m])",
+            "legendFormat": "Slow Query Count",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Cache Hit Ratio",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(rate(pg_stat_database_blks_hit[5m])) by (datname) / (sum(rate(pg_stat_database_blks_hit[5m])) by (datname) + sum(rate(pg_stat_database_blks_read[5m])) by (datname)) * 100",
+            "legendFormat": "{{ datname }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100},
+          {"format": "short"}
+        ],
+        "thresholds": [
+          {"value": 90, "colorMode": "warning", "op": "lt", "fill": false, "line": true}
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Deadlocks",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_deadlocks[5m])",
+            "legendFormat": "{{ datname }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Tuple Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_tup_inserted[5m])",
+            "legendFormat": "{{ datname }} - Inserts",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(pg_stat_database_tup_updated[5m])",
+            "legendFormat": "{{ datname }} - Updates",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(pg_stat_database_tup_deleted[5m])",
+            "legendFormat": "{{ datname }} - Deletes",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Connection Pool Status",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "pg_stat_database_numbackends",
+            "legendFormat": "{{ datname }} - Active",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Current Connections",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "sum(pg_stat_database_numbackends)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 60, "color": "yellow"},
+                {"value": 80, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Cache Hit Ratio",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 40},
+        "targets": [
+          {
+            "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "Database Size",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 40},
+        "targets": [
+          {
+            "expr": "sum(pg_database_size_bytes)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Query Rate",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 40},
+        "targets": [
+          {
+            "expr": "sum(rate(pg_stat_database_xact_commit[5m])) + sum(rate(pg_stat_database_xact_rollback[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"}
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}
