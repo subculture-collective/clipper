@@ -324,40 +324,193 @@ Vote on a clip.
 
 ### Comments
 
+> **📖 Complete Documentation**: See [[comment-api|Comment API Reference]] for full API documentation.
+> See [[comments|Comment System Feature]] for comprehensive feature overview, E2E testing procedures, and examples.
+
+**Features:**
+- Reddit-style nested threading (up to 10 levels deep)
+- Markdown support with XSS protection
+- Voting and karma system
+- Soft-delete preserves thread structure
+- Optimized for 1000+ comments per clip
+- Cross-platform parity (web + mobile)
+
+**Available Endpoints:**
+- `GET /api/v1/clips/:clipId/comments` - List comments with sorting/pagination
+- `POST /api/v1/clips/:clipId/comments` - Create comment or reply (auth required)
+- `GET /api/v1/comments/:id/replies` - Get nested replies
+- `PUT /api/v1/comments/:id` - Edit comment (auth required)
+- `DELETE /api/v1/comments/:id` - Delete comment (auth required)
+- `POST /api/v1/comments/:id/vote` - Vote on comment (auth required)
+
 #### GET /clips/:clip_id/comments
 
-List comments for a clip.
+List comments for a clip with sorting and pagination.
 
-**Auth**: Optional
+**Auth**: Optional (required for user vote data)
 
 **Query**:
-- `page`, `limit`: Pagination
-- `sort` (string): "best" | "new" | "controversial"
+- `limit` (number): Comments per page (default: 50, max: 100)
+- `cursor` (number): Pagination offset (default: 0)
+- `sort` (string): Sorting method - "best" (default), "new", "old", "controversial"
 
 **Response**:
 ```json
 {
-  "data": [
+  "comments": [
     {
       "id": "550e8400-...",
-      "user": {
-        "id": "123",
-        "username": "jane",
-        "avatar_url": "https://..."
-      },
+      "clip_id": "clip-uuid",
+      "user_id": "user-uuid",
+      "parent_comment_id": null,
       "content": "Great clip!",
-      "created_at": "2025-10-20T12:30:00Z",
+      "rendered_content": "<p>Great clip!</p>",
       "vote_score": 5,
-      "user_vote": 0
+      "reply_count": 3,
+      "is_edited": false,
+      "is_removed": false,
+      "created_at": "2024-12-15T12:30:00Z",
+      "updated_at": "2024-12-15T12:30:00Z",
+      "author_username": "jane",
+      "author_display_name": "Jane Doe",
+      "author_avatar_url": "https://...",
+      "author_karma": 1234,
+      "author_role": "user",
+      "user_vote": 0,
+      "replies": []
     }
   ],
-  "meta": {...}
+  "next_cursor": 50,
+  "has_more": true
 }
 ```
 
 #### POST /clips/:clip_id/comments
 
-Add a comment.
+Create a new comment or reply to an existing comment.
+
+**Auth**: Required
+
+**Rate Limit**: 10 requests per minute
+
+**Body**:
+```json
+{
+  "content": "This is a **great** clip! [More info](https://example.com)",
+  "parent_comment_id": "parent-uuid-or-null"
+}
+```
+
+**Validation**:
+- Content: 1-10,000 characters
+- Parent comment must belong to same clip (if provided)
+- Maximum nesting depth: 10 levels
+
+**Response (201 Created)**:
+```json
+{
+  "id": "new-comment-uuid",
+  "clip_id": "clip-uuid",
+  "user_id": "your-user-uuid",
+  "parent_comment_id": "parent-uuid-or-null",
+  "content": "This is a **great** clip! [More info](https://example.com)",
+  "vote_score": 0,
+  "is_edited": false,
+  "is_removed": false,
+  "created_at": "2024-12-15T10:30:00Z",
+  "updated_at": "2024-12-15T10:30:00Z"
+}
+```
+
+#### GET /comments/:id/replies
+
+Get nested replies to a specific comment.
+
+**Auth**: Optional
+
+**Query**:
+- `limit` (number): Replies per page (default: 50, max: 100)
+- `cursor` (number): Pagination offset (default: 0)
+
+**Response**: Same structure as list comments
+
+#### PUT /comments/:id
+
+Edit an existing comment.
+
+**Auth**: Required (must be comment author or admin)
+
+**Restrictions**:
+- Authors: 15-minute edit window
+- Admins: Can edit anytime
+- Sets `is_edited` flag to true
+
+**Body**:
+```json
+{
+  "content": "Updated content"
+}
+```
+
+**Response (200 OK)**:
+```json
+{
+  "message": "Comment updated successfully"
+}
+```
+
+#### DELETE /comments/:id
+
+Soft-delete a comment (preserves thread structure).
+
+**Auth**: Required (must be comment author, moderator, or admin)
+
+**Body (optional)**:
+```json
+{
+  "reason": "Removal reason (for moderators/admins)"
+}
+```
+
+**Behavior**:
+- Author deletion: Content replaced with "[deleted]"
+- Moderator/admin removal: Content replaced with "[removed]"
+- Nested replies remain visible
+- Author loses -1 karma for self-deletion
+
+**Response (200 OK)**:
+```json
+{
+  "message": "Comment deleted successfully"
+}
+```
+
+#### POST /comments/:id/vote
+
+Vote on a comment (upvote, downvote, or remove vote).
+
+**Auth**: Required
+
+**Rate Limit**: 20 requests per minute
+
+**Body**:
+```json
+{
+  "vote": 1
+}
+```
+
+**Vote Types**:
+- `1`: Upvote (+1 karma to author)
+- `-1`: Downvote (-1 karma to author)
+- `0`: Remove vote (reverses karma change)
+
+**Response (200 OK)**:
+```json
+{
+  "message": "Vote recorded successfully"
+}
+```
 
 **Auth**: Required
 

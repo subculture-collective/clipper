@@ -268,6 +268,50 @@ See [docs/authentication.md](docs/authentication.md) for complete authentication
 
 See [docs/TWITCH_INTEGRATION.md](docs/TWITCH_INTEGRATION.md) for complete Twitch API integration documentation.
 
+### Comments (NEW!)
+
+- `GET /api/v1/clips/:clipId/comments` - List comments for a clip with sorting and pagination
+- `POST /api/v1/clips/:clipId/comments` - Create a new comment or reply (requires auth)
+- `GET /api/v1/comments/:id/replies` - Get replies to a specific comment
+- `PUT /api/v1/comments/:id` - Edit a comment (requires auth)
+- `DELETE /api/v1/comments/:id` - Delete a comment (requires auth)
+- `POST /api/v1/comments/:id/vote` - Vote on a comment (requires auth)
+
+**Features:**
+- Reddit-style nested threading (up to 10 levels deep)
+- Markdown support with XSS protection
+- Voting system with optimistic updates
+- Soft-delete preserves thread structure
+- Performance optimized for 1000+ comments per clip
+
+**Examples:**
+
+```bash
+# List comments for a clip
+curl "http://localhost:8080/api/v1/clips/{clipId}/comments?sort=best&limit=20"
+
+# Create a comment
+curl -X POST "http://localhost:8080/api/v1/clips/{clipId}/comments" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"content": "Great clip!"}'
+
+# Create a nested reply
+curl -X POST "http://localhost:8080/api/v1/clips/{clipId}/comments" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"content": "I agree!", "parent_comment_id": "parent-uuid"}'
+
+# Vote on a comment (1 = upvote, -1 = downvote, 0 = remove vote)
+curl -X POST "http://localhost:8080/api/v1/comments/{commentId}/vote" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"vote": 1}'
+```
+
+See [docs/backend/comment-api.md](../docs/backend/comment-api.md) for complete comment API documentation.
+See [docs/features/comments.md](../docs/features/comments.md) for comprehensive feature overview and E2E testing procedures.
+
 ### API v1
 
 - `GET /api/v1/ping` - API ping test
