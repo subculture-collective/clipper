@@ -28,6 +28,7 @@ type AccountTypeService struct {
 	userRepo       *repository.UserRepository
 	conversionRepo *repository.AccountTypeConversionRepository
 	auditLogRepo   *repository.AuditLogRepository
+	mfaService     *MFAService
 }
 
 // NewAccountTypeService creates a new account type service
@@ -35,11 +36,13 @@ func NewAccountTypeService(
 	userRepo *repository.UserRepository,
 	conversionRepo *repository.AccountTypeConversionRepository,
 	auditLogRepo *repository.AuditLogRepository,
+	mfaService *MFAService,
 ) *AccountTypeService {
 	return &AccountTypeService{
 		userRepo:       userRepo,
 		conversionRepo: conversionRepo,
 		auditLogRepo:   auditLogRepo,
+		mfaService:     mfaService,
 	}
 }
 
@@ -191,6 +194,13 @@ func (s *AccountTypeService) ConvertToModerator(ctx context.Context, targetUserI
 		}
 	}
 
+	// Trigger MFA requirement for moderator role
+	if s.mfaService != nil {
+		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
+			log.Printf("WARNING: Failed to set MFA requirement for user %s: %v", targetUserID, err)
+		}
+	}
+
 	return nil
 }
 
@@ -251,6 +261,13 @@ func (s *AccountTypeService) ConvertToAdmin(ctx context.Context, targetUserID, a
 		}
 		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
 			log.Printf("WARNING: Failed to create moderation audit log for user %s: %v", targetUserID, err)
+		}
+	}
+
+	// Trigger MFA requirement for admin role
+	if s.mfaService != nil {
+		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
+			log.Printf("WARNING: Failed to set MFA requirement for user %s: %v", targetUserID, err)
 		}
 	}
 
