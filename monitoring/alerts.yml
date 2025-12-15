@@ -113,6 +113,21 @@ groups:
           summary: "High error rate on {{ $labels.job }}"
           description: "{{ $labels.job }} has an error rate of {{ $value | humanizePercentage }} over the last 5 minutes."
 
+      # Critical Error Rate (P1)
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (job)
+            /
+            sum(rate(http_requests_total[5m])) by (job)
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} has a critical error rate of {{ $value | humanizePercentage }} (threshold: > 1%)."
+
       # High Response Time
       - alert: HighResponseTime
         expr: |
