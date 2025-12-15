@@ -65,14 +65,31 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   if (comment.is_deleted || comment.is_removed) {
     return (
       <div className={cn('flex gap-3', className)} id={`comment-${comment.id}`}>
-        <div className="flex-shrink-0 w-12" /> {/* Spacer for alignment */}
+        {/* Spacer for alignment with collapse badge */}
+        <div className="flex-shrink-0 flex flex-col items-center gap-2">
+          <div className="w-12" /> {/* Spacer for vote buttons */}
+          
+          {/* Collapse/Expand badge */}
+          {comment.child_count > 0 && !shouldShowContinueThread && (
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer py-1 px-2 rounded flex items-center gap-1"
+              title={`${isCollapsed ? 'Expand' : 'Collapse'} thread`}
+              aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}`}
+            >
+              <span className="select-none">{isCollapsed ? '▶' : '▼'}</span>
+              <span>{comment.child_count}</span>
+            </button>
+          )}
+        </div>
+        
         <div className="flex-1">
           <div className="text-sm text-muted-foreground italic py-2">
             {comment.is_deleted ? '[deleted by user]' : '[removed by moderator]'}
             {comment.removed_reason && isAdmin && ` - ${comment.removed_reason}`}
           </div>
-          {/* Still show replies */}
-          {hasReplies && !isCollapsed && (
+          {/* Nested replies */}
+          {hasReplies && !shouldShowContinueThread && !isCollapsed && (
             <div className="mt-4">
               <CommentTree
                 comments={comment.replies!}
@@ -84,6 +101,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               />
             </div>
           )}
+          
+          {/* Continue thread link for max depth */}
+          {shouldShowContinueThread && (
+            <a
+              href={`/clips/${clipId}/comments/${comment.id}`}
+              className="mt-4 inline-block text-sm text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
+            >
+              Continue thread →
+            </a>
+          )}
         </div>
       </div>
     );
@@ -91,13 +118,26 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <div className={cn('flex gap-3', className)} id={`comment-${comment.id}`}>
-      {/* Vote buttons */}
-      <div className="flex-shrink-0">
+      {/* Vote buttons and collapse badge */}
+      <div className="flex-shrink-0 flex flex-col items-center gap-2">
         <CommentVoteButtons
           commentId={comment.id}
           score={comment.vote_score}
           userVote={comment.user_vote}
         />
+        
+        {/* Collapse/Expand badge */}
+        {comment.child_count > 0 && !shouldShowContinueThread && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer py-1 px-2 rounded flex items-center gap-1"
+            title={`${isCollapsed ? 'Expand' : 'Collapse'} thread`}
+            aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}`}
+          >
+            <span className="select-none">{isCollapsed ? '▶' : '▼'}</span>
+            <span>{comment.child_count}</span>
+          </button>
+        )}
       </div>
 
       {/* Comment content */}
@@ -124,13 +164,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
           <span className="text-xs text-muted-foreground">•</span>
 
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title={`${isCollapsed ? 'Expand' : 'Collapse'} thread (${formatTimestamp(comment.created_at).title})`}
+          <span
+            className="text-xs text-muted-foreground"
+            title={formatTimestamp(comment.created_at).title}
           >
             {formatTimestamp(comment.created_at).display}
-          </button>
+          </span>
 
           {comment.edited_at && (
             <>
@@ -140,15 +179,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           )}
         </div>
 
-        {/* Collapsed state */}
-        {isCollapsed ? (
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="text-sm text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
-          >
-            [{hasReplies ? `${comment.child_count} ${comment.child_count === 1 ? 'reply' : 'replies'}` : 'expand'}]
-          </button>
-        ) : (
+        {/* Show content only when expanded (not collapsed) */}
+        {!isCollapsed && (
           <>
             {/* Content */}
             {isEditing ? (
