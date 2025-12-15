@@ -253,7 +253,16 @@ main() {
   log_instruction "• Users will not be logged out immediately"
   log_instruction "• Monitor logs for any JWT verification errors"
   log_info ""
-  log_info "Next rotation recommended: $(date -d '+90 days' '+%Y-%m-%d')"
+  
+  # Calculate next rotation date (90 days) - portable across Linux and macOS
+  if date --version >/dev/null 2>&1; then
+    # GNU date (Linux)
+    next_date=$(date -d '+90 days' '+%Y-%m-%d')
+  else
+    # BSD date (macOS)
+    next_date=$(date -v+90d '+%Y-%m-%d')
+  fi
+  log_info "Next rotation recommended: $next_date"
   
   if [ "$DRY_RUN" = false ] && [ -f "$TEMP_DIR/old_private.pem" ]; then
     log_info ""

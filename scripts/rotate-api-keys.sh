@@ -132,12 +132,15 @@ rotate_stripe() {
   log_instruction "2. Click 'Create secret key' or 'Roll secret key'"
   log_instruction "3. Copy the new secret key (starts with 'sk_live_' or 'sk_test_')"
   log_instruction ""
+  log_instruction "NOTE: Paste carefully - input is hidden for security"
+  log_instruction ""
   
   if [ "$DRY_RUN" = true ]; then
     log_warn "DRY RUN: Skipping interactive input"
     NEW_KEY="sk_test_dryrun"
   else
-    read -p "Enter new Stripe secret key: " -s NEW_KEY
+    # Read key securely - input is not echoed to terminal
+    read -rsp "Enter new Stripe secret key: " NEW_KEY
     echo ""
     
     if [[ ! "$NEW_KEY" =~ ^sk_(live|test)_ ]]; then
@@ -169,7 +172,16 @@ rotate_stripe() {
   restart_backend
   
   log_info "✓ Stripe key rotation complete"
-  log_info "Next rotation recommended: $(date -d '+180 days' '+%Y-%m-%d')"
+  
+  # Calculate next rotation date (180 days) - portable across Linux and macOS
+  if date --version >/dev/null 2>&1; then
+    # GNU date (Linux)
+    next_date=$(date -d '+180 days' '+%Y-%m-%d')
+  else
+    # BSD date (macOS)
+    next_date=$(date -v+180d '+%Y-%m-%d')
+  fi
+  log_info "Next rotation recommended: $next_date"
 }
 
 # Rotate Twitch credentials
@@ -183,14 +195,16 @@ rotate_twitch() {
   log_instruction "3. Click 'Manage' → 'New Secret'"
   log_instruction "4. Copy the Client ID and Client Secret"
   log_instruction ""
+  log_instruction "NOTE: Input is hidden for security"
+  log_instruction ""
   
   if [ "$DRY_RUN" = true ]; then
     log_warn "DRY RUN: Skipping interactive input"
     NEW_CLIENT_ID="dryrun_client_id"
     NEW_CLIENT_SECRET="dryrun_client_secret"
   else
-    read -p "Enter new Twitch Client ID: " NEW_CLIENT_ID
-    read -p "Enter new Twitch Client Secret: " -s NEW_CLIENT_SECRET
+    read -rp "Enter new Twitch Client ID: " NEW_CLIENT_ID
+    read -rsp "Enter new Twitch Client Secret: " NEW_CLIENT_SECRET
     echo ""
     
     if [ -z "$NEW_CLIENT_ID" ] || [ -z "$NEW_CLIENT_SECRET" ]; then
@@ -215,7 +229,16 @@ rotate_twitch() {
   restart_backend
   
   log_info "✓ Twitch credentials rotation complete"
-  log_info "Next rotation recommended: $(date -d '+90 days' '+%Y-%m-%d')"
+  
+  # Calculate next rotation date (90 days) - portable across Linux and macOS
+  if date --version >/dev/null 2>&1; then
+    # GNU date (Linux)
+    next_date=$(date -d '+90 days' '+%Y-%m-%d')
+  else
+    # BSD date (macOS)
+    next_date=$(date -v+90d '+%Y-%m-%d')
+  fi
+  log_info "Next rotation recommended: $next_date"
   log_warn "Note: Existing user sessions remain valid. No user action required."
 }
 
@@ -230,12 +253,14 @@ rotate_openai() {
   log_instruction "3. Name it 'clipper-production-$(date +%Y%m%d)'"
   log_instruction "4. Copy the secret key (starts with 'sk-')"
   log_instruction ""
+  log_instruction "NOTE: Input is hidden for security"
+  log_instruction ""
   
   if [ "$DRY_RUN" = true ]; then
     log_warn "DRY RUN: Skipping interactive input"
     NEW_KEY="sk-dryrun"
   else
-    read -p "Enter new OpenAI API key: " -s NEW_KEY
+    read -rsp "Enter new OpenAI API key: " NEW_KEY
     echo ""
     
     if [[ ! "$NEW_KEY" =~ ^sk- ]]; then
@@ -265,7 +290,16 @@ rotate_openai() {
   restart_backend
   
   log_info "✓ OpenAI key rotation complete"
-  log_info "Next rotation recommended: $(date -d '+180 days' '+%Y-%m-%d')"
+  
+  # Calculate next rotation date (180 days) - portable across Linux and macOS
+  if date --version >/dev/null 2>&1; then
+    # GNU date (Linux)
+    next_date=$(date -d '+180 days' '+%Y-%m-%d')
+  else
+    # BSD date (macOS)
+    next_date=$(date -v+180d '+%Y-%m-%d')
+  fi
+  log_info "Next rotation recommended: $next_date"
 }
 
 # Main
