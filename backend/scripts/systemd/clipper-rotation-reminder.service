@@ -1,5 +1,8 @@
 # Systemd service for credential rotation reminder
 # Install to /etc/systemd/system/clipper-rotation-reminder.service
+#
+# Note: This service uses GNU date (date -d) which is Linux-specific.
+# It is designed to run on Linux servers where systemd is available.
 
 [Unit]
 Description=Clipper Credential Rotation Reminder

@@ -17,15 +17,6 @@ DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-clipper_db}"
 DRY_RUN=false
 
-# Detect OS for date command compatibility
-if date --version >/dev/null 2>&1; then
-  # GNU date (Linux)
-  DATE_CMD="date"
-else
-  # BSD date (macOS)
-  DATE_CMD="date"
-fi
-
 # Parse arguments
 for arg in "$@"; do
   case $arg in
