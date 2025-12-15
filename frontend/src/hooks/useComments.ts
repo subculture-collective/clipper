@@ -131,8 +131,68 @@ export const useUpdateComment = () => {
     }) => {
       return commentApi.updateComment(commentId, payload);
     },
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['comments'] });
+
+      // Snapshot previous values
+      const previousComments = queryClient.getQueriesData({ queryKey: ['comments'] });
+
+      // Optimistically update the comment
+      queryClient.setQueriesData({ queryKey: ['comments'] }, (old: unknown) => {
+        if (!old || typeof old !== 'object') return old;
+
+        const updateComment = (comment: Comment): Comment => {
+          if (comment.id === variables.commentId) {
+            return {
+              ...comment,
+              content: variables.payload.content,
+              edited_at: new Date().toISOString(),
+            };
+          }
+
+          // Recursively update nested replies
+          if (comment.replies) {
+            return {
+              ...comment,
+              replies: comment.replies.map(updateComment),
+            };
+          }
+
+          return comment;
+        };
+
+        // Handle both paginated and non-paginated data
+        if ('pages' in old && Array.isArray(old.pages)) {
+          return {
+            ...old,
+            pages: old.pages.map((page: CommentFeedResponse) => ({
+              ...page,
+              comments: page.comments.map(updateComment),
+            })),
+          };
+        } else if ('comments' in old && Array.isArray(old.comments)) {
+          return {
+            ...old,
+            comments: old.comments.map(updateComment),
+          };
+        }
+
+        return old;
+      });
+
+      return { previousComments };
+    },
+    onError: (_err, _variables, context) => {
+      // Revert on error
+      if (context?.previousComments) {
+        context.previousComments.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
     onSuccess: () => {
-      // Invalidate all comment queries
+      // Invalidate to refetch and sync any server-computed fields (e.g., edited_at)
       queryClient.invalidateQueries({ queryKey: ['comments'] });
     },
   });
@@ -146,8 +206,68 @@ export const useDeleteComment = () => {
     mutationFn: async (commentId: string) => {
       return commentApi.deleteComment(commentId);
     },
+    onMutate: async (commentId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['comments'] });
+
+      // Snapshot previous values
+      const previousComments = queryClient.getQueriesData({ queryKey: ['comments'] });
+
+      // Optimistically mark the comment as deleted (keep structure intact)
+      queryClient.setQueriesData({ queryKey: ['comments'] }, (old: unknown) => {
+        if (!old || typeof old !== 'object') return old;
+
+        const updateComment = (comment: Comment): Comment => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              is_deleted: true,
+              content: '[deleted by user]',
+            };
+          }
+
+          // Recursively update nested replies
+          if (comment.replies) {
+            return {
+              ...comment,
+              replies: comment.replies.map(updateComment),
+            };
+          }
+
+          return comment;
+        };
+
+        // Handle both paginated and non-paginated data
+        if ('pages' in old && Array.isArray(old.pages)) {
+          return {
+            ...old,
+            pages: old.pages.map((page: CommentFeedResponse) => ({
+              ...page,
+              comments: page.comments.map(updateComment),
+            })),
+          };
+        } else if ('comments' in old && Array.isArray(old.comments)) {
+          return {
+            ...old,
+            comments: old.comments.map(updateComment),
+          };
+        }
+
+        return old;
+      });
+
+      return { previousComments };
+    },
+    onError: (_err, _variables, context) => {
+      // Revert on error
+      if (context?.previousComments) {
+        context.previousComments.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
     onSuccess: () => {
-      // Invalidate all comment queries
+      // Invalidate to ensure consistency with server-side deletion state
       queryClient.invalidateQueries({ queryKey: ['comments'] });
     },
   });
