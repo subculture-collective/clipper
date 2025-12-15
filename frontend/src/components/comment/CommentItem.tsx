@@ -108,7 +108,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               href={`/clips/${clipId}/comments/${comment.id}`}
               className="mt-4 inline-block text-sm text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
             >
-              Continue thread →
+              View {comment.child_count} more {comment.child_count === 1 ? 'reply' : 'replies'} in thread →
             </a>
           )}
         </div>
@@ -283,7 +283,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 href={`/clips/${clipId}/comments/${comment.id}`}
                 className="mt-4 inline-block text-sm text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
               >
-                Continue thread →
+                View {comment.child_count} more {comment.child_count === 1 ? 'reply' : 'replies'} in thread →
               </a>
             )}
           </>

@@ -359,4 +359,153 @@ describe('CommentItem - Collapse/Expand Badge', () => {
       expect(badge).toHaveAttribute('aria-label', 'Expand 2 replies');
     });
   });
+
+  describe('Depth-limited thread navigation', () => {
+    it('should show "View N more replies" link when at max depth with replies', () => {
+      const comment = createMockComment({
+        child_count: 5,
+        replies: [
+          createMockComment({ id: 'reply-1' }),
+          createMockComment({ id: 'reply-2' }),
+        ],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
+
+      // Should show the link with count
+      const link = screen.getByText(/View 5 more replies in thread/i);
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/clips/clip-1/comments/comment-1');
+    });
+
+    it('should use singular "reply" when child_count is 1', () => {
+      const comment = createMockComment({
+        child_count: 1,
+        replies: [createMockComment({ id: 'reply-1' })],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
+
+      // Should show singular form
+      const link = screen.getByText(/View 1 more reply in thread/i);
+      expect(link).toBeInTheDocument();
+    });
+
+    it('should use plural "replies" when child_count is greater than 1', () => {
+      const comment = createMockComment({
+        child_count: 3,
+        replies: [
+          createMockComment({ id: 'reply-1' }),
+          createMockComment({ id: 'reply-2' }),
+          createMockComment({ id: 'reply-3' }),
+        ],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
+
+      // Should show plural form
+      const link = screen.getByText(/View 3 more replies in thread/i);
+      expect(link).toBeInTheDocument();
+    });
+
+    it('should not show continue thread link when below max depth', () => {
+      const comment = createMockComment({
+        child_count: 2,
+        replies: [
+          createMockComment({ id: 'reply-1', content: 'Reply 1', child_count: 0 }),
+          createMockComment({ id: 'reply-2', content: 'Reply 2', child_count: 0 }),
+        ],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={5} maxDepth={10} />);
+
+      // Should not show continue thread link
+      expect(screen.queryByText(/View.*more.*in thread/i)).not.toBeInTheDocument();
+      
+      // Should show replies normally
+      expect(screen.getByText('Reply 1')).toBeInTheDocument();
+      expect(screen.getByText('Reply 2')).toBeInTheDocument();
+    });
+
+    it('should not show continue thread link when no replies', () => {
+      const comment = createMockComment({
+        child_count: 0,
+        replies: [],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
+
+      // Should not show link when there are no replies
+      expect(screen.queryByText(/View.*more.*in thread/i)).not.toBeInTheDocument();
+    });
+
+    it('should hide nested replies when at max depth', () => {
+      const comment = createMockComment({
+        child_count: 2,
+        replies: [
+          createMockComment({ id: 'reply-1', content: 'Hidden Reply 1', child_count: 0 }),
+          createMockComment({ id: 'reply-2', content: 'Hidden Reply 2', child_count: 0 }),
+        ],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
+
+      // Replies should not be rendered
+      expect(screen.queryByText('Hidden Reply 1')).not.toBeInTheDocument();
+      expect(screen.queryByText('Hidden Reply 2')).not.toBeInTheDocument();
+      
+      // Should show continue thread link instead
+      expect(screen.getByText(/View 2 more replies in thread/i)).toBeInTheDocument();
+    });
+
+    it('should show continue thread link for deleted comment at max depth', () => {
+      const comment = createMockComment({
+        is_deleted: true,
+        child_count: 3,
+        replies: [
+          createMockComment({ id: 'reply-1' }),
+          createMockComment({ id: 'reply-2' }),
+          createMockComment({ id: 'reply-3' }),
+        ],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
+
+      // Should show deleted message
+      expect(screen.getByText('[deleted by user]')).toBeInTheDocument();
+      
+      // Should show continue thread link with count
+      expect(screen.getByText(/View 3 more replies in thread/i)).toBeInTheDocument();
+    });
+
+    it('should have correct link styling and classes', () => {
+      const comment = createMockComment({
+        child_count: 5,
+        replies: [createMockComment({ id: 'reply-1' })],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="clip-1" depth={10} maxDepth={10} />);
+
+      const link = screen.getByText(/View 5 more replies in thread/i);
+      
+      // Check for expected classes
+      expect(link).toHaveClass('text-sm');
+      expect(link).toHaveClass('text-primary-500');
+      expect(link).toHaveClass('hover:text-primary-600');
+      expect(link).toHaveClass('inline-block');
+    });
+
+    it('should use correct clipId in link URL', () => {
+      const comment = createMockComment({
+        id: 'test-comment-456',
+        child_count: 2,
+        replies: [createMockComment({ id: 'reply-1' })],
+      });
+
+      renderWithClient(<CommentItem comment={comment} clipId="test-clip-789" depth={10} maxDepth={10} />);
+
+      const link = screen.getByText(/View 2 more replies in thread/i);
+      expect(link).toHaveAttribute('href', '/clips/test-clip-789/comments/test-comment-456');
+    });
+  });
 });
