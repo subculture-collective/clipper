@@ -146,6 +146,7 @@ type Comment struct {
 	ParentCommentID *uuid.UUID `json:"parent_comment_id,omitempty" db:"parent_comment_id"`
 	Content         string     `json:"content" db:"content"`
 	VoteScore       int        `json:"vote_score" db:"vote_score"`
+	ReplyCount      int        `json:"reply_count" db:"reply_count"`
 	IsEdited        bool       `json:"is_edited" db:"is_edited"`
 	IsRemoved       bool       `json:"is_removed" db:"is_removed"`
 	RemovedReason   *string    `json:"removed_reason,omitempty" db:"removed_reason"`

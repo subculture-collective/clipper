@@ -38,6 +38,22 @@ This directory contains OpenAPI 3.0 specifications for the Clipper API.
   - `GET /api/v1/submissions` - List user's submissions
   - `GET /api/v1/submissions/stats` - Get submission statistics
 
+### Comments API
+- **File**: [`comments-api.yaml`](./comments-api.yaml)
+- **Description**: API for managing comments on clips with nested threading support
+- **Version**: 1.0.0
+- **Endpoints**:
+  - `GET /api/v1/clips/{clipId}/comments` - List comments for a clip (with optional nested replies)
+  - `POST /api/v1/clips/{clipId}/comments` - Create a comment on a clip
+  - `GET /api/v1/comments/{commentId}/replies` - Get direct replies to a comment
+- **Features**:
+  - Flat list or nested tree structure (up to 10 levels deep)
+  - Vote scores and user vote status
+  - Reply counts
+  - Markdown rendering
+  - Author information
+  - Moderation fields (is_removed, removed_reason)
+
 ## Viewing the Specifications
 
 ### Online Viewers
