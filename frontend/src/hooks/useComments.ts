@@ -192,7 +192,7 @@ export const useUpdateComment = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate all comment queries to refetch fresh data
+      // Invalidate to refetch and sync any server-computed fields (e.g., edited_at)
       queryClient.invalidateQueries({ queryKey: ['comments'] });
     },
   });
@@ -267,7 +267,7 @@ export const useDeleteComment = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate all comment queries to refetch fresh data
+      // Invalidate to ensure consistency with server-side deletion state
       queryClient.invalidateQueries({ queryKey: ['comments'] });
     },
   });
