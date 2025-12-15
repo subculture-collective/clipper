@@ -2341,6 +2341,9 @@ type UserMFA struct {
 	EnrolledAt             *time.Time `json:"enrolled_at,omitempty" db:"enrolled_at"`
 	BackupCodes            []string   `json:"-" db:"backup_codes"` // Never expose hashed codes
 	BackupCodesGeneratedAt *time.Time `json:"backup_codes_generated_at,omitempty" db:"backup_codes_generated_at"`
+	MFARequired            bool       `json:"mfa_required" db:"mfa_required"`
+	MFARequiredAt          *time.Time `json:"mfa_required_at,omitempty" db:"mfa_required_at"`
+	GracePeriodEnd         *time.Time `json:"grace_period_end,omitempty" db:"grace_period_end"`
 	CreatedAt              time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt              time.Time  `json:"updated_at" db:"updated_at"`
 }
@@ -2427,4 +2430,8 @@ type MFAStatusResponse struct {
 	EnrolledAt           *time.Time `json:"enrolled_at,omitempty"`
 	BackupCodesRemaining int        `json:"backup_codes_remaining"`
 	TrustedDevicesCount  int        `json:"trusted_devices_count"`
+	Required             bool       `json:"required"`              // Whether MFA is required for this user
+	RequiredAt           *time.Time `json:"required_at,omitempty"` // When MFA became required
+	GracePeriodEnd       *time.Time `json:"grace_period_end,omitempty"`
+	InGracePeriod        bool       `json:"in_grace_period"` // Whether user is in grace period
 }
