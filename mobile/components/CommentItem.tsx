@@ -159,7 +159,7 @@ export function CommentItem({
                 {hasReplies && onToggleReplies && (
                     <TouchableOpacity
                         onPress={() => onToggleReplies(comment.id)}
-                        className="py-1 px-2 rounded active:bg-gray-100 bg-blue-50 border border-blue-200"
+                        className="py-1 px-2 rounded active:bg-blue-100 bg-blue-50 border border-blue-200"
                     >
                         <Text className="text-sm font-semibold text-primary-600">
                             {showReplies ? '↑' : '↓'} {replyCount}{' '}
@@ -211,8 +211,8 @@ export function CommentItem({
             {/* Deep thread continuation link */}
             {depth >= maxDepth && hasReplies && (
                 <View className="mt-3">
-                    <Text className="text-sm text-primary-600 font-semibold">
-                        View {replyCount} more {replyCount === 1 ? 'reply' : 'replies'} →
+                    <Text className="text-sm text-gray-600 italic">
+                        {replyCount} more {replyCount === 1 ? 'reply' : 'replies'} (max depth reached)
                     </Text>
                 </View>
             )}
