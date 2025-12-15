@@ -19,13 +19,14 @@ const ITEMS_PER_PAGE = 10;
 // Hook to fetch comments with infinite scroll
 export const useComments = (clipId: string, sort: CommentSortOption = 'best') => {
   return useInfiniteQuery({
-    queryKey: ['comments', clipId, sort],
+    queryKey: ['comments', clipId, sort, 'with-replies'],
     queryFn: ({ pageParam = 1 }) =>
       commentApi.fetchComments({
         clipId,
         sort,
         pageParam,
         limit: ITEMS_PER_PAGE,
+        includeReplies: true, // Fetch nested replies for tree structure
       }),
     getNextPageParam: (lastPage) => {
       return lastPage.has_more ? lastPage.page + 1 : undefined;
