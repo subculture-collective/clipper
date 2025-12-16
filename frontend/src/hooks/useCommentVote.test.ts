@@ -17,13 +17,14 @@ const createMockComment = (overrides: Partial<Comment> = {}): Comment => ({
   user_avatar: 'https://example.com/avatar.png',
   user_karma: 1234,
   user_role: 'user',
-  parent_id: null,
+  parent_comment_id: null,
   content: 'Test comment',
   vote_score: 5,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   is_deleted: false,
   is_removed: false,
+  reply_count: 0,
   depth: 0,
   child_count: 0,
   user_vote: null,
@@ -306,7 +307,7 @@ describe('useCommentVote - Optimistic Updates', () => {
     it('should optimistically update nested reply votes', async () => {
       const mockReply = createMockComment({
         id: 'comment-2',
-        parent_id: 'comment-1',
+        parent_comment_id: 'comment-1',
         vote_score: 3,
         user_vote: null,
         depth: 1,
@@ -315,6 +316,7 @@ describe('useCommentVote - Optimistic Updates', () => {
       const mockComment = createMockComment({
         vote_score: 5,
         user_vote: null,
+        reply_count: 1,
         child_count: 1,
         replies: [mockReply],
       });
@@ -365,7 +367,7 @@ describe('useCommentVote - Optimistic Updates', () => {
     it('should optimistically update deeply nested replies', async () => {
       const mockReply3 = createMockComment({
         id: 'comment-3',
-        parent_id: 'comment-2',
+        parent_comment_id: 'comment-2',
         vote_score: 2,
         user_vote: null,
         depth: 2,
@@ -374,10 +376,11 @@ describe('useCommentVote - Optimistic Updates', () => {
 
       const mockReply2 = createMockComment({
         id: 'comment-2',
-        parent_id: 'comment-1',
+        parent_comment_id: 'comment-1',
         vote_score: 3,
         user_vote: null,
         depth: 1,
+        reply_count: 1,
         child_count: 1,
         replies: [mockReply3],
       });
@@ -385,6 +388,7 @@ describe('useCommentVote - Optimistic Updates', () => {
       const mockComment = createMockComment({
         vote_score: 5,
         user_vote: null,
+        reply_count: 2,
         child_count: 2,
         replies: [mockReply2],
       });

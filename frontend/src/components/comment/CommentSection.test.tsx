@@ -32,13 +32,14 @@ const createMockComment = (overrides: Partial<Comment> = {}): Comment => ({
   user_avatar: 'https://example.com/avatar.png',
   user_karma: 1234,
   user_role: 'user',
-  parent_id: null,
+  parent_comment_id: null,
   content: 'Test comment',
   vote_score: 5,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   is_deleted: false,
   is_removed: false,
+  reply_count: 0,
   depth: 0,
   child_count: 0,
   user_vote: null,
@@ -253,24 +254,26 @@ describe('CommentSection', () => {
       });
 
       // Should have been called once with 'best' sort
-      expect(commentApi.fetchComments).toHaveBeenCalledWith({
+      expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
         clipId: 'clip-1',
         sort: 'best',
         pageParam: 1,
         limit: 10,
-      });
+        includeReplies: true,
+      }));
 
       const sortSelect = screen.getByLabelText(/Sort by:/i);
       await user.selectOptions(sortSelect, 'new');
 
       // Should be called again with 'new' sort
       await waitFor(() => {
-        expect(commentApi.fetchComments).toHaveBeenCalledWith({
+        expect(commentApi.fetchComments).toHaveBeenCalledWith(expect.objectContaining({
           clipId: 'clip-1',
           sort: 'new',
           pageParam: 1,
           limit: 10,
-        });
+          includeReplies: true,
+        }));
       });
     });
   });

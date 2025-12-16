@@ -51,13 +51,14 @@ export const mockComments = [
         user_avatar: mockUser.profile_image_url,
         user_karma: 1234,
         user_role: 'user',
-        parent_id: null,
+        parent_comment_id: null,
         content: 'Great play!',
         vote_score: 5,
         created_at: '2024-01-01T10:00:00Z',
         updated_at: '2024-01-01T10:00:00Z',
         is_deleted: false,
         is_removed: false,
+        reply_count: 1,
         depth: 0,
         child_count: 1,
         user_vote: 1,
@@ -71,13 +72,14 @@ export const mockComments = [
         user_avatar: 'https://example.com/avatar2.png',
         user_karma: 500,
         user_role: 'user',
-        parent_id: 'comment-1',
+        parent_comment_id: 'comment-1',
         content: 'I agree!',
         vote_score: 2,
         created_at: '2024-01-01T11:00:00Z',
         updated_at: '2024-01-01T11:00:00Z',
         is_deleted: false,
         is_removed: false,
+        reply_count: 0,
         depth: 1,
         child_count: 0,
         user_vote: null,
@@ -183,7 +185,7 @@ export const handlers = [
         async ({ request, params }) => {
             const body = (await request.json()) as {
                 content: string;
-                parent_id?: string;
+                parent_comment_id?: string;
             };
 
             return HttpResponse.json(
@@ -195,14 +197,15 @@ export const handlers = [
                     user_avatar: mockUser.profile_image_url,
                     user_karma: 1234,
                     user_role: 'user',
-                    parent_id: body.parent_id || null,
+                    parent_comment_id: body.parent_comment_id || null,
                     content: body.content,
                     vote_score: 1,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                     is_deleted: false,
                     is_removed: false,
-                    depth: body.parent_id ? 1 : 0,
+                    reply_count: 0,
+                    depth: body.parent_comment_id ? 1 : 0,
                     child_count: 0,
                     user_vote: 1,
                     replies: [],
