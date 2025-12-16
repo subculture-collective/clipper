@@ -545,6 +545,38 @@ The repository includes several deployment automation scripts in the `scripts/` 
 sudo ./scripts/setup-ssl.sh
 ```
 
+### Blue/Green Deployment (Zero-Downtime)
+
+**NEW**: Clipper supports blue/green deployment for zero-downtime production releases:
+
+```bash
+# Zero-downtime deployment
+./scripts/blue-green-deploy.sh
+
+# Deploy specific version
+IMAGE_TAG=v1.2.3 ./scripts/blue-green-deploy.sh
+
+# Quick rollback if issues occur
+./scripts/rollback-blue-green.sh
+
+# Test deployment in staging
+./scripts/test-blue-green-deployment.sh
+
+# Check migration compatibility
+./scripts/check-migration-compatibility.sh
+```
+
+**Benefits**:
+- ✓ Zero downtime - Instant traffic switching
+- ✓ Instant rollback - Revert in seconds
+- ✓ Safe testing - Verify before switching traffic
+- ✓ Automatic rollback on health check failure
+
+**Documentation**:
+- [Blue/Green Deployment Guide](docs/operations/BLUE_GREEN_DEPLOYMENT.md) - Complete setup and usage
+- [Rollback Procedures](docs/operations/BLUE_GREEN_ROLLBACK.md) - Emergency rollback steps
+- [Quick Reference](docs/operations/BLUE_GREEN_QUICK_REFERENCE.md) - Command cheat sheet
+
 See [RUNBOOK.md](./docs/RUNBOOK.md) for detailed operational procedures.
 
 ## 🤝 Contributing
