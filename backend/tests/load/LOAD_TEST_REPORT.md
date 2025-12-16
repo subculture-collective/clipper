@@ -221,7 +221,7 @@ Comprehensive indexes added for:
 
 #### 3.2 N+1 Query Analysis
 
-**Document**: `backend/docs/OPTIMIZATION_ANALYSIS.md`
+**Document**: `backend/tests/load/PERFORMANCE_SUMMARY.md`
 
 Identified and documented N+1 query patterns:
 
@@ -485,8 +485,8 @@ Recommended monitoring setup:
 
 3. **Existing Documentation**:
    - `backend/tests/load/PERFORMANCE_SUMMARY.md` - Database optimization details
-   - `backend/docs/PROFILING.md` - Profiling guide
-   - `backend/docs/OPTIMIZATION_ANALYSIS.md` - Optimization recommendations
+   - `backend/tests/load/PROFILING_REPORT_TEMPLATE.md` - Profiling guide template
+   - `backend/tests/load/README.md` - Complete load testing reference
 
 ---
 
@@ -506,7 +506,7 @@ Recommended monitoring setup:
   - [x] System stable under 2x expected load - Load tests exceed targets
 
 - [x] **Bottlenecks identified and documented:**
-  - [x] N+1 query patterns - Documented in OPTIMIZATION_ANALYSIS.md
+  - [x] N+1 query patterns - Documented in PERFORMANCE_SUMMARY.md
   - [x] Database performance - Documented in PERFORMANCE_SUMMARY.md
   - [x] Caching opportunities - Documented with recommendations
 

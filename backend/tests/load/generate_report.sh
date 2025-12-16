@@ -46,7 +46,7 @@ if ! command -v k6 &> /dev/null; then
 fi
 
 # Check if backend is running
-if ! curl -s "${BASE_URL}/health" > /dev/null; then
+if ! curl -s "${BASE_URL}/health" > /dev/null 2>&1; then
     print_warning "Backend is not responding at ${BASE_URL}"
     print_warning "Make sure the backend is running: make backend-dev"
     print_warning "Continuing anyway - tests will fail if backend is not available"
@@ -79,13 +79,13 @@ declare -a TEST_RESULTS
 run_test() {
     local test_name="$1"
     local test_file="$2"
-    local test_options="$3"
+    local base_url="$3"
     
     print_header "Running: ${test_name}"
     
     local output_file="${REPORT_DIR}/output_${test_name}_${TIMESTAMP}.txt"
     
-    if k6 run ${test_options} "${test_file}" > "${output_file}" 2>&1; then
+    if k6 run -e "BASE_URL=${base_url}" "${test_file}" > "${output_file}" 2>&1; then
         print_success "${test_name} completed"
         TEST_RESULTS+=("${test_name}:SUCCESS:${output_file}")
     else
@@ -97,12 +97,13 @@ run_test() {
 }
 
 # Run all test scenarios
-run_test "Feed Browsing" "backend/tests/load/scenarios/feed_browsing.js" "-e BASE_URL=${BASE_URL}"
-run_test "Clip Detail" "backend/tests/load/scenarios/clip_detail.js" "-e BASE_URL=${BASE_URL}"
-run_test "Search" "backend/tests/load/scenarios/search.js" "-e BASE_URL=${BASE_URL}"
-run_test "Comments" "backend/tests/load/scenarios/comments.js" "-e BASE_URL=${BASE_URL}"
-run_test "Authentication" "backend/tests/load/scenarios/authentication.js" "-e BASE_URL=${BASE_URL}"
-run_test "Mixed Behavior" "backend/tests/load/scenarios/mixed_behavior.js" "-e BASE_URL=${BASE_URL}"
+run_test "Feed Browsing" "backend/tests/load/scenarios/feed_browsing.js" "${BASE_URL}"
+run_test "Clip Detail" "backend/tests/load/scenarios/clip_detail.js" "${BASE_URL}"
+run_test "Search" "backend/tests/load/scenarios/search.js" "${BASE_URL}"
+run_test "Comments" "backend/tests/load/scenarios/comments.js" "${BASE_URL}"
+run_test "Authentication" "backend/tests/load/scenarios/authentication.js" "${BASE_URL}"
+run_test "Submit" "backend/tests/load/scenarios/submit.js" "${BASE_URL}"
+run_test "Mixed Behavior" "backend/tests/load/scenarios/mixed_behavior.js" "${BASE_URL}"
 
 # Generate report content
 print_header "Generating Report"
@@ -147,7 +148,7 @@ EOF
         # Extract key metrics from k6 output
         cat >> "${REPORT_FILE}" << EOF
 \`\`\`
-$(grep -A 30 "checks\|http_req_duration\|http_reqs\|vus\|iterations" "${output_file}" | head -40 || echo "Metrics not available")
+$(grep -A 30 "checks\|http_req_duration\|http_reqs\|vus\|iterations" "${output_file}" 2>/dev/null | head -40 || echo "Metrics not available")
 \`\`\`
 
 EOF

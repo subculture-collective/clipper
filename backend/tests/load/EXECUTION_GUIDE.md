@@ -349,7 +349,7 @@ jobs:
 ### 2. Implement Optimizations
 
 Based on findings:
-- Apply database optimizations (see `OPTIMIZATION_ANALYSIS.md`)
+- Apply database optimizations (see `PERFORMANCE_SUMMARY.md`)
 - Implement N+1 query fixes
 - Optimize caching strategies
 
@@ -375,8 +375,7 @@ Set up monitoring:
 
 - **Load Test README**: `backend/tests/load/README.md`
 - **Implementation Report**: `backend/tests/load/LOAD_TEST_REPORT.md`
-- **Profiling Guide**: `backend/docs/PROFILING.md`
-- **Optimization Analysis**: `backend/docs/OPTIMIZATION_ANALYSIS.md`
+- **Performance Summary**: `backend/tests/load/PERFORMANCE_SUMMARY.md`
 - **K6 Documentation**: https://k6.io/docs/
 
 ---

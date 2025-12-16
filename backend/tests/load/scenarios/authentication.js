@@ -96,9 +96,13 @@ function simulateAnonymousUser() {
     
     totalRequests.add(1);
     
-    check(healthResponse, {
+    const success = check(healthResponse, {
         'health check is 200': (r) => r.status === 200,
-    }) || errorRate.add(1);
+    });
+    
+    if (!success) {
+        errorRate.add(1);
+    }
     
     const duration = Date.now() - startTime;
     authFlowDuration.add(duration);
@@ -108,8 +112,6 @@ function simulateAnonymousUser() {
 }
 
 function fetchUserProfile() {
-    const startTime = Date.now();
-    
     const response = http.get(
         `${BASE_URL}/api/v1/auth/me`,
         {
@@ -156,7 +158,6 @@ function fetchUserProfile() {
 function simulateTokenRefresh() {
     // Note: Actual token refresh requires a valid refresh token
     // This simulates the endpoint call pattern
-    const startTime = Date.now();
     
     // In a real scenario, this would use a refresh token
     // For load testing, we're measuring the endpoint performance
@@ -178,7 +179,7 @@ function simulateTokenRefresh() {
     tokenRefreshTime.add(response.timings.duration);
     
     // We expect this to fail with invalid token, but we're measuring performance
-    const success = check(response, {
+    check(response, {
         'refresh response received': (r) => r.status !== 0,
         'refresh response time < 100ms': (r) => r.timings.duration < 100,
         'refresh response time < 50ms': (r) => r.timings.duration < 50,
@@ -191,8 +192,6 @@ function simulateTokenRefresh() {
 }
 
 function simulateLogout() {
-    const startTime = Date.now();
-    
     const response = http.post(
         `${BASE_URL}/api/v1/auth/logout`,
         null,
