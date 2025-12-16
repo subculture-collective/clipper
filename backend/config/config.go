@@ -27,6 +27,8 @@ type Config struct {
 	Jobs         JobsConfig
 	RateLimit    RateLimitConfig
 	Security     SecurityConfig
+	QueryLimits  QueryLimitsConfig
+	SearchLimits SearchLimitsConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -180,6 +182,23 @@ type SecurityConfig struct {
 	MFAEncryptionKey string // 32-byte key for AES-256 encryption of MFA secrets
 }
 
+// QueryLimitsConfig holds database query limits
+type QueryLimitsConfig struct {
+	MaxResultSize   int // Maximum rows per query (default: 1000)
+	MaxOffset       int // Maximum pagination offset (default: 1000)
+	MaxJoinDepth    int // Maximum number of joins (default: 3)
+	MaxQueryTimeSec int // Maximum query execution time in seconds (default: 10)
+}
+
+// SearchLimitsConfig holds OpenSearch query limits
+type SearchLimitsConfig struct {
+	MaxResultSize      int // Maximum results per search (default: 100)
+	MaxAggregationSize int // Maximum aggregation buckets (default: 100)
+	MaxAggregationNest int // Maximum aggregation depth (default: 2)
+	MaxQueryClauses    int // Maximum query clauses (default: 20)
+	MaxSearchTimeSec   int // Maximum search timeout in seconds (default: 5)
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -310,6 +329,19 @@ func Load() (*Config, error) {
 		},
 		Security: SecurityConfig{
 			MFAEncryptionKey: getEnv("MFA_ENCRYPTION_KEY", ""),
+		},
+		QueryLimits: QueryLimitsConfig{
+			MaxResultSize:   getEnvInt("QUERY_MAX_RESULT_SIZE", 1000),
+			MaxOffset:       getEnvInt("QUERY_MAX_OFFSET", 1000),
+			MaxJoinDepth:    getEnvInt("QUERY_MAX_JOIN_DEPTH", 3),
+			MaxQueryTimeSec: getEnvInt("QUERY_MAX_TIME_SEC", 10),
+		},
+		SearchLimits: SearchLimitsConfig{
+			MaxResultSize:      getEnvInt("SEARCH_MAX_RESULT_SIZE", 100),
+			MaxAggregationSize: getEnvInt("SEARCH_MAX_AGGREGATION_SIZE", 100),
+			MaxAggregationNest: getEnvInt("SEARCH_MAX_AGGREGATION_NEST", 2),
+			MaxQueryClauses:    getEnvInt("SEARCH_MAX_QUERY_CLAUSES", 20),
+			MaxSearchTimeSec:   getEnvInt("SEARCH_MAX_TIME_SEC", 5),
 		},
 	}
 
