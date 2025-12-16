@@ -289,22 +289,37 @@ log_step "Creating test admin user"
 ADMIN_EMAIL="admin@staging.clipper.app"
 ADMIN_USERNAME="staging_admin"
 
-# Check if admin exists
-ADMIN_EXISTS=$($PSQL_CMD -t -c "SELECT COUNT(*) FROM users WHERE email = '$ADMIN_EMAIL';" | xargs)
+# Check if admin exists (using safe parameter to avoid SQL injection)
+ADMIN_EXISTS=$($PSQL_CMD -t -c "SELECT COUNT(*) FROM users WHERE email = \$\$${ADMIN_EMAIL}\$\$;" | xargs)
 
 if [ "$ADMIN_EXISTS" -eq 0 ]; then
     log_info "Creating admin user: $ADMIN_USERNAME"
     
-    # Generate a random password
-    ADMIN_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+    # Generate a secure random password (20 characters)
+    ADMIN_PASSWORD=$(openssl rand -base64 24 | tr -d "=+/" | cut -c1-20)
     
-    # Note: This is a simplified approach. In production, use proper password hashing
-    log_warn "Test admin credentials:"
-    echo "  Username: $ADMIN_USERNAME"
-    echo "  Email: $ADMIN_EMAIL"
-    echo "  Password: $ADMIN_PASSWORD"
-    echo ""
-    log_warn "Save these credentials securely!"
+    # Save credentials to secure file instead of logging
+    CREDENTIALS_FILE="/var/backups/clipper-staging/admin-credentials.txt"
+    mkdir -p /var/backups/clipper-staging
+    cat > "$CREDENTIALS_FILE" << EOF
+Staging Admin Credentials ($(date '+%Y-%m-%d %H:%M:%S'))
+================================================================
+Username: $ADMIN_USERNAME
+Email: $ADMIN_EMAIL
+Password: $ADMIN_PASSWORD
+
+IMPORTANT: 
+- Delete this file after noting credentials securely
+- These are test credentials for staging only
+- Use backend's setup-admin.sh for proper password hashing
+================================================================
+EOF
+    chmod 600 "$CREDENTIALS_FILE"
+    chown deploy:deploy "$CREDENTIALS_FILE"
+    
+    log_info "Admin credentials saved to: $CREDENTIALS_FILE"
+    log_warn "IMPORTANT: Retrieve credentials from file and delete it"
+    log_warn "Use: sudo cat $CREDENTIALS_FILE"
     
     # You can use the backend's admin setup script here if available
     if [ -f "$SCRIPT_DIR/setup-admin.sh" ]; then

@@ -161,14 +161,32 @@ if [ "$SKIP_DOCKER_INSTALL" = false ]; then
         
         # Add Docker's official GPG key
         mkdir -p /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-            gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         
-        # Set up repository
-        echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-            $(lsb_release -cs) stable" | \
-            tee /etc/apt/sources.list.d/docker.list > /dev/null
+        # Detect OS and use appropriate repository
+        if [ -f /etc/debian_version ]; then
+            OS_ID=$(grep '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+            if [ "$OS_ID" = "ubuntu" ]; then
+                curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+                    gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+                echo \
+                    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                    $(lsb_release -cs) stable" | \
+                    tee /etc/apt/sources.list.d/docker.list > /dev/null
+            elif [ "$OS_ID" = "debian" ]; then
+                curl -fsSL https://download.docker.com/linux/debian/gpg | \
+                    gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+                echo \
+                    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+                    $(lsb_release -cs) stable" | \
+                    tee /etc/apt/sources.list.d/docker.list > /dev/null
+            else
+                log_error "Unsupported OS: $OS_ID"
+                exit 1
+            fi
+        else
+            log_error "Could not detect Debian-based OS"
+            exit 1
+        fi
         
         # Install Docker
         apt-get update -qq
@@ -281,8 +299,13 @@ fi
 log_step "Pulling Docker images"
 
 cd "$STAGING_DIR"
-docker compose pull 2>&1 | grep -v "Pulling" || true
-log_info "Docker images pulled"
+if docker compose pull 2>&1 | grep -v "Pulling"; then
+    log_info "Docker images pulled"
+else
+    log_error "Failed to pull Docker images"
+    log_error "Check network connectivity and registry access"
+    exit 1
+fi
 
 # Step 9: Create deployment user
 log_step "Creating deployment user"
