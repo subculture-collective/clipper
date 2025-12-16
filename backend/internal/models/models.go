@@ -27,9 +27,14 @@ type User struct {
 	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
 	FollowerCount        int        `json:"follower_count" db:"follower_count"`
 	FollowingCount       int        `json:"following_count" db:"following_count"`
-	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt          *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	// DMCA-related fields
+	DMCAStrikesCount    int        `json:"dmca_strikes_count" db:"dmca_strikes_count"`
+	DMCASuspendedUntil  *time.Time `json:"dmca_suspended_until,omitempty" db:"dmca_suspended_until"`
+	DMCATerminated      bool       `json:"dmca_terminated" db:"dmca_terminated"`
+	DMCATerminatedAt    *time.Time `json:"dmca_terminated_at,omitempty" db:"dmca_terminated_at"`
+	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -127,6 +132,11 @@ type Clip struct {
 	EmbeddingModel       *string    `json:"embedding_model,omitempty" db:"embedding_model"`
 	SubmittedByUserID    *uuid.UUID `json:"submitted_by_user_id,omitempty" db:"submitted_by_user_id"`
 	SubmittedAt          *time.Time `json:"submitted_at,omitempty" db:"submitted_at"`
+	// DMCA-related fields
+	DMCARemoved      bool       `json:"dmca_removed" db:"dmca_removed"`
+	DMCANoticeID     *uuid.UUID `json:"dmca_notice_id,omitempty" db:"dmca_notice_id"`
+	DMCARemovedAt    *time.Time `json:"dmca_removed_at,omitempty" db:"dmca_removed_at"`
+	DMCAReinstatedAt *time.Time `json:"dmca_reinstated_at,omitempty" db:"dmca_reinstated_at"`
 }
 
 // Vote represents a user's vote on a clip
@@ -2434,4 +2444,141 @@ type MFAStatusResponse struct {
 	RequiredAt           *time.Time `json:"required_at,omitempty"` // When MFA became required
 	GracePeriodEnd       *time.Time `json:"grace_period_end,omitempty"`
 	InGracePeriod        bool       `json:"in_grace_period"` // Whether user is in grace period
+}
+
+// ============================================================================
+// DMCA System Models
+// ============================================================================
+
+// DMCANotice represents a DMCA takedown notice submitted by a copyright holder
+type DMCANotice struct {
+	ID                          uuid.UUID  `json:"id" db:"id"`
+	ComplainantName             string     `json:"complainant_name" db:"complainant_name"`
+	ComplainantEmail            string     `json:"complainant_email" db:"complainant_email"`
+	ComplainantAddress          string     `json:"complainant_address" db:"complainant_address"`
+	ComplainantPhone            *string    `json:"complainant_phone,omitempty" db:"complainant_phone"`
+	Relationship                string     `json:"relationship" db:"relationship"` // 'owner' or 'agent'
+	CopyrightedWorkDescription  string     `json:"copyrighted_work_description" db:"copyrighted_work_description"`
+	InfringingURLs              []string   `json:"infringing_urls" db:"infringing_urls"` // PostgreSQL array
+	GoodFaithStatement          bool       `json:"good_faith_statement" db:"good_faith_statement"`
+	AccuracyStatement           bool       `json:"accuracy_statement" db:"accuracy_statement"`
+	Signature                   string     `json:"signature" db:"signature"`
+	SubmittedAt                 time.Time  `json:"submitted_at" db:"submitted_at"`
+	ReviewedAt                  *time.Time `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	ReviewedBy                  *uuid.UUID `json:"reviewed_by,omitempty" db:"reviewed_by"`
+	Status                      string     `json:"status" db:"status"` // pending, valid, invalid, processed
+	Notes                       *string    `json:"notes,omitempty" db:"notes"`
+	IPAddress                   *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent                   *string    `json:"user_agent,omitempty" db:"user_agent"`
+	CreatedAt                   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                   time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// DMCACounterNotice represents a DMCA counter-notice submitted by a user
+type DMCACounterNotice struct {
+	ID                        uuid.UUID  `json:"id" db:"id"`
+	DMCANoticeID              uuid.UUID  `json:"dmca_notice_id" db:"dmca_notice_id"`
+	UserID                    *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
+	UserName                  string     `json:"user_name" db:"user_name"`
+	UserEmail                 string     `json:"user_email" db:"user_email"`
+	UserAddress               string     `json:"user_address" db:"user_address"`
+	UserPhone                 *string    `json:"user_phone,omitempty" db:"user_phone"`
+	RemovedMaterialURL        string     `json:"removed_material_url" db:"removed_material_url"`
+	RemovedMaterialDescription *string   `json:"removed_material_description,omitempty" db:"removed_material_description"`
+	GoodFaithStatement        bool       `json:"good_faith_statement" db:"good_faith_statement"`
+	ConsentToJurisdiction     bool       `json:"consent_to_jurisdiction" db:"consent_to_jurisdiction"`
+	ConsentToService          bool       `json:"consent_to_service" db:"consent_to_service"`
+	Signature                 string     `json:"signature" db:"signature"`
+	SubmittedAt               time.Time  `json:"submitted_at" db:"submitted_at"`
+	ForwardedAt               *time.Time `json:"forwarded_at,omitempty" db:"forwarded_at"`
+	WaitingPeriodEnds         *time.Time `json:"waiting_period_ends,omitempty" db:"waiting_period_ends"`
+	Status                    string     `json:"status" db:"status"` // pending, forwarded, waiting, reinstated, rejected
+	LawsuitFiled              bool       `json:"lawsuit_filed" db:"lawsuit_filed"`
+	LawsuitFiledAt            *time.Time `json:"lawsuit_filed_at,omitempty" db:"lawsuit_filed_at"`
+	Notes                     *string    `json:"notes,omitempty" db:"notes"`
+	IPAddress                 *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent                 *string    `json:"user_agent,omitempty" db:"user_agent"`
+	CreatedAt                 time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                 time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// DMCAStrike represents a copyright strike against a user
+type DMCAStrike struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	UserID         uuid.UUID  `json:"user_id" db:"user_id"`
+	DMCANoticeID   uuid.UUID  `json:"dmca_notice_id" db:"dmca_notice_id"`
+	ClipID         *uuid.UUID `json:"clip_id,omitempty" db:"clip_id"`
+	SubmissionID   *uuid.UUID `json:"submission_id,omitempty" db:"submission_id"`
+	StrikeNumber   int        `json:"strike_number" db:"strike_number"`
+	IssuedAt       time.Time  `json:"issued_at" db:"issued_at"`
+	ExpiresAt      time.Time  `json:"expires_at" db:"expires_at"`
+	Status         string     `json:"status" db:"status"` // active, removed, expired
+	RemovalReason  *string    `json:"removal_reason,omitempty" db:"removal_reason"`
+	RemovedAt      *time.Time `json:"removed_at,omitempty" db:"removed_at"`
+	Notes          *string    `json:"notes,omitempty" db:"notes"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// SubmitDMCANoticeRequest represents the request to submit a DMCA takedown notice
+type SubmitDMCANoticeRequest struct {
+	ComplainantName            string   `json:"complainant_name" binding:"required,min=2,max=255"`
+	ComplainantEmail           string   `json:"complainant_email" binding:"required,email,max=255"`
+	ComplainantAddress         string   `json:"complainant_address" binding:"required,min=10"`
+	ComplainantPhone           *string  `json:"complainant_phone,omitempty" binding:"omitempty,max=50"`
+	Relationship               string   `json:"relationship" binding:"required,oneof=owner agent"`
+	CopyrightedWorkDescription string   `json:"copyrighted_work_description" binding:"required,min=20"`
+	InfringingURLs             []string `json:"infringing_urls" binding:"required,min=1,dive,url"`
+	GoodFaithStatement         bool     `json:"good_faith_statement" binding:"required"`
+	AccuracyStatement          bool     `json:"accuracy_statement" binding:"required"`
+	Signature                  string   `json:"signature" binding:"required,min=2,max=255"`
+}
+
+// SubmitDMCACounterNoticeRequest represents the request to submit a counter-notice
+type SubmitDMCACounterNoticeRequest struct {
+	DMCANoticeID              uuid.UUID `json:"dmca_notice_id" binding:"required"`
+	UserName                  string    `json:"user_name" binding:"required,min=2,max=255"`
+	UserEmail                 string    `json:"user_email" binding:"required,email,max=255"`
+	UserAddress               string    `json:"user_address" binding:"required,min=10"`
+	UserPhone                 *string   `json:"user_phone,omitempty" binding:"omitempty,max=50"`
+	RemovedMaterialURL        string    `json:"removed_material_url" binding:"required,url"`
+	RemovedMaterialDescription *string  `json:"removed_material_description,omitempty"`
+	GoodFaithStatement        bool      `json:"good_faith_statement" binding:"required"`
+	ConsentToJurisdiction     bool      `json:"consent_to_jurisdiction" binding:"required"`
+	ConsentToService          bool      `json:"consent_to_service" binding:"required"`
+	Signature                 string    `json:"signature" binding:"required,min=2,max=255"`
+}
+
+// UpdateDMCANoticeStatusRequest represents admin request to update notice status
+type UpdateDMCANoticeStatusRequest struct {
+	Status string  `json:"status" binding:"required,oneof=pending valid invalid processed"`
+	Notes  *string `json:"notes,omitempty" binding:"omitempty,max=5000"`
+}
+
+// DMCANoticeListResponse represents a list of DMCA notices for admin panel
+type DMCANoticeListResponse struct {
+	Notices    []DMCANotice `json:"notices"`
+	TotalCount int          `json:"total_count"`
+	Page       int          `json:"page"`
+	PageSize   int          `json:"page_size"`
+}
+
+// DMCAStrikeListResponse represents a list of strikes for a user
+type DMCAStrikeListResponse struct {
+	Strikes      []DMCAStrike `json:"strikes"`
+	ActiveCount  int          `json:"active_count"`
+	ExpiredCount int          `json:"expired_count"`
+	RemovedCount int          `json:"removed_count"`
+}
+
+// DMCADashboardStats represents admin dashboard statistics
+type DMCADashboardStats struct {
+	PendingNotices          int `json:"pending_notices"`
+	PendingCounterNotices   int `json:"pending_counter_notices"`
+	ContentAwaitingRemoval  int `json:"content_awaiting_removal"`
+	ContentAwaitingRestore  int `json:"content_awaiting_restore"`
+	UsersWithActiveStrikes  int `json:"users_with_active_strikes"`
+	UsersWithTwoStrikes     int `json:"users_with_two_strikes"`
+	TotalTakedownsThisMonth int `json:"total_takedowns_this_month"`
+	TotalCounterNoticesThisMonth int `json:"total_counter_notices_this_month"`
 }
