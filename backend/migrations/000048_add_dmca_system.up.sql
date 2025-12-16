@@ -124,6 +124,7 @@ BEGIN
             AND status = 'active'
         )
         WHERE id = NEW.user_id;
+        RETURN NEW;
     END IF;
     
     IF TG_OP = 'DELETE' THEN
@@ -135,9 +136,10 @@ BEGIN
             AND status = 'active'
         )
         WHERE id = OLD.user_id;
+        RETURN OLD;
     END IF;
     
-    RETURN NEW;
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 

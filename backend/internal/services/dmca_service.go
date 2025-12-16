@@ -15,6 +15,13 @@ import (
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
+// Constants for DMCA strike removal reasons
+const (
+	StrikeRemovalReasonCounterNotice = "counter_notice_successful"
+	StrikeRemovalReasonAdminOverride = "admin_override"
+	StrikeRemovalReasonExpired       = "expired"
+)
+
 // DMCAService handles DMCA takedown notices, counter-notices, and strike management
 type DMCAService struct {
 	repo          *repository.DMCARepository
@@ -135,15 +142,20 @@ func (s *DMCAService) SubmitTakedownNotice(ctx context.Context, req *models.Subm
 func (s *DMCAService) validateTakedownNotice(req *models.SubmitDMCANoticeRequest) error {
 	// Validate URLs are from this platform
 	for _, urlStr := range req.InfringingURLs {
+		// Limit URL length to prevent log injection
+		if len(urlStr) > 500 {
+			return fmt.Errorf("URL exceeds maximum length of 500 characters")
+		}
+		
 		parsedURL, err := url.Parse(urlStr)
 		if err != nil {
-			return fmt.Errorf("invalid URL '%s': %w", urlStr, err)
+			return fmt.Errorf("invalid URL format in infringing URLs")
 		}
 
 		// Check if URL is from our domain
 		baseURL, _ := url.Parse(s.baseURL)
 		if baseURL != nil && parsedURL.Host != baseURL.Host {
-			return fmt.Errorf("URL '%s' is not from this platform", urlStr)
+			return fmt.Errorf("provided URL is not from this platform")
 		}
 	}
 
@@ -787,7 +799,7 @@ func (s *DMCAService) reinstateContent(ctx context.Context, cn *models.DMCACount
 		removeStrikeQuery := `
 			UPDATE dmca_strikes
 			SET status = 'removed', 
-			    removal_reason = 'counter_notice_successful',
+			    removal_reason = StrikeRemovalReasonCounterNotice,
 			    removed_at = NOW()
 			WHERE user_id = $1 AND dmca_notice_id = $2 AND status = 'active'`
 
