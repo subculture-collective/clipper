@@ -2529,6 +2529,8 @@ type SubmitDMCANoticeRequest struct {
 	Relationship               string   `json:"relationship" binding:"required,oneof=owner agent"`
 	CopyrightedWorkDescription string   `json:"copyrighted_work_description" binding:"required,min=20"`
 	InfringingURLs             []string `json:"infringing_urls" binding:"required,min=1,dive,url"`
+	// Note: binding:"required" on booleans only validates presence, not truthiness
+	// Service layer validates these are true (dmca_service.go lines 168-173)
 	GoodFaithStatement         bool     `json:"good_faith_statement" binding:"required"`
 	AccuracyStatement          bool     `json:"accuracy_statement" binding:"required"`
 	Signature                  string   `json:"signature" binding:"required,min=2,max=255"`

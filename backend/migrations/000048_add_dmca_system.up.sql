@@ -115,7 +115,7 @@ CREATE INDEX idx_users_dmca_terminated ON users(dmca_terminated) WHERE dmca_term
 CREATE OR REPLACE FUNCTION update_user_dmca_strikes_count()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+    IF TG_OP = 'INSERT' THEN
         UPDATE users
         SET dmca_strikes_count = (
             SELECT COUNT(*)
@@ -124,6 +124,21 @@ BEGIN
             AND status = 'active'
         )
         WHERE id = NEW.user_id;
+        RETURN NEW;
+    END IF;
+    
+    IF TG_OP = 'UPDATE' THEN
+        -- Only recalculate if status changed
+        IF OLD.status IS DISTINCT FROM NEW.status THEN
+            UPDATE users
+            SET dmca_strikes_count = (
+                SELECT COUNT(*)
+                FROM dmca_strikes
+                WHERE user_id = NEW.user_id
+                AND status = 'active'
+            )
+            WHERE id = NEW.user_id;
+        END IF;
         RETURN NEW;
     END IF;
     

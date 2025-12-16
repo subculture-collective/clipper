@@ -140,6 +140,12 @@ func (s *DMCAService) SubmitTakedownNotice(ctx context.Context, req *models.Subm
 
 // validateTakedownNotice validates a takedown notice for completeness
 func (s *DMCAService) validateTakedownNotice(req *models.SubmitDMCANoticeRequest) error {
+	// Parse and validate base URL once
+	baseURL, err := url.Parse(s.baseURL)
+	if err != nil {
+		return fmt.Errorf("service configuration error: invalid base URL")
+	}
+	
 	// Validate URLs are from this platform
 	for _, urlStr := range req.InfringingURLs {
 		// Limit URL length to prevent log injection
@@ -153,8 +159,7 @@ func (s *DMCAService) validateTakedownNotice(req *models.SubmitDMCANoticeRequest
 		}
 
 		// Check if URL is from our domain
-		baseURL, _ := url.Parse(s.baseURL)
-		if baseURL != nil && parsedURL.Host != baseURL.Host {
+		if parsedURL.Host != baseURL.Host {
 			return fmt.Errorf("provided URL is not from this platform")
 		}
 	}
@@ -191,15 +196,31 @@ func (s *DMCAService) fuzzyMatchSignature(signature, name string) bool {
 
 	// Check if signature contains most of the name words
 	nameWords := strings.Fields(normName)
+	
+	// Edge case: if name has no valid words, require exact match
+	if len(nameWords) == 0 {
+		return normSig == normName
+	}
+	
 	matchCount := 0
+	validWordCount := 0 // Count words longer than 2 chars
+	
 	for _, word := range nameWords {
-		if len(word) > 2 && strings.Contains(normSig, word) {
-			matchCount++
+		if len(word) > 2 {
+			validWordCount++
+			if strings.Contains(normSig, word) {
+				matchCount++
+			}
 		}
 	}
+	
+	// If all words are <= 2 chars, fall back to substring match
+	if validWordCount == 0 {
+		return strings.Contains(normSig, normName)
+	}
 
-	// At least 50% of name words should be in signature
-	return matchCount >= (len(nameWords)+1)/2
+	// At least 50% of valid words should be in signature
+	return matchCount >= (validWordCount+1)/2
 }
 
 // ==============================================================================
@@ -306,14 +327,18 @@ func (s *DMCAService) ProcessTakedown(ctx context.Context, noticeID, adminID uui
 		}
 	}
 
-	// Update notice status to processed
-	if err := s.repo.UpdateNoticeStatus(ctx, noticeID, "processed", adminID, nil); err != nil {
-		return fmt.Errorf("failed to update notice status: %w", err)
-	}
-
 	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Update notice status to processed (after transaction commits)
+	if err := s.repo.UpdateNoticeStatus(ctx, noticeID, "processed", adminID, nil); err != nil {
+		s.logger.Error("Failed to update notice status after processing", nil, map[string]interface{}{
+			"notice_id": noticeID,
+			"error":     err.Error(),
+		})
+		// Don't return error - content is already removed
 	}
 
 	// Issue strikes and notify users (outside transaction)
@@ -388,12 +413,26 @@ func (s *DMCAService) extractClipIDFromURL(urlStr string) (uuid.UUID, error) {
 	}
 
 	// Extract ID from path like /clip/{id}
-	parts := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
-	if len(parts) >= 2 && parts[0] == "clip" {
-		return uuid.Parse(parts[1])
+	// Remove query params and fragments, then split path
+	path := strings.Trim(parsedURL.Path, "/")
+	parts := strings.Split(path, "/")
+	
+	// Expect exactly 2 parts: "clip" and the UUID
+	if len(parts) != 2 {
+		return uuid.Nil, fmt.Errorf("invalid clip URL format: expected /clip/{id}")
+	}
+	
+	if parts[0] != "clip" {
+		return uuid.Nil, fmt.Errorf("invalid clip URL format: path must start with /clip/")
+	}
+	
+	// Parse and validate UUID
+	clipID, err := uuid.Parse(parts[1])
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid clip ID format: %w", err)
 	}
 
-	return uuid.Nil, fmt.Errorf("unable to extract clip ID from URL")
+	return clipID, nil
 }
 
 // ==============================================================================
@@ -682,15 +721,17 @@ func (s *DMCAService) validateCounterNotice(req *models.SubmitDMCACounterNoticeR
 }
 
 // calculateWaitingPeriodEnd calculates the end of the 10-14 business day waiting period
+// Note: Calculations are performed in UTC for consistency across timezones
 func (s *DMCAService) calculateWaitingPeriodEnd(start time.Time) time.Time {
 	// Use 14 business days (approximately 20 calendar days accounting for weekends)
+	// Standardize to UTC for consistent legal compliance
 	businessDays := 14
 	daysAdded := 0
-	current := start
+	current := start.UTC()
 
 	for daysAdded < businessDays {
 		current = current.AddDate(0, 0, 1)
-		// Skip weekends
+		// Skip weekends (Saturday and Sunday in UTC)
 		if current.Weekday() != time.Saturday && current.Weekday() != time.Sunday {
 			daysAdded++
 		}
@@ -799,11 +840,11 @@ func (s *DMCAService) reinstateContent(ctx context.Context, cn *models.DMCACount
 		removeStrikeQuery := `
 			UPDATE dmca_strikes
 			SET status = 'removed', 
-			    removal_reason = StrikeRemovalReasonCounterNotice,
+			    removal_reason = $3,
 			    removed_at = NOW()
 			WHERE user_id = $1 AND dmca_notice_id = $2 AND status = 'active'`
 
-		_, err = tx.Exec(ctx, removeStrikeQuery, cn.UserID, cn.DMCANoticeID)
+		_, err = tx.Exec(ctx, removeStrikeQuery, cn.UserID, cn.DMCANoticeID, StrikeRemovalReasonCounterNotice)
 		if err != nil {
 			s.logger.Error("Failed to remove strike", nil, map[string]interface{}{
 				"user_id":   cn.UserID,
@@ -813,14 +854,18 @@ func (s *DMCAService) reinstateContent(ctx context.Context, cn *models.DMCACount
 		}
 	}
 
-	// Update counter-notice status
-	if err := s.repo.UpdateCounterNoticeStatus(ctx, cn.ID, "reinstated", nil); err != nil {
-		return fmt.Errorf("failed to update counter-notice status: %w", err)
-	}
-
 	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Update counter-notice status (after transaction commits)
+	if err := s.repo.UpdateCounterNoticeStatus(ctx, cn.ID, "reinstated", nil); err != nil {
+		s.logger.Error("Failed to update counter-notice status after reinstatement", nil, map[string]interface{}{
+			"counter_notice_id": cn.ID,
+			"error":             err.Error(),
+		})
+		// Don't return error - content is already reinstated
 	}
 
 	// Send notification emails
