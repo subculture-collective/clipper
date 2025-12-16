@@ -1,8 +1,9 @@
+---
 name: Deploy to Staging
 
 on:
   push:
-    branches: [ develop ]
+    branches: [develop]
   workflow_dispatch:
 
 env:
@@ -19,7 +20,7 @@ jobs:
     environment:
       name: staging
       url: https://staging.clpr.tv
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -60,22 +61,27 @@ jobs:
           username: deploy
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd /opt/clipper
+            cd /opt/clipper-staging
             docker compose pull
             docker compose up -d
             docker system prune -f
 
       - name: Run smoke tests
         run: |
+          set -e
           echo "Running smoke tests..."
-          # Add smoke test commands here when staging is configured
-          echo "Smoke tests would run against ${{ secrets.STAGING_HOST }}"
+          echo "Testing staging environment at https://${{ secrets.STAGING_HOST }}"
+
+          # Basic health checks - will fail the workflow if any check fails
+          curl -f https://${{ secrets.STAGING_HOST }}/api/v1/health
+          curl -f https://${{ secrets.STAGING_HOST }}/
 
       - name: Notify deployment status
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Staging deployment successful"
+            echo "URL: https://${{ secrets.STAGING_HOST }}"
           else
             echo "❌ Staging deployment failed"
           fi
