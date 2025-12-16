@@ -68,6 +68,7 @@ test-load: ## Run all load tests (requires k6)
 		k6 run backend/tests/load/scenarios/clip_detail.js; \
 		k6 run backend/tests/load/scenarios/search.js; \
 		k6 run backend/tests/load/scenarios/comments.js; \
+		k6 run backend/tests/load/scenarios/authentication.js; \
 		k6 run backend/tests/load/scenarios/mixed_behavior.js; \
 		echo "✓ All load tests complete"; \
 	else \
@@ -90,6 +91,19 @@ test-load-comments: ## Run comments load test
 
 test-load-submit: ## Run submission load test (requires AUTH_TOKEN)
 	@k6 run backend/tests/load/scenarios/submit.js
+
+test-load-auth: ## Run authentication load test
+	@k6 run backend/tests/load/scenarios/authentication.js
+
+test-load-report: ## Generate comprehensive load test report
+	@if command -v k6 > /dev/null; then \
+		echo "Generating comprehensive load test report..."; \
+		cd backend/tests/load && ./generate_report.sh; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
 
 test-load-mixed: ## Run mixed user behavior load test
 	@k6 run backend/tests/load/scenarios/mixed_behavior.js
