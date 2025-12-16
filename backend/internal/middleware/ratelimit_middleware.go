@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,15 +25,16 @@ var (
 	// IP whitelist for rate limiting bypass (for testing/trusted IPs)
 	// Always includes localhost (127.0.0.1, ::1)
 	// Additional IPs can be configured via RATE_LIMIT_WHITELIST_IPS environment variable
-	rateLimitWhitelist = map[string]bool{
-		"127.0.0.1": true,
-		"::1":       true,
-	}
+	rateLimitWhitelist   = make(map[string]bool)
+	rateLimitWhitelistMu sync.RWMutex
 )
 
 // InitRateLimitWhitelist initializes the rate limit whitelist from configuration
 // This should be called once at application startup
 func InitRateLimitWhitelist(whitelistIPs string) {
+	rateLimitWhitelistMu.Lock()
+	defer rateLimitWhitelistMu.Unlock()
+
 	// Always keep localhost
 	rateLimitWhitelist = map[string]bool{
 		"127.0.0.1": true,
@@ -48,6 +50,13 @@ func InitRateLimitWhitelist(whitelistIPs string) {
 			}
 		}
 	}
+}
+
+// isIPWhitelisted checks if an IP is in the whitelist (thread-safe)
+func isIPWhitelisted(ip string) bool {
+	rateLimitWhitelistMu.RLock()
+	defer rateLimitWhitelistMu.RUnlock()
+	return rateLimitWhitelist[ip]
 }
 
 // getUserRateLimitMultiplier determines the rate limit multiplier based on user tier
@@ -116,8 +125,8 @@ func RateLimitMiddlewareWithSubscription(redis *redispkg.Client, requests int, w
 		// Get client IP and endpoint for granular rate limiting
 		ip := c.ClientIP()
 
-		// Skip rate limiting for whitelisted IPs
-		if rateLimitWhitelist[ip] {
+		// Skip rate limiting for whitelisted IPs (thread-safe check)
+		if isIPWhitelisted(ip) {
 			c.Header("X-RateLimit-Bypass", "whitelisted")
 			c.Next()
 			return

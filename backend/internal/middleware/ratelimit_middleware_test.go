@@ -510,11 +510,11 @@ func TestInitRateLimitWhitelist(t *testing.T) {
 			// Initialize whitelist with test data
 			InitRateLimitWhitelist(tt.whitelistIPs)
 
-			// Check each IP
+			// Check each IP using thread-safe accessor
 			for ip, expectedWhitelisted := range tt.checkIPs {
-				isWhitelisted := rateLimitWhitelist[ip]
-				if isWhitelisted != expectedWhitelisted {
-					t.Errorf("IP %s: got whitelisted=%v, want %v", ip, isWhitelisted, expectedWhitelisted)
+				actualWhitelisted := isIPWhitelisted(ip)
+				if actualWhitelisted != expectedWhitelisted {
+					t.Errorf("IP %s: got whitelisted=%v, want %v", ip, actualWhitelisted, expectedWhitelisted)
 				}
 			}
 		})

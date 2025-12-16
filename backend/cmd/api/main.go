@@ -7,6 +7,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -58,7 +59,9 @@ func main() {
 	// Initialize rate limit whitelist from configuration
 	middleware.InitRateLimitWhitelist(cfg.RateLimit.WhitelistIPs)
 	if cfg.RateLimit.WhitelistIPs != "" {
-		log.Printf("Rate limit whitelist configured: %s", cfg.RateLimit.WhitelistIPs)
+		// Count IPs in whitelist (split by comma)
+		ipCount := len(strings.Split(cfg.RateLimit.WhitelistIPs, ","))
+		log.Printf("Rate limit whitelist configured with %d additional IP(s) (plus localhost)", ipCount)
 	}
 
 	// Initialize database connection pool
