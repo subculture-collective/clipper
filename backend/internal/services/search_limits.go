@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -22,6 +23,29 @@ var (
 	// ErrInvalidQueryOperator is returned when using invalid query operator
 	ErrInvalidQueryOperator = errors.New("invalid query operator")
 )
+
+// structuralKeys contains OpenSearch query structure keys that are not field names
+var structuralKeys = map[string]bool{
+	"bool": true, "must": true, "should": true, "must_not": true, "filter": true,
+	"query": true, "aggs": true, "aggregations": true, "terms": true,
+	"range": true, "gte": true, "lte": true, "gt": true, "lt": true,
+	"from": true, "size": true, "sort": true, "match": true, "term": true,
+	"multi_match": true, "match_phrase": true, "match_phrase_prefix": true,
+	"match_all": true, "function_score": true, "functions": true,
+	"field_value_factor": true, "modifier": true, "factor": true, "missing": true,
+	"score_mode": true, "boost_mode": true, "boost": true, "fuzziness": true,
+	"operator": true, "type": true, "source": true, "inline": true, "stored": true,
+}
+
+// operatorLikeKeys contains keys that look like query operators
+var operatorLikeKeys = map[string]bool{
+	"match": true, "term": true, "range": true, "bool": true,
+	"must": true, "should": true, "filter": true, "must_not": true,
+	"query": true, "aggs": true, "aggregations": true,
+	"script": true, "source": true, "inline": true, "stored": true,
+	"multi_match": true, "match_phrase": true, "match_phrase_prefix": true,
+	"terms": true, "match_all": true, "function_score": true,
+}
 
 // SearchLimits defines limits for OpenSearch queries
 type SearchLimits struct {
@@ -399,19 +423,6 @@ func (v *SearchQueryValidator) validateFieldAccess(obj interface{}) error {
 				continue // Skip further processing for this key
 			}
 			
-			// Skip validation for structural keys that are not field names
-			structuralKeys := map[string]bool{
-				"bool": true, "must": true, "should": true, "must_not": true, "filter": true,
-				"query": true, "aggs": true, "aggregations": true, "terms": true,
-				"range": true, "gte": true, "lte": true, "gt": true, "lt": true,
-				"from": true, "size": true, "sort": true, "match": true, "term": true,
-				"multi_match": true, "match_phrase": true, "match_phrase_prefix": true,
-				"match_all": true, "function_score": true, "functions": true,
-				"field_value_factor": true, "modifier": true, "factor": true, "missing": true,
-				"score_mode": true, "boost_mode": true, "boost": true, "fuzziness": true,
-				"operator": true, "type": true, "source": true, "inline": true, "stored": true,
-			}
-			
 			// For leaf-level query operators (match, term, etc.), check the field names
 			if v.isLeafQueryOperator(key) {
 				if fieldMap, ok := value.(map[string]interface{}); ok {
@@ -530,60 +541,10 @@ func (v *SearchQueryValidator) isLeafQueryOperator(key string) bool {
 // looksLikeOperator checks if a key looks like an operator
 // (operators are typically lowercase with underscores, not field names)
 func (v *SearchQueryValidator) looksLikeOperator(key string) bool {
-	// Field names typically have dots or are camelCase/snake_case
-	// Operators are typically lowercase operation names
-	operatorLikeKeys := map[string]bool{
-		"match": true, "term": true, "range": true, "bool": true,
-		"must": true, "should": true, "filter": true, "must_not": true,
-		"query": true, "aggs": true, "aggregations": true,
-		"script": true, "source": true, "inline": true, "stored": true,
-		"multi_match": true, "match_phrase": true, "match_phrase_prefix": true,
-		"terms": true, "match_all": true, "function_score": true,
-	}
 	return operatorLikeKeys[key]
 }
 
 // contains checks if a string contains a substring (case-insensitive)
 func contains(s, substr string) bool {
-	sLower := toLower(s)
-	substrLower := toLower(substr)
-	return indexOf(sLower, substrLower) >= 0
-}
-
-// toLower converts a string to lowercase
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			result[i] = c + 32
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
-}
-
-// indexOf returns the index of substr in s, or -1 if not found
-func indexOf(s, substr string) int {
-	if len(substr) == 0 {
-		return 0
-	}
-	if len(substr) > len(s) {
-		return -1
-	}
-	
-	for i := 0; i <= len(s)-len(substr); i++ {
-		match := true
-		for j := 0; j < len(substr); j++ {
-			if s[i+j] != substr[j] {
-				match = false
-				break
-			}
-		}
-		if match {
-			return i
-		}
-	}
-	return -1
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
