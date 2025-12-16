@@ -422,9 +422,7 @@ func (r *MFARepository) SetMFARequired(ctx context.Context, userID uuid.UUID, gr
 				ELSE user_mfa.mfa_required_at 
 			END,
 			grace_period_end = CASE 
-				WHEN user_mfa.mfa_required = false THEN $3
-				WHEN user_mfa.grace_period_end IS NULL THEN $3
-				WHEN user_mfa.grace_period_end < NOW() THEN $3
+				WHEN user_mfa.mfa_required = false OR user_mfa.grace_period_end IS NULL OR user_mfa.grace_period_end < NOW() THEN $3
 				ELSE user_mfa.grace_period_end 
 			END,
 			updated_at = NOW()

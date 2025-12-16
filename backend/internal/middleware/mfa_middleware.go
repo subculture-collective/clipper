@@ -119,9 +119,11 @@ func CheckMFARequirementMiddleware(mfaService MFAServiceInterface) gin.HandlerFu
 			// Check if MFA is already set as required
 			required, enabled, _, err := mfaService.CheckMFARequired(c.Request.Context(), user.ID)
 			if err != nil {
-				// Log error - this is a security critical operation
-				// Continue processing but log for investigation
+				// Fail closed - abort the request if we cannot verify MFA requirement
 				c.Error(fmt.Errorf("SECURITY WARNING: Failed to check MFA requirement for user %s: %w", user.ID, err))
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to verify MFA requirement. Please try again later.",
+				})
 				return
 			}
 

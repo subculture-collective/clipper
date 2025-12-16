@@ -197,14 +197,13 @@ func (s *AccountTypeService) ConvertToModerator(ctx context.Context, targetUserI
 	// Trigger MFA requirement for moderator role
 	if s.mfaService != nil {
 		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
-			// This is a critical security function - log prominently and continue
-			// The conversion succeeded, but MFA enforcement may not be in place
-			log.Printf("SECURITY WARNING: Failed to set MFA requirement for user %s after moderator promotion: %v", targetUserID, err)
-			log.Printf("SECURITY WARNING: Manually verify MFA requirement for user %s", targetUserID)
+			// This is a critical security function - fail the operation if MFA cannot be enforced
+			return fmt.Errorf("failed to set MFA requirement for user %s after moderator promotion: %w", targetUserID, err)
 		}
 	} else {
 		// MFA service is required for security - this should not happen
 		log.Printf("CRITICAL: MFA service not available when promoting user %s to moderator", targetUserID)
+		return errors.New("MFA service not available when promoting user to moderator")
 	}
 
 	return nil
@@ -273,14 +272,15 @@ func (s *AccountTypeService) ConvertToAdmin(ctx context.Context, targetUserID, a
 	// Trigger MFA requirement for admin role
 	if s.mfaService != nil {
 		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
-			// This is a critical security function - log prominently and continue
-			// The conversion succeeded, but MFA enforcement may not be in place
+			// This is a critical security function - log and return error to prevent admin promotion without MFA
 			log.Printf("SECURITY WARNING: Failed to set MFA requirement for user %s after admin promotion: %v", targetUserID, err)
 			log.Printf("SECURITY WARNING: Manually verify MFA requirement for user %s", targetUserID)
+			return fmt.Errorf("failed to set MFA requirement for user %s after admin promotion: %w", targetUserID, err)
 		}
 	} else {
 		// MFA service is required for security - this should not happen
 		log.Printf("CRITICAL: MFA service not available when promoting user %s to admin", targetUserID)
+		return errors.New("MFA service not available when promoting user to admin")
 	}
 
 	return nil
