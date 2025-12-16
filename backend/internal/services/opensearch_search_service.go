@@ -15,18 +15,31 @@ import (
 
 // OpenSearchService handles search operations using OpenSearch
 type OpenSearchService struct {
-	osClient *opensearch.Client
+	osClient  *opensearch.Client
+	validator *SearchQueryValidator
 }
 
 // NewOpenSearchService creates a new OpenSearchService
 func NewOpenSearchService(osClient *opensearch.Client) *OpenSearchService {
 	return &OpenSearchService{
-		osClient: osClient,
+		osClient:  osClient,
+		validator: NewSearchQueryValidator(DefaultSearchLimits()),
+	}
+}
+
+// NewOpenSearchServiceWithLimits creates a new OpenSearchService with custom limits
+func NewOpenSearchServiceWithLimits(osClient *opensearch.Client, limits SearchLimits) *OpenSearchService {
+	return &OpenSearchService{
+		osClient:  osClient,
+		validator: NewSearchQueryValidator(limits),
 	}
 }
 
 // Search performs a universal search using OpenSearch
 func (s *OpenSearchService) Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error) {
+	// Enforce search limits on request parameters
+	s.validator.EnforceSearchLimits(&req.Limit, &req.Page)
+	
 	response := &models.SearchResponse{
 		Query:   req.Query,
 		Results: models.SearchResultsByType{},
@@ -155,9 +168,13 @@ func (s *OpenSearchService) searchClipsWithFacets(ctx context.Context, req *mode
 		return nil, 0, nil, fmt.Errorf("failed to marshal search body: %w", err)
 	}
 
+	// Apply timeout to search request
+	timeout := s.validator.GetTimeout()
+	
 	reqOS := opensearchapi.SearchRequest{
-		Index: []string{ClipsIndex},
-		Body:  bytes.NewReader(bodyJSON),
+		Index:   []string{ClipsIndex},
+		Body:    bytes.NewReader(bodyJSON),
+		Timeout: timeout,
 	}
 
 	res, err := reqOS.Do(ctx, s.osClient.GetClient())
@@ -550,17 +567,26 @@ func (s *OpenSearchService) buildFacetAggregations() map[string]interface{} {
 	lastWeek := now.Add(-7 * 24 * time.Hour)
 	lastMonth := now.Add(-30 * 24 * time.Hour)
 
+	// Get max aggregation size from validator
+	maxSize := s.validator.limits.MaxAggregationSize
+	
+	// Ensure we don't exceed the configured limit
+	aggsSize := 20
+	if aggsSize > maxSize {
+		aggsSize = maxSize
+	}
+
 	return map[string]interface{}{
 		"languages": map[string]interface{}{
 			"terms": map[string]interface{}{
 				"field": "language",
-				"size":  20,
+				"size":  aggsSize,
 			},
 		},
 		"games": map[string]interface{}{
 			"terms": map[string]interface{}{
 				"field": "game_name.keyword",
-				"size":  20,
+				"size":  aggsSize,
 			},
 		},
 		"date_ranges": map[string]interface{}{
