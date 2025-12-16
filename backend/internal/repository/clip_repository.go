@@ -14,17 +14,24 @@ import (
 const (
 	// HotClipsMaterializedView is the name of the materialized view for hot clips
 	HotClipsMaterializedView = "hot_clips_materialized"
+	
+	// Pagination limits for clip queries
+	DefaultClipLimit  = 50
+	MaxClipLimit      = 1000
+	MaxClipOffset     = 1000
 )
 
 // ClipRepository handles database operations for clips
 type ClipRepository struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	helper *RepositoryHelper
 }
 
 // NewClipRepository creates a new ClipRepository
 func NewClipRepository(pool *pgxpool.Pool) *ClipRepository {
 	return &ClipRepository{
-		pool: pool,
+		pool:   pool,
+		helper: NewRepositoryHelper(pool),
 	}
 }
 
@@ -212,6 +219,9 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 
 // List retrieves clips with pagination
 func (r *ClipRepository) List(ctx context.Context, limit, offset int) ([]models.Clip, error) {
+	// Enforce pagination limits
+	r.helper.EnforcePaginationLimits(&limit, &offset)
+	
 	// Delegate to ListWithFilters with empty filters for reuse and to reduce duplication.
 	clips, total, err := r.ListWithFilters(ctx, ClipFilters{Sort: "new"}, limit, offset)
 	if err != nil {
@@ -318,6 +328,9 @@ type ClipFilters struct {
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
 func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilters, limit, offset int) ([]models.Clip, int, error) {
+	// Enforce pagination limits
+	r.helper.EnforcePaginationLimits(&limit, &offset)
+	
 	// Build WHERE clause
 	whereClauses := []string{"c.is_removed = false"}
 
