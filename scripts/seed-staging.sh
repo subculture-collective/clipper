@@ -196,13 +196,15 @@ fi
 log_step "Ensuring migrations are up to date"
 
 if command_exists migrate && [ -d "$MIGRATIONS_DIR" ]; then
-    DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT:-5432}/${DB_NAME}?sslmode=${DB_SSLMODE:-disable}"
+    # Use PGPASSWORD for authentication (already set above)
+    DATABASE_URL="postgresql://${DB_USER}@${DB_HOST}:${DB_PORT:-5432}/${DB_NAME}?sslmode=${DB_SSLMODE:-disable}"
     
     log_info "Running migrations..."
-    if migrate -path "$MIGRATIONS_DIR" -database "$DATABASE_URL" up 2>&1 | grep -v "no change"; then
+    if migrate -path "$MIGRATIONS_DIR" -database "$DATABASE_URL" up; then
         log_info "Migrations applied successfully"
     else
-        log_warn "No new migrations to apply"
+        log_error "Failed to apply migrations"
+        exit 1
     fi
 else
     log_warn "migrate tool not found, skipping migration check"
@@ -293,7 +295,7 @@ ADMIN_USERNAME="staging_admin"
 ADMIN_EXISTS=$($PSQL_CMD -t -c "SELECT COUNT(*) FROM users WHERE email = \$\$${ADMIN_EMAIL}\$\$;" | xargs)
 
 if [ "$ADMIN_EXISTS" -eq 0 ]; then
-    log_info "Creating admin user: $ADMIN_USERNAME"
+    log_warn "Admin user does not exist in database yet"
     
     # Generate a secure random password (20 characters)
     ADMIN_PASSWORD=$(openssl rand -base64 24 | tr -d "=+/" | cut -c1-20)
@@ -309,22 +311,20 @@ Email: $ADMIN_EMAIL
 Password: $ADMIN_PASSWORD
 
 IMPORTANT: 
+- The admin user does NOT yet exist in the database
+- First, create the user by registering via the application UI using these credentials
+- After the user exists, run setup-admin.sh to grant admin privileges
 - Delete this file after noting credentials securely
 - These are test credentials for staging only
-- Use backend's setup-admin.sh for proper password hashing
 ================================================================
 EOF
     chmod 600 "$CREDENTIALS_FILE"
     chown deploy:deploy "$CREDENTIALS_FILE"
     
     log_info "Admin credentials saved to: $CREDENTIALS_FILE"
-    log_warn "IMPORTANT: Retrieve credentials from file and delete it"
-    log_warn "Use: sudo cat $CREDENTIALS_FILE"
-    
-    # You can use the backend's admin setup script here if available
-    if [ -f "$SCRIPT_DIR/setup-admin.sh" ]; then
-        log_info "Use setup-admin.sh to create admin with proper password hashing"
-    fi
+    log_warn "IMPORTANT: User must register via application UI first"
+    log_warn "Then run setup-admin.sh to grant admin privileges"
+    log_warn "Retrieve credentials with: sudo cat $CREDENTIALS_FILE"
 else
     log_info "Admin user already exists: $ADMIN_EMAIL"
 fi

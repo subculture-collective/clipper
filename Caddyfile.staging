@@ -47,7 +47,7 @@ staging.clpr.tv {
             header_up X-Forwarded-Proto {scheme}
             
             # Health checks
-            health_uri /health
+            health_uri /api/v1/health
             health_interval 30s
             health_timeout 10s
             health_status 200

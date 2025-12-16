@@ -68,12 +68,13 @@ jobs:
 
       - name: Run smoke tests
         run: |
+          set -e
           echo "Running smoke tests..."
           echo "Testing staging environment at https://${{ secrets.STAGING_HOST }}"
 
-          # Basic health checks
-          curl -f https://${{ secrets.STAGING_HOST }}/api/v1/health || echo "Backend health check failed"
-          curl -f https://${{ secrets.STAGING_HOST }}/ || echo "Frontend health check failed"
+          # Basic health checks - will fail the workflow if any check fails
+          curl -f https://${{ secrets.STAGING_HOST }}/api/v1/health
+          curl -f https://${{ secrets.STAGING_HOST }}/
 
       - name: Notify deployment status
         if: always()

@@ -184,6 +184,7 @@ services:
             - bootstrap.memory_lock=true
             - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
             # Conditionally disable security for staging testing
+            # Use OPENSEARCH_DISABLE_SECURITY=true in .env to disable
             - "DISABLE_SECURITY_PLUGIN=${OPENSEARCH_DISABLE_SECURITY:-false}"
             - "DISABLE_INSTALL_DEMO_CONFIG=true"
             - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}"

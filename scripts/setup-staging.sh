@@ -273,12 +273,6 @@ fi
 if [ "$SKIP_SSL_SETUP" = false ]; then
     log_step "Setting up SSL certificates"
     
-    # Check if certbot is installed
-    if ! command_exists certbot; then
-        log_info "Installing certbot..."
-        apt-get install -y -qq certbot
-    fi
-    
     log_info "SSL certificate will be automatically obtained by Caddy"
     log_info "Ensure DNS A record for $STAGING_DOMAIN points to this server"
 else
@@ -299,7 +293,7 @@ fi
 log_step "Pulling Docker images"
 
 cd "$STAGING_DIR"
-if docker compose pull 2>&1 | grep -v "Pulling"; then
+if docker compose pull; then
     log_info "Docker images pulled"
 else
     log_error "Failed to pull Docker images"

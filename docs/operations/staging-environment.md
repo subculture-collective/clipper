@@ -306,17 +306,17 @@ Caddy automatically obtains SSL certificates from Let's Encrypt:
 Seed the database with test data:
 
 ```bash
-# Basic seed
-sudo -u deploy /opt/clipper/scripts/seed-staging.sh
+# Basic seed (run from project repository directory)
+./scripts/seed-staging.sh
 
 # Include comment threads
-sudo -u deploy /opt/clipper/scripts/seed-staging.sh
+./scripts/seed-staging.sh
 
 # Include load test data
-sudo -u deploy /opt/clipper/scripts/seed-staging.sh --load-test
+./scripts/seed-staging.sh --load-test
 
 # Custom seed file
-sudo -u deploy /opt/clipper/scripts/seed-staging.sh --seed-file /path/to/custom.sql
+./scripts/seed-staging.sh --seed-file /path/to/custom.sql
 ```
 
 ### Backups
@@ -411,7 +411,7 @@ curl https://staging.clpr.tv/api/v1/health
 curl https://staging.clpr.tv/health.html
 
 # Database health
-docker exec clipper-staging-postgres pg_isready -U clipper_staging
+docker exec clipper-staging-postgres pg_isready -U clipper_staging -d clipper_staging_db
 
 # Redis health
 docker exec clipper-staging-redis redis-cli --pass $REDIS_PASSWORD ping
@@ -422,8 +422,8 @@ docker exec clipper-staging-redis redis-cli --pass $REDIS_PASSWORD ping
 Run automated smoke tests:
 
 ```bash
-cd /opt/clipper/scripts
-./staging-rehearsal.sh
+# Run from project repository directory
+./scripts/staging-rehearsal.sh
 ```
 
 Manual smoke tests:
