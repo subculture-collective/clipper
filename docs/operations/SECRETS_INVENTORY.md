@@ -50,7 +50,7 @@ This document provides a comprehensive inventory of all secrets, credentials, an
 **Purpose:** PostgreSQL database authentication and connection  
 **Used By:** Backend application, migration scripts  
 **Backup Location:** Vault automatic backup  
-**Emergency Access:** Break-glass procedure (see docs/operations/break-glass-procedures.md)
+**Emergency Access:** [Break-glass procedure](./break-glass-procedures.md)
 
 ---
 
@@ -334,10 +334,11 @@ This document provides a comprehensive inventory of all secrets, credentials, an
 ### Access Logging
 
 **Vault Audit Logging:**
-- Status: Recommended (not yet enabled)
+- Status: **Required for Production** (deployment pending)
 - Log Path: `/vault/logs/audit.log`
 - Enable Command: `vault audit enable file file_path=/vault/logs/audit.log`
 - Retention: 90 days minimum
+- Purpose: Compliance and security monitoring
 
 **Application Audit Logs:**
 - Database: `audit_logs` table

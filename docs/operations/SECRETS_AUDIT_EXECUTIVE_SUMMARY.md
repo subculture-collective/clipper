@@ -239,12 +239,14 @@ The Clipper application has a **production-ready secrets management infrastructu
 
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
-| Secrets rotated | ⏳ Ready | Scripts available, first rotation pending |
+| Secrets rotated | 🔄 Infrastructure Ready | Scripts available, pending first execution cycle |
 | Access minimized | ✅ Complete | Least privilege policies enforced |
 | Access documented | ✅ Complete | Full documentation created |
 | Inventory complete | ✅ Complete | SECRETS_INVENTORY.md |
 | Rotation plan | ✅ Complete | ROTATION_EXECUTION_LOG.md |
-| Updated runbooks | ✅ Complete | 8 comprehensive documents |
+| Updated runbooks | ✅ Complete | 9 comprehensive documents |
+
+**Note:** "Secrets rotated" status reflects infrastructure readiness. First rotation cycle should be scheduled within 30 days to establish operational baseline.
 
 ### Security Standards Alignment
 

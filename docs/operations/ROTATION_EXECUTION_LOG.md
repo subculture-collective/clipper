@@ -18,22 +18,24 @@ This document serves as the authoritative log of all credential rotation activit
 3. **After Rotation:** Update this log with rotation details
 4. **Monthly:** Review for missed rotations and update schedule
 
+**Note on Due Dates:** After the first rotation cycle, dates will be calculated based on rotation frequency. Until then, all dates show as "Not yet rotated" to indicate the baseline has not been established.
+
 ---
 
 ## Quick Reference: Next Rotation Due
 
 | Secret Type | Frequency | Last Rotated | Next Due | Days Until Due | Priority |
 |-------------|-----------|--------------|----------|----------------|----------|
-| Database Password | 90 days | Not yet rotated | TBD | - | 🔴 Critical |
-| JWT Signing Keys | 90 days | Not yet rotated | TBD | - | 🔴 Critical |
-| Stripe API Keys | 180 days | Not yet rotated | TBD | - | 🔴 Critical |
-| Twitch OAuth | 90 days | Not yet rotated | TBD | - | 🟡 High |
-| OpenAI API Key | 180 days | Not yet rotated | TBD | - | 🟡 High |
-| Redis Password | 90 days | Not yet rotated | TBD | - | 🟢 Medium |
-| Vault AppRole | 30 days | Not yet rotated | TBD | - | 🟡 High |
-| MFA Encryption Key | 365 days | Not yet rotated | TBD | - | 🔴 Critical |
-| SendGrid API Key | 180 days | Not yet rotated | TBD | - | 🟢 Medium |
-| OpenSearch Credentials | 90 days | Not yet rotated | TBD | - | 🟡 High |
+| Database Password | 90 days | Baseline not set | Schedule within 30 days | - | 🔴 Critical |
+| JWT Signing Keys | 90 days | Baseline not set | Schedule within 30 days | - | 🔴 Critical |
+| Stripe API Keys | 180 days | Baseline not set | Schedule within 30 days | - | 🔴 Critical |
+| Twitch OAuth | 90 days | Baseline not set | Schedule within 30 days | - | 🟡 High |
+| OpenAI API Key | 180 days | Baseline not set | Schedule within 30 days | - | 🟡 High |
+| Redis Password | 90 days | Baseline not set | Schedule within 30 days | - | 🟢 Medium |
+| Vault AppRole | 30 days | Baseline not set | Schedule within 30 days | - | 🟡 High |
+| MFA Encryption Key | 365 days | Baseline not set | Schedule within 90 days | - | 🔴 Critical |
+| SendGrid API Key | 180 days | Baseline not set | Schedule within 30 days | - | 🟢 Medium |
+| OpenSearch Credentials | 90 days | Baseline not set | Schedule within 30 days | - | 🟡 High |
 
 **Legend:** 🔴 Critical | 🟡 High | 🟢 Medium | ⚪ Low
 
