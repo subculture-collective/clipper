@@ -175,6 +175,9 @@ type RateLimitConfig struct {
 	ReportLimit          int // POST /api/v1/reports
 	ExportLimit          int // GET export endpoints
 	AccountDeletionLimit int // POST account deletion
+
+	// IP whitelist for bypassing rate limits (comma-separated, for development/testing)
+	WhitelistIPs string
 }
 
 // SecurityConfig holds security-related configuration
@@ -327,6 +330,9 @@ func Load() (*Config, error) {
 			ReportLimit:          getEnvInt("RATE_LIMIT_REPORT", 10),
 			ExportLimit:          getEnvInt("RATE_LIMIT_EXPORT", 1),
 			AccountDeletionLimit: getEnvInt("RATE_LIMIT_ACCOUNT_DELETION", 1),
+
+			// IP whitelist for development/testing (localhost always included)
+			WhitelistIPs: getEnv("RATE_LIMIT_WHITELIST_IPS", ""),
 		},
 		Security: SecurityConfig{
 			MFAEncryptionKey: getEnv("MFA_ENCRYPTION_KEY", ""),
