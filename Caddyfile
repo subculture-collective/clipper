@@ -57,7 +57,7 @@ clpr.tv {
         }
         
         # Uncomment to switch to green:
-        # reverse_proxy clipper-backend-green:8081 {
+        # reverse_proxy clipper-backend-green:8080 {
         #     header_up Host {host}
         #     header_up X-Real-IP {remote_host}
         #     header_up X-Forwarded-For {remote_host}
@@ -74,7 +74,7 @@ clpr.tv {
     handle /health {
         reverse_proxy clipper-backend-blue:8080
         # Switch to green:
-        # reverse_proxy clipper-backend-green:8081
+        # reverse_proxy clipper-backend-green:8080
     }
     
     # WebSocket support
@@ -84,7 +84,7 @@ clpr.tv {
             header_up Connection {>Connection}
         }
         # Switch to green:
-        # reverse_proxy clipper-backend-green:8081 {
+        # reverse_proxy clipper-backend-green:8080 {
         #     header_up Upgrade {>Upgrade}
         #     header_up Connection {>Connection}
         # }
@@ -97,7 +97,7 @@ clpr.tv {
             health_interval 30s
         }
         # Switch to green:
-        # reverse_proxy clipper-frontend-green:81
+        # reverse_proxy clipper-frontend-green:80
     }
     
     # Compression

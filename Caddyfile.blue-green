@@ -8,7 +8,7 @@
 
 {
     # Global options
-    admin 0.0.0.0:2019
+    admin localhost:2019  # Restrict admin API to localhost for security
     auto_https off  # Manage SSL externally or enable for automatic HTTPS
     log {
         output stdout
@@ -78,7 +78,7 @@
     handle /api/* {
         reverse_proxy {
             # Select backend based on ACTIVE_ENV environment variable
-            # Blue backend runs on port 8080, green on 8081
+            # Both blue and green backends run on port 8080 (internal to containers)
             dynamic backends {
                 resolve {$ACTIVE_ENV:blue}_backend
             }

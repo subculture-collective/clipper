@@ -232,16 +232,14 @@ switch_traffic() {
             sed -i.bak 's/clipper-frontend-blue:80/clipper-frontend-green:80/g' "$DEPLOY_DIR/Caddyfile"
         fi
         
-        # Update ACTIVE_ENV for container restart method
-        export ACTIVE_ENV=$target_env
-        
         # Reload Caddy configuration
         if docker exec clipper-caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null; then
             log_success "Traffic switched to $target_env environment"
             return 0
         else
             log_warn "Caddy reload failed, attempting restart..."
-            docker compose -f "$COMPOSE_FILE" restart caddy
+            # Pass ACTIVE_ENV explicitly when restarting Caddy
+            ACTIVE_ENV=$target_env docker compose -f "$COMPOSE_FILE" restart caddy
             sleep 5
             log_success "Caddy restarted with new configuration"
             return 0

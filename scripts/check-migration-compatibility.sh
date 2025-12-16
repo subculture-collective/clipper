@@ -13,7 +13,7 @@ NC='\033[0m'
 
 # Configuration
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-./backend/migrations}"
-DB_CONNECTION="${DB_CONNECTION:-postgresql://clipper:clipper_password@localhost:5432/clipper_db?sslmode=disable}"
+DB_CONNECTION="${DB_CONNECTION:-}"  # Set via environment variable if needed
 
 # Log functions
 log_info() {
