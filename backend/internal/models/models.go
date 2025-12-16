@@ -2636,3 +2636,28 @@ type BulkModerationRequest struct {
 	Action  string   `json:"action" binding:"required,oneof=approve reject escalate"`
 	Reason  *string  `json:"reason,omitempty" binding:"omitempty,max=1000"`
 }
+
+// ModerationAppeal represents an appeal of a moderation decision
+type ModerationAppeal struct {
+	ID                 uuid.UUID  `json:"id" db:"id"`
+	UserID             uuid.UUID  `json:"user_id" db:"user_id"`
+	ModerationActionID uuid.UUID  `json:"moderation_action_id" db:"moderation_action_id"`
+	Reason             string     `json:"reason" db:"reason"`
+	Status             string     `json:"status" db:"status"` // pending, approved, rejected
+	ResolvedBy         *uuid.UUID `json:"resolved_by,omitempty" db:"resolved_by"`
+	Resolution         *string    `json:"resolution,omitempty" db:"resolution"`
+	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
+	ResolvedAt         *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
+}
+
+// CreateAppealRequest represents the request to create an appeal
+type CreateAppealRequest struct {
+	ModerationActionID string `json:"moderation_action_id" binding:"required,uuid"`
+	Reason             string `json:"reason" binding:"required,min=10,max=2000"`
+}
+
+// ResolveAppealRequest represents the request to resolve an appeal
+type ResolveAppealRequest struct {
+	Decision   string  `json:"decision" binding:"required,oneof=approve reject"`
+	Resolution *string `json:"resolution,omitempty" binding:"omitempty,max=2000"`
+}

@@ -680,6 +680,15 @@ func main() {
 			reports.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), reportHandler.SubmitReport)
 		}
 
+		// Moderation appeal routes (user-facing)
+		if moderationHandler != nil {
+			moderationAppeals := v1.Group("/moderation")
+			{
+				moderationAppeals.POST("/appeals", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.CreateAppeal)
+				moderationAppeals.GET("/appeals", middleware.AuthMiddleware(authService), moderationHandler.GetUserAppeals)
+			}
+		}
+
 		// Reputation routes
 		users := v1.Group("/users")
 		{
@@ -1158,6 +1167,10 @@ func main() {
 					moderation.POST("/:id/reject", moderationHandler.RejectContent)
 					moderation.POST("/bulk", moderationHandler.BulkModerate)
 					moderation.GET("/queue/stats", moderationHandler.GetModerationStats)
+
+					// Appeals management (admin)
+					moderation.GET("/appeals", moderationHandler.GetAppeals)
+					moderation.POST("/appeals/:id/resolve", moderationHandler.ResolveAppeal)
 				}
 			}
 

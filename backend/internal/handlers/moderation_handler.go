@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -684,5 +685,308 @@ func (h *ModerationHandler) GetModerationStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    stats,
+	})
+}
+
+// CreateAppeal creates a new appeal for a moderation decision
+// POST /api/moderation/appeals
+func (h *ModerationHandler) CreateAppeal(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	var req models.CreateAppealRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	moderationActionID, err := uuid.Parse(req.ModerationActionID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid moderation action ID",
+		})
+		return
+	}
+
+	// Verify the moderation action exists and belongs to the user
+	var actionExists bool
+	var actionUserID uuid.UUID
+	err = h.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM moderation_decisions md
+			JOIN moderation_queue mq ON md.queue_item_id = mq.id
+			WHERE md.id = $1
+		), COALESCE(
+			(SELECT mq.reported_by[1]::uuid 
+			 FROM moderation_decisions md
+			 JOIN moderation_queue mq ON md.queue_item_id = mq.id
+			 WHERE md.id = $1 AND array_length(mq.reported_by, 1) > 0),
+			$2
+		)
+	`, moderationActionID, userID).Scan(&actionExists, &actionUserID)
+	if err != nil || !actionExists {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Moderation action not found",
+		})
+		return
+	}
+
+	// Insert appeal
+	var appealID uuid.UUID
+	err = h.db.QueryRow(ctx, `
+		INSERT INTO moderation_appeals (user_id, moderation_action_id, reason)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`, userID, moderationActionID, req.Reason).Scan(&appealID)
+	if err != nil {
+		// Check if it's a duplicate appeal
+		if strings.Contains(err.Error(), "uq_appeals_action_pending") {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "An appeal for this moderation action is already pending",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create appeal",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success":   true,
+		"appeal_id": appealID,
+		"message":   "Appeal submitted successfully",
+	})
+}
+
+// GetAppeals retrieves appeals for admin review
+// GET /admin/moderation/appeals
+func (h *ModerationHandler) GetAppeals(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	status := c.DefaultQuery("status", "pending")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+
+	// Validate status parameter
+	validStatuses := map[string]bool{
+		"pending":  true,
+		"approved": true,
+		"rejected": true,
+	}
+	if !validStatuses[status] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid status. Must be one of: pending, approved, rejected",
+		})
+		return
+	}
+
+	query := `
+		SELECT ma.id, ma.user_id, ma.moderation_action_id, ma.reason, 
+		       ma.status, ma.resolved_by, ma.resolution, 
+		       ma.created_at, ma.resolved_at,
+		       u.username, u.display_name,
+		       md.action, md.reason as decision_reason,
+		       mq.content_type, mq.content_id
+		FROM moderation_appeals ma
+		JOIN users u ON ma.user_id = u.id
+		JOIN moderation_decisions md ON ma.moderation_action_id = md.id
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		WHERE ma.status = $1
+		ORDER BY ma.created_at ASC
+		LIMIT $2
+	`
+
+	rows, err := h.db.Query(ctx, query, status, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve appeals",
+		})
+		return
+	}
+	defer rows.Close()
+
+	type AppealWithDetails struct {
+		models.ModerationAppeal
+		Username       string     `json:"username"`
+		DisplayName    string     `json:"display_name"`
+		DecisionAction string     `json:"decision_action"`
+		DecisionReason *string    `json:"decision_reason,omitempty"`
+		ContentType    string     `json:"content_type"`
+		ContentID      uuid.UUID  `json:"content_id"`
+	}
+
+	var appeals []AppealWithDetails
+	for rows.Next() {
+		var appeal AppealWithDetails
+		err := rows.Scan(
+			&appeal.ID, &appeal.UserID, &appeal.ModerationActionID, 
+			&appeal.Reason, &appeal.Status, &appeal.ResolvedBy, 
+			&appeal.Resolution, &appeal.CreatedAt, &appeal.ResolvedAt,
+			&appeal.Username, &appeal.DisplayName,
+			&appeal.DecisionAction, &appeal.DecisionReason,
+			&appeal.ContentType, &appeal.ContentID,
+		)
+		if err != nil {
+			c.Error(fmt.Errorf("failed to scan appeal: %w", err))
+			continue
+		}
+		appeals = append(appeals, appeal)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    appeals,
+		"meta": gin.H{
+			"count":  len(appeals),
+			"limit":  limit,
+			"status": status,
+		},
+	})
+}
+
+// ResolveAppeal resolves an appeal
+// POST /admin/moderation/appeals/:id/resolve
+func (h *ModerationHandler) ResolveAppeal(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	appealID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid appeal ID",
+		})
+		return
+	}
+
+	// Get admin ID from context
+	adminIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	adminID := adminIDVal.(uuid.UUID)
+
+	var req models.ResolveAppealRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Map decision to status
+	status := "rejected"
+	if req.Decision == "approve" {
+		status = "approved"
+	}
+
+	// Update appeal
+	cmdTag, err := h.db.Exec(ctx, `
+		UPDATE moderation_appeals 
+		SET status = $1, resolved_by = $2, resolution = $3
+		WHERE id = $4 AND status = 'pending'
+	`, status, adminID, req.Resolution, appealID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to resolve appeal",
+		})
+		return
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Appeal not found or not in pending status",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Appeal resolved successfully",
+		"status":  status,
+	})
+}
+
+// GetUserAppeals retrieves appeals for the authenticated user
+// GET /api/moderation/appeals
+func (h *ModerationHandler) GetUserAppeals(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	query := `
+		SELECT ma.id, ma.user_id, ma.moderation_action_id, ma.reason, 
+		       ma.status, ma.resolved_by, ma.resolution, 
+		       ma.created_at, ma.resolved_at,
+		       md.action, md.reason as decision_reason,
+		       mq.content_type, mq.content_id
+		FROM moderation_appeals ma
+		JOIN moderation_decisions md ON ma.moderation_action_id = md.id
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		WHERE ma.user_id = $1
+		ORDER BY ma.created_at DESC
+		LIMIT 50
+	`
+
+	rows, err := h.db.Query(ctx, query, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve appeals",
+		})
+		return
+	}
+	defer rows.Close()
+
+	type UserAppealWithDetails struct {
+		models.ModerationAppeal
+		DecisionAction string    `json:"decision_action"`
+		DecisionReason *string   `json:"decision_reason,omitempty"`
+		ContentType    string    `json:"content_type"`
+		ContentID      uuid.UUID `json:"content_id"`
+	}
+
+	var appeals []UserAppealWithDetails
+	for rows.Next() {
+		var appeal UserAppealWithDetails
+		err := rows.Scan(
+			&appeal.ID, &appeal.UserID, &appeal.ModerationActionID,
+			&appeal.Reason, &appeal.Status, &appeal.ResolvedBy,
+			&appeal.Resolution, &appeal.CreatedAt, &appeal.ResolvedAt,
+			&appeal.DecisionAction, &appeal.DecisionReason,
+			&appeal.ContentType, &appeal.ContentID,
+		)
+		if err != nil {
+			c.Error(fmt.Errorf("failed to scan appeal: %w", err))
+			continue
+		}
+		appeals = append(appeals, appeal)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    appeals,
 	})
 }
