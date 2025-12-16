@@ -21,7 +21,7 @@ import {
     type ModerationQueueStats,
 } from '../../lib/moderation-api';
 
-export function ModerationQueuePage() {
+export function AdminModerationQueuePage() {
     const { isAuthenticated, isAdmin } = useAuth();
     const navigate = useNavigate();
     const [items, setItems] = useState<ModerationQueueItem[]>([]);
