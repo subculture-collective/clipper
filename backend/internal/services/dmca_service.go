@@ -906,6 +906,11 @@ func (s *DMCAService) ExpireOldStrikes(ctx context.Context) error {
 	return nil
 }
 
+// GetUserStrikes retrieves all strikes for a user
+func (s *DMCAService) GetUserStrikes(ctx context.Context, userID uuid.UUID) ([]models.DMCAStrike, error) {
+	return s.repo.GetUserAllStrikes(ctx, userID)
+}
+
 // ==============================================================================
 // Email Helper Methods (Templates)
 // ==============================================================================
