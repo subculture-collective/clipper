@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/Button';
 import { Alert } from '../ui/Alert';
 import { getAdminAppeals, type ModerationAppeal } from '@/lib/moderation-api';
@@ -17,7 +17,7 @@ export function AppealsQueue({ initialStatus = 'pending' }: AppealsQueueProps) {
   const [selectedAppeal, setSelectedAppeal] = useState<ModerationAppeal | null>(null);
   const [resolutionModalOpen, setResolutionModalOpen] = useState(false);
 
-  const loadAppeals = async () => {
+  const loadAppeals = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -28,11 +28,11 @@ export function AppealsQueue({ initialStatus = 'pending' }: AppealsQueueProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [status]);
 
   useEffect(() => {
     loadAppeals();
-  }, [status]);
+  }, [loadAppeals]);
 
   const handleResolveClick = (appeal: ModerationAppeal) => {
     setSelectedAppeal(appeal);
@@ -142,11 +142,11 @@ export function AppealsQueue({ initialStatus = 'pending' }: AppealsQueueProps) {
                     Original Decision:
                   </p>
                   <p className="text-sm">
-                    Action: <span className="font-medium">{appeal.decision_action}</span>
+                    Action: <span className="font-medium">{appeal.decision_action || 'Unknown'}</span>
                     {appeal.decision_reason && ` - ${appeal.decision_reason}`}
                   </p>
                   <p className="text-sm">
-                    Content: <span className="font-medium">{appeal.content_type}</span> (ID: {appeal.content_id})
+                    Content: <span className="font-medium">{appeal.content_type || 'Unknown'}</span> (ID: {appeal.content_id ?? 'N/A'})
                   </p>
                 </div>
 

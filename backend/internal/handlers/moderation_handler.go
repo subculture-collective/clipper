@@ -719,17 +719,55 @@ func (h *ModerationHandler) CreateAppeal(c *gin.Context) {
 		return
 	}
 
-	// Verify the moderation action exists
-	var actionExists bool
+	// Verify the moderation action exists and get content details for ownership check
+	var contentType string
+	var contentID uuid.UUID
 	err = h.db.QueryRow(ctx, `
-		SELECT EXISTS(
-			SELECT 1 FROM moderation_decisions md
-			WHERE md.id = $1
-		)
-	`, moderationActionID).Scan(&actionExists)
-	if err != nil || !actionExists {
+		SELECT mq.content_type, mq.content_id
+		FROM moderation_decisions md
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		WHERE md.id = $1
+	`, moderationActionID).Scan(&contentType, &contentID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Moderation action not found",
+		})
+		return
+	}
+
+	// Verify content ownership based on content type
+	var ownsContent bool
+	switch contentType {
+	case "comment":
+		err = h.db.QueryRow(ctx, `
+			SELECT EXISTS(SELECT 1 FROM comments WHERE id = $1 AND user_id = $2)
+		`, contentID, userID).Scan(&ownsContent)
+	case "clip":
+		err = h.db.QueryRow(ctx, `
+			SELECT EXISTS(SELECT 1 FROM clips WHERE id = $1 AND submitted_by_user_id = $2)
+		`, contentID, userID).Scan(&ownsContent)
+	case "user":
+		// For user moderation actions, check if the moderated user is the same as the requester
+		err = h.db.QueryRow(ctx, `
+			SELECT EXISTS(SELECT 1 FROM users WHERE id = $1 AND id = $2)
+		`, contentID, userID).Scan(&ownsContent)
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Unsupported content type for appeals: %s", contentType),
+		})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify content ownership",
+		})
+		return
+	}
+
+	if !ownsContent {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "You do not have permission to appeal this moderation action",
 		})
 		return
 	}

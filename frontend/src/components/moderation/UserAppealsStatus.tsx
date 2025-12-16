@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Alert } from '../ui/Alert';
 import { getUserAppeals, type ModerationAppeal } from '@/lib/moderation-api';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -8,7 +8,7 @@ export function UserAppealsStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAppeals = async () => {
+  const loadAppeals = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -19,11 +19,11 @@ export function UserAppealsStatus() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadAppeals();
-  }, []);
+  }, [loadAppeals]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
@@ -79,7 +79,7 @@ export function UserAppealsStatus() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="font-semibold text-lg">
-                  Appeal for {appeal.decision_action} Action
+                  Appeal for {appeal.decision_action ?? 'Unknown'} Action
                 </h3>
                 {getStatusBadge(appeal.status)}
               </div>
@@ -98,7 +98,7 @@ export function UserAppealsStatus() {
                 {appeal.decision_reason || 'No reason provided'}
               </p>
               <p className="text-sm text-muted-foreground">
-                Content: {appeal.content_type} (ID: {appeal.content_id})
+                Content: {appeal.content_type ?? 'Unknown'} (ID: {appeal.content_id ?? 'N/A'})
               </p>
             </div>
 

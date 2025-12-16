@@ -46,7 +46,7 @@ export function getErrorMessage(error: unknown, fallbackMessage: string = 'An un
 function isApiErrorResponse(error: unknown): error is ApiErrorResponse {
   return (
     typeof error === 'object' &&
-    error !== null &&
+    error != null &&
     ('response' in error || 'message' in error)
   );
 }

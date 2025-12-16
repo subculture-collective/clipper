@@ -96,10 +96,10 @@ export function AppealResolutionModal({
                   {appeal.display_name && ` (${appeal.display_name})`}
                 </p>
                 <p>
-                  <span className="font-medium">Original Action:</span> {appeal.decision_action}
+                  <span className="font-medium">Original Action:</span> {appeal.decision_action || 'Unknown'}
                 </p>
                 <p>
-                  <span className="font-medium">Content:</span> {appeal.content_type} (ID: {appeal.content_id})
+                  <span className="font-medium">Content:</span> {appeal.content_type || 'Unknown'} (ID: {appeal.content_id || 'N/A'})
                 </p>
                 {appeal.decision_reason && (
                   <p>
@@ -123,12 +123,14 @@ export function AppealResolutionModal({
 
             {/* Decision Selection */}
             <div>
-              <label className="block text-sm font-medium mb-3">
+              <label id="decision-label" className="block text-sm font-medium mb-3">
                 Decision *
               </label>
-              <div className="flex gap-4">
+              <div className="flex gap-4" role="radiogroup" aria-labelledby="decision-label">
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={decision === 'approve'}
                   onClick={() => setDecision('approve')}
                   className={`flex-1 p-4 border-2 rounded-lg text-center transition-all ${
                     decision === 'approve'
@@ -144,6 +146,8 @@ export function AppealResolutionModal({
                 </button>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={decision === 'reject'}
                   onClick={() => setDecision('reject')}
                   className={`flex-1 p-4 border-2 rounded-lg text-center transition-all ${
                     decision === 'reject'

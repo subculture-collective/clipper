@@ -19,6 +19,8 @@ CREATE TABLE moderation_appeals (
 CREATE INDEX idx_appeals_status_created ON moderation_appeals(status, created_at);
 CREATE INDEX idx_appeals_user_id ON moderation_appeals(user_id);
 CREATE INDEX idx_appeals_moderation_action ON moderation_appeals(moderation_action_id);
+-- Partial index on resolved_by: only index non-null values since we never query for NULL resolved_by
+-- This reduces index size and improves write performance while supporting queries filtering by resolver
 CREATE INDEX idx_appeals_resolved_by ON moderation_appeals(resolved_by) WHERE resolved_by IS NOT NULL;
 
 -- Prevent duplicate appeals for the same moderation action
