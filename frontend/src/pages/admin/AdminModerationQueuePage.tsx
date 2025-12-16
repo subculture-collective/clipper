@@ -21,6 +21,21 @@ import {
     type ModerationQueueStats,
 } from '../../lib/moderation-api';
 
+// Helper function to extract error message from API error
+function getErrorMessage(error: unknown): string {
+    if (typeof error === 'object' && error !== null && 'response' in error) {
+        const apiError = error as { response?: { data?: { error?: string } } };
+        return apiError.response?.data?.error || 'An error occurred';
+    }
+    return 'An error occurred';
+}
+
+// Helper function to format confidence score
+function formatConfidenceScore(score: number | undefined): string {
+    if (score === undefined) return '';
+    return ` (${(score * 100).toFixed(0)}%)`;
+}
+
 export function AdminModerationQueuePage() {
     const { isAuthenticated, isAdmin } = useAuth();
     const navigate = useNavigate();
@@ -85,10 +100,7 @@ export function AdminModerationQueuePage() {
             );
             setItems(response.data || []);
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
-            setError(
-                error.response?.data?.error || 'Failed to load moderation queue'
-            );
+            setError(getErrorMessage(err) || 'Failed to load moderation queue');
         } finally {
             setIsLoading(false);
         }
@@ -120,8 +132,7 @@ export function AdminModerationQueuePage() {
             loadQueue();
             loadStats();
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
-            setError(error.response?.data?.error || 'Failed to approve item');
+            setError(getErrorMessage(err) || 'Failed to approve item');
         }
     };
 
@@ -145,8 +156,7 @@ export function AdminModerationQueuePage() {
             loadQueue();
             loadStats();
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
-            setError(error.response?.data?.error || 'Failed to reject item');
+            setError(getErrorMessage(err) || 'Failed to reject item');
         }
     };
 
@@ -165,10 +175,7 @@ export function AdminModerationQueuePage() {
             loadQueue();
             loadStats();
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
-            setError(
-                error.response?.data?.error || 'Failed to approve items'
-            );
+            setError(getErrorMessage(err) || 'Failed to approve items');
         }
     };
 
@@ -187,10 +194,7 @@ export function AdminModerationQueuePage() {
             loadQueue();
             loadStats();
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
-            setError(
-                error.response?.data?.error || 'Failed to reject items'
-            );
+            setError(getErrorMessage(err) || 'Failed to reject items');
         }
     };
 
@@ -431,9 +435,7 @@ export function AdminModerationQueuePage() {
                                                 {item.auto_flagged && (
                                                     <Badge variant='warning'>
                                                         Auto-flagged
-                                                        {item.confidence_score && 
-                                                            ` (${(item.confidence_score * 100).toFixed(0)}%)`
-                                                        }
+                                                        {formatConfidenceScore(item.confidence_score)}
                                                     </Badge>
                                                 )}
                                                 {item.report_count > 0 && (

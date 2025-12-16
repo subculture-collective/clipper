@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/services"
+)
+
+const (
+	secondsPerHour = 3600
 )
 
 // ModerationHandler handles moderation operations
@@ -373,8 +376,18 @@ func (h *ModerationHandler) RejectContent(c *gin.Context) {
 	var req struct {
 		Reason *string `json:"reason"`
 	}
-	if err := c.ShouldBindJSON(&req); err == nil && req.Reason != nil {
-		// Reason is optional, so ignore bind errors
+	// Try to parse JSON body, but allow empty body since reason is optional
+	contentType := c.GetHeader("Content-Type")
+	if contentType == "application/json" {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			// Only reject if there's actually a body but it's malformed
+			if c.Request.ContentLength > 0 {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Invalid JSON in request body",
+				})
+				return
+			}
+		}
 	}
 
 	// Begin transaction
@@ -481,6 +494,7 @@ func (h *ModerationHandler) BulkModerate(c *gin.Context) {
 
 	// Update all items
 	processedCount := 0
+	failedItems := make([]string, 0)
 	for _, itemID := range itemIDs {
 		// Update queue item
 		cmdTag, err := tx.Exec(ctx, `
@@ -489,9 +503,11 @@ func (h *ModerationHandler) BulkModerate(c *gin.Context) {
 			WHERE id = $3 AND status = 'pending'
 		`, status, moderatorID, itemID)
 		if err != nil {
+			failedItems = append(failedItems, itemID.String())
 			continue
 		}
 		if cmdTag.RowsAffected() == 0 {
+			failedItems = append(failedItems, itemID.String())
 			continue
 		}
 
@@ -501,6 +517,7 @@ func (h *ModerationHandler) BulkModerate(c *gin.Context) {
 			VALUES ($1, $2, $3, $4)
 		`, itemID, moderatorID, req.Action, req.Reason)
 		if err != nil {
+			failedItems = append(failedItems, itemID.String())
 			continue
 		}
 
@@ -514,11 +531,17 @@ func (h *ModerationHandler) BulkModerate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"success":   true,
 		"processed": processedCount,
 		"total":     len(itemIDs),
-	})
+	}
+	if len(failedItems) > 0 {
+		response["failed"] = failedItems
+		response["message"] = fmt.Sprintf("Processed %d items, %d failed", processedCount, len(failedItems))
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetModerationStats returns statistics about the moderation queue
@@ -541,7 +564,7 @@ func (h *ModerationHandler) GetModerationStats(c *gin.Context) {
 			COUNT(*) FILTER (WHERE status = 'pending' AND auto_flagged = true) as auto_flagged_count,
 			COUNT(*) FILTER (WHERE status = 'pending' AND report_count > 0) as user_reported_count,
 			COUNT(*) FILTER (WHERE status = 'pending' AND priority >= 75) as high_priority_count,
-			EXTRACT(EPOCH FROM (NOW() - MIN(created_at) FILTER (WHERE status = 'pending')))/3600 as oldest_age
+			EXTRACT(EPOCH FROM (NOW() - MIN(created_at) FILTER (WHERE status = 'pending')))/` + fmt.Sprintf("%d", secondsPerHour) + ` as oldest_age
 		FROM moderation_queue
 	`).Scan(
 		&stats.TotalPending, &stats.TotalApproved, &stats.TotalRejected,
