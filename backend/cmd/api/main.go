@@ -209,7 +209,7 @@ func main() {
 	communityService := services.NewCommunityService(communityRepo, clipRepo, userRepo, notificationService)
 
 	// Initialize account type service
-	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo)
+	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
 
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
@@ -994,6 +994,7 @@ func main() {
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(authService))
 		admin.Use(middleware.RequireRole("admin", "moderator"))
+		admin.Use(middleware.RequireMFAForAdminMiddleware(mfaService)) // Enforce MFA for admin/moderator actions
 		{
 			// Clip sync (if available)
 			if clipSyncHandler != nil {
