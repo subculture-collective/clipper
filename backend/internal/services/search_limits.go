@@ -15,6 +15,12 @@ var (
 	ErrAggregationDepthTooDeep = errors.New("aggregation nesting exceeds maximum depth")
 	// ErrTooManyQueryClauses is returned when there are too many query clauses
 	ErrTooManyQueryClauses = errors.New("number of query clauses exceeds maximum allowed")
+	// ErrDangerousQueryPattern is returned when a dangerous pattern is detected
+	ErrDangerousQueryPattern = errors.New("dangerous query pattern detected")
+	// ErrUnauthorizedFieldAccess is returned when accessing unauthorized field
+	ErrUnauthorizedFieldAccess = errors.New("unauthorized field access attempted")
+	// ErrInvalidQueryOperator is returned when using invalid query operator
+	ErrInvalidQueryOperator = errors.New("invalid query operator")
 )
 
 // SearchLimits defines limits for OpenSearch queries
@@ -43,13 +49,19 @@ func DefaultSearchLimits() SearchLimits {
 
 // SearchQueryValidator validates OpenSearch queries against limits
 type SearchQueryValidator struct {
-	limits SearchLimits
+	limits           SearchLimits
+	allowedFields    map[string]bool
+	allowedOperators map[string]bool
+	dangerousPatterns []string
 }
 
 // NewSearchQueryValidator creates a new search query validator
 func NewSearchQueryValidator(limits SearchLimits) *SearchQueryValidator {
 	return &SearchQueryValidator{
-		limits: limits,
+		limits:           limits,
+		allowedFields:    getAllowedSearchFields(),
+		allowedOperators: getAllowedQueryOperators(),
+		dangerousPatterns: getDangerousPatterns(),
 	}
 }
 
@@ -214,4 +226,363 @@ func (v *SearchQueryValidator) EnforceSearchLimits(size *int, from *int) {
 // GetTimeout returns the maximum search timeout
 func (v *SearchQueryValidator) GetTimeout() time.Duration {
 	return v.limits.MaxSearchTime
+}
+
+// getAllowedSearchFields returns the whitelist of allowed search fields
+func getAllowedSearchFields() map[string]bool {
+	fields := []string{
+		// Clip fields
+		"title",
+		"title.en",
+		"title.es", 
+		"title.fr",
+		"title.de",
+		"creator_name",
+		"creator_id",
+		"broadcaster_name",
+		"broadcaster_id",
+		"game_name",
+		"game_name.keyword",
+		"game_id",
+		"language",
+		"tags",
+		"created_at",
+		"view_count",
+		"vote_score",
+		"duration",
+		"is_removed",
+		"is_featured",
+		"is_nsfw",
+		"engagement_score",
+		"recency_score",
+		// User fields
+		"username",
+		"display_name",
+		"bio",
+		"is_banned",
+		"karma_points",
+		// Tag fields
+		"name",
+		"description",
+		"usage_count",
+		// Sort fields
+		"_score",
+		"comment_count",
+		"favorite_count",
+	}
+	
+	fieldMap := make(map[string]bool, len(fields))
+	for _, field := range fields {
+		fieldMap[field] = true
+	}
+	return fieldMap
+}
+
+// getAllowedQueryOperators returns the whitelist of allowed query operators
+func getAllowedQueryOperators() map[string]bool {
+	operators := []string{
+		"match",
+		"multi_match",
+		"match_phrase",
+		"match_phrase_prefix",
+		"term",
+		"terms",
+		"range",
+		"bool",
+		"must",
+		"should",
+		"must_not",
+		"filter",
+		"match_all",
+		"function_score",
+		"field_value_factor",
+		"query",  // Add query key which is commonly used
+		"aggs",
+		"aggregations",
+	}
+	
+	operatorMap := make(map[string]bool, len(operators))
+	for _, op := range operators {
+		operatorMap[op] = true
+	}
+	return operatorMap
+}
+
+// getDangerousPatterns returns patterns that should be blocked
+func getDangerousPatterns() []string {
+	return []string{
+		"script",
+		"_source",
+		"painless",
+		"groovy",
+		"expression",
+		"inline",
+		"stored",
+		"file",
+		"../",
+		"..\\",
+		"eval(",
+		"exec(",
+		"system(",
+		"Runtime",
+		"ProcessBuilder",
+		"__import__",
+	}
+}
+
+// ValidateQueryStructure validates the entire query structure for security
+func (v *SearchQueryValidator) ValidateQueryStructure(query map[string]interface{}) error {
+	// Check for dangerous patterns
+	if err := v.checkDangerousPatterns(query); err != nil {
+		return err
+	}
+	
+	// Validate field access
+	if err := v.validateFieldAccess(query); err != nil {
+		return err
+	}
+	
+	// Validate operators
+	if err := v.validateOperators(query); err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// checkDangerousPatterns recursively checks for dangerous patterns in query
+func (v *SearchQueryValidator) checkDangerousPatterns(obj interface{}) error {
+	switch val := obj.(type) {
+	case map[string]interface{}:
+		for key, value := range val {
+			// Check key for dangerous patterns
+			for _, pattern := range v.dangerousPatterns {
+				if contains(key, pattern) {
+					return fmt.Errorf("%w: found '%s' in query key", ErrDangerousQueryPattern, pattern)
+				}
+			}
+			
+			// Recursively check value
+			if err := v.checkDangerousPatterns(value); err != nil {
+				return err
+			}
+		}
+	case []interface{}:
+		for _, item := range val {
+			if err := v.checkDangerousPatterns(item); err != nil {
+				return err
+			}
+		}
+	case string:
+		// Check string values for dangerous patterns
+		for _, pattern := range v.dangerousPatterns {
+			if contains(val, pattern) {
+				return fmt.Errorf("%w: found '%s' in query value", ErrDangerousQueryPattern, pattern)
+			}
+		}
+	}
+	
+	return nil
+}
+
+// validateFieldAccess validates that only allowed fields are accessed
+func (v *SearchQueryValidator) validateFieldAccess(obj interface{}) error {
+	switch val := obj.(type) {
+	case map[string]interface{}:
+		for key, value := range val {
+			// Check if this is a field reference (common keys that contain field names)
+			if key == "field" || key == "fields" {
+				if err := v.checkFieldAllowed(value); err != nil {
+					return err
+				}
+				continue // Skip further processing for this key
+			}
+			
+			// Skip validation for structural keys that are not field names
+			structuralKeys := map[string]bool{
+				"bool": true, "must": true, "should": true, "must_not": true, "filter": true,
+				"query": true, "aggs": true, "aggregations": true, "terms": true,
+				"range": true, "gte": true, "lte": true, "gt": true, "lt": true,
+				"from": true, "size": true, "sort": true, "match": true, "term": true,
+				"multi_match": true, "match_phrase": true, "match_phrase_prefix": true,
+				"match_all": true, "function_score": true, "functions": true,
+				"field_value_factor": true, "modifier": true, "factor": true, "missing": true,
+				"score_mode": true, "boost_mode": true, "boost": true, "fuzziness": true,
+				"operator": true, "type": true, "source": true, "inline": true, "stored": true,
+			}
+			
+			// For leaf-level query operators (match, term, etc.), check the field names
+			if v.isLeafQueryOperator(key) {
+				if fieldMap, ok := value.(map[string]interface{}); ok {
+					for fieldName := range fieldMap {
+						// Skip if this is a structural parameter, not a field name
+						if !structuralKeys[fieldName] && !v.isFieldAllowed(fieldName) {
+							return fmt.Errorf("%w: field '%s'", ErrUnauthorizedFieldAccess, fieldName)
+						}
+					}
+				}
+			}
+			
+			// Recursively validate nested structures
+			if err := v.validateFieldAccess(value); err != nil {
+				return err
+			}
+		}
+	case []interface{}:
+		for _, item := range val {
+			if err := v.validateFieldAccess(item); err != nil {
+				return err
+			}
+		}
+	}
+	
+	return nil
+}
+
+// checkFieldAllowed checks if a field value is allowed
+func (v *SearchQueryValidator) checkFieldAllowed(value interface{}) error {
+	switch val := value.(type) {
+	case string:
+		if !v.isFieldAllowed(val) {
+			return fmt.Errorf("%w: field '%s'", ErrUnauthorizedFieldAccess, val)
+		}
+	case []interface{}:
+		for _, item := range val {
+			if fieldStr, ok := item.(string); ok {
+				if !v.isFieldAllowed(fieldStr) {
+					return fmt.Errorf("%w: field '%s'", ErrUnauthorizedFieldAccess, fieldStr)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// isFieldAllowed checks if a field is in the whitelist
+func (v *SearchQueryValidator) isFieldAllowed(field string) bool {
+	// Handle field boost notation (e.g., "title^3")
+	for idx := 0; idx < len(field); idx++ {
+		if field[idx] == '^' {
+			field = field[:idx]
+			break
+		}
+	}
+	
+	// Handle wildcard notation (e.g., "title.*")
+	for idx := 0; idx < len(field); idx++ {
+		if field[idx] == '*' {
+			field = field[:idx]
+			if len(field) > 0 && field[len(field)-1] == '.' {
+				field = field[:len(field)-1]
+			}
+			break
+		}
+	}
+	
+	return v.allowedFields[field]
+}
+
+// validateOperators validates that only allowed operators are used
+func (v *SearchQueryValidator) validateOperators(obj interface{}) error {
+	switch val := obj.(type) {
+	case map[string]interface{}:
+		for key, value := range val {
+			// Check if this key is an operator
+			if v.looksLikeOperator(key) && !v.allowedOperators[key] {
+				return fmt.Errorf("%w: '%s'", ErrInvalidQueryOperator, key)
+			}
+			
+			// Recursively validate nested structures
+			if err := v.validateOperators(value); err != nil {
+				return err
+			}
+		}
+	case []interface{}:
+		for _, item := range val {
+			if err := v.validateOperators(item); err != nil {
+				return err
+			}
+		}
+	}
+	
+	return nil
+}
+
+// isQueryOperator checks if a key is a known query operator
+func (v *SearchQueryValidator) isQueryOperator(key string) bool {
+	return v.allowedOperators[key]
+}
+
+// isLeafQueryOperator checks if a key is a leaf-level query operator that directly contains field names
+func (v *SearchQueryValidator) isLeafQueryOperator(key string) bool {
+	leafOperators := map[string]bool{
+		"match":              true,
+		"term":               true,
+		"terms":              true,
+		"match_phrase":       true,
+		"match_phrase_prefix": true,
+		"range":              true,
+	}
+	return leafOperators[key]
+}
+
+// looksLikeOperator checks if a key looks like an operator
+// (operators are typically lowercase with underscores, not field names)
+func (v *SearchQueryValidator) looksLikeOperator(key string) bool {
+	// Field names typically have dots or are camelCase/snake_case
+	// Operators are typically lowercase operation names
+	operatorLikeKeys := map[string]bool{
+		"match": true, "term": true, "range": true, "bool": true,
+		"must": true, "should": true, "filter": true, "must_not": true,
+		"query": true, "aggs": true, "aggregations": true,
+		"script": true, "source": true, "inline": true, "stored": true,
+		"multi_match": true, "match_phrase": true, "match_phrase_prefix": true,
+		"terms": true, "match_all": true, "function_score": true,
+	}
+	return operatorLikeKeys[key]
+}
+
+// contains checks if a string contains a substring (case-insensitive)
+func contains(s, substr string) bool {
+	sLower := toLower(s)
+	substrLower := toLower(substr)
+	return indexOf(sLower, substrLower) >= 0
+}
+
+// toLower converts a string to lowercase
+func toLower(s string) string {
+	result := make([]byte, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			result[i] = c + 32
+		} else {
+			result[i] = c
+		}
+	}
+	return string(result)
+}
+
+// indexOf returns the index of substr in s, or -1 if not found
+func indexOf(s, substr string) int {
+	if len(substr) == 0 {
+		return 0
+	}
+	if len(substr) > len(s) {
+		return -1
+	}
+	
+	for i := 0; i <= len(s)-len(substr); i++ {
+		match := true
+		for j := 0; j < len(substr); j++ {
+			if s[i+j] != substr[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return i
+		}
+	}
+	return -1
 }
