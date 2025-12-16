@@ -68,13 +68,7 @@ export function AdminModerationQueuePage() {
                 return;
             }
 
-            if (e.key === 'j') {
-                // Navigate down (could be implemented with focus management)
-                e.preventDefault();
-            } else if (e.key === 'k') {
-                // Navigate up (could be implemented with focus management)
-                e.preventDefault();
-            } else if (e.key === 'a' && selectedIds.size > 0) {
+            if (e.key === 'a' && selectedIds.size > 0) {
                 // Approve selected
                 e.preventDefault();
                 handleBulkApprove();
@@ -87,7 +81,7 @@ export function AdminModerationQueuePage() {
 
         document.addEventListener('keydown', handleKeyPress);
         return () => document.removeEventListener('keydown', handleKeyPress);
-    }, [selectedIds]);
+    }, [selectedIds, handleBulkApprove, handleBulkReject]);
 
     const loadQueue = useCallback(async () => {
         try {
@@ -125,6 +119,21 @@ export function AdminModerationQueuePage() {
         loadStats();
     }, [isAuthenticated, isAdmin, navigate, loadQueue, loadStats]);
 
+    // Clear selection when filters change
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [statusFilter, typeFilter]);
+
+    // Auto-dismiss success messages after 5 seconds
+    useEffect(() => {
+        if (success) {
+            const timer = setTimeout(() => {
+                setSuccess(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [success]);
+
     const handleApprove = async (itemId: string) => {
         try {
             await approveQueueItem(itemId);
@@ -160,7 +169,7 @@ export function AdminModerationQueuePage() {
         }
     };
 
-    const handleBulkApprove = async () => {
+    const handleBulkApprove = useCallback(async () => {
         if (selectedIds.size === 0) return;
 
         try {
@@ -177,9 +186,9 @@ export function AdminModerationQueuePage() {
         } catch (err: unknown) {
             setError(getErrorMessage(err) || 'Failed to approve items');
         }
-    };
+    }, [selectedIds, loadQueue, loadStats]);
 
-    const handleBulkReject = async () => {
+    const handleBulkReject = useCallback(async () => {
         if (selectedIds.size === 0) return;
 
         try {
@@ -196,7 +205,7 @@ export function AdminModerationQueuePage() {
         } catch (err: unknown) {
             setError(getErrorMessage(err) || 'Failed to reject items');
         }
-    };
+    }, [selectedIds, loadQueue, loadStats]);
 
     const toggleSelection = (itemId: string) => {
         const newSelection = new Set(selectedIds);
@@ -231,7 +240,7 @@ export function AdminModerationQueuePage() {
                         Review and moderate flagged content with bulk actions
                     </p>
                     <p className='text-muted-foreground text-sm mt-2'>
-                        Keyboard shortcuts: J/K navigation • A approve • R reject
+                        Keyboard shortcuts: A approve • R reject (when items selected)
                     </p>
                 </div>
 

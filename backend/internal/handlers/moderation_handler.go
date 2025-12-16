@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -216,12 +215,42 @@ func (h *ModerationHandler) GetUserAbuseStats(c *gin.Context) {
 func (h *ModerationHandler) GetModerationQueue(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Parse query parameters
+	// Parse and validate query parameters
 	contentType := c.Query("type")
 	status := c.DefaultQuery("status", "pending")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	if limit < 1 || limit > 100 {
 		limit = 50
+	}
+
+	// Validate status parameter
+	validStatuses := map[string]bool{
+		"pending":   true,
+		"approved":  true,
+		"rejected":  true,
+		"escalated": true,
+	}
+	if !validStatuses[status] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid status. Must be one of: pending, approved, rejected, escalated",
+		})
+		return
+	}
+
+	// Validate content type if provided
+	if contentType != "" {
+		validContentTypes := map[string]bool{
+			"comment":    true,
+			"clip":       true,
+			"user":       true,
+			"submission": true,
+		}
+		if !validContentTypes[contentType] {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid content type. Must be one of: comment, clip, user, submission",
+			})
+			return
+		}
 	}
 
 	// Build query with filters
@@ -264,6 +293,8 @@ func (h *ModerationHandler) GetModerationQueue(c *gin.Context) {
 			&item.CreatedAt, &item.ReviewedAt, &item.ReviewedBy,
 		)
 		if err != nil {
+			// Log scan error for debugging but continue processing other rows
+			c.Error(fmt.Errorf("failed to scan moderation queue item: %w", err))
 			continue
 		}
 		items = append(items, item)
@@ -313,7 +344,7 @@ func (h *ModerationHandler) ApproveContent(c *gin.Context) {
 	defer tx.Rollback(ctx)
 
 	// Update queue item
-	_, err = tx.Exec(ctx, `
+	cmdTag, err := tx.Exec(ctx, `
 		UPDATE moderation_queue 
 		SET status = 'approved', reviewed_by = $1
 		WHERE id = $2 AND status = 'pending'
@@ -321,6 +352,14 @@ func (h *ModerationHandler) ApproveContent(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to approve item",
+		})
+		return
+	}
+
+	// Check if any rows were updated
+	if cmdTag.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Item not found or not in pending status",
 		})
 		return
 	}
@@ -376,17 +415,20 @@ func (h *ModerationHandler) RejectContent(c *gin.Context) {
 	var req struct {
 		Reason *string `json:"reason"`
 	}
-	// Try to parse JSON body, but allow empty body since reason is optional
+	// Enforce JSON Content-Type for consistency
 	contentType := c.GetHeader("Content-Type")
-	if contentType == "application/json" {
+	if c.Request.ContentLength > 0 {
+		if contentType != "application/json" {
+			c.JSON(http.StatusUnsupportedMediaType, gin.H{
+				"error": "Content-Type must be application/json",
+			})
+			return
+		}
 		if err := c.ShouldBindJSON(&req); err != nil {
-			// Only reject if there's actually a body but it's malformed
-			if c.Request.ContentLength > 0 {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": "Invalid JSON in request body",
-				})
-				return
-			}
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid JSON in request body",
+			})
+			return
 		}
 	}
 
@@ -401,7 +443,7 @@ func (h *ModerationHandler) RejectContent(c *gin.Context) {
 	defer tx.Rollback(ctx)
 
 	// Update queue item
-	_, err = tx.Exec(ctx, `
+	cmdTag, err := tx.Exec(ctx, `
 		UPDATE moderation_queue 
 		SET status = 'rejected', reviewed_by = $1
 		WHERE id = $2 AND status = 'pending'
@@ -409,6 +451,14 @@ func (h *ModerationHandler) RejectContent(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to reject item",
+		})
+		return
+	}
+
+	// Check if any rows were updated
+	if cmdTag.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Item not found or not in pending status",
 		})
 		return
 	}
@@ -554,63 +604,80 @@ func (h *ModerationHandler) GetModerationStats(c *gin.Context) {
 		ByReason:      make(map[string]int),
 	}
 
-	// Get counts by status
-	err := h.db.QueryRow(ctx, `
-		SELECT 
-			COUNT(*) FILTER (WHERE status = 'pending') as total_pending,
-			COUNT(*) FILTER (WHERE status = 'approved') as total_approved,
-			COUNT(*) FILTER (WHERE status = 'rejected') as total_rejected,
-			COUNT(*) FILTER (WHERE status = 'escalated') as total_escalated,
-			COUNT(*) FILTER (WHERE status = 'pending' AND auto_flagged = true) as auto_flagged_count,
-			COUNT(*) FILTER (WHERE status = 'pending' AND report_count > 0) as user_reported_count,
-			COUNT(*) FILTER (WHERE status = 'pending' AND priority >= 75) as high_priority_count,
-			EXTRACT(EPOCH FROM (NOW() - MIN(created_at) FILTER (WHERE status = 'pending')))/` + fmt.Sprintf("%d", secondsPerHour) + ` as oldest_age
-		FROM moderation_queue
-	`).Scan(
-		&stats.TotalPending, &stats.TotalApproved, &stats.TotalRejected,
-		&stats.TotalEscalated, &stats.AutoFlaggedCount, &stats.UserReportedCount,
-		&stats.HighPriorityCount, &stats.OldestPendingAge,
-	)
-	if err != nil && err != sql.ErrNoRows {
+	// Get all stats in a single optimized query using CTEs
+	rows, err := h.db.Query(ctx, `
+		WITH status_counts AS (
+			SELECT 
+				COUNT(*) FILTER (WHERE status = 'pending') as total_pending,
+				COUNT(*) FILTER (WHERE status = 'approved') as total_approved,
+				COUNT(*) FILTER (WHERE status = 'rejected') as total_rejected,
+				COUNT(*) FILTER (WHERE status = 'escalated') as total_escalated,
+				COUNT(*) FILTER (WHERE status = 'pending' AND auto_flagged = true) as auto_flagged_count,
+				COUNT(*) FILTER (WHERE status = 'pending' AND report_count > 0) as user_reported_count,
+				COUNT(*) FILTER (WHERE status = 'pending' AND priority >= 75) as high_priority_count,
+				EXTRACT(EPOCH FROM (NOW() - MIN(created_at) FILTER (WHERE status = 'pending')))/`+fmt.Sprintf("%d", secondsPerHour)+` as oldest_age
+			FROM moderation_queue
+		),
+		type_counts AS (
+			SELECT 'type' as category, content_type as name, COUNT(*) as count
+			FROM moderation_queue
+			WHERE status = 'pending'
+			GROUP BY content_type
+		),
+		reason_counts AS (
+			SELECT 'reason' as category, reason as name, COUNT(*) as count
+			FROM moderation_queue
+			WHERE status = 'pending'
+			GROUP BY reason
+		)
+		SELECT 'status' as type, NULL as name, 
+			   total_pending, total_approved, total_rejected, total_escalated,
+			   auto_flagged_count, user_reported_count, high_priority_count, oldest_age
+		FROM status_counts
+		UNION ALL
+		SELECT category, name, count, 0, 0, 0, 0, 0, 0, 0
+		FROM type_counts
+		UNION ALL
+		SELECT category, name, count, 0, 0, 0, 0, 0, 0, 0
+		FROM reason_counts
+	`)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve stats",
 		})
 		return
 	}
+	defer rows.Close()
 
-	// Get counts by content type
-	rows, err := h.db.Query(ctx, `
-		SELECT content_type, COUNT(*) as count
-		FROM moderation_queue
-		WHERE status = 'pending'
-		GROUP BY content_type
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var contentType string
-			var count int
-			if err := rows.Scan(&contentType, &count); err == nil {
-				stats.ByContentType[contentType] = count
-			}
+	// Process results
+	for rows.Next() {
+		var rowType string
+		var name *string
+		var count, totalPending, totalApproved, totalRejected, totalEscalated int
+		var autoFlagged, userReported, highPriority int
+		var oldestAge *int
+
+		err := rows.Scan(&rowType, &name, &count, &totalPending, &totalApproved,
+			&totalRejected, &totalEscalated, &autoFlagged, &userReported,
+			&highPriority, &oldestAge)
+		if err != nil {
+			continue
 		}
-	}
 
-	// Get counts by reason
-	rows, err = h.db.Query(ctx, `
-		SELECT reason, COUNT(*) as count
-		FROM moderation_queue
-		WHERE status = 'pending'
-		GROUP BY reason
-	`)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var reason string
-			var count int
-			if err := rows.Scan(&reason, &count); err == nil {
-				stats.ByReason[reason] = count
-			}
+		if rowType == "status" {
+			// Status row contains aggregate stats
+			stats.TotalPending = totalPending
+			stats.TotalApproved = totalApproved
+			stats.TotalRejected = totalRejected
+			stats.TotalEscalated = totalEscalated
+			stats.AutoFlaggedCount = autoFlagged
+			stats.UserReportedCount = userReported
+			stats.HighPriorityCount = highPriority
+			stats.OldestPendingAge = oldestAge
+		} else if rowType == "type" && name != nil {
+			stats.ByContentType[*name] = count
+		} else if rowType == "reason" && name != nil {
+			stats.ByReason[*name] = count
 		}
 	}
 

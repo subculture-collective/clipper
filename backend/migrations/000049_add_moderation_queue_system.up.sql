@@ -30,11 +30,16 @@ CREATE INDEX idx_modqueue_assigned_to ON moderation_queue(assigned_to) WHERE sta
 CREATE INDEX idx_modqueue_auto_flagged ON moderation_queue(auto_flagged) WHERE status = 'pending';
 CREATE INDEX idx_modqueue_created_at ON moderation_queue(created_at DESC);
 
+-- Prevent duplicate moderation queue entries for the same content
+-- Only one pending entry per content item is allowed
+CREATE UNIQUE INDEX uq_modqueue_content_pending ON moderation_queue(content_type, content_id) 
+WHERE status = 'pending';
+
 -- Moderation Decisions Table (Audit Trail)
 CREATE TABLE moderation_decisions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     queue_item_id UUID NOT NULL REFERENCES moderation_queue(id) ON DELETE CASCADE,
-    moderator_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    moderator_id UUID REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(20) NOT NULL, -- 'approve', 'reject', 'escalate', 'ban_user'
     reason TEXT, -- Optional explanation for the decision
     metadata JSONB, -- Additional context (e.g., bulk action details)
@@ -48,12 +53,17 @@ CREATE INDEX idx_moddecisions_moderator ON moderation_decisions(moderator_id);
 CREATE INDEX idx_moddecisions_created_at ON moderation_decisions(created_at DESC);
 CREATE INDEX idx_moddecisions_action ON moderation_decisions(action);
 
--- Add function to automatically update reviewed_at and reviewed_by when status changes
+-- Add function to automatically update reviewed_at when status changes
+-- Note: reviewed_by must be set explicitly by the application to maintain audit trail integrity
 CREATE OR REPLACE FUNCTION update_moderation_queue_reviewed()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.status != 'pending' AND OLD.status = 'pending' THEN
         NEW.reviewed_at = NOW();
+        -- Ensure reviewed_by is set by application code
+        IF NEW.reviewed_by IS NULL THEN
+            RAISE EXCEPTION 'reviewed_by must be set when changing status from pending';
+        END IF;
     END IF;
     RETURN NEW;
 END;
