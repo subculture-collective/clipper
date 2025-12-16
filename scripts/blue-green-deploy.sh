@@ -178,16 +178,26 @@ run_migrations() {
     if [ -d "$DEPLOY_DIR/backend/migrations" ]; then
         log_info "Migrations directory found"
         
-        # Run migrations using the backend container
-        if docker exec clipper-backend-blue sh -c 'command -v migrate' &>/dev/null; then
-            log_info "Running migrations with migrate tool..."
-            # Add migration command here when ready
-            log_warn "Migration execution not yet implemented - add migration command"
-        else
-            log_warn "Migration tool not found in container"
-        fi
+        # TODO: Implement migration execution
+        # The migration tool needs to be available in the backend container
+        # Options:
+        # 1. Use golang-migrate: docker exec clipper-backend-blue migrate -path /migrations -database "$DB_URL" up
+        # 2. Use custom migration script in container
+        # 3. Run migrations as separate job before deployment
+        
+        log_warn "Migration execution not yet implemented"
+        log_info "To enable migrations, update this function with your migration command"
+        log_info "Example: docker exec clipper-backend-blue /app/migrate up"
+        
+        # Uncomment and modify when migration tool is available:
+        # if docker exec clipper-backend-blue migrate -path /app/migrations -database "$DB_URL" up; then
+        #     log_success "Migrations executed successfully"
+        # else
+        #     log_error "Migration failed"
+        #     return 1
+        # fi
     else
-        log_warn "No migrations directory found, skipping"
+        log_warn "No migrations directory found at $DEPLOY_DIR/backend/migrations"
     fi
     
     log_success "Database migration check complete"
@@ -204,8 +214,25 @@ switch_traffic() {
         # Create backup of Caddyfile
         cp "$DEPLOY_DIR/Caddyfile" "$DEPLOY_DIR/Caddyfile.backup"
         
-        # This is a simplified approach - in production, you'd use sed or a template
+        # Replace environment references in Caddyfile
         log_info "Updating Caddy configuration to route to $target_env..."
+        
+        # Determine which environment to point to
+        if [ "$target_env" = "blue" ]; then
+            # Switch from green to blue
+            sed -i 's/clipper-backend-green:8080/clipper-backend-blue:8080/g' "$DEPLOY_DIR/Caddyfile" 2>/dev/null || \
+            sed -i.bak 's/clipper-backend-green:8080/clipper-backend-blue:8080/g' "$DEPLOY_DIR/Caddyfile"
+            sed -i 's/clipper-frontend-green:80/clipper-frontend-blue:80/g' "$DEPLOY_DIR/Caddyfile" 2>/dev/null || \
+            sed -i.bak 's/clipper-frontend-green:80/clipper-frontend-blue:80/g' "$DEPLOY_DIR/Caddyfile"
+        else
+            # Switch from blue to green
+            sed -i 's/clipper-backend-blue:8080/clipper-backend-green:8080/g' "$DEPLOY_DIR/Caddyfile" 2>/dev/null || \
+            sed -i.bak 's/clipper-backend-blue:8080/clipper-backend-green:8080/g' "$DEPLOY_DIR/Caddyfile"
+            sed -i 's/clipper-frontend-blue:80/clipper-frontend-green:80/g' "$DEPLOY_DIR/Caddyfile" 2>/dev/null || \
+            sed -i.bak 's/clipper-frontend-blue:80/clipper-frontend-green:80/g' "$DEPLOY_DIR/Caddyfile"
+        fi
+        
+        # Update ACTIVE_ENV for container restart method
         export ACTIVE_ENV=$target_env
         
         # Reload Caddy configuration

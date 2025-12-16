@@ -116,10 +116,28 @@ switch_traffic() {
     
     cd "$DEPLOY_DIR" || exit 1
     
+    # Update Caddyfile to point to target environment
+    if [ -f "Caddyfile" ]; then
+        # Create backup
+        cp Caddyfile Caddyfile.rollback-backup
+        
+        # Replace environment references
+        if [ "$target_env" = "blue" ]; then
+            sed -i 's/clipper-backend-green:8080/clipper-backend-blue:8080/g' Caddyfile 2>/dev/null || \
+            sed -i.bak 's/clipper-backend-green:8080/clipper-backend-blue:8080/g' Caddyfile
+            sed -i 's/clipper-frontend-green:80/clipper-frontend-blue:80/g' Caddyfile 2>/dev/null || \
+            sed -i.bak 's/clipper-frontend-green:80/clipper-frontend-blue:80/g' Caddyfile
+        else
+            sed -i 's/clipper-backend-blue:8080/clipper-backend-green:8080/g' Caddyfile 2>/dev/null || \
+            sed -i.bak 's/clipper-backend-blue:8080/clipper-backend-green:8080/g' Caddyfile
+            sed -i 's/clipper-frontend-blue:80/clipper-frontend-green:80/g' Caddyfile 2>/dev/null || \
+            sed -i.bak 's/clipper-frontend-blue:80/clipper-frontend-green:80/g' Caddyfile
+        fi
+    fi
+    
     # Update environment variable and restart Caddy
     export ACTIVE_ENV=$target_env
     
-    # Update docker-compose environment
     if docker compose -f "$COMPOSE_FILE" up -d caddy; then
         log_success "Caddy restarted with $target_env configuration"
         

@@ -163,6 +163,6 @@
 
 # Green environment explicit configuration (for reference)
 # Uncomment and use if dynamic selection doesn't work
-# :8081 {
-#     reverse_proxy clipper-backend-green:8081
+# :8080 {
+#     reverse_proxy clipper-backend-green:8080
 # }
