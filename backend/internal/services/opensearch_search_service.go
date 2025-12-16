@@ -164,6 +164,11 @@ func (s *OpenSearchService) searchClipsWithFacets(ctx context.Context, req *mode
 		return nil, 0, nil, fmt.Errorf("query clause validation failed: %w", err)
 	}
 	
+	// Validate query structure for security (fields, operators, dangerous patterns)
+	if err := s.validator.ValidateQueryStructure(finalQuery); err != nil {
+		return nil, 0, nil, fmt.Errorf("query structure validation failed: %w", err)
+	}
+	
 	// Build aggregations
 	aggs := s.buildFacetAggregations()
 	
@@ -237,6 +242,11 @@ func (s *OpenSearchService) searchCreators(ctx context.Context, req *models.Sear
 	if err := s.validator.ValidateQueryClauses(query); err != nil {
 		return nil, 0, fmt.Errorf("query clause validation failed: %w", err)
 	}
+	
+	// Validate query structure for security
+	if err := s.validator.ValidateQueryStructure(query); err != nil {
+		return nil, 0, fmt.Errorf("query structure validation failed: %w", err)
+	}
 
 	from := (req.Page - 1) * req.Limit
 	searchBody := map[string]interface{}{
@@ -271,6 +281,11 @@ func (s *OpenSearchService) searchGames(ctx context.Context, req *models.SearchR
 	if err := s.validator.ValidateQueryClauses(query); err != nil {
 		return nil, 0, fmt.Errorf("query clause validation failed: %w", err)
 	}
+	
+	// Validate query structure for security
+	if err := s.validator.ValidateQueryStructure(query); err != nil {
+		return nil, 0, fmt.Errorf("query structure validation failed: %w", err)
+	}
 
 	from := (req.Page - 1) * req.Limit
 	searchBody := map[string]interface{}{
@@ -304,6 +319,11 @@ func (s *OpenSearchService) searchTags(ctx context.Context, req *models.SearchRe
 	// Validate query clauses
 	if err := s.validator.ValidateQueryClauses(query); err != nil {
 		return nil, 0, fmt.Errorf("query clause validation failed: %w", err)
+	}
+	
+	// Validate query structure for security
+	if err := s.validator.ValidateQueryStructure(query); err != nil {
+		return nil, 0, fmt.Errorf("query structure validation failed: %w", err)
 	}
 
 	from := (req.Page - 1) * req.Limit
