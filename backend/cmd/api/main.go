@@ -7,6 +7,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -54,6 +55,22 @@ func main() {
 
 	// Set Gin mode
 	gin.SetMode(cfg.Server.GinMode)
+
+	// Initialize rate limit whitelist from configuration
+	middleware.InitRateLimitWhitelist(cfg.RateLimit.WhitelistIPs)
+	if cfg.RateLimit.WhitelistIPs != "" {
+		// Count IPs in whitelist (split by comma, filter empty strings)
+		ips := strings.Split(cfg.RateLimit.WhitelistIPs, ",")
+		ipCount := 0
+		for _, ip := range ips {
+			if strings.TrimSpace(ip) != "" {
+				ipCount++
+			}
+		}
+		if ipCount > 0 {
+			log.Printf("Rate limit whitelist configured with %d additional IP(s) (plus localhost)", ipCount)
+		}
+	}
 
 	// Initialize database connection pool
 	db, dbErr := database.NewDB(&cfg.Database)
@@ -585,9 +602,9 @@ func main() {
 			clips.PUT("/:id/metadata", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), clipHandler.UpdateClipMetadata)
 			clips.PUT("/:id/visibility", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), clipHandler.UpdateClipVisibility)
 
-			// User clip submission with rate limiting (5 per hour) - if Twitch client is available
+			// User clip submission with rate limiting (10 per hour) - if Twitch client is available
 			if clipSyncHandler != nil {
-				clips.POST("/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), clipSyncHandler.RequestClip)
+				clips.POST("/request", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), clipSyncHandler.RequestClip)
 			}
 
 			// Admin clip endpoints
@@ -626,7 +643,7 @@ func main() {
 		{
 			// Public tag endpoints
 			tags.GET("", tagHandler.ListTags)
-			tags.GET("/search", tagHandler.SearchTags)
+			tags.GET("/search", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), tagHandler.SearchTags)
 			tags.GET("/:slug", tagHandler.GetTag)
 			tags.GET("/:slug/clips", tagHandler.GetClipsByTag)
 		}
@@ -634,10 +651,10 @@ func main() {
 		// Search routes
 		search := v1.Group("/search")
 		{
-			// Public search endpoints
-			search.GET("", searchHandler.Search)
-			search.GET("/suggestions", searchHandler.GetSuggestions)
-			search.GET("/scores", searchHandler.SearchWithScores) // Hybrid search with similarity scores
+			// Public search endpoints with rate limiting (60 requests/minute = 1 per second)
+			search.GET("", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.Search)
+			search.GET("/suggestions", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.GetSuggestions)
+			search.GET("/scores", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.SearchWithScores) // Hybrid search with similarity scores
 		}
 
 		// Submission routes (if submission handler is available)
@@ -645,8 +662,8 @@ func main() {
 			submissions := v1.Group("/submissions")
 			submissions.Use(middleware.AuthMiddleware(authService))
 			{
-				// User submission endpoints
-				submissions.POST("", middleware.RateLimitMiddleware(redisClient, 5, time.Hour), submissionHandler.SubmitClip)
+				// User submission endpoints (10 submissions per hour per user)
+				submissions.POST("", middleware.RateLimitMiddleware(redisClient, 10, time.Hour), submissionHandler.SubmitClip)
 				submissions.GET("", submissionHandler.GetUserSubmissions)
 				submissions.GET("/stats", submissionHandler.GetSubmissionStats)
 				// Metadata endpoint with rate limiting (100 requests/hour per user)
@@ -842,7 +859,7 @@ func main() {
 		{
 			// Public feed discovery endpoints
 			feeds.GET("/discover", feedHandler.DiscoverFeeds)
-			feeds.GET("/search", feedHandler.SearchFeeds)
+			feeds.GET("/search", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), feedHandler.SearchFeeds)
 
 			// Following feed (authenticated)
 			feeds.GET("/following", middleware.AuthMiddleware(authService), feedHandler.GetFollowingFeed)
@@ -948,7 +965,7 @@ func main() {
 		docs := v1.Group("/docs")
 		{
 			docs.GET("", docsHandler.GetDocsList)
-			docs.GET("/search", docsHandler.SearchDocs)
+			docs.GET("/search", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), docsHandler.SearchDocs)
 			// Catch-all route must be last
 			docs.GET("/:path", docsHandler.GetDoc) // Changed from /*path to /:path to avoid conflict
 		}
@@ -958,7 +975,7 @@ func main() {
 		{
 			// Public community endpoints
 			communities.GET("", communityHandler.ListCommunities)
-			communities.GET("/search", communityHandler.SearchCommunities)
+			communities.GET("/search", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), communityHandler.SearchCommunities)
 			communities.GET("/:id", middleware.OptionalAuthMiddleware(authService), communityHandler.GetCommunity)
 			communities.GET("/:id/members", communityHandler.GetMembers)
 			communities.GET("/:id/feed", communityHandler.GetCommunityFeed)
