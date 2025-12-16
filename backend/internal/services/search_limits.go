@@ -233,10 +233,11 @@ func getAllowedSearchFields() map[string]bool {
 	fields := []string{
 		// Clip fields
 		"title",
-		"title.en",
-		"title.es", 
-		"title.fr",
-		"title.de",
+		// Language-specific title fields for better search relevance
+		"title.en", // English
+		"title.es", // Spanish
+		"title.fr", // French
+		"title.de", // German
 		"creator_name",
 		"creator_id",
 		"broadcaster_name",
