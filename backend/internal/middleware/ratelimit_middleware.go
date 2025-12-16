@@ -25,7 +25,7 @@ var (
 	// IP whitelist for rate limiting bypass (for testing/trusted IPs)
 	// Always includes localhost (127.0.0.1, ::1)
 	// Additional IPs can be configured via RATE_LIMIT_WHITELIST_IPS environment variable
-	rateLimitWhitelist   = make(map[string]bool)
+	rateLimitWhitelist   map[string]bool
 	rateLimitWhitelistMu sync.RWMutex
 )
 

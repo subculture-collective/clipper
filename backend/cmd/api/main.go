@@ -59,9 +59,17 @@ func main() {
 	// Initialize rate limit whitelist from configuration
 	middleware.InitRateLimitWhitelist(cfg.RateLimit.WhitelistIPs)
 	if cfg.RateLimit.WhitelistIPs != "" {
-		// Count IPs in whitelist (split by comma)
-		ipCount := len(strings.Split(cfg.RateLimit.WhitelistIPs, ","))
-		log.Printf("Rate limit whitelist configured with %d additional IP(s) (plus localhost)", ipCount)
+		// Count IPs in whitelist (split by comma, filter empty strings)
+		ips := strings.Split(cfg.RateLimit.WhitelistIPs, ",")
+		ipCount := 0
+		for _, ip := range ips {
+			if strings.TrimSpace(ip) != "" {
+				ipCount++
+			}
+		}
+		if ipCount > 0 {
+			log.Printf("Rate limit whitelist configured with %d additional IP(s) (plus localhost)", ipCount)
+		}
 	}
 
 	// Initialize database connection pool
