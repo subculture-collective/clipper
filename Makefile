@@ -1,4 +1,4 @@
-.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status
+.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -93,6 +93,18 @@ test-load-submit: ## Run submission load test (requires AUTH_TOKEN)
 
 test-load-mixed: ## Run mixed user behavior load test
 	@k6 run backend/tests/load/scenarios/mixed_behavior.js
+
+test-security: ## Run all security tests (IDOR, authorization)
+	@echo "Running IDOR security tests..."
+	cd backend && go test -v ./tests/security/
+	@echo "Running authorization middleware tests..."
+	cd backend && go test -v ./internal/middleware/ -run "TestCanAccessResource|TestPermissionMatrix|TestUserOwnership"
+	@echo "✓ All security tests passed"
+
+test-idor: ## Run IDOR vulnerability tests only
+	@echo "Running IDOR security tests..."
+	cd backend && go test -v ./tests/security/ -run TestIDOR
+	@echo "✓ IDOR tests complete"
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
