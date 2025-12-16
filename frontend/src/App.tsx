@@ -51,6 +51,7 @@ const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m 
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
+const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModerationQueuePage').then(m => ({ default: m.AdminModerationQueuePage })));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
@@ -292,6 +293,14 @@ function App() {
                       element={
                         <AdminRoute>
                           <ModerationQueuePage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/moderation"
+                      element={
+                        <AdminRoute>
+                          <AdminModerationQueuePage />
                         </AdminRoute>
                       }
                     />
