@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { TextArea } from '../ui/TextArea';
 import { Alert } from '../ui/Alert';
 import { resolveAppeal, type ModerationAppeal } from '@/lib/moderation-api';
+import { getErrorMessage } from '@/lib/error-utils';
 
 interface AppealResolutionModalProps {
   open: boolean;
@@ -54,8 +55,7 @@ export function AppealResolutionModal({
         }
       }, 2000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to resolve appeal. Please try again.');
+      setError(getErrorMessage(err, 'Failed to resolve appeal. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }

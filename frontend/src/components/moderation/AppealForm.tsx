@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { TextArea } from '../ui/TextArea';
 import { Alert } from '../ui/Alert';
 import { createAppeal } from '@/lib/moderation-api';
+import { getErrorMessage } from '@/lib/error-utils';
 
 interface AppealFormProps {
   open: boolean;
@@ -47,8 +48,7 @@ export function AppealForm({ open, onClose, moderationActionId, onSuccess }: App
         }
       }, 2000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to submit appeal. Please try again.');
+      setError(getErrorMessage(err, 'Failed to submit appeal. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }

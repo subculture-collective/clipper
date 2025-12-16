@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { Alert } from '../ui/Alert';
 import { getAdminAppeals, type ModerationAppeal } from '@/lib/moderation-api';
 import { AppealResolutionModal } from './AppealResolutionModal';
+import { getErrorMessage } from '@/lib/error-utils';
 
 interface AppealsQueueProps {
   initialStatus?: 'pending' | 'approved' | 'rejected';
@@ -23,8 +24,7 @@ export function AppealsQueue({ initialStatus = 'pending' }: AppealsQueueProps) {
       const response = await getAdminAppeals(status);
       setAppeals(response.data || []);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to load appeals');
+      setError(getErrorMessage(err, 'Failed to load appeals'));
     } finally {
       setLoading(false);
     }

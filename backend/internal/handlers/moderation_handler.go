@@ -719,22 +719,14 @@ func (h *ModerationHandler) CreateAppeal(c *gin.Context) {
 		return
 	}
 
-	// Verify the moderation action exists and belongs to the user
+	// Verify the moderation action exists
 	var actionExists bool
-	var actionUserID uuid.UUID
 	err = h.db.QueryRow(ctx, `
 		SELECT EXISTS(
 			SELECT 1 FROM moderation_decisions md
-			JOIN moderation_queue mq ON md.queue_item_id = mq.id
 			WHERE md.id = $1
-		), COALESCE(
-			(SELECT mq.reported_by[1]::uuid 
-			 FROM moderation_decisions md
-			 JOIN moderation_queue mq ON md.queue_item_id = mq.id
-			 WHERE md.id = $1 AND array_length(mq.reported_by, 1) > 0),
-			$2
 		)
-	`, moderationActionID, userID).Scan(&actionExists, &actionUserID)
+	`, moderationActionID).Scan(&actionExists)
 	if err != nil || !actionExists {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Moderation action not found",
@@ -750,8 +742,8 @@ func (h *ModerationHandler) CreateAppeal(c *gin.Context) {
 		RETURNING id
 	`, userID, moderationActionID, req.Reason).Scan(&appealID)
 	if err != nil {
-		// Check if it's a duplicate appeal
-		if strings.Contains(err.Error(), "uq_appeals_action_pending") {
+		// Check for unique constraint violation (duplicate appeal)
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "uq_appeals_action_pending") {
 			c.JSON(http.StatusConflict, gin.H{
 				"error": "An appeal for this moderation action is already pending",
 			})

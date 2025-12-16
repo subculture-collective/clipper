@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Alert } from '../ui/Alert';
 import { getUserAppeals, type ModerationAppeal } from '@/lib/moderation-api';
+import { getErrorMessage } from '@/lib/error-utils';
 
 export function UserAppealsStatus() {
   const [appeals, setAppeals] = useState<ModerationAppeal[]>([]);
@@ -14,8 +15,7 @@ export function UserAppealsStatus() {
       const response = await getUserAppeals();
       setAppeals(response.data || []);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to load appeals');
+      setError(getErrorMessage(err, 'Failed to load appeals'));
     } finally {
       setLoading(false);
     }
