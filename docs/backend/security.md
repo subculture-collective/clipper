@@ -280,40 +280,186 @@ r.Use(middleware.InputValidationMiddleware())
 
 ## Rate Limiting
 
-### Standard Rate Limiting
+### Overview
 
-Rate limiting is already implemented in `internal/middleware/ratelimit_middleware.go`:
+Rate limiting protects the API from abuse, brute force attacks, and resource exhaustion. The system implements:
 
-- **Algorithm**: Sliding window with Redis backend
+- **Algorithm**: Sliding window with Redis backend for distributed rate limiting
 - **Fallback**: In-memory rate limiter when Redis is unavailable
-- **Headers**:
-  - `X-RateLimit-Limit`: Total requests allowed
-  - `X-RateLimit-Remaining`: Requests remaining
-  - `X-RateLimit-Reset`: Unix timestamp when limit resets
-  - `Retry-After`: Seconds to wait before retry (429 responses)
+- **Subscription Tiers**: Premium users get 5x the rate limits of basic users
+- **Admin Bypass**: Administrators have unlimited rate limits
+- **IP Whitelist**: Configurable whitelist for development/testing (localhost always included)
+
+### Rate Limit Headers
+
+All rate-limited endpoints return these headers:
+
+- `X-RateLimit-Limit`: Total requests allowed in the current window
+- `X-RateLimit-Remaining`: Requests remaining in the current window
+- `X-RateLimit-Reset`: Unix timestamp when the limit resets
+- `Retry-After`: Seconds to wait before retry (included in 429 responses)
+- `X-RateLimit-Bypass`: Present when rate limiting is bypassed (admin or whitelisted IP)
+
+### Configuration
+
+Rate limiting can be configured via environment variables:
+
+```bash
+# IP whitelist for bypassing rate limits (comma-separated, for development/testing)
+# Localhost (127.0.0.1, ::1) is always whitelisted
+RATE_LIMIT_WHITELIST_IPS=192.168.1.100,10.0.0.50
+
+# Global limits (optional, secure defaults provided)
+RATE_LIMIT_UNAUTH_REQUESTS=100
+RATE_LIMIT_UNAUTH_WINDOW_MINUTES=15
+RATE_LIMIT_BASIC_REQUESTS=1000
+RATE_LIMIT_PREMIUM_REQUESTS=5000
+```
 
 ### Applied Rate Limits
 
+#### Authentication Endpoints
+
 ```go
-// Authentication endpoints
-auth.GET("/twitch", middleware.RateLimitMiddleware(redis, 5, time.Minute))
-auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redis, 10, time.Minute))
-auth.POST("/refresh", middleware.RateLimitMiddleware(redis, 10, time.Minute))
+// OAuth flow endpoints
+auth.GET("/twitch", middleware.RateLimitMiddleware(redis, 30, time.Minute))              // 30/min
+auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redis, 50, time.Minute))     // 50/min
+auth.POST("/twitch/callback", middleware.RateLimitMiddleware(redis, 50, time.Minute))    // 50/min
+auth.POST("/refresh", middleware.RateLimitMiddleware(redis, 50, time.Minute))            // 50/min
 
-// Content creation
-clips.POST("/:id/comments", middleware.RateLimitMiddleware(redis, 10, time.Minute))
-clips.POST("/:id/vote", middleware.RateLimitMiddleware(redis, 20, time.Minute))
-clips.POST("/:id/tags", middleware.RateLimitMiddleware(redis, 10, time.Minute))
+// MFA endpoints
+auth.POST("/mfa/verify-login", middleware.RateLimitMiddleware(redis, 10, time.Minute))   // 10/min
+mfa.POST("/enroll", middleware.RateLimitMiddleware(redis, 3, time.Hour))                 // 3/hour
+mfa.POST("/verify-enrollment", middleware.RateLimitMiddleware(redis, 10, time.Minute))   // 10/min
+mfa.POST("/regenerate-backup-codes", middleware.RateLimitMiddleware(redis, 5, time.Hour)) // 5/hour
+mfa.POST("/disable", middleware.RateLimitMiddleware(redis, 3, time.Hour))                // 3/hour
+```
 
-// Submissions
-submissions.POST("", middleware.RateLimitMiddleware(redis, 5, time.Hour))
+#### Content Endpoints
 
+```go
+// Submissions (10/hour = 10x more generous than auth, as these are core user actions)
+submissions.POST("", middleware.RateLimitMiddleware(redis, 10, time.Hour))               // 10/hour
+clips.POST("/request", middleware.RateLimitMiddleware(redis, 10, time.Hour))             // 10/hour
+
+// Comments (10/min = 600/hour, 20x the requirement to support active discussions)
+clips.POST("/:id/comments", middleware.RateLimitMiddleware(redis, 10, time.Minute))      // 10/min
+
+// Votes/Likes (20/min = 1200/hour, 12x the requirement to support browsing behavior)
+clips.POST("/:id/vote", middleware.RateLimitMiddleware(redis, 20, time.Minute))          // 20/min
+comments.POST("/:id/vote", middleware.RateLimitMiddleware(redis, 20, time.Minute))       // 20/min
+
+// Other actions
+clips.POST("/:id/tags", middleware.RateLimitMiddleware(redis, 10, time.Minute))          // 10/min
+```
+
+#### Search Endpoints (60/minute = 1/second)
+
+```go
+search.GET("", middleware.RateLimitMiddleware(redis, 60, time.Minute))                   // Main search
+search.GET("/suggestions", middleware.RateLimitMiddleware(redis, 60, time.Minute))       // Suggestions
+search.GET("/scores", middleware.RateLimitMiddleware(redis, 60, time.Minute))            // Hybrid search
+tags.GET("/search", middleware.RateLimitMiddleware(redis, 60, time.Minute))              // Tag search
+feeds.GET("/search", middleware.RateLimitMiddleware(redis, 60, time.Minute))             // Feed search
+docs.GET("/search", middleware.RateLimitMiddleware(redis, 60, time.Minute))              // Docs search
+communities.GET("/search", middleware.RateLimitMiddleware(redis, 60, time.Minute))       // Community search
+```
+
+#### Other Protected Endpoints
+
+```go
 // Reports
-reports.POST("", middleware.RateLimitMiddleware(redis, 10, time.Hour))
+reports.POST("", middleware.RateLimitMiddleware(redis, 10, time.Hour))                   // 10/hour
+
+// User actions
+users.POST("/:id/block", middleware.RateLimitMiddleware(redis, 20, time.Minute))         // 20/min
+users.GET("/me/export", middleware.RateLimitMiddleware(redis, 1, time.Hour))             // 1/hour
+users.POST("/me/delete", middleware.RateLimitMiddleware(redis, 1, time.Hour))            // 1/hour
 
 // Subscriptions
-subscriptions.POST("/checkout", middleware.RateLimitMiddleware(redis, 5, time.Minute))
-subscriptions.POST("/portal", middleware.RateLimitMiddleware(redis, 10, time.Minute))
+subscriptions.POST("/checkout", middleware.RateLimitMiddleware(redis, 5, time.Minute))   // 5/min
+subscriptions.POST("/portal", middleware.RateLimitMiddleware(redis, 10, time.Minute))    // 10/min
+```
+
+### Subscription Tier Multipliers
+
+Rate limits are adjusted based on user subscription tier:
+
+- **Basic (Free) Users**: 1x multiplier (standard limits)
+- **Premium (Pro) Users**: 5x multiplier (5 times the limits)
+- **Administrators**: Unlimited (no rate limiting)
+
+Example: If a submission endpoint has a limit of 10/hour:
+- Basic users: 10 submissions/hour
+- Premium users: 50 submissions/hour
+- Admins: Unlimited submissions
+
+### IP Whitelist
+
+The rate limiting middleware supports IP whitelisting for development and testing:
+
+- **Always whitelisted**: `127.0.0.1`, `::1` (localhost)
+- **Configurable**: Set `RATE_LIMIT_WHITELIST_IPS` environment variable
+- **Format**: Comma-separated list of IPs (e.g., `192.168.1.100,10.0.0.50`)
+- **Use case**: Local development, CI/CD pipelines, trusted internal services
+
+When an IP is whitelisted, requests include the `X-RateLimit-Bypass: whitelisted` header.
+
+### Implementation Details
+
+#### Sliding Window Algorithm
+
+The rate limiter uses a sliding window algorithm for more accurate rate limiting:
+
+1. Tracks requests in current and previous time windows
+2. Calculates weighted count based on elapsed time in current window
+3. Provides smoother rate limiting compared to fixed window
+4. Reduces "burst" behavior at window boundaries
+
+#### Fallback Mechanism
+
+When Redis is unavailable:
+
+1. Automatically switches to in-memory rate limiting
+2. Uses the same sliding window algorithm
+3. Adds `X-RateLimit-Fallback: true` header
+4. Maintains rate limiting protection during Redis outages
+5. Note: In-memory limits are per-instance (not distributed)
+
+### Testing Rate Limits
+
+#### Manual Testing
+
+```bash
+# Test rate limit on search
+for i in {1..65}; do
+  curl -w "\nStatus: %{http_code}\n" \
+    "http://localhost:8080/api/v1/search?q=test"
+  sleep 0.5
+done
+
+# Expected: First 60 succeed (200), next 5 fail (429)
+```
+
+#### Verify Headers
+
+```bash
+curl -v http://localhost:8080/api/v1/search?q=test 2>&1 | grep "X-RateLimit"
+# Expected output:
+# X-RateLimit-Limit: 60
+# X-RateLimit-Remaining: 59
+# X-RateLimit-Reset: 1234567890
+```
+
+#### Test Whitelist
+
+```bash
+# Set whitelist IP
+export RATE_LIMIT_WHITELIST_IPS=192.168.1.100
+
+# Start server and test from whitelisted IP
+curl -v http://localhost:8080/api/v1/search?q=test 2>&1 | grep "X-RateLimit-Bypass"
+# Expected: X-RateLimit-Bypass: whitelisted
 ```
 
 ### Enhanced Rate Limiting
@@ -322,6 +468,19 @@ The `EnhancedRateLimitMiddleware` adds warning headers:
 
 - **X-RateLimit-Warning: approaching-limit** - When at 80% of limit
 - **X-RateLimit-Warning: critical** - When at 95% of limit
+
+### Design Rationale
+
+The implemented rate limits are more generous than typical API requirements for several reasons:
+
+1. **User Experience**: Comments and votes have high limits (10/min, 20/min) to support active browsing and discussion without frustrating legitimate users
+2. **OAuth Flow**: Authentication endpoints have higher limits to accommodate OAuth redirects and retries
+3. **Search**: 60/minute (1/second) balances responsiveness with abuse prevention
+4. **Submissions**: 10/hour strikes a balance between spam prevention and legitimate content sharing
+5. **Premium Tiers**: 5x multiplier provides meaningful value for paid subscribers
+
+These limits prevent abuse while rarely impacting legitimate users. Monitoring data can inform future adjustments.
+
 
 ## Abuse Detection
 
