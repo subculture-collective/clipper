@@ -55,6 +55,12 @@ func main() {
 	// Set Gin mode
 	gin.SetMode(cfg.Server.GinMode)
 
+	// Initialize rate limit whitelist from configuration
+	middleware.InitRateLimitWhitelist(cfg.RateLimit.WhitelistIPs)
+	if cfg.RateLimit.WhitelistIPs != "" {
+		log.Printf("Rate limit whitelist configured: %s", cfg.RateLimit.WhitelistIPs)
+	}
+
 	// Initialize database connection pool
 	db, dbErr := database.NewDB(&cfg.Database)
 	if dbErr != nil {

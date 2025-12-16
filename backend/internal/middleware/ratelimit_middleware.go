@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,13 +22,33 @@ var (
 	userFallbackLimiter *InMemoryRateLimiter
 
 	// IP whitelist for rate limiting bypass (for testing/trusted IPs)
+	// Always includes localhost (127.0.0.1, ::1)
+	// Additional IPs can be configured via RATE_LIMIT_WHITELIST_IPS environment variable
 	rateLimitWhitelist = map[string]bool{
-		"127.0.0.1":      true,
-		"::1":            true,
-		"173.165.22.142": true, // Your IP
-		"10.0.0.201":     true, // User-requested internal IP
+		"127.0.0.1": true,
+		"::1":       true,
 	}
 )
+
+// InitRateLimitWhitelist initializes the rate limit whitelist from configuration
+// This should be called once at application startup
+func InitRateLimitWhitelist(whitelistIPs string) {
+	// Always keep localhost
+	rateLimitWhitelist = map[string]bool{
+		"127.0.0.1": true,
+		"::1":       true,
+	}
+
+	// Add configured IPs
+	if whitelistIPs != "" {
+		for _, ip := range strings.Split(whitelistIPs, ",") {
+			trimmed := strings.TrimSpace(ip)
+			if trimmed != "" {
+				rateLimitWhitelist[trimmed] = true
+			}
+		}
+	}
+}
 
 // getUserRateLimitMultiplier determines the rate limit multiplier based on user tier
 // Returns: (multiplier, isAdmin)
