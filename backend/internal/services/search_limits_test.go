@@ -232,6 +232,7 @@ func TestSearchQueryValidator_ValidateQueryClauses(t *testing.T) {
 func TestSearchQueryValidator_EnforceSearchLimits(t *testing.T) {
 	limits := SearchLimits{
 		MaxResultSize: 100,
+		MaxOffset:     1000,
 	}
 	validator := NewSearchQueryValidator(limits)
 
@@ -240,30 +241,49 @@ func TestSearchQueryValidator_EnforceSearchLimits(t *testing.T) {
 		inputSize    int
 		inputFrom    int
 		expectedSize int
+		expectedFrom int
 	}{
 		{
-			name:         "Valid size",
+			name:         "Valid size and offset",
 			inputSize:    50,
-			inputFrom:    0,
+			inputFrom:    100,
 			expectedSize: 50,
+			expectedFrom: 100,
 		},
 		{
 			name:         "Size exceeds max",
 			inputSize:    200,
 			inputFrom:    0,
 			expectedSize: 100,
+			expectedFrom: 0,
 		},
 		{
 			name:         "Zero size",
 			inputSize:    0,
 			inputFrom:    0,
 			expectedSize: 10,
+			expectedFrom: 0,
 		},
 		{
 			name:         "Negative size",
 			inputSize:    -5,
 			inputFrom:    0,
 			expectedSize: 10,
+			expectedFrom: 0,
+		},
+		{
+			name:         "Offset exceeds max",
+			inputSize:    50,
+			inputFrom:    2000,
+			expectedSize: 50,
+			expectedFrom: 1000,
+		},
+		{
+			name:         "Negative offset",
+			inputSize:    50,
+			inputFrom:    -10,
+			expectedSize: 50,
+			expectedFrom: 0,
 		},
 	}
 
@@ -274,6 +294,9 @@ func TestSearchQueryValidator_EnforceSearchLimits(t *testing.T) {
 			validator.EnforceSearchLimits(&size, &from)
 			if size != tt.expectedSize {
 				t.Errorf("EnforceSearchLimits() size = %d, want %d", size, tt.expectedSize)
+			}
+			if from != tt.expectedFrom {
+				t.Errorf("EnforceSearchLimits() from = %d, want %d", from, tt.expectedFrom)
 			}
 		})
 	}
@@ -387,5 +410,8 @@ func TestDefaultSearchLimits(t *testing.T) {
 	}
 	if limits.MaxSearchTime != 5*time.Second {
 		t.Errorf("MaxSearchTime = %v, want %v", limits.MaxSearchTime, 5*time.Second)
+	}
+	if limits.MaxOffset != 1000 {
+		t.Errorf("MaxOffset = %d, want 1000", limits.MaxOffset)
 	}
 }

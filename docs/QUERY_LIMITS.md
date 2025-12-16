@@ -35,14 +35,27 @@ QUERY_MAX_TIME_SEC=10
 
 ### Query Cost Analysis
 
-The system analyzes SQL queries for:
+The system includes infrastructure for analyzing SQL queries for:
 
 - **Join Count**: Number of JOIN clauses in the query
 - **Scan Size**: Estimated number of rows to scan
 - **Complexity Score**: Overall complexity based on multiple factors
 - **Offset Usage**: Presence and size of OFFSET clauses
 
-Queries exceeding complexity limits are rejected with appropriate error messages.
+**Current Enforcement Status**:
+- ✅ **Pagination Limits**: Result size and offset limits are enforced
+- ✅ **Timeouts**: Query execution timeouts are enforced
+- ⚠️ **Join Depth**: Analysis is implemented but not yet integrated into execution paths
+
+Queries can be validated using the `QueryCostAnalyzer`:
+
+```go
+analyzer := NewQueryCostAnalyzer(limits)
+cost, err := analyzer.AnalyzeQuery(query)
+// Can check join count, complexity, etc.
+```
+
+To enforce join depth limits in production, integrate the `ExecuteWithTimeout` method into repository query execution.
 
 ### Pagination Best Practices
 
@@ -139,7 +152,12 @@ The system validates OpenSearch queries for:
           "terms": {"field": "broadcaster_id", "size": 1000},
           "aggs": {
             "level3": {
-              "terms": {"field": "language", "size": 1000}
+              "terms": {"field": "language", "size": 1000},
+              "aggs": {
+                "level4": {
+                  "terms": {"field": "duration", "size": 1000}
+                }
+              }
             }
           }
         }
@@ -150,7 +168,7 @@ The system validates OpenSearch queries for:
 ```
 
 This query would be rejected due to:
-- Aggregation depth exceeds 2 levels
+- Aggregation depth exceeds 2 levels (has 3 levels of nesting: level1→level2→level3→level4)
 - Aggregation sizes exceed 100 buckets
 
 #### ✅ Prefer: Simple Aggregations

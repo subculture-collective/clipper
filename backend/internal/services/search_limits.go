@@ -25,6 +25,7 @@ type SearchLimits struct {
 	MaxQueryClauses    int           // Maximum number of bool query clauses
 	MaxSearchTime      time.Duration // Maximum search timeout
 	MaxShardSize       int           // Maximum number of shards to query
+	MaxOffset          int           // Maximum pagination offset
 }
 
 // DefaultSearchLimits returns sensible defaults for search limits
@@ -36,6 +37,7 @@ func DefaultSearchLimits() SearchLimits {
 		MaxQueryClauses:    20,
 		MaxSearchTime:      5 * time.Second,
 		MaxShardSize:       5,
+		MaxOffset:          1000,
 	}
 }
 
@@ -165,9 +167,10 @@ func (v *SearchQueryValidator) countQueryClauses(query map[string]interface{}) i
 		case "must", "should", "must_not", "filter":
 			// These are arrays of clauses in bool queries
 			if clauseArray, ok := value.([]interface{}); ok {
-				count += len(clauseArray)
-				// Recursively count nested clauses
+				// Count each clause in the array
 				for _, clause := range clauseArray {
+					count++ // Count this clause
+					// Recursively count nested clauses within this clause
 					if clauseMap, ok := clause.(map[string]interface{}); ok {
 						count += v.countQueryClauses(clauseMap)
 					}
@@ -195,6 +198,16 @@ func (v *SearchQueryValidator) EnforceSearchLimits(size *int, from *int) {
 	if size != nil && *size < 1 {
 		defaultSize := 10
 		*size = defaultSize
+	}
+	
+	// Enforce maximum and minimum offset for 'from'
+	if from != nil {
+		if *from > v.limits.MaxOffset {
+			*from = v.limits.MaxOffset
+		}
+		if *from < 0 {
+			*from = 0
+		}
 	}
 }
 

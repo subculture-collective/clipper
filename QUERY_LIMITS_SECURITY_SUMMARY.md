@@ -12,34 +12,36 @@ This implementation successfully addresses HIGH-risk denial of service threats b
 
 **Implementation**:
 - Automatic enforcement of search result size limits (max: 100)
-- Query clause counting and limiting (max: 20 clauses)
+- Query clause counting and limiting (max: 20 clauses) - **Now Enforced**
 - Search timeout enforcement (5 seconds)
-- Aggregation complexity limits (depth: 2, size: 100)
+- Aggregation complexity limits (depth: 2, size: 100) - **Now Enforced**
+- Search pagination offset limits (max: 1000) - **Now Enforced**
 
 **Impact**: Prevents malicious actors from overwhelming the search infrastructure with expensive queries.
 
 ### DB-D-01: DoS via Expensive Database Queries
-**Status**: ✅ MITIGATED
-**Risk Level**: HIGH
+**Status**: ⚠️ PARTIALLY MITIGATED
+**Risk Level**: MEDIUM-HIGH
 
 **Implementation**:
-- Query complexity analysis before execution
-- Join depth limiting (max: 3 joins)
 - Result set size enforcement (max: 1000 rows)
 - Pagination offset limits (max: 1000)
 - Query timeout enforcement (10 seconds)
 
-**Impact**: Prevents database resource exhaustion from expensive queries with multiple joins or large result sets.
+**Note**: Query complexity analysis (join depth limiting) is implemented but not yet integrated into query execution paths. This will be addressed in a future update.
+
+**Impact**: Prevents database resource exhaustion from large result sets and deep pagination. Join depth limiting can be enabled by integrating the ExecuteWithTimeout method.
 
 ### SEARCH-D-01: DoS via Complex Search Aggregations
 **Status**: ✅ MITIGATED
 **Risk Level**: HIGH
 
 **Implementation**:
-- Aggregation depth limiting (max: 2 levels)
-- Aggregation bucket size limits (max: 100 buckets)
+- Aggregation depth limiting (max: 2 levels) - **Now Enforced**
+- Aggregation bucket size limits (max: 100 buckets) - **Now Enforced**
+- Query clause validation before execution - **Now Enforced**
 - Automatic enforcement in OpenSearch service
-- Validation before query execution
+- Search timeout enforcement
 
 **Impact**: Prevents OpenSearch resource exhaustion from deeply nested or large aggregations.
 
@@ -53,18 +55,19 @@ This implementation successfully addresses HIGH-risk denial of service threats b
 
 ### 2. Resource Limits
 ```go
-// Database Limits
-MaxResultSize:   1000 rows
-MaxOffset:       1000
-MaxJoinDepth:    3 joins
-MaxQueryTime:    10 seconds
+// Database Limits (Enforced: pagination, timeouts)
+MaxResultSize:   1000 rows ✅
+MaxOffset:       1000 ✅
+MaxJoinDepth:    3 joins ⚠️ (infrastructure ready, not yet integrated)
+MaxQueryTime:    10 seconds ✅
 
-// Search Limits
-MaxResultSize:      100 documents
-MaxAggregationSize: 100 buckets
-MaxAggregationNest: 2 levels
-MaxQueryClauses:    20 clauses
-MaxSearchTime:      5 seconds
+// Search Limits (Fully Enforced)
+MaxResultSize:      100 documents ✅
+MaxAggregationSize: 100 buckets ✅
+MaxAggregationNest: 2 levels ✅
+MaxQueryClauses:    20 clauses ✅
+MaxSearchTime:      5 seconds ✅
+MaxOffset:          1000 ✅
 ```
 
 ### 3. Timeout Protection
@@ -182,15 +185,30 @@ This implementation aligns with:
 
 ## Conclusion
 
-The implementation successfully mitigates all identified HIGH-risk DoS threats through:
-1. Comprehensive query analysis
-2. Automatic limit enforcement
-3. Timeout protection
+The implementation successfully mitigates HIGH-risk DoS threats through:
+1. Comprehensive query validation (search queries fully validated)
+2. Automatic limit enforcement (pagination and search limits enforced)
+3. Timeout protection (all queries have timeouts)
 4. Zero breaking changes
 
-**Security Status**: ✅ APPROVED
-**Risk Reduction**: HIGH → LOW
-**Production Ready**: YES
+**Search Query Protection**: ✅ FULLY IMPLEMENTED
+- Query clause validation enforced
+- Aggregation depth and size validation enforced
+- Pagination offset limits enforced
+- Timeout protection active
+
+**Database Query Protection**: ⚠️ PARTIALLY IMPLEMENTED
+- Pagination limits enforced (result size, offset)
+- Timeout protection active
+- Join depth analysis available but not yet integrated in execution path
+
+**Security Status**: ✅ APPROVED FOR MERGE
+**Risk Reduction**: 
+- SEARCH-D-01: HIGH → LOW ✅
+- API-D-02: HIGH → LOW ✅
+- DB-D-01: HIGH → MEDIUM ⚠️ (can be LOW with join depth integration)
+
+**Production Ready**: YES (with noted limitation on database join depth enforcement)
 
 ## References
 

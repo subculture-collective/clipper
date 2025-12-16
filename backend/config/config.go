@@ -197,6 +197,7 @@ type SearchLimitsConfig struct {
 	MaxAggregationNest int // Maximum aggregation depth (default: 2)
 	MaxQueryClauses    int // Maximum query clauses (default: 20)
 	MaxSearchTimeSec   int // Maximum search timeout in seconds (default: 5)
+	MaxOffset          int // Maximum search pagination offset (default: 1000)
 }
 
 // Load loads configuration from environment variables
@@ -342,6 +343,7 @@ func Load() (*Config, error) {
 			MaxAggregationNest: getEnvInt("SEARCH_MAX_AGGREGATION_NEST", 2),
 			MaxQueryClauses:    getEnvInt("SEARCH_MAX_QUERY_CLAUSES", 20),
 			MaxSearchTimeSec:   getEnvInt("SEARCH_MAX_TIME_SEC", 5),
+			MaxOffset:          getEnvInt("SEARCH_MAX_OFFSET", 1000),
 		},
 	}
 

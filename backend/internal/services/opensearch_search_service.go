@@ -37,8 +37,13 @@ func NewOpenSearchServiceWithLimits(osClient *opensearch.Client, limits SearchLi
 
 // Search performs a universal search using OpenSearch
 func (s *OpenSearchService) Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error) {
-	// Enforce search limits on request parameters
-	s.validator.EnforceSearchLimits(&req.Limit, &req.Page)
+	// Calculate offset (from) and enforce search limits on offset and limit
+	from := (req.Page - 1) * req.Limit
+	s.validator.EnforceSearchLimits(&req.Limit, &from)
+	// If the offset was changed by the validator, update the page number accordingly
+	if from != (req.Page-1)*req.Limit {
+		req.Page = (from / req.Limit) + 1
+	}
 	
 	response := &models.SearchResponse{
 		Query:   req.Query,
@@ -153,6 +158,19 @@ func (s *OpenSearchService) searchClipsWithFacets(ctx context.Context, req *mode
 	} else {
 		finalQuery = baseQuery
 	}
+	
+	// Validate query clauses
+	if err := s.validator.ValidateQueryClauses(finalQuery); err != nil {
+		return nil, 0, nil, fmt.Errorf("query clause validation failed: %w", err)
+	}
+	
+	// Build aggregations
+	aggs := s.buildFacetAggregations()
+	
+	// Validate aggregations
+	if err := s.validator.ValidateAggregations(aggs); err != nil {
+		return nil, 0, nil, fmt.Errorf("aggregation validation failed: %w", err)
+	}
 
 	from := (req.Page - 1) * req.Limit
 	searchBody := map[string]interface{}{
@@ -160,7 +178,7 @@ func (s *OpenSearchService) searchClipsWithFacets(ctx context.Context, req *mode
 		"from":  from,
 		"size":  req.Limit,
 		"sort":  s.buildSortClause(req.Sort),
-		"aggs":  s.buildFacetAggregations(),
+		"aggs":  aggs,
 	}
 
 	bodyJSON, err := json.Marshal(searchBody)
@@ -214,6 +232,11 @@ func (s *OpenSearchService) searchClips(ctx context.Context, req *models.SearchR
 // searchCreators searches for users/creators in OpenSearch
 func (s *OpenSearchService) searchCreators(ctx context.Context, req *models.SearchRequest) ([]models.User, int, error) {
 	query := s.buildUserQuery(req)
+	
+	// Validate query clauses
+	if err := s.validator.ValidateQueryClauses(query); err != nil {
+		return nil, 0, fmt.Errorf("query clause validation failed: %w", err)
+	}
 
 	from := (req.Page - 1) * req.Limit
 	searchBody := map[string]interface{}{
@@ -243,6 +266,11 @@ func (s *OpenSearchService) searchCreators(ctx context.Context, req *models.Sear
 // searchGames searches for games in OpenSearch
 func (s *OpenSearchService) searchGames(ctx context.Context, req *models.SearchRequest) ([]models.GameSearchResult, int, error) {
 	query := s.buildGameQuery(req)
+	
+	// Validate query clauses
+	if err := s.validator.ValidateQueryClauses(query); err != nil {
+		return nil, 0, fmt.Errorf("query clause validation failed: %w", err)
+	}
 
 	from := (req.Page - 1) * req.Limit
 	searchBody := map[string]interface{}{
@@ -272,6 +300,11 @@ func (s *OpenSearchService) searchGames(ctx context.Context, req *models.SearchR
 // searchTags searches for tags in OpenSearch
 func (s *OpenSearchService) searchTags(ctx context.Context, req *models.SearchRequest) ([]models.Tag, int, error) {
 	query := s.buildTagQuery(req)
+	
+	// Validate query clauses
+	if err := s.validator.ValidateQueryClauses(query); err != nil {
+		return nil, 0, fmt.Errorf("query clause validation failed: %w", err)
+	}
 
 	from := (req.Page - 1) * req.Limit
 	searchBody := map[string]interface{}{
