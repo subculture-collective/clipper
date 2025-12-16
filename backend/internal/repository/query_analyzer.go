@@ -62,6 +62,11 @@ func NewQueryCostAnalyzer(limits QueryLimits) *QueryCostAnalyzer {
 	}
 }
 
+// GetLimits returns the configured limits
+func (a *QueryCostAnalyzer) GetLimits() QueryLimits {
+	return a.limits
+}
+
 // AnalyzeQuery analyzes a SQL query and returns cost information
 func (a *QueryCostAnalyzer) AnalyzeQuery(query string) (*QueryCost, error) {
 	query = strings.ToUpper(strings.TrimSpace(query))

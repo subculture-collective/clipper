@@ -37,15 +37,17 @@ func (h *RepositoryHelper) ValidatePagination(limit, offset int) error {
 
 // EnforcePaginationLimits enforces pagination limits, capping values at max allowed
 func (h *RepositoryHelper) EnforcePaginationLimits(limit, offset *int) {
-	if *limit > h.analyzer.limits.MaxResultSize {
-		*limit = h.analyzer.limits.MaxResultSize
+	limits := h.analyzer.GetLimits()
+	
+	if *limit > limits.MaxResultSize {
+		*limit = limits.MaxResultSize
 	}
 	if *limit <= 0 {
 		*limit = 10 // Default limit
 	}
 	
-	if *offset > h.analyzer.limits.MaxOffset {
-		*offset = h.analyzer.limits.MaxOffset
+	if *offset > limits.MaxOffset {
+		*offset = limits.MaxOffset
 	}
 	if *offset < 0 {
 		*offset = 0
@@ -54,7 +56,7 @@ func (h *RepositoryHelper) EnforcePaginationLimits(limit, offset *int) {
 
 // GetQueryTimeout returns the configured query timeout
 func (h *RepositoryHelper) GetQueryTimeout() time.Duration {
-	return h.analyzer.limits.MaxQueryTime
+	return h.analyzer.GetLimits().MaxQueryTime
 }
 
 // ValidateQuery validates a SQL query against complexity limits
@@ -81,5 +83,5 @@ func (h *RepositoryHelper) ExecuteWithTimeout(ctx context.Context, query string,
 
 // GetLimits returns the configured query limits
 func (h *RepositoryHelper) GetLimits() QueryLimits {
-	return h.analyzer.limits
+	return h.analyzer.GetLimits()
 }

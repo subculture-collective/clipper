@@ -51,6 +51,11 @@ func NewSearchQueryValidator(limits SearchLimits) *SearchQueryValidator {
 	}
 }
 
+// GetLimits returns the configured search limits
+func (v *SearchQueryValidator) GetLimits() SearchLimits {
+	return v.limits
+}
+
 // ValidateSearchSize validates the search result size
 func (v *SearchQueryValidator) ValidateSearchSize(size int) error {
 	if size > v.limits.MaxResultSize {

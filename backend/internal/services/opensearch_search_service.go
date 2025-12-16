@@ -568,7 +568,8 @@ func (s *OpenSearchService) buildFacetAggregations() map[string]interface{} {
 	lastMonth := now.Add(-30 * 24 * time.Hour)
 
 	// Get max aggregation size from validator
-	maxSize := s.validator.limits.MaxAggregationSize
+	limits := s.validator.GetLimits()
+	maxSize := limits.MaxAggregationSize
 	
 	// Ensure we don't exceed the configured limit
 	aggsSize := 20
