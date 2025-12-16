@@ -8,11 +8,357 @@ This directory contains automation scripts for deploying, managing, and maintain
 |--------|---------|---------------|
 | `deploy.sh` | Deploy application with automated backup and rollback | No |
 | `rollback.sh` | Rollback to a previous version | No |
+| **`blue-green-deploy.sh`** | **Zero-downtime blue/green deployment** | **No** |
+| **`rollback-blue-green.sh`** | **Rollback blue/green deployment** | **No** |
+| **`check-migration-compatibility.sh`** | **Check database migrations for backward compatibility** | **No** |
+| **`test-blue-green-deployment.sh`** | **Test blue/green deployment in staging** | **No** |
 | `preflight-check.sh` | Run comprehensive pre-deployment validation | No |
 | `staging-rehearsal.sh` | Complete staging deployment rehearsal | No |
 | `health-check.sh` | Run health checks on all services | No |
 | `backup.sh` | Backup database and configuration | No |
 | `setup-ssl.sh` | Set up SSL/TLS certificates | Yes |
+
+## Blue/Green Deployment Scripts (NEW)
+
+### blue-green-deploy.sh
+
+**Zero-downtime deployment** using blue/green strategy. Automatically switches between two production environments.
+
+**Features**:
+- Automatic active/target environment detection
+- Pull latest images for target environment
+- Health check verification (30 retries with 10s intervals)
+- Database migration execution
+- Traffic switching via Caddy proxy
+- Post-switch monitoring (30s)
+- Automatic rollback on failure
+- Deployment notifications (if monitoring enabled)
+
+**Usage**:
+
+```bash
+# Standard deployment
+cd /opt/clipper
+./scripts/blue-green-deploy.sh
+
+# Deploy specific version
+IMAGE_TAG=v1.2.3 ./scripts/blue-green-deploy.sh
+
+# Deploy with monitoring notifications
+MONITORING_ENABLED=true WEBHOOK_URL="https://hooks.slack.com/..." ./scripts/blue-green-deploy.sh
+
+# Custom configuration
+DEPLOY_DIR=/opt/clipper \
+HEALTH_CHECK_RETRIES=60 \
+HEALTH_CHECK_INTERVAL=5 \
+./scripts/blue-green-deploy.sh
+```
+
+**Environment Variables**:
+- `DEPLOY_DIR`: Deployment directory (default: `/opt/clipper`)
+- `COMPOSE_FILE`: Compose file name (default: `docker-compose.blue-green.yml`)
+- `REGISTRY`: Container registry (default: `ghcr.io/subculture-collective/clipper`)
+- `IMAGE_TAG`: Image tag to deploy (default: `latest`)
+- `HEALTH_CHECK_RETRIES`: Max health check attempts (default: `30`)
+- `HEALTH_CHECK_INTERVAL`: Seconds between checks (default: `10`)
+- `BACKUP_DIR`: Backup directory (default: `/opt/clipper/backups`)
+- `MONITORING_ENABLED`: Enable notifications (default: `false`)
+- `WEBHOOK_URL`: Webhook for notifications (if monitoring enabled)
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║   Clipper Blue-Green Deployment Script        ║
+╚════════════════════════════════════════════════╝
+
+[INFO] Running pre-deployment checks...
+[SUCCESS] Prerequisites check passed
+[STEP] Detecting active environment...
+[INFO] Active environment: blue
+[INFO] Target environment: green
+
+[STEP] Creating backup...
+[SUCCESS] Backup created: /opt/clipper/backups/deployment-20250116-120000.tar.gz
+
+[STEP] Pulling latest images for green environment...
+[SUCCESS] Images pulled successfully
+
+[STEP] Running database migrations...
+[SUCCESS] Database migration check complete
+
+[STEP] Starting green environment...
+[SUCCESS] green environment started
+
+[INFO] Waiting for green environment to initialize...
+
+[STEP] Running health checks for green environment...
+[INFO] Backend health check passed (attempt 1/30)
+[SUCCESS] green environment is healthy
+
+[STEP] Switching traffic to green environment...
+[SUCCESS] Traffic switched to green environment
+
+[STEP] Monitoring new environment for 30 seconds...
+
+[SUCCESS] green environment is healthy
+
+[STEP] Stopping blue environment...
+[SUCCESS] blue environment stopped
+
+╔════════════════════════════════════════════════╗
+║   Deployment Successful! ✓                     ║
+╚════════════════════════════════════════════════╝
+
+[SUCCESS] Blue-Green deployment completed successfully
+[INFO] Previous environment: blue (stopped)
+[INFO] Current environment: green (active)
+[INFO] Backup: /opt/clipper/backups/deployment-20250116-120000.tar.gz
+```
+
+### rollback-blue-green.sh
+
+**Quick rollback** for blue/green deployments. Switches traffic back to the previous stable environment.
+
+**Features**:
+- Automatic active/target environment detection
+- Start target environment if not running
+- Health check verification before switch
+- Traffic switching with verification
+- Post-rollback monitoring
+- Optional old environment cleanup
+- Confirmation prompts (can be skipped with `-y`)
+
+**Usage**:
+
+```bash
+# Interactive rollback with confirmations
+./scripts/rollback-blue-green.sh
+
+# Automatic rollback (skip confirmations)
+./scripts/rollback-blue-green.sh --yes
+
+# Custom deployment directory
+DEPLOY_DIR=/opt/clipper ./scripts/rollback-blue-green.sh -y
+```
+
+**Options**:
+- `-y, --yes`: Skip confirmation prompts
+- `-h, --help`: Show help message
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║   Clipper Blue-Green Rollback Script          ║
+╚════════════════════════════════════════════════╝
+
+[WARN] Current environment: green
+[INFO] Target environment: blue
+
+WARNING: This will switch traffic from green to blue
+Are you sure you want to proceed? (yes/no): yes
+
+[INFO] blue environment is already running
+
+[INFO] Waiting for blue environment to initialize...
+
+[INFO] Checking health of blue environment...
+[SUCCESS] blue environment is healthy
+
+[INFO] Switching traffic to blue environment...
+[SUCCESS] Caddy restarted with blue configuration
+[SUCCESS] Traffic switched successfully to blue
+
+[INFO] Monitoring blue environment for 30 seconds...
+
+[INFO] Checking health of blue environment...
+[SUCCESS] blue environment is healthy
+
+Stop green environment? (yes/no): yes
+[INFO] Stopping green environment...
+[SUCCESS] green environment stopped
+
+╔════════════════════════════════════════════════╗
+║   Rollback Completed Successfully! ✓          ║
+╚════════════════════════════════════════════════╝
+
+[SUCCESS] Rollback completed successfully
+[INFO] Previous environment: green
+[INFO] Current environment: blue (active)
+
+[INFO] Next steps:
+  1. Monitor application metrics
+  2. Check error logs: docker compose logs --tail=100
+  3. Investigate cause of original deployment issue
+  4. Document incident and lessons learned
+```
+
+### check-migration-compatibility.sh
+
+**Analyze database migrations** for backward compatibility issues before blue/green deployment.
+
+**Features**:
+- Scan all migration files in migrations directory
+- Detect potentially breaking changes
+- Identify safe operations
+- Provide recommendations for backward-compatible migrations
+- Generate compatibility report
+
+**Usage**:
+
+```bash
+# Check migrations in default directory
+./scripts/check-migration-compatibility.sh
+
+# Check custom migrations directory
+MIGRATIONS_DIR=/path/to/migrations ./scripts/check-migration-compatibility.sh
+```
+
+**Environment Variables**:
+- `MIGRATIONS_DIR`: Path to migrations directory (default: `./backend/migrations`)
+- `DB_CONNECTION`: Database connection string (optional, for version checks)
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║  Database Migration Compatibility Checker      ║
+╚════════════════════════════════════════════════╝
+
+[INFO] Scanning migrations in: ./backend/migrations
+
+[INFO] Analyzing: 001_create_users.up.sql
+  ✓ Creates new table (safe)
+
+[INFO] Analyzing: 002_add_featured_column.up.sql
+  ✓ Adds column with default (safe)
+
+[INFO] Analyzing: 003_add_index.up.sql
+  ✓ Creates index (safe)
+
+════════════════════════════════════════════════
+
+[INFO] Analyzed 3 migration(s)
+[SUCCESS] No backward compatibility issues detected
+[SUCCESS] Migrations appear safe for blue-green deployment
+
+╔════════════════════════════════════════════════════════════════╗
+║  Backward Compatible Migration Guidelines                     ║
+╚════════════════════════════════════════════════════════════════╝
+
+✓ SAFE operations for blue-green deployment:
+  - CREATE TABLE (new tables)
+  - ADD COLUMN (with DEFAULT value or NULL allowed)
+  - CREATE INDEX (improves performance)
+  - INSERT data (add new reference data)
+
+✗ UNSAFE operations (require two-phase migration):
+  - DROP TABLE
+  - DROP COLUMN
+  - RENAME TABLE/COLUMN
+  - ALTER COLUMN to NOT NULL (without default)
+  - Change column types
+
+🔄 Two-phase migration pattern:
+  Phase 1 (before old version stops):
+    - ADD new columns/tables
+    - Keep old columns/tables
+    - Update code to write to both old and new
+
+  Phase 2 (after new version is stable):
+    - Remove old columns/tables
+    - Clean up deprecated code
+```
+
+### test-blue-green-deployment.sh
+
+**Comprehensive test suite** for blue/green deployment functionality in staging.
+
+**Features**:
+- Test all deployment components
+- Verify both environments can run simultaneously
+- Test traffic switching in both directions
+- Measure zero-downtime capability
+- Test rollback functionality
+- Generate test report
+- Automatic cleanup
+
+**Usage**:
+
+```bash
+# Run full test suite
+./scripts/test-blue-green-deployment.sh
+
+# Test in specific directory
+DEPLOY_DIR=/opt/clipper-staging ./scripts/test-blue-green-deployment.sh
+
+# Custom environment name
+TEST_ENV=staging ./scripts/test-blue-green-deployment.sh
+```
+
+**Environment Variables**:
+- `TEST_ENV`: Environment name (default: `staging`)
+- `DEPLOY_DIR`: Deployment directory (default: `.`)
+- `COMPOSE_FILE`: Compose file name (default: `docker-compose.blue-green.yml`)
+
+**Tests Included**:
+1. Prerequisites installed
+2. Compose file valid
+3. Shared services start
+4. Blue environment starts
+5. Blue health checks pass
+6. Caddy proxy starts
+7. Traffic flows through blue
+8. Green environment starts
+9. Green health checks pass
+10. Both environments run simultaneously
+11. Traffic switches to green
+12. Traffic switches back to blue
+13. Zero downtime during switch
+14. Rollback functionality
+15. Environment cleanup
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║  Blue-Green Deployment Test Suite             ║
+╚════════════════════════════════════════════════╝
+
+[INFO] Testing environment: staging
+[INFO] Deploy directory: .
+
+[TEST] Running: Prerequisites installed
+[PASS] Prerequisites installed
+[TEST] Running: Compose file valid
+[PASS] Compose file valid
+...
+[TEST] Running: Zero downtime during switch
+[PASS] Zero downtime during switch
+...
+
+════════════════════════════════════════════════
+
+Blue-Green Deployment Test Report
+==================================
+Date: Mon Jan 16 12:00:00 UTC 2025
+Environment: staging
+
+Test Results:
+  Total Tests: 15
+  Passed: 15
+  Failed: 0
+  Success Rate: 100%
+
+Status: ✓ ALL TESTS PASSED
+
+[INFO] Report saved to: /tmp/blue-green-test-results/test-report-20250116-120000.txt
+
+╔════════════════════════════════════════════════╗
+║  All Tests Passed! ✓                           ║
+╚════════════════════════════════════════════════╝
+```
 
 ## Usage
 

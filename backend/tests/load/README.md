@@ -67,6 +67,21 @@ make test-load-comments      # Comments (read-only without auth)
 make test-load-mixed         # Mixed user behavior (recommended)
 ```
 
+## Quick Start: Generate Full Report
+
+For a comprehensive load test report covering all scenarios:
+
+```bash
+# Ensure backend is running
+make backend-dev
+
+# In another terminal, generate report
+cd backend/tests/load
+./generate_report.sh
+```
+
+This will run all load test scenarios and generate a comprehensive report in `backend/tests/load/reports/`.
+
 ## Test Scenarios
 
 ### 1. Feed Browsing (`scenarios/feed_browsing.js`)
@@ -158,7 +173,33 @@ k6 run backend/tests/load/scenarios/comments.js
 k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/comments.js
 ```
 
-### 5. Clip Submission (`scenarios/submit.js`)
+### 5. Authentication (`scenarios/authentication.js`)
+
+Tests authentication workflow performance including user profile fetching, token refresh simulation, and logout operations.
+
+**Load Pattern:**
+- Ramp up: 30s to 5 users, 1m to 10 users, 2m to 20 users
+- Sustain: 2m at 20 users (20 auth flows/minute)
+- Ramp down: 30s to 0 users
+
+**Thresholds:**
+- User profile fetch p95: <50ms
+- Token refresh p95: <100ms
+- Logout p95: <30ms
+
+**Run:**
+```bash
+make test-load-auth
+# or
+k6 run backend/tests/load/scenarios/authentication.js
+```
+
+**Run (with authentication):**
+```bash
+k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/authentication.js
+```
+
+### 6. Clip Submission (`scenarios/submit.js`)
 
 Tests clip submission workflow (requires authentication).
 
@@ -179,7 +220,7 @@ k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/submit.js
 make test-load-submit AUTH_TOKEN=your_jwt_token
 ```
 
-### 6. Mixed User Behavior (`scenarios/mixed_behavior.js`) **[Recommended]**
+### 7. Mixed User Behavior (`scenarios/mixed_behavior.js`) **[Recommended]**
 
 Simulates realistic user behavior with mixed activity patterns:
 - 40% Casual browsers (feed browsing)
@@ -345,6 +386,41 @@ make migrate-seed-load-test
 ### K6 not installed
 
 Install K6 following the prerequisites section above.
+
+## Generating Reports
+
+### Comprehensive Load Test Report
+
+Generate a full report covering all load test scenarios:
+
+```bash
+# Start backend server
+make backend-dev
+
+# In another terminal, generate report
+cd backend/tests/load
+./generate_report.sh
+```
+
+The script will:
+1. Execute all load test scenarios
+2. Collect performance metrics
+3. Generate a comprehensive Markdown report
+4. Save detailed results for each scenario
+
+Reports are saved to `backend/tests/load/reports/load_test_report_TIMESTAMP.md`
+
+### Manual Report Generation
+
+For individual test reports:
+
+```bash
+# Run test and save output
+k6 run scenario.js > results.txt
+
+# Generate custom report
+# (see PROFILING_REPORT_TEMPLATE.md for structure)
+```
 
 ## Advanced Usage
 

@@ -90,6 +90,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 
 **Operations:**
 
+- [Staging Environment](docs/operations/staging-environment.md) - Staging setup and management
 - [Deployment Guide](docs/operations/deployment.md) - Production deployment
 - [Infrastructure](docs/operations/infra.md) - Architecture and scaling
 - [CI/CD Pipeline](docs/operations/cicd.md) - Continuous integration
@@ -475,14 +476,30 @@ docker pull ghcr.io/subculture-collective/clipper/frontend:latest
 
 #### Staging
 
+The staging environment mirrors production for safe deployment testing and validation.
+
+**Setup:**
+```bash
+# Automated setup (recommended)
+sudo ./scripts/setup-staging.sh
+
+# Manual setup - see docs/operations/staging-environment.md
+```
+
+**Features:**
 - Deploys automatically on push to `develop` branch
-- Environment: `staging`
-- Runs smoke tests after deployment
+- Complete infrastructure: PostgreSQL, Redis, OpenSearch, Caddy
+- Automated SSL certificates via Let's Encrypt
+- Test data seeding and smoke tests
+- Blue/green deployment testing
 
-To configure staging deployment, add these secrets to your repository:
+**Configuration:**
 
-- `STAGING_HOST`: Hostname of staging server
-- `DEPLOY_SSH_KEY`: SSH private key for deployment
+Add these secrets to your GitHub repository:
+- `STAGING_HOST`: Hostname of staging server (e.g., staging.clpr.tv)
+- `DEPLOY_SSH_KEY`: SSH private key for deployment user
+
+**Documentation:** See [Staging Environment Guide](docs/operations/staging-environment.md) for complete setup and management instructions.
 
 #### Production
 
@@ -544,6 +561,38 @@ The repository includes several deployment automation scripts in the `scripts/` 
 # Set up SSL/TLS certificates (requires sudo)
 sudo ./scripts/setup-ssl.sh
 ```
+
+### Blue/Green Deployment (Zero-Downtime)
+
+**NEW**: Clipper supports blue/green deployment for zero-downtime production releases:
+
+```bash
+# Zero-downtime deployment
+./scripts/blue-green-deploy.sh
+
+# Deploy specific version
+IMAGE_TAG=v1.2.3 ./scripts/blue-green-deploy.sh
+
+# Quick rollback if issues occur
+./scripts/rollback-blue-green.sh
+
+# Test deployment in staging
+./scripts/test-blue-green-deployment.sh
+
+# Check migration compatibility
+./scripts/check-migration-compatibility.sh
+```
+
+**Benefits**:
+- ✓ Zero downtime - Instant traffic switching
+- ✓ Instant rollback - Revert in seconds
+- ✓ Safe testing - Verify before switching traffic
+- ✓ Automatic rollback on health check failure
+
+**Documentation**:
+- [Blue/Green Deployment Guide](docs/operations/BLUE_GREEN_DEPLOYMENT.md) - Complete setup and usage
+- [Rollback Procedures](docs/operations/BLUE_GREEN_ROLLBACK.md) - Emergency rollback steps
+- [Quick Reference](docs/operations/BLUE_GREEN_QUICK_REFERENCE.md) - Command cheat sheet
 
 See [RUNBOOK.md](./docs/RUNBOOK.md) for detailed operational procedures.
 
