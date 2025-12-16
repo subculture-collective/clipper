@@ -1,0 +1,256 @@
+# Staging Environment docker-compose configuration
+# Mirrors production infrastructure for safe deployment testing
+# Copy this file to your staging server as docker-compose.yml
+
+services:
+    backend:
+        image: ghcr.io/subculture-collective/clipper/backend:staging
+        container_name: clipper-staging-backend
+        restart: unless-stopped
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            opensearch:
+                condition: service_healthy
+        environment:
+            - ENVIRONMENT=staging
+            - DB_HOST=${DB_HOST:-postgres}
+            - DB_PORT=${DB_PORT:-5432}
+            - DB_USER=${DB_USER:-clipper_staging}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - DB_NAME=${DB_NAME:-clipper_staging_db}
+            - DB_SSLMODE=${DB_SSLMODE:-require}
+            - REDIS_HOST=${REDIS_HOST:-redis}
+            - REDIS_PORT=${REDIS_PORT:-6379}
+            - REDIS_PASSWORD=${REDIS_PASSWORD}
+            - REDIS_DB=${REDIS_DB:-0}
+            - OPENSEARCH_URL=${OPENSEARCH_URL:-http://opensearch:9200}
+            - OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME:-admin}
+            - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
+            - PORT=${PORT:-8080}
+            - GIN_MODE=${GIN_MODE:-release}
+            - LOG_LEVEL=${LOG_LEVEL:-debug}
+            - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+            - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+            - JWT_ACCESS_TOKEN_EXPIRY=${JWT_ACCESS_TOKEN_EXPIRY:-24}
+            - JWT_REFRESH_TOKEN_EXPIRY=${JWT_REFRESH_TOKEN_EXPIRY:-168}
+            - TWITCH_CLIENT_ID=${TWITCH_CLIENT_ID}
+            - TWITCH_CLIENT_SECRET=${TWITCH_CLIENT_SECRET}
+            - TWITCH_REDIRECT_URI=${TWITCH_REDIRECT_URI}
+            - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+            - BASE_URL=${BASE_URL:-https://staging.clpr.tv}
+            - COOKIE_DOMAIN=${COOKIE_DOMAIN:-staging.clpr.tv}
+            - COOKIE_SECURE=${COOKIE_SECURE:-true}
+            - COOKIE_HTTPONLY=${COOKIE_HTTPONLY:-true}
+            - COOKIE_SAMESITE=${COOKIE_SAMESITE:-lax}
+            - SENTRY_DSN=${SENTRY_DSN}
+            - SENTRY_ENVIRONMENT=staging
+            - SENTRY_ENABLED=${SENTRY_ENABLED:-true}
+            - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.5}
+            - OTEL_ENABLED=${OTEL_ENABLED:-true}
+            - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-clipper-backend-staging}
+            - METRICS_ENABLED=${METRICS_ENABLED:-true}
+            - METRICS_PORT=${METRICS_PORT:-9090}
+            - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+            - RATE_LIMIT_REQUESTS_PER_MINUTE=${RATE_LIMIT_REQUESTS_PER_MINUTE:-120}
+            - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-20}
+            - FEATURE_SEMANTIC_SEARCH=${FEATURE_SEMANTIC_SEARCH:-true}
+            - FEATURE_PREMIUM_SUBSCRIPTIONS=${FEATURE_PREMIUM_SUBSCRIPTIONS:-true}
+            - FEATURE_EMAIL_NOTIFICATIONS=${FEATURE_EMAIL_NOTIFICATIONS:-true}
+            - FEATURE_PUSH_NOTIFICATIONS=${FEATURE_PUSH_NOTIFICATIONS:-true}
+            - FEATURE_ANALYTICS=${FEATURE_ANALYTICS:-true}
+            - FEATURE_MODERATION=${FEATURE_MODERATION:-true}
+            - FEATURE_DISCOVERY_LISTS=${FEATURE_DISCOVERY_LISTS:-true}
+            - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+            - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+            - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+            - DEBUG_MODE=${DEBUG_MODE:-true}
+            - VERBOSE_LOGGING=${VERBOSE_LOGGING:-true}
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'wget',
+                    '--spider',
+                    '-q',
+                    'http://localhost:8080/api/v1/health',
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 10s
+        networks:
+            clipper-staging-network:
+                aliases:
+                    - backend
+                    - clipper-staging-backend
+            web:
+                aliases:
+                    - clipper-staging-backend
+        labels:
+            - "com.centurylinklabs.watchtower.enable=true"
+            - "environment=staging"
+
+    frontend:
+        image: ghcr.io/subculture-collective/clipper/frontend:staging
+        container_name: clipper-staging-frontend
+        restart: unless-stopped
+        depends_on:
+            - backend
+        environment:
+            - VITE_API_URL=https://staging.clpr.tv/api/v1
+            - VITE_ENVIRONMENT=staging
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'wget',
+                    '--spider',
+                    '-q',
+                    'http://127.0.0.1/health.html',
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 5s
+        networks:
+            - clipper-staging-network
+            - web
+        labels:
+            - "com.centurylinklabs.watchtower.enable=true"
+            - "environment=staging"
+
+    postgres:
+        build:
+            context: .
+            dockerfile: Dockerfile.postgres
+        container_name: clipper-staging-postgres
+        restart: unless-stopped
+        environment:
+            - POSTGRES_DB=${POSTGRES_DB:-clipper_staging_db}
+            - POSTGRES_USER=${POSTGRES_USER:-clipper_staging}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        ports:
+            - '5437:5432' # Use different port to avoid conflicts
+        volumes:
+            - postgres_staging_data:/var/lib/postgresql/data
+            - postgres_staging_backups:/var/backups/postgres
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U ${POSTGRES_USER:-clipper_staging} -d ${POSTGRES_DB:-clipper_staging_db}',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+        networks:
+            - clipper-staging-network
+        labels:
+            - "environment=staging"
+
+    redis:
+        image: redis:7-alpine
+        container_name: clipper-staging-redis
+        restart: unless-stopped
+        command: >
+            redis-server
+            --appendonly yes
+            --maxmemory ${REDIS_MAX_MEMORY:-256mb}
+            --maxmemory-policy ${REDIS_EVICTION_POLICY:-allkeys-lru}
+            --requirepass ${REDIS_PASSWORD}
+        volumes:
+            - redis_staging_data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', '--pass', '${REDIS_PASSWORD}', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 5s
+        networks:
+            - clipper-staging-network
+        labels:
+            - "environment=staging"
+
+    opensearch:
+        image: opensearchproject/opensearch:2.11.1
+        container_name: clipper-staging-opensearch
+        restart: unless-stopped
+        environment:
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+            # Conditionally disable security for staging testing
+            # Use OPENSEARCH_DISABLE_SECURITY=true in .env to disable
+            - "DISABLE_SECURITY_PLUGIN=${OPENSEARCH_DISABLE_SECURITY:-false}"
+            - "DISABLE_INSTALL_DEMO_CONFIG=true"
+            - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+            nofile:
+                soft: 65536
+                hard: 65536
+        ports:
+            - "9201:9200" # Use different port to avoid conflicts
+            - "9601:9600"
+        volumes:
+            - opensearch_staging_data:/usr/share/opensearch/data
+        healthcheck:
+            test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 30s
+        networks:
+            - clipper-staging-network
+        labels:
+            - "environment=staging"
+
+    # Caddy reverse proxy for staging
+    caddy:
+        image: caddy:2-alpine
+        container_name: clipper-staging-caddy
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+            - "443:443/udp" # HTTP/3
+        volumes:
+            - ./Caddyfile.staging:/etc/caddy/Caddyfile:ro
+            - caddy_staging_data:/data
+            - caddy_staging_config:/config
+        depends_on:
+            - backend
+            - frontend
+        networks:
+            - clipper-staging-network
+            - web
+        labels:
+            - "environment=staging"
+
+volumes:
+    postgres_staging_data:
+        driver: local
+    postgres_staging_backups:
+        driver: local
+    redis_staging_data:
+        driver: local
+    opensearch_staging_data:
+        driver: local
+    caddy_staging_data:
+        driver: local
+    caddy_staging_config:
+        driver: local
+
+networks:
+    clipper-staging-network:
+        driver: bridge
+        name: clipper-staging-network
+    web:
+        external: true
+        name: web

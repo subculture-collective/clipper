@@ -90,6 +90,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 
 **Operations:**
 
+- [Staging Environment](docs/operations/staging-environment.md) - Staging setup and management
 - [Deployment Guide](docs/operations/deployment.md) - Production deployment
 - [Infrastructure](docs/operations/infra.md) - Architecture and scaling
 - [CI/CD Pipeline](docs/operations/cicd.md) - Continuous integration
@@ -475,14 +476,30 @@ docker pull ghcr.io/subculture-collective/clipper/frontend:latest
 
 #### Staging
 
+The staging environment mirrors production for safe deployment testing and validation.
+
+**Setup:**
+```bash
+# Automated setup (recommended)
+sudo ./scripts/setup-staging.sh
+
+# Manual setup - see docs/operations/staging-environment.md
+```
+
+**Features:**
 - Deploys automatically on push to `develop` branch
-- Environment: `staging`
-- Runs smoke tests after deployment
+- Complete infrastructure: PostgreSQL, Redis, OpenSearch, Caddy
+- Automated SSL certificates via Let's Encrypt
+- Test data seeding and smoke tests
+- Blue/green deployment testing
 
-To configure staging deployment, add these secrets to your repository:
+**Configuration:**
 
-- `STAGING_HOST`: Hostname of staging server
-- `DEPLOY_SSH_KEY`: SSH private key for deployment
+Add these secrets to your GitHub repository:
+- `STAGING_HOST`: Hostname of staging server (e.g., staging.clpr.tv)
+- `DEPLOY_SSH_KEY`: SSH private key for deployment user
+
+**Documentation:** See [Staging Environment Guide](docs/operations/staging-environment.md) for complete setup and management instructions.
 
 #### Production
 
