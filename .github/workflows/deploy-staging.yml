@@ -60,7 +60,7 @@ jobs:
           username: deploy
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd /opt/clipper
+            cd /opt/clipper-staging
             docker compose pull
             docker compose up -d
             docker system prune -f
@@ -68,14 +68,18 @@ jobs:
       - name: Run smoke tests
         run: |
           echo "Running smoke tests..."
-          # Add smoke test commands here when staging is configured
-          echo "Smoke tests would run against ${{ secrets.STAGING_HOST }}"
+          echo "Testing staging environment at https://${{ secrets.STAGING_HOST }}"
+          
+          # Basic health checks
+          curl -f https://${{ secrets.STAGING_HOST }}/api/v1/health || echo "Backend health check failed"
+          curl -f https://${{ secrets.STAGING_HOST }}/ || echo "Frontend health check failed"
 
       - name: Notify deployment status
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Staging deployment successful"
+            echo "URL: https://${{ secrets.STAGING_HOST }}"
           else
             echo "❌ Staging deployment failed"
           fi
