@@ -354,7 +354,7 @@ func main() {
 		abuseDetector := submissionService.GetAbuseDetector()
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector)
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, db.Pool)
 		}
 	}
 	if liveStatusService != nil {
@@ -1142,15 +1142,22 @@ func main() {
 			if moderationHandler != nil {
 				moderation := admin.Group("/moderation")
 				{
-					// Event management
+					// Event management (existing)
 					moderation.GET("/events", moderationHandler.GetPendingEvents)
 					moderation.GET("/events/:type", moderationHandler.GetEventsByType)
 					moderation.POST("/events/:id/review", moderationHandler.MarkEventReviewed)
 					moderation.POST("/events/:id/process", moderationHandler.ProcessEvent)
 					moderation.GET("/stats", moderationHandler.GetEventStats)
 
-					// Abuse detection
+					// Abuse detection (existing)
 					moderation.GET("/abuse/:userId", moderationHandler.GetUserAbuseStats)
+
+					// Moderation queue (new)
+					moderation.GET("/queue", moderationHandler.GetModerationQueue)
+					moderation.POST("/:id/approve", moderationHandler.ApproveContent)
+					moderation.POST("/:id/reject", moderationHandler.RejectContent)
+					moderation.POST("/bulk", moderationHandler.BulkModerate)
+					moderation.GET("/queue/stats", moderationHandler.GetModerationStats)
 				}
 			}
 

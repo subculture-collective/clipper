@@ -2584,3 +2584,55 @@ type DMCADashboardStats struct {
 	TotalTakedownsThisMonth int `json:"total_takedowns_this_month"`
 	TotalCounterNoticesThisMonth int `json:"total_counter_notices_this_month"`
 }
+
+// ModerationQueueItem represents an item in the moderation queue
+type ModerationQueueItem struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	ContentType     string     `json:"content_type" db:"content_type"`
+	ContentID       uuid.UUID  `json:"content_id" db:"content_id"`
+	Reason          string     `json:"reason" db:"reason"`
+	Priority        int        `json:"priority" db:"priority"`
+	Status          string     `json:"status" db:"status"`
+	AssignedTo      *uuid.UUID `json:"assigned_to,omitempty" db:"assigned_to"`
+	ReportedBy      []string   `json:"reported_by" db:"reported_by"` // PostgreSQL array
+	ReportCount     int        `json:"report_count" db:"report_count"`
+	AutoFlagged     bool       `json:"auto_flagged" db:"auto_flagged"`
+	ConfidenceScore *float64   `json:"confidence_score,omitempty" db:"confidence_score"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	ReviewedAt      *time.Time `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	ReviewedBy      *uuid.UUID `json:"reviewed_by,omitempty" db:"reviewed_by"`
+	// Content will be joined separately
+	Content interface{} `json:"content,omitempty" db:"-"`
+}
+
+// ModerationDecision represents a moderation decision audit entry
+type ModerationDecision struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	QueueItemID uuid.UUID  `json:"queue_item_id" db:"queue_item_id"`
+	ModeratorID uuid.UUID  `json:"moderator_id" db:"moderator_id"`
+	Action      string     `json:"action" db:"action"`
+	Reason      *string    `json:"reason,omitempty" db:"reason"`
+	Metadata    *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+}
+
+// ModerationQueueStats represents statistics about the moderation queue
+type ModerationQueueStats struct {
+	TotalPending      int            `json:"total_pending"`
+	TotalApproved     int            `json:"total_approved"`
+	TotalRejected     int            `json:"total_rejected"`
+	TotalEscalated    int            `json:"total_escalated"`
+	ByContentType     map[string]int `json:"by_content_type"`
+	ByReason          map[string]int `json:"by_reason"`
+	AutoFlaggedCount  int            `json:"auto_flagged_count"`
+	UserReportedCount int            `json:"user_reported_count"`
+	HighPriorityCount int            `json:"high_priority_count"`
+	OldestPendingAge  *int           `json:"oldest_pending_age_hours,omitempty"`
+}
+
+// BulkModerationRequest represents a bulk moderation action request
+type BulkModerationRequest struct {
+	ItemIDs []string `json:"item_ids" binding:"required,min=1,max=100"`
+	Action  string   `json:"action" binding:"required,oneof=approve reject escalate"`
+	Reason  *string  `json:"reason,omitempty" binding:"omitempty,max=1000"`
+}
