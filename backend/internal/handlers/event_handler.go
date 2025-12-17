@@ -44,8 +44,12 @@ func (h *EventHandler) TrackEvent(c *gin.Context) {
 	// Check if it's a batch request by looking for "events" array
 	if _, hasBatch := rawReq["events"]; hasBatch {
 		var batchReq models.BatchEventsRequest
-		if err := json.Unmarshal(bodyBytes, &batchReq); err != nil || len(batchReq.Events) == 0 {
+		if err := json.Unmarshal(bodyBytes, &batchReq); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid batch events format"})
+			return
+		}
+		if len(batchReq.Events) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "batch events array cannot be empty"})
 			return
 		}
 		h.trackBatchEvents(c, batchReq)
@@ -54,8 +58,12 @@ func (h *EventHandler) TrackEvent(c *gin.Context) {
 
 	// Single event request
 	var req models.TrackEventRequest
-	if err := json.Unmarshal(bodyBytes, &req); err != nil || req.EventType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event format: missing event_type"})
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event format"})
+		return
+	}
+	if req.EventType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "event_type is required"})
 		return
 	}
 
