@@ -83,10 +83,16 @@ func (s *QueueService) AddToQueue(ctx context.Context, userID uuid.UUID, req *mo
 	}
 
 	// Determine position
-	var position int
 	atEnd := true // default is to add at end
 	if req.AtEnd != nil {
 		atEnd = *req.AtEnd
+	}
+
+	// Create queue item
+	item := &models.QueueItem{
+		ID:     uuid.New(),
+		UserID: userID,
+		ClipID: clipID,
 	}
 
 	if atEnd {
@@ -95,25 +101,17 @@ func (s *QueueService) AddToQueue(ctx context.Context, userID uuid.UUID, req *mo
 		if err != nil {
 			return nil, fmt.Errorf("failed to get max position: %w", err)
 		}
-		position = maxPos + 1
+		item.Position = maxPos + 1
+		err = s.queueRepo.AddItem(ctx, item)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add to queue: %w", err)
+		}
 	} else {
-		// Add to beginning - need to shift all positions up
-		// This is handled in a transaction
-		position = 1
-		// We'll need to shift positions in the handler/transaction
-	}
-
-	// Create queue item
-	item := &models.QueueItem{
-		ID:       uuid.New(),
-		UserID:   userID,
-		ClipID:   clipID,
-		Position: position,
-	}
-
-	err = s.queueRepo.AddItem(ctx, item)
-	if err != nil {
-		return nil, fmt.Errorf("failed to add to queue: %w", err)
+		// Add to beginning - shifts all existing items down
+		err = s.queueRepo.AddItemAtTop(ctx, item)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add to queue: %w", err)
+		}
 	}
 
 	return item, nil

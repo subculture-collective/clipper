@@ -3194,8 +3194,3 @@ type ReorderQueueRequest struct {
 	ItemID      string `json:"item_id" binding:"required,uuid"`
 	NewPosition int    `json:"new_position" binding:"required,min=1"`
 }
-
-// MarkPlayedRequest represents the request to mark a queue item as played
-type MarkPlayedRequest struct {
-	ItemID string `json:"item_id" binding:"required,uuid"`
-}

@@ -117,17 +117,79 @@ func (r *QueueRepository) AddItem(ctx context.Context, item *models.QueueItem) e
 	return nil
 }
 
-// RemoveItem removes an item from the queue
-func (r *QueueRepository) RemoveItem(ctx context.Context, itemID uuid.UUID, userID uuid.UUID) error {
-	query := `DELETE FROM queue_items WHERE id = $1 AND user_id = $2`
+// AddItemAtTop adds a clip to the top of the queue with transaction support
+func (r *QueueRepository) AddItemAtTop(ctx context.Context, item *models.QueueItem) error {
+	// Use a transaction to shift positions and add item
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
 
-	result, err := r.pool.Exec(ctx, query, itemID, userID)
+	// Shift all existing items down
+	_, err = tx.Exec(ctx, `UPDATE queue_items SET position = position + 1 WHERE user_id = $1`, item.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to shift positions: %w", err)
+	}
+
+	// Insert new item at position 1
+	err = tx.QueryRow(ctx, `
+		INSERT INTO queue_items (id, user_id, clip_id, position, added_at)
+		VALUES ($1, $2, $3, 1, NOW())
+		RETURNING created_at, updated_at
+	`, item.ID, item.UserID, item.ClipID).Scan(&item.CreatedAt, &item.UpdatedAt)
+	
+	if err != nil {
+		return fmt.Errorf("failed to add queue item: %w", err)
+	}
+
+	// Commit transaction
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	item.Position = 1
+	return nil
+}
+
+// RemoveItem removes an item from the queue and shifts positions
+func (r *QueueRepository) RemoveItem(ctx context.Context, itemID uuid.UUID, userID uuid.UUID) error {
+	// Use a transaction to remove item and shift positions
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Get the position of the item being removed
+	var position int
+	err = tx.QueryRow(ctx, `SELECT position FROM queue_items WHERE id = $1 AND user_id = $2`, itemID, userID).Scan(&position)
+	if err == pgx.ErrNoRows {
+		return pgx.ErrNoRows
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get item position: %w", err)
+	}
+
+	// Delete the item
+	result, err := tx.Exec(ctx, `DELETE FROM queue_items WHERE id = $1 AND user_id = $2`, itemID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to remove queue item: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
 		return pgx.ErrNoRows
+	}
+
+	// Shift all items after the removed position down
+	_, err = tx.Exec(ctx, `UPDATE queue_items SET position = position - 1 WHERE user_id = $1 AND position > $2`, userID, position)
+	if err != nil {
+		return fmt.Errorf("failed to shift positions: %w", err)
+	}
+
+	// Commit transaction
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
