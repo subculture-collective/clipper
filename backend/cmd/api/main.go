@@ -171,6 +171,7 @@ func main() {
 	communityRepo := repository.NewCommunityRepository(db.Pool)
 	accountTypeConversionRepo := repository.NewAccountTypeConversionRepository(db.Pool)
 	verificationRepo := repository.NewVerificationRepository(db.Pool)
+	recommendationRepo := repository.NewRecommendationRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -232,6 +233,9 @@ func main() {
 
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
+
+	// Initialize recommendation service
+	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
 
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
@@ -349,6 +353,7 @@ func main() {
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
+	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -895,6 +900,28 @@ func main() {
 		// Live feed (authenticated)
 		if liveStatusHandler != nil {
 			v1.GET("/feed/live", middleware.AuthMiddleware(authService), liveStatusHandler.GetFollowedLiveBroadcasters)
+		}
+
+		// Recommendation routes
+		recommendations := v1.Group("/recommendations")
+		{
+			// All recommendation endpoints require authentication
+			recommendations.Use(middleware.AuthMiddleware(authService))
+
+			// Get personalized clip recommendations
+			recommendations.GET("/clips", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), recommendationHandler.GetRecommendations)
+
+			// Submit feedback on recommendations
+			recommendations.POST("/feedback", middleware.RateLimitMiddleware(redisClient, 100, time.Minute), recommendationHandler.SubmitFeedback)
+
+			// Get user preferences
+			recommendations.GET("/preferences", recommendationHandler.GetPreferences)
+
+			// Update user preferences
+			recommendations.PUT("/preferences", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), recommendationHandler.UpdatePreferences)
+
+			// Track view for recommendation engine
+			recommendations.POST("/track-view/:id", middleware.RateLimitMiddleware(redisClient, 200, time.Minute), recommendationHandler.TrackView)
 		}
 
 		// Notification routes
