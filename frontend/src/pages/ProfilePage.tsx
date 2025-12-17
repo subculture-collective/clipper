@@ -3,6 +3,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Card, CardBody, Container, Stack, Button, Skeleton, ProfileSkeleton, EmptyStateWithAction, UserRoleBadge } from '../components';
+import { VerifiedBadge } from '../components/user';
 import { ClipCard } from '../components/clip/ClipCard';
 import { ClipCardSkeleton } from '../components/clip/ClipCardSkeleton';
 import { CommentSkeleton } from '../components/ui';
@@ -216,9 +217,14 @@ export function ProfilePage() {
                             <div className='flex-1 w-full text-center xs:text-left'>
                                 <div className='flex flex-col xs:flex-row items-center xs:items-start justify-between gap-3 xs:gap-0'>
                                     <div>
-                                        <h1 className='mb-1 text-2xl xs:text-3xl font-bold'>
-                                            {user.display_name}
-                                        </h1>
+                                        <div className='flex items-center justify-center xs:justify-start gap-2 mb-1'>
+                                            <h1 className='text-2xl xs:text-3xl font-bold'>
+                                                {user.display_name}
+                                            </h1>
+                                            {user.is_verified && (
+                                                <VerifiedBadge size="lg" />
+                                            )}
+                                        </div>
                                         <p className='text-sm xs:text-base text-muted-foreground mb-2'>
                                             @{user.username}
                                         </p>
