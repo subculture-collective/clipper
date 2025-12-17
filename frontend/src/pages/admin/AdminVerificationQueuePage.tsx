@@ -42,7 +42,6 @@ export function AdminVerificationQueuePage() {
     
     // Review modal state
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
-    const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
     const [selectedApplication, setSelectedApplication] = useState<VerificationApplication | null>(null);
     const [reviewNotes, setReviewNotes] = useState('');
     const [reviewDecision, setReviewDecision] = useState<'approved' | 'rejected'>('approved');
@@ -90,7 +89,6 @@ export function AdminVerificationQueuePage() {
     }, [success]);
 
     const openReviewModal = (app: VerificationApplication, decision: 'approved' | 'rejected') => {
-        setSelectedApplicationId(app.id);
         setSelectedApplication(app);
         setReviewDecision(decision);
         setReviewNotes('');
@@ -98,24 +96,23 @@ export function AdminVerificationQueuePage() {
     };
 
     const handleReview = async () => {
-        if (!selectedApplicationId) {
+        if (!selectedApplication) {
             return;
         }
 
         try {
-            await reviewVerificationApplication(selectedApplicationId, {
+            await reviewVerificationApplication(selectedApplication.id, {
                 decision: reviewDecision,
                 notes: reviewNotes || undefined,
             });
             setSuccess(`Application ${reviewDecision} successfully!`);
             setReviewModalOpen(false);
-            setSelectedApplicationId(null);
             setSelectedApplication(null);
             setReviewNotes('');
             loadApplications();
             loadStats();
         } catch (err: unknown) {
-            setError(getErrorMessage(err) || 'Failed to review application');
+            setError(getErrorMessage(err));
         }
     };
 

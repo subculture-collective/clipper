@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -151,6 +152,20 @@ func (h *VerificationHandler) ListApplications(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	
+	// Validate status parameter
+	validStatuses := map[string]bool{
+		models.VerificationStatusPending:  true,
+		models.VerificationStatusApproved: true,
+		models.VerificationStatusRejected: true,
+		"": true, // Allow empty for all statuses
+	}
+	if !validStatuses[status] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid status. Must be one of: pending, approved, rejected",
+		})
+		return
+	}
+	
 	if limit < 1 || limit > 100 {
 		limit = 50
 	}
@@ -285,7 +300,9 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 	}
 	
 	// Send notification to user (async - don't fail request if notification fails)
+	// Use background context to avoid cancellation when HTTP request completes
 	go func() {
+		bgCtx := context.Background()
 		var notificationType string
 		var title string
 		var message string
@@ -304,7 +321,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		}
 		
 		_, _ = h.notificationService.CreateNotification(
-			ctx,
+			bgCtx,
 			app.UserID,
 			notificationType,
 			title,

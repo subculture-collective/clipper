@@ -95,12 +95,31 @@ CREATE TRIGGER trg_verification_application_reviewed
 CREATE OR REPLACE FUNCTION update_user_verification_status()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- When an application is newly approved, mark the user as verified
     IF NEW.status = 'approved' AND OLD.status = 'pending' THEN
         UPDATE users 
         SET is_verified = TRUE,
             verified_at = NOW(),
             updated_at = NOW()
         WHERE id = NEW.user_id;
+    
+    -- When an application moves from approved to rejected/pending, 
+    -- revoke verification if there are no other approved applications
+    ELSIF OLD.status = 'approved' AND NEW.status != 'approved' THEN
+        -- Check if user has any other approved applications
+        IF NOT EXISTS (
+            SELECT 1
+            FROM creator_verification_applications
+            WHERE user_id = NEW.user_id
+              AND status = 'approved'
+              AND id != NEW.id
+        ) THEN
+            UPDATE users
+            SET is_verified = FALSE,
+                verified_at = NULL,
+                updated_at = NOW()
+            WHERE id = NEW.user_id;
+        END IF;
     END IF;
     RETURN NEW;
 END;
