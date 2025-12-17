@@ -16,7 +16,9 @@ export function FeedFilters({
     onTimeframeChange,
 }: FeedFiltersProps) {
     const sortOptions: { value: SortOption; label: string }[] = [
+        { value: 'trending', label: 'Trending 🔥' },
         { value: 'hot', label: 'Hot' },
+        { value: 'popular', label: 'Most Popular ⭐' },
         { value: 'new', label: 'New' },
         { value: 'top', label: 'Top' },
         { value: 'rising', label: 'Rising' },
@@ -61,8 +63,8 @@ export function FeedFilters({
                 </select>
             </div>
 
-            {/* Timeframe selector (shown when Top is selected) */}
-            {sort === 'top' && (
+            {/* Timeframe selector (shown when Top or Trending is selected) */}
+            {(sort === 'top' || sort === 'trending') && (
                 <div className='flex flex-wrap gap-2'>
                     <span className='text-sm text-muted-foreground flex items-center mr-2'>
                         Timeframe:

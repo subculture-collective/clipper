@@ -1270,6 +1270,10 @@ func main() {
 	hotScoreScheduler := scheduler.NewHotScoreScheduler(clipRepo, cfg.Jobs.HotClipsRefreshIntervalMinutes)
 	go hotScoreScheduler.Start(context.Background())
 
+	// Start trending score scheduler (runs every 60 minutes)
+	trendingScoreScheduler := scheduler.NewTrendingScoreScheduler(clipRepo, 60)
+	go trendingScoreScheduler.Start(context.Background())
+
 	// Start webhook retry scheduler (runs every 1 minute)
 	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, cfg.Jobs.WebhookRetryIntervalMinutes, cfg.Jobs.WebhookRetryBatchSize)
 	go webhookRetryScheduler.Start(context.Background())
@@ -1330,6 +1334,7 @@ func main() {
 	}
 	reputationScheduler.Stop()
 	hotScoreScheduler.Stop()
+	trendingScoreScheduler.Stop()
 	webhookRetryScheduler.Stop()
 	outboundWebhookScheduler.Stop()
 	exportScheduler.Stop()

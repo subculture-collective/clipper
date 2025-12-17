@@ -135,6 +135,11 @@ type Clip struct {
 	EmbeddingModel       *string    `json:"embedding_model,omitempty" db:"embedding_model"`
 	SubmittedByUserID    *uuid.UUID `json:"submitted_by_user_id,omitempty" db:"submitted_by_user_id"`
 	SubmittedAt          *time.Time `json:"submitted_at,omitempty" db:"submitted_at"`
+	// Trending and popularity metrics
+	TrendingScore   float64 `json:"trending_score,omitempty" db:"trending_score"`
+	HotScore        float64 `json:"hot_score,omitempty" db:"hot_score"`
+	PopularityIndex int     `json:"popularity_index,omitempty" db:"popularity_index"`
+	EngagementCount int     `json:"engagement_count,omitempty" db:"engagement_count"`
 	// DMCA-related fields
 	DMCARemoved      bool       `json:"dmca_removed" db:"dmca_removed"`
 	DMCANoticeID     *uuid.UUID `json:"dmca_notice_id,omitempty" db:"dmca_notice_id"`

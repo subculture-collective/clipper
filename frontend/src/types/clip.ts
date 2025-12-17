@@ -40,6 +40,11 @@ export interface Clip {
     // Submitter attribution
     submitted_by?: ClipSubmitter;
     submitted_at?: string;
+    // Trending and popularity metrics
+    trending_score?: number;
+    hot_score?: number;
+    popularity_index?: number;
+    engagement_count?: number;
 }
 
 export interface ClipFeedResponse {
@@ -60,7 +65,8 @@ export type SortOption =
     | 'rising'
     | 'discussed'
     | 'views'
-    | 'trending';
+    | 'trending'
+    | 'popular';
 export type TimeFrame = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all';
 
 export interface ClipFeedFilters {

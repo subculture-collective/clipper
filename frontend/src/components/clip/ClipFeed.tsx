@@ -59,7 +59,7 @@ export function ClipFeed({
     // Combine URL filters with additional filters and current language
     const filters: ClipFeedFilters = {
         sort,
-        timeframe: sort === 'top' ? timeframe : undefined,
+        timeframe: sort === 'top' || sort === 'trending' ? timeframe : undefined,
         // Do not filter by UI language by default; include language only if explicitly provided
         ...additionalFilters,
     };
@@ -132,10 +132,16 @@ export function ClipFeed({
     const handleSortChange = (newSort: SortOption) => {
         const params = new URLSearchParams(searchParams);
         params.set('sort', newSort);
-        if (newSort !== 'top') {
+        if (newSort !== 'top' && newSort !== 'trending') {
             params.delete('timeframe');
         }
         setSearchParams(params);
+        // Persist sort preference to localStorage
+        try {
+            localStorage.setItem('feedSort', newSort);
+        } catch (error) {
+            console.error('Failed to save sort preference:', error);
+        }
     };
 
     const handleTimeframeChange = (newTimeframe: TimeFrame) => {
@@ -145,11 +151,14 @@ export function ClipFeed({
     };
 
     const sortLabelMap: Record<SortOption, string> = {
+        trending: 'Trending',
         hot: 'Hot',
+        popular: 'Most Popular',
         new: 'New',
         top: 'Top',
         rising: 'Rising',
         discussed: 'Discussed',
+        views: 'Views',
     };
 
     const timeframeLabelMap: Partial<Record<TimeFrame, string>> = {
@@ -163,7 +172,7 @@ export function ClipFeed({
 
     const resolvedTitle =
         useSortTitle ?
-            sort === 'top' ?
+            sort === 'top' || sort === 'trending' ?
                 `${sortLabelMap[sort]} — ${timeframeLabelMap[timeframe] ?? 'Past Day'}`
             :   `${sortLabelMap[sort]} Feed`
         :   title;
