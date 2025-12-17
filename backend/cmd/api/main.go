@@ -169,6 +169,7 @@ func main() {
 	gameRepo := repository.NewGameRepository(db.Pool)
 	communityRepo := repository.NewCommunityRepository(db.Pool)
 	accountTypeConversionRepo := repository.NewAccountTypeConversionRepository(db.Pool)
+	verificationRepo := repository.NewVerificationRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -341,6 +342,7 @@ func main() {
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
 	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
+	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -913,6 +915,15 @@ func main() {
 			notifications.DELETE("/unregister", notificationHandler.UnregisterDeviceToken)
 		}
 
+		// Creator verification routes
+		verification := v1.Group("/verification")
+		{
+			// Protected endpoints (require authentication)
+			verification.Use(middleware.AuthMiddleware(authService))
+			verification.POST("/applications", middleware.RateLimitMiddleware(redisClient, 1, time.Hour), verificationHandler.CreateApplication)
+			verification.GET("/applications/me", verificationHandler.GetApplication)
+		}
+
 		// Subscription routes
 		subscriptions := v1.Group("/subscriptions")
 		{
@@ -1176,6 +1187,15 @@ func main() {
 					moderation.GET("/audit", moderationHandler.GetModerationAuditLogs)
 					moderation.GET("/analytics", moderationHandler.GetModerationAnalytics)
 				}
+			}
+
+			// Creator verification management (admin only)
+			verification := admin.Group("/verification")
+			{
+				verification.GET("/applications", verificationHandler.ListApplications)
+				verification.GET("/applications/:id", verificationHandler.GetApplicationByID)
+				verification.POST("/applications/:id/review", verificationHandler.ReviewApplication)
+				verification.GET("/stats", verificationHandler.GetApplicationStats)
 			}
 
 			// Discovery list management (admin/moderator only)
