@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { subDays } from 'date-fns';
 import {
     getModerationAnalytics,
     type ModerationAnalytics,
 } from '../../lib/moderation-api';
-import { MetricCard } from '../analytics/MetricCard';
-import { PieChartComponent } from '../analytics/PieChartComponent';
-import { BarChartComponent } from '../analytics/BarChartComponent';
-import { LineChartComponent } from '../analytics/LineChartComponent';
-import { DateRangeSelector } from '../analytics/DateRangeSelector';
+import MetricCard from '../analytics/MetricCard';
+import PieChartComponent from '../analytics/PieChartComponent';
+import BarChartComponent from '../analytics/BarChartComponent';
+import LineChartComponent from '../analytics/LineChartComponent';
+import DateRangeSelector from '../analytics/DateRangeSelector';
 
 export function ModerationAnalyticsDashboard() {
     const [analytics, setAnalytics] = useState<ModerationAnalytics | null>(null);
@@ -16,11 +16,7 @@ export function ModerationAnalyticsDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [dateRangeDays, setDateRangeDays] = useState(30);
 
-    useEffect(() => {
-        loadAnalytics();
-    }, [dateRangeDays]);
-
-    const loadAnalytics = async () => {
+    const loadAnalytics = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -40,7 +36,11 @@ export function ModerationAnalyticsDashboard() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [dateRangeDays]);
+
+    useEffect(() => {
+        loadAnalytics();
+    }, [loadAnalytics]);
 
     if (loading) {
         return (

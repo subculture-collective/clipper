@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { format, subDays } from 'date-fns';
 import {
     getModerationAuditLogs,
@@ -19,11 +19,7 @@ export function AuditLogViewer() {
         offset: 0,
     });
 
-    useEffect(() => {
-        loadLogs();
-    }, [filters]);
-
-    const loadLogs = async () => {
+    const loadLogs = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -36,7 +32,11 @@ export function AuditLogViewer() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
+
+    useEffect(() => {
+        loadLogs();
+    }, [loadLogs]);
 
     const handleExportCSV = () => {
         if (logs.length === 0) return;
@@ -82,6 +82,7 @@ export function AuditLogViewer() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const handlePageChange = (newOffset: number) => {

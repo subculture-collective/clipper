@@ -1061,6 +1061,19 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 	}
 
 	if actionType != "" {
+		// Validate action type against allowed values
+		validActions := map[string]bool{
+			"approve":  true,
+			"reject":   true,
+			"escalate": true,
+			"ban_user": true,
+		}
+		if !validActions[actionType] {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid action type. Must be one of: approve, reject, escalate, ban_user",
+			})
+			return
+		}
 		baseWhere += fmt.Sprintf(" AND md.action = $%d", argIdx)
 		args = append(args, actionType)
 		argIdx++
@@ -1073,7 +1086,7 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 	}
 
 	if endDate != "" {
-		baseWhere += fmt.Sprintf(" AND md.created_at <= $%d", argIdx)
+		baseWhere += fmt.Sprintf(" AND md.created_at < ($%d::date + interval '1 day')", argIdx)
 		args = append(args, endDate)
 		argIdx++
 	}
@@ -1124,7 +1137,7 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var logs []models.ModerationDecisionWithDetails
+	logs := []models.ModerationDecisionWithDetails{}
 	for rows.Next() {
 		var log models.ModerationDecisionWithDetails
 		err := rows.Scan(
@@ -1179,7 +1192,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 	err := h.db.QueryRow(ctx, `
 		SELECT COUNT(*)
 		FROM moderation_decisions
-		WHERE created_at >= $1 AND created_at <= $2
+		WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'
 	`, startDate, endDate).Scan(&analytics.TotalActions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1192,7 +1205,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 	rows, err := h.db.Query(ctx, `
 		SELECT action, COUNT(*)
 		FROM moderation_decisions
-		WHERE created_at >= $1 AND created_at <= $2
+		WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'
 		GROUP BY action
 		ORDER BY COUNT(*) DESC
 	`, startDate, endDate)
@@ -1219,7 +1232,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 		SELECT u.username, COUNT(*)
 		FROM moderation_decisions md
 		JOIN users u ON md.moderator_id = u.id
-		WHERE md.created_at >= $1 AND md.created_at <= $2
+		WHERE md.created_at >= $1 AND md.created_at < $2::date + interval '1 day'
 		GROUP BY u.username
 		ORDER BY COUNT(*) DESC
 		LIMIT 10
@@ -1247,7 +1260,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 		SELECT mq.content_type, COUNT(*)
 		FROM moderation_decisions md
 		JOIN moderation_queue mq ON md.queue_item_id = mq.id
-		WHERE md.created_at >= $1 AND md.created_at <= $2
+		WHERE md.created_at >= $1 AND md.created_at < $2::date + interval '1 day'
 		GROUP BY mq.content_type
 		ORDER BY COUNT(*) DESC
 	`, startDate, endDate)
@@ -1275,7 +1288,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 			DATE(created_at) as date,
 			COUNT(*) as count
 		FROM moderation_decisions
-		WHERE created_at >= $1 AND created_at <= $2
+		WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'
 		GROUP BY DATE(created_at)
 		ORDER BY date ASC
 	`, startDate, endDate)
@@ -1302,7 +1315,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 		SELECT AVG(EXTRACT(EPOCH FROM (md.created_at - mq.created_at)) / 60)
 		FROM moderation_decisions md
 		JOIN moderation_queue mq ON md.queue_item_id = mq.id
-		WHERE md.created_at >= $1 AND md.created_at <= $2
+		WHERE md.created_at >= $1 AND md.created_at < $2::date + interval '1 day'
 	`, startDate, endDate).Scan(&avgResponseMinutes)
 	if err == nil && avgResponseMinutes != nil {
 		analytics.AverageResponseTime = avgResponseMinutes
