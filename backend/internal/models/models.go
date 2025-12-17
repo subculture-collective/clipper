@@ -32,6 +32,9 @@ type User struct {
 	DMCASuspendedUntil  *time.Time `json:"dmca_suspended_until,omitempty" db:"dmca_suspended_until"`
 	DMCATerminated      bool       `json:"dmca_terminated" db:"dmca_terminated"`
 	DMCATerminatedAt    *time.Time `json:"dmca_terminated_at,omitempty" db:"dmca_terminated_at"`
+	// Verification fields
+	IsVerified          bool       `json:"is_verified" db:"is_verified"`
+	VerifiedAt          *time.Time `json:"verified_at,omitempty" db:"verified_at"`
 	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
 	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
@@ -2691,3 +2694,81 @@ type ModerationAnalytics struct {
 	ContentTypeBreakdown map[string]int     `json:"content_type_breakdown"`
 	AverageResponseTime  *float64           `json:"average_response_time_minutes,omitempty"`
 }
+
+// ============================================================================
+// Creator Verification System Models
+// ============================================================================
+
+// CreatorVerificationApplication represents a creator's verification application
+type CreatorVerificationApplication struct {
+	ID                 uuid.UUID              `json:"id" db:"id"`
+	UserID             uuid.UUID              `json:"user_id" db:"user_id"`
+	TwitchChannelURL   string                 `json:"twitch_channel_url" db:"twitch_channel_url"`
+	FollowerCount      *int                   `json:"follower_count,omitempty" db:"follower_count"`
+	SubscriberCount    *int                   `json:"subscriber_count,omitempty" db:"subscriber_count"`
+	AvgViewers         *int                   `json:"avg_viewers,omitempty" db:"avg_viewers"`
+	ContentDescription *string                `json:"content_description,omitempty" db:"content_description"`
+	SocialMediaLinks   map[string]interface{} `json:"social_media_links,omitempty" db:"social_media_links"`
+	Status             string                 `json:"status" db:"status"` // pending, approved, rejected
+	Priority           int                    `json:"priority" db:"priority"`
+	ReviewedBy         *uuid.UUID             `json:"reviewed_by,omitempty" db:"reviewed_by"`
+	ReviewedAt         *time.Time             `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	ReviewerNotes      *string                `json:"reviewer_notes,omitempty" db:"reviewer_notes"`
+	CreatedAt          time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt          time.Time              `json:"updated_at" db:"updated_at"`
+}
+
+// CreatorVerificationApplicationWithUser includes user information
+type CreatorVerificationApplicationWithUser struct {
+	CreatorVerificationApplication
+	User       *User `json:"user,omitempty"`
+	ReviewedBy *User `json:"reviewed_by_user,omitempty"`
+}
+
+// CreatorVerificationDecision represents a verification decision audit entry
+type CreatorVerificationDecision struct {
+	ID            uuid.UUID              `json:"id" db:"id"`
+	ApplicationID uuid.UUID              `json:"application_id" db:"application_id"`
+	ReviewerID    uuid.UUID              `json:"reviewer_id" db:"reviewer_id"`
+	Decision      string                 `json:"decision" db:"decision"` // approved, rejected
+	Notes         *string                `json:"notes,omitempty" db:"notes"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt     time.Time              `json:"created_at" db:"created_at"`
+}
+
+// VerificationApplicationStats represents statistics about verification applications
+type VerificationApplicationStats struct {
+	TotalPending  int `json:"total_pending"`
+	TotalApproved int `json:"total_approved"`
+	TotalRejected int `json:"total_rejected"`
+	TotalVerified int `json:"total_verified"` // Total verified users
+}
+
+// CreateVerificationApplicationRequest represents the request to apply for verification
+type CreateVerificationApplicationRequest struct {
+	TwitchChannelURL   string            `json:"twitch_channel_url" binding:"required,url,max=500"`
+	FollowerCount      *int              `json:"follower_count,omitempty" binding:"omitempty,min=0"`
+	SubscriberCount    *int              `json:"subscriber_count,omitempty" binding:"omitempty,min=0"`
+	AvgViewers         *int              `json:"avg_viewers,omitempty" binding:"omitempty,min=0"`
+	ContentDescription *string           `json:"content_description,omitempty" binding:"omitempty,max=2000"`
+	SocialMediaLinks   map[string]string `json:"social_media_links,omitempty"`
+}
+
+// ReviewVerificationApplicationRequest represents admin request to review an application
+type ReviewVerificationApplicationRequest struct {
+	Decision string  `json:"decision" binding:"required,oneof=approved rejected"`
+	Notes    *string `json:"notes,omitempty" binding:"omitempty,max=2000"`
+}
+
+// Verification status constants
+const (
+	VerificationStatusPending  = "pending"
+	VerificationStatusApproved = "approved"
+	VerificationStatusRejected = "rejected"
+)
+
+// Verification decision constants
+const (
+	VerificationDecisionApproved = "approved"
+	VerificationDecisionRejected = "rejected"
+)
