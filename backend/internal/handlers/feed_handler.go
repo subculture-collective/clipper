@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 )
 
@@ -438,14 +439,6 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		offset = 0
 	}
 
-	// Get user ID if authenticated
-	var userID *uuid.UUID
-	if userIDVal, exists := c.Get("user_id"); exists {
-		if uid, ok := userIDVal.(uuid.UUID); ok {
-			userID = &uid
-		}
-	}
-
 	// Build filters for clip repository
 	filters := repository.ClipFilters{
 		Sort:              sort,
@@ -478,8 +471,8 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		filters.DateTo = &dateTo
 	}
 
-	// Fetch clips using clip repository
-	clips, total, err := h.feedService.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
+	// Fetch clips using feed service
+	clips, total, err := h.feedService.GetFilteredClips(c.Request.Context(), filters, limit, offset)
 	if err != nil {
 		log.Printf("Error fetching filtered clips: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve filtered clips"})

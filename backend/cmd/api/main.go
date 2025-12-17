@@ -164,6 +164,7 @@ func main() {
 	broadcasterRepo := repository.NewBroadcasterRepository(db.Pool)
 	emailLogRepo := repository.NewEmailLogRepository(db.Pool)
 	feedRepo := repository.NewFeedRepository(db.Pool)
+	filterPresetRepo := repository.NewFilterPresetRepository(db.Pool)
 	discoveryListRepo := repository.NewDiscoveryListRepository(db.Pool)
 	categoryRepo := repository.NewCategoryRepository(db.Pool)
 	gameRepo := repository.NewGameRepository(db.Pool)
@@ -222,6 +223,9 @@ func main() {
 
 	// Initialize feed service
 	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
+
+	// Initialize filter preset service
+	filterPresetService := services.NewFilterPresetService(filterPresetRepo)
 
 	// Initialize community service
 	communityService := services.NewCommunityService(communityRepo, clipRepo, userRepo, notificationService)
@@ -337,6 +341,7 @@ func main() {
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
 	feedHandler := handlers.NewFeedHandler(feedService, authService)
+	filterPresetHandler := handlers.NewFilterPresetHandler(filterPresetService)
 	communityHandler := handlers.NewCommunityHandler(communityService, authService)
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
@@ -772,6 +777,13 @@ func main() {
 			users.PUT("/:id/feeds/:feedId/clips/reorder", middleware.AuthMiddleware(authService), feedHandler.ReorderFeedClips)
 			users.POST("/:id/feeds/:feedId/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), feedHandler.FollowFeed)
 			users.DELETE("/:id/feeds/:feedId/follow", middleware.AuthMiddleware(authService), feedHandler.UnfollowFeed)
+
+			// Filter preset routes
+			users.GET("/:id/filter-presets", middleware.AuthMiddleware(authService), filterPresetHandler.GetUserPresets)
+			users.POST("/:id/filter-presets", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), filterPresetHandler.CreatePreset)
+			users.GET("/:id/filter-presets/:presetId", middleware.AuthMiddleware(authService), filterPresetHandler.GetPreset)
+			users.PUT("/:id/filter-presets/:presetId", middleware.AuthMiddleware(authService), filterPresetHandler.UpdatePreset)
+			users.DELETE("/:id/filter-presets/:presetId", middleware.AuthMiddleware(authService), filterPresetHandler.DeletePreset)
 		}
 
 		// Creator analytics routes
@@ -872,6 +884,9 @@ func main() {
 			// Public feed discovery endpoints
 			feeds.GET("/discover", feedHandler.DiscoverFeeds)
 			feeds.GET("/search", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), feedHandler.SearchFeeds)
+
+			// Comprehensive feed filtering endpoint
+			feeds.GET("/clips", middleware.OptionalAuthMiddleware(authService), feedHandler.GetFilteredClips)
 
 			// Following feed (authenticated)
 			feeds.GET("/following", middleware.AuthMiddleware(authService), feedHandler.GetFollowingFeed)
