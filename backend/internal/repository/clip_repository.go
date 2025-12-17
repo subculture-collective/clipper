@@ -319,11 +319,68 @@ type ClipFilters struct {
 	Search            *string
 	Language          *string // Language code (e.g., en, es, fr)
 	Timeframe         *string // hour, day, week, month, year, all
-	Sort              string  // hot, new, top, rising, discussed
+	DateFrom          *string // ISO 8601 date string for custom date range start
+	DateTo            *string // ISO 8601 date string for custom date range end
+	Sort              string  // hot, new, top, rising, discussed, trending
 	Top10kStreamers   bool    // Filter clips to only top 10k streamers
 	ShowHidden        bool    // If true, include hidden clips (for owners/admins)
 	CreatorID         *string // Filter by creator ID (for creator dashboard)
 	UserSubmittedOnly bool    // If true, only show clips with submitted_by_user_id IS NOT NULL
+}
+
+// buildDateFilterClauses adds date range and timeframe filtering clauses
+func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string {
+	// Add custom date range filter (overrides timeframe if provided)
+	if filters.DateFrom != nil && *filters.DateFrom != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at >= '%s'", *filters.DateFrom))
+	}
+	if filters.DateTo != nil && *filters.DateTo != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at <= '%s'", *filters.DateTo))
+	}
+
+	// Only apply timeframe if custom date range is not provided
+	customDateRangeProvided := (filters.DateFrom != nil && *filters.DateFrom != "") || (filters.DateTo != nil && *filters.DateTo != "")
+	
+	if !customDateRangeProvided {
+		// Add timeframe filter for top sort
+		if filters.Sort == "top" && filters.Timeframe != nil {
+			switch *filters.Timeframe {
+			case "hour":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
+			case "day":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
+			case "week":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
+			case "month":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
+			case "year":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+			}
+		}
+
+		// Add timeframe for rising (recent clips only)
+		if filters.Sort == "rising" {
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
+		}
+
+		// Add timeframe for discussed (recent clips only, optional)
+		if filters.Sort == "discussed" && filters.Timeframe != nil {
+			switch *filters.Timeframe {
+			case "hour":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
+			case "day":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
+			case "week":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
+			case "month":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
+			case "year":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+			}
+		}
+	}
+	
+	return whereClauses
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
@@ -396,42 +453,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		)`)
 	}
 
-	// Add timeframe filter for top sort
-	if filters.Sort == "top" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
-		}
-	}
-
-	// Add timeframe for rising (recent clips only)
-	if filters.Sort == "rising" {
-		whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
-	}
-
-	// Add timeframe for discussed (recent clips only, optional)
-	if filters.Sort == "discussed" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
-		}
-	}
+// Add date range and timeframe filtering
+	whereClauses = buildDateFilterClauses(filters, whereClauses)
 
 	whereClause := "WHERE " + whereClauses[0]
 	for i := 1; i < len(whereClauses); i++ {
@@ -574,42 +597,8 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 		)`)
 	}
 
-	// Add timeframe filter for top sort
-	if filters.Sort == "top" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
-		}
-	}
-
-	// Add timeframe for rising (recent clips only)
-	if filters.Sort == "rising" {
-		whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
-	}
-
-	// Add timeframe for discussed (recent clips only, optional)
-	if filters.Sort == "discussed" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
-		}
-	}
+// Add date range and timeframe filtering
+	whereClauses = buildDateFilterClauses(filters, whereClauses)
 
 	whereClause := "WHERE " + whereClauses[0]
 	for i := 1; i < len(whereClauses); i++ {

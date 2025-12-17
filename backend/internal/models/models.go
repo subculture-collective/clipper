@@ -2867,3 +2867,52 @@ const (
 	ChatActionTimeout = "timeout"
 	ChatActionDelete  = "delete_message"
 )
+
+// UserFilterPreset represents a saved feed filter configuration
+type UserFilterPreset struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	UserID      uuid.UUID `json:"user_id" db:"user_id"`
+	Name        string    `json:"name" db:"name"`
+	FiltersJSON string    `json:"filters_json" db:"filters_json"` // JSONB stored as string
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// FilterPresetFilters represents the filter configuration in a preset
+type FilterPresetFilters struct {
+	Games        []string `json:"games,omitempty"`
+	Streamers    []string `json:"streamers,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
+	ExcludeTags  []string `json:"exclude_tags,omitempty"`
+	DateFrom     *string  `json:"date_from,omitempty"`
+	DateTo       *string  `json:"date_to,omitempty"`
+	Sort         *string  `json:"sort,omitempty"`
+	Language     *string  `json:"language,omitempty"`
+	NSFWFilter   *bool    `json:"nsfw_filter,omitempty"`
+}
+
+// CreateFilterPresetRequest represents the request to create a filter preset
+type CreateFilterPresetRequest struct {
+	Name    string              `json:"name" binding:"required,min=1,max=100"`
+	Filters FilterPresetFilters `json:"filters" binding:"required"`
+}
+
+// UpdateFilterPresetRequest represents the request to update a filter preset
+type UpdateFilterPresetRequest struct {
+	Name    *string              `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
+	Filters *FilterPresetFilters `json:"filters,omitempty"`
+}
+
+// ClipFiltersResponse represents enhanced clip feed response with filter metadata
+type ClipFiltersResponse struct {
+	Clips       interface{}   `json:"clips"`
+	Pagination  interface{}   `json:"pagination"`
+	FilterCounts *FilterCounts `json:"filter_counts,omitempty"`
+}
+
+// FilterCounts represents aggregated counts for filter options
+type FilterCounts struct {
+	Games     map[string]int `json:"games,omitempty"`
+	Streamers map[string]int `json:"streamers,omitempty"`
+	Tags      map[string]int `json:"tags,omitempty"`
+}

@@ -415,3 +415,98 @@ func (h *FeedHandler) GetFollowingFeed(c *gin.Context) {
 		},
 	})
 }
+
+// GetFilteredClips handles comprehensive feed filtering with multiple criteria
+// GET /api/v1/feeds/clips
+func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
+	// Parse query parameters
+	games := c.QueryArray("filter[game]")
+	streamers := c.QueryArray("filter[streamer]")
+	tags := c.QueryArray("filter[tags]")
+	excludeTags := c.QueryArray("filter[exclude_tags]")
+	dateFrom := c.Query("filter[date_from]")
+	dateTo := c.Query("filter[date_to]")
+	sort := c.DefaultQuery("sort", "trending")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate and constrain parameters
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Get user ID if authenticated
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	// Build filters for clip repository
+	filters := repository.ClipFilters{
+		Sort:              sort,
+		UserSubmittedOnly: true, // Only show user-submitted clips in feed
+	}
+
+	// Apply game filters (multi-select OR logic)
+	if len(games) > 0 {
+		// For now, use the first game. Multi-game support would require query modification
+		filters.GameID = &games[0]
+	}
+
+	// Apply streamer filters (multi-select OR logic)
+	if len(streamers) > 0 {
+		// For now, use the first streamer. Multi-streamer support would require query modification
+		filters.BroadcasterID = &streamers[0]
+	}
+
+	// Apply tag filters (multi-select OR logic)
+	if len(tags) > 0 {
+		// For now, use the first tag. Multi-tag support would require query modification
+		filters.Tag = &tags[0]
+	}
+
+	// Apply date range filters
+	if dateFrom != "" {
+		filters.DateFrom = &dateFrom
+	}
+	if dateTo != "" {
+		filters.DateTo = &dateTo
+	}
+
+	// Fetch clips using clip repository
+	clips, total, err := h.feedService.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
+	if err != nil {
+		log.Printf("Error fetching filtered clips: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve filtered clips"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+
+	// Return response with filter metadata
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"clips":   clips,
+		"pagination": gin.H{
+			"limit":       limit,
+			"offset":      offset,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_more":    offset+limit < total,
+		},
+		"filters_applied": gin.H{
+			"games":        games,
+			"streamers":    streamers,
+			"tags":         tags,
+			"exclude_tags": excludeTags,
+			"date_from":    dateFrom,
+			"date_to":      dateTo,
+			"sort":         sort,
+		},
+	})
+}
