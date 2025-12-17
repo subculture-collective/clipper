@@ -15,11 +15,11 @@ import (
 
 // RecommendationService handles recommendation logic
 type RecommendationService struct {
-	repo             *repository.RecommendationRepository
-	redisClient      *redis.Client
-	contentWeight    float64
+	repo                *repository.RecommendationRepository
+	redisClient         *redis.Client
+	contentWeight       float64
 	collaborativeWeight float64
-	trendingWeight   float64
+	trendingWeight      float64
 }
 
 // NewRecommendationService creates a new recommendation service
@@ -380,7 +380,7 @@ func (s *RecommendationService) enforceGameDiversity(
 			if len(diversified) >= limit {
 				break
 			}
-			
+
 			// Check if already added
 			found := false
 			for _, d := range diversified {
@@ -389,7 +389,7 @@ func (s *RecommendationService) enforceGameDiversity(
 					break
 				}
 			}
-			
+
 			if !found {
 				diversified = append(diversified, rec)
 			}
