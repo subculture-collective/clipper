@@ -66,8 +66,8 @@ export function PlaybackControls({ videoRef, className }: PlaybackControlsProps)
     video.muted = !video.muted;
   }, [videoRef]);
 
-  // Handle volume change
-  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle volume slider change
+  const handleVolumeSliderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const video = videoRef.current;
     if (!video) return;
 
@@ -131,7 +131,7 @@ export function PlaybackControls({ videoRef, className }: PlaybackControlsProps)
           max="1"
           step="0.01"
           value={isMuted ? 0 : volume}
-          onChange={handleVolumeChange}
+          onChange={handleVolumeSliderChange}
           className="w-20 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
           aria-label="Volume"
         />

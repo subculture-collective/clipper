@@ -36,14 +36,12 @@ Main wrapper component that provides the theatre mode experience.
 import { TheatreMode } from '@/components/video';
 
 <TheatreMode
-  clipId="clip-123"
   title="Amazing Gaming Moment"
   hlsUrl="/api/video/clip-123/master.m3u8"
 />
 ```
 
 **Props:**
-- `clipId`: Unique identifier for the clip
 - `title`: Video title displayed in the player
 - `hlsUrl`: Optional HLS master playlist URL (shows fallback message if not provided)
 - `className`: Optional CSS classes
@@ -253,7 +251,6 @@ function ClipDetail({ clip }) {
     <div>
       {hasHls ? (
         <TheatreMode
-          clipId={clip.id}
           title={clip.title}
           hlsUrl={clip.hls_url}
         />

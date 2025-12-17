@@ -192,7 +192,7 @@ The theatre mode is designed to work alongside existing Twitch embeds:
 ```json
 {
   "dependencies": {
-    "hls.js": "^1.5.20"
+    "hls.js": "^1.6.15"
   }
 }
 ```

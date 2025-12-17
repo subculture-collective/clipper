@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import type { VideoQuality } from '@/lib/adaptive-bitrate';
 import { AdaptiveBitrateSelector } from '@/lib/adaptive-bitrate';
@@ -7,7 +7,7 @@ export interface HlsPlayerProps {
   src: string;
   quality: VideoQuality;
   autoQuality: boolean;
-  isTheatreMode?: boolean;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
   onQualityChange?: (quality: VideoQuality) => void;
   onBandwidthUpdate?: (bandwidth: number) => void;
   onBufferHealthUpdate?: (health: number) => void;
@@ -22,12 +22,14 @@ export function HlsPlayer({
   src,
   quality,
   autoQuality,
+  videoRef: externalVideoRef,
   onQualityChange,
   onBandwidthUpdate,
   onBufferHealthUpdate,
   className,
 }: HlsPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const internalVideoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = externalVideoRef || internalVideoRef;
   const hlsRef = useRef<Hls | null>(null);
   const bitrateSelector = useRef(new AdaptiveBitrateSelector());
   const [isLoading, setIsLoading] = useState(true);
@@ -102,9 +104,15 @@ export function HlsPlayer({
 
         // Auto quality selection
         if (autoQuality) {
-          const bufferLength = video.buffered.length > 0 
-            ? video.buffered.end(0) - video.currentTime 
-            : 0;
+          let bufferLength = 0;
+          try {
+            if (video.buffered && video.buffered.length > 0) {
+              bufferLength = video.buffered.end(0) - video.currentTime;
+            }
+          } catch {
+            // In case accessing buffered ranges throws, fall back to 0 buffer length
+            bufferLength = 0;
+          }
           const bufferHealth = Math.min(100, (bufferLength / 30) * 100);
           onBufferHealthUpdate?.(bufferHealth);
 
@@ -131,21 +139,50 @@ export function HlsPlayer({
     const hls = hlsRef.current;
     if (!hls || autoQuality) return;
 
-    // Map quality to HLS level
-    const qualityMap: Record<VideoQuality, number> = {
-      '480p': 0,
-      '720p': 1,
-      '1080p': 2,
-      '2K': 3,
-      '4K': 4,
-      'auto': -1,
+    const levels = hls.levels;
+    if (!levels || levels.length === 0) {
+      return;
+    }
+
+    // Map desired quality labels to target video heights
+    const targetHeightMap: Record<string, number> = {
+      '480p': 480,
+      '720p': 720,
+      '1080p': 1080,
+      '2K': 1440,
+      '4K': 2160,
     };
 
-    const levelIndex = qualityMap[quality];
-    if (levelIndex >= 0 && levelIndex < hls.levels.length) {
-      hls.currentLevel = levelIndex;
-    } else if (levelIndex === -1) {
-      hls.currentLevel = -1; // Auto
+    if (quality === 'auto') {
+      // Let HLS.js handle adaptive bitrate selection
+      hls.currentLevel = -1;
+      return;
+    }
+
+    const targetHeight = targetHeightMap[quality];
+    if (typeof targetHeight !== 'number') {
+      // Unknown quality label; do not change the current level
+      return;
+    }
+
+    // Find the level with the closest matching resolution
+    let bestIndex = -1;
+    let bestDiff = Number.POSITIVE_INFINITY;
+
+    levels.forEach((level, index) => {
+      const height = level.height;
+      if (typeof height !== 'number' || height <= 0) {
+        return;
+      }
+      const diff = Math.abs(height - targetHeight);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestIndex = index;
+      }
+    });
+
+    if (bestIndex !== -1) {
+      hls.currentLevel = bestIndex;
     }
   }, [quality, autoQuality]);
 
@@ -178,7 +215,6 @@ export function HlsPlayer({
       <video
         ref={videoRef}
         className={className}
-        controls
         playsInline
         preload="metadata"
       >

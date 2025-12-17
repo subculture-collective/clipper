@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useTheatreMode, useQualityPreference, useKeyboardControls } from '@/hooks';
 import type { VideoQuality } from '@/lib/adaptive-bitrate';
@@ -153,7 +153,7 @@ export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
         src={hlsUrl!}
         quality={quality}
         autoQuality={quality === 'auto'}
-        isTheatreMode={isTheatreMode}
+        videoRef={videoRef}
         onQualityChange={setCurrentQuality}
         onBandwidthUpdate={setBandwidth}
         onBufferHealthUpdate={setBufferHealth}
