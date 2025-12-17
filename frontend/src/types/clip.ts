@@ -56,6 +56,7 @@ export interface ClipFeedResponse {
     has_more: boolean;
     has_next?: boolean;
     has_prev?: boolean;
+    cursor?: string; // Cursor for cursor-based pagination
 }
 
 export type SortOption =
