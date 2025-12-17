@@ -343,6 +343,7 @@ func main() {
 	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
+	chatHandler := handlers.NewChatHandler(db.Pool)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -968,6 +969,30 @@ func main() {
 		{
 			// Public contact form submission with rate limiting
 			contact.POST("", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), contactHandler.SubmitContactMessage)
+		}
+
+		// Chat routes
+		chat := v1.Group("/chat")
+		{
+			// Chat channel routes
+			channels := chat.Group("/channels")
+			channels.Use(middleware.AuthMiddleware(authService))
+			{
+				// Moderation endpoints (require moderator role)
+				channels.POST("/:id/ban", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.BanUser)
+				channels.DELETE("/:id/ban/:user_id", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.UnbanUser)
+				channels.POST("/:id/mute", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.MuteUser)
+				channels.POST("/:id/timeout", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.TimeoutUser)
+				channels.GET("/:id/moderation-log", middleware.RequireRole("admin", "moderator"), chatHandler.GetModerationLog)
+				channels.GET("/:id/check-ban", chatHandler.CheckUserBan)
+			}
+
+			// Chat message routes
+			messages := chat.Group("/messages")
+			messages.Use(middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"))
+			{
+				messages.DELETE("/:id", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.DeleteMessage)
+			}
 		}
 
 		// Ad routes
