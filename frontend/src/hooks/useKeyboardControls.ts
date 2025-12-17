@@ -24,6 +24,15 @@ export function useKeyboardControls(
   handlers: KeyboardControlHandlers,
   enabled: boolean = true
 ) {
+  // Destructure handlers to stable references
+  const {
+    onPlayPause,
+    onMute,
+    onFullscreen,
+    onTheatreMode,
+    onPictureInPicture,
+  } = handlers;
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!enabled) return;
 
@@ -42,26 +51,26 @@ export function useKeyboardControls(
     switch (key) {
       case ' ':
         e.preventDefault();
-        handlers.onPlayPause?.();
+        onPlayPause?.();
         break;
       case 'm':
         e.preventDefault();
-        handlers.onMute?.();
+        onMute?.();
         break;
       case 'f':
         e.preventDefault();
-        handlers.onFullscreen?.();
+        onFullscreen?.();
         break;
       case 't':
         e.preventDefault();
-        handlers.onTheatreMode?.();
+        onTheatreMode?.();
         break;
       case 'p':
         e.preventDefault();
-        handlers.onPictureInPicture?.();
+        onPictureInPicture?.();
         break;
     }
-  }, [handlers, enabled]);
+  }, [enabled, onPlayPause, onMute, onFullscreen, onTheatreMode, onPictureInPicture]);
 
   useEffect(() => {
     if (!enabled) return;

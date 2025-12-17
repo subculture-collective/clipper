@@ -15,7 +15,7 @@ export function BasicTheatreModeExample() {
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-4">Basic Theatre Mode</h1>
       <TheatreMode
-        clipId="example-clip-1"
+        
         title="Example Gaming Clip - Epic Moment"
         hlsUrl="/api/video/example-clip-1/master.m3u8"
       />
@@ -34,7 +34,7 @@ export function TheatreModeFallbackExample() {
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-4">Theatre Mode (No HLS)</h1>
       <TheatreMode
-        clipId="example-clip-2"
+        
         title="Example Clip Without HLS"
         // No hlsUrl provided - shows fallback message
       />
@@ -64,7 +64,7 @@ export function ClipDetailWithTheatreModeExample() {
       {/* Theatre Mode Player */}
       <div className="bg-black">
         <TheatreMode
-          clipId={clip.id}
+          
           title={clip.title}
           hlsUrl={clip.hlsUrl}
         />
@@ -135,7 +135,7 @@ export function ConditionalTheatreModeExample() {
           <h2 className="text-xl font-semibold">{clip.title}</h2>
           {clip.hasHls ? (
             <TheatreMode
-              clipId={clip.id}
+              
               title={clip.title}
               hlsUrl={clip.hlsUrl}
             />
@@ -161,7 +161,7 @@ export function CustomStyledTheatreModeExample() {
       <div className="max-w-6xl mx-auto">
         <div className="bg-black rounded-2xl overflow-hidden shadow-2xl">
           <TheatreMode
-            clipId="custom-styled-clip"
+            
             title="Custom Styled Theatre Mode Example"
             hlsUrl="/api/video/custom-styled-clip/master.m3u8"
             className="rounded-2xl"
@@ -199,7 +199,7 @@ export function MigrationPatternExample() {
       {/* Use Theatre Mode if HLS is available, otherwise fall back to Twitch embed */}
       {clip.hlsUrl ? (
         <TheatreMode
-          clipId={clip.id}
+          
           title={clip.title}
           hlsUrl={clip.hlsUrl}
         />

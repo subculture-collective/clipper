@@ -8,7 +8,6 @@ import { BitrateIndicator } from './BitrateIndicator';
 import { PlaybackControls } from './PlaybackControls';
 
 export interface TheatreModeProps {
-  clipId: string;
   title: string;
   hlsUrl?: string; // Optional HLS URL for clips that support it
   className?: string;
@@ -80,16 +79,33 @@ export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
   }, hasHlsSupport);
 
   // Show/hide controls on mouse movement
-  const handleMouseMove = useCallback(() => {
-    setShowControls(true);
-    // Hide controls after 3 seconds of inactivity in theatre/fullscreen mode
-    if (isTheatreMode || isFullscreen) {
-      const timeout = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-      return () => clearTimeout(timeout);
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+
+    const handleMouseMove = () => {
+      setShowControls(true);
+      
+      // Hide controls after 3 seconds of inactivity in theatre/fullscreen mode
+      if (isTheatreMode || isFullscreen) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          setShowControls(false);
+        }, 3000);
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('mousemove', handleMouseMove);
     }
-  }, [isTheatreMode, isFullscreen]);
+
+    return () => {
+      if (container) {
+        container.removeEventListener('mousemove', handleMouseMove);
+      }
+      clearTimeout(timeout);
+    };
+  }, [isTheatreMode, isFullscreen, containerRef]);
 
   // If no HLS support, show message
   if (!hasHlsSupport) {
@@ -131,8 +147,6 @@ export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
         isTheatreMode ? 'fixed inset-0 z-50 w-screen h-screen' : 'w-full aspect-video rounded-lg overflow-hidden',
         className
       )}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => setShowControls(false)}
     >
       {/* HLS Video Player */}
       <HlsPlayer
