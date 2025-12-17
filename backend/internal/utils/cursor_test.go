@@ -19,28 +19,28 @@ func TestEncodeCursor(t *testing.T) {
 	}{
 		{
 			name:      "trending score cursor",
-			sortKey:   "trending_score",
+			sortKey:   "trending",
 			sortValue: 123.456789,
 			clipID:    clipID,
 			createdAt: createdAt,
 		},
 		{
-			name:      "created_at cursor",
-			sortKey:   "created_at",
+			name:      "new cursor",
+			sortKey:   "new",
 			sortValue: float64(createdAt),
 			clipID:    clipID,
 			createdAt: createdAt,
 		},
 		{
-			name:      "zero values",
-			sortKey:   "vote_score",
+			name:      "top cursor",
+			sortKey:   "top",
 			sortValue: 0.0,
 			clipID:    clipID,
 			createdAt: createdAt,
 		},
 		{
-			name:      "negative value",
-			sortKey:   "hot_score",
+			name:      "discussed cursor",
+			sortKey:   "discussed",
 			sortValue: -42.5,
 			clipID:    clipID,
 			createdAt: createdAt,
@@ -91,10 +91,10 @@ func TestDecodeCursor(t *testing.T) {
 	}{
 		{
 			name:      "valid cursor",
-			cursor:    EncodeCursor("trending_score", 123.456, clipID, createdAt),
+			cursor:    EncodeCursor("trending", 123.456, clipID, createdAt),
 			wantError: false,
 			want: &Cursor{
-				SortKey:   "trending_score",
+				SortKey:   "trending",
 				SortValue: 123.456,
 				ClipID:    clipID.String(),
 				CreatedAt: createdAt,
@@ -133,6 +133,18 @@ func TestDecodeCursor(t *testing.T) {
 		{
 			name:      "invalid timestamp",
 			cursor:    "dHJlbmRpbmdfc2NvcmU6MTIzLjQ1Njo1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDA6aW52YWxpZA==", // "trending_score:123.456:uuid:invalid"
+			wantError: true,
+			want:      nil,
+		},
+		{
+			name:      "invalid sort key - not in whitelist",
+			cursor:    EncodeCursor("malicious_key", 123.456, clipID, createdAt),
+			wantError: true,
+			want:      nil,
+		},
+		{
+			name:      "invalid sort key - SQL injection attempt",
+			cursor:    EncodeCursor("'; DROP TABLE clips; --", 123.456, clipID, createdAt),
 			wantError: true,
 			want:      nil,
 		},

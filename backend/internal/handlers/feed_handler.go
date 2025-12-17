@@ -453,8 +453,12 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 	cursor := c.Query("cursor") // Cursor for cursor-based pagination
 
 	// Validate and constrain parameters
-	if limit < 10 || limit > 100 {
-		limit = 20
+	if limit < 1 {
+		limit = 20 // Default to 20 for invalid values
+	} else if limit > 100 {
+		limit = 100 // Cap at 100 for performance
+	} else if limit < 10 {
+		limit = 10 // Minimum of 10 for good UX
 	}
 	if offset < 0 {
 		offset = 0

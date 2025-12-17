@@ -40,6 +40,21 @@ func DecodeCursor(cursorStr string) (*Cursor, error) {
 		return nil, fmt.Errorf("invalid cursor format: expected 4 parts, got %d", len(parts))
 	}
 
+	// Validate sortKey to prevent injection attacks
+	sortKey := parts[0]
+	validSortKeys := map[string]bool{
+		"trending": true,
+		"popular":  true,
+		"new":      true,
+		"top":      true,
+		"discussed": true,
+		"hot":      true,
+		"rising":   true,
+	}
+	if !validSortKeys[sortKey] {
+		return nil, fmt.Errorf("invalid cursor format: invalid sort key %q", sortKey)
+	}
+
 	sortValue, err := strconv.ParseFloat(parts[1], 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid cursor format: invalid sort value")
@@ -56,7 +71,7 @@ func DecodeCursor(cursorStr string) (*Cursor, error) {
 	}
 
 	return &Cursor{
-		SortKey:   parts[0],
+		SortKey:   sortKey,
 		SortValue: sortValue,
 		ClipID:    clipID,
 		CreatedAt: createdAt,

@@ -476,47 +476,47 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		case "trending":
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) < %s OR (COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
-				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
-			args = append(args, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
-			argIndex += 3
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
 		case "popular":
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) < %s OR (COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
-				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
-			args = append(args, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
-			argIndex += 3
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
 		case "new":
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
-				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1)))
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
 			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
-			argIndex += 2
+			argIndex += 3
 		case "top":
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(c.vote_score < %s OR (c.vote_score = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
-				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
-			args = append(args, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
-			argIndex += 3
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
 		case "discussed":
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(c.comment_count < %s OR (c.comment_count = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
-				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
-			args = append(args, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
-			argIndex += 3
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
 		case "hot", "rising":
 			// For hot and rising, we use created_at as the cursor since the score is dynamically calculated
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
-				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1)))
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
 			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
-			argIndex += 2
+			argIndex += 3
 		default:
 			// Default to hot score behavior
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
-				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1)))
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
 			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
-			argIndex += 2
+			argIndex += 3
 		}
 	}
 
