@@ -267,3 +267,8 @@ func (s *FeedService) GetFollowingFeed(ctx context.Context, userID uuid.UUID, li
 
 	return clips, total, nil
 }
+
+// GetFilteredClips retrieves clips with comprehensive filtering
+func (s *FeedService) GetFilteredClips(ctx context.Context, filters repository.ClipFilters, limit, offset int) ([]models.Clip, int, error) {
+	return s.clipRepo.ListWithFilters(ctx, filters, limit, offset)
+}

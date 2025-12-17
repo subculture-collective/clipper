@@ -51,6 +51,9 @@ const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m 
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
+const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModerationQueuePage').then(m => ({ default: m.AdminModerationQueuePage })));
+const AdminVerificationQueuePage = lazy(() => import('./pages/admin/AdminVerificationQueuePage').then(m => ({ default: m.AdminVerificationQueuePage })));
+const AdminModerationAnalyticsPage = lazy(() => import('./pages/admin/AdminModerationAnalyticsPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
@@ -65,6 +68,7 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m => ({ default: m.RoleBadgeTestPage })));
+const VerifiedBadgeTestPage = lazy(() => import('./pages/VerifiedBadgeTestPage').then(m => ({ default: m.VerifiedBadgeTestPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -116,7 +120,10 @@ function App() {
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
                     {import.meta.env.DEV && (
-                      <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                      <>
+                        <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                        <Route path="/test/verified-badge" element={<VerifiedBadgeTestPage />} />
+                      </>
                     )}
 
                     {/* Guest Routes (redirect to home if authenticated) */}
@@ -292,6 +299,30 @@ function App() {
                       element={
                         <AdminRoute>
                           <ModerationQueuePage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/moderation"
+                      element={
+                        <AdminRoute>
+                          <AdminModerationQueuePage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/moderation/analytics"
+                      element={
+                        <AdminRoute>
+                          <AdminModerationAnalyticsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/verification"
+                      element={
+                        <AdminRoute>
+                          <AdminVerificationQueuePage />
                         </AdminRoute>
                       }
                     />

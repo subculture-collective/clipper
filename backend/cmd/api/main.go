@@ -164,11 +164,14 @@ func main() {
 	broadcasterRepo := repository.NewBroadcasterRepository(db.Pool)
 	emailLogRepo := repository.NewEmailLogRepository(db.Pool)
 	feedRepo := repository.NewFeedRepository(db.Pool)
+	filterPresetRepo := repository.NewFilterPresetRepository(db.Pool)
 	discoveryListRepo := repository.NewDiscoveryListRepository(db.Pool)
 	categoryRepo := repository.NewCategoryRepository(db.Pool)
 	gameRepo := repository.NewGameRepository(db.Pool)
 	communityRepo := repository.NewCommunityRepository(db.Pool)
 	accountTypeConversionRepo := repository.NewAccountTypeConversionRepository(db.Pool)
+	verificationRepo := repository.NewVerificationRepository(db.Pool)
+	recommendationRepo := repository.NewRecommendationRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -222,11 +225,17 @@ func main() {
 	// Initialize feed service
 	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
 
+	// Initialize filter preset service
+	filterPresetService := services.NewFilterPresetService(filterPresetRepo)
+
 	// Initialize community service
 	communityService := services.NewCommunityService(communityRepo, clipRepo, userRepo, notificationService)
 
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
+
+	// Initialize recommendation service
+	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
 
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
@@ -336,11 +345,15 @@ func main() {
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
 	feedHandler := handlers.NewFeedHandler(feedService, authService)
+	filterPresetHandler := handlers.NewFilterPresetHandler(filterPresetService)
 	communityHandler := handlers.NewCommunityHandler(communityService, authService)
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
 	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
+	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
+	chatHandler := handlers.NewChatHandler(db.Pool)
+	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -354,7 +367,7 @@ func main() {
 		abuseDetector := submissionService.GetAbuseDetector()
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector)
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, db.Pool)
 		}
 	}
 	if liveStatusService != nil {
@@ -680,6 +693,15 @@ func main() {
 			reports.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), reportHandler.SubmitReport)
 		}
 
+		// Moderation appeal routes (user-facing)
+		if moderationHandler != nil {
+			moderationAppeals := v1.Group("/moderation")
+			{
+				moderationAppeals.POST("/appeals", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.CreateAppeal)
+				moderationAppeals.GET("/appeals", middleware.AuthMiddleware(authService), moderationHandler.GetUserAppeals)
+			}
+		}
+
 		// Reputation routes
 		users := v1.Group("/users")
 		{
@@ -760,6 +782,13 @@ func main() {
 			users.PUT("/:id/feeds/:feedId/clips/reorder", middleware.AuthMiddleware(authService), feedHandler.ReorderFeedClips)
 			users.POST("/:id/feeds/:feedId/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), feedHandler.FollowFeed)
 			users.DELETE("/:id/feeds/:feedId/follow", middleware.AuthMiddleware(authService), feedHandler.UnfollowFeed)
+
+			// Filter preset routes
+			users.GET("/:id/filter-presets", middleware.AuthMiddleware(authService), filterPresetHandler.GetUserPresets)
+			users.POST("/:id/filter-presets", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), filterPresetHandler.CreatePreset)
+			users.GET("/:id/filter-presets/:presetId", middleware.AuthMiddleware(authService), filterPresetHandler.GetPreset)
+			users.PUT("/:id/filter-presets/:presetId", middleware.AuthMiddleware(authService), filterPresetHandler.UpdatePreset)
+			users.DELETE("/:id/filter-presets/:presetId", middleware.AuthMiddleware(authService), filterPresetHandler.DeletePreset)
 		}
 
 		// Creator analytics routes
@@ -861,6 +890,9 @@ func main() {
 			feeds.GET("/discover", feedHandler.DiscoverFeeds)
 			feeds.GET("/search", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), feedHandler.SearchFeeds)
 
+			// Comprehensive feed filtering endpoint
+			feeds.GET("/clips", middleware.OptionalAuthMiddleware(authService), feedHandler.GetFilteredClips)
+
 			// Following feed (authenticated)
 			feeds.GET("/following", middleware.AuthMiddleware(authService), feedHandler.GetFollowingFeed)
 		}
@@ -868,6 +900,28 @@ func main() {
 		// Live feed (authenticated)
 		if liveStatusHandler != nil {
 			v1.GET("/feed/live", middleware.AuthMiddleware(authService), liveStatusHandler.GetFollowedLiveBroadcasters)
+		}
+
+		// Recommendation routes
+		recommendations := v1.Group("/recommendations")
+		{
+			// All recommendation endpoints require authentication
+			recommendations.Use(middleware.AuthMiddleware(authService))
+
+			// Get personalized clip recommendations
+			recommendations.GET("/clips", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), recommendationHandler.GetRecommendations)
+
+			// Submit feedback on recommendations
+			recommendations.POST("/feedback", middleware.RateLimitMiddleware(redisClient, 100, time.Minute), recommendationHandler.SubmitFeedback)
+
+			// Get user preferences
+			recommendations.GET("/preferences", recommendationHandler.GetPreferences)
+
+			// Update user preferences
+			recommendations.PUT("/preferences", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), recommendationHandler.UpdatePreferences)
+
+			// Track view for recommendation engine
+			recommendations.POST("/track-view/:id", middleware.RateLimitMiddleware(redisClient, 200, time.Minute), recommendationHandler.TrackView)
 		}
 
 		// Notification routes
@@ -902,6 +956,15 @@ func main() {
 			// Device token registration for push notifications
 			notifications.POST("/register", notificationHandler.RegisterDeviceToken)
 			notifications.DELETE("/unregister", notificationHandler.UnregisterDeviceToken)
+		}
+
+		// Creator verification routes
+		verification := v1.Group("/verification")
+		{
+			// Protected endpoints (require authentication)
+			verification.Use(middleware.AuthMiddleware(authService))
+			verification.POST("/applications", middleware.RateLimitMiddleware(redisClient, 1, time.Hour), verificationHandler.CreateApplication)
+			verification.GET("/applications/me", verificationHandler.GetApplication)
 		}
 
 		// Subscription routes
@@ -948,6 +1011,30 @@ func main() {
 		{
 			// Public contact form submission with rate limiting
 			contact.POST("", middleware.RateLimitMiddleware(redisClient, 3, time.Hour), contactHandler.SubmitContactMessage)
+		}
+
+		// Chat routes
+		chat := v1.Group("/chat")
+		{
+			// Chat channel routes
+			channels := chat.Group("/channels")
+			channels.Use(middleware.AuthMiddleware(authService))
+			{
+				// Moderation endpoints (require moderator role)
+				channels.POST("/:id/ban", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.BanUser)
+				channels.DELETE("/:id/ban/:user_id", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.UnbanUser)
+				channels.POST("/:id/mute", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.MuteUser)
+				channels.POST("/:id/timeout", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.TimeoutUser)
+				channels.GET("/:id/moderation-log", middleware.RequireRole("admin", "moderator"), chatHandler.GetModerationLog)
+				channels.GET("/:id/check-ban", chatHandler.CheckUserBan)
+			}
+
+			// Chat message routes
+			messages := chat.Group("/messages")
+			messages.Use(middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"))
+			{
+				messages.DELETE("/:id", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.DeleteMessage)
+			}
 		}
 
 		// Ad routes
@@ -1142,16 +1229,40 @@ func main() {
 			if moderationHandler != nil {
 				moderation := admin.Group("/moderation")
 				{
-					// Event management
+					// Event management (existing)
 					moderation.GET("/events", moderationHandler.GetPendingEvents)
 					moderation.GET("/events/:type", moderationHandler.GetEventsByType)
 					moderation.POST("/events/:id/review", moderationHandler.MarkEventReviewed)
 					moderation.POST("/events/:id/process", moderationHandler.ProcessEvent)
 					moderation.GET("/stats", moderationHandler.GetEventStats)
 
-					// Abuse detection
+					// Abuse detection (existing)
 					moderation.GET("/abuse/:userId", moderationHandler.GetUserAbuseStats)
+
+					// Moderation queue (new)
+					moderation.GET("/queue", moderationHandler.GetModerationQueue)
+					moderation.POST("/:id/approve", moderationHandler.ApproveContent)
+					moderation.POST("/:id/reject", moderationHandler.RejectContent)
+					moderation.POST("/bulk", moderationHandler.BulkModerate)
+					moderation.GET("/queue/stats", moderationHandler.GetModerationStats)
+
+					// Appeals management (admin)
+					moderation.GET("/appeals", moderationHandler.GetAppeals)
+					moderation.POST("/appeals/:id/resolve", moderationHandler.ResolveAppeal)
+
+					// Audit logs and analytics
+					moderation.GET("/audit", moderationHandler.GetModerationAuditLogs)
+					moderation.GET("/analytics", moderationHandler.GetModerationAnalytics)
 				}
+			}
+
+			// Creator verification management (admin only)
+			verification := admin.Group("/verification")
+			{
+				verification.GET("/applications", verificationHandler.ListApplications)
+				verification.GET("/applications/:id", verificationHandler.GetApplicationByID)
+				verification.POST("/applications/:id/review", verificationHandler.ReviewApplication)
+				verification.GET("/stats", verificationHandler.GetApplicationStats)
 			}
 
 			// Discovery list management (admin/moderator only)
@@ -1185,6 +1296,10 @@ func main() {
 	// Start hot score scheduler (runs every 5 minutes)
 	hotScoreScheduler := scheduler.NewHotScoreScheduler(clipRepo, cfg.Jobs.HotClipsRefreshIntervalMinutes)
 	go hotScoreScheduler.Start(context.Background())
+
+	// Start trending score scheduler (runs every 60 minutes)
+	trendingScoreScheduler := scheduler.NewTrendingScoreScheduler(clipRepo, 60)
+	go trendingScoreScheduler.Start(context.Background())
 
 	// Start webhook retry scheduler (runs every 1 minute)
 	webhookRetryScheduler := scheduler.NewWebhookRetryScheduler(webhookRetryService, cfg.Jobs.WebhookRetryIntervalMinutes, cfg.Jobs.WebhookRetryBatchSize)
@@ -1246,6 +1361,7 @@ func main() {
 	}
 	reputationScheduler.Stop()
 	hotScoreScheduler.Stop()
+	trendingScoreScheduler.Stop()
 	webhookRetryScheduler.Stop()
 	outboundWebhookScheduler.Stop()
 	exportScheduler.Stop()
