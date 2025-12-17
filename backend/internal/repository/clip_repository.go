@@ -329,8 +329,11 @@ type ClipFilters struct {
 }
 
 // buildDateFilterClauses adds date range and timeframe filtering clauses
+// Note: DateFrom and DateTo are validated before being passed to this function
+// to prevent SQL injection. See validateDateFilter in handlers.
 func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string {
 	// Add custom date range filter (overrides timeframe if provided)
+	// Date strings should already be validated as ISO 8601 format by the handler
 	if filters.DateFrom != nil && *filters.DateFrom != "" {
 		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at >= '%s'", *filters.DateFrom))
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -21,10 +20,18 @@ func NewFilterPresetRepository(pool *pgxpool.Pool) *FilterPresetRepository {
 }
 
 // CreatePreset creates a new filter preset for a user
+// Uses a transaction to prevent race conditions when checking preset count
 func (r *FilterPresetRepository) CreatePreset(ctx context.Context, preset *models.UserFilterPreset) error {
-	// Check if user already has 10 presets (max limit)
+	// Begin transaction to ensure atomicity of count check and insert
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Check if user already has 10 presets (max limit) within the transaction
 	var count int
-	err := r.pool.QueryRow(ctx, 
+	err = tx.QueryRow(ctx, 
 		`SELECT COUNT(*) FROM user_filter_presets WHERE user_id = $1`,
 		preset.UserID,
 	).Scan(&count)
@@ -32,7 +39,7 @@ func (r *FilterPresetRepository) CreatePreset(ctx context.Context, preset *model
 		return fmt.Errorf("failed to check preset count: %w", err)
 	}
 	if count >= 10 {
-		return fmt.Errorf("maximum of 10 presets allowed per user")
+		return ErrMaxPresetsReached
 	}
 
 	query := `
@@ -41,10 +48,20 @@ func (r *FilterPresetRepository) CreatePreset(ctx context.Context, preset *model
 		RETURNING id, created_at, updated_at
 	`
 	
-	return r.pool.QueryRow(ctx, query,
+	err = tx.QueryRow(ctx, query,
 		preset.ID, preset.UserID, preset.Name, preset.FiltersJSON,
 		preset.CreatedAt, preset.UpdatedAt,
 	).Scan(&preset.ID, &preset.CreatedAt, &preset.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to insert preset: %w", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 // GetPresetByID retrieves a filter preset by ID
@@ -62,7 +79,7 @@ func (r *FilterPresetRepository) GetPresetByID(ctx context.Context, presetID uui
 	)
 	
 	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("preset not found")
+		return nil, ErrPresetNotFound
 	}
 	
 	return preset, err
@@ -103,13 +120,13 @@ func (r *FilterPresetRepository) GetUserPresets(ctx context.Context, userID uuid
 func (r *FilterPresetRepository) UpdatePreset(ctx context.Context, preset *models.UserFilterPreset) error {
 	query := `
 		UPDATE user_filter_presets
-		SET name = $2, filters_json = $3, updated_at = $4
+		SET name = $2, filters_json = $3, updated_at = NOW()
 		WHERE id = $1
 		RETURNING updated_at
 	`
 	
 	return r.pool.QueryRow(ctx, query,
-		preset.ID, preset.Name, preset.FiltersJSON, time.Now(),
+		preset.ID, preset.Name, preset.FiltersJSON,
 	).Scan(&preset.UpdatedAt)
 }
 
@@ -122,7 +139,7 @@ func (r *FilterPresetRepository) DeletePreset(ctx context.Context, presetID uuid
 	}
 	
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("preset not found or unauthorized")
+		return ErrPresetNotFound
 	}
 	
 	return nil

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -11,6 +12,24 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 )
+
+// validateDateFilter validates and normalizes a date string expected to be in ISO 8601 format
+func validateDateFilter(dateStr string) (string, error) {
+	if dateStr == "" {
+		return "", nil
+	}
+	// Try parsing as RFC3339 (ISO 8601)
+	t, err := time.Parse(time.RFC3339, dateStr)
+	if err != nil {
+		// Try parsing as date only (YYYY-MM-DD)
+		t, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return "", err
+		}
+	}
+	// Return normalized RFC3339 format
+	return t.Format(time.RFC3339), nil
+}
 
 type FeedHandler struct {
 	feedService *services.FeedService
@@ -424,7 +443,6 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 	games := c.QueryArray("filter[game]")
 	streamers := c.QueryArray("filter[streamer]")
 	tags := c.QueryArray("filter[tags]")
-	excludeTags := c.QueryArray("filter[exclude_tags]")
 	dateFrom := c.Query("filter[date_from]")
 	dateTo := c.Query("filter[date_to]")
 	sort := c.DefaultQuery("sort", "trending")
@@ -439,36 +457,51 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		offset = 0
 	}
 
+	// Validate date filters to prevent SQL injection
+	var validatedDateFrom, validatedDateTo string
+	var err error
+	if dateFrom != "" {
+		validatedDateFrom, err = validateDateFilter(dateFrom)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date_from format. Use ISO 8601 (YYYY-MM-DD or RFC3339)"})
+			return
+		}
+	}
+	if dateTo != "" {
+		validatedDateTo, err = validateDateFilter(dateTo)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date_to format. Use ISO 8601 (YYYY-MM-DD or RFC3339)"})
+			return
+		}
+	}
+
 	// Build filters for clip repository
 	filters := repository.ClipFilters{
 		Sort:              sort,
 		UserSubmittedOnly: true, // Only show user-submitted clips in feed
 	}
 
-	// Apply game filters (multi-select OR logic)
+	// Apply game filters (currently single-select; multi-select requires backend changes)
 	if len(games) > 0 {
-		// For now, use the first game. Multi-game support would require query modification
 		filters.GameID = &games[0]
 	}
 
-	// Apply streamer filters (multi-select OR logic)
+	// Apply streamer filters (currently single-select; multi-select requires backend changes)
 	if len(streamers) > 0 {
-		// For now, use the first streamer. Multi-streamer support would require query modification
 		filters.BroadcasterID = &streamers[0]
 	}
 
-	// Apply tag filters (multi-select OR logic)
+	// Apply tag filters (currently single-select; multi-select requires backend changes)
 	if len(tags) > 0 {
-		// For now, use the first tag. Multi-tag support would require query modification
 		filters.Tag = &tags[0]
 	}
 
-	// Apply date range filters
-	if dateFrom != "" {
-		filters.DateFrom = &dateFrom
+	// Apply validated date range filters
+	if validatedDateFrom != "" {
+		filters.DateFrom = &validatedDateFrom
 	}
-	if dateTo != "" {
-		filters.DateTo = &dateTo
+	if validatedDateTo != "" {
+		filters.DateTo = &validatedDateTo
 	}
 
 	// Fetch clips using feed service
@@ -493,13 +526,12 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 			"has_more":    offset+limit < total,
 		},
 		"filters_applied": gin.H{
-			"games":        games,
-			"streamers":    streamers,
-			"tags":         tags,
-			"exclude_tags": excludeTags,
-			"date_from":    dateFrom,
-			"date_to":      dateTo,
-			"sort":         sort,
+			"games":     games,
+			"streamers": streamers,
+			"tags":      tags,
+			"date_from": dateFrom,
+			"date_to":   dateTo,
+			"sort":      sort,
 		},
 	})
 }

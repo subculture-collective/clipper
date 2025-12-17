@@ -108,7 +108,7 @@ export interface FilterPresetFilters {
     date_to?: string;
     sort?: string;
     language?: string;
-    nsfw_filter?: boolean;
+    nsfw?: boolean;
 }
 
 export interface CreateFilterPresetRequest {

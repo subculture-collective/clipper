@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 )
 
@@ -28,6 +30,14 @@ func (h *FilterPresetHandler) CreatePreset(c *gin.Context) {
 		return
 	}
 
+	// Verify the requesting user matches the URL parameter
+	userIDParam := c.Param("id")
+	urlUserID, err := uuid.Parse(userIDParam)
+	if err != nil || urlUserID != userID.(uuid.UUID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot create presets for other users"})
+		return
+	}
+
 	var req models.CreateFilterPresetRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -37,7 +47,7 @@ func (h *FilterPresetHandler) CreatePreset(c *gin.Context) {
 	preset, err := h.presetService.CreatePreset(c.Request.Context(), userID.(uuid.UUID), &req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "maximum of 10 presets allowed per user" {
+		if errors.Is(err, repository.ErrMaxPresetsReached) {
 			statusCode = http.StatusBadRequest
 		}
 		c.JSON(statusCode, gin.H{"error": err.Error()})
@@ -92,10 +102,10 @@ func (h *FilterPresetHandler) GetPreset(c *gin.Context) {
 	preset, err := h.presetService.GetPreset(c.Request.Context(), presetID, userID.(uuid.UUID))
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "preset not found" {
+		if errors.Is(err, repository.ErrPresetNotFound) {
 			statusCode = http.StatusNotFound
-		} else if err.Error() == "unauthorized access to preset" {
-			statusCode = http.StatusUnauthorized
+		} else if errors.Is(err, repository.ErrUnauthorizedPresetAccess) {
+			statusCode = http.StatusForbidden
 		}
 		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
@@ -129,10 +139,10 @@ func (h *FilterPresetHandler) UpdatePreset(c *gin.Context) {
 	preset, err := h.presetService.UpdatePreset(c.Request.Context(), presetID, userID.(uuid.UUID), &req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "preset not found" {
+		if errors.Is(err, repository.ErrPresetNotFound) {
 			statusCode = http.StatusNotFound
-		} else if err.Error() == "unauthorized to update this preset" {
-			statusCode = http.StatusUnauthorized
+		} else if errors.Is(err, repository.ErrUnauthorizedPresetAccess) {
+			statusCode = http.StatusForbidden
 		}
 		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
@@ -160,7 +170,7 @@ func (h *FilterPresetHandler) DeletePreset(c *gin.Context) {
 	err = h.presetService.DeletePreset(c.Request.Context(), presetID, userID.(uuid.UUID))
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "preset not found or unauthorized" {
+		if errors.Is(err, repository.ErrPresetNotFound) {
 			statusCode = http.StatusNotFound
 		}
 		c.JSON(statusCode, gin.H{"error": err.Error()})

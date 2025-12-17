@@ -39,7 +39,7 @@ func (s *FilterPresetService) CreatePreset(ctx context.Context, userID uuid.UUID
 
 	err = s.presetRepo.CreatePreset(ctx, preset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create preset: %w", err)
+		return nil, err
 	}
 
 	return preset, nil
@@ -54,7 +54,7 @@ func (s *FilterPresetService) GetPreset(ctx context.Context, presetID uuid.UUID,
 
 	// Verify ownership
 	if preset.UserID != userID {
-		return nil, fmt.Errorf("unauthorized access to preset")
+		return nil, repository.ErrUnauthorizedPresetAccess
 	}
 
 	return preset, nil
@@ -74,7 +74,7 @@ func (s *FilterPresetService) UpdatePreset(ctx context.Context, presetID, userID
 	}
 
 	if preset.UserID != userID {
-		return nil, fmt.Errorf("unauthorized to update this preset")
+		return nil, repository.ErrUnauthorizedPresetAccess
 	}
 
 	// Update fields if provided
