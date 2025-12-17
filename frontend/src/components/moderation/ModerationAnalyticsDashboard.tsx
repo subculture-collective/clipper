@@ -1,65 +1,37 @@
 import { useEffect, useState } from 'react';
-import { format, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 import {
     getModerationAnalytics,
     type ModerationAnalytics,
 } from '../../lib/moderation-api';
-import {
-    BarChart,
-    Bar,
-    LineChart,
-    Line,
-    PieChart,
-    Pie,
-    Cell,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-} from 'recharts';
-
-interface MetricCardProps {
-    title: string;
-    value: string | number;
-    icon: string;
-}
-
-function MetricCard({ title, value, icon }: MetricCardProps) {
-    return (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-2 flex items-center justify-between">
-                <span className="text-3xl">{icon}</span>
-                <span className="text-3xl font-bold text-gray-900">{value}</span>
-            </div>
-            <p className="text-sm text-gray-600">{title}</p>
-        </div>
-    );
-}
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+import { MetricCard } from '../analytics/MetricCard';
+import { PieChartComponent } from '../analytics/PieChartComponent';
+import { BarChartComponent } from '../analytics/BarChartComponent';
+import { LineChartComponent } from '../analytics/LineChartComponent';
+import { DateRangeSelector } from '../analytics/DateRangeSelector';
 
 export function ModerationAnalyticsDashboard() {
     const [analytics, setAnalytics] = useState<ModerationAnalytics | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [dateRange, setDateRange] = useState({
-        start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-        end: format(new Date(), 'yyyy-MM-dd'),
-    });
+    const [dateRangeDays, setDateRangeDays] = useState(30);
 
     useEffect(() => {
         loadAnalytics();
-    }, [dateRange]);
+    }, [dateRangeDays]);
 
     const loadAnalytics = async () => {
         try {
             setLoading(true);
             setError(null);
+            const startDate = subDays(new Date(), dateRangeDays)
+                .toISOString()
+                .split('T')[0];
+            const endDate = new Date().toISOString().split('T')[0];
+            
             const response = await getModerationAnalytics({
-                start_date: dateRange.start,
-                end_date: dateRange.end,
+                start_date: startDate,
+                end_date: endDate,
             });
             setAnalytics(response.data);
         } catch (err) {
@@ -121,55 +93,29 @@ export function ModerationAnalyticsDashboard() {
                     Moderation Analytics
                 </h1>
 
-                {/* Date Range Picker */}
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="start-date" className="text-sm text-gray-600">
-                            From:
-                        </label>
-                        <input
-                            id="start-date"
-                            type="date"
-                            value={dateRange.start}
-                            onChange={(e) =>
-                                setDateRange({ ...dateRange, start: e.target.value })
-                            }
-                            className="rounded border border-gray-300 px-3 py-1 text-sm"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="end-date" className="text-sm text-gray-600">
-                            To:
-                        </label>
-                        <input
-                            id="end-date"
-                            type="date"
-                            value={dateRange.end}
-                            onChange={(e) =>
-                                setDateRange({ ...dateRange, end: e.target.value })
-                            }
-                            className="rounded border border-gray-300 px-3 py-1 text-sm"
-                        />
-                    </div>
-                </div>
+                {/* Date Range Selector */}
+                <DateRangeSelector
+                    value={dateRangeDays}
+                    onChange={setDateRangeDays}
+                />
             </div>
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <MetricCard
                     title="Total Actions"
-                    value={analytics.total_actions.toLocaleString()}
-                    icon="🔨"
+                    value={analytics.total_actions}
+                    icon={<span className="text-2xl">🔨</span>}
                 />
                 <MetricCard
                     title="Avg Response Time"
                     value={avgResponseTime}
-                    icon="⏱️"
+                    icon={<span className="text-2xl">⏱️</span>}
                 />
                 <MetricCard
                     title="Active Moderators"
                     value={activeModerators}
-                    icon="👥"
+                    icon={<span className="text-2xl">👥</span>}
                 />
             </div>
 
@@ -180,28 +126,11 @@ export function ModerationAnalyticsDashboard() {
                     <h3 className="mb-4 text-lg font-bold text-gray-900">
                         Actions by Type
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                            <Pie
-                                data={actionTypeData}
-                                dataKey="value"
-                                nameKey="name"
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={100}
-                                label
-                            >
-                                {actionTypeData.map((_, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={COLORS[index % COLORS.length]}
-                                    />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    <PieChartComponent
+                        data={actionTypeData}
+                        nameKey="name"
+                        dataKey="value"
+                    />
                 </div>
 
                 {/* Top Moderators */}
@@ -209,15 +138,12 @@ export function ModerationAnalyticsDashboard() {
                     <h3 className="mb-4 text-lg font-bold text-gray-900">
                         Top Moderators
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={moderatorData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#3b82f6" />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <BarChartComponent
+                        data={moderatorData}
+                        xAxisKey="name"
+                        yAxisKey="value"
+                        barColor="#3b82f6"
+                    />
                 </div>
 
                 {/* Content Type Breakdown */}
@@ -225,15 +151,12 @@ export function ModerationAnalyticsDashboard() {
                     <h3 className="mb-4 text-lg font-bold text-gray-900">
                         Content Type Breakdown
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={contentTypeData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#10b981" />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <BarChartComponent
+                        data={contentTypeData}
+                        xAxisKey="name"
+                        yAxisKey="value"
+                        barColor="#10b981"
+                    />
                 </div>
 
                 {/* Actions Over Time */}
@@ -241,21 +164,12 @@ export function ModerationAnalyticsDashboard() {
                     <h3 className="mb-4 text-lg font-bold text-gray-900">
                         Actions Over Time
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={analytics.actions_over_time}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line
-                                type="monotone"
-                                dataKey="count"
-                                stroke="#8b5cf6"
-                                strokeWidth={2}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <LineChartComponent
+                        data={analytics.actions_over_time}
+                        xAxisKey="date"
+                        yAxisKey="count"
+                        lineColor="#8b5cf6"
+                    />
                 </div>
             </div>
         </div>

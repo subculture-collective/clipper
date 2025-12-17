@@ -1042,19 +1042,8 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 		offset = 0
 	}
 
-	// Build query with filters
-	query := `
-		SELECT 
-			md.id, md.queue_item_id, md.moderator_id, 
-			u.username as moderator_name,
-			md.action, 
-			mq.content_type, mq.content_id,
-			md.reason, md.metadata, md.created_at
-		FROM moderation_decisions md
-		JOIN moderation_queue mq ON md.queue_item_id = mq.id
-		LEFT JOIN users u ON md.moderator_id = u.id
-		WHERE 1=1
-	`
+	// Build query with filters - use CTE for counting
+	baseWhere := "WHERE 1=1"
 	args := []interface{}{}
 	argIdx := 1
 
@@ -1066,41 +1055,40 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 			})
 			return
 		}
-		query += fmt.Sprintf(" AND md.moderator_id = $%d", argIdx)
+		baseWhere += fmt.Sprintf(" AND md.moderator_id = $%d", argIdx)
 		args = append(args, moderatorUUID)
 		argIdx++
 	}
 
 	if actionType != "" {
-		query += fmt.Sprintf(" AND md.action = $%d", argIdx)
+		baseWhere += fmt.Sprintf(" AND md.action = $%d", argIdx)
 		args = append(args, actionType)
 		argIdx++
 	}
 
 	if startDate != "" {
-		query += fmt.Sprintf(" AND md.created_at >= $%d", argIdx)
+		baseWhere += fmt.Sprintf(" AND md.created_at >= $%d", argIdx)
 		args = append(args, startDate)
 		argIdx++
 	}
 
 	if endDate != "" {
-		query += fmt.Sprintf(" AND md.created_at <= $%d", argIdx)
+		baseWhere += fmt.Sprintf(" AND md.created_at <= $%d", argIdx)
 		args = append(args, endDate)
 		argIdx++
 	}
 
-	// Count total records for pagination
-	countQuery := strings.Replace(query, 
-		`SELECT 
-			md.id, md.queue_item_id, md.moderator_id, 
-			u.username as moderator_name,
-			md.action, 
-			mq.content_type, mq.content_id,
-			md.reason, md.metadata, md.created_at
-		FROM moderation_decisions md
-		JOIN moderation_queue mq ON md.queue_item_id = mq.id
-		LEFT JOIN users u ON md.moderator_id = u.id`, 
-		"SELECT COUNT(*) FROM moderation_decisions md JOIN moderation_queue mq ON md.queue_item_id = mq.id LEFT JOIN users u ON md.moderator_id = u.id", 1)
+	// Count total records using CTE
+	countQuery := fmt.Sprintf(`
+		WITH filtered_decisions AS (
+			SELECT md.id
+			FROM moderation_decisions md
+			JOIN moderation_queue mq ON md.queue_item_id = mq.id
+			LEFT JOIN users u ON md.moderator_id = u.id
+			%s
+		)
+		SELECT COUNT(*) FROM filtered_decisions
+	`, baseWhere)
 	
 	var totalCount int
 	err := h.db.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
@@ -1111,8 +1099,20 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 		return
 	}
 
-	// Add ordering and pagination
-	query += fmt.Sprintf(" ORDER BY md.created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	// Get paginated data
+	query := fmt.Sprintf(`
+		SELECT 
+			md.id, md.queue_item_id, md.moderator_id, 
+			u.username as moderator_name,
+			md.action, 
+			mq.content_type, mq.content_id,
+			md.reason, md.metadata, md.created_at
+		FROM moderation_decisions md
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		LEFT JOIN users u ON md.moderator_id = u.id
+		%s
+		ORDER BY md.created_at DESC LIMIT $%d OFFSET $%d
+	`, baseWhere, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := h.db.Query(ctx, query, args...)
