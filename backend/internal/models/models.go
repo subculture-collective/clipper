@@ -3020,3 +3020,47 @@ const (
 	AlgorithmHybrid        = "hybrid"
 	AlgorithmTrending      = "trending"
 )
+
+// ============================================================================
+// Feed Events System Models (Analytics & Performance Monitoring)
+// ============================================================================
+
+// Event represents a feed interaction event for analytics
+type Event struct {
+	ID         uuid.UUID              `json:"id" db:"id"`
+	EventType  string                 `json:"event_type" db:"event_type"`
+	UserID     *uuid.UUID             `json:"user_id,omitempty" db:"user_id"`
+	SessionID  string                 `json:"session_id" db:"session_id"`
+	Timestamp  time.Time              `json:"timestamp" db:"timestamp"`
+	Properties map[string]interface{} `json:"properties,omitempty" db:"properties"`
+	CreatedAt  time.Time              `json:"created_at" db:"created_at"`
+}
+
+// HourlyMetric represents aggregated hourly event metrics
+type HourlyMetric struct {
+	Hour           time.Time `json:"hour" db:"hour"`
+	EventType      string    `json:"event_type" db:"event_type"`
+	Count          int64     `json:"count" db:"count"`
+	UniqueUsers    int64     `json:"unique_users" db:"unique_users"`
+	UniqueSessions int64     `json:"unique_sessions" db:"unique_sessions"`
+}
+
+// TrackEventRequest represents a request to track an event
+type TrackEventRequest struct {
+	EventType  string                 `json:"event_type" binding:"required"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+}
+
+// BatchEventsRequest represents a request to track multiple events
+type BatchEventsRequest struct {
+	Events []TrackEventRequest `json:"events" binding:"required,min=1,max=100"`
+}
+
+// Event type constants for feed analytics
+const (
+	EventFeedViewed            = "feed_viewed"
+	EventFilterApplied         = "filter_applied"
+	EventSortChanged           = "sort_changed"
+	EventRecommendationClicked = "recommendation_clicked"
+	EventFeedEngaged           = "feed_engaged"
+)

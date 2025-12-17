@@ -237,6 +237,12 @@ func main() {
 	// Initialize recommendation service
 	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
 
+	// Initialize event tracker for feed analytics
+	eventTracker := services.NewEventTracker(db.Pool, 100, 5*time.Second)
+	// Start event tracker in background with cancellable context for graceful shutdown
+	eventTrackerCtx, cancelEventTracker := context.WithCancel(context.Background())
+	go eventTracker.Start(eventTrackerCtx)
+
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
 	if exportDir == "" {
@@ -354,6 +360,7 @@ func main() {
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
+	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -895,7 +902,14 @@ func main() {
 
 			// Following feed (authenticated)
 			feeds.GET("/following", middleware.AuthMiddleware(authService), feedHandler.GetFollowingFeed)
+
+			// Feed analytics routes (admin only)
+			feeds.GET("/analytics", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), eventHandler.GetFeedMetrics)
+			feeds.GET("/analytics/hourly", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), eventHandler.GetHourlyMetrics)
 		}
+
+		// Events tracking endpoint
+		v1.POST("/events", middleware.RateLimitMiddleware(redisClient, 100, time.Minute), eventHandler.TrackEvent)
 
 		// Live feed (authenticated)
 		if liveStatusHandler != nil {
@@ -1354,6 +1368,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	// Stop event tracker
+	cancelEventTracker()
 
 	// Stop scheduler if running
 	if syncScheduler != nil {
