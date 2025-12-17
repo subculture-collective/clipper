@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/google/uuid"
@@ -353,8 +352,8 @@ func (s *RecommendationService) enforceGameDiversity(
 		}
 
 		gameID := ""
-		if rec.GameID != nil {
-			gameID = *rec.GameID
+		if rec.Clip.GameID != nil {
+			gameID = *rec.Clip.GameID
 		}
 
 		// Check if we've hit the limit for this game in recent recommendations
@@ -364,7 +363,7 @@ func (s *RecommendationService) enforceGameDiversity(
 			startIdx = 0
 		}
 		for i := startIdx; i < len(diversified); i++ {
-			if diversified[i].GameID != nil && *diversified[i].GameID == gameID {
+			if diversified[i].Clip.GameID != nil && *diversified[i].Clip.GameID == gameID {
 				recentCount++
 			}
 		}
@@ -431,9 +430,15 @@ func (s *RecommendationService) generateReason(clip *models.Clip, algorithm stri
 	}
 
 	if len(reasons) > 0 {
-		// Use random seed for deterministic selection based on clip ID
-		r := rand.New(rand.NewSource(int64(clip.ID.ID())))
-		return reasons[r.Intn(len(reasons))]
+		// Use hash of clip ID for deterministic selection
+		h := 0
+		for _, b := range clip.ID.String() {
+			h = h*31 + int(b)
+		}
+		if h < 0 {
+			h = -h
+		}
+		return reasons[h%len(reasons)]
 	}
 
 	return "Recommended for you"

@@ -51,15 +51,15 @@ func TestEnforceGameDiversity(t *testing.T) {
 	// Count consecutive same-game clips
 	for i := 0; i < len(diversified)-3; i++ {
 		gameID := ""
-		if diversified[i].GameID != nil {
-			gameID = *diversified[i].GameID
+		if diversified[i].Clip.GameID != nil {
+			gameID = *diversified[i].Clip.GameID
 		}
 
 		consecutiveCount := 1
 		for j := i + 1; j < len(diversified) && j < i+3; j++ {
 			nextGameID := ""
-			if diversified[j].GameID != nil {
-				nextGameID = *diversified[j].GameID
+			if diversified[j].Clip.GameID != nil {
+				nextGameID = *diversified[j].Clip.GameID
 			}
 			if gameID == nextGameID {
 				consecutiveCount++
@@ -74,8 +74,8 @@ func TestEnforceGameDiversity(t *testing.T) {
 	// Check we have variety of games
 	gamesSeen := make(map[string]bool)
 	for _, rec := range diversified {
-		if rec.GameID != nil {
-			gamesSeen[*rec.GameID] = true
+		if rec.Clip.GameID != nil {
+			gamesSeen[*rec.Clip.GameID] = true
 		}
 	}
 	assert.GreaterOrEqual(t, len(gamesSeen), 2, "Should have at least 2 different games")

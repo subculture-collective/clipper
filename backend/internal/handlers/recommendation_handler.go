@@ -113,7 +113,7 @@ func (h *RecommendationHandler) SubmitFeedback(c *gin.Context) {
 	// Record interaction based on feedback
 	interactionType := models.InteractionTypeLike
 	if req.FeedbackType == "negative" {
-		interactionType = "dislike" // We can extend the interaction types
+		interactionType = models.InteractionTypeDislike
 	}
 
 	interaction := &models.UserClipInteraction{

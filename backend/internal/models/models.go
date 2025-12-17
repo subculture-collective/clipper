@@ -3006,10 +3006,11 @@ type UpdatePreferencesRequest struct {
 
 // Interaction type constants
 const (
-	InteractionTypeView  = "view"
-	InteractionTypeLike  = "like"
-	InteractionTypeShare = "share"
-	InteractionTypeDwell = "dwell"
+	InteractionTypeView    = "view"
+	InteractionTypeLike    = "like"
+	InteractionTypeShare   = "share"
+	InteractionTypeDwell   = "dwell"
+	InteractionTypeDislike = "dislike"
 )
 
 // Recommendation algorithm constants
