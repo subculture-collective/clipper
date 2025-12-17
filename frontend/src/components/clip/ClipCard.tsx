@@ -174,19 +174,17 @@ export function ClipCard({ clip }: ClipCardProps) {
                         {clip.submitted_by && (
                             <>
                                 <span className='hidden xs:inline'>•</span>
-                                <span className='flex items-center gap-1'>
+                                <span className='inline-flex items-center gap-1'>
                                     Submitted by{' '}
-                                    <span className='inline-flex items-center gap-1'>
-                                        <Link
-                                            to={`/user/${clip.submitted_by.username}`}
-                                            className='hover:text-foreground transition-colors cursor-pointer'
-                                        >
-                                            {clip.submitted_by.display_name}
-                                        </Link>
-                                        {clip.submitted_by.is_verified && (
-                                            <VerifiedBadge size="sm" />
-                                        )}
-                                    </span>
+                                    <Link
+                                        to={`/user/${clip.submitted_by.username}`}
+                                        className='hover:text-foreground transition-colors cursor-pointer'
+                                    >
+                                        {clip.submitted_by.display_name}
+                                    </Link>
+                                    {clip.submitted_by.is_verified && (
+                                        <VerifiedBadge size="sm" />
+                                    )}
                                 </span>
                             </>
                         )}

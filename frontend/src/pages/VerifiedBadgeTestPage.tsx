@@ -40,7 +40,7 @@ export function VerifiedBadgeTestPage() {
             <div className="flex items-start gap-4">
               <img
                 src="https://via.placeholder.com/96"
-                alt="User Avatar"
+                alt="Example user avatar for demonstration"
                 className="w-24 h-24 rounded-full border-2 border-border"
               />
               <div>
@@ -63,7 +63,7 @@ export function VerifiedBadgeTestPage() {
               <div className="flex gap-3">
                 <img
                   src="https://via.placeholder.com/40"
-                  alt="Avatar"
+                  alt="Example comment author avatar for demonstration"
                   className="w-10 h-10 rounded-full"
                 />
                 <div className="flex-1">
