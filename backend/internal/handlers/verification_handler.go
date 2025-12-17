@@ -306,28 +306,33 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 	// Send notification to user (async - don't fail request if notification fails)
 	go func() {
 		var notificationType string
+		var title string
 		var message string
 		
 		if req.Decision == models.VerificationDecisionApproved {
 			notificationType = models.NotificationTypeSystemAlert
+			title = "Verification Approved"
 			message = "Your creator verification application has been approved! You now have a verified badge."
 		} else {
 			notificationType = models.NotificationTypeSystemAlert
+			title = "Verification Application Reviewed"
 			message = "Your creator verification application has been reviewed."
 			if notes != "" {
 				message += " Note: " + notes
 			}
 		}
 		
-		notification := &models.Notification{
-			UserID:  app.UserID,
-			Type:    notificationType,
-			Title:   "Verification Application Update",
-			Message: message,
-			IsRead:  false,
-		}
-		
-		_ = h.notificationService.CreateNotification(ctx, notification)
+		_, _ = h.notificationService.CreateNotification(
+			ctx,
+			app.UserID,
+			notificationType,
+			title,
+			message,
+			nil,   // link
+			nil,   // sourceUserID
+			nil,   // sourceContentID
+			nil,   // sourceContentType
+		)
 	}()
 	
 	c.JSON(http.StatusOK, gin.H{
