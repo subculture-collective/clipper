@@ -217,7 +217,8 @@ func (s *PlaylistService) AddClipsToPlaylist(ctx context.Context, playlistID, us
 	}
 
 	// Add clips one by one, checking for duplicates and existence
-	for i, clipID := range clipIDs {
+	addedCount := 0
+	for _, clipID := range clipIDs {
 		// Check if clip exists
 		clip, err := s.clipRepo.GetByID(ctx, clipID)
 		if err != nil {
@@ -237,12 +238,13 @@ func (s *PlaylistService) AddClipsToPlaylist(ctx context.Context, playlistID, us
 			continue
 		}
 
-		// Add clip with order index
-		orderIndex := currentCount + i
+		// Add clip with order index based on actual position
+		orderIndex := currentCount + addedCount
 		err = s.playlistRepo.AddClip(ctx, playlistID, clipID, orderIndex)
 		if err != nil {
 			return fmt.Errorf("failed to add clip to playlist: %w", err)
 		}
+		addedCount++
 	}
 
 	return nil
