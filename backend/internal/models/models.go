@@ -3064,3 +3064,86 @@ const (
 	EventRecommendationClicked = "recommendation_clicked"
 	EventFeedEngaged           = "feed_engaged"
 )
+
+// ============================================================================
+// Playlist System Models
+// ============================================================================
+
+// Playlist represents a user-created collection of clips
+type Playlist struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
+	Title       string     `json:"title" db:"title"`
+	Description *string    `json:"description,omitempty" db:"description"`
+	CoverURL    *string    `json:"cover_url,omitempty" db:"cover_url"`
+	Visibility  string     `json:"visibility" db:"visibility"` // private, public, unlisted
+	LikeCount   int        `json:"like_count" db:"like_count"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt   *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+}
+
+// PlaylistItem represents a clip in a playlist
+type PlaylistItem struct {
+	ID         int       `json:"id" db:"id"`
+	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	ClipID     uuid.UUID `json:"clip_id" db:"clip_id"`
+	OrderIndex int       `json:"order_index" db:"order_index"`
+	AddedAt    time.Time `json:"added_at" db:"added_at"`
+}
+
+// PlaylistLike represents a user's like on a playlist
+type PlaylistLike struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+}
+
+// PlaylistWithClips represents a playlist with its clips
+type PlaylistWithClips struct {
+	Playlist
+	ClipCount int               `json:"clip_count" db:"clip_count"`
+	Clips     []PlaylistClipRef `json:"clips,omitempty"`
+	IsLiked   bool              `json:"is_liked"`
+	Creator   *User             `json:"creator,omitempty"`
+}
+
+// PlaylistClipRef represents a clip reference in a playlist with ordering
+type PlaylistClipRef struct {
+	Clip
+	OrderIndex int `json:"order" db:"order_index"`
+}
+
+// CreatePlaylistRequest represents the request to create a playlist
+type CreatePlaylistRequest struct {
+	Title       string  `json:"title" binding:"required,min=1,max=100"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	CoverURL    *string `json:"cover_url,omitempty" binding:"omitempty,max=255,url"`
+	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+}
+
+// UpdatePlaylistRequest represents the request to update a playlist
+type UpdatePlaylistRequest struct {
+	Title       *string `json:"title,omitempty" binding:"omitempty,min=1,max=100"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	CoverURL    *string `json:"cover_url,omitempty" binding:"omitempty,max=255,url"`
+	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+}
+
+// AddClipsToPlaylistRequest represents the request to add clips to a playlist
+type AddClipsToPlaylistRequest struct {
+	ClipIDs []uuid.UUID `json:"clip_ids" binding:"required,min=1,max=100"`
+}
+
+// ReorderPlaylistClipsRequest represents the request to reorder clips in a playlist
+type ReorderPlaylistClipsRequest struct {
+	ClipIDs []uuid.UUID `json:"clip_ids" binding:"required,min=1"`
+}
+
+// Playlist visibility constants
+const (
+	PlaylistVisibilityPrivate  = "private"
+	PlaylistVisibilityPublic   = "public"
+	PlaylistVisibilityUnlisted = "unlisted"
+)

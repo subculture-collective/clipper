@@ -172,6 +172,7 @@ func main() {
 	accountTypeConversionRepo := repository.NewAccountTypeConversionRepository(db.Pool)
 	verificationRepo := repository.NewVerificationRepository(db.Pool)
 	recommendationRepo := repository.NewRecommendationRepository(db.Pool)
+	playlistRepo := repository.NewPlaylistRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -236,6 +237,9 @@ func main() {
 
 	// Initialize recommendation service
 	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
+
+	// Initialize playlist service
+	playlistService := services.NewPlaylistService(playlistRepo, clipRepo)
 
 	// Initialize event tracker for feed analytics
 	eventTracker := services.NewEventTracker(db.Pool, 100, 5*time.Second)
@@ -360,6 +364,7 @@ func main() {
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
+	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -1106,6 +1111,29 @@ func main() {
 			communities.POST("/:id/discussions", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), communityHandler.CreateDiscussion)
 			communities.PUT("/:id/discussions/:discussionId", middleware.AuthMiddleware(authService), communityHandler.UpdateDiscussion)
 			communities.DELETE("/:id/discussions/:discussionId", middleware.AuthMiddleware(authService), communityHandler.DeleteDiscussion)
+		}
+
+		// Playlist routes
+		playlists := v1.Group("/playlists")
+		{
+			// Public playlist endpoints
+			playlists.GET("/public", playlistHandler.ListPublicPlaylists)
+			playlists.GET("/:id", middleware.OptionalAuthMiddleware(authService), playlistHandler.GetPlaylist)
+
+			// Protected playlist endpoints (require authentication)
+			playlists.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), playlistHandler.CreatePlaylist)
+			playlists.GET("", middleware.AuthMiddleware(authService), playlistHandler.ListUserPlaylists)
+			playlists.PATCH("/:id", middleware.AuthMiddleware(authService), playlistHandler.UpdatePlaylist)
+			playlists.DELETE("/:id", middleware.AuthMiddleware(authService), playlistHandler.DeletePlaylist)
+
+			// Playlist item management
+			playlists.POST("/:id/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), playlistHandler.AddClipsToPlaylist)
+			playlists.DELETE("/:id/clips/:clip_id", middleware.AuthMiddleware(authService), playlistHandler.RemoveClipFromPlaylist)
+			playlists.PUT("/:id/clips/order", middleware.AuthMiddleware(authService), playlistHandler.ReorderPlaylistClips)
+
+			// Playlist likes (social engagement)
+			playlists.POST("/:id/like", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), playlistHandler.LikePlaylist)
+			playlists.DELETE("/:id/like", middleware.AuthMiddleware(authService), playlistHandler.UnlikePlaylist)
 		}
 
 		// Admin routes
