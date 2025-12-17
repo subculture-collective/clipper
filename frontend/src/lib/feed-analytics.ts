@@ -18,8 +18,9 @@ export class FeedAnalytics {
   private readonly maxQueueSize = 10; // Smaller queue for faster delivery, backend batches up to 100
   private readonly flushInterval = 5000; // 5 seconds
   private flushTimer: number | null = null;
-  private lastFilterTime = 0;
+  private filterDebounceTimer: number | null = null;
   private filterDebounceMs = 500;
+  private beforeUnloadHandler: (() => void) | null = null;
 
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -53,9 +54,10 @@ export class FeedAnalytics {
    * Setup beforeunload handler to flush events on page exit
    */
   private setupBeforeUnload(): void {
-    window.addEventListener('beforeunload', () => {
+    this.beforeUnloadHandler = () => {
       this.flush(true);
-    });
+    };
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
   }
 
   /**
@@ -74,7 +76,7 @@ export class FeedAnalytics {
   }
 
   /**
-   * Track filter applied with debouncing
+   * Track filter applied with trailing debounce
    */
   trackFilterApplied(params: {
     filter_key: string;
@@ -82,19 +84,19 @@ export class FeedAnalytics {
     previous_filters: string[];
     clips_returned: number;
   }): void {
-    const now = Date.now();
-    
-    // Debounce filter tracking to avoid excessive events
-    if (now - this.lastFilterTime < this.filterDebounceMs) {
-      return;
+    // Clear existing timer
+    if (this.filterDebounceTimer !== null) {
+      clearTimeout(this.filterDebounceTimer);
     }
     
-    this.lastFilterTime = now;
-    
-    this.queueEvent({
-      event_type: 'filter_applied',
-      properties: params,
-    });
+    // Set new timer - trailing debounce captures final selection after 500ms of inactivity
+    this.filterDebounceTimer = window.setTimeout(() => {
+      this.queueEvent({
+        event_type: 'filter_applied',
+        properties: params,
+      });
+      this.filterDebounceTimer = null;
+    }, this.filterDebounceMs);
   }
 
   /**
@@ -165,7 +167,7 @@ export class FeedAnalytics {
     // Get current user ID from localStorage or context
     const userId = this.getCurrentUserId();
 
-    // Prepare events with metadata
+    // Prepare events with metadata (include session_id in payload for sendBeacon compatibility)
     const events: QueuedEvent[] = this.eventQueue.map(e => ({
       ...e,
       user_id: userId,
@@ -181,7 +183,9 @@ export class FeedAnalytics {
 
     if (useBeacon && navigator.sendBeacon) {
       // Use sendBeacon for reliable delivery on page unload
-      navigator.sendBeacon('/api/events', payload);
+      // Wrap payload in Blob with correct content type since sendBeacon doesn't support custom headers
+      const blob = new Blob([payload], { type: 'application/json' });
+      navigator.sendBeacon('/api/events', blob);
     } else {
       // Use fetch for normal tracking
       fetch('/api/events', {
@@ -222,6 +226,14 @@ export class FeedAnalytics {
     if (this.flushTimer !== null) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
+    }
+    if (this.filterDebounceTimer !== null) {
+      clearTimeout(this.filterDebounceTimer);
+      this.filterDebounceTimer = null;
+    }
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+      this.beforeUnloadHandler = null;
     }
     this.flush(true);
   }

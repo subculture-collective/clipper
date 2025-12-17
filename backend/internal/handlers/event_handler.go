@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -23,19 +24,38 @@ func NewEventHandler(eventTracker *services.EventTracker) *EventHandler {
 }
 
 // TrackEvent handles POST /api/events
-// Tracks a single event or batch of events
+// Accepts either a single event or a batch of events
+// Batch requests must include an "events" array field
 func (h *EventHandler) TrackEvent(c *gin.Context) {
-	// Check if it's a batch request
-	var batchReq models.BatchEventsRequest
-	if err := c.ShouldBindJSON(&batchReq); err == nil && len(batchReq.Events) > 0 {
+	// Get raw body to detect request type
+	bodyBytes, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
+		return
+	}
+
+	// Parse to determine if it's a batch request
+	var rawReq map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &rawReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON body"})
+		return
+	}
+
+	// Check if it's a batch request by looking for "events" array
+	if _, hasBatch := rawReq["events"]; hasBatch {
+		var batchReq models.BatchEventsRequest
+		if err := json.Unmarshal(bodyBytes, &batchReq); err != nil || len(batchReq.Events) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid batch events format"})
+			return
+		}
 		h.trackBatchEvents(c, batchReq)
 		return
 	}
 
 	// Single event request
 	var req models.TrackEventRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	if err := json.Unmarshal(bodyBytes, &req); err != nil || req.EventType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event format: missing event_type"})
 		return
 	}
 

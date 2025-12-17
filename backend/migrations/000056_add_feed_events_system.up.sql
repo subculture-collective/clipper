@@ -27,8 +27,8 @@ SELECT
 FROM events
 GROUP BY DATE_TRUNC('hour', timestamp), event_type;
 
--- Index on materialized view for faster queries
-CREATE INDEX idx_events_hourly_metrics_hour ON events_hourly_metrics (hour DESC, event_type);
+-- Unique index on materialized view for faster queries and CONCURRENTLY refresh support
+CREATE UNIQUE INDEX idx_events_hourly_metrics_hour ON events_hourly_metrics (hour DESC, event_type);
 
 -- Function to refresh hourly metrics (can be called via cron job)
 CREATE OR REPLACE FUNCTION refresh_events_hourly_metrics()

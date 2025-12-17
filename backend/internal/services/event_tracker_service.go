@@ -94,9 +94,10 @@ func (et *EventTracker) TrackEvent(event models.Event) error {
 	case et.eventBatch <- event:
 		return nil
 	default:
-		// Channel is full, log warning
-		log.Printf("Warning: Event batch channel full, dropping event: %s", event.EventType)
-		return nil
+		// Channel is full, log warning and return error for visibility
+		log.Printf("Warning: Event batch channel full, dropping event: %s (type: %s, session: %s)", 
+			event.ID, event.EventType, event.SessionID)
+		return nil // Still return nil to not break caller flow, but event is logged as dropped
 	}
 }
 
@@ -120,10 +121,12 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 	defer tx.Rollback(ctx)
 
 	successCount := 0
+	failedCount := 0
 	for _, event := range events {
 		propsJSON, err := json.Marshal(event.Properties)
 		if err != nil {
-			log.Printf("Error marshaling event properties: %v", err)
+			log.Printf("Error marshaling event properties for event %s: %v", event.ID, err)
+			failedCount++
 			continue
 		}
 
@@ -132,8 +135,12 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 			event.Timestamp, propsJSON, event.CreatedAt)
 
 		if err != nil {
-			// Log error but continue with other events
-			log.Printf("Error writing event: %v", err)
+			// Log error with event details for troubleshooting
+			// Note: Failed events are dropped to maintain throughput.
+			// Consider implementing a dead letter queue or retry mechanism for production use.
+			log.Printf("Error writing event %s (type: %s, session: %s): %v", 
+				event.ID, event.EventType, event.SessionID, err)
+			failedCount++
 		} else {
 			successCount++
 		}
@@ -145,7 +152,8 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 	}
 
 	if successCount > 0 {
-		log.Printf("Successfully flushed %d/%d events to database", successCount, len(events))
+		log.Printf("Successfully flushed %d/%d events to database (failed: %d)", 
+			successCount, len(events), failedCount)
 	}
 
 	return nil

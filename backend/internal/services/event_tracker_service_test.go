@@ -124,7 +124,7 @@ func TestNewEventTracker_CustomValues(t *testing.T) {
 	assert.Equal(t, flushInterval, et.flushInterval)
 }
 
-func TestEventTracker_TrackEvent(t *testing.T) {
+func TestEventTracker_TrackEvent_Queueing(t *testing.T) {
 	et := NewEventTracker(nil, 100, 5*time.Second)
 
 	userID := uuid.New()
@@ -137,8 +137,8 @@ func TestEventTracker_TrackEvent(t *testing.T) {
 		},
 	}
 
-	// Note: We can't test actual persistence without a real DB,
-	// but we can verify the event is accepted and queued
+	// Test verifies queueing mechanism without database persistence
+	// For database integration tests, see integration test suite
 	err := et.TrackEvent(event)
 	assert.NoError(t, err)
 	
