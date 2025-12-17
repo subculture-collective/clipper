@@ -237,6 +237,11 @@ func main() {
 	// Initialize recommendation service
 	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
 
+	// Initialize event tracker for feed analytics
+	eventTracker := services.NewEventTracker(db.Pool, 100, 5*time.Second)
+	// Start event tracker in background
+	go eventTracker.Start(context.Background())
+
 	// Initialize export service with exports directory
 	exportDir := cfg.Server.ExportDir
 	if exportDir == "" {
@@ -354,6 +359,7 @@ func main() {
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
+	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
@@ -895,7 +901,15 @@ func main() {
 
 			// Following feed (authenticated)
 			feeds.GET("/following", middleware.AuthMiddleware(authService), feedHandler.GetFollowingFeed)
+
+			// Feed analytics and performance monitoring routes
+			feeds.POST("/events", middleware.RateLimitMiddleware(redisClient, 100, time.Minute), eventHandler.TrackEvent)
+			feeds.GET("/analytics", middleware.AuthMiddleware(authService), middleware.RequireAdminRole(), eventHandler.GetFeedMetrics)
+			feeds.GET("/analytics/hourly", middleware.AuthMiddleware(authService), middleware.RequireAdminRole(), eventHandler.GetHourlyMetrics)
 		}
+
+		// Events tracking (can also be accessed directly via /api/events for backward compatibility)
+		v1.POST("/events", middleware.RateLimitMiddleware(redisClient, 100, time.Minute), eventHandler.TrackEvent)
 
 		// Live feed (authenticated)
 		if liveStatusHandler != nil {
