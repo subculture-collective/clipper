@@ -3100,6 +3100,12 @@ type PlaylistLike struct {
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 }
 
+// PlaylistListItem represents a playlist in list views with clip count
+type PlaylistListItem struct {
+	Playlist
+	ClipCount int `json:"clip_count" db:"clip_count"`
+}
+
 // PlaylistWithClips represents a playlist with its clips
 type PlaylistWithClips struct {
 	Playlist

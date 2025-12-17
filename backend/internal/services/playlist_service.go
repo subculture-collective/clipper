@@ -168,7 +168,7 @@ func (s *PlaylistService) DeletePlaylist(ctx context.Context, playlistID, userID
 }
 
 // ListUserPlaylists retrieves playlists owned by a user
-func (s *PlaylistService) ListUserPlaylists(ctx context.Context, userID uuid.UUID, page, limit int) ([]*models.Playlist, int, error) {
+func (s *PlaylistService) ListUserPlaylists(ctx context.Context, userID uuid.UUID, page, limit int) ([]*models.PlaylistListItem, int, error) {
 	offset := (page - 1) * limit
 	playlists, total, err := s.playlistRepo.ListByUserID(ctx, userID, limit, offset)
 	if err != nil {
@@ -179,7 +179,7 @@ func (s *PlaylistService) ListUserPlaylists(ctx context.Context, userID uuid.UUI
 }
 
 // ListPublicPlaylists retrieves public playlists for discovery
-func (s *PlaylistService) ListPublicPlaylists(ctx context.Context, page, limit int) ([]*models.Playlist, int, error) {
+func (s *PlaylistService) ListPublicPlaylists(ctx context.Context, page, limit int) ([]*models.PlaylistListItem, int, error) {
 	offset := (page - 1) * limit
 	playlists, total, err := s.playlistRepo.ListPublic(ctx, limit, offset)
 	if err != nil {
@@ -211,11 +211,6 @@ func (s *PlaylistService) AddClipsToPlaylist(ctx context.Context, playlistID, us
 		return fmt.Errorf("failed to get clip count: %w", err)
 	}
 
-	// Check if adding clips would exceed the limit
-	if currentCount+len(clipIDs) > 1000 {
-		return fmt.Errorf("playlist cannot exceed 1000 clips")
-	}
-
 	// Add clips one by one, checking for duplicates and existence
 	addedCount := 0
 	for _, clipID := range clipIDs {
@@ -236,6 +231,11 @@ func (s *PlaylistService) AddClipsToPlaylist(ctx context.Context, playlistID, us
 		if exists {
 			// Skip duplicate clips
 			continue
+		}
+
+		// Check if adding this clip would exceed the limit
+		if currentCount+addedCount >= 1000 {
+			return fmt.Errorf("playlist cannot exceed 1000 clips")
 		}
 
 		// Add clip with order index based on actual position

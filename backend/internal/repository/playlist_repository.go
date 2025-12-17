@@ -128,7 +128,7 @@ func (r *PlaylistRepository) SoftDelete(ctx context.Context, playlistID uuid.UUI
 }
 
 // ListByUserID retrieves playlists owned by a user
-func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.Playlist, int, error) {
+func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.PlaylistListItem, int, error) {
 	// Get total count
 	countQuery := `
 		SELECT COUNT(*)
@@ -142,13 +142,17 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 		return nil, 0, fmt.Errorf("failed to count playlists: %w", err)
 	}
 
-	// Get playlists
+	// Get playlists with clip count
 	query := `
-		SELECT id, user_id, title, description, cover_url, visibility, like_count,
-		       created_at, updated_at, deleted_at
-		FROM playlists
-		WHERE user_id = $1 AND deleted_at IS NULL
-		ORDER BY created_at DESC
+		SELECT 
+			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count,
+			p.created_at, p.updated_at, p.deleted_at,
+			COALESCE(COUNT(pi.id), 0) AS clip_count
+		FROM playlists p
+		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+		WHERE p.user_id = $1 AND p.deleted_at IS NULL
+		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count, p.created_at, p.updated_at, p.deleted_at
+		ORDER BY p.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -158,32 +162,33 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 	}
 	defer rows.Close()
 
-	var playlists []*models.Playlist
+	var playlists []*models.PlaylistListItem
 	for rows.Next() {
-		var playlist models.Playlist
+		var item models.PlaylistListItem
 		err := rows.Scan(
-			&playlist.ID,
-			&playlist.UserID,
-			&playlist.Title,
-			&playlist.Description,
-			&playlist.CoverURL,
-			&playlist.Visibility,
-			&playlist.LikeCount,
-			&playlist.CreatedAt,
-			&playlist.UpdatedAt,
-			&playlist.DeletedAt,
+			&item.ID,
+			&item.UserID,
+			&item.Title,
+			&item.Description,
+			&item.CoverURL,
+			&item.Visibility,
+			&item.LikeCount,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+			&item.DeletedAt,
+			&item.ClipCount,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan playlist: %w", err)
 		}
-		playlists = append(playlists, &playlist)
+		playlists = append(playlists, &item)
 	}
 
 	return playlists, total, nil
 }
 
 // ListPublic retrieves public playlists for discovery
-func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) ([]*models.Playlist, int, error) {
+func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) ([]*models.PlaylistListItem, int, error) {
 	// Get total count
 	countQuery := `
 		SELECT COUNT(*)
@@ -197,13 +202,17 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 		return nil, 0, fmt.Errorf("failed to count public playlists: %w", err)
 	}
 
-	// Get playlists
+	// Get playlists with clip count
 	query := `
-		SELECT id, user_id, title, description, cover_url, visibility, like_count,
-		       created_at, updated_at, deleted_at
-		FROM playlists
-		WHERE visibility = 'public' AND deleted_at IS NULL
-		ORDER BY like_count DESC, created_at DESC
+		SELECT 
+			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count,
+			p.created_at, p.updated_at, p.deleted_at,
+			COALESCE(COUNT(pi.id), 0) AS clip_count
+		FROM playlists p
+		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+		WHERE p.visibility = 'public' AND p.deleted_at IS NULL
+		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count, p.created_at, p.updated_at, p.deleted_at
+		ORDER BY p.like_count DESC, p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -213,25 +222,26 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 	}
 	defer rows.Close()
 
-	var playlists []*models.Playlist
+	var playlists []*models.PlaylistListItem
 	for rows.Next() {
-		var playlist models.Playlist
+		var item models.PlaylistListItem
 		err := rows.Scan(
-			&playlist.ID,
-			&playlist.UserID,
-			&playlist.Title,
-			&playlist.Description,
-			&playlist.CoverURL,
-			&playlist.Visibility,
-			&playlist.LikeCount,
-			&playlist.CreatedAt,
-			&playlist.UpdatedAt,
-			&playlist.DeletedAt,
+			&item.ID,
+			&item.UserID,
+			&item.Title,
+			&item.Description,
+			&item.CoverURL,
+			&item.Visibility,
+			&item.LikeCount,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+			&item.DeletedAt,
+			&item.ClipCount,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan playlist: %w", err)
 		}
-		playlists = append(playlists, &playlist)
+		playlists = append(playlists, &item)
 	}
 
 	return playlists, total, nil
@@ -255,18 +265,48 @@ func (r *PlaylistRepository) AddClip(ctx context.Context, playlistID, clipID uui
 
 // RemoveClip removes a clip from a playlist
 func (r *PlaylistRepository) RemoveClip(ctx context.Context, playlistID, clipID uuid.UUID) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
 		DELETE FROM playlist_items
 		WHERE playlist_id = $1 AND clip_id = $2
 	`
 
-	result, err := r.pool.Exec(ctx, query, playlistID, clipID)
+	result, err := tx.Exec(ctx, query, playlistID, clipID)
 	if err != nil {
 		return fmt.Errorf("failed to remove clip from playlist: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("clip not found in playlist")
+	}
+
+	// Reindex order_index for remaining items to keep ordering continuous
+	reindexQuery := `
+		WITH ordered AS (
+			SELECT
+				clip_id,
+				ROW_NUMBER() OVER (ORDER BY order_index) - 1 AS new_index
+			FROM playlist_items
+			WHERE playlist_id = $1
+		)
+		UPDATE playlist_items AS pi
+		SET order_index = o.new_index
+		FROM ordered AS o
+		WHERE pi.playlist_id = $1
+		  AND pi.clip_id = o.clip_id
+	`
+
+	if _, err := tx.Exec(ctx, reindexQuery, playlistID); err != nil {
+		return fmt.Errorf("failed to reindex playlist items after removal: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
