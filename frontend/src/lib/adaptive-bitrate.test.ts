@@ -102,8 +102,9 @@ describe('AdaptiveBitrateSelector', () => {
       selector.selectQuality(11, 80);
       const quality = selector.selectQuality(9, 80);
 
-      // Average is around 9.4, should select 1080p
-      expect(quality).toBe('1080p');
+      // Average is 9.4, which is < 10, so should select 720p
+      // (1080p requires avgBandwidth > 10 && bufferHealth > 70)
+      expect(quality).toBe('720p');
     });
   });
 

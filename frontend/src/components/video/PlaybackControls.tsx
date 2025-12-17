@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface PlaybackControlsProps {
-  videoRef: React.RefObject<HTMLVideoElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
   className?: string;
 }
 

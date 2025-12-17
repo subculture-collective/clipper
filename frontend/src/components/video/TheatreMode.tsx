@@ -21,7 +21,7 @@ const AVAILABLE_QUALITIES: VideoQuality[] = ['480p', '720p', '1080p', '2K', '4K'
  * Provides immersive viewing experience with quality selection and keyboard shortcuts
  * Falls back gracefully when HLS is not available
  */
-export function TheatreMode({ clipId, title, hlsUrl, className }: TheatreModeProps) {
+export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
   const {
     isTheatreMode,
     isFullscreen,

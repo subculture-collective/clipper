@@ -22,7 +22,6 @@ export function HlsPlayer({
   src,
   quality,
   autoQuality,
-  isTheatreMode,
   onQualityChange,
   onBandwidthUpdate,
   onBufferHealthUpdate,
@@ -74,7 +73,7 @@ export function HlsPlayer({
       });
     });
 
-    hls.on(Hls.Events.ERROR, (event, data) => {
+    hls.on(Hls.Events.ERROR, (_event, data) => {
       if (data.fatal) {
         switch (data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
@@ -94,7 +93,7 @@ export function HlsPlayer({
     });
 
     // Monitor bandwidth for adaptive quality
-    hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+    hls.on(Hls.Events.FRAG_LOADED, (_event, data) => {
       const stats = data.frag.stats;
       if (stats && stats.loaded && stats.total) {
         const loadTimeSeconds = (stats.loading.end - stats.loading.start) / 1000;
