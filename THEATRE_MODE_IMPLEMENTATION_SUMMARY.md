@@ -159,7 +159,7 @@ The theatre mode is designed to work alongside existing Twitch embeds:
 
 ## Security
 
-- ✅ No vulnerabilities in dependencies (hls.js 1.5.20)
+- ✅ No vulnerabilities in dependencies (hls.js 1.6.15)
 - ✅ No CodeQL security alerts
 - ✅ CORS-ready for CDN integration
 - ✅ Input validation on quality selection
