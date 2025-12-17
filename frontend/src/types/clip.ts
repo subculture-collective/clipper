@@ -67,12 +67,17 @@ export interface ClipFeedFilters {
     sort?: SortOption;
     timeframe?: TimeFrame;
     game_id?: string;
+    games?: string[]; // Multi-select game filter
     creator_id?: string;
+    streamers?: string[]; // Multi-select streamer filter  
     tags?: string[];
+    exclude_tags?: string[]; // Tags to exclude
     language?: string;
     nsfw?: boolean;
     top10k_streamers?: boolean;
     show_all_clips?: boolean; // If true, show both user-submitted and scraped clips (for discovery)
+    date_from?: string; // ISO 8601 date string
+    date_to?: string; // ISO 8601 date string
 }
 
 export interface VotePayload {
@@ -82,4 +87,36 @@ export interface VotePayload {
 
 export interface FavoritePayload {
     clip_id: string;
+}
+
+// Filter preset types
+export interface FilterPreset {
+    id: string;
+    user_id: string;
+    name: string;
+    filters_json: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface FilterPresetFilters {
+    games?: string[];
+    streamers?: string[];
+    tags?: string[];
+    exclude_tags?: string[];
+    date_from?: string;
+    date_to?: string;
+    sort?: string;
+    language?: string;
+    nsfw?: boolean;
+}
+
+export interface CreateFilterPresetRequest {
+    name: string;
+    filters: FilterPresetFilters;
+}
+
+export interface UpdateFilterPresetRequest {
+    name?: string;
+    filters?: FilterPresetFilters;
 }

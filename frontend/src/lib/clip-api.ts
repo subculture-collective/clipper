@@ -34,6 +34,21 @@ function buildClipParams(
         if (filters.tags && filters.tags.length > 0) {
             params.tag = filters.tags.join(',');
         }
+        // New filter parameters
+        // Note: Backend currently supports only single game/streamer selection
+        // Multi-select support requires backend query modifications for OR logic
+        if (filters.games && filters.games.length > 0) {
+            params.game_id = filters.games[0];
+        }
+        if (filters.streamers && filters.streamers.length > 0) {
+            params.broadcaster_id = filters.streamers[0];
+        }
+        if (filters.exclude_tags && filters.exclude_tags.length > 0) {
+            // TODO: Implement exclude_tags support in backend
+            // params.exclude_tags = filters.exclude_tags.join(',');
+        }
+        if (filters.date_from) params.date_from = filters.date_from;
+        if (filters.date_to) params.date_to = filters.date_to;
     }
 
     return params;

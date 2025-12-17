@@ -4,12 +4,32 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 )
+
+// validateDateFilter validates and normalizes a date string expected to be in ISO 8601 format
+func validateDateFilter(dateStr string) (string, error) {
+	if dateStr == "" {
+		return "", nil
+	}
+	// Try parsing as RFC3339 (ISO 8601)
+	t, err := time.Parse(time.RFC3339, dateStr)
+	if err != nil {
+		// Try parsing as date only (YYYY-MM-DD)
+		t, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return "", err
+		}
+	}
+	// Return normalized RFC3339 format
+	return t.Format(time.RFC3339), nil
+}
 
 type FeedHandler struct {
 	feedService *services.FeedService
@@ -412,6 +432,106 @@ func (h *FeedHandler) GetFollowingFeed(c *gin.Context) {
 			"limit":       limit,
 			"total":       total,
 			"total_pages": totalPages,
+		},
+	})
+}
+
+// GetFilteredClips handles comprehensive feed filtering with multiple criteria
+// GET /api/v1/feeds/clips
+func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
+	// Parse query parameters
+	games := c.QueryArray("filter[game]")
+	streamers := c.QueryArray("filter[streamer]")
+	tags := c.QueryArray("filter[tags]")
+	dateFrom := c.Query("filter[date_from]")
+	dateTo := c.Query("filter[date_to]")
+	sort := c.DefaultQuery("sort", "trending")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate and constrain parameters
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Validate date filters to prevent SQL injection
+	var validatedDateFrom, validatedDateTo string
+	var err error
+	if dateFrom != "" {
+		validatedDateFrom, err = validateDateFilter(dateFrom)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date_from format. Use ISO 8601 (YYYY-MM-DD or RFC3339)"})
+			return
+		}
+	}
+	if dateTo != "" {
+		validatedDateTo, err = validateDateFilter(dateTo)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date_to format. Use ISO 8601 (YYYY-MM-DD or RFC3339)"})
+			return
+		}
+	}
+
+	// Build filters for clip repository
+	filters := repository.ClipFilters{
+		Sort:              sort,
+		UserSubmittedOnly: true, // Only show user-submitted clips in feed
+	}
+
+	// Apply game filters (currently single-select; multi-select requires backend changes)
+	if len(games) > 0 {
+		filters.GameID = &games[0]
+	}
+
+	// Apply streamer filters (currently single-select; multi-select requires backend changes)
+	if len(streamers) > 0 {
+		filters.BroadcasterID = &streamers[0]
+	}
+
+	// Apply tag filters (currently single-select; multi-select requires backend changes)
+	if len(tags) > 0 {
+		filters.Tag = &tags[0]
+	}
+
+	// Apply validated date range filters
+	if validatedDateFrom != "" {
+		filters.DateFrom = &validatedDateFrom
+	}
+	if validatedDateTo != "" {
+		filters.DateTo = &validatedDateTo
+	}
+
+	// Fetch clips using feed service
+	clips, total, err := h.feedService.GetFilteredClips(c.Request.Context(), filters, limit, offset)
+	if err != nil {
+		log.Printf("Error fetching filtered clips: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve filtered clips"})
+		return
+	}
+
+	totalPages := (total + limit - 1) / limit
+
+	// Return response with filter metadata
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"clips":   clips,
+		"pagination": gin.H{
+			"limit":       limit,
+			"offset":      offset,
+			"total":       total,
+			"total_pages": totalPages,
+			"has_more":    offset+limit < total,
+		},
+		"filters_applied": gin.H{
+			"games":     games,
+			"streamers": streamers,
+			"tags":      tags,
+			"date_from": dateFrom,
+			"date_to":   dateTo,
+			"sort":      sort,
 		},
 	})
 }
