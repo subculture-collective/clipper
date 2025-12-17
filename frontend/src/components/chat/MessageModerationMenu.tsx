@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Modal } from '@/components/ui/Modal';
 import { BanModal } from './BanModal';
 import { MuteModal } from './MuteModal';
 import * as chatApi from '@/lib/chat-api';
@@ -24,22 +25,21 @@ export const MessageModerationMenu: React.FC<MessageModerationMenuProps> = ({
 }) => {
   const [showBanModal, setShowBanModal] = useState(false);
   const [showMuteModal, setShowMuteModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDelete = async () => {
-    if (!confirm('Delete this message? This action cannot be undone.')) {
-      return;
-    }
-
     setIsDeleting(true);
+    setError(null);
     try {
       await chatApi.deleteMessage(message.id, {
         reason: 'Deleted by moderator',
       });
+      setShowDeleteConfirm(false);
       onMessageDeleted?.();
-    } catch (error) {
-      console.error('Failed to delete message:', error);
-      alert('Failed to delete message. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete message');
     } finally {
       setIsDeleting(false);
     }
@@ -67,7 +67,7 @@ export const MessageModerationMenu: React.FC<MessageModerationMenuProps> = ({
     <>
       <div className="flex gap-2 items-center">
         <button
-          onClick={handleDelete}
+          onClick={() => setShowDeleteConfirm(true)}
           disabled={isDeleting}
           className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:underline disabled:opacity-50"
           title="Delete message"
@@ -91,6 +91,46 @@ export const MessageModerationMenu: React.FC<MessageModerationMenuProps> = ({
           Ban
         </button>
       </div>
+
+      {error && (
+        <div className="mt-2 text-xs text-red-600 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <Modal
+          open={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          title="Delete Message"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Delete this message? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       <BanModal
         isOpen={showBanModal}

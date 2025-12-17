@@ -298,10 +298,8 @@ func (h *ChatHandler) DeleteMessage(c *gin.Context) {
 	}
 
 	var req models.DeleteMessageRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		// Reason is optional, so ignore binding errors
-		req.Reason = ""
-	}
+	// Bind JSON but only enforce required fields
+	_ = c.ShouldBindJSON(&req)
 
 	// Get message details before deleting
 	var msg models.ChatMessage
@@ -318,7 +316,11 @@ func (h *ChatHandler) DeleteMessage(c *gin.Context) {
 
 	// Mark message as deleted
 	now := time.Now()
-	modID := moderatorID.(uuid.UUID)
+	modID, ok := moderatorID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid moderator ID"})
+		return
+	}
 	deleteQuery := `
 		UPDATE chat_messages 
 		SET is_deleted = true, deleted_at = $1, deleted_by = $2, updated_at = $1

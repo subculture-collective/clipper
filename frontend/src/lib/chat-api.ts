@@ -137,6 +137,17 @@ export async function unbanUser(
   return response.data;
 }
 
+// Unmute a user in a channel (same as unban since they share the same table)
+export async function unmuteUser(
+  channelId: string,
+  userId: string
+): Promise<UnbanUserResponse> {
+  const response = await apiClient.delete<UnbanUserResponse>(
+    `/chat/channels/${channelId}/ban/${userId}`
+  );
+  return response.data;
+}
+
 // Mute a user in a channel
 export async function muteUser(
   channelId: string,
