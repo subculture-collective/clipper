@@ -34,6 +34,20 @@ function buildClipParams(
         if (filters.tags && filters.tags.length > 0) {
             params.tag = filters.tags.join(',');
         }
+        // New filter parameters
+        if (filters.games && filters.games.length > 0) {
+            // For now, use first game until backend supports multi-game
+            params.game_id = filters.games[0];
+        }
+        if (filters.streamers && filters.streamers.length > 0) {
+            // For now, use first streamer until backend supports multi-streamer
+            params.broadcaster_id = filters.streamers[0];
+        }
+        if (filters.exclude_tags && filters.exclude_tags.length > 0) {
+            params.exclude_tags = filters.exclude_tags.join(',');
+        }
+        if (filters.date_from) params.date_from = filters.date_from;
+        if (filters.date_to) params.date_to = filters.date_to;
     }
 
     return params;
