@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -262,14 +263,10 @@ func (s *RecommendationService) mergeAndRank(
 		})
 	}
 
-	// Sort by score descending
-	for i := 0; i < len(merged); i++ {
-		for j := i + 1; j < len(merged); j++ {
-			if merged[j].SimilarityScore > merged[i].SimilarityScore {
-				merged[i], merged[j] = merged[j], merged[i]
-			}
-		}
-	}
+	// Sort by score descending using standard library
+	sort.Slice(merged, func(i, j int) bool {
+		return merged[i].SimilarityScore > merged[j].SimilarityScore
+	})
 
 	// Assign ranks
 	for i := range merged {
@@ -387,7 +384,7 @@ func (s *RecommendationService) enforceGameDiversity(
 			// Check if already added
 			found := false
 			for _, d := range diversified {
-				if d.ID == rec.ID {
+				if d.Clip.ID == rec.Clip.ID {
 					found = true
 					break
 				}
@@ -459,6 +456,9 @@ func (s *RecommendationService) RecordInteraction(
 	for iter.Next(ctx) {
 		s.redisClient.Del(ctx, iter.Val())
 	}
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("failed to scan cache keys: %w", err)
+	}
 
 	return nil
 }
@@ -479,6 +479,9 @@ func (s *RecommendationService) UpdateUserPreferences(ctx context.Context, pref 
 	iter := s.redisClient.Scan(ctx, 0, pattern, 100).Iterator()
 	for iter.Next(ctx) {
 		s.redisClient.Del(ctx, iter.Val())
+	}
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("failed to scan cache keys: %w", err)
 	}
 
 	return nil

@@ -165,18 +165,23 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 		WITH user_excluded AS (
 			SELECT clip_id FROM user_clip_interactions
 			WHERE user_id = $1 AND interaction_type IN ('like', 'view')
+		),
+		max_vote AS (
+			SELECT MAX(vote_score) AS max_vote_score
+			FROM clips
+			WHERE created_at > NOW() - INTERVAL '7 days'
 		)
 		SELECT 
 			c.id as clip_id,
 			(
 				CASE WHEN c.game_id = ANY($2::text[]) THEN 0.5 ELSE 0 END +
 				CASE WHEN c.broadcaster_id = ANY($3::text[]) THEN 0.3 ELSE 0 END +
-				(c.vote_score::float / NULLIF((SELECT MAX(vote_score) FROM clips WHERE created_at > NOW() - INTERVAL '7 days'), 0)) * 0.2
+				(c.vote_score::float / NULLIF((SELECT max_vote_score FROM max_vote), 0)) * 0.2
 			) as similarity_score,
 			ROW_NUMBER() OVER (ORDER BY (
 				CASE WHEN c.game_id = ANY($2::text[]) THEN 0.5 ELSE 0 END +
 				CASE WHEN c.broadcaster_id = ANY($3::text[]) THEN 0.3 ELSE 0 END +
-				(c.vote_score::float / NULLIF((SELECT MAX(vote_score) FROM clips WHERE created_at > NOW() - INTERVAL '7 days'), 0)) * 0.2
+				(c.vote_score::float / NULLIF((SELECT max_vote_score FROM max_vote), 0)) * 0.2
 			) DESC) as similarity_rank
 		FROM clips c
 		WHERE c.created_at > NOW() - INTERVAL '30 days'
@@ -242,7 +247,7 @@ func (r *RecommendationRepository) GetCollaborativeRecommendations(
 		)
 		SELECT 
 			c.id as clip_id,
-			COUNT(*) * 1.0 / (SELECT COUNT(*) FROM similar_users) as similarity_score,
+			COALESCE(COUNT(*) * 1.0 / NULLIF((SELECT COUNT(*) FROM similar_users), 0), 0) as similarity_score,
 			ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) as similarity_rank
 		FROM clips c
 		JOIN user_clip_interactions uci ON c.id = uci.clip_id

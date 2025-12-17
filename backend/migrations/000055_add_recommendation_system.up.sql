@@ -21,7 +21,7 @@ CREATE TABLE user_clip_interactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     clip_id UUID NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
-    interaction_type VARCHAR(20) NOT NULL, -- 'view', 'like', 'share', 'dwell'
+    interaction_type VARCHAR(20) NOT NULL, -- 'view', 'like', 'share', 'dwell', 'dislike'
     dwell_time INT, -- seconds watched
     timestamp TIMESTAMP DEFAULT NOW(),
     UNIQUE(user_id, clip_id, interaction_type)
@@ -54,30 +54,36 @@ DECLARE
     v_streamers TEXT[];
 BEGIN
     -- Get favorite games from recent likes (last 90 days, top 10)
-    SELECT ARRAY_AGG(DISTINCT c.game_id ORDER BY COUNT(*) DESC)
+    SELECT ARRAY_AGG(game_id ORDER BY cnt DESC)
     INTO v_games
-    FROM user_clip_interactions uci
-    JOIN clips c ON uci.clip_id = c.id
-    WHERE uci.user_id = p_user_id
-      AND uci.interaction_type IN ('like', 'dwell')
-      AND uci.timestamp > NOW() - INTERVAL '90 days'
-      AND c.game_id IS NOT NULL
-    GROUP BY c.game_id
-    ORDER BY COUNT(*) DESC
-    LIMIT 10;
+    FROM (
+        SELECT c.game_id, COUNT(*) AS cnt
+        FROM user_clip_interactions uci
+        JOIN clips c ON uci.clip_id = c.id
+        WHERE uci.user_id = p_user_id
+          AND uci.interaction_type IN ('like', 'dwell')
+          AND uci.timestamp > NOW() - INTERVAL '90 days'
+          AND c.game_id IS NOT NULL
+        GROUP BY c.game_id
+        ORDER BY cnt DESC
+        LIMIT 10
+    ) game_stats;
 
     -- Get followed streamers from recent interactions (last 90 days, top 10)
-    SELECT ARRAY_AGG(DISTINCT c.broadcaster_id ORDER BY COUNT(*) DESC)
+    SELECT ARRAY_AGG(broadcaster_id ORDER BY cnt DESC)
     INTO v_streamers
-    FROM user_clip_interactions uci
-    JOIN clips c ON uci.clip_id = c.id
-    WHERE uci.user_id = p_user_id
-      AND uci.interaction_type IN ('like', 'dwell')
-      AND uci.timestamp > NOW() - INTERVAL '90 days'
-      AND c.broadcaster_id IS NOT NULL
-    GROUP BY c.broadcaster_id
-    ORDER BY COUNT(*) DESC
-    LIMIT 10;
+    FROM (
+        SELECT c.broadcaster_id, COUNT(*) AS cnt
+        FROM user_clip_interactions uci
+        JOIN clips c ON uci.clip_id = c.id
+        WHERE uci.user_id = p_user_id
+          AND uci.interaction_type IN ('like', 'dwell')
+          AND uci.timestamp > NOW() - INTERVAL '90 days'
+          AND c.broadcaster_id IS NOT NULL
+        GROUP BY c.broadcaster_id
+        ORDER BY cnt DESC
+        LIMIT 10
+    ) streamer_stats;
 
     -- Insert or update user preferences
     INSERT INTO user_preferences (user_id, favorite_games, followed_streamers)
