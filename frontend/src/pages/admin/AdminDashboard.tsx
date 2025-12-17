@@ -197,6 +197,21 @@ export function AdminDashboard() {
                     </Card>
                 </Link>
 
+                <Link to='/admin/verification' className='touch-target'>
+                    <Card hover clickable>
+                        <CardHeader>
+                            <h3 className='text-lg xs:text-xl font-semibold'>
+                                Creator Verification
+                            </h3>
+                        </CardHeader>
+                        <CardBody>
+                            <p className='text-sm xs:text-base text-muted-foreground'>
+                                Review and manage creator verification applications
+                            </p>
+                        </CardBody>
+                    </Card>
+                </Link>
+
                 <Link to='/admin/campaigns' className='touch-target'>
                     <Card hover clickable>
                         <CardHeader>

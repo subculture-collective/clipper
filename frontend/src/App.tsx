@@ -52,6 +52,7 @@ const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').the
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
 const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModerationQueuePage').then(m => ({ default: m.AdminModerationQueuePage })));
+const AdminVerificationQueuePage = lazy(() => import('./pages/admin/AdminVerificationQueuePage').then(m => ({ default: m.AdminVerificationQueuePage })));
 const AdminModerationAnalyticsPage = lazy(() => import('./pages/admin/AdminModerationAnalyticsPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
@@ -310,6 +311,14 @@ function App() {
                       element={
                         <AdminRoute>
                           <AdminModerationAnalyticsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/verification"
+                      element={
+                        <AdminRoute>
+                          <AdminVerificationQueuePage />
                         </AdminRoute>
                       }
                     />
