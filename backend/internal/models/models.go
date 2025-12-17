@@ -2661,3 +2661,33 @@ type ResolveAppealRequest struct {
 	Decision   string  `json:"decision" binding:"required,oneof=approve reject"`
 	Resolution *string `json:"resolution,omitempty" binding:"omitempty,max=2000"`
 }
+
+// ModerationDecisionWithDetails represents a moderation decision with additional context
+type ModerationDecisionWithDetails struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	QueueItemID     uuid.UUID  `json:"queue_item_id" db:"queue_item_id"`
+	ModeratorID     uuid.UUID  `json:"moderator_id" db:"moderator_id"`
+	ModeratorName   string     `json:"moderator_name" db:"moderator_name"`
+	Action          string     `json:"action" db:"action"`
+	ContentType     string     `json:"content_type" db:"content_type"`
+	ContentID       uuid.UUID  `json:"content_id" db:"content_id"`
+	Reason          *string    `json:"reason,omitempty" db:"reason"`
+	Metadata        *string    `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+}
+
+// TimeSeriesPoint represents a point in time series data
+type TimeSeriesPoint struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+// ModerationAnalytics represents analytics data for moderation actions
+type ModerationAnalytics struct {
+	TotalActions         int                `json:"total_actions"`
+	ActionsByType        map[string]int     `json:"actions_by_type"`
+	ActionsByModerator   map[string]int     `json:"actions_by_moderator"`
+	ActionsOverTime      []TimeSeriesPoint  `json:"actions_over_time"`
+	ContentTypeBreakdown map[string]int     `json:"content_type_breakdown"`
+	AverageResponseTime  *float64           `json:"average_response_time_minutes,omitempty"`
+}

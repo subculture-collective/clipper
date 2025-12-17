@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -1018,5 +1019,297 @@ func (h *ModerationHandler) GetUserAppeals(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    appeals,
+	})
+}
+
+// GetModerationAuditLogs retrieves audit logs with optional filters
+// GET /admin/moderation/audit
+func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Parse query parameters
+	moderatorID := c.Query("moderator_id")
+	actionType := c.Query("action")
+	startDate := c.DefaultQuery("start_date", "")
+	endDate := c.DefaultQuery("end_date", "")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	if limit < 1 || limit > 1000 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Build query with filters
+	query := `
+		SELECT 
+			md.id, md.queue_item_id, md.moderator_id, 
+			u.username as moderator_name,
+			md.action, 
+			mq.content_type, mq.content_id,
+			md.reason, md.metadata, md.created_at
+		FROM moderation_decisions md
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		LEFT JOIN users u ON md.moderator_id = u.id
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argIdx := 1
+
+	if moderatorID != "" {
+		moderatorUUID, err := uuid.Parse(moderatorID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid moderator ID",
+			})
+			return
+		}
+		query += fmt.Sprintf(" AND md.moderator_id = $%d", argIdx)
+		args = append(args, moderatorUUID)
+		argIdx++
+	}
+
+	if actionType != "" {
+		query += fmt.Sprintf(" AND md.action = $%d", argIdx)
+		args = append(args, actionType)
+		argIdx++
+	}
+
+	if startDate != "" {
+		query += fmt.Sprintf(" AND md.created_at >= $%d", argIdx)
+		args = append(args, startDate)
+		argIdx++
+	}
+
+	if endDate != "" {
+		query += fmt.Sprintf(" AND md.created_at <= $%d", argIdx)
+		args = append(args, endDate)
+		argIdx++
+	}
+
+	// Count total records for pagination
+	countQuery := strings.Replace(query, 
+		`SELECT 
+			md.id, md.queue_item_id, md.moderator_id, 
+			u.username as moderator_name,
+			md.action, 
+			mq.content_type, mq.content_id,
+			md.reason, md.metadata, md.created_at
+		FROM moderation_decisions md
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		LEFT JOIN users u ON md.moderator_id = u.id`, 
+		"SELECT COUNT(*) FROM moderation_decisions md JOIN moderation_queue mq ON md.queue_item_id = mq.id LEFT JOIN users u ON md.moderator_id = u.id", 1)
+	
+	var totalCount int
+	err := h.db.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to count audit logs",
+		})
+		return
+	}
+
+	// Add ordering and pagination
+	query += fmt.Sprintf(" ORDER BY md.created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	args = append(args, limit, offset)
+
+	rows, err := h.db.Query(ctx, query, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve audit logs",
+		})
+		return
+	}
+	defer rows.Close()
+
+	var logs []models.ModerationDecisionWithDetails
+	for rows.Next() {
+		var log models.ModerationDecisionWithDetails
+		err := rows.Scan(
+			&log.ID, &log.QueueItemID, &log.ModeratorID,
+			&log.ModeratorName, &log.Action,
+			&log.ContentType, &log.ContentID,
+			&log.Reason, &log.Metadata, &log.CreatedAt,
+		)
+		if err != nil {
+			c.Error(fmt.Errorf("failed to scan audit log: %w", err))
+			continue
+		}
+		logs = append(logs, log)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    logs,
+		"meta": gin.H{
+			"total":  totalCount,
+			"limit":  limit,
+			"offset": offset,
+		},
+	})
+}
+
+// GetModerationAnalytics retrieves analytics data for moderation actions
+// GET /admin/moderation/analytics
+func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Parse query parameters for date range
+	startDate := c.DefaultQuery("start_date", "")
+	endDate := c.DefaultQuery("end_date", "")
+
+	// Default to last 30 days if not specified
+	if startDate == "" {
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	analytics := models.ModerationAnalytics{
+		ActionsByType:        make(map[string]int),
+		ActionsByModerator:   make(map[string]int),
+		ContentTypeBreakdown: make(map[string]int),
+		ActionsOverTime:      []models.TimeSeriesPoint{},
+	}
+
+	// Total actions in date range
+	err := h.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM moderation_decisions
+		WHERE created_at >= $1 AND created_at <= $2
+	`, startDate, endDate).Scan(&analytics.TotalActions)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve analytics",
+		})
+		return
+	}
+
+	// Actions by type
+	rows, err := h.db.Query(ctx, `
+		SELECT action, COUNT(*)
+		FROM moderation_decisions
+		WHERE created_at >= $1 AND created_at <= $2
+		GROUP BY action
+		ORDER BY COUNT(*) DESC
+	`, startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve action breakdown",
+		})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var action string
+		var count int
+		if err := rows.Scan(&action, &count); err != nil {
+			continue
+		}
+		analytics.ActionsByType[action] = count
+	}
+	rows.Close()
+
+	// Actions by moderator (top 10)
+	rows, err = h.db.Query(ctx, `
+		SELECT u.username, COUNT(*)
+		FROM moderation_decisions md
+		JOIN users u ON md.moderator_id = u.id
+		WHERE md.created_at >= $1 AND md.created_at <= $2
+		GROUP BY u.username
+		ORDER BY COUNT(*) DESC
+		LIMIT 10
+	`, startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve moderator stats",
+		})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var username string
+		var count int
+		if err := rows.Scan(&username, &count); err != nil {
+			continue
+		}
+		analytics.ActionsByModerator[username] = count
+	}
+	rows.Close()
+
+	// Content type breakdown
+	rows, err = h.db.Query(ctx, `
+		SELECT mq.content_type, COUNT(*)
+		FROM moderation_decisions md
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		WHERE md.created_at >= $1 AND md.created_at <= $2
+		GROUP BY mq.content_type
+		ORDER BY COUNT(*) DESC
+	`, startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve content type breakdown",
+		})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var contentType string
+		var count int
+		if err := rows.Scan(&contentType, &count); err != nil {
+			continue
+		}
+		analytics.ContentTypeBreakdown[contentType] = count
+	}
+	rows.Close()
+
+	// Actions over time (daily aggregation)
+	rows, err = h.db.Query(ctx, `
+		SELECT 
+			DATE(created_at) as date,
+			COUNT(*) as count
+		FROM moderation_decisions
+		WHERE created_at >= $1 AND created_at <= $2
+		GROUP BY DATE(created_at)
+		ORDER BY date ASC
+	`, startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve time series data",
+		})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var point models.TimeSeriesPoint
+		if err := rows.Scan(&point.Date, &point.Count); err != nil {
+			continue
+		}
+		analytics.ActionsOverTime = append(analytics.ActionsOverTime, point)
+	}
+	rows.Close()
+
+	// Calculate average response time (time from queue creation to decision)
+	var avgResponseMinutes *float64
+	err = h.db.QueryRow(ctx, `
+		SELECT AVG(EXTRACT(EPOCH FROM (md.created_at - mq.created_at)) / 60)
+		FROM moderation_decisions md
+		JOIN moderation_queue mq ON md.queue_item_id = mq.id
+		WHERE md.created_at >= $1 AND md.created_at <= $2
+	`, startDate, endDate).Scan(&avgResponseMinutes)
+	if err == nil && avgResponseMinutes != nil {
+		analytics.AverageResponseTime = avgResponseMinutes
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    analytics,
 	})
 }

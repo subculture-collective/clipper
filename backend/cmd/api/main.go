@@ -1171,6 +1171,10 @@ func main() {
 					// Appeals management (admin)
 					moderation.GET("/appeals", moderationHandler.GetAppeals)
 					moderation.POST("/appeals/:id/resolve", moderationHandler.ResolveAppeal)
+
+					// Audit logs and analytics
+					moderation.GET("/audit", moderationHandler.GetModerationAuditLogs)
+					moderation.GET("/analytics", moderationHandler.GetModerationAnalytics)
 				}
 			}
 
