@@ -215,3 +215,91 @@ export async function resolveAppeal(
     );
     return response.data;
 }
+
+// ==================== AUDIT LOGS & ANALYTICS ====================
+
+export interface ModerationDecisionWithDetails {
+    id: string;
+    queue_item_id: string;
+    moderator_id: string;
+    moderator_name: string;
+    action: string;
+    content_type: string;
+    content_id: string;
+    reason?: string;
+    metadata?: string;
+    created_at: string;
+}
+
+export interface AuditLogsResponse {
+    success: boolean;
+    data: ModerationDecisionWithDetails[];
+    meta: {
+        total: number;
+        limit: number;
+        offset: number;
+    };
+}
+
+export interface TimeSeriesPoint {
+    date: string;
+    count: number;
+}
+
+export interface ModerationAnalytics {
+    total_actions: number;
+    actions_by_type: Record<string, number>;
+    actions_by_moderator: Record<string, number>;
+    actions_over_time: TimeSeriesPoint[];
+    content_type_breakdown: Record<string, number>;
+    average_response_time_minutes?: number;
+}
+
+export interface AnalyticsResponse {
+    success: boolean;
+    data: ModerationAnalytics;
+}
+
+/**
+ * Get moderation audit logs with filters
+ */
+export async function getModerationAuditLogs(params: {
+    moderator_id?: string;
+    action?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+}): Promise<AuditLogsResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.moderator_id) queryParams.append('moderator_id', params.moderator_id);
+    if (params.action) queryParams.append('action', params.action);
+    if (params.start_date) queryParams.append('start_date', params.start_date);
+    if (params.end_date) queryParams.append('end_date', params.end_date);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.offset) queryParams.append('offset', params.offset.toString());
+
+    const response = await apiClient.get<AuditLogsResponse>(
+        `/admin/moderation/audit?${queryParams.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Get moderation analytics
+ */
+export async function getModerationAnalytics(params: {
+    start_date?: string;
+    end_date?: string;
+}): Promise<AnalyticsResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.start_date) queryParams.append('start_date', params.start_date);
+    if (params.end_date) queryParams.append('end_date', params.end_date);
+
+    const response = await apiClient.get<AnalyticsResponse>(
+        `/admin/moderation/analytics?${queryParams.toString()}`
+    );
+    return response.data;
+}

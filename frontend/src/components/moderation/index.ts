@@ -2,3 +2,5 @@ export { AppealForm } from './AppealForm';
 export { AppealsQueue } from './AppealsQueue';
 export { AppealResolutionModal } from './AppealResolutionModal';
 export { UserAppealsStatus } from './UserAppealsStatus';
+export { ModerationAnalyticsDashboard } from './ModerationAnalyticsDashboard';
+export { AuditLogViewer } from './AuditLogViewer';
