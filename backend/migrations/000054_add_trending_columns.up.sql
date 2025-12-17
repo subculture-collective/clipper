@@ -38,7 +38,7 @@ BEGIN
     -- Return trending score (engagement divided by age with decay)
     RETURN engagement / age_hours;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql STABLE;
 
 -- Function to calculate hot score (velocity-based trending)
 -- Formula: current_engagement + (engagement_velocity * boost_factor)
@@ -70,6 +70,8 @@ UPDATE clips
 SET 
     engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
     trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
-    hot_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+    -- For existing clips without historical engagement, initialize hot_score from current engagement.
+    -- The scheduler will later update this using velocity-based calculations if needed.
+    hot_score = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
     popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
 WHERE is_removed = false;

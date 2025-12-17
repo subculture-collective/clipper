@@ -15,8 +15,8 @@ export function FeedFilters({
     onSortChange,
     onTimeframeChange,
 }: FeedFiltersProps) {
-    const sortOptions: { value: SortOption; label: string; icon?: string }[] = [
-        { value: 'trending', label: 'Trending 🔥', icon: '📈' },
+    const sortOptions: { value: SortOption; label: string }[] = [
+        { value: 'trending', label: 'Trending 🔥' },
         { value: 'hot', label: 'Hot' },
         { value: 'popular', label: 'Most Popular ⭐' },
         { value: 'new', label: 'New' },

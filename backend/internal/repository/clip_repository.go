@@ -1237,7 +1237,7 @@ UPDATE clips
 SET 
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
 trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
-hot_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+hot_score = trending_score,
 popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
 WHERE is_removed = false AND is_hidden = false
 `
@@ -1258,7 +1258,7 @@ UPDATE clips
 SET 
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
 trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
-hot_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+hot_score = trending_score,
 popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
 WHERE is_removed = false 
 AND is_hidden = false

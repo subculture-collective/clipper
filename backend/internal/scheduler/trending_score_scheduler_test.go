@@ -71,24 +71,35 @@ func TestTrendingScoreScheduler_Stop(t *testing.T) {
 	mockRepo := &mockTrendingScoreRepository{rowsAffected: 100}
 	scheduler := NewTrendingScoreScheduler(mockRepo, 60) // 60 minute interval
 	
-	go scheduler.Start(context.Background())
-	
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		scheduler.Start(ctx)
+	}()
+
 	// Wait a bit for scheduler to start
 	time.Sleep(50 * time.Millisecond)
-	
+
 	// Stop the scheduler
 	scheduler.Stop()
-	
-	// Give it time to stop
-	time.Sleep(50 * time.Millisecond)
-	
-	// Verify that the scheduler is stopped by checking call count doesn't increase
-	initialCount := mockRepo.getCallCount()
-	time.Sleep(100 * time.Millisecond)
-	finalCount := mockRepo.getCallCount()
-	
-	if finalCount != initialCount {
-		t.Errorf("Expected scheduler to be stopped, but call count increased from %d to %d", initialCount, finalCount)
+
+	// Verify that the scheduler stops by ensuring Start returns
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Scheduler stopped as expected
+	case <-time.After(1 * time.Second):
+		t.Fatal("Expected scheduler to stop, but Start did not return within timeout")
 	}
 }
 
