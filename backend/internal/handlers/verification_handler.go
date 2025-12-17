@@ -119,7 +119,7 @@ func (h *VerificationHandler) GetApplication(c *gin.Context) {
 	}
 	userID := userIDVal.(uuid.UUID)
 	
-	// Get latest application regardless of status
+	// Get latest application regardless of status (empty string means no status filter)
 	app, err := h.verificationRepo.GetApplicationByUserID(ctx, userID, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -254,16 +254,6 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		return
 	}
 	
-	// Begin transaction
-	tx, err := h.db.Begin(ctx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to begin transaction",
-		})
-		return
-	}
-	defer tx.Rollback(ctx)
-	
 	// Update application status
 	var notes string
 	if req.Notes != nil {
@@ -290,15 +280,6 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create decision audit entry",
-		})
-		return
-	}
-	
-	// Commit transaction
-	err = tx.Commit(ctx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to commit transaction",
 		})
 		return
 	}

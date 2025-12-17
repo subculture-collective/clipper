@@ -84,20 +84,40 @@ func (r *VerificationRepository) GetApplicationByID(ctx context.Context, id uuid
 	return app, err
 }
 
-// GetApplicationByUserID retrieves a user's pending verification application
+// GetApplicationByUserID retrieves a user's verification application by status
+// If status is empty, retrieves the most recent application regardless of status
 func (r *VerificationRepository) GetApplicationByUserID(ctx context.Context, userID uuid.UUID, status string) (*models.CreatorVerificationApplication, error) {
-	query := `
-		SELECT id, user_id, twitch_channel_url, follower_count, subscriber_count,
-			avg_viewers, content_description, social_media_links,
-			status, priority, reviewed_by, reviewed_at, reviewer_notes,
-			created_at, updated_at
-		FROM creator_verification_applications
-		WHERE user_id = $1 AND status = $2
-		ORDER BY created_at DESC
-		LIMIT 1`
+	var query string
+	var args []interface{}
+	
+	if status == "" {
+		// Get latest application regardless of status
+		query = `
+			SELECT id, user_id, twitch_channel_url, follower_count, subscriber_count,
+				avg_viewers, content_description, social_media_links,
+				status, priority, reviewed_by, reviewed_at, reviewer_notes,
+				created_at, updated_at
+			FROM creator_verification_applications
+			WHERE user_id = $1
+			ORDER BY created_at DESC
+			LIMIT 1`
+		args = []interface{}{userID}
+	} else {
+		// Get latest application with specific status
+		query = `
+			SELECT id, user_id, twitch_channel_url, follower_count, subscriber_count,
+				avg_viewers, content_description, social_media_links,
+				status, priority, reviewed_by, reviewed_at, reviewer_notes,
+				created_at, updated_at
+			FROM creator_verification_applications
+			WHERE user_id = $1 AND status = $2
+			ORDER BY created_at DESC
+			LIMIT 1`
+		args = []interface{}{userID, status}
+	}
 
 	app := &models.CreatorVerificationApplication{}
-	err := r.db.QueryRow(ctx, query, userID, status).Scan(
+	err := r.db.QueryRow(ctx, query, args...).Scan(
 		&app.ID,
 		&app.UserID,
 		&app.TwitchChannelURL,
@@ -116,7 +136,7 @@ func (r *VerificationRepository) GetApplicationByUserID(ctx context.Context, use
 	)
 
 	if err == pgx.ErrNoRows {
-		return nil, nil // No pending application is not an error
+		return nil, nil // No application is not an error
 	}
 	return app, err
 }

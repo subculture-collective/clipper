@@ -54,7 +54,7 @@ export function AdminVerificationQueuePage() {
             const response = await getVerificationApplications(statusFilter, 50);
             setApplications(response.data || []);
         } catch (err: unknown) {
-            setError(getErrorMessage(err) || 'Failed to load verification applications');
+            setError(getErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
