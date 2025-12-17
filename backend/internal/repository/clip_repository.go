@@ -326,6 +326,7 @@ type ClipFilters struct {
 	ShowHidden        bool    // If true, include hidden clips (for owners/admins)
 	CreatorID         *string // Filter by creator ID (for creator dashboard)
 	UserSubmittedOnly bool    // If true, only show clips with submitted_by_user_id IS NOT NULL
+	Cursor            *string // Cursor for cursor-based pagination (base64 encoded)
 }
 
 // buildDateFilterClauses adds date range and timeframe filtering clauses
@@ -459,6 +460,73 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 // Add date range and timeframe filtering
 	whereClauses = buildDateFilterClauses(filters, whereClauses)
 
+	// Add cursor-based filtering if cursor is provided
+	if filters.Cursor != nil && *filters.Cursor != "" {
+		cursor, err := utils.DecodeCursor(*filters.Cursor)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		// Validate that cursor sort key matches requested sort
+		if cursor.SortKey != filters.Sort {
+			return nil, 0, fmt.Errorf("cursor sort key %q does not match requested sort %q", cursor.SortKey, filters.Sort)
+		}
+
+		// Add cursor WHERE clause based on sort type
+		// For DESC sorts: WHERE (sort_field < cursor_value) OR (sort_field = cursor_value AND id < cursor_id)
+		// This ensures stable pagination even with duplicate sort values
+		cursorTimestamp := time.Unix(cursor.CreatedAt, 0)
+		
+		switch filters.Sort {
+		case "trending":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) < %s OR (COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "popular":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) < %s OR (COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "new":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
+			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 3
+		case "top":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.vote_score < %s OR (c.vote_score = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "discussed":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.comment_count < %s OR (c.comment_count = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "hot", "rising":
+			// For hot and rising, we use created_at as the cursor since the score is dynamically calculated
+			// Note: This means pagination is based on created_at, not the hot/rising score
+			// This is a known limitation but avoids storing calculated scores
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
+			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 3
+		default:
+			// Default to hot score behavior
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
+			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 3
+		}
+	}
+
 	whereClause := "WHERE " + whereClauses[0]
 	for i := 1; i < len(whereClauses); i++ {
 		whereClause += " AND " + whereClauses[i]
@@ -468,25 +536,25 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	var orderBy string
 	switch filters.Sort {
 	case "hot":
-		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC"
+		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC, c.created_at DESC, c.id DESC"
 	case "new":
-		orderBy = "ORDER BY c.created_at DESC"
+		orderBy = "ORDER BY c.created_at DESC, c.id DESC"
 	case "top":
-		orderBy = "ORDER BY c.vote_score DESC, c.created_at DESC"
+		orderBy = "ORDER BY c.vote_score DESC, c.created_at DESC, c.id DESC"
 	case "trending":
 		// Trending: uses pre-calculated trending_score (engagement/age) with fallback to real-time calculation
-		orderBy = "ORDER BY COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) DESC, c.created_at DESC"
+		orderBy = "ORDER BY COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) DESC, c.created_at DESC, c.id DESC"
 	case "popular":
 		// Popular: uses pre-calculated popularity_index (total engagement) with fallback
-		orderBy = "ORDER BY COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) DESC, c.created_at DESC"
+		orderBy = "ORDER BY COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) DESC, c.created_at DESC, c.id DESC"
 	case "rising":
 		// Rising: recent clips with high velocity (view_count + vote_score combined with recency)
-		orderBy = "ORDER BY (c.vote_score + (c.view_count / 100)) * (1 + 1.0 / (EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600.0 + 2)) DESC"
+		orderBy = "ORDER BY (c.vote_score + (c.view_count / 100)) * (1 + 1.0 / (EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600.0 + 2)) DESC, c.created_at DESC, c.id DESC"
 	case "discussed":
 		// Discussed: clips with most comments, breaking ties by creation date
-		orderBy = "ORDER BY c.comment_count DESC, c.created_at DESC"
+		orderBy = "ORDER BY c.comment_count DESC, c.created_at DESC, c.id DESC"
 	default:
-		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC"
+		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC, c.created_at DESC, c.id DESC"
 	}
 
 	// Count query

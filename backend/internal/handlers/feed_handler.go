@@ -11,6 +11,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 // validateDateFilter validates and normalizes a date string expected to be in ISO 8601 format
@@ -438,6 +439,7 @@ func (h *FeedHandler) GetFollowingFeed(c *gin.Context) {
 
 // GetFilteredClips handles comprehensive feed filtering with multiple criteria
 // GET /api/v1/feeds/clips
+// Supports both offset-based (legacy) and cursor-based pagination
 func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 	// Parse query parameters
 	games := c.QueryArray("filter[game]")
@@ -448,10 +450,20 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 	sort := c.DefaultQuery("sort", "trending")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	cursor := c.Query("cursor") // Cursor for cursor-based pagination
+
+	// Validate and normalize sort parameter
+	validSorts := map[string]bool{
+		"trending": true, "popular": true, "new": true, 
+		"top": true, "discussed": true, "hot": true, "rising": true,
+	}
+	if !validSorts[sort] {
+		sort = "trending" // Default to trending for invalid sorts
+	}
 
 	// Validate and constrain parameters
-	if limit < 1 || limit > 100 {
-		limit = 20
+	if limit < 10 || limit > 100 {
+		limit = 20 // Default to 20 for out-of-range values
 	}
 	if offset < 0 {
 		offset = 0
@@ -481,6 +493,12 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		UserSubmittedOnly: true, // Only show user-submitted clips in feed
 	}
 
+	// Apply cursor if provided (takes precedence over offset)
+	if cursor != "" {
+		filters.Cursor = &cursor
+		offset = 0 // Ignore offset when using cursor
+	}
+
 	// Apply game filters (currently single-select; multi-select requires backend changes)
 	if len(games) > 0 {
 		filters.GameID = &games[0]
@@ -504,27 +522,90 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		filters.DateTo = &validatedDateTo
 	}
 
-	// Fetch clips using feed service
-	clips, total, err := h.feedService.GetFilteredClips(c.Request.Context(), filters, limit, offset)
+	// Fetch clips using feed service (fetch limit+1 to check if there are more)
+	fetchLimit := limit + 1
+	clips, total, err := h.feedService.GetFilteredClips(c.Request.Context(), filters, fetchLimit, offset)
 	if err != nil {
 		log.Printf("Error fetching filtered clips: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve filtered clips"})
+		// Check if error is cursor-related (client error)
+		if filters.Cursor != nil && *filters.Cursor != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cursor: " + err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve filtered clips"})
+		}
 		return
 	}
 
-	totalPages := (total + limit - 1) / limit
+	// Determine if there are more results
+	hasMore := len(clips) > limit
+	if hasMore {
+		clips = clips[:limit] // Trim to requested limit
+	}
+
+	// Generate next cursor from the last clip
+	var nextCursor *string
+	if hasMore && len(clips) > 0 {
+		lastClip := clips[len(clips)-1]
+		var sortValue float64
+		switch sort {
+		case "trending":
+			// Use coalesced value to match query behavior
+			if lastClip.TrendingScore != 0 {
+				sortValue = lastClip.TrendingScore
+			} else {
+				// Fallback: estimate trending score if not calculated
+				// This matches the COALESCE behavior in the query
+				sortValue = float64(lastClip.CreatedAt.Unix())
+			}
+		case "popular":
+			// Use coalesced value to match query behavior
+			if lastClip.PopularityIndex != 0 {
+				sortValue = float64(lastClip.PopularityIndex)
+			} else if lastClip.EngagementCount != 0 {
+				sortValue = float64(lastClip.EngagementCount)
+			} else {
+				// Fallback calculation matching COALESCE
+				sortValue = float64(lastClip.ViewCount + lastClip.VoteScore*2 + lastClip.CommentCount*3 + lastClip.FavoriteCount*2)
+			}
+		case "new":
+			sortValue = float64(lastClip.CreatedAt.Unix())
+		case "top":
+			sortValue = float64(lastClip.VoteScore)
+		case "discussed":
+			sortValue = float64(lastClip.CommentCount)
+		case "hot", "rising":
+			sortValue = float64(lastClip.CreatedAt.Unix())
+		default:
+			sortValue = float64(lastClip.CreatedAt.Unix())
+		}
+		encodedCursor := utils.EncodeCursor(sort, sortValue, lastClip.ID, lastClip.CreatedAt.Unix())
+		nextCursor = &encodedCursor
+	}
+
+	// Build pagination response
+	paginationResponse := gin.H{
+		"limit":    limit,
+		"offset":   offset,
+		"has_more": hasMore,
+	}
+
+	// Only include total and total_pages for offset-based pagination to avoid COUNT(*) overhead with cursors
+	if cursor == "" {
+		totalPages := (total + limit - 1) / limit
+		paginationResponse["total"] = total
+		paginationResponse["total_pages"] = totalPages
+	}
+
+	// Add cursor to response if generated
+	if nextCursor != nil {
+		paginationResponse["cursor"] = *nextCursor
+	}
 
 	// Return response with filter metadata
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"clips":   clips,
-		"pagination": gin.H{
-			"limit":       limit,
-			"offset":      offset,
-			"total":       total,
-			"total_pages": totalPages,
-			"has_more":    offset+limit < total,
-		},
+		"success":    true,
+		"clips":      clips,
+		"pagination": paginationResponse,
 		"filters_applied": gin.H{
 			"games":     games,
 			"streamers": streamers,

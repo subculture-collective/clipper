@@ -11,13 +11,17 @@ import type {
  * Helper function to build clip query parameters from filters
  */
 function buildClipParams(
-    pageParam: number,
+    cursor: string | undefined,
     filters?: ClipFeedFilters
 ): Record<string, string | number | boolean> {
     const params: Record<string, string | number | boolean> = {
-        page: pageParam,
-        limit: 10,
+        limit: 20,
     };
+
+    // Add cursor for cursor-based pagination
+    if (cursor) {
+        params.cursor = cursor;
+    }
 
     // Add filters to params, only if they are defined
     if (filters) {
@@ -58,33 +62,37 @@ function buildClipParams(
  * Fetch clips with pagination and filters
  */
 export async function fetchClips({
-    pageParam = 1,
+    cursor,
     filters,
 }: {
-    pageParam?: number;
+    cursor?: string;
     filters?: ClipFeedFilters;
 }): Promise<ClipFeedResponse> {
-    const params = buildClipParams(pageParam, filters);
+    const params = buildClipParams(cursor, filters);
 
     const response = await apiClient.get<{
         success: boolean;
-        data: Clip[];
-        meta: {
-            page: number;
+        clips: Clip[];
+        pagination: {
             limit: number;
+            offset: number;
             total: number;
-            total_pages: number;
-            has_next: boolean;
-            has_prev: boolean;
+            total_pages?: number;
+            has_more: boolean;
+            cursor?: string;
         };
-    }>('/clips', { params });
+    }>('/feeds/clips', { params });
 
     return {
-        clips: response.data.data,
-        total: response.data.meta.total,
-        page: response.data.meta.page,
-        limit: response.data.meta.limit,
-        has_more: response.data.meta.has_next,
+        clips: response.data.clips,
+        total: response.data.pagination.total,
+        // Only calculate page for offset-based pagination
+        page: response.data.pagination.cursor 
+            ? 1 
+            : Math.floor(response.data.pagination.offset / response.data.pagination.limit) + 1,
+        limit: response.data.pagination.limit,
+        has_more: response.data.pagination.has_more,
+        cursor: response.data.pagination.cursor,
     };
 }
 
@@ -98,7 +106,19 @@ export async function fetchScrapedClips({
     pageParam?: number;
     filters?: ClipFeedFilters;
 }): Promise<ClipFeedResponse> {
-    const params = buildClipParams(pageParam, filters);
+    const params: Record<string, string | number | boolean> = {
+        page: pageParam,
+        limit: 10,
+    };
+
+    // Add filters manually for scraped clips (still uses offset pagination)
+    if (filters) {
+        if (filters.sort) params.sort = filters.sort;
+        if (filters.timeframe) params.timeframe = filters.timeframe;
+        if (filters.game_id) params.game_id = filters.game_id;
+        if (filters.creator_id) params.creator_id = filters.creator_id;
+        if (filters.language) params.language = filters.language;
+    }
 
     const response = await apiClient.get<{
         success: boolean;

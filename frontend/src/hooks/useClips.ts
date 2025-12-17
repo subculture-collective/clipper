@@ -17,12 +17,12 @@ import {
 export const useClipFeed = (filters?: ClipFeedFilters) => {
     return useInfiniteQuery({
         queryKey: ['clips', filters],
-        queryFn: ({ pageParam = 1 }) =>
-            clipApi.fetchClips({ pageParam, filters }),
+        queryFn: ({ pageParam }) =>
+            clipApi.fetchClips({ cursor: pageParam, filters }),
         getNextPageParam: (lastPage) => {
-            return lastPage.has_more ? lastPage.page + 1 : undefined;
+            return lastPage.has_more ? lastPage.cursor : undefined;
         },
-        initialPageParam: 1,
+        initialPageParam: undefined as string | undefined,
     });
 };
 
