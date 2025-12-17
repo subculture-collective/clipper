@@ -128,9 +128,13 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 
 	successCount := 0
 	for _, event := range events {
-		propsJSON, _ := json.Marshal(event.Properties)
+		propsJSON, err := json.Marshal(event.Properties)
+		if err != nil {
+			log.Printf("Error marshaling event properties: %v", err)
+			continue
+		}
 
-		_, err := stmt.ExecContext(ctx, query,
+		_, err = stmt.ExecContext(ctx,
 			event.ID, event.EventType, event.UserID, event.SessionID,
 			event.Timestamp, propsJSON, event.CreatedAt)
 

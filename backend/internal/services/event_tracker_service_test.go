@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -128,12 +127,6 @@ func TestNewEventTracker_CustomValues(t *testing.T) {
 func TestEventTracker_TrackEvent(t *testing.T) {
 	et := NewEventTracker(nil, 100, 5*time.Second)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start the tracker in background
-	go et.Start(ctx)
-
 	userID := uuid.New()
 	event := models.Event{
 		EventType: models.EventFeedViewed,
@@ -144,13 +137,11 @@ func TestEventTracker_TrackEvent(t *testing.T) {
 		},
 	}
 
+	// Note: We can't test actual persistence without a real DB,
+	// but we can verify the event is accepted and queued
 	err := et.TrackEvent(event)
 	assert.NoError(t, err)
-
-	// Give it a moment to process
-	time.Sleep(50 * time.Millisecond)
-
-	// Event should be in the channel or processed
-	// Since we don't have a real DB, we can't verify actual persistence
-	// But we can verify the event was accepted without error
+	
+	// TrackEvent modifies the event internally but doesn't return it,
+	// so we just verify no error occurred which means the event was queued
 }

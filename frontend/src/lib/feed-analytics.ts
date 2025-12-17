@@ -15,7 +15,7 @@ interface QueuedEvent extends Event {
 export class FeedAnalytics {
   private sessionId: string;
   private eventQueue: Event[] = [];
-  private readonly maxQueueSize = 10;
+  private readonly maxQueueSize = 10; // Smaller queue for faster delivery, backend batches up to 100
   private readonly flushInterval = 5000; // 5 seconds
   private flushTimer: number | null = null;
   private lastFilterTime = 0;
@@ -34,7 +34,7 @@ export class FeedAnalytics {
     // Check if session ID exists in sessionStorage
     let sessionId = sessionStorage.getItem('analytics_session_id');
     if (!sessionId) {
-      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       sessionStorage.setItem('analytics_session_id', sessionId);
     }
     return sessionId;
