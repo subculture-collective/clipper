@@ -68,6 +68,7 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m => ({ default: m.RoleBadgeTestPage })));
+const VerifiedBadgeTestPage = lazy(() => import('./pages/VerifiedBadgeTestPage').then(m => ({ default: m.VerifiedBadgeTestPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -119,7 +120,10 @@ function App() {
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
                     {import.meta.env.DEV && (
-                      <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                      <>
+                        <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                        <Route path="/test/verified-badge" element={<VerifiedBadgeTestPage />} />
+                      </>
                     )}
 
                     {/* Guest Routes (redirect to home if authenticated) */}

@@ -3,6 +3,7 @@ export interface ClipSubmitter {
     username: string;
     display_name: string;
     avatar_url?: string;
+    is_verified?: boolean;
 }
 
 export interface Clip {

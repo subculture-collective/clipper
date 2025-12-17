@@ -1,5 +1,6 @@
 import { TagList } from '@/components/tag/TagList';
 import { Badge } from '@/components/ui';
+import { VerifiedBadge } from '@/components/user';
 import { useClipFavorite, useClipVote } from '@/hooks/useClips';
 import { useIsAuthenticated, useToast } from '@/hooks';
 import { cn, formatTimestamp } from '@/lib/utils';
@@ -173,7 +174,7 @@ export function ClipCard({ clip }: ClipCardProps) {
                         {clip.submitted_by && (
                             <>
                                 <span className='hidden xs:inline'>•</span>
-                                <span>
+                                <span className='inline-flex items-center gap-1'>
                                     Submitted by{' '}
                                     <Link
                                         to={`/user/${clip.submitted_by.username}`}
@@ -181,6 +182,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                                     >
                                         {clip.submitted_by.display_name}
                                     </Link>
+                                    {clip.submitted_by.is_verified && (
+                                        <VerifiedBadge size="sm" />
+                                    )}
                                 </span>
                             </>
                         )}
