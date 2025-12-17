@@ -473,6 +473,12 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		orderBy = "ORDER BY c.created_at DESC"
 	case "top":
 		orderBy = "ORDER BY c.vote_score DESC, c.created_at DESC"
+	case "trending":
+		// Trending: uses pre-calculated trending_score (engagement/age) with fallback to real-time calculation
+		orderBy = "ORDER BY COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) DESC, c.created_at DESC"
+	case "popular":
+		// Popular: uses pre-calculated popularity_index (total engagement) with fallback
+		orderBy = "ORDER BY COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) DESC, c.created_at DESC"
 	case "rising":
 		// Rising: recent clips with high velocity (view_count + vote_score combined with recency)
 		orderBy = "ORDER BY (c.vote_score + (c.view_count / 100)) * (1 + 1.0 / (EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600.0 + 2)) DESC"
@@ -500,7 +506,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
 			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
-			c.submitted_by_user_id, c.submitted_at
+			c.submitted_by_user_id, c.submitted_at,
+			c.trending_score, c.hot_score, c.popularity_index, c.engagement_count
 		FROM clips c
 		%s
 		%s
@@ -524,6 +531,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
 			&clip.SubmittedByUserID, &clip.SubmittedAt,
+			&clip.TrendingScore, &clip.HotScore, &clip.PopularityIndex, &clip.EngagementCount,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
@@ -1219,4 +1227,48 @@ AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 	}
 
 	return clips, total, nil
+}
+
+// UpdateTrendingScores updates trending_score, hot_score, popularity_index, and engagement_count for all clips
+// This should be called periodically (e.g., hourly) by a scheduler job
+func (r *ClipRepository) UpdateTrendingScores(ctx context.Context) (int64, error) {
+query := `
+UPDATE clips
+SET 
+engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
+trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+hot_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
+WHERE is_removed = false AND is_hidden = false
+`
+
+result, err := r.pool.Exec(ctx, query)
+if err != nil {
+return 0, fmt.Errorf("failed to update trending scores: %w", err)
+}
+
+return result.RowsAffected(), nil
+}
+
+// UpdateTrendingScoresForTimeWindow updates trending scores for clips within a specific time window
+// This can be used to update only recent clips for better performance
+func (r *ClipRepository) UpdateTrendingScoresForTimeWindow(ctx context.Context, hours int) (int64, error) {
+query := `
+UPDATE clips
+SET 
+engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
+trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+hot_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
+WHERE is_removed = false 
+AND is_hidden = false
+AND created_at > NOW() - INTERVAL '1 hour' * $1
+`
+
+result, err := r.pool.Exec(ctx, query, hours)
+if err != nil {
+return 0, fmt.Errorf("failed to update trending scores for time window: %w", err)
+}
+
+return result.RowsAffected(), nil
 }
