@@ -9,3 +9,7 @@ export { useShare } from './useShare';
 export type { ShareData } from './useShare';
 export { useDebounce } from './useDebounce';
 export { useVolumePreference } from './useVolumePreference';
+export { useQualityPreference } from './useQualityPreference';
+export { useTheatreMode } from './useTheatreMode';
+export { useKeyboardControls } from './useKeyboardControls';
+export type { KeyboardControlHandlers } from './useKeyboardControls';
