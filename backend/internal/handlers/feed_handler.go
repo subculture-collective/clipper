@@ -11,6 +11,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/internal/utils"
 )
 
 // validateDateFilter validates and normalizes a date string expected to be in ISO 8601 format
@@ -438,6 +439,7 @@ func (h *FeedHandler) GetFollowingFeed(c *gin.Context) {
 
 // GetFilteredClips handles comprehensive feed filtering with multiple criteria
 // GET /api/v1/feeds/clips
+// Supports both offset-based (legacy) and cursor-based pagination
 func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 	// Parse query parameters
 	games := c.QueryArray("filter[game]")
@@ -448,9 +450,10 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 	sort := c.DefaultQuery("sort", "trending")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	cursor := c.Query("cursor") // Cursor for cursor-based pagination
 
 	// Validate and constrain parameters
-	if limit < 1 || limit > 100 {
+	if limit < 10 || limit > 100 {
 		limit = 20
 	}
 	if offset < 0 {
@@ -481,6 +484,12 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		UserSubmittedOnly: true, // Only show user-submitted clips in feed
 	}
 
+	// Apply cursor if provided (takes precedence over offset)
+	if cursor != "" {
+		filters.Cursor = &cursor
+		offset = 0 // Ignore offset when using cursor
+	}
+
 	// Apply game filters (currently single-select; multi-select requires backend changes)
 	if len(games) > 0 {
 		filters.GameID = &games[0]
@@ -504,27 +513,71 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		filters.DateTo = &validatedDateTo
 	}
 
-	// Fetch clips using feed service
-	clips, total, err := h.feedService.GetFilteredClips(c.Request.Context(), filters, limit, offset)
+	// Fetch clips using feed service (fetch limit+1 to check if there are more)
+	fetchLimit := limit + 1
+	clips, total, err := h.feedService.GetFilteredClips(c.Request.Context(), filters, fetchLimit, offset)
 	if err != nil {
 		log.Printf("Error fetching filtered clips: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve filtered clips"})
 		return
 	}
 
+	// Determine if there are more results
+	hasMore := len(clips) > limit
+	if hasMore {
+		clips = clips[:limit] // Trim to requested limit
+	}
+
+	// Generate next cursor from the last clip
+	var nextCursor *string
+	if hasMore && len(clips) > 0 {
+		lastClip := clips[len(clips)-1]
+		var sortValue float64
+		switch sort {
+		case "trending":
+			sortValue = lastClip.TrendingScore
+		case "popular":
+			sortValue = float64(lastClip.PopularityIndex)
+		case "new":
+			sortValue = float64(lastClip.CreatedAt.Unix())
+		case "top":
+			sortValue = float64(lastClip.VoteScore)
+		case "discussed":
+			sortValue = float64(lastClip.CommentCount)
+		case "hot", "rising":
+			sortValue = float64(lastClip.CreatedAt.Unix())
+		default:
+			sortValue = float64(lastClip.CreatedAt.Unix())
+		}
+		encodedCursor := utils.EncodeCursor(sort, sortValue, lastClip.ID, lastClip.CreatedAt.Unix())
+		nextCursor = &encodedCursor
+	}
+
 	totalPages := (total + limit - 1) / limit
+
+	// Build pagination response
+	paginationResponse := gin.H{
+		"limit":    limit,
+		"offset":   offset,
+		"total":    total,
+		"has_more": hasMore,
+	}
+
+	// Add cursor to response if generated
+	if nextCursor != nil {
+		paginationResponse["cursor"] = *nextCursor
+	}
+
+	// Add total_pages for backward compatibility (less meaningful with cursor pagination)
+	if cursor == "" {
+		paginationResponse["total_pages"] = totalPages
+	}
 
 	// Return response with filter metadata
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"clips":   clips,
-		"pagination": gin.H{
-			"limit":       limit,
-			"offset":      offset,
-			"total":       total,
-			"total_pages": totalPages,
-			"has_more":    offset+limit < total,
-		},
+		"success":    true,
+		"clips":      clips,
+		"pagination": paginationResponse,
 		"filters_applied": gin.H{
 			"games":     games,
 			"streamers": streamers,
