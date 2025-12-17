@@ -2,19 +2,19 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"log"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
 // EventTracker handles batching and writing of feed analytics events
 type EventTracker struct {
-	db            *sql.DB
+	db            *pgxpool.Pool
 	eventBatch    chan models.Event
 	batchSize     int
 	flushInterval time.Duration
@@ -24,7 +24,7 @@ type EventTracker struct {
 }
 
 // NewEventTracker creates a new event tracker with batching
-func NewEventTracker(db *sql.DB, batchSize int, flushInterval time.Duration) *EventTracker {
+func NewEventTracker(db *pgxpool.Pool, batchSize int, flushInterval time.Duration) *EventTracker {
 	if batchSize <= 0 {
 		batchSize = 100
 	}
@@ -112,19 +112,12 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 	`
 
 	// Use a transaction for better performance
-	tx, err := et.db.BeginTx(ctx, nil)
+	tx, err := et.db.Begin(ctx)
 	if err != nil {
 		log.Printf("Error starting transaction: %v", err)
 		return err
 	}
-	defer tx.Rollback()
-
-	stmt, err := tx.PrepareContext(ctx, query)
-	if err != nil {
-		log.Printf("Error preparing statement: %v", err)
-		return err
-	}
-	defer stmt.Close()
+	defer tx.Rollback(ctx)
 
 	successCount := 0
 	for _, event := range events {
@@ -134,7 +127,7 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 			continue
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		_, err = tx.Exec(ctx, query,
 			event.ID, event.EventType, event.UserID, event.SessionID,
 			event.Timestamp, propsJSON, event.CreatedAt)
 
@@ -146,7 +139,7 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		log.Printf("Error committing transaction: %v", err)
 		return err
 	}
@@ -206,7 +199,7 @@ func (et *EventTracker) GetHourlyMetrics(ctx context.Context, eventType string, 
 		ORDER BY hour DESC
 	`
 
-	rows, err := et.db.QueryContext(ctx, query, eventType, hours)
+	rows, err := et.db.Query(ctx, query, eventType, hours)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +231,7 @@ func (et *EventTracker) GetFeedMetrics(ctx context.Context, hours int) (map[stri
 		ORDER BY total_count DESC
 	`
 
-	rows, err := et.db.QueryContext(ctx, query, hours)
+	rows, err := et.db.Query(ctx, query, hours)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +265,7 @@ func (et *EventTracker) GetFeedMetrics(ctx context.Context, hours int) (map[stri
 // RefreshHourlyMetrics refreshes the materialized view (call via cron job)
 func (et *EventTracker) RefreshHourlyMetrics(ctx context.Context) error {
 	query := `SELECT refresh_events_hourly_metrics()`
-	_, err := et.db.ExecContext(ctx, query)
+	_, err := et.db.Exec(ctx, query)
 	if err != nil {
 		log.Printf("Error refreshing hourly metrics: %v", err)
 		return err

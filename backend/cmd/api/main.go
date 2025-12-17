@@ -904,8 +904,8 @@ func main() {
 
 			// Feed analytics and performance monitoring routes
 			feeds.POST("/events", middleware.RateLimitMiddleware(redisClient, 100, time.Minute), eventHandler.TrackEvent)
-			feeds.GET("/analytics", middleware.AuthMiddleware(authService), middleware.RequireAdminRole(), eventHandler.GetFeedMetrics)
-			feeds.GET("/analytics/hourly", middleware.AuthMiddleware(authService), middleware.RequireAdminRole(), eventHandler.GetHourlyMetrics)
+			feeds.GET("/analytics", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), eventHandler.GetFeedMetrics)
+			feeds.GET("/analytics/hourly", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), eventHandler.GetHourlyMetrics)
 		}
 
 		// Events tracking (can also be accessed directly via /api/events for backward compatibility)
