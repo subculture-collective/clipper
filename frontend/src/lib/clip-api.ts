@@ -86,7 +86,10 @@ export async function fetchClips({
     return {
         clips: response.data.clips,
         total: response.data.pagination.total,
-        page: Math.floor(response.data.pagination.offset / response.data.pagination.limit) + 1,
+        // Only calculate page for offset-based pagination
+        page: response.data.pagination.cursor 
+            ? 1 
+            : Math.floor(response.data.pagination.offset / response.data.pagination.limit) + 1,
         limit: response.data.pagination.limit,
         has_more: response.data.pagination.has_more,
         cursor: response.data.pagination.cursor,

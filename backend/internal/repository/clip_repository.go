@@ -467,6 +467,11 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			return nil, 0, fmt.Errorf("invalid cursor: %w", err)
 		}
 
+		// Validate that cursor sort key matches requested sort
+		if cursor.SortKey != filters.Sort {
+			return nil, 0, fmt.Errorf("cursor sort key %q does not match requested sort %q", cursor.SortKey, filters.Sort)
+		}
+
 		// Add cursor WHERE clause based on sort type
 		// For DESC sorts: WHERE (sort_field < cursor_value) OR (sort_field = cursor_value AND id < cursor_id)
 		// This ensures stable pagination even with duplicate sort values
@@ -505,6 +510,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			argIndex += 5
 		case "hot", "rising":
 			// For hot and rising, we use created_at as the cursor since the score is dynamically calculated
+			// Note: This means pagination is based on created_at, not the hot/rising score
+			// This is a known limitation but avoids storing calculated scores
 			whereClauses = append(whereClauses, fmt.Sprintf(
 				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
 				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
