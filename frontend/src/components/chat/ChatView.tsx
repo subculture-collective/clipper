@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
+import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
+import { useAuth } from '@/hooks/useAuth';
 import { MessageList } from './MessageList';
 import { MessageComposer } from './MessageComposer';
 import { TypingIndicator } from './TypingIndicator';
 import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
+import { Bell, BellOff } from 'lucide-react';
 
 interface ChatViewProps {
   channelId: string;
@@ -15,8 +19,30 @@ interface ChatViewProps {
  */
 export function ChatView({ channelId, channelName }: ChatViewProps) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const { user } = useAuth();
+  const {
+    permission,
+    requestPermission,
+    showNotification,
+    isSupported,
+  } = useDesktopNotifications();
+  
   const { messages, sendMessage, sendTyping, isConnected, error } = useChatWebSocket({
     channelId,
+    onMessage: (message) => {
+      // Show desktop notification for mentions
+      if (
+        user &&
+        message.content.includes(`@${user.username}`) &&
+        message.user_id !== user.id
+      ) {
+        showNotification({
+          title: `${channelName || channelId}: ${message.username} mentioned you`,
+          body: message.content,
+          tag: `mention-${message.id}`,
+        });
+      }
+    },
     onTyping: (username: string) => {
       setTypingUsers((prev) => {
         if (!prev.includes(username)) {
@@ -34,6 +60,15 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
 
   const handleSend = (content: string) => {
     sendMessage(content);
+  };
+
+  const handleNotificationToggle = async () => {
+    if (permission === 'granted') {
+      // Can't revoke permission programmatically, just inform user
+      alert('Please manage notification permissions in your browser settings');
+    } else {
+      await requestPermission();
+    }
   };
 
   return (
@@ -56,6 +91,26 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
             </span>
           </div>
         </div>
+
+        {/* Notification toggle */}
+        {isSupported && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleNotificationToggle}
+            aria-label={
+              permission === 'granted'
+                ? 'Notifications enabled'
+                : 'Enable notifications'
+            }
+          >
+            {permission === 'granted' ? (
+              <Bell className="w-4 h-4" />
+            ) : (
+              <BellOff className="w-4 h-4" />
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Error message */}

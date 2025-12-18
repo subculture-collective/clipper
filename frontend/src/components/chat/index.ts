@@ -11,3 +11,4 @@ export { MessageItem } from './MessageItem';
 export { MessageList } from './MessageList';
 export { EmojiPicker } from './EmojiPicker';
 export { TypingIndicator } from './TypingIndicator';
+export { LinkPreview } from './LinkPreview';

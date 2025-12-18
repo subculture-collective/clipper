@@ -1,4 +1,5 @@
 import React from 'react';
+import { LinkPreview } from './LinkPreview';
 
 interface MessageContentProps {
   content: string;
@@ -40,19 +41,9 @@ export function MessageContent({ content }: MessageContentProps) {
           );
         }
 
-        // URL link
+        // URL link with preview
         if (part.startsWith('http')) {
-          return (
-            <a
-              key={i}
-              href={part}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary-600 dark:text-primary-400 hover:underline break-all"
-            >
-              {part}
-            </a>
-          );
+          return <LinkPreview key={i} url={part} />;
         }
 
         // Multi-line code block
