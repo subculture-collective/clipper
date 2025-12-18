@@ -352,3 +352,245 @@ func TestCheckUserBan_InvalidChannelID(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
+
+// TestDeleteChannel_Unauthorized tests that unauthorized requests are rejected
+func TestDeleteChannel_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/channels/"+uuid.New().String(), http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: uuid.New().String()},
+	}
+
+	handler.DeleteChannel(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestDeleteChannel_InvalidChannelID tests that invalid channel IDs are rejected
+func TestDeleteChannel_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	userID := uuid.New()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/channels/invalid", http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", userID)
+	c.Params = gin.Params{
+		{Key: "id", Value: "invalid"},
+	}
+
+	handler.DeleteChannel(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestAddChannelMember_Unauthorized tests that unauthorized requests are rejected
+func TestAddChannelMember_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	channelID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/channels/"+channelID.String()+"/members",
+		strings.NewReader(`{"user_id":"`+uuid.New().String()+`"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID.String()},
+	}
+
+	handler.AddChannelMember(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestAddChannelMember_InvalidChannelID tests that invalid channel IDs are rejected
+func TestAddChannelMember_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	userID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/channels/invalid/members",
+		strings.NewReader(`{"user_id":"`+uuid.New().String()+`"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", userID)
+	c.Params = gin.Params{
+		{Key: "id", Value: "invalid"},
+	}
+
+	handler.AddChannelMember(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestAddChannelMember_InvalidRequest tests that invalid requests are rejected
+func TestAddChannelMember_InvalidRequest(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	userID := uuid.New()
+	channelID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/channels/"+channelID.String()+"/members",
+		strings.NewReader(`{"user_id":"invalid"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", userID)
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID.String()},
+	}
+
+	handler.AddChannelMember(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestRemoveChannelMember_Unauthorized tests that unauthorized requests are rejected
+func TestRemoveChannelMember_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	channelID := uuid.New()
+	memberID := uuid.New()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/channels/"+channelID.String()+"/members/"+memberID.String(), http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID.String()},
+		{Key: "user_id", Value: memberID.String()},
+	}
+
+	handler.RemoveChannelMember(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestRemoveChannelMember_InvalidChannelID tests that invalid channel IDs are rejected
+func TestRemoveChannelMember_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	userID := uuid.New()
+	memberID := uuid.New()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/channels/invalid/members/"+memberID.String(), http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", userID)
+	c.Params = gin.Params{
+		{Key: "id", Value: "invalid"},
+		{Key: "user_id", Value: memberID.String()},
+	}
+
+	handler.RemoveChannelMember(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestUpdateChannelMember_Unauthorized tests that unauthorized requests are rejected
+func TestUpdateChannelMember_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	channelID := uuid.New()
+	memberID := uuid.New()
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/chat/channels/"+channelID.String()+"/members/"+memberID.String(),
+		strings.NewReader(`{"role":"admin"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID.String()},
+		{Key: "user_id", Value: memberID.String()},
+	}
+
+	handler.UpdateChannelMember(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestGetChannelMembers_InvalidChannelID tests that invalid channel IDs are rejected
+func TestGetChannelMembers_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/channels/invalid/members", http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: "invalid"},
+	}
+
+	handler.GetChannelMembers(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
