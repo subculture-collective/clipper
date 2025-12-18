@@ -15,3 +15,4 @@ export { useKeyboardControls } from './useKeyboardControls';
 export type { KeyboardControlHandlers } from './useKeyboardControls';
 export { useWatchHistory } from './useWatchHistory';
 export type { UseWatchHistoryOptions, UseWatchHistoryReturn } from './useWatchHistory';
+export { useChatWebSocket } from './useChatWebSocket';

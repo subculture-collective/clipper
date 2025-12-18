@@ -1,0 +1,84 @@
+import React, { useState, useEffect } from 'react';
+import { useChatWebSocket } from '@/hooks/useChatWebSocket';
+import { MessageList } from './MessageList';
+import { MessageComposer } from './MessageComposer';
+import { TypingIndicator } from './TypingIndicator';
+import { Alert } from '@/components/ui/Alert';
+
+interface ChatViewProps {
+  channelId: string;
+  channelName?: string;
+}
+
+/**
+ * ChatView component that displays messages and composer for a channel
+ */
+export function ChatView({ channelId, channelName }: ChatViewProps) {
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const { messages, sendMessage, sendTyping, isConnected, error } = useChatWebSocket({
+    channelId,
+    onTyping: (username: string) => {
+      setTypingUsers((prev) => {
+        if (!prev.includes(username)) {
+          return [...prev, username];
+        }
+        return prev;
+      });
+
+      // Remove typing indicator after 3 seconds
+      setTimeout(() => {
+        setTypingUsers((prev) => prev.filter((u) => u !== username));
+      }, 3000);
+    },
+  });
+
+  const handleSend = (content: string) => {
+    sendMessage(content);
+  };
+
+  return (
+    <div className="flex-1 flex flex-col bg-background">
+      {/* Channel header */}
+      <div className="border-b border-border p-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            # {channelName || channelId}
+          </h2>
+          <div className="flex items-center gap-2 mt-1">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? 'bg-success-500' : 'bg-error-500'
+              }`}
+              aria-label={isConnected ? 'Connected' : 'Disconnected'}
+            />
+            <span className="text-xs text-muted-foreground">
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="p-4">
+          <Alert variant="error" title="Connection Error">
+            {error}
+          </Alert>
+        </div>
+      )}
+
+      {/* Message list */}
+      <MessageList messages={messages} />
+
+      {/* Typing indicator */}
+      <TypingIndicator channelId={channelId} typingUsers={typingUsers} />
+
+      {/* Message composer */}
+      <MessageComposer
+        onSend={handleSend}
+        onTyping={sendTyping}
+        disabled={!isConnected}
+      />
+    </div>
+  );
+}
