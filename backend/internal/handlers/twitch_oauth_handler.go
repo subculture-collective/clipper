@@ -50,17 +50,17 @@ type TwitchUserResponse struct {
 func (h *TwitchOAuthHandler) InitiateTwitchOAuth(c *gin.Context) {
 	clientID := os.Getenv("TWITCH_CLIENT_ID")
 	redirectURI := os.Getenv("TWITCH_REDIRECT_URI")
-	
+
 	// For chat integration, we need chat:read and chat:edit scopes
 	scopes := "chat:read chat:edit"
-	
+
 	authURL := fmt.Sprintf(
 		"https://id.twitch.tv/oauth2/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=%s",
 		clientID,
 		url.QueryEscape(redirectURI),
 		url.QueryEscape(scopes),
 	)
-	
+
 	c.Redirect(http.StatusTemporaryRedirect, authURL)
 }
 
