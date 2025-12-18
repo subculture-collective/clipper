@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS stream_follows (
 
 -- Create indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_stream_follows_user ON stream_follows(user_id);
-CREATE INDEX IF NOT EXISTS idx_stream_follows_streamer ON stream_follows(streamer_username, notifications_enabled) WHERE notifications_enabled = TRUE;
+CREATE INDEX IF NOT EXISTS idx_stream_follows_streamer_notifications ON stream_follows(streamer_username, notifications_enabled) WHERE notifications_enabled = TRUE;
 CREATE INDEX IF NOT EXISTS idx_stream_follows_created ON stream_follows(created_at DESC);
 
 -- Add trigger to update updated_at timestamp

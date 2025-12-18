@@ -7,7 +7,7 @@ DROP FUNCTION IF EXISTS update_stream_follows_updated_at();
 
 -- Drop indexes
 DROP INDEX IF EXISTS idx_stream_follows_created;
-DROP INDEX IF EXISTS idx_stream_follows_streamer;
+DROP INDEX IF EXISTS idx_stream_follows_streamer_notifications;
 DROP INDEX IF EXISTS idx_stream_follows_user;
 
 -- Drop table

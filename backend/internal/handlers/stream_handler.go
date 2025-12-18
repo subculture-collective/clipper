@@ -305,6 +305,7 @@ func (h *StreamHandler) FollowStreamer(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err == nil && req.NotificationsEnabled != nil {
 		notificationsEnabled = *req.NotificationsEnabled
 	}
+	// Note: ShouldBindJSON returns an error for empty bodies, which is fine - we'll use the default
 
 	// Follow the streamer
 	follow, err := h.streamFollowRepo.FollowStreamer(ctx, userID, streamer, notificationsEnabled)

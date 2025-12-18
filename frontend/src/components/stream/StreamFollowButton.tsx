@@ -92,22 +92,12 @@ export function StreamFollowButton({ streamerUsername, className }: StreamFollow
     <Button
       onClick={isFollowing ? handleUnfollow : handleFollow}
       disabled={isLoading}
+      loading={isLoading}
       variant={isFollowing ? 'secondary' : 'default'}
       className={className}
+      leftIcon={isFollowing ? (hasNotifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />) : <Bell className="h-4 w-4" />}
     >
-      {isLoading ? (
-        <span className="animate-pulse">...</span>
-      ) : isFollowing ? (
-        <>
-          {hasNotifications ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-          Following
-        </>
-      ) : (
-        <>
-          <Bell className="mr-2 h-4 w-4" />
-          Follow
-        </>
-      )}
+      {isFollowing ? 'Following' : 'Follow'}
     </Button>
   );
 }
