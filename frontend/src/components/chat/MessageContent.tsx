@@ -3,15 +3,26 @@ import { LinkPreview } from './LinkPreview';
 
 interface MessageContentProps {
   content: string;
+  onMentionClick?: (username: string) => void;
 }
 
 /**
  * MessageContent component that parses and renders message content
  * with support for mentions (@username), links, and code blocks
  */
-export function MessageContent({ content }: MessageContentProps) {
+export function MessageContent({ content, onMentionClick }: MessageContentProps) {
   // Parse content for mentions, links, and code blocks
   const parts = content.split(/(@\w+)|(https?:\/\/[^\s]+)|(`[^`]+`)|(`{3}[\s\S]*?`{3})/g);
+
+  const handleMentionClick = (mention: string) => {
+    const username = mention.slice(1); // Remove @ symbol
+    if (onMentionClick) {
+      onMentionClick(username);
+    } else {
+      // Default behavior: could navigate to user profile
+      window.location.href = `/user/${username}`;
+    }
+  };
 
   return (
     <div className="text-sm break-words whitespace-pre-wrap">
@@ -26,13 +37,10 @@ export function MessageContent({ content }: MessageContentProps) {
               className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer font-medium"
               role="button"
               tabIndex={0}
-              onClick={() => {
-                // Handle mention click - could navigate to user profile
-                console.log('Mentioned user:', part);
-              }}
+              onClick={() => handleMentionClick(part)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  console.log('Mentioned user:', part);
+                  handleMentionClick(part);
                 }
               }}
             >

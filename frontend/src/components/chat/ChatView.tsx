@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks';
 import { MessageList } from './MessageList';
 import { MessageComposer } from './MessageComposer';
 import { TypingIndicator } from './TypingIndicator';
@@ -20,6 +21,7 @@ interface ChatViewProps {
 export function ChatView({ channelId, channelName }: ChatViewProps) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const { user } = useAuth();
+  const { showToast } = useToast();
   const {
     permission,
     requestPermission,
@@ -65,7 +67,10 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
   const handleNotificationToggle = async () => {
     if (permission === 'granted') {
       // Can't revoke permission programmatically, just inform user
-      alert('Please manage notification permissions in your browser settings');
+      showToast({
+        message: 'Please manage notification permissions in your browser settings',
+        type: 'info',
+      });
     } else {
       await requestPermission();
     }

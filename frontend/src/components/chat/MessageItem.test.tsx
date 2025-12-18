@@ -14,7 +14,6 @@ describe('MessageItem', () => {
     is_deleted: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    timestamp: new Date().toISOString(),
   };
 
   it('renders message with username and content', () => {

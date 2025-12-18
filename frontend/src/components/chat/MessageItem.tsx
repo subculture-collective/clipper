@@ -34,7 +34,7 @@ export function MessageItem({ message }: MessageItemProps) {
             {message.display_name || message.username}
           </span>
           <span className="text-xs text-muted-foreground">
-            {formatTime(message.timestamp || message.created_at)}
+            {formatTime(message.created_at)}
           </span>
         </div>
         {message.is_deleted ? (
