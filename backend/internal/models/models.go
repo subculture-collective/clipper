@@ -2111,6 +2111,44 @@ type BroadcasterSyncLog struct {
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
+// Stream represents a Twitch stream with metadata and status
+type Stream struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	StreamerUsername string     `json:"streamer_username" db:"streamer_username"`
+	StreamerUserID   *string    `json:"streamer_user_id,omitempty" db:"streamer_user_id"`
+	DisplayName      *string    `json:"display_name,omitempty" db:"display_name"`
+	IsLive           bool       `json:"is_live" db:"is_live"`
+	LastWentLive     *time.Time `json:"last_went_live,omitempty" db:"last_went_live"`
+	LastWentOffline  *time.Time `json:"last_went_offline,omitempty" db:"last_went_offline"`
+	GameName         *string    `json:"game_name,omitempty" db:"game_name"`
+	Title            *string    `json:"title,omitempty" db:"title"`
+	ViewerCount      int        `json:"viewer_count" db:"viewer_count"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// StreamSession represents a user's watch session for a stream
+type StreamSession struct {
+	ID                  uuid.UUID  `json:"id" db:"id"`
+	UserID              uuid.UUID  `json:"user_id" db:"user_id"`
+	StreamID            uuid.UUID  `json:"stream_id" db:"stream_id"`
+	StartedAt           time.Time  `json:"started_at" db:"started_at"`
+	EndedAt             *time.Time `json:"ended_at,omitempty" db:"ended_at"`
+	WatchDurationSeconds int       `json:"watch_duration_seconds" db:"watch_duration_seconds"`
+}
+
+// StreamInfo represents stream status information returned to the frontend
+type StreamInfo struct {
+	StreamerUsername string     `json:"streamer_username"`
+	IsLive           bool       `json:"is_live"`
+	Title            *string    `json:"title,omitempty"`
+	GameName         *string    `json:"game_name,omitempty"`
+	ViewerCount      int        `json:"viewer_count"`
+	ThumbnailURL     *string    `json:"thumbnail_url,omitempty"`
+	StartedAt        *time.Time `json:"started_at,omitempty"`
+	LastWentOffline  *time.Time `json:"last_went_offline,omitempty"`
+}
+
 // Community represents a community space
 type Community struct {
 	ID          uuid.UUID `json:"id" db:"id"`

@@ -377,6 +377,7 @@ func main() {
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
 	var liveStatusHandler *handlers.LiveStatusHandler
+	var streamHandler *handlers.StreamHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
@@ -391,6 +392,9 @@ func main() {
 	}
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
+	}
+	if twitchClient != nil {
+		streamHandler = handlers.NewStreamHandler(twitchClient)
 	}
 
 	// Initialize router
@@ -865,6 +869,15 @@ func main() {
 			categories.GET("/:slug", categoryHandler.GetCategory)
 			categories.GET("/:slug/games", categoryHandler.ListCategoryGames)
 			categories.GET("/:slug/clips", categoryHandler.ListCategoryClips)
+		}
+
+		// Stream routes
+		if streamHandler != nil {
+			streams := v1.Group("/streams")
+			{
+				// Public stream status endpoint
+				streams.GET("/:streamer", streamHandler.GetStreamStatus)
+			}
 		}
 
 		// Game routes
