@@ -48,7 +48,7 @@ export function ModerationLogPage() {
 
   useEffect(() => {
     loadModerationLog();
-  }, [actionTypeFilter, targetTypeFilter]);
+  }, [actionTypeFilter, targetTypeFilter, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getActionBadgeColor = (actionType: string) => {
     const colors: Record<string, string> = {

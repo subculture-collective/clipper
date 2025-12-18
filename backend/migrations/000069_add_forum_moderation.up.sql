@@ -92,20 +92,39 @@ CREATE OR REPLACE FUNCTION update_thread_reply_count()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE forum_threads 
-        SET reply_count = reply_count + 1, updated_at = NOW()
-        WHERE id = NEW.thread_id;
+        -- Only count replies that are not soft-deleted
+        IF NEW.is_deleted IS DISTINCT FROM TRUE THEN
+            UPDATE forum_threads 
+            SET reply_count = reply_count + 1, updated_at = NOW()
+            WHERE id = NEW.thread_id;
+        END IF;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE forum_threads 
-        SET reply_count = GREATEST(0, reply_count - 1), updated_at = NOW()
-        WHERE id = OLD.thread_id;
+        -- Only decrement for replies that were actually counted
+        IF OLD.is_deleted IS DISTINCT FROM TRUE THEN
+            UPDATE forum_threads 
+            SET reply_count = GREATEST(0, reply_count - 1), updated_at = NOW()
+            WHERE id = OLD.thread_id;
+        END IF;
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- Handle soft delete / restore transitions
+        IF (OLD.is_deleted IS DISTINCT FROM TRUE) AND (NEW.is_deleted IS TRUE) THEN
+            -- Soft delete: decrement count
+            UPDATE forum_threads
+            SET reply_count = GREATEST(0, reply_count - 1), updated_at = NOW()
+            WHERE id = NEW.thread_id;
+        ELSIF (OLD.is_deleted IS TRUE) AND (NEW.is_deleted IS DISTINCT FROM TRUE) THEN
+            -- Restore from soft delete: increment count
+            UPDATE forum_threads
+            SET reply_count = reply_count + 1, updated_at = NOW()
+            WHERE id = NEW.thread_id;
+        END IF;
     END IF;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_thread_reply_count
-AFTER INSERT OR DELETE ON forum_replies
+AFTER INSERT OR DELETE OR UPDATE OF is_deleted ON forum_replies
 FOR EACH ROW
 EXECUTE FUNCTION update_thread_reply_count();
 
@@ -117,12 +136,28 @@ BEGIN
         UPDATE forum_threads 
         SET flag_count = flag_count + 1
         WHERE id = NEW.target_id;
+    ELSIF TG_OP = 'DELETE' AND OLD.target_type = 'thread' THEN
+        UPDATE forum_threads 
+        SET flag_count = GREATEST(0, flag_count - 1)
+        WHERE id = OLD.target_id;
+    ELSIF TG_OP = 'UPDATE' AND NEW.target_type = 'thread' THEN
+        -- Decrement count when flag is resolved or dismissed
+        IF (OLD.status = 'pending') AND (NEW.status IN ('resolved', 'dismissed')) THEN
+            UPDATE forum_threads 
+            SET flag_count = GREATEST(0, flag_count - 1)
+            WHERE id = NEW.target_id;
+        -- Increment count if flag is reopened
+        ELSIF (OLD.status IN ('resolved', 'dismissed')) AND (NEW.status = 'pending') THEN
+            UPDATE forum_threads 
+            SET flag_count = flag_count + 1
+            WHERE id = NEW.target_id;
+        END IF;
     END IF;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_thread_flag_count
-AFTER INSERT ON content_flags
+AFTER INSERT OR DELETE OR UPDATE OF status ON content_flags
 FOR EACH ROW
 EXECUTE FUNCTION update_thread_flag_count();

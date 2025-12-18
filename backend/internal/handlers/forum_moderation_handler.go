@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -184,13 +183,22 @@ func (h *ForumModerationHandler) LockThread(c *gin.Context) {
 	}
 	defer tx.Rollback(c.Request.Context())
 
-	// Update thread locked status
-	_, err = tx.Exec(c.Request.Context(),
-		`UPDATE forum_threads SET locked = $1, updated_at = NOW() WHERE id = $2`,
+	// Check if thread exists and update locked status
+	result, err := tx.Exec(c.Request.Context(),
+		`UPDATE forum_threads SET locked = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = FALSE`,
 		req.Locked, threadID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to update thread",
+		})
+		return
+	}
+
+	// Check if thread was found and updated
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Thread not found or already deleted",
 		})
 		return
 	}
@@ -267,13 +275,22 @@ func (h *ForumModerationHandler) PinThread(c *gin.Context) {
 	}
 	defer tx.Rollback(c.Request.Context())
 
-	// Update thread pinned status
-	_, err = tx.Exec(c.Request.Context(),
-		`UPDATE forum_threads SET pinned = $1, updated_at = NOW() WHERE id = $2`,
+	// Check if thread exists and update pinned status
+	result, err := tx.Exec(c.Request.Context(),
+		`UPDATE forum_threads SET pinned = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = FALSE`,
 		req.Pinned, threadID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to update thread",
+		})
+		return
+	}
+
+	// Check if thread was found and updated
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Thread not found or already deleted",
 		})
 		return
 	}
@@ -340,6 +357,14 @@ func (h *ForumModerationHandler) DeleteThread(c *gin.Context) {
 		return
 	}
 
+	// Validate reason is not empty
+	if strings.TrimSpace(req.Reason) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Reason must not be empty",
+		})
+		return
+	}
+
 	tx, err := h.db.Begin(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -349,13 +374,22 @@ func (h *ForumModerationHandler) DeleteThread(c *gin.Context) {
 	}
 	defer tx.Rollback(c.Request.Context())
 
-	// Soft delete thread
-	_, err = tx.Exec(c.Request.Context(),
-		`UPDATE forum_threads SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1`,
+	// Check if thread exists and soft delete it
+	result, err := tx.Exec(c.Request.Context(),
+		`UPDATE forum_threads SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1 AND is_deleted = FALSE`,
 		threadID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to delete thread",
+		})
+		return
+	}
+
+	// Check if thread was found and deleted
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Thread not found or already deleted",
 		})
 		return
 	}
@@ -418,6 +452,30 @@ func (h *ForumModerationHandler) BanUser(c *gin.Context) {
 		return
 	}
 
+	// Validate reason is not empty
+	if strings.TrimSpace(req.Reason) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Reason must not be empty",
+		})
+		return
+	}
+
+	// Validate duration is not negative
+	if req.DurationDays < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Duration days must be non-negative",
+		})
+		return
+	}
+
+	// Prevent self-ban
+	if moderatorID == targetUserID {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot ban yourself",
+		})
+		return
+	}
+
 	var expiresAt *time.Time
 	if req.DurationDays > 0 {
 		expires := time.Now().AddDate(0, 0, req.DurationDays)
@@ -432,6 +490,31 @@ func (h *ForumModerationHandler) BanUser(c *gin.Context) {
 		return
 	}
 	defer tx.Rollback(c.Request.Context())
+
+	// Check if user exists and is not already banned
+	var isBanned bool
+	err = tx.QueryRow(c.Request.Context(),
+		`SELECT is_banned FROM users WHERE id = $1`,
+		targetUserID).Scan(&isBanned)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to check user status",
+		})
+		return
+	}
+
+	if isBanned {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User is already banned",
+		})
+		return
+	}
 
 	// Insert ban record
 	_, err = tx.Exec(c.Request.Context(),
@@ -492,33 +575,21 @@ func (h *ForumModerationHandler) GetModerationLog(c *gin.Context) {
 	actionType := c.Query("action_type")
 	targetType := c.Query("target_type")
 
-	// Build WHERE clause conditions
-	conditions := []string{"1=1"}
-	args := []interface{}{}
+	// Use parameterized query with OR clauses to avoid dynamic SQL construction
+	args := []interface{}{actionType, targetType, limit}
 
-	if actionType != "" {
-		args = append(args, actionType)
-		conditions = append(conditions, fmt.Sprintf("ma.action_type = $%d", len(args)))
-	}
-
-	if targetType != "" {
-		args = append(args, targetType)
-		conditions = append(conditions, fmt.Sprintf("ma.target_type = $%d", len(args)))
-	}
-
-	// Add limit as final parameter
-	args = append(args, limit)
-
-	query := fmt.Sprintf(`
+	query := `
 		SELECT 
 			ma.id, ma.moderator_id, u.username as moderator,
 			ma.action_type, ma.target_type, ma.target_id,
 			ma.reason, ma.metadata, ma.created_at
 		FROM moderation_actions ma
 		JOIN users u ON ma.moderator_id = u.id
-		WHERE %s
-		ORDER BY ma.created_at DESC LIMIT $%d
-	`, strings.Join(conditions, " AND "), len(args))
+		WHERE 
+			($1 = '' OR ma.action_type = $1) AND
+			($2 = '' OR ma.target_type = $2)
+		ORDER BY ma.created_at DESC LIMIT $3
+	`
 
 	rows, err := h.db.Query(c.Request.Context(), query, args...)
 	if err != nil {

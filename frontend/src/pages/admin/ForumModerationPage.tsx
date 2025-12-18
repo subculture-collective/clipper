@@ -109,7 +109,7 @@ function FlaggedContentCard({ item, onLock, onPin, onDelete, onBanUser }: Flagge
   const [showActionInput, setShowActionInput] = useState<string | null>(null);
 
   const handleAction = (action: string) => {
-    if (!actionReason.trim() && action !== 'ban') {
+    if (!actionReason.trim()) {
       return;
     }
 
@@ -257,7 +257,7 @@ export function ForumModerationPage() {
 
   useEffect(() => {
     loadFlaggedContent();
-  }, [status]);
+  }, [status, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lockThread = async (threadId: string, reason: string, locked: boolean) => {
     try {
