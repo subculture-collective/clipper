@@ -6,7 +6,7 @@ export interface WatchParty {
   current_clip_id?: string;
   current_position_seconds: number;
   is_playing: boolean;
-  visibility: 'private' | 'public' | 'friends' | 'invite';
+  visibility: 'public' | 'friends' | 'invite';
   invite_code: string;
   max_participants: number;
   created_at: string;

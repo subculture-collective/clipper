@@ -13,7 +13,7 @@ import type {
 interface CreateWatchPartyRequest {
   title: string;
   playlist_id?: string;
-  visibility?: 'private' | 'public' | 'friends' | 'invite';
+  visibility?: 'public' | 'friends' | 'invite';
   password?: string;
   max_participants?: number;
 }

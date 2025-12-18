@@ -43,10 +43,14 @@ export function WatchPartySettings({
         privacy,
       };
 
-      // Only include password if it's set and privacy is 'invite'
-      if (privacy === 'invite' && password.trim()) {
-        request.password = password;
-      } else if (privacy !== 'invite') {
+      // Include password based on privacy setting
+      if (privacy === 'invite') {
+        // If password field has content, update it
+        if (password.trim()) {
+          request.password = password;
+        }
+        // If password field is empty for invite-only, keep existing password (don't send password field)
+      } else {
         // Clear password when not using invite-only mode
         request.password = '';
       }

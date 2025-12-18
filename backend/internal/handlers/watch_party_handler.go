@@ -1063,26 +1063,29 @@ func (h *WatchPartyHandler) UpdateWatchPartySettings(c *gin.Context) {
 
 	// Hash password if provided
 	var hashedPassword *string
-	if req.Password != nil && *req.Password != "" {
-		// Import bcrypt at top: "golang.org/x/crypto/bcrypt"
-		hash, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, StandardResponse{
-				Success: false,
-				Error: &ErrorInfo{
-					Code:    "INTERNAL_ERROR",
-					Message: "Failed to hash password",
-				},
-			})
-			return
+	if req.Password != nil {
+		if *req.Password != "" {
+			// Non-empty password: hash it
+			hash, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, StandardResponse{
+					Success: false,
+					Error: &ErrorInfo{
+						Code:    "INTERNAL_ERROR",
+						Message: "Failed to hash password",
+					},
+				})
+				return
+			}
+			hashStr := string(hash)
+			hashedPassword = &hashStr
+		} else {
+			// Empty string means remove password (set to NULL in database)
+			emptyStr := ""
+			hashedPassword = &emptyStr
 		}
-		hashStr := string(hash)
-		hashedPassword = &hashStr
-	} else if req.Password != nil && *req.Password == "" {
-		// Empty string means remove password
-		emptyStr := ""
-		hashedPassword = &emptyStr
 	}
+	// If req.Password is nil, hashedPassword remains nil and won't be updated
 
 	// Update settings
 	err = h.watchPartyRepo.UpdateSettings(c.Request.Context(), partyID, req.Privacy, hashedPassword)

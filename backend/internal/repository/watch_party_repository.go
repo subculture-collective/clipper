@@ -575,7 +575,7 @@ func (r *WatchPartyRepository) GetHistory(ctx context.Context, userID uuid.UUID,
 			wp.ended_at
 		FROM watch_parties wp
 		JOIN watch_party_participants wpp ON wp.id = wpp.party_id
-		LEFT JOIN watch_party_participants wpp2 ON wp.id = wpp2.party_id AND wpp2.left_at IS NULL
+		LEFT JOIN watch_party_participants wpp2 ON wp.id = wpp2.party_id
 		WHERE wpp.user_id = $1 AND wp.ended_at IS NOT NULL
 		GROUP BY wp.id
 		ORDER BY wp.ended_at DESC
