@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -158,7 +159,7 @@ func (h *WatchPartyHandler) JoinWatchParty(c *gin.Context) {
 			statusCode = http.StatusNotFound
 			errorCode = "NOT_FOUND"
 			errorMessage = err.Error()
-		} else if err.Error()[:9] == "party is full" {
+		} else if strings.HasPrefix(err.Error(), "party is full") {
 			statusCode = http.StatusForbidden
 			errorCode = "PARTY_FULL"
 			errorMessage = err.Error()
@@ -220,7 +221,7 @@ func (h *WatchPartyHandler) GetWatchParty(c *gin.Context) {
 			statusCode = http.StatusNotFound
 			errorCode = "NOT_FOUND"
 			errorMessage = err.Error()
-		} else if err.Error()[:13] == "unauthorized:" {
+		} else if strings.HasPrefix(err.Error(), "unauthorized:") {
 			statusCode = http.StatusForbidden
 			errorCode = "FORBIDDEN"
 			errorMessage = err.Error()
@@ -389,7 +390,7 @@ func (h *WatchPartyHandler) EndWatchParty(c *gin.Context) {
 		statusCode := http.StatusInternalServerError
 		errorCode := "INTERNAL_ERROR"
 
-		if err.Error()[:13] == "unauthorized:" {
+		if strings.HasPrefix(err.Error(), "unauthorized:") {
 			statusCode = http.StatusForbidden
 			errorCode = "FORBIDDEN"
 		}
