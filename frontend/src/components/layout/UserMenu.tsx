@@ -133,6 +133,33 @@ export function UserMenu() {
             >
               ⭐ Favorites
             </Link>
+            <Link
+              to="/playlists"
+              className="block px-4 py-2 text-sm hover:bg-muted transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-muted"
+              onClick={() => setIsOpen(false)}
+              role="menuitem"
+              tabIndex={-1}
+            >
+              📋 Playlists
+            </Link>
+            <Link
+              to="/watch-history"
+              className="block px-4 py-2 text-sm hover:bg-muted transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-muted"
+              onClick={() => setIsOpen(false)}
+              role="menuitem"
+              tabIndex={-1}
+            >
+              🕒 Watch History
+            </Link>
+            <Link
+              to="/submissions"
+              className="block px-4 py-2 text-sm hover:bg-muted transition-colors cursor-pointer focus-visible:outline-none focus-visible:bg-muted"
+              onClick={() => setIsOpen(false)}
+              role="menuitem"
+              tabIndex={-1}
+            >
+              📤 My Submissions
+            </Link>
             
             {isModeratorOrAdmin && (
               <>

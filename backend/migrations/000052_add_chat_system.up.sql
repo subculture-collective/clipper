@@ -57,7 +57,8 @@ CREATE INDEX idx_chat_messages_user ON chat_messages(user_id);
 CREATE INDEX idx_chat_messages_not_deleted ON chat_messages(channel_id) WHERE is_deleted = false;
 
 CREATE INDEX idx_chat_bans_channel_user ON chat_bans(channel_id, user_id);
-CREATE INDEX idx_chat_bans_active ON chat_bans(channel_id, user_id) WHERE expires_at IS NULL OR expires_at > NOW();
+-- Active bans (null expiry or future) without non-immutable predicates
+CREATE INDEX idx_chat_bans_active ON chat_bans(channel_id, user_id, expires_at);
 CREATE INDEX idx_chat_bans_expires ON chat_bans(expires_at) WHERE expires_at IS NOT NULL;
 
 CREATE INDEX idx_chat_moderation_log_channel ON chat_moderation_log(channel_id, created_at DESC);

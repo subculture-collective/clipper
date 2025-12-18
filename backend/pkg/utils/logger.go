@@ -286,7 +286,7 @@ var (
 	// API key/token pattern (common formats)
 	tokenPattern = regexp.MustCompile(`\b[A-Za-z0-9_-]{32,}\b`)
 	// Password in query strings or JSON - improved to handle JSON properly
-	passwordPattern = regexp.MustCompile(`(?i)(password|passwd|pwd|secret|token|apikey|api_key|access_token|auth_token)["']?\s*[:=]\s*["']([^"'\s,}&]+)["']?`)
+	passwordPattern = regexp.MustCompile(`(?i)(password|passwd|pwd|secret|token|apikey|api_key|access_token|auth_token)["']?\s*[:=]\s*["']?([^"'\s,}&]+)["']?`)
 	// Bearer tokens
 	bearerPattern = regexp.MustCompile(`(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*`)
 )
@@ -302,7 +302,7 @@ func RedactPII(text string) string {
 	// Redact SSNs
 	text = ssnPattern.ReplaceAllString(text, "[REDACTED_SSN]")
 	// Redact passwords and secrets in key-value pairs
-	text = passwordPattern.ReplaceAllString(text, `$1:"[REDACTED]"`)
+	text = passwordPattern.ReplaceAllString(text, `$1":"[REDACTED]"`)
 	// Redact Bearer tokens
 	text = bearerPattern.ReplaceAllString(text, "Bearer [REDACTED_TOKEN]")
 	return text

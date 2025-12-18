@@ -77,6 +77,7 @@ export function ClipFeed({
 
     // Get all clips from all pages
     const clips = data?.pages.flatMap(page => page.clips) ?? [];
+    const validClips = clips.filter(clip => clip?.id);
 
     // Intersection observer for infinite scroll
     const { ref: loadMoreRef, inView } = useInView({
@@ -263,7 +264,7 @@ export function ClipFeed({
             )}
 
             {/* Empty state */}
-            {!isLoading && !isError && clips.length === 0 && (
+            {!isLoading && !isError && validClips.length === 0 && (
                 <EmptyState
                     title='No clips found'
                     message='Try adjusting your filters or check back later.'
@@ -286,7 +287,7 @@ export function ClipFeed({
             )}
 
             {/* Clips list with pull-to-refresh */}
-            {!isLoading && !isError && clips.length > 0 && (
+            {!isLoading && !isError && validClips.length > 0 && (
                 <div
                     ref={containerRef}
                     onTouchStart={handleTouchStart}
@@ -294,7 +295,7 @@ export function ClipFeed({
                     onTouchEnd={handleTouchEnd}
                 >
                     <div className='space-y-4'>
-                        {clips.map(clip => (
+                        {validClips.map(clip => (
                             <MemoizedClipCard key={clip.id} clip={clip} />
                         ))}
                     </div>
@@ -315,7 +316,7 @@ export function ClipFeed({
                     )}
 
                     {/* End of results */}
-                    {!hasNextPage && clips.length > 0 && (
+                    {!hasNextPage && validClips.length > 0 && (
                         <div className='text-center py-8 text-muted-foreground'>
                             <p>You've reached the end!</p>
                         </div>
