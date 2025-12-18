@@ -190,7 +190,7 @@ func (r *WatchPartyRepository) GetActiveParticipantCount(ctx context.Context, pa
 	return count, nil
 }
 
-// AddParticipant adds a participant to a watch party
+// AddParticipant adds a participant to a watch party or reactivates them if they left
 func (r *WatchPartyRepository) AddParticipant(ctx context.Context, participant *models.WatchPartyParticipant) error {
 	query := `
 		INSERT INTO watch_party_participants (
@@ -198,7 +198,7 @@ func (r *WatchPartyRepository) AddParticipant(ctx context.Context, participant *
 		)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (party_id, user_id)
-		DO UPDATE SET left_at = NULL, joined_at = NOW()
+		DO UPDATE SET left_at = NULL
 		RETURNING joined_at
 	`
 

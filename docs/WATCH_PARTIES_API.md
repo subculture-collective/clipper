@@ -239,7 +239,7 @@ End a watch party (host only).
 {
   "type": "play",
   "party_id": "party-uuid",
-  "timestamp": 1704067200000
+  "timestamp": 1704067200
 }
 ```
 
@@ -248,7 +248,7 @@ End a watch party (host only).
 {
   "type": "pause",
   "party_id": "party-uuid",
-  "timestamp": 1704067200000
+  "timestamp": 1704067200
 }
 ```
 
@@ -258,7 +258,7 @@ End a watch party (host only).
   "type": "seek",
   "party_id": "party-uuid",
   "position": 120,
-  "timestamp": 1704067200000
+  "timestamp": 1704067200
 }
 ```
 
@@ -268,7 +268,7 @@ End a watch party (host only).
   "type": "skip",
   "party_id": "party-uuid",
   "clip_id": "clip-uuid",
-  "timestamp": 1704067200000
+  "timestamp": 1704067200
 }
 ```
 
@@ -277,7 +277,7 @@ End a watch party (host only).
 {
   "type": "sync-request",
   "party_id": "party-uuid",
-  "timestamp": 1704067200000
+  "timestamp": 1704067200
 }
 ```
 
@@ -291,7 +291,7 @@ End a watch party (host only).
   "clip_id": "clip-uuid",
   "position": 120,
   "is_playing": true,
-  "server_timestamp": 1704067200000
+  "server_timestamp": 1704067200
 }
 ```
 
@@ -302,7 +302,7 @@ End a watch party (host only).
   "party_id": "party-uuid",
   "position": 120,
   "is_playing": true,
-  "server_timestamp": 1704067200000
+  "server_timestamp": 1704067200
 }
 ```
 
@@ -313,7 +313,7 @@ End a watch party (host only).
   "party_id": "party-uuid",
   "position": 120,
   "is_playing": false,
-  "server_timestamp": 1704067200000
+  "server_timestamp": 1704067200
 }
 ```
 
@@ -324,7 +324,7 @@ End a watch party (host only).
   "party_id": "party-uuid",
   "position": 200,
   "is_playing": false,
-  "server_timestamp": 1704067200000
+  "server_timestamp": 1704067200
 }
 ```
 
@@ -336,7 +336,7 @@ End a watch party (host only).
   "clip_id": "new-clip-uuid",
   "position": 0,
   "is_playing": true,
-  "server_timestamp": 1704067200000
+  "server_timestamp": 1704067200
 }
 ```
 
@@ -345,7 +345,7 @@ End a watch party (host only).
 {
   "type": "participant-joined",
   "party_id": "party-uuid",
-  "server_timestamp": 1704067200000,
+  "server_timestamp": 1704067200,
   "participant": {
     "user_id": "user-uuid",
     "display_name": "NewUser",
@@ -360,7 +360,7 @@ End a watch party (host only).
 {
   "type": "participant-left",
   "party_id": "party-uuid",
-  "server_timestamp": 1704067200000,
+  "server_timestamp": 1704067200,
   "participant": {
     "user_id": "user-uuid",
     "display_name": "LeftUser",

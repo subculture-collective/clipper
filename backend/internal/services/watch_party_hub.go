@@ -23,16 +23,18 @@ type WatchPartyHub struct {
 	Unregister     chan *WatchPartyClient
 	mutex          sync.RWMutex
 	stopChan       chan struct{}
+	wg             sync.WaitGroup
 }
 
 // WatchPartyClient represents a connected client
 type WatchPartyClient struct {
-	Hub    *WatchPartyHub
-	Conn   *websocket.Conn
-	UserID uuid.UUID
-	Role   string
-	Send   chan []byte
-	User   *models.User
+	Hub       *WatchPartyHub
+	Conn      *websocket.Conn
+	UserID    uuid.UUID
+	Role      string
+	Send      chan []byte
+	User      *models.User
+	closeOnce sync.Once
 }
 
 // WatchPartyHubManager manages multiple watch party hubs
@@ -70,6 +72,7 @@ func (m *WatchPartyHubManager) GetOrCreateHub(partyID uuid.UUID) *WatchPartyHub 
 	}
 
 	m.hubs[partyID] = hub
+	hub.wg.Add(1)
 	go hub.Run()
 
 	return hub
@@ -78,21 +81,31 @@ func (m *WatchPartyHubManager) GetOrCreateHub(partyID uuid.UUID) *WatchPartyHub 
 // RemoveHub removes a hub when it's no longer needed
 func (m *WatchPartyHubManager) RemoveHub(partyID uuid.UUID) {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	if hub, exists := m.hubs[partyID]; exists {
-		close(hub.stopChan)
-		delete(m.hubs, partyID)
+	hub, exists := m.hubs[partyID]
+	if !exists {
+		m.mutex.Unlock()
+		return
 	}
+	delete(m.hubs, partyID)
+	m.mutex.Unlock()
+
+	// Signal hub to stop and wait for it to finish
+	close(hub.stopChan)
+	hub.wg.Wait()
 }
 
 // Run starts the hub's main loop
 func (h *WatchPartyHub) Run() {
+	defer h.wg.Done()
 	defer func() {
 		// Clean up all clients when hub stops
+		h.mutex.Lock()
 		for _, client := range h.Clients {
-			close(client.Send)
+			client.closeOnce.Do(func() {
+				close(client.Send)
+			})
 		}
+		h.mutex.Unlock()
 	}()
 
 	for {
@@ -109,15 +122,14 @@ func (h *WatchPartyHub) Run() {
 			h.mutex.Lock()
 			if _, ok := h.Clients[client.UserID]; ok {
 				delete(h.Clients, client.UserID)
-				close(client.Send)
+				client.closeOnce.Do(func() {
+					close(client.Send)
+				})
 			}
 			h.mutex.Unlock()
 
 			// Send participant-left event to remaining clients
 			h.broadcastParticipantEvent("participant-left", client.UserID, client.User, client.Role)
-
-			// If no clients left, we could consider shutting down the hub
-			// but keeping it alive for a short time allows for reconnections
 
 		case event := <-h.Broadcast:
 			h.mutex.RLock()
@@ -162,7 +174,9 @@ func (h *WatchPartyHub) broadcastParticipantEvent(eventType string, userID uuid.
 func (c *WatchPartyClient) ReadPump(ctx context.Context) {
 	defer func() {
 		c.Hub.Unregister <- c
-		c.Conn.Close()
+		c.closeOnce.Do(func() {
+			c.Conn.Close()
+		})
 	}()
 
 	c.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
@@ -258,6 +272,12 @@ func (c *WatchPartyClient) handleCommand(ctx context.Context, cmd *models.WatchP
 			return
 		}
 
+		// Validate position is not negative
+		if *cmd.Position < 0 {
+			log.Printf("Invalid seek position (negative): %d", *cmd.Position)
+			return
+		}
+
 		err := c.Hub.watchPartyRepo.UpdatePlaybackState(ctx, partyID, false, *cmd.Position)
 		if err != nil {
 			log.Printf("Failed to update playback state: %v", err)
@@ -324,7 +344,9 @@ func (c *WatchPartyClient) WritePump() {
 	ticker := time.NewTicker(54 * time.Second)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
+		c.closeOnce.Do(func() {
+			c.Conn.Close()
+		})
 	}()
 
 	for {
@@ -336,20 +358,8 @@ func (c *WatchPartyClient) WritePump() {
 				return
 			}
 
-			w, err := c.Conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			w.Write(message)
-
-			// Add queued messages to the current websocket message
-			n := len(c.Send)
-			for i := 0; i < n; i++ {
-				w.Write([]byte{'\n'})
-				w.Write(<-c.Send)
-			}
-
-			if err := w.Close(); err != nil {
+			// Send each message as a separate WebSocket frame
+			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
 

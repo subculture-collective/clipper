@@ -379,7 +379,7 @@ func main() {
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	queueHandler := handlers.NewQueueHandler(queueService)
 	watchHistoryHandler := handlers.NewWatchHistoryHandler(watchHistoryRepo)
-	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, watchPartyHubManager, watchPartyRepo)
+	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, watchPartyHubManager, watchPartyRepo, cfg)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -1225,8 +1225,8 @@ func main() {
 			// Get watch party details (optional auth for visibility check)
 			watchParties.GET("/:id", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetWatchParty)
 
-			// Get watch party participants (no auth required, but party must exist)
-			watchParties.GET("/:id/participants", watchPartyHandler.GetParticipants)
+			// Get watch party participants (optional auth for visibility check)
+			watchParties.GET("/:id/participants", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetParticipants)
 
 			// Leave watch party (authenticated)
 			watchParties.DELETE("/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)

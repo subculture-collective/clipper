@@ -13,8 +13,8 @@ CREATE TABLE watch_parties (
     created_at TIMESTAMP DEFAULT NOW(),
     started_at TIMESTAMP,
     ended_at TIMESTAMP,
-    CONSTRAINT valid_timestamps CHECK (started_at IS NULL OR started_at >= created_at),
-    CONSTRAINT valid_end_time CHECK (ended_at IS NULL OR (started_at IS NOT NULL AND ended_at >= started_at))
+    CONSTRAINT started_at_after_created_at CHECK (started_at IS NULL OR started_at >= created_at),
+    CONSTRAINT ended_at_after_started_or_created CHECK (ended_at IS NULL OR ended_at >= COALESCE(started_at, created_at))
 );
 
 -- Create watch_party_participants table for tracking who is in each party
@@ -40,7 +40,7 @@ CREATE INDEX idx_parties_playlist ON watch_parties(playlist_id) WHERE playlist_i
 -- Indexes for watch_party_participants
 CREATE INDEX idx_participants_party ON watch_party_participants(party_id) WHERE left_at IS NULL;
 CREATE INDEX idx_participants_user ON watch_party_participants(user_id) WHERE left_at IS NULL;
-CREATE INDEX idx_participants_party_active ON watch_party_participants(party_id, left_at) WHERE left_at IS NULL;
+CREATE INDEX idx_participants_party_active ON watch_party_participants(party_id) WHERE left_at IS NULL;
 CREATE INDEX idx_participants_last_sync ON watch_party_participants(party_id, last_sync_at) WHERE left_at IS NULL;
 
 -- Add comment documentation

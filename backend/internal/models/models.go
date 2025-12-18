@@ -3428,9 +3428,9 @@ type JoinWatchPartyResponse struct {
 type WatchPartyCommand struct {
 	Type      string     `json:"type"` // play, pause, seek, skip, sync-request
 	PartyID   string     `json:"party_id"`
-	Position  *int       `json:"position,omitempty"` // for seek
+	Position  *int       `json:"position,omitempty"` // for seek (in seconds)
 	ClipID    *uuid.UUID `json:"clip_id,omitempty"`  // for skip
-	Timestamp int64      `json:"timestamp"`           // client timestamp
+	Timestamp int64      `json:"timestamp"`           // client timestamp (Unix seconds)
 }
 
 // WatchPartySyncEvent represents a sync event from server to clients
@@ -3438,9 +3438,9 @@ type WatchPartySyncEvent struct {
 	Type            string                        `json:"type"` // sync, play, pause, seek, skip, participant-joined, participant-left
 	PartyID         string                        `json:"party_id"`
 	ClipID          *uuid.UUID                    `json:"clip_id,omitempty"`
-	Position        int                           `json:"position"`
+	Position        int                           `json:"position"`        // playback position in seconds
 	IsPlaying       bool                          `json:"is_playing"`
-	ServerTimestamp int64                         `json:"server_timestamp"`
+	ServerTimestamp int64                         `json:"server_timestamp"` // server timestamp (Unix seconds)
 	Participant     *WatchPartyParticipantInfo    `json:"participant,omitempty"`
 }
 
