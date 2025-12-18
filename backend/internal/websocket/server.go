@@ -70,6 +70,9 @@ func (s *Server) GetOrCreateHub(channelID string) *ChannelHub {
 		s.Hubs[channelID] = hub
 		go hub.Run()
 		log.Printf("Created new hub for channel: %s", channelID)
+		
+		// Update active channels metric
+		SetActiveChannels(len(s.Hubs))
 	}
 
 	return hub

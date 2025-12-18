@@ -25,6 +25,293 @@ func NewChatHandler(db *pgxpool.Pool) *ChatHandler {
 	}
 }
 
+// CreateChannel creates a new chat channel
+func (h *ChatHandler) CreateChannel(c *gin.Context) {
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req models.CreateChannelRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Set default channel type if not provided
+	channelType := "public"
+	if req.ChannelType != "" {
+		channelType = req.ChannelType
+	}
+
+	// Create channel
+	query := `
+		INSERT INTO chat_channels (name, description, creator_id, channel_type, max_participants, is_active)
+		VALUES ($1, $2, $3, $4, $5, true)
+		RETURNING id, created_at, updated_at
+	`
+
+	var channel models.ChatChannel
+	err := h.db.QueryRow(c.Request.Context(), query,
+		req.Name, req.Description, userID, channelType, req.MaxParticipants).Scan(
+		&channel.ID, &channel.CreatedAt, &channel.UpdatedAt)
+	
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create channel"})
+		return
+	}
+
+	// Populate the rest of the channel data
+	channel.Name = req.Name
+	channel.Description = req.Description
+	channel.CreatorID = userID
+	channel.ChannelType = channelType
+	channel.MaxParticipants = req.MaxParticipants
+	channel.IsActive = true
+
+	c.JSON(http.StatusCreated, channel)
+}
+
+// ListChannels returns a list of chat channels
+func (h *ChatHandler) ListChannels(c *gin.Context) {
+	// Parse query parameters
+	limitStr := c.DefaultQuery("limit", "50")
+	offsetStr := c.DefaultQuery("offset", "0")
+	channelType := c.Query("type")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 50
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	// Build query
+	query := `
+		SELECT id, name, description, creator_id, channel_type, is_active, 
+		       max_participants, created_at, updated_at
+		FROM chat_channels
+		WHERE is_active = true
+	`
+
+	args := []interface{}{}
+	argIndex := 1
+
+	// Filter by channel type if provided
+	if channelType != "" && (channelType == "public" || channelType == "private") {
+		query += " AND channel_type = $" + strconv.Itoa(argIndex)
+		args = append(args, channelType)
+		argIndex++
+	}
+
+	query += " ORDER BY created_at DESC LIMIT $" + strconv.Itoa(argIndex) + " OFFSET $" + strconv.Itoa(argIndex+1)
+	args = append(args, limit, offset)
+
+	// Execute query
+	rows, err := h.db.Query(c.Request.Context(), query, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch channels"})
+		return
+	}
+	defer rows.Close()
+
+	channels := []models.ChatChannel{}
+	for rows.Next() {
+		var channel models.ChatChannel
+		err := rows.Scan(
+			&channel.ID,
+			&channel.Name,
+			&channel.Description,
+			&channel.CreatorID,
+			&channel.ChannelType,
+			&channel.IsActive,
+			&channel.MaxParticipants,
+			&channel.CreatedAt,
+			&channel.UpdatedAt,
+		)
+		if err != nil {
+			continue
+		}
+		channels = append(channels, channel)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"channels": channels,
+		"limit":    limit,
+		"offset":   offset,
+	})
+}
+
+// GetChannel returns details about a specific chat channel
+func (h *ChatHandler) GetChannel(c *gin.Context) {
+	channelID := c.Param("id")
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	query := `
+		SELECT id, name, description, creator_id, channel_type, is_active, 
+		       max_participants, created_at, updated_at
+		FROM chat_channels
+		WHERE id = $1
+	`
+
+	var channel models.ChatChannel
+	err = h.db.QueryRow(c.Request.Context(), query, channelUUID).Scan(
+		&channel.ID,
+		&channel.Name,
+		&channel.Description,
+		&channel.CreatorID,
+		&channel.ChannelType,
+		&channel.IsActive,
+		&channel.MaxParticipants,
+		&channel.CreatedAt,
+		&channel.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch channel"})
+		return
+	}
+
+	c.JSON(http.StatusOK, channel)
+}
+
+// UpdateChannel updates a chat channel
+func (h *ChatHandler) UpdateChannel(c *gin.Context) {
+	channelID := c.Param("id")
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req models.UpdateChannelRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if user is the creator
+	var creatorID uuid.UUID
+	err = h.db.QueryRow(c.Request.Context(), "SELECT creator_id FROM chat_channels WHERE id = $1", channelUUID).Scan(&creatorID)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify channel"})
+		return
+	}
+
+	if creatorID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only the channel creator can update the channel"})
+		return
+	}
+
+	// Build update query dynamically
+	updateParts := []string{}
+	args := []interface{}{}
+	argIndex := 1
+
+	if req.Name != nil {
+		updateParts = append(updateParts, "name = $"+strconv.Itoa(argIndex))
+		args = append(args, *req.Name)
+		argIndex++
+	}
+
+	if req.Description != nil {
+		updateParts = append(updateParts, "description = $"+strconv.Itoa(argIndex))
+		args = append(args, req.Description)
+		argIndex++
+	}
+
+	if req.IsActive != nil {
+		updateParts = append(updateParts, "is_active = $"+strconv.Itoa(argIndex))
+		args = append(args, *req.IsActive)
+		argIndex++
+	}
+
+	if req.MaxParticipants != nil {
+		updateParts = append(updateParts, "max_participants = $"+strconv.Itoa(argIndex))
+		args = append(args, req.MaxParticipants)
+		argIndex++
+	}
+
+	if len(updateParts) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No fields to update"})
+		return
+	}
+
+	// Add channel ID to args
+	args = append(args, channelUUID)
+
+	query := "UPDATE chat_channels SET " + 
+		joinStrings(updateParts, ", ") + 
+		" WHERE id = $" + strconv.Itoa(argIndex) +
+		" RETURNING id, name, description, creator_id, channel_type, is_active, max_participants, created_at, updated_at"
+
+	var channel models.ChatChannel
+	err = h.db.QueryRow(c.Request.Context(), query, args...).Scan(
+		&channel.ID,
+		&channel.Name,
+		&channel.Description,
+		&channel.CreatorID,
+		&channel.ChannelType,
+		&channel.IsActive,
+		&channel.MaxParticipants,
+		&channel.CreatedAt,
+		&channel.UpdatedAt,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update channel"})
+		return
+	}
+
+	c.JSON(http.StatusOK, channel)
+}
+
+// joinStrings is a helper function to join strings
+func joinStrings(strs []string, sep string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+	result := strs[0]
+	for i := 1; i < len(strs); i++ {
+		result += sep + strs[i]
+	}
+	return result
+}
+
 // BanUser bans a user from a channel
 func (h *ChatHandler) BanUser(c *gin.Context) {
 	channelID := c.Param("id")

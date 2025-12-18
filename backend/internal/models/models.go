@@ -2953,6 +2953,22 @@ type DeleteMessageRequest struct {
 	Reason string `json:"reason" binding:"omitempty,max=500"`
 }
 
+// CreateChannelRequest represents a request to create a chat channel
+type CreateChannelRequest struct {
+	Name            string  `json:"name" binding:"required,min=1,max=100"`
+	Description     *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	ChannelType     string  `json:"channel_type" binding:"omitempty,oneof=public private"`
+	MaxParticipants *int    `json:"max_participants,omitempty" binding:"omitempty,min=2"`
+}
+
+// UpdateChannelRequest represents a request to update a chat channel
+type UpdateChannelRequest struct {
+	Name            *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
+	Description     *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	IsActive        *bool   `json:"is_active,omitempty"`
+	MaxParticipants *int    `json:"max_participants,omitempty" binding:"omitempty,min=2"`
+}
+
 // Chat moderation action constants
 const (
 	ChatActionBan     = "ban"
