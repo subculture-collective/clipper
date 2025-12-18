@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Container, SEO } from '../components';
-import { TwitchPlayer, ClipCreator } from '../components/stream';
+import { TwitchPlayer, ClipCreator, StreamFollowButton } from '../components/stream';
 import { fetchStreamStatus } from '../lib/stream-api';
 import { ClipCard } from '../components/clip';
 import { fetchBroadcasterClips } from '../lib/broadcaster-api';
@@ -68,6 +68,8 @@ export function StreamPage() {
                   LIVE
                 </span>
               )}
+              {/* Follow Button */}
+              <StreamFollowButton streamerUsername={streamer} />
               {/* Create Clip Button - only show if stream is live and user is authenticated */}
               {streamInfo?.is_live && isAuthenticated && (
                 <div className="ml-auto">
