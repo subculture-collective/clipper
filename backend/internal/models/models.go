@@ -2161,7 +2161,7 @@ type StreamInfo struct {
 type ClipFromStreamRequest struct {
 	StreamerUsername string  `json:"streamer_username" binding:"required"`
 	StartTime        float64 `json:"start_time" binding:"required,min=0"` // Seconds into VOD
-	EndTime          float64 `json:"end_time" binding:"required,min=0"`
+	EndTime          float64 `json:"end_time" binding:"required,min=0,gtfield=StartTime"`
 	Quality          string  `json:"quality" binding:"required,oneof=source 1080p 720p"`
 	Title            string  `json:"title" binding:"required,min=3,max=255"`
 }

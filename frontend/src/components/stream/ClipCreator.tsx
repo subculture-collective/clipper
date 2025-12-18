@@ -60,6 +60,23 @@ export function ClipCreator({ streamer, currentTime = 0, duration = 0 }: ClipCre
       return;
     }
 
+    // Validate title length (must match backend requirement of 3-255 chars)
+    if (title.trim().length < 3) {
+      setErrorMessage('Title must be at least 3 characters long');
+      return;
+    }
+
+    if (title.trim().length > 255) {
+      setErrorMessage('Title must be no more than 255 characters');
+      return;
+    }
+
+    // Validate that end time is greater than start time
+    if (endTime <= startTime) {
+      setErrorMessage('End time must be greater than start time');
+      return;
+    }
+
     const clipDuration = endTime - startTime;
     if (clipDuration < 5) {
       setErrorMessage('Clip must be at least 5 seconds long');
@@ -154,7 +171,7 @@ export function ClipCreator({ streamer, currentTime = 0, duration = 0 }: ClipCre
                   id="start-time"
                   type="number"
                   value={startTime.toFixed(1)}
-                  onChange={(e) => setStartTime(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setStartTime(Math.max(0, parseFloat(e.target.value) || 0))}
                   step="0.1"
                   min="0"
                   disabled={isProcessing}
@@ -169,7 +186,7 @@ export function ClipCreator({ streamer, currentTime = 0, duration = 0 }: ClipCre
                   id="end-time"
                   type="number"
                   value={endTime.toFixed(1)}
-                  onChange={(e) => setEndTime(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setEndTime(Math.max(0, parseFloat(e.target.value) || 0))}
                   step="0.1"
                   min="0"
                   disabled={isProcessing}

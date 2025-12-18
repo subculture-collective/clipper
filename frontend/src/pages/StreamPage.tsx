@@ -5,7 +5,7 @@ import { TwitchPlayer, ClipCreator } from '../components/stream';
 import { fetchStreamStatus } from '../lib/stream-api';
 import { ClipCard } from '../components/clip';
 import { fetchBroadcasterClips } from '../lib/broadcaster-api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 
 export function StreamPage() {
   const { streamer } = useParams<{ streamer: string }>();

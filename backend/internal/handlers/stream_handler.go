@@ -140,6 +140,14 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 	}
 	userID := userIDVal.(uuid.UUID)
 
+	// Get user object from context for creator information
+	userVal, userExists := c.Get("user")
+	if !userExists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	authenticatedUser := userVal.(*models.User)
+
 	// Parse request body
 	var req models.ClipFromStreamRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -148,6 +156,18 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+
+	// Validate title length explicitly for clearer error messages
+	if len(req.Title) < 3 || len(req.Title) > 255 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title must be between 3 and 255 characters"})
+		return
+	}
+
+	// Validate that end_time is greater than start_time
+	if req.EndTime <= req.StartTime {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "end time must be greater than start time"})
+		return
+	}
 
 	// Validate duration
 	duration := req.EndTime - req.StartTime
@@ -166,26 +186,38 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 		return
 	}
 
+	// Ensure the stream is currently live before allowing clip creation
+	if stream == nil {
+		utils.GetLogger().Error("Attempt to create clip for non-live stream", nil, map[string]interface{}{
+			"streamer": streamer,
+		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "stream must be live to create a clip"})
+		return
+	}
+
 	// For this initial implementation, we'll create a clip record in "processing" state
 	// In a production implementation, this would trigger an async job to extract the video
 	
-	// Generate unique clip ID for Twitch compatibility
+	// Generate unique clip ID
 	clipID := uuid.New()
-	twitchClipID := fmt.Sprintf("stream_%s_%d", streamer, time.Now().Unix())
+	twitchClipID := fmt.Sprintf("stream_%s_%s", streamer, clipID.String())
 	
 	// Create clip record
 	streamSource := "stream"
 	status := "processing"
 	now := time.Now()
 	
+	// Use placeholder URLs for user-created clips until video processing is complete
+	placeholderURL := fmt.Sprintf("/clips/%s", clipID.String())
+	
 	clip := &models.Clip{
 		ID:               clipID,
 		TwitchClipID:     twitchClipID,
-		TwitchClipURL:    fmt.Sprintf("https://clips.twitch.tv/%s", twitchClipID),
-		EmbedURL:         fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", twitchClipID),
+		TwitchClipURL:    placeholderURL,
+		EmbedURL:         fmt.Sprintf("/clips/%s/embed", clipID.String()),
 		Title:            req.Title,
-		CreatorName:      user.Login,
-		CreatorID:        &user.ID,
+		CreatorName:      authenticatedUser.Username,
+		CreatorID:        &authenticatedUser.TwitchID,
 		BroadcasterName:  user.Login,
 		BroadcasterID:    &user.ID,
 		Duration:         &duration,

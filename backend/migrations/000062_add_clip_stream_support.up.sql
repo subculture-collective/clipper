@@ -30,3 +30,44 @@ CREATE INDEX IF NOT EXISTS idx_clips_stream_source ON clips(stream_source);
 COMMENT ON COLUMN clips.status IS 'Clip processing status: ready (default for Twitch clips), processing, failed';
 COMMENT ON COLUMN clips.stream_source IS 'Source of clip: twitch (default), stream (user-created from live stream)';
 COMMENT ON COLUMN clips.quality IS 'Quality of processed clip: source, 1080p, 720p';
+
+-- Add CHECK constraints to enforce valid values at database level
+DO $$
+BEGIN
+    -- Add status constraint if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'clips_status_check'
+          AND conrelid = 'clips'::regclass
+    ) THEN
+        ALTER TABLE clips
+        ADD CONSTRAINT clips_status_check
+        CHECK (status IN ('ready', 'processing', 'failed'));
+    END IF;
+
+    -- Add stream_source constraint if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'clips_stream_source_check'
+          AND conrelid = 'clips'::regclass
+    ) THEN
+        ALTER TABLE clips
+        ADD CONSTRAINT clips_stream_source_check
+        CHECK (stream_source IN ('twitch', 'stream'));
+    END IF;
+
+    -- Add quality constraint if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'clips_quality_check'
+          AND conrelid = 'clips'::regclass
+    ) THEN
+        ALTER TABLE clips
+        ADD CONSTRAINT clips_quality_check
+        CHECK (quality IS NULL OR quality IN ('source', '1080p', '720p'));
+    END IF;
+END;
+$$;
