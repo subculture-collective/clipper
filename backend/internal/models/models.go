@@ -3376,3 +3376,21 @@ type ResumePositionResponse struct {
 	ProgressSeconds int  `json:"progress_seconds"`
 	Completed       bool `json:"completed"`
 }
+
+// TwitchAuth represents Twitch OAuth authentication data
+type TwitchAuth struct {
+	UserID         uuid.UUID `json:"user_id" db:"user_id"`
+	TwitchUserID   string    `json:"twitch_user_id" db:"twitch_user_id"`
+	TwitchUsername string    `json:"twitch_username" db:"twitch_username"`
+	AccessToken    string    `json:"-" db:"access_token"` // Don't expose in JSON
+	RefreshToken   string    `json:"-" db:"refresh_token"` // Don't expose in JSON
+	ExpiresAt      time.Time `json:"expires_at" db:"expires_at"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// TwitchAuthStatusResponse represents the response for Twitch auth status
+type TwitchAuthStatusResponse struct {
+	Authenticated  bool   `json:"authenticated"`
+	TwitchUsername string `json:"twitch_username,omitempty"`
+}

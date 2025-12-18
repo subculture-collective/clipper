@@ -177,6 +177,7 @@ func main() {
 	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
 	streamRepo := repository.NewStreamRepository(db.Pool)
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
+	twitchAuthRepo := repository.NewTwitchAuthRepository(db)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -380,6 +381,7 @@ func main() {
 	var moderationHandler *handlers.ModerationHandler
 	var liveStatusHandler *handlers.LiveStatusHandler
 	var streamHandler *handlers.StreamHandler
+	var twitchOAuthHandler *handlers.TwitchOAuthHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
@@ -397,6 +399,7 @@ func main() {
 	}
 	if twitchClient != nil {
 		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo)
+		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
 	}
 
 	// Initialize router
@@ -890,6 +893,22 @@ func main() {
 				
 				// Protected stream clip creation endpoint (authenticated, rate limited)
 				streams.POST("/:streamer/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), streamHandler.CreateClipFromStream)
+			}
+		}
+
+		// Twitch OAuth routes for chat integration
+		if twitchOAuthHandler != nil {
+			twitch := v1.Group("/twitch")
+			{
+				// OAuth endpoints (authenticated)
+				twitch.GET("/oauth/authorize", middleware.AuthMiddleware(authService), twitchOAuthHandler.InitiateTwitchOAuth)
+				twitch.GET("/oauth/callback", middleware.AuthMiddleware(authService), twitchOAuthHandler.TwitchOAuthCallback)
+				
+				// Auth status endpoint (can be called without auth to check status)
+				twitch.GET("/auth/status", middleware.OptionalAuthMiddleware(authService), twitchOAuthHandler.GetTwitchAuthStatus)
+				
+				// Revoke endpoint (authenticated)
+				twitch.DELETE("/auth", middleware.AuthMiddleware(authService), twitchOAuthHandler.RevokeTwitchAuth)
 			}
 		}
 
