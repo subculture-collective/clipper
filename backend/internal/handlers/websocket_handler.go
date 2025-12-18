@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -30,9 +31,10 @@ func NewWebSocketHandler(db *pgxpool.Pool, server *ws.Server) *WebSocketHandler 
 
 // HandleConnection handles WebSocket connection upgrades
 func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
-	// Extract channel ID from URL parameter
+	// Extract channel ID from URL parameter and validate
 	channelID := c.Param("id")
-	if _, err := uuid.Parse(channelID); err != nil {
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
 		return
 	}
@@ -50,9 +52,23 @@ func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
 		return
 	}
 
+	// Verify channel exists and is active
+	var channelExists bool
+	err = h.db.QueryRow(c.Request.Context(), 
+		"SELECT EXISTS(SELECT 1 FROM chat_channels WHERE id = $1 AND is_active = true)", 
+		channelUUID).Scan(&channelExists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify channel"})
+		return
+	}
+	if !channelExists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found or inactive"})
+		return
+	}
+
 	// Get user details
 	var username string
-	err := h.db.QueryRow(c.Request.Context(), "SELECT username FROM users WHERE id = $1", userID).Scan(&username)
+	err = h.db.QueryRow(c.Request.Context(), "SELECT username FROM users WHERE id = $1", userID).Scan(&username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user details"})
 		return
@@ -79,18 +95,63 @@ func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
 	}
 
 	// Handle the WebSocket upgrade
-	err = h.server.HandleWebSocket(c.Writer, c.Request, userID, username, channelID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to establish WebSocket connection"})
-		return
-	}
+	// Note: After upgrade, we cannot send HTTP responses anymore
+	_ = h.server.HandleWebSocket(c.Writer, c.Request, userID, username, channelID)
 }
 
 // GetMessageHistory returns message history for a channel
 func (h *WebSocketHandler) GetMessageHistory(c *gin.Context) {
 	channelID := c.Param("id")
-	if _, err := uuid.Parse(channelID); err != nil {
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Verify channel exists
+	var channelExists bool
+	err = h.db.QueryRow(c.Request.Context(), 
+		"SELECT EXISTS(SELECT 1 FROM chat_channels WHERE id = $1 AND is_active = true)", 
+		channelUUID).Scan(&channelExists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify channel"})
+		return
+	}
+	if !channelExists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found or inactive"})
+		return
+	}
+
+	// Check if user is banned from the channel
+	var isBanned bool
+	banQuery := `
+		SELECT EXISTS(
+			SELECT 1 FROM chat_bans 
+			WHERE channel_id = $1 AND user_id = $2 
+			AND (expires_at IS NULL OR expires_at > NOW())
+		)
+	`
+	err = h.db.QueryRow(c.Request.Context(), banQuery, channelUUID, userID).Scan(&isBanned)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check ban status"})
+		return
+	}
+
+	if isBanned {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are banned from this channel"})
 		return
 	}
 
@@ -118,11 +179,13 @@ func (h *WebSocketHandler) GetMessageHistory(c *gin.Context) {
 	// Add cursor condition if provided
 	if cursor != "" {
 		cursorTime, err := time.Parse(time.RFC3339, cursor)
-		if err == nil {
-			query += fmt.Sprintf(" AND cm.created_at < $%d", argIndex)
-			args = append(args, cursorTime)
-			argIndex++
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cursor format; expected RFC3339 timestamp"})
+			return
 		}
+		query += fmt.Sprintf(" AND cm.created_at < $%d", argIndex)
+		args = append(args, cursorTime)
+		argIndex++
 	}
 
 	query += fmt.Sprintf(" ORDER BY cm.created_at DESC LIMIT $%d", argIndex)
@@ -155,6 +218,7 @@ func (h *WebSocketHandler) GetMessageHistory(c *gin.Context) {
 			&msg.AvatarURL,
 		)
 		if err != nil {
+			log.Printf("Failed to scan message row: %v", err)
 			continue
 		}
 		messages = append(messages, msg)

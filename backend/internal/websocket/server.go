@@ -13,11 +13,12 @@ import (
 
 // Server represents the WebSocket server
 type Server struct {
-	DB       *pgxpool.Pool
-	Redis    *redis.Client
-	Upgrader websocket.Upgrader
-	Hubs     map[string]*ChannelHub
-	HubsMux  sync.RWMutex
+	DB          *pgxpool.Pool
+	Redis       *redis.Client
+	Upgrader    websocket.Upgrader
+	Hubs        map[string]*ChannelHub
+	HubsMux     sync.RWMutex
+	shutdownOnce sync.Once
 }
 
 // NewServer creates a new WebSocket server
@@ -101,20 +102,22 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request, userID 
 
 // Shutdown gracefully shuts down all hubs
 func (s *Server) Shutdown() {
-	s.HubsMux.Lock()
-	defer s.HubsMux.Unlock()
+	s.shutdownOnce.Do(func() {
+		s.HubsMux.Lock()
+		defer s.HubsMux.Unlock()
 
-	log.Println("Shutting down WebSocket server...")
+		log.Println("Shutting down WebSocket server...")
 
-	for channelID, hub := range s.Hubs {
-		log.Printf("Shutting down hub for channel: %s", channelID)
-		close(hub.Stop)
-	}
+		for channelID, hub := range s.Hubs {
+			log.Printf("Shutting down hub for channel: %s", channelID)
+			close(hub.Stop)
+		}
 
-	// Clear hubs map
-	s.Hubs = make(map[string]*ChannelHub)
+		// Clear hubs map
+		s.Hubs = make(map[string]*ChannelHub)
 
-	log.Println("WebSocket server shutdown complete")
+		log.Println("WebSocket server shutdown complete")
+	})
 }
 
 // GetStats returns statistics about the WebSocket server

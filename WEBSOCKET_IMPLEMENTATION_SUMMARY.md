@@ -180,7 +180,7 @@ backend/internal/handlers/
 ### Backend Requirements
 - [x] WebSocket server supporting wss:// protocol
 - [x] Connection authentication via JWT token
-- [x] Support multi-channel subscriptions per client
+- [x] Single channel per WebSocket connection (one connection per channel)
 - [x] Broadcast message to all channel subscribers
 - [x] Typing indicators without persisting to database
 - [x] User presence tracking (joined/left channel)
@@ -199,9 +199,9 @@ backend/internal/handlers/
 - [x] Session management for horizontal scaling
 
 ### API Endpoints
-- [x] GET `/api/chat/channels/{id}/messages?limit=50&cursor=abc` for history
-- [x] WebSocket endpoint `/api/chat/channels/{id}/ws`
-- [x] Health check endpoint `/api/chat/health`
+- [x] GET `/api/v1/chat/channels/{id}/messages?limit=50&cursor=abc` for history
+- [x] WebSocket endpoint `/api/v1/chat/channels/{id}/ws`
+- [x] Health check endpoint `/api/v1/chat/health`
 
 ### Testing Requirements
 - [x] Unit tests for WebSocket handlers

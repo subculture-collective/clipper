@@ -32,8 +32,8 @@ func NewChannelHub(channelID string, db *pgxpool.Pool, redisClient *redis.Client
 		ID:         channelID,
 		Clients:    make(map[*ChatClient]bool),
 		Broadcast:  make(chan []byte, 256),
-		Register:   make(chan *ChatClient),
-		Unregister: make(chan *ChatClient),
+		Register:   make(chan *ChatClient, 10),   // Buffered to prevent blocking
+		Unregister: make(chan *ChatClient, 10),   // Buffered to prevent blocking
 		DB:         db,
 		Redis:      redisClient,
 		Stop:       make(chan struct{}),
@@ -50,11 +50,16 @@ func (h *ChannelHub) Run() {
 	var redisChan <-chan *redis.Message
 	
 	if h.Redis != nil {
-		ctx := context.Background()
+		// Use a cancellable context for Redis subscription
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		
 		pubsub = h.Redis.Subscribe(ctx, fmt.Sprintf("chat:%s", h.ID))
 		defer pubsub.Close()
 		redisChan = pubsub.Channel()
 	}
+	// Note: If Redis is nil, redisChan will be nil. Reading from a nil channel blocks forever,
+	// so the select case will never trigger - this is the intended behavior for non-Redis setups.
 
 	for {
 		select {
@@ -68,7 +73,7 @@ func (h *ChannelHub) Run() {
 			h.handleBroadcast(message)
 
 		case redisMsg := <-redisChan:
-			// Received message from Redis pub/sub (from another instance)
+			// Received message from Redis pub/sub (from another instance or this instance)
 			if redisMsg != nil {
 				h.broadcastToClients([]byte(redisMsg.Payload))
 			}
@@ -88,10 +93,11 @@ func (h *ChannelHub) Run() {
 func (h *ChannelHub) handleRegister(client *ChatClient) {
 	h.Mutex.Lock()
 	h.Clients[client] = true
+	clientCount := len(h.Clients)
 	h.Mutex.Unlock()
 
 	log.Printf("Client registered: user_id=%s, channel=%s, total_clients=%d",
-		client.UserID, h.ID, len(h.Clients))
+		client.UserID, h.ID, clientCount)
 
 	// Broadcast user joined presence
 	userIDStr := client.UserID.String()
@@ -110,8 +116,13 @@ func (h *ChannelHub) handleRegister(client *ChatClient) {
 		h.Broadcast <- data
 	}
 
-	// Send message history to new client
-	go h.sendMessageHistory(client)
+	// Send message history to new client, unless the hub is shutting down
+	select {
+	case <-h.Stop:
+		// Hub is shutting down; skip sending message history
+	default:
+		go h.sendMessageHistory(client)
+	}
 }
 
 // handleUnregister unregisters a client
@@ -121,10 +132,11 @@ func (h *ChannelHub) handleUnregister(client *ChatClient) {
 		delete(h.Clients, client)
 		close(client.Send)
 	}
+	totalClients := len(h.Clients)
 	h.Mutex.Unlock()
 
 	log.Printf("Client unregistered: user_id=%s, channel=%s, total_clients=%d",
-		client.UserID, h.ID, len(h.Clients))
+		client.UserID, h.ID, totalClients)
 
 	// Broadcast user left presence
 	userIDStr := client.UserID.String()
@@ -144,12 +156,11 @@ func (h *ChannelHub) handleUnregister(client *ChatClient) {
 	}
 }
 
-// handleBroadcast broadcasts a message to all clients and publishes to Redis
+// handleBroadcast broadcasts a message to all clients via Redis Pub/Sub
+// The message is published to Redis and will be received by all instances (including this one)
+// This ensures consistent message delivery across all instances
 func (h *ChannelHub) handleBroadcast(message []byte) {
-	// Broadcast to local clients
-	h.broadcastToClients(message)
-
-	// Publish to Redis for other instances (if Redis is available)
+	// Publish to Redis for all instances (if Redis is available)
 	if h.Redis != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
@@ -157,7 +168,12 @@ func (h *ChannelHub) handleBroadcast(message []byte) {
 		err := h.Redis.Publish(ctx, fmt.Sprintf("chat:%s", h.ID), string(message)).Err()
 		if err != nil {
 			log.Printf("Failed to publish message to Redis: %v", err)
+			// Fallback to local broadcast if Redis fails
+			h.broadcastToClients(message)
 		}
+	} else {
+		// No Redis available, broadcast locally only
+		h.broadcastToClients(message)
 	}
 }
 
@@ -284,9 +300,4 @@ func (h *ChannelHub) GetClientCount() int {
 	h.Mutex.RLock()
 	defer h.Mutex.RUnlock()
 	return len(h.Clients)
-}
-
-// Helper function to create a time pointer
-func timePtr(t time.Time) *time.Time {
-	return &t
 }

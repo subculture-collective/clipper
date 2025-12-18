@@ -173,11 +173,14 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 	messageIDStr := messageID.String()
 	userIDStr := c.UserID.String()
 
-	// Fetch user details for the broadcast
+	// Fetch user details for the broadcast (use fresh context)
 	var displayName string
 	var avatarURL *string
 	userQuery := `SELECT display_name, avatar_url FROM users WHERE id = $1`
-	err = c.Hub.DB.QueryRow(ctx, userQuery, c.UserID).Scan(&displayName, &avatarURL)
+	userCtx, userCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer userCancel()
+	
+	err = c.Hub.DB.QueryRow(userCtx, userQuery, c.UserID).Scan(&displayName, &avatarURL)
 	if err != nil {
 		displayName = c.Username
 	}
