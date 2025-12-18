@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,7 +56,7 @@ func (r *WatchPartyRepository) Create(ctx context.Context, party *models.WatchPa
 func (r *WatchPartyRepository) GetByID(ctx context.Context, partyID uuid.UUID) (*models.WatchParty, error) {
 	query := `
 		SELECT id, host_user_id, title, playlist_id, current_clip_id,
-		       current_position_seconds, is_playing, visibility, invite_code,
+		       current_position_seconds, is_playing, visibility, password, invite_code,
 		       max_participants, created_at, started_at, ended_at
 		FROM watch_parties
 		WHERE id = $1
@@ -71,6 +72,7 @@ func (r *WatchPartyRepository) GetByID(ctx context.Context, partyID uuid.UUID) (
 		&party.CurrentPositionSeconds,
 		&party.IsPlaying,
 		&party.Visibility,
+		&party.Password,
 		&party.InviteCode,
 		&party.MaxParticipants,
 		&party.CreatedAt,
@@ -92,7 +94,7 @@ func (r *WatchPartyRepository) GetByID(ctx context.Context, partyID uuid.UUID) (
 func (r *WatchPartyRepository) GetByInviteCode(ctx context.Context, inviteCode string) (*models.WatchParty, error) {
 	query := `
 		SELECT id, host_user_id, title, playlist_id, current_clip_id,
-		       current_position_seconds, is_playing, visibility, invite_code,
+		       current_position_seconds, is_playing, visibility, password, invite_code,
 		       max_participants, created_at, started_at, ended_at
 		FROM watch_parties
 		WHERE invite_code = $1 AND ended_at IS NULL
@@ -108,6 +110,7 @@ func (r *WatchPartyRepository) GetByInviteCode(ctx context.Context, inviteCode s
 		&party.CurrentPositionSeconds,
 		&party.IsPlaying,
 		&party.Visibility,
+		&party.Password,
 		&party.InviteCode,
 		&party.MaxParticipants,
 		&party.CreatedAt,
@@ -501,4 +504,120 @@ func (r *WatchPartyRepository) GetRecentReactions(ctx context.Context, partyID u
 	}
 
 	return reactions, nil
+}
+
+// UpdateSettings updates the privacy and password settings for a watch party
+func (r *WatchPartyRepository) UpdateSettings(ctx context.Context, partyID uuid.UUID, privacy *string, password *string) error {
+	// Build dynamic query based on provided fields
+	query := `UPDATE watch_parties SET`
+	params := []interface{}{}
+	paramCount := 1
+	updates := []string{}
+
+	if privacy != nil {
+		updates = append(updates, fmt.Sprintf(" visibility = $%d", paramCount))
+		params = append(params, *privacy)
+		paramCount++
+	}
+
+	if password != nil {
+		updates = append(updates, fmt.Sprintf(" password = $%d", paramCount))
+		params = append(params, *password)
+		paramCount++
+	}
+
+	if len(updates) == 0 {
+		return nil // Nothing to update
+	}
+
+	query += strings.Join(updates, ",")
+	query += fmt.Sprintf(" WHERE id = $%d AND ended_at IS NULL", paramCount)
+	params = append(params, partyID)
+
+	result, err := r.pool.Exec(ctx, query, params...)
+	if err != nil {
+		return fmt.Errorf("failed to update watch party settings: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("watch party not found or already ended")
+	}
+
+	return nil
+}
+
+// GetHistory retrieves past watch parties for a user
+func (r *WatchPartyRepository) GetHistory(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.WatchPartyHistoryEntry, int, error) {
+	// First get the total count
+	countQuery := `
+		SELECT COUNT(DISTINCT wp.id)
+		FROM watch_parties wp
+		JOIN watch_party_participants wpp ON wp.id = wpp.party_id
+		WHERE wpp.user_id = $1 AND wp.ended_at IS NOT NULL
+	`
+
+	var totalCount int
+	err := r.pool.QueryRow(ctx, countQuery, userID).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count watch party history: %w", err)
+	}
+
+	// Then get the paginated history
+	query := `
+		SELECT 
+			wp.id,
+			wp.host_user_id,
+			wp.title,
+			wp.visibility,
+			COUNT(DISTINCT wpp2.user_id) as participant_count,
+			wp.created_at,
+			wp.started_at,
+			wp.ended_at
+		FROM watch_parties wp
+		JOIN watch_party_participants wpp ON wp.id = wpp.party_id
+		LEFT JOIN watch_party_participants wpp2 ON wp.id = wpp2.party_id AND wpp2.left_at IS NULL
+		WHERE wpp.user_id = $1 AND wp.ended_at IS NOT NULL
+		GROUP BY wp.id
+		ORDER BY wp.ended_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get watch party history: %w", err)
+	}
+	defer rows.Close()
+
+	var history []models.WatchPartyHistoryEntry
+	for rows.Next() {
+		var entry models.WatchPartyHistoryEntry
+		err := rows.Scan(
+			&entry.ID,
+			&entry.HostUserID,
+			&entry.Title,
+			&entry.Visibility,
+			&entry.ParticipantCount,
+			&entry.CreatedAt,
+			&entry.StartedAt,
+			&entry.EndedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan history entry: %w", err)
+		}
+
+		// Calculate duration if both started_at and ended_at are present
+		if entry.StartedAt != nil && entry.EndedAt != nil {
+			duration := int(entry.EndedAt.Sub(*entry.StartedAt).Seconds())
+			entry.Duration = &duration
+		}
+
+		history = append(history, entry)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating history: %w", err)
+	}
+
+	return history, totalCount, nil
+}
 }

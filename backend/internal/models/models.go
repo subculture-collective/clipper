@@ -3405,6 +3405,7 @@ type WatchParty struct {
 	CurrentPositionSeconds int                    `json:"current_position_seconds" db:"current_position_seconds"`
 	IsPlaying              bool                   `json:"is_playing" db:"is_playing"`
 	Visibility             string                 `json:"visibility" db:"visibility"`
+	Password               *string                `json:"-" db:"password"` // Password hash, never sent to client
 	InviteCode             string                 `json:"invite_code" db:"invite_code"`
 	MaxParticipants        int                    `json:"max_participants" db:"max_participants"`
 	CreatedAt              time.Time              `json:"created_at" db:"created_at"`
@@ -3430,14 +3431,39 @@ type WatchPartyParticipant struct {
 type CreateWatchPartyRequest struct {
 	Title       string     `json:"title" binding:"required,min=1,max=200"`
 	PlaylistID  *uuid.UUID `json:"playlist_id,omitempty" binding:"omitempty,uuid"`
-	Visibility  string     `json:"visibility,omitempty" binding:"omitempty,oneof=private public friends"`
+	Visibility  string     `json:"visibility,omitempty" binding:"omitempty,oneof=private public friends invite"`
+	Password    *string    `json:"password,omitempty" binding:"omitempty,min=4,max=100"`
 	MaxParticipants *int   `json:"max_participants,omitempty" binding:"omitempty,min=2,max=1000"`
+}
+
+// UpdateWatchPartySettingsRequest represents a request to update watch party settings
+type UpdateWatchPartySettingsRequest struct {
+	Privacy  *string `json:"privacy,omitempty" binding:"omitempty,oneof=public friends invite"`
+	Password *string `json:"password,omitempty" binding:"omitempty,max=100"`
 }
 
 // JoinWatchPartyResponse represents the response when joining a party
 type JoinWatchPartyResponse struct {
 	Party WatchParty `json:"party"`
 	InviteURL string  `json:"invite_url"`
+}
+
+// JoinWatchPartyRequest represents a request to join a watch party
+type JoinWatchPartyRequest struct {
+	Password *string `json:"password,omitempty"`
+}
+
+// WatchPartyHistoryEntry represents a past watch party
+type WatchPartyHistoryEntry struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	HostUserID      uuid.UUID  `json:"host_user_id" db:"host_user_id"`
+	Title           string     `json:"title" db:"title"`
+	Visibility      string     `json:"visibility" db:"visibility"`
+	ParticipantCount int       `json:"participant_count" db:"participant_count"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	StartedAt       *time.Time `json:"started_at,omitempty" db:"started_at"`
+	EndedAt         *time.Time `json:"ended_at,omitempty" db:"ended_at"`
+	Duration        *int       `json:"duration_seconds,omitempty"` // Calculated field
 }
 
 // WatchPartyCommand represents a command from client to server

@@ -1260,6 +1260,9 @@ func main() {
 		// Watch party routes
 		watchParties := v1.Group("/watch-parties")
 		{
+			// Get watch party history (authenticated)
+			watchParties.GET("/history", middleware.AuthMiddleware(authService), watchPartyHandler.GetWatchPartyHistory)
+
 			// Create watch party (authenticated, rate limited - 10 per hour)
 			watchParties.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), watchPartyHandler.CreateWatchParty)
 
@@ -1268,6 +1271,9 @@ func main() {
 
 			// Get watch party details (optional auth for visibility check)
 			watchParties.GET("/:id", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetWatchParty)
+
+			// Update watch party settings (authenticated, host only, rate limited - 20 per hour)
+			watchParties.PATCH("/:id/settings", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.UpdateWatchPartySettings)
 
 			// Get watch party participants (optional auth for visibility check)
 			watchParties.GET("/:id/participants", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetParticipants)

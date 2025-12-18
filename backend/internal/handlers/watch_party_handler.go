@@ -3,11 +3,13 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/bcrypt"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
@@ -171,8 +173,62 @@ func (h *WatchPartyHandler) JoinWatchParty(c *gin.Context) {
 		return
 	}
 
+	// Parse optional request body for password
+	var joinReq models.JoinWatchPartyRequest
+	_ = c.ShouldBindJSON(&joinReq) // Ignore error as body is optional
+
+	// Get party by invite code to check for password protection
+	party, err := h.watchPartyRepo.GetByInviteCode(c.Request.Context(), inviteCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to verify watch party",
+			},
+		})
+		return
+	}
+
+	if party == nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "NOT_FOUND",
+				Message: "Watch party not found or has ended",
+			},
+		})
+		return
+	}
+
+	// Check password if party is password-protected
+	if party.Password != nil && *party.Password != "" {
+		if joinReq.Password == nil || *joinReq.Password == "" {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "PASSWORD_REQUIRED",
+					Message: "This watch party requires a password",
+				},
+			})
+			return
+		}
+
+		err := bcrypt.CompareHashAndPassword([]byte(*party.Password), []byte(*joinReq.Password))
+		if err != nil {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_PASSWORD",
+					Message: "Incorrect password",
+				},
+			})
+			return
+		}
+	}
+
 	// Join watch party
-	party, err := h.watchPartyService.JoinWatchParty(c.Request.Context(), inviteCode, userID)
+	party, err = h.watchPartyService.JoinWatchParty(c.Request.Context(), inviteCode, userID)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		errorCode := "INTERNAL_ERROR"
@@ -912,5 +968,212 @@ func (h *WatchPartyHandler) SendReaction(c *gin.Context) {
 	c.JSON(http.StatusCreated, StandardResponse{
 		Success: true,
 		Data:    reaction,
+	})
+}
+
+// UpdateWatchPartySettings handles PATCH /api/v1/watch-parties/:id/settings
+func (h *WatchPartyHandler) UpdateWatchPartySettings(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse party ID
+	partyIDStr := c.Param("id")
+	partyID, err := uuid.Parse(partyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid party ID",
+			},
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.UpdateWatchPartySettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	// Get watch party to verify host
+	party, err := h.watchPartyRepo.GetByID(c.Request.Context(), partyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get watch party",
+			},
+		})
+		return
+	}
+
+	if party == nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "NOT_FOUND",
+				Message: "Watch party not found",
+			},
+		})
+		return
+	}
+
+	// Verify user is the host
+	if party.HostUserID != userID {
+		c.JSON(http.StatusForbidden, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "FORBIDDEN",
+				Message: "Only the host can update party settings",
+			},
+		})
+		return
+	}
+
+	// Hash password if provided
+	var hashedPassword *string
+	if req.Password != nil && *req.Password != "" {
+		// Import bcrypt at top: "golang.org/x/crypto/bcrypt"
+		hash, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INTERNAL_ERROR",
+					Message: "Failed to hash password",
+				},
+			})
+			return
+		}
+		hashStr := string(hash)
+		hashedPassword = &hashStr
+	} else if req.Password != nil && *req.Password == "" {
+		// Empty string means remove password
+		emptyStr := ""
+		hashedPassword = &emptyStr
+	}
+
+	// Update settings
+	err = h.watchPartyRepo.UpdateSettings(c.Request.Context(), partyID, req.Privacy, hashedPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to update settings",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"message": "Settings updated successfully",
+		},
+	})
+}
+
+// GetWatchPartyHistory handles GET /api/v1/watch-parties/history
+func (h *WatchPartyHandler) GetWatchPartyHistory(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse pagination parameters
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	// Get history
+	history, totalCount, err := h.watchPartyRepo.GetHistory(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get watch party history",
+			},
+		})
+		return
+	}
+
+	totalPages := (totalCount + limit - 1) / limit
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"history": history,
+			"pagination": gin.H{
+				"page":        page,
+				"limit":       limit,
+				"total_count": totalCount,
+				"total_pages": totalPages,
+			},
+		},
 	})
 }
