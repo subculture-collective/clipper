@@ -22,6 +22,7 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const { user } = useAuth();
   const { showToast } = useToast();
+  const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const {
     permission,
     requestPermission,
@@ -53,16 +54,33 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
         return prev;
       });
 
+      // Clear existing timeout for this user
+      const existingTimeout = typingTimeoutsRef.current.get(username);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+      }
+
       // Remove typing indicator after 3 seconds
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setTypingUsers((prev) => prev.filter((u) => u !== username));
+        typingTimeoutsRef.current.delete(username);
       }, 3000);
+      
+      typingTimeoutsRef.current.set(username, timeoutId);
     },
   });
 
   const handleSend = (content: string) => {
     sendMessage(content);
   };
+
+  // Cleanup typing timeouts on unmount
+  useEffect(() => {
+    return () => {
+      typingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      typingTimeoutsRef.current.clear();
+    };
+  }, []);
 
   const handleNotificationToggle = async () => {
     if (permission === 'granted') {

@@ -30,7 +30,7 @@ export function MessageComposer({
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([]);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const typingTimeoutRef = useRef<number>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Handle input change and detect mentions
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
