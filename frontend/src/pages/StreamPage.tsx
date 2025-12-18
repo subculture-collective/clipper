@@ -1,8 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Container, SEO } from '../components';
-import { TwitchPlayer, ClipCreator } from '../components/stream';
-import { StreamFollowButton } from '../components/stream/StreamFollowButton';
+import { TwitchPlayer, ClipCreator, StreamFollowButton } from '../components/stream';
 import { fetchStreamStatus } from '../lib/stream-api';
 import { ClipCard } from '../components/clip';
 import { fetchBroadcasterClips } from '../lib/broadcaster-api';
