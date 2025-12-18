@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -13,17 +14,71 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
+// SimpleRateLimiter provides a simple in-memory rate limiter
+type SimpleRateLimiter struct {
+	requests sync.Map // map[string]*watchPartyRateLimitWindow
+	limit    int
+	window   time.Duration
+}
+
+type watchPartyRateLimitWindow struct {
+	timestamps []time.Time
+	mu         sync.Mutex
+}
+
+// NewSimpleRateLimiter creates a new rate limiter
+func NewSimpleRateLimiter(limit int, window time.Duration) *SimpleRateLimiter {
+	return &SimpleRateLimiter{
+		limit:  limit,
+		window: window,
+	}
+}
+
+// Allow checks if a request should be allowed
+func (r *SimpleRateLimiter) Allow(key string) bool {
+	now := time.Now()
+	cutoff := now.Add(-r.window)
+
+	val, _ := r.requests.LoadOrStore(key, &watchPartyRateLimitWindow{
+		timestamps: make([]time.Time, 0),
+	})
+	w := val.(*watchPartyRateLimitWindow)
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// Remove old timestamps
+	valid := make([]time.Time, 0, len(w.timestamps))
+	for _, ts := range w.timestamps {
+		if ts.After(cutoff) {
+			valid = append(valid, ts)
+		}
+	}
+	w.timestamps = valid
+
+	// Check limit
+	if len(w.timestamps) >= r.limit {
+		return false
+	}
+
+	// Add current timestamp
+	w.timestamps = append(w.timestamps, now)
+	return true
+}
+
 // WatchPartyHub manages WebSocket connections for a single watch party
 type WatchPartyHub struct {
-	PartyID        uuid.UUID
-	watchPartyRepo *repository.WatchPartyRepository
-	Clients        map[uuid.UUID]*WatchPartyClient
-	Broadcast      chan *models.WatchPartySyncEvent
-	Register       chan *WatchPartyClient
-	Unregister     chan *WatchPartyClient
-	mutex          sync.RWMutex
-	stopChan       chan struct{}
-	wg             sync.WaitGroup
+	PartyID          uuid.UUID
+	watchPartyRepo   *repository.WatchPartyRepository
+	Clients          map[uuid.UUID]*WatchPartyClient
+	Broadcast        chan *models.WatchPartySyncEvent
+	Register         chan *WatchPartyClient
+	Unregister       chan *WatchPartyClient
+	mutex            sync.RWMutex
+	stopChan         chan struct{}
+	wg               sync.WaitGroup
+	chatRateLimiter  *SimpleRateLimiter // 10 messages per minute per user
+	reactRateLimiter *SimpleRateLimiter // 30 reactions per minute per user
 }
 
 // WatchPartyClient represents a connected client
@@ -62,13 +117,15 @@ func (m *WatchPartyHubManager) GetOrCreateHub(partyID uuid.UUID) *WatchPartyHub 
 	}
 
 	hub := &WatchPartyHub{
-		PartyID:        partyID,
-		watchPartyRepo: m.watchPartyRepo,
-		Clients:        make(map[uuid.UUID]*WatchPartyClient),
-		Broadcast:      make(chan *models.WatchPartySyncEvent, 256),
-		Register:       make(chan *WatchPartyClient),
-		Unregister:     make(chan *WatchPartyClient),
-		stopChan:       make(chan struct{}),
+		PartyID:          partyID,
+		watchPartyRepo:   m.watchPartyRepo,
+		Clients:          make(map[uuid.UUID]*WatchPartyClient),
+		Broadcast:        make(chan *models.WatchPartySyncEvent, 256),
+		Register:         make(chan *WatchPartyClient),
+		Unregister:       make(chan *WatchPartyClient),
+		stopChan:         make(chan struct{}),
+		chatRateLimiter:  NewSimpleRateLimiter(10, time.Minute),  // 10 messages per minute
+		reactRateLimiter: NewSimpleRateLimiter(30, time.Minute),  // 30 reactions per minute
 	}
 
 	m.hubs[partyID] = hub
@@ -200,9 +257,10 @@ func (c *WatchPartyClient) ReadPump(ctx context.Context) {
 			continue
 		}
 
+		// Allow chat, reaction, typing, and sync-request for all users
 		// Only host/co-host can control playback
 		if c.Role != "host" && c.Role != "co-host" {
-			if cmd.Type != "sync-request" {
+			if cmd.Type != "sync-request" && cmd.Type != "chat" && cmd.Type != "reaction" && cmd.Type != "typing" {
 				continue
 			}
 		}
@@ -332,6 +390,93 @@ func (c *WatchPartyClient) handleCommand(ctx context.Context, cmd *models.WatchP
 		// Send only to requesting client
 		c.Send <- mustMarshalJSON(event)
 		return
+
+	case "chat":
+		// Rate limit check - 10 messages per minute
+		rateLimitKey := fmt.Sprintf("chat:%s:%s", partyID.String(), c.UserID.String())
+		if !c.Hub.chatRateLimiter.Allow(rateLimitKey) {
+			log.Printf("Chat rate limit exceeded for user %s", c.UserID)
+			return
+		}
+
+		// Validate message
+		if cmd.Message == "" || len(cmd.Message) > 1000 {
+			log.Printf("Invalid message length: %d", len(cmd.Message))
+			return
+		}
+
+		// Create message in database
+		msg := &models.WatchPartyMessage{
+			ID:           uuid.New(),
+			WatchPartyID: partyID,
+			UserID:       c.UserID,
+			Message:      cmd.Message,
+		}
+
+		if err := c.Hub.watchPartyRepo.CreateMessage(ctx, msg); err != nil {
+			log.Printf("Failed to create message: %v", err)
+			return
+		}
+
+		// Add user info for broadcast
+		msg.Username = c.User.Username
+		msg.DisplayName = c.User.DisplayName
+		msg.AvatarURL = c.User.AvatarURL
+
+		event = &models.WatchPartySyncEvent{
+			Type:            "chat_message",
+			PartyID:         cmd.PartyID,
+			ServerTimestamp: time.Now().Unix(),
+			ChatMessage:     msg,
+		}
+
+	case "reaction":
+		// Rate limit check - 30 reactions per minute
+		rateLimitKey := fmt.Sprintf("reaction:%s:%s", partyID.String(), c.UserID.String())
+		if !c.Hub.reactRateLimiter.Allow(rateLimitKey) {
+			log.Printf("Reaction rate limit exceeded for user %s", c.UserID)
+			return
+		}
+
+		// Validate emoji
+		if cmd.Emoji == "" || len(cmd.Emoji) > 10 {
+			log.Printf("Invalid emoji length: %d", len(cmd.Emoji))
+			return
+		}
+
+		// Create reaction in database
+		reaction := &models.WatchPartyReaction{
+			ID:             uuid.New(),
+			WatchPartyID:   partyID,
+			UserID:         c.UserID,
+			Emoji:          cmd.Emoji,
+			VideoTimestamp: cmd.VideoTimestamp,
+		}
+
+		if err := c.Hub.watchPartyRepo.CreateReaction(ctx, reaction); err != nil {
+			log.Printf("Failed to create reaction: %v", err)
+			return
+		}
+
+		// Add username for broadcast
+		reaction.Username = c.User.Username
+
+		event = &models.WatchPartySyncEvent{
+			Type:            "reaction",
+			PartyID:         cmd.PartyID,
+			ServerTimestamp: time.Now().Unix(),
+			Reaction:        reaction,
+		}
+
+	case "typing":
+		// Broadcast typing indicator (no rate limit, no persistence)
+		event = &models.WatchPartySyncEvent{
+			Type:            "typing",
+			PartyID:         cmd.PartyID,
+			UserID:          &c.UserID,
+			IsTyping:        cmd.IsTyping,
+			ServerTimestamp: time.Now().Unix(),
+		}
 	}
 
 	if event != nil {

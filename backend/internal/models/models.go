@@ -3442,22 +3442,30 @@ type JoinWatchPartyResponse struct {
 
 // WatchPartyCommand represents a command from client to server
 type WatchPartyCommand struct {
-	Type      string     `json:"type"` // play, pause, seek, skip, sync-request
-	PartyID   string     `json:"party_id"`
-	Position  *int       `json:"position,omitempty"` // for seek (in seconds)
-	ClipID    *uuid.UUID `json:"clip_id,omitempty"`  // for skip
-	Timestamp int64      `json:"timestamp"`           // client timestamp (Unix seconds)
+	Type           string     `json:"type"` // play, pause, seek, skip, sync-request, chat, reaction, typing
+	PartyID        string     `json:"party_id"`
+	Position       *int       `json:"position,omitempty"`        // for seek (in seconds)
+	ClipID         *uuid.UUID `json:"clip_id,omitempty"`         // for skip
+	Message        string     `json:"message,omitempty"`         // for chat
+	Emoji          string     `json:"emoji,omitempty"`           // for reaction
+	VideoTimestamp *float64   `json:"video_timestamp,omitempty"` // for reaction
+	IsTyping       bool       `json:"is_typing,omitempty"`       // for typing indicator
+	Timestamp      int64      `json:"timestamp"`                 // client timestamp (Unix seconds)
 }
 
 // WatchPartySyncEvent represents a sync event from server to clients
 type WatchPartySyncEvent struct {
-	Type            string                        `json:"type"` // sync, play, pause, seek, skip, participant-joined, participant-left
-	PartyID         string                        `json:"party_id"`
-	ClipID          *uuid.UUID                    `json:"clip_id,omitempty"`
-	Position        int                           `json:"position"`        // playback position in seconds
-	IsPlaying       bool                          `json:"is_playing"`
-	ServerTimestamp int64                         `json:"server_timestamp"` // server timestamp (Unix seconds)
-	Participant     *WatchPartyParticipantInfo    `json:"participant,omitempty"`
+	Type            string                     `json:"type"` // sync, play, pause, seek, skip, participant-joined, participant-left, chat_message, reaction, typing
+	PartyID         string                     `json:"party_id"`
+	ClipID          *uuid.UUID                 `json:"clip_id,omitempty"`
+	Position        int                        `json:"position"`                   // playback position in seconds
+	IsPlaying       bool                       `json:"is_playing"`
+	ServerTimestamp int64                      `json:"server_timestamp"`           // server timestamp (Unix seconds)
+	Participant     *WatchPartyParticipantInfo `json:"participant,omitempty"`
+	ChatMessage     *WatchPartyMessage         `json:"chat_message,omitempty"`     // for chat_message events
+	Reaction        *WatchPartyReaction        `json:"reaction,omitempty"`         // for reaction events
+	UserID          *uuid.UUID                 `json:"user_id,omitempty"`          // for typing events
+	IsTyping        bool                       `json:"is_typing,omitempty"`        // for typing events
 }
 
 // WatchPartyParticipantInfo represents basic participant info in events
@@ -3466,6 +3474,40 @@ type WatchPartyParticipantInfo struct {
 	DisplayName string    `json:"display_name"`
 	AvatarURL   *string   `json:"avatar_url,omitempty"`
 	Role        string    `json:"role"`
+}
+
+// WatchPartyMessage represents a chat message in a watch party
+type WatchPartyMessage struct {
+	ID            uuid.UUID `json:"id" db:"id"`
+	WatchPartyID  uuid.UUID `json:"watch_party_id" db:"watch_party_id"`
+	UserID        uuid.UUID `json:"user_id" db:"user_id"`
+	Username      string    `json:"username,omitempty" db:"-"`
+	DisplayName   string    `json:"display_name,omitempty" db:"-"`
+	AvatarURL     *string   `json:"avatar_url,omitempty" db:"-"`
+	Message       string    `json:"message" db:"message"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+}
+
+// WatchPartyReaction represents an emoji reaction in a watch party
+type WatchPartyReaction struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	WatchPartyID   uuid.UUID  `json:"watch_party_id" db:"watch_party_id"`
+	UserID         uuid.UUID  `json:"user_id" db:"user_id"`
+	Username       string     `json:"username,omitempty" db:"-"`
+	Emoji          string     `json:"emoji" db:"emoji"`
+	VideoTimestamp *float64   `json:"video_timestamp,omitempty" db:"video_timestamp"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+}
+
+// SendMessageRequest represents a request to send a chat message
+type SendMessageRequest struct {
+	Message string `json:"message" binding:"required,min=1,max=1000"`
+}
+
+// SendReactionRequest represents a request to send an emoji reaction
+type SendReactionRequest struct {
+	Emoji          string   `json:"emoji" binding:"required,min=1,max=10"`
+	VideoTimestamp *float64 `json:"video_timestamp,omitempty"`
 }
 
 // TwitchAuth represents Twitch OAuth authentication data

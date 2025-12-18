@@ -365,3 +365,140 @@ func (r *WatchPartyRepository) CleanupStaleParticipants(ctx context.Context, par
 
 	return nil
 }
+
+// CreateMessage creates a new chat message in a watch party
+func (r *WatchPartyRepository) CreateMessage(ctx context.Context, message *models.WatchPartyMessage) error {
+	query := `
+		INSERT INTO watch_party_messages (id, watch_party_id, user_id, message)
+		VALUES ($1, $2, $3, $4)
+		RETURNING created_at
+	`
+
+	err := r.pool.QueryRow(ctx, query,
+		message.ID,
+		message.WatchPartyID,
+		message.UserID,
+		message.Message,
+	).Scan(&message.CreatedAt)
+
+	if err != nil {
+		return fmt.Errorf("failed to create message: %w", err)
+	}
+
+	return nil
+}
+
+// GetMessages retrieves recent messages for a watch party
+func (r *WatchPartyRepository) GetMessages(ctx context.Context, partyID uuid.UUID, limit int) ([]models.WatchPartyMessage, error) {
+	query := `
+		SELECT m.id, m.watch_party_id, m.user_id, m.message, m.created_at,
+		       u.username, u.display_name, u.avatar_url
+		FROM watch_party_messages m
+		JOIN users u ON u.id = m.user_id
+		WHERE m.watch_party_id = $1
+		ORDER BY m.created_at DESC
+		LIMIT $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, partyID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get messages: %w", err)
+	}
+	defer rows.Close()
+
+	var messages []models.WatchPartyMessage
+	for rows.Next() {
+		var m models.WatchPartyMessage
+		err := rows.Scan(
+			&m.ID,
+			&m.WatchPartyID,
+			&m.UserID,
+			&m.Message,
+			&m.CreatedAt,
+			&m.Username,
+			&m.DisplayName,
+			&m.AvatarURL,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan message: %w", err)
+		}
+		messages = append(messages, m)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating messages: %w", err)
+	}
+
+	// Reverse to get chronological order
+	for i := 0; i < len(messages)/2; i++ {
+		j := len(messages) - 1 - i
+		messages[i], messages[j] = messages[j], messages[i]
+	}
+
+	return messages, nil
+}
+
+// CreateReaction creates a new emoji reaction in a watch party
+func (r *WatchPartyRepository) CreateReaction(ctx context.Context, reaction *models.WatchPartyReaction) error {
+	query := `
+		INSERT INTO watch_party_reactions (id, watch_party_id, user_id, emoji, video_timestamp)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING created_at
+	`
+
+	err := r.pool.QueryRow(ctx, query,
+		reaction.ID,
+		reaction.WatchPartyID,
+		reaction.UserID,
+		reaction.Emoji,
+		reaction.VideoTimestamp,
+	).Scan(&reaction.CreatedAt)
+
+	if err != nil {
+		return fmt.Errorf("failed to create reaction: %w", err)
+	}
+
+	return nil
+}
+
+// GetRecentReactions retrieves recent reactions for a watch party
+func (r *WatchPartyRepository) GetRecentReactions(ctx context.Context, partyID uuid.UUID, since time.Time) ([]models.WatchPartyReaction, error) {
+	query := `
+		SELECT r.id, r.watch_party_id, r.user_id, r.emoji, r.video_timestamp, r.created_at,
+		       u.username
+		FROM watch_party_reactions r
+		JOIN users u ON u.id = r.user_id
+		WHERE r.watch_party_id = $1 AND r.created_at >= $2
+		ORDER BY r.created_at ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query, partyID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reactions: %w", err)
+	}
+	defer rows.Close()
+
+	var reactions []models.WatchPartyReaction
+	for rows.Next() {
+		var r models.WatchPartyReaction
+		err := rows.Scan(
+			&r.ID,
+			&r.WatchPartyID,
+			&r.UserID,
+			&r.Emoji,
+			&r.VideoTimestamp,
+			&r.CreatedAt,
+			&r.Username,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan reaction: %w", err)
+		}
+		reactions = append(reactions, r)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating reactions: %w", err)
+	}
+
+	return reactions, nil
+}

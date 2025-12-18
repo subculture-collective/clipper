@@ -599,3 +599,318 @@ func (h *WatchPartyHandler) WatchPartyWebSocket(c *gin.Context) {
 	go client.WritePump()
 	go client.ReadPump(wsCtx)
 }
+
+// SendMessage handles POST /api/v1/watch-parties/:id/messages
+func (h *WatchPartyHandler) SendMessage(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse party ID
+	partyIDStr := c.Param("id")
+	partyID, err := uuid.Parse(partyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid party ID",
+			},
+		})
+		return
+	}
+
+	// Verify user is a participant
+	participant, err := h.watchPartyRepo.GetParticipant(c.Request.Context(), partyID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to verify participant",
+			},
+		})
+		return
+	}
+
+	if participant == nil || participant.LeftAt != nil {
+		c.JSON(http.StatusForbidden, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "FORBIDDEN",
+				Message: "Not a participant of this watch party",
+			},
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.SendMessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	// Create message
+	message := &models.WatchPartyMessage{
+		ID:           uuid.New(),
+		WatchPartyID: partyID,
+		UserID:       userID,
+		Message:      req.Message,
+	}
+
+	err = h.watchPartyRepo.CreateMessage(c.Request.Context(), message)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to create message",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, StandardResponse{
+		Success: true,
+		Data:    message,
+	})
+}
+
+// GetMessages handles GET /api/v1/watch-parties/:id/messages
+func (h *WatchPartyHandler) GetMessages(c *gin.Context) {
+	// Parse party ID
+	partyIDStr := c.Param("id")
+	partyID, err := uuid.Parse(partyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid party ID",
+			},
+		})
+		return
+	}
+
+	// Get optional user ID from context for visibility check
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	// Get party to check visibility
+	party, err := h.watchPartyRepo.GetByID(c.Request.Context(), partyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get watch party",
+			},
+		})
+		return
+	}
+
+	if party == nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "NOT_FOUND",
+				Message: "Watch party not found",
+			},
+		})
+		return
+	}
+
+	// Check visibility permissions for private parties
+	if party.Visibility == "private" {
+		if userID == nil {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "Cannot view messages of private party without authentication",
+				},
+			})
+			return
+		}
+		// Check if user is a participant
+		participant, err := h.watchPartyRepo.GetParticipant(c.Request.Context(), partyID, *userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INTERNAL_ERROR",
+					Message: "Failed to verify participant status",
+				},
+			})
+			return
+		}
+		if participant == nil || participant.LeftAt != nil {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "Not a participant of this private party",
+				},
+			})
+			return
+		}
+	}
+
+	// Get messages (last 100)
+	messages, err := h.watchPartyRepo.GetMessages(c.Request.Context(), partyID, 100)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get messages",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"messages": messages,
+			"count":    len(messages),
+		},
+	})
+}
+
+// SendReaction handles POST /api/v1/watch-parties/:id/react
+func (h *WatchPartyHandler) SendReaction(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse party ID
+	partyIDStr := c.Param("id")
+	partyID, err := uuid.Parse(partyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid party ID",
+			},
+		})
+		return
+	}
+
+	// Verify user is a participant
+	participant, err := h.watchPartyRepo.GetParticipant(c.Request.Context(), partyID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to verify participant",
+			},
+		})
+		return
+	}
+
+	if participant == nil || participant.LeftAt != nil {
+		c.JSON(http.StatusForbidden, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "FORBIDDEN",
+				Message: "Not a participant of this watch party",
+			},
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.SendReactionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	// Create reaction
+	reaction := &models.WatchPartyReaction{
+		ID:             uuid.New(),
+		WatchPartyID:   partyID,
+		UserID:         userID,
+		Emoji:          req.Emoji,
+		VideoTimestamp: req.VideoTimestamp,
+	}
+
+	err = h.watchPartyRepo.CreateReaction(c.Request.Context(), reaction)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to create reaction",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, StandardResponse{
+		Success: true,
+		Data:    reaction,
+	})
+}
