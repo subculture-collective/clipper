@@ -14,7 +14,7 @@ import (
 func TestGetStreamStatus_MissingStreamer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewStreamHandler(nil, nil)
+	handler := NewStreamHandler(nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -60,7 +60,7 @@ func TestStreamInfoStructure(t *testing.T) {
 
 // TestStreamHandler_Initialization tests that handler initializes correctly
 func TestStreamHandler_Initialization(t *testing.T) {
-	handler := NewStreamHandler(nil, nil)
+	handler := NewStreamHandler(nil, nil, nil, nil)
 
 	if handler == nil {
 		t.Error("Expected handler to be created")
@@ -72,5 +72,13 @@ func TestStreamHandler_Initialization(t *testing.T) {
 
 	if handler.streamRepo != nil {
 		t.Error("Expected streamRepo to be nil in test setup")
+	}
+	
+	if handler.clipRepo != nil {
+		t.Error("Expected clipRepo to be nil in test setup")
+	}
+	
+	if handler.streamFollowRepo != nil {
+		t.Error("Expected streamFollowRepo to be nil in test setup")
 	}
 }
