@@ -395,7 +395,7 @@ func main() {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 	if twitchClient != nil {
-		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo)
+		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo)
 	}
 
 	// Initialize router
@@ -878,6 +878,9 @@ func main() {
 			{
 				// Public stream status endpoint
 				streams.GET("/:streamer", streamHandler.GetStreamStatus)
+				
+				// Protected stream clip creation endpoint (authenticated, rate limited)
+				streams.POST("/:streamer/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), streamHandler.CreateClipFromStream)
 			}
 		}
 

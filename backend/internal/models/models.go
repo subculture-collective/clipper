@@ -145,6 +145,14 @@ type Clip struct {
 	DMCANoticeID     *uuid.UUID `json:"dmca_notice_id,omitempty" db:"dmca_notice_id"`
 	DMCARemovedAt    *time.Time `json:"dmca_removed_at,omitempty" db:"dmca_removed_at"`
 	DMCAReinstatedAt *time.Time `json:"dmca_reinstated_at,omitempty" db:"dmca_reinstated_at"`
+	// Stream clip fields
+	StreamSource *string    `json:"stream_source,omitempty" db:"stream_source"` // 'twitch' or 'stream'
+	Status       *string    `json:"status,omitempty" db:"status"`                // 'ready', 'processing', 'failed'
+	VideoURL     *string    `json:"video_url,omitempty" db:"video_url"`
+	ProcessedAt  *time.Time `json:"processed_at,omitempty" db:"processed_at"`
+	Quality      *string    `json:"quality,omitempty" db:"quality"` // 'source', '1080p', '720p'
+	StartTime    *float64   `json:"start_time,omitempty" db:"start_time"`
+	EndTime      *float64   `json:"end_time,omitempty" db:"end_time"`
 }
 
 // Vote represents a user's vote on a clip
@@ -2147,6 +2155,30 @@ type StreamInfo struct {
 	ThumbnailURL     *string    `json:"thumbnail_url,omitempty"`
 	StartedAt        *time.Time `json:"started_at,omitempty"`
 	LastWentOffline  *time.Time `json:"last_went_offline,omitempty"`
+}
+
+// ClipFromStreamRequest represents a request to create a clip from a live stream
+type ClipFromStreamRequest struct {
+	StreamerUsername string  `json:"streamer_username" binding:"required"`
+	StartTime        float64 `json:"start_time" binding:"required,min=0"` // Seconds into VOD
+	EndTime          float64 `json:"end_time" binding:"required,min=0,gtfield=StartTime"`
+	Quality          string  `json:"quality" binding:"required,oneof=source 1080p 720p"`
+	Title            string  `json:"title" binding:"required,min=3,max=255"`
+}
+
+// ClipFromStreamResponse represents the response when creating a clip from a stream
+type ClipFromStreamResponse struct {
+	ClipID string `json:"clip_id"`
+	Status string `json:"status"` // 'processing'
+}
+
+// ClipExtractionJob represents a job for extracting and processing a clip from a stream VOD
+type ClipExtractionJob struct {
+	ClipID    string  `json:"clip_id"`
+	VODURL    string  `json:"vod_url"`
+	StartTime float64 `json:"start_time"`
+	EndTime   float64 `json:"end_time"`
+	Quality   string  `json:"quality"`
 }
 
 // Community represents a community space

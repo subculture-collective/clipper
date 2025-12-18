@@ -1,13 +1,15 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Container, SEO } from '../components';
-import { TwitchPlayer } from '../components/stream';
+import { TwitchPlayer, ClipCreator } from '../components/stream';
 import { fetchStreamStatus } from '../lib/stream-api';
 import { ClipCard } from '../components/clip';
 import { fetchBroadcasterClips } from '../lib/broadcaster-api';
+import { useAuth } from '../context/AuthContext';
 
 export function StreamPage() {
   const { streamer } = useParams<{ streamer: string }>();
+  const { isAuthenticated } = useAuth();
 
   // Fetch stream status
   const { data: streamInfo } = useQuery({
@@ -56,7 +58,7 @@ export function StreamPage() {
         {/* Stream Info */}
         <Container className="py-6">
           <div className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-4 flex-wrap">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {streamer}
               </h1>
@@ -65,6 +67,12 @@ export function StreamPage() {
                   <span className="w-2 h-2 mr-2 bg-red-500 rounded-full animate-pulse"></span>
                   LIVE
                 </span>
+              )}
+              {/* Create Clip Button - only show if stream is live and user is authenticated */}
+              {streamInfo?.is_live && isAuthenticated && (
+                <div className="ml-auto">
+                  <ClipCreator streamer={streamer} />
+                </div>
               )}
             </div>
 
