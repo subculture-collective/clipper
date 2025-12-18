@@ -1114,13 +1114,6 @@ func main() {
 				channels.GET("", chatHandler.ListChannels)
 				channels.GET("/:id", chatHandler.GetChannel)
 				channels.PATCH("/:id", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), chatHandler.UpdateChannel)
-				channels.DELETE("/:id", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), chatHandler.DeleteChannel)
-				
-				// Channel member management
-				channels.GET("/:id/members", chatHandler.GetChannelMembers)
-				channels.POST("/:id/members", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.AddChannelMember)
-				channels.DELETE("/:id/members/:user_id", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.RemoveChannelMember)
-				channels.PATCH("/:id/members/:user_id", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.UpdateChannelMember)
 				
 				// WebSocket connection endpoint
 				channels.GET("/:id/ws", websocketHandler.HandleConnection)
