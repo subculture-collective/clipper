@@ -2969,6 +2969,46 @@ type UpdateChannelRequest struct {
 	MaxParticipants *int    `json:"max_participants,omitempty" binding:"omitempty,min=2"`
 }
 
+// ChannelMember represents a member of a chat channel with their role
+type ChannelMember struct {
+	ID        uuid.UUID `json:"id" db:"id"`
+	ChannelID uuid.UUID `json:"channel_id" db:"channel_id"`
+	UserID    uuid.UUID `json:"user_id" db:"user_id"`
+	Role      string    `json:"role" db:"role"` // owner, admin, member
+	JoinedAt  time.Time `json:"joined_at" db:"joined_at"`
+	// Populated fields
+	Username    string  `json:"username,omitempty" db:"username"`
+	DisplayName string  `json:"display_name,omitempty" db:"display_name"`
+	AvatarURL   *string `json:"avatar_url,omitempty" db:"avatar_url"`
+}
+
+// ChannelPermission represents a permission setting for a channel
+type ChannelPermission struct {
+	ID             uuid.UUID `json:"id" db:"id"`
+	ChannelID      uuid.UUID `json:"channel_id" db:"channel_id"`
+	PermissionType string    `json:"permission_type" db:"permission_type"`
+	RoleRequired   string    `json:"role_required" db:"role_required"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+}
+
+// AddChannelMemberRequest represents a request to add a member to a channel
+type AddChannelMemberRequest struct {
+	UserID string `json:"user_id" binding:"required,uuid"`
+	Role   string `json:"role" binding:"omitempty,oneof=admin member"`
+}
+
+// UpdateChannelMemberRequest represents a request to update a channel member's role
+type UpdateChannelMemberRequest struct {
+	Role string `json:"role" binding:"required,oneof=admin member"`
+}
+
+// Channel member role constants
+const (
+	ChannelRoleOwner  = "owner"
+	ChannelRoleAdmin  = "admin"
+	ChannelRoleMember = "member"
+)
+
 // Chat moderation action constants
 const (
 	ChatActionBan     = "ban"

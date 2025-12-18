@@ -52,6 +52,14 @@ func (h *ChatHandler) CreateChannel(c *gin.Context) {
 		channelType = req.ChannelType
 	}
 
+	// Start a transaction to create channel and add creator as owner
+	tx, err := h.db.Begin(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to begin transaction"})
+		return
+	}
+	defer tx.Rollback(c.Request.Context())
+
 	// Create channel
 	query := `
 		INSERT INTO chat_channels (name, description, creator_id, channel_type, max_participants, is_active)
@@ -60,12 +68,29 @@ func (h *ChatHandler) CreateChannel(c *gin.Context) {
 	`
 
 	var channel models.ChatChannel
-	err := h.db.QueryRow(c.Request.Context(), query,
+	err = tx.QueryRow(c.Request.Context(), query,
 		req.Name, req.Description, userID, channelType, req.MaxParticipants).Scan(
 		&channel.ID, &channel.CreatedAt, &channel.UpdatedAt)
 	
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create channel"})
+		return
+	}
+
+	// Add creator as owner in channel_members
+	memberQuery := `
+		INSERT INTO channel_members (channel_id, user_id, role)
+		VALUES ($1, $2, $3)
+	`
+	_, err = tx.Exec(c.Request.Context(), memberQuery, channel.ID, userID, models.ChannelRoleOwner)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add creator as owner"})
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(c.Request.Context()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
 
@@ -748,4 +773,404 @@ func (h *ChatHandler) CheckUserBan(c *gin.Context) {
 		"expires_at": ban.ExpiresAt,
 		"reason":     ban.Reason,
 	})
+}
+
+// DeleteChannel deletes a chat channel
+func (h *ChatHandler) DeleteChannel(c *gin.Context) {
+	channelID := c.Param("id")
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Check if user is the creator or owner
+	var creatorID uuid.UUID
+	err = h.db.QueryRow(c.Request.Context(), "SELECT creator_id FROM chat_channels WHERE id = $1", channelUUID).Scan(&creatorID)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify channel"})
+		return
+	}
+
+	// Check if user is owner
+	var memberRole string
+	err = h.db.QueryRow(c.Request.Context(), 
+		"SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2", 
+		channelUUID, userID).Scan(&memberRole)
+	
+	if err != nil || (creatorID != userID && memberRole != models.ChannelRoleOwner) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only the channel owner can delete the channel"})
+		return
+	}
+
+	// Delete the channel (cascade will delete related records)
+	result, err := h.db.Exec(c.Request.Context(), "DELETE FROM chat_channels WHERE id = $1", channelUUID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete channel"})
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
+// GetChannelMembers returns the list of members in a channel
+func (h *ChatHandler) GetChannelMembers(c *gin.Context) {
+	channelID := c.Param("id")
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Parse query parameters
+	limitStr := c.DefaultQuery("limit", "50")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 50
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	// Get members with user details
+	query := `
+		SELECT cm.id, cm.channel_id, cm.user_id, cm.role, cm.joined_at,
+		       u.username, u.display_name, u.avatar_url
+		FROM channel_members cm
+		JOIN users u ON cm.user_id = u.id
+		WHERE cm.channel_id = $1
+		ORDER BY cm.role DESC, cm.joined_at ASC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := h.db.Query(c.Request.Context(), query, channelUUID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch members"})
+		return
+	}
+	defer rows.Close()
+
+	members := []models.ChannelMember{}
+	for rows.Next() {
+		var member models.ChannelMember
+		err := rows.Scan(
+			&member.ID,
+			&member.ChannelID,
+			&member.UserID,
+			&member.Role,
+			&member.JoinedAt,
+			&member.Username,
+			&member.DisplayName,
+			&member.AvatarURL,
+		)
+		if err != nil {
+			continue
+		}
+		members = append(members, member)
+	}
+
+	// Get total count
+	var total int
+	countQuery := `SELECT COUNT(*) FROM channel_members WHERE channel_id = $1`
+	_ = h.db.QueryRow(c.Request.Context(), countQuery, channelUUID).Scan(&total)
+
+	c.JSON(http.StatusOK, gin.H{
+		"members": members,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+	})
+}
+
+// AddChannelMember adds a member to a channel
+func (h *ChatHandler) AddChannelMember(c *gin.Context) {
+	channelID := c.Param("id")
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req models.AddChannelMemberRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Parse the user ID to add
+	targetUserID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID to add"})
+		return
+	}
+
+	// Check if requester is owner or admin of the channel
+	var memberRole string
+	err = h.db.QueryRow(c.Request.Context(),
+		"SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2",
+		channelUUID, userID).Scan(&memberRole)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not a member of this channel"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify membership"})
+		return
+	}
+
+	if memberRole != models.ChannelRoleOwner && memberRole != models.ChannelRoleAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only owners and admins can add members"})
+		return
+	}
+
+	// Set default role if not provided
+	role := models.ChannelRoleMember
+	if req.Role != "" {
+		role = req.Role
+	}
+
+	// Add the member
+	query := `
+		INSERT INTO channel_members (channel_id, user_id, role)
+		VALUES ($1, $2, $3)
+		RETURNING id, joined_at
+	`
+
+	var member models.ChannelMember
+	err = h.db.QueryRow(c.Request.Context(), query, channelUUID, targetUserID, role).Scan(
+		&member.ID, &member.JoinedAt)
+
+	if err != nil {
+		// Check if it's a duplicate key error
+		if err.Error() == "duplicate key value violates unique constraint" || 
+		   err.Error() == "UNIQUE constraint failed" {
+			c.JSON(http.StatusConflict, gin.H{"error": "User is already a member of this channel"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add member"})
+		return
+	}
+
+	member.ChannelID = channelUUID
+	member.UserID = targetUserID
+	member.Role = role
+
+	c.JSON(http.StatusCreated, member)
+}
+
+// RemoveChannelMember removes a member from a channel
+func (h *ChatHandler) RemoveChannelMember(c *gin.Context) {
+	channelID := c.Param("id")
+	memberUserID := c.Param("user_id")
+
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	memberUUID, err := uuid.Parse(memberUserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Check if requester is owner or admin, or removing themselves
+	var memberRole string
+	err = h.db.QueryRow(c.Request.Context(),
+		"SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2",
+		channelUUID, userID).Scan(&memberRole)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not a member of this channel"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify membership"})
+		return
+	}
+
+	// Check permissions - users can remove themselves, or owners/admins can remove others
+	if userID != memberUUID && memberRole != models.ChannelRoleOwner && memberRole != models.ChannelRoleAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only owners and admins can remove members"})
+		return
+	}
+
+	// Don't allow removing the owner
+	var targetRole string
+	err = h.db.QueryRow(c.Request.Context(),
+		"SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2",
+		channelUUID, memberUUID).Scan(&targetRole)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Member not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify target member"})
+		return
+	}
+
+	if targetRole == models.ChannelRoleOwner {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot remove channel owner"})
+		return
+	}
+
+	// Remove the member
+	result, err := h.db.Exec(c.Request.Context(),
+		"DELETE FROM channel_members WHERE channel_id = $1 AND user_id = $2",
+		channelUUID, memberUUID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove member"})
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Member not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "removed"})
+}
+
+// UpdateChannelMember updates a member's role in a channel
+func (h *ChatHandler) UpdateChannelMember(c *gin.Context) {
+	channelID := c.Param("id")
+	memberUserID := c.Param("user_id")
+
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	memberUUID, err := uuid.Parse(memberUserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req models.UpdateChannelMemberRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if requester is owner
+	var memberRole string
+	err = h.db.QueryRow(c.Request.Context(),
+		"SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2",
+		channelUUID, userID).Scan(&memberRole)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not a member of this channel"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify membership"})
+		return
+	}
+
+	if memberRole != models.ChannelRoleOwner {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only the owner can update member roles"})
+		return
+	}
+
+	// Don't allow changing the owner's role
+	var targetRole string
+	err = h.db.QueryRow(c.Request.Context(),
+		"SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2",
+		channelUUID, memberUUID).Scan(&targetRole)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Member not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify target member"})
+		return
+	}
+
+	if targetRole == models.ChannelRoleOwner {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot change the owner's role"})
+		return
+	}
+
+	// Update the member's role
+	result, err := h.db.Exec(c.Request.Context(),
+		"UPDATE channel_members SET role = $1 WHERE channel_id = $2 AND user_id = $3",
+		req.Role, channelUUID, memberUUID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update member role"})
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Member not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "updated", "role": req.Role})
 }
