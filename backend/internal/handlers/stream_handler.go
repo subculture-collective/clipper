@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/pkg/twitch"
@@ -16,6 +18,7 @@ import (
 type StreamHandler struct {
 	twitchClient *twitch.Client
 	streamRepo   *repository.StreamRepository
+	clipRepo     *repository.ClipRepository
 }
 
 // NewStreamHandler creates a new stream handler
