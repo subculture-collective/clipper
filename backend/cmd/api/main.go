@@ -177,6 +177,7 @@ func main() {
 	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
 	streamRepo := repository.NewStreamRepository(db.Pool)
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
+	watchPartyRepo := repository.NewWatchPartyRepository(db.Pool)
 	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -248,6 +249,10 @@ func main() {
 
 	// Initialize queue service
 	queueService := services.NewQueueService(queueRepo, clipRepo)
+
+	// Initialize watch party service and hub manager
+	watchPartyService := services.NewWatchPartyService(watchPartyRepo, playlistRepo, clipRepo, cfg.Server.BaseURL)
+	watchPartyHubManager := services.NewWatchPartyHubManager(watchPartyRepo)
 
 	// Initialize event tracker for feed analytics
 	eventTracker := services.NewEventTracker(db.Pool, 100, 5*time.Second)
@@ -375,6 +380,7 @@ func main() {
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	queueHandler := handlers.NewQueueHandler(queueService)
 	watchHistoryHandler := handlers.NewWatchHistoryHandler(watchHistoryRepo)
+	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, watchPartyHubManager, watchPartyRepo, cfg)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -1224,6 +1230,31 @@ func main() {
 
 			// Clear watch history (authenticated)
 			watchHistory.DELETE("", middleware.AuthMiddleware(authService), watchHistoryHandler.ClearWatchHistory)
+		}
+
+		// Watch party routes
+		watchParties := v1.Group("/watch-parties")
+		{
+			// Create watch party (authenticated, rate limited - 10 per hour)
+			watchParties.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), watchPartyHandler.CreateWatchParty)
+
+			// Join watch party by invite code (authenticated, rate limited - 30 per hour)
+			watchParties.POST("/:code/join", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Hour), watchPartyHandler.JoinWatchParty)
+
+			// Get watch party details (optional auth for visibility check)
+			watchParties.GET("/:id", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetWatchParty)
+
+			// Get watch party participants (optional auth for visibility check)
+			watchParties.GET("/:id/participants", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetParticipants)
+
+			// Leave watch party (authenticated)
+			watchParties.DELETE("/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)
+
+			// End watch party (authenticated, host only)
+			watchParties.POST("/:id/end", middleware.AuthMiddleware(authService), watchPartyHandler.EndWatchParty)
+
+			// WebSocket endpoint for real-time sync (authenticated)
+			watchParties.GET("/:id/ws", middleware.AuthMiddleware(authService), watchPartyHandler.WatchPartyWebSocket)
 		}
 
 		// Admin routes
