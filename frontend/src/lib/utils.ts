@@ -220,3 +220,24 @@ export function sanitizeColor(color: string | null | undefined): string | null {
   // If none of the patterns match, reject the color
   return null;
 }
+
+/**
+ * Format duration in seconds to human-readable format (MM:SS or HH:MM:SS)
+ * @param seconds - Duration in seconds
+ * @returns Formatted duration string
+ */
+export function formatDuration(seconds: number): string {
+  if (!seconds || seconds < 0) {
+    return '0:00';
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}

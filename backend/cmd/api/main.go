@@ -173,6 +173,7 @@ func main() {
 	verificationRepo := repository.NewVerificationRepository(db.Pool)
 	recommendationRepo := repository.NewRecommendationRepository(db.Pool)
 	playlistRepo := repository.NewPlaylistRepository(db.Pool)
+	queueRepo := repository.NewQueueRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -240,6 +241,9 @@ func main() {
 
 	// Initialize playlist service
 	playlistService := services.NewPlaylistService(playlistRepo, clipRepo)
+
+	// Initialize queue service
+	queueService := services.NewQueueService(queueRepo, clipRepo)
 
 	// Initialize event tracker for feed analytics
 	eventTracker := services.NewEventTracker(db.Pool, 100, 5*time.Second)
@@ -365,6 +369,7 @@ func main() {
 	chatHandler := handlers.NewChatHandler(db.Pool)
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
+	queueHandler := handlers.NewQueueHandler(queueService)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -1134,6 +1139,20 @@ func main() {
 			// Playlist likes (social engagement)
 			playlists.POST("/:id/like", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), playlistHandler.LikePlaylist)
 			playlists.DELETE("/:id/like", middleware.AuthMiddleware(authService), playlistHandler.UnlikePlaylist)
+		}
+
+		// Queue routes (clip playback queue)
+		queue := v1.Group("/queue")
+		queue.Use(middleware.AuthMiddleware(authService))
+		{
+			// Queue management
+			queue.GET("", queueHandler.GetQueue)
+			queue.GET("/count", queueHandler.GetQueueCount)
+			queue.POST("", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), queueHandler.AddToQueue)
+			queue.DELETE("", queueHandler.ClearQueue)
+			queue.DELETE("/:id", queueHandler.RemoveFromQueue)
+			queue.PATCH("/reorder", queueHandler.ReorderQueue)
+			queue.POST("/:id/played", queueHandler.MarkAsPlayed)
 		}
 
 		// Admin routes
