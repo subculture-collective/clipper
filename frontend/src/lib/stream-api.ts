@@ -24,6 +24,29 @@ export interface CreateClipFromStreamResponse {
   status: 'processing' | 'ready' | 'failed';
 }
 
+export interface StreamFollowStatus {
+  following: boolean;
+  notifications_enabled: boolean;
+}
+
+export interface StreamFollowRequest {
+  notifications_enabled?: boolean;
+}
+
+export interface StreamFollow {
+  id: string;
+  user_id: string;
+  streamer_username: string;
+  notifications_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FollowedStreamersResponse {
+  follows: StreamFollow[];
+  count: number;
+}
+
 /**
  * Fetch stream status for a specific streamer
  */
@@ -45,3 +68,50 @@ export async function createClipFromStream(
   );
   return response.data;
 }
+
+/**
+ * Follow a streamer for live notifications
+ */
+export async function followStreamer(
+  streamer: string,
+  options?: StreamFollowRequest
+): Promise<{ following: boolean; notifications_enabled: boolean; message: string }> {
+  const response = await apiClient.post(
+    `/streams/${streamer}/follow`,
+    options || {}
+  );
+  return response.data;
+}
+
+/**
+ * Unfollow a streamer
+ */
+export async function unfollowStreamer(
+  streamer: string
+): Promise<{ following: boolean; message: string }> {
+  const response = await apiClient.delete(`/streams/${streamer}/follow`);
+  return response.data;
+}
+
+/**
+ * Get follow status for a streamer
+ */
+export async function getStreamFollowStatus(
+  streamer: string
+): Promise<StreamFollowStatus> {
+  const response = await apiClient.get<StreamFollowStatus>(
+    `/streams/${streamer}/follow-status`
+  );
+  return response.data;
+}
+
+/**
+ * Get list of followed streamers
+ */
+export async function getFollowedStreamers(): Promise<FollowedStreamersResponse> {
+  const response = await apiClient.get<FollowedStreamersResponse>(
+    '/streams/following'
+  );
+  return response.data;
+}
+

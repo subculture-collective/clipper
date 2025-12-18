@@ -599,6 +599,9 @@ type NotificationPreferences struct {
 
 	// Broadcaster notifications
 	NotifyBroadcasterLive bool `json:"notify_broadcaster_live" db:"notify_broadcaster_live"`
+	
+	// Stream notifications
+	NotifyStreamLive bool `json:"notify_stream_live" db:"notify_stream_live"`
 
 	// Global preferences
 	NotifyMarketing             bool `json:"notify_marketing" db:"notify_marketing"`
@@ -653,6 +656,8 @@ const (
 	NotificationTypeDiscussionReply  = "discussion_reply"
 	// Broadcaster notification types
 	NotificationTypeBroadcasterLive = "broadcaster_live"
+	// Stream notification types
+	NotificationTypeStreamLive = "stream_live"
 	// Global/Marketing notification types
 	NotificationTypeMarketing            = "marketing"
 	NotificationTypePolicyUpdate         = "policy_update"
@@ -2155,6 +2160,21 @@ type StreamInfo struct {
 	ThumbnailURL     *string    `json:"thumbnail_url,omitempty"`
 	StartedAt        *time.Time `json:"started_at,omitempty"`
 	LastWentOffline  *time.Time `json:"last_went_offline,omitempty"`
+}
+
+// StreamFollow represents a user following a streamer for live notifications
+type StreamFollow struct {
+	ID                   uuid.UUID `json:"id" db:"id"`
+	UserID               uuid.UUID `json:"user_id" db:"user_id"`
+	StreamerUsername     string    `json:"streamer_username" db:"streamer_username"`
+	NotificationsEnabled bool      `json:"notifications_enabled" db:"notifications_enabled"`
+	CreatedAt            time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// StreamFollowRequest represents a request to follow/unfollow a streamer
+type StreamFollowRequest struct {
+	NotificationsEnabled *bool `json:"notifications_enabled,omitempty"`
 }
 
 // ClipFromStreamRequest represents a request to create a clip from a live stream

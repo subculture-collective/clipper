@@ -357,6 +357,32 @@ export function NotificationPreferencesPage() {
               </div>
             </div>
 
+            {/* Stream & Broadcaster Notifications */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Stream & Broadcaster Notifications
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Get notified when streamers and broadcasters you follow go live
+              </p>
+
+              <div className="space-y-4">
+                <ToggleSwitch
+                  label="Broadcaster Live"
+                  description="When broadcasters you follow on the platform go live"
+                  checked={formData.notify_broadcaster_live ?? true}
+                  onChange={() => handleToggle('notify_broadcaster_live')}
+                />
+
+                <ToggleSwitch
+                  label="Stream Live"
+                  description="When streamers you follow go live on Twitch"
+                  checked={formData.notify_stream_live ?? true}
+                  onChange={() => handleToggle('notify_stream_live')}
+                />
+              </div>
+            </div>
+
             {/* Global Preferences */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
