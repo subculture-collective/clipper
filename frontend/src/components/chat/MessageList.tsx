@@ -24,6 +24,7 @@ export function MessageList({
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const prevScrollHeightRef = useRef(0);
+  const isLoadingMoreRef = useRef(false);
 
   // Auto-scroll to bottom when new messages arrive (only if already at bottom)
   useEffect(() => {
@@ -43,17 +44,19 @@ export function MessageList({
     // Load more messages when scrolling to top
     if (scrollTop < 100 && hasMore && !loading && onLoadMore) {
       prevScrollHeightRef.current = scrollHeight;
+      isLoadingMoreRef.current = true;
       onLoadMore();
     }
   };
 
-  // Maintain scroll position after loading more messages
+  // Maintain scroll position after loading more messages (prepend scenario)
   useEffect(() => {
-    if (containerRef.current && prevScrollHeightRef.current) {
+    if (containerRef.current && prevScrollHeightRef.current && isLoadingMoreRef.current) {
       const newScrollHeight = containerRef.current.scrollHeight;
       const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
       containerRef.current.scrollTop += scrollDiff;
       prevScrollHeightRef.current = 0;
+      isLoadingMoreRef.current = false;
     }
   }, [messages.length]);
 

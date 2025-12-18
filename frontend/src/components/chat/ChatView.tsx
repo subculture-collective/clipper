@@ -47,18 +47,19 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
       }
     },
     onTyping: (username: string) => {
+      // Clear existing timeout for this user to extend typing duration
+      const existingTimeout = typingTimeoutsRef.current.get(username);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+      }
+
+      // Add user to typing list if not already present
       setTypingUsers((prev) => {
         if (!prev.includes(username)) {
           return [...prev, username];
         }
         return prev;
       });
-
-      // Clear existing timeout for this user
-      const existingTimeout = typingTimeoutsRef.current.get(username);
-      if (existingTimeout) {
-        clearTimeout(existingTimeout);
-      }
 
       // Remove typing indicator after 3 seconds
       const timeoutId = setTimeout(() => {
@@ -149,7 +150,7 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
       <MessageList messages={messages} />
 
       {/* Typing indicator */}
-      <TypingIndicator channelId={channelId} typingUsers={typingUsers} />
+      <TypingIndicator typingUsers={typingUsers} />
 
       {/* Message composer */}
       <MessageComposer

@@ -21,7 +21,7 @@ export function ChannelSidebar({
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredChannels = channels.filter((channel) =>
-    channel.name.toLowerCase().includes(searchQuery.toLowerCase())
+    channel.name.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase())
   );
 
   return (

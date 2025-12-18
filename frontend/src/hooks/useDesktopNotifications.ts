@@ -21,6 +21,7 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const isSupported = 'Notification' in window;
   const notificationRefs = useRef<Map<string, Notification>>(new Map());
+  const timeoutRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     if (isSupported) {
@@ -72,8 +73,14 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
         notification.close();
         if (options.tag) {
           notificationRefs.current.delete(options.tag);
+          timeoutRefs.current.delete(options.tag);
         }
       }, 5000);
+
+      // Store timeout reference for cleanup
+      if (options.tag) {
+        timeoutRefs.current.set(options.tag, timeoutId);
+      }
 
       // Handle click to focus window
       notification.onclick = () => {
@@ -82,6 +89,7 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
         notification.close();
         if (options.tag) {
           notificationRefs.current.delete(options.tag);
+          timeoutRefs.current.delete(options.tag);
         }
       };
     } catch (error) {
@@ -96,6 +104,12 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
         notification.close();
       });
       notificationRefs.current.clear();
+      
+      // Clear all pending timeouts
+      timeoutRefs.current.forEach((timeout) => {
+        clearTimeout(timeout);
+      });
+      timeoutRefs.current.clear();
     };
   }, []);
 

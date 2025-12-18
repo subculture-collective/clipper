@@ -48,7 +48,8 @@ export function ChatPage() {
       }
     } catch (err) {
       console.error('Error fetching channels:', err);
-      setError('Failed to load channels. Please try again later.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load channels: ${errorMessage}. Please check your connection and try again.`);
       
       // For development: Create mock channels if API fails
       if (import.meta.env.DEV) {

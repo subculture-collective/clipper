@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmojiPicker } from './EmojiPicker';
@@ -22,6 +22,10 @@ const DEV_MENTION_SUGGESTIONS: MentionSuggestion[] = [
   { username: 'admin', display_name: 'Administrator' },
 ];
 
+// Note: Username pattern uses \w (alphanumeric and underscore only)
+// Platforms supporting hyphens/periods in usernames should extend this pattern
+const MENTION_PATTERN = /@(\w*)$/;
+
 /**
  * MessageComposer component with emoji picker and mention autocomplete
  */
@@ -33,35 +37,39 @@ export function MessageComposer({
 }: MessageComposerProps) {
   const [inputValue, setInputValue] = useState('');
   const [showMentions, setShowMentions] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([]);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const isTypingSentRef = useRef(false);
 
   // Handle input change and detect mentions
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setInputValue(value);
 
-    // Trigger typing indicator
-    if (onTyping) {
+    // Trigger typing indicator with proper throttling
+    if (onTyping && !isTypingSentRef.current) {
+      onTyping();
+      isTypingSentRef.current = true;
+      
+      // Clear existing timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      onTyping();
+      
+      // Reset throttle after 3 seconds
       typingTimeoutRef.current = setTimeout(() => {
-        // Typing stopped
-      }, 1000);
+        isTypingSentRef.current = false;
+      }, 3000);
     }
 
     // Check for mention (@username)
     const cursorPosition = e.target.selectionStart;
     const textBeforeCursor = value.slice(0, cursorPosition);
-    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+    const mentionMatch = textBeforeCursor.match(MENTION_PATTERN);
 
     if (mentionMatch) {
-      setMentionQuery(mentionMatch[1]);
       setShowMentions(true);
       setSelectedMentionIndex(0);
       // TODO: Fetch user suggestions from API

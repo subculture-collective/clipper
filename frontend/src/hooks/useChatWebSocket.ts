@@ -80,15 +80,16 @@ export function useChatWebSocket({
         // Attempt to reconnect with exponential backoff
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          reconnectAttemptsRef.current += 1;
+          const attemptNumber = reconnectAttemptsRef.current + 1;
+          reconnectAttemptsRef.current = attemptNumber;
           
-          console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
+          console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${attemptNumber}/${maxReconnectAttempts})`);
           
           reconnectTimeoutRef.current = window.setTimeout(() => {
             connect();
           }, backoffDelay);
         } else {
-          setError('Failed to connect after multiple attempts. Please refresh the page.');
+          setError('Connection lost. Unable to reconnect after multiple attempts.');
         }
       };
     } catch (err) {
@@ -122,23 +123,26 @@ export function useChatWebSocket({
   }, []);
 
   const sendTyping = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      // Clear previous typing timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      wsRef.current.send(
-        JSON.stringify({
-          type: 'typing',
-        })
-      );
-
-      // Prevent sending typing events too frequently (throttle)
-      typingTimeoutRef.current = window.setTimeout(() => {
-        typingTimeoutRef.current = undefined;
-      }, 3000);
+    // Only send if WebSocket is connected
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      return;
     }
+
+    // Clear previous typing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    wsRef.current.send(
+      JSON.stringify({
+        type: 'typing',
+      })
+    );
+
+    // Prevent sending typing events too frequently (throttle)
+    typingTimeoutRef.current = window.setTimeout(() => {
+      typingTimeoutRef.current = undefined;
+    }, 3000);
   }, []);
 
   return {

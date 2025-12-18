@@ -35,10 +35,14 @@ export interface TypingUser {
   username: string;
 }
 
-export interface WebSocketMessage {
-  type: 'message' | 'typing' | 'user_joined' | 'user_left' | 'presence';
-  data: ChatMessage | TypingUser | UserPresence;
-}
+// Discriminated union types for WebSocket messages
+export type WebSocketMessage =
+  | { type: 'message'; data: ChatMessage }
+  | { type: 'typing'; data: TypingUser }
+  | { type: 'user_joined'; data: TypingUser }
+  | { type: 'user_left'; data: TypingUser }
+  | { type: 'presence'; data: UserPresence }
+  | { type: 'history'; data: { messages: ChatMessage[] } };
 
 export interface UserPresence {
   user_id: string;

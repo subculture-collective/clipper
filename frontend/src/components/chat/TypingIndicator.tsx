@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
 interface TypingIndicatorProps {
-  channelId: string;
   typingUsers: string[];
 }
 
