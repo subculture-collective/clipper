@@ -258,7 +258,9 @@ func (h *ChannelHub) shutdown() {
 	// Close all client connections
 	for client := range h.Clients {
 		close(client.Send)
-		client.Conn.Close()
+		if client.Conn != nil {
+			client.Conn.Close()
+		}
 	}
 
 	// Clear clients map
