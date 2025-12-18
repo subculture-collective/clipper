@@ -1,0 +1,372 @@
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"sync"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
+)
+
+// WatchPartyHub manages WebSocket connections for a single watch party
+type WatchPartyHub struct {
+	PartyID        uuid.UUID
+	watchPartyRepo *repository.WatchPartyRepository
+	Clients        map[uuid.UUID]*WatchPartyClient
+	Broadcast      chan *models.WatchPartySyncEvent
+	Register       chan *WatchPartyClient
+	Unregister     chan *WatchPartyClient
+	mutex          sync.RWMutex
+	stopChan       chan struct{}
+}
+
+// WatchPartyClient represents a connected client
+type WatchPartyClient struct {
+	Hub    *WatchPartyHub
+	Conn   *websocket.Conn
+	UserID uuid.UUID
+	Role   string
+	Send   chan []byte
+	User   *models.User
+}
+
+// WatchPartyHubManager manages multiple watch party hubs
+type WatchPartyHubManager struct {
+	hubs           map[uuid.UUID]*WatchPartyHub
+	mutex          sync.RWMutex
+	watchPartyRepo *repository.WatchPartyRepository
+}
+
+// NewWatchPartyHubManager creates a new hub manager
+func NewWatchPartyHubManager(watchPartyRepo *repository.WatchPartyRepository) *WatchPartyHubManager {
+	return &WatchPartyHubManager{
+		hubs:           make(map[uuid.UUID]*WatchPartyHub),
+		watchPartyRepo: watchPartyRepo,
+	}
+}
+
+// GetOrCreateHub gets an existing hub or creates a new one
+func (m *WatchPartyHubManager) GetOrCreateHub(partyID uuid.UUID) *WatchPartyHub {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if hub, exists := m.hubs[partyID]; exists {
+		return hub
+	}
+
+	hub := &WatchPartyHub{
+		PartyID:        partyID,
+		watchPartyRepo: m.watchPartyRepo,
+		Clients:        make(map[uuid.UUID]*WatchPartyClient),
+		Broadcast:      make(chan *models.WatchPartySyncEvent, 256),
+		Register:       make(chan *WatchPartyClient),
+		Unregister:     make(chan *WatchPartyClient),
+		stopChan:       make(chan struct{}),
+	}
+
+	m.hubs[partyID] = hub
+	go hub.Run()
+
+	return hub
+}
+
+// RemoveHub removes a hub when it's no longer needed
+func (m *WatchPartyHubManager) RemoveHub(partyID uuid.UUID) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if hub, exists := m.hubs[partyID]; exists {
+		close(hub.stopChan)
+		delete(m.hubs, partyID)
+	}
+}
+
+// Run starts the hub's main loop
+func (h *WatchPartyHub) Run() {
+	defer func() {
+		// Clean up all clients when hub stops
+		for _, client := range h.Clients {
+			close(client.Send)
+		}
+	}()
+
+	for {
+		select {
+		case client := <-h.Register:
+			h.mutex.Lock()
+			h.Clients[client.UserID] = client
+			h.mutex.Unlock()
+
+			// Send participant-joined event to all other clients
+			h.broadcastParticipantEvent("participant-joined", client.UserID, client.User, client.Role)
+
+		case client := <-h.Unregister:
+			h.mutex.Lock()
+			if _, ok := h.Clients[client.UserID]; ok {
+				delete(h.Clients, client.UserID)
+				close(client.Send)
+			}
+			h.mutex.Unlock()
+
+			// Send participant-left event to remaining clients
+			h.broadcastParticipantEvent("participant-left", client.UserID, client.User, client.Role)
+
+			// If no clients left, we could consider shutting down the hub
+			// but keeping it alive for a short time allows for reconnections
+
+		case event := <-h.Broadcast:
+			h.mutex.RLock()
+			for _, client := range h.Clients {
+				select {
+				case client.Send <- mustMarshalJSON(event):
+				default:
+					// Client's send channel is full, skip this message
+					log.Printf("Failed to send to client %s, channel full", client.UserID)
+				}
+			}
+			h.mutex.RUnlock()
+
+		case <-h.stopChan:
+			return
+		}
+	}
+}
+
+// broadcastParticipantEvent sends a participant joined/left event
+func (h *WatchPartyHub) broadcastParticipantEvent(eventType string, userID uuid.UUID, user *models.User, role string) {
+	if user == nil {
+		return
+	}
+
+	event := &models.WatchPartySyncEvent{
+		Type:            eventType,
+		PartyID:         h.PartyID.String(),
+		ServerTimestamp: time.Now().Unix(),
+		Participant: &models.WatchPartyParticipantInfo{
+			UserID:      userID,
+			DisplayName: user.DisplayName,
+			AvatarURL:   user.AvatarURL,
+			Role:        role,
+		},
+	}
+
+	h.Broadcast <- event
+}
+
+// ReadPump reads messages from the WebSocket connection
+func (c *WatchPartyClient) ReadPump(ctx context.Context) {
+	defer func() {
+		c.Hub.Unregister <- c
+		c.Conn.Close()
+	}()
+
+	c.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	c.Conn.SetPongHandler(func(string) error {
+		c.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
+	for {
+		_, message, err := c.Conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("WebSocket error: %v", err)
+			}
+			break
+		}
+
+		var cmd models.WatchPartyCommand
+		if err := json.Unmarshal(message, &cmd); err != nil {
+			log.Printf("Failed to unmarshal command: %v", err)
+			continue
+		}
+
+		// Only host/co-host can control playback
+		if c.Role != "host" && c.Role != "co-host" {
+			if cmd.Type != "sync-request" {
+				continue
+			}
+		}
+
+		// Handle command
+		c.handleCommand(ctx, &cmd)
+	}
+}
+
+// handleCommand processes a command from a client
+func (c *WatchPartyClient) handleCommand(ctx context.Context, cmd *models.WatchPartyCommand) {
+	partyID, err := uuid.Parse(cmd.PartyID)
+	if err != nil {
+		log.Printf("Invalid party ID: %v", err)
+		return
+	}
+
+	var event *models.WatchPartySyncEvent
+
+	switch cmd.Type {
+	case "play":
+		// Get current party state
+		party, err := c.Hub.watchPartyRepo.GetByID(ctx, partyID)
+		if err != nil {
+			log.Printf("Failed to get party: %v", err)
+			return
+		}
+
+		// Update database
+		err = c.Hub.watchPartyRepo.UpdatePlaybackState(ctx, partyID, true, party.CurrentPositionSeconds)
+		if err != nil {
+			log.Printf("Failed to update playback state: %v", err)
+			return
+		}
+
+		event = &models.WatchPartySyncEvent{
+			Type:            "play",
+			PartyID:         cmd.PartyID,
+			Position:        party.CurrentPositionSeconds,
+			IsPlaying:       true,
+			ServerTimestamp: time.Now().Unix(),
+		}
+
+	case "pause":
+		party, err := c.Hub.watchPartyRepo.GetByID(ctx, partyID)
+		if err != nil {
+			log.Printf("Failed to get party: %v", err)
+			return
+		}
+
+		err = c.Hub.watchPartyRepo.UpdatePlaybackState(ctx, partyID, false, party.CurrentPositionSeconds)
+		if err != nil {
+			log.Printf("Failed to update playback state: %v", err)
+			return
+		}
+
+		event = &models.WatchPartySyncEvent{
+			Type:            "pause",
+			PartyID:         cmd.PartyID,
+			Position:        party.CurrentPositionSeconds,
+			IsPlaying:       false,
+			ServerTimestamp: time.Now().Unix(),
+		}
+
+	case "seek":
+		if cmd.Position == nil {
+			return
+		}
+
+		err := c.Hub.watchPartyRepo.UpdatePlaybackState(ctx, partyID, false, *cmd.Position)
+		if err != nil {
+			log.Printf("Failed to update playback state: %v", err)
+			return
+		}
+
+		event = &models.WatchPartySyncEvent{
+			Type:            "seek",
+			PartyID:         cmd.PartyID,
+			Position:        *cmd.Position,
+			IsPlaying:       false,
+			ServerTimestamp: time.Now().Unix(),
+		}
+
+	case "skip":
+		if cmd.ClipID == nil {
+			return
+		}
+
+		err := c.Hub.watchPartyRepo.UpdateCurrentClip(ctx, partyID, *cmd.ClipID, 0)
+		if err != nil {
+			log.Printf("Failed to skip clip: %v", err)
+			return
+		}
+
+		event = &models.WatchPartySyncEvent{
+			Type:            "skip",
+			PartyID:         cmd.PartyID,
+			ClipID:          cmd.ClipID,
+			Position:        0,
+			IsPlaying:       true,
+			ServerTimestamp: time.Now().Unix(),
+		}
+
+	case "sync-request":
+		// Send current party state to requesting client
+		party, err := c.Hub.watchPartyRepo.GetByID(ctx, partyID)
+		if err != nil {
+			log.Printf("Failed to get party: %v", err)
+			return
+		}
+
+		event = &models.WatchPartySyncEvent{
+			Type:            "sync",
+			PartyID:         cmd.PartyID,
+			ClipID:          party.CurrentClipID,
+			Position:        party.CurrentPositionSeconds,
+			IsPlaying:       party.IsPlaying,
+			ServerTimestamp: time.Now().Unix(),
+		}
+
+		// Send only to requesting client
+		c.Send <- mustMarshalJSON(event)
+		return
+	}
+
+	if event != nil {
+		c.Hub.Broadcast <- event
+	}
+}
+
+// WritePump writes messages to the WebSocket connection
+func (c *WatchPartyClient) WritePump() {
+	ticker := time.NewTicker(54 * time.Second)
+	defer func() {
+		ticker.Stop()
+		c.Conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.Send:
+			c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if !ok {
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			w, err := c.Conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				return
+			}
+			w.Write(message)
+
+			// Add queued messages to the current websocket message
+			n := len(c.Send)
+			for i := 0; i < n; i++ {
+				w.Write([]byte{'\n'})
+				w.Write(<-c.Send)
+			}
+
+			if err := w.Close(); err != nil {
+				return
+			}
+
+		case <-ticker.C:
+			c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+// mustMarshalJSON marshals v to JSON or panics
+func mustMarshalJSON(v interface{}) []byte {
+	b, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}

@@ -3376,3 +3376,78 @@ type ResumePositionResponse struct {
 	ProgressSeconds int  `json:"progress_seconds"`
 	Completed       bool `json:"completed"`
 }
+
+// Watch Party System Models
+
+// WatchParty represents a synchronized video watching session
+type WatchParty struct {
+	ID                     uuid.UUID              `json:"id" db:"id"`
+	HostUserID             uuid.UUID              `json:"host_user_id" db:"host_user_id"`
+	Title                  string                 `json:"title" db:"title"`
+	PlaylistID             *uuid.UUID             `json:"playlist_id,omitempty" db:"playlist_id"`
+	CurrentClipID          *uuid.UUID             `json:"current_clip_id,omitempty" db:"current_clip_id"`
+	CurrentPositionSeconds int                    `json:"current_position_seconds" db:"current_position_seconds"`
+	IsPlaying              bool                   `json:"is_playing" db:"is_playing"`
+	Visibility             string                 `json:"visibility" db:"visibility"`
+	InviteCode             string                 `json:"invite_code" db:"invite_code"`
+	MaxParticipants        int                    `json:"max_participants" db:"max_participants"`
+	CreatedAt              time.Time              `json:"created_at" db:"created_at"`
+	StartedAt              *time.Time             `json:"started_at,omitempty" db:"started_at"`
+	EndedAt                *time.Time             `json:"ended_at,omitempty" db:"ended_at"`
+	Participants           []WatchPartyParticipant `json:"participants,omitempty" db:"-"`
+}
+
+// WatchPartyParticipant represents a user participating in a watch party
+type WatchPartyParticipant struct {
+	ID           uuid.UUID  `json:"id" db:"id"`
+	PartyID      uuid.UUID  `json:"party_id" db:"party_id"`
+	UserID       uuid.UUID  `json:"user_id" db:"user_id"`
+	User         *User      `json:"user,omitempty" db:"-"`
+	Role         string     `json:"role" db:"role"`
+	JoinedAt     time.Time  `json:"joined_at" db:"joined_at"`
+	LeftAt       *time.Time `json:"left_at,omitempty" db:"left_at"`
+	LastSyncAt   *time.Time `json:"last_sync_at,omitempty" db:"last_sync_at"`
+	SyncOffsetMS int        `json:"sync_offset_ms" db:"sync_offset_ms"`
+}
+
+// CreateWatchPartyRequest represents a request to create a watch party
+type CreateWatchPartyRequest struct {
+	Title       string     `json:"title" binding:"required,min=1,max=200"`
+	PlaylistID  *uuid.UUID `json:"playlist_id,omitempty" binding:"omitempty,uuid"`
+	Visibility  string     `json:"visibility,omitempty" binding:"omitempty,oneof=private public friends"`
+	MaxParticipants *int   `json:"max_participants,omitempty" binding:"omitempty,min=2,max=1000"`
+}
+
+// JoinWatchPartyResponse represents the response when joining a party
+type JoinWatchPartyResponse struct {
+	Party WatchParty `json:"party"`
+	InviteURL string  `json:"invite_url"`
+}
+
+// WatchPartyCommand represents a command from client to server
+type WatchPartyCommand struct {
+	Type      string     `json:"type"` // play, pause, seek, skip, sync-request
+	PartyID   string     `json:"party_id"`
+	Position  *int       `json:"position,omitempty"` // for seek
+	ClipID    *uuid.UUID `json:"clip_id,omitempty"`  // for skip
+	Timestamp int64      `json:"timestamp"`           // client timestamp
+}
+
+// WatchPartySyncEvent represents a sync event from server to clients
+type WatchPartySyncEvent struct {
+	Type            string                        `json:"type"` // sync, play, pause, seek, skip, participant-joined, participant-left
+	PartyID         string                        `json:"party_id"`
+	ClipID          *uuid.UUID                    `json:"clip_id,omitempty"`
+	Position        int                           `json:"position"`
+	IsPlaying       bool                          `json:"is_playing"`
+	ServerTimestamp int64                         `json:"server_timestamp"`
+	Participant     *WatchPartyParticipantInfo    `json:"participant,omitempty"`
+}
+
+// WatchPartyParticipantInfo represents basic participant info in events
+type WatchPartyParticipantInfo struct {
+	UserID      uuid.UUID `json:"user_id"`
+	DisplayName string    `json:"display_name"`
+	AvatarURL   *string   `json:"avatar_url,omitempty"`
+	Role        string    `json:"role"`
+}
