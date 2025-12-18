@@ -1,0 +1,210 @@
+import { useEffect, useState, useCallback, useRef } from 'react';
+import {
+  WatchPartySyncEvent,
+  WatchPartyCommand,
+  WatchPartyMessage,
+  WatchPartyReaction,
+} from '@/types/watchParty';
+
+interface UseWatchPartyWebSocketOptions {
+  partyId: string;
+  onSyncEvent?: (event: WatchPartySyncEvent) => void;
+  onChatMessage?: (message: WatchPartyMessage) => void;
+  onReaction?: (reaction: WatchPartyReaction) => void;
+  onTyping?: (userId: string, isTyping: boolean) => void;
+  enabled?: boolean;
+}
+
+interface UseWatchPartyWebSocketReturn {
+  sendCommand: (command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => void;
+  sendChatMessage: (message: string) => void;
+  sendReaction: (emoji: string, videoTimestamp?: number) => void;
+  sendTyping: (isTyping: boolean) => void;
+  isConnected: boolean;
+  error: string | null;
+}
+
+/**
+ * Hook for managing WebSocket connection to watch party
+ */
+export function useWatchPartyWebSocket({
+  partyId,
+  onSyncEvent,
+  onChatMessage,
+  onReaction,
+  onTyping,
+  enabled = true,
+}: UseWatchPartyWebSocketOptions): UseWatchPartyWebSocketReturn {
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 10;
+
+  const connect = useCallback(() => {
+    if (!enabled) return;
+
+    try {
+      // Get WebSocket URL from environment or default
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = import.meta.env.VITE_WS_HOST || window.location.host;
+      
+      // Get auth token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required');
+        return;
+      }
+
+      const wsUrl = `${wsProtocol}//${wsHost}/api/v1/watch-parties/${partyId}/ws`;
+
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setIsConnected(true);
+        setError(null);
+        reconnectAttemptsRef.current = 0;
+        console.log(`Connected to watch party: ${partyId}`);
+        
+        // Request initial sync
+        sendCommand({ type: 'sync-request' });
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const syncEvent = JSON.parse(event.data) as WatchPartySyncEvent;
+          
+          // Call the general sync event handler
+          onSyncEvent?.(syncEvent);
+
+          // Handle specific event types
+          switch (syncEvent.type) {
+            case 'chat_message':
+              if (syncEvent.chat_message) {
+                onChatMessage?.(syncEvent.chat_message);
+              }
+              break;
+            case 'reaction':
+              if (syncEvent.reaction) {
+                onReaction?.(syncEvent.reaction);
+              }
+              break;
+            case 'typing':
+              if (syncEvent.user_id) {
+                onTyping?.(syncEvent.user_id, syncEvent.is_typing || false);
+              }
+              break;
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
+        }
+      };
+
+      ws.onerror = (event) => {
+        console.error('WebSocket error:', event);
+        setError('Connection error');
+      };
+
+      ws.onclose = () => {
+        setIsConnected(false);
+        console.log(`Disconnected from watch party: ${partyId}`);
+
+        // Attempt to reconnect with exponential backoff
+        if (reconnectAttemptsRef.current < maxReconnectAttempts && enabled) {
+          const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          const attemptNumber = reconnectAttemptsRef.current + 1;
+          reconnectAttemptsRef.current = attemptNumber;
+          
+          console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${attemptNumber}/${maxReconnectAttempts})`);
+          
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            connect();
+          }, backoffDelay);
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          setError('Connection lost. Unable to reconnect after multiple attempts.');
+        }
+      };
+    } catch (err) {
+      setError('Failed to connect to watch party');
+      console.error('WebSocket connection error:', err);
+    }
+  }, [partyId, enabled, onSyncEvent, onChatMessage, onReaction, onTyping]);
+
+  useEffect(() => {
+    connect();
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [connect]);
+
+  const sendCommand = useCallback((command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const fullCommand: WatchPartyCommand = {
+        ...command,
+        party_id: partyId,
+        timestamp: Date.now() / 1000, // Unix timestamp in seconds
+      };
+      wsRef.current.send(JSON.stringify(fullCommand));
+    }
+  }, [partyId]);
+
+  const sendChatMessage = useCallback((message: string) => {
+    sendCommand({
+      type: 'chat',
+      message,
+    });
+  }, [sendCommand]);
+
+  const sendReaction = useCallback((emoji: string, videoTimestamp?: number) => {
+    sendCommand({
+      type: 'reaction',
+      emoji,
+      video_timestamp: videoTimestamp,
+    });
+  }, [sendCommand]);
+
+  const sendTyping = useCallback((isTyping: boolean) => {
+    // Only send if WebSocket is connected
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    // Clear previous typing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    sendCommand({
+      type: 'typing',
+      is_typing: isTyping,
+    });
+
+    // Auto-clear typing indicator after 3 seconds if still typing
+    if (isTyping) {
+      typingTimeoutRef.current = window.setTimeout(() => {
+        sendCommand({
+          type: 'typing',
+          is_typing: false,
+        });
+      }, 3000);
+    }
+  }, [sendCommand]);
+
+  return {
+    sendCommand,
+    sendChatMessage,
+    sendReaction,
+    sendTyping,
+    isConnected,
+    error,
+  };
+}
