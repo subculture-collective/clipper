@@ -215,30 +215,7 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 		clip.Language = &stream.Language
 	}
 
-	// Insert clip into database
-	// Note: In production, this would use the clip repository's Create method
-	// For now, we'll use a direct insert to ensure all fields are set
-	query := `
-		INSERT INTO clips (
-			id, twitch_clip_id, twitch_clip_url, embed_url, title,
-			creator_name, creator_id, broadcaster_name, broadcaster_id,
-			game_id, game_name, language, duration, view_count,
-			created_at, imported_at, vote_score, comment_count, favorite_count,
-			is_featured, is_nsfw, is_removed, is_hidden,
-			submitted_by_user_id, submitted_at,
-			stream_source, status, quality, start_time, end_time
-		) VALUES (
-			$1, $2, $3, $4, $5,
-			$6, $7, $8, $9,
-			$10, $11, $12, $13, $14,
-			$15, $16, $17, $18, $19,
-			$20, $21, $22, $23,
-			$24, $25,
-			$26, $27, $28, $29, $30
-		) RETURNING id
-	`
-
-	var insertedID uuid.UUID
+	// Insert clip into database using repository method
 	err = h.clipRepo.CreateStreamClip(ctx, clip)
 
 	if err != nil {
@@ -255,14 +232,14 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 	// This would be handled by a background worker in a real implementation
 
 	utils.GetLogger().Info("Clip from stream created", map[string]interface{}{
-		"clip_id":  insertedID.String(),
+		"clip_id":  clipID.String(),
 		"streamer": streamer,
 		"user_id":  userID.String(),
 	})
 
 	// Return response
 	response := models.ClipFromStreamResponse{
-		ClipID: insertedID.String(),
+		ClipID: clipID.String(),
 		Status: "processing",
 	}
 
