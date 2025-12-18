@@ -13,21 +13,21 @@ declare global {
   }
 }
 
-interface TwitchEmbedOptions {
+export interface TwitchEmbedOptions {
   width: string | number;
   height: string | number;
   channel: string;
   layout: 'video' | 'video-with-chat';
   autoplay: boolean;
   muted: boolean;
-  parent?: string[];
+  parent: string[];
 }
 
-interface TwitchEmbed {
+export interface TwitchEmbed {
   destroy: () => void;
 }
 
-interface TwitchPlayerProps {
+export interface TwitchPlayerProps {
   channel: string;
   showChat?: boolean;
 }
@@ -49,13 +49,26 @@ export function TwitchPlayer({ channel, showChat = false }: TwitchPlayerProps) {
     retry: 2,
   });
 
-  // Load Twitch Embed SDK script
+  // Load Twitch Embed SDK script with reference counting
   useEffect(() => {
     if (window.Twitch) {
       setIsScriptLoaded(true);
       return;
     }
 
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src="https://embed.twitch.tv/embed/v1.js"]');
+    if (existingScript) {
+      // Script exists, wait for it to load
+      const handleLoad = () => {
+        setIsScriptLoaded(true);
+        existingScript.removeEventListener('load', handleLoad);
+      };
+      existingScript.addEventListener('load', handleLoad);
+      return () => existingScript.removeEventListener('load', handleLoad);
+    }
+
+    // Create new script if it doesn't exist
     const script = document.createElement('script');
     script.src = 'https://embed.twitch.tv/embed/v1.js';
     script.async = true;
@@ -66,12 +79,7 @@ export function TwitchPlayer({ channel, showChat = false }: TwitchPlayerProps) {
 
     document.body.appendChild(script);
 
-    return () => {
-      // Cleanup script on unmount
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
+    // Don't remove script on unmount - it may be used by other instances
   }, []);
 
   // Initialize Twitch Embed when script loads and stream is live

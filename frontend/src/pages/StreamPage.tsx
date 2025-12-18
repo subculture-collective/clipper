@@ -5,11 +5,9 @@ import { TwitchPlayer } from '../components/stream';
 import { fetchStreamStatus } from '../lib/stream-api';
 import { ClipCard } from '../components/clip';
 import { fetchBroadcasterClips } from '../lib/broadcaster-api';
-import { useState } from 'react';
 
 export function StreamPage() {
   const { streamer } = useParams<{ streamer: string }>();
-  const [page] = useState(1);
 
   // Fetch stream status
   const { data: streamInfo } = useQuery({
@@ -21,8 +19,8 @@ export function StreamPage() {
 
   // Fetch recent clips for the streamer
   const { data: clipsData, isLoading: isLoadingClips } = useQuery({
-    queryKey: ['broadcasterClips', streamer, page],
-    queryFn: () => fetchBroadcasterClips(streamer!, { page, limit: 12, sort: 'recent' }),
+    queryKey: ['broadcasterClips', streamer],
+    queryFn: () => fetchBroadcasterClips(streamer!, { page: 1, limit: 12, sort: 'recent' }),
     enabled: !!streamer,
   });
 

@@ -175,6 +175,7 @@ func main() {
 	playlistRepo := repository.NewPlaylistRepository(db.Pool)
 	queueRepo := repository.NewQueueRepository(db.Pool)
 	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
+	streamRepo := repository.NewStreamRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -394,7 +395,7 @@ func main() {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 	if twitchClient != nil {
-		streamHandler = handlers.NewStreamHandler(twitchClient)
+		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo)
 	}
 
 	// Initialize router
