@@ -665,6 +665,3 @@ func (s *PlaylistService) CheckEditPermission(ctx context.Context, playlistID, u
 
 	return permission == models.PlaylistPermissionEdit || permission == models.PlaylistPermissionAdmin, nil
 }
-
-	return nil
-}

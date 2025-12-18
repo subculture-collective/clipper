@@ -1144,6 +1144,14 @@ func main() {
 			// Playlist likes (social engagement)
 			playlists.POST("/:id/like", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), playlistHandler.LikePlaylist)
 			playlists.DELETE("/:id/like", middleware.AuthMiddleware(authService), playlistHandler.UnlikePlaylist)
+
+			// Playlist sharing and collaboration
+			playlists.GET("/:id/share-link", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), playlistHandler.GetShareLink)
+			playlists.POST("/:id/track-share", playlistHandler.TrackShare) // Public endpoint for analytics
+			playlists.GET("/:id/collaborators", middleware.OptionalAuthMiddleware(authService), playlistHandler.GetCollaborators)
+			playlists.POST("/:id/collaborators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), playlistHandler.AddCollaborator)
+			playlists.DELETE("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.RemoveCollaborator)
+			playlists.PATCH("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.UpdateCollaboratorPermission)
 		}
 
 		// Queue routes (clip playback queue)
