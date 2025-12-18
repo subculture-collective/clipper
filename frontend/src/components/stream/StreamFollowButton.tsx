@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellOff } from 'lucide-react';
-import { Button } from './ui/button';
-import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../ui/Button';
+import { useAuth } from '../../context/AuthContext';
 import {
   followStreamer,
   unfollowStreamer,
   getStreamFollowStatus,
   type StreamFollowStatus,
-} from '../lib/stream-api';
+} from '../../lib/stream-api';
 import { toast } from 'react-hot-toast';
 
 interface StreamFollowButtonProps {
