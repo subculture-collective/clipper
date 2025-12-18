@@ -57,6 +57,72 @@ export function AdminModerationQueuePage() {
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
 
+    // Data loaders
+    const loadQueue = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const response = await getModerationQueue(
+                statusFilter,
+                typeFilter || undefined,
+                50
+            );
+            setItems(response.data || []);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || 'Failed to load moderation queue');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [statusFilter, typeFilter]);
+
+    const loadStats = useCallback(async () => {
+        try {
+            const response = await getModerationStats();
+            setStats(response.data);
+        } catch (err: unknown) {
+            console.error('Failed to load stats:', err);
+        }
+    }, []);
+
+    // Bulk action handlers must be defined before effects that reference them
+    const handleBulkApprove = useCallback(async () => {
+        if (selectedIds.size === 0) return;
+
+        try {
+            const result = await bulkModerate({
+                item_ids: Array.from(selectedIds),
+                action: 'approve',
+            });
+            setSuccess(
+                `${result.processed} of ${result.total} items approved successfully!`
+            );
+            setSelectedIds(new Set());
+            loadQueue();
+            loadStats();
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || 'Failed to approve items');
+        }
+    }, [selectedIds, loadQueue, loadStats]);
+
+    const handleBulkReject = useCallback(async () => {
+        if (selectedIds.size === 0) return;
+
+        try {
+            const result = await bulkModerate({
+                item_ids: Array.from(selectedIds),
+                action: 'reject',
+            });
+            setSuccess(
+                `${result.processed} of ${result.total} items rejected successfully!`
+            );
+            setSelectedIds(new Set());
+            loadQueue();
+            loadStats();
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || 'Failed to reject items');
+        }
+    }, [selectedIds, loadQueue, loadStats]);
+
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
@@ -83,31 +149,7 @@ export function AdminModerationQueuePage() {
         return () => document.removeEventListener('keydown', handleKeyPress);
     }, [selectedIds, handleBulkApprove, handleBulkReject]);
 
-    const loadQueue = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError(null);
-            const response = await getModerationQueue(
-                statusFilter,
-                typeFilter || undefined,
-                50
-            );
-            setItems(response.data || []);
-        } catch (err: unknown) {
-            setError(getErrorMessage(err) || 'Failed to load moderation queue');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [statusFilter, typeFilter]);
-
-    const loadStats = useCallback(async () => {
-        try {
-            const response = await getModerationStats();
-            setStats(response.data);
-        } catch (err: unknown) {
-            console.error('Failed to load stats:', err);
-        }
-    }, []);
+    // (moved above)
 
     useEffect(() => {
         if (!isAuthenticated || !isAdmin) {
@@ -169,43 +211,7 @@ export function AdminModerationQueuePage() {
         }
     };
 
-    const handleBulkApprove = useCallback(async () => {
-        if (selectedIds.size === 0) return;
-
-        try {
-            const result = await bulkModerate({
-                item_ids: Array.from(selectedIds),
-                action: 'approve',
-            });
-            setSuccess(
-                `${result.processed} of ${result.total} items approved successfully!`
-            );
-            setSelectedIds(new Set());
-            loadQueue();
-            loadStats();
-        } catch (err: unknown) {
-            setError(getErrorMessage(err) || 'Failed to approve items');
-        }
-    }, [selectedIds, loadQueue, loadStats]);
-
-    const handleBulkReject = useCallback(async () => {
-        if (selectedIds.size === 0) return;
-
-        try {
-            const result = await bulkModerate({
-                item_ids: Array.from(selectedIds),
-                action: 'reject',
-            });
-            setSuccess(
-                `${result.processed} of ${result.total} items rejected successfully!`
-            );
-            setSelectedIds(new Set());
-            loadQueue();
-            loadStats();
-        } catch (err: unknown) {
-            setError(getErrorMessage(err) || 'Failed to reject items');
-        }
-    }, [selectedIds, loadQueue, loadStats]);
+    // (moved above)
 
     const toggleSelection = (itemId: string) => {
         const newSelection = new Set(selectedIds);
@@ -240,7 +246,7 @@ export function AdminModerationQueuePage() {
                         Review and moderate flagged content with bulk actions
                     </p>
                     <p className='text-muted-foreground text-sm mt-2'>
-                        Keyboard shortcuts: A approve • R reject (when items selected)
+                        Keyboard shortcuts: A approve • R reject (when items chosen)
                     </p>
                 </div>
 

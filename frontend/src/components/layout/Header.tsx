@@ -77,11 +77,32 @@ export function Header() {
                                 🔍 {t('nav.discover')}
                             </Button>
                         </Link>
+                        {isAuthenticated && (
+                            <Link to='/discover/live'>
+                                <Button variant='ghost' size='sm'>
+                                    🔴 Live
+                                </Button>
+                            </Link>
+                        )}
                         <Link to='/leaderboards'>
                             <Button variant='ghost' size='sm'>
                                 🏆 {t('nav.leaderboards')}
                             </Button>
                         </Link>
+                        {isAuthenticated && (
+                            <>
+                                <Link to='/playlists'>
+                                    <Button variant='ghost' size='sm'>
+                                        📋 Playlists
+                                    </Button>
+                                </Link>
+                                <Link to='/watch-history'>
+                                    <Button variant='ghost' size='sm'>
+                                        🕒 History
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </nav>
 
                     {/* Right Side Actions */}
@@ -231,6 +252,32 @@ export function Header() {
                                     🔍 {t('nav.discover')}
                                 </Button>
                             </Link>
+                            {isAuthenticated && (
+                                <Link
+                                    to='/discover/live'
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        className='w-full justify-start'
+                                    >
+                                        🔴 Live
+                                    </Button>
+                                </Link>
+                            )}
+                            <Link
+                                to='/leaderboards'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='w-full justify-start'
+                                >
+                                    🏆 {t('nav.leaderboards')}
+                                </Button>
+                            </Link>
                         </nav>
 
                         {isAuthenticated ?
@@ -257,6 +304,42 @@ export function Header() {
                                         className='w-full justify-start'
                                     >
                                         {t('nav.favorites')}
+                                    </Button>
+                                </Link>
+                                <Link
+                                    to='/playlists'
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        className='w-full justify-start'
+                                    >
+                                        📋 Playlists
+                                    </Button>
+                                </Link>
+                                <Link
+                                    to='/watch-history'
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        className='w-full justify-start'
+                                    >
+                                        🕒 Watch History
+                                    </Button>
+                                </Link>
+                                <Link
+                                    to='/submissions'
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        className='w-full justify-start'
+                                    >
+                                        📤 My Submissions
                                     </Button>
                                 </Link>
                                 <Link

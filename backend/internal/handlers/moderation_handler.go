@@ -1103,11 +1103,27 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 		SELECT COUNT(*) FROM filtered_decisions
 	`, baseWhere)
 	
+	// Check if database is available before querying
+	if h.db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Database service unavailable",
+		})
+		return
+	}
+
 	var totalCount int
 	err := h.db.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to count audit logs",
+		})
+		return
+	}
+
+	// Check if database is available
+	if h.db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Database service unavailable",
 		})
 		return
 	}
@@ -1168,6 +1184,14 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 // GET /admin/moderation/analytics
 func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 	ctx := c.Request.Context()
+
+	// Check if database is available
+	if h.db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Database service unavailable",
+		})
+		return
+	}
 
 	// Parse query parameters for date range
 	startDate := c.DefaultQuery("start_date", "")
