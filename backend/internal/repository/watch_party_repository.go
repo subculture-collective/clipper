@@ -620,4 +620,3 @@ func (r *WatchPartyRepository) GetHistory(ctx context.Context, userID uuid.UUID,
 
 	return history, totalCount, nil
 }
-}
