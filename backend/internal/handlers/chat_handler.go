@@ -979,9 +979,9 @@ func (h *ChatHandler) AddChannelMember(c *gin.Context) {
 		&member.ID, &member.JoinedAt)
 
 	if err != nil {
-		// Check if it's a duplicate key error
-		if err.Error() == "duplicate key value violates unique constraint" || 
-		   err.Error() == "UNIQUE constraint failed" {
+		// Check if it's a duplicate key error using string.Contains for better compatibility
+		errStr := err.Error()
+		if containsAny(errStr, []string{"duplicate key", "UNIQUE constraint", "unique_violation"}) {
 			c.JSON(http.StatusConflict, gin.H{"error": "User is already a member of this channel"})
 			return
 		}
@@ -1173,4 +1173,18 @@ func (h *ChatHandler) UpdateChannelMember(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "updated", "role": req.Role})
+}
+
+// containsAny checks if a string contains any of the provided substrings
+func containsAny(s string, substrs []string) bool {
+	for _, substr := range substrs {
+		if len(s) >= len(substr) {
+			for i := 0; i <= len(s)-len(substr); i++ {
+				if s[i:i+len(substr)] == substr {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
