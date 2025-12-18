@@ -60,9 +60,9 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
     matches.forEach((item, idx) => {
       // Add text before this match
       if (currentIndex < item.start) {
-        const text = content.slice(currentIndex, item.start);
-        if (text) {
-          elements.push(<span key={`text-${idx}`}>{text}</span>);
+        const textSegment = text.slice(currentIndex, item.start);
+        if (textSegment) {
+          elements.push(<span key={`text-${idx}`}>{textSegment}</span>);
         }
       }
 
@@ -118,14 +118,14 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
     });
 
     // Add remaining text
-    if (currentIndex < content.length) {
-      const text = content.slice(currentIndex);
-      if (text) {
-        elements.push(<span key="text-final">{text}</span>);
+    if (currentIndex < text.length) {
+      const textSegment = text.slice(currentIndex);
+      if (textSegment) {
+        elements.push(<span key="text-final">{textSegment}</span>);
       }
     }
 
-    return elements.length > 0 ? elements : [content];
+    return elements.length > 0 ? elements : [text];
   };
 
   return (
