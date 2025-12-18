@@ -71,6 +71,7 @@ const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m 
 const VerifiedBadgeTestPage = lazy(() => import('./pages/VerifiedBadgeTestPage').then(m => ({ default: m.VerifiedBadgeTestPage })));
 const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage })));
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage').then(m => ({ default: m.PlaylistDetailPage })));
+const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m => ({ default: m.WatchHistoryPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -147,6 +148,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <FavoritesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-history"
+                      element={
+                        <ProtectedRoute>
+                          <WatchHistoryPage />
                         </ProtectedRoute>
                       }
                     />

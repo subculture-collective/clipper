@@ -3194,3 +3194,40 @@ type ReorderQueueRequest struct {
 	ItemID      string `json:"item_id" binding:"required,uuid"`
 	NewPosition int    `json:"new_position" binding:"required,min=1"`
 }
+
+// WatchHistoryEntry represents a watch history entry for a clip
+type WatchHistoryEntry struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	UserID          uuid.UUID  `json:"user_id" db:"user_id"`
+	ClipID          uuid.UUID  `json:"clip_id" db:"clip_id"`
+	Clip            *Clip      `json:"clip,omitempty"`
+	ProgressSeconds int        `json:"progress_seconds" db:"progress_seconds"`
+	DurationSeconds int        `json:"duration_seconds" db:"duration_seconds"`
+	ProgressPercent float64    `json:"progress_percent"`
+	Completed       bool       `json:"completed" db:"completed"`
+	SessionID       string     `json:"session_id" db:"session_id"`
+	WatchedAt       time.Time  `json:"watched_at" db:"watched_at"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// RecordWatchProgressRequest represents the request to record watch progress
+type RecordWatchProgressRequest struct {
+	ClipID          string `json:"clip_id" binding:"required,uuid"`
+	ProgressSeconds int    `json:"progress_seconds" binding:"required,min=0"`
+	DurationSeconds int    `json:"duration_seconds" binding:"required,min=1"`
+	SessionID       string `json:"session_id" binding:"required,min=1,max=100"`
+}
+
+// WatchHistoryResponse represents the response containing watch history
+type WatchHistoryResponse struct {
+	History []WatchHistoryEntry `json:"history"`
+	Total   int                 `json:"total"`
+}
+
+// ResumePositionResponse represents the response for resume position
+type ResumePositionResponse struct {
+	HasProgress     bool `json:"has_progress"`
+	ProgressSeconds int  `json:"progress_seconds"`
+	Completed       bool `json:"completed"`
+}

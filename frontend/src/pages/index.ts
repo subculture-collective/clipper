@@ -26,6 +26,7 @@ export { AuthCallbackPage } from './AuthCallbackPage';
 
 // Protected pages
 export { FavoritesPage } from './FavoritesPage';
+export { WatchHistoryPage } from './WatchHistoryPage';
 export { ProfilePage } from './ProfilePage';
 export { SubmitClipPage } from './SubmitClipPage';
 export { UserSubmissionsPage } from './UserSubmissionsPage';

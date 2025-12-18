@@ -13,3 +13,5 @@ export { useQualityPreference } from './useQualityPreference';
 export { useTheatreMode } from './useTheatreMode';
 export { useKeyboardControls } from './useKeyboardControls';
 export type { KeyboardControlHandlers } from './useKeyboardControls';
+export { useWatchHistory } from './useWatchHistory';
+export type { UseWatchHistoryOptions, UseWatchHistoryReturn } from './useWatchHistory';
