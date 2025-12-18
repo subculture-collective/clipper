@@ -15,6 +15,13 @@ interface MentionSuggestion {
   display_name?: string;
 }
 
+// Mock suggestions for development - TODO: Replace with API call
+const DEV_MENTION_SUGGESTIONS: MentionSuggestion[] = [
+  { username: 'user1', display_name: 'User One' },
+  { username: 'user2', display_name: 'User Two' },
+  { username: 'admin', display_name: 'Administrator' },
+];
+
 /**
  * MessageComposer component with emoji picker and mention autocomplete
  */
@@ -60,11 +67,11 @@ export function MessageComposer({
       // TODO: Fetch user suggestions from API
       // For development, show mock suggestions filtered by query
       if (import.meta.env.DEV) {
-        setMentionSuggestions([
-          { username: 'user1', display_name: 'User One' },
-          { username: 'user2', display_name: 'User Two' },
-          { username: 'admin', display_name: 'Administrator' },
-        ].filter(u => u.username.toLowerCase().includes(mentionMatch[1].toLowerCase())));
+        setMentionSuggestions(
+          DEV_MENTION_SUGGESTIONS.filter(u => 
+            u.username.toLowerCase().includes(mentionMatch[1].toLowerCase())
+          )
+        );
       } else {
         // In production, fetch from API
         // fetchUserSuggestions(mentionMatch[1]).then(setMentionSuggestions);

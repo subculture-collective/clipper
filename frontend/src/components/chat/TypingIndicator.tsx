@@ -24,12 +24,18 @@ export function TypingIndicator({ typingUsers }: TypingIndicatorProps) {
       ? `${displayUsers[0]} and ${displayUsers[1]} are typing...`
       : `${displayUsers[0]} and ${displayUsers.length - 1} others are typing...`;
 
+  const animationDelays = [0, 150, 300];
+
   return (
     <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
       <div className="flex gap-1">
-        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        {animationDelays.map((delay, index) => (
+          <span
+            key={index}
+            className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"
+            style={{ animationDelay: `${delay}ms` }}
+          />
+        ))}
       </div>
       <span>{text}</span>
     </div>

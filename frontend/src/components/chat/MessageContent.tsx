@@ -7,6 +7,9 @@ interface MessageContentProps {
   onMentionClick?: (username: string) => void;
 }
 
+// Regex pattern for parsing mentions, links, and code blocks
+const CONTENT_PARSE_PATTERN = /(@\w+)|(https?:\/\/[^\s]+)|(`[^`]+`)|(`{3}[\s\S]*?`{3})/g;
+
 /**
  * MessageContent component that parses and renders message content
  * with support for mentions (@username), links, and code blocks
@@ -15,7 +18,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
   const navigate = useNavigate();
   
   // Parse content for mentions, links, and code blocks
-  const parts = content.split(/(@\w+)|(https?:\/\/[^\s]+)|(`[^`]+`)|(`{3}[\s\S]*?`{3})/g);
+  const parts = content.split(CONTENT_PARSE_PATTERN);
 
   const handleMentionClick = (mention: string) => {
     const username = mention.slice(1); // Remove @ symbol
