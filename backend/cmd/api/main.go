@@ -176,6 +176,7 @@ func main() {
 	queueRepo := repository.NewQueueRepository(db.Pool)
 	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
 	streamRepo := repository.NewStreamRepository(db.Pool)
+	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -313,7 +314,7 @@ func main() {
 	if twitchClient != nil {
 		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, redisClient)
 		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
-		liveStatusService = services.NewLiveStatusService(broadcasterRepo, twitchClient)
+		liveStatusService = services.NewLiveStatusService(broadcasterRepo, streamFollowRepo, twitchClient)
 		// Set notification service for live status notifications
 		liveStatusService.SetNotificationService(notificationService)
 	}
@@ -395,7 +396,7 @@ func main() {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 	if twitchClient != nil {
-		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo)
+		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo)
 	}
 
 	// Initialize router
@@ -878,6 +879,14 @@ func main() {
 			{
 				// Public stream status endpoint
 				streams.GET("/:streamer", streamHandler.GetStreamStatus)
+				
+				// Protected stream follow endpoints (authenticated, rate limited)
+				streams.POST("/:streamer/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), streamHandler.FollowStreamer)
+				streams.DELETE("/:streamer/follow", middleware.AuthMiddleware(authService), streamHandler.UnfollowStreamer)
+				streams.GET("/:streamer/follow-status", middleware.AuthMiddleware(authService), streamHandler.GetStreamFollowStatus)
+				
+				// Get followed streamers (authenticated)
+				streams.GET("/following", middleware.AuthMiddleware(authService), streamHandler.GetFollowedStreamers)
 				
 				// Protected stream clip creation endpoint (authenticated, rate limited)
 				streams.POST("/:streamer/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), streamHandler.CreateClipFromStream)

@@ -16,17 +16,19 @@ import (
 
 // StreamHandler handles stream-related HTTP requests
 type StreamHandler struct {
-	twitchClient *twitch.Client
-	streamRepo   *repository.StreamRepository
-	clipRepo     *repository.ClipRepository
+	twitchClient     *twitch.Client
+	streamRepo       *repository.StreamRepository
+	clipRepo         *repository.ClipRepository
+	streamFollowRepo *repository.StreamFollowRepository
 }
 
 // NewStreamHandler creates a new stream handler
-func NewStreamHandler(twitchClient *twitch.Client, streamRepo *repository.StreamRepository, clipRepo *repository.ClipRepository) *StreamHandler {
+func NewStreamHandler(twitchClient *twitch.Client, streamRepo *repository.StreamRepository, clipRepo *repository.ClipRepository, streamFollowRepo *repository.StreamFollowRepository) *StreamHandler {
 	return &StreamHandler{
-		twitchClient: twitchClient,
-		streamRepo:   streamRepo,
-		clipRepo:     clipRepo,
+		twitchClient:     twitchClient,
+		streamRepo:       streamRepo,
+		clipRepo:         clipRepo,
+		streamFollowRepo: streamFollowRepo,
 	}
 }
 
@@ -277,3 +279,173 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, response)
 }
+
+// FollowStreamer allows a user to follow a streamer for live notifications
+// POST /api/v1/streams/:streamer/follow
+func (h *StreamHandler) FollowStreamer(c *gin.Context) {
+	streamer := c.Param("streamer")
+	if streamer == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "streamer username is required"})
+		return
+	}
+
+	// Get user ID from context (middleware sets this)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	ctx := c.Request.Context()
+
+	// Parse optional request body for notification preferences
+	var req models.StreamFollowRequest
+	notificationsEnabled := true // Default to enabled
+	if err := c.ShouldBindJSON(&req); err == nil && req.NotificationsEnabled != nil {
+		notificationsEnabled = *req.NotificationsEnabled
+	}
+
+	// Follow the streamer
+	follow, err := h.streamFollowRepo.FollowStreamer(ctx, userID, streamer, notificationsEnabled)
+	if err != nil {
+		utils.GetLogger().Error("Failed to follow streamer", err, map[string]interface{}{
+			"user_id":  userID.String(),
+			"streamer": streamer,
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to follow streamer"})
+		return
+	}
+
+	utils.GetLogger().Info("User followed streamer", map[string]interface{}{
+		"user_id":  userID.String(),
+		"streamer": streamer,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"following":             true,
+		"notifications_enabled": follow.NotificationsEnabled,
+		"message":               fmt.Sprintf("Successfully following %s", streamer),
+	})
+}
+
+// UnfollowStreamer allows a user to unfollow a streamer
+// DELETE /api/v1/streams/:streamer/follow
+func (h *StreamHandler) UnfollowStreamer(c *gin.Context) {
+	streamer := c.Param("streamer")
+	if streamer == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "streamer username is required"})
+		return
+	}
+
+	// Get user ID from context (middleware sets this)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	ctx := c.Request.Context()
+
+	// Unfollow the streamer
+	err := h.streamFollowRepo.UnfollowStreamer(ctx, userID, streamer)
+	if err != nil {
+		utils.GetLogger().Error("Failed to unfollow streamer", err, map[string]interface{}{
+			"user_id":  userID.String(),
+			"streamer": streamer,
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unfollow streamer"})
+		return
+	}
+
+	utils.GetLogger().Info("User unfollowed streamer", map[string]interface{}{
+		"user_id":  userID.String(),
+		"streamer": streamer,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"following": false,
+		"message":   fmt.Sprintf("Successfully unfollowed %s", streamer),
+	})
+}
+
+// GetFollowedStreamers returns the list of streamers a user is following
+// GET /api/v1/streams/following
+func (h *StreamHandler) GetFollowedStreamers(c *gin.Context) {
+	// Get user ID from context (middleware sets this)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	ctx := c.Request.Context()
+
+	// Get pagination parameters
+	limit := 50
+	offset := 0
+
+	// Get followed streamers
+	follows, err := h.streamFollowRepo.GetFollowedStreamers(ctx, userID, limit, offset)
+	if err != nil {
+		utils.GetLogger().Error("Failed to get followed streamers", err, map[string]interface{}{
+			"user_id": userID.String(),
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get followed streamers"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"follows": follows,
+		"count":   len(follows),
+	})
+}
+
+// GetStreamFollowStatus returns whether a user is following a specific streamer
+// GET /api/v1/streams/:streamer/follow-status
+func (h *StreamHandler) GetStreamFollowStatus(c *gin.Context) {
+	streamer := c.Param("streamer")
+	if streamer == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "streamer username is required"})
+		return
+	}
+
+	// Get user ID from context (middleware sets this)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	ctx := c.Request.Context()
+
+	// Check if following
+	isFollowing, err := h.streamFollowRepo.IsFollowing(ctx, userID, streamer)
+	if err != nil {
+		utils.GetLogger().Error("Failed to check follow status", err, map[string]interface{}{
+			"user_id":  userID.String(),
+			"streamer": streamer,
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check follow status"})
+		return
+	}
+
+	response := gin.H{
+		"following":             isFollowing,
+		"notifications_enabled": false,
+	}
+
+	// If following, get the notification preference
+	if isFollowing {
+		follow, err := h.streamFollowRepo.GetFollow(ctx, userID, streamer)
+		if err == nil {
+			response["notifications_enabled"] = follow.NotificationsEnabled
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
