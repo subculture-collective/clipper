@@ -1272,6 +1272,15 @@ func main() {
 			// Get watch party participants (optional auth for visibility check)
 			watchParties.GET("/:id/participants", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetParticipants)
 
+			// Send chat message (authenticated, rate limited - 10 per minute)
+			watchParties.POST("/:id/messages", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), watchPartyHandler.SendMessage)
+
+			// Get chat messages (optional auth for visibility check)
+			watchParties.GET("/:id/messages", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetMessages)
+
+			// Send emoji reaction (authenticated, rate limited - 30 per minute)
+			watchParties.POST("/:id/react", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), watchPartyHandler.SendReaction)
+
 			// Leave watch party (authenticated)
 			watchParties.DELETE("/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)
 
