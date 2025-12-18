@@ -459,3 +459,77 @@ func (c *Client) GetChannelFollowers(ctx context.Context, broadcasterID string, 
 	})
 	return &followersResp, nil
 }
+
+// GetStreamStatusByUsername fetches stream status for a specific username with caching
+func (c *Client) GetStreamStatusByUsername(ctx context.Context, username string) (*Stream, *User, error) {
+	if username == "" {
+		return nil, nil, &APIError{
+			StatusCode: 400,
+			Message:    "username is required",
+		}
+	}
+
+	// Check cache first
+	cacheKey := fmt.Sprintf("%sstream_status:%s", cacheKeyPrefix, username)
+	if cached, ok := c.cache.Get(cacheKey); ok {
+		if cachedStr, ok := cached.(string); ok {
+			var cachedData struct {
+				Stream *Stream `json:"stream"`
+				User   *User   `json:"user"`
+			}
+			if err := json.Unmarshal([]byte(cachedStr), &cachedData); err == nil {
+				logger := utils.GetLogger()
+				logger.Debug("Using cached stream status", map[string]interface{}{
+					"username": username,
+				})
+				return cachedData.Stream, cachedData.User, nil
+			}
+		}
+	}
+
+	// First, get user info by username
+	usersResp, err := c.GetUsers(ctx, nil, []string{username})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get user info: %w", err)
+	}
+
+	if len(usersResp.Data) == 0 {
+		return nil, nil, &APIError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("user not found: %s", username),
+		}
+	}
+
+	user := &usersResp.Data[0]
+
+	// Get stream status by user ID
+	streamsResp, err := c.GetStreams(ctx, []string{user.ID})
+	if err != nil {
+		return nil, user, fmt.Errorf("failed to get stream status: %w", err)
+	}
+
+	var stream *Stream
+	if len(streamsResp.Data) > 0 && streamsResp.Data[0].Type == "live" {
+		stream = &streamsResp.Data[0]
+	}
+
+	// Cache the result for 60 seconds
+	cacheData := struct {
+		Stream *Stream `json:"stream"`
+		User   *User   `json:"user"`
+	}{
+		Stream: stream,
+		User:   user,
+	}
+	if data, err := json.Marshal(cacheData); err == nil {
+		c.cache.Set(cacheKey, string(data), 60*time.Second)
+	}
+
+	logger := utils.GetLogger()
+	logger.Debug("Fetched stream status", map[string]interface{}{
+		"username": username,
+		"is_live":  stream != nil,
+	})
+
+	return stream, user, nil
+}
