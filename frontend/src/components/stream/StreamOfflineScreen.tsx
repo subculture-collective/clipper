@@ -1,16 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../ui';
-
-interface StreamInfo {
-  streamer_username: string;
-  is_live: boolean;
-  title?: string | null;
-  game_name?: string | null;
-  viewer_count: number;
-  thumbnail_url?: string | null;
-  started_at?: string | null;
-  last_went_offline?: string | null;
-}
+import type { StreamInfo } from '../../lib/stream-api';
 
 interface StreamOfflineScreenProps {
   channel: string;
