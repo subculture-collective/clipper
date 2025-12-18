@@ -1109,6 +1109,12 @@ func main() {
 			channels := chat.Group("/channels")
 			channels.Use(middleware.AuthMiddleware(authService))
 			{
+				// Channel CRUD operations
+				channels.POST("", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), chatHandler.CreateChannel)
+				channels.GET("", chatHandler.ListChannels)
+				channels.GET("/:id", chatHandler.GetChannel)
+				channels.PATCH("/:id", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), chatHandler.UpdateChannel)
+				
 				// WebSocket connection endpoint
 				channels.GET("/:id/ws", websocketHandler.HandleConnection)
 				

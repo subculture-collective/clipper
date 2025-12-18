@@ -21,8 +21,8 @@ const (
 	// Send pings to peer with this period. Must be less than pongWait
 	pingPeriod = 54 * time.Second
 
-	// Maximum message size allowed from peer
-	maxMessageSize = 4096
+	// Maximum message size allowed from peer (500 chars as per requirements)
+	maxMessageSize = 512 // 500 chars + overhead
 )
 
 // NewChatClient creates a new chat client
@@ -33,7 +33,7 @@ func NewChatClient(hub *ChannelHub, conn *websocket.Conn, userID uuid.UUID, user
 		UserID:    userID,
 		Username:  username,
 		Send:      make(chan []byte, 256),
-		RateLimit: rate.NewLimiter(rate.Limit(10.0/60.0), 1), // 10 messages per minute
+		RateLimit: rate.NewLimiter(rate.Limit(20.0/60.0), 1), // 20 messages per minute
 	}
 }
 
@@ -111,6 +111,8 @@ func (c *ChatClient) handleMessage(msg *ClientMessage) {
 
 // handleChatMessage processes a chat message
 func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
+	start := time.Now()
+	
 	// Check if DB is available (skip if in test mode)
 	if c.Hub.DB == nil {
 		c.sendError("Database not available")
@@ -119,18 +121,21 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 
 	// Check rate limit
 	if !c.RateLimit.Allow() {
-		c.sendError("Rate limit exceeded. Maximum 10 messages per minute.")
+		RecordRateLimitHit(c.Hub.ID)
+		c.sendError("Rate limit exceeded. Maximum 20 messages per minute.")
 		return
 	}
 
 	// Validate message
 	if msg.Content == nil || *msg.Content == "" {
+		RecordError(c.Hub.ID, "empty_message")
 		c.sendError("Message content cannot be empty")
 		return
 	}
 
-	if len(*msg.Content) > maxMessageSize {
-		c.sendError("Message content exceeds maximum size")
+	if len(*msg.Content) > 500 {
+		RecordError(c.Hub.ID, "message_too_long")
+		c.sendError("Message content exceeds maximum size of 500 characters")
 		return
 	}
 
@@ -146,6 +151,7 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 
 	channelUUID, err := uuid.Parse(msg.ChannelID)
 	if err != nil {
+		RecordError(c.Hub.ID, "invalid_channel_id")
 		c.sendError("Invalid channel ID")
 		return
 	}
@@ -165,6 +171,7 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 		query, messageID, channelUUID, c.UserID, *msg.Content, now, now)
 	if err != nil {
 		log.Printf("Failed to save message to database: %v", err)
+		RecordError(c.Hub.ID, "db_save_error")
 		c.sendError("Failed to save message")
 		return
 	}
@@ -200,10 +207,16 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 	data, err := json.Marshal(serverMsg)
 	if err != nil {
 		log.Printf("Failed to marshal message: %v", err)
+		RecordError(c.Hub.ID, "marshal_error")
 		return
 	}
 
 	c.Hub.Broadcast <- data
+	
+	// Record metrics
+	RecordMessage(c.Hub.ID, MessageTypeMessage)
+	latency := time.Since(start).Seconds()
+	RecordMessageLatency(c.Hub.ID, latency)
 }
 
 // handleTypingIndicator processes a typing indicator
@@ -226,6 +239,9 @@ func (c *ChatClient) handleTypingIndicator(msg *ClientMessage) {
 
 	// Broadcast directly to local clients only (no Redis pub/sub for typing)
 	c.Hub.broadcastToClients(data)
+	
+	// Record metrics
+	RecordMessage(c.Hub.ID, MessageTypeTyping)
 }
 
 // sendError sends an error message to the client

@@ -2953,6 +2953,22 @@ type DeleteMessageRequest struct {
 	Reason string `json:"reason" binding:"omitempty,max=500"`
 }
 
+// CreateChannelRequest represents a request to create a chat channel
+type CreateChannelRequest struct {
+	Name            string  `json:"name" binding:"required,min=1,max=100"`
+	Description     *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	ChannelType     string  `json:"channel_type" binding:"omitempty,oneof=public private"`
+	MaxParticipants *int    `json:"max_participants,omitempty" binding:"omitempty,min=2"`
+}
+
+// UpdateChannelRequest represents a request to update a chat channel
+type UpdateChannelRequest struct {
+	Name            *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
+	Description     *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	IsActive        *bool   `json:"is_active,omitempty"`
+	MaxParticipants *int    `json:"max_participants,omitempty" binding:"omitempty,min=2"`
+}
+
 // Chat moderation action constants
 const (
 	ChatActionBan     = "ban"
@@ -3450,4 +3466,25 @@ type WatchPartyParticipantInfo struct {
 	DisplayName string    `json:"display_name"`
 	AvatarURL   *string   `json:"avatar_url,omitempty"`
 	Role        string    `json:"role"`
+}
+
+// TwitchAuth represents Twitch OAuth authentication data
+type TwitchAuth struct {
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	TwitchUserID  string     `json:"twitch_user_id" db:"twitch_user_id"`
+	TwitchUsername string    `json:"twitch_username" db:"twitch_username"`
+	AccessToken   string     `json:"access_token" db:"access_token"`
+	RefreshToken  string     `json:"refresh_token" db:"refresh_token"`
+	ExpiresAt     time.Time  `json:"expires_at" db:"expires_at"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// TwitchAuthStatusResponse represents the response for Twitch auth status
+type TwitchAuthStatusResponse struct {
+	Authenticated  bool      `json:"authenticated"`
+	Connected      bool      `json:"connected"`
+	TwitchUserID   *string   `json:"twitch_user_id,omitempty"`
+	TwitchUsername *string   `json:"twitch_username,omitempty"`
+	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
 }

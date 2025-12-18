@@ -96,6 +96,9 @@ func (h *ChannelHub) handleRegister(client *ChatClient) {
 	clientCount := len(h.Clients)
 	h.Mutex.Unlock()
 
+	// Record metrics
+	RecordConnection(h.ID)
+
 	log.Printf("Client registered: user_id=%s, channel=%s, total_clients=%d",
 		client.UserID, h.ID, clientCount)
 
@@ -135,6 +138,9 @@ func (h *ChannelHub) handleUnregister(client *ChatClient) {
 	totalClients := len(h.Clients)
 	h.Mutex.Unlock()
 
+	// Record metrics
+	RecordDisconnection(h.ID)
+
 	log.Printf("Client unregistered: user_id=%s, channel=%s, total_clients=%d",
 		client.UserID, h.ID, totalClients)
 
@@ -160,6 +166,8 @@ func (h *ChannelHub) handleUnregister(client *ChatClient) {
 // The message is published to Redis and will be received by all instances (including this one)
 // This ensures consistent message delivery across all instances
 func (h *ChannelHub) handleBroadcast(message []byte) {
+	start := time.Now()
+	
 	// Publish to Redis for all instances (if Redis is available)
 	if h.Redis != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -168,6 +176,7 @@ func (h *ChannelHub) handleBroadcast(message []byte) {
 		err := h.Redis.Publish(ctx, fmt.Sprintf("chat:%s", h.ID), string(message)).Err()
 		if err != nil {
 			log.Printf("Failed to publish message to Redis: %v", err)
+			RecordError(h.ID, "redis_publish_error")
 			// Fallback to local broadcast if Redis fails
 			h.broadcastToClients(message)
 		}
@@ -175,6 +184,10 @@ func (h *ChannelHub) handleBroadcast(message []byte) {
 		// No Redis available, broadcast locally only
 		h.broadcastToClients(message)
 	}
+	
+	// Record broadcast duration metric
+	duration := time.Since(start).Seconds()
+	RecordBroadcastDuration(h.ID, duration)
 }
 
 // broadcastToClients sends message to all connected clients

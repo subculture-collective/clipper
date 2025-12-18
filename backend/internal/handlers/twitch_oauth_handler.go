@@ -293,9 +293,10 @@ func (h *TwitchOAuthHandler) GetTwitchAuthStatus(c *gin.Context) {
 		}
 	}
 
+	twitchUsername := auth.TwitchUsername
 	c.JSON(http.StatusOK, models.TwitchAuthStatusResponse{
 		Authenticated:  true,
-		TwitchUsername: auth.TwitchUsername,
+		TwitchUsername: &twitchUsername,
 	})
 }
 
