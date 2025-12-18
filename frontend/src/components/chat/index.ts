@@ -12,8 +12,3 @@ export { MessageList } from './MessageList';
 export { EmojiPicker } from './EmojiPicker';
 export { TypingIndicator } from './TypingIndicator';
 export { LinkPreview } from './LinkPreview';
-export { CreateChannelModal } from './CreateChannelModal';
-export { ChannelMemberList } from './ChannelMemberList';
-export { InviteMembersModal } from './InviteMembersModal';
-export { ChannelSettingsPage } from './ChannelSettingsPage';
-export { ChannelDiscoveryPage } from './ChannelDiscoveryPage';
