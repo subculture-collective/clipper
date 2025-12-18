@@ -2,7 +2,10 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -107,7 +110,7 @@ func (s *PlaylistService) GetPlaylist(ctx context.Context, playlistID uuid.UUID,
 
 // UpdatePlaylist updates a playlist
 func (s *PlaylistService) UpdatePlaylist(ctx context.Context, playlistID, userID uuid.UUID, req *models.UpdatePlaylistRequest) (*models.Playlist, error) {
-	// Get the playlist to verify ownership
+	// Get the playlist to verify ownership or permission
 	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get playlist: %w", err)
@@ -116,9 +119,13 @@ func (s *PlaylistService) UpdatePlaylist(ctx context.Context, playlistID, userID
 		return nil, fmt.Errorf("playlist not found")
 	}
 
-	// Verify ownership
-	if playlist.UserID != userID {
-		return nil, fmt.Errorf("unauthorized: user does not own this playlist")
+	// Check edit permission (owner or edit/admin collaborator)
+	hasPermission, err := s.CheckEditPermission(ctx, playlistID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check permissions: %w", err)
+	}
+	if !hasPermission {
+		return nil, fmt.Errorf("unauthorized: user does not have permission to edit this playlist")
 	}
 
 	// Update fields if provided
@@ -132,7 +139,22 @@ func (s *PlaylistService) UpdatePlaylist(ctx context.Context, playlistID, userID
 		playlist.CoverURL = req.CoverURL
 	}
 	if req.Visibility != nil {
+		// Only owner can change visibility
+		if playlist.UserID != userID {
+			return nil, fmt.Errorf("unauthorized: only the owner can change playlist visibility")
+		}
+		
+		oldVisibility := playlist.Visibility
 		playlist.Visibility = *req.Visibility
+		
+		// Generate share token if making public/unlisted from private
+		if oldVisibility == models.PlaylistVisibilityPrivate && 
+		   (*req.Visibility == models.PlaylistVisibilityPublic || *req.Visibility == models.PlaylistVisibilityUnlisted) {
+			if playlist.ShareToken == nil || *playlist.ShareToken == "" {
+				token := generateShareToken()
+				playlist.ShareToken = &token
+			}
+		}
 	}
 
 	err = s.playlistRepo.Update(ctx, playlist)
@@ -339,6 +361,310 @@ func (s *PlaylistService) UnlikePlaylist(ctx context.Context, playlistID, userID
 	if err != nil {
 		return fmt.Errorf("failed to unlike playlist: %w", err)
 	}
+
+	return nil
+}
+
+// generateShareToken generates a URL-safe random share token
+func generateShareToken() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)[:22]
+}
+
+// GetShareLink generates or retrieves the share link for a playlist
+func (s *PlaylistService) GetShareLink(ctx context.Context, playlistID, userID uuid.UUID) (*models.GetShareLinkResponse, error) {
+	// Get the playlist
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return nil, fmt.Errorf("playlist not found")
+	}
+
+	// Check permissions: owner or collaborator with edit/admin permission
+	hasPermission := false
+	if playlist.UserID == userID {
+		hasPermission = true
+	} else {
+		permission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check permissions: %w", err)
+		}
+		if permission == models.PlaylistPermissionEdit || permission == models.PlaylistPermissionAdmin {
+			hasPermission = true
+		}
+	}
+
+	if !hasPermission {
+		return nil, fmt.Errorf("unauthorized: user does not have permission to share this playlist")
+	}
+
+	// Generate share token if it doesn't exist
+	shareToken := ""
+	if playlist.ShareToken != nil && *playlist.ShareToken != "" {
+		shareToken = *playlist.ShareToken
+	} else {
+		shareToken = generateShareToken()
+		err = s.playlistRepo.UpdateShareToken(ctx, playlistID, shareToken)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update share token: %w", err)
+		}
+	}
+
+	// Build share URL and embed code
+	// TODO: Get base URL from config
+	baseURL := "https://clipper.tv"
+	shareURL := fmt.Sprintf("%s/playlists/%s", baseURL, shareToken)
+	embedCode := fmt.Sprintf(`<iframe src="%s/embed/playlist/%s" width="800" height="600" frameborder="0" allowfullscreen></iframe>`, baseURL, shareToken)
+
+	return &models.GetShareLinkResponse{
+		ShareURL:  shareURL,
+		EmbedCode: embedCode,
+	}, nil
+}
+
+// TrackShare records a share event for analytics
+func (s *PlaylistService) TrackShare(ctx context.Context, playlistID uuid.UUID, platform, referrer string) error {
+	// Verify playlist exists and is shareable
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return fmt.Errorf("playlist not found")
+	}
+
+	// Only track shares for public/unlisted playlists
+	if playlist.Visibility == models.PlaylistVisibilityPrivate {
+		return fmt.Errorf("cannot track shares for private playlists")
+	}
+
+	// Track the share event
+	share := &models.PlaylistShare{
+		ID:         uuid.New(),
+		PlaylistID: playlistID,
+		Platform:   &platform,
+		SharedAt:   time.Now(),
+	}
+	if referrer != "" {
+		share.Referrer = &referrer
+	}
+
+	err = s.playlistRepo.TrackShare(ctx, share)
+	if err != nil {
+		return fmt.Errorf("failed to track share: %w", err)
+	}
+
+	// Increment share count
+	err = s.playlistRepo.IncrementShareCount(ctx, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to increment share count: %w", err)
+	}
+
+	return nil
+}
+
+// AddCollaborator adds a collaborator to a playlist
+func (s *PlaylistService) AddCollaborator(ctx context.Context, playlistID, userID, collaboratorUserID uuid.UUID, permission string) error {
+	// Get the playlist
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return fmt.Errorf("playlist not found")
+	}
+
+	// Check if user has permission to add collaborators (owner or admin)
+	hasPermission := false
+	if playlist.UserID == userID {
+		hasPermission = true
+	} else {
+		userPermission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
+		if err != nil {
+			return fmt.Errorf("failed to check permissions: %w", err)
+		}
+		if userPermission == models.PlaylistPermissionAdmin {
+			hasPermission = true
+		}
+	}
+
+	if !hasPermission {
+		return fmt.Errorf("unauthorized: user does not have permission to add collaborators")
+	}
+
+	// Cannot add the owner as a collaborator
+	if collaboratorUserID == playlist.UserID {
+		return fmt.Errorf("cannot add playlist owner as a collaborator")
+	}
+
+	// Create collaborator
+	collaborator := &models.PlaylistCollaborator{
+		ID:         uuid.New(),
+		PlaylistID: playlistID,
+		UserID:     collaboratorUserID,
+		Permission: permission,
+		InvitedBy:  &userID,
+		InvitedAt:  time.Now(),
+	}
+
+	err = s.playlistRepo.AddCollaborator(ctx, collaborator)
+	if err != nil {
+		return fmt.Errorf("failed to add collaborator: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveCollaborator removes a collaborator from a playlist
+func (s *PlaylistService) RemoveCollaborator(ctx context.Context, playlistID, userID, collaboratorUserID uuid.UUID) error {
+	// Get the playlist
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return fmt.Errorf("playlist not found")
+	}
+
+	// Check if user has permission to remove collaborators (owner or admin)
+	hasPermission := false
+	if playlist.UserID == userID {
+		hasPermission = true
+	} else {
+		userPermission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
+		if err != nil {
+			return fmt.Errorf("failed to check permissions: %w", err)
+		}
+		if userPermission == models.PlaylistPermissionAdmin {
+			hasPermission = true
+		}
+	}
+
+	if !hasPermission {
+		return fmt.Errorf("unauthorized: user does not have permission to remove collaborators")
+	}
+
+	err = s.playlistRepo.RemoveCollaborator(ctx, playlistID, collaboratorUserID)
+	if err != nil {
+		return fmt.Errorf("failed to remove collaborator: %w", err)
+	}
+
+	return nil
+}
+
+// GetCollaborators retrieves all collaborators for a playlist
+func (s *PlaylistService) GetCollaborators(ctx context.Context, playlistID, userID uuid.UUID) ([]*models.PlaylistCollaborator, error) {
+	// Get the playlist
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return nil, fmt.Errorf("playlist not found")
+	}
+
+	// Check if user has permission to view collaborators
+	hasPermission := false
+	if playlist.UserID == userID {
+		hasPermission = true
+	} else if playlist.Visibility != models.PlaylistVisibilityPrivate {
+		// Anyone can see collaborators on public/unlisted playlists
+		hasPermission = true
+	} else {
+		// Check if user is a collaborator
+		isCollab, err := s.playlistRepo.IsCollaborator(ctx, playlistID, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if collaborator: %w", err)
+		}
+		hasPermission = isCollab
+	}
+
+	if !hasPermission {
+		return nil, fmt.Errorf("unauthorized: user does not have permission to view collaborators")
+	}
+
+	collaborators, err := s.playlistRepo.GetCollaborators(ctx, playlistID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get collaborators: %w", err)
+	}
+
+	return collaborators, nil
+}
+
+// UpdateCollaboratorPermission updates a collaborator's permission level
+func (s *PlaylistService) UpdateCollaboratorPermission(ctx context.Context, playlistID, userID, collaboratorUserID uuid.UUID, permission string) error {
+	// Get the playlist
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return fmt.Errorf("playlist not found")
+	}
+
+	// Check if user has permission to update collaborators (owner or admin)
+	hasPermission := false
+	if playlist.UserID == userID {
+		hasPermission = true
+	} else {
+		userPermission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
+		if err != nil {
+			return fmt.Errorf("failed to check permissions: %w", err)
+		}
+		if userPermission == models.PlaylistPermissionAdmin {
+			hasPermission = true
+		}
+	}
+
+	if !hasPermission {
+		return fmt.Errorf("unauthorized: user does not have permission to update collaborators")
+	}
+
+	// Create updated collaborator
+	collaborator := &models.PlaylistCollaborator{
+		ID:         uuid.New(),
+		PlaylistID: playlistID,
+		UserID:     collaboratorUserID,
+		Permission: permission,
+		InvitedBy:  &userID,
+		InvitedAt:  time.Now(),
+	}
+
+	err = s.playlistRepo.AddCollaborator(ctx, collaborator)
+	if err != nil {
+		return fmt.Errorf("failed to update collaborator: %w", err)
+	}
+
+	return nil
+}
+
+// CheckEditPermission checks if a user has edit permission for a playlist
+func (s *PlaylistService) CheckEditPermission(ctx context.Context, playlistID, userID uuid.UUID) (bool, error) {
+	// Get the playlist
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return false, fmt.Errorf("playlist not found")
+	}
+
+	// Owner always has edit permission
+	if playlist.UserID == userID {
+		return true, nil
+	}
+
+	// Check collaborator permission
+	permission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to check permissions: %w", err)
+	}
+
+	return permission == models.PlaylistPermissionEdit || permission == models.PlaylistPermissionAdmin, nil
+}
 
 	return nil
 }

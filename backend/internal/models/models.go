@@ -3077,6 +3077,9 @@ type Playlist struct {
 	Description *string    `json:"description,omitempty" db:"description"`
 	CoverURL    *string    `json:"cover_url,omitempty" db:"cover_url"`
 	Visibility  string     `json:"visibility" db:"visibility"` // private, public, unlisted
+	ShareToken  *string    `json:"share_token,omitempty" db:"share_token"`
+	ViewCount   int        `json:"view_count" db:"view_count"`
+	ShareCount  int        `json:"share_count" db:"share_count"`
 	LikeCount   int        `json:"like_count" db:"like_count"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
@@ -3153,6 +3156,58 @@ const (
 	PlaylistVisibilityPublic   = "public"
 	PlaylistVisibilityUnlisted = "unlisted"
 )
+
+// Playlist permission constants
+const (
+	PlaylistPermissionView  = "view"
+	PlaylistPermissionEdit  = "edit"
+	PlaylistPermissionAdmin = "admin"
+)
+
+// PlaylistCollaborator represents a collaborator on a playlist
+type PlaylistCollaborator struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	User       *User     `json:"user,omitempty"`
+	Permission string    `json:"permission" db:"permission"` // view, edit, admin
+	InvitedBy  *uuid.UUID `json:"invited_by,omitempty" db:"invited_by"`
+	InvitedAt  time.Time `json:"invited_at" db:"invited_at"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// PlaylistShare represents a share event for analytics
+type PlaylistShare struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	Platform   *string   `json:"platform,omitempty" db:"platform"` // twitter, facebook, discord, embed
+	Referrer   *string   `json:"referrer,omitempty" db:"referrer"`
+	SharedAt   time.Time `json:"shared_at" db:"shared_at"`
+}
+
+// GetShareLinkResponse represents the response for share link generation
+type GetShareLinkResponse struct {
+	ShareURL  string `json:"share_url"`
+	EmbedCode string `json:"embed_code"`
+}
+
+// AddCollaboratorRequest represents the request to add a collaborator
+type AddCollaboratorRequest struct {
+	UserID     string `json:"user_id" binding:"required,uuid"`
+	Permission string `json:"permission" binding:"required,oneof=view edit admin"`
+}
+
+// UpdateCollaboratorRequest represents the request to update a collaborator's permission
+type UpdateCollaboratorRequest struct {
+	Permission string `json:"permission" binding:"required,oneof=view edit admin"`
+}
+
+// TrackShareRequest represents the request to track a share event
+type TrackShareRequest struct {
+	Platform string  `json:"platform" binding:"required,oneof=twitter facebook discord embed link"`
+	Referrer *string `json:"referrer,omitempty"`
+}
 
 // ============================================================================
 // Queue System Models
