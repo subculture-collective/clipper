@@ -67,7 +67,11 @@ func (h *WatchHistoryHandler) RecordWatchProgress(c *gin.Context) {
 	}
 
 	// Calculate progress percent and completion
-	progressPercent := float64(req.ProgressSeconds) / float64(req.DurationSeconds) * 100
+	// Guard against division by zero (validation at line 51 checks min=1, but be defensive)
+	var progressPercent float64
+	if req.DurationSeconds > 0 {
+		progressPercent = float64(req.ProgressSeconds) / float64(req.DurationSeconds) * 100
+	}
 	completed := progressPercent >= 90.0
 
 	c.JSON(http.StatusOK, gin.H{

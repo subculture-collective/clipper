@@ -30,8 +30,8 @@ export function useWatchHistory({
   const [progress, setProgress] = useState(0);
   const [hasProgress, setHasProgress] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastRecordedTime, setLastRecordedTime] = useState(0);
-  const sessionId = useMemo(() => generateSessionId(), []);
+  const [lastRecordedTimestamp, setLastRecordedTimestamp] = useState(0);
+  const sessionId = useMemo(() => generateSessionId(), [clipId]); // Regenerate when clipId changes
 
   // Fetch resume position on mount
   useEffect(() => {
@@ -71,14 +71,15 @@ export function useWatchHistory({
     (currentTime: number) => {
       if (!enabled || !clipId || duration <= 0) return;
 
-      // Only record if at least 30 seconds have passed since last record
-      const timeSinceLastRecord = currentTime - lastRecordedTime;
-      if (timeSinceLastRecord < 30) return;
+      // Only record if at least 30 seconds have passed since last record (wall-clock time)
+      const now = Date.now();
+      const timeSinceLastRecord = now - lastRecordedTimestamp;
+      if (timeSinceLastRecord < 30000) return; // 30 seconds in milliseconds
 
       const progressSeconds = Math.floor(currentTime);
       const durationSeconds = Math.floor(duration);
 
-      setLastRecordedTime(currentTime);
+      setLastRecordedTimestamp(now);
 
       fetch('/api/v1/watch-history', {
         method: 'POST',
@@ -96,7 +97,7 @@ export function useWatchHistory({
         console.error('Error recording watch progress:', error);
       });
     },
-    [clipId, duration, sessionId, enabled, lastRecordedTime]
+    [clipId, duration, sessionId, enabled, lastRecordedTimestamp]
   );
 
   // Record progress immediately (on pause or unmount)
@@ -106,6 +107,9 @@ export function useWatchHistory({
 
       const progressSeconds = Math.floor(currentTime);
       const durationSeconds = Math.floor(duration);
+
+      // Update timestamp to prevent duplicate recordings
+      setLastRecordedTimestamp(Date.now());
 
       fetch('/api/v1/watch-history', {
         method: 'POST',

@@ -106,7 +106,12 @@ func (r *WatchHistoryRepository) GetWatchHistory(ctx context.Context, userID uui
 		}
 
 		entry.Clip = &clip
-		entry.ProgressPercent = float64(entry.ProgressSeconds) / float64(entry.DurationSeconds) * 100
+		// Guard against division by zero
+		if entry.DurationSeconds > 0 {
+			entry.ProgressPercent = float64(entry.ProgressSeconds) / float64(entry.DurationSeconds) * 100
+		} else {
+			entry.ProgressPercent = 0
+		}
 		history = append(history, entry)
 	}
 

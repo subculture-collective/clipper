@@ -38,14 +38,15 @@ BEGIN
     WHERE watched_at < NOW() - INTERVAL '90 days';
     
     -- For each user, keep only the most recent 1000 entries
+    -- Using CTE for better performance at scale
+    WITH ranked_history AS (
+        SELECT id,
+               ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY watched_at DESC) as row_num
+        FROM watch_history
+    )
     DELETE FROM watch_history
     WHERE id IN (
-        SELECT id FROM (
-            SELECT id, user_id,
-                   ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY watched_at DESC) as row_num
-            FROM watch_history
-        ) ranked
-        WHERE row_num > 1000
+        SELECT id FROM ranked_history WHERE row_num > 1000
     );
 END;
 $$ LANGUAGE plpgsql;

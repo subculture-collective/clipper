@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks';
+import { useAuth, useToast } from '@/hooks';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { WatchHistoryEntry } from '@/types/watchHistory';
 
 type FilterType = 'all' | 'completed' | 'in-progress';
@@ -11,6 +12,12 @@ export function WatchHistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { addToast } = useToast();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const clearButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Apply focus trap to modal when open
+  useFocusTrap(modalRef, showClearConfirm);
 
   // Fetch watch history
   useEffect(() => {
@@ -27,6 +34,7 @@ export function WatchHistoryPage() {
         });
 
         if (!response.ok) {
+          addToast('Failed to fetch watch history', 'error');
           console.error('Failed to fetch watch history');
           return;
         }
@@ -34,6 +42,7 @@ export function WatchHistoryPage() {
         const data = await response.json();
         setHistory(data.history || []);
       } catch (error) {
+        addToast('Error loading watch history', 'error');
         console.error('Error fetching watch history:', error);
       } finally {
         setIsLoading(false);
@@ -41,7 +50,7 @@ export function WatchHistoryPage() {
     };
 
     fetchHistory();
-  }, [filter, isAuthenticated]);
+  }, [filter, isAuthenticated, addToast]);
 
   const handleClearHistory = async () => {
     try {
@@ -51,13 +60,21 @@ export function WatchHistoryPage() {
       });
 
       if (!response.ok) {
+        addToast('Failed to clear watch history', 'error');
         console.error('Failed to clear watch history');
         return;
       }
 
       setHistory([]);
       setShowClearConfirm(false);
+      addToast('Watch history cleared successfully', 'success');
+      
+      // Return focus to the clear button
+      if (clearButtonRef.current) {
+        clearButtonRef.current.focus();
+      }
     } catch (error) {
+      addToast('Error clearing watch history', 'error');
       console.error('Error clearing watch history:', error);
     }
   };
@@ -76,7 +93,9 @@ export function WatchHistoryPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 60) {
+    if (diffMins === 0) {
+      return 'just now';
+    } else if (diffMins < 60) {
       return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
     } else if (diffHours < 24) {
       return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
@@ -110,6 +129,7 @@ export function WatchHistoryPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold">Watch History</h1>
         <button
+          ref={clearButtonRef}
           onClick={() => setShowClearConfirm(true)}
           className="px-4 py-2 text-red-500 hover:text-red-400 transition-colors"
         >
@@ -171,15 +191,33 @@ export function WatchHistoryPage() {
 
       {/* Clear History Confirmation Modal */}
       {showClearConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Clear Watch History?</h2>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="clear-history-title"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setShowClearConfirm(false);
+              if (clearButtonRef.current) {
+                clearButtonRef.current.focus();
+              }
+            }
+          }}
+        >
+          <div ref={modalRef} className="bg-gray-900 rounded-lg p-6 max-w-md w-full">
+            <h2 id="clear-history-title" className="text-xl font-bold mb-4">Clear Watch History?</h2>
             <p className="text-gray-400 mb-6">
               This will permanently delete your entire watch history. This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => setShowClearConfirm(false)}
+                onClick={() => {
+                  setShowClearConfirm(false);
+                  if (clearButtonRef.current) {
+                    clearButtonRef.current.focus();
+                  }
+                }}
                 className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors"
               >
                 Cancel
@@ -210,6 +248,9 @@ function WatchHistoryCard({ entry, formatTime, formatDate }: WatchHistoryCardPro
   }
 
   const { clip } = entry;
+  
+  // Clamp progress percent between 0 and 100
+  const progressPercent = Math.max(0, Math.min(100, entry.progress_percent));
 
   return (
     <Link
@@ -227,10 +268,17 @@ function WatchHistoryCard({ entry, formatTime, formatDate }: WatchHistoryCardPro
           />
         )}
         {/* Progress Indicator */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700">
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"
+          role="progressbar"
+          aria-valuenow={Math.round(progressPercent)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${Math.round(progressPercent)}% watched`}
+        >
           <div
             className="h-full bg-purple-600"
-            style={{ width: `${entry.progress_percent}%` }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
@@ -258,7 +306,7 @@ function WatchHistoryCard({ entry, formatTime, formatDate }: WatchHistoryCardPro
           ) : (
             <span>
               {formatTime(entry.progress_seconds)} / {formatTime(entry.duration_seconds)} •{' '}
-              {Math.floor(entry.progress_percent)}% watched
+              {Math.floor(progressPercent)}% watched
             </span>
           )}
           <span>Watched {formatDate(entry.watched_at)}</span>
