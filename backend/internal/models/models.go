@@ -3467,3 +3467,24 @@ type WatchPartyParticipantInfo struct {
 	AvatarURL   *string   `json:"avatar_url,omitempty"`
 	Role        string    `json:"role"`
 }
+
+// TwitchAuth represents Twitch OAuth authentication data
+type TwitchAuth struct {
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	TwitchUserID  string     `json:"twitch_user_id" db:"twitch_user_id"`
+	TwitchUsername string    `json:"twitch_username" db:"twitch_username"`
+	AccessToken   string     `json:"access_token" db:"access_token"`
+	RefreshToken  string     `json:"refresh_token" db:"refresh_token"`
+	ExpiresAt     time.Time  `json:"expires_at" db:"expires_at"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// TwitchAuthStatusResponse represents the response for Twitch auth status
+type TwitchAuthStatusResponse struct {
+	Authenticated  bool      `json:"authenticated"`
+	Connected      bool      `json:"connected"`
+	TwitchUserID   *string   `json:"twitch_user_id,omitempty"`
+	TwitchUsername *string   `json:"twitch_username,omitempty"`
+	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
+}
