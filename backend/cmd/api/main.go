@@ -877,6 +877,9 @@ func main() {
 		if streamHandler != nil {
 			streams := v1.Group("/streams")
 			{
+				// Get followed streamers (authenticated) - must be before /:streamer
+				streams.GET("/following", middleware.AuthMiddleware(authService), streamHandler.GetFollowedStreamers)
+				
 				// Public stream status endpoint
 				streams.GET("/:streamer", streamHandler.GetStreamStatus)
 				
@@ -884,9 +887,6 @@ func main() {
 				streams.POST("/:streamer/follow", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), streamHandler.FollowStreamer)
 				streams.DELETE("/:streamer/follow", middleware.AuthMiddleware(authService), streamHandler.UnfollowStreamer)
 				streams.GET("/:streamer/follow-status", middleware.AuthMiddleware(authService), streamHandler.GetStreamFollowStatus)
-				
-				// Get followed streamers (authenticated)
-				streams.GET("/following", middleware.AuthMiddleware(authService), streamHandler.GetFollowedStreamers)
 				
 				// Protected stream clip creation endpoint (authenticated, rate limited)
 				streams.POST("/:streamer/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), streamHandler.CreateClipFromStream)

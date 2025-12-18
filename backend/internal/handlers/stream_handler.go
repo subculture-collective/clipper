@@ -32,6 +32,20 @@ func NewStreamHandler(twitchClient *twitch.Client, streamRepo *repository.Stream
 	}
 }
 
+// validateStreamerUsername validates a Twitch username
+// Twitch usernames: 4-25 characters, alphanumeric + underscore only
+func validateStreamerUsername(username string) error {
+	if len(username) < 4 || len(username) > 25 {
+		return fmt.Errorf("username must be between 4 and 25 characters")
+	}
+	for _, ch := range username {
+		if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_') {
+			return fmt.Errorf("username can only contain letters, numbers, and underscores")
+		}
+	}
+	return nil
+}
+
 // GetStreamStatus returns stream status for a specific streamer
 // GET /api/v1/streams/:streamer
 func (h *StreamHandler) GetStreamStatus(c *gin.Context) {
@@ -289,6 +303,12 @@ func (h *StreamHandler) FollowStreamer(c *gin.Context) {
 		return
 	}
 
+	// Validate streamer username
+	if err := validateStreamerUsername(streamer); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	// Get user ID from context (middleware sets this)
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -336,6 +356,12 @@ func (h *StreamHandler) UnfollowStreamer(c *gin.Context) {
 	streamer := c.Param("streamer")
 	if streamer == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "streamer username is required"})
+		return
+	}
+
+	// Validate streamer username
+	if err := validateStreamerUsername(streamer); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -410,6 +436,12 @@ func (h *StreamHandler) GetStreamFollowStatus(c *gin.Context) {
 	streamer := c.Param("streamer")
 	if streamer == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "streamer username is required"})
+		return
+	}
+
+	// Validate streamer username
+	if err := validateStreamerUsername(streamer); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
