@@ -30,6 +30,7 @@ export function useWatchHistory({
   const [progress, setProgress] = useState(0);
   const [hasProgress, setHasProgress] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastRecordedTime, setLastRecordedTime] = useState(0);
   const sessionId = useMemo(() => generateSessionId(), []);
 
   // Fetch resume position on mount
@@ -70,11 +71,14 @@ export function useWatchHistory({
     (currentTime: number) => {
       if (!enabled || !clipId || duration <= 0) return;
 
-      // Only record every 30 seconds
-      if (Math.floor(currentTime) % 30 !== 0) return;
+      // Only record if at least 30 seconds have passed since last record
+      const timeSinceLastRecord = currentTime - lastRecordedTime;
+      if (timeSinceLastRecord < 30) return;
 
       const progressSeconds = Math.floor(currentTime);
       const durationSeconds = Math.floor(duration);
+
+      setLastRecordedTime(currentTime);
 
       fetch('/api/v1/watch-history', {
         method: 'POST',
@@ -92,7 +96,7 @@ export function useWatchHistory({
         console.error('Error recording watch progress:', error);
       });
     },
-    [clipId, duration, sessionId, enabled]
+    [clipId, duration, sessionId, enabled, lastRecordedTime]
   );
 
   // Record progress immediately (on pause or unmount)

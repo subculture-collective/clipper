@@ -150,7 +150,8 @@ func (h *WatchHistoryHandler) GetResumePosition(c *gin.Context) {
 		return
 	}
 
-	hasProgress := progressSeconds > 0 && !completed
+	// Users should be able to resume from progress even if completed
+	hasProgress := progressSeconds > 0
 
 	c.JSON(http.StatusOK, models.ResumePositionResponse{
 		HasProgress:     hasProgress,

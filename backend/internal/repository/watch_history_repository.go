@@ -22,6 +22,11 @@ func NewWatchHistoryRepository(pool *pgxpool.Pool) *WatchHistoryRepository {
 
 // RecordWatchProgress records or updates watch progress for a clip
 func (r *WatchHistoryRepository) RecordWatchProgress(ctx context.Context, userID, clipID uuid.UUID, progressSeconds, durationSeconds int, sessionID string) error {
+	// Guard against division by zero
+	if durationSeconds <= 0 {
+		return fmt.Errorf("duration_seconds must be greater than 0")
+	}
+
 	// Determine if completed (>90% watched)
 	progressPercent := float64(progressSeconds) / float64(durationSeconds)
 	completed := progressPercent >= 0.9

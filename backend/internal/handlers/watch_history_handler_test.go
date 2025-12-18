@@ -160,11 +160,12 @@ func TestProgressPercentCalculation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			progressPercent := float64(tt.progressSeconds) / float64(tt.durationSeconds) * 100
-			completed := progressPercent >= 90.0
+			progressPercent := float64(tt.progressSeconds) / float64(tt.durationSeconds)
+			completed := progressPercent >= 0.9
 
-			if progressPercent != tt.expectedPercent {
-				t.Errorf("expected progress percent %.1f, got %.1f", tt.expectedPercent, progressPercent)
+			actualPercent := progressPercent * 100
+			if actualPercent != tt.expectedPercent {
+				t.Errorf("expected progress percent %.1f, got %.1f", tt.expectedPercent, actualPercent)
 			}
 
 			if completed != tt.expectedComplete {
