@@ -406,6 +406,9 @@ func main() {
 			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, db.Pool)
 		}
 	}
+	
+	// Initialize forum moderation handler
+	forumModerationHandler := handlers.NewForumModerationHandler(db.Pool)
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
@@ -1456,6 +1459,18 @@ func main() {
 				adminDiscoveryLists.POST("/:id/clips", discoveryListHandler.AdminAddClipToList)
 				adminDiscoveryLists.DELETE("/:id/clips/:clipId", discoveryListHandler.AdminRemoveClipFromList)
 				adminDiscoveryLists.PUT("/:id/clips/reorder", discoveryListHandler.AdminReorderListClips)
+			}
+
+			// Forum moderation management (admin/moderator only)
+			forum := admin.Group("/forum")
+			{
+				forum.GET("/flagged", forumModerationHandler.GetFlaggedContent)
+				forum.POST("/threads/:id/lock", forumModerationHandler.LockThread)
+				forum.POST("/threads/:id/pin", forumModerationHandler.PinThread)
+				forum.POST("/threads/:id/delete", forumModerationHandler.DeleteThread)
+				forum.POST("/users/:id/ban", forumModerationHandler.BanUser)
+				forum.GET("/moderation-log", forumModerationHandler.GetModerationLog)
+				forum.GET("/bans", forumModerationHandler.GetUserBans)
 			}
 		}
 	}

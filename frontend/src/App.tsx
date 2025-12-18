@@ -73,6 +73,8 @@ const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage').then(m => ({ de
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage').then(m => ({ default: m.PlaylistDetailPage })));
 const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m => ({ default: m.WatchHistoryPage })));
 const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default: m.StreamPage })));
+const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage').then(m => ({ default: m.ForumModerationPage })));
+const ModerationLogPage = lazy(() => import('./pages/admin/ModerationLogPage').then(m => ({ default: m.ModerationLogPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -366,6 +368,22 @@ function App() {
                       element={
                         <AdminRoute>
                           <AdminDiscoveryListFormPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/forum/moderation"
+                      element={
+                        <AdminRoute>
+                          <ForumModerationPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/forum/moderation-log"
+                      element={
+                        <AdminRoute>
+                          <ModerationLogPage />
                         </AdminRoute>
                       }
                     />
