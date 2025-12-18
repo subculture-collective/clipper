@@ -45,13 +45,16 @@ func (h *ChannelHub) Run() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	// Subscribe to Redis pub/sub for this channel
-	ctx := context.Background()
-	pubsub := h.Redis.Subscribe(ctx, fmt.Sprintf("chat:%s", h.ID))
-	defer pubsub.Close()
-
-	// Start Redis subscriber in a separate goroutine
-	redisChan := pubsub.Channel()
+	// Subscribe to Redis pub/sub for this channel if Redis is available
+	var pubsub *redis.PubSub
+	var redisChan <-chan *redis.Message
+	
+	if h.Redis != nil {
+		ctx := context.Background()
+		pubsub = h.Redis.Subscribe(ctx, fmt.Sprintf("chat:%s", h.ID))
+		defer pubsub.Close()
+		redisChan = pubsub.Channel()
+	}
 
 	for {
 		select {
@@ -66,7 +69,9 @@ func (h *ChannelHub) Run() {
 
 		case redisMsg := <-redisChan:
 			// Received message from Redis pub/sub (from another instance)
-			h.broadcastToClients([]byte(redisMsg.Payload))
+			if redisMsg != nil {
+				h.broadcastToClients([]byte(redisMsg.Payload))
+			}
 
 		case <-ticker.C:
 			// Periodic health check (can be used for monitoring)
@@ -144,13 +149,15 @@ func (h *ChannelHub) handleBroadcast(message []byte) {
 	// Broadcast to local clients
 	h.broadcastToClients(message)
 
-	// Publish to Redis for other instances
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
+	// Publish to Redis for other instances (if Redis is available)
+	if h.Redis != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
 
-	err := h.Redis.Publish(ctx, fmt.Sprintf("chat:%s", h.ID), string(message)).Err()
-	if err != nil {
-		log.Printf("Failed to publish message to Redis: %v", err)
+		err := h.Redis.Publish(ctx, fmt.Sprintf("chat:%s", h.ID), string(message)).Err()
+		if err != nil {
+			log.Printf("Failed to publish message to Redis: %v", err)
+		}
 	}
 }
 
@@ -171,6 +178,11 @@ func (h *ChannelHub) broadcastToClients(message []byte) {
 
 // sendMessageHistory sends the last 50 messages to a newly connected client
 func (h *ChannelHub) sendMessageHistory(client *ChatClient) {
+	// Skip if DB is not available (e.g., in tests)
+	if h.DB == nil {
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

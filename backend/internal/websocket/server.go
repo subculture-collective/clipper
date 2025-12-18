@@ -29,8 +29,29 @@ func NewServer(db *pgxpool.Pool, redisClient *redis.Client) *Server {
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 			CheckOrigin: func(r *http.Request) bool {
-				// TODO: Implement proper origin checking based on allowed origins
-				return true
+				// Get the origin from the request
+				origin := r.Header.Get("Origin")
+				if origin == "" {
+					// No origin header, reject for security
+					return false
+				}
+
+				// TODO: Load allowed origins from configuration
+				// For now, allow localhost and production domains
+				allowedOrigins := []string{
+					"http://localhost:3000",
+					"http://localhost:5173",
+					"https://clipper.subculture.gg",
+				}
+
+				for _, allowed := range allowedOrigins {
+					if origin == allowed {
+						return true
+					}
+				}
+
+				// Reject all other origins
+				return false
 			},
 		},
 		Hubs: make(map[string]*ChannelHub),

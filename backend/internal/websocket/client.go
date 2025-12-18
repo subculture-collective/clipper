@@ -111,6 +111,12 @@ func (c *ChatClient) handleMessage(msg *ClientMessage) {
 
 // handleChatMessage processes a chat message
 func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
+	// Check if DB is available (skip if in test mode)
+	if c.Hub.DB == nil {
+		c.sendError("Database not available")
+		return
+	}
+
 	// Check rate limit
 	if !c.RateLimit.Allow() {
 		c.sendError("Rate limit exceeded. Maximum 10 messages per minute.")
