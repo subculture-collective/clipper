@@ -57,13 +57,19 @@ export function MessageComposer({
       setMentionQuery(mentionMatch[1]);
       setShowMentions(true);
       setSelectedMentionIndex(0);
-      // In a real app, fetch user suggestions here
-      // For now, show mock suggestions
-      setMentionSuggestions([
-        { username: 'user1', display_name: 'User One' },
-        { username: 'user2', display_name: 'User Two' },
-        { username: 'admin', display_name: 'Administrator' },
-      ].filter(u => u.username.toLowerCase().includes(mentionMatch[1].toLowerCase())));
+      // TODO: Fetch user suggestions from API
+      // For development, show mock suggestions filtered by query
+      if (import.meta.env.DEV) {
+        setMentionSuggestions([
+          { username: 'user1', display_name: 'User One' },
+          { username: 'user2', display_name: 'User Two' },
+          { username: 'admin', display_name: 'Administrator' },
+        ].filter(u => u.username.toLowerCase().includes(mentionMatch[1].toLowerCase())));
+      } else {
+        // In production, fetch from API
+        // fetchUserSuggestions(mentionMatch[1]).then(setMentionSuggestions);
+        setMentionSuggestions([]);
+      }
     } else {
       setShowMentions(false);
     }

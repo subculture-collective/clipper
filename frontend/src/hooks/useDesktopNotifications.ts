@@ -68,7 +68,7 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
       }
 
       // Auto-close after 5 seconds
-      setTimeout(() => {
+      const timeoutId = window.setTimeout(() => {
         notification.close();
         if (options.tag) {
           notificationRefs.current.delete(options.tag);
@@ -77,6 +77,7 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
 
       // Handle click to focus window
       notification.onclick = () => {
+        window.clearTimeout(timeoutId);
         window.focus();
         notification.close();
         if (options.tag) {

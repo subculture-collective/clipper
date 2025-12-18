@@ -29,6 +29,8 @@ export function useChatWebSocket({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number>();
   const typingTimeoutRef = useRef<number>();
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 10;
 
   const connect = useCallback(() => {
     try {
@@ -43,6 +45,7 @@ export function useChatWebSocket({
       ws.onopen = () => {
         setIsConnected(true);
         setError(null);
+        reconnectAttemptsRef.current = 0; // Reset on successful connection
         console.log(`Connected to chat channel: ${channelId}`);
       };
 
@@ -74,11 +77,19 @@ export function useChatWebSocket({
         setIsConnected(false);
         console.log(`Disconnected from chat channel: ${channelId}`);
 
-        // Attempt to reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('Attempting to reconnect...');
-          connect();
-        }, 3000);
+        // Attempt to reconnect with exponential backoff
+        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          reconnectAttemptsRef.current += 1;
+          
+          console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
+          
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            connect();
+          }, backoffDelay);
+        } else {
+          setError('Failed to connect after multiple attempts. Please refresh the page.');
+        }
       };
     } catch (err) {
       setError('Failed to connect to chat');
@@ -123,9 +134,9 @@ export function useChatWebSocket({
         })
       );
 
-      // Prevent sending typing events too frequently
-      typingTimeoutRef.current = setTimeout(() => {
-        // Allow sending typing event again after 3 seconds
+      // Prevent sending typing events too frequently (throttle)
+      typingTimeoutRef.current = window.setTimeout(() => {
+        typingTimeoutRef.current = undefined;
       }, 3000);
     }
   }, []);

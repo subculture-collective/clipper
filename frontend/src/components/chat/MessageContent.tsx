@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LinkPreview } from './LinkPreview';
 
 interface MessageContentProps {
@@ -11,6 +12,8 @@ interface MessageContentProps {
  * with support for mentions (@username), links, and code blocks
  */
 export function MessageContent({ content, onMentionClick }: MessageContentProps) {
+  const navigate = useNavigate();
+  
   // Parse content for mentions, links, and code blocks
   const parts = content.split(/(@\w+)|(https?:\/\/[^\s]+)|(`[^`]+`)|(`{3}[\s\S]*?`{3})/g);
 
@@ -19,8 +22,8 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
     if (onMentionClick) {
       onMentionClick(username);
     } else {
-      // Default behavior: could navigate to user profile
-      window.location.href = `/user/${username}`;
+      // Default behavior: navigate to user profile
+      navigate(`/user/${username}`);
     }
   };
 

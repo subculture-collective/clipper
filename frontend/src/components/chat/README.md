@@ -271,7 +271,6 @@ interface ChatMessage {
   deleted_by?: string;
   created_at: string;
   updated_at: string;
-  timestamp: string;
 }
 ```
 
