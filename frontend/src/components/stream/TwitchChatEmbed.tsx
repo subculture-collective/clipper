@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { checkTwitchAuthStatus } from '../../lib/twitch-api';
 
@@ -8,21 +8,11 @@ export interface TwitchChatEmbedProps {
 }
 
 export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedProps) {
-  const [showChat, setShowChat] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { isAuthenticated: isUserLoggedIn } = useAuth();
 
-  useEffect(() => {
-    if (isUserLoggedIn) {
-      checkAuth();
-    } else {
-      setIsCheckingAuth(false);
-      setIsAuthenticated(false);
-    }
-  }, [isUserLoggedIn]);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const status = await checkTwitchAuthStatus();
       setIsAuthenticated(status.authenticated);
@@ -32,7 +22,16 @@ export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedP
     } finally {
       setIsCheckingAuth(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isUserLoggedIn) {
+      checkAuth();
+    } else {
+      setIsCheckingAuth(false);
+      setIsAuthenticated(false);
+    }
+  }, [isUserLoggedIn, checkAuth]);
 
   const handleTwitchLogin = () => {
     // Redirect to backend OAuth endpoint
@@ -41,23 +40,14 @@ export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedP
   };
 
   const containerClasses = position === 'bottom'
-    ? 'w-full h-96 mt-4'
+    ? 'w-full h-[500px] mt-4'
     : 'w-full h-full min-h-[600px]';
 
   return (
     <div className={`border rounded-lg overflow-hidden bg-white dark:bg-gray-800 ${containerClasses}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-        <div className="flex items-center gap-3">
-          <h3 className="font-bold text-gray-900 dark:text-white">Twitch Chat</h3>
-          <button
-            onClick={() => setShowChat(!showChat)}
-            className="text-sm px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-            aria-label={showChat ? 'Hide chat' : 'Show chat'}
-          >
-            {showChat ? '−' : '+'}
-          </button>
-        </div>
+        <h3 className="font-bold text-gray-900 dark:text-white">Twitch Chat</h3>
         
         {isUserLoggedIn && !isCheckingAuth && !isAuthenticated && (
           <button
@@ -77,22 +67,17 @@ export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedP
       </div>
 
       {/* Chat Embed */}
-      {showChat && (
-        <div className="w-full h-full">
-          <iframe
-            src={`https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}&darkpopout`}
-            className="w-full h-full border-0"
-            title={`${channel} Twitch Chat`}
-            sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"
-          />
-        </div>
-      )}
-
-      {!showChat && (
-        <div className="flex items-center justify-center p-8 text-gray-500 dark:text-gray-400">
-          <p>Chat is hidden</p>
-        </div>
-      )}
+      <div className="w-full h-[calc(100%-52px)]">
+        <iframe
+          src={`https://www.twitch.tv/embed/${encodeURIComponent(channel)}/chat?parent=${encodeURIComponent(window.location.hostname)}&darkpopout`}
+          className="w-full h-full border-0"
+          title={`${channel} Twitch Chat`}
+          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"
+        />
+      </div>
+    </div>
+  );
+}
     </div>
   );
 }

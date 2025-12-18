@@ -119,12 +119,14 @@ VITE_TWITCH_CLIENT_ID=your-twitch-client-id
 
 ## Security Considerations
 
-1. **Token Storage**: OAuth tokens stored encrypted in database
+1. **Token Storage**: OAuth tokens stored in database (tokens should be encrypted in production)
 2. **Token Refresh**: Automatic refresh when tokens expire (5-minute buffer)
 3. **Secure Transmission**: Tokens never exposed in JSON responses
 4. **User Isolation**: Each user's OAuth credentials are isolated
-5. **Rate Limiting**: OAuth endpoints protected by rate limiting middleware
+5. **Rate Limiting**: OAuth endpoints protected by rate limiting middleware (20 requests per minute)
 6. **CSRF Protection**: All endpoints protected by CSRF middleware
+7. **Type-Safe Assertions**: User ID type assertions use comma-ok idiom to prevent panics
+8. **HTTP Timeouts**: All external API calls use 10-second timeout to prevent hanging requests
 
 ## Performance
 

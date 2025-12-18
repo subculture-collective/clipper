@@ -51,6 +51,14 @@ func (h *TwitchOAuthHandler) InitiateTwitchOAuth(c *gin.Context) {
 	clientID := os.Getenv("TWITCH_CLIENT_ID")
 	redirectURI := os.Getenv("TWITCH_REDIRECT_URI")
 
+	// Validate required environment variables
+	if clientID == "" || redirectURI == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Twitch OAuth is not configured. Please set TWITCH_CLIENT_ID and TWITCH_REDIRECT_URI.",
+		})
+		return
+	}
+
 	// For chat integration, we need chat:read and chat:edit scopes
 	scopes := "chat:read chat:edit"
 
@@ -67,6 +75,17 @@ func (h *TwitchOAuthHandler) InitiateTwitchOAuth(c *gin.Context) {
 // TwitchOAuthCallback handles the OAuth callback from Twitch
 // GET /api/v1/twitch/oauth/callback
 func (h *TwitchOAuthHandler) TwitchOAuthCallback(c *gin.Context) {
+	// Check for OAuth errors from Twitch
+	if errorParam := c.Query("error"); errorParam != "" {
+		errorDesc := c.Query("error_description")
+		utils.GetLogger().Warn("Twitch OAuth error", map[string]interface{}{
+			"error":             errorParam,
+			"error_description": errorDesc,
+		})
+		c.Redirect(http.StatusTemporaryRedirect, "/streams?error=oauth_denied")
+		return
+	}
+
 	code := c.Query("code")
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "authorization code is required"})
@@ -80,7 +99,12 @@ func (h *TwitchOAuthHandler) TwitchOAuthCallback(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "/login?error=authentication_required")
 		return
 	}
-	userID := userIDVal.(uuid.UUID)
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		// Redirect to login if user ID is not in the expected format
+		c.Redirect(http.StatusTemporaryRedirect, "/login?error=invalid_user")
+		return
+	}
 
 	ctx := c.Request.Context()
 
@@ -88,6 +112,15 @@ func (h *TwitchOAuthHandler) TwitchOAuthCallback(c *gin.Context) {
 	clientID := os.Getenv("TWITCH_CLIENT_ID")
 	clientSecret := os.Getenv("TWITCH_CLIENT_SECRET")
 	redirectURI := os.Getenv("TWITCH_REDIRECT_URI")
+
+	// Validate required environment variables
+	if clientID == "" || clientSecret == "" || redirectURI == "" {
+		utils.GetLogger().Error("Twitch OAuth configuration missing", nil, map[string]interface{}{
+			"user_id": userID.String(),
+		})
+		c.Redirect(http.StatusTemporaryRedirect, "/streams?error=oauth_config_error")
+		return
+	}
 
 	// Create HTTP client with timeout
 	httpClient := &http.Client{
@@ -217,7 +250,14 @@ func (h *TwitchOAuthHandler) GetTwitchAuthStatus(c *gin.Context) {
 		})
 		return
 	}
-	userID := userIDVal.(uuid.UUID)
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		utils.GetLogger().Error("Invalid user_id type in context", nil, map[string]interface{}{
+			"user_id_type": fmt.Sprintf("%T", userIDVal),
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
 
 	ctx := c.Request.Context()
 
@@ -268,7 +308,14 @@ func (h *TwitchOAuthHandler) RevokeTwitchAuth(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 		return
 	}
-	userID := userIDVal.(uuid.UUID)
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		utils.GetLogger().Error("Invalid user_id type in context", nil, map[string]interface{}{
+			"user_id_type": fmt.Sprintf("%T", userIDVal),
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
 
 	ctx := c.Request.Context()
 

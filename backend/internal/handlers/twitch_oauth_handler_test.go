@@ -182,6 +182,14 @@ func TestTwitchOAuthHandler_InitiateTwitchOAuth(t *testing.T) {
 	}
 	defer cleanup()
 	
+	// Set environment variables for testing
+	os.Setenv("TWITCH_CLIENT_ID", "test_client_id")
+	os.Setenv("TWITCH_REDIRECT_URI", "http://localhost:8080/api/v1/twitch/oauth/callback")
+	defer func() {
+		os.Unsetenv("TWITCH_CLIENT_ID")
+		os.Unsetenv("TWITCH_REDIRECT_URI")
+	}()
+	
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -208,5 +216,13 @@ func TestTwitchOAuthHandler_InitiateTwitchOAuth(t *testing.T) {
 	}
 	if !strings.Contains(location, "chat:read") || !strings.Contains(location, "chat:edit") {
 		t.Error("Expected chat scopes in redirect URL")
+	}
+	
+	// Verify client_id and redirect_uri are present and non-empty
+	if !strings.Contains(location, "client_id=test_client_id") {
+		t.Error("Expected non-empty client_id parameter in redirect URL")
+	}
+	if !strings.Contains(location, "redirect_uri=") {
+		t.Error("Expected non-empty redirect_uri parameter in redirect URL")
 	}
 }

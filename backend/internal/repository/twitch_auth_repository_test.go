@@ -62,6 +62,11 @@ func TestTwitchAuthRepository_UpsertTwitchAuth(t *testing.T) {
 		ExpiresAt:      expiresAt,
 	}
 	
+	// Use t.Cleanup for automatic cleanup
+	t.Cleanup(func() {
+		_ = repo.DeleteTwitchAuth(ctx, userID)
+	})
+	
 	// Insert
 	err := repo.UpsertTwitchAuth(ctx, auth)
 	if err != nil {
@@ -82,9 +87,6 @@ func TestTwitchAuthRepository_UpsertTwitchAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to update twitch auth: %v", err)
 	}
-	
-	// Clean up
-	_ = repo.DeleteTwitchAuth(ctx, userID)
 }
 
 func TestTwitchAuthRepository_GetTwitchAuth(t *testing.T) {
@@ -109,12 +111,16 @@ func TestTwitchAuthRepository_GetTwitchAuth(t *testing.T) {
 		ExpiresAt:      expiresAt,
 	}
 	
+	// Use t.Cleanup for automatic cleanup
+	t.Cleanup(func() {
+		_ = repo.DeleteTwitchAuth(ctx, userID)
+	})
+	
 	// Insert
 	err := repo.UpsertTwitchAuth(ctx, auth)
 	if err != nil {
 		t.Fatalf("Failed to insert twitch auth: %v", err)
 	}
-	defer repo.DeleteTwitchAuth(ctx, userID)
 	
 	// Get
 	retrieved, err := repo.GetTwitchAuth(ctx, userID)
@@ -172,12 +178,16 @@ func TestTwitchAuthRepository_RefreshToken(t *testing.T) {
 		ExpiresAt:      expiresAt,
 	}
 	
+	// Use t.Cleanup for automatic cleanup
+	t.Cleanup(func() {
+		_ = repo.DeleteTwitchAuth(ctx, userID)
+	})
+	
 	// Insert
 	err := repo.UpsertTwitchAuth(ctx, auth)
 	if err != nil {
 		t.Fatalf("Failed to insert twitch auth: %v", err)
 	}
-	defer repo.DeleteTwitchAuth(ctx, userID)
 	
 	// Refresh token
 	newExpiresAt := time.Now().Add(8 * time.Hour)

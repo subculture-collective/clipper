@@ -900,9 +900,9 @@ func main() {
 		if twitchOAuthHandler != nil {
 			twitch := v1.Group("/twitch")
 			{
-				// OAuth endpoints (authenticated)
-				twitch.GET("/oauth/authorize", middleware.AuthMiddleware(authService), twitchOAuthHandler.InitiateTwitchOAuth)
-				twitch.GET("/oauth/callback", middleware.AuthMiddleware(authService), twitchOAuthHandler.TwitchOAuthCallback)
+				// OAuth endpoints (authenticated, rate limited)
+				twitch.GET("/oauth/authorize", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), twitchOAuthHandler.InitiateTwitchOAuth)
+				twitch.GET("/oauth/callback", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), twitchOAuthHandler.TwitchOAuthCallback)
 				
 				// Auth status endpoint (can be called without auth to check status)
 				twitch.GET("/auth/status", middleware.OptionalAuthMiddleware(authService), twitchOAuthHandler.GetTwitchAuthStatus)
