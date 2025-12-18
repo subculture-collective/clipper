@@ -63,6 +63,45 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 	return nil
 }
 
+// CreateStreamClip inserts a new clip created from a stream into the database
+func (r *ClipRepository) CreateStreamClip(ctx context.Context, clip *models.Clip) error {
+	query := `
+		INSERT INTO clips (
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count, favorite_count,
+			is_featured, is_nsfw, is_removed, is_hidden,
+			submitted_by_user_id, submitted_at,
+			stream_source, status, quality, start_time, end_time
+		) VALUES (
+			$1, $2, $3, $4, $5,
+			$6, $7, $8, $9,
+			$10, $11, $12, $13, $14,
+			$15, $16, $17, $18, $19,
+			$20, $21, $22, $23,
+			$24, $25,
+			$26, $27, $28, $29, $30
+		)
+	`
+
+	_, err := r.pool.Exec(ctx, query,
+		clip.ID, clip.TwitchClipID, clip.TwitchClipURL, clip.EmbedURL, clip.Title,
+		clip.CreatorName, clip.CreatorID, clip.BroadcasterName, clip.BroadcasterID,
+		clip.GameID, clip.GameName, clip.Language, clip.ThumbnailURL, clip.Duration,
+		clip.ViewCount, clip.CreatedAt, clip.ImportedAt, clip.VoteScore, clip.CommentCount, clip.FavoriteCount,
+		clip.IsFeatured, clip.IsNSFW, clip.IsRemoved, clip.IsHidden,
+		clip.SubmittedByUserID, clip.SubmittedAt,
+		clip.StreamSource, clip.Status, clip.Quality, clip.StartTime, clip.EndTime,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create stream clip: %w", err)
+	}
+
+	return nil
+}
+
 // GetByTwitchClipID retrieves a clip by its Twitch clip ID
 func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID string) (*models.Clip, error) {
 	query := `
