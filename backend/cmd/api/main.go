@@ -174,6 +174,8 @@ func main() {
 	recommendationRepo := repository.NewRecommendationRepository(db.Pool)
 	playlistRepo := repository.NewPlaylistRepository(db.Pool)
 	queueRepo := repository.NewQueueRepository(db.Pool)
+	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
+	streamRepo := repository.NewStreamRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -240,7 +242,7 @@ func main() {
 	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
 
 	// Initialize playlist service
-	playlistService := services.NewPlaylistService(playlistRepo, clipRepo)
+	playlistService := services.NewPlaylistService(playlistRepo, clipRepo, cfg.Server.BaseURL)
 
 	// Initialize queue service
 	queueService := services.NewQueueService(queueRepo, clipRepo)
@@ -370,11 +372,13 @@ func main() {
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	queueHandler := handlers.NewQueueHandler(queueService)
+	watchHistoryHandler := handlers.NewWatchHistoryHandler(watchHistoryRepo)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
 	var liveStatusHandler *handlers.LiveStatusHandler
+	var streamHandler *handlers.StreamHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
@@ -389,6 +393,9 @@ func main() {
 	}
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
+	}
+	if twitchClient != nil {
+		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo)
 	}
 
 	// Initialize router
@@ -612,6 +619,9 @@ func main() {
 
 			// Clip engagement score (public)
 			clips.GET("/:id/engagement", engagementHandler.GetContentEngagementScore)
+
+			// Watch progress (optional authentication - works for both authenticated and anonymous users)
+			clips.GET("/:id/progress", middleware.OptionalAuthMiddleware(authService), watchHistoryHandler.GetResumePosition)
 
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:id/comments", commentHandler.ListComments)
@@ -860,6 +870,18 @@ func main() {
 			categories.GET("/:slug", categoryHandler.GetCategory)
 			categories.GET("/:slug/games", categoryHandler.ListCategoryGames)
 			categories.GET("/:slug/clips", categoryHandler.ListCategoryClips)
+		}
+
+		// Stream routes
+		if streamHandler != nil {
+			streams := v1.Group("/streams")
+			{
+				// Public stream status endpoint
+				streams.GET("/:streamer", streamHandler.GetStreamStatus)
+				
+				// Protected stream clip creation endpoint (authenticated, rate limited)
+				streams.POST("/:streamer/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), streamHandler.CreateClipFromStream)
+			}
 		}
 
 		// Game routes
@@ -1139,6 +1161,14 @@ func main() {
 			// Playlist likes (social engagement)
 			playlists.POST("/:id/like", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), playlistHandler.LikePlaylist)
 			playlists.DELETE("/:id/like", middleware.AuthMiddleware(authService), playlistHandler.UnlikePlaylist)
+
+			// Playlist sharing and collaboration
+			playlists.GET("/:id/share-link", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), playlistHandler.GetShareLink)
+			playlists.POST("/:id/track-share", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), playlistHandler.TrackShare) // Public endpoint for analytics with rate limiting
+			playlists.GET("/:id/collaborators", middleware.OptionalAuthMiddleware(authService), playlistHandler.GetCollaborators)
+			playlists.POST("/:id/collaborators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), playlistHandler.AddCollaborator)
+			playlists.DELETE("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.RemoveCollaborator)
+			playlists.PATCH("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.UpdateCollaboratorPermission)
 		}
 
 		// Queue routes (clip playback queue)
@@ -1153,6 +1183,19 @@ func main() {
 			queue.DELETE("/:id", queueHandler.RemoveFromQueue)
 			queue.PATCH("/reorder", queueHandler.ReorderQueue)
 			queue.POST("/:id/played", queueHandler.MarkAsPlayed)
+		}
+
+		// Watch history routes
+		watchHistory := v1.Group("/watch-history")
+		{
+			// Record watch progress (authenticated, rate limited - 120 requests per minute)
+			watchHistory.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 120, time.Minute), watchHistoryHandler.RecordWatchProgress)
+
+			// Get watch history (authenticated)
+			watchHistory.GET("", middleware.AuthMiddleware(authService), watchHistoryHandler.GetWatchHistory)
+
+			// Clear watch history (authenticated)
+			watchHistory.DELETE("", middleware.AuthMiddleware(authService), watchHistoryHandler.ClearWatchHistory)
 		}
 
 		// Admin routes

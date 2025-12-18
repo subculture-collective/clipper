@@ -11,6 +11,7 @@ dist/
 cmd/api/api
 # Ignore main binary in root of backend
 /main
+/clipper
 
 # Test binary, built with `go test -c`
 *.test

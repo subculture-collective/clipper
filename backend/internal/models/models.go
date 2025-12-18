@@ -145,6 +145,14 @@ type Clip struct {
 	DMCANoticeID     *uuid.UUID `json:"dmca_notice_id,omitempty" db:"dmca_notice_id"`
 	DMCARemovedAt    *time.Time `json:"dmca_removed_at,omitempty" db:"dmca_removed_at"`
 	DMCAReinstatedAt *time.Time `json:"dmca_reinstated_at,omitempty" db:"dmca_reinstated_at"`
+	// Stream clip fields
+	StreamSource *string    `json:"stream_source,omitempty" db:"stream_source"` // 'twitch' or 'stream'
+	Status       *string    `json:"status,omitempty" db:"status"`                // 'ready', 'processing', 'failed'
+	VideoURL     *string    `json:"video_url,omitempty" db:"video_url"`
+	ProcessedAt  *time.Time `json:"processed_at,omitempty" db:"processed_at"`
+	Quality      *string    `json:"quality,omitempty" db:"quality"` // 'source', '1080p', '720p'
+	StartTime    *float64   `json:"start_time,omitempty" db:"start_time"`
+	EndTime      *float64   `json:"end_time,omitempty" db:"end_time"`
 }
 
 // Vote represents a user's vote on a clip
@@ -2111,6 +2119,68 @@ type BroadcasterSyncLog struct {
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
+// Stream represents a Twitch stream with metadata and status
+type Stream struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	StreamerUsername string     `json:"streamer_username" db:"streamer_username"`
+	StreamerUserID   *string    `json:"streamer_user_id,omitempty" db:"streamer_user_id"`
+	DisplayName      *string    `json:"display_name,omitempty" db:"display_name"`
+	IsLive           bool       `json:"is_live" db:"is_live"`
+	LastWentLive     *time.Time `json:"last_went_live,omitempty" db:"last_went_live"`
+	LastWentOffline  *time.Time `json:"last_went_offline,omitempty" db:"last_went_offline"`
+	GameName         *string    `json:"game_name,omitempty" db:"game_name"`
+	Title            *string    `json:"title,omitempty" db:"title"`
+	ViewerCount      int        `json:"viewer_count" db:"viewer_count"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// StreamSession represents a user's watch session for a stream
+type StreamSession struct {
+	ID                  uuid.UUID  `json:"id" db:"id"`
+	UserID              uuid.UUID  `json:"user_id" db:"user_id"`
+	StreamID            uuid.UUID  `json:"stream_id" db:"stream_id"`
+	StartedAt           time.Time  `json:"started_at" db:"started_at"`
+	EndedAt             *time.Time `json:"ended_at,omitempty" db:"ended_at"`
+	WatchDurationSeconds int       `json:"watch_duration_seconds" db:"watch_duration_seconds"`
+}
+
+// StreamInfo represents stream status information returned to the frontend
+type StreamInfo struct {
+	StreamerUsername string     `json:"streamer_username"`
+	IsLive           bool       `json:"is_live"`
+	Title            *string    `json:"title,omitempty"`
+	GameName         *string    `json:"game_name,omitempty"`
+	ViewerCount      int        `json:"viewer_count"`
+	ThumbnailURL     *string    `json:"thumbnail_url,omitempty"`
+	StartedAt        *time.Time `json:"started_at,omitempty"`
+	LastWentOffline  *time.Time `json:"last_went_offline,omitempty"`
+}
+
+// ClipFromStreamRequest represents a request to create a clip from a live stream
+type ClipFromStreamRequest struct {
+	StreamerUsername string  `json:"streamer_username" binding:"required"`
+	StartTime        float64 `json:"start_time" binding:"required,min=0"` // Seconds into VOD
+	EndTime          float64 `json:"end_time" binding:"required,min=0,gtfield=StartTime"`
+	Quality          string  `json:"quality" binding:"required,oneof=source 1080p 720p"`
+	Title            string  `json:"title" binding:"required,min=3,max=255"`
+}
+
+// ClipFromStreamResponse represents the response when creating a clip from a stream
+type ClipFromStreamResponse struct {
+	ClipID string `json:"clip_id"`
+	Status string `json:"status"` // 'processing'
+}
+
+// ClipExtractionJob represents a job for extracting and processing a clip from a stream VOD
+type ClipExtractionJob struct {
+	ClipID    string  `json:"clip_id"`
+	VODURL    string  `json:"vod_url"`
+	StartTime float64 `json:"start_time"`
+	EndTime   float64 `json:"end_time"`
+	Quality   string  `json:"quality"`
+}
+
 // Community represents a community space
 type Community struct {
 	ID          uuid.UUID `json:"id" db:"id"`
@@ -3077,6 +3147,9 @@ type Playlist struct {
 	Description *string    `json:"description,omitempty" db:"description"`
 	CoverURL    *string    `json:"cover_url,omitempty" db:"cover_url"`
 	Visibility  string     `json:"visibility" db:"visibility"` // private, public, unlisted
+	ShareToken  *string    `json:"share_token,omitempty" db:"share_token"`
+	ViewCount   int        `json:"view_count" db:"view_count"`
+	ShareCount  int        `json:"share_count" db:"share_count"`
 	LikeCount   int        `json:"like_count" db:"like_count"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
@@ -3154,6 +3227,58 @@ const (
 	PlaylistVisibilityUnlisted = "unlisted"
 )
 
+// Playlist permission constants
+const (
+	PlaylistPermissionView  = "view"
+	PlaylistPermissionEdit  = "edit"
+	PlaylistPermissionAdmin = "admin"
+)
+
+// PlaylistCollaborator represents a collaborator on a playlist
+type PlaylistCollaborator struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	User       *User     `json:"user,omitempty"`
+	Permission string    `json:"permission" db:"permission"` // view, edit, admin
+	InvitedBy  *uuid.UUID `json:"invited_by,omitempty" db:"invited_by"`
+	InvitedAt  time.Time `json:"invited_at" db:"invited_at"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// PlaylistShare represents a share event for analytics
+type PlaylistShare struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	Platform   *string   `json:"platform,omitempty" db:"platform"` // twitter, facebook, discord, embed
+	Referrer   *string   `json:"referrer,omitempty" db:"referrer"`
+	SharedAt   time.Time `json:"shared_at" db:"shared_at"`
+}
+
+// GetShareLinkResponse represents the response for share link generation
+type GetShareLinkResponse struct {
+	ShareURL  string `json:"share_url"`
+	EmbedCode string `json:"embed_code"`
+}
+
+// AddCollaboratorRequest represents the request to add a collaborator
+type AddCollaboratorRequest struct {
+	UserID     string `json:"user_id" binding:"required,uuid"`
+	Permission string `json:"permission" binding:"required,oneof=view edit admin"`
+}
+
+// UpdateCollaboratorRequest represents the request to update a collaborator's permission
+type UpdateCollaboratorRequest struct {
+	Permission string `json:"permission" binding:"required,oneof=view edit admin"`
+}
+
+// TrackShareRequest represents the request to track a share event
+type TrackShareRequest struct {
+	Platform string  `json:"platform" binding:"required,oneof=twitter facebook discord embed link"`
+	Referrer *string `json:"referrer,omitempty"`
+}
+
 // ============================================================================
 // Queue System Models
 // ============================================================================
@@ -3193,4 +3318,41 @@ type AddToQueueRequest struct {
 type ReorderQueueRequest struct {
 	ItemID      string `json:"item_id" binding:"required,uuid"`
 	NewPosition int    `json:"new_position" binding:"required,min=1"`
+}
+
+// WatchHistoryEntry represents a watch history entry for a clip
+type WatchHistoryEntry struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	UserID          uuid.UUID  `json:"user_id" db:"user_id"`
+	ClipID          uuid.UUID  `json:"clip_id" db:"clip_id"`
+	Clip            *Clip      `json:"clip,omitempty"`
+	ProgressSeconds int        `json:"progress_seconds" db:"progress_seconds"`
+	DurationSeconds int        `json:"duration_seconds" db:"duration_seconds"`
+	ProgressPercent float64    `json:"progress_percent"`
+	Completed       bool       `json:"completed" db:"completed"`
+	SessionID       string     `json:"session_id" db:"session_id"`
+	WatchedAt       time.Time  `json:"watched_at" db:"watched_at"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// RecordWatchProgressRequest represents the request to record watch progress
+type RecordWatchProgressRequest struct {
+	ClipID          string `json:"clip_id" binding:"required,uuid"`
+	ProgressSeconds int    `json:"progress_seconds" binding:"required,min=0"`
+	DurationSeconds int    `json:"duration_seconds" binding:"required,min=1"`
+	SessionID       string `json:"session_id" binding:"required,min=1,max=100"`
+}
+
+// WatchHistoryResponse represents the response containing watch history
+type WatchHistoryResponse struct {
+	History []WatchHistoryEntry `json:"history"`
+	Total   int                 `json:"total"`
+}
+
+// ResumePositionResponse represents the response for resume position
+type ResumePositionResponse struct {
+	HasProgress     bool `json:"has_progress"`
+	ProgressSeconds int  `json:"progress_seconds"`
+	Completed       bool `json:"completed"`
 }

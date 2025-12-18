@@ -50,7 +50,8 @@ func (r *PlaylistRepository) Create(ctx context.Context, playlist *models.Playli
 // GetByID retrieves a playlist by its ID
 func (r *PlaylistRepository) GetByID(ctx context.Context, playlistID uuid.UUID) (*models.Playlist, error) {
 	query := `
-		SELECT id, user_id, title, description, cover_url, visibility, like_count,
+		SELECT id, user_id, title, description, cover_url, visibility, share_token,
+		       view_count, share_count, like_count,
 		       created_at, updated_at, deleted_at
 		FROM playlists
 		WHERE id = $1 AND deleted_at IS NULL
@@ -64,6 +65,9 @@ func (r *PlaylistRepository) GetByID(ctx context.Context, playlistID uuid.UUID) 
 		&playlist.Description,
 		&playlist.CoverURL,
 		&playlist.Visibility,
+		&playlist.ShareToken,
+		&playlist.ViewCount,
+		&playlist.ShareCount,
 		&playlist.LikeCount,
 		&playlist.CreatedAt,
 		&playlist.UpdatedAt,
@@ -84,8 +88,8 @@ func (r *PlaylistRepository) GetByID(ctx context.Context, playlistID uuid.UUID) 
 func (r *PlaylistRepository) Update(ctx context.Context, playlist *models.Playlist) error {
 	query := `
 		UPDATE playlists
-		SET title = $1, description = $2, cover_url = $3, visibility = $4
-		WHERE id = $5 AND deleted_at IS NULL
+		SET title = $1, description = $2, cover_url = $3, visibility = $4, share_token = $5
+		WHERE id = $6 AND deleted_at IS NULL
 		RETURNING updated_at
 	`
 
@@ -94,6 +98,7 @@ func (r *PlaylistRepository) Update(ctx context.Context, playlist *models.Playli
 		playlist.Description,
 		playlist.CoverURL,
 		playlist.Visibility,
+		playlist.ShareToken,
 		playlist.ID,
 	).Scan(&playlist.UpdatedAt)
 
@@ -145,13 +150,15 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 	// Get playlists with clip count
 	query := `
 		SELECT 
-			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count,
+			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+			p.view_count, p.share_count, p.like_count,
 			p.created_at, p.updated_at, p.deleted_at,
 			COALESCE(COUNT(pi.id), 0) AS clip_count
 		FROM playlists p
 		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
 		WHERE p.user_id = $1 AND p.deleted_at IS NULL
-		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count, p.created_at, p.updated_at, p.deleted_at
+		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+		         p.view_count, p.share_count, p.like_count, p.created_at, p.updated_at, p.deleted_at
 		ORDER BY p.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -172,6 +179,9 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 			&item.Description,
 			&item.CoverURL,
 			&item.Visibility,
+			&item.ShareToken,
+			&item.ViewCount,
+			&item.ShareCount,
 			&item.LikeCount,
 			&item.CreatedAt,
 			&item.UpdatedAt,
@@ -205,13 +215,15 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 	// Get playlists with clip count
 	query := `
 		SELECT 
-			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count,
+			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+			p.view_count, p.share_count, p.like_count,
 			p.created_at, p.updated_at, p.deleted_at,
 			COALESCE(COUNT(pi.id), 0) AS clip_count
 		FROM playlists p
 		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
 		WHERE p.visibility = 'public' AND p.deleted_at IS NULL
-		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.like_count, p.created_at, p.updated_at, p.deleted_at
+		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+		         p.view_count, p.share_count, p.like_count, p.created_at, p.updated_at, p.deleted_at
 		ORDER BY p.like_count DESC, p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
@@ -232,6 +244,9 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 			&item.Description,
 			&item.CoverURL,
 			&item.Visibility,
+			&item.ShareToken,
+			&item.ViewCount,
+			&item.ShareCount,
 			&item.LikeCount,
 			&item.CreatedAt,
 			&item.UpdatedAt,
@@ -539,4 +554,265 @@ func (r *PlaylistRepository) GetCreator(ctx context.Context, userID uuid.UUID) (
 	}
 
 	return &user, nil
+}
+
+// GetByShareToken retrieves a playlist by its share token
+func (r *PlaylistRepository) GetByShareToken(ctx context.Context, shareToken string) (*models.Playlist, error) {
+	query := `
+		SELECT id, user_id, title, description, cover_url, visibility, share_token,
+		       view_count, share_count, like_count,
+		       created_at, updated_at, deleted_at
+		FROM playlists
+		WHERE share_token = $1 AND deleted_at IS NULL AND visibility IN ('public', 'unlisted')
+	`
+
+	var playlist models.Playlist
+	err := r.pool.QueryRow(ctx, query, shareToken).Scan(
+		&playlist.ID,
+		&playlist.UserID,
+		&playlist.Title,
+		&playlist.Description,
+		&playlist.CoverURL,
+		&playlist.Visibility,
+		&playlist.ShareToken,
+		&playlist.ViewCount,
+		&playlist.ShareCount,
+		&playlist.LikeCount,
+		&playlist.CreatedAt,
+		&playlist.UpdatedAt,
+		&playlist.DeletedAt,
+	)
+
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get playlist by share token: %w", err)
+	}
+
+	return &playlist, nil
+}
+
+// UpdateShareToken updates or generates a share token for a playlist
+func (r *PlaylistRepository) UpdateShareToken(ctx context.Context, playlistID uuid.UUID, shareToken string) error {
+	query := `
+		UPDATE playlists
+		SET share_token = $1, updated_at = NOW()
+		WHERE id = $2 AND deleted_at IS NULL
+	`
+
+	result, err := r.pool.Exec(ctx, query, shareToken, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to update share token: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("playlist not found")
+	}
+
+	return nil
+}
+
+// IncrementViewCount increments the view count for a playlist
+func (r *PlaylistRepository) IncrementViewCount(ctx context.Context, playlistID uuid.UUID) error {
+	query := `
+		UPDATE playlists
+		SET view_count = view_count + 1
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	_, err := r.pool.Exec(ctx, query, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to increment view count: %w", err)
+	}
+
+	return nil
+}
+
+// IncrementShareCount increments the share count for a playlist
+func (r *PlaylistRepository) IncrementShareCount(ctx context.Context, playlistID uuid.UUID) error {
+	query := `
+		UPDATE playlists
+		SET share_count = share_count + 1
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	_, err := r.pool.Exec(ctx, query, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to increment share count: %w", err)
+	}
+
+	return nil
+}
+
+// AddCollaborator adds a collaborator to a playlist
+func (r *PlaylistRepository) AddCollaborator(ctx context.Context, collaborator *models.PlaylistCollaborator) error {
+	query := `
+		INSERT INTO playlist_collaborators (id, playlist_id, user_id, permission, invited_by, invited_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (playlist_id, user_id)
+		DO UPDATE SET permission = EXCLUDED.permission, updated_at = NOW()
+		RETURNING created_at, updated_at
+	`
+
+	err := r.pool.QueryRow(ctx, query,
+		collaborator.ID,
+		collaborator.PlaylistID,
+		collaborator.UserID,
+		collaborator.Permission,
+		collaborator.InvitedBy,
+		collaborator.InvitedAt,
+	).Scan(&collaborator.CreatedAt, &collaborator.UpdatedAt)
+
+	if err != nil {
+		return fmt.Errorf("failed to add collaborator: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateCollaboratorPermission updates a collaborator's permission level
+func (r *PlaylistRepository) UpdateCollaboratorPermission(ctx context.Context, playlistID, userID uuid.UUID, permission string) error {
+	query := `
+		UPDATE playlist_collaborators
+		SET permission = $1, updated_at = NOW()
+		WHERE playlist_id = $2 AND user_id = $3
+	`
+
+	result, err := r.pool.Exec(ctx, query, permission, playlistID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update collaborator permission: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("collaborator not found")
+	}
+
+	return nil
+}
+
+// RemoveCollaborator removes a collaborator from a playlist
+func (r *PlaylistRepository) RemoveCollaborator(ctx context.Context, playlistID, userID uuid.UUID) error {
+	query := `
+		DELETE FROM playlist_collaborators
+		WHERE playlist_id = $1 AND user_id = $2
+	`
+
+	result, err := r.pool.Exec(ctx, query, playlistID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to remove collaborator: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("collaborator not found")
+	}
+
+	return nil
+}
+
+// GetCollaborators retrieves all collaborators for a playlist
+func (r *PlaylistRepository) GetCollaborators(ctx context.Context, playlistID uuid.UUID) ([]*models.PlaylistCollaborator, error) {
+	query := `
+		SELECT pc.id, pc.playlist_id, pc.user_id, pc.permission, pc.invited_by, pc.invited_at,
+		       pc.created_at, pc.updated_at,
+		       u.id, u.username, u.display_name, u.avatar_url
+		FROM playlist_collaborators pc
+		JOIN users u ON pc.user_id = u.id
+		WHERE pc.playlist_id = $1
+		ORDER BY pc.created_at ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query, playlistID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get collaborators: %w", err)
+	}
+	defer rows.Close()
+
+	var collaborators []*models.PlaylistCollaborator
+	for rows.Next() {
+		var collab models.PlaylistCollaborator
+		collab.User = &models.User{}
+
+		err := rows.Scan(
+			&collab.ID,
+			&collab.PlaylistID,
+			&collab.UserID,
+			&collab.Permission,
+			&collab.InvitedBy,
+			&collab.InvitedAt,
+			&collab.CreatedAt,
+			&collab.UpdatedAt,
+			&collab.User.ID,
+			&collab.User.Username,
+			&collab.User.DisplayName,
+			&collab.User.AvatarURL,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan collaborator: %w", err)
+		}
+		collaborators = append(collaborators, &collab)
+	}
+
+	return collaborators, nil
+}
+
+// GetCollaboratorPermission retrieves a user's permission level for a playlist
+func (r *PlaylistRepository) GetCollaboratorPermission(ctx context.Context, playlistID, userID uuid.UUID) (string, error) {
+	query := `
+		SELECT permission
+		FROM playlist_collaborators
+		WHERE playlist_id = $1 AND user_id = $2
+	`
+
+	var permission string
+	err := r.pool.QueryRow(ctx, query, playlistID, userID).Scan(&permission)
+
+	if err == pgx.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to get collaborator permission: %w", err)
+	}
+
+	return permission, nil
+}
+
+// IsCollaborator checks if a user is a collaborator on a playlist
+func (r *PlaylistRepository) IsCollaborator(ctx context.Context, playlistID, userID uuid.UUID) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM playlist_collaborators
+			WHERE playlist_id = $1 AND user_id = $2
+		)
+	`
+
+	var exists bool
+	err := r.pool.QueryRow(ctx, query, playlistID, userID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if collaborator: %w", err)
+	}
+
+	return exists, nil
+}
+
+// TrackShare records a playlist share event
+func (r *PlaylistRepository) TrackShare(ctx context.Context, share *models.PlaylistShare) error {
+	query := `
+		INSERT INTO playlist_shares (id, playlist_id, platform, referrer, shared_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+
+	_, err := r.pool.Exec(ctx, query,
+		share.ID,
+		share.PlaylistID,
+		share.Platform,
+		share.Referrer,
+		share.SharedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to track share: %w", err)
+	}
+
+	return nil
 }

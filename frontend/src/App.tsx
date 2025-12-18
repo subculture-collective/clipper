@@ -71,6 +71,8 @@ const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m 
 const VerifiedBadgeTestPage = lazy(() => import('./pages/VerifiedBadgeTestPage').then(m => ({ default: m.VerifiedBadgeTestPage })));
 const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage })));
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage').then(m => ({ default: m.PlaylistDetailPage })));
+const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m => ({ default: m.WatchHistoryPage })));
+const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default: m.StreamPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -106,6 +108,7 @@ function App() {
                     <Route path="/game/:gameId" element={<GamePage />} />
                     <Route path="/category/:categorySlug" element={<CategoryPage />} />
                     <Route path="/broadcaster/:broadcasterId" element={<BroadcasterPage />} />
+                    <Route path="/stream/:streamer" element={<StreamPage />} />
                     <Route path="/creator/:creatorName/analytics" element={<CreatorAnalyticsPage />} />
                     <Route path="/user/:username" element={<UserProfilePage />} />
                     <Route path="/tag/:tagSlug" element={<TagPage />} />
@@ -147,6 +150,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <FavoritesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-history"
+                      element={
+                        <ProtectedRoute>
+                          <WatchHistoryPage />
                         </ProtectedRoute>
                       }
                     />
