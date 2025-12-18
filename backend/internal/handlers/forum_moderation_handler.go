@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -490,34 +492,33 @@ func (h *ForumModerationHandler) GetModerationLog(c *gin.Context) {
 	actionType := c.Query("action_type")
 	targetType := c.Query("target_type")
 
-	query := `
+	// Build WHERE clause conditions
+	conditions := []string{"1=1"}
+	args := []interface{}{}
+
+	if actionType != "" {
+		args = append(args, actionType)
+		conditions = append(conditions, fmt.Sprintf("ma.action_type = $%d", len(args)))
+	}
+
+	if targetType != "" {
+		args = append(args, targetType)
+		conditions = append(conditions, fmt.Sprintf("ma.target_type = $%d", len(args)))
+	}
+
+	// Add limit as final parameter
+	args = append(args, limit)
+
+	query := fmt.Sprintf(`
 		SELECT 
 			ma.id, ma.moderator_id, u.username as moderator,
 			ma.action_type, ma.target_type, ma.target_id,
 			ma.reason, ma.metadata, ma.created_at
 		FROM moderation_actions ma
 		JOIN users u ON ma.moderator_id = u.id
-		WHERE 1=1
-	`
-
-	args := []interface{}{}
-	argCount := 0
-
-	if actionType != "" {
-		argCount++
-		query += ` AND ma.action_type = $` + strconv.Itoa(argCount)
-		args = append(args, actionType)
-	}
-
-	if targetType != "" {
-		argCount++
-		query += ` AND ma.target_type = $` + strconv.Itoa(argCount)
-		args = append(args, targetType)
-	}
-
-	argCount++
-	query += ` ORDER BY ma.created_at DESC LIMIT $` + strconv.Itoa(argCount)
-	args = append(args, limit)
+		WHERE %s
+		ORDER BY ma.created_at DESC LIMIT $%d
+	`, strings.Join(conditions, " AND "), len(args))
 
 	rows, err := h.db.Query(c.Request.Context(), query, args...)
 	if err != nil {

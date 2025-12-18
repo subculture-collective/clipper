@@ -129,6 +129,15 @@ function FlaggedContentCard({ item, onLock, onPin, onDelete, onBanUser }: Flagge
     setShowActionInput(null);
   };
 
+  const getActionButtonText = (action: string): string => {
+    const actionLabels: Record<string, string> = {
+      lock: 'Lock Thread',
+      pin: 'Pin Thread',
+      delete: 'Delete Thread',
+    };
+    return actionLabels[action] || 'Confirm';
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
       <div className="flex justify-between items-start mb-2">
@@ -202,7 +211,7 @@ function FlaggedContentCard({ item, onLock, onPin, onDelete, onBanUser }: Flagge
               disabled={!actionReason.trim()}
               className="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded"
             >
-              Confirm {showActionInput}
+              Confirm {getActionButtonText(showActionInput)}
             </button>
           </div>
         )}
