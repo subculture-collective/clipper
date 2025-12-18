@@ -1,0 +1,286 @@
+package repository
+
+import (
+	"context"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/subculture-collective/clipper/internal/models"
+)
+
+func setupTwitchAuthTestDB(t *testing.T) (*pgxpool.Pool, func()) {
+	t.Helper()
+	
+	// Build connection string from environment or defaults
+	connString := os.Getenv("TEST_DATABASE_URL")
+	if connString == "" {
+		connString = "postgres://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable"
+	}
+	
+	pool, err := pgxpool.New(context.Background(), connString)
+	if err != nil {
+		t.Skipf("Skipping test: database not available: %v", err)
+		return nil, func() {}
+	}
+	
+	// Test connection
+	if err := pool.Ping(context.Background()); err != nil {
+		pool.Close()
+		t.Skipf("Skipping test: cannot ping database: %v", err)
+		return nil, func() {}
+	}
+	
+	cleanup := func() {
+		pool.Close()
+	}
+	
+	return pool, cleanup
+}
+
+func TestTwitchAuthRepository_UpsertTwitchAuth(t *testing.T) {
+	pool, cleanup := setupTwitchAuthTestDB(t)
+	if pool == nil {
+		return
+	}
+	defer cleanup()
+	
+	repo := NewTwitchAuthRepository(pool)
+	ctx := context.Background()
+	
+	userID := uuid.New()
+	expiresAt := time.Now().Add(4 * time.Hour)
+	
+	auth := &models.TwitchAuth{
+		UserID:         userID,
+		TwitchUserID:   "12345678",
+		TwitchUsername: "testuser",
+		AccessToken:    "test_access_token",
+		RefreshToken:   "test_refresh_token",
+		ExpiresAt:      expiresAt,
+	}
+	
+	// Insert
+	err := repo.UpsertTwitchAuth(ctx, auth)
+	if err != nil {
+		t.Fatalf("Failed to insert twitch auth: %v", err)
+	}
+	
+	// Verify fields were populated
+	if auth.CreatedAt.IsZero() {
+		t.Error("CreatedAt should be set")
+	}
+	if auth.UpdatedAt.IsZero() {
+		t.Error("UpdatedAt should be set")
+	}
+	
+	// Update
+	auth.AccessToken = "new_access_token"
+	err = repo.UpsertTwitchAuth(ctx, auth)
+	if err != nil {
+		t.Fatalf("Failed to update twitch auth: %v", err)
+	}
+	
+	// Clean up
+	_ = repo.DeleteTwitchAuth(ctx, userID)
+}
+
+func TestTwitchAuthRepository_GetTwitchAuth(t *testing.T) {
+	pool, cleanup := setupTwitchAuthTestDB(t)
+	if pool == nil {
+		return
+	}
+	defer cleanup()
+	
+	repo := NewTwitchAuthRepository(pool)
+	ctx := context.Background()
+	
+	userID := uuid.New()
+	expiresAt := time.Now().Add(4 * time.Hour)
+	
+	auth := &models.TwitchAuth{
+		UserID:         userID,
+		TwitchUserID:   "87654321",
+		TwitchUsername: "testuser2",
+		AccessToken:    "test_access_token_2",
+		RefreshToken:   "test_refresh_token_2",
+		ExpiresAt:      expiresAt,
+	}
+	
+	// Insert
+	err := repo.UpsertTwitchAuth(ctx, auth)
+	if err != nil {
+		t.Fatalf("Failed to insert twitch auth: %v", err)
+	}
+	defer repo.DeleteTwitchAuth(ctx, userID)
+	
+	// Get
+	retrieved, err := repo.GetTwitchAuth(ctx, userID)
+	if err != nil {
+		t.Fatalf("Failed to get twitch auth: %v", err)
+	}
+	
+	if retrieved == nil {
+		t.Fatal("Expected to retrieve twitch auth, got nil")
+	}
+	
+	if retrieved.UserID != userID {
+		t.Errorf("Expected UserID %v, got %v", userID, retrieved.UserID)
+	}
+	if retrieved.TwitchUserID != "87654321" {
+		t.Errorf("Expected TwitchUserID '87654321', got '%s'", retrieved.TwitchUserID)
+	}
+	if retrieved.TwitchUsername != "testuser2" {
+		t.Errorf("Expected TwitchUsername 'testuser2', got '%s'", retrieved.TwitchUsername)
+	}
+	if retrieved.AccessToken != "test_access_token_2" {
+		t.Errorf("Expected AccessToken 'test_access_token_2', got '%s'", retrieved.AccessToken)
+	}
+	
+	// Test non-existent user
+	nonExistentID := uuid.New()
+	retrieved, err = repo.GetTwitchAuth(ctx, nonExistentID)
+	if err != nil {
+		t.Fatalf("Error should be nil for non-existent user: %v", err)
+	}
+	if retrieved != nil {
+		t.Error("Expected nil for non-existent user")
+	}
+}
+
+func TestTwitchAuthRepository_RefreshToken(t *testing.T) {
+	pool, cleanup := setupTwitchAuthTestDB(t)
+	if pool == nil {
+		return
+	}
+	defer cleanup()
+	
+	repo := NewTwitchAuthRepository(pool)
+	ctx := context.Background()
+	
+	userID := uuid.New()
+	expiresAt := time.Now().Add(4 * time.Hour)
+	
+	auth := &models.TwitchAuth{
+		UserID:         userID,
+		TwitchUserID:   "11223344",
+		TwitchUsername: "testuser3",
+		AccessToken:    "old_access_token",
+		RefreshToken:   "old_refresh_token",
+		ExpiresAt:      expiresAt,
+	}
+	
+	// Insert
+	err := repo.UpsertTwitchAuth(ctx, auth)
+	if err != nil {
+		t.Fatalf("Failed to insert twitch auth: %v", err)
+	}
+	defer repo.DeleteTwitchAuth(ctx, userID)
+	
+	// Refresh token
+	newExpiresAt := time.Now().Add(8 * time.Hour)
+	err = repo.RefreshToken(ctx, userID, "new_access_token", "new_refresh_token", newExpiresAt)
+	if err != nil {
+		t.Fatalf("Failed to refresh token: %v", err)
+	}
+	
+	// Verify update
+	retrieved, err := repo.GetTwitchAuth(ctx, userID)
+	if err != nil {
+		t.Fatalf("Failed to get twitch auth: %v", err)
+	}
+	
+	if retrieved.AccessToken != "new_access_token" {
+		t.Errorf("Expected AccessToken 'new_access_token', got '%s'", retrieved.AccessToken)
+	}
+	if retrieved.RefreshToken != "new_refresh_token" {
+		t.Errorf("Expected RefreshToken 'new_refresh_token', got '%s'", retrieved.RefreshToken)
+	}
+}
+
+func TestTwitchAuthRepository_IsTokenExpired(t *testing.T) {
+	repo := &TwitchAuthRepository{}
+	
+	tests := []struct {
+		name     string
+		auth     *models.TwitchAuth
+		expected bool
+	}{
+		{
+			name: "token expires in 10 minutes - not expired",
+			auth: &models.TwitchAuth{
+				ExpiresAt: time.Now().Add(10 * time.Minute),
+			},
+			expected: false,
+		},
+		{
+			name: "token expires in 3 minutes - considered expired",
+			auth: &models.TwitchAuth{
+				ExpiresAt: time.Now().Add(3 * time.Minute),
+			},
+			expected: true,
+		},
+		{
+			name: "token already expired",
+			auth: &models.TwitchAuth{
+				ExpiresAt: time.Now().Add(-1 * time.Hour),
+			},
+			expected: true,
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := repo.IsTokenExpired(tt.auth)
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestTwitchAuthRepository_DeleteTwitchAuth(t *testing.T) {
+	pool, cleanup := setupTwitchAuthTestDB(t)
+	if pool == nil {
+		return
+	}
+	defer cleanup()
+	
+	repo := NewTwitchAuthRepository(pool)
+	ctx := context.Background()
+	
+	userID := uuid.New()
+	expiresAt := time.Now().Add(4 * time.Hour)
+	
+	auth := &models.TwitchAuth{
+		UserID:         userID,
+		TwitchUserID:   "99887766",
+		TwitchUsername: "testuser4",
+		AccessToken:    "test_access_token_4",
+		RefreshToken:   "test_refresh_token_4",
+		ExpiresAt:      expiresAt,
+	}
+	
+	// Insert
+	err := repo.UpsertTwitchAuth(ctx, auth)
+	if err != nil {
+		t.Fatalf("Failed to insert twitch auth: %v", err)
+	}
+	
+	// Delete
+	err = repo.DeleteTwitchAuth(ctx, userID)
+	if err != nil {
+		t.Fatalf("Failed to delete twitch auth: %v", err)
+	}
+	
+	// Verify deletion
+	retrieved, err := repo.GetTwitchAuth(ctx, userID)
+	if err != nil {
+		t.Fatalf("Error checking deleted auth: %v", err)
+	}
+	if retrieved != nil {
+		t.Error("Expected nil after deletion")
+	}
+}

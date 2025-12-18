@@ -2,22 +2,22 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
-	"github.com/subculture-collective/clipper/pkg/database"
 )
 
 // TwitchAuthRepository handles Twitch OAuth authentication data persistence
 type TwitchAuthRepository struct {
-	db *database.DB
+	pool *pgxpool.Pool
 }
 
 // NewTwitchAuthRepository creates a new Twitch auth repository
-func NewTwitchAuthRepository(db *database.DB) *TwitchAuthRepository {
-	return &TwitchAuthRepository{db: db}
+func NewTwitchAuthRepository(pool *pgxpool.Pool) *TwitchAuthRepository {
+	return &TwitchAuthRepository{pool: pool}
 }
 
 // UpsertTwitchAuth inserts or updates Twitch OAuth credentials
@@ -36,7 +36,7 @@ func (r *TwitchAuthRepository) UpsertTwitchAuth(ctx context.Context, auth *model
 		RETURNING created_at, updated_at
 	`
 
-	err := r.db.QueryRowContext(
+	err := r.pool.QueryRow(
 		ctx,
 		query,
 		auth.UserID,
@@ -59,7 +59,7 @@ func (r *TwitchAuthRepository) GetTwitchAuth(ctx context.Context, userID uuid.UU
 	`
 
 	auth := &models.TwitchAuth{}
-	err := r.db.QueryRowContext(ctx, query, userID).Scan(
+	err := r.pool.QueryRow(ctx, query, userID).Scan(
 		&auth.UserID,
 		&auth.TwitchUserID,
 		&auth.TwitchUsername,
@@ -70,7 +70,7 @@ func (r *TwitchAuthRepository) GetTwitchAuth(ctx context.Context, userID uuid.UU
 		&auth.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 
@@ -80,7 +80,7 @@ func (r *TwitchAuthRepository) GetTwitchAuth(ctx context.Context, userID uuid.UU
 // DeleteTwitchAuth removes Twitch OAuth credentials for a user
 func (r *TwitchAuthRepository) DeleteTwitchAuth(ctx context.Context, userID uuid.UUID) error {
 	query := `DELETE FROM twitch_auth WHERE user_id = $1`
-	_, err := r.db.ExecContext(ctx, query, userID)
+	_, err := r.pool.Exec(ctx, query, userID)
 	return err
 }
 
@@ -92,7 +92,7 @@ func (r *TwitchAuthRepository) RefreshToken(ctx context.Context, userID uuid.UUI
 		WHERE user_id = $1
 	`
 
-	_, err := r.db.ExecContext(ctx, query, userID, newAccessToken, newRefreshToken, expiresAt)
+	_, err := r.pool.Exec(ctx, query, userID, newAccessToken, newRefreshToken, expiresAt)
 	return err
 }
 

@@ -177,7 +177,7 @@ func main() {
 	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
 	streamRepo := repository.NewStreamRepository(db.Pool)
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
-	twitchAuthRepo := repository.NewTwitchAuthRepository(db)
+	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
