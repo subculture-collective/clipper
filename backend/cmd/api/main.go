@@ -174,6 +174,7 @@ func main() {
 	recommendationRepo := repository.NewRecommendationRepository(db.Pool)
 	playlistRepo := repository.NewPlaylistRepository(db.Pool)
 	queueRepo := repository.NewQueueRepository(db.Pool)
+	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -370,6 +371,7 @@ func main() {
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	queueHandler := handlers.NewQueueHandler(queueService)
+	watchHistoryHandler := handlers.NewWatchHistoryHandler(watchHistoryRepo)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -612,6 +614,9 @@ func main() {
 
 			// Clip engagement score (public)
 			clips.GET("/:id/engagement", engagementHandler.GetContentEngagementScore)
+
+			// Watch progress (optional authentication - works for both authenticated and anonymous users)
+			clips.GET("/:id/progress", middleware.OptionalAuthMiddleware(authService), watchHistoryHandler.GetResumePosition)
 
 			// List comments for a clip (public or authenticated)
 			clips.GET("/:id/comments", commentHandler.ListComments)
@@ -1153,6 +1158,19 @@ func main() {
 			queue.DELETE("/:id", queueHandler.RemoveFromQueue)
 			queue.PATCH("/reorder", queueHandler.ReorderQueue)
 			queue.POST("/:id/played", queueHandler.MarkAsPlayed)
+		}
+
+		// Watch history routes
+		watchHistory := v1.Group("/watch-history")
+		{
+			// Record watch progress (authenticated, rate limited - 120 requests per minute)
+			watchHistory.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 120, time.Minute), watchHistoryHandler.RecordWatchProgress)
+
+			// Get watch history (authenticated)
+			watchHistory.GET("", middleware.AuthMiddleware(authService), watchHistoryHandler.GetWatchHistory)
+
+			// Clear watch history (authenticated)
+			watchHistory.DELETE("", middleware.AuthMiddleware(authService), watchHistoryHandler.ClearWatchHistory)
 		}
 
 		// Admin routes
