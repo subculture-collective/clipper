@@ -3153,3 +3153,44 @@ const (
 	PlaylistVisibilityPublic   = "public"
 	PlaylistVisibilityUnlisted = "unlisted"
 )
+
+// ============================================================================
+// Queue System Models
+// ============================================================================
+
+// QueueItem represents a clip in a user's playback queue
+type QueueItem struct {
+	ID       uuid.UUID  `json:"id" db:"id"`
+	UserID   uuid.UUID  `json:"user_id" db:"user_id"`
+	ClipID   uuid.UUID  `json:"clip_id" db:"clip_id"`
+	Position int        `json:"position" db:"position"`
+	AddedAt  time.Time  `json:"added_at" db:"added_at"`
+	PlayedAt *time.Time `json:"played_at,omitempty" db:"played_at"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// QueueItemWithClip represents a queue item with clip information
+type QueueItemWithClip struct {
+	QueueItem
+	Clip *Clip `json:"clip,omitempty"`
+}
+
+// Queue represents a user's complete queue
+type Queue struct {
+	Items    []QueueItemWithClip `json:"items"`
+	Total    int                 `json:"total"`
+	NextClip *Clip               `json:"next_clip,omitempty"`
+}
+
+// AddToQueueRequest represents the request to add a clip to the queue
+type AddToQueueRequest struct {
+	ClipID string `json:"clip_id" binding:"required,uuid"`
+	AtEnd  *bool  `json:"at_end,omitempty"` // true = add to end (default), false = add to top
+}
+
+// ReorderQueueRequest represents the request to reorder a queue item
+type ReorderQueueRequest struct {
+	ItemID      string `json:"item_id" binding:"required,uuid"`
+	NewPosition int    `json:"new_position" binding:"required,min=1"`
+}

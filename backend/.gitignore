@@ -9,6 +9,8 @@ dist/
 # Ignore generated API binary/source at backend/api but allow cmd/api
 /api
 cmd/api/api
+# Ignore main binary in root of backend
+/main
 
 # Test binary, built with `go test -c`
 *.test
