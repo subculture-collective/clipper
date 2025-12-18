@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, X, Shield, Edit, Eye, Trash2 } from 'lucide-react';
+import { UserPlus, Shield, Edit, Eye, Trash2 } from 'lucide-react';
 import type { PlaylistCollaborator, AddCollaboratorRequest } from '@/types/playlist';
 
 interface CollaboratorManagerProps {
@@ -24,6 +24,7 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
     const fetchCollaborators = async () => {
         try {
             setLoading(true);
+            setError(null); // Clear any previous errors
             const response = await fetch(`/api/v1/playlists/${playlistId}/collaborators`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -94,6 +95,7 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
         }
 
         try {
+            setError(null); // Clear any previous errors
             const response = await fetch(`/api/v1/playlists/${playlistId}/collaborators/${userId}`, {
                 method: 'DELETE',
                 headers: {
@@ -114,6 +116,7 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
 
     const updatePermission = async (userId: string, newPermission: 'view' | 'edit' | 'admin') => {
         try {
+            setError(null); // Clear any previous errors
             const response = await fetch(`/api/v1/playlists/${playlistId}/collaborators/${userId}`, {
                 method: 'PATCH',
                 headers: {

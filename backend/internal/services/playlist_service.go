@@ -16,13 +16,15 @@ import (
 type PlaylistService struct {
 	playlistRepo *repository.PlaylistRepository
 	clipRepo     *repository.ClipRepository
+	baseURL      string
 }
 
 // NewPlaylistService creates a new PlaylistService
-func NewPlaylistService(playlistRepo *repository.PlaylistRepository, clipRepo *repository.ClipRepository) *PlaylistService {
+func NewPlaylistService(playlistRepo *repository.PlaylistRepository, clipRepo *repository.ClipRepository, baseURL string) *PlaylistService {
 	return &PlaylistService{
 		playlistRepo: playlistRepo,
 		clipRepo:     clipRepo,
+		baseURL:      baseURL,
 	}
 }
 
@@ -151,7 +153,10 @@ func (s *PlaylistService) UpdatePlaylist(ctx context.Context, playlistID, userID
 		if oldVisibility == models.PlaylistVisibilityPrivate && 
 		   (*req.Visibility == models.PlaylistVisibilityPublic || *req.Visibility == models.PlaylistVisibilityUnlisted) {
 			if playlist.ShareToken == nil || *playlist.ShareToken == "" {
-				token := generateShareToken()
+				token, err := generateShareToken()
+				if err != nil {
+					return nil, fmt.Errorf("failed to generate share token: %w", err)
+				}
 				playlist.ShareToken = &token
 			}
 		}
@@ -366,10 +371,12 @@ func (s *PlaylistService) UnlikePlaylist(ctx context.Context, playlistID, userID
 }
 
 // generateShareToken generates a URL-safe random share token
-func generateShareToken() string {
+func generateShareToken() (string, error) {
 	b := make([]byte, 16)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)[:22]
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to generate random token: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b)[:22], nil
 }
 
 // GetShareLink generates or retrieves the share link for a playlist
@@ -401,23 +408,32 @@ func (s *PlaylistService) GetShareLink(ctx context.Context, playlistID, userID u
 		return nil, fmt.Errorf("unauthorized: user does not have permission to share this playlist")
 	}
 
-	// Generate share token if it doesn't exist
+	// Generate share token if it doesn't exist with retry logic for uniqueness
 	shareToken := ""
 	if playlist.ShareToken != nil && *playlist.ShareToken != "" {
 		shareToken = *playlist.ShareToken
 	} else {
-		shareToken = generateShareToken()
-		err = s.playlistRepo.UpdateShareToken(ctx, playlistID, shareToken)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update share token: %w", err)
+		const maxShareTokenAttempts = 5
+		var lastErr error
+		for attempt := 0; attempt < maxShareTokenAttempts; attempt++ {
+			candidate, err := generateShareToken()
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate share token: %w", err)
+			}
+			if err = s.playlistRepo.UpdateShareToken(ctx, playlistID, candidate); err == nil {
+				shareToken = candidate
+				break
+			}
+			lastErr = err
+		}
+		if shareToken == "" {
+			return nil, fmt.Errorf("failed to update share token after %d attempts: %w", maxShareTokenAttempts, lastErr)
 		}
 	}
 
 	// Build share URL and embed code
-	// TODO: Get base URL from config
-	baseURL := "https://clipper.tv"
-	shareURL := fmt.Sprintf("%s/playlists/%s", baseURL, shareToken)
-	embedCode := fmt.Sprintf(`<iframe src="%s/embed/playlist/%s" width="800" height="600" frameborder="0" allowfullscreen></iframe>`, baseURL, shareToken)
+	shareURL := fmt.Sprintf("%s/playlists/%s", s.baseURL, shareToken)
+	embedCode := fmt.Sprintf(`<iframe src="%s/embed/playlist/%s" width="800" height="600" frameborder="0" allowfullscreen></iframe>`, s.baseURL, shareToken)
 
 	return &models.GetShareLinkResponse{
 		ShareURL:  shareURL,
@@ -439,6 +455,11 @@ func (s *PlaylistService) TrackShare(ctx context.Context, playlistID uuid.UUID, 
 	// Only track shares for public/unlisted playlists
 	if playlist.Visibility == models.PlaylistVisibilityPrivate {
 		return fmt.Errorf("cannot track shares for private playlists")
+	}
+
+	// Validate referrer length (database constraint is VARCHAR(255))
+	if len(referrer) > 255 {
+		referrer = referrer[:255]
 	}
 
 	// Track the share event
@@ -468,31 +489,22 @@ func (s *PlaylistService) TrackShare(ctx context.Context, playlistID uuid.UUID, 
 
 // AddCollaborator adds a collaborator to a playlist
 func (s *PlaylistService) AddCollaborator(ctx context.Context, playlistID, userID, collaboratorUserID uuid.UUID, permission string) error {
-	// Get the playlist
+	// Check if user has permission to add collaborators (owner or admin)
+	hasPermission, err := s.CheckManageCollaboratorsPermission(ctx, playlistID, userID)
+	if err != nil {
+		return err
+	}
+	if !hasPermission {
+		return fmt.Errorf("unauthorized: user does not have permission to add collaborators")
+	}
+
+	// Get the playlist to check ownership
 	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
 	if err != nil {
 		return fmt.Errorf("failed to get playlist: %w", err)
 	}
 	if playlist == nil {
 		return fmt.Errorf("playlist not found")
-	}
-
-	// Check if user has permission to add collaborators (owner or admin)
-	hasPermission := false
-	if playlist.UserID == userID {
-		hasPermission = true
-	} else {
-		userPermission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
-		if err != nil {
-			return fmt.Errorf("failed to check permissions: %w", err)
-		}
-		if userPermission == models.PlaylistPermissionAdmin {
-			hasPermission = true
-		}
-	}
-
-	if !hasPermission {
-		return fmt.Errorf("unauthorized: user does not have permission to add collaborators")
 	}
 
 	// Cannot add the owner as a collaborator
@@ -520,29 +532,11 @@ func (s *PlaylistService) AddCollaborator(ctx context.Context, playlistID, userI
 
 // RemoveCollaborator removes a collaborator from a playlist
 func (s *PlaylistService) RemoveCollaborator(ctx context.Context, playlistID, userID, collaboratorUserID uuid.UUID) error {
-	// Get the playlist
-	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
-	if err != nil {
-		return fmt.Errorf("failed to get playlist: %w", err)
-	}
-	if playlist == nil {
-		return fmt.Errorf("playlist not found")
-	}
-
 	// Check if user has permission to remove collaborators (owner or admin)
-	hasPermission := false
-	if playlist.UserID == userID {
-		hasPermission = true
-	} else {
-		userPermission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
-		if err != nil {
-			return fmt.Errorf("failed to check permissions: %w", err)
-		}
-		if userPermission == models.PlaylistPermissionAdmin {
-			hasPermission = true
-		}
+	hasPermission, err := s.CheckManageCollaboratorsPermission(ctx, playlistID, userID)
+	if err != nil {
+		return err
 	}
-
 	if !hasPermission {
 		return fmt.Errorf("unauthorized: user does not have permission to remove collaborators")
 	}
@@ -596,29 +590,11 @@ func (s *PlaylistService) GetCollaborators(ctx context.Context, playlistID, user
 
 // UpdateCollaboratorPermission updates a collaborator's permission level
 func (s *PlaylistService) UpdateCollaboratorPermission(ctx context.Context, playlistID, userID, collaboratorUserID uuid.UUID, permission string) error {
-	// Get the playlist
-	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
-	if err != nil {
-		return fmt.Errorf("failed to get playlist: %w", err)
-	}
-	if playlist == nil {
-		return fmt.Errorf("playlist not found")
-	}
-
 	// Check if user has permission to update collaborators (owner or admin)
-	hasPermission := false
-	if playlist.UserID == userID {
-		hasPermission = true
-	} else {
-		userPermission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
-		if err != nil {
-			return fmt.Errorf("failed to check permissions: %w", err)
-		}
-		if userPermission == models.PlaylistPermissionAdmin {
-			hasPermission = true
-		}
+	hasPermission, err := s.CheckManageCollaboratorsPermission(ctx, playlistID, userID)
+	if err != nil {
+		return err
 	}
-
 	if !hasPermission {
 		return fmt.Errorf("unauthorized: user does not have permission to update collaborators")
 	}
@@ -655,4 +631,29 @@ func (s *PlaylistService) CheckEditPermission(ctx context.Context, playlistID, u
 	}
 
 	return permission == models.PlaylistPermissionEdit || permission == models.PlaylistPermissionAdmin, nil
+}
+
+// CheckManageCollaboratorsPermission checks if a user has permission to manage collaborators (owner or admin)
+func (s *PlaylistService) CheckManageCollaboratorsPermission(ctx context.Context, playlistID, userID uuid.UUID) (bool, error) {
+	// Get the playlist
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return false, fmt.Errorf("playlist not found")
+	}
+
+	// Owner always has permission
+	if playlist.UserID == userID {
+		return true, nil
+	}
+
+	// Check if user is an admin collaborator
+	permission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to check permissions: %w", err)
+	}
+
+	return permission == models.PlaylistPermissionAdmin, nil
 }

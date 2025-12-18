@@ -241,7 +241,7 @@ func main() {
 	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
 
 	// Initialize playlist service
-	playlistService := services.NewPlaylistService(playlistRepo, clipRepo)
+	playlistService := services.NewPlaylistService(playlistRepo, clipRepo, cfg.Server.BaseURL)
 
 	// Initialize queue service
 	queueService := services.NewQueueService(queueRepo, clipRepo)
@@ -1147,7 +1147,7 @@ func main() {
 
 			// Playlist sharing and collaboration
 			playlists.GET("/:id/share-link", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), playlistHandler.GetShareLink)
-			playlists.POST("/:id/track-share", playlistHandler.TrackShare) // Public endpoint for analytics
+			playlists.POST("/:id/track-share", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), playlistHandler.TrackShare) // Public endpoint for analytics with rate limiting
 			playlists.GET("/:id/collaborators", middleware.OptionalAuthMiddleware(authService), playlistHandler.GetCollaborators)
 			playlists.POST("/:id/collaborators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), playlistHandler.AddCollaborator)
 			playlists.DELETE("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.RemoveCollaborator)
