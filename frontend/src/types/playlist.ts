@@ -7,6 +7,9 @@ export interface Playlist {
     description?: string;
     cover_url?: string;
     visibility: 'private' | 'public' | 'unlisted';
+    share_token?: string;
+    view_count: number;
+    share_count: number;
     like_count: number;
     created_at: string;
     updated_at: string;
@@ -85,4 +88,42 @@ export interface PlaylistWithClipsResponse {
         has_next: boolean;
         has_prev: boolean;
     };
+}
+
+// Playlist collaborator types
+export interface PlaylistCollaborator {
+    id: string;
+    playlist_id: string;
+    user_id: string;
+    user?: {
+        id: string;
+        username: string;
+        display_name: string;
+        avatar_url?: string;
+    };
+    permission: 'view' | 'edit' | 'admin';
+    invited_by?: string;
+    invited_at: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AddCollaboratorRequest {
+    user_id: string;
+    permission: 'view' | 'edit' | 'admin';
+}
+
+export interface UpdateCollaboratorRequest {
+    permission: 'view' | 'edit' | 'admin';
+}
+
+// Share link types
+export interface GetShareLinkResponse {
+    share_url: string;
+    embed_code: string;
+}
+
+export interface TrackShareRequest {
+    platform: 'twitter' | 'facebook' | 'discord' | 'embed' | 'link';
+    referrer?: string;
 }

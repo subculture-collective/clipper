@@ -907,3 +907,550 @@ func (h *PlaylistHandler) UnlikePlaylist(c *gin.Context) {
 		},
 	})
 }
+
+// GetShareLink handles GET /api/playlists/:id/share-link
+func (h *PlaylistHandler) GetShareLink(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse playlist ID
+	playlistIDStr := c.Param("id")
+	playlistID, err := uuid.Parse(playlistIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid playlist ID",
+			},
+		})
+		return
+	}
+
+	// Get share link
+	shareLink, err := h.playlistService.GetShareLink(c.Request.Context(), playlistID, userID)
+	if err != nil {
+		if err.Error() == "playlist not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "Playlist not found",
+				},
+			})
+			return
+		}
+		if err.Error() == "unauthorized: user does not have permission to share this playlist" {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "You don't have permission to share this playlist",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get share link",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data:    shareLink,
+	})
+}
+
+// TrackShare handles POST /api/playlists/:id/track-share
+func (h *PlaylistHandler) TrackShare(c *gin.Context) {
+	// Parse playlist ID
+	playlistIDStr := c.Param("id")
+	playlistID, err := uuid.Parse(playlistIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid playlist ID",
+			},
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.TrackShareRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	// Track share
+	referrer := ""
+	if req.Referrer != nil {
+		referrer = *req.Referrer
+	}
+	err = h.playlistService.TrackShare(c.Request.Context(), playlistID, req.Platform, referrer)
+	if err != nil {
+		if err.Error() == "playlist not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "Playlist not found",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to track share",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: map[string]string{
+			"message": "Share tracked successfully",
+		},
+	})
+}
+
+// AddCollaborator handles POST /api/playlists/:id/collaborators
+func (h *PlaylistHandler) AddCollaborator(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse playlist ID
+	playlistIDStr := c.Param("id")
+	playlistID, err := uuid.Parse(playlistIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid playlist ID",
+			},
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.AddCollaboratorRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	// Parse collaborator user ID
+	collaboratorUserID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid collaborator user ID",
+			},
+		})
+		return
+	}
+
+	// Add collaborator
+	err = h.playlistService.AddCollaborator(c.Request.Context(), playlistID, userID, collaboratorUserID, req.Permission)
+	if err != nil {
+		if err.Error() == "playlist not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "Playlist not found",
+				},
+			})
+			return
+		}
+		if err.Error() == "unauthorized: user does not have permission to add collaborators" {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "You don't have permission to add collaborators",
+				},
+			})
+			return
+		}
+		if err.Error() == "cannot add playlist owner as a collaborator" {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_REQUEST",
+					Message: "Cannot add playlist owner as a collaborator",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to add collaborator",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, StandardResponse{
+		Success: true,
+		Data: map[string]string{
+			"message": "Collaborator added successfully",
+		},
+	})
+}
+
+// GetCollaborators handles GET /api/playlists/:id/collaborators
+func (h *PlaylistHandler) GetCollaborators(c *gin.Context) {
+	// Get user ID from context (optional for public playlists)
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	// Parse playlist ID
+	playlistIDStr := c.Param("id")
+	playlistID, err := uuid.Parse(playlistIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid playlist ID",
+			},
+		})
+		return
+	}
+
+	// Get collaborators
+	var collaborators []*models.PlaylistCollaborator
+	if userID != nil {
+		collaborators, err = h.playlistService.GetCollaborators(c.Request.Context(), playlistID, *userID)
+	} else {
+		// For anonymous users, try to get collaborators (will only work for public playlists)
+		collaborators, err = h.playlistService.GetCollaborators(c.Request.Context(), playlistID, uuid.Nil)
+	}
+
+	if err != nil {
+		if err.Error() == "playlist not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "Playlist not found",
+				},
+			})
+			return
+		}
+		if err.Error() == "unauthorized: user does not have permission to view collaborators" {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "You don't have permission to view collaborators",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get collaborators",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data:    collaborators,
+	})
+}
+
+// RemoveCollaborator handles DELETE /api/playlists/:id/collaborators/:user_id
+func (h *PlaylistHandler) RemoveCollaborator(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse playlist ID
+	playlistIDStr := c.Param("id")
+	playlistID, err := uuid.Parse(playlistIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid playlist ID",
+			},
+		})
+		return
+	}
+
+	// Parse collaborator user ID
+	collaboratorUserIDStr := c.Param("user_id")
+	collaboratorUserID, err := uuid.Parse(collaboratorUserIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid collaborator user ID",
+			},
+		})
+		return
+	}
+
+	// Remove collaborator
+	err = h.playlistService.RemoveCollaborator(c.Request.Context(), playlistID, userID, collaboratorUserID)
+	if err != nil {
+		if err.Error() == "playlist not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "Playlist not found",
+				},
+			})
+			return
+		}
+		if err.Error() == "unauthorized: user does not have permission to remove collaborators" {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "You don't have permission to remove collaborators",
+				},
+			})
+			return
+		}
+		if err.Error() == "collaborator not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "Collaborator not found",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to remove collaborator",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: map[string]string{
+			"message": "Collaborator removed successfully",
+		},
+	})
+}
+
+// UpdateCollaboratorPermission handles PATCH /api/playlists/:id/collaborators/:user_id
+func (h *PlaylistHandler) UpdateCollaboratorPermission(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse playlist ID
+	playlistIDStr := c.Param("id")
+	playlistID, err := uuid.Parse(playlistIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid playlist ID",
+			},
+		})
+		return
+	}
+
+	// Parse collaborator user ID
+	collaboratorUserIDStr := c.Param("user_id")
+	collaboratorUserID, err := uuid.Parse(collaboratorUserIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid collaborator user ID",
+			},
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.UpdateCollaboratorRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	// Update collaborator permission
+	err = h.playlistService.UpdateCollaboratorPermission(c.Request.Context(), playlistID, userID, collaboratorUserID, req.Permission)
+	if err != nil {
+		if err.Error() == "playlist not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "Playlist not found",
+				},
+			})
+			return
+		}
+		if err.Error() == "unauthorized: user does not have permission to update collaborators" {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "You don't have permission to update collaborators",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to update collaborator permission",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: map[string]string{
+			"message": "Collaborator permission updated successfully",
+		},
+	})
+}
