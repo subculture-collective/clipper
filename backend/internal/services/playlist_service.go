@@ -623,17 +623,8 @@ func (s *PlaylistService) UpdateCollaboratorPermission(ctx context.Context, play
 		return fmt.Errorf("unauthorized: user does not have permission to update collaborators")
 	}
 
-	// Create updated collaborator
-	collaborator := &models.PlaylistCollaborator{
-		ID:         uuid.New(),
-		PlaylistID: playlistID,
-		UserID:     collaboratorUserID,
-		Permission: permission,
-		InvitedBy:  &userID,
-		InvitedAt:  time.Now(),
-	}
-
-	err = s.playlistRepo.AddCollaborator(ctx, collaborator)
+	// Update the collaborator's permission
+	err = s.playlistRepo.UpdateCollaboratorPermission(ctx, playlistID, collaboratorUserID, permission)
 	if err != nil {
 		return fmt.Errorf("failed to update collaborator: %w", err)
 	}

@@ -671,6 +671,26 @@ func (r *PlaylistRepository) AddCollaborator(ctx context.Context, collaborator *
 	return nil
 }
 
+// UpdateCollaboratorPermission updates a collaborator's permission level
+func (r *PlaylistRepository) UpdateCollaboratorPermission(ctx context.Context, playlistID, userID uuid.UUID, permission string) error {
+	query := `
+		UPDATE playlist_collaborators
+		SET permission = $1, updated_at = NOW()
+		WHERE playlist_id = $2 AND user_id = $3
+	`
+
+	result, err := r.pool.Exec(ctx, query, permission, playlistID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update collaborator permission: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("collaborator not found")
+	}
+
+	return nil
+}
+
 // RemoveCollaborator removes a collaborator from a playlist
 func (r *PlaylistRepository) RemoveCollaborator(ctx context.Context, playlistID, userID uuid.UUID) error {
 	query := `
