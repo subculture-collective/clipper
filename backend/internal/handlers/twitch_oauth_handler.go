@@ -89,7 +89,12 @@ func (h *TwitchOAuthHandler) TwitchOAuthCallback(c *gin.Context) {
 	clientSecret := os.Getenv("TWITCH_CLIENT_SECRET")
 	redirectURI := os.Getenv("TWITCH_REDIRECT_URI")
 
-	tokenResp, err := http.PostForm("https://id.twitch.tv/oauth2/token", url.Values{
+	// Create HTTP client with timeout
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	tokenResp, err := httpClient.PostForm("https://id.twitch.tv/oauth2/token", url.Values{
 		"client_id":     {clientID},
 		"client_secret": {clientSecret},
 		"code":          {code},
@@ -125,11 +130,19 @@ func (h *TwitchOAuthHandler) TwitchOAuthCallback(c *gin.Context) {
 	}
 
 	// Get Twitch user info
-	req, _ := http.NewRequest("GET", "https://api.twitch.tv/helix/users", nil)
+	req, err := http.NewRequest("GET", "https://api.twitch.tv/helix/users", nil)
+	if err != nil {
+		utils.GetLogger().Error("Failed to create Twitch API request", err, map[string]interface{}{
+			"user_id": userID.String(),
+		})
+		c.Redirect(http.StatusTemporaryRedirect, "/streams?error=oauth_failed")
+		return
+	}
 	req.Header.Set("Authorization", "Bearer "+tokens.AccessToken)
 	req.Header.Set("Client-Id", clientID)
 
-	userResp, err := http.DefaultClient.Do(req)
+	var userResp *http.Response
+	userResp, err = httpClient.Do(req)
 	if err != nil {
 		utils.GetLogger().Error("Failed to get Twitch user info", err, map[string]interface{}{
 			"user_id": userID.String(),
@@ -280,7 +293,12 @@ func (h *TwitchOAuthHandler) refreshTwitchToken(ctx context.Context, auth *model
 	clientID := os.Getenv("TWITCH_CLIENT_ID")
 	clientSecret := os.Getenv("TWITCH_CLIENT_SECRET")
 
-	tokenResp, err := http.PostForm("https://id.twitch.tv/oauth2/token", url.Values{
+	// Create HTTP client with timeout
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	tokenResp, err := httpClient.PostForm("https://id.twitch.tv/oauth2/token", url.Values{
 		"client_id":     {clientID},
 		"client_secret": {clientSecret},
 		"refresh_token": {auth.RefreshToken},

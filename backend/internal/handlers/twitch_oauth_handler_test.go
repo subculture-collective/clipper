@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -202,23 +203,10 @@ func TestTwitchOAuthHandler_InitiateTwitchOAuth(t *testing.T) {
 	}
 	
 	// Verify redirect URL contains necessary parameters
-	if !contains(location, "id.twitch.tv/oauth2/authorize") {
+	if !strings.Contains(location, "id.twitch.tv/oauth2/authorize") {
 		t.Error("Expected redirect to Twitch OAuth")
 	}
-	if !contains(location, "chat:read") || !contains(location, "chat:edit") {
+	if !strings.Contains(location, "chat:read") || !strings.Contains(location, "chat:edit") {
 		t.Error("Expected chat scopes in redirect URL")
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 && stringContains(s, substr)
-}
-
-func stringContains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
