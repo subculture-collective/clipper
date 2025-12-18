@@ -21,6 +21,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/scheduler"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/internal/websocket"
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	opensearchpkg "github.com/subculture-collective/clipper/pkg/opensearch"
@@ -376,6 +377,11 @@ func main() {
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
+	
+	// Initialize WebSocket server
+	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient())
+	websocketHandler := handlers.NewWebSocketHandler(db.Pool, wsServer)
+	
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	queueHandler := handlers.NewQueueHandler(queueService)
@@ -1100,6 +1106,12 @@ func main() {
 			channels := chat.Group("/channels")
 			channels.Use(middleware.AuthMiddleware(authService))
 			{
+				// WebSocket connection endpoint
+				channels.GET("/:id/ws", websocketHandler.HandleConnection)
+				
+				// Message history endpoint
+				channels.GET("/:id/messages", websocketHandler.GetMessageHistory)
+				
 				// Moderation endpoints (require moderator role)
 				channels.POST("/:id/ban", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.BanUser)
 				channels.DELETE("/:id/ban/:user_id", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.UnbanUser)
@@ -1115,6 +1127,10 @@ func main() {
 			{
 				messages.DELETE("/:id", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.DeleteMessage)
 			}
+			
+			// Health check endpoint for WebSocket server
+			chat.GET("/health", websocketHandler.GetHealthCheck)
+			chat.GET("/stats", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), websocketHandler.GetChannelStats)
 		}
 
 		// Ad routes
@@ -1517,6 +1533,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	// Shutdown WebSocket server first to close all connections
+	wsServer.Shutdown()
 
 	// Stop event tracker
 	cancelEventTracker()
