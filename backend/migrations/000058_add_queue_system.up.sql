@@ -25,8 +25,9 @@ COMMENT ON COLUMN queue_items.played_at IS 'Timestamp when clip was played, NULL
 CREATE OR REPLACE FUNCTION cleanup_stale_queues()
 RETURNS void AS $$
 BEGIN
-    -- Delete queue items for users who haven't added items in 7 days
-    -- and have more than 100 unplayed items (indicating abandoned queue)
+    -- Delete ALL queue items (both played and unplayed) for users who meet stale criteria:
+    -- - Have 100+ unplayed items that were added more than 7 days ago
+    -- This indicates an abandoned queue, so the entire queue is removed to free resources
     DELETE FROM queue_items 
     WHERE user_id IN (
         SELECT DISTINCT user_id 

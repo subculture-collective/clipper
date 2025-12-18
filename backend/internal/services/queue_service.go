@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 )
@@ -68,6 +69,15 @@ func (s *QueueService) AddToQueue(ctx context.Context, userID uuid.UUID, req *mo
 		return nil, fmt.Errorf("invalid clip ID: %w", err)
 	}
 
+	// Check queue size limit (500 items)
+	count, err := s.queueRepo.GetQueueCount(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check queue size: %w", err)
+	}
+	if count >= 500 {
+		return nil, fmt.Errorf("queue is full (maximum 500 items)")
+	}
+
 	// Verify clip exists
 	clip, err := s.clipRepo.GetByID(ctx, clipID)
 	if err != nil {
@@ -119,17 +129,11 @@ func (s *QueueService) AddToQueue(ctx context.Context, userID uuid.UUID, req *mo
 
 // RemoveFromQueue removes an item from the queue
 func (s *QueueService) RemoveFromQueue(ctx context.Context, userID uuid.UUID, itemID uuid.UUID) error {
-	// Get the item to get its position
-	item, err := s.queueRepo.GetItemByID(ctx, itemID, userID)
-	if err != nil {
-		return fmt.Errorf("failed to get queue item: %w", err)
-	}
-	if item == nil {
+	// Remove the item (repository handles position shifting)
+	err := s.queueRepo.RemoveItem(ctx, itemID, userID)
+	if err == pgx.ErrNoRows {
 		return fmt.Errorf("queue item not found")
 	}
-
-	// Remove the item
-	err = s.queueRepo.RemoveItem(ctx, itemID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to remove from queue: %w", err)
 	}
@@ -154,9 +158,20 @@ func (s *QueueService) ReorderQueue(ctx context.Context, userID uuid.UUID, req *
 		return fmt.Errorf("queue item not found")
 	}
 
-	// Validate new position
+	// Validate new position is >= 1
 	if req.NewPosition < 1 {
 		return fmt.Errorf("invalid position: must be >= 1")
+	}
+
+	// Get queue count to validate position is within bounds
+	count, err := s.queueRepo.GetQueueCount(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get queue count: %w", err)
+	}
+
+	// Clamp new position to queue length if it exceeds bounds
+	if req.NewPosition > count {
+		req.NewPosition = count
 	}
 
 	// Perform reordering

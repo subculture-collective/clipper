@@ -82,9 +82,9 @@ func (r *QueueRepository) GetQueueCount(ctx context.Context, userID uuid.UUID) (
 	return count, nil
 }
 
-// GetMaxPosition gets the maximum position in a user's queue
+// GetMaxPosition gets the maximum position in a user's queue (unplayed items only)
 func (r *QueueRepository) GetMaxPosition(ctx context.Context, userID uuid.UUID) (int, error) {
-	query := `SELECT COALESCE(MAX(position), 0) FROM queue_items WHERE user_id = $1`
+	query := `SELECT COALESCE(MAX(position), 0) FROM queue_items WHERE user_id = $1 AND played_at IS NULL`
 
 	var maxPos int
 	err := r.pool.QueryRow(ctx, query, userID).Scan(&maxPos)
@@ -100,7 +100,7 @@ func (r *QueueRepository) AddItem(ctx context.Context, item *models.QueueItem) e
 	query := `
 		INSERT INTO queue_items (id, user_id, clip_id, position, added_at)
 		VALUES ($1, $2, $3, $4, NOW())
-		RETURNING created_at, updated_at
+		RETURNING created_at, updated_at, added_at
 	`
 
 	err := r.pool.QueryRow(ctx, query,
@@ -108,7 +108,7 @@ func (r *QueueRepository) AddItem(ctx context.Context, item *models.QueueItem) e
 		item.UserID,
 		item.ClipID,
 		item.Position,
-	).Scan(&item.CreatedAt, &item.UpdatedAt)
+	).Scan(&item.CreatedAt, &item.UpdatedAt, &item.AddedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to add queue item: %w", err)
@@ -126,8 +126,8 @@ func (r *QueueRepository) AddItemAtTop(ctx context.Context, item *models.QueueIt
 	}
 	defer tx.Rollback(ctx)
 
-	// Shift all existing items down
-	_, err = tx.Exec(ctx, `UPDATE queue_items SET position = position + 1 WHERE user_id = $1`, item.UserID)
+	// Shift all unplayed items down by 1
+	_, err = tx.Exec(ctx, `UPDATE queue_items SET position = position + 1 WHERE user_id = $1 AND played_at IS NULL`, item.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to shift positions: %w", err)
 	}
@@ -136,8 +136,8 @@ func (r *QueueRepository) AddItemAtTop(ctx context.Context, item *models.QueueIt
 	err = tx.QueryRow(ctx, `
 		INSERT INTO queue_items (id, user_id, clip_id, position, added_at)
 		VALUES ($1, $2, $3, 1, NOW())
-		RETURNING created_at, updated_at
-	`, item.ID, item.UserID, item.ClipID).Scan(&item.CreatedAt, &item.UpdatedAt)
+		RETURNING created_at, updated_at, added_at
+	`, item.ID, item.UserID, item.ClipID).Scan(&item.CreatedAt, &item.UpdatedAt, &item.AddedAt)
 	
 	if err != nil {
 		return fmt.Errorf("failed to add queue item: %w", err)
@@ -190,30 +190,6 @@ func (r *QueueRepository) RemoveItem(ctx context.Context, itemID uuid.UUID, user
 	// Commit transaction
 	if err = tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nil
-}
-
-// ShiftPositionsUp shifts all positions up by 1 for positions greater than the specified position
-func (r *QueueRepository) ShiftPositionsUp(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	query := `UPDATE queue_items SET position = position + 1 WHERE user_id = $1`
-
-	_, err := tx.Exec(ctx, query, userID)
-	if err != nil {
-		return fmt.Errorf("failed to shift positions: %w", err)
-	}
-
-	return nil
-}
-
-// ShiftPositionsDown shifts positions down after removal
-func (r *QueueRepository) ShiftPositionsDown(ctx context.Context, tx pgx.Tx, userID uuid.UUID, fromPosition int) error {
-	query := `UPDATE queue_items SET position = position - 1 WHERE user_id = $1 AND position > $2`
-
-	_, err := tx.Exec(ctx, query, userID, fromPosition)
-	if err != nil {
-		return fmt.Errorf("failed to shift positions down: %w", err)
 	}
 
 	return nil
