@@ -135,14 +135,6 @@ func TestCreateThread_Unauthenticated(t *testing.T) {
 	}
 }
 
-func TestListThreads_InvalidPage(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	// This test validates that page defaults to 1 when invalid
-	// The actual DB call would fail with nil, but we're testing parameter handling
-	// No assertions needed as this just validates the parameter parsing logic
-}
-
 func TestGetThread_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

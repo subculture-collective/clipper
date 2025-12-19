@@ -332,7 +332,7 @@ func (h *ForumHandler) getThreadRepliesHierarchical(ctx context.Context, threadI
 			fr.content, fr.depth, fr.path::text, fr.created_at, fr.updated_at
 		FROM forum_replies fr
 		JOIN users u ON fr.user_id = u.id
-		WHERE fr.thread_id = $1 AND fr.deleted_at IS NULL
+		WHERE fr.thread_id = $1 AND fr.is_deleted = FALSE
 		ORDER BY fr.path
 	`
 
@@ -347,7 +347,6 @@ func (h *ForumHandler) getThreadRepliesHierarchical(ctx context.Context, threadI
 	var rootReplies []*ForumReply
 
 	// First pass: create all reply objects and store in map
-	var allReplies []*ForumReply
 	for rows.Next() {
 		var reply ForumReply
 		err := rows.Scan(
@@ -360,27 +359,45 @@ func (h *ForumHandler) getThreadRepliesHierarchical(ctx context.Context, threadI
 
 		reply.Replies = []ForumReply{}
 		replyMap[reply.ID] = &reply
-		allReplies = append(allReplies, &reply)
 	}
 
 	// Second pass: build hierarchy by connecting children to parents
-	for _, reply := range allReplies {
+	for _, reply := range replyMap {
 		if reply.ParentReplyID == nil {
 			// Root level reply
 			rootReplies = append(rootReplies, reply)
 		} else {
 			// Child reply - add to parent's replies
 			if parent, ok := replyMap[*reply.ParentReplyID]; ok {
+				// Add reference to parent so all nested children are included
 				parent.Replies = append(parent.Replies, *reply)
 			}
 			// If parent not found, this is an orphaned reply - skip it
 		}
 	}
 
-	// Convert pointer slice to value slice for root replies
-	result := make([]ForumReply, len(rootReplies))
-	for i, reply := range rootReplies {
-		result[i] = *reply
+	// Third pass: recursively copy the tree structure to handle deep nesting
+	// This ensures that when we dereference pointers, all nested children are included
+	var copyReplyTree func(*ForumReply) ForumReply
+	copyReplyTree = func(r *ForumReply) ForumReply {
+		copied := *r
+		copied.Replies = make([]ForumReply, 0, len(r.Replies))
+		for i := range r.Replies {
+			// Get the pointer from the map to ensure we have the latest children
+			if childPtr, ok := replyMap[r.Replies[i].ID]; ok {
+				copied.Replies = append(copied.Replies, copyReplyTree(childPtr))
+			} else {
+				// Fallback to value if not in map
+				copied.Replies = append(copied.Replies, r.Replies[i])
+			}
+		}
+		return copied
+	}
+
+	// Convert root replies with full nested structure
+	result := make([]ForumReply, 0, len(rootReplies))
+	for _, rootPtr := range rootReplies {
+		result = append(result, copyReplyTree(rootPtr))
 	}
 
 	return result, nil
@@ -486,7 +503,7 @@ func (h *ForumHandler) CreateReply(c *gin.Context) {
 		var parentPath string
 		err = tx.QueryRow(c.Request.Context(),
 			`SELECT depth, path::text FROM forum_replies 
-			 WHERE id = $1 AND thread_id = $2 AND deleted_at IS NULL`,
+			 WHERE id = $1 AND thread_id = $2 AND is_deleted = FALSE`,
 			parentReplyID, threadID).Scan(&parentDepth, &parentPath)
 
 		if err != nil {
@@ -502,8 +519,8 @@ func (h *ForumHandler) CreateReply(c *gin.Context) {
 			return
 		}
 
-		// Check depth limit
-		if parentDepth >= 10 {
+		// Check depth limit (max 10 levels: 0-9)
+		if parentDepth >= 9 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "Maximum nesting depth (10 levels) reached",
 			})
@@ -591,7 +608,7 @@ func (h *ForumHandler) UpdateReply(c *gin.Context) {
 	result, err := h.db.Exec(c.Request.Context(),
 		`UPDATE forum_replies 
 		 SET content = $1, updated_at = NOW()
-		 WHERE id = $2 AND user_id = $3 AND deleted_at IS NULL`,
+		 WHERE id = $2 AND user_id = $3 AND is_deleted = FALSE`,
 		req.Content, replyID, userID)
 
 	if err != nil {
@@ -633,11 +650,11 @@ func (h *ForumHandler) DeleteReply(c *gin.Context) {
 		return
 	}
 
-	// Soft delete by setting deleted_at timestamp
+	// Soft delete by setting is_deleted flag
 	result, err := h.db.Exec(c.Request.Context(),
 		`UPDATE forum_replies 
-		 SET deleted_at = NOW(), updated_at = NOW()
-		 WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+		 SET is_deleted = TRUE, updated_at = NOW()
+		 WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE`,
 		replyID, userID)
 
 	if err != nil {

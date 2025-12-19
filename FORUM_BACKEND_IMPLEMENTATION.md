@@ -13,9 +13,9 @@ This implementation adds a complete forum backend with hierarchical threaded dis
 - `search_vector` - Full-text search vector (auto-generated)
 
 ### New Fields in `forum_replies`
-- `depth` - Nesting level (0-10), constrained at database level
+- `depth` - Nesting level (0-9, for 10 total levels), constrained at database level
 - `path` - ltree path for efficient hierarchical queries (e.g., "uuid1.uuid2.uuid3")
-- `deleted_at` - Soft deletion timestamp
+- Uses existing `is_deleted` boolean for soft deletion (from migration 000069)
 - `search_vector` - Full-text search vector (auto-generated)
 
 ### Key Features
@@ -40,16 +40,17 @@ This implementation adds a complete forum backend with hierarchical threaded dis
 ## Key Implementation Details
 
 ### Depth Checking
-- Maximum 10 levels of nesting enforced at both database (CHECK constraint) and API level
+- Maximum 10 levels of nesting (depth 0-9) enforced at both database (CHECK constraint) and API level
 - Parent depth is checked before allowing new replies
 - Clear error message when limit reached
 
 ### Hierarchical Queries
 - Uses ltree paths for O(log n) hierarchical queries instead of recursive CTEs
-- Two-pass hierarchy building:
+- Three-pass hierarchy building:
   1. First pass: Create all reply objects and store in map
   2. Second pass: Build parent-child relationships
-- Prevents replies from being lost due to processing order
+  3. Third pass: Recursively copy tree structure to handle deep nesting correctly
+- Prevents replies from being lost due to processing order or value copying issues
 
 ### Thread Locking
 - Locked threads prevent new replies
@@ -70,8 +71,8 @@ This implementation adds a complete forum backend with hierarchical threaded dis
 - GIN indexes for fast search performance
 
 ### Soft Deletion
-- Replies use `deleted_at` timestamp instead of hard deletion
-- Soft-deleted replies excluded from queries
+- Replies use existing `is_deleted` boolean instead of hard deletion (from migration 000069)
+- Soft-deleted replies excluded from queries with `WHERE is_deleted = FALSE`
 - Maintains referential integrity while hiding content
 
 ### Concurrency & Performance

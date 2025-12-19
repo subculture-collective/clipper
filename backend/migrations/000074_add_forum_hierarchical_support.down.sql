@@ -22,7 +22,6 @@ ALTER TABLE forum_threads DROP COLUMN IF EXISTS search_vector;
 ALTER TABLE forum_replies DROP CONSTRAINT IF EXISTS forum_replies_depth_check;
 
 -- Remove new columns from forum_replies
-ALTER TABLE forum_replies DROP COLUMN IF EXISTS deleted_at;
 ALTER TABLE forum_replies DROP COLUMN IF EXISTS path;
 ALTER TABLE forum_replies DROP COLUMN IF EXISTS depth;
 
