@@ -77,6 +77,9 @@ const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage
 const ModerationLogPage = lazy(() => import('./pages/admin/ModerationLogPage').then(m => ({ default: m.ModerationLogPage })));
 const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
 const ChannelSettingsPage = lazy(() => import('./pages/ChannelSettingsPage').then(m => ({ default: m.ChannelSettingsPage })));
+const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex })));
+const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => ({ default: m.ThreadDetail })));
+const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -128,6 +131,19 @@ function App() {
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
+                    
+                    {/* Forum Routes */}
+                    <Route path="/forum" element={<ForumIndex />} />
+                    <Route path="/forum/threads/:threadId" element={<ThreadDetail />} />
+                    <Route
+                      path="/forum/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateThread />
+                        </ProtectedRoute>
+                      }
+                    />
+                    
                     {import.meta.env.DEV && (
                       <>
                         <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
