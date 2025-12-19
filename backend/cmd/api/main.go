@@ -386,7 +386,7 @@ func main() {
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	queueHandler := handlers.NewQueueHandler(queueService)
 	watchHistoryHandler := handlers.NewWatchHistoryHandler(watchHistoryRepo)
-	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, watchPartyHubManager, watchPartyRepo, cfg)
+	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, watchPartyHubManager, watchPartyRepo, analyticsRepo, cfg)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
@@ -1297,9 +1297,15 @@ func main() {
 			// End watch party (authenticated, host only)
 			watchParties.POST("/:id/end", middleware.AuthMiddleware(authService), watchPartyHandler.EndWatchParty)
 
+			// Get watch party analytics (authenticated, rate limited - 20 per hour)
+			watchParties.GET("/:id/analytics", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.GetWatchPartyAnalytics)
+
 			// WebSocket endpoint for real-time sync (authenticated)
 			watchParties.GET("/:id/ws", middleware.AuthMiddleware(authService), watchPartyHandler.WatchPartyWebSocket)
 		}
+
+		// User watch party stats route (needs to be outside watchParties group to avoid conflict)
+		v1.GET("/users/:id/watch-party-stats", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.GetUserWatchPartyStats)
 
 		// Admin routes
 		admin := v1.Group("/admin")

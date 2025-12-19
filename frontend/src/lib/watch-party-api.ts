@@ -220,3 +220,33 @@ export async function endWatchParty(partyId: string): Promise<void> {
     throw new Error(response.data.error?.message || 'Failed to end watch party');
   }
 }
+
+/**
+ * Get analytics for a watch party
+ */
+export async function getWatchPartyAnalytics(partyId: string): Promise<import('@/types/watchParty').WatchPartyAnalytics> {
+  const response = await apiClient.get<StandardResponse<import('@/types/watchParty').WatchPartyAnalytics>>(
+    `/watch-parties/${partyId}/analytics`
+  );
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || 'Failed to get analytics');
+  }
+
+  return response.data.data;
+}
+
+/**
+ * Get host statistics for a user
+ */
+export async function getUserWatchPartyStats(userId: string): Promise<import('@/types/watchParty').HostStats> {
+  const response = await apiClient.get<StandardResponse<import('@/types/watchParty').HostStats>>(
+    `/users/${userId}/watch-party-stats`
+  );
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || 'Failed to get stats');
+  }
+
+  return response.data.data;
+}

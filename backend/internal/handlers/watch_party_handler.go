@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ type WatchPartyHandler struct {
 	watchPartyService *services.WatchPartyService
 	hubManager        *services.WatchPartyHubManager
 	watchPartyRepo    *repository.WatchPartyRepository
+	analyticsRepo     *repository.AnalyticsRepository
 	upgrader          websocket.Upgrader
 	allowedOrigins    map[string]bool
 }
@@ -30,6 +32,7 @@ func NewWatchPartyHandler(
 	watchPartyService *services.WatchPartyService,
 	hubManager *services.WatchPartyHubManager,
 	watchPartyRepo *repository.WatchPartyRepository,
+	analyticsRepo *repository.AnalyticsRepository,
 	cfg *config.Config,
 ) *WatchPartyHandler {
 	// Parse allowed origins from config
@@ -45,6 +48,7 @@ func NewWatchPartyHandler(
 		watchPartyService: watchPartyService,
 		hubManager:        hubManager,
 		watchPartyRepo:    watchPartyRepo,
+		analyticsRepo:     analyticsRepo,
 		allowedOrigins:    allowedOrigins,
 	}
 
@@ -252,6 +256,11 @@ func (h *WatchPartyHandler) JoinWatchParty(c *gin.Context) {
 			},
 		})
 		return
+	}
+
+	// Track join event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), party.ID, &userID, "join", nil); err != nil {
+		log.Printf("Failed to track join event for party %s, user %s: %v", party.ID, userID, err)
 	}
 
 	inviteURL := h.watchPartyService.GetInviteURL(party.InviteCode)
@@ -480,6 +489,11 @@ func (h *WatchPartyHandler) LeaveWatchParty(c *gin.Context) {
 			},
 		})
 		return
+	}
+
+	// Track leave event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "leave", nil); err != nil {
+		log.Printf("Failed to track leave event for party %s, user %s: %v", partyID, userID, err)
 	}
 
 	c.JSON(http.StatusOK, StandardResponse{
@@ -754,6 +768,11 @@ func (h *WatchPartyHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
+	// Track chat event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "chat", nil); err != nil {
+		log.Printf("Failed to track chat event for party %s, user %s: %v", partyID, userID, err)
+	}
+
 	c.JSON(http.StatusCreated, StandardResponse{
 		Success: true,
 		Data:    message,
@@ -963,6 +982,11 @@ func (h *WatchPartyHandler) SendReaction(c *gin.Context) {
 			},
 		})
 		return
+	}
+
+	// Track reaction event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "reaction", nil); err != nil {
+		log.Printf("Failed to track reaction event for party %s, user %s: %v", partyID, userID, err)
 	}
 
 	c.JSON(http.StatusCreated, StandardResponse{
@@ -1177,5 +1201,211 @@ func (h *WatchPartyHandler) GetWatchPartyHistory(c *gin.Context) {
 				"total_pages": totalPages,
 			},
 		},
+	})
+}
+
+// GetWatchPartyAnalytics handles GET /api/v1/watch-parties/:id/analytics
+func (h *WatchPartyHandler) GetWatchPartyAnalytics(c *gin.Context) {
+	// Parse party ID
+	partyIDStr := c.Param("id")
+	partyID, err := uuid.Parse(partyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid party ID",
+			},
+		})
+		return
+	}
+
+	// Get optional user ID from context for permission check
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	// Get watch party to verify access
+	party, err := h.watchPartyRepo.GetByID(c.Request.Context(), partyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get watch party",
+			},
+		})
+		return
+	}
+
+	if party == nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "NOT_FOUND",
+				Message: "Watch party not found",
+			},
+		})
+		return
+	}
+
+	// Check if user is the host or has appropriate permissions based on visibility
+	if party.Visibility == "private" {
+		// Private parties: only host can view analytics
+		if userID == nil || party.HostUserID != *userID {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "Only the host can view analytics for private parties",
+				},
+			})
+			return
+		}
+	} else if party.Visibility == "friends" {
+		// Friends-only parties: only host or participants can view analytics
+		if userID == nil {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "Authentication required to view analytics for friends-only parties",
+				},
+			})
+			return
+		}
+		// Check if user is the host or a participant
+		if party.HostUserID != *userID {
+			participant, err := h.watchPartyRepo.GetParticipant(c.Request.Context(), partyID, *userID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, StandardResponse{
+					Success: false,
+					Error: &ErrorInfo{
+						Code:    "INTERNAL_ERROR",
+						Message: "Failed to verify participant status",
+					},
+				})
+				return
+			}
+			if participant == nil {
+				c.JSON(http.StatusForbidden, StandardResponse{
+					Success: false,
+					Error: &ErrorInfo{
+						Code:    "FORBIDDEN",
+						Message: "Only the host or participants can view analytics for friends-only parties",
+					},
+				})
+				return
+			}
+		}
+	}
+	// Public parties: anyone authenticated can view analytics
+
+	// Get analytics
+	analytics, err := h.analyticsRepo.GetWatchPartyAnalytics(c.Request.Context(), partyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get analytics",
+			},
+		})
+		return
+	}
+
+	// Get realtime viewer count
+	currentViewers, err := h.analyticsRepo.GetRealtimeViewerCount(c.Request.Context(), partyID)
+	if err != nil {
+		currentViewers = 0 // Don't fail if we can't get current viewers
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"party_id":               analytics.PartyID,
+			"unique_viewers":         analytics.UniqueViewers,
+			"peak_concurrent":        analytics.PeakConcurrentViewers,
+			"current_viewers":        currentViewers,
+			"avg_duration_seconds":   analytics.AvgDurationSeconds,
+			"chat_messages":          analytics.ChatMessages,
+			"reactions":              analytics.Reactions,
+			"total_engagement":       analytics.ChatMessages + analytics.Reactions,
+		},
+	})
+}
+
+// GetUserWatchPartyStats handles GET /api/v1/users/:id/watch-party-stats
+func (h *WatchPartyHandler) GetUserWatchPartyStats(c *gin.Context) {
+	// Parse user ID
+	userIDStr := c.Param("id")
+	targetUserID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid user ID",
+			},
+		})
+		return
+	}
+
+	// Get requesting user ID from context
+	requestingUserIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	requestingUserID, ok := requestingUserIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Only allow users to view their own stats
+	if targetUserID != requestingUserID {
+		c.JSON(http.StatusForbidden, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "FORBIDDEN",
+				Message: "You can only view your own watch party statistics",
+			},
+		})
+		return
+	}
+
+	// Get host stats
+	stats, err := h.analyticsRepo.GetHostStats(c.Request.Context(), targetUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get watch party stats",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data:    stats,
 	})
 }
