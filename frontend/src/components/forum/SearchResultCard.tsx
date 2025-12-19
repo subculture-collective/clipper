@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MessageSquare, ThumbsUp, User, Calendar } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import type { SearchResult } from '@/types/forum';
 
@@ -13,6 +14,12 @@ export function SearchResultCard({ result, className }: SearchResultCardProps) {
   const link = result.type === 'thread' 
     ? `/forum/threads/${result.id}`
     : `/forum/threads/${result.thread_id}#reply-${result.id}`;
+
+  // Sanitize the headline to prevent XSS attacks
+  const sanitizedHeadline = DOMPurify.sanitize(result.headline, {
+    ALLOWED_TAGS: ['b', 'strong', 'em', 'i'],
+    ALLOWED_ATTR: []
+  });
 
   // Format the date
   const formatDate = (dateString: string) => {
@@ -93,7 +100,7 @@ export function SearchResultCard({ result, className }: SearchResultCardProps) {
       {/* Highlighted snippet */}
       <div
         className="text-sm text-gray-300 line-clamp-3 search-highlight"
-        dangerouslySetInnerHTML={{ __html: result.headline }}
+        dangerouslySetInnerHTML={{ __html: sanitizedHeadline }}
       />
     </Link>
   );

@@ -70,7 +70,9 @@ describe('SearchResultCard', () => {
     
     const highlightElement = container.querySelector('.search-highlight');
     expect(highlightElement).toBeInTheDocument();
-    expect(highlightElement?.innerHTML).toContain('<b>highlighted</b>');
+    // DOMPurify sanitizes the headline, so we check for the presence of the bold tag
+    expect(highlightElement?.innerHTML).toContain('highlighted');
+    expect(highlightElement?.querySelector('b')).toBeInTheDocument();
   });
 
   it('links to correct thread URL for thread results', () => {

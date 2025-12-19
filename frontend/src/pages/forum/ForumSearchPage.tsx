@@ -177,7 +177,7 @@ export function ForumSearchPage() {
           )}
 
           {/* Pagination */}
-          {meta && meta.count >= meta.limit && (
+          {meta && (page > 1 || meta.count === meta.limit) && (
             <div className="flex justify-center gap-2 mt-8">
               {page > 1 && (
                 <button

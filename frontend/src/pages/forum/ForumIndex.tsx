@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Container, SEO } from '@/components';
 import {
@@ -16,6 +16,7 @@ import type { ForumSort, ForumFilters as ForumFiltersType } from '@/types/forum'
 export function ForumIndex() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Get filters from URL params
   const sortParam = (searchParams.get('sort') as ForumSort) || 'newest';
@@ -60,8 +61,8 @@ export function ForumIndex() {
 
   const handleSearch = (query: string) => {
     if (query) {
-      // Redirect to search page
-      window.location.href = `/forum/search?q=${encodeURIComponent(query)}`;
+      // Use navigate to stay within React Router
+      navigate(`/forum/search?q=${encodeURIComponent(query)}`);
     }
   };
 
