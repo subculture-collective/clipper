@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
@@ -38,6 +37,7 @@ func NewDistributedRateLimiter(redisClient *redispkg.Client, limit int, window t
 
 // Allow checks if a request should be allowed for the given key.
 // Uses Redis sorted sets with sliding window algorithm for accurate rate limiting.
+// The entire operation is atomic via Lua script to prevent race conditions.
 // Returns true if the request is allowed, false if rate limit is exceeded.
 func (r *DistributedRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
 	now := time.Now()
@@ -49,47 +49,54 @@ func (r *DistributedRateLimiter) Allow(ctx context.Context, key string) (bool, e
 	// Get the underlying Redis client for direct operations
 	client := r.redisClient.GetClient()
 	
-	// Use Redis pipeline for atomic operations
-	pipe := client.Pipeline()
+	// Use Lua script for atomic check-and-increment operation
+	// This prevents race conditions where multiple requests could exceed the limit
+	luaScript := `
+		local key = KEYS[1]
+		local window_start = tonumber(ARGV[1])
+		local limit = tonumber(ARGV[2])
+		local now_score = tonumber(ARGV[3])
+		local member = ARGV[4]
+		local expire_time = tonumber(ARGV[5])
+		
+		-- Remove old entries outside the window
+		redis.call('ZREMRANGEBYSCORE', key, '0', window_start)
+		
+		-- Count current entries in the window
+		local count = redis.call('ZCARD', key)
+		
+		-- Check if limit exceeded
+		if count >= limit then
+			return 0
+		end
+		
+		-- Add current request
+		redis.call('ZADD', key, now_score, member)
+		
+		-- Set expiration
+		redis.call('EXPIRE', key, expire_time)
+		
+		return 1
+	`
 	
-	// Remove old entries outside the window
-	pipe.ZRemRangeByScore(ctx, redisKey, "0", fmt.Sprintf("%d", windowStart.UnixMilli()))
+	member := fmt.Sprintf("%d", now.UnixNano())
+	score := now.UnixMilli()
+	expireSeconds := int64((r.window + rateLimitExpireBuffer).Seconds())
 	
-	// Count current entries in the window
-	countCmd := pipe.ZCard(ctx, redisKey)
+	result, err := client.Eval(ctx, luaScript, []string{redisKey}, 
+		windowStart.UnixMilli(), r.limit, score, member, expireSeconds).Result()
 	
-	// Execute pipeline
-	_, err := pipe.Exec(ctx)
-	if err != nil && err != redis.Nil {
+	if err != nil {
 		return false, fmt.Errorf("failed to check rate limit: %w", err)
 	}
 	
-	count := countCmd.Val()
-	
-	// Check if limit exceeded
-	if count >= int64(r.limit) {
-		return false, nil
+	// Result is 1 if allowed, 0 if denied
+	allowed, ok := result.(int64)
+	if !ok {
+		return false, fmt.Errorf("unexpected result type from rate limit script")
 	}
 	
-	// Add current request with timestamp as score and unique member
-	member := fmt.Sprintf("%d", now.UnixNano())
-	score := float64(now.UnixMilli())
-	
-	// Add the new request and set expiration
-	pipe2 := client.Pipeline()
-	pipe2.ZAdd(ctx, redisKey, redis.Z{
-		Score:  score,
-		Member: member,
-	})
-	// Set expiration to window + buffer to allow cleanup
-	pipe2.Expire(ctx, redisKey, r.window+rateLimitExpireBuffer)
-	
-	_, err = pipe2.Exec(ctx)
-	if err != nil {
-		return false, fmt.Errorf("failed to record request: %w", err)
-	}
-	
-	return true, nil
+	return allowed == 1, nil
 }
 
 // RateLimiter interface for abstraction

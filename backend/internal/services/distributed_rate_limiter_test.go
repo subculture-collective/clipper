@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -138,6 +139,45 @@ func TestDistributedRateLimiter(t *testing.T) {
 		allowed, err = limiter.Allow(ctx, key)
 		require.NoError(t, err)
 		assert.True(t, allowed, "Should be allowed after sliding window moves")
+
+		// Cleanup
+		_ = redisClient.Delete(ctx, "ratelimit:"+key)
+	})
+
+	t.Run("concurrent requests respect rate limit (no race condition)", func(t *testing.T) {
+		limiter := NewDistributedRateLimiter(redisClient, 10, time.Minute)
+		key := "test:concurrent"
+
+		// Run 50 concurrent goroutines trying to make requests
+		// Only 10 should succeed due to the rate limit
+		numGoroutines := 50
+		successChan := make(chan bool, numGoroutines)
+		
+		var wg sync.WaitGroup
+		wg.Add(numGoroutines)
+		
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				allowed, err := limiter.Allow(ctx, key)
+				require.NoError(t, err)
+				successChan <- allowed
+			}()
+		}
+		
+		wg.Wait()
+		close(successChan)
+		
+		// Count successful requests
+		successCount := 0
+		for allowed := range successChan {
+			if allowed {
+				successCount++
+			}
+		}
+		
+		// Exactly 10 requests should have succeeded (the limit)
+		assert.Equal(t, 10, successCount, "Exactly 10 concurrent requests should be allowed")
 
 		// Cleanup
 		_ = redisClient.Delete(ctx, "ratelimit:"+key)

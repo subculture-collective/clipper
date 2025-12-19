@@ -639,8 +639,17 @@ func (h *WatchPartyHandler) WatchPartyWebSocket(c *gin.Context) {
 		return
 	}
 
-	// Upgrade to WebSocket
-	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
+	// Upgrade to WebSocket with subprotocol support
+	// If client sent auth via Sec-WebSocket-Protocol, echo it back to complete handshake
+	responseHeader := http.Header{}
+	if subprotocol := c.GetHeader("Sec-WebSocket-Protocol"); subprotocol != "" {
+		// Extract just the auth protocol part (format: auth.bearer.<token>)
+		if strings.HasPrefix(subprotocol, "auth.bearer.") {
+			responseHeader.Set("Sec-WebSocket-Protocol", subprotocol)
+		}
+	}
+	
+	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, responseHeader)
 	if err != nil {
 		return
 	}

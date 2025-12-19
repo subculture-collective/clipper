@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { ReactionAnimation } from '@/types/watchParty';
 
 interface ReactionOverlayProps {

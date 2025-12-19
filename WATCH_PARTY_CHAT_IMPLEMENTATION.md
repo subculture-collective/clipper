@@ -73,14 +73,23 @@ CREATE TABLE watch_party_reactions (
 
 ### WebSocket Protocol
 
-Connect to: `wss://[host]/api/v1/watch-parties/:id/ws?token=[JWT_TOKEN]`
+Connect to: `wss://[host]/api/v1/watch-parties/:id/ws`
 
 **Authentication**: 
 - WebSocket connections require authentication via JWT token
-- Token can be provided as a query parameter: `?token=your_jwt_token`
-- Token can also be provided via Authorization header or cookie (less common for WebSocket)
+- Token is passed via `Sec-WebSocket-Protocol` header as a subprotocol
+- Format: `auth.bearer.<base64_encoded_token>`
+- This approach prevents tokens from appearing in URLs/query parameters
+- Query parameters would be logged by proxies, load balancers, and access logs
 - Token is validated before WebSocket upgrade
 - Unauthenticated connections will receive 401 Unauthorized response
+
+**JavaScript Example:**
+```javascript
+const token = getJWT();
+const authProtocol = `auth.bearer.${btoa(token)}`;
+const ws = new WebSocket('wss://example.com/api/v1/watch-parties/123/ws', [authProtocol]);
+```
 
 #### Client → Server Commands
 
@@ -244,11 +253,17 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 
 1. **Authentication Required**: All endpoints and WebSocket connections require valid JWT token
    - HTTP endpoints: Token via Authorization header or cookie
-   - WebSocket: Token via query parameter `?token=...` (validated on upgrade)
+   - WebSocket: Token via `Sec-WebSocket-Protocol` subprotocol header (prevents URL logging)
+   - Tokens never appear in URLs or query parameters to prevent logging exposure
 2. **Participant Validation**: Only active participants can send messages/reactions
 3. **Distributed Rate Limiting**: Prevents spam and abuse across all server instances
-   - Redis-backed sliding window algorithm
+   - Redis-backed sliding window algorithm with atomic Lua script execution
    - Global enforcement in multi-instance deployments
+   - No race conditions in concurrent request handling
+4. **Message Validation**: 1-1000 character limit, sanitized
+5. **Emoji Validation**: Max 10 characters per emoji
+6. **Party Visibility**: Private parties restrict access to participants only
+7. **Secure Token Transport**: Tokens transmitted via headers, never in URLs
 4. **Message Validation**: 1-1000 character limit, sanitized
 5. **Emoji Validation**: Max 10 characters per emoji
 6. **Party Visibility**: Private parties restrict access to participants only

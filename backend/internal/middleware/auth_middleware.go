@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
 
@@ -118,8 +119,9 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	}
 }
 
-// extractToken extracts JWT token from Authorization header, query parameter, or cookie
-// Query parameter support is primarily for WebSocket connections where headers cannot be set
+// extractToken extracts JWT token from Authorization header, WebSocket subprotocol, or cookie
+// WebSocket subprotocol support prevents tokens from appearing in URLs/query parameters
+// which could be logged by proxies, load balancers, or access logs
 func extractToken(c *gin.Context) string {
 	// Try Authorization header first
 	authHeader := c.GetHeader("Authorization")
@@ -130,14 +132,20 @@ func extractToken(c *gin.Context) string {
 		}
 	}
 
-	// Try query parameter (for WebSocket authentication)
-	// This is secure because: 
-	// 1. Token is validated before use
-	// 2. HTTPS encrypts the URL in transit
-	// 3. Tokens are short-lived and can be revoked
-	queryToken := c.Query("token")
-	if queryToken != "" {
-		return queryToken
+	// Try WebSocket subprotocol (Sec-WebSocket-Protocol header)
+	// Format: "auth.bearer.<base64_token>"
+	// This prevents tokens from appearing in URLs which are logged
+	wsProtocol := c.GetHeader("Sec-WebSocket-Protocol")
+	if wsProtocol != "" {
+		// Parse subprotocol format: auth.bearer.<base64_token>
+		parts := strings.Split(wsProtocol, ".")
+		if len(parts) == 3 && parts[0] == "auth" && parts[1] == "bearer" {
+			// Decode base64 token
+			decoded, err := base64.StdEncoding.DecodeString(parts[2])
+			if err == nil {
+				return string(decoded)
+			}
+		}
 	}
 
 	// Fall back to cookie

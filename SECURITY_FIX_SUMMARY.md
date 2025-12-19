@@ -15,21 +15,30 @@ PR #749 introduced watch party chat/reactions with three critical security vulne
 - Frontend read token from localStorage but never sent it to the server
 - WebSocket URL had no authentication mechanism
 - Private parties could be accessed anonymously depending on server defaults
+- Query parameter approach would expose tokens in URLs, logs, and monitoring systems
 
 **Solution:**
-- Frontend now appends token as query parameter: `?token=JWT_TOKEN`
-- Backend auth middleware enhanced to extract token from query parameters
-- Token validated before WebSocket upgrade
+- Frontend now passes token via WebSocket subprotocol (`Sec-WebSocket-Protocol` header)
+- Format: `auth.bearer.<base64_encoded_token>` 
+- Backend extracts and validates token from subprotocol before WebSocket upgrade
+- Tokens never appear in URLs, preventing exposure in:
+  - Proxy logs and load balancer logs
+  - Application access logs
+  - Browser history
+  - Sentry/monitoring breadcrumbs
+  - Error reports and screenshots
 - Unauthenticated connections receive 401 Unauthorized
 
 **Files Changed:**
-- `frontend/src/hooks/useWatchPartyWebSocket.ts` - Added token to WebSocket URL
-- `backend/internal/middleware/auth_middleware.go` - Enhanced token extraction
+- `frontend/src/hooks/useWatchPartyWebSocket.ts` - Pass token via subprotocol
+- `backend/internal/middleware/auth_middleware.go` - Extract token from subprotocol header
+- `backend/internal/handlers/watch_party_handler.go` - Echo subprotocol in response
 
 **Testing:**
-- Added comprehensive tests for query parameter authentication
-- Verified token precedence: Header > Query > Cookie
+- Added comprehensive tests for subprotocol authentication
+- Verified token precedence: Header > Subprotocol > Cookie
 - Tested WebSocket-specific scenarios
+- Validated malformed subprotocol handling
 
 ### 2. Distributed Rate Limiting ✅
 
@@ -38,13 +47,16 @@ PR #749 introduced watch party chat/reactions with three critical security vulne
 - Each instance tracked limits independently
 - Users could bypass limits by connecting to different instances
 - Not suitable for multi-instance deployments
+- Two-pipeline implementation had race condition allowing limit bypass
 
 **Solution:**
 - Implemented `DistributedRateLimiter` using Redis sorted sets
+- Atomic Lua script ensures check-and-increment happens atomically
 - Sliding window algorithm ensures accurate rate limiting
 - Rate limits enforced globally across all instances
 - Automatic cleanup with configurable expiration buffer
 - Fail-closed behavior on infrastructure errors
+- No race conditions - concurrent requests properly handled
 
 **Architecture:**
 ```
@@ -133,16 +145,18 @@ reactionOverlayRef.current?.addReaction(emoji);
 
 ### New Tests Added:
 1. **Authentication Tests** (`auth_middleware_websocket_test.go`)
-   - Query parameter extraction
-   - Token precedence validation
+   - Subprotocol extraction and validation
+   - Token precedence validation (Header > Subprotocol > Cookie)
    - WebSocket-specific scenarios
-   - 8 test cases, all passing
+   - Malformed subprotocol handling
+   - 10 test cases, all passing
 
 2. **Rate Limiter Tests** (`distributed_rate_limiter_test.go`)
    - Within-limit behavior
    - Time window respect
    - Multi-key isolation
    - Sliding window behavior
+   - **Concurrent request handling (no race conditions)**
    - Benchmark tests
    - All tests passing (requires Redis)
 

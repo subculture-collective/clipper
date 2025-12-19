@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExtractToken_QueryParameter(t *testing.T) {
+func TestExtractToken_SubprotocolAndHeaders(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -27,21 +28,23 @@ func TestExtractToken_QueryParameter(t *testing.T) {
 			description:   "Should extract token from Authorization header",
 		},
 		{
-			name: "token from query parameter",
+			name: "token from WebSocket subprotocol",
 			setupRequest: func(c *gin.Context) {
-				c.Request.URL.RawQuery = "token=test-token-query"
+				token := base64.StdEncoding.EncodeToString([]byte("test-token-subprotocol"))
+				c.Request.Header.Set("Sec-WebSocket-Protocol", "auth.bearer."+token)
 			},
-			expectedToken: "test-token-query",
-			description:   "Should extract token from query parameter for WebSocket auth",
+			expectedToken: "test-token-subprotocol",
+			description:   "Should extract token from WebSocket subprotocol header",
 		},
 		{
-			name: "header takes precedence over query",
+			name: "header takes precedence over subprotocol",
 			setupRequest: func(c *gin.Context) {
 				c.Request.Header.Set("Authorization", "Bearer test-token-header")
-				c.Request.URL.RawQuery = "token=test-token-query"
+				token := base64.StdEncoding.EncodeToString([]byte("test-token-subprotocol"))
+				c.Request.Header.Set("Sec-WebSocket-Protocol", "auth.bearer."+token)
 			},
 			expectedToken: "test-token-header",
-			description:   "Authorization header should take precedence over query param",
+			description:   "Authorization header should take precedence over subprotocol",
 		},
 		{
 			name: "token from cookie",
@@ -55,16 +58,17 @@ func TestExtractToken_QueryParameter(t *testing.T) {
 			description:   "Should extract token from cookie as fallback",
 		},
 		{
-			name: "query takes precedence over cookie",
+			name: "subprotocol takes precedence over cookie",
 			setupRequest: func(c *gin.Context) {
-				c.Request.URL.RawQuery = "token=test-token-query"
+				token := base64.StdEncoding.EncodeToString([]byte("test-token-subprotocol"))
+				c.Request.Header.Set("Sec-WebSocket-Protocol", "auth.bearer."+token)
 				c.Request.AddCookie(&http.Cookie{
 					Name:  "access_token",
 					Value: "test-token-cookie",
 				})
 			},
-			expectedToken: "test-token-query",
-			description:   "Query parameter should take precedence over cookie",
+			expectedToken: "test-token-subprotocol",
+			description:   "Subprotocol should take precedence over cookie",
 		},
 		{
 			name: "no token provided",
@@ -81,6 +85,22 @@ func TestExtractToken_QueryParameter(t *testing.T) {
 			},
 			expectedToken: "",
 			description:   "Should return empty string for malformed Authorization header",
+		},
+		{
+			name: "malformed subprotocol format",
+			setupRequest: func(c *gin.Context) {
+				c.Request.Header.Set("Sec-WebSocket-Protocol", "invalid-format")
+			},
+			expectedToken: "",
+			description:   "Should return empty string for malformed subprotocol",
+		},
+		{
+			name: "invalid base64 in subprotocol",
+			setupRequest: func(c *gin.Context) {
+				c.Request.Header.Set("Sec-WebSocket-Protocol", "auth.bearer.!!!invalid-base64!!!")
+			},
+			expectedToken: "",
+			description:   "Should return empty string for invalid base64 in subprotocol",
 		},
 	}
 
@@ -101,21 +121,26 @@ func TestExtractToken_QueryParameter(t *testing.T) {
 func TestExtractToken_WebSocketScenario(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	// Simulate a WebSocket upgrade request where token is passed as query param
-	// This is the primary use case for query parameter authentication
+	// Simulate a WebSocket upgrade request where token is passed via subprotocol
+	// This prevents tokens from appearing in URLs which could be logged
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(
 		http.MethodGet, 
-		"/api/v1/watch-parties/123/ws?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+		"/api/v1/watch-parties/123/ws",
 		nil,
 	)
 	c.Request.Header.Set("Upgrade", "websocket")
 	c.Request.Header.Set("Connection", "Upgrade")
+	
+	// Token passed via Sec-WebSocket-Protocol header (not in URL)
+	jwtToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+	encodedToken := base64.StdEncoding.EncodeToString([]byte(jwtToken))
+	c.Request.Header.Set("Sec-WebSocket-Protocol", "auth.bearer."+encodedToken)
 
 	token := extractToken(c)
 	
-	assert.Equal(t, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", token, 
-		"Should extract JWT token from query parameter for WebSocket connections")
+	assert.Equal(t, jwtToken, token, 
+		"Should extract JWT token from subprotocol for WebSocket connections")
 	assert.NotEmpty(t, token, "Token should not be empty for authenticated WebSocket")
 }
