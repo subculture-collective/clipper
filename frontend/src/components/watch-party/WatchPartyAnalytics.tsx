@@ -85,9 +85,10 @@ export default function WatchPartyAnalytics({ partyId }: Props) {
   }
 
   const avgWatchMinutes = Math.round(analytics.avg_duration_seconds / 60);
+  const totalEngagement = analytics.chat_messages + analytics.reactions;
   const engagementRate =
     analytics.unique_viewers > 0
-      ? ((analytics.total_engagement / analytics.unique_viewers) * 100).toFixed(1)
+      ? ((totalEngagement / analytics.unique_viewers) * 100).toFixed(1)
       : '0';
 
   return (
@@ -146,7 +147,7 @@ export default function WatchPartyAnalytics({ partyId }: Props) {
           This watch party had <strong>{analytics.unique_viewers}</strong> unique viewers with a peak
           of <strong>{analytics.peak_concurrent}</strong> watching simultaneously. Viewers stayed for an
           average of <strong>{avgWatchMinutes} minutes</strong> and generated{' '}
-          <strong>{analytics.total_engagement}</strong> total interactions.
+          <strong>{totalEngagement}</strong> total interactions.
         </p>
       </div>
     </div>

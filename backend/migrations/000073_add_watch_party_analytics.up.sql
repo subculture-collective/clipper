@@ -19,7 +19,7 @@ CREATE MATERIALIZED VIEW watch_party_analytics AS
 SELECT
     wp.id as party_id,
     wp.host_user_id,
-    COUNT(DISTINCT wpe.user_id) FILTER (WHERE wpe.event_type = 'join') as unique_viewers,
+    COUNT(DISTINCT wpe.user_id) FILTER (WHERE wpe.event_type = 'join' AND wpe.user_id IS NOT NULL) as unique_viewers,
     COUNT(*) FILTER (WHERE wpe.event_type = 'chat') as chat_messages,
     COUNT(*) FILTER (WHERE wpe.event_type = 'reaction') as reactions,
     COALESCE(
@@ -39,7 +39,7 @@ SELECT
                         WHEN event_type = 'leave' THEN -1 
                         ELSE 0 
                     END
-                ) OVER (PARTITION BY party_id ORDER BY time) as concurrent_count
+                ) OVER (ORDER BY time) as concurrent_count
             FROM watch_party_events
             WHERE party_id = wp.id AND event_type IN ('join', 'leave')
         ) concurrent

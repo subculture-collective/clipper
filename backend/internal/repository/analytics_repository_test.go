@@ -177,7 +177,7 @@ func TestHostStatsStruct(t *testing.T) {
 		t.Error("TotalChatMessages field not set correctly")
 	}
 	if stats.TotalReactions != 125 {
-		t.Error("Reactions field not set correctly")
+		t.Error("TotalReactions field not set correctly")
 	}
 }
 

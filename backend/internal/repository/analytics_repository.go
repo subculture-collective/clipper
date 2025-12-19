@@ -1092,12 +1092,9 @@ func (r *AnalyticsRepository) TrackWatchPartyEvent(ctx context.Context, partyID 
 
 // GetWatchPartyAnalytics retrieves analytics for a specific watch party
 func (r *AnalyticsRepository) GetWatchPartyAnalytics(ctx context.Context, partyID uuid.UUID) (*WatchPartyAnalytics, error) {
-	// First refresh the materialized view for this party
-	_, err := r.db.Exec(ctx, "REFRESH MATERIALIZED VIEW CONCURRENTLY watch_party_analytics")
-	if err != nil {
-		// Log but don't fail - we can still query the view
-		// In production, this refresh should be done periodically via a background job
-	}
+	// Note: In production, the materialized view should be refreshed periodically
+	// via a background job rather than synchronously in the request path.
+	// For now, we skip the refresh and use the existing materialized view data.
 
 	query := `
 		SELECT 
@@ -1138,8 +1135,8 @@ func (r *AnalyticsRepository) GetWatchPartyAnalytics(ctx context.Context, partyI
 
 // GetHostStats retrieves statistics for a host user
 func (r *AnalyticsRepository) GetHostStats(ctx context.Context, userID uuid.UUID) (*HostStats, error) {
-	// Refresh materialized view
-	_, _ = r.db.Exec(ctx, "REFRESH MATERIALIZED VIEW CONCURRENTLY watch_party_analytics")
+	// Note: In production, the materialized view should be refreshed periodically
+	// via a background job rather than synchronously in the request path.
 
 	query := `
 		SELECT 
