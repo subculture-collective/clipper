@@ -35,27 +35,12 @@ CREATE INDEX IF NOT EXISTS idx_forum_replies_depth ON forum_replies(depth, threa
 CREATE INDEX IF NOT EXISTS idx_forum_replies_search ON forum_replies USING GIN(search_vector) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_forum_replies_thread_parent ON forum_replies(thread_id, parent_reply_id, created_at) WHERE deleted_at IS NULL;
 
--- Function to auto-lock threads after 30 days of inactivity
-CREATE OR REPLACE FUNCTION auto_lock_inactive_threads()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Auto-lock threads that haven't been updated in 30 days and aren't already locked
-    UPDATE forum_threads
-    SET locked = TRUE,
-        locked_at = NOW(),
-        locked_by = NULL  -- System auto-lock, no specific user
-    WHERE id = NEW.id
-        AND locked = FALSE
-        AND updated_at < NOW() - INTERVAL '30 days'
-        AND is_deleted = FALSE;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Note: We'll rely on a scheduled job to check and lock threads periodically
--- rather than a trigger, as triggers fire on updates which defeats the purpose
--- of checking for inactivity
+-- Note: Thread auto-locking after 30 days is designed to be handled by a scheduled job
+-- that runs periodically (e.g., daily) rather than a database trigger, since triggers
+-- fire on updates which defeats the purpose of checking for inactivity.
+-- The scheduled job would execute:
+-- UPDATE forum_threads SET locked = TRUE, locked_at = NOW()
+-- WHERE locked = FALSE AND updated_at < NOW() - INTERVAL '30 days' AND is_deleted = FALSE;
 
 -- Function to update thread updated_at when reply is added/edited
 CREATE OR REPLACE FUNCTION update_thread_updated_at()

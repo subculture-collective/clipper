@@ -300,13 +300,10 @@ func (h *ForumHandler) GetThread(c *gin.Context) {
 
 	// Increment view count atomically in the database
 	// Using UPDATE directly ensures atomic increment without race conditions
-	_, err = h.db.Exec(c.Request.Context(), 
+	// Errors are ignored as view count increment is non-critical
+	_, _ = h.db.Exec(c.Request.Context(), 
 		"UPDATE forum_threads SET view_count = view_count + 1 WHERE id = $1", 
 		threadID)
-	if err != nil {
-		// Log the error but don't fail the request
-		// View count increment is non-critical
-	}
 
 	// Get all replies for the thread using ltree path for efficient hierarchical queries
 	replies, err := h.getThreadRepliesHierarchical(c.Request.Context(), threadID)
