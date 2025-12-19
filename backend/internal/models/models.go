@@ -2969,6 +2969,31 @@ type UpdateChannelRequest struct {
 	MaxParticipants *int    `json:"max_participants,omitempty" binding:"omitempty,min=2"`
 }
 
+// ChannelMember represents a member of a chat channel
+type ChannelMember struct {
+	ID        uuid.UUID  `json:"id" db:"id"`
+	ChannelID uuid.UUID  `json:"channel_id" db:"channel_id"`
+	UserID    uuid.UUID  `json:"user_id" db:"user_id"`
+	Role      string     `json:"role" db:"role"`
+	JoinedAt  time.Time  `json:"joined_at" db:"joined_at"`
+	InvitedBy *uuid.UUID `json:"invited_by,omitempty" db:"invited_by"`
+	// Populated fields
+	Username    string  `json:"username,omitempty" db:"username"`
+	DisplayName string  `json:"display_name,omitempty" db:"display_name"`
+	AvatarURL   *string `json:"avatar_url,omitempty" db:"avatar_url"`
+}
+
+// AddChannelMemberRequest represents a request to add a member to a channel
+type AddChannelMemberRequest struct {
+	UserID string `json:"user_id" binding:"required,uuid"`
+	Role   string `json:"role" binding:"omitempty,oneof=member moderator admin"`
+}
+
+// UpdateChannelMemberRequest represents a request to update a member's role
+type UpdateChannelMemberRequest struct {
+	Role string `json:"role" binding:"required,oneof=member moderator admin"`
+}
+
 // Chat moderation action constants
 const (
 	ChatActionBan     = "ban"
