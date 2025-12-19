@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 )
@@ -207,7 +207,7 @@ func (h *ChatHandler) GetChannel(c *gin.Context) {
 		&channel.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
 		return
 	} else if err != nil {
@@ -249,7 +249,7 @@ func (h *ChatHandler) UpdateChannel(c *gin.Context) {
 	// Check if user is the creator
 	var creatorID uuid.UUID
 	err = h.db.QueryRow(c.Request.Context(), "SELECT creator_id FROM chat_channels WHERE id = $1", channelUUID).Scan(&creatorID)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
 		return
 	} else if err != nil {
@@ -618,7 +618,7 @@ func (h *ChatHandler) DeleteMessage(c *gin.Context) {
 	msgQuery := `SELECT id, channel_id, user_id, content FROM chat_messages WHERE id = $1 AND is_deleted = false`
 	err := h.db.QueryRow(c.Request.Context(), msgQuery, messageID).Scan(
 		&msg.ID, &msg.ChannelID, &msg.UserID, &msg.Content)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found or already deleted"})
 		return
 	} else if err != nil {
@@ -759,7 +759,7 @@ func (h *ChatHandler) CheckUserBan(c *gin.Context) {
 	err := h.db.QueryRow(c.Request.Context(), query, channelID, userID).Scan(
 		&ban.ID, &ban.ExpiresAt, &ban.Reason)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusOK, gin.H{"is_banned": false})
 		return
 	} else if err != nil {
@@ -800,7 +800,7 @@ func (h *ChatHandler) DeleteChannel(c *gin.Context) {
 	// Check if user is the creator
 	var creatorID uuid.UUID
 	err = h.db.QueryRow(c.Request.Context(), "SELECT creator_id FROM chat_channels WHERE id = $1", channelUUID).Scan(&creatorID)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
 		return
 	} else if err != nil {
@@ -868,7 +868,7 @@ func (h *ChatHandler) AddChannelMember(c *gin.Context) {
 	err = h.db.QueryRow(c.Request.Context(),
 		`SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2`,
 		channelUUID, inviterID).Scan(&inviterRole)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not a member of this channel"})
 		return
 	} else if err != nil {
@@ -893,6 +893,19 @@ func (h *ChatHandler) AddChannelMember(c *gin.Context) {
 		return
 	}
 
+	// Check if target user exists
+	var userExists bool
+	err = h.db.QueryRow(c.Request.Context(), 
+		`SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, targetUserID).Scan(&userExists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify user"})
+		return
+	}
+	if !userExists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
 	// Add member
 	query := `
 		INSERT INTO channel_members (channel_id, user_id, role, invited_by)
@@ -905,7 +918,7 @@ func (h *ChatHandler) AddChannelMember(c *gin.Context) {
 	err = h.db.QueryRow(c.Request.Context(), query,
 		channelUUID, targetUserID, role, inviterID).Scan(&member.ID, &member.JoinedAt)
 	
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusConflict, gin.H{"error": "User is already a member"})
 		return
 	} else if err != nil {
@@ -956,7 +969,7 @@ func (h *ChatHandler) RemoveChannelMember(c *gin.Context) {
 	err = h.db.QueryRow(c.Request.Context(),
 		`SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2`,
 		channelUUID, removerID).Scan(&removerRole)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not a member of this channel"})
 		return
 	} else if err != nil {
@@ -969,7 +982,7 @@ func (h *ChatHandler) RemoveChannelMember(c *gin.Context) {
 	err = h.db.QueryRow(c.Request.Context(),
 		`SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2`,
 		channelUUID, memberUUID).Scan(&targetRole)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User is not a member of this channel"})
 		return
 	} else if err != nil {
@@ -1128,7 +1141,7 @@ func (h *ChatHandler) UpdateChannelMemberRole(c *gin.Context) {
 	err = h.db.QueryRow(c.Request.Context(),
 		`SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2`,
 		channelUUID, updaterID).Scan(&updaterRole)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not a member of this channel"})
 		return
 	} else if err != nil {
@@ -1146,7 +1159,7 @@ func (h *ChatHandler) UpdateChannelMemberRole(c *gin.Context) {
 	err = h.db.QueryRow(c.Request.Context(),
 		`SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2`,
 		channelUUID, memberUUID).Scan(&targetRole)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User is not a member of this channel"})
 		return
 	} else if err != nil {
