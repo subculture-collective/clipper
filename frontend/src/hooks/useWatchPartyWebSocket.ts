@@ -58,9 +58,17 @@ export function useWatchPartyWebSocket({
         return;
       }
 
+      // Use subprotocol for authentication to avoid token in URL/query params
+      // The token is sent via Sec-WebSocket-Protocol header, which:
+      // 1. Is not logged in access logs (unlike query parameters)
+      // 2. Is encrypted by WSS/HTTPS
+      // 3. Follows WebSocket authentication best practices
       const wsUrl = `${wsProtocol}//${wsHost}/api/v1/watch-parties/${partyId}/ws`;
-
-      const ws = new WebSocket(wsUrl);
+      
+      // Pass token as subprotocol - server will extract it from Sec-WebSocket-Protocol header
+      // Format: "auth.bearer.<base64_token>" to avoid protocol name conflicts
+      const authProtocol = `auth.bearer.${btoa(token)}`;
+      const ws = new WebSocket(wsUrl, [authProtocol]);
       wsRef.current = ws;
 
       ws.onopen = () => {

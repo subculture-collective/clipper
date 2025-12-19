@@ -75,6 +75,22 @@ CREATE TABLE watch_party_reactions (
 
 Connect to: `wss://[host]/api/v1/watch-parties/:id/ws`
 
+**Authentication**: 
+- WebSocket connections require authentication via JWT token
+- Token is passed via `Sec-WebSocket-Protocol` header as a subprotocol
+- Format: `auth.bearer.<base64_encoded_token>`
+- This approach prevents tokens from appearing in URLs/query parameters
+- Query parameters would be logged by proxies, load balancers, and access logs
+- Token is validated before WebSocket upgrade
+- Unauthenticated connections will receive 401 Unauthorized response
+
+**JavaScript Example:**
+```javascript
+const token = getJWT();
+const authProtocol = `auth.bearer.${btoa(token)}`;
+const ws = new WebSocket('wss://example.com/api/v1/watch-parties/123/ws', [authProtocol]);
+```
+
 #### Client → Server Commands
 
 ```typescript
@@ -199,7 +215,15 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 ### Per-User Limits
 - **Chat Messages**: 10 messages per minute
 - **Reactions**: 30 reactions per minute
-- Implemented using in-memory rate limiter with sliding window
+- Implemented using Redis-backed distributed rate limiter with sliding window algorithm
+- **Multi-Instance Deployments**: Rate limits are enforced globally across all server instances via Redis
+- Failed rate limit checks are logged but silently dropped (no error sent to client)
+
+### Architecture
+- Uses Redis sorted sets for distributed rate limiting
+- Sliding window algorithm ensures accurate rate limiting across instances
+- Automatic cleanup of expired entries
+- Fallback to in-memory rate limiter if Redis is unavailable (per-instance only)
 
 ### HTTP Endpoint Limits
 - Enforced by middleware at HTTP layer
@@ -227,12 +251,23 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 
 ## Security Features
 
-1. **Authentication Required**: All endpoints require valid JWT token
+1. **Authentication Required**: All endpoints and WebSocket connections require valid JWT token
+   - HTTP endpoints: Token via Authorization header or cookie
+   - WebSocket: Token via `Sec-WebSocket-Protocol` subprotocol header (prevents URL logging)
+   - Tokens never appear in URLs or query parameters to prevent logging exposure
 2. **Participant Validation**: Only active participants can send messages/reactions
-3. **Rate Limiting**: Prevents spam and abuse
+3. **Distributed Rate Limiting**: Prevents spam and abuse across all server instances
+   - Redis-backed sliding window algorithm with atomic Lua script execution
+   - Global enforcement in multi-instance deployments
+   - No race conditions in concurrent request handling
 4. **Message Validation**: 1-1000 character limit, sanitized
 5. **Emoji Validation**: Max 10 characters per emoji
 6. **Party Visibility**: Private parties restrict access to participants only
+7. **Secure Token Transport**: Tokens transmitted via headers, never in URLs
+4. **Message Validation**: 1-1000 character limit, sanitized
+5. **Emoji Validation**: Max 10 characters per emoji
+6. **Party Visibility**: Private parties restrict access to participants only
+7. **Secure Token Transport**: HTTPS encrypts WebSocket URLs including query parameters
 
 ## Testing
 
@@ -264,6 +299,22 @@ go test ./internal/repository/watch_party_repository_test.go -v
 3. **Typing Indicators**: Non-persistent, lost on reconnection
 4. **No Editing**: Messages cannot be edited after sending
 5. **No Deletion**: Messages cannot be deleted by users
+
+## Deployment Considerations
+
+### Multi-Instance Deployments
+- **Rate Limiting**: Requires Redis for distributed rate limiting across instances
+- **WebSocket Connections**: Each instance maintains its own WebSocket connections
+- **Load Balancing**: Configure load balancer for WebSocket sticky sessions or use Redis pub/sub
+- **Redis Requirements**: 
+  - Must be accessible from all backend instances
+  - Recommended: Redis Cluster or Sentinel for high availability
+  - Rate limit keys automatically expire after window + 1 minute
+
+### Single Instance Deployments
+- Can use in-memory rate limiter fallback if Redis is unavailable
+- Simpler setup but limited scalability
+- Rate limits are per-instance (can be bypassed by connecting to different instances)
 
 ## Future Enhancements
 

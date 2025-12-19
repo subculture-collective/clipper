@@ -77,8 +77,8 @@ type WatchPartyHub struct {
 	mutex            sync.RWMutex
 	stopChan         chan struct{}
 	wg               sync.WaitGroup
-	chatRateLimiter  *SimpleRateLimiter // 10 messages per minute per user
-	reactRateLimiter *SimpleRateLimiter // 30 reactions per minute per user
+	chatRateLimiter  RateLimiter // Distributed rate limiter: 10 messages per minute per user
+	reactRateLimiter RateLimiter // Distributed rate limiter: 30 reactions per minute per user
 }
 
 // WatchPartyClient represents a connected client
@@ -94,16 +94,20 @@ type WatchPartyClient struct {
 
 // WatchPartyHubManager manages multiple watch party hubs
 type WatchPartyHubManager struct {
-	hubs           map[uuid.UUID]*WatchPartyHub
-	mutex          sync.RWMutex
-	watchPartyRepo *repository.WatchPartyRepository
+	hubs             map[uuid.UUID]*WatchPartyHub
+	mutex            sync.RWMutex
+	watchPartyRepo   *repository.WatchPartyRepository
+	chatRateLimiter  RateLimiter
+	reactRateLimiter RateLimiter
 }
 
-// NewWatchPartyHubManager creates a new hub manager
-func NewWatchPartyHubManager(watchPartyRepo *repository.WatchPartyRepository) *WatchPartyHubManager {
+// NewWatchPartyHubManager creates a new hub manager with distributed rate limiting
+func NewWatchPartyHubManager(watchPartyRepo *repository.WatchPartyRepository, chatLimiter, reactLimiter RateLimiter) *WatchPartyHubManager {
 	return &WatchPartyHubManager{
-		hubs:           make(map[uuid.UUID]*WatchPartyHub),
-		watchPartyRepo: watchPartyRepo,
+		hubs:             make(map[uuid.UUID]*WatchPartyHub),
+		watchPartyRepo:   watchPartyRepo,
+		chatRateLimiter:  chatLimiter,
+		reactRateLimiter: reactLimiter,
 	}
 }
 
@@ -124,8 +128,8 @@ func (m *WatchPartyHubManager) GetOrCreateHub(partyID uuid.UUID) *WatchPartyHub 
 		Register:         make(chan *WatchPartyClient),
 		Unregister:       make(chan *WatchPartyClient),
 		stopChan:         make(chan struct{}),
-		chatRateLimiter:  NewSimpleRateLimiter(10, time.Minute),  // 10 messages per minute
-		reactRateLimiter: NewSimpleRateLimiter(30, time.Minute),  // 30 reactions per minute
+		chatRateLimiter:  m.chatRateLimiter,  // Use shared distributed rate limiter
+		reactRateLimiter: m.reactRateLimiter, // Use shared distributed rate limiter
 	}
 
 	m.hubs[partyID] = hub
@@ -394,7 +398,15 @@ func (c *WatchPartyClient) handleCommand(ctx context.Context, cmd *models.WatchP
 	case "chat":
 		// Rate limit check - 10 messages per minute
 		rateLimitKey := fmt.Sprintf("chat:%s:%s", partyID.String(), c.UserID.String())
-		if !c.Hub.chatRateLimiter.Allow(rateLimitKey) {
+		allowed, err := c.Hub.chatRateLimiter.Allow(ctx, rateLimitKey)
+		if err != nil {
+			// Log infrastructure errors but don't expose to client
+			// This could indicate Redis connectivity issues
+			log.Printf("Rate limiter error for user %s (falling back to deny): %v", c.UserID, err)
+			// Fail closed: deny the request on infrastructure errors
+			return
+		}
+		if !allowed {
 			log.Printf("Chat rate limit exceeded for user %s", c.UserID)
 			return
 		}
@@ -433,7 +445,15 @@ func (c *WatchPartyClient) handleCommand(ctx context.Context, cmd *models.WatchP
 	case "reaction":
 		// Rate limit check - 30 reactions per minute
 		rateLimitKey := fmt.Sprintf("reaction:%s:%s", partyID.String(), c.UserID.String())
-		if !c.Hub.reactRateLimiter.Allow(rateLimitKey) {
+		allowed, err := c.Hub.reactRateLimiter.Allow(ctx, rateLimitKey)
+		if err != nil {
+			// Log infrastructure errors but don't expose to client
+			// This could indicate Redis connectivity issues
+			log.Printf("Rate limiter error for user %s (falling back to deny): %v", c.UserID, err)
+			// Fail closed: deny the request on infrastructure errors
+			return
+		}
+		if !allowed {
 			log.Printf("Reaction rate limit exceeded for user %s", c.UserID)
 			return
 		}

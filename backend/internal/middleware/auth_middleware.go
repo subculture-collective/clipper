@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
 
@@ -118,7 +119,9 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	}
 }
 
-// extractToken extracts JWT token from Authorization header or cookie
+// extractToken extracts JWT token from Authorization header, WebSocket subprotocol, or cookie
+// WebSocket subprotocol support prevents tokens from appearing in URLs/query parameters
+// which could be logged by proxies, load balancers, or access logs
 func extractToken(c *gin.Context) string {
 	// Try Authorization header first
 	authHeader := c.GetHeader("Authorization")
@@ -126,6 +129,22 @@ func extractToken(c *gin.Context) string {
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) == 2 && parts[0] == "Bearer" {
 			return parts[1]
+		}
+	}
+
+	// Try WebSocket subprotocol (Sec-WebSocket-Protocol header)
+	// Format: "auth.bearer.<base64_token>"
+	// This prevents tokens from appearing in URLs which are logged
+	wsProtocol := c.GetHeader("Sec-WebSocket-Protocol")
+	if wsProtocol != "" {
+		// Parse subprotocol format: auth.bearer.<base64_token>
+		parts := strings.Split(wsProtocol, ".")
+		if len(parts) == 3 && parts[0] == "auth" && parts[1] == "bearer" {
+			// Decode base64 token
+			decoded, err := base64.StdEncoding.DecodeString(parts[2])
+			if err == nil {
+				return string(decoded)
+			}
 		}
 	}
 

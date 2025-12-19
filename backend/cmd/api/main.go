@@ -253,7 +253,14 @@ func main() {
 
 	// Initialize watch party service and hub manager
 	watchPartyService := services.NewWatchPartyService(watchPartyRepo, playlistRepo, clipRepo, cfg.Server.BaseURL)
-	watchPartyHubManager := services.NewWatchPartyHubManager(watchPartyRepo)
+	
+	// Initialize rate limiters for watch party (distributed via Redis)
+	// 10 messages per minute per user
+	chatRateLimiter := services.NewDistributedRateLimiter(redisClient, 10, time.Minute)
+	// 30 reactions per minute per user
+	reactRateLimiter := services.NewDistributedRateLimiter(redisClient, 30, time.Minute)
+	
+	watchPartyHubManager := services.NewWatchPartyHubManager(watchPartyRepo, chatRateLimiter, reactRateLimiter)
 
 	// Initialize event tracker for feed analytics
 	eventTracker := services.NewEventTracker(db.Pool, 100, 5*time.Second)
