@@ -97,10 +97,8 @@ BEGIN
         RETURN; -- Nothing to process
     END IF;
     
-    processed_count := 0;
-    
     -- Keep processing until all replies have depth and path, or max iterations reached
-    WHILE processed_count < total_count AND iteration < max_iterations LOOP
+    WHILE total_count > 0 AND iteration < max_iterations LOOP
         iteration := iteration + 1;
         processed_count := 0;
         
@@ -114,7 +112,8 @@ BEGIN
             IF reply_record.parent_reply_id IS NULL THEN
                 -- Root level reply
                 current_depth := 0;
-                current_path := substring(reply_record.id::text, 1, 8);
+                -- Use full UUID with hyphens replaced by underscores for ltree compatibility
+                current_path := REPLACE(reply_record.id::text, '-', '_');
                 
                 -- Update the reply with calculated depth and path
                 UPDATE forum_replies
@@ -133,7 +132,7 @@ BEGIN
                 -- Only process if parent has been processed
                 IF current_path IS NOT NULL AND current_depth IS NOT NULL THEN
                     current_depth := current_depth + 1;
-                    current_path := current_path || '.' || substring(reply_record.id::text, 1, 8);
+                    current_path := current_path || '.' || REPLACE(reply_record.id::text, '-', '_');
                     
                     -- Update the reply with calculated depth and path
                     UPDATE forum_replies

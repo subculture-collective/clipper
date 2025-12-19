@@ -298,12 +298,15 @@ func (h *ForumHandler) GetThread(c *gin.Context) {
 		thread.Tags = []string{}
 	}
 
-	// Increment view count asynchronously
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		h.db.Exec(ctx, "UPDATE forum_threads SET view_count = view_count + 1 WHERE id = $1", threadID)
-	}()
+	// Increment view count atomically in the database
+	// Using UPDATE directly ensures atomic increment without race conditions
+	_, err = h.db.Exec(c.Request.Context(), 
+		"UPDATE forum_threads SET view_count = view_count + 1 WHERE id = $1", 
+		threadID)
+	if err != nil {
+		// Log the error but don't fail the request
+		// View count increment is non-critical
+	}
 
 	// Get all replies for the thread using ltree path for efficient hierarchical queries
 	replies, err := h.getThreadRepliesHierarchical(c.Request.Context(), threadID)
@@ -466,7 +469,9 @@ func (h *ForumHandler) CreateReply(c *gin.Context) {
 	var depth int
 	var path string
 	replyID := uuid.New()
-	replyIDShort := replyID.String()[:8]
+	// Use full UUID string for ltree path to avoid collisions
+	// Replace hyphens with underscores as ltree doesn't support hyphens
+	replyIDForPath := strings.ReplaceAll(replyID.String(), "-", "_")
 
 	var parentReplyID *uuid.UUID
 	if req.ParentReplyID != nil && *req.ParentReplyID != "" {
@@ -509,11 +514,11 @@ func (h *ForumHandler) CreateReply(c *gin.Context) {
 		}
 
 		depth = parentDepth + 1
-		path = fmt.Sprintf("%s.%s", parentPath, replyIDShort)
+		path = fmt.Sprintf("%s.%s", parentPath, replyIDForPath)
 	} else {
 		// Root level reply
 		depth = 0
-		path = replyIDShort
+		path = replyIDForPath
 	}
 
 	// Insert reply
