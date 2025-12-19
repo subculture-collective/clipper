@@ -49,3 +49,17 @@ export interface UserPresence {
   username: string;
   status: 'online' | 'offline' | 'away';
 }
+
+export interface ChannelMember {
+  id: string;
+  channel_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'moderator' | 'member';
+  joined_at: string;
+  invited_by?: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+}
+
+export type ChannelRole = 'owner' | 'admin' | 'moderator' | 'member';

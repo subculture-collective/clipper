@@ -1122,6 +1122,7 @@ func main() {
 				channels.POST("/:id/members", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.AddChannelMember)
 				channels.DELETE("/:id/members/:user_id", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.RemoveChannelMember)
 				channels.PATCH("/:id/members/:user_id", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.UpdateChannelMemberRole)
+				channels.GET("/:id/role", chatHandler.GetCurrentUserRole)
 				
 				// WebSocket connection endpoint
 				channels.GET("/:id/ws", websocketHandler.HandleConnection)
