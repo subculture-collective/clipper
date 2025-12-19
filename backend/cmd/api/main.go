@@ -1253,12 +1253,15 @@ func main() {
 			forum.GET("/threads", forumHandler.ListThreads)
 			forum.GET("/threads/:id", forumHandler.GetThread)
 			forum.GET("/search", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.SearchThreads)
+			forum.GET("/replies/:id/votes", forumHandler.GetReplyVotes)
+			forum.GET("/users/:id/reputation", forumHandler.GetUserReputation)
 
 			// Protected forum endpoints (require authentication)
 			forum.POST("/threads", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), forumHandler.CreateThread)
 			forum.POST("/threads/:id/replies", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.CreateReply)
 			forum.PATCH("/replies/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), forumHandler.UpdateReply)
 			forum.DELETE("/replies/:id", middleware.AuthMiddleware(authService), forumHandler.DeleteReply)
+			forum.POST("/replies/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 50, time.Minute), forumHandler.VoteOnReply)
 		}
 
 		// Queue routes (clip playback queue)

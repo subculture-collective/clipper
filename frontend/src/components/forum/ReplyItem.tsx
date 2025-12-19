@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatTimestamp, cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui';
 import { ConfirmDialog } from './ConfirmDialog';
-import type { ForumReply } from '@/types/forum';
+import { VoteButtons } from './VoteButtons';
+import type { ForumReply, VoteStats } from '@/types/forum';
 
 interface ReplyItemProps {
   reply: ForumReply;
@@ -28,10 +29,43 @@ export function ReplyItem({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(reply.content);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [voteStats, setVoteStats] = useState<VoteStats | null>(reply.vote_stats || null);
+  const [isLoadingVotes, setIsLoadingVotes] = useState(!reply.vote_stats);
 
   const timestamp = formatTimestamp(reply.created_at);
   const isAuthor = currentUserId === reply.user_id;
   const maxDepth = 10;
+
+  // Fetch vote stats if not provided
+  useEffect(() => {
+    if (!reply.vote_stats && !voteStats) {
+      const fetchVoteStats = async () => {
+        try {
+          const response = await fetch(`/api/v1/forum/replies/${reply.id}/votes`, {
+            credentials: 'include',
+          });
+          if (response.ok) {
+            const { data } = await response.json();
+            setVoteStats(data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch vote stats:', error);
+          // Set default stats on error
+          setVoteStats({
+            upvotes: 0,
+            downvotes: 0,
+            net_votes: 0,
+            user_vote: 0,
+          });
+        } finally {
+          setIsLoadingVotes(false);
+        }
+      };
+      fetchVoteStats();
+    } else {
+      setIsLoadingVotes(false);
+    }
+  }, [reply.id, reply.vote_stats, voteStats]);
 
   // Soft-deleted reply
   if (reply.is_deleted) {
@@ -145,15 +179,28 @@ export function ReplyItem({
                 </ReactMarkdown>
               </div>
 
-              {/* Reply button */}
-              {depth < maxDepth && (
-                <button
-                  onClick={() => onReply(reply.id)}
-                  className="mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  Reply
-                </button>
-              )}
+              {/* Vote buttons and reply actions */}
+              <div className="mt-3 flex items-center gap-4">
+                {/* Vote buttons */}
+                {!isLoadingVotes && voteStats && (
+                  <VoteButtons
+                    replyId={reply.id}
+                    initialStats={voteStats}
+                    onVoteChange={setVoteStats}
+                    disabled={!currentUserId}
+                  />
+                )}
+
+                {/* Reply button */}
+                {depth < maxDepth && (
+                  <button
+                    onClick={() => onReply(reply.id)}
+                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Reply
+                  </button>
+                )}
+              </div>
             </>
           )}
         </div>
