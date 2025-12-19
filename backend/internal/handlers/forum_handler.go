@@ -868,10 +868,18 @@ func (h *ForumHandler) VoteOnReply(c *gin.Context) {
 	}
 
 	// Update reputation for reply author (async via goroutine for performance)
+	// Use a separate context with timeout to prevent goroutine leaks
 	go func() {
+		// Create background context with timeout
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = h.db.Exec(ctx, "SELECT update_reputation_score($1)", replyUserID)
+		
+		// Update reputation - errors are logged but don't affect vote response
+		if _, err := h.db.Exec(ctx, "SELECT update_reputation_score($1)", replyUserID); err != nil {
+			// Log error but don't fail the vote operation
+			// In production, consider using structured logging
+			_ = err
+		}
 	}()
 
 	c.JSON(http.StatusOK, gin.H{

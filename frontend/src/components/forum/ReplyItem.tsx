@@ -65,7 +65,8 @@ export function ReplyItem({
     } else {
       setIsLoadingVotes(false);
     }
-  }, [reply.id, reply.vote_stats, voteStats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reply.id, reply.vote_stats]); // Removed voteStats from deps to prevent infinite loop
 
   // Soft-deleted reply
   if (reply.is_deleted) {

@@ -124,10 +124,7 @@ $$ LANGUAGE plpgsql;
 -- Function to refresh vote counts materialized view incrementally (single reply)
 CREATE OR REPLACE FUNCTION refresh_reply_vote_count(p_reply_id UUID) RETURNS VOID AS $$
 BEGIN
-    -- Delete existing count for this reply
-    DELETE FROM forum_vote_counts WHERE reply_id = p_reply_id;
-    
-    -- Reinsert updated count
+    -- Use UPSERT pattern instead of DELETE + INSERT to avoid race conditions
     INSERT INTO forum_vote_counts (reply_id, upvote_count, downvote_count, net_votes)
     SELECT 
         p_reply_id,
@@ -136,7 +133,19 @@ BEGIN
         SUM(vote_value)::INT
     FROM forum_votes
     WHERE reply_id = p_reply_id AND vote_value != 0
-    GROUP BY reply_id;
+    GROUP BY reply_id
+    ON CONFLICT (reply_id) DO UPDATE SET
+        upvote_count = EXCLUDED.upvote_count,
+        downvote_count = EXCLUDED.downvote_count,
+        net_votes = EXCLUDED.net_votes;
+    
+    -- Handle case where all votes are removed (need to delete the row)
+    DELETE FROM forum_vote_counts 
+    WHERE reply_id = p_reply_id 
+    AND NOT EXISTS (
+        SELECT 1 FROM forum_votes 
+        WHERE reply_id = p_reply_id AND vote_value != 0
+    );
 END;
 $$ LANGUAGE plpgsql;
 

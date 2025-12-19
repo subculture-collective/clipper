@@ -57,11 +57,21 @@ export function VoteButtons({
       if (statsResponse.ok) {
         const { data } = await statsResponse.json();
         if (data) {
-          setVoteCount(data.net_votes);
-          setLocalVote(data.user_vote);
+          // Validate response data
+          const validatedStats: VoteStats = {
+            upvotes: typeof data.upvotes === 'number' ? data.upvotes : 0,
+            downvotes: typeof data.downvotes === 'number' ? data.downvotes : 0,
+            net_votes: typeof data.net_votes === 'number' ? data.net_votes : 0,
+            user_vote: (data.user_vote === -1 || data.user_vote === 0 || data.user_vote === 1) 
+              ? data.user_vote 
+              : 0,
+          };
+          
+          setVoteCount(validatedStats.net_votes);
+          setLocalVote(validatedStats.user_vote);
           
           if (onVoteChange) {
-            onVoteChange(data);
+            onVoteChange(validatedStats);
           }
         }
       }
