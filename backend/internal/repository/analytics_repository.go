@@ -1109,7 +1109,7 @@ func (r *AnalyticsRepository) GetWatchPartyAnalytics(ctx context.Context, partyI
 	`
 
 	var analytics WatchPartyAnalytics
-	err = r.db.QueryRow(ctx, query, partyID).Scan(
+	err := r.db.QueryRow(ctx, query, partyID).Scan(
 		&analytics.PartyID,
 		&analytics.UniqueViewers,
 		&analytics.PeakConcurrentViewers,
