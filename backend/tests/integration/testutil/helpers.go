@@ -5,6 +5,7 @@ package testutil
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -158,8 +159,11 @@ func AssertEventuallyEqual(t *testing.T, getValue func() interface{}, expected i
 // Helper functions
 
 func getEnv(key, defaultValue string) string {
-	// In actual implementation, would use os.Getenv
-	return defaultValue
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }
 
 func generateTestJWTKey(t *testing.T) string {

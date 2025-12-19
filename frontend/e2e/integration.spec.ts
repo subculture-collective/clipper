@@ -1,4 +1,19 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, Page } from '@playwright/test';
+
+// Selectors
+const SELECTORS = {
+    searchInput: 'input[type="search"], input[placeholder*="search" i]',
+    loginButton: 'button, a',
+    clipCard: '[data-testid="clip-card"]',
+    submitButton: 'button, a',
+    favoriteButton: 'button',
+    premiumLink: 'a, button',
+};
+
+// Helper function to get search input
+async function getSearchInput(page: Page) {
+    return page.locator(SELECTORS.searchInput).first();
+}
 
 test.describe('Authentication Flows', () => {
     test('should display login button on homepage', async ({ page }) => {
@@ -125,14 +140,14 @@ test.describe('Search Functionality', () => {
     test('should display search input', async ({ page }) => {
         await page.goto('/');
         
-        const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]');
-        await expect(searchInput.first()).toBeVisible();
+        const searchInput = await getSearchInput(page);
+        await expect(searchInput).toBeVisible();
     });
 
     test('should perform basic search', async ({ page }) => {
         await page.goto('/');
         
-        const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
+        const searchInput = await getSearchInput(page);
         await searchInput.fill('gameplay');
         await searchInput.press('Enter');
         
@@ -183,20 +198,21 @@ test.describe('Search Functionality', () => {
     test('should support search suggestions/autocomplete', async ({ page }) => {
         await page.goto('/');
         
-        const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
+        const searchInput = await getSearchInput(page);
         await searchInput.fill('game');
         
-        // Wait a bit for autocomplete to appear
-        await page.waitForTimeout(500);
-        
-        // Check for suggestions dropdown
+        // Wait for suggestions to appear using Playwright's auto-waiting
         const suggestions = page.locator('[role="listbox"], [role="menu"]');
+        
+        // Try to wait for suggestions, but don't fail if they don't appear
+        await suggestions.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {});
         
         // Suggestions may or may not be implemented
         const hasSuggestions = await suggestions.isVisible();
         // This is optional, so we just check it doesn't error
         expect(typeof hasSuggestions).toBe('boolean');
     });
+});
 });
 
 test.describe('Engagement Features', () => {
@@ -257,7 +273,13 @@ test.describe('Engagement Features', () => {
             
             // Try to click it (may require auth)
             await button.click();
-            await page.waitForTimeout(500);
+            
+            // Wait for either success or auth prompt
+            await Promise.race([
+                page.waitForSelector('[data-testid="favorite-success"]', { timeout: 2000 }),
+                page.waitForSelector('[data-testid="login-prompt"]', { timeout: 2000 }),
+                page.waitForLoadState('networkidle', { timeout: 2000 }),
+            ]).catch(() => {});
             
             // Should either perform action or prompt for login
         }
@@ -345,10 +367,12 @@ test.describe('Mobile Responsiveness', () => {
         
         if (await menuButton.count() > 0) {
             await menuButton.first().click();
-            await page.waitForTimeout(500);
+            
+            // Wait for navigation menu to appear
+            const navMenu = page.locator('nav, [role="navigation"]');
+            await navMenu.first().waitFor({ state: 'visible', timeout: 2000 }).catch(() => {});
             
             // Navigation should be visible
-            const navMenu = page.locator('nav, [role="navigation"]');
             await expect(navMenu.first()).toBeVisible();
         }
     });
