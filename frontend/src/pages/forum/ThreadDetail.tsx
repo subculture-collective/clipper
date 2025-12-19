@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Lock, MessageSquare } from 'lucide-react';
@@ -23,6 +23,26 @@ export function ThreadDetail() {
 
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showMobileComposer, setShowMobileComposer] = useState(false);
+
+  // Handle mobile drawer keyboard and scroll
+  useEffect(() => {
+    if (showMobileComposer) {
+      const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setShowMobileComposer(false);
+        }
+      };
+
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [showMobileComposer]);
 
   // Fetch thread with replies
   const { data, isLoading, error } = useQuery({
@@ -269,7 +289,10 @@ export function ThreadDetail() {
 
       {/* Mobile reply composer drawer */}
       {isMobile && showMobileComposer && user && !thread.locked && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-end"
+          onClick={() => setShowMobileComposer(false)}
+        >
           <div
             className="bg-gray-900 w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
