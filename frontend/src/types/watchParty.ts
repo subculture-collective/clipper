@@ -121,3 +121,22 @@ export interface ReactionAnimation {
   y: number;
   timestamp: number;
 }
+
+export interface WatchPartyAnalytics {
+  party_id: string;
+  unique_viewers: number;
+  peak_concurrent: number;
+  current_viewers: number;
+  avg_duration_seconds: number;
+  chat_messages: number;
+  reactions: number;
+  total_engagement: number;
+}
+
+export interface HostStats {
+  total_parties_hosted: number;
+  total_viewers: number;
+  avg_viewers_per_party: number;
+  total_chat_messages: number;
+  total_reactions: number;
+}
