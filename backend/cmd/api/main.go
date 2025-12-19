@@ -407,7 +407,8 @@ func main() {
 		}
 	}
 	
-	// Initialize forum moderation handler
+	// Initialize forum handlers
+	forumHandler := handlers.NewForumHandler(db.Pool)
 	forumModerationHandler := handlers.NewForumModerationHandler(db.Pool)
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
@@ -1228,6 +1229,21 @@ func main() {
 			playlists.POST("/:id/collaborators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), playlistHandler.AddCollaborator)
 			playlists.DELETE("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.RemoveCollaborator)
 			playlists.PATCH("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.UpdateCollaboratorPermission)
+		}
+
+		// Forum routes
+		forum := v1.Group("/forum")
+		{
+			// Public forum endpoints
+			forum.GET("/threads", forumHandler.ListThreads)
+			forum.GET("/threads/:id", forumHandler.GetThread)
+			forum.GET("/search", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.SearchThreads)
+
+			// Protected forum endpoints (require authentication)
+			forum.POST("/threads", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), forumHandler.CreateThread)
+			forum.POST("/threads/:id/replies", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.CreateReply)
+			forum.PATCH("/replies/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), forumHandler.UpdateReply)
+			forum.DELETE("/replies/:id", middleware.AuthMiddleware(authService), forumHandler.DeleteReply)
 		}
 
 		// Queue routes (clip playback queue)
