@@ -76,6 +76,7 @@ export interface ForumSearchResponse {
     author?: string;
     sort: string;
     count: number;
+    has_more: boolean;
   };
 }
 

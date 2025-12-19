@@ -9,32 +9,41 @@ interface SearchResultCardProps {
   className?: string;
 }
 
+// Format date relative to now, moved outside component to avoid recreation on every render
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  
+  // Handle future dates or invalid dates
+  if (diffMs < 0 || isNaN(diffMs)) {
+    return date.toLocaleDateString();
+  }
+  
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
+
 export function SearchResultCard({ result, className }: SearchResultCardProps) {
   // Determine the link based on result type
+  // Add safety check for missing thread_id in reply results
   const link = result.type === 'thread' 
     ? `/forum/threads/${result.id}`
-    : `/forum/threads/${result.thread_id}#reply-${result.id}`;
+    : result.thread_id
+      ? `/forum/threads/${result.thread_id}#reply-${result.id}`
+      : '/forum';
 
   // Sanitize the headline to prevent XSS attacks
   const sanitizedHeadline = DOMPurify.sanitize(result.headline, {
     ALLOWED_TAGS: ['b', 'strong', 'em', 'i'],
     ALLOWED_ATTR: []
   });
-
-  // Format the date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
 
   return (
     <Link

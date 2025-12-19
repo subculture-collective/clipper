@@ -761,6 +761,7 @@ func (h *ForumHandler) SearchThreads(c *gin.Context) {
 			ft.user_id as author_id,
 			u.username as author_name,
 			NULL::uuid as thread_id,
+			-- Threads do not support direct voting; this placeholder keeps UNION schema compatible with replies
 			0 as vote_count,
 			ft.created_at,
 			ts_headline('english', 
@@ -775,9 +776,12 @@ func (h *ForumHandler) SearchThreads(c *gin.Context) {
 			AND ft.search_vector @@ plainto_tsquery('english', $1)
 	`)
 
+	// Store the author parameter index if author filter is used
+	authorParamIdx := 0
 	if author != "" {
 		queryBuilder.WriteString(fmt.Sprintf(" AND u.username = $%d", argIdx))
 		args = append(args, author)
+		authorParamIdx = argIdx
 		argIdx++
 	}
 
@@ -807,10 +811,9 @@ func (h *ForumHandler) SearchThreads(c *gin.Context) {
 			AND fr.search_vector @@ plainto_tsquery('english', $1)
 	`)
 
+	// Reuse the same author parameter index for replies
 	if author != "" {
-		queryBuilder.WriteString(fmt.Sprintf(" AND u.username = $%d", argIdx))
-		args = append(args, author)
-		argIdx++
+		queryBuilder.WriteString(fmt.Sprintf(" AND u.username = $%d", authorParamIdx))
 	}
 
 	// Add ORDER BY based on sort parameter
@@ -862,16 +865,25 @@ func (h *ForumHandler) SearchThreads(c *gin.Context) {
 		results = append(results, result)
 	}
 
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to read search results",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    results,
 		"meta": gin.H{
-			"page":   page,
-			"limit":  limit,
-			"query":  searchQuery,
-			"author": author,
-			"sort":   sortBy,
-			"count":  len(results),
+			"page":     page,
+			"limit":    limit,
+			"query":    searchQuery,
+			"author":   author,
+			"sort":     sortBy,
+			"count":    len(results),
+			"has_more": len(results) == limit, // Indicates if there might be more results
 		},
 	})
 }

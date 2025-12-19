@@ -177,7 +177,7 @@ export function ForumSearchPage() {
           )}
 
           {/* Pagination */}
-          {meta && (page > 1 || meta.count === meta.limit) && (
+          {meta && (page > 1 || meta.has_more) && (
             <div className="flex justify-center gap-2 mt-8">
               {page > 1 && (
                 <button
@@ -194,7 +194,7 @@ export function ForumSearchPage() {
               <span className="px-4 py-2 bg-gray-900 text-gray-400 rounded border border-gray-700">
                 Page {page}
               </span>
-              {meta.count === meta.limit && (
+              {meta.has_more && (
                 <button
                   onClick={() => {
                     const params = new URLSearchParams(searchParams);
