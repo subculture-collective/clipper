@@ -78,8 +78,8 @@ export function ReputationProgressBar({
 }: ReputationProgressBarProps) {
   // Calculate progress within current tier
   let progress = 0;
-  let nextTier = 'Contributor';
-  let pointsToNext = 50;
+  let nextTier: string;
+  let pointsToNext: number;
 
   if (score < 50) {
     progress = (score / 50) * 100;

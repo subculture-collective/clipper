@@ -31,6 +31,7 @@ export function ReplyItem({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [voteStats, setVoteStats] = useState<VoteStats | null>(reply.vote_stats || null);
   const [isLoadingVotes, setIsLoadingVotes] = useState(!reply.vote_stats);
+  const [hasFetchedStats, setHasFetchedStats] = useState(!!reply.vote_stats);
 
   const timestamp = formatTimestamp(reply.created_at);
   const isAuthor = currentUserId === reply.user_id;
@@ -38,7 +39,7 @@ export function ReplyItem({
 
   // Fetch vote stats if not provided
   useEffect(() => {
-    if (!reply.vote_stats && !voteStats) {
+    if (!reply.vote_stats && !hasFetchedStats) {
       const fetchVoteStats = async () => {
         try {
           const response = await fetch(`/api/v1/forum/replies/${reply.id}/votes`, {
@@ -59,14 +60,15 @@ export function ReplyItem({
           });
         } finally {
           setIsLoadingVotes(false);
+          setHasFetchedStats(true);
         }
       };
       fetchVoteStats();
-    } else {
+    } else if (reply.vote_stats) {
       setIsLoadingVotes(false);
+      setHasFetchedStats(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reply.id, reply.vote_stats]); // Removed voteStats from deps to prevent infinite loop
+  }, [reply.id, reply.vote_stats, hasFetchedStats])
 
   // Soft-deleted reply
   if (reply.is_deleted) {

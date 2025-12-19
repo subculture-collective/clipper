@@ -206,10 +206,24 @@ ON CONFLICT (user_id) DO NOTHING;
 DO $$
 DECLARE
     user_record RECORD;
+    user_count BIGINT;
+    processed_count BIGINT := 0;
 BEGIN
+    -- Calculate total number of users whose reputation will be updated
+    SELECT COUNT(DISTINCT user_id) INTO user_count FROM user_reputation;
+    RAISE NOTICE 'Starting reputation score update for % users', user_count;
+
     FOR user_record IN 
         SELECT DISTINCT user_id FROM user_reputation
     LOOP
         PERFORM update_reputation_score(user_record.user_id);
+        processed_count := processed_count + 1;
+
+        -- Periodically report progress to avoid silent long-running migration
+        IF processed_count % 1000 = 0 THEN
+            RAISE NOTICE 'Updated reputation for % of % users', processed_count, user_count;
+        END IF;
     END LOOP;
+
+    RAISE NOTICE 'Completed reputation score update for % users', processed_count;
 END $$;

@@ -74,6 +74,14 @@ export function VoteButtons({
             onVoteChange(validatedStats);
           }
         }
+      } else {
+        // Keep optimistic update but log that stats could not be refreshed
+        console.warn(
+          'Failed to refresh vote stats for reply',
+          replyId,
+          'Status:',
+          statsResponse.status
+        );
       }
     } catch (error) {
       // Revert on error

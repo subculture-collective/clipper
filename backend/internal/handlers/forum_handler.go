@@ -852,6 +852,14 @@ func (h *ForumHandler) VoteOnReply(c *gin.Context) {
 		return
 	}
 
+	// Prevent self-voting
+	if replyUserID == userID.(uuid.UUID) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot vote on your own reply",
+		})
+		return
+	}
+
 	// Insert or update vote
 	_, err = h.db.Exec(c.Request.Context(), `
 		INSERT INTO forum_votes (user_id, reply_id, vote_value)
@@ -874,11 +882,10 @@ func (h *ForumHandler) VoteOnReply(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		
-		// Update reputation - errors are logged but don't affect vote response
+		// Update reputation - errors are logged for debugging
 		if _, err := h.db.Exec(ctx, "SELECT update_reputation_score($1)", replyUserID); err != nil {
 			// Log error but don't fail the vote operation
-			// In production, consider using structured logging
-			_ = err
+			fmt.Printf("Warning: Failed to update reputation for user %s: %v\n", replyUserID, err)
 		}
 	}()
 
