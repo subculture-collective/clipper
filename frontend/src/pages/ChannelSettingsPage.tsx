@@ -78,7 +78,7 @@ export function ChannelSettingsPage() {
     }
   };
 
-  const handleUpdateRole = async (userId: string, newRole: 'member' | 'moderator' | 'admin') => {
+  const handleUpdateRole = async (userId: string, newRole: Exclude<ChannelRole, 'owner'>) => {
     if (!channelId) return;
 
     try {
@@ -191,7 +191,12 @@ export function ChannelSettingsPage() {
                   {canUpdateRoles && member.role !== 'owner' ? (
                     <select
                       value={member.role}
-                      onChange={(e) => handleUpdateRole(member.user_id, e.target.value as any)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === 'member' || value === 'moderator' || value === 'admin') {
+                          handleUpdateRole(member.user_id, value);
+                        }
+                      }}
                       disabled={actionLoading === `role-${member.user_id}`}
                       className="px-3 py-1 bg-background border border-border rounded text-sm"
                     >

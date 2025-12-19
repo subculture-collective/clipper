@@ -1224,7 +1224,9 @@ func (h *ChatHandler) GetCurrentUserRole(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "You are not a member of this channel"})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch role"})
+		// Log error for debugging but don't expose internal details to client
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve channel membership"})
 		return
 	}
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,7 +9,7 @@ import { MessageComposer } from './MessageComposer';
 import { TypingIndicator } from './TypingIndicator';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, Settings } from 'lucide-react';
 
 interface ChatViewProps {
   channelId: string;
@@ -19,6 +20,7 @@ interface ChatViewProps {
  * ChatView component that displays messages and composer for a channel
  */
 export function ChatView({ channelId, channelName }: ChatViewProps) {
+  const navigate = useNavigate();
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -116,26 +118,38 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
           </div>
         </div>
 
-        {/* Notification toggle */}
-        {isSupported && (
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          {/* Settings button */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleNotificationToggle}
-            aria-label={
-              permission === 'granted'
-                ? 'Notifications enabled'
-                : 'Enable notifications'
-            }
+            onClick={() => navigate(`/chat/channels/${channelId}/settings`)}
+            aria-label="Channel settings"
           >
-            {permission === 'granted' ? (
-              <Bell className="w-4 h-4" />
-            ) : (
-              <BellOff className="w-4 h-4" />
-            )}
+            <Settings className="w-4 h-4" />
           </Button>
-        )}
-      </div>
+
+          {/* Notification toggle */}
+          {isSupported && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNotificationToggle}
+              aria-label={
+                permission === 'granted'
+                  ? 'Notifications enabled'
+                  : 'Enable notifications'
+              }
+            >
+              {permission === 'granted' ? (
+                <Bell className="w-4 h-4" />
+              ) : (
+                <BellOff className="w-4 h-4" />
+              )}
+            </Button>
+          )}
+        </div>
 
       {/* Error message */}
       {error && (
