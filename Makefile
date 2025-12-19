@@ -48,10 +48,93 @@ test-integration: ## Run integration tests (requires Docker)
 	@echo "Running database migrations..."
 	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
 	@echo "Running integration tests..."
-	cd backend && go test -v -tags=integration ./...
+	cd backend && go test -v -tags=integration ./tests/integration/...
 	@echo "Stopping test database..."
 	docker compose -f docker-compose.test.yml down
 	@echo "✓ Integration tests complete"
+
+test-integration-auth: ## Run authentication integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running authentication integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/auth/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Authentication tests complete"
+
+test-integration-submissions: ## Run submission integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running submission integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/submissions/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Submission tests complete"
+
+test-integration-engagement: ## Run engagement integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running engagement integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/engagement/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Engagement tests complete"
+
+test-integration-premium: ## Run premium integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running premium integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/premium/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Premium tests complete"
+
+test-integration-search: ## Run search integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running search integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/search/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Search tests complete"
+
+test-integration-api: ## Run API integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running API integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/api/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ API tests complete"
+
+test-e2e: ## Run frontend E2E tests
+	@echo "Running frontend E2E tests..."
+	cd frontend && npm run test:e2e
+	@echo "✓ E2E tests complete"
 
 test-coverage: ## Run tests with coverage report
 	@echo "Running backend tests with coverage..."
