@@ -18,6 +18,13 @@ type DistributedRateLimiter struct {
 	window      time.Duration
 }
 
+// Rate limiter configuration constants
+const (
+	// rateLimitExpireBuffer is the additional time to keep rate limit keys in Redis
+	// beyond the window duration to ensure proper cleanup
+	rateLimitExpireBuffer = time.Minute
+)
+
 // NewDistributedRateLimiter creates a new distributed rate limiter
 // limit: maximum number of requests allowed in the window
 // window: time window for rate limiting
@@ -75,7 +82,7 @@ func (r *DistributedRateLimiter) Allow(ctx context.Context, key string) (bool, e
 		Member: member,
 	})
 	// Set expiration to window + buffer to allow cleanup
-	pipe2.Expire(ctx, redisKey, r.window+time.Minute)
+	pipe2.Expire(ctx, redisKey, r.window+rateLimitExpireBuffer)
 	
 	_, err = pipe2.Exec(ctx)
 	if err != nil {

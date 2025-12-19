@@ -400,7 +400,10 @@ func (c *WatchPartyClient) handleCommand(ctx context.Context, cmd *models.WatchP
 		rateLimitKey := fmt.Sprintf("chat:%s:%s", partyID.String(), c.UserID.String())
 		allowed, err := c.Hub.chatRateLimiter.Allow(ctx, rateLimitKey)
 		if err != nil {
-			log.Printf("Rate limiter error for user %s: %v", c.UserID, err)
+			// Log infrastructure errors but don't expose to client
+			// This could indicate Redis connectivity issues
+			log.Printf("Rate limiter error for user %s (falling back to deny): %v", c.UserID, err)
+			// Fail closed: deny the request on infrastructure errors
 			return
 		}
 		if !allowed {
@@ -444,7 +447,10 @@ func (c *WatchPartyClient) handleCommand(ctx context.Context, cmd *models.WatchP
 		rateLimitKey := fmt.Sprintf("reaction:%s:%s", partyID.String(), c.UserID.String())
 		allowed, err := c.Hub.reactRateLimiter.Allow(ctx, rateLimitKey)
 		if err != nil {
-			log.Printf("Rate limiter error for user %s: %v", c.UserID, err)
+			// Log infrastructure errors but don't expose to client
+			// This could indicate Redis connectivity issues
+			log.Printf("Rate limiter error for user %s (falling back to deny): %v", c.UserID, err)
+			// Fail closed: deny the request on infrastructure errors
 			return
 		}
 		if !allowed {

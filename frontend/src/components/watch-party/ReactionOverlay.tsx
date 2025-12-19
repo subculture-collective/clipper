@@ -22,7 +22,7 @@ const DEFAULT_REACTIONS = ['🔥', '😂', '❤️', '👍', '🎉', '😮'];
  * to parent components without window globals.
  */
 export const ReactionOverlay = forwardRef<ReactionOverlayHandle, ReactionOverlayProps>(
-  ({ partyId, videoRef, onSendReaction, className = '' }, ref) => {
+  function ReactionOverlay({ partyId, videoRef, onSendReaction, className = '' }, ref) {
     const [reactions, setReactions] = useState<ReactionAnimation[]>([]);
     const [cooldown, setCooldown] = useState<Record<string, boolean>>({});
 
@@ -121,8 +121,6 @@ export const ReactionOverlay = forwardRef<ReactionOverlayHandle, ReactionOverlay
     );
   }
 );
-
-ReactionOverlay.displayName = 'ReactionOverlay';
 
 // CSS animation for floating reactions (add to your global styles)
 const floatUpKeyframes = `
