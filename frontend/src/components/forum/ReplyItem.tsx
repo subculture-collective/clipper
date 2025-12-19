@@ -68,7 +68,7 @@ export function ReplyItem({
       setIsLoadingVotes(false);
       setHasFetchedStats(true);
     }
-  }, [reply.id, reply.vote_stats, hasFetchedStats])
+  }, [reply.id, reply.vote_stats, hasFetchedStats]);
 
   // Soft-deleted reply
   if (reply.is_deleted) {
