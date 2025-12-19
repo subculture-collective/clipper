@@ -457,3 +457,125 @@ func TestListThreads_InvalidGameFilter(t *testing.T) {
 		t.Error("expected error field in response")
 	}
 }
+
+// TestSearchThreads_ValidateParameters tests search parameter validation
+func TestSearchThreads_ValidateParameters(t *testing.T) {
+gin.SetMode(gin.TestMode)
+
+tests := []struct {
+name           string
+queryParams    string
+expectedStatus int
+description    string
+}{
+{
+name:           "MissingQuery",
+queryParams:    "",
+expectedStatus: http.StatusBadRequest,
+description:    "Should return bad request when query is missing",
+},
+{
+name:           "ValidQueryRelevanceSort",
+queryParams:    "q=test&sort=relevance",
+expectedStatus: http.StatusOK,
+description:    "Should accept relevance sort",
+},
+{
+name:           "ValidQueryDateSort",
+queryParams:    "q=test&sort=date",
+expectedStatus: http.StatusOK,
+description:    "Should accept date sort",
+},
+{
+name:           "ValidQueryVotesSort",
+queryParams:    "q=test&sort=votes",
+expectedStatus: http.StatusOK,
+description:    "Should accept votes sort",
+},
+{
+name:           "InvalidSort",
+queryParams:    "q=test&sort=invalid",
+expectedStatus: http.StatusOK,
+description:    "Should default to relevance for invalid sort",
+},
+{
+name:           "WithAuthorFilter",
+queryParams:    "q=test&author=testuser",
+expectedStatus: http.StatusOK,
+description:    "Should accept author filter",
+},
+{
+name:           "WithPagination",
+queryParams:    "q=test&page=2",
+expectedStatus: http.StatusOK,
+description:    "Should accept page parameter",
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+handler := &ForumHandler{
+db: nil,
+}
+
+// For non-error cases, we would need a mock DB
+// For now, we test parameter validation only
+if tt.expectedStatus == http.StatusBadRequest {
+req := httptest.NewRequest(http.MethodGet, "/api/v1/forum/search?"+tt.queryParams, http.NoBody)
+w := httptest.NewRecorder()
+
+c, _ := gin.CreateTestContext(w)
+c.Request = req
+
+handler.SearchThreads(c)
+
+if w.Code != tt.expectedStatus {
+t.Errorf("%s: expected status %d, got %d", tt.description, tt.expectedStatus, w.Code)
+}
+
+var response map[string]interface{}
+if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+t.Errorf("response is not valid JSON: %v", err)
+}
+
+if _, ok := response["error"]; !ok {
+t.Error("expected error field in response")
+}
+}
+})
+}
+}
+
+// TestSearchThreads_EmptyQueryValidation tests empty query parameter
+func TestSearchThreads_EmptyQueryValidation(t *testing.T) {
+gin.SetMode(gin.TestMode)
+
+handler := &ForumHandler{
+db: nil,
+}
+
+req := httptest.NewRequest(http.MethodGet, "/api/v1/forum/search", http.NoBody)
+w := httptest.NewRecorder()
+
+c, _ := gin.CreateTestContext(w)
+c.Request = req
+
+handler.SearchThreads(c)
+
+if w.Code != http.StatusBadRequest {
+t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+}
+
+var response map[string]interface{}
+if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+t.Errorf("response is not valid JSON: %v", err)
+}
+
+if _, ok := response["error"]; !ok {
+t.Error("expected error field in response")
+}
+
+if response["error"] != "Search query is required" {
+t.Errorf("expected error message 'Search query is required', got %v", response["error"])
+}
+}

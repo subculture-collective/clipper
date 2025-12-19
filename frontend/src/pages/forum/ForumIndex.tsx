@@ -59,13 +59,10 @@ export function ForumIndex() {
   }, [sort, filters, searchQuery, setSearchParams]);
 
   const handleSearch = (query: string) => {
-    const params = new URLSearchParams(searchParams);
     if (query) {
-      params.set('q', query);
-    } else {
-      params.delete('q');
+      // Redirect to search page
+      window.location.href = `/forum/search?q=${encodeURIComponent(query)}`;
     }
-    setSearchParams(params);
   };
 
   const handleSortChange = (newSort: ForumSort) => {
