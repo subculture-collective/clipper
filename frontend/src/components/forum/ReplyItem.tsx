@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatTimestamp, cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui';
+import { ConfirmDialog } from './ConfirmDialog';
 import type { ForumReply } from '@/types/forum';
 
 interface ReplyItemProps {
@@ -26,6 +27,7 @@ export function ReplyItem({
 }: ReplyItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(reply.content);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const timestamp = formatTimestamp(reply.created_at);
   const isAuthor = currentUserId === reply.user_id;
@@ -96,11 +98,7 @@ export function ReplyItem({
                   Edit
                 </button>
                 <button
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to delete this reply?')) {
-                      onDelete(reply.id);
-                    }
-                  }}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="text-gray-400 hover:text-red-500 transition-colors"
                 >
                   Delete
@@ -160,6 +158,18 @@ export function ReplyItem({
           )}
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => onDelete(reply.id)}
+        title="Delete Reply"
+        message="Are you sure you want to delete this reply? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

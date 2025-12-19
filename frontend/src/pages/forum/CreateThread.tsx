@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -19,10 +19,11 @@ export function CreateThread() {
   const [tagInput, setTagInput] = useState('');
 
   // Redirect if not authenticated
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   const createThreadMutation = useMutation({
     mutationFn: forumApi.createThread,

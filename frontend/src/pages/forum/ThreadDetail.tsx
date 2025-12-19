@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Lock, MessageSquare } from 'lucide-react';
@@ -10,6 +10,7 @@ import { ReplyTree, ReplyComposer } from '@/components/forum';
 import { forumApi } from '@/lib/forum-api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { formatTimestamp } from '@/lib/utils';
 
 export function ThreadDetail() {
@@ -18,10 +19,10 @@ export function ThreadDetail() {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showMobileComposer, setShowMobileComposer] = useState(false);
-  const isMobile = window.innerWidth < 768;
 
   // Fetch thread with replies
   const { data, isLoading, error } = useQuery({
