@@ -152,7 +152,7 @@ func TestUpdateWatchPartySettings_Unauthorized(t *testing.T) {
 
 	partyID := uuid.New()
 	requestBody := map[string]interface{}{
-		"privacy": "public",
+		"visibility": "public",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
 
@@ -175,7 +175,7 @@ func TestUpdateWatchPartySettings_InvalidPartyID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	requestBody := map[string]interface{}{
-		"privacy": "public",
+		"visibility": "public",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
 
@@ -206,27 +206,27 @@ func TestUpdateWatchPartySettings_RequestValidation(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name: "valid privacy update",
+			name: "valid visibility update",
 			requestBody: map[string]interface{}{
-				"privacy": "public",
+				"visibility": "public",
 			},
 			expectError: false,
 		},
 		{
 			name: "valid password update",
 			requestBody: map[string]interface{}{
-				"privacy":  "invite",
-				"password": "testpassword123",
+				"visibility": "invite",
+				"password":   "testpassword123",
 			},
 			expectError: false,
 		},
 		{
-			name: "invalid privacy value",
+			name: "invalid visibility value",
 			requestBody: map[string]interface{}{
-				"privacy": "invalid",
+				"visibility": "invalid",
 			},
 			expectError:    true,
-			errorSubstring: "privacy",
+			errorSubstring: "visibility",
 		},
 	}
 

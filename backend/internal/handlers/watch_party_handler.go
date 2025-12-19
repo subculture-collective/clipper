@@ -1081,14 +1081,13 @@ func (h *WatchPartyHandler) UpdateWatchPartySettings(c *gin.Context) {
 			hashedPassword = &hashStr
 		} else {
 			// Empty string means remove password (set to NULL in database)
-			emptyStr := ""
-			hashedPassword = &emptyStr
+			hashedPassword = nil
 		}
 	}
 	// If req.Password is nil, hashedPassword remains nil and won't be updated
 
 	// Update settings
-	err = h.watchPartyRepo.UpdateSettings(c.Request.Context(), partyID, req.Privacy, hashedPassword)
+	err = h.watchPartyRepo.UpdateSettings(c.Request.Context(), partyID, req.Visibility, hashedPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, StandardResponse{
 			Success: false,

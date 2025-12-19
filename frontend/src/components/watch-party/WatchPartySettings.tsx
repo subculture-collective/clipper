@@ -40,7 +40,7 @@ export function WatchPartySettings({
 
     try {
       const request: UpdateWatchPartySettingsRequest = {
-        privacy,
+        visibility: privacy,
       };
 
       // Include password based on privacy setting

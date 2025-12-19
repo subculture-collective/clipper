@@ -521,9 +521,14 @@ func (r *WatchPartyRepository) UpdateSettings(ctx context.Context, partyID uuid.
 	}
 
 	if password != nil {
-		updates = append(updates, fmt.Sprintf(" password = $%d", paramCount))
-		params = append(params, *password)
-		paramCount++
+		// Treat empty password string or nil as a request to clear the password (set to NULL)
+		if *password == "" {
+			updates = append(updates, " password = NULL")
+		} else {
+			updates = append(updates, fmt.Sprintf(" password = $%d", paramCount))
+			params = append(params, *password)
+			paramCount++
+		}
 	}
 
 	if len(updates) == 0 {
@@ -569,13 +574,12 @@ func (r *WatchPartyRepository) GetHistory(ctx context.Context, userID uuid.UUID,
 			wp.host_user_id,
 			wp.title,
 			wp.visibility,
-			COUNT(DISTINCT wpp2.user_id) as participant_count,
+			(SELECT COUNT(*) FROM watch_party_participants WHERE party_id = wp.id) as participant_count,
 			wp.created_at,
 			wp.started_at,
 			wp.ended_at
 		FROM watch_parties wp
 		JOIN watch_party_participants wpp ON wp.id = wpp.party_id
-		LEFT JOIN watch_party_participants wpp2 ON wp.id = wpp2.party_id
 		WHERE wpp.user_id = $1 AND wp.ended_at IS NOT NULL
 		GROUP BY wp.id
 		ORDER BY wp.ended_at DESC
@@ -608,6 +612,9 @@ func (r *WatchPartyRepository) GetHistory(ctx context.Context, userID uuid.UUID,
 		// Calculate duration if both started_at and ended_at are present
 		if entry.StartedAt != nil && entry.EndedAt != nil {
 			duration := int(entry.EndedAt.Sub(*entry.StartedAt).Seconds())
+			if duration < 0 {
+				duration = 0
+			}
 			entry.Duration = &duration
 		}
 

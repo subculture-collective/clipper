@@ -1260,6 +1260,10 @@ func main() {
 		// Watch party routes
 		watchParties := v1.Group("/watch-parties")
 		{
+			// NOTE: Keep static routes like "/history" registered before parameterized
+			// routes such as "/:id". If "/history" is moved below "/:id", requests to
+			// "/watch-parties/history" could be incorrectly handled by the "/:id" route.
+			
 			// Get watch party history (authenticated)
 			watchParties.GET("/history", middleware.AuthMiddleware(authService), watchPartyHandler.GetWatchPartyHistory)
 

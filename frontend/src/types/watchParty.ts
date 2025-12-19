@@ -63,7 +63,7 @@ export interface SendReactionRequest {
 }
 
 export interface UpdateWatchPartySettingsRequest {
-  privacy?: 'public' | 'friends' | 'invite';
+  visibility?: 'public' | 'friends' | 'invite';
   password?: string;
 }
 
