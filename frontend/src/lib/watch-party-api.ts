@@ -5,12 +5,16 @@ import type {
   WatchPartyReaction,
   SendMessageRequest,
   SendReactionRequest,
+  UpdateWatchPartySettingsRequest,
+  WatchPartyHistoryEntry,
+  JoinWatchPartyRequest,
 } from '@/types/watchParty';
 
 interface CreateWatchPartyRequest {
   title: string;
   playlist_id?: string;
-  visibility?: 'private' | 'public' | 'friends';
+  visibility?: 'public' | 'friends' | 'invite';
+  password?: string;
   max_participants?: number;
 }
 
@@ -46,11 +50,11 @@ export async function createWatchParty(
 /**
  * Join a watch party by invite code
  */
-export async function joinWatchParty(inviteCode: string): Promise<WatchParty> {
+export async function joinWatchParty(inviteCode: string, request?: JoinWatchPartyRequest): Promise<WatchParty> {
   const response = await apiClient.post<StandardResponse<{
     party: WatchParty;
     invite_url: string;
-  }>>(`/watch-parties/${inviteCode}/join`);
+  }>>(`/watch-parties/${inviteCode}/join`, request);
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to join watch party');
@@ -69,6 +73,51 @@ export async function getWatchParty(partyId: string): Promise<WatchParty> {
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to get watch party');
+  }
+
+  return response.data.data;
+}
+
+/**
+ * Update watch party settings
+ */
+export async function updateWatchPartySettings(
+  partyId: string,
+  request: UpdateWatchPartySettingsRequest
+): Promise<void> {
+  const response = await apiClient.patch<StandardResponse<{
+    message: string;
+  }>>(`/watch-parties/${partyId}/settings`, request);
+
+  if (!response.data.success) {
+    throw new Error(response.data.error?.message || 'Failed to update settings');
+  }
+}
+
+/**
+ * Get watch party history for current user
+ */
+export async function getWatchPartyHistory(page = 1, limit = 20): Promise<{
+  history: WatchPartyHistoryEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total_count: number;
+    total_pages: number;
+  };
+}> {
+  const response = await apiClient.get<StandardResponse<{
+    history: WatchPartyHistoryEntry[];
+    pagination: {
+      page: number;
+      limit: number;
+      total_count: number;
+      total_pages: number;
+    };
+  }>>(`/watch-parties/history?page=${page}&limit=${limit}`);
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || 'Failed to get watch party history');
   }
 
   return response.data.data;

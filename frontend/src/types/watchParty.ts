@@ -6,7 +6,7 @@ export interface WatchParty {
   current_clip_id?: string;
   current_position_seconds: number;
   is_playing: boolean;
-  visibility: 'private' | 'public' | 'friends';
+  visibility: 'public' | 'friends' | 'invite';
   invite_code: string;
   max_participants: number;
   created_at: string;
@@ -60,6 +60,27 @@ export interface SendMessageRequest {
 export interface SendReactionRequest {
   emoji: string;
   video_timestamp?: number;
+}
+
+export interface UpdateWatchPartySettingsRequest {
+  visibility?: 'public' | 'friends' | 'invite';
+  password?: string;
+}
+
+export interface WatchPartyHistoryEntry {
+  id: string;
+  host_user_id: string;
+  title: string;
+  visibility: string;
+  participant_count: number;
+  created_at: string;
+  started_at?: string;
+  ended_at?: string;
+  duration_seconds?: number;
+}
+
+export interface JoinWatchPartyRequest {
+  password?: string;
 }
 
 export interface WatchPartyCommand {
