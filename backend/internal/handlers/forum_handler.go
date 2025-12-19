@@ -61,6 +61,35 @@ type ForumReply struct {
 	Replies       []ForumReply `json:"replies,omitempty"`
 }
 
+// Vote represents a vote on a reply
+type Vote struct {
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	ReplyID   uuid.UUID `json:"reply_id"`
+	VoteValue int       `json:"vote_value"` // -1, 0, 1
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ReputationScore represents a user's reputation
+type ReputationScore struct {
+	UserID      uuid.UUID `json:"user_id"`
+	Score       int       `json:"score"`
+	Badge       string    `json:"badge"` // new, contributor, expert, moderator
+	Votes       int       `json:"votes"`
+	Threads     int       `json:"threads"`
+	Replies     int       `json:"replies"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// VoteStats represents vote statistics for a reply
+type VoteStats struct {
+	Upvotes   int `json:"upvotes"`
+	Downvotes int `json:"downvotes"`
+	NetVotes  int `json:"net_votes"`
+	UserVote  int `json:"user_vote"` // -1, 0, 1 (0 means no vote)
+}
+
 // CreateThreadRequest represents the request to create a thread
 type CreateThreadRequest struct {
 	Title   string   `json:"title" binding:"required,min=3,max=200"`
@@ -756,4 +785,275 @@ func (h *ForumHandler) SearchThreads(c *gin.Context) {
 			"count": len(threads),
 		},
 	})
+}
+
+// VoteOnReply votes on a reply (upvote, downvote, or neutral)
+// POST /api/v1/forum/replies/:id/vote
+func (h *ForumHandler) VoteOnReply(c *gin.Context) {
+	replyID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid reply ID",
+		})
+		return
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User not authenticated",
+		})
+		return
+	}
+
+	var req struct {
+		VoteValue int `json:"vote_value" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate vote value
+	if req.VoteValue != -1 && req.VoteValue != 0 && req.VoteValue != 1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Vote value must be -1, 0, or 1",
+		})
+		return
+	}
+
+	// Check if reply exists and is not deleted
+	var replyUserID uuid.UUID
+	var isDeleted bool
+	err = h.db.QueryRow(c.Request.Context(),
+		`SELECT user_id, is_deleted FROM forum_replies WHERE id = $1`,
+		replyID).Scan(&replyUserID, &isDeleted)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Reply not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to check reply",
+		})
+		return
+	}
+
+	if isDeleted {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Reply not found",
+		})
+		return
+	}
+
+	// Prevent self-voting
+	if replyUserID == userID.(uuid.UUID) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot vote on your own reply",
+		})
+		return
+	}
+
+	// Insert or update vote
+	_, err = h.db.Exec(c.Request.Context(), `
+		INSERT INTO forum_votes (user_id, reply_id, vote_value)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (user_id, reply_id) 
+		DO UPDATE SET vote_value = EXCLUDED.vote_value, updated_at = NOW()
+	`, userID, replyID, req.VoteValue)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to save vote",
+		})
+		return
+	}
+
+	// Update reputation for reply author (async via goroutine for performance)
+	// Use a separate context with timeout to prevent goroutine leaks
+	go func() {
+		// Create background context with timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		
+		// Update reputation - errors are logged for debugging
+		if _, err := h.db.Exec(ctx, "SELECT update_reputation_score($1)", replyUserID); err != nil {
+			// Log error but don't fail the vote operation
+			fmt.Printf("Warning: Failed to update reputation for user %s: %v\n", replyUserID, err)
+		}
+	}()
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Vote recorded successfully",
+	})
+}
+
+// GetReplyVotes retrieves vote statistics for a reply
+// GET /api/v1/forum/replies/:id/votes
+func (h *ForumHandler) GetReplyVotes(c *gin.Context) {
+	replyID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid reply ID",
+		})
+		return
+	}
+
+	// Get authenticated user ID (may be nil for guests)
+	userID, exists := c.Get("user_id")
+	var userUUID *uuid.UUID
+	if exists {
+		if id, ok := userID.(uuid.UUID); ok {
+			userUUID = &id
+		}
+	}
+
+	var stats VoteStats
+
+	// Build query based on whether user is authenticated
+	if userUUID != nil {
+		err = h.db.QueryRow(c.Request.Context(), `
+			SELECT 
+				COALESCE(vc.upvote_count, 0) as upvotes,
+				COALESCE(vc.downvote_count, 0) as downvotes,
+				COALESCE(vc.net_votes, 0) as net_votes,
+				COALESCE(v.vote_value, 0) as user_vote
+			FROM forum_replies fr
+			LEFT JOIN forum_vote_counts vc ON fr.id = vc.reply_id
+			LEFT JOIN forum_votes v ON fr.id = v.reply_id AND v.user_id = $2
+			WHERE fr.id = $1
+		`, replyID, userUUID).Scan(&stats.Upvotes, &stats.Downvotes, &stats.NetVotes, &stats.UserVote)
+	} else {
+		// Guest user - no user vote
+		err = h.db.QueryRow(c.Request.Context(), `
+			SELECT 
+				COALESCE(vc.upvote_count, 0) as upvotes,
+				COALESCE(vc.downvote_count, 0) as downvotes,
+				COALESCE(vc.net_votes, 0) as net_votes
+			FROM forum_replies fr
+			LEFT JOIN forum_vote_counts vc ON fr.id = vc.reply_id
+			WHERE fr.id = $1
+		`, replyID).Scan(&stats.Upvotes, &stats.Downvotes, &stats.NetVotes)
+		stats.UserVote = 0
+	}
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Reply not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve vote statistics",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
+	})
+}
+
+// GetUserReputation retrieves reputation information for a user
+// GET /api/v1/forum/users/:id/reputation
+func (h *ForumHandler) GetUserReputation(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	var rep ReputationScore
+	err = h.db.QueryRow(c.Request.Context(), `
+		SELECT 
+			user_id, 
+			reputation_score, 
+			reputation_badge, 
+			total_votes, 
+			threads_created, 
+			replies_created, 
+			last_updated
+		FROM user_reputation
+		WHERE user_id = $1
+	`, userID).Scan(
+		&rep.UserID,
+		&rep.Score,
+		&rep.Badge,
+		&rep.Votes,
+		&rep.Threads,
+		&rep.Replies,
+		&rep.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			// User has no reputation yet - return default
+			rep = ReputationScore{
+				UserID:    userID,
+				Score:     0,
+				Badge:     "new",
+				Votes:     0,
+				Threads:   0,
+				Replies:   0,
+				UpdatedAt: time.Now(),
+			}
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to retrieve reputation",
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    rep,
+	})
+}
+
+// DetectSpamReplies identifies and flags replies as spam based on vote patterns
+// This is typically run as a background job
+func (h *ForumHandler) DetectSpamReplies(ctx context.Context) error {
+	query := `
+		UPDATE forum_replies 
+		SET flagged_as_spam = TRUE
+		WHERE id IN (
+			SELECT reply_id 
+			FROM forum_vote_counts
+			WHERE downvote_count > 5 AND net_votes < -2
+		)
+		AND flagged_as_spam = FALSE
+		AND is_deleted = FALSE
+	`
+	_, err := h.db.Exec(ctx, query)
+	return err
+}
+
+// HideLowQualityReplies hides replies with very negative vote scores
+// This is typically run as a background job
+func (h *ForumHandler) HideLowQualityReplies(ctx context.Context) error {
+	query := `
+		UPDATE forum_replies 
+		SET hidden = TRUE
+		WHERE id IN (
+			SELECT reply_id 
+			FROM forum_vote_counts
+			WHERE net_votes <= -5
+		)
+		AND hidden = FALSE
+		AND is_deleted = FALSE
+	`
+	_, err := h.db.Exec(ctx, query)
+	return err
 }

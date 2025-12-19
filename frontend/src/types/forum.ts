@@ -34,6 +34,9 @@ export interface ForumReply {
   updated_at: string;
   replies?: ForumReply[];
   is_deleted?: boolean;
+  // Vote-related fields
+  vote_stats?: VoteStats;
+  reputation?: ReputationScore;
 }
 
 export interface CreateThreadRequest {
@@ -77,4 +80,26 @@ export interface ForumFilters {
   tags?: string[];
   sort?: ForumSort;
   search?: string;
+}
+
+// Voting system types
+export interface VoteStats {
+  upvotes: number;
+  downvotes: number;
+  net_votes: number;
+  user_vote: -1 | 0 | 1; // -1=downvote, 0=no vote, 1=upvote
+}
+
+export interface ReputationScore {
+  user_id: string;
+  score: number;
+  badge: 'new' | 'contributor' | 'expert' | 'moderator';
+  votes: number;
+  threads: number;
+  replies: number;
+  updated_at: string;
+}
+
+export interface VoteRequest {
+  vote_value: -1 | 0 | 1;
 }
