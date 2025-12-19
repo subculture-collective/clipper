@@ -85,35 +85,72 @@ DECLARE
     reply_record RECORD;
     current_depth INT;
     current_path TEXT;
+    processed_count INT;
+    total_count INT;
+    max_iterations INT := 100; -- Safety limit
+    iteration INT := 0;
 BEGIN
-    -- Process replies without depth set, starting from root level
-    FOR reply_record IN 
-        SELECT id, thread_id, parent_reply_id 
-        FROM forum_replies 
-        WHERE depth IS NULL OR path IS NULL
-        ORDER BY created_at ASC
-    LOOP
-        IF reply_record.parent_reply_id IS NULL THEN
-            -- Root level reply
-            current_depth := 0;
-            current_path := substring(reply_record.id::text, 1, 8);
-        ELSE
-            -- Get parent's depth and path
-            SELECT depth + 1, path::text || '.' || substring(reply_record.id::text, 1, 8)
-            INTO current_depth, current_path
-            FROM forum_replies
-            WHERE id = reply_record.parent_reply_id;
-            
-            -- If parent doesn't have path yet, skip this reply (will be processed later)
-            IF current_path IS NULL THEN
-                CONTINUE;
-            END IF;
-        END IF;
+    -- Get total count of replies to process
+    SELECT COUNT(*) INTO total_count FROM forum_replies WHERE depth IS NULL OR path IS NULL;
+    
+    IF total_count = 0 THEN
+        RETURN; -- Nothing to process
+    END IF;
+    
+    processed_count := 0;
+    
+    -- Keep processing until all replies have depth and path, or max iterations reached
+    WHILE processed_count < total_count AND iteration < max_iterations LOOP
+        iteration := iteration + 1;
+        processed_count := 0;
         
-        -- Update the reply with calculated depth and path
-        UPDATE forum_replies
-        SET depth = current_depth,
-            path = current_path::ltree
-        WHERE id = reply_record.id;
+        -- Process replies without depth set, starting from root level
+        FOR reply_record IN 
+            SELECT id, thread_id, parent_reply_id 
+            FROM forum_replies 
+            WHERE depth IS NULL OR path IS NULL
+            ORDER BY created_at ASC
+        LOOP
+            IF reply_record.parent_reply_id IS NULL THEN
+                -- Root level reply
+                current_depth := 0;
+                current_path := substring(reply_record.id::text, 1, 8);
+                
+                -- Update the reply with calculated depth and path
+                UPDATE forum_replies
+                SET depth = current_depth,
+                    path = current_path::ltree
+                WHERE id = reply_record.id;
+                
+                processed_count := processed_count + 1;
+            ELSE
+                -- Get parent's depth and path
+                SELECT depth, path::text
+                INTO current_depth, current_path
+                FROM forum_replies
+                WHERE id = reply_record.parent_reply_id;
+                
+                -- Only process if parent has been processed
+                IF current_path IS NOT NULL AND current_depth IS NOT NULL THEN
+                    current_depth := current_depth + 1;
+                    current_path := current_path || '.' || substring(reply_record.id::text, 1, 8);
+                    
+                    -- Update the reply with calculated depth and path
+                    UPDATE forum_replies
+                    SET depth = current_depth,
+                        path = current_path::ltree
+                    WHERE id = reply_record.id;
+                    
+                    processed_count := processed_count + 1;
+                END IF;
+            END IF;
+        END LOOP;
+        
+        -- Exit if no progress made in this iteration
+        EXIT WHEN processed_count = 0;
+        
+        -- Check if all are processed
+        SELECT COUNT(*) INTO total_count FROM forum_replies WHERE depth IS NULL OR path IS NULL;
+        EXIT WHEN total_count = 0;
     END LOOP;
 END $$;

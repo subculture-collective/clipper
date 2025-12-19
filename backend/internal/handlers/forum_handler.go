@@ -344,8 +344,10 @@ func (h *ForumHandler) getThreadRepliesHierarchical(ctx context.Context, threadI
 
 	// Map to store replies by ID for building hierarchy
 	replyMap := make(map[uuid.UUID]*ForumReply)
-	var rootReplies []ForumReply
+	var rootReplies []*ForumReply
 
+	// First pass: create all reply objects and store in map
+	var allReplies []*ForumReply
 	for rows.Next() {
 		var reply ForumReply
 		err := rows.Scan(
@@ -358,19 +360,30 @@ func (h *ForumHandler) getThreadRepliesHierarchical(ctx context.Context, threadI
 
 		reply.Replies = []ForumReply{}
 		replyMap[reply.ID] = &reply
+		allReplies = append(allReplies, &reply)
+	}
 
-		// If this is a root reply (no parent), add to root list
+	// Second pass: build hierarchy by connecting children to parents
+	for _, reply := range allReplies {
 		if reply.ParentReplyID == nil {
+			// Root level reply
 			rootReplies = append(rootReplies, reply)
 		} else {
-			// Add to parent's replies
+			// Child reply - add to parent's replies
 			if parent, ok := replyMap[*reply.ParentReplyID]; ok {
-				parent.Replies = append(parent.Replies, reply)
+				parent.Replies = append(parent.Replies, *reply)
 			}
+			// If parent not found, this is an orphaned reply - skip it
 		}
 	}
 
-	return rootReplies, nil
+	// Convert pointer slice to value slice for root replies
+	result := make([]ForumReply, len(rootReplies))
+	for i, reply := range rootReplies {
+		result[i] = *reply
+	}
+
+	return result, nil
 }
 
 // CreateReplyRequest represents the request to create a reply
