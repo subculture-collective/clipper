@@ -58,7 +58,8 @@ export function useWatchPartyWebSocket({
         return;
       }
 
-      const wsUrl = `${wsProtocol}//${wsHost}/api/v1/watch-parties/${partyId}/ws`;
+      // Append token as query parameter for WebSocket authentication
+      const wsUrl = `${wsProtocol}//${wsHost}/api/v1/watch-parties/${partyId}/ws?token=${encodeURIComponent(token)}`;
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;

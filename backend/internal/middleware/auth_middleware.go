@@ -118,7 +118,8 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	}
 }
 
-// extractToken extracts JWT token from Authorization header or cookie
+// extractToken extracts JWT token from Authorization header, query parameter, or cookie
+// Query parameter support is primarily for WebSocket connections where headers cannot be set
 func extractToken(c *gin.Context) string {
 	// Try Authorization header first
 	authHeader := c.GetHeader("Authorization")
@@ -127,6 +128,16 @@ func extractToken(c *gin.Context) string {
 		if len(parts) == 2 && parts[0] == "Bearer" {
 			return parts[1]
 		}
+	}
+
+	// Try query parameter (for WebSocket authentication)
+	// This is secure because: 
+	// 1. Token is validated before use
+	// 2. HTTPS encrypts the URL in transit
+	// 3. Tokens are short-lived and can be revoked
+	queryToken := c.Query("token")
+	if queryToken != "" {
+		return queryToken
 	}
 
 	// Fall back to cookie
