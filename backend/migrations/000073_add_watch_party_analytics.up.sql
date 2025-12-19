@@ -16,49 +16,69 @@ CREATE INDEX idx_party_events_user ON watch_party_events(user_id) WHERE user_id 
 
 -- Create materialized view for aggregated analytics
 CREATE MATERIALIZED VIEW watch_party_analytics AS
+WITH user_durations AS (
+    SELECT 
+        party_id,
+        user_id,
+        MIN(time) FILTER (WHERE event_type = 'join') as first_join,
+        MAX(time) FILTER (WHERE event_type = 'leave') as last_leave
+    FROM watch_party_events
+    WHERE event_type IN ('join', 'leave')
+    GROUP BY party_id, user_id
+),
+party_stats AS (
+    SELECT
+        wp.id as party_id,
+        wp.host_user_id,
+        COUNT(DISTINCT wpe.user_id) FILTER (WHERE wpe.event_type = 'join' AND wpe.user_id IS NOT NULL) as unique_viewers,
+        COUNT(*) FILTER (WHERE wpe.event_type = 'chat') as chat_messages,
+        COUNT(*) FILTER (WHERE wpe.event_type = 'reaction') as reactions
+    FROM watch_parties wp
+    LEFT JOIN watch_party_events wpe ON wpe.party_id = wp.id
+    GROUP BY wp.id, wp.host_user_id
+),
+avg_durations AS (
+    SELECT 
+        party_id,
+        COALESCE(
+            ROUND(AVG(EXTRACT(EPOCH FROM (last_leave - first_join)))),
+            0
+        ) as avg_watch_duration_seconds
+    FROM user_durations
+    WHERE first_join IS NOT NULL AND last_leave IS NOT NULL
+    GROUP BY party_id
+),
+peak_concurrent AS (
+    SELECT 
+        party_id,
+        MAX(concurrent_count) as peak_concurrent_viewers
+    FROM (
+        SELECT 
+            party_id,
+            time,
+            SUM(
+                CASE 
+                    WHEN event_type = 'join' THEN 1 
+                    WHEN event_type = 'leave' THEN -1 
+                    ELSE 0 
+                END
+            ) OVER (PARTITION BY party_id ORDER BY time) as concurrent_count
+        FROM watch_party_events
+        WHERE event_type IN ('join', 'leave')
+    ) concurrent
+    GROUP BY party_id
+)
 SELECT
-    wp.id as party_id,
-    wp.host_user_id,
-    COUNT(DISTINCT wpe.user_id) FILTER (WHERE wpe.event_type = 'join' AND wpe.user_id IS NOT NULL) as unique_viewers,
-    COUNT(*) FILTER (WHERE wpe.event_type = 'chat') as chat_messages,
-    COUNT(*) FILTER (WHERE wpe.event_type = 'reaction') as reactions,
-    COALESCE(
-        AVG(
-            EXTRACT(EPOCH FROM (leave_times.left_at - join_times.joined_at))
-        )::INT, 
-        0
-    ) as avg_watch_duration_seconds,
-    (
-        SELECT MAX(concurrent_count)
-        FROM (
-            SELECT 
-                time,
-                SUM(
-                    CASE 
-                        WHEN event_type = 'join' THEN 1 
-                        WHEN event_type = 'leave' THEN -1 
-                        ELSE 0 
-                    END
-                ) OVER (ORDER BY time) as concurrent_count
-            FROM watch_party_events
-            WHERE party_id = wp.id AND event_type IN ('join', 'leave')
-        ) concurrent
-    ) as peak_concurrent_viewers
-FROM watch_parties wp
-LEFT JOIN watch_party_events wpe ON wpe.party_id = wp.id
-LEFT JOIN LATERAL (
-    SELECT user_id, MIN(time) as joined_at
-    FROM watch_party_events
-    WHERE party_id = wp.id AND event_type = 'join'
-    GROUP BY user_id
-) join_times ON join_times.user_id = wpe.user_id
-LEFT JOIN LATERAL (
-    SELECT user_id, MAX(time) as left_at
-    FROM watch_party_events
-    WHERE party_id = wp.id AND event_type = 'leave'
-    GROUP BY user_id
-) leave_times ON leave_times.user_id = join_times.user_id
-GROUP BY wp.id, wp.host_user_id;
+    ps.party_id,
+    ps.host_user_id,
+    ps.unique_viewers,
+    ps.chat_messages,
+    ps.reactions,
+    COALESCE(ad.avg_watch_duration_seconds, 0) as avg_watch_duration_seconds,
+    COALESCE(pc.peak_concurrent_viewers, 0) as peak_concurrent_viewers
+FROM party_stats ps
+LEFT JOIN avg_durations ad ON ps.party_id = ad.party_id
+LEFT JOIN peak_concurrent pc ON ps.party_id = pc.party_id;
 
 -- Index for materialized view
 CREATE UNIQUE INDEX idx_watch_party_analytics_party ON watch_party_analytics(party_id);

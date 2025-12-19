@@ -33,7 +33,8 @@ export default function WatchPartyAnalytics({ partyId }: Props) {
 
   useEffect(() => {
     loadAnalytics();
-  }, [partyId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partyId]); // loadAnalytics captures partyId from props
 
   const loadAnalytics = async () => {
     try {

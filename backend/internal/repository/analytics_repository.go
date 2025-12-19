@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 )
@@ -1119,15 +1120,19 @@ func (r *AnalyticsRepository) GetWatchPartyAnalytics(ctx context.Context, partyI
 	)
 
 	if err != nil {
-		// If no analytics found, return zero values
-		return &WatchPartyAnalytics{
-			PartyID:                partyID,
-			UniqueViewers:          0,
-			PeakConcurrentViewers:  0,
-			AvgDurationSeconds:     0,
-			ChatMessages:           0,
-			Reactions:              0,
-		}, nil
+		// If no analytics found yet, return zero values
+		if err == pgx.ErrNoRows {
+			return &WatchPartyAnalytics{
+				PartyID:                partyID,
+				UniqueViewers:          0,
+				PeakConcurrentViewers:  0,
+				AvgDurationSeconds:     0,
+				ChatMessages:           0,
+				Reactions:              0,
+			}, nil
+		}
+		// Return actual database errors
+		return nil, fmt.Errorf("failed to get watch party analytics: %w", err)
 	}
 
 	return &analytics, nil

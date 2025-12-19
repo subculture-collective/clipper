@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -257,8 +258,10 @@ func (h *WatchPartyHandler) JoinWatchParty(c *gin.Context) {
 		return
 	}
 
-	// Track join event
-	_ = h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), party.ID, &userID, "join", nil)
+	// Track join event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), party.ID, &userID, "join", nil); err != nil {
+		log.Printf("Failed to track join event for party %s, user %s: %v", party.ID, userID, err)
+	}
 
 	inviteURL := h.watchPartyService.GetInviteURL(party.InviteCode)
 
@@ -488,8 +491,10 @@ func (h *WatchPartyHandler) LeaveWatchParty(c *gin.Context) {
 		return
 	}
 
-	// Track leave event
-	_ = h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "leave", nil)
+	// Track leave event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "leave", nil); err != nil {
+		log.Printf("Failed to track leave event for party %s, user %s: %v", partyID, userID, err)
+	}
 
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
@@ -763,8 +768,10 @@ func (h *WatchPartyHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// Track chat event
-	_ = h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "chat", nil)
+	// Track chat event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "chat", nil); err != nil {
+		log.Printf("Failed to track chat event for party %s, user %s: %v", partyID, userID, err)
+	}
 
 	c.JSON(http.StatusCreated, StandardResponse{
 		Success: true,
@@ -977,8 +984,10 @@ func (h *WatchPartyHandler) SendReaction(c *gin.Context) {
 		return
 	}
 
-	// Track reaction event
-	_ = h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "reaction", nil)
+	// Track reaction event (non-blocking, log errors but don't fail request)
+	if err := h.analyticsRepo.TrackWatchPartyEvent(c.Request.Context(), partyID, &userID, "reaction", nil); err != nil {
+		log.Printf("Failed to track reaction event for party %s, user %s: %v", partyID, userID, err)
+	}
 
 	c.JSON(http.StatusCreated, StandardResponse{
 		Success: true,
@@ -1243,8 +1252,9 @@ func (h *WatchPartyHandler) GetWatchPartyAnalytics(c *gin.Context) {
 		return
 	}
 
-	// Check if user is the host or if party is public
+	// Check if user is the host or has appropriate permissions based on visibility
 	if party.Visibility == "private" {
+		// Private parties: only host can view analytics
 		if userID == nil || party.HostUserID != *userID {
 			c.JSON(http.StatusForbidden, StandardResponse{
 				Success: false,
@@ -1255,7 +1265,44 @@ func (h *WatchPartyHandler) GetWatchPartyAnalytics(c *gin.Context) {
 			})
 			return
 		}
+	} else if party.Visibility == "friends" {
+		// Friends-only parties: only host or participants can view analytics
+		if userID == nil {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "FORBIDDEN",
+					Message: "Authentication required to view analytics for friends-only parties",
+				},
+			})
+			return
+		}
+		// Check if user is the host or a participant
+		if party.HostUserID != *userID {
+			participant, err := h.watchPartyRepo.GetParticipant(c.Request.Context(), partyID, *userID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, StandardResponse{
+					Success: false,
+					Error: &ErrorInfo{
+						Code:    "INTERNAL_ERROR",
+						Message: "Failed to verify participant status",
+					},
+				})
+				return
+			}
+			if participant == nil {
+				c.JSON(http.StatusForbidden, StandardResponse{
+					Success: false,
+					Error: &ErrorInfo{
+						Code:    "FORBIDDEN",
+						Message: "Only the host or participants can view analytics for friends-only parties",
+					},
+				})
+				return
+			}
+		}
 	}
+	// Public parties: anyone authenticated can view analytics
 
 	// Get analytics
 	analytics, err := h.analyticsRepo.GetWatchPartyAnalytics(c.Request.Context(), partyID)

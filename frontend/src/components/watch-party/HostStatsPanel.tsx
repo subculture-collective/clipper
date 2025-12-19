@@ -31,7 +31,8 @@ export default function HostStatsPanel({ userId }: Props) {
 
   useEffect(() => {
     loadStats();
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // loadStats captures userId from props
 
   const loadStats = async () => {
     try {
