@@ -80,6 +80,7 @@ const ChannelSettingsPage = lazy(() => import('./pages/ChannelSettingsPage').the
 const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex })));
 const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => ({ default: m.ThreadDetail })));
 const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
+const ForumSearchPage = lazy(() => import('./pages/forum/ForumSearchPage').then(m => ({ default: m.ForumSearchPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -134,6 +135,7 @@ function App() {
                     
                     {/* Forum Routes */}
                     <Route path="/forum" element={<ForumIndex />} />
+                    <Route path="/forum/search" element={<ForumSearchPage />} />
                     <Route path="/forum/threads/:threadId" element={<ThreadDetail />} />
                     <Route
                       path="/forum/new"

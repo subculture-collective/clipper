@@ -26,6 +26,8 @@ interface ListThreadsParams {
 
 interface SearchThreadsParams {
   q: string;
+  author?: string;
+  sort?: 'relevance' | 'date' | 'votes';
   page?: number;
   limit?: number;
 }
@@ -104,6 +106,8 @@ export const forumApi = {
   async search(params: SearchThreadsParams): Promise<ForumSearchResponse> {
     const queryParams = new URLSearchParams();
     queryParams.append('q', params.q);
+    if (params.author) queryParams.append('author', params.author);
+    if (params.sort) queryParams.append('sort', params.sort);
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
 

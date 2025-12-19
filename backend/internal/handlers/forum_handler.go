@@ -706,8 +706,23 @@ func (h *ForumHandler) DeleteReply(c *gin.Context) {
 	})
 }
 
-// SearchThreads performs full-text search on threads and replies
-// GET /api/v1/forum/search?q=<query>&page=1
+// ForumSearchResult represents a unified search result that can be either a thread or reply
+type ForumSearchResult struct {
+	Type       string     `json:"type"` // 'thread' or 'reply'
+	ID         uuid.UUID  `json:"id"`
+	Title      *string    `json:"title,omitempty"`      // Only for threads
+	Body       string     `json:"body"`                 // Thread content or reply content
+	AuthorID   uuid.UUID  `json:"author_id"`
+	AuthorName string     `json:"author_name"`
+	ThreadID   *uuid.UUID `json:"thread_id,omitempty"`  // Only for replies
+	VoteCount  int        `json:"vote_count"`
+	CreatedAt  time.Time  `json:"created_at"`
+	Headline   string     `json:"headline"` // Highlighted snippet
+	Rank       float64    `json:"rank"`     // Relevance score
+}
+
+// SearchThreads performs full-text search on threads and replies with filters
+// GET /api/v1/forum/search?q=<query>&author=<username>&sort=<relevance|date|votes>&page=1
 func (h *ForumHandler) SearchThreads(c *gin.Context) {
 	searchQuery := c.Query("q")
 	if searchQuery == "" {
@@ -717,72 +732,158 @@ func (h *ForumHandler) SearchThreads(c *gin.Context) {
 		return
 	}
 
+	author := c.Query("author")
+	sortBy := c.DefaultQuery("sort", "relevance") // relevance, date, votes
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page < 1 {
 		page = 1
 	}
-	limit := 20
+	limit := 50
 	offset := (page - 1) * limit
 
-	// Search in threads
-	query := `
+	// Validate sort parameter
+	if sortBy != "relevance" && sortBy != "date" && sortBy != "votes" {
+		sortBy = "relevance"
+	}
+
+	// Build the query with UNION of threads and replies
+	var queryBuilder strings.Builder
+	args := []interface{}{searchQuery}
+	argIdx := 2
+
+	// Search threads
+	queryBuilder.WriteString(`
 		SELECT 
-			ft.id, ft.user_id, u.username, ft.title, ft.content,
-			ft.game_id, g.name as game_name, ft.tags, ft.view_count, ft.reply_count,
-			ft.locked, ft.locked_at, ft.pinned, ft.created_at, ft.updated_at,
+			'thread' as type,
+			ft.id,
+			ft.title,
+			ft.content as body,
+			ft.user_id as author_id,
+			u.username as author_name,
+			NULL::uuid as thread_id,
+			-- Threads do not support direct voting; this placeholder keeps UNION schema compatible with replies
+			0 as vote_count,
+			ft.created_at,
+			ts_headline('english', 
+				COALESCE(ft.title, '') || ' ' || COALESCE(ft.content, ''),
+				plainto_tsquery('english', $1),
+				'MaxWords=50, MinWords=30, MaxFragments=1'
+			) as headline,
 			ts_rank(ft.search_vector, plainto_tsquery('english', $1)) as rank
 		FROM forum_threads ft
 		JOIN users u ON ft.user_id = u.id
-		LEFT JOIN games g ON ft.game_id = g.id
 		WHERE ft.is_deleted = FALSE
 			AND ft.search_vector @@ plainto_tsquery('english', $1)
-		ORDER BY rank DESC, ft.created_at DESC
-		LIMIT $2 OFFSET $3
-	`
+	`)
 
-	rows, err := h.db.Query(c.Request.Context(), query, searchQuery, limit, offset)
+	// Store the author parameter index if author filter is used
+	authorParamIdx := 0
+	if author != "" {
+		queryBuilder.WriteString(fmt.Sprintf(" AND u.username = $%d", argIdx))
+		args = append(args, author)
+		authorParamIdx = argIdx
+		argIdx++
+	}
+
+	// Union with replies
+	queryBuilder.WriteString(`
+		UNION ALL
+		SELECT 
+			'reply' as type,
+			fr.id,
+			NULL as title,
+			fr.content as body,
+			fr.user_id as author_id,
+			u.username as author_name,
+			fr.thread_id,
+			COALESCE(vc.net_votes, 0) as vote_count,
+			fr.created_at,
+			ts_headline('english',
+				COALESCE(fr.content, ''),
+				plainto_tsquery('english', $1),
+				'MaxWords=50, MinWords=30, MaxFragments=1'
+			) as headline,
+			ts_rank(fr.search_vector, plainto_tsquery('english', $1)) as rank
+		FROM forum_replies fr
+		JOIN users u ON fr.user_id = u.id
+		LEFT JOIN forum_vote_counts vc ON fr.id = vc.reply_id
+		WHERE fr.is_deleted = FALSE
+			AND fr.search_vector @@ plainto_tsquery('english', $1)
+	`)
+
+	// Reuse the same author parameter index for replies
+	if author != "" {
+		queryBuilder.WriteString(fmt.Sprintf(" AND u.username = $%d", authorParamIdx))
+	}
+
+	// Add ORDER BY based on sort parameter
+	switch sortBy {
+	case "date":
+		queryBuilder.WriteString(" ORDER BY created_at DESC")
+	case "votes":
+		queryBuilder.WriteString(" ORDER BY vote_count DESC, created_at DESC")
+	default: // relevance
+		queryBuilder.WriteString(" ORDER BY rank DESC, created_at DESC")
+	}
+
+	// Add pagination
+	queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1))
+	args = append(args, limit, offset)
+
+	// Execute query
+	rows, err := h.db.Query(c.Request.Context(), queryBuilder.String(), args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to search threads",
+			"error": "Failed to search forum",
 		})
 		return
 	}
 	defer rows.Close()
 
-	threads := []ForumThread{}
+	results := []ForumSearchResult{}
 	for rows.Next() {
-		var thread ForumThread
-		var tags pq.StringArray
-		var rank float64
-
+		var result ForumSearchResult
 		err := rows.Scan(
-			&thread.ID, &thread.UserID, &thread.Username, &thread.Title, &thread.Content,
-			&thread.GameID, &thread.GameName, &tags, &thread.ViewCount, &thread.ReplyCount,
-			&thread.Locked, &thread.LockedAt, &thread.Pinned, &thread.CreatedAt, &thread.UpdatedAt,
-			&rank,
+			&result.Type,
+			&result.ID,
+			&result.Title,
+			&result.Body,
+			&result.AuthorID,
+			&result.AuthorName,
+			&result.ThreadID,
+			&result.VoteCount,
+			&result.CreatedAt,
+			&result.Headline,
+			&result.Rank,
 		)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to scan thread",
+				"error": "Failed to scan search result",
 			})
 			return
 		}
+		results = append(results, result)
+	}
 
-		thread.Tags = []string(tags)
-		if thread.Tags == nil {
-			thread.Tags = []string{}
-		}
-		threads = append(threads, thread)
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to read search results",
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    threads,
+		"data":    results,
 		"meta": gin.H{
-			"page":  page,
-			"limit": limit,
-			"query": searchQuery,
-			"count": len(threads),
+			"page":     page,
+			"limit":    limit,
+			"query":    searchQuery,
+			"author":   author,
+			"sort":     sortBy,
+			"count":    len(results),
+			"has_more": len(results) == limit, // Indicates if there might be more results
 		},
 	})
 }

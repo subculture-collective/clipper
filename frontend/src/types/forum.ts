@@ -68,9 +68,30 @@ export interface ForumThreadDetailResponse {
 }
 
 export interface ForumSearchResponse {
-  threads: ForumThread[];
-  replies: ForumReply[];
-  total: number;
+  data: SearchResult[];
+  meta: {
+    page: number;
+    limit: number;
+    query: string;
+    author?: string;
+    sort: string;
+    count: number;
+    has_more: boolean;
+  };
+}
+
+export interface SearchResult {
+  type: 'thread' | 'reply';
+  id: string;
+  title?: string; // Only for threads
+  body: string;
+  author_id: string;
+  author_name: string;
+  thread_id?: string; // Only for replies
+  vote_count: number;
+  created_at: string;
+  headline: string; // Highlighted snippet
+  rank: number;
 }
 
 export type ForumSort = 'newest' | 'most-replied' | 'trending' | 'hot';

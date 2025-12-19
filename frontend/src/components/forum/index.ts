@@ -8,3 +8,4 @@ export { ReplyTree } from './ReplyTree';
 export { ReplyComposer } from './ReplyComposer';
 export { VoteButtons } from './VoteButtons';
 export { ReputationBadge, ReputationProgressBar } from './ReputationBadge';
+export { SearchResultCard } from './SearchResultCard';
