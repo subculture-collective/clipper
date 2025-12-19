@@ -1192,3 +1192,43 @@ func (h *ChatHandler) UpdateChannelMemberRole(c *gin.Context) {
 
 	c.JSON(http.StatusOK, member)
 }
+
+// GetCurrentUserRole gets the current authenticated user's role in a channel
+func (h *ChatHandler) GetCurrentUserRole(c *gin.Context) {
+	channelID := c.Param("id")
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid channel ID"})
+		return
+	}
+
+	// Get authenticated user
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Get user's role in the channel
+	var role string
+	err = h.db.QueryRow(c.Request.Context(),
+		`SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2`,
+		channelUUID, userID).Scan(&role)
+	if err == pgx.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "You are not a member of this channel"})
+		return
+	} else if err != nil {
+		// Log error for debugging but don't expose internal details to client
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve channel membership"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"role": role})
+}

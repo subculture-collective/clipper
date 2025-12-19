@@ -76,6 +76,7 @@ const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default:
 const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage').then(m => ({ default: m.ForumModerationPage })));
 const ModerationLogPage = lazy(() => import('./pages/admin/ModerationLogPage').then(m => ({ default: m.ModerationLogPage })));
 const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
+const ChannelSettingsPage = lazy(() => import('./pages/ChannelSettingsPage').then(m => ({ default: m.ChannelSettingsPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -247,6 +248,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <ChatPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chat/channels/:id/settings"
+                      element={
+                        <ProtectedRoute>
+                          <ChannelSettingsPage />
                         </ProtectedRoute>
                       }
                     />
