@@ -145,11 +145,17 @@ export function WebhookSubscriptionsPage() {
     };
 
     // Copy secret to clipboard
-    const copySecretToClipboard = () => {
+    const copySecretToClipboard = async () => {
         if (newSecret) {
-            navigator.clipboard.writeText(newSecret);
-            setCopiedSecret(true);
-            setTimeout(() => setCopiedSecret(false), 2000);
+            try {
+                await navigator.clipboard.writeText(newSecret);
+                setCopiedSecret(true);
+                setTimeout(() => setCopiedSecret(false), 2000);
+            } catch (error) {
+                console.error('Failed to copy to clipboard:', error);
+                // Fallback: show the secret so user can manually copy
+                alert('Failed to copy automatically. Please copy manually: ' + newSecret);
+            }
         }
     };
 
@@ -409,16 +415,22 @@ export function WebhookSubscriptionsPage() {
                                 Select Events *
                             </label>
                             <div className="space-y-2">
-                                {supportedEvents?.map((event) => (
-                                    <Toggle
-                                        key={event}
-                                        label={event}
-                                        checked={createForm.events.includes(
-                                            event
-                                        )}
-                                        onChange={() => toggleCreateEvent(event)}
-                                    />
-                                ))}
+                                {supportedEvents && supportedEvents.length > 0 ? (
+                                    supportedEvents.map((event) => (
+                                        <Toggle
+                                            key={event}
+                                            label={event}
+                                            checked={createForm.events.includes(
+                                                event
+                                            )}
+                                            onChange={() => toggleCreateEvent(event)}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        Loading events...
+                                    </p>
+                                )}
                             </div>
                         </div>
                         {createMutation.isError && (
@@ -493,17 +505,23 @@ export function WebhookSubscriptionsPage() {
                                 Select Events
                             </label>
                             <div className="space-y-2">
-                                {supportedEvents?.map((event) => (
-                                    <Toggle
-                                        key={event}
-                                        label={event}
-                                        checked={
-                                            editForm.events?.includes(event) ??
-                                            false
-                                        }
-                                        onChange={() => toggleEditEvent(event)}
-                                    />
-                                ))}
+                                {supportedEvents && supportedEvents.length > 0 ? (
+                                    supportedEvents.map((event) => (
+                                        <Toggle
+                                            key={event}
+                                            label={event}
+                                            checked={
+                                                editForm.events?.includes(event) ??
+                                                false
+                                            }
+                                            onChange={() => toggleEditEvent(event)}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        Loading events...
+                                    </p>
+                                )}
                             </div>
                         </div>
                         {updateMutation.isError && (

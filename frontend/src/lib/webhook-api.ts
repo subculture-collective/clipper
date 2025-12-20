@@ -8,8 +8,13 @@ import type {
 
 // Get supported webhook events
 export async function getSupportedWebhookEvents(): Promise<string[]> {
-    const response = await apiClient.get('/webhooks/events');
-    return response.data.data;
+    try {
+        const response = await apiClient.get('/webhooks/events');
+        return response.data.data || [];
+    } catch (error) {
+        console.error('Failed to fetch supported webhook events:', error);
+        throw new Error('Failed to load webhook events. Please try again.');
+    }
 }
 
 // Create a new webhook subscription
@@ -43,8 +48,14 @@ export async function getWebhookSubscription(
 export async function updateWebhookSubscription(
     id: string,
     data: UpdateWebhookSubscriptionRequest
-): Promise<void> {
-    await apiClient.patch(`/webhooks/${id}`, data);
+): Promise<WebhookSubscription> {
+    const response = await apiClient.patch(`/webhooks/${id}`, data);
+    // Return the subscription data if available, otherwise fetch it
+    if (response.data.data) {
+        return response.data.data;
+    }
+    // Fallback: fetch the updated subscription
+    return getWebhookSubscription(id);
 }
 
 // Delete a webhook subscription
