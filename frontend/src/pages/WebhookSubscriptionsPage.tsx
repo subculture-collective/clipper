@@ -382,7 +382,11 @@ export function WebhookSubscriptionsPage() {
             {/* Create Modal */}
             <Modal
                 open={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
+                onClose={() => {
+                    setShowCreateModal(false);
+                    setCreateForm({ url: '', events: [], description: '' });
+                    createMutation.reset();
+                }}
                 title="Create Webhook Subscription"
             >
                 <form onSubmit={handleCreateSubmit}>
@@ -436,7 +440,10 @@ export function WebhookSubscriptionsPage() {
                         </div>
                         {createMutation.isError && (
                             <Alert variant="error">
-                                Failed to create webhook subscription
+                                <p className="font-medium">Failed to create webhook subscription</p>
+                                {createMutation.error instanceof Error && createMutation.error.message && (
+                                    <p className="mt-1 text-sm">{createMutation.error.message}</p>
+                                )}
                             </Alert>
                         )}
                         <div className="flex gap-3 justify-end">
@@ -467,7 +474,12 @@ export function WebhookSubscriptionsPage() {
             {/* Edit Modal */}
             <Modal
                 open={showEditModal}
-                onClose={() => setShowEditModal(false)}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setSelectedSubscription(null);
+                    setEditForm({});
+                    updateMutation.reset();
+                }}
                 title="Edit Webhook Subscription"
             >
                 <form onSubmit={handleEditSubmit}>
@@ -527,7 +539,10 @@ export function WebhookSubscriptionsPage() {
                         </div>
                         {updateMutation.isError && (
                             <Alert variant="error">
-                                Failed to update webhook subscription
+                                <p className="font-medium">Failed to update webhook subscription</p>
+                                {updateMutation.error instanceof Error && updateMutation.error.message && (
+                                    <p className="mt-1 text-sm">{updateMutation.error.message}</p>
+                                )}
                             </Alert>
                         )}
                         <div className="flex gap-3 justify-end">
@@ -555,7 +570,11 @@ export function WebhookSubscriptionsPage() {
             {/* Delete Confirmation Modal */}
             <Modal
                 open={showDeleteModal}
-                onClose={() => setShowDeleteModal(false)}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setSelectedSubscription(null);
+                    deleteMutation.reset();
+                }}
                 title="Delete Webhook Subscription"
             >
                 <Stack direction="vertical" gap={4}>
@@ -573,7 +592,10 @@ export function WebhookSubscriptionsPage() {
                     )}
                     {deleteMutation.isError && (
                         <Alert variant="error">
-                            Failed to delete webhook subscription
+                            <p className="font-medium">Failed to delete webhook subscription</p>
+                            {deleteMutation.error instanceof Error && deleteMutation.error.message && (
+                                <p className="mt-1 text-sm">{deleteMutation.error.message}</p>
+                            )}
                         </Alert>
                     )}
                     <div className="flex gap-3 justify-end">

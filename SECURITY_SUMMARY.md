@@ -9,7 +9,6 @@ This document provides a security assessment of the webhook subscription managem
 - **Status**: PASSED
 - **Vulnerabilities Found**: 0
 - **Language**: JavaScript/TypeScript
-- **Scan Date**: $(date)
 - **Result**: No security alerts detected in the webhook implementation
 
 ## Security Features Implemented

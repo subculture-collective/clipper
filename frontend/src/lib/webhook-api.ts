@@ -40,16 +40,24 @@ export async function getWebhookSubscription(
 }
 
 // Update a webhook subscription
+// NOTE: Some backends may respond to PATCH /webhooks/:id with a 204 No Content
+// or without including the updated subscription in response.data.data.
+// To maintain this helper's contract of always returning a WebhookSubscription,
+// we perform a follow-up GET only when the PATCH response does not contain data.
+// This extra network request has a performance cost but is intentional until
+// the backend can be updated to always return the updated resource.
+// If the backend behavior changes, this fallback can be removed.
 export async function updateWebhookSubscription(
     id: string,
     data: UpdateWebhookSubscriptionRequest
 ): Promise<WebhookSubscription> {
     const response = await apiClient.patch(`/webhooks/${id}`, data);
-    // Return the subscription data if available, otherwise fetch it
+    // Prefer the subscription data from the PATCH response when available
     if (response.data.data) {
         return response.data.data;
     }
-    // Fallback: fetch the updated subscription
+    // Intentional fallback: fetch the updated subscription when the backend
+    // does not return it in the PATCH response
     return getWebhookSubscription(id);
 }
 
