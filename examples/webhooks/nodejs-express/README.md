@@ -205,12 +205,15 @@ pm2 save
 
 ## Security Notes
 
-- This is a test/development server
-- For production, add proper error handling, logging, and monitoring
-- Store secrets securely (use environment variables or secret managers)
-- Always use HTTPS in production
-- Implement additional request validation as needed
-- Consider adding rate limiting
+- This is a test/development server for learning and testing webhook signature verification
+- For production use:
+  - Add rate limiting middleware (e.g., express-rate-limit)
+  - Use proper error handling and logging
+  - Store secrets securely (use environment variables or secret managers)
+  - Always use HTTPS in production
+  - Implement additional request validation as needed
+  - Use a production-ready server setup (PM2, clustering, etc.)
+  - Add monitoring and alerting
 
 ## Support
 

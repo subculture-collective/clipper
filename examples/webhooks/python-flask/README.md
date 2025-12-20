@@ -107,6 +107,18 @@ pip install gunicorn
 gunicorn -w 4 -b 0.0.0.0:3000 server:app
 ```
 
+## Security Notes
+
+- This is a test/development server for learning and testing webhook signature verification
+- For production use:
+  - Use Gunicorn or uWSGI, not Flask's development server
+  - Add rate limiting (e.g., Flask-Limiter)
+  - Deploy behind a reverse proxy with SSL
+  - Store secrets in a secret manager
+  - Use Redis or a database for processed delivery IDs
+  - Implement proper logging and monitoring
+  - Add request validation and error handling
+
 ## Support
 
 For more information, see:
