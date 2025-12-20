@@ -66,6 +66,52 @@ var (
 		},
 		[]string{"event_type", "status_code"},
 	)
+
+	// WebhookTimeToSuccess tracks the time from first attempt to successful delivery
+	webhookTimeToSuccess = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "webhook_time_to_success_seconds",
+			Help:    "Time from first delivery attempt to successful delivery",
+			Buckets: []float64{1, 5, 10, 30, 60, 300, 600, 1800, 3600}, // 1s to 1 hour
+		},
+		[]string{"event_type"},
+	)
+
+	// WebhookConsecutiveFailures tracks consecutive failures for the same subscription
+	webhookConsecutiveFailures = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "webhook_consecutive_failures",
+			Help: "Number of consecutive failures for a webhook subscription",
+		},
+		[]string{"subscription_id", "event_type"},
+	)
+
+	// WebhookDLQMovements tracks items moved to dead-letter queue
+	webhookDLQMovements = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "webhook_dlq_movements_total",
+			Help: "Total number of webhook deliveries moved to dead-letter queue",
+		},
+		[]string{"event_type", "reason"},
+	)
+
+	// WebhookRetryRate tracks the rate of retries
+	webhookRetryRate = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "webhook_retry_total",
+			Help: "Total number of webhook retry attempts",
+		},
+		[]string{"event_type", "retry_number"},
+	)
+
+	// WebhookSubscriptionHealth tracks per-subscription delivery success/failure
+	webhookSubscriptionHealth = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "webhook_subscription_delivery_total",
+			Help: "Total webhook deliveries per subscription",
+		},
+		[]string{"subscription_id", "status"}, // status: success, failed
+	)
 )
 
 func init() {
@@ -77,4 +123,9 @@ func init() {
 	prometheus.MustRegister(webhookSubscriptionsActive)
 	prometheus.MustRegister(webhookRetryAttempts)
 	prometheus.MustRegister(webhookHTTPStatusCode)
+	prometheus.MustRegister(webhookTimeToSuccess)
+	prometheus.MustRegister(webhookConsecutiveFailures)
+	prometheus.MustRegister(webhookDLQMovements)
+	prometheus.MustRegister(webhookRetryRate)
+	prometheus.MustRegister(webhookSubscriptionHealth)
 }
