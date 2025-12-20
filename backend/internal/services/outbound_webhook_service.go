@@ -346,12 +346,12 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	finalStatus := "retry"
 	if delivery.AttemptCount+1 >= delivery.MaxAttempts {
 		finalStatus = "failed"
-		webhookRetryAttempts.WithLabelValues(delivery.EventType, "failed").Observe(float64(delivery.AttemptCount + 1))
 	}
 	
-	// Record metrics
+	// Record metrics for all attempts (including retries)
 	webhookDeliveryTotal.WithLabelValues(delivery.EventType, finalStatus).Inc()
 	webhookDeliveryDuration.WithLabelValues(delivery.EventType, finalStatus).Observe(time.Since(startTime).Seconds())
+	webhookRetryAttempts.WithLabelValues(delivery.EventType, finalStatus).Observe(float64(delivery.AttemptCount + 1))
 	
 	return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, &resp.StatusCode, errMsg, &nextRetry)
 }

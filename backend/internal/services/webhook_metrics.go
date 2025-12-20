@@ -66,15 +66,6 @@ var (
 		},
 		[]string{"event_type", "status_code"},
 	)
-
-	// WebhookSignatureVerificationFailures tracks signature verification failures
-	webhookSignatureVerificationFailures = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "webhook_signature_verification_failures_total",
-			Help: "Total number of webhook signature verification failures",
-		},
-		[]string{"event_type"},
-	)
 )
 
 func init() {
@@ -86,5 +77,4 @@ func init() {
 	prometheus.MustRegister(webhookSubscriptionsActive)
 	prometheus.MustRegister(webhookRetryAttempts)
 	prometheus.MustRegister(webhookHTTPStatusCode)
-	prometheus.MustRegister(webhookSignatureVerificationFailures)
 }

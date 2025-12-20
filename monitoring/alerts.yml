@@ -516,20 +516,7 @@ groups:
         annotations:
           summary: "High webhook delivery latency"
           description: "P95 webhook delivery latency is {{ $value }}s, target is < 5s."
-          runbook: "docs/backend/webhooks.md#high-failure-rate"
-
-      # Webhook Signature Verification Failures
-      - alert: WebhookSignatureVerificationFailures
-        expr: |
-          rate(webhook_signature_verification_failures_total[5m]) > 0.5
-        for: 5m
-        labels:
-          severity: warning
-          security: true
-        annotations:
-          summary: "Webhook signature verification failures detected"
-          description: "{{ $value }} webhook signature verification failures per second."
-          runbook: "docs/backend/webhooks.md#signature-verification-fails"
+          runbook: "docs/backend/webhooks.md#troubleshooting"
 
       # No Active Webhook Subscriptions (informational)
       - alert: NoActiveWebhookSubscriptions

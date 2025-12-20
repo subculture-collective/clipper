@@ -33,9 +33,6 @@ func TestWebhookMetricsRegistered(t *testing.T) {
 
 		err = prometheus.Register(webhookHTTPStatusCode)
 		assert.Error(t, err, "webhookHTTPStatusCode should already be registered")
-
-		err = prometheus.Register(webhookSignatureVerificationFailures)
-		assert.Error(t, err, "webhookSignatureVerificationFailures should already be registered")
 	})
 }
 
@@ -60,9 +57,6 @@ func TestWebhookDeliveryMetrics(t *testing.T) {
 	// Test HTTP status codes
 	webhookHTTPStatusCode.WithLabelValues(eventType, "200").Inc()
 	webhookHTTPStatusCode.WithLabelValues(eventType, "500").Inc()
-
-	// Test signature verification failures
-	webhookSignatureVerificationFailures.WithLabelValues(eventType).Inc()
 
 	// Verify metrics can be collected
 	assert.NotPanics(t, func() {

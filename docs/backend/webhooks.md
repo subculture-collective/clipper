@@ -262,9 +262,17 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 )
 
-const webhookSecret = "your-webhook-secret-here"
+// Load webhook secret from environment variable for security
+// Fallback to placeholder only for example purposes
+func getWebhookSecret() string {
+	if secret := os.Getenv("WEBHOOK_SECRET"); secret != "" {
+		return secret
+	}
+	return "your-webhook-secret-here"
+}
 
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	// Only accept POST requests
@@ -292,6 +300,7 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	// Compute HMAC-SHA256 signature
+	webhookSecret := getWebhookSecret()
 	mac := hmac.New(sha256.New, []byte(webhookSecret))
 	mac.Write(rawBody)
 	computedSignature := hex.EncodeToString(mac.Sum(nil))
@@ -405,7 +414,12 @@ import java.util.Map;
 @RequestMapping("/webhook")
 public class WebhookController {
 
-    private static final String WEBHOOK_SECRET = "your-webhook-secret-here";
+    // Load webhook secret from environment variable for security
+    // Fallback to placeholder only for example purposes
+    private static final String WEBHOOK_SECRET = 
+        System.getenv("WEBHOOK_SECRET") != null 
+            ? System.getenv("WEBHOOK_SECRET")
+            : "your-webhook-secret-here";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping
