@@ -535,7 +535,7 @@ groups:
           severity: warning
         annotations:
           summary: "Webhook delivery latency spike detected"
-          description: "P95 latency has increased by {{ $value | humanizePercentage }} compared to 1-hour baseline."
+          description: "P95 latency has increased by {{ humanize $value }}x compared to 1-hour baseline."
           runbook: "docs/backend/webhooks.md#troubleshooting"
 
       # High DLQ Movement Rate
@@ -603,16 +603,17 @@ groups:
       # High Retry Exhaustion Rate
       - alert: HighRetryExhaustionRate
         expr: |
-          sum(rate(webhook_retry_attempts_count{final_status="failed"}[5m]))
-          /
-          sum(rate(webhook_retry_attempts_count[5m]))
-          > 0.3
+          (
+            sum(rate(webhook_retry_attempts_count{final_status="failed"}[5m]))
+            /
+            sum(rate(webhook_retry_attempts_count[5m]))
+          ) > 0.3
         for: 10m
         labels:
           severity: warning
         annotations:
           summary: "High webhook retry exhaustion rate"
-          description: "{{ $value | humanizePercentage }} of webhook retries are exhausting all attempts."
+          description: "{{ humanize $value }}% of webhook retries are exhausting all attempts (multiplied by 100 for display)."
           runbook: "docs/backend/webhook-retry.md#high-exhaustion-rate"
 
       # Webhook Delivery Stalled

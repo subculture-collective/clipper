@@ -366,10 +366,9 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 		log.Printf("[WEBHOOK] Delivery successful: status=%d", resp.StatusCode)
 		
 		// Calculate time to success (time from first attempt to success)
-		// Assuming CreatedAt is the time of first attempt
 		if delivery.AttemptCount > 0 {
-			// This is a retry that succeeded, track time to success
-			timeToSuccess := time.Since(startTime).Seconds() + float64(delivery.AttemptCount)*30 // Rough estimate based on retry delays
+			// This is a retry that succeeded, calculate time from creation to now
+			timeToSuccess := time.Since(delivery.CreatedAt).Seconds()
 			webhookTimeToSuccess.WithLabelValues(delivery.EventType).Observe(timeToSuccess)
 		}
 		
