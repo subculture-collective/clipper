@@ -80,6 +80,69 @@ GET /api/v1/webhooks/:id/deliveries?page=1&limit=20
 ```
 Returns delivery history with pagination.
 
+## Admin Endpoints (Admin/Moderator Only)
+
+### Get Dead-Letter Queue Items
+```
+GET /api/v1/admin/webhooks/dlq?page=1&limit=20
+```
+Returns paginated list of failed webhook deliveries.
+
+Response:
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "subscription_id": "uuid",
+      "delivery_id": "uuid",
+      "event_type": "clip.submitted",
+      "event_id": "uuid",
+      "payload": "{...}",
+      "error_message": "HTTP 500: Internal Server Error",
+      "http_status_code": 500,
+      "attempt_count": 5,
+      "original_created_at": "2024-01-01T12:00:00Z",
+      "moved_to_dlq_at": "2024-01-01T12:10:00Z",
+      "replayed_at": null,
+      "replay_successful": null
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 5,
+    "total_pages": 1
+  }
+}
+```
+
+### Replay Dead-Letter Queue Item
+```
+POST /api/v1/admin/webhooks/dlq/:id/replay
+```
+Attempts to redeliver a failed webhook. The webhook will be sent with a special `X-Webhook-Replay: true` header.
+
+Response:
+```json
+{
+  "message": "Webhook replayed successfully"
+}
+```
+
+### Delete Dead-Letter Queue Item
+```
+DELETE /api/v1/admin/webhooks/dlq/:id
+```
+Permanently deletes a DLQ item.
+
+Response:
+```json
+{
+  "message": "DLQ item deleted successfully"
+}
+```
+
 ## Security Features
 
 ### Secret Management
@@ -139,11 +202,25 @@ function verifySignature(payload, signature, secret) {
 - Failed deliveries are automatically retried with exponential backoff
 - Maximum 5 retry attempts
 - Retry intervals: 30s, 60s, 120s, 240s, 480s
+- After exhausting all retries, deliveries are moved to the dead-letter queue (DLQ)
 
 ### Delivery Status
 - **pending**: Delivery is scheduled or in progress
 - **delivered**: Successfully delivered (HTTP 2xx response)
-- **failed**: All retry attempts exhausted
+- **failed**: All retry attempts exhausted (moved to DLQ)
+
+### Dead-Letter Queue (DLQ)
+When a webhook delivery fails after all retry attempts, it is moved to the dead-letter queue. Administrators can:
+- View all failed deliveries in the admin panel at `/admin/webhooks/dlq`
+- Inspect the full payload and error details
+- Manually replay failed deliveries to retry them
+- Delete entries that are no longer needed
+
+**Admin Features:**
+- **View DLQ**: See all permanently failed webhook deliveries
+- **Replay**: Attempt to redeliver a failed webhook
+- **Delete**: Remove entries from the DLQ
+- **Audit Trail**: Track replay attempts and their success/failure status
 
 ### Audit Log
 The delivery history provides a complete audit log including:
@@ -172,14 +249,30 @@ The delivery history provides a complete audit log including:
 3. Check delivery history for error messages
 4. Ensure your endpoint responds within 10 seconds
 5. Verify you're subscribed to the correct events
+6. **If deliveries are in DLQ**: Check admin panel for failed deliveries and replay them after fixing issues
 
 ### Authentication Failures
 1. Verify signature verification is implemented correctly
 2. Ensure you're using the current secret
 3. Check that the payload hasn't been modified
 
+### Persistent Failures
+If webhooks consistently fail and appear in the DLQ:
+1. **Check endpoint availability**: Ensure your webhook endpoint is accessible from the internet
+2. **Review error messages**: Check the DLQ for specific error details
+3. **Verify SSL/TLS**: Ensure your endpoint has a valid SSL certificate
+4. **Check response time**: Webhooks must respond within 10 seconds
+5. **Fix and replay**: After resolving issues, use the admin panel to replay failed deliveries
+
 ### Rate Limiting
 If you hit rate limits:
 1. Reduce creation frequency
 2. Implement exponential backoff
 3. Cache supported events list
+
+### Monitoring and Observability
+For production deployments:
+1. **Monitor DLQ size**: Keep track of failed deliveries
+2. **Set up alerts**: Get notified when DLQ items exceed threshold
+3. **Review regularly**: Check admin panel periodically for patterns
+4. **Track replay success**: Monitor whether replayed webhooks succeed

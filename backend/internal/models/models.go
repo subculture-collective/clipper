@@ -1586,6 +1586,25 @@ func GetSupportedWebhookEvents() []string {
 	}
 }
 
+// OutboundWebhookDeadLetterQueue represents a permanently failed outbound webhook delivery
+type OutboundWebhookDeadLetterQueue struct {
+	ID                 uuid.UUID  `json:"id" db:"id"`
+	SubscriptionID     uuid.UUID  `json:"subscription_id" db:"subscription_id"`
+	DeliveryID         uuid.UUID  `json:"delivery_id" db:"delivery_id"`
+	EventType          string     `json:"event_type" db:"event_type"`
+	EventID            uuid.UUID  `json:"event_id" db:"event_id"`
+	Payload            string     `json:"payload" db:"payload"`
+	ErrorMessage       string     `json:"error_message" db:"error_message"`
+	HTTPStatusCode     *int       `json:"http_status_code,omitempty" db:"http_status_code"`
+	ResponseBody       *string    `json:"response_body,omitempty" db:"response_body"`
+	AttemptCount       int        `json:"attempt_count" db:"attempt_count"`
+	OriginalCreatedAt  time.Time  `json:"original_created_at" db:"original_created_at"`
+	MovedToDLQAt       time.Time  `json:"moved_to_dlq_at" db:"moved_to_dlq_at"`
+	ReplayedAt         *time.Time `json:"replayed_at,omitempty" db:"replayed_at"`
+	ReplaySuccessful   *bool      `json:"replay_successful,omitempty" db:"replay_successful"`
+	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
+}
+
 // TrustScoreHistory represents a trust score change audit log entry
 type TrustScoreHistory struct {
 	ID              uuid.UUID              `json:"id" db:"id"`

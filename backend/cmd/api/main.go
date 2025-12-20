@@ -371,6 +371,7 @@ func main() {
 	adHandler := handlers.NewAdHandler(adService)
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
 	webhookSubscriptionHandler := handlers.NewWebhookSubscriptionHandler(outboundWebhookService)
+	webhookDLQHandler := handlers.NewWebhookDLQHandler(outboundWebhookService)
 	configHandler := handlers.NewConfigHandler(cfg)
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
@@ -1536,6 +1537,14 @@ func main() {
 				forum.POST("/users/:id/ban", forumModerationHandler.BanUser)
 				forum.GET("/moderation-log", forumModerationHandler.GetModerationLog)
 				forum.GET("/bans", forumModerationHandler.GetUserBans)
+			}
+
+			// Webhook dead-letter queue management (admin only)
+			webhookDLQ := admin.Group("/webhooks")
+			{
+				webhookDLQ.GET("/dlq", webhookDLQHandler.GetDeadLetterQueue)
+				webhookDLQ.POST("/dlq/:id/replay", webhookDLQHandler.ReplayDeadLetterQueueItem)
+				webhookDLQ.DELETE("/dlq/:id", webhookDLQHandler.DeleteDeadLetterQueueItem)
 			}
 		}
 	}

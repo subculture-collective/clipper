@@ -455,3 +455,144 @@ func (r *OutboundWebhookRepository) GetRecentDeliveryStats(ctx context.Context) 
 
 	return stats, rows.Err()
 }
+
+// MoveDeliveryToDeadLetterQueue moves a failed delivery to the dead-letter queue
+func (r *OutboundWebhookRepository) MoveDeliveryToDeadLetterQueue(ctx context.Context, delivery *models.WebhookDelivery) error {
+	query := `
+		INSERT INTO outbound_webhook_dead_letter_queue (
+			id, subscription_id, delivery_id, event_type, event_id, payload,
+			error_message, http_status_code, response_body, attempt_count, original_created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`
+
+	// Ensure error_message is not nil by providing a default value
+	errorMessage := "Unknown error"
+	if delivery.ErrorMessage != nil && *delivery.ErrorMessage != "" {
+		errorMessage = *delivery.ErrorMessage
+	}
+
+	_, err := r.db.Exec(ctx, query,
+		uuid.New(),
+		delivery.SubscriptionID,
+		delivery.ID,
+		delivery.EventType,
+		delivery.EventID,
+		delivery.Payload,
+		errorMessage,
+		delivery.HTTPStatusCode,
+		delivery.ResponseBody,
+		delivery.AttemptCount,
+		delivery.CreatedAt,
+	)
+
+	return err
+}
+
+// GetDeadLetterQueueItems retrieves items from the outbound webhook dead-letter queue
+func (r *OutboundWebhookRepository) GetDeadLetterQueueItems(ctx context.Context, limit, offset int) ([]*models.OutboundWebhookDeadLetterQueue, error) {
+	query := `
+		SELECT id, subscription_id, delivery_id, event_type, event_id, payload,
+		       error_message, http_status_code, response_body, attempt_count,
+		       original_created_at, moved_to_dlq_at, replayed_at, replay_successful, created_at
+		FROM outbound_webhook_dead_letter_queue
+		ORDER BY moved_to_dlq_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.db.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []*models.OutboundWebhookDeadLetterQueue
+	for rows.Next() {
+		var item models.OutboundWebhookDeadLetterQueue
+		err := rows.Scan(
+			&item.ID,
+			&item.SubscriptionID,
+			&item.DeliveryID,
+			&item.EventType,
+			&item.EventID,
+			&item.Payload,
+			&item.ErrorMessage,
+			&item.HTTPStatusCode,
+			&item.ResponseBody,
+			&item.AttemptCount,
+			&item.OriginalCreatedAt,
+			&item.MovedToDLQAt,
+			&item.ReplayedAt,
+			&item.ReplaySuccessful,
+			&item.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, &item)
+	}
+
+	return items, rows.Err()
+}
+
+// CountDeadLetterQueueItems returns the total count of items in the outbound webhook DLQ
+func (r *OutboundWebhookRepository) CountDeadLetterQueueItems(ctx context.Context) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM outbound_webhook_dead_letter_queue`
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetDeadLetterQueueItemByID retrieves a single DLQ item by ID
+func (r *OutboundWebhookRepository) GetDeadLetterQueueItemByID(ctx context.Context, id uuid.UUID) (*models.OutboundWebhookDeadLetterQueue, error) {
+	query := `
+		SELECT id, subscription_id, delivery_id, event_type, event_id, payload,
+		       error_message, http_status_code, response_body, attempt_count,
+		       original_created_at, moved_to_dlq_at, replayed_at, replay_successful, created_at
+		FROM outbound_webhook_dead_letter_queue
+		WHERE id = $1
+	`
+
+	var item models.OutboundWebhookDeadLetterQueue
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&item.ID,
+		&item.SubscriptionID,
+		&item.DeliveryID,
+		&item.EventType,
+		&item.EventID,
+		&item.Payload,
+		&item.ErrorMessage,
+		&item.HTTPStatusCode,
+		&item.ResponseBody,
+		&item.AttemptCount,
+		&item.OriginalCreatedAt,
+		&item.MovedToDLQAt,
+		&item.ReplayedAt,
+		&item.ReplaySuccessful,
+		&item.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &item, nil
+}
+
+// UpdateDLQItemReplayStatus updates the replay status of a DLQ item
+func (r *OutboundWebhookRepository) UpdateDLQItemReplayStatus(ctx context.Context, id uuid.UUID, successful bool) error {
+	query := `
+		UPDATE outbound_webhook_dead_letter_queue
+		SET replayed_at = $2, replay_successful = $3
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, id, time.Now(), successful)
+	return err
+}
+
+// DeleteDeadLetterQueueItem deletes a DLQ item
+func (r *OutboundWebhookRepository) DeleteDeadLetterQueueItem(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM outbound_webhook_dead_letter_queue WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
+}
