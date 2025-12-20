@@ -34,7 +34,7 @@ test-secret-key-12345
 }
 ```
 
-**Signature:** `3e7c4a5b9d8f1e2a6c3b7d4f8e9a1c5b2d6f3e7a4c8b9d5f1e2a6c3b7d4f8e9a`
+**Signature:** `49b2675d43a7aec876a4cfc36882c001cdd75664870ca09c13d076a191e8399a`
 
 ### 2. clip.approved Event
 
@@ -53,7 +53,7 @@ test-secret-key-12345
 }
 ```
 
-**Signature:** `7a2b4c6d8e1f3a5b7c9d2e4f6a8b1c3d5e7f9a2b4c6d8e1f3a5b7c9d2e4f6a8b`
+**Signature:** `0dba496abec0e1810f27ff01609c7b8ba11739198f98747899c1eed7906205b4`
 
 ### 3. clip.rejected Event
 
@@ -74,7 +74,7 @@ test-secret-key-12345
 }
 ```
 
-**Signature:** `9c1d3e5f7a2b4c6d8e1f3a5b7c9d2e4f6a8b1c3d5e7f9a2b4c6d8e1f3a5b7c9d`
+**Signature:** `00b49de7e41dae431199cbb212ef5b6450b21cd99fd03ce009dc03070f68f3f4`
 
 ## Using the Test Script
 

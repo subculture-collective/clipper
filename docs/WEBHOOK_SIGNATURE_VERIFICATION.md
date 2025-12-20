@@ -569,7 +569,7 @@ echo -n '{"event":"clip.submitted","timestamp":"2024-01-15T10:30:00Z","data":{}}
 {"event":"clip.submitted","timestamp":"2024-01-15T10:30:00Z","data":{"submission_id":"123e4567-e89b-12d3-a456-426614174000"}}
 ```
 
-**Expected Signature:** `e8a4c6b3f7d2a9e5c1b8d4f6a3e7c9b5d2f8a4e6c3b7d9f5a2e8c6b4d7f9a3e5`
+**Expected Signature:** `eb09d13b20c12e7e8e12f24eb9bc4803e3eb6faadd641796ca5503f25cb32a69`
 
 You can use this test data to verify your signature verification implementation is working correctly.
 

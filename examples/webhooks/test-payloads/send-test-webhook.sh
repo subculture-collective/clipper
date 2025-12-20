@@ -41,7 +41,8 @@ generate_uuid() {
         python3 -c "import uuid; print(uuid.uuid4())"
     else
         # Fallback to random hex (not a true UUID but works for testing)
-        cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1 | sed -e 's/\(........\)\(....\)\(....\)\(....\)/\1-\2-\3-\4-/'
+        # Format: 8-4-4-4-12 hex characters
+        cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1 | sed -e 's/\(........\)\(....\)\(....\)\(....\)\(............\)/\1-\2-\3-\4-\5/'
     fi
 }
 
