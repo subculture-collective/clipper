@@ -564,7 +564,7 @@ groups:
 
       # Subscription Consecutive Failures
       - alert: WebhookSubscriptionConsecutiveFailures
-        expr: webhook_consecutive_failures > 5
+        expr: webhook_consecutive_failures_count > 5
         for: 15m
         labels:
           severity: warning
@@ -575,7 +575,7 @@ groups:
 
       # Subscription Critical Consecutive Failures
       - alert: WebhookSubscriptionCriticalFailures
-        expr: webhook_consecutive_failures > 20
+        expr: webhook_consecutive_failures_count > 20
         for: 5m
         labels:
           severity: critical
@@ -607,13 +607,13 @@ groups:
             sum(rate(webhook_retry_attempts_count{final_status="failed"}[5m]))
             /
             sum(rate(webhook_retry_attempts_count[5m]))
-          ) > 0.3
+          ) * 100 > 30
         for: 10m
         labels:
           severity: warning
         annotations:
           summary: "High webhook retry exhaustion rate"
-          description: "{{ humanize $value }}% of webhook retries are exhausting all attempts (multiplied by 100 for display)."
+          description: "{{ $value | humanizePercentage }} of webhook retries are exhausting all attempts."
           runbook: "docs/backend/webhook-retry.md#high-exhaustion-rate"
 
       # Webhook Delivery Stalled

@@ -12,8 +12,8 @@ This guide covers the webhook monitoring infrastructure, metrics, alerts, and tr
 - **Alertmanager**: Routes alerts to on-call engineers via configured channels
 
 ### Dashboard Access
-- **Webhook Monitoring Dashboard**: `https://grafana.clipper.com/d/webhook-monitoring`
-- **System Health**: `https://grafana.clipper.com/d/system-health`
+- **Webhook Monitoring Dashboard**: `https://grafana.clipper.com/d/webhook-monitoring/webhook-monitoring-dashboard`
+- **System Health**: Available via Grafana → Dashboards → "System Health Dashboard"
 
 ## Key Metrics
 
@@ -440,8 +440,39 @@ WHERE id = 'subscription-id';
 
 ### Manual DLQ Reprocessing
 
+For outbound webhooks (generic webhook deliveries), items in the DLQ can be manually reprocessed if the underlying issue has been resolved:
+
 ```sql
--- Move items from DLQ back to retry queue for reprocessing
+-- Review items in the outbound webhook DLQ
+SELECT 
+  subscription_id,
+  event_type,
+  error_message,
+  http_status_code,
+  attempt_count,
+  COUNT(*) as count
+FROM outbound_webhook_dead_letter_queue
+WHERE moved_to_dlq_at > NOW() - INTERVAL '24 hours'
+GROUP BY subscription_id, event_type, error_message, http_status_code, attempt_count
+ORDER BY count DESC;
+
+-- Items can be replayed by updating the replayed_at timestamp
+-- This marks them for potential reprocessing by background jobs
+UPDATE outbound_webhook_dead_letter_queue
+SET replayed_at = NOW()
+WHERE reason IN (
+  'max_retries_network_error',
+  'max_retries_client_error',
+  'max_retries_server_error'
+)
+  AND moved_to_dlq_at > NOW() - INTERVAL '1 hour'
+  AND replayed_at IS NULL;
+```
+
+For Stripe webhook retries (if applicable):
+
+```sql
+-- Move Stripe webhook items from DLQ back to retry queue for reprocessing
 INSERT INTO webhook_retry_queue (
   stripe_event_id,
   event_type,
@@ -460,13 +491,15 @@ SELECT
   NOW() as next_retry_at,
   NOW() as created_at
 FROM webhook_dead_letter_queue
-WHERE reason = 'temporary_outage'
-  AND created_at > NOW() - INTERVAL '1 hour';
+WHERE created_at > NOW() - INTERVAL '1 hour'
+  AND stripe_event_id NOT IN (SELECT stripe_event_id FROM webhook_retry_queue);
 
--- Remove from DLQ
+-- Remove from DLQ after moving to retry queue
 DELETE FROM webhook_dead_letter_queue
-WHERE reason = 'temporary_outage'
-  AND created_at > NOW() - INTERVAL '1 hour';
+WHERE stripe_event_id IN (
+  SELECT stripe_event_id FROM webhook_retry_queue
+  WHERE created_at > NOW() - INTERVAL '1 hour'
+);
 ```
 
 ## Dashboard Panels

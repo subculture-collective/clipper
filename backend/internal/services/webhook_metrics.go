@@ -80,7 +80,7 @@ var (
 	// WebhookConsecutiveFailures tracks consecutive failures for the same subscription
 	webhookConsecutiveFailures = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "webhook_consecutive_failures",
+			Name: "webhook_consecutive_failures_count",
 			Help: "Number of consecutive failures for a webhook subscription",
 		},
 		[]string{"subscription_id", "event_type"},

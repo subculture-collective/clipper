@@ -303,8 +303,10 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 		// Network error - schedule retry or move to DLQ
 		errMsg := fmt.Sprintf("network error: %v", err)
 		
-		// Track retry rate metric
-		webhookRetryRate.WithLabelValues(delivery.EventType, strconv.Itoa(delivery.AttemptCount+1)).Inc()
+		// Track retry rate metric (only for actual retries, not the initial attempt)
+		if delivery.AttemptCount > 0 {
+			webhookRetryRate.WithLabelValues(delivery.EventType, strconv.Itoa(delivery.AttemptCount+1)).Inc()
+		}
 		
 		// Check if this is the final attempt
 		if delivery.AttemptCount+1 >= delivery.MaxAttempts {
@@ -365,12 +367,9 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 		// Success
 		log.Printf("[WEBHOOK] Delivery successful: status=%d", resp.StatusCode)
 		
-		// Calculate time to success (time from first attempt to success)
-		if delivery.AttemptCount > 0 {
-			// This is a retry that succeeded, calculate time from creation to now
-			timeToSuccess := time.Since(delivery.CreatedAt).Seconds()
-			webhookTimeToSuccess.WithLabelValues(delivery.EventType).Observe(timeToSuccess)
-		}
+		// Calculate time to success (time from creation/first attempt to success)
+		timeToSuccess := time.Since(delivery.CreatedAt).Seconds()
+		webhookTimeToSuccess.WithLabelValues(delivery.EventType).Observe(timeToSuccess)
 		
 		// Record success metrics
 		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "success").Inc()
@@ -397,8 +396,10 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	nextRetry := s.calculateNextRetry(delivery.AttemptCount + 1)
 	errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(responseBody))
 	
-	// Track retry rate metric
-	webhookRetryRate.WithLabelValues(delivery.EventType, strconv.Itoa(delivery.AttemptCount+1)).Inc()
+	// Track retry rate metric (only for actual retries, not the initial attempt)
+	if delivery.AttemptCount > 0 {
+		webhookRetryRate.WithLabelValues(delivery.EventType, strconv.Itoa(delivery.AttemptCount+1)).Inc()
+	}
 	
 	// Check if this is the final attempt
 	if delivery.AttemptCount+1 >= delivery.MaxAttempts {
