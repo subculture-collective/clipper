@@ -40,3 +40,21 @@ export interface UpdateWebhookSubscriptionRequest {
     is_active?: boolean;
     description?: string;
 }
+
+export interface OutboundWebhookDLQItem {
+    id: string;
+    subscription_id: string;
+    delivery_id: string;
+    event_type: string;
+    event_id: string;
+    payload: string;
+    error_message: string;
+    http_status_code?: number;
+    response_body?: string;
+    attempt_count: number;
+    original_created_at: string;
+    moved_to_dlq_at: string;
+    replayed_at?: string;
+    replay_successful?: boolean;
+    created_at: string;
+}

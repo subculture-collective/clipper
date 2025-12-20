@@ -49,6 +49,7 @@ const AdminClipsPage = lazy(() => import('./pages/admin/AdminClipsPage').then(m 
 const AdminCommentsPage = lazy(() => import('./pages/admin/AdminCommentsPage').then(m => ({ default: m.AdminCommentsPage })));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
+const AdminWebhookDLQPage = lazy(() => import('./pages/admin/AdminWebhookDLQPage').then(m => ({ default: m.AdminWebhookDLQPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
 const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModerationQueuePage').then(m => ({ default: m.AdminModerationQueuePage })));
@@ -333,6 +334,14 @@ function App() {
                       element={
                         <AdminRoute>
                           <AdminReportsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/webhooks/dlq"
+                      element={
+                        <AdminRoute>
+                          <AdminWebhookDLQPage />
                         </AdminRoute>
                       }
                     />

@@ -242,6 +242,21 @@ export function AdminDashboard() {
                         </CardBody>
                     </Card>
                 </Link>
+
+                <Link to='/admin/webhooks/dlq' className='touch-target'>
+                    <Card hover clickable>
+                        <CardHeader>
+                            <h3 className='text-lg xs:text-xl font-semibold'>
+                                Webhook DLQ
+                            </h3>
+                        </CardHeader>
+                        <CardBody>
+                            <p className='text-sm xs:text-base text-muted-foreground'>
+                                View and replay failed webhook deliveries
+                            </p>
+                        </CardBody>
+                    </Card>
+                </Link>
             </Grid>
         </Container>
     );

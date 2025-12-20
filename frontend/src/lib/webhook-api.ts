@@ -96,3 +96,32 @@ export async function getWebhookDeliveries(
         meta: response.data.meta,
     };
 }
+
+// Admin: Get webhook dead-letter queue items
+export async function getWebhookDLQItems(
+    page: number = 1,
+    limit: number = 20
+): Promise<{
+    items: import('../types/webhook').OutboundWebhookDLQItem[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        total_pages: number;
+    };
+}> {
+    const response = await apiClient.get('/admin/webhooks/dlq', {
+        params: { page, limit },
+    });
+    return response.data;
+}
+
+// Admin: Replay a webhook DLQ item
+export async function replayWebhookDLQItem(id: string): Promise<void> {
+    await apiClient.post(`/admin/webhooks/dlq/${id}/replay`);
+}
+
+// Admin: Delete a webhook DLQ item
+export async function deleteWebhookDLQItem(id: string): Promise<void> {
+    await apiClient.delete(`/admin/webhooks/dlq/${id}`);
+}
