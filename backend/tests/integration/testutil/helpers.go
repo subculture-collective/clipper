@@ -1,9 +1,8 @@
-// +build integration
+//go:build integration
 
 package testutil
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -12,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/subculture-collective/clipper/config"
-	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
@@ -29,18 +27,18 @@ type TestConfig struct {
 func SetupTestEnvironment(t *testing.T) *TestConfig {
 	cfg := &config.Config{
 		Database: config.DatabaseConfig{
-			Host:     getEnv("TEST_DATABASE_HOST", "localhost"),
-			Port:     getEnv("TEST_DATABASE_PORT", "5437"),
-			User:     getEnv("TEST_DATABASE_USER", "clipper"),
-			Password: getEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
-			Name:     getEnv("TEST_DATABASE_NAME", "clipper_test"),
+			Host:     GetEnv("TEST_DATABASE_HOST", "localhost"),
+			Port:     GetEnv("TEST_DATABASE_PORT", "5437"),
+			User:     GetEnv("TEST_DATABASE_USER", "clipper"),
+			Password: GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
+			Name:     GetEnv("TEST_DATABASE_NAME", "clipper_test"),
 		},
-		Redis: redispkg.Config{
-			Host: getEnv("TEST_REDIS_HOST", "localhost"),
-			Port: getEnv("TEST_REDIS_PORT", "6380"),
+		Redis: config.RedisConfig{
+			Host: GetEnv("TEST_REDIS_HOST", "localhost"),
+			Port: GetEnv("TEST_REDIS_PORT", "6380"),
 		},
 		JWT: config.JWTConfig{
-			PrivateKey: generateTestJWTKey(t),
+			PrivateKey: GenerateTestJWTKey(t),
 		},
 	}
 
@@ -68,6 +66,8 @@ func (tc *TestConfig) Cleanup() {
 }
 
 // CreateTestUser creates a test user in the database
+// Note: This is a placeholder. Implement when needed based on actual repository methods.
+/*
 func CreateTestUser(t *testing.T, db *database.DB, username string) uuid.UUID {
 	ctx := context.Background()
 	userRepo := repository.NewUserRepository(db.Pool)
@@ -87,8 +87,11 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) uuid.UUID {
 	
 	return user.ID
 }
+*/
 
 // CreateTestClip creates a test clip in the database
+// Note: This is a placeholder. Implement when needed based on actual repository methods.
+/*
 func CreateTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
 	ctx := context.Background()
 	clipRepo := repository.NewClipRepository(db.Pool)
@@ -109,8 +112,11 @@ func CreateTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
 	
 	return clip.ID
 }
+*/
 
 // CleanupTestUser removes a test user from the database
+// Note: This is a placeholder. Implement when needed based on actual repository methods.
+/*
 func CleanupTestUser(t *testing.T, db *database.DB, userID uuid.UUID) {
 	ctx := context.Background()
 	userRepo := repository.NewUserRepository(db.Pool)
@@ -120,8 +126,11 @@ func CleanupTestUser(t *testing.T, db *database.DB, userID uuid.UUID) {
 		t.Logf("Warning: Failed to cleanup test user %s: %v", userID, err)
 	}
 }
+*/
 
 // CleanupTestClip removes a test clip from the database
+// Note: This is a placeholder. Implement when needed based on actual repository methods.
+/*
 func CleanupTestClip(t *testing.T, db *database.DB, clipID uuid.UUID) {
 	ctx := context.Background()
 	clipRepo := repository.NewClipRepository(db.Pool)
@@ -131,6 +140,7 @@ func CleanupTestClip(t *testing.T, db *database.DB, clipID uuid.UUID) {
 		t.Logf("Warning: Failed to cleanup test clip %s: %v", clipID, err)
 	}
 }
+*/
 
 // WaitForCondition waits for a condition to become true or timeout
 func WaitForCondition(t *testing.T, condition func() bool, timeout time.Duration, message string) {
@@ -158,7 +168,8 @@ func AssertEventuallyEqual(t *testing.T, getValue func() interface{}, expected i
 
 // Helper functions
 
-func getEnv(key, defaultValue string) string {
+// GetEnv reads an environment variable or returns a default value
+func GetEnv(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		return defaultValue
@@ -166,7 +177,8 @@ func getEnv(key, defaultValue string) string {
 	return value
 }
 
-func generateTestJWTKey(t *testing.T) string {
+// GenerateTestJWTKey generates a test JWT key pair
+func GenerateTestJWTKey(t *testing.T) string {
 	privateKey, _, err := jwtpkg.GenerateRSAKeyPair()
 	require.NoError(t, err, "Failed to generate test JWT key")
 	return privateKey
@@ -174,7 +186,15 @@ func generateTestJWTKey(t *testing.T) string {
 
 // RandomString generates a random string for test data
 func RandomString(length int) string {
-	return uuid.New().String()[:length]
+	if length <= 0 {
+		return ""
+	}
+
+	s := uuid.New().String()
+	if length > len(s) {
+		length = len(s)
+	}
+	return s[:length]
 }
 
 // RandomEmail generates a random email address for testing
@@ -190,7 +210,7 @@ func RandomUsername() string {
 // IsCI returns true if tests are running in CI environment
 func IsCI() bool {
 	// Check for CI environment variables
-	return getEnv("CI", "") != "" || getEnv("GITHUB_ACTIONS", "") != ""
+	return GetEnv("CI", "") != "" || GetEnv("GITHUB_ACTIONS", "") != ""
 }
 
 // SkipIfShort skips test if running in short mode
@@ -202,7 +222,7 @@ func SkipIfShort(t *testing.T, message string) {
 
 // RequireEnv requires an environment variable to be set
 func RequireEnv(t *testing.T, key string) string {
-	value := getEnv(key, "")
+	value := GetEnv(key, "")
 	require.NotEmpty(t, value, "Required environment variable %s is not set", key)
 	return value
 }

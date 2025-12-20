@@ -1,4 +1,4 @@
-// +build integration
+//go:build integration
 
 package premium
 
@@ -24,6 +24,7 @@ import (
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
 func setupPremiumTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *services.SubscriptionService, *database.DB, *redispkg.Client, uuid.UUID) {
@@ -31,22 +32,22 @@ func setupPremiumTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *
 
 	cfg := &config.Config{
 		Database: config.DatabaseConfig{
-			Host:     getEnv("TEST_DATABASE_HOST", "localhost"),
-			Port:     getEnv("TEST_DATABASE_PORT", "5437"),
-			User:     getEnv("TEST_DATABASE_USER", "clipper"),
-			Password: getEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
-			Name:     getEnv("TEST_DATABASE_NAME", "clipper_test"),
+			Host:     testutil.GetEnv("TEST_DATABASE_HOST", "localhost"),
+			Port:     testutil.GetEnv("TEST_DATABASE_PORT", "5437"),
+			User:     testutil.GetEnv("TEST_DATABASE_USER", "clipper"),
+			Password: testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
+			Name:     testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test"),
 		},
 		Redis: redispkg.Config{
-			Host: getEnv("TEST_REDIS_HOST", "localhost"),
-			Port: getEnv("TEST_REDIS_PORT", "6380"),
+			Host: testutil.GetEnv("TEST_REDIS_HOST", "localhost"),
+			Port: testutil.GetEnv("TEST_REDIS_PORT", "6380"),
 		},
 		JWT: config.JWTConfig{
-			PrivateKey: generateTestJWTKey(t),
+			PrivateKey: testutil.GenerateTestJWTKey(t),
 		},
 		Stripe: config.StripeConfig{
-			SecretKey:              getEnv("TEST_STRIPE_SECRET_KEY", "sk_test_mock"),
-			WebhookSecret:          getEnv("TEST_STRIPE_WEBHOOK_SECRET", "whsec_test"),
+			SecretKey:              testutil.GetEnv("TEST_STRIPE_SECRET_KEY", "sk_test_mock"),
+			WebhookSecret:          testutil.GetEnv("TEST_STRIPE_WEBHOOK_SECRET", "whsec_test"),
 			PriceIDPremium:         "price_test_premium",
 			PriceIDPro:             "price_test_pro",
 			SubscriptionGraceDays:  3,
@@ -108,16 +109,6 @@ func setupPremiumTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *
 	}
 
 	return r, authService, subscriptionService, db, redisClient, user.ID
-}
-
-func getEnv(key, defaultValue string) string {
-	return defaultValue
-}
-
-func generateTestJWTKey(t *testing.T) string {
-	privateKey, _, err := jwtpkg.GenerateRSAKeyPair()
-	require.NoError(t, err)
-	return privateKey
 }
 
 func TestSubscriptionFlow(t *testing.T) {

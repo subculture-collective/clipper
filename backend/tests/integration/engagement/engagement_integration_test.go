@@ -1,4 +1,4 @@
-// +build integration
+//go:build integration
 
 package engagement
 
@@ -24,6 +24,7 @@ import (
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
 func setupEngagementTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *database.DB, *redispkg.Client, uuid.UUID) {
@@ -31,18 +32,18 @@ func setupEngagementTestRouter(t *testing.T) (*gin.Engine, *services.AuthService
 
 	cfg := &config.Config{
 		Database: config.DatabaseConfig{
-			Host:     getEnv("TEST_DATABASE_HOST", "localhost"),
-			Port:     getEnv("TEST_DATABASE_PORT", "5437"),
-			User:     getEnv("TEST_DATABASE_USER", "clipper"),
-			Password: getEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
-			Name:     getEnv("TEST_DATABASE_NAME", "clipper_test"),
+			Host:     testutil.GetEnv("TEST_DATABASE_HOST", "localhost"),
+			Port:     testutil.GetEnv("TEST_DATABASE_PORT", "5437"),
+			User:     testutil.GetEnv("TEST_DATABASE_USER", "clipper"),
+			Password: testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
+			Name:     testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test"),
 		},
 		Redis: redispkg.Config{
-			Host: getEnv("TEST_REDIS_HOST", "localhost"),
-			Port: getEnv("TEST_REDIS_PORT", "6380"),
+			Host: testutil.GetEnv("TEST_REDIS_HOST", "localhost"),
+			Port: testutil.GetEnv("TEST_REDIS_PORT", "6380"),
 		},
 		JWT: config.JWTConfig{
-			PrivateKey: generateTestJWTKey(t),
+			PrivateKey: testutil.GenerateTestJWTKey(t),
 		},
 	}
 
@@ -112,16 +113,6 @@ func setupEngagementTestRouter(t *testing.T) (*gin.Engine, *services.AuthService
 	}
 
 	return r, authService, db, redisClient, user.ID
-}
-
-func getEnv(key, defaultValue string) string {
-	return defaultValue
-}
-
-func generateTestJWTKey(t *testing.T) string {
-	privateKey, _, err := jwtpkg.GenerateRSAKeyPair()
-	require.NoError(t, err)
-	return privateKey
 }
 
 func TestCommentEngagement(t *testing.T) {

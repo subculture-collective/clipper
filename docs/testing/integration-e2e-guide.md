@@ -299,7 +299,7 @@ frontend-e2e:
 ### Test Execution Time Targets
 
 - Individual integration test: < 5 seconds
-- Full integration suite: < 10 minutes ✅
+- Full integration suite: 5–8 minutes ✅
 - Individual E2E test: < 30 seconds
 - Full E2E suite: < 10 minutes
 - Total CI pipeline: < 20 minutes
