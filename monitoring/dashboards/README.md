@@ -168,6 +168,60 @@ Tracks user engagement, platform health, and content performance metrics.
 - Warning (P2): DAU drop > 10%, Churn > 5%
 - Info (P3): Engagement score drops, content performance issues
 
+### 8. Webhook Monitoring Dashboard (`webhook-monitoring.json`) 🆕
+
+Comprehensive webhook delivery monitoring with anomaly detection and per-subscription health tracking.
+
+**Summary Panels:**
+
+- Webhook Delivery Success Rate - With color-coded thresholds (95%+ green)
+- Active Webhook Subscriptions - Current active subscription count
+- Retry Queue Size - Items pending retry (100+ warning, 500+ critical)
+- Dead Letter Queue Size - Failed deliveries (10+ warning, 50+ critical)
+
+**Delivery Performance Panels:**
+
+- Webhook Delivery Rate by Status - Success, failed, and retry rates
+- Webhook Failure Rate - Percentage of failed deliveries over time
+- Webhook Delivery Latency (P50, P95, P99) - Response time percentiles
+- Webhook HTTP Status Codes - Distribution of response codes from endpoints
+
+**Event Analysis Panels:**
+
+- Webhook Deliveries by Event Type - Volume per event (clip.submitted, clip.approved, etc.)
+- Webhook Retry Attempts Distribution - Success/failure/retry patterns
+- Retry Queue and DLQ Size Over Time - Queue size trends
+- DLQ Movement Rate by Reason - Categorized failure reasons
+
+**Advanced Metrics Panels:**
+
+- Time to Successful Delivery (P95) - Time from first attempt to success
+- Webhook Retry Rate by Attempt Number - Retry distribution (attempts 1-5)
+- Top 10 Subscriptions by Delivery Volume - Busiest webhook subscriptions
+- Subscription Health - Success vs failed deliveries per subscription
+- Consecutive Failures by Subscription - Subscriptions experiencing ongoing issues
+
+**Use Cases:**
+
+- Monitor webhook delivery health and performance
+- Identify problematic subscriptions requiring attention
+- Track retry patterns and queue health
+- Detect anomalies in delivery latency or failure rates
+- Investigate DLQ items and failure reasons
+- Capacity planning for webhook processing
+
+**Alert Integration:**
+
+- Panel alerts for consecutive failures > 5
+- Links to comprehensive troubleshooting runbook
+- Color-coded thresholds aligned with alerting rules
+
+**Related Documentation:**
+
+- [Webhook Monitoring Guide](../../docs/operations/webhook-monitoring.md)
+- [Webhook Integration Guide](../../docs/backend/webhooks.md)
+- [Webhook Retry System](../../docs/backend/webhook-retry.md)
+
 ## Importing Dashboards
 
 ### Via Grafana UI

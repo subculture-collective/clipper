@@ -11,6 +11,156 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestCreateChannel_Unauthorized tests that unauthorized requests are rejected
+func TestCreateChannel_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/channels", strings.NewReader(`{"name":"Test Channel"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	// Note: not setting user_id in context to simulate unauthorized
+
+	handler.CreateChannel(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestCreateChannel_InvalidRequest tests that invalid requests are rejected
+func TestCreateChannel_InvalidRequest(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	userID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/channels", strings.NewReader(`{"name":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", userID)
+
+	handler.CreateChannel(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Errorf("response is not valid JSON: %v", err)
+	}
+
+	if _, ok := response["error"]; !ok {
+		t.Error("expected error field in response")
+	}
+}
+
+// TestGetChannel_InvalidChannelID tests that invalid channel IDs are rejected
+func TestGetChannel_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/channels/not-a-uuid", http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: "not-a-uuid"},
+	}
+
+	handler.GetChannel(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Errorf("response is not valid JSON: %v", err)
+	}
+
+	if _, ok := response["error"]; !ok {
+		t.Error("expected error field in response")
+	}
+}
+
+// TestUpdateChannel_InvalidChannelID tests that invalid channel IDs are rejected
+func TestUpdateChannel_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/chat/channels/not-a-uuid", strings.NewReader(`{"name":"Updated"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: "not-a-uuid"},
+	}
+
+	handler.UpdateChannel(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Errorf("response is not valid JSON: %v", err)
+	}
+
+	if _, ok := response["error"]; !ok {
+		t.Error("expected error field in response")
+	}
+}
+
+// TestUpdateChannel_Unauthorized tests that unauthorized requests are rejected
+func TestUpdateChannel_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	channelID := uuid.New().String()
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/chat/channels/"+channelID, strings.NewReader(`{"name":"Updated"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID},
+	}
+	// Note: not setting user_id in context to simulate unauthorized
+
+	handler.UpdateChannel(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
 // TestBanUser_InvalidChannelID tests that invalid channel IDs are rejected
 func TestBanUser_InvalidChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -200,5 +350,156 @@ func TestCheckUserBan_InvalidChannelID(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestAddChannelMember_Unauthorized tests that unauthorized requests are rejected
+func TestAddChannelMember_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	channelID := uuid.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/chat/channels/"+channelID.String()+"/members",
+		strings.NewReader(`{"user_id":"`+uuid.New().String()+`"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID.String()},
+	}
+	// Note: not setting user_id in context to simulate unauthorized
+
+	handler.AddChannelMember(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestRemoveChannelMember_InvalidChannelID tests that invalid channel IDs are rejected
+func TestRemoveChannelMember_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	userID := uuid.New()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/channels/not-a-uuid/members/"+uuid.New().String(), http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", userID)
+	c.Params = gin.Params{
+		{Key: "id", Value: "not-a-uuid"},
+		{Key: "user_id", Value: uuid.New().String()},
+	}
+
+	handler.RemoveChannelMember(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Errorf("response is not valid JSON: %v", err)
+	}
+
+	if _, ok := response["error"]; !ok {
+		t.Error("expected error field in response")
+	}
+}
+
+// TestDeleteChannel_Unauthorized tests that unauthorized requests are rejected
+func TestDeleteChannel_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	channelID := uuid.New()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/chat/channels/"+channelID.String(), http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID.String()},
+	}
+	// Note: not setting user_id in context to simulate unauthorized
+
+	handler.DeleteChannel(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestGetCurrentUserRole_Unauthorized tests that unauthorized requests are rejected
+func TestGetCurrentUserRole_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	channelID := uuid.New()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/channels/"+channelID.String()+"/role", http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{
+		{Key: "id", Value: channelID.String()},
+	}
+	// Note: not setting user_id in context to simulate unauthorized
+
+	handler.GetCurrentUserRole(c)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// TestGetCurrentUserRole_InvalidChannelID tests that invalid channel IDs are rejected
+func TestGetCurrentUserRole_InvalidChannelID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	handler := &ChatHandler{
+		db: nil,
+	}
+
+	userID := uuid.New()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/chat/channels/not-a-uuid/role", http.NoBody)
+	w := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Set("user_id", userID)
+	c.Params = gin.Params{
+		{Key: "id", Value: "not-a-uuid"},
+	}
+
+	handler.GetCurrentUserRole(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Errorf("response is not valid JSON: %v", err)
+	}
+
+	if _, ok := response["error"]; !ok {
+		t.Error("expected error field in response")
 	}
 }

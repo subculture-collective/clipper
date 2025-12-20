@@ -49,6 +49,7 @@ const AdminClipsPage = lazy(() => import('./pages/admin/AdminClipsPage').then(m 
 const AdminCommentsPage = lazy(() => import('./pages/admin/AdminCommentsPage').then(m => ({ default: m.AdminCommentsPage })));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
+const AdminWebhookDLQPage = lazy(() => import('./pages/admin/AdminWebhookDLQPage').then(m => ({ default: m.AdminWebhookDLQPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
 const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModerationQueuePage').then(m => ({ default: m.AdminModerationQueuePage })));
@@ -73,6 +74,15 @@ const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage').then(m => ({ de
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage').then(m => ({ default: m.PlaylistDetailPage })));
 const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m => ({ default: m.WatchHistoryPage })));
 const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default: m.StreamPage })));
+const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage').then(m => ({ default: m.ForumModerationPage })));
+const ModerationLogPage = lazy(() => import('./pages/admin/ModerationLogPage').then(m => ({ default: m.ModerationLogPage })));
+const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
+const ChannelSettingsPage = lazy(() => import('./pages/ChannelSettingsPage').then(m => ({ default: m.ChannelSettingsPage })));
+const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex })));
+const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => ({ default: m.ThreadDetail })));
+const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
+const ForumSearchPage = lazy(() => import('./pages/forum/ForumSearchPage').then(m => ({ default: m.ForumSearchPage })));
+const WebhookSubscriptionsPage = lazy(() => import('./pages/WebhookSubscriptionsPage').then(m => ({ default: m.WebhookSubscriptionsPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -124,6 +134,20 @@ function App() {
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
+                    
+                    {/* Forum Routes */}
+                    <Route path="/forum" element={<ForumIndex />} />
+                    <Route path="/forum/search" element={<ForumSearchPage />} />
+                    <Route path="/forum/threads/:threadId" element={<ThreadDetail />} />
+                    <Route
+                      path="/forum/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateThread />
+                        </ProtectedRoute>
+                      }
+                    />
+                    
                     {import.meta.env.DEV && (
                       <>
                         <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
@@ -200,6 +224,14 @@ function App() {
                       }
                     />
                     <Route
+                      path="/settings/webhooks"
+                      element={
+                        <ProtectedRoute>
+                          <WebhookSubscriptionsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/submit"
                       element={
                         <ProtectedRoute>
@@ -236,6 +268,22 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <PersonalStatsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute>
+                          <ChatPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chat/channels/:id/settings"
+                      element={
+                        <ProtectedRoute>
+                          <ChannelSettingsPage />
                         </ProtectedRoute>
                       }
                     />
@@ -286,6 +334,14 @@ function App() {
                       element={
                         <AdminRoute>
                           <AdminReportsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/webhooks/dlq"
+                      element={
+                        <AdminRoute>
+                          <AdminWebhookDLQPage />
                         </AdminRoute>
                       }
                     />
@@ -366,6 +422,22 @@ function App() {
                       element={
                         <AdminRoute>
                           <AdminDiscoveryListFormPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/forum/moderation"
+                      element={
+                        <AdminRoute>
+                          <ForumModerationPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/forum/moderation-log"
+                      element={
+                        <AdminRoute>
+                          <ModerationLogPage />
                         </AdminRoute>
                       }
                     />

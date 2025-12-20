@@ -1,4 +1,5 @@
 import apiClient from './api';
+import type { ChannelMember, ChannelRole } from '@/types/chat';
 
 export interface ChatChannel {
   id: string;
@@ -209,6 +210,79 @@ export async function checkUserBan(
     {
       params: { user_id: userId },
     }
+  );
+  return response.data;
+}
+
+// Get current user's role in a channel
+export async function getCurrentUserRole(
+  channelId: string
+): Promise<{ role: ChannelRole }> {
+  const response = await apiClient.get<{ role: ChannelRole }>(
+    `/chat/channels/${channelId}/role`
+  );
+  return response.data;
+}
+
+// List members of a channel
+export async function listChannelMembers(
+  channelId: string,
+  limit: number = 50,
+  offset: number = 0
+): Promise<{ members: ChannelMember[]; limit: number; offset: number }> {
+  const response = await apiClient.get<{
+    members: ChannelMember[];
+    limit: number;
+    offset: number;
+  }>(`/chat/channels/${channelId}/members`, {
+    params: { limit, offset },
+  });
+  return response.data;
+}
+
+// Add a member to a channel
+export async function addChannelMember(
+  channelId: string,
+  userId: string,
+  role: 'member' | 'moderator' | 'admin' = 'member'
+): Promise<ChannelMember> {
+  const response = await apiClient.post<ChannelMember>(
+    `/chat/channels/${channelId}/members`,
+    { user_id: userId, role }
+  );
+  return response.data;
+}
+
+// Remove a member from a channel
+export async function removeChannelMember(
+  channelId: string,
+  userId: string
+): Promise<{ status: string }> {
+  const response = await apiClient.delete<{ status: string }>(
+    `/chat/channels/${channelId}/members/${userId}`
+  );
+  return response.data;
+}
+
+// Update a member's role in a channel
+export async function updateChannelMemberRole(
+  channelId: string,
+  userId: string,
+  role: 'member' | 'moderator' | 'admin'
+): Promise<ChannelMember> {
+  const response = await apiClient.patch<ChannelMember>(
+    `/chat/channels/${channelId}/members/${userId}`,
+    { role }
+  );
+  return response.data;
+}
+
+// Delete a channel (owner only)
+export async function deleteChannel(
+  channelId: string
+): Promise<{ status: string }> {
+  const response = await apiClient.delete<{ status: string }>(
+    `/chat/channels/${channelId}`
   );
   return response.data;
 }

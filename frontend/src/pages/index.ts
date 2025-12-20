@@ -32,6 +32,7 @@ export { SubmitClipPage } from './SubmitClipPage';
 export { UserSubmissionsPage } from './UserSubmissionsPage';
 export { SettingsPage } from './SettingsPage';
 export { CreatorDashboardPage } from './CreatorDashboardPage';
+export { ChatPage } from './ChatPage';
 export { default as PricingPage } from './PricingPage';
 export { default as SubscriptionSuccessPage } from './SubscriptionSuccessPage';
 export { default as SubscriptionCancelPage } from './SubscriptionCancelPage';

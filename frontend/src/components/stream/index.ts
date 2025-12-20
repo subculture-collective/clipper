@@ -3,3 +3,4 @@ export { StreamOfflineScreen } from './StreamOfflineScreen';
 export { LiveIndicator } from './LiveIndicator';
 export { ClipCreator } from './ClipCreator';
 export { StreamFollowButton } from './StreamFollowButton';
+export { TwitchChatEmbed } from './TwitchChatEmbed';

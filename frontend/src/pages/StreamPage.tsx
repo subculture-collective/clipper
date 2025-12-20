@@ -1,15 +1,18 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Container, SEO } from '../components';
-import { TwitchPlayer, ClipCreator, StreamFollowButton } from '../components/stream';
+import { TwitchPlayer, ClipCreator, StreamFollowButton, TwitchChatEmbed } from '../components/stream';
 import { fetchStreamStatus } from '../lib/stream-api';
 import { ClipCard } from '../components/clip';
 import { fetchBroadcasterClips } from '../lib/broadcaster-api';
 import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
 
 export function StreamPage() {
   const { streamer } = useParams<{ streamer: string }>();
   const { isAuthenticated } = useAuth();
+  const [chatPosition, setChatPosition] = useState<'side' | 'bottom'>('side');
+  const [showChat, setShowChat] = useState(true);
 
   // Fetch stream status
   const { data: streamInfo } = useQuery({
@@ -48,10 +51,22 @@ export function StreamPage() {
       />
 
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-        {/* Stream Player */}
+        {/* Stream Player and Chat Container */}
         <div className="w-full bg-black">
-          <div className="max-w-7xl mx-auto">
-            <TwitchPlayer channel={streamer} />
+          <div className="max-w-[2000px] mx-auto">
+            <div className={`flex ${chatPosition === 'side' ? 'flex-col lg:flex-row' : 'flex-col'} gap-0`}>
+              {/* Stream Player */}
+              <div className={chatPosition === 'side' && showChat ? 'lg:flex-[3]' : 'w-full'}>
+                <TwitchPlayer channel={streamer} />
+              </div>
+              
+              {/* Chat Sidebar/Bottom */}
+              {showChat && (
+                <div className={chatPosition === 'side' ? 'lg:flex-[1] lg:min-w-[340px] lg:max-w-[400px]' : 'w-full'}>
+                  <TwitchChatEmbed channel={streamer} position={chatPosition} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -70,12 +85,30 @@ export function StreamPage() {
               )}
               {/* Follow Button */}
               <StreamFollowButton streamerUsername={streamer} />
-              {/* Create Clip Button - only show if stream is live and user is authenticated */}
-              {streamInfo?.is_live && isAuthenticated && (
-                <div className="ml-auto">
+              
+              {/* Chat Controls */}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => setShowChat(!showChat)}
+                  className="px-3 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                >
+                  {showChat ? 'Hide Chat' : 'Show Chat'}
+                </button>
+                {showChat && (
+                  <select
+                    value={chatPosition}
+                    onChange={(e) => setChatPosition(e.target.value as 'side' | 'bottom')}
+                    className="px-3 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  >
+                    <option value="side">Side</option>
+                    <option value="bottom">Bottom</option>
+                  </select>
+                )}
+                {/* Create Clip Button - only show if stream is live and user is authenticated */}
+                {streamInfo?.is_live && isAuthenticated && (
                   <ClipCreator streamer={streamer} />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {streamInfo?.is_live && streamInfo.title && (

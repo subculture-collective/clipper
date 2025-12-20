@@ -276,3 +276,11 @@
     contain-intrinsic-size: auto 500px;
   }
 }
+
+/* Search result highlighting */
+.search-highlight {
+  /* Style for PostgreSQL ts_headline highlighted text */
+  & b {
+    @apply font-semibold text-yellow-400 bg-yellow-900/30 px-0.5 rounded;
+  }
+}

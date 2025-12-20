@@ -21,6 +21,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/scheduler"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/internal/websocket"
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	opensearchpkg "github.com/subculture-collective/clipper/pkg/opensearch"
@@ -177,6 +178,8 @@ func main() {
 	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
 	streamRepo := repository.NewStreamRepository(db.Pool)
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
+	watchPartyRepo := repository.NewWatchPartyRepository(db.Pool)
+	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -247,6 +250,17 @@ func main() {
 
 	// Initialize queue service
 	queueService := services.NewQueueService(queueRepo, clipRepo)
+
+	// Initialize watch party service and hub manager
+	watchPartyService := services.NewWatchPartyService(watchPartyRepo, playlistRepo, clipRepo, cfg.Server.BaseURL)
+	
+	// Initialize rate limiters for watch party (distributed via Redis)
+	// 10 messages per minute per user
+	chatRateLimiter := services.NewDistributedRateLimiter(redisClient, 10, time.Minute)
+	// 30 reactions per minute per user
+	reactRateLimiter := services.NewDistributedRateLimiter(redisClient, 30, time.Minute)
+	
+	watchPartyHubManager := services.NewWatchPartyHubManager(watchPartyRepo, chatRateLimiter, reactRateLimiter)
 
 	// Initialize event tracker for feed analytics
 	eventTracker := services.NewEventTracker(db.Pool, 100, 5*time.Second)
@@ -323,7 +337,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	mfaHandler := handlers.NewMFAHandler(mfaService, cfg)
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
-	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService)
+	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService, outboundWebhookService)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
@@ -357,6 +371,7 @@ func main() {
 	adHandler := handlers.NewAdHandler(adService)
 	exportHandler := handlers.NewExportHandler(exportService, authService, userRepo)
 	webhookSubscriptionHandler := handlers.NewWebhookSubscriptionHandler(outboundWebhookService)
+	webhookDLQHandler := handlers.NewWebhookDLQHandler(outboundWebhookService)
 	configHandler := handlers.NewConfigHandler(cfg)
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
@@ -370,16 +385,23 @@ func main() {
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
+	
+	// Initialize WebSocket server
+	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient())
+	websocketHandler := handlers.NewWebSocketHandler(db.Pool, wsServer)
+	
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
 	queueHandler := handlers.NewQueueHandler(queueService)
 	watchHistoryHandler := handlers.NewWatchHistoryHandler(watchHistoryRepo)
+	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, watchPartyHubManager, watchPartyRepo, analyticsRepo, cfg)
 	eventHandler := handlers.NewEventHandler(eventTracker)
 	var clipSyncHandler *handlers.ClipSyncHandler
 	var submissionHandler *handlers.SubmissionHandler
 	var moderationHandler *handlers.ModerationHandler
 	var liveStatusHandler *handlers.LiveStatusHandler
 	var streamHandler *handlers.StreamHandler
+	var twitchOAuthHandler *handlers.TwitchOAuthHandler
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
@@ -392,11 +414,16 @@ func main() {
 			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, db.Pool)
 		}
 	}
+	
+	// Initialize forum handlers
+	forumHandler := handlers.NewForumHandler(db.Pool)
+	forumModerationHandler := handlers.NewForumModerationHandler(db.Pool)
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 	if twitchClient != nil {
 		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo)
+		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
 	}
 
 	// Initialize router
@@ -893,6 +920,22 @@ func main() {
 			}
 		}
 
+		// Twitch OAuth routes for chat integration
+		if twitchOAuthHandler != nil {
+			twitch := v1.Group("/twitch")
+			{
+				// OAuth endpoints (authenticated, rate limited)
+				twitch.GET("/oauth/authorize", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), twitchOAuthHandler.InitiateTwitchOAuth)
+				twitch.GET("/oauth/callback", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), twitchOAuthHandler.TwitchOAuthCallback)
+				
+				// Auth status endpoint (can be called without auth to check status)
+				twitch.GET("/auth/status", middleware.OptionalAuthMiddleware(authService), twitchOAuthHandler.GetTwitchAuthStatus)
+				
+				// Revoke endpoint (authenticated)
+				twitch.DELETE("/auth", middleware.AuthMiddleware(authService), twitchOAuthHandler.RevokeTwitchAuth)
+			}
+		}
+
 		// Game routes
 		games := v1.Group("/games")
 		{
@@ -1075,6 +1118,26 @@ func main() {
 			channels := chat.Group("/channels")
 			channels.Use(middleware.AuthMiddleware(authService))
 			{
+				// Channel CRUD operations
+				channels.POST("", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), chatHandler.CreateChannel)
+				channels.GET("", chatHandler.ListChannels)
+				channels.GET("/:id", chatHandler.GetChannel)
+				channels.PATCH("/:id", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), chatHandler.UpdateChannel)
+				channels.DELETE("/:id", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), chatHandler.DeleteChannel)
+				
+				// Channel member management
+				channels.GET("/:id/members", chatHandler.ListChannelMembers)
+				channels.POST("/:id/members", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.AddChannelMember)
+				channels.DELETE("/:id/members/:user_id", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.RemoveChannelMember)
+				channels.PATCH("/:id/members/:user_id", middleware.RateLimitMiddleware(redisClient, 20, time.Minute), chatHandler.UpdateChannelMemberRole)
+				channels.GET("/:id/role", chatHandler.GetCurrentUserRole)
+				
+				// WebSocket connection endpoint
+				channels.GET("/:id/ws", websocketHandler.HandleConnection)
+				
+				// Message history endpoint
+				channels.GET("/:id/messages", websocketHandler.GetMessageHistory)
+				
 				// Moderation endpoints (require moderator role)
 				channels.POST("/:id/ban", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.BanUser)
 				channels.DELETE("/:id/ban/:user_id", middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.UnbanUser)
@@ -1090,6 +1153,10 @@ func main() {
 			{
 				messages.DELETE("/:id", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), chatHandler.DeleteMessage)
 			}
+			
+			// Health check endpoint for WebSocket server
+			chat.GET("/health", websocketHandler.GetHealthCheck)
+			chat.GET("/stats", middleware.AuthMiddleware(authService), middleware.RequireRole("admin"), websocketHandler.GetChannelStats)
 		}
 
 		// Ad routes
@@ -1180,6 +1247,24 @@ func main() {
 			playlists.PATCH("/:id/collaborators/:user_id", middleware.AuthMiddleware(authService), playlistHandler.UpdateCollaboratorPermission)
 		}
 
+		// Forum routes
+		forum := v1.Group("/forum")
+		{
+			// Public forum endpoints
+			forum.GET("/threads", forumHandler.ListThreads)
+			forum.GET("/threads/:id", forumHandler.GetThread)
+			forum.GET("/search", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.SearchThreads)
+			forum.GET("/replies/:id/votes", forumHandler.GetReplyVotes)
+			forum.GET("/users/:id/reputation", forumHandler.GetUserReputation)
+
+			// Protected forum endpoints (require authentication)
+			forum.POST("/threads", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), forumHandler.CreateThread)
+			forum.POST("/threads/:id/replies", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.CreateReply)
+			forum.PATCH("/replies/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), forumHandler.UpdateReply)
+			forum.DELETE("/replies/:id", middleware.AuthMiddleware(authService), forumHandler.DeleteReply)
+			forum.POST("/replies/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 50, time.Minute), forumHandler.VoteOnReply)
+		}
+
 		// Queue routes (clip playback queue)
 		queue := v1.Group("/queue")
 		queue.Use(middleware.AuthMiddleware(authService))
@@ -1206,6 +1291,56 @@ func main() {
 			// Clear watch history (authenticated)
 			watchHistory.DELETE("", middleware.AuthMiddleware(authService), watchHistoryHandler.ClearWatchHistory)
 		}
+
+		// Watch party routes
+		watchParties := v1.Group("/watch-parties")
+		{
+			// NOTE: Keep static routes like "/history" registered before parameterized
+			// routes such as "/:id". If "/history" is moved below "/:id", requests to
+			// "/watch-parties/history" could be incorrectly handled by the "/:id" route.
+			
+			// Get watch party history (authenticated)
+			watchParties.GET("/history", middleware.AuthMiddleware(authService), watchPartyHandler.GetWatchPartyHistory)
+
+			// Create watch party (authenticated, rate limited - 10 per hour)
+			watchParties.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), watchPartyHandler.CreateWatchParty)
+
+			// Join watch party by invite code (authenticated, rate limited - 30 per hour)
+			watchParties.POST("/:code/join", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Hour), watchPartyHandler.JoinWatchParty)
+
+			// Get watch party details (optional auth for visibility check)
+			watchParties.GET("/:id", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetWatchParty)
+
+			// Update watch party settings (authenticated, host only, rate limited - 20 per hour)
+			watchParties.PATCH("/:id/settings", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.UpdateWatchPartySettings)
+
+			// Get watch party participants (optional auth for visibility check)
+			watchParties.GET("/:id/participants", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetParticipants)
+
+			// Send chat message (authenticated, rate limited - 10 per minute)
+			watchParties.POST("/:id/messages", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), watchPartyHandler.SendMessage)
+
+			// Get chat messages (optional auth for visibility check)
+			watchParties.GET("/:id/messages", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetMessages)
+
+			// Send emoji reaction (authenticated, rate limited - 30 per minute)
+			watchParties.POST("/:id/react", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), watchPartyHandler.SendReaction)
+
+			// Leave watch party (authenticated)
+			watchParties.DELETE("/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)
+
+			// End watch party (authenticated, host only)
+			watchParties.POST("/:id/end", middleware.AuthMiddleware(authService), watchPartyHandler.EndWatchParty)
+
+			// Get watch party analytics (authenticated, rate limited - 20 per hour)
+			watchParties.GET("/:id/analytics", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.GetWatchPartyAnalytics)
+
+			// WebSocket endpoint for real-time sync (authenticated)
+			watchParties.GET("/:id/ws", middleware.AuthMiddleware(authService), watchPartyHandler.WatchPartyWebSocket)
+		}
+
+		// User watch party stats route (needs to be outside watchParties group to avoid conflict)
+		v1.GET("/users/:id/watch-party-stats", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.GetUserWatchPartyStats)
 
 		// Admin routes
 		admin := v1.Group("/admin")
@@ -1391,6 +1526,26 @@ func main() {
 				adminDiscoveryLists.DELETE("/:id/clips/:clipId", discoveryListHandler.AdminRemoveClipFromList)
 				adminDiscoveryLists.PUT("/:id/clips/reorder", discoveryListHandler.AdminReorderListClips)
 			}
+
+			// Forum moderation management (admin/moderator only)
+			forum := admin.Group("/forum")
+			{
+				forum.GET("/flagged", forumModerationHandler.GetFlaggedContent)
+				forum.POST("/threads/:id/lock", forumModerationHandler.LockThread)
+				forum.POST("/threads/:id/pin", forumModerationHandler.PinThread)
+				forum.POST("/threads/:id/delete", forumModerationHandler.DeleteThread)
+				forum.POST("/users/:id/ban", forumModerationHandler.BanUser)
+				forum.GET("/moderation-log", forumModerationHandler.GetModerationLog)
+				forum.GET("/bans", forumModerationHandler.GetUserBans)
+			}
+
+			// Webhook dead-letter queue management (admin only)
+			webhookDLQ := admin.Group("/webhooks")
+			{
+				webhookDLQ.GET("/dlq", webhookDLQHandler.GetDeadLetterQueue)
+				webhookDLQ.POST("/dlq/:id/replay", webhookDLQHandler.ReplayDeadLetterQueueItem)
+				webhookDLQ.DELETE("/dlq/:id", webhookDLQHandler.DeleteDeadLetterQueueItem)
+			}
 		}
 	}
 
@@ -1467,6 +1622,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	// Shutdown WebSocket server first to close all connections
+	wsServer.Shutdown()
 
 	// Stop event tracker
 	cancelEventTracker()
