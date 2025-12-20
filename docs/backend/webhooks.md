@@ -1236,7 +1236,7 @@ Before going to production, verify:
 - [ ] Replay attack prevention is implemented
 - [ ] Error handling doesn't leak sensitive information
 - [ ] Webhook processing timeout is set appropriately
-- [ ] Dead letter queue or error handling for failed processing
+- [ ] Dead-letter queue or error handling for failed processing
 - [ ] Documentation is provided for webhook consumers
 
 ## Support

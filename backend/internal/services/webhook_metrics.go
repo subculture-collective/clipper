@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	// WebhookDeliveryTotal tracks the total number of webhook delivery attempts
+	// webhookDeliveryTotal tracks the total number of webhook delivery attempts
 	webhookDeliveryTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "webhook_delivery_total",
