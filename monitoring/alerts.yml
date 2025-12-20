@@ -425,6 +425,123 @@ groups:
           description: "BM25 search P95 latency is {{ $value }}ms, target is < 50ms."
           runbook: "docs/operations/playbooks/search-incidents.md#bm25-search-slow"
 
+  - name: clipper_webhook_alerts
+    interval: 30s
+    rules:
+      # High Webhook Failure Rate
+      - alert: HighWebhookFailureRate
+        expr: |
+          (
+            sum(rate(webhook_delivery_total{status="failed"}[5m]))
+            /
+            sum(rate(webhook_delivery_total[5m]))
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High webhook delivery failure rate"
+          description: "Webhook delivery failure rate is {{ $value | humanizePercentage }}, target is < 10%."
+          runbook: "docs/backend/webhooks.md#troubleshooting"
+
+      # Critical Webhook Failure Rate
+      - alert: CriticalWebhookFailureRate
+        expr: |
+          (
+            sum(rate(webhook_delivery_total{status="failed"}[5m]))
+            /
+            sum(rate(webhook_delivery_total[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical webhook delivery failure rate"
+          description: "Webhook delivery failure rate is {{ $value | humanizePercentage }} (threshold: 50%)."
+          runbook: "docs/backend/webhooks.md#troubleshooting"
+
+      # Large Webhook Retry Queue
+      - alert: LargeWebhookRetryQueue
+        expr: webhook_retry_queue_size > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large webhook retry queue"
+          description: "Webhook retry queue has {{ $value }} items pending."
+          runbook: "docs/backend/webhook-retry.md#high-retry-queue-size"
+
+      # Critical Webhook Retry Queue
+      - alert: CriticalWebhookRetryQueue
+        expr: webhook_retry_queue_size > 500
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical webhook retry queue size"
+          description: "Webhook retry queue has {{ $value }} items pending. Immediate action required."
+          runbook: "docs/backend/webhook-retry.md#high-retry-queue-size"
+
+      # Webhook Dead-Letter Queue Items
+      - alert: WebhookDeadLetterQueueItems
+        expr: webhook_dead_letter_queue_size > 10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhooks in dead-letter queue"
+          description: "{{ $value }} webhook deliveries have failed permanently and are in the dead-letter queue."
+          runbook: "docs/backend/webhook-retry.md#events-in-dlq"
+
+      # Critical Webhook Dead-Letter Queue
+      - alert: CriticalWebhookDeadLetterQueue
+        expr: webhook_dead_letter_queue_size > 50
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical number of webhooks in dead-letter queue"
+          description: "{{ $value }} webhook deliveries have failed permanently. Investigation required."
+          runbook: "docs/backend/webhook-retry.md#events-in-dlq"
+
+      # High Webhook Delivery Latency
+      - alert: HighWebhookDeliveryLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(webhook_delivery_duration_seconds_bucket{status="success"}[5m])) by (le)
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High webhook delivery latency"
+          description: "P95 webhook delivery latency is {{ $value }}s, target is < 5s."
+          runbook: "docs/backend/webhooks.md#high-failure-rate"
+
+      # Webhook Signature Verification Failures
+      - alert: WebhookSignatureVerificationFailures
+        expr: |
+          rate(webhook_signature_verification_failures_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          security: true
+        annotations:
+          summary: "Webhook signature verification failures detected"
+          description: "{{ $value }} webhook signature verification failures per second."
+          runbook: "docs/backend/webhooks.md#signature-verification-fails"
+
+      # No Active Webhook Subscriptions (informational)
+      - alert: NoActiveWebhookSubscriptions
+        expr: webhook_subscriptions_active == 0
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "No active webhook subscriptions"
+          description: "There are currently no active webhook subscriptions configured."
+          runbook: "docs/backend/webhooks.md"
+
   - name: clipper_logging_alerts
     interval: 30s
     rules:

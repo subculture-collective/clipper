@@ -404,3 +404,11 @@ func (r *OutboundWebhookRepository) CountDeliveriesBySubscriptionID(ctx context.
 	err := r.db.QueryRow(ctx, query, subscriptionID).Scan(&count)
 	return count, err
 }
+
+// CountActiveSubscriptions counts the number of active webhook subscriptions
+func (r *OutboundWebhookRepository) CountActiveSubscriptions(ctx context.Context) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM webhook_subscriptions WHERE is_active = true`
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}

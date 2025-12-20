@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -69,6 +70,9 @@ func (s *OutboundWebhookService) CreateSubscription(ctx context.Context, userID 
 	if err := s.webhookRepo.CreateSubscription(ctx, subscription); err != nil {
 		return nil, fmt.Errorf("failed to create subscription: %w", err)
 	}
+
+	// Update metrics
+	s.updateActiveSubscriptionsMetric(ctx)
 
 	return subscription, nil
 }
@@ -143,7 +147,14 @@ func (s *OutboundWebhookService) DeleteSubscription(ctx context.Context, id uuid
 		return fmt.Errorf("subscription not found")
 	}
 
-	return s.webhookRepo.DeleteSubscription(ctx, id)
+	if err := s.webhookRepo.DeleteSubscription(ctx, id); err != nil {
+		return err
+	}
+
+	// Update metrics
+	s.updateActiveSubscriptionsMetric(ctx)
+
+	return nil
 }
 
 // RegenerateSecret regenerates the webhook secret for a subscription
@@ -248,6 +259,9 @@ func (s *OutboundWebhookService) ProcessPendingDeliveries(ctx context.Context, b
 
 // processDelivery processes a single webhook delivery
 func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *models.WebhookDelivery) error {
+	// Track delivery start time for metrics
+	startTime := time.Now()
+	
 	// Get subscription details
 	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, delivery.SubscriptionID)
 	if err != nil {
@@ -257,6 +271,8 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	if !subscription.IsActive {
 		log.Printf("[WEBHOOK] Subscription %s is inactive, skipping delivery", subscription.ID)
 		// Mark as failed since subscription is inactive
+		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "failed").Inc()
+		webhookDeliveryDuration.WithLabelValues(delivery.EventType, "failed").Observe(time.Since(startTime).Seconds())
 		return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, nil, "subscription is inactive", nil)
 	}
 
@@ -284,6 +300,11 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 		nextRetry := s.calculateNextRetry(delivery.AttemptCount + 1)
 		errMsg := fmt.Sprintf("network error: %v", err)
 		log.Printf("[WEBHOOK] Delivery failed: %s, next retry at %v", errMsg, nextRetry)
+		
+		// Record metrics
+		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "retry").Inc()
+		webhookDeliveryDuration.WithLabelValues(delivery.EventType, "retry").Observe(time.Since(startTime).Seconds())
+		
 		return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, nil, errMsg, &nextRetry)
 	}
 	defer resp.Body.Close()
@@ -291,10 +312,19 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	// Read response body (limit to 10KB)
 	responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 10*1024))
 
+	// Record HTTP status code metric
+	webhookHTTPStatusCode.WithLabelValues(delivery.EventType, strconv.Itoa(resp.StatusCode)).Inc()
+
 	// Check status code
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		// Success
 		log.Printf("[WEBHOOK] Delivery successful: status=%d", resp.StatusCode)
+		
+		// Record success metrics
+		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "success").Inc()
+		webhookDeliveryDuration.WithLabelValues(delivery.EventType, "success").Observe(time.Since(startTime).Seconds())
+		webhookRetryAttempts.WithLabelValues(delivery.EventType, "success").Observe(float64(delivery.AttemptCount))
+		
 		if err := s.webhookRepo.UpdateDeliverySuccess(ctx, delivery.ID, resp.StatusCode, string(responseBody)); err != nil {
 			return fmt.Errorf("failed to update delivery success: %w", err)
 		}
@@ -311,6 +341,18 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	nextRetry := s.calculateNextRetry(delivery.AttemptCount + 1)
 	errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(responseBody))
 	log.Printf("[WEBHOOK] Delivery failed: %s, next retry at %v", errMsg, nextRetry)
+	
+	// Determine if this is the final attempt
+	finalStatus := "retry"
+	if delivery.AttemptCount+1 >= delivery.MaxAttempts {
+		finalStatus = "failed"
+		webhookRetryAttempts.WithLabelValues(delivery.EventType, "failed").Observe(float64(delivery.AttemptCount + 1))
+	}
+	
+	// Record metrics
+	webhookDeliveryTotal.WithLabelValues(delivery.EventType, finalStatus).Inc()
+	webhookDeliveryDuration.WithLabelValues(delivery.EventType, finalStatus).Observe(time.Since(startTime).Seconds())
+	
 	return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, &resp.StatusCode, errMsg, &nextRetry)
 }
 
@@ -414,6 +456,16 @@ func (s *OutboundWebhookService) GetDeliveriesBySubscriptionID(ctx context.Conte
 	}
 
 	return deliveries, total, nil
+}
+
+// updateActiveSubscriptionsMetric updates the Prometheus gauge for active subscriptions
+func (s *OutboundWebhookService) updateActiveSubscriptionsMetric(ctx context.Context) {
+	count, err := s.webhookRepo.CountActiveSubscriptions(ctx)
+	if err != nil {
+		log.Printf("[WEBHOOK] Failed to count active subscriptions for metrics: %v", err)
+		return
+	}
+	webhookSubscriptionsActive.Set(float64(count))
 }
 
 // Helper function to create a pointer to time.Time
