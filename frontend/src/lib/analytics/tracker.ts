@@ -286,7 +286,18 @@ export function trackPerformance(
   metricValue: number,
   metricUnit: string = 'ms'
 ): void {
-  trackEvent('page_load_time', {
+  // Determine the appropriate performance event based on metric name
+  let eventName = 'page_load_time'; // default
+  
+  if (metricName.includes('api') || metricName.includes('response')) {
+    eventName = 'api_response_time';
+  } else if (metricName.includes('video')) {
+    eventName = 'video_load_time';
+  } else if (metricName.includes('search')) {
+    eventName = 'search_response_time';
+  }
+  
+  trackEvent(eventName, {
     metric_name: metricName,
     metric_value: metricValue,
     metric_unit: metricUnit,

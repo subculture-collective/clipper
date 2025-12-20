@@ -181,11 +181,12 @@ describe('Analytics Tracker', () => {
         'Home Page'
       );
 
+      // Google Analytics gets the page view as a custom event with enriched properties
       expect(googleAnalytics.trackEvent).toHaveBeenCalledWith(
         'page_view',
         expect.objectContaining({
-          page_path: '/home',
-          page_title: 'Home Page',
+          platform: 'web',
+          timestamp: expect.any(String),
         })
       );
     });

@@ -12,24 +12,141 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Re-export event schema from shared types
-export {
-  AuthEvents,
-  SubmissionEvents,
-  EngagementEvents,
-  PremiumEvents,
-  NavigationEvents,
-  SettingsEvents,
-  ErrorEvents,
-  PerformanceEvents,
-} from '../../../frontend/src/lib/analytics/events';
+/**
+ * Event Categories
+ * Mirrors the web event schema for consistency
+ */
+export const AuthEvents = {
+  SIGNUP_STARTED: 'signup_started',
+  SIGNUP_COMPLETED: 'signup_completed',
+  SIGNUP_FAILED: 'signup_failed',
+  LOGIN_STARTED: 'login_started',
+  LOGIN_COMPLETED: 'login_completed',
+  LOGIN_FAILED: 'login_failed',
+  LOGOUT: 'logout',
+  OAUTH_REDIRECT: 'oauth_redirect',
+  OAUTH_CALLBACK: 'oauth_callback',
+} as const;
 
-export type {
-  EventName,
-  EventProperties,
-  BaseEventProperties,
-  UserProperties,
-} from '../../../frontend/src/lib/analytics/events';
+export const SubmissionEvents = {
+  SUBMISSION_VIEWED: 'submission_viewed',
+  SUBMISSION_LIST_VIEWED: 'submission_list_viewed',
+  SUBMISSION_CREATE_STARTED: 'submission_create_started',
+  SUBMISSION_CREATE_COMPLETED: 'submission_create_completed',
+  SUBMISSION_CREATE_FAILED: 'submission_create_failed',
+  SUBMISSION_EDIT_STARTED: 'submission_edit_started',
+  SUBMISSION_EDIT_COMPLETED: 'submission_edit_completed',
+  SUBMISSION_EDIT_FAILED: 'submission_edit_failed',
+  SUBMISSION_DELETE_STARTED: 'submission_delete_started',
+  SUBMISSION_DELETE_COMPLETED: 'submission_delete_completed',
+  SUBMISSION_DELETE_FAILED: 'submission_delete_failed',
+  SUBMISSION_SHARE_CLICKED: 'submission_share_clicked',
+  SUBMISSION_SHARED: 'submission_shared',
+  SUBMISSION_SHARE_COPIED: 'submission_share_copied',
+  SUBMISSION_PLAY_STARTED: 'submission_play_started',
+  SUBMISSION_PLAY_COMPLETED: 'submission_play_completed',
+  SUBMISSION_PLAY_PAUSED: 'submission_play_paused',
+} as const;
+
+export const EngagementEvents = {
+  UPVOTE_CLICKED: 'upvote_clicked',
+  DOWNVOTE_CLICKED: 'downvote_clicked',
+  VOTE_REMOVED: 'vote_removed',
+  COMMENT_CREATE_STARTED: 'comment_create_started',
+  COMMENT_CREATE_COMPLETED: 'comment_create_completed',
+  COMMENT_CREATE_FAILED: 'comment_create_failed',
+  COMMENT_EDIT_STARTED: 'comment_edit_started',
+  COMMENT_EDIT_COMPLETED: 'comment_edit_completed',
+  COMMENT_DELETE_CLICKED: 'comment_delete_clicked',
+  COMMENT_DELETE_COMPLETED: 'comment_delete_completed',
+  COMMENT_REPLY_CLICKED: 'comment_reply_clicked',
+  FOLLOW_CLICKED: 'follow_clicked',
+  UNFOLLOW_CLICKED: 'unfollow_clicked',
+  FAVORITE_ADDED: 'favorite_added',
+  FAVORITE_REMOVED: 'favorite_removed',
+  SEARCH_PERFORMED: 'search_performed',
+  SEARCH_FILTER_APPLIED: 'search_filter_applied',
+  SEARCH_RESULT_CLICKED: 'search_result_clicked',
+  COMMUNITY_JOINED: 'community_joined',
+  COMMUNITY_LEFT: 'community_left',
+  COMMUNITY_CREATED: 'community_created',
+  FEED_FOLLOWED: 'feed_followed',
+  FEED_UNFOLLOWED: 'feed_unfollowed',
+} as const;
+
+export const PremiumEvents = {
+  PRICING_PAGE_VIEWED: 'pricing_page_viewed',
+  PRICING_TIER_CLICKED: 'pricing_tier_clicked',
+  CHECKOUT_STARTED: 'checkout_started',
+  CHECKOUT_PAYMENT_INFO_ENTERED: 'checkout_payment_info_entered',
+  CHECKOUT_COMPLETED: 'checkout_completed',
+  CHECKOUT_FAILED: 'checkout_failed',
+  CHECKOUT_CANCELLED: 'checkout_cancelled',
+  SUBSCRIPTION_CREATED: 'subscription_created',
+  SUBSCRIPTION_UPDATED: 'subscription_updated',
+  SUBSCRIPTION_CANCELLED: 'subscription_cancelled',
+  SUBSCRIPTION_RESUMED: 'subscription_resumed',
+  SUBSCRIPTION_PAYMENT_FAILED: 'subscription_payment_failed',
+  UPGRADE_MODAL_VIEWED: 'upgrade_modal_viewed',
+  UPGRADE_CLICKED: 'upgrade_clicked',
+  DOWNGRADE_CLICKED: 'downgrade_clicked',
+  PAYWALL_VIEWED: 'paywall_viewed',
+  PAYWALL_DISMISSED: 'paywall_dismissed',
+  PAYWALL_UPGRADE_CLICKED: 'paywall_upgrade_clicked',
+} as const;
+
+export const NavigationEvents = {
+  PAGE_VIEWED: 'page_viewed',
+  SCREEN_VIEWED: 'screen_viewed',
+  FEATURE_CLICKED: 'feature_clicked',
+  NAV_LINK_CLICKED: 'nav_link_clicked',
+  BACK_BUTTON_CLICKED: 'back_button_clicked',
+  TAB_CLICKED: 'tab_clicked',
+  SECTION_VIEWED: 'section_viewed',
+  EXTERNAL_LINK_CLICKED: 'external_link_clicked',
+} as const;
+
+export const SettingsEvents = {
+  PROFILE_VIEWED: 'profile_viewed',
+  PROFILE_EDITED: 'profile_edited',
+  AVATAR_CHANGED: 'avatar_changed',
+  SETTINGS_VIEWED: 'settings_viewed',
+  THEME_CHANGED: 'theme_changed',
+  LANGUAGE_CHANGED: 'language_changed',
+  NOTIFICATION_PREFERENCES_CHANGED: 'notification_preferences_changed',
+  PRIVACY_SETTINGS_CHANGED: 'privacy_settings_changed',
+  CONSENT_UPDATED: 'consent_updated',
+  PASSWORD_CHANGE_STARTED: 'password_change_started',
+  PASSWORD_CHANGE_COMPLETED: 'password_change_completed',
+  EMAIL_CHANGE_STARTED: 'email_change_started',
+  EMAIL_CHANGE_COMPLETED: 'email_change_completed',
+  ACCOUNT_DELETED: 'account_deleted',
+} as const;
+
+export const ErrorEvents = {
+  ERROR_OCCURRED: 'error_occurred',
+  API_ERROR: 'api_error',
+  NETWORK_ERROR: 'network_error',
+  FORM_VALIDATION_ERROR: 'form_validation_error',
+  FORM_SUBMISSION_ERROR: 'form_submission_error',
+  VIDEO_PLAYBACK_ERROR: 'video_playback_error',
+  IMAGE_LOAD_ERROR: 'image_load_error',
+} as const;
+
+export const PerformanceEvents = {
+  PAGE_LOAD_TIME: 'page_load_time',
+  API_RESPONSE_TIME: 'api_response_time',
+  VIDEO_LOAD_TIME: 'video_load_time',
+  SEARCH_RESPONSE_TIME: 'search_response_time',
+} as const;
+
+/**
+ * Type definitions for events and properties
+ */
+export type EventName = string;
+export type EventProperties = Record<string, unknown>;
+export type BaseEventProperties = Record<string, unknown>;
+export type UserProperties = Record<string, string | number | boolean | undefined>;
 
 /**
  * Analytics configuration
