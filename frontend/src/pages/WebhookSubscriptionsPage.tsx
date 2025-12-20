@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from '@dr.pogodin/react-helmet';
 import { Link } from 'react-router-dom';
@@ -667,6 +667,12 @@ function DeliveriesModal({
     subscriptionId: string;
 }) {
     const [page, setPage] = useState(1);
+    
+    // Reset page when subscriptionId changes
+    useEffect(() => {
+        setPage(1);
+    }, [subscriptionId]);
+    
     const { data, isLoading } = useQuery({
         queryKey: ['webhookDeliveries', subscriptionId, page],
         queryFn: () => getWebhookDeliveries(subscriptionId, page, 20),

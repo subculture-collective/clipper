@@ -8,13 +8,8 @@ import type {
 
 // Get supported webhook events
 export async function getSupportedWebhookEvents(): Promise<string[]> {
-    try {
-        const response = await apiClient.get('/webhooks/events');
-        return response.data.data || [];
-    } catch (error) {
-        console.error('Failed to fetch supported webhook events:', error);
-        throw new Error('Failed to load webhook events. Please try again.');
-    }
+    const response = await apiClient.get('/webhooks/events');
+    return response.data.data || [];
 }
 
 // Create a new webhook subscription
