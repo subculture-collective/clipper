@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -60,9 +59,6 @@ func (r *CDNRepository) GetConfiguration(ctx context.Context, id uuid.UUID) (*mo
 		&config.Priority, &configJSON, &config.CreatedAt, &config.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +89,6 @@ func (r *CDNRepository) GetConfigurationByProvider(ctx context.Context, provider
 		&config.Priority, &configJSON, &config.CreatedAt, &config.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
-	}
 	if err != nil {
 		return nil, err
 	}

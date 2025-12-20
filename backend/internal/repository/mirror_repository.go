@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -56,9 +55,6 @@ func (r *MirrorRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.C
 		&mirror.AccessCount, &mirror.ExpiresAt, &mirror.FailureReason,
 	)
 
-	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +78,6 @@ func (r *MirrorRepository) GetByClipAndRegion(ctx context.Context, clipID uuid.U
 		&mirror.AccessCount, &mirror.ExpiresAt, &mirror.FailureReason,
 	)
 
-	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
-	}
 	if err != nil {
 		return nil, err
 	}
