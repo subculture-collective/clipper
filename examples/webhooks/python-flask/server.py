@@ -124,11 +124,12 @@ def webhook():
     # Mark as processed (idempotency)
     processed_deliveries.add(delivery_id)
     
-    # Clean up old delivery IDs (keep last 1000)
+    # Clean up delivery IDs to keep the set size bounded (approx. 1000)
+    # Note: Sets are unordered, so we cannot guarantee FIFO behavior
     if len(processed_deliveries) > 1000:
-        to_delete = list(processed_deliveries)[:100]
-        for d_id in to_delete:
-            processed_deliveries.discard(d_id)
+        # Remove arbitrary IDs until we're back at or below the limit
+        while len(processed_deliveries) > 1000:
+            processed_deliveries.pop()
     
     # Process the webhook event
     # In production, consider using a task queue for async processing

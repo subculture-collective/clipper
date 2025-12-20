@@ -227,10 +227,10 @@ Send the same delivery ID twice:
 DELIVERY_ID=$(uuidgen)
 
 # First request - should be processed
-./send-test-webhook.sh clip.submitted http://localhost:3000/webhook "$DELIVERY_ID"
+./send-test-webhook.sh clip.submitted http://localhost:3000/webhook test-secret-key-12345 "$DELIVERY_ID"
 
 # Second request - should be skipped (already processed)
-./send-test-webhook.sh clip.submitted http://localhost:3000/webhook "$DELIVERY_ID"
+./send-test-webhook.sh clip.submitted http://localhost:3000/webhook test-secret-key-12345 "$DELIVERY_ID"
 ```
 
 ## Support

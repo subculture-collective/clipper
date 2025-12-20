@@ -124,15 +124,15 @@ send_webhook() {
     echo ""
     
     # Check status code
-    if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+    if [ -z "$http_code" ] || [ "$http_code" = "000" ]; then
+        print_error "Connection failed - Is your server running at $url?"
+    elif [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
         print_success "Webhook delivered successfully!"
     elif [ "$http_code" -eq 401 ]; then
         print_error "Unauthorized - Signature verification failed"
-        print_warning "Check that you're using the correct secret: $secret"
+        print_warning "Check that your webhook signing secret matches the server configuration."
     elif [ "$http_code" -eq 400 ]; then
         print_error "Bad Request - Invalid payload or missing headers"
-    elif [ "$http_code" = "000" ] || [ "$http_code" = "" ]; then
-        print_error "Connection failed - Is your server running at $url?"
     else
         print_warning "Unexpected status code: $http_code"
     fi

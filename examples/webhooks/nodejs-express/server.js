@@ -133,7 +133,8 @@ app.post('/webhook', express.text({ type: 'application/json' }), (req, res) => {
   // Mark as processed (idempotency)
   processedDeliveries.add(deliveryId);
   
-  // Clean up old delivery IDs (keep last 1000)
+  // Clean up old delivery IDs (keep around 1000, deletes first 100 when size exceeds 1000)
+  // Note: JavaScript Sets maintain insertion order (ES2015+)
   if (processedDeliveries.size > 1000) {
     const toDelete = Array.from(processedDeliveries).slice(0, 100);
     toDelete.forEach(id => processedDeliveries.delete(id));
