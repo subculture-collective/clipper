@@ -81,6 +81,7 @@ const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ de
 const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => ({ default: m.ThreadDetail })));
 const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
 const ForumSearchPage = lazy(() => import('./pages/forum/ForumSearchPage').then(m => ({ default: m.ForumSearchPage })));
+const WebhookSubscriptionsPage = lazy(() => import('./pages/WebhookSubscriptionsPage').then(m => ({ default: m.WebhookSubscriptionsPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -218,6 +219,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <CookieSettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings/webhooks"
+                      element={
+                        <ProtectedRoute>
+                          <WebhookSubscriptionsPage />
                         </ProtectedRoute>
                       }
                     />

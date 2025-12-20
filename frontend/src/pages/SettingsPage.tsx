@@ -552,6 +552,26 @@ export function SettingsPage() {
                         </CardBody>
                     </Card>
 
+                    {/* Webhook Settings */}
+                    <Card className='mb-6'>
+                        <CardHeader>
+                            <h2 className='text-xl font-semibold'>
+                                Webhooks
+                            </h2>
+                        </CardHeader>
+                        <CardBody>
+                            <p className='text-muted-foreground mb-4'>
+                                Configure webhook endpoints to receive real-time notifications
+                                when events occur. Integrate with your own applications.
+                            </p>
+                            <Link to='/settings/webhooks'>
+                                <Button variant='outline'>
+                                    Manage Webhook Subscriptions
+                                </Button>
+                            </Link>
+                        </CardBody>
+                    </Card>
+
                     {/* Data Management */}
                     <Card className='mb-6 border-warning-500'>
                         <CardHeader>
