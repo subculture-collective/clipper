@@ -208,7 +208,11 @@ export function AdminWebhookDLQPage() {
             ) : (
                 <>
                     <div className='overflow-x-auto'>
-                        <table className='w-full border-collapse'>
+                        <table
+                            className='w-full border-collapse'
+                            role='table'
+                            aria-label='Failed webhook deliveries'
+                        >
                             <thead>
                                 <tr className='bg-muted'>
                                     <th className='text-left p-3 text-sm font-semibold'>

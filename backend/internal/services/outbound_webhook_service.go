@@ -306,20 +306,23 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 			// Update delivery with final failure status
 			if updateErr := s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, nil, errMsg, nil); updateErr != nil {
 				log.Printf("[WEBHOOK] Failed to update delivery failure: %v", updateErr)
+				return fmt.Errorf("failed to update delivery failure before DLQ: %w", updateErr)
 			}
 			
 			// Get updated delivery to move to DLQ
 			updatedDelivery, getErr := s.webhookRepo.GetDeliveryByID(ctx, delivery.ID)
 			if getErr != nil {
 				log.Printf("[WEBHOOK] Failed to get delivery for DLQ: %v", getErr)
-			} else {
-				// Move to dead-letter queue
-				if dlqErr := s.webhookRepo.MoveDeliveryToDeadLetterQueue(ctx, updatedDelivery); dlqErr != nil {
-					log.Printf("[WEBHOOK] Failed to move delivery %s to DLQ: %v", delivery.ID, dlqErr)
-				} else {
-					log.Printf("[WEBHOOK] Successfully moved delivery %s to DLQ", delivery.ID)
-				}
+				return fmt.Errorf("failed to get delivery for DLQ: %w", getErr)
 			}
+			
+			// Move to dead-letter queue
+			if dlqErr := s.webhookRepo.MoveDeliveryToDeadLetterQueue(ctx, updatedDelivery); dlqErr != nil {
+				log.Printf("[WEBHOOK] Failed to move delivery %s to DLQ: %v", delivery.ID, dlqErr)
+				return fmt.Errorf("failed to move delivery to DLQ: %w", dlqErr)
+			}
+			
+			log.Printf("[WEBHOOK] Successfully moved delivery %s to DLQ", delivery.ID)
 			
 			// Record metrics
 			webhookDeliveryTotal.WithLabelValues(delivery.EventType, "failed").Inc()
@@ -379,20 +382,23 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 		// Update delivery with final failure status
 		if err := s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, &resp.StatusCode, errMsg, nil); err != nil {
 			log.Printf("[WEBHOOK] Failed to update delivery failure: %v", err)
+			return fmt.Errorf("failed to update delivery failure before DLQ: %w", err)
 		}
 		
 		// Get updated delivery to move to DLQ
 		updatedDelivery, err := s.webhookRepo.GetDeliveryByID(ctx, delivery.ID)
 		if err != nil {
 			log.Printf("[WEBHOOK] Failed to get delivery for DLQ: %v", err)
-		} else {
-			// Move to dead-letter queue
-			if dlqErr := s.webhookRepo.MoveDeliveryToDeadLetterQueue(ctx, updatedDelivery); dlqErr != nil {
-				log.Printf("[WEBHOOK] Failed to move delivery %s to DLQ: %v", delivery.ID, dlqErr)
-			} else {
-				log.Printf("[WEBHOOK] Successfully moved delivery %s to DLQ", delivery.ID)
-			}
+			return fmt.Errorf("failed to get delivery for DLQ: %w", err)
 		}
+		
+		// Move to dead-letter queue
+		if dlqErr := s.webhookRepo.MoveDeliveryToDeadLetterQueue(ctx, updatedDelivery); dlqErr != nil {
+			log.Printf("[WEBHOOK] Failed to move delivery %s to DLQ: %v", delivery.ID, dlqErr)
+			return fmt.Errorf("failed to move delivery to DLQ: %w", dlqErr)
+		}
+		
+		log.Printf("[WEBHOOK] Successfully moved delivery %s to DLQ", delivery.ID)
 		
 		// Record metrics
 		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "failed").Inc()

@@ -80,7 +80,7 @@ func (h *WebhookDLQHandler) GetDeadLetterQueue(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /api/v1/admin/webhooks/dlq/:id/replay [post]
+// @Router /api/v1/admin/webhooks/dlq/{id}/replay [post]
 func (h *WebhookDLQHandler) ReplayDeadLetterQueueItem(c *gin.Context) {
 	// Parse DLQ item ID
 	idStr := c.Param("id")
@@ -114,7 +114,7 @@ func (h *WebhookDLQHandler) ReplayDeadLetterQueueItem(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /api/v1/admin/webhooks/dlq/:id [delete]
+// @Router /api/v1/admin/webhooks/dlq/{id} [delete]
 func (h *WebhookDLQHandler) DeleteDeadLetterQueueItem(c *gin.Context) {
 	// Parse DLQ item ID
 	idStr := c.Param("id")
