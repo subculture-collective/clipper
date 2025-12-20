@@ -34,9 +34,12 @@ interface AnalyticsConfig {
   userProperties?: UserProperties;
 }
 
+// Constants for environment variable values
+const ENV_TRUE = 'true';
+
 let config: AnalyticsConfig = {
   enabled: false,
-  debug: import.meta.env.VITE_ENABLE_DEBUG === 'true' || import.meta.env.DEV,
+  debug: import.meta.env.VITE_ENABLE_DEBUG === ENV_TRUE || import.meta.env.DEV,
 };
 
 /**

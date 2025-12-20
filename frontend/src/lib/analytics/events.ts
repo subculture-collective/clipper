@@ -146,6 +146,7 @@ export const PremiumEvents = {
 export const NavigationEvents = {
   // Page Views
   PAGE_VIEWED: 'page_viewed',
+  SCREEN_VIEWED: 'screen_viewed', // For mobile apps
   
   // Feature Navigation
   FEATURE_CLICKED: 'feature_clicked',

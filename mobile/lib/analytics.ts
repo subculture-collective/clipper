@@ -159,7 +159,8 @@ interface AnalyticsConfig {
 }
 
 const CONSENT_STORAGE_KEY = '@clipper:analytics_consent';
-const ANALYTICS_ENABLED = process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === 'true';
+const ENV_TRUE = 'true';
+const ANALYTICS_ENABLED = process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === ENV_TRUE;
 
 let config: AnalyticsConfig = {
   enabled: false,
