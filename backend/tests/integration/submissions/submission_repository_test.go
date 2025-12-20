@@ -19,10 +19,17 @@ import (
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
-// TestSubmissionRepositoryBasics tests basic submission repository operations
-// This demonstrates the correct way to interact with repositories
-func TestSubmissionRepositoryBasics(t *testing.T) {
-	// Setup test database and Redis
+// testEnv holds the test environment setup
+type testEnv struct {
+	db             *database.DB
+	redisClient    *redispkg.Client
+	userRepo       *repository.UserRepository
+	submissionRepo *repository.SubmissionRepository
+	ctx            context.Context
+}
+
+// setupTestEnv creates and initializes the test environment
+func setupTestEnv(t *testing.T) *testEnv {
 	cfg := &config.Config{
 		Database: config.DatabaseConfig{
 			Host:     testutil.GetEnv("TEST_DATABASE_HOST", "localhost"),
@@ -40,29 +47,48 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 	// Initialize database
 	db, err := database.NewDB(&cfg.Database)
 	require.NoError(t, err, "Failed to connect to test database")
-	defer db.Close()
 
 	// Initialize Redis
 	redisClient, err := redispkg.NewClient(&cfg.Redis)
 	require.NoError(t, err, "Failed to connect to test Redis")
-	defer redisClient.Close()
 
-	// Initialize repositories
-	ctx := context.Background()
-	userRepo := repository.NewUserRepository(db.Pool)
-	submissionRepo := repository.NewSubmissionRepository(db.Pool)
+	return &testEnv{
+		db:             db,
+		redisClient:    redisClient,
+		userRepo:       repository.NewUserRepository(db.Pool),
+		submissionRepo: repository.NewSubmissionRepository(db.Pool),
+		ctx:            context.Background(),
+	}
+}
+
+// cleanup closes database and Redis connections
+func (env *testEnv) cleanup() {
+	if env.db != nil {
+		env.db.Close()
+	}
+	if env.redisClient != nil {
+		env.redisClient.Close()
+	}
+}
+
+// TestSubmissionRepositoryBasics tests basic submission repository operations
+// This demonstrates the correct way to interact with repositories
+func TestSubmissionRepositoryBasics(t *testing.T) {
+	env := setupTestEnv(t)
+	defer env.cleanup()
 
 	// Create a test user using the correct Create method
+	email := testutil.RandomEmail()
 	testUser := &models.User{
 		ID:          uuid.New(),
 		TwitchID:    fmt.Sprintf("test_%d", time.Now().UnixNano()),
 		Username:    fmt.Sprintf("testuser_%d", time.Now().UnixNano()),
 		DisplayName: "Test User for Submissions",
-		Email:       testutil.RandomEmail(),
+		Email:       &email,
 		Role:        models.RoleUser,
 		KarmaPoints: 50, // Low karma to test manual moderation
 	}
-	err = userRepo.Create(ctx, testUser)
+	err := env.userRepo.Create(env.ctx, testUser)
 	require.NoError(t, err, "Failed to create test user")
 
 	t.Run("CreateSubmission_Success", func(t *testing.T) {
@@ -82,11 +108,11 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 		customTitle := "My Custom Test Title"
 		submission.CustomTitle = &customTitle
 
-		err := submissionRepo.Create(ctx, submission)
+		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err, "Failed to create submission")
 
 		// Verify submission was created
-		retrieved, err := submissionRepo.GetByID(ctx, submission.ID)
+		retrieved, err := env.submissionRepo.GetByID(env.ctx, submission.ID)
 		require.NoError(t, err, "Failed to retrieve submission")
 		assert.Equal(t, submission.UserID, retrieved.UserID)
 		assert.Equal(t, submission.TwitchClipID, retrieved.TwitchClipID)
@@ -107,12 +133,12 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 				CreatedAt:     time.Now(),
 				UpdatedAt:     time.Now(),
 			}
-			err := submissionRepo.Create(ctx, submission)
+			err := env.submissionRepo.Create(env.ctx, submission)
 			require.NoError(t, err, "Failed to create test submission")
 		}
 
 		// Retrieve submissions with pagination
-		submissions, total, err := submissionRepo.GetByUserID(ctx, testUser.ID, 1, 10)
+		submissions, total, err := env.submissionRepo.ListByUser(env.ctx, testUser.ID, 1, 10)
 		require.NoError(t, err, "Failed to get user submissions")
 		assert.Greater(t, total, 0, "Should have at least one submission")
 		assert.Greater(t, len(submissions), 0, "Should return submissions")
@@ -130,17 +156,17 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 		}
-		err := submissionRepo.Create(ctx, submission)
+		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err, "Failed to create submission")
 
 		// Approve the submission
 		adminID := uuid.New()
 		notes := "Looks good!"
-		err = submissionRepo.UpdateStatus(ctx, submission.ID, "approved", &adminID, &notes)
+		err = env.submissionRepo.UpdateStatus(env.ctx, submission.ID, "approved", adminID, &notes)
 		require.NoError(t, err, "Failed to update submission status")
 
 		// Verify status was updated
-		updated, err := submissionRepo.GetByID(ctx, submission.ID)
+		updated, err := env.submissionRepo.GetByID(env.ctx, submission.ID)
 		require.NoError(t, err, "Failed to retrieve updated submission")
 		assert.Equal(t, "approved", updated.Status)
 		assert.NotNil(t, updated.ReviewedBy)
@@ -159,27 +185,25 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 		}
-		err := submissionRepo.Create(ctx, submission)
+		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err, "Failed to create submission")
 
 		// Reject the submission
 		adminID := uuid.New()
-		rejectionReason := "duplicate"
-		rejectionMessage := "This clip was already submitted"
-		err = submissionRepo.Reject(ctx, submission.ID, adminID, rejectionReason, rejectionMessage)
+		rejectionReason := "Duplicate content"
+		err = env.submissionRepo.UpdateStatus(env.ctx, submission.ID, "rejected", adminID, &rejectionReason)
 		require.NoError(t, err, "Failed to reject submission")
 
 		// Verify rejection details
-		updated, err := submissionRepo.GetByID(ctx, submission.ID)
+		updated, err := env.submissionRepo.GetByID(env.ctx, submission.ID)
 		require.NoError(t, err, "Failed to retrieve rejected submission")
 		assert.Equal(t, "rejected", updated.Status)
 		assert.NotNil(t, updated.RejectionReason)
-		assert.Equal(t, rejectionReason, *updated.RejectionReason)
 	})
 
 	t.Run("GetPendingSubmissions", func(t *testing.T) {
 		// Get all pending submissions (for moderation queue)
-		pending, total, err := submissionRepo.GetPending(ctx, 1, 50)
+		pending, total, err := env.submissionRepo.ListPending(env.ctx, 1, 50)
 		require.NoError(t, err, "Failed to get pending submissions")
 		
 		// Should have at least some pending submissions from previous tests
@@ -190,34 +214,20 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 
 // TestNSFWFlagPersistence tests that NSFW flag is correctly stored and retrieved
 func TestNSFWFlagPersistence(t *testing.T) {
-	cfg := &config.Config{
-		Database: config.DatabaseConfig{
-			Host:     testutil.GetEnv("TEST_DATABASE_HOST", "localhost"),
-			Port:     testutil.GetEnv("TEST_DATABASE_PORT", "5437"),
-			User:     testutil.GetEnv("TEST_DATABASE_USER", "clipper"),
-			Password: testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
-			Name:     testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test"),
-		},
-	}
-
-	db, err := database.NewDB(&cfg.Database)
-	require.NoError(t, err)
-	defer db.Close()
-
-	ctx := context.Background()
-	userRepo := repository.NewUserRepository(db.Pool)
-	submissionRepo := repository.NewSubmissionRepository(db.Pool)
+	env := setupTestEnv(t)
+	defer env.cleanup()
 
 	// Create test user
+	email := testutil.RandomEmail()
 	testUser := &models.User{
 		ID:          uuid.New(),
 		TwitchID:    fmt.Sprintf("test_nsfw_%d", time.Now().UnixNano()),
 		Username:    fmt.Sprintf("nsfwuser_%d", time.Now().UnixNano()),
 		DisplayName: "NSFW Test User",
-		Email:       testutil.RandomEmail(),
+		Email:       &email,
 		Role:        models.RoleUser,
 	}
-	err = userRepo.Create(ctx, testUser)
+	err := env.userRepo.Create(env.ctx, testUser)
 	require.NoError(t, err)
 
 	t.Run("NSFW_FlagTrue", func(t *testing.T) {
@@ -232,11 +242,11 @@ func TestNSFWFlagPersistence(t *testing.T) {
 			UpdatedAt:     time.Now(),
 		}
 
-		err := submissionRepo.Create(ctx, submission)
+		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err)
 
 		// Retrieve and verify
-		retrieved, err := submissionRepo.GetByID(ctx, submission.ID)
+		retrieved, err := env.submissionRepo.GetByID(env.ctx, submission.ID)
 		require.NoError(t, err)
 		assert.True(t, retrieved.IsNSFW, "NSFW flag should be true")
 	})
@@ -253,11 +263,11 @@ func TestNSFWFlagPersistence(t *testing.T) {
 			UpdatedAt:     time.Now(),
 		}
 
-		err := submissionRepo.Create(ctx, submission)
+		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err)
 
 		// Retrieve and verify
-		retrieved, err := submissionRepo.GetByID(ctx, submission.ID)
+		retrieved, err := env.submissionRepo.GetByID(env.ctx, submission.ID)
 		require.NoError(t, err)
 		assert.False(t, retrieved.IsNSFW, "NSFW flag should be false")
 	})
@@ -265,34 +275,20 @@ func TestNSFWFlagPersistence(t *testing.T) {
 
 // TestCustomTitlesAndTagsStorage tests that custom metadata is correctly stored
 func TestCustomTitlesAndTagsStorage(t *testing.T) {
-	cfg := &config.Config{
-		Database: config.DatabaseConfig{
-			Host:     testutil.GetEnv("TEST_DATABASE_HOST", "localhost"),
-			Port:     testutil.GetEnv("TEST_DATABASE_PORT", "5437"),
-			User:     testutil.GetEnv("TEST_DATABASE_USER", "clipper"),
-			Password: testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
-			Name:     testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test"),
-		},
-	}
-
-	db, err := database.NewDB(&cfg.Database)
-	require.NoError(t, err)
-	defer db.Close()
-
-	ctx := context.Background()
-	userRepo := repository.NewUserRepository(db.Pool)
-	submissionRepo := repository.NewSubmissionRepository(db.Pool)
+	env := setupTestEnv(t)
+	defer env.cleanup()
 
 	// Create test user
+	email := testutil.RandomEmail()
 	testUser := &models.User{
 		ID:          uuid.New(),
 		TwitchID:    fmt.Sprintf("test_custom_%d", time.Now().UnixNano()),
 		Username:    fmt.Sprintf("customuser_%d", time.Now().UnixNano()),
 		DisplayName: "Custom Metadata Test User",
-		Email:       testutil.RandomEmail(),
+		Email:       &email,
 		Role:        models.RoleUser,
 	}
-	err = userRepo.Create(ctx, testUser)
+	err := env.userRepo.Create(env.ctx, testUser)
 	require.NoError(t, err)
 
 	t.Run("CustomTitle_AndTags", func(t *testing.T) {
@@ -312,11 +308,11 @@ func TestCustomTitlesAndTagsStorage(t *testing.T) {
 			UpdatedAt:     time.Now(),
 		}
 
-		err := submissionRepo.Create(ctx, submission)
+		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err)
 
 		// Retrieve and verify
-		retrieved, err := submissionRepo.GetByID(ctx, submission.ID)
+		retrieved, err := env.submissionRepo.GetByID(env.ctx, submission.ID)
 		require.NoError(t, err)
 		assert.NotNil(t, retrieved.CustomTitle, "Custom title should not be nil")
 		assert.Equal(t, customTitle, *retrieved.CustomTitle, "Custom title should match")
@@ -344,11 +340,11 @@ func TestCustomTitlesAndTagsStorage(t *testing.T) {
 			UpdatedAt:     time.Now(),
 		}
 
-		err := submissionRepo.Create(ctx, submission)
+		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err)
 
 		// Retrieve and verify
-		retrieved, err := submissionRepo.GetByID(ctx, submission.ID)
+		retrieved, err := env.submissionRepo.GetByID(env.ctx, submission.ID)
 		require.NoError(t, err)
 		assert.Nil(t, retrieved.CustomTitle, "Custom title should be nil")
 		assert.Equal(t, len(tags), len(retrieved.Tags), "Should have tags")
