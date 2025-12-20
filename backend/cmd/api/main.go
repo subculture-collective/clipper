@@ -337,7 +337,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	mfaHandler := handlers.NewMFAHandler(mfaService, cfg)
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
-	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService)
+	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService, outboundWebhookService)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)

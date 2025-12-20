@@ -404,3 +404,54 @@ func (r *OutboundWebhookRepository) CountDeliveriesBySubscriptionID(ctx context.
 	err := r.db.QueryRow(ctx, query, subscriptionID).Scan(&count)
 	return count, err
 }
+
+// CountActiveSubscriptions counts the number of active webhook subscriptions
+func (r *OutboundWebhookRepository) CountActiveSubscriptions(ctx context.Context) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM webhook_subscriptions WHERE is_active = true`
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// CountPendingDeliveries counts the number of pending webhook deliveries
+func (r *OutboundWebhookRepository) CountPendingDeliveries(ctx context.Context) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM webhook_deliveries WHERE status = 'pending'`
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
+// GetRecentDeliveryStats returns delivery statistics for the last hour
+func (r *OutboundWebhookRepository) GetRecentDeliveryStats(ctx context.Context) (map[string]int, error) {
+	query := `
+		SELECT 
+			status,
+			COUNT(*) as count
+		FROM webhook_deliveries
+		WHERE created_at > NOW() - INTERVAL '1 hour'
+		GROUP BY status
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	stats := map[string]int{
+		"delivered": 0,
+		"failed":    0,
+		"pending":   0,
+	}
+
+	for rows.Next() {
+		var status string
+		var count int
+		if err := rows.Scan(&status, &count); err != nil {
+			return nil, err
+		}
+		stats[status] = count
+	}
+
+	return stats, rows.Err()
+}

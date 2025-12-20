@@ -56,6 +56,7 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - ⭐ **Favorites**: Save and organize your favorite clips
 - 🏆 **Karma System**: Build reputation through quality contributions
 - 🔐 **Twitch OAuth**: Seamless authentication with your Twitch account
+- 🔔 **Webhook Notifications**: Real-time notifications for clip submissions, approvals, and rejections
 - 📱 **Responsive Design**: Works beautifully on desktop and mobile
 
 ## 📚 Documentation
@@ -78,6 +79,8 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - [Mobile Architecture](docs/mobile/architecture.md) - React Native app architecture
 - [API Reference](docs/backend/api.md) - Complete REST API documentation
 - [Clip Submission API Guide](docs/backend/clip-submission-api-guide.md) - Submit clips with TypeScript/cURL examples
+- [Webhook Integration Guide](docs/backend/webhooks.md) - Integrate with outbound webhooks
+- [Webhook Retry & DLQ System](docs/backend/webhook-retry.md) - Webhook reliability architecture
 - [OpenAPI Specifications](docs/openapi/) - Machine-readable API specs
 - [Database Guide](docs/backend/database.md) - Schema, migrations, and queries
 - [Testing Guide](docs/backend/testing.md) - Testing strategy and tools
