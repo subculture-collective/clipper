@@ -4,6 +4,12 @@
 
 The webhook subscription management feature allows users to create and manage webhook subscriptions for receiving real-time notifications when events occur in the system.
 
+## Quick Links
+
+- **[Webhook Signature Verification Guide](./WEBHOOK_SIGNATURE_VERIFICATION.md)** - Complete guide with examples in 7+ languages
+- **[Working Examples](../examples/webhooks/)** - Test servers and sample code you can run immediately
+- **[Test Payloads](../examples/webhooks/test-payloads/)** - Pre-signed sample payloads for testing your integration
+
 ## Features
 
 ### User Interface
@@ -180,7 +186,16 @@ Webhooks are sent as POST requests with the following format:
 
 ### Signature Verification
 
-Each webhook request includes an `X-Webhook-Signature` header containing an HMAC-SHA256 signature. Verify it using your secret:
+Each webhook request includes an `X-Webhook-Signature` header containing an HMAC-SHA256 signature. You must verify this signature to ensure the webhook is authentic.
+
+**Important:** See the [Webhook Signature Verification Guide](./WEBHOOK_SIGNATURE_VERIFICATION.md) for:
+- Detailed explanation of the signature verification process
+- Complete code examples in 7+ programming languages (Node.js, Python, Go, Ruby, PHP, Java, C#)
+- Working test servers you can run locally
+- Sample payloads with pre-computed signatures
+- Security best practices and troubleshooting
+
+Quick example (Node.js):
 
 ```javascript
 const crypto = require('crypto');
@@ -195,6 +210,8 @@ function verifySignature(payload, signature, secret) {
   );
 }
 ```
+
+**For production-ready implementations and examples in your preferred language, see [WEBHOOK_SIGNATURE_VERIFICATION.md](./WEBHOOK_SIGNATURE_VERIFICATION.md).**
 
 ## Delivery Guarantees
 
