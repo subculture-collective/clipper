@@ -79,6 +79,9 @@ A modern, community-driven Twitch clip curation platform that allows users to di
 - [Mobile Architecture](docs/mobile/architecture.md) - React Native app architecture
 - [API Reference](docs/backend/api.md) - Complete REST API documentation
 - [Clip Submission API Guide](docs/backend/clip-submission-api-guide.md) - Submit clips with TypeScript/cURL examples
+- [Webhook Subscription Management](docs/WEBHOOK_SUBSCRIPTION_MANAGEMENT.md) - Manage webhook subscriptions
+- [Webhook Signature Verification](docs/WEBHOOK_SIGNATURE_VERIFICATION.md) - **NEW!** Complete guide with examples in 7+ languages
+- [Webhook Examples](examples/webhooks/) - **NEW!** Working test servers and sample code
 - [Webhook Integration Guide](docs/backend/webhooks.md) - Integrate with outbound webhooks
 - [Webhook Retry & DLQ System](docs/backend/webhook-retry.md) - Webhook reliability architecture
 - [OpenAPI Specifications](docs/openapi/) - Machine-readable API specs
