@@ -15,6 +15,7 @@ import {
     TextArea,
     Toggle,
 } from '../components';
+import { useToast } from '../context/ToastContext';
 import {
     createWebhookSubscription,
     deleteWebhookSubscription,
@@ -33,6 +34,7 @@ import type {
 
 export function WebhookSubscriptionsPage() {
     const queryClient = useQueryClient();
+    const { error: showErrorToast } = useToast();
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -153,8 +155,7 @@ export function WebhookSubscriptionsPage() {
                 setTimeout(() => setCopiedSecret(false), 2000);
             } catch (error) {
                 console.error('Failed to copy to clipboard:', error);
-                // Fallback: show the secret so user can manually copy
-                alert('Failed to copy automatically. Please copy manually: ' + newSecret);
+                showErrorToast('Failed to copy to clipboard. Please copy manually.');
             }
         }
     };

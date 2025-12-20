@@ -40,8 +40,3 @@ export interface UpdateWebhookSubscriptionRequest {
     is_active?: boolean;
     description?: string;
 }
-
-export interface WebhookEvent {
-    name: string;
-    description: string;
-}
