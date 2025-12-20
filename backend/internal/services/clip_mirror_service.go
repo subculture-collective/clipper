@@ -42,6 +42,7 @@ func (s *ClipMirrorService) IdentifyPopularClips(ctx context.Context) ([]uuid.UU
 	clipIDs, err := s.mirrorRepo.GetPopularClipsForMirroring(
 		ctx,
 		s.config.ReplicationThreshold,
+		s.config.MaxMirrorsPerClip,
 		100, // Process up to 100 clips per run
 	)
 	if err != nil {

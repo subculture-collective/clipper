@@ -221,6 +221,8 @@ func (r *MirrorRepository) CreateMetric(ctx context.Context, metric *models.Mirr
 }
 
 // GetMirrorHitRate calculates the mirror hit rate for a time period
+// Hit rate = (successful mirror accesses / total access attempts) * 100
+// where total attempts = successful accesses + failovers to primary
 func (r *MirrorRepository) GetMirrorHitRate(ctx context.Context, startTime time.Time) (float64, error) {
 	query := `
 		SELECT 
@@ -244,7 +246,8 @@ func (r *MirrorRepository) GetMirrorHitRate(ctx context.Context, startTime time.
 }
 
 // GetPopularClipsForMirroring returns clips that meet the replication threshold
-func (r *MirrorRepository) GetPopularClipsForMirroring(ctx context.Context, threshold int, limit int) ([]uuid.UUID, error) {
+// maxMirrors parameter should match the MIRROR_MAX_PER_CLIP configuration value
+func (r *MirrorRepository) GetPopularClipsForMirroring(ctx context.Context, threshold int, maxMirrors int, limit int) ([]uuid.UUID, error) {
 	query := `
 		SELECT c.id
 		FROM clips c
@@ -258,7 +261,7 @@ func (r *MirrorRepository) GetPopularClipsForMirroring(ctx context.Context, thre
 		LIMIT $3
 	`
 
-	rows, err := r.db.Query(ctx, query, threshold, 3, limit) // Max 3 mirrors per clip
+	rows, err := r.db.Query(ctx, query, threshold, maxMirrors, limit)
 	if err != nil {
 		return nil, err
 	}

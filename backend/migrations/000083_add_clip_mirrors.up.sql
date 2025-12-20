@@ -49,7 +49,8 @@ CREATE TABLE cdn_configurations (
     region VARCHAR(50), -- Optional: region-specific configuration
     is_active BOOLEAN NOT NULL DEFAULT true,
     priority INT NOT NULL DEFAULT 0, -- Higher priority providers are tried first
-    config JSONB NOT NULL, -- Provider-specific configuration (API keys, zones, etc.)
+    config JSONB NOT NULL, -- Provider-specific non-sensitive configuration (zones, distribution IDs, etc.)
+                           -- SECURITY: Do NOT store API keys or secrets here. Use environment variables or a secrets manager.
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE(provider, region)

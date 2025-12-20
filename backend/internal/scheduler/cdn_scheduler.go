@@ -19,6 +19,8 @@ type CDNScheduler struct {
 	metricsInterval  time.Duration
 	stopChan         chan struct{}
 	stopOnce         sync.Once
+	running          bool
+	mu               sync.Mutex
 }
 
 // NewCDNScheduler creates a new CDN scheduler
@@ -35,10 +37,24 @@ func NewCDNScheduler(
 
 // Start begins the periodic CDN metrics collection
 func (s *CDNScheduler) Start(ctx context.Context) {
+	s.mu.Lock()
+	if s.running {
+		s.mu.Unlock()
+		log.Println("CDN scheduler is already running")
+		return
+	}
+	s.running = true
+	s.mu.Unlock()
+
 	log.Printf("Starting CDN scheduler (metrics: %v)", s.metricsInterval)
 
 	metricsTicker := time.NewTicker(s.metricsInterval)
 	defer metricsTicker.Stop()
+	defer func() {
+		s.mu.Lock()
+		s.running = false
+		s.mu.Unlock()
+	}()
 
 	// Run initial metrics collection
 	s.collectMetrics(ctx)

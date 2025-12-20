@@ -9,17 +9,26 @@ import (
 
 // CloudflareProvider implements CDN operations for Cloudflare
 type CloudflareProvider struct {
-	zoneID   string
-	apiKey   string
-	cacheTTL int
+	zoneID    string
+	apiKey    string
+	cacheTTL  int
+	cdnDomain string
 }
 
 // NewCloudflareProvider creates a new Cloudflare CDN provider
 func NewCloudflareProvider(zoneID, apiKey string, cacheTTL int) *CloudflareProvider {
 	return &CloudflareProvider{
-		zoneID:   zoneID,
-		apiKey:   apiKey,
-		cacheTTL: cacheTTL,
+		zoneID:    zoneID,
+		apiKey:    apiKey,
+		cacheTTL:  cacheTTL,
+		cdnDomain: "cdn.cloudflare.clipper.gg", // Default, can be overridden
+	}
+}
+
+// SetCDNDomain allows overriding the default CDN domain
+func (p *CloudflareProvider) SetCDNDomain(domain string) {
+	if domain != "" {
+		p.cdnDomain = domain
 	}
 }
 
@@ -28,12 +37,12 @@ func (p *CloudflareProvider) GenerateURL(clip *models.Clip) (string, error) {
 	// In a real implementation, this would use Cloudflare's API
 	// For now, we'll generate a placeholder URL
 	if clip.VideoURL != nil && *clip.VideoURL != "" {
-		return fmt.Sprintf("https://cdn.cloudflare.clipper.gg/clips/%s/%s.mp4",
-			clip.TwitchClipID, clip.TwitchClipID), nil
+		return fmt.Sprintf("https://%s/clips/%s/%s.mp4",
+			p.cdnDomain, clip.TwitchClipID, clip.TwitchClipID), nil
 	}
 	
 	// Fallback to Twitch URL with Cloudflare proxy
-	return fmt.Sprintf("https://cdn.cloudflare.clipper.gg/twitch/%s", clip.TwitchClipID), nil
+	return fmt.Sprintf("https://%s/twitch/%s", p.cdnDomain, clip.TwitchClipID), nil
 }
 
 // PurgeCache purges Cloudflare cache for a URL
@@ -129,19 +138,28 @@ func (p *BunnyProvider) GetMetrics(ctx context.Context) (*CDNProviderMetrics, er
 
 // AWSCloudFrontProvider implements CDN operations for AWS CloudFront
 type AWSCloudFrontProvider struct {
-	accessKeyID string
-	secretKey   string
-	region      string
-	cacheTTL    int
+	accessKeyID    string
+	secretKey      string
+	region         string
+	cacheTTL       int
+	distributionID string
 }
 
 // NewAWSCloudFrontProvider creates a new AWS CloudFront CDN provider
 func NewAWSCloudFrontProvider(accessKeyID, secretKey, region string, cacheTTL int) *AWSCloudFrontProvider {
 	return &AWSCloudFrontProvider{
-		accessKeyID: accessKeyID,
-		secretKey:   secretKey,
-		region:      region,
-		cacheTTL:    cacheTTL,
+		accessKeyID:    accessKeyID,
+		secretKey:      secretKey,
+		region:         region,
+		cacheTTL:       cacheTTL,
+		distributionID: "d1234567890abc", // Default placeholder, should be configured
+	}
+}
+
+// SetDistributionID allows overriding the CloudFront distribution ID
+func (p *AWSCloudFrontProvider) SetDistributionID(distID string) {
+	if distID != "" {
+		p.distributionID = distID
 	}
 }
 
@@ -150,11 +168,11 @@ func (p *AWSCloudFrontProvider) GenerateURL(clip *models.Clip) (string, error) {
 	// In a real implementation, this would use CloudFront's signed URLs
 	// Format: https://{distribution-id}.cloudfront.net/{path}
 	if clip.VideoURL != nil && *clip.VideoURL != "" {
-		return fmt.Sprintf("https://d1234567890abc.cloudfront.net/clips/%s/%s.mp4",
-			clip.TwitchClipID, clip.TwitchClipID), nil
+		return fmt.Sprintf("https://%s.cloudfront.net/clips/%s/%s.mp4",
+			p.distributionID, clip.TwitchClipID, clip.TwitchClipID), nil
 	}
 	
-	return fmt.Sprintf("https://d1234567890abc.cloudfront.net/twitch/%s", clip.TwitchClipID), nil
+	return fmt.Sprintf("https://%s.cloudfront.net/twitch/%s", p.distributionID, clip.TwitchClipID), nil
 }
 
 // PurgeCache purges CloudFront cache for a URL
@@ -167,10 +185,8 @@ func (p *AWSCloudFrontProvider) PurgeCache(clipURL string) error {
 // GetCacheHeaders returns CloudFront-optimized cache headers
 func (p *AWSCloudFrontProvider) GetCacheHeaders() map[string]string {
 	return map[string]string{
-		"Cache-Control":   fmt.Sprintf("public, max-age=%d", p.cacheTTL),
-		"X-Cache":         "Hit from cloudfront",
-		"X-Amz-Cf-Pop":    "IAD89-C1",
-		"X-Amz-Cf-Id":     "unique-request-id",
+		"Cache-Control": fmt.Sprintf("public, max-age=%d", p.cacheTTL),
+		"X-Cache":       "Hit from cloudfront",
 	}
 }
 

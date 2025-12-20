@@ -71,8 +71,8 @@ func (m *MockMirrorRepository) GetMirrorHitRate(ctx context.Context, startTime t
 	return args.Get(0).(float64), args.Error(1)
 }
 
-func (m *MockMirrorRepository) GetPopularClipsForMirroring(ctx context.Context, threshold int, limit int) ([]uuid.UUID, error) {
-	args := m.Called(ctx, threshold, limit)
+func (m *MockMirrorRepository) GetPopularClipsForMirroring(ctx context.Context, threshold int, maxMirrors int, limit int) ([]uuid.UUID, error) {
+	args := m.Called(ctx, threshold, maxMirrors, limit)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -205,6 +205,7 @@ func TestClipMirrorService_IdentifyPopularClips(t *testing.T) {
 	config := &config.MirrorConfig{
 		Enabled:              true,
 		ReplicationThreshold: 1000,
+		MaxMirrorsPerClip:    3,
 	}
 
 	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, config)
@@ -213,7 +214,7 @@ func TestClipMirrorService_IdentifyPopularClips(t *testing.T) {
 
 	t.Run("identify popular clips", func(t *testing.T) {
 		expectedClips := []uuid.UUID{uuid.New(), uuid.New(), uuid.New()}
-		mockMirrorRepo.On("GetPopularClipsForMirroring", ctx, 1000, 100).Return(expectedClips, nil).Once()
+		mockMirrorRepo.On("GetPopularClipsForMirroring", ctx, 1000, 3, 100).Return(expectedClips, nil).Once()
 
 		clips, err := service.IdentifyPopularClips(ctx)
 

@@ -3670,10 +3670,12 @@ const (
 )
 
 // CDN Provider constants
+// Note: These constants use CamelCase (matching Go conventions), but their string values
+// use lowercase-with-hyphens (matching configuration and documentation conventions)
 const (
-	CDNProviderCloudflare  = "cloudflare"
-	CDNProviderBunny       = "bunny"
-	CDNProviderAWSCloudFront = "aws-cloudfront"
+	CDNProviderCloudflare    = "cloudflare"    // Cloudflare CDN
+	CDNProviderBunny         = "bunny"         // Bunny.net CDN
+	CDNProviderAWSCloudFront = "aws-cloudfront" // AWS CloudFront CDN
 )
 
 // Mirror metric types

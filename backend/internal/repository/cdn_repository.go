@@ -191,22 +191,23 @@ func (r *CDNRepository) CreateMetric(ctx context.Context, metric *models.CDNMetr
 }
 
 // GetMetricsSummary retrieves aggregated metrics for a provider and time period
+// For bandwidth metrics, this sums the total bandwidth; for other metrics like latency, use GetAverageMetric instead
 func (r *CDNRepository) GetMetricsSummary(ctx context.Context, provider string, metricType string, startTime time.Time) (float64, error) {
 	query := `
-		SELECT COALESCE(AVG(metric_value), 0)
+		SELECT COALESCE(SUM(metric_value), 0)
 		FROM cdn_metrics
 		WHERE provider = $1
 			AND metric_type = $2
 			AND recorded_at >= $3
 	`
 
-	var avgValue float64
-	err := r.db.QueryRow(ctx, query, provider, metricType, startTime).Scan(&avgValue)
+	var totalValue float64
+	err := r.db.QueryRow(ctx, query, provider, metricType, startTime).Scan(&totalValue)
 	if err != nil {
 		return 0, err
 	}
 
-	return avgValue, nil
+	return totalValue, nil
 }
 
 // GetTotalCost retrieves total CDN costs for a time period

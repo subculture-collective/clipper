@@ -20,6 +20,9 @@ type MirrorScheduler struct {
 	cleanupInterval  time.Duration
 	stopChan         chan struct{}
 	stopOnce         sync.Once
+	startOnce        sync.Once
+	running          bool
+	mu               sync.Mutex
 }
 
 // NewMirrorScheduler creates a new mirror scheduler
@@ -38,12 +41,26 @@ func NewMirrorScheduler(
 
 // Start begins the periodic mirror sync and cleanup processes
 func (s *MirrorScheduler) Start(ctx context.Context) {
+	s.mu.Lock()
+	if s.running {
+		s.mu.Unlock()
+		log.Println("Mirror scheduler is already running")
+		return
+	}
+	s.running = true
+	s.mu.Unlock()
+
 	log.Printf("Starting mirror scheduler (sync: %v, cleanup: %v)", s.syncInterval, s.cleanupInterval)
 
 	syncTicker := time.NewTicker(s.syncInterval)
 	cleanupTicker := time.NewTicker(s.cleanupInterval)
 	defer syncTicker.Stop()
 	defer cleanupTicker.Stop()
+	defer func() {
+		s.mu.Lock()
+		s.running = false
+		s.mu.Unlock()
+	}()
 
 	// Run initial sync
 	s.syncMirrors(ctx)

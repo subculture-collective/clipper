@@ -232,6 +232,32 @@ type MirrorConfig struct {
 	MinMirrorHitRate      float64  // Minimum mirror hit rate percentage (default: 60.0)
 }
 
+// getEnvBool gets a boolean environment variable with a fallback default value
+func getEnvBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolVal, err := strconv.ParseBool(value); err == nil {
+			return boolVal
+		}
+	}
+	return defaultValue
+}
+
+// parseRegions parses a comma-separated list of regions
+func parseRegions(value string) []string {
+	if value == "" {
+		return []string{}
+	}
+	regions := strings.Split(value, ",")
+	result := make([]string, 0, len(regions))
+	for _, region := range regions {
+		trimmed := strings.TrimSpace(region)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Load .env file if it exists
@@ -437,32 +463,6 @@ func getEnvFloat(key string, defaultValue float64) float64 {
 		}
 	}
 	return defaultValue
-}
-
-// getEnvBool gets a boolean environment variable with a fallback default value
-func getEnvBool(key string, defaultValue bool) bool {
-	if value := os.Getenv(key); value != "" {
-		if boolVal, err := strconv.ParseBool(value); err == nil {
-			return boolVal
-		}
-	}
-	return defaultValue
-}
-
-// parseRegions parses a comma-separated list of regions
-func parseRegions(value string) []string {
-	if value == "" {
-		return []string{}
-	}
-	regions := strings.Split(value, ",")
-	result := make([]string, 0, len(regions))
-	for _, region := range regions {
-		trimmed := strings.TrimSpace(region)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	return result
 }
 
 // getEnvInt gets an int environment variable with a fallback default value
