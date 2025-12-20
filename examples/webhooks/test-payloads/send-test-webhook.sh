@@ -42,7 +42,7 @@ generate_uuid() {
     else
         # Fallback to random hex (not a true UUID but works for testing)
         # Format: 8-4-4-4-12 hex characters
-        cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1 | sed -e 's/\(........\)\(....\)\(....\)\(....\)\(............\)/\1-\2-\3-\4-\5/'
+        head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n' | sed 's/\(.\{8\}\)\(.\{4\}\)\(.\{4\}\)\(.\{4\}\)\(.\{12\}\)/\1-\2-\3-\4-\5/'
     fi
 }
 
@@ -131,7 +131,7 @@ send_webhook() {
         print_warning "Check that you're using the correct secret: $secret"
     elif [ "$http_code" -eq 400 ]; then
         print_error "Bad Request - Invalid payload or missing headers"
-    elif [ "$http_code" -eq 000 ]; then
+    elif [ "$http_code" = "000" ] || [ "$http_code" = "" ]; then
         print_error "Connection failed - Is your server running at $url?"
     else
         print_warning "Unexpected status code: $http_code"
