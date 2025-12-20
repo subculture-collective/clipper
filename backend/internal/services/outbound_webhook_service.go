@@ -468,6 +468,40 @@ func (s *OutboundWebhookService) updateActiveSubscriptionsMetric(ctx context.Con
 	webhookSubscriptionsActive.Set(float64(count))
 }
 
+// GetDeliveryStats returns statistics about webhook deliveries
+func (s *OutboundWebhookService) GetDeliveryStats(ctx context.Context) (map[string]interface{}, error) {
+	// Get active subscriptions count
+	activeCount, err := s.webhookRepo.CountActiveSubscriptions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count active subscriptions: %w", err)
+	}
+
+	// Get pending deliveries count
+	pendingCount, err := s.webhookRepo.CountPendingDeliveries(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count pending deliveries: %w", err)
+	}
+
+	// Get recent delivery stats (last hour)
+	recentStats, err := s.webhookRepo.GetRecentDeliveryStats(ctx)
+	if err != nil {
+		// Log error but don't fail
+		log.Printf("[WEBHOOK] Failed to get recent delivery stats: %v", err)
+		recentStats = map[string]int{
+			"success": 0,
+			"failed":  0,
+		}
+	}
+
+	stats := map[string]interface{}{
+		"active_subscriptions": activeCount,
+		"pending_deliveries":   pendingCount,
+		"recent_deliveries":    recentStats,
+	}
+
+	return stats, nil
+}
+
 // Helper function to create a pointer to time.Time
 func ptrTime(t time.Time) *time.Time {
 	return &t
