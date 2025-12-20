@@ -465,6 +465,12 @@ func (r *OutboundWebhookRepository) MoveDeliveryToDeadLetterQueue(ctx context.Co
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
+	// Ensure error_message is not nil by providing a default value
+	errorMessage := "Unknown error"
+	if delivery.ErrorMessage != nil && *delivery.ErrorMessage != "" {
+		errorMessage = *delivery.ErrorMessage
+	}
+
 	_, err := r.db.Exec(ctx, query,
 		uuid.New(),
 		delivery.SubscriptionID,
@@ -472,7 +478,7 @@ func (r *OutboundWebhookRepository) MoveDeliveryToDeadLetterQueue(ctx context.Co
 		delivery.EventType,
 		delivery.EventID,
 		delivery.Payload,
-		delivery.ErrorMessage,
+		errorMessage,
 		delivery.HTTPStatusCode,
 		delivery.ResponseBody,
 		delivery.AttemptCount,

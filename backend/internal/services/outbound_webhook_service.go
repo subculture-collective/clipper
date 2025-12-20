@@ -635,6 +635,7 @@ func (s *OutboundWebhookService) ReplayDeadLetterQueueItem(ctx context.Context, 
 		log.Printf("[WEBHOOK] Replay successful: status=%d", resp.StatusCode)
 		if err := s.webhookRepo.UpdateDLQItemReplayStatus(ctx, dlqID, true); err != nil {
 			log.Printf("[WEBHOOK] Failed to update DLQ replay status: %v", err)
+			return fmt.Errorf("replay succeeded but failed to update DLQ replay status: %w", err)
 		}
 		return nil
 	}

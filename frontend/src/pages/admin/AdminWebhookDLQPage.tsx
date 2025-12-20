@@ -61,9 +61,27 @@ export function AdminWebhookDLQPage() {
             return;
         }
 
+        // Clear any previous success message when (re)loading items, e.g. on page change
+        setSuccess(null);
         loadDLQItems();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated, isAdmin, navigate, page]);
+
+    // Auto-dismiss success and error messages after a short delay
+    useEffect(() => {
+        if (!success && !error) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setSuccess(null);
+            setError(null);
+        }, 5000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [success, error]);
 
     const openActionModal = (
         item: OutboundWebhookDLQItem,
@@ -301,6 +319,7 @@ export function AdminWebhookDLQPage() {
                                                     onClick={() =>
                                                         viewPayload(item.payload)
                                                     }
+                                                    aria-label={`View payload for ${item.event_type} event ${item.event_id.substring(0, 8)}`}
                                                 >
                                                     View
                                                 </Button>
@@ -316,6 +335,7 @@ export function AdminWebhookDLQPage() {
                                                     disabled={
                                                         item.replay_successful
                                                     }
+                                                    aria-label={`Replay ${item.event_type} event ${item.event_id.substring(0, 8)}`}
                                                 >
                                                     Replay
                                                 </Button>
@@ -328,6 +348,7 @@ export function AdminWebhookDLQPage() {
                                                             'delete'
                                                         )
                                                     }
+                                                    aria-label={`Delete ${item.event_type} event ${item.event_id.substring(0, 8)}`}
                                                 >
                                                     Delete
                                                 </Button>
@@ -344,19 +365,19 @@ export function AdminWebhookDLQPage() {
                         <Button
                             variant='outline'
                             onClick={() => setPage(p => Math.max(1, p - 1))}
-                            disabled={page === 1}
+                            disabled={page === 1 || totalPages === 0}
                         >
                             Previous
                         </Button>
                         <span className='text-sm text-muted-foreground'>
-                            Page {page} of {totalPages}
+                            Page {page} of {totalPages || 1}
                         </span>
                         <Button
                             variant='outline'
                             onClick={() =>
                                 setPage(p => Math.min(totalPages, p + 1))
                             }
-                            disabled={page === totalPages}
+                            disabled={page >= totalPages || totalPages === 0}
                         >
                             Next
                         </Button>

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -43,9 +44,14 @@ func (h *WebhookDLQHandler) GetDeadLetterQueue(c *gin.Context) {
 
 	limit := 20
 	if limitStr := c.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
+		l, err := strconv.Atoi(limitStr)
+		if err != nil || l <= 0 || l > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid 'limit' query parameter; must be an integer between 1 and 100",
+			})
+			return
 		}
+		limit = l
 	}
 
 	// Get DLQ items
@@ -94,8 +100,10 @@ func (h *WebhookDLQHandler) ReplayDeadLetterQueueItem(c *gin.Context) {
 
 	// Replay the item
 	if err := h.webhookService.ReplayDeadLetterQueueItem(c.Request.Context(), dlqID); err != nil {
+		// Log detailed error but return generic message to avoid leaking internal details
+		log.Printf("[WEBHOOK_DLQ] Failed to replay item %s: %v", dlqID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+			"error": "Failed to replay webhook delivery",
 		})
 		return
 	}
