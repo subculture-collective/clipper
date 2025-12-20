@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
 import { isModeratorOrAdmin } from '../lib/roles';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/sentry';
+import { resetUser, identifyUser } from '../lib/analytics';
 import type { User } from '../lib/auth-api';
+import type { UserProperties } from '../lib/analytics';
 
 export interface AuthContextType {
   user: User | null;
@@ -29,10 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
       // Set user context in Sentry
       setSentryUser(currentUser.id, currentUser.username);
+      // Identify user in analytics
+      const userProperties: UserProperties = {
+        user_id: currentUser.id,
+        username: currentUser.username,
+        is_premium: currentUser.is_premium || false,
+        premium_tier: currentUser.premium_tier,
+        signup_date: currentUser.created_at,
+        is_verified: currentUser.is_verified || false,
+      };
+      identifyUser(currentUser.id, userProperties);
     } catch {
       // Not authenticated or session expired
       setUser(null);
       clearSentryUser();
+      resetUser();
     } finally {
       setIsLoading(false);
     }
@@ -56,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null);
       clearSentryUser();
+      resetUser();
     }
   };
 
@@ -66,10 +80,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
       // Update user context in Sentry
       setSentryUser(currentUser.id, currentUser.username);
+      // Update user in analytics
+      const userProperties: UserProperties = {
+        user_id: currentUser.id,
+        username: currentUser.username,
+        is_premium: currentUser.is_premium || false,
+        premium_tier: currentUser.premium_tier,
+        signup_date: currentUser.created_at,
+        is_verified: currentUser.is_verified || false,
+      };
+      identifyUser(currentUser.id, userProperties);
     } catch (error) {
       console.error('Failed to refresh user:', error);
       setUser(null);
       clearSentryUser();
+      resetUser();
     }
   };
 

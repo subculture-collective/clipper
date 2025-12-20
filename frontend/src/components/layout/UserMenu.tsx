@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMenuKeyboard } from '../../hooks/useMenuKeyboard';
 import { UserRoleBadge } from '../user';
+import { trackEvent, AuthEvents } from '../../lib/analytics';
 import type { UserRole } from '../../lib/roles';
 
 export function UserMenu() {
@@ -43,6 +44,7 @@ export function UserMenu() {
   }, [isOpen]);
 
   const handleLogout = async () => {
+    trackEvent(AuthEvents.LOGOUT, {});
     await logout();
     setIsOpen(false);
     navigate('/');
