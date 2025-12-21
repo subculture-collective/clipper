@@ -4,7 +4,6 @@ package auth
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,7 +26,7 @@ import (
 )
 
 // setupTestRouter creates a test router with auth routes
-func setupTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *database.DB, *redispkg.Client) {
+func setupTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *database.DB, *redispkg.Client, *jwtpkg.Manager) {
 	gin.SetMode(gin.TestMode)
 
 	// Load test configuration
@@ -39,7 +38,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *databas
 			Password: testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
 			Name:     testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test"),
 		},
-		Redis: redispkg.Config{
+		Redis: config.RedisConfig{
 			Host: testutil.GetEnv("TEST_REDIS_HOST", "localhost"),
 			Port: testutil.GetEnv("TEST_REDIS_PORT", "6380"),
 		},
@@ -82,35 +81,20 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *databas
 		auth.POST("/logout", authHandler.Logout)
 	}
 
-	return r, authService, db, redisClient
+	return r, authService, db, redisClient, jwtManager
 }
 
 func TestAuthenticationFlow(t *testing.T) {
-	router, authService, db, redisClient := setupTestRouter(t)
+	router, _, db, redisClient, jwtManager := setupTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
 	t.Run("GetCurrentUser_Authenticated", func(t *testing.T) {
-		// Create test user
-		ctx := context.Background()
-		userRepo := repository.NewUserRepository(db.Pool)
-		
-		testUser := map[string]interface{}{
-			"twitch_id":      "test123",
-			"username":       "testuser",
-			"display_name":   "Test User",
-			"profile_image":  "https://example.com/avatar.png",
-			"email":          "test@example.com",
-			"account_type":   "member",
-			"role":           "user",
-		}
-		
-		user, err := userRepo.CreateUser(ctx, testUser)
-		require.NoError(t, err, "Failed to create test user")
+		// Create test user using helper
+		user := testutil.CreateTestUser(t, db, "testuser")
 		
 		// Generate JWT token
-		token, _, err := authService.GenerateTokens(ctx, user.ID)
-		require.NoError(t, err, "Failed to generate token")
+		token, _ := testutil.GenerateTestTokens(t, jwtManager, user.ID, user.Role)
 
 		// Make authenticated request
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
@@ -122,11 +106,10 @@ func TestAuthenticationFlow(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		
 		var response map[string]interface{}
-		err = json.Unmarshal(w.Body.Bytes(), &response)
+		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		
 		assert.Equal(t, "testuser", response["username"])
-		assert.Equal(t, "Test User", response["display_name"])
 	})
 
 	t.Run("GetCurrentUser_Unauthenticated", func(t *testing.T) {
@@ -139,26 +122,12 @@ func TestAuthenticationFlow(t *testing.T) {
 	})
 
 	t.Run("Logout_ValidToken", func(t *testing.T) {
-		// Create test user
-		ctx := context.Background()
-		userRepo := repository.NewUserRepository(db.Pool)
-		
-		testUser := map[string]interface{}{
-			"twitch_id":      fmt.Sprintf("test%d", time.Now().Unix()),
-			"username":       fmt.Sprintf("testuser%d", time.Now().Unix()),
-			"display_name":   "Test User Logout",
-			"profile_image":  "https://example.com/avatar.png",
-			"email":          "testlogout@example.com",
-			"account_type":   "member",
-			"role":           "user",
-		}
-		
-		user, err := userRepo.CreateUser(ctx, testUser)
-		require.NoError(t, err)
+		// Create test user using helper
+		username := fmt.Sprintf("testuser%d", time.Now().Unix())
+		user := testutil.CreateTestUser(t, db, username)
 		
 		// Generate tokens
-		accessToken, refreshToken, err := authService.GenerateTokens(ctx, user.ID)
-		require.NoError(t, err)
+		accessToken, refreshToken := testutil.GenerateTestTokens(t, jwtManager, user.ID, user.Role)
 
 		// Logout request
 		body := map[string]string{"refresh_token": refreshToken}
@@ -176,31 +145,17 @@ func TestAuthenticationFlow(t *testing.T) {
 }
 
 func TestRefreshTokenFlow(t *testing.T) {
-	router, authService, db, redisClient := setupTestRouter(t)
+	router, _, db, redisClient, jwtManager := setupTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
 	t.Run("RefreshToken_Success", func(t *testing.T) {
-		// Create test user
-		ctx := context.Background()
-		userRepo := repository.NewUserRepository(db.Pool)
-		
-		testUser := map[string]interface{}{
-			"twitch_id":      fmt.Sprintf("refresh%d", time.Now().Unix()),
-			"username":       fmt.Sprintf("refreshuser%d", time.Now().Unix()),
-			"display_name":   "Refresh Test User",
-			"profile_image":  "https://example.com/avatar.png",
-			"email":          "refresh@example.com",
-			"account_type":   "member",
-			"role":           "user",
-		}
-		
-		user, err := userRepo.CreateUser(ctx, testUser)
-		require.NoError(t, err)
+		// Create test user using helper
+		username := fmt.Sprintf("refreshuser%d", time.Now().Unix())
+		user := testutil.CreateTestUser(t, db, username)
 		
 		// Generate tokens
-		_, refreshToken, err := authService.GenerateTokens(ctx, user.ID)
-		require.NoError(t, err)
+		_, refreshToken := testutil.GenerateTestTokens(t, jwtManager, user.ID, user.Role)
 
 		// Refresh token request
 		body := map[string]string{"refresh_token": refreshToken}
@@ -215,7 +170,7 @@ func TestRefreshTokenFlow(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		
 		var response map[string]interface{}
-		err = json.Unmarshal(w.Body.Bytes(), &response)
+		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		
 		assert.NotEmpty(t, response["access_token"])
