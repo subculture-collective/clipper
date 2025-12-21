@@ -1,3 +1,26 @@
+# Alertmanager Configuration for Clipper
+# 
+# Secret Files Setup:
+# This configuration uses file-based secrets for sensitive credentials.
+# 
+# Docker Swarm:
+#   docker secret create slack_webhook_default /path/to/webhook_url.txt
+#   docker service update --secret-add slack_webhook_default alertmanager
+# 
+# Kubernetes:
+#   kubectl create secret generic alertmanager-secrets \
+#     --from-file=slack_webhook_default=/path/to/webhook_url.txt \
+#     --from-file=pagerduty_key_critical=/path/to/pd_key.txt
+#   Mount secrets to /run/secrets in the alertmanager pod
+# 
+# Docker Compose:
+#   Create files in ./secrets/ directory and mount as volumes:
+#   volumes:
+#     - ./secrets:/run/secrets:ro
+# 
+# Alternative: Use environment variables in receivers if file-based secrets aren't available.
+# See ALERTMANAGER_SETUP.md for detailed instructions.
+#
 global:
   resolve_timeout: 5m
   # SMTP configuration for email alerts
@@ -161,7 +184,7 @@ receivers:
         actions:
           - type: button
             text: 'View in Grafana'
-            url: 'http://localhost:3000/d/slo-dashboard'
+            url: '{{ if (index .Alerts 0).Labels.grafana_url }}{{ (index .Alerts 0).Labels.grafana_url }}/d/slo-dashboard{{ else }}https://grafana.clipper.app/d/slo-dashboard{{ end }}'
           - type: button
             text: 'View in Prometheus'
             url: '{{ (index .Alerts 0).GeneratorURL }}'
@@ -213,9 +236,12 @@ receivers:
         send_resolved: false
 
   # Email for critical alerts (backup)
+  # ⚠️ WARNING: SMTP credentials in global config should be stored securely
+  # Use environment variables or secret management system for production
   - name: 'email-oncall'
     email_configs:
-      - to: 'oncall@clipper.app'
+      # Email address can be configured via environment variable if needed
+      - to: '{{ if (index (split (env "EMAIL_ONCALL") ",") 0) }}{{ env "EMAIL_ONCALL" }}{{ else }}oncall@clipper.app{{ end }}'
         # SMTP configured via global settings above
         subject: '[{{ .CommonLabels.severity | toUpper }}] {{ .GroupLabels.alertname }}'
         html: |
@@ -268,9 +294,15 @@ inhibit_rules:
       - alertname = DatabaseDown
     target_matchers:
       - alertname = DatabaseConnectionIssues
+    equal:
+      - job
+      - instance
 
   # If Redis is down, suppress memory alerts
   - source_matchers:
       - alertname = RedisDown
     target_matchers:
       - alertname =~ Redis.*
+    equal:
+      - job
+      - instance

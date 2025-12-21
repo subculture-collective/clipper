@@ -63,19 +63,34 @@ This document defines the Service Level Objectives (SLOs) for the Clipper platfo
 **Target:** 99.5% uptime over a 30-day rolling window
 
 **Definition:**
-- Availability is measured as the percentage of successful requests (HTTP 2xx and 3xx) vs total requests
+- Availability is measured as the percentage of successful requests vs total requests
+- **Successful requests:** HTTP 2xx status codes
+- **Note on 3xx redirects:** Currently included as successful, but consider excluding if redirects indicate service issues
+- **Note on 4xx errors:** Excluded as client errors, except 429 (rate limiting) which may indicate capacity issues
 - Excludes planned maintenance windows (with 48-hour notice)
-- Excludes client errors (HTTP 4xx)
 
 **Measurement:**
 ```promql
-# Availability calculation
+# Availability calculation (counting 2xx and 3xx as successful)
+# Review if 3xx should be included based on your redirect patterns
 (
   sum(rate(http_requests_total{status=~"2..|3.."}[30d]))
   /
   sum(rate(http_requests_total[30d]))
 ) * 100
+
+# Alternative: Only count 2xx as successful (stricter definition)
+# (
+#   sum(rate(http_requests_total{status=~"2.."}[30d]))
+#   /
+#   sum(rate(http_requests_total[30d]))
+# ) * 100
 ```
+
+**Design Considerations:**
+- **3xx redirects:** Included as successful by default. Consider excluding if your service uses redirects to handle errors or capacity issues.
+- **429 Rate Limiting:** Currently excluded as a 4xx client error, but may indicate service capacity problems. Monitor separately.
+- **503 vs 429:** Both indicate capacity issues, but 503 is a server error (counts against SLO) while 429 is a client error (doesn't count).
 
 **What this means:**
 - Maximum allowed downtime: ~3.6 hours per month

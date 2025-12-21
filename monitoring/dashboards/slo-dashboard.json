@@ -376,6 +376,7 @@
         "id": 11,
         "type": "stat",
         "title": "Embedding Coverage (Target: > 90%)",
+        "description": "NOTE: Requires custom metrics clips_with_embeddings and clips_without_embeddings to be exposed by the application. Will show 'No data' if metrics not implemented.",
         "gridPos": { "h": 6, "w": 6, "x": 12, "y": 22 },
         "targets": [
           {
@@ -503,7 +504,7 @@
         "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
         "options": {
           "mode": "markdown",
-          "content": "## SLO Resources\n\n### Documentation\n- [SLO Definitions](../../docs/operations/slos.md)\n- [Alerting Strategy](../../docs/operations/slos.md#alerting-strategy)\n- [Error Budget Policy](../../docs/operations/slos.md#error-budget-policy)\n\n### Runbooks\n- [SLO Breach Response](../../docs/operations/playbooks/slo-breach-response.md)\n- [Availability Incident](../../docs/operations/playbooks/slo-breach-response.md#availability-slo-breach)\n- [Latency Incident](../../docs/operations/playbooks/slo-breach-response.md#latency-slo-breach)\n- [Error Rate Incident](../../docs/operations/playbooks/slo-breach-response.md#error-rate-slo-breach)\n\n### Quick Links\n- [Prometheus Alerts](http://localhost:9090/alerts)\n- [Alertmanager](http://localhost:9093)\n- [Incident Channel](#incidents) (Slack)\n\n### On-Call\n- PagerDuty escalation policy active\n- Critical alerts page immediately\n- Response time: < 15 minutes\n"
+          "content": "## SLO Resources\n\n### Documentation\n- [SLO Definitions](https://github.com/subculture-collective/clipper/blob/main/docs/operations/slos.md)\n- [Alerting Strategy](https://github.com/subculture-collective/clipper/blob/main/docs/operations/slos.md#alerting-strategy)\n- [Error Budget Policy](https://github.com/subculture-collective/clipper/blob/main/docs/operations/slos.md#error-budget-policy)\n\n### Runbooks\n- [SLO Breach Response](https://github.com/subculture-collective/clipper/blob/main/docs/operations/playbooks/slo-breach-response.md)\n- [Availability Incident](https://github.com/subculture-collective/clipper/blob/main/docs/operations/playbooks/slo-breach-response.md#availability-slo-breach)\n- [Latency Incident](https://github.com/subculture-collective/clipper/blob/main/docs/operations/playbooks/slo-breach-response.md#latency-slo-breach)\n- [Error Rate Incident](https://github.com/subculture-collective/clipper/blob/main/docs/operations/playbooks/slo-breach-response.md#error-rate-slo-breach)\n\n### Quick Links\n**Note:** Configure these URLs for your environment:\n- Prometheus Alerts: `https://prometheus.clipper.app/alerts`\n- Alertmanager: `https://alertmanager.clipper.app`\n- Grafana: `https://grafana.clipper.app`\n- Incident Channel: Slack #incidents\n\n### On-Call\n- PagerDuty escalation policy active\n- Critical alerts page immediately\n- Response time: < 15 minutes\n"
         }
       }
     ]

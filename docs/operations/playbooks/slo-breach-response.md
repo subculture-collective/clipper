@@ -204,25 +204,87 @@ kubectl delete pod <pod-name> -n clipper
 ```
 
 **Strategy 4: Database Connection Pool Adjustment**
+
+**⚠️ WARNING:** Terminating queries can cause data inconsistency or transaction failures. Use with extreme caution.
+
 ```bash
 # If database connection exhaustion
 # Check active connections
 psql -c "SELECT count(*) FROM pg_stat_activity;"
 
-# Kill long-running queries if needed (use with caution)
-# Only kill user queries, not system/replication processes
-psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity 
+# Review long-running queries before terminating
+psql -c "SELECT pid, usename, datname, state, query_start, 
+         NOW() - query_start AS duration, 
+         LEFT(query, 100) AS query_preview
+         FROM pg_stat_activity 
          WHERE state = 'active' 
          AND query_start < NOW() - INTERVAL '5 minutes'
          AND datname = 'clipper'
          AND usename NOT IN ('postgres', 'replication')
-         AND query NOT LIKE '%pg_stat_activity%';"
+         AND pid <> pg_backend_pid()
+         ORDER BY query_start;"
+
+# Only terminate after manual review and approval
+# DO NOT run this automatically - review the query list first
+# Consider these are legitimate operations: batch jobs, reports, migrations
+# Terminating them may cause more harm than good
+
+# To terminate a SPECIFIC problematic query (replace PID):
+psql -c "SELECT pg_terminate_backend(12345);"  -- Replace 12345 with actual PID
+
+# Alternative: Cancel query first (safer than terminate)
+psql -c "SELECT pg_cancel_backend(12345);"  -- Replace 12345 with actual PID
 ```
 
+**Before terminating any queries:**
+1. Review the query text to understand what it's doing
+2. Check if it's a critical batch job or migration
+3. Consider if query is making forward progress
+4. Try `pg_cancel_backend` first (safer than terminate)
+5. Document which queries were terminated and why
+
 **Strategy 5: Cache Clearing (if stale cache causing issues)**
+
+**🚨 EXTREMELY DANGEROUS:** Flushing cache can make the incident worse, not better.
+
 ```bash
-redis-cli FLUSHDB
+# ⚠️⚠️⚠️ WARNING: DO NOT run FLUSHDB in production without understanding the risks ⚠️⚠️⚠️
+# 
+# Risks of flushing cache:
+# 1. Thundering herd: All requests hit the database simultaneously
+# 2. Database overload: Can cause complete database failure
+# 3. Service outage: May extend downtime instead of fixing it
+# 4. Data loss: Session data, user state may be permanently lost
+#
+# ONLY flush cache if:
+# - You've confirmed stale cache data is causing the issue
+# - Database can handle the load spike
+# - Application handles cache misses gracefully
+# - All other mitigation strategies have failed
+# - You have stakeholder approval
+
+# Safer alternative: Delete specific problematic keys
+redis-cli KEYS "problematic:pattern:*" | xargs redis-cli DEL
+
+# Or flush specific key patterns
+redis-cli --scan --pattern "session:*" | xargs redis-cli DEL
+
+# Last resort: Flush entire database (requires approval)
+# Document this action and notify team immediately
+redis-cli FLUSHDB  # ⚠️ USE WITH EXTREME CAUTION
+
+# After flushing:
+# - Monitor database load immediately
+# - Watch for cascading failures
+# - Be prepared to scale database if needed
+# - Document incident timeline
 ```
+
+**Instead of flushing, consider:**
+1. Restart application pods/containers (cache will rebuild gradually)
+2. Scale up database connections temporarily
+3. Increase cache TTL to reduce churn
+4. Identify and fix specific bad cache keys
 
 ### Recovery Verification
 

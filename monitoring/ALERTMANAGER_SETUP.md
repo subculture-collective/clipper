@@ -50,14 +50,59 @@ The main configuration file is `monitoring/alertmanager.yml`.
    - "Clipper Security" (for security alerts)
 
 3. For each service:
-   - Integration Type: Prometheus
-   - Copy the Integration Key (service key)
+   - Integration Type: Events API v2 (recommended) or Prometheus (Events API v1)
+   - Copy the Integration Key (called `routing_key` in v2, `service_key` in v1)
 
-4. Update `alertmanager.yml`:
+**Note:** This configuration uses Events API v2 with `routing_key`. If using v1, replace `routing_key_file` with `service_key_file` in the configuration.
+
+4. Create secret files for each PagerDuty integration key:
+
+   **Docker Swarm:**
+   ```bash
+   echo "your-pagerduty-routing-key" | docker secret create pagerduty_key_critical -
+   echo "your-slo-routing-key" | docker secret create pagerduty_key_slo -
+   echo "your-security-routing-key" | docker secret create pagerduty_key_security -
+   ```
+
+   **Kubernetes:**
+   ```bash
+   kubectl create secret generic alertmanager-pagerduty \
+     --from-literal=pagerduty_key_critical="your-critical-key" \
+     --from-literal=pagerduty_key_slo="your-slo-key" \
+     --from-literal=pagerduty_key_security="your-security-key"
+   
+   # Mount in alertmanager deployment
+   volumes:
+     - name: pagerduty-secrets
+       secret:
+         secretName: alertmanager-pagerduty
+   volumeMounts:
+     - name: pagerduty-secrets
+       mountPath: /run/secrets
+       readOnly: true
+   ```
+
+   **Docker Compose:**
+   ```bash
+   mkdir -p secrets
+   echo "your-pagerduty-routing-key" > secrets/pagerduty_key_critical
+   echo "your-slo-routing-key" > secrets/pagerduty_key_slo
+   echo "your-security-routing-key" > secrets/pagerduty_key_security
+   chmod 400 secrets/*
+   
+   # Add to docker-compose.yml
+   services:
+     alertmanager:
+       volumes:
+         - ./secrets:/run/secrets:ro
+   ```
+
+5. Update `alertmanager.yml` to use Events API v2:
    ```yaml
    - name: 'pagerduty-critical'
      pagerduty_configs:
-       - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'  # Replace with actual key
+       - routing_key_file: '/run/secrets/pagerduty_key_critical'  # v2
+         # For v1, use: service_key_file: '/run/secrets/pagerduty_key_critical'
    ```
 
 **Configure Escalation Policy:**
@@ -84,11 +129,39 @@ The main configuration file is `monitoring/alertmanager.yml`.
    - `#monitoring` - Informational alerts
    - `#security` - Security-related alerts
 
-3. Update `alertmanager.yml` with webhook URLs:
+3. Create secret files for webhook URLs:
+
+   **Docker Swarm:**
+   ```bash
+   echo "https://hooks.slack.com/services/YOUR/WEBHOOK" | docker secret create slack_webhook_incidents -
+   echo "https://hooks.slack.com/services/YOUR/ALERTS" | docker secret create slack_webhook_alerts -
+   echo "https://hooks.slack.com/services/YOUR/MONITORING" | docker secret create slack_webhook_monitoring -
+   echo "https://hooks.slack.com/services/YOUR/SECURITY" | docker secret create slack_webhook_security -
+   ```
+
+   **Kubernetes:**
+   ```bash
+   kubectl create secret generic alertmanager-slack \
+     --from-literal=slack_webhook_incidents="https://hooks.slack.com/..." \
+     --from-literal=slack_webhook_alerts="https://hooks.slack.com/..." \
+     --from-literal=slack_webhook_monitoring="https://hooks.slack.com/..." \
+     --from-literal=slack_webhook_security="https://hooks.slack.com/..."
+   ```
+
+   **Docker Compose:**
+   ```bash
+   mkdir -p secrets
+   echo "https://hooks.slack.com/services/YOUR/WEBHOOK" > secrets/slack_webhook_incidents
+   echo "https://hooks.slack.com/services/YOUR/ALERTS" > secrets/slack_webhook_alerts
+   # ... etc for other webhooks
+   chmod 400 secrets/*
+   ```
+
+4. Update `alertmanager.yml` with secret file references:
    ```yaml
    - name: 'slack-incidents'
      slack_configs:
-       - api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+       - api_url_file: '/run/secrets/slack_webhook_incidents'
          channel: '#incidents'
    ```
 
@@ -271,24 +344,57 @@ Update receiver in `alertmanager.yml`:
 
 ## Maintenance Mode
 
-### Silence All Alerts
+### Silence Alerts During Maintenance
 
-**⚠️ WARNING:** This will silence ALL alerts including critical security alerts. Use with extreme caution.
+**Recommended approach:** Silence alerts by service or component:
 
 ```bash
-# Silence all alerts for 2 hours during maintenance
-# Consider excluding security alerts: alertname!~".*Security.*|.*Authentication.*"
-amtool silence add alertname=~".+" \
+# Silence alerts for specific service (RECOMMENDED)
+amtool silence add service=backend \
   --duration=2h \
-  --comment="Scheduled maintenance window" \
+  --comment="Backend deployment in progress" \
   --author="ops@clipper.app"
 
-# Alternative: Silence all except security
-amtool silence add alertname=~".+" alertname!~".*Security.*" \
-  --duration=2h \
-  --comment="Scheduled maintenance window (excluding security)" \
+# Silence alerts for specific instance
+amtool silence add instance=backend-prod-1 \
+  --duration=1h \
+  --comment="Server maintenance" \
   --author="ops@clipper.app"
 ```
+
+### Silence All Non-Security Alerts
+
+**⚠️ Use with caution:** Silences most alerts but preserves security monitoring:
+
+```bash
+# Silence all alerts EXCEPT security alerts (SAFER)
+amtool silence add alertname=~".+" alertname!~".*Security.*|.*Authentication.*|.*Injection.*" \
+  --duration=2h \
+  --comment="Scheduled maintenance window (security monitoring active)" \
+  --author="ops@clipper.app"
+```
+
+### Silence All Alerts
+
+**🚨 EXTREMELY DANGEROUS:** Only use in catastrophic scenarios or complete system maintenance:
+
+```bash
+# ⚠️⚠️⚠️ DANGER: This will silence ALL alerts including critical security alerts ⚠️⚠️⚠️
+# Use this ONLY if:
+# - Complete system maintenance where no monitoring is possible
+# - All stakeholders are aware and on standby
+# - Security team has been notified
+amtool silence add alertname=~".+" \
+  --duration=2h \
+  --comment="COMPLETE SYSTEM MAINTENANCE - All monitoring silenced" \
+  --author="ops@clipper.app"
+```
+
+**During complete silence:**
+- Notify security team before and after
+- Have manual monitoring procedures in place
+- Document in incident log
+- Limit duration to absolute minimum
 
 ### Silence Specific Service
 
@@ -337,21 +443,34 @@ amtool silence expire <silence-id>
 
 ### PagerDuty Not Receiving Alerts
 
-1. **Verify service key is correct**
+1. **Verify routing key is correct** (Events API v2) or service key (v1)
 2. **Check PagerDuty integration status**
 3. **Review Alertmanager logs for errors**
 4. **Test PagerDuty API:**
+   
+   **Events API v2 (recommended):**
    ```bash
    curl -X POST https://events.pagerduty.com/v2/enqueue \
      -H 'Content-Type: application/json' \
      -d '{
-       "routing_key": "YOUR_SERVICE_KEY",
+       "routing_key": "YOUR_ROUTING_KEY",
        "event_action": "trigger",
        "payload": {
          "summary": "Test from Clipper",
          "severity": "critical",
          "source": "test"
        }
+     }'
+   ```
+   
+   **Events API v1 (legacy):**
+   ```bash
+   curl -X POST https://events.pagerduty.com/generic/2010-04-15/create_event.json \
+     -H 'Content-Type: application/json' \
+     -d '{
+       "service_key": "YOUR_SERVICE_KEY",
+       "event_type": "trigger",
+       "description": "Test from Clipper"
      }'
    ```
 

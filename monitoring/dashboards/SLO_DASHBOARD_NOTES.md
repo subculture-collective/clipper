@@ -1,5 +1,35 @@
 # SLO Dashboard Notes
 
+## Required Metrics
+
+The SLO Compliance Dashboard requires certain metrics to be exposed by your application. Some panels may show "No data" if these metrics aren't implemented yet.
+
+### Standard Metrics (Usually Available)
+- `http_requests_total{status, method, path}` - Request counts
+- `http_request_duration_seconds_bucket{method, path}` - Request latency histograms
+- `search_query_duration_ms_bucket{search_type}` - Search latency
+- `webhook_delivery_total{status, attempt}` - Webhook delivery metrics
+
+### Custom Metrics (May Need Implementation)
+The following metrics are referenced in the dashboard but may not be implemented yet:
+
+1. **Embedding Coverage Metrics:**
+   - `clips_with_embeddings` (gauge) - Number of clips that have embeddings
+   - `clips_without_embeddings` (gauge) - Number of clips without embeddings
+   - **Panel affected:** "Embedding Coverage (Target: > 90%)"
+   - **Action:** Implement these metrics in your application or remove/hide this panel
+
+2. **Active Alerts Metric:**
+   - `ALERTS{alertstate="firing", severity="critical"}` - Prometheus built-in
+   - **Panel affected:** "Active Alerts"
+   - **Action:** Should work automatically if Prometheus alerting is configured
+
+If a panel shows "No data":
+1. Check if the metric is being exported by your application
+2. Verify the metric name matches exactly (case-sensitive)
+3. Check Prometheus scrape configuration
+4. Query Prometheus directly to confirm metric existence: `curl http://localhost:9090/api/v1/label/__name__/values`
+
 ## Performance Considerations
 
 The SLO Compliance Dashboard includes some queries with long time windows (30-day rolling) that may impact Prometheus performance on high-traffic systems.
