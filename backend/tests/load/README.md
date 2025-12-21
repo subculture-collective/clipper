@@ -500,6 +500,33 @@ For real-time monitoring and trend visualization:
 
 See `monitoring/dashboards/LOAD_TEST_DASHBOARD.md` for dashboard details.
 
+**Trend Analysis Script:**
+
+For offline analysis of historical results:
+
+```bash
+# Download multiple test artifacts from GitHub Actions
+# Extract JSON files to a directory
+# Run the analysis script
+./backend/tests/load/analyze_trends.sh ./path/to/json/files
+```
+
+The script will:
+- Analyze multiple K6 JSON outputs
+- Calculate statistics (average, min, max) for key metrics
+- Show trends comparing earliest vs. latest results
+- Identify performance improvements or regressions
+
+Example output:
+```
+Response Time Statistics (ms):
+  p95: Average: 45.2, Min: 38.1, Max: 52.3
+  p99: Average: 89.5, Min: 76.2, Max: 98.1
+
+p95 Response Time Change:
+  ↓ Decreased by 7.2ms (-13.7%)
+```
+
 ### Manual Report Generation
 
 For individual test reports:
