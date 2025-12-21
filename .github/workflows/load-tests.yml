@@ -85,23 +85,22 @@ jobs:
       - name: Install golang-migrate
         run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz -o migrate.tar.gz
+          # SHA-256 checksum for migrate v4.17.0 (migrate.linux-amd64.tar.gz), from the official GitHub release:
+          # https://github.com/golang-migrate/migrate/releases/tag/v4.17.0
           echo "688cdd0ab4c79ee38006b3c005d9dc917040c6eb5fc0ceb6179c214f27bafb4c  migrate.tar.gz" | sha256sum -c
           tar xvzf migrate.tar.gz
           sudo mv migrate /usr/local/bin/
           migrate -version
 
       - name: Run database migrations
-        env:
-          DB_URL: postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable
         run: |
-          echo "::add-mask::$DB_URL"
+          echo "::add-mask::postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable"
+          DB_URL='postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable'
           migrate -path backend/migrations -database "$DB_URL" up
 
       - name: Seed database with load test data
-        env:
-          DB_URL: postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable
         run: |
-          echo "::add-mask::$DB_URL"
+          echo "::add-mask::postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable"
           PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test -f backend/migrations/seed_load_test.sql
 
       - name: Build backend
@@ -121,18 +120,30 @@ jobs:
           JWT_SECRET: test-secret-key-for-load-testing
           PORT: 8080
         run: |
-          ./clipper-backend &
+          ./clipper-backend >backend.log 2>backend.err &
           echo $! > backend.pid
 
           # Wait for backend to be ready
+          backend_ready=0
           for i in {1..30}; do
             if curl -f http://localhost:8080/api/v1/health 2>/dev/null; then
               echo "Backend is ready"
+              backend_ready=1
               break
             fi
             echo "Waiting for backend to start... ($i/30)"
             sleep 2
           done
+
+          if [ "$backend_ready" -ne 1 ]; then
+            echo "Backend failed to start successfully after waiting."
+            if [ -f backend.err ]; then
+              echo "==== Backend stderr ===="
+              cat backend.err
+              echo "==== End of backend stderr ===="
+            fi
+            exit 1
+          fi
 
       - name: Run load tests
         env:
@@ -152,35 +163,42 @@ jobs:
             cd backend/tests/load
             ./generate_report.sh
           else
-            # Run specific test scenario
+            # Run specific test scenario and capture output
             case "$TEST_TYPE" in
               feed)
                 k6 run --out json=backend/tests/load/reports/results_feed_${TIMESTAMP}.json \
-                  backend/tests/load/scenarios/feed_browsing.js
+                  backend/tests/load/scenarios/feed_browsing.js \
+                  | tee backend/tests/load/reports/output_feed_${TIMESTAMP}.txt
                 ;;
               clip)
                 k6 run --out json=backend/tests/load/reports/results_clip_${TIMESTAMP}.json \
-                  backend/tests/load/scenarios/clip_detail.js
+                  backend/tests/load/scenarios/clip_detail.js \
+                  | tee backend/tests/load/reports/output_clip_${TIMESTAMP}.txt
                 ;;
               search)
                 k6 run --out json=backend/tests/load/reports/results_search_${TIMESTAMP}.json \
-                  backend/tests/load/scenarios/search.js
+                  backend/tests/load/scenarios/search.js \
+                  | tee backend/tests/load/reports/output_search_${TIMESTAMP}.txt
                 ;;
               comments)
                 k6 run --out json=backend/tests/load/reports/results_comments_${TIMESTAMP}.json \
-                  backend/tests/load/scenarios/comments.js
+                  backend/tests/load/scenarios/comments.js \
+                  | tee backend/tests/load/reports/output_comments_${TIMESTAMP}.txt
                 ;;
               auth)
                 k6 run --out json=backend/tests/load/reports/results_auth_${TIMESTAMP}.json \
-                  backend/tests/load/scenarios/authentication.js
+                  backend/tests/load/scenarios/authentication.js \
+                  | tee backend/tests/load/reports/output_auth_${TIMESTAMP}.txt
                 ;;
               submit)
                 k6 run --out json=backend/tests/load/reports/results_submit_${TIMESTAMP}.json \
-                  backend/tests/load/scenarios/submit.js
+                  backend/tests/load/scenarios/submit.js \
+                  | tee backend/tests/load/reports/output_submit_${TIMESTAMP}.txt
                 ;;
               mixed)
                 k6 run --out json=backend/tests/load/reports/results_mixed_${TIMESTAMP}.json \
-                  backend/tests/load/scenarios/mixed_behavior.js
+                  backend/tests/load/scenarios/mixed_behavior.js \
+                  | tee backend/tests/load/reports/output_mixed_${TIMESTAMP}.txt
                 ;;
             esac
           fi

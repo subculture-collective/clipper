@@ -120,21 +120,27 @@ calculate_stats() {
     
     local sum=0
     local count=0
-    local min=999999
-    local max=0
+    local min=""
+    local max=""
     
     for val in "${values[@]}"; do
         if [ "$val" != "N/A" ] && [ -n "$val" ]; then
+            if [ "$count" -eq 0 ]; then
+                # Initialize min and max with the first valid value
+                min=$val
+                max=$val
+            else
+                # Update min/max
+                if [ "$(echo "$val < $min" | bc -l)" -eq 1 ]; then
+                    min=$val
+                fi
+                if [ "$(echo "$val > $max" | bc -l)" -eq 1 ]; then
+                    max=$val
+                fi
+            fi
+            
             sum=$(echo "$sum + $val" | bc -l)
             count=$((count + 1))
-            
-            # Update min/max
-            if (( $(echo "$val < $min" | bc -l) )); then
-                min=$val
-            fi
-            if (( $(echo "$val > $max" | bc -l) )); then
-                max=$val
-            fi
         fi
     done
     

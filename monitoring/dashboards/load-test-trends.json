@@ -448,7 +448,6 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
           "datasource": {
@@ -511,7 +510,6 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
           "datasource": {
@@ -566,7 +564,6 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
           "datasource": {
@@ -631,7 +628,6 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
           "datasource": {
