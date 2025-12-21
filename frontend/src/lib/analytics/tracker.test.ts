@@ -90,8 +90,9 @@ describe('Analytics Tracker', () => {
       enableAnalytics();
       identifyUser('user123');
       resetUser();
-      // Just verify it doesn't throw
-      expect(true).toBe(true);
+      
+      // Verify PostHog user is reset
+      expect(posthogAnalytics.resetPostHogUser).toHaveBeenCalled();
     });
   });
 

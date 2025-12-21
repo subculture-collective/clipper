@@ -7,7 +7,7 @@
  */
 
 import { trackEvent as trackGoogleAnalyticsEvent } from '../google-analytics';
-import { trackPostHogEvent, identifyPostHogUser, trackPostHogPageView } from '../posthog-analytics';
+import { trackPostHogEvent, identifyPostHogUser, trackPostHogPageView, resetPostHogUser } from '../posthog-analytics';
 import type { EventName, EventProperties, BaseEventProperties } from './events';
 
 /**
@@ -117,6 +117,9 @@ export function identifyUser(userId: string, properties?: UserProperties): void 
 export function resetUser(): void {
   config.userId = undefined;
   config.userProperties = undefined;
+  
+  // Reset PostHog user identity
+  resetPostHogUser();
   
   if (config.debug) {
     console.log('[Analytics] User reset');

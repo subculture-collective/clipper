@@ -236,7 +236,7 @@ export interface BaseEventProperties {
   timestamp?: string;
   
   // Device context
-  platform?: 'web' | 'mobile' | 'desktop';
+  platform?: 'web' | 'mobile';
   device_type?: 'mobile' | 'tablet' | 'desktop';
   os?: string;
   browser?: string;

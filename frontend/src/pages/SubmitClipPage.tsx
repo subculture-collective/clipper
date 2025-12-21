@@ -219,10 +219,10 @@ export function SubmitClipPage() {
             
             // Track successful submission
             trackEvent(SubmissionEvents.SUBMISSION_CREATE_COMPLETED, {
-                clip_id: response.submission.id,
+                submission_id: response.submission.id,
                 title: response.submission.title,
                 is_nsfw: response.submission.is_nsfw,
-                tags: tagsToSubmit,
+                tags: Array.isArray(tagsToSubmit) ? tagsToSubmit : [],
             });
 
             // Reset form

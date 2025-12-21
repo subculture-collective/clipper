@@ -307,7 +307,7 @@ export function trackEvent(
  * Track a page/screen view
  */
 export function trackScreenView(screenName: string, properties?: Record<string, unknown>): void {
-  trackEvent('screen_view', {
+  trackEvent(NavigationEvents.SCREEN_VIEWED, {
     screen_name: screenName,
     ...properties,
   });
@@ -323,7 +323,7 @@ export function trackError(
     errorCode?: string;
   }
 ): void {
-  trackEvent('error_occurred', {
+  trackEvent(ErrorEvents.ERROR_OCCURRED, {
     error_type: context?.errorType || error.name,
     error_message: error.message,
     error_stack: error.stack,

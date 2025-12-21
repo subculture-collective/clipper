@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
 import { isModeratorOrAdmin } from '../lib/roles';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/sentry';
-import { resetUser, identifyUser } from '../lib/analytics';
+import { resetUser, identifyUser, trackEvent, AuthEvents } from '../lib/analytics';
 import type { User } from '../lib/auth-api';
 import type { UserProperties } from '../lib/analytics';
 
@@ -63,6 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout user
   const logout = async () => {
     try {
+      // Track logout event before resetting user
+      const pagePath = typeof window !== 'undefined' ? window.location.pathname : undefined;
+      trackEvent(AuthEvents.LOGOUT, {
+        page_path: pagePath,
+      });
+      
       await logoutApi();
     } catch (error) {
       console.error('Logout error:', error);

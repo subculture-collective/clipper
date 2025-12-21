@@ -6,13 +6,10 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import {
   trackEvent,
   trackPageView,
-  identifyUser,
-  resetUser,
   AuthEvents,
   SubmissionEvents,
   EngagementEvents,
@@ -20,37 +17,18 @@ import {
   NavigationEvents,
   SettingsEvents,
   type EventProperties,
-  type UserProperties,
 } from '../lib/analytics';
 
 /**
  * Hook for tracking analytics events
  */
 export function useAnalytics() {
-  const { user } = useAuth();
   const location = useLocation();
   
   // Track page views on route changes
   useEffect(() => {
     trackPageView(location.pathname, document.title);
   }, [location.pathname]);
-  
-  // Identify user when logged in
-  useEffect(() => {
-    if (user) {
-      const userProperties: UserProperties = {
-        user_id: user.id,
-        username: user.username,
-        is_premium: user.is_premium || false,
-        premium_tier: user.premium_tier,
-        signup_date: user.created_at,
-        is_verified: user.is_verified || false,
-      };
-      identifyUser(user.id, userProperties);
-    } else {
-      resetUser();
-    }
-  }, [user]);
   
   // Authentication tracking
   const trackSignup = useCallback((method: 'twitch' | 'email' | 'oauth' = 'twitch') => {

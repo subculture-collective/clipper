@@ -32,7 +32,11 @@ export default function PricingPage() {
 
     // Track pricing page view
     useEffect(() => {
-        trackEvent(PremiumEvents.PRICING_PAGE_VIEWED, {});
+        trackEvent(PremiumEvents.PRICING_PAGE_VIEWED, {
+            source: 'pricing_page',
+            user_authenticated: !!user,
+            user_id: user?.id,
+        });
         // Keep legacy tracking for backwards compatibility
         trackPricingPageView({
             userId: user?.id,
