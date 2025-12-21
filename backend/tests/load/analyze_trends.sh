@@ -20,6 +20,13 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
+# Check if bc is installed
+if ! command -v bc &> /dev/null; then
+    echo -e "${RED}Error: bc is not installed${NC}"
+    echo "Install with: brew install bc (macOS) or apt-get install bc (Linux)"
+    exit 1
+fi
+
 # Check arguments
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <directory_with_json_files>"

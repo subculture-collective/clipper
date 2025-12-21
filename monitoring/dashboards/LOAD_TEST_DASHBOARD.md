@@ -25,8 +25,8 @@ For real-time load test monitoring during test execution:
 
 1. **Configure K6 to export to Prometheus**:
    ```bash
-   # Start Prometheus with K6 metrics endpoint
-   k6 run --out experimental-prometheus-rw scenario.js
+   # Start Prometheus remote write endpoint
+   k6 run --out experimental-prometheus-rw=http://localhost:9090/api/v1/write scenario.js
    ```
 
 2. **Update Prometheus configuration** (`monitoring/prometheus.yml`):

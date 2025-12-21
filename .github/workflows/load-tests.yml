@@ -84,7 +84,9 @@ jobs:
 
       - name: Install golang-migrate
         run: |
-          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz -o migrate.tar.gz
+          echo "688cdd0ab4c79ee38006b3c005d9dc917040c6eb5fc0ceb6179c214f27bafb4c  migrate.tar.gz" | sha256sum -c
+          tar xvzf migrate.tar.gz
           sudo mv migrate /usr/local/bin/
           migrate -version
 
@@ -201,12 +203,15 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Find the most recent report
-          if [ -f backend/tests/load/reports/load_test_report_*.md ]; then
-            LATEST_REPORT=$(ls -t backend/tests/load/reports/load_test_report_*.md | head -1)
-            echo "### Report Preview" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            # Include first 100 lines of report
-            head -100 "$LATEST_REPORT" >> $GITHUB_STEP_SUMMARY
+          REPORT_FILES=$(find backend/tests/load/reports -name "load_test_report_*.md" 2>/dev/null || true)
+          if [ -n "$REPORT_FILES" ]; then
+            LATEST_REPORT=$(echo "$REPORT_FILES" | xargs ls -t | head -1)
+            if [ -f "$LATEST_REPORT" ]; then
+              echo "### Report Preview" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              # Include first 100 lines of report
+              head -100 "$LATEST_REPORT" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
 
       - name: Upload load test reports
