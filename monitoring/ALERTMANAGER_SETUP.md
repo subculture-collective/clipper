@@ -273,11 +273,20 @@ Update receiver in `alertmanager.yml`:
 
 ### Silence All Alerts
 
+**⚠️ WARNING:** This will silence ALL alerts including critical security alerts. Use with extreme caution.
+
 ```bash
 # Silence all alerts for 2 hours during maintenance
+# Consider excluding security alerts: alertname!~".*Security.*|.*Authentication.*"
 amtool silence add alertname=~".+" \
   --duration=2h \
   --comment="Scheduled maintenance window" \
+  --author="ops@clipper.app"
+
+# Alternative: Silence all except security
+amtool silence add alertname=~".+" alertname!~".*Security.*" \
+  --duration=2h \
+  --comment="Scheduled maintenance window (excluding security)" \
   --author="ops@clipper.app"
 ```
 

@@ -209,9 +209,14 @@ kubectl delete pod <pod-name> -n clipper
 # Check active connections
 psql -c "SELECT count(*) FROM pg_stat_activity;"
 
-# Kill long-running queries if needed
+# Kill long-running queries if needed (use with caution)
+# Only kill user queries, not system/replication processes
 psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity 
-         WHERE state = 'active' AND query_start < NOW() - INTERVAL '5 minutes';"
+         WHERE state = 'active' 
+         AND query_start < NOW() - INTERVAL '5 minutes'
+         AND datname = 'clipper'
+         AND usename NOT IN ('postgres', 'replication')
+         AND query NOT LIKE '%pg_stat_activity%';"
 ```
 
 **Strategy 5: Cache Clearing (if stale cache causing issues)**

@@ -221,8 +221,8 @@ histogram_quantile(0.95,
 Based on 99.5% availability SLO:
 
 **Monthly Error Budget:**
-- Total minutes in 30 days: 43,200 minutes
-- Allowed downtime: 216 minutes (3.6 hours)
+- Total minutes in 30 days: 43,200 minutes (30 days × 24 hours × 60 minutes)
+- Allowed downtime: 216 minutes (43,200 × 0.5% = 3.6 hours)
 - Error budget: 0.5% of all requests can fail
 
 **Example Calculation:**

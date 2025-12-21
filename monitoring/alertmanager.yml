@@ -1,10 +1,12 @@
 global:
   resolve_timeout: 5m
   # SMTP configuration for email alerts
-  # smtp_smarthost: 'smtp.gmail.com:587'
-  # smtp_from: 'alerts@clipper.app'
-  # smtp_auth_username: 'alerts@clipper.app'
-  # smtp_auth_password: 'your-smtp-password'
+  # Configure via environment variables in production:
+  # SMTP_SMARTHOST, SMTP_FROM, SMTP_AUTH_USERNAME, SMTP_AUTH_PASSWORD
+  # smtp_smarthost: '${SMTP_SMARTHOST}'
+  # smtp_from: '${SMTP_FROM}'
+  # smtp_auth_username: '${SMTP_AUTH_USERNAME}'
+  # smtp_auth_password: '${SMTP_AUTH_PASSWORD}'
   # smtp_require_tls: true
 
 # Template files for custom alert formatting
@@ -95,7 +97,8 @@ receivers:
   # Default fallback receiver
   - name: 'default'
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      # Configure via environment variable: SLACK_WEBHOOK_URL_DEFAULT
+      - api_url_file: '/run/secrets/slack_webhook_default'
         channel: '#alerts'
         title: '{{ .GroupLabels.alertname }}'
         text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
@@ -103,7 +106,8 @@ receivers:
   # PagerDuty for critical alerts
   - name: 'pagerduty-critical'
     pagerduty_configs:
-      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+      # Configure via environment variable: PAGERDUTY_SERVICE_KEY_CRITICAL
+      - service_key_file: '/run/secrets/pagerduty_key_critical'
         description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
         severity: '{{ .CommonLabels.severity }}'
         details:
@@ -115,7 +119,8 @@ receivers:
   # PagerDuty for SLO breaches
   - name: 'pagerduty-slo'
     pagerduty_configs:
-      - service_key: 'YOUR_PAGERDUTY_SLO_SERVICE_KEY'
+      # Configure via environment variable: PAGERDUTY_SERVICE_KEY_SLO
+      - service_key_file: '/run/secrets/pagerduty_key_slo'
         description: 'SLO Breach: {{ .GroupLabels.alertname }}'
         severity: 'critical'
         details:
@@ -126,7 +131,8 @@ receivers:
   # PagerDuty for security alerts
   - name: 'pagerduty-security'
     pagerduty_configs:
-      - service_key: 'YOUR_PAGERDUTY_SECURITY_SERVICE_KEY'
+      # Configure via environment variable: PAGERDUTY_SERVICE_KEY_SECURITY
+      - service_key_file: '/run/secrets/pagerduty_key_security'
         description: 'Security Alert: {{ .GroupLabels.alertname }}'
         severity: 'critical'
         details:
@@ -136,7 +142,8 @@ receivers:
   # Slack for critical incidents
   - name: 'slack-incidents'
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      # Configure via environment variable: SLACK_WEBHOOK_URL_INCIDENTS
+      - api_url_file: '/run/secrets/slack_webhook_incidents'
         channel: '#incidents'
         username: 'Alertmanager'
         icon_emoji: ':fire:'
@@ -162,7 +169,8 @@ receivers:
   # Slack for security alerts
   - name: 'slack-security'
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      # Configure via environment variable: SLACK_WEBHOOK_URL_SECURITY
+      - api_url_file: '/run/secrets/slack_webhook_security'
         channel: '#security'
         username: 'Security Alertmanager'
         icon_emoji: ':shield:'
@@ -179,7 +187,8 @@ receivers:
   # Slack for warning alerts
   - name: 'slack-alerts'
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      # Configure via environment variable: SLACK_WEBHOOK_URL_ALERTS
+      - api_url_file: '/run/secrets/slack_webhook_alerts'
         channel: '#alerts'
         username: 'Alertmanager'
         icon_emoji: ':warning:'
@@ -194,7 +203,8 @@ receivers:
   # Slack for informational alerts
   - name: 'slack-monitoring'
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      # Configure via environment variable: SLACK_WEBHOOK_URL_MONITORING
+      - api_url_file: '/run/secrets/slack_webhook_monitoring'
         channel: '#monitoring'
         username: 'Monitoring Bot'
         icon_emoji: ':chart_with_upwards_trend:'
@@ -206,7 +216,7 @@ receivers:
   - name: 'email-oncall'
     email_configs:
       - to: 'oncall@clipper.app'
-        from: 'alerts@clipper.app'
+        # SMTP configured via global settings above
         subject: '[{{ .CommonLabels.severity | toUpper }}] {{ .GroupLabels.alertname }}'
         html: |
           <h2>{{ .CommonLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}</h2>
@@ -220,7 +230,8 @@ receivers:
   # Discord webhook (optional)
   - name: 'discord-alerts'
     webhook_configs:
-      - url: 'https://discord.com/api/webhooks/YOUR/WEBHOOK'
+      # Configure via environment variable: DISCORD_WEBHOOK_URL
+      - url_file: '/run/secrets/discord_webhook'
         send_resolved: true
 
 # Inhibition rules - prevent alert spam
