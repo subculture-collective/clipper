@@ -1,0 +1,228 @@
+name: Load Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - feed
+          - clip
+          - search
+          - comments
+          - auth
+          - submit
+          - mixed
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  load-test:
+    name: Load Test - ${{ github.event.inputs.test_type || 'all' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: clipper
+          POSTGRES_PASSWORD: clipper_password
+          POSTGRES_DB: clipper_load_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: Install K6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          k6 version
+      
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/
+          migrate -version
+      
+      - name: Run database migrations
+        env:
+          DB_URL: postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable
+        run: |
+          echo "::add-mask::$DB_URL"
+          migrate -path backend/migrations -database "$DB_URL" up
+      
+      - name: Seed database with load test data
+        env:
+          DB_URL: postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable
+        run: |
+          echo "::add-mask::$DB_URL"
+          PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test -f backend/migrations/seed_load_test.sql
+      
+      - name: Build backend
+        run: |
+          cd backend
+          go build -o ../clipper-backend ./cmd/api
+      
+      - name: Start backend server
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: clipper
+          DB_PASSWORD: clipper_password
+          DB_NAME: clipper_load_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret-key-for-load-testing
+          PORT: 8080
+        run: |
+          ./clipper-backend &
+          echo $! > backend.pid
+          
+          # Wait for backend to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:8080/api/v1/health 2>/dev/null; then
+              echo "Backend is ready"
+              break
+            fi
+            echo "Waiting for backend to start... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Run load tests
+        env:
+          BASE_URL: http://localhost:8080
+          TEST_TYPE: ${{ github.event.inputs.test_type || 'all' }}
+        run: |
+          # Create reports directory
+          mkdir -p backend/tests/load/reports
+          
+          # Set timestamp for report naming
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          export TIMESTAMP
+          
+          # Run tests based on test type
+          if [ "$TEST_TYPE" = "all" ]; then
+            # Run comprehensive test suite
+            cd backend/tests/load
+            ./generate_report.sh
+          else
+            # Run specific test scenario
+            case "$TEST_TYPE" in
+              feed)
+                k6 run --out json=backend/tests/load/reports/results_feed_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/feed_browsing.js
+                ;;
+              clip)
+                k6 run --out json=backend/tests/load/reports/results_clip_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/clip_detail.js
+                ;;
+              search)
+                k6 run --out json=backend/tests/load/reports/results_search_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/search.js
+                ;;
+              comments)
+                k6 run --out json=backend/tests/load/reports/results_comments_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/comments.js
+                ;;
+              auth)
+                k6 run --out json=backend/tests/load/reports/results_auth_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/authentication.js
+                ;;
+              submit)
+                k6 run --out json=backend/tests/load/reports/results_submit_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/submit.js
+                ;;
+              mixed)
+                k6 run --out json=backend/tests/load/reports/results_mixed_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/mixed_behavior.js
+                ;;
+            esac
+          fi
+      
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) || true
+          fi
+      
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Load Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Type**: ${{ github.event.inputs.test_type || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Date**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Find the most recent report
+          if [ -f backend/tests/load/reports/load_test_report_*.md ]; then
+            LATEST_REPORT=$(ls -t backend/tests/load/reports/load_test_report_*.md | head -1)
+            echo "### Report Preview" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            # Include first 100 lines of report
+            head -100 "$LATEST_REPORT" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload load test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-reports-${{ github.run_number }}
+          path: |
+            backend/tests/load/reports/*.md
+            backend/tests/load/reports/*.txt
+          retention-days: 90
+      
+      - name: Upload load test metrics (JSON)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-metrics-${{ github.run_number }}
+          path: backend/tests/load/reports/*.json
+          retention-days: 90
