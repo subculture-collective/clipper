@@ -87,6 +87,7 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 		Email:       &email,
 		Bio:         &bio,
 		Role:        "user",
+		AccountType: "member",
 		LastLoginAt: &lastLoginAt,
 	}
 	

@@ -110,6 +110,7 @@ func TestAuthenticationFlow(t *testing.T) {
 		require.NoError(t, err)
 		
 		assert.Equal(t, "testuser", response["username"])
+		assert.Equal(t, "Test User testuser", response["display_name"])
 	})
 
 	t.Run("GetCurrentUser_Unauthenticated", func(t *testing.T) {
