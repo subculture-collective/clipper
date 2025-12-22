@@ -943,12 +943,14 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 		customerID = dispute.Charge.Customer.ID
 	}
 
-	// Try to find subscription by customer ID
+	// Try to find subscription by customer ID (single lookup)
 	var userID uuid.UUID
+	var subscription *models.Subscription
 	if customerID != "" {
 		sub, err := s.repo.GetByStripeCustomerID(ctx, customerID)
 		if err == nil {
 			userID = sub.UserID
+			subscription = sub
 		} else {
 			log.Printf("[WEBHOOK] Could not find subscription for customer %s: %v", customerID, err)
 		}
@@ -986,13 +988,10 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 		}
 	}
 
-	// Log subscription event for record keeping
-	if customerID != "" {
-		sub, err := s.repo.GetByStripeCustomerID(ctx, customerID)
-		if err == nil {
-			if logErr := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "dispute_created", &event.ID, dispute); logErr != nil {
-				log.Printf("[WEBHOOK] Failed to log dispute event: %v", logErr)
-			}
+	// Log subscription event for record keeping (reuse subscription from earlier lookup)
+	if subscription != nil {
+		if logErr := s.repo.LogSubscriptionEvent(ctx, &subscription.ID, "dispute_created", &event.ID, dispute); logErr != nil {
+			log.Printf("[WEBHOOK] Failed to log dispute event: %v", logErr)
 		}
 	}
 
