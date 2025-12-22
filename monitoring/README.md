@@ -6,7 +6,7 @@ This directory contains configuration for the optional monitoring stack using Pr
 
 - **Prometheus**: Metrics collection and alerting
 - **Grafana**: Visualization and dashboards
-- **Alertmanager**: Alert routing and management
+- **Alertmanager**: Alert routing and management with SLO breach escalation
 - **Node Exporter**: System metrics (CPU, memory, disk)
 - **cAdvisor**: Container metrics
 - **PostgreSQL Exporter**: Database metrics
@@ -14,6 +14,27 @@ This directory contains configuration for the optional monitoring stack using Pr
 - **Nginx Exporter**: Web server metrics
 - **Loki**: Log aggregation
 - **Promtail**: Log collection
+
+## Service Level Objectives (SLOs)
+
+Clipper has defined SLOs for reliability and performance. See [SLO Documentation](../docs/operations/slos.md) for details.
+
+**Key SLOs:**
+- **Availability:** 99.5% uptime (max 3.6 hours downtime/month)
+- **Latency:** P95 < 100ms for list endpoints, P95 < 50ms for detail endpoints
+- **Error Rate:** < 0.5% of requests
+- **Search Performance:** P95 < 200ms for hybrid search
+- **Webhook Delivery:** > 90% success rate
+
+**SLO Dashboard:** Access the SLO compliance dashboard at `monitoring/dashboards/slo-dashboard.json`
+
+**Alert Routing:** Critical SLO breaches trigger:
+1. Immediate PagerDuty page to on-call engineer
+2. Notification in Slack #incidents channel
+3. Email to on-call rotation
+4. Escalation to engineering leadership if not resolved within 30 minutes
+
+See [Alertmanager Setup Guide](./ALERTMANAGER_SETUP.md) for configuration details.
 
 ## Quick Start
 
@@ -55,6 +76,7 @@ docker-compose -f docker-compose.monitoring.yml ps
 3. Dashboards are automatically provisioned from the `dashboards/` directory
 
 **Available Dashboards:**
+- **SLO Compliance Dashboard** ⭐ - Real-time SLO tracking, error budget, compliance status
 - **System Health Dashboard** - CPU, memory, disk, network metrics
 - **API Performance Dashboard** - Request rate, latency, throughput, errors
 - **Database Dashboard** - Connections, query time, slow queries, cache hits
@@ -64,6 +86,7 @@ docker-compose -f docker-compose.monitoring.yml ps
 - **Engagement Metrics** - User engagement and retention
 - **Logging Dashboard** - Centralized logging and security events
 - **Semantic Search Observability** - Search service monitoring
+- **Webhook Monitoring** - Webhook delivery and health tracking
 
 You can also import community dashboards:
 - Go to Dashboards > Import
@@ -120,25 +143,53 @@ Prometheus scrape configuration and targets.
 
 ### alerts.yml
 
-Alert rules for various conditions:
+Alert rules organized by priority and category:
 
+**SLO Alerts (Critical Priority):**
+- Availability SLO breach (< 99.5%)
+- Error rate SLO breach (> 0.5%)
+- Latency SLO breach (P95 > targets)
+- Error budget fast burn (> 10% in 1 hour)
+- Error budget medium burn (> 25% in 6 hours)
+
+**Service Health Alerts:**
 - Service down
 - High error rate
 - High response time
+- Critical error rate
+
+**Infrastructure Alerts:**
 - High CPU/memory usage
-- Low disk space
-- Database issues
-- Redis issues
-- SSL certificate expiring
-- **Log-based alerts**:
-  - High error log rate
-  - Critical error spike
-  - Failed authentication spike
-  - SQL injection attempts
-  - Security events
-  - Application panics
-  - Database connection errors
-  - Redis connection errors
+- Low disk space (warning and critical)
+- Database connection issues
+- Redis memory and connectivity
+- SSL certificate expiration
+
+**Search Performance Alerts:**
+- Semantic search high/critical latency
+- Embedding generation failures
+- Low embedding coverage
+- Cache hit rate issues
+- High zero result rate
+- Search fallback activation
+- Indexing job failures
+
+**Webhook Alerts:**
+- High/critical webhook failure rate
+- Large retry queue
+- Dead-letter queue items
+- High delivery latency
+- Subscription health degradation
+
+**Security & Logging Alerts:**
+- High error log rate
+- Critical error spike
+- Failed authentication spike
+- SQL injection attempts
+- Security events
+- Application panics
+- Database connection errors
+- Redis connection errors
 
 ### loki-config.yml
 
@@ -161,28 +212,27 @@ Promtail configuration for log collection:
 
 ### alertmanager.yml
 
-Alert routing configuration (create this file):
+Alert routing and escalation configuration with severity-based routing:
 
-```yaml
-global:
-  resolve_timeout: 5m
+**Routing Strategy:**
+- **Critical (P1):** PagerDuty page + Slack #incidents + Email (15 min response time)
+- **Warning (P2):** Slack #alerts + Email (1 hour response time)
+- **Info (P3):** Slack #monitoring (4 hour response time)
 
-route:
-  group_by: ['alertname', 'cluster', 'service']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 12h
-  receiver: 'default'
+**Special Routing:**
+- **SLO Breaches:** Dedicated PagerDuty service + #incidents channel
+- **Security Alerts:** Dedicated PagerDuty service + #security channel
+- **Error Budget:** #incidents channel (informational)
 
-receivers:
-  - name: 'default'
-    email_configs:
-      - to: 'alerts@example.com'
-        from: 'alertmanager@example.com'
-        smarthost: 'smtp.gmail.com:587'
-        auth_username: 'alerts@example.com'
-        auth_password: 'your_password'
+**Escalation Policy:**
 ```
+Level 1: On-call Engineer (0-15 min)
+Level 2: On-call Lead (15-30 min)
+Level 3: Engineering Manager (30-45 min)
+Level 4: VP Engineering + CTO (1+ hour)
+```
+
+**Configuration Guide:** See [Alertmanager Setup Guide](./ALERTMANAGER_SETUP.md) for detailed setup instructions.
 
 ### promtail-config.yml
 
