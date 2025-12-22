@@ -1962,3 +1962,105 @@ Manage preferences: %s/settings
 
 	return html, text
 }
+
+// SendDisputeNotification sends a notification email when a payment dispute is created
+func (s *EmailService) SendDisputeNotification(ctx context.Context, user *models.User, dispute interface{}) error {
+	if !s.enabled {
+		s.logger.Debug("Email service is disabled, skipping dispute notification")
+		return nil
+	}
+
+	if user.Email == nil || *user.Email == "" {
+		return errors.New("user email is required")
+	}
+
+	// Prepare email content
+	subject := "Payment Dispute Notification - Action May Be Required"
+	htmlContent := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Dispute</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #f46b45 0%%, #eea849 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">⚠️ Payment Dispute Notification</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hi %s,
+        </p>
+        
+        <p style="font-size: 16px;">
+            We wanted to notify you that a payment dispute has been filed regarding your subscription payment.
+        </p>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #856404; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #856404;">
+                <strong>What does this mean?</strong><br>
+                A dispute (also called a chargeback) means that you or your bank has questioned a charge on your payment method. 
+                We're working to resolve this, but your subscription may be affected.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px;">
+            <strong>What should you do?</strong><br>
+            • If you recognize this charge, no action is needed - we'll handle it.<br>
+            • If you didn't initiate this dispute, please contact your bank.<br>
+            • If you have questions, please reach out to our support team.
+        </p>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s/settings/billing" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Billing Details</a>
+        </p>
+        
+        <p style="font-size: 14px; color: #666; margin-top: 30px;">
+            If you have any questions or concerns, please contact our support team. We're here to help!
+        </p>
+    </div>
+</body>
+</html>
+`, html.EscapeString(user.DisplayName), s.baseURL)
+
+	textContent := fmt.Sprintf(`Payment Dispute Notification
+
+Hi %s,
+
+We wanted to notify you that a payment dispute has been filed regarding your subscription payment.
+
+What does this mean?
+A dispute (also called a chargeback) means that you or your bank has questioned a charge on your payment method. We're working to resolve this, but your subscription may be affected.
+
+What should you do?
+• If you recognize this charge, no action is needed - we'll handle it.
+• If you didn't initiate this dispute, please contact your bank.
+• If you have questions, please reach out to our support team.
+
+View your billing details: %s/settings/billing
+
+If you have any questions or concerns, please contact our support team. We're here to help!
+`, user.DisplayName, s.baseURL)
+
+	// Create email request
+	req := EmailRequest{
+		To:      []string{*user.Email},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlContent,
+			"Text": textContent,
+		},
+		Tags: []string{"dispute", "billing"},
+	}
+
+	// Send email
+	if s.sandboxMode {
+		s.logger.Info(fmt.Sprintf("SANDBOX MODE: Dispute notification email to %s", *user.Email))
+		s.logger.Debug(fmt.Sprintf("Subject: %s", subject))
+		return nil
+	}
+
+	return s.SendEmail(ctx, req)
+}

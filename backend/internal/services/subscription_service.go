@@ -310,6 +310,8 @@ func (s *SubscriptionService) processWebhookWithRetry(ctx context.Context, event
 		return s.handlePaymentIntentSucceeded(ctx, event)
 	case "payment_intent.payment_failed":
 		return s.handlePaymentIntentFailed(ctx, event)
+	case "charge.dispute.created":
+		return s.handleDisputeCreated(ctx, event)
 	default:
 		log.Printf("[WEBHOOK] Unhandled event type: %s", event.Type)
 		return nil
@@ -921,6 +923,80 @@ func (s *SubscriptionService) handlePaymentIntentFailed(ctx context.Context, eve
 	}
 
 	log.Printf("[WEBHOOK] Successfully processed payment_intent.payment_failed for %s", paymentIntent.ID)
+	return nil
+}
+
+// handleDisputeCreated processes charge.dispute.created events
+func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event stripe.Event) error {
+	var dispute stripe.Dispute
+	if err := json.Unmarshal(event.Data.Raw, &dispute); err != nil {
+		log.Printf("[WEBHOOK] Failed to unmarshal charge.dispute.created event %s: %v", event.ID, err)
+		return fmt.Errorf("failed to unmarshal dispute: %w", err)
+	}
+
+	log.Printf("[WEBHOOK] Processing charge.dispute.created for dispute: %s, charge: %s, amount: %d %s, reason: %s",
+		dispute.ID, dispute.Charge.ID, dispute.Amount, dispute.Currency, dispute.Reason)
+
+	// Get the charge to find the customer
+	customerID := ""
+	if dispute.Charge != nil && dispute.Charge.Customer != nil {
+		customerID = dispute.Charge.Customer.ID
+	}
+
+	// Try to find subscription by customer ID
+	var userID uuid.UUID
+	if customerID != "" {
+		sub, err := s.repo.GetByStripeCustomerID(ctx, customerID)
+		if err == nil {
+			userID = sub.UserID
+		} else {
+			log.Printf("[WEBHOOK] Could not find subscription for customer %s: %v", customerID, err)
+		}
+	}
+
+	// Log dispute event
+	if s.auditLogSvc != nil && userID != uuid.Nil {
+		metadata := map[string]interface{}{
+			"dispute_id":          dispute.ID,
+			"charge_id":           dispute.Charge.ID,
+			"amount_cents":        dispute.Amount,
+			"currency":            dispute.Currency,
+			"reason":              dispute.Reason,
+			"status":              string(dispute.Status),
+			"stripe_customer_id":  customerID,
+		}
+		if dispute.Evidence != nil {
+			metadata["has_evidence"] = true
+		}
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, userID, "dispute_created", metadata)
+	}
+
+	// Send email notification about dispute if email service is available
+	if s.emailService != nil && userID != uuid.Nil {
+		// Get user details
+		user, err := s.userRepo.GetByID(ctx, userID)
+		if err == nil && user.Email != nil && *user.Email != "" {
+			// Send dispute notification email
+			emailErr := s.emailService.SendDisputeNotification(ctx, user, &dispute)
+			if emailErr != nil {
+				log.Printf("[WEBHOOK] Failed to send dispute notification email to user %s: %v", userID, emailErr)
+			} else {
+				log.Printf("[WEBHOOK] Sent dispute notification email to user %s", userID)
+			}
+		}
+	}
+
+	// Log subscription event for record keeping
+	if customerID != "" {
+		sub, err := s.repo.GetByStripeCustomerID(ctx, customerID)
+		if err == nil {
+			if logErr := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "dispute_created", &event.ID, dispute); logErr != nil {
+				log.Printf("[WEBHOOK] Failed to log dispute event: %v", logErr)
+			}
+		}
+	}
+
+	log.Printf("[WEBHOOK] Successfully processed charge.dispute.created for %s", dispute.ID)
 	return nil
 }
 
