@@ -1,5 +1,5 @@
 #!/bin/bash
-# test-all-webhooks.sh
+# test-stripe-webhooks.sh
 # 
 # This script tests all supported Stripe webhook event types using Stripe CLI
 # 

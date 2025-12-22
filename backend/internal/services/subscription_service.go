@@ -934,14 +934,18 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 		return fmt.Errorf("failed to unmarshal dispute: %w", err)
 	}
 
-	log.Printf("[WEBHOOK] Processing charge.dispute.created for dispute: %s, charge: %s, amount: %d %s, reason: %s",
-		dispute.ID, dispute.Charge.ID, dispute.Amount, dispute.Currency, dispute.Reason)
-
 	// Get the charge to find the customer
 	customerID := ""
-	if dispute.Charge != nil && dispute.Charge.Customer != nil {
-		customerID = dispute.Charge.Customer.ID
+	chargeID := "unknown"
+	if dispute.Charge != nil {
+		chargeID = dispute.Charge.ID
+		if dispute.Charge.Customer != nil {
+			customerID = dispute.Charge.Customer.ID
+		}
 	}
+
+	log.Printf("[WEBHOOK] Processing charge.dispute.created for dispute: %s, charge: %s, amount: %d %s, reason: %s",
+		dispute.ID, chargeID, dispute.Amount, dispute.Currency, dispute.Reason)
 
 	// Try to find subscription by customer ID (single lookup)
 	var userID uuid.UUID
@@ -960,12 +964,15 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 	if s.auditLogSvc != nil && userID != uuid.Nil {
 		metadata := map[string]interface{}{
 			"dispute_id":          dispute.ID,
-			"charge_id":           dispute.Charge.ID,
 			"amount_cents":        dispute.Amount,
 			"currency":            dispute.Currency,
 			"reason":              dispute.Reason,
 			"status":              string(dispute.Status),
 			"stripe_customer_id":  customerID,
+		}
+		// Only add charge_id if charge exists
+		if dispute.Charge != nil {
+			metadata["charge_id"] = dispute.Charge.ID
 		}
 		if dispute.Evidence != nil {
 			metadata["has_evidence"] = true

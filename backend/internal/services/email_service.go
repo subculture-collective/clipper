@@ -2042,7 +2042,7 @@ What should you do?
 View your billing details: %s/settings/billing
 
 If you have any questions or concerns, please contact our support team. We're here to help!
-`, user.DisplayName, s.baseURL)
+`, html.EscapeString(user.DisplayName), s.baseURL)
 
 	// Create email request
 	req := EmailRequest{
