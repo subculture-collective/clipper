@@ -78,6 +78,3 @@ export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedP
     </div>
   );
 }
-    </div>
-  );
-}

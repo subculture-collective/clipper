@@ -150,6 +150,7 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
             </Button>
           )}
         </div>
+      </div>
 
       {/* Error message */}
       {error && (
