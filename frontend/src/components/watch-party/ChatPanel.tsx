@@ -18,7 +18,6 @@ interface ChatPanelProps {
  * Chat panel component for watch party
  */
 export function ChatPanel({
-  partyId,
   messages,
   onSendMessage,
   onTyping,

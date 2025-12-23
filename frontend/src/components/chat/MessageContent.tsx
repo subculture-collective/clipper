@@ -78,7 +78,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
       // Add the match
       const matchText = item.match[0];
       switch (item.type) {
-        case 'multilineCode':
+        case 'multilineCode': {
           const code = item.match[1] || '';
           elements.push(
             <pre
@@ -89,7 +89,8 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
             </pre>
           );
           break;
-        case 'inlineCode':
+        }
+        case 'inlineCode': {
           const inlineCode = item.match[1] || '';
           elements.push(
             <code
@@ -100,6 +101,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
             </code>
           );
           break;
+        }
         case 'url':
           elements.push(<LinkPreview key={`url-${idx}`} url={matchText} />);
           break;

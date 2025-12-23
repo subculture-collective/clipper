@@ -42,6 +42,8 @@ export function useWatchPartyWebSocket({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 10;
+  const connectRef = useRef<(() => void) | null>(null);
+  const sendCommandRef = useRef<((command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => void) | null>(null);
 
   const connect = useCallback(() => {
     if (!enabled) return;
@@ -78,7 +80,7 @@ export function useWatchPartyWebSocket({
         console.log(`Connected to watch party: ${partyId}`);
 
         // Request initial sync
-        sendCommand({ type: 'sync-request' });
+        sendCommandRef.current?.({ type: 'sync-request' });
       };
 
       ws.onmessage = (event) => {
@@ -129,7 +131,7 @@ export function useWatchPartyWebSocket({
           console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${attemptNumber}/${maxReconnectAttempts})`);
 
           reconnectTimeoutRef.current = window.setTimeout(() => {
-            connect();
+            connectRef.current?.();
           }, backoffDelay);
         } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
           setError('Connection lost. Unable to reconnect after multiple attempts.');
@@ -141,19 +143,6 @@ export function useWatchPartyWebSocket({
     }
   }, [partyId, enabled, onSyncEvent, onChatMessage, onReaction, onTyping]);
 
-  useEffect(() => {
-    connect();
-
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [connect]);
-
   const sendCommand = useCallback((command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       const fullCommand: WatchPartyCommand = {
@@ -164,6 +153,22 @@ export function useWatchPartyWebSocket({
       wsRef.current.send(JSON.stringify(fullCommand));
     }
   }, [partyId]);
+
+  useEffect(() => {
+    // Store connect and sendCommand in refs so they can be called recursively
+    connectRef.current = connect;
+    sendCommandRef.current = sendCommand;
+    connect();
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [connect, sendCommand]);
 
   const sendChatMessage = useCallback((message: string) => {
     sendCommand({

@@ -265,6 +265,7 @@ export function AdminUsersPage() {
       setActionType(null);
       setErrorMessage(null);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.error || 'Failed to ban user');
     },
@@ -281,6 +282,7 @@ export function AdminUsersPage() {
       setActionType(null);
       setErrorMessage(null);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.error || 'Failed to unban user');
     },
@@ -297,6 +299,7 @@ export function AdminUsersPage() {
       setActionType(null);
       setErrorMessage(null);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.error || 'Failed to update user role');
     },
@@ -313,6 +316,7 @@ export function AdminUsersPage() {
       setActionType(null);
       setErrorMessage(null);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.error || 'Failed to update user karma');
     },
@@ -338,6 +342,7 @@ export function AdminUsersPage() {
       setActionType(null);
       setErrorMessage(null);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.error || 'Failed to suspend comment privileges');
     },
@@ -354,6 +359,7 @@ export function AdminUsersPage() {
       setActionType(null);
       setErrorMessage(null);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.error || 'Failed to lift comment suspension');
     },
@@ -377,6 +383,7 @@ export function AdminUsersPage() {
       setActionType(null);
       setErrorMessage(null);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.error || 'Failed to toggle comment review');
     },

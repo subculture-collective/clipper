@@ -22,7 +22,7 @@ const DEFAULT_REACTIONS = ['🔥', '😂', '❤️', '👍', '🎉', '😮'];
  * to parent components without window globals.
  */
 export const ReactionOverlay = forwardRef<ReactionOverlayHandle, ReactionOverlayProps>(
-  function ReactionOverlay({ partyId, videoRef, onSendReaction, className = '' }, ref) {
+  function ReactionOverlay({ videoRef, onSendReaction, className = '' }, ref) {
     const [reactions, setReactions] = useState<ReactionAnimation[]>([]);
     const [cooldown, setCooldown] = useState<Record<string, boolean>>({});
 

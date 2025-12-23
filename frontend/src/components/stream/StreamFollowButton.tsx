@@ -32,7 +32,7 @@ export function StreamFollowButton({ streamerUsername, className }: StreamFollow
       try {
         const status = await getStreamFollowStatus(streamerUsername);
         setFollowStatus(status);
-      } catch (error) {
+      } catch {
         // Not following or error - treat as not following
         setFollowStatus({ following: false, notifications_enabled: false });
       } finally {

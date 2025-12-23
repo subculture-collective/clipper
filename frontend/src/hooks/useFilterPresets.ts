@@ -5,7 +5,6 @@ import {
 } from '@tanstack/react-query';
 import * as filterPresetApi from '@/lib/filter-preset-api';
 import type {
-    FilterPreset,
     CreateFilterPresetRequest,
     UpdateFilterPresetRequest,
 } from '@/types/clip';

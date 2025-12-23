@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Spinner, Button, ScrollToTop } from '@/components/ui';
 import { MiniFooter } from '@/components/layout';
 import { ClipCard } from './ClipCard';
@@ -39,7 +38,6 @@ export function ScrapedClipFeed({
     defaultTimeframe = 'day',
     filters: additionalFilters = {},
 }: ScrapedClipFeedProps) {
-    const { i18n } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const containerRef = useRef<HTMLDivElement>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);

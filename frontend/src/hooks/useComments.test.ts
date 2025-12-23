@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, InfiniteData } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
 import {
   useComments,
@@ -280,7 +280,7 @@ describe('useComments', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       // Verify child_count was updated
-      const updatedData = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const updatedData = queryClient.getQueryData(['comments', 'clip-1']) as InfiniteData<CommentFeedResponse>;
       expect(updatedData.pages[0].comments[0].child_count).toBe(3);
     });
 
@@ -330,7 +330,7 @@ describe('useComments', () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       // Verify child_count was rolled back to original value
-      const rolledBackData = queryClient.getQueryData(['comments', 'clip-1']) as any;
+      const rolledBackData = queryClient.getQueryData(['comments', 'clip-1']) as InfiniteData<CommentFeedResponse>;
       expect(rolledBackData.pages[0].comments[0].child_count).toBe(2);
       expect(result.current.error).toEqual(error);
     });
