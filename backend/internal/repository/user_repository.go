@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -1176,6 +1177,13 @@ func (r *UserRepository) SuspendCommentPrivileges(
 	reason string,
 	durationHours *int,
 ) error {
+	// Validate suspension type before performing any database operations
+	if suspensionType != models.SuspensionTypeWarning && 
+	   suspensionType != models.SuspensionTypeTemporary && 
+	   suspensionType != models.SuspensionTypePermanent {
+		return fmt.Errorf("invalid suspension type: must be warning, temporary, or permanent")
+	}
+
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -1199,7 +1207,6 @@ func (r *UserRepository) SuspendCommentPrivileges(
 		updateQuery = `
 			UPDATE users
 			SET comment_suspended_until = $2,
-				comment_warning_count = comment_warning_count + 1,
 				updated_at = NOW()
 			WHERE id = $1
 		`
@@ -1208,7 +1215,6 @@ func (r *UserRepository) SuspendCommentPrivileges(
 		updateQuery = `
 			UPDATE users
 			SET comment_suspended_until = $2,
-				comment_warning_count = comment_warning_count + 1,
 				updated_at = NOW()
 			WHERE id = $1
 		`
@@ -1381,6 +1387,26 @@ func (r *UserRepository) CanUserComment(ctx context.Context, userID uuid.UUID) (
 	}
 
 	return canComment, nil
+}
+
+// GetCommentSuspensionInfo returns suspension details for better error messaging
+func (r *UserRepository) GetCommentSuspensionInfo(ctx context.Context, userID uuid.UUID) (*time.Time, error) {
+	query := `
+		SELECT comment_suspended_until
+		FROM users
+		WHERE id = $1
+	`
+
+	var suspendedUntil *time.Time
+	err := r.db.QueryRow(ctx, query, userID).Scan(&suspendedUntil)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return suspendedUntil, nil
 }
 
 // DoesUserRequireCommentReview checks if user's comments need review

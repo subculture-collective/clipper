@@ -1692,10 +1692,9 @@ type CommentSuspensionHistory struct {
 
 // CommentSuspensionRequest represents a request to suspend comment privileges
 type CommentSuspensionRequest struct {
-	UserID        uuid.UUID `json:"user_id" binding:"required"`
-	SuspensionType string   `json:"suspension_type" binding:"required,oneof=warning temporary permanent"`
-	Reason        string    `json:"reason" binding:"required,min=10,max=1000"`
-	DurationHours *int      `json:"duration_hours,omitempty" binding:"omitempty,min=1,max=8760"` // max 1 year
+	SuspensionType string `json:"suspension_type" binding:"required,oneof=warning temporary permanent"`
+	Reason         string `json:"reason" binding:"required,min=10,max=1000"`
+	DurationHours  *int   `json:"duration_hours,omitempty" binding:"omitempty,min=1,max=8760"` // max 1 year
 }
 
 // LiftSuspensionRequest represents a request to lift a comment suspension

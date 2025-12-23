@@ -31,7 +31,13 @@ interface UserActionModalProps {
   user: User;
   actionType: 'ban' | 'unban' | 'promote' | 'demote' | 'karma' | 'suspend_comments' | 'lift_suspension' | 'toggle_review';
   onClose: () => void;
-  onConfirm: (reason?: string, value?: number, suspensionType?: string, durationHours?: number) => void;
+  onConfirm: (params: {
+    reason?: string;
+    karmaValue?: number;
+    suspensionType?: string;
+    durationHours?: number;
+    requireReview?: boolean;
+  }) => void;
 }
 
 function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionModalProps) {
@@ -44,13 +50,17 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (actionType === 'karma') {
-      onConfirm(undefined, karmaValue);
+      onConfirm({ karmaValue });
     } else if (actionType === 'suspend_comments') {
-      onConfirm(reason, undefined, suspensionType, suspensionType === 'temporary' ? durationHours : undefined);
+      onConfirm({
+        reason,
+        suspensionType,
+        durationHours: suspensionType === 'temporary' ? durationHours : undefined,
+      });
     } else if (actionType === 'toggle_review') {
-      onConfirm(reason, requireReview ? 1 : 0);
+      onConfirm({ reason, requireReview });
     } else {
-      onConfirm(reason);
+      onConfirm({ reason });
     }
   };
 
@@ -317,7 +327,6 @@ export function AdminUsersPage() {
       durationHours?: number;
     }) => {
       await axios.post(`/api/v1/admin/users/${userId}/suspend-comments`, {
-        user_id: userId,
         suspension_type: suspensionType,
         reason,
         duration_hours: durationHours,
@@ -378,35 +387,41 @@ export function AdminUsersPage() {
     setActionType(action);
   };
 
-  const handleConfirmAction = (reason?: string, value?: number, suspensionType?: string, durationHours?: number) => {
+  const handleConfirmAction = (params: {
+    reason?: string;
+    karmaValue?: number;
+    suspensionType?: string;
+    durationHours?: number;
+    requireReview?: boolean;
+  }) => {
     if (!selectedUser) return;
 
     if (actionType === 'ban') {
-      banMutation.mutate({ userId: selectedUser.id, reason: reason || '' });
+      banMutation.mutate({ userId: selectedUser.id, reason: params.reason || '' });
     } else if (actionType === 'unban') {
-      unbanMutation.mutate({ userId: selectedUser.id, reason });
+      unbanMutation.mutate({ userId: selectedUser.id, reason: params.reason });
     } else if (actionType === 'promote') {
       const newRole = selectedUser.role === 'user' ? 'moderator' : 'admin';
-      updateRoleMutation.mutate({ userId: selectedUser.id, role: newRole, reason });
+      updateRoleMutation.mutate({ userId: selectedUser.id, role: newRole, reason: params.reason });
     } else if (actionType === 'demote') {
       const newRole = selectedUser.role === 'admin' ? 'moderator' : 'user';
-      updateRoleMutation.mutate({ userId: selectedUser.id, role: newRole, reason });
-    } else if (actionType === 'karma' && value !== undefined) {
-      updateKarmaMutation.mutate({ userId: selectedUser.id, karma: value });
-    } else if (actionType === 'suspend_comments' && suspensionType) {
+      updateRoleMutation.mutate({ userId: selectedUser.id, role: newRole, reason: params.reason });
+    } else if (actionType === 'karma' && params.karmaValue !== undefined) {
+      updateKarmaMutation.mutate({ userId: selectedUser.id, karma: params.karmaValue });
+    } else if (actionType === 'suspend_comments' && params.suspensionType) {
       suspendCommentsMutation.mutate({
         userId: selectedUser.id,
-        suspensionType,
-        reason: reason || '',
-        durationHours,
+        suspensionType: params.suspensionType,
+        reason: params.reason || '',
+        durationHours: params.durationHours,
       });
     } else if (actionType === 'lift_suspension') {
-      liftSuspensionMutation.mutate({ userId: selectedUser.id, reason: reason || '' });
-    } else if (actionType === 'toggle_review') {
+      liftSuspensionMutation.mutate({ userId: selectedUser.id, reason: params.reason || '' });
+    } else if (actionType === 'toggle_review' && params.requireReview !== undefined) {
       toggleReviewMutation.mutate({
         userId: selectedUser.id,
-        requireReview: value === 1,
-        reason: reason || '',
+        requireReview: params.requireReview,
+        reason: params.reason || '',
       });
     }
   };

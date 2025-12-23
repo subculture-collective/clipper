@@ -142,14 +142,21 @@ func (s *CommentService) ValidateCreateComment(ctx context.Context, req *CreateC
 // CreateComment creates a new comment
 func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRequest, clipID, userID uuid.UUID) (*repository.CommentWithAuthor, error) {
 	// Check if user can comment (not suspended)
-	if s.userRepo != nil {
-		canComment, err := s.userRepo.CanUserComment(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check comment privileges: %w", err)
+	canComment, err := s.userRepo.CanUserComment(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check comment privileges: %w", err)
+	}
+	if !canComment {
+		// Get suspension details for better error message
+		suspendedUntil, err := s.userRepo.GetCommentSuspensionInfo(ctx, userID)
+		if err == nil && suspendedUntil != nil {
+			// Check if it's a permanent suspension (year 9999)
+			if suspendedUntil.Year() >= 9999 {
+				return nil, fmt.Errorf("your comment privileges have been permanently suspended. Please contact support if you believe this is a mistake")
+			}
+			return nil, fmt.Errorf("your comment privileges are suspended until %s. Please contact support if you believe this is a mistake", suspendedUntil.Format("2006-01-02 15:04 MST"))
 		}
-		if !canComment {
-			return nil, fmt.Errorf("comment privileges are suspended")
-		}
+		return nil, fmt.Errorf("comment privileges are currently suspended. Please try again later or contact support if you believe this is a mistake")
 	}
 
 	// Validate request

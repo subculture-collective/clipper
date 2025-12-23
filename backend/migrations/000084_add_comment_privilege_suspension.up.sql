@@ -39,6 +39,9 @@ CREATE TABLE comment_suspension_history (
     CONSTRAINT comment_suspension_valid_type CHECK (suspension_type IN ('warning', 'temporary', 'permanent'))
 );
 
+-- Add comment to maintain consistency with Go constants
+COMMENT ON COLUMN comment_suspension_history.suspension_type IS 'Values: warning, temporary, permanent. Must match models.SuspensionType* constants in models.go.';
+
 -- Indexes for suspension history
 CREATE INDEX idx_suspension_history_user_id ON comment_suspension_history(user_id);
 CREATE INDEX idx_suspension_history_suspended_by ON comment_suspension_history(suspended_by);
@@ -64,10 +67,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create a trigger to automatically expire suspensions when checking
+-- Note: Permanent suspensions (year 9999) are preserved
 CREATE OR REPLACE FUNCTION check_and_expire_user_suspension()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.comment_suspended_until IS NOT NULL AND NEW.comment_suspended_until < NOW() THEN
+    -- Only clear suspension if it's expired and not a permanent suspension (year 9999)
+    IF NEW.comment_suspended_until IS NOT NULL 
+       AND NEW.comment_suspended_until < NOW() 
+       AND EXTRACT(YEAR FROM NEW.comment_suspended_until) < 9999 THEN
         NEW.comment_suspended_until = NULL;
     END IF;
     RETURN NEW;
