@@ -1055,7 +1055,7 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 		WHERE 1=1
 	`
 	countQuery := `SELECT COUNT(*) FROM users WHERE 1=1`
-	
+
 	args := []interface{}{}
 	argNum := 1
 	whereClause := ""
@@ -1178,9 +1178,9 @@ func (r *UserRepository) SuspendCommentPrivileges(
 	durationHours *int,
 ) error {
 	// Validate suspension type before performing any database operations
-	if suspensionType != models.SuspensionTypeWarning && 
-	   suspensionType != models.SuspensionTypeTemporary && 
-	   suspensionType != models.SuspensionTypePermanent {
+	if suspensionType != models.SuspensionTypeWarning &&
+		suspensionType != models.SuspensionTypeTemporary &&
+		suspensionType != models.SuspensionTypePermanent {
 		return fmt.Errorf("invalid suspension type: must be warning, temporary, or permanent")
 	}
 

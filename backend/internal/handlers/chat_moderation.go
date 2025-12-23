@@ -8,14 +8,14 @@ import (
 
 // AutoModerationConfig holds configuration for automated moderation
 type AutoModerationConfig struct {
-	SpamDetectionEnabled    bool
-	ProfanityFilterEnabled  bool
-	MaxMessageLength        int
-	MaxRepeatedChars        int
-	RateLimitMessages       int           // Max messages per window
-	RateLimitWindow         time.Duration // Time window for rate limiting
-	BannedWords             []string
-	SuspiciousPatterns      []string
+	SpamDetectionEnabled   bool
+	ProfanityFilterEnabled bool
+	MaxMessageLength       int
+	MaxRepeatedChars       int
+	RateLimitMessages      int           // Max messages per window
+	RateLimitWindow        time.Duration // Time window for rate limiting
+	BannedWords            []string
+	SuspiciousPatterns     []string
 }
 
 // DefaultAutoModerationConfig returns default moderation config
@@ -32,9 +32,9 @@ func DefaultAutoModerationConfig() AutoModerationConfig {
 			"spam", "scam", "phishing",
 		},
 		SuspiciousPatterns: []string{
-			`https?://bit\.ly/`,    // Shortened URLs
+			`https?://bit\.ly/`,      // Shortened URLs
 			`https?://tinyurl\.com/`, // Shortened URLs
-			`\b[A-Z]{5,}\b`,        // Excessive caps (5+ consecutive uppercase letters)
+			`\b[A-Z]{5,}\b`,          // Excessive caps (5+ consecutive uppercase letters)
 		},
 	}
 }

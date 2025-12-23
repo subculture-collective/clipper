@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Hash } from 'lucide-react';
-import { Channel } from '@/types/chat';
+import type { Channel } from '@/types/chat';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
 

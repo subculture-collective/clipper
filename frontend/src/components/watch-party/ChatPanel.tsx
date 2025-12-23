@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmojiPicker } from '@/components/chat/EmojiPicker';
-import { WatchPartyMessage } from '@/types/watchParty';
+import type { WatchPartyMessage } from '@/types/watch-party';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ChatPanelProps {
@@ -45,12 +45,12 @@ export function ChatPanel({
     // Send typing indicator
     if (value.trim()) {
       onTyping(true);
-      
+
       // Clear previous timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
+
       // Stop typing indicator after 2 seconds of no input
       typingTimeoutRef.current = setTimeout(() => {
         onTyping(false);

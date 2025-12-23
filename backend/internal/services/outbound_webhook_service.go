@@ -261,7 +261,7 @@ func (s *OutboundWebhookService) ProcessPendingDeliveries(ctx context.Context, b
 func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *models.WebhookDelivery) error {
 	// Track delivery start time for metrics
 	startTime := time.Now()
-	
+
 	// Get subscription details
 	subscription, err := s.webhookRepo.GetSubscriptionByID(ctx, delivery.SubscriptionID)
 	if err != nil {
@@ -302,56 +302,56 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	if err != nil {
 		// Network error - schedule retry or move to DLQ
 		errMsg := fmt.Sprintf("network error: %v", err)
-		
+
 		// Track retry rate metric (only for actual retries, not the initial attempt)
 		if delivery.AttemptCount > 0 {
 			webhookRetryRate.WithLabelValues(delivery.EventType, strconv.Itoa(delivery.AttemptCount+1)).Inc()
 		}
-		
+
 		// Check if this is the final attempt
 		if delivery.AttemptCount+1 >= delivery.MaxAttempts {
 			log.Printf("[WEBHOOK] Max retries reached for delivery %s (network error), moving to DLQ", delivery.ID)
-			
+
 			// Update delivery with final failure status
 			if updateErr := s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, nil, errMsg, nil); updateErr != nil {
 				log.Printf("[WEBHOOK] Failed to update delivery failure: %v", updateErr)
 				return fmt.Errorf("failed to update delivery failure before DLQ: %w", updateErr)
 			}
-			
+
 			// Get updated delivery to move to DLQ
 			updatedDelivery, getErr := s.webhookRepo.GetDeliveryByID(ctx, delivery.ID)
 			if getErr != nil {
 				log.Printf("[WEBHOOK] Failed to get delivery for DLQ: %v", getErr)
 				return fmt.Errorf("failed to get delivery for DLQ: %w", getErr)
 			}
-			
+
 			// Move to dead-letter queue
 			if dlqErr := s.webhookRepo.MoveDeliveryToDeadLetterQueue(ctx, updatedDelivery); dlqErr != nil {
 				log.Printf("[WEBHOOK] Failed to move delivery %s to DLQ: %v", delivery.ID, dlqErr)
 				return fmt.Errorf("failed to move delivery to DLQ: %w", dlqErr)
 			}
-			
+
 			log.Printf("[WEBHOOK] Successfully moved delivery %s to DLQ", delivery.ID)
-			
+
 			// Record metrics
 			webhookDeliveryTotal.WithLabelValues(delivery.EventType, "failed").Inc()
 			webhookDeliveryDuration.WithLabelValues(delivery.EventType, "failed").Observe(time.Since(startTime).Seconds())
 			webhookSubscriptionHealth.WithLabelValues(subscriptionIDStr, "failed").Inc()
 			webhookConsecutiveFailures.WithLabelValues(subscriptionIDStr, delivery.EventType).Inc()
 			webhookDLQMovements.WithLabelValues(delivery.EventType, "max_retries_network_error").Inc()
-			
+
 			return fmt.Errorf("max retries exceeded: %s", errMsg)
 		}
-		
+
 		// Schedule retry
 		nextRetry := s.calculateNextRetry(delivery.AttemptCount + 1)
 		log.Printf("[WEBHOOK] Delivery failed: %s, next retry at %v", errMsg, nextRetry)
-		
+
 		// Record metrics
 		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "retry").Inc()
 		webhookDeliveryDuration.WithLabelValues(delivery.EventType, "retry").Observe(time.Since(startTime).Seconds())
 		webhookConsecutiveFailures.WithLabelValues(subscriptionIDStr, delivery.EventType).Inc()
-		
+
 		return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, nil, errMsg, &nextRetry)
 	}
 	defer resp.Body.Close()
@@ -366,20 +366,20 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		// Success
 		log.Printf("[WEBHOOK] Delivery successful: status=%d", resp.StatusCode)
-		
+
 		// Calculate time to success (time from creation/first attempt to success)
 		timeToSuccess := time.Since(delivery.CreatedAt).Seconds()
 		webhookTimeToSuccess.WithLabelValues(delivery.EventType).Observe(timeToSuccess)
-		
+
 		// Record success metrics
 		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "success").Inc()
 		webhookDeliveryDuration.WithLabelValues(delivery.EventType, "success").Observe(time.Since(startTime).Seconds())
 		webhookRetryAttempts.WithLabelValues(delivery.EventType, "success").Observe(float64(delivery.AttemptCount))
 		webhookSubscriptionHealth.WithLabelValues(subscriptionIDStr, "success").Inc()
-		
+
 		// Reset consecutive failures for this subscription
 		webhookConsecutiveFailures.WithLabelValues(subscriptionIDStr, delivery.EventType).Set(0)
-		
+
 		if err := s.webhookRepo.UpdateDeliverySuccess(ctx, delivery.ID, resp.StatusCode, string(responseBody)); err != nil {
 			return fmt.Errorf("failed to update delivery success: %w", err)
 		}
@@ -395,44 +395,44 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 	// Failed delivery - schedule retry or move to DLQ
 	nextRetry := s.calculateNextRetry(delivery.AttemptCount + 1)
 	errMsg := fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(responseBody))
-	
+
 	// Track retry rate metric (only for actual retries, not the initial attempt)
 	if delivery.AttemptCount > 0 {
 		webhookRetryRate.WithLabelValues(delivery.EventType, strconv.Itoa(delivery.AttemptCount+1)).Inc()
 	}
-	
+
 	// Check if this is the final attempt
 	if delivery.AttemptCount+1 >= delivery.MaxAttempts {
 		log.Printf("[WEBHOOK] Max retries reached for delivery %s, moving to DLQ", delivery.ID)
-		
+
 		// Update delivery with final failure status
 		if err := s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, &resp.StatusCode, errMsg, nil); err != nil {
 			log.Printf("[WEBHOOK] Failed to update delivery failure: %v", err)
 			return fmt.Errorf("failed to update delivery failure before DLQ: %w", err)
 		}
-		
+
 		// Get updated delivery to move to DLQ
 		updatedDelivery, err := s.webhookRepo.GetDeliveryByID(ctx, delivery.ID)
 		if err != nil {
 			log.Printf("[WEBHOOK] Failed to get delivery for DLQ: %v", err)
 			return fmt.Errorf("failed to get delivery for DLQ: %w", err)
 		}
-		
+
 		// Move to dead-letter queue
 		if dlqErr := s.webhookRepo.MoveDeliveryToDeadLetterQueue(ctx, updatedDelivery); dlqErr != nil {
 			log.Printf("[WEBHOOK] Failed to move delivery %s to DLQ: %v", delivery.ID, dlqErr)
 			return fmt.Errorf("failed to move delivery to DLQ: %w", dlqErr)
 		}
-		
+
 		log.Printf("[WEBHOOK] Successfully moved delivery %s to DLQ", delivery.ID)
-		
+
 		// Record metrics
 		webhookDeliveryTotal.WithLabelValues(delivery.EventType, "failed").Inc()
 		webhookDeliveryDuration.WithLabelValues(delivery.EventType, "failed").Observe(time.Since(startTime).Seconds())
 		webhookRetryAttempts.WithLabelValues(delivery.EventType, "failed").Observe(float64(delivery.AttemptCount + 1))
 		webhookSubscriptionHealth.WithLabelValues(subscriptionIDStr, "failed").Inc()
 		webhookConsecutiveFailures.WithLabelValues(subscriptionIDStr, delivery.EventType).Inc()
-		
+
 		// Determine DLQ movement reason
 		dlqReason := "max_retries_http_error"
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
@@ -441,19 +441,19 @@ func (s *OutboundWebhookService) processDelivery(ctx context.Context, delivery *
 			dlqReason = "max_retries_server_error"
 		}
 		webhookDLQMovements.WithLabelValues(delivery.EventType, dlqReason).Inc()
-		
+
 		return fmt.Errorf("max retries exceeded: %s", errMsg)
 	}
-	
+
 	// Schedule retry
 	log.Printf("[WEBHOOK] Delivery failed: %s, next retry at %v", errMsg, nextRetry)
-	
+
 	// Record metrics for retry
 	webhookDeliveryTotal.WithLabelValues(delivery.EventType, "retry").Inc()
 	webhookDeliveryDuration.WithLabelValues(delivery.EventType, "retry").Observe(time.Since(startTime).Seconds())
 	webhookRetryAttempts.WithLabelValues(delivery.EventType, "retry").Observe(float64(delivery.AttemptCount + 1))
 	webhookConsecutiveFailures.WithLabelValues(subscriptionIDStr, delivery.EventType).Inc()
-	
+
 	return s.webhookRepo.UpdateDeliveryFailure(ctx, delivery.ID, &resp.StatusCode, errMsg, &nextRetry)
 }
 

@@ -38,14 +38,14 @@ func TestGetModerationAuditLogs_ValidParameters(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	validModeratorID := uuid.New().String()
-	c.Request = httptest.NewRequest(http.MethodGet, 
+	c.Request = httptest.NewRequest(http.MethodGet,
 		"/api/admin/moderation/audit?moderator_id="+validModeratorID+"&action=approve&start_date=2024-01-01&limit=50", nil)
 	c.Set("user_id", testUserID)
 
 	// Test passes if we don't get a bad request (400) - parameter validation passed
 	// We expect eventual failure due to nil DB, but that's after validation
 	handler.GetModerationAuditLogs(c)
-	
+
 	// Should not be a bad request since parameters are valid
 	if w.Code == http.StatusBadRequest {
 		t.Errorf("Expected valid parameters to not return bad request, got %d", w.Code)
@@ -81,7 +81,7 @@ func TestGetModerationAnalytics_CustomDateRange(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodGet, 
+	c.Request = httptest.NewRequest(http.MethodGet,
 		"/api/admin/moderation/analytics?start_date=2024-01-01&end_date=2024-12-31", nil)
 	c.Set("user_id", testUserID)
 

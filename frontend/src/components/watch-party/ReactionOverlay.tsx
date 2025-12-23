@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { ReactionAnimation } from '@/types/watchParty';
+import type { ReactionAnimation } from '@/types/watch-party';
 
 interface ReactionOverlayProps {
   partyId: string;

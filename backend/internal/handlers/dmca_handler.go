@@ -49,9 +49,9 @@ func (h *DMCAHandler) SubmitTakedownNotice(c *gin.Context) {
 
 	// Return success response (don't expose full notice details)
 	c.JSON(http.StatusCreated, gin.H{
-		"message":    "DMCA takedown notice submitted successfully. We will review your notice and take appropriate action.",
-		"notice_id":  notice.ID,
-		"status":     "pending_review",
+		"message":      "DMCA takedown notice submitted successfully. We will review your notice and take appropriate action.",
+		"notice_id":    notice.ID,
+		"status":       "pending_review",
 		"submitted_at": notice.SubmittedAt,
 	})
 }
@@ -112,7 +112,7 @@ func (h *DMCAHandler) GetUserStrikes(c *gin.Context) {
 	authUID := authenticatedUserID.(uuid.UUID)
 	role, _ := c.Get("role")
 	isAdmin := role == "admin" || role == "moderator"
-	
+
 	if userID != authUID && !isAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You can only view your own DMCA strikes"})
 		return
@@ -283,13 +283,13 @@ func (h *DMCAHandler) GetDashboardStats(c *gin.Context) {
 	// Get dashboard stats from service
 	// In a full implementation, create a service method that calls repo.GetDashboardStats
 	c.JSON(http.StatusOK, gin.H{
-		"pending_notices":          0,
-		"pending_counter_notices":  0,
-		"content_awaiting_removal": 0,
-		"content_awaiting_restore": 0,
-		"users_with_active_strikes": 0,
-		"users_with_two_strikes":   0,
-		"total_takedowns_this_month": 0,
+		"pending_notices":                  0,
+		"pending_counter_notices":          0,
+		"content_awaiting_removal":         0,
+		"content_awaiting_restore":         0,
+		"users_with_active_strikes":        0,
+		"users_with_two_strikes":           0,
+		"total_takedowns_this_month":       0,
 		"total_counter_notices_this_month": 0,
 	})
 }

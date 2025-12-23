@@ -112,7 +112,7 @@ func (c *ChatClient) handleMessage(msg *ClientMessage) {
 // handleChatMessage processes a chat message
 func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 	start := time.Now()
-	
+
 	// Check if DB is available (skip if in test mode)
 	if c.Hub.DB == nil {
 		c.sendError("Database not available")
@@ -166,7 +166,7 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	
+
 	_, err = c.Hub.DB.Exec(ctx,
 		query, messageID, channelUUID, c.UserID, *msg.Content, now, now)
 	if err != nil {
@@ -186,7 +186,7 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 	userQuery := `SELECT display_name, avatar_url FROM users WHERE id = $1`
 	userCtx, userCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer userCancel()
-	
+
 	err = c.Hub.DB.QueryRow(userCtx, userQuery, c.UserID).Scan(&displayName, &avatarURL)
 	if err != nil {
 		displayName = c.Username
@@ -212,7 +212,7 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 	}
 
 	c.Hub.Broadcast <- data
-	
+
 	// Record metrics
 	RecordMessage(c.Hub.ID, MessageTypeMessage)
 	latency := time.Since(start).Seconds()
@@ -239,7 +239,7 @@ func (c *ChatClient) handleTypingIndicator(msg *ClientMessage) {
 
 	// Broadcast directly to local clients only (no Redis pub/sub for typing)
 	c.Hub.broadcastToClients(data)
-	
+
 	// Record metrics
 	RecordMessage(c.Hub.ID, MessageTypeTyping)
 }

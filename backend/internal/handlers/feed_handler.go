@@ -454,7 +454,7 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 
 	// Validate and normalize sort parameter
 	validSorts := map[string]bool{
-		"trending": true, "popular": true, "new": true, 
+		"trending": true, "popular": true, "new": true,
 		"top": true, "discussed": true, "hot": true, "rising": true,
 	}
 	if !validSorts[sort] {

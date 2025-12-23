@@ -38,14 +38,14 @@ func (h *RepositoryHelper) ValidatePagination(limit, offset int) error {
 // EnforcePaginationLimits enforces pagination limits, capping values at max allowed
 func (h *RepositoryHelper) EnforcePaginationLimits(limit, offset *int) {
 	limits := h.analyzer.GetLimits()
-	
+
 	if *limit > limits.MaxResultSize {
 		*limit = limits.MaxResultSize
 	}
 	if *limit <= 0 {
 		*limit = 10 // Default limit
 	}
-	
+
 	if *offset > limits.MaxOffset {
 		*offset = limits.MaxOffset
 	}
@@ -70,12 +70,12 @@ func (h *RepositoryHelper) ExecuteWithTimeout(ctx context.Context, query string,
 	if err := h.ValidateQuery(query); err != nil {
 		return fmt.Errorf("query validation failed: %w", err)
 	}
-	
+
 	// Create timeout context
 	timeout := h.GetQueryTimeout()
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	
+
 	// Execute query
 	_, err := h.pool.Exec(ctxWithTimeout, query, args...)
 	return err

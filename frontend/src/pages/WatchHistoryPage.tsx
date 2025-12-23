@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, useToast } from '@/hooks';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { WatchHistoryEntry } from '@/types/watchHistory';
+import type { WatchHistoryEntry } from '@/types/watchHistory';
 
 type FilterType = 'all' | 'completed' | 'in-progress';
 
@@ -68,7 +68,7 @@ export function WatchHistoryPage() {
       setHistory([]);
       setShowClearConfirm(false);
       addToast('Watch history cleared successfully', 'success');
-      
+
       // Return focus to the clear button
       if (clearButtonRef.current) {
         clearButtonRef.current.focus();
@@ -191,7 +191,7 @@ export function WatchHistoryPage() {
 
       {/* Clear History Confirmation Modal */}
       {showClearConfirm && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
           role="dialog"
           aria-modal="true"
@@ -248,7 +248,7 @@ function WatchHistoryCard({ entry, formatTime, formatDate }: WatchHistoryCardPro
   }
 
   const { clip } = entry;
-  
+
   // Clamp progress percent between 0 and 100
   const progressPercent = Math.max(0, Math.min(100, entry.progress_percent));
 
@@ -268,7 +268,7 @@ function WatchHistoryCard({ entry, formatTime, formatDate }: WatchHistoryCardPro
           />
         )}
         {/* Progress Indicator */}
-        <div 
+        <div
           className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700"
           role="progressbar"
           aria-valuenow={Math.round(progressPercent)}

@@ -89,7 +89,7 @@ func (r *VerificationRepository) GetApplicationByID(ctx context.Context, id uuid
 func (r *VerificationRepository) GetApplicationByUserID(ctx context.Context, userID uuid.UUID, status string) (*models.CreatorVerificationApplication, error) {
 	var query string
 	var args []interface{}
-	
+
 	if status == "" {
 		// Get latest application regardless of status
 		query = `

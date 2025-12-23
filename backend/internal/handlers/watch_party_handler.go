@@ -1335,14 +1335,14 @@ func (h *WatchPartyHandler) GetWatchPartyAnalytics(c *gin.Context) {
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
 		Data: gin.H{
-			"party_id":               analytics.PartyID,
-			"unique_viewers":         analytics.UniqueViewers,
-			"peak_concurrent":        analytics.PeakConcurrentViewers,
-			"current_viewers":        currentViewers,
-			"avg_duration_seconds":   analytics.AvgDurationSeconds,
-			"chat_messages":          analytics.ChatMessages,
-			"reactions":              analytics.Reactions,
-			"total_engagement":       analytics.ChatMessages + analytics.Reactions,
+			"party_id":             analytics.PartyID,
+			"unique_viewers":       analytics.UniqueViewers,
+			"peak_concurrent":      analytics.PeakConcurrentViewers,
+			"current_viewers":      currentViewers,
+			"avg_duration_seconds": analytics.AvgDurationSeconds,
+			"chat_messages":        analytics.ChatMessages,
+			"reactions":            analytics.Reactions,
+			"total_engagement":     analytics.ChatMessages + analytics.Reactions,
 		},
 	})
 }

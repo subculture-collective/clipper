@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/config"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
 
 // TestDistributedRateLimiter tests the Redis-backed distributed rate limiter
@@ -21,7 +21,7 @@ func TestDistributedRateLimiter(t *testing.T) {
 		Password: "",
 		DB:       1, // Use test DB
 	}
-	
+
 	redisClient, err := redispkg.NewClient(cfg)
 	if err != nil {
 		t.Skip("Redis not available for testing:", err)
@@ -152,10 +152,10 @@ func TestDistributedRateLimiter(t *testing.T) {
 		// Only 10 should succeed due to the rate limit
 		numGoroutines := 50
 		successChan := make(chan bool, numGoroutines)
-		
+
 		var wg sync.WaitGroup
 		wg.Add(numGoroutines)
-		
+
 		for i := 0; i < numGoroutines; i++ {
 			go func() {
 				defer wg.Done()
@@ -164,10 +164,10 @@ func TestDistributedRateLimiter(t *testing.T) {
 				successChan <- allowed
 			}()
 		}
-		
+
 		wg.Wait()
 		close(successChan)
-		
+
 		// Count successful requests
 		successCount := 0
 		for allowed := range successChan {
@@ -175,7 +175,7 @@ func TestDistributedRateLimiter(t *testing.T) {
 				successCount++
 			}
 		}
-		
+
 		// Exactly 10 requests should have succeeded (the limit)
 		assert.Equal(t, 10, successCount, "Exactly 10 concurrent requests should be allowed")
 
@@ -214,7 +214,7 @@ func BenchmarkDistributedRateLimiter(b *testing.B) {
 		Password: "",
 		DB:       1,
 	}
-	
+
 	redisClient, err := redispkg.NewClient(cfg)
 	if err != nil {
 		b.Skip("Redis not available for benchmarking:", err)

@@ -213,47 +213,47 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 
 	// For this initial implementation, we'll create a clip record in "processing" state
 	// In a production implementation, this would trigger an async job to extract the video
-	
+
 	// Generate unique clip ID
 	clipID := uuid.New()
 	twitchClipID := fmt.Sprintf("stream_%s_%s", streamer, clipID.String())
-	
+
 	// Create clip record
 	streamSource := "stream"
 	status := "processing"
 	now := time.Now()
-	
+
 	// Use placeholder URLs for user-created clips until video processing is complete
 	placeholderURL := fmt.Sprintf("/clips/%s", clipID.String())
-	
+
 	clip := &models.Clip{
-		ID:               clipID,
-		TwitchClipID:     twitchClipID,
-		TwitchClipURL:    placeholderURL,
-		EmbedURL:         fmt.Sprintf("/clips/%s/embed", clipID.String()),
-		Title:            req.Title,
-		CreatorName:      authenticatedUser.Username,
-		CreatorID:        &authenticatedUser.TwitchID,
-		BroadcasterName:  user.Login,
-		BroadcasterID:    &user.ID,
-		Duration:         &duration,
-		ViewCount:        0,
-		CreatedAt:        now,
-		ImportedAt:       now,
-		VoteScore:        0,
-		CommentCount:     0,
-		FavoriteCount:    0,
-		IsFeatured:       false,
-		IsNSFW:           false,
-		IsRemoved:        false,
-		IsHidden:         false,
+		ID:                clipID,
+		TwitchClipID:      twitchClipID,
+		TwitchClipURL:     placeholderURL,
+		EmbedURL:          fmt.Sprintf("/clips/%s/embed", clipID.String()),
+		Title:             req.Title,
+		CreatorName:       authenticatedUser.Username,
+		CreatorID:         &authenticatedUser.TwitchID,
+		BroadcasterName:   user.Login,
+		BroadcasterID:     &user.ID,
+		Duration:          &duration,
+		ViewCount:         0,
+		CreatedAt:         now,
+		ImportedAt:        now,
+		VoteScore:         0,
+		CommentCount:      0,
+		FavoriteCount:     0,
+		IsFeatured:        false,
+		IsNSFW:            false,
+		IsRemoved:         false,
+		IsHidden:          false,
 		SubmittedByUserID: &userID,
-		SubmittedAt:      &now,
-		StreamSource:     &streamSource,
-		Status:           &status,
-		Quality:          &req.Quality,
-		StartTime:        &req.StartTime,
-		EndTime:          &req.EndTime,
+		SubmittedAt:       &now,
+		StreamSource:      &streamSource,
+		Status:            &status,
+		Quality:           &req.Quality,
+		StartTime:         &req.StartTime,
+		EndTime:           &req.EndTime,
 	}
 
 	// Add stream metadata if available
@@ -481,4 +481,3 @@ func (h *StreamHandler) GetStreamFollowStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
-

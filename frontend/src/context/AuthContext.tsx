@@ -21,13 +21,16 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  console.log('[AuthProvider] Initializing...')
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing session on mount
   const checkAuth = useCallback(async () => {
     try {
+      console.log('[AuthContext] Starting checkAuth...')
       const currentUser = await getCurrentUser();
+      console.log('[AuthContext] Got current user:', currentUser)
       setUser(currentUser);
       // Set user context in Sentry
       setSentryUser(currentUser.id, currentUser.username);
@@ -41,12 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         is_verified: currentUser.is_verified || false,
       };
       identifyUser(currentUser.id, userProperties);
-    } catch {
+    } catch (error) {
       // Not authenticated or session expired
+      console.log('[AuthContext] No auth or error:', error)
       setUser(null);
       clearSentryUser();
       resetUser();
     } finally {
+      console.log('[AuthContext] Setting isLoading to false')
       setIsLoading(false);
     }
   }, []);
@@ -68,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       trackEvent(AuthEvents.LOGOUT, {
         page_path: pagePath,
       });
-      
+
       await logoutApi();
     } catch (error) {
       console.error('Logout error:', error);

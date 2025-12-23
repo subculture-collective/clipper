@@ -43,13 +43,13 @@ func DecodeCursor(cursorStr string) (*Cursor, error) {
 	// Validate sortKey to prevent injection attacks
 	sortKey := parts[0]
 	validSortKeys := map[string]bool{
-		"trending": true,
-		"popular":  true,
-		"new":      true,
-		"top":      true,
+		"trending":  true,
+		"popular":   true,
+		"new":       true,
+		"top":       true,
 		"discussed": true,
-		"hot":      true,
-		"rising":   true,
+		"hot":       true,
+		"rising":    true,
 	}
 	if !validSortKeys[sortKey] {
 		return nil, fmt.Errorf("invalid cursor format: invalid sort key %q", sortKey)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChannelSidebar, ChatView, EmptyState } from '@/components/chat';
-import { Channel } from '@/types/chat';
+import type { Channel } from '@/types/chat';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 
@@ -31,17 +31,17 @@ export function ChatPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch channels from API
       const response = await fetch('/api/chat/channels');
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch channels');
       }
-      
+
       const data = await response.json();
       setChannels(data.channels || data || []);
-      
+
       // Auto-select first channel if available
       if ((data.channels || data).length > 0 && !selectedChannel) {
         setSelectedChannel((data.channels || data)[0].id);
@@ -50,7 +50,7 @@ export function ChatPage() {
       console.error('Error fetching channels:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Failed to load channels: ${errorMessage}. Please check your connection and try again.`);
-      
+
       // For development: Create mock channels if API fails
       if (import.meta.env.DEV) {
         const mockChannels: Channel[] = [
@@ -168,7 +168,7 @@ export function ChatPage() {
             </Alert>
           </div>
         )}
-        
+
         {selectedChannel ? (
           <ChatView
             channelId={selectedChannel}

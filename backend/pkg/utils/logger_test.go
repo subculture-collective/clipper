@@ -106,7 +106,7 @@ func TestRedactPIIFromFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := RedactPIIFromFields(tt.input)
-			
+
 			// Check each field
 			for key, expectedValue := range tt.expected {
 				actualValue, ok := result[key]
@@ -114,7 +114,7 @@ func TestRedactPIIFromFields(t *testing.T) {
 					t.Errorf("Field %s missing in result", key)
 					continue
 				}
-				
+
 				// Compare values
 				if actualValue != expectedValue {
 					t.Errorf("Field %s = %v, want %v", key, actualValue, expectedValue)
@@ -126,20 +126,20 @@ func TestRedactPIIFromFields(t *testing.T) {
 
 func TestLogLevels(t *testing.T) {
 	logger := NewStructuredLogger(LogLevelInfo)
-	
+
 	// Test that shouldLog correctly filters levels
 	if !logger.shouldLog(LogLevelInfo) {
 		t.Error("Should log INFO when min level is INFO")
 	}
-	
+
 	if !logger.shouldLog(LogLevelError) {
 		t.Error("Should log ERROR when min level is INFO")
 	}
-	
+
 	if logger.shouldLog(LogLevelDebug) {
 		t.Error("Should not log DEBUG when min level is INFO")
 	}
-	
+
 	if !logger.shouldLog(LogLevelFatal) {
 		t.Error("Should log FATAL when min level is INFO")
 	}
@@ -150,17 +150,17 @@ func TestHashForLogging(t *testing.T) {
 	value := "test@example.com"
 	hash1 := hashForLogging(value)
 	hash2 := hashForLogging(value)
-	
+
 	if hash1 != hash2 {
 		t.Error("Hash should be consistent for the same value")
 	}
-	
+
 	// Test that different values produce different hashes
 	hash3 := hashForLogging("different@example.com")
 	if hash1 == hash3 {
 		t.Error("Different values should produce different hashes")
 	}
-	
+
 	// Test that hash doesn't contain original value
 	if strings.Contains(hash1, "test") || strings.Contains(hash1, "example") {
 		t.Error("Hash should not contain parts of original value")

@@ -65,7 +65,7 @@ func TestCanAccessResource_OwnershipRequired(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			checker := &MockChecker{isOwner: tt.isOwner}
-			
+
 			authCtx := &AuthorizationContext{
 				UserID:       userID,
 				User:         tt.user,
@@ -126,7 +126,7 @@ func TestCanAccessResource_RoleBasedAccess(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			checker := &MockChecker{isOwner: false}
-			
+
 			authCtx := &AuthorizationContext{
 				UserID:       userID,
 				User:         tt.user,
@@ -154,7 +154,7 @@ func TestCanAccessResource_PublicAccess(t *testing.T) {
 	}
 
 	checker := &MockChecker{isOwner: false}
-	
+
 	authCtx := &AuthorizationContext{
 		UserID:       userID,
 		User:         user,
@@ -211,7 +211,7 @@ func TestCanAccessResource_AccountTypePermissions(t *testing.T) {
 			}
 
 			checker := &MockChecker{isOwner: false}
-			
+
 			authCtx := &AuthorizationContext{
 				UserID:       userID,
 				User:         user,
@@ -280,9 +280,9 @@ func TestPermissionMatrix_UserRules(t *testing.T) {
 		shouldExist  bool
 		requireOwner bool
 	}{
-		{ActionRead, true, false},   // Public profiles
-		{ActionUpdate, true, true},  // Only owner can update
-		{ActionDelete, true, true},  // Owner or admin can delete
+		{ActionRead, true, false},  // Public profiles
+		{ActionUpdate, true, true}, // Only owner can update
+		{ActionDelete, true, true}, // Owner or admin can delete
 	}
 
 	for _, rule := range userRules {
@@ -340,7 +340,7 @@ func TestCanAccessResource_NoRuleFound(t *testing.T) {
 	}
 
 	checker := &MockChecker{isOwner: false}
-	
+
 	// Use a non-existent resource type
 	authCtx := &AuthorizationContext{
 		UserID:       userID,

@@ -13,11 +13,11 @@ import (
 
 // Server represents the WebSocket server
 type Server struct {
-	DB          *pgxpool.Pool
-	Redis       *redis.Client
-	Upgrader    websocket.Upgrader
-	Hubs        map[string]*ChannelHub
-	HubsMux     sync.RWMutex
+	DB           *pgxpool.Pool
+	Redis        *redis.Client
+	Upgrader     websocket.Upgrader
+	Hubs         map[string]*ChannelHub
+	HubsMux      sync.RWMutex
 	shutdownOnce sync.Once
 }
 
@@ -70,7 +70,7 @@ func (s *Server) GetOrCreateHub(channelID string) *ChannelHub {
 		s.Hubs[channelID] = hub
 		go hub.Run()
 		log.Printf("Created new hub for channel: %s", channelID)
-		
+
 		// Update active channels metric
 		SetActiveChannels(len(s.Hubs))
 	}

@@ -28,11 +28,11 @@ type CDNProvider interface {
 
 // CDNProviderMetrics represents metrics from a CDN provider
 type CDNProviderMetrics struct {
-	Bandwidth     float64 // GB transferred
-	Requests      int64   // Total requests
-	CacheHitRate  float64 // Percentage (0-100)
-	AvgLatencyMs  float64 // Average latency in milliseconds
-	CostUSD       float64 // Estimated cost in USD
+	Bandwidth    float64 // GB transferred
+	Requests     int64   // Total requests
+	CacheHitRate float64 // Percentage (0-100)
+	AvgLatencyMs float64 // Average latency in milliseconds
+	CostUSD      float64 // Estimated cost in USD
 }
 
 // CDNRepositoryContract captures repository calls CDNService relies on.

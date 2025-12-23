@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import {
+import type {
   WatchPartySyncEvent,
   WatchPartyCommand,
   WatchPartyMessage,
@@ -50,7 +50,7 @@ export function useWatchPartyWebSocket({
       // Get WebSocket URL from environment or default
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = import.meta.env.VITE_WS_HOST || window.location.host;
-      
+
       // Get auth token from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
@@ -64,7 +64,7 @@ export function useWatchPartyWebSocket({
       // 2. Is encrypted by WSS/HTTPS
       // 3. Follows WebSocket authentication best practices
       const wsUrl = `${wsProtocol}//${wsHost}/api/v1/watch-parties/${partyId}/ws`;
-      
+
       // Pass token as subprotocol - server will extract it from Sec-WebSocket-Protocol header
       // Format: "auth.bearer.<base64_token>" to avoid protocol name conflicts
       const authProtocol = `auth.bearer.${btoa(token)}`;
@@ -76,7 +76,7 @@ export function useWatchPartyWebSocket({
         setError(null);
         reconnectAttemptsRef.current = 0;
         console.log(`Connected to watch party: ${partyId}`);
-        
+
         // Request initial sync
         sendCommand({ type: 'sync-request' });
       };
@@ -84,7 +84,7 @@ export function useWatchPartyWebSocket({
       ws.onmessage = (event) => {
         try {
           const syncEvent = JSON.parse(event.data) as WatchPartySyncEvent;
-          
+
           // Call the general sync event handler
           onSyncEvent?.(syncEvent);
 
@@ -125,9 +125,9 @@ export function useWatchPartyWebSocket({
           const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           const attemptNumber = reconnectAttemptsRef.current + 1;
           reconnectAttemptsRef.current = attemptNumber;
-          
+
           console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${attemptNumber}/${maxReconnectAttempts})`);
-          
+
           reconnectTimeoutRef.current = window.setTimeout(() => {
             connect();
           }, backoffDelay);

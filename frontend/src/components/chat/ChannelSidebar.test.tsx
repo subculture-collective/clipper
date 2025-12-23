@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ChannelSidebar } from './ChannelSidebar';
-import { Channel } from '@/types/chat';
+import type { Channel } from '@/types/chat';
 
 describe('ChannelSidebar', () => {
   const mockChannels: Channel[] = [

@@ -138,7 +138,7 @@ func (r *QueueRepository) AddItemAtTop(ctx context.Context, item *models.QueueIt
 		VALUES ($1, $2, $3, 1, NOW())
 		RETURNING created_at, updated_at, added_at
 	`, item.ID, item.UserID, item.ClipID).Scan(&item.CreatedAt, &item.UpdatedAt, &item.AddedAt)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to add queue item: %w", err)
 	}

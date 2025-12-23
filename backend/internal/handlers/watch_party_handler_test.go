@@ -17,7 +17,7 @@ func TestCreateWatchParty_Unauthorized(t *testing.T) {
 
 	// We can't easily create a handler without real dependencies due to Go's structural typing,
 	// so this test verifies the handler rejects requests without authentication context
-	
+
 	requestBody := map[string]interface{}{
 		"title": "Test Party",
 	}
@@ -132,7 +132,7 @@ func TestWebSocketUpgrade_RequiresAuth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	partyID := uuid.New()
-	
+
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/watch-parties/"+partyID.String()+"/ws", nil)
@@ -329,7 +329,7 @@ func TestJoinWatchParty_PasswordValidation(t *testing.T) {
 		hasPassword bool
 	}{
 		{
-			name:        "with password",
+			name: "with password",
 			requestBody: map[string]interface{}{
 				"password": "testpassword",
 			},
@@ -444,15 +444,14 @@ func TestAnalyticsStructures(t *testing.T) {
 	}
 
 	hostStats := map[string]interface{}{
-		"total_parties_hosted": 5,
-		"total_viewers":        100,
+		"total_parties_hosted":  5,
+		"total_viewers":         100,
 		"avg_viewers_per_party": 20.0,
-		"total_chat_messages":  250,
-		"total_reactions":      125,
+		"total_chat_messages":   250,
+		"total_reactions":       125,
 	}
 
 	if hostStats["total_parties_hosted"] != 5 {
 		t.Error("Host stats structure should contain total_parties_hosted")
 	}
 }
-

@@ -19,12 +19,12 @@ const (
 
 // RegionHealth represents the health status of a region
 type RegionHealth struct {
-	Region       string       `json:"region"`
-	Status       HealthStatus `json:"status"`
-	Latency      float64      `json:"latency_ms"`
-	ErrorRate    float64      `json:"error_rate"`
-	LastCheck    time.Time    `json:"last_check"`
-	Message      string       `json:"message,omitempty"`
+	Region    string       `json:"region"`
+	Status    HealthStatus `json:"status"`
+	Latency   float64      `json:"latency_ms"`
+	ErrorRate float64      `json:"error_rate"`
+	LastCheck time.Time    `json:"last_check"`
+	Message   string       `json:"message,omitempty"`
 }
 
 // HealthCheckService monitors the health of mirrors and CDN endpoints
@@ -53,7 +53,7 @@ func NewHealthCheckService(
 // CheckRegionHealth checks the health of a specific region
 func (s *HealthCheckService) CheckRegionHealth(ctx context.Context, region string) (*RegionHealth, error) {
 	start := time.Now()
-	
+
 	health := &RegionHealth{
 		Region:    region,
 		Status:    HealthStatusHealthy,
@@ -65,7 +65,7 @@ func (s *HealthCheckService) CheckRegionHealth(ctx context.Context, region strin
 	// 2. Check database connectivity
 	// 3. Verify mirror availability
 	// 4. Test CDN performance
-	
+
 	// For now, we'll simulate a health check
 	latency := time.Since(start).Milliseconds()
 	health.Latency = float64(latency)
@@ -203,12 +203,12 @@ func (s *HealthCheckService) GetOverallHealth() HealthStatus {
 	}
 
 	total := len(s.healthCache)
-	
+
 	// If more than 50% are unhealthy, overall is unhealthy
 	if float64(unhealthyCount)/float64(total) > 0.5 {
 		return HealthStatusUnhealthy
 	}
-	
+
 	// If more than 30% are degraded or unhealthy, overall is degraded
 	if float64(degradedCount+unhealthyCount)/float64(total) > 0.3 {
 		return HealthStatusDegraded

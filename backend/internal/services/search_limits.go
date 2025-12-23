@@ -73,18 +73,18 @@ func DefaultSearchLimits() SearchLimits {
 
 // SearchQueryValidator validates OpenSearch queries against limits
 type SearchQueryValidator struct {
-	limits           SearchLimits
-	allowedFields    map[string]bool
-	allowedOperators map[string]bool
+	limits            SearchLimits
+	allowedFields     map[string]bool
+	allowedOperators  map[string]bool
 	dangerousPatterns []string
 }
 
 // NewSearchQueryValidator creates a new search query validator
 func NewSearchQueryValidator(limits SearchLimits) *SearchQueryValidator {
 	return &SearchQueryValidator{
-		limits:           limits,
-		allowedFields:    getAllowedSearchFields(),
-		allowedOperators: getAllowedQueryOperators(),
+		limits:            limits,
+		allowedFields:     getAllowedSearchFields(),
+		allowedOperators:  getAllowedQueryOperators(),
 		dangerousPatterns: getDangerousPatterns(),
 	}
 }
@@ -107,25 +107,25 @@ func (v *SearchQueryValidator) ValidateAggregations(aggs map[string]interface{})
 	if len(aggs) == 0 {
 		return nil
 	}
-	
+
 	// Check aggregation depth
 	maxDepth := v.getMaxAggregationDepth(aggs, 0)
 	if maxDepth > v.limits.MaxAggregationNest {
 		return fmt.Errorf("%w: depth %d (max: %d)", ErrAggregationDepthTooDeep, maxDepth, v.limits.MaxAggregationNest)
 	}
-	
+
 	// Check aggregation sizes
 	if err := v.validateAggregationSizes(aggs); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 // getMaxAggregationDepth recursively calculates the maximum nesting depth of aggregations
 func (v *SearchQueryValidator) getMaxAggregationDepth(aggs map[string]interface{}, currentDepth int) int {
 	maxDepth := currentDepth
-	
+
 	for _, aggValue := range aggs {
 		if aggMap, ok := aggValue.(map[string]interface{}); ok {
 			// Check if there are nested aggregations
@@ -144,7 +144,7 @@ func (v *SearchQueryValidator) getMaxAggregationDepth(aggs map[string]interface{
 			}
 		}
 	}
-	
+
 	return maxDepth
 }
 
@@ -156,19 +156,19 @@ func (v *SearchQueryValidator) validateAggregationSizes(aggs map[string]interfac
 			if terms, hasTerms := aggMap["terms"].(map[string]interface{}); hasTerms {
 				if size, hasSize := terms["size"].(float64); hasSize {
 					if int(size) > v.limits.MaxAggregationSize {
-						return fmt.Errorf("%w for '%s': requested %d (max: %d)", 
+						return fmt.Errorf("%w for '%s': requested %d (max: %d)",
 							ErrAggregationSizeTooLarge, aggName, int(size), v.limits.MaxAggregationSize)
 					}
 				}
 				// Also check as int
 				if size, hasSize := terms["size"].(int); hasSize {
 					if size > v.limits.MaxAggregationSize {
-						return fmt.Errorf("%w for '%s': requested %d (max: %d)", 
+						return fmt.Errorf("%w for '%s': requested %d (max: %d)",
 							ErrAggregationSizeTooLarge, aggName, size, v.limits.MaxAggregationSize)
 					}
 				}
 			}
-			
+
 			// Recursively check nested aggregations
 			if nestedAggs, hasNested := aggMap["aggs"].(map[string]interface{}); hasNested {
 				if err := v.validateAggregationSizes(nestedAggs); err != nil {
@@ -197,7 +197,7 @@ func (v *SearchQueryValidator) ValidateQueryClauses(query map[string]interface{}
 // countQueryClauses recursively counts the number of clauses in a query
 func (v *SearchQueryValidator) countQueryClauses(query map[string]interface{}) int {
 	count := 0
-	
+
 	for key, value := range query {
 		switch key {
 		case "must", "should", "must_not", "filter":
@@ -219,7 +219,7 @@ func (v *SearchQueryValidator) countQueryClauses(query map[string]interface{}) i
 			}
 		}
 	}
-	
+
 	return count
 }
 
@@ -229,13 +229,13 @@ func (v *SearchQueryValidator) EnforceSearchLimits(size *int, from *int) {
 	if size != nil && *size > v.limits.MaxResultSize {
 		*size = v.limits.MaxResultSize
 	}
-	
+
 	// Ensure size is at least 1 if specified
 	if size != nil && *size < 1 {
 		defaultSize := 10
 		*size = defaultSize
 	}
-	
+
 	// Enforce maximum and minimum offset for 'from'
 	if from != nil {
 		if *from > v.limits.MaxOffset {
@@ -295,7 +295,7 @@ func getAllowedSearchFields() map[string]bool {
 		"comment_count",
 		"favorite_count",
 	}
-	
+
 	fieldMap := make(map[string]bool, len(fields))
 	for _, field := range fields {
 		fieldMap[field] = true
@@ -321,11 +321,11 @@ func getAllowedQueryOperators() map[string]bool {
 		"match_all",
 		"function_score",
 		"field_value_factor",
-		"query",  // Add query key which is commonly used
+		"query", // Add query key which is commonly used
 		"aggs",
 		"aggregations",
 	}
-	
+
 	operatorMap := make(map[string]bool, len(operators))
 	for _, op := range operators {
 		operatorMap[op] = true
@@ -361,17 +361,17 @@ func (v *SearchQueryValidator) ValidateQueryStructure(query map[string]interface
 	if err := v.checkDangerousPatterns(query); err != nil {
 		return err
 	}
-	
+
 	// Validate field access
 	if err := v.validateFieldAccess(query); err != nil {
 		return err
 	}
-	
+
 	// Validate operators
 	if err := v.validateOperators(query); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -386,7 +386,7 @@ func (v *SearchQueryValidator) checkDangerousPatterns(obj interface{}) error {
 					return fmt.Errorf("%w: found '%s' in query key", ErrDangerousQueryPattern, pattern)
 				}
 			}
-			
+
 			// Recursively check value
 			if err := v.checkDangerousPatterns(value); err != nil {
 				return err
@@ -406,7 +406,7 @@ func (v *SearchQueryValidator) checkDangerousPatterns(obj interface{}) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -422,7 +422,7 @@ func (v *SearchQueryValidator) validateFieldAccess(obj interface{}) error {
 				}
 				continue // Skip further processing for this key
 			}
-			
+
 			// For leaf-level query operators (match, term, etc.), check the field names
 			if v.isLeafQueryOperator(key) {
 				if fieldMap, ok := value.(map[string]interface{}); ok {
@@ -434,7 +434,7 @@ func (v *SearchQueryValidator) validateFieldAccess(obj interface{}) error {
 					}
 				}
 			}
-			
+
 			// Recursively validate nested structures
 			if err := v.validateFieldAccess(value); err != nil {
 				return err
@@ -447,7 +447,7 @@ func (v *SearchQueryValidator) validateFieldAccess(obj interface{}) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -479,7 +479,7 @@ func (v *SearchQueryValidator) isFieldAllowed(field string) bool {
 			break
 		}
 	}
-	
+
 	// Handle wildcard notation (e.g., "title.*")
 	for idx := 0; idx < len(field); idx++ {
 		if field[idx] == '*' {
@@ -490,7 +490,7 @@ func (v *SearchQueryValidator) isFieldAllowed(field string) bool {
 			break
 		}
 	}
-	
+
 	return v.allowedFields[field]
 }
 
@@ -503,7 +503,7 @@ func (v *SearchQueryValidator) validateOperators(obj interface{}) error {
 			if v.looksLikeOperator(key) && !v.allowedOperators[key] {
 				return fmt.Errorf("%w: '%s'", ErrInvalidQueryOperator, key)
 			}
-			
+
 			// Recursively validate nested structures
 			if err := v.validateOperators(value); err != nil {
 				return err
@@ -516,7 +516,7 @@ func (v *SearchQueryValidator) validateOperators(obj interface{}) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -528,12 +528,12 @@ func (v *SearchQueryValidator) isQueryOperator(key string) bool {
 // isLeafQueryOperator checks if a key is a leaf-level query operator that directly contains field names
 func (v *SearchQueryValidator) isLeafQueryOperator(key string) bool {
 	leafOperators := map[string]bool{
-		"match":              true,
-		"term":               true,
-		"terms":              true,
-		"match_phrase":       true,
+		"match":               true,
+		"term":                true,
+		"terms":               true,
+		"match_phrase":        true,
 		"match_phrase_prefix": true,
-		"range":              true,
+		"range":               true,
 	}
 	return leafOperators[key]
 }

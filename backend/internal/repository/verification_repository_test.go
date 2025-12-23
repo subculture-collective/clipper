@@ -39,11 +39,11 @@ func TestGetApplicationByUserID_StatusFiltering(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test validates the conditional query logic
 			// Full integration tests would require database connection
-			
+
 			// Simulate query building logic
 			var args []interface{}
 			userID := uuid.New()
-			
+
 			if tt.status == "" {
 				// Query without status filter
 				args = []interface{}{userID}
@@ -51,12 +51,12 @@ func TestGetApplicationByUserID_StatusFiltering(t *testing.T) {
 				// Query with status filter
 				args = []interface{}{userID, tt.status}
 			}
-			
+
 			expectedArgCount := 1
 			if tt.expectFilter {
 				expectedArgCount = 2
 			}
-			
+
 			if len(args) != expectedArgCount {
 				t.Errorf("Expected %d args, got %d", expectedArgCount, len(args))
 			}
@@ -97,7 +97,7 @@ func TestListApplications_StatusParameter(t *testing.T) {
 // TestUpdateApplicationStatus_ValidStatuses tests valid status transitions
 func TestUpdateApplicationStatus_ValidStatuses(t *testing.T) {
 	validStatuses := []string{"pending", "approved", "rejected"}
-	
+
 	for _, status := range validStatuses {
 		t.Run("Status_"+status, func(t *testing.T) {
 			// Validate that status values are in expected set
@@ -108,7 +108,7 @@ func TestUpdateApplicationStatus_ValidStatuses(t *testing.T) {
 					break
 				}
 			}
-			
+
 			if !isValid {
 				t.Errorf("Status %s should be valid", status)
 			}
@@ -120,14 +120,14 @@ func TestUpdateApplicationStatus_ValidStatuses(t *testing.T) {
 func TestGetApplicationStats_Calculation(t *testing.T) {
 	// This test validates the stats query structure
 	// It uses COUNT with FILTER clauses for different statuses
-	
+
 	expectedFilters := []string{
 		"status = 'pending'",
 		"status = 'approved'",
 		"status = 'rejected'",
 		"is_verified = true",
 	}
-	
+
 	if len(expectedFilters) != 4 {
 		t.Errorf("Expected 4 stat filters, got %d", len(expectedFilters))
 	}

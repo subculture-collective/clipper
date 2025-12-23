@@ -14,10 +14,10 @@ func TestExtractToken_SubprotocolAndHeaders(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
-		name           string
-		setupRequest   func(*gin.Context)
-		expectedToken  string
-		description    string
+		name          string
+		setupRequest  func(*gin.Context)
+		expectedToken string
+		description   string
 	}{
 		{
 			name: "token from Authorization header",
@@ -109,9 +109,9 @@ func TestExtractToken_SubprotocolAndHeaders(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			c.Request = httptest.NewRequest(http.MethodGet, "/test", nil)
-			
+
 			tt.setupRequest(c)
-			
+
 			token := extractToken(c)
 			assert.Equal(t, tt.expectedToken, token, tt.description)
 		})
@@ -126,21 +126,21 @@ func TestExtractToken_WebSocketScenario(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(
-		http.MethodGet, 
+		http.MethodGet,
 		"/api/v1/watch-parties/123/ws",
 		nil,
 	)
 	c.Request.Header.Set("Upgrade", "websocket")
 	c.Request.Header.Set("Connection", "Upgrade")
-	
+
 	// Token passed via Sec-WebSocket-Protocol header (not in URL)
 	jwtToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
 	encodedToken := base64.StdEncoding.EncodeToString([]byte(jwtToken))
 	c.Request.Header.Set("Sec-WebSocket-Protocol", "auth.bearer."+encodedToken)
 
 	token := extractToken(c)
-	
-	assert.Equal(t, jwtToken, token, 
+
+	assert.Equal(t, jwtToken, token,
 		"Should extract JWT token from subprotocol for WebSocket connections")
 	assert.NotEmpty(t, token, "Token should not be empty for authenticated WebSocket")
 }

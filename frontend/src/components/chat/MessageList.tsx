@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ChatMessage } from '@/types/chat';
+import type { ChatMessage } from '@/types/chat';
 import { MessageItem } from './MessageItem';
 import { Spinner } from '@/components/ui/Spinner';
 

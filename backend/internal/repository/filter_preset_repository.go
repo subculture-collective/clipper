@@ -31,7 +31,7 @@ func (r *FilterPresetRepository) CreatePreset(ctx context.Context, preset *model
 
 	// Check if user already has 10 presets (max limit) within the transaction
 	var count int
-	err = tx.QueryRow(ctx, 
+	err = tx.QueryRow(ctx,
 		`SELECT COUNT(*) FROM user_filter_presets WHERE user_id = $1`,
 		preset.UserID,
 	).Scan(&count)
@@ -47,7 +47,7 @@ func (r *FilterPresetRepository) CreatePreset(ctx context.Context, preset *model
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at
 	`
-	
+
 	err = tx.QueryRow(ctx, query,
 		preset.ID, preset.UserID, preset.Name, preset.FiltersJSON,
 		preset.CreatedAt, preset.UpdatedAt,
@@ -71,17 +71,17 @@ func (r *FilterPresetRepository) GetPresetByID(ctx context.Context, presetID uui
 		FROM user_filter_presets
 		WHERE id = $1
 	`
-	
+
 	preset := &models.UserFilterPreset{}
 	err := r.pool.QueryRow(ctx, query, presetID).Scan(
 		&preset.ID, &preset.UserID, &preset.Name, &preset.FiltersJSON,
 		&preset.CreatedAt, &preset.UpdatedAt,
 	)
-	
+
 	if err == pgx.ErrNoRows {
 		return nil, ErrPresetNotFound
 	}
-	
+
 	return preset, err
 }
 
@@ -93,13 +93,13 @@ func (r *FilterPresetRepository) GetUserPresets(ctx context.Context, userID uuid
 		WHERE user_id = $1
 		ORDER BY created_at DESC
 	`
-	
+
 	rows, err := r.pool.Query(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	presets := []*models.UserFilterPreset{}
 	for rows.Next() {
 		preset := &models.UserFilterPreset{}
@@ -112,7 +112,7 @@ func (r *FilterPresetRepository) GetUserPresets(ctx context.Context, userID uuid
 		}
 		presets = append(presets, preset)
 	}
-	
+
 	return presets, rows.Err()
 }
 
@@ -124,7 +124,7 @@ func (r *FilterPresetRepository) UpdatePreset(ctx context.Context, preset *model
 		WHERE id = $1
 		RETURNING updated_at
 	`
-	
+
 	return r.pool.QueryRow(ctx, query,
 		preset.ID, preset.Name, preset.FiltersJSON,
 	).Scan(&preset.UpdatedAt)
@@ -137,11 +137,11 @@ func (r *FilterPresetRepository) DeletePreset(ctx context.Context, presetID uuid
 	if err != nil {
 		return err
 	}
-	
+
 	if result.RowsAffected() == 0 {
 		return ErrPresetNotFound
 	}
-	
+
 	return nil
 }
 

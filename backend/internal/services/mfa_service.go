@@ -52,7 +52,7 @@ const (
 	// Security configuration
 	// maxFailedAttempts = 5
 	// lockoutDuration   = 1 * time.Hour
-	trustedDeviceTTL  = 30 * 24 * time.Hour // 30 days
+	trustedDeviceTTL = 30 * 24 * time.Hour // 30 days
 
 	// Rate limiting
 	rateLimitWindow = 15 * time.Minute

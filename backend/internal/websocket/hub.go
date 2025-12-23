@@ -32,8 +32,8 @@ func NewChannelHub(channelID string, db *pgxpool.Pool, redisClient *redis.Client
 		ID:         channelID,
 		Clients:    make(map[*ChatClient]bool),
 		Broadcast:  make(chan []byte, 256),
-		Register:   make(chan *ChatClient, 10),   // Buffered to prevent blocking
-		Unregister: make(chan *ChatClient, 10),   // Buffered to prevent blocking
+		Register:   make(chan *ChatClient, 10), // Buffered to prevent blocking
+		Unregister: make(chan *ChatClient, 10), // Buffered to prevent blocking
 		DB:         db,
 		Redis:      redisClient,
 		Stop:       make(chan struct{}),
@@ -48,12 +48,12 @@ func (h *ChannelHub) Run() {
 	// Subscribe to Redis pub/sub for this channel if Redis is available
 	var pubsub *redis.PubSub
 	var redisChan <-chan *redis.Message
-	
+
 	if h.Redis != nil {
 		// Use a cancellable context for Redis subscription
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		
+
 		pubsub = h.Redis.Subscribe(ctx, fmt.Sprintf("chat:%s", h.ID))
 		defer pubsub.Close()
 		redisChan = pubsub.Channel()
@@ -167,7 +167,7 @@ func (h *ChannelHub) handleUnregister(client *ChatClient) {
 // This ensures consistent message delivery across all instances
 func (h *ChannelHub) handleBroadcast(message []byte) {
 	start := time.Now()
-	
+
 	// Publish to Redis for all instances (if Redis is available)
 	if h.Redis != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -184,7 +184,7 @@ func (h *ChannelHub) handleBroadcast(message []byte) {
 		// No Redis available, broadcast locally only
 		h.broadcastToClients(message)
 	}
-	
+
 	// Record broadcast duration metric
 	duration := time.Since(start).Seconds()
 	RecordBroadcastDuration(h.ID, duration)

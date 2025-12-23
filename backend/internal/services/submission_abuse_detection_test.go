@@ -105,14 +105,14 @@ func TestSubmissionAbuseDetector_CheckSubmissionAbuse_BlocksVelocityViolation(t 
 	for i := 0; i < velocityThreshold; i++ {
 		result, err := detector.CheckSubmissionAbuse(ctx, userID, ip, deviceFingerprint)
 		require.NoError(t, err)
-		
+
 		// If this is the 2nd submission, it might trigger burst (burst threshold = 2)
 		// Clear burst counter to avoid blocking subsequent velocity checks
 		if i == 1 {
 			burstKey := fmt.Sprintf("submission:burst:%s", userID.String())
 			_ = redisClient.Delete(ctx, burstKey)
 		}
-		
+
 		assert.True(t, result.Allowed, "Submission %d should be allowed", i+1)
 		time.Sleep(50 * time.Millisecond)
 	}

@@ -97,7 +97,7 @@ func TestValidateQueryStructure_DangerousPatterns(t *testing.T) {
 			query: map[string]interface{}{
 				"runtime_mappings": map[string]interface{}{
 					"field": map[string]interface{}{
-						"type": "keyword",
+						"type":   "keyword",
 						"script": "emit(doc['field'].value)",
 					},
 				},

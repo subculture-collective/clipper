@@ -108,52 +108,52 @@ func TestGetResumePosition_Unauthenticated(t *testing.T) {
 
 func TestProgressPercentCalculation(t *testing.T) {
 	tests := []struct {
-		name            string
-		progressSeconds int
-		durationSeconds int
-		expectedPercent float64
+		name             string
+		progressSeconds  int
+		durationSeconds  int
+		expectedPercent  float64
 		expectedComplete bool
 	}{
 		{
-			name:            "0% progress",
-			progressSeconds: 0,
-			durationSeconds: 100,
-			expectedPercent: 0.0,
+			name:             "0% progress",
+			progressSeconds:  0,
+			durationSeconds:  100,
+			expectedPercent:  0.0,
 			expectedComplete: false,
 		},
 		{
-			name:            "50% progress",
-			progressSeconds: 50,
-			durationSeconds: 100,
-			expectedPercent: 50.0,
+			name:             "50% progress",
+			progressSeconds:  50,
+			durationSeconds:  100,
+			expectedPercent:  50.0,
 			expectedComplete: false,
 		},
 		{
-			name:            "90% progress - completed",
-			progressSeconds: 90,
-			durationSeconds: 100,
-			expectedPercent: 90.0,
+			name:             "90% progress - completed",
+			progressSeconds:  90,
+			durationSeconds:  100,
+			expectedPercent:  90.0,
 			expectedComplete: true,
 		},
 		{
-			name:            "95% progress - completed",
-			progressSeconds: 95,
-			durationSeconds: 100,
-			expectedPercent: 95.0,
+			name:             "95% progress - completed",
+			progressSeconds:  95,
+			durationSeconds:  100,
+			expectedPercent:  95.0,
 			expectedComplete: true,
 		},
 		{
-			name:            "100% progress - completed",
-			progressSeconds: 100,
-			durationSeconds: 100,
-			expectedPercent: 100.0,
+			name:             "100% progress - completed",
+			progressSeconds:  100,
+			durationSeconds:  100,
+			expectedPercent:  100.0,
 			expectedComplete: true,
 		},
 		{
-			name:            "89% progress - not completed",
-			progressSeconds: 89,
-			durationSeconds: 100,
-			expectedPercent: 89.0,
+			name:             "89% progress - not completed",
+			progressSeconds:  89,
+			durationSeconds:  100,
+			expectedPercent:  89.0,
 			expectedComplete: false,
 		},
 	}

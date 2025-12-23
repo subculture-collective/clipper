@@ -77,18 +77,18 @@ func (l *StructuredLogger) log(entry *LogEntry) {
 	}
 
 	entry.Timestamp = time.Now().UTC().Format(time.RFC3339)
-	
+
 	// Redact PII from message and error
 	entry.Message = RedactPII(entry.Message)
 	if entry.Error != "" {
 		entry.Error = RedactPII(entry.Error)
 	}
-	
+
 	// Redact PII from fields
 	if entry.Fields != nil {
 		entry.Fields = RedactPIIFromFields(entry.Fields)
 	}
-	
+
 	data, err := json.Marshal(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to marshal log entry: %v\n", err)
@@ -313,11 +313,11 @@ func RedactPIIFromFields(fields map[string]interface{}) map[string]interface{} {
 	if fields == nil {
 		return nil
 	}
-	
+
 	redacted := make(map[string]interface{})
 	for key, value := range fields {
 		lowerKey := strings.ToLower(key)
-		
+
 		// Redact sensitive field names
 		if strings.Contains(lowerKey, "password") ||
 			strings.Contains(lowerKey, "secret") ||
@@ -329,7 +329,7 @@ func RedactPIIFromFields(fields map[string]interface{}) map[string]interface{} {
 			redacted[key] = "[REDACTED]"
 			continue
 		}
-		
+
 		// Redact PII from string values
 		if str, ok := value.(string); ok {
 			redacted[key] = RedactPII(str)
@@ -345,7 +345,7 @@ func PIIRedactionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Store original values for processing
 		c.Next()
-		
+
 		// No actual modification needed here as redaction happens at log time
 		// This middleware serves as a marker that PII redaction is enabled
 	}

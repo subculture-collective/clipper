@@ -100,17 +100,17 @@ func (r *DMCARepository) GetNoticeByID(ctx context.Context, id uuid.UUID) (*mode
 // ListNotices lists DMCA notices with pagination and filtering
 func (r *DMCARepository) ListNotices(ctx context.Context, status string, page, pageSize int) ([]models.DMCANotice, int, error) {
 	offset := (page - 1) * pageSize
-	
+
 	// Base query
 	baseQuery := `FROM dmca_notices`
 	whereClause := ""
 	args := []interface{}{}
-	
+
 	if status != "" && status != "all" {
 		whereClause = " WHERE status = $1"
 		args = append(args, status)
 	}
-	
+
 	// Count total
 	countQuery := "SELECT COUNT(*) " + baseQuery + whereClause
 	var totalCount int
@@ -118,7 +118,7 @@ func (r *DMCARepository) ListNotices(ctx context.Context, status string, page, p
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	// Fetch records
 	selectQuery := `
 		SELECT id, complainant_name, complainant_email, complainant_address, complainant_phone,
@@ -129,15 +129,15 @@ func (r *DMCARepository) ListNotices(ctx context.Context, status string, page, p
 		` + baseQuery + whereClause + `
 		ORDER BY submitted_at DESC
 		LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
-	
+
 	args = append(args, pageSize, offset)
-	
+
 	rows, err := r.db.Query(ctx, selectQuery, args...)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
-	
+
 	notices := []models.DMCANotice{}
 	for rows.Next() {
 		notice := models.DMCANotice{}
@@ -168,7 +168,7 @@ func (r *DMCARepository) ListNotices(ctx context.Context, status string, page, p
 		}
 		notices = append(notices, notice)
 	}
-	
+
 	return notices, totalCount, rows.Err()
 }
 
@@ -278,16 +278,16 @@ func (r *DMCARepository) GetCounterNoticeByID(ctx context.Context, id uuid.UUID)
 // ListCounterNotices lists counter-notices with pagination and filtering
 func (r *DMCARepository) ListCounterNotices(ctx context.Context, status string, page, pageSize int) ([]models.DMCACounterNotice, int, error) {
 	offset := (page - 1) * pageSize
-	
+
 	baseQuery := `FROM dmca_counter_notices`
 	whereClause := ""
 	args := []interface{}{}
-	
+
 	if status != "" && status != "all" {
 		whereClause = " WHERE status = $1"
 		args = append(args, status)
 	}
-	
+
 	// Count total
 	countQuery := "SELECT COUNT(*) " + baseQuery + whereClause
 	var totalCount int
@@ -295,7 +295,7 @@ func (r *DMCARepository) ListCounterNotices(ctx context.Context, status string, 
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	// Fetch records
 	selectQuery := `
 		SELECT id, dmca_notice_id, user_id, user_name, user_email, user_address, user_phone,
@@ -307,15 +307,15 @@ func (r *DMCARepository) ListCounterNotices(ctx context.Context, status string, 
 		` + baseQuery + whereClause + `
 		ORDER BY submitted_at DESC
 		LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
-	
+
 	args = append(args, pageSize, offset)
-	
+
 	rows, err := r.db.Query(ctx, selectQuery, args...)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
-	
+
 	counterNotices := []models.DMCACounterNotice{}
 	for rows.Next() {
 		cn := models.DMCACounterNotice{}
@@ -350,7 +350,7 @@ func (r *DMCARepository) ListCounterNotices(ctx context.Context, status string, 
 		}
 		counterNotices = append(counterNotices, cn)
 	}
-	
+
 	return counterNotices, totalCount, rows.Err()
 }
 

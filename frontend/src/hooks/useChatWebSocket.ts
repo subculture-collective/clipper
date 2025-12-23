@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { ChatMessage } from '@/types/chat';
+import type { ChatMessage } from '@/types/chat';
 
 interface UseChatWebSocketOptions {
   channelId: string;
@@ -82,9 +82,9 @@ export function useChatWebSocket({
           const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           const attemptNumber = reconnectAttemptsRef.current + 1;
           reconnectAttemptsRef.current = attemptNumber;
-          
+
           console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${attemptNumber}/${maxReconnectAttempts})`);
-          
+
           reconnectTimeoutRef.current = window.setTimeout(() => {
             connect();
           }, backoffDelay);

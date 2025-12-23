@@ -42,13 +42,13 @@ func NewDistributedRateLimiter(redisClient *redispkg.Client, limit int, window t
 func (r *DistributedRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
 	now := time.Now()
 	windowStart := now.Add(-r.window)
-	
+
 	// Use a Redis key prefix to namespace rate limit keys
 	redisKey := fmt.Sprintf("ratelimit:%s", key)
-	
+
 	// Get the underlying Redis client for direct operations
 	client := r.redisClient.GetClient()
-	
+
 	// Use Lua script for atomic check-and-increment operation
 	// This prevents race conditions where multiple requests could exceed the limit
 	luaScript := `
@@ -78,24 +78,24 @@ func (r *DistributedRateLimiter) Allow(ctx context.Context, key string) (bool, e
 		
 		return 1
 	`
-	
+
 	member := fmt.Sprintf("%d", now.UnixNano())
 	score := now.UnixMilli()
 	expireSeconds := int64((r.window + rateLimitExpireBuffer).Seconds())
-	
-	result, err := client.Eval(ctx, luaScript, []string{redisKey}, 
+
+	result, err := client.Eval(ctx, luaScript, []string{redisKey},
 		windowStart.UnixMilli(), r.limit, score, member, expireSeconds).Result()
-	
+
 	if err != nil {
 		return false, fmt.Errorf("failed to check rate limit: %w", err)
 	}
-	
+
 	// Result is 1 if allowed, 0 if denied
 	allowed, ok := result.(int64)
 	if !ok {
 		return false, fmt.Errorf("unexpected result type from rate limit script")
 	}
-	
+
 	return allowed == 1, nil
 }
 

@@ -13,9 +13,9 @@ import (
 
 // AdminUserHandler handles admin user management endpoints
 type AdminUserHandler struct {
-	userRepo      *repository.UserRepository
-	auditLogRepo  *repository.AuditLogRepository
-	authService   *services.AuthService
+	userRepo     *repository.UserRepository
+	auditLogRepo *repository.AuditLogRepository
+	authService  *services.AuthService
 }
 
 // NewAdminUserHandler creates a new admin user handler
@@ -37,7 +37,7 @@ func (h *AdminUserHandler) ListUsers(c *gin.Context) {
 	search := c.Query("search")
 	role := c.Query("role")
 	status := c.Query("status")
-	
+
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
 		page = 1
@@ -344,7 +344,7 @@ func (h *AdminUserHandler) UpdateUserKarma(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "User karma updated successfully",
+		"message":      "User karma updated successfully",
 		"karma_points": req.KarmaPoints,
 	})
 }
@@ -423,7 +423,7 @@ func (h *AdminUserHandler) SuspendCommentPrivileges(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Comment privileges suspended successfully",
+		"message":         "Comment privileges suspended successfully",
 		"suspension_type": req.SuspensionType,
 	})
 }
@@ -596,7 +596,7 @@ func (h *AdminUserHandler) ToggleCommentReview(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Comment review requirement updated successfully",
+		"message":        "Comment review requirement updated successfully",
 		"require_review": req.RequireReview,
 	})
 }

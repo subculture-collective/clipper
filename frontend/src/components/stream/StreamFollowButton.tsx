@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -8,7 +8,7 @@ import {
   getStreamFollowStatus,
   type StreamFollowStatus,
 } from '../../lib/stream-api';
-import { toast } from 'react-hot-toast';
+import { useToast } from '../../context/ToastContext';
 
 interface StreamFollowButtonProps {
   streamerUsername: string;
@@ -43,9 +43,11 @@ export function StreamFollowButton({ streamerUsername, className }: StreamFollow
     checkStatus();
   }, [user, streamerUsername]);
 
+  const { addToast } = useToast();
+
   const handleFollow = async () => {
     if (!user) {
-      toast.error('Please log in to follow streamers');
+      addToast('Please log in to follow streamers', 'error');
       return;
     }
 
@@ -56,10 +58,10 @@ export function StreamFollowButton({ streamerUsername, className }: StreamFollow
         following: result.following,
         notifications_enabled: result.notifications_enabled,
       });
-      toast.success(result.message || `Following ${streamerUsername}`);
+      addToast(result.message || `Following ${streamerUsername}`, 'success');
     } catch (error) {
       console.error('Failed to follow streamer:', error);
-      toast.error('Failed to follow streamer');
+      addToast('Failed to follow streamer', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -72,10 +74,10 @@ export function StreamFollowButton({ streamerUsername, className }: StreamFollow
     try {
       const result = await unfollowStreamer(streamerUsername);
       setFollowStatus({ following: false, notifications_enabled: false });
-      toast.success(result.message || `Unfollowed ${streamerUsername}`);
+      addToast(result.message || `Unfollowed ${streamerUsername}`, 'success');
     } catch (error) {
       console.error('Failed to unfollow streamer:', error);
-      toast.error('Failed to unfollow streamer');
+      addToast('Failed to unfollow streamer', 'error');
     } finally {
       setIsLoading(false);
     }

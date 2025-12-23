@@ -207,29 +207,29 @@ type SearchLimitsConfig struct {
 
 // CDNConfig holds CDN provider configuration
 type CDNConfig struct {
-	Enabled           bool
-	Provider          string // cloudflare, bunny, aws-cloudfront
-	CloudflareZoneID  string
-	CloudflareAPIKey  string
-	BunnyAPIKey       string
-	BunnyStorageZone  string
-	AWSAccessKeyID    string
-	AWSSecretKey      string
-	AWSRegion         string
-	CacheTTL          int    // Cache TTL in seconds (default: 3600)
-	MaxCostPerGB      float64 // Maximum cost per GB in USD (default: 0.10)
+	Enabled          bool
+	Provider         string // cloudflare, bunny, aws-cloudfront
+	CloudflareZoneID string
+	CloudflareAPIKey string
+	BunnyAPIKey      string
+	BunnyStorageZone string
+	AWSAccessKeyID   string
+	AWSSecretKey     string
+	AWSRegion        string
+	CacheTTL         int     // Cache TTL in seconds (default: 3600)
+	MaxCostPerGB     float64 // Maximum cost per GB in USD (default: 0.10)
 }
 
 // MirrorConfig holds mirror hosting configuration
 type MirrorConfig struct {
-	Enabled               bool
-	Regions               []string // List of regions to mirror clips to (e.g., us-east-1, eu-west-1)
-	ReplicationThreshold  int      // Minimum view count to trigger mirroring (default: 1000)
-	TTLDays               int      // Mirror TTL in days (default: 7)
-	MaxMirrorsPerClip     int      // Maximum mirrors per clip (default: 3)
-	SyncIntervalMinutes   int      // Interval to check for popular clips (default: 60)
-	CleanupIntervalMinutes int     // Interval to cleanup expired mirrors (default: 1440, 24 hours)
-	MinMirrorHitRate      float64  // Minimum mirror hit rate percentage (default: 60.0)
+	Enabled                bool
+	Regions                []string // List of regions to mirror clips to (e.g., us-east-1, eu-west-1)
+	ReplicationThreshold   int      // Minimum view count to trigger mirroring (default: 1000)
+	TTLDays                int      // Mirror TTL in days (default: 7)
+	MaxMirrorsPerClip      int      // Maximum mirrors per clip (default: 3)
+	SyncIntervalMinutes    int      // Interval to check for popular clips (default: 60)
+	CleanupIntervalMinutes int      // Interval to cleanup expired mirrors (default: 1440, 24 hours)
+	MinMirrorHitRate       float64  // Minimum mirror hit rate percentage (default: 60.0)
 }
 
 // getEnvBool gets a boolean environment variable with a fallback default value
@@ -407,17 +407,17 @@ func Load() (*Config, error) {
 			MaxOffset:          getEnvInt("SEARCH_MAX_OFFSET", 1000),
 		},
 		CDN: CDNConfig{
-			Enabled:           getEnvBool("CDN_ENABLED", false),
-			Provider:          getEnv("CDN_PROVIDER", "cloudflare"),
-			CloudflareZoneID:  getEnv("CDN_CLOUDFLARE_ZONE_ID", ""),
-			CloudflareAPIKey:  getEnv("CDN_CLOUDFLARE_API_KEY", ""),
-			BunnyAPIKey:       getEnv("CDN_BUNNY_API_KEY", ""),
-			BunnyStorageZone:  getEnv("CDN_BUNNY_STORAGE_ZONE", ""),
-			AWSAccessKeyID:    getEnv("CDN_AWS_ACCESS_KEY_ID", ""),
-			AWSSecretKey:      getEnv("CDN_AWS_SECRET_KEY", ""),
-			AWSRegion:         getEnv("CDN_AWS_REGION", "us-east-1"),
-			CacheTTL:          getEnvInt("CDN_CACHE_TTL", 3600),
-			MaxCostPerGB:      getEnvFloat("CDN_MAX_COST_PER_GB", 0.10),
+			Enabled:          getEnvBool("CDN_ENABLED", false),
+			Provider:         getEnv("CDN_PROVIDER", "cloudflare"),
+			CloudflareZoneID: getEnv("CDN_CLOUDFLARE_ZONE_ID", ""),
+			CloudflareAPIKey: getEnv("CDN_CLOUDFLARE_API_KEY", ""),
+			BunnyAPIKey:      getEnv("CDN_BUNNY_API_KEY", ""),
+			BunnyStorageZone: getEnv("CDN_BUNNY_STORAGE_ZONE", ""),
+			AWSAccessKeyID:   getEnv("CDN_AWS_ACCESS_KEY_ID", ""),
+			AWSSecretKey:     getEnv("CDN_AWS_SECRET_KEY", ""),
+			AWSRegion:        getEnv("CDN_AWS_REGION", "us-east-1"),
+			CacheTTL:         getEnvInt("CDN_CACHE_TTL", 3600),
+			MaxCostPerGB:     getEnvFloat("CDN_MAX_COST_PER_GB", 0.10),
 		},
 		Mirror: MirrorConfig{
 			Enabled:                getEnvBool("MIRROR_ENABLED", false),

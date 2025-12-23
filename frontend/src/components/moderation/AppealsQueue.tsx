@@ -90,7 +90,7 @@ export function AppealsQueue({ initialStatus = 'pending' }: AppealsQueueProps) {
       </div>
 
       {error && (
-        <Alert type="error">
+        <Alert variant="error">
           {error}
         </Alert>
       )}

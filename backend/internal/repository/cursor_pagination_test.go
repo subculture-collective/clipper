@@ -32,7 +32,7 @@ func TestCursorPaginationStability(t *testing.T) {
 	// Test cursor encoding and decoding for different sort types
 	t.Run("CursorEncodingDecoding", func(t *testing.T) {
 		sortTypes := []string{"trending", "popular", "new", "top", "discussed"}
-		
+
 		for _, sortType := range sortTypes {
 			t.Run(sortType, func(t *testing.T) {
 				clipID := testClips[0].id
@@ -75,7 +75,7 @@ func TestCursorPaginationStability(t *testing.T) {
 		// Create two cursors with the same sort value but different IDs
 		clip1 := testClips[1] // score 90.0
 		clip2 := testClips[2] // score 90.0
-		
+
 		cursor1 := utils.EncodeCursor("trending", clip1.trendingScore, clip1.id, clip1.createdAt.Unix())
 		cursor2 := utils.EncodeCursor("trending", clip2.trendingScore, clip2.id, clip2.createdAt.Unix())
 
@@ -126,7 +126,7 @@ func TestClipFiltersWithCursor(t *testing.T) {
 
 	// Test with various sort types
 	sortTypes := []string{"trending", "popular", "new", "top", "discussed", "hot", "rising"}
-	
+
 	for _, sortType := range sortTypes {
 		t.Run(sortType, func(t *testing.T) {
 			// Create a cursor
@@ -190,7 +190,7 @@ func TestCursorPaginationOrder(t *testing.T) {
 
 	// This is a conceptual test showing what we expect from cursor pagination
 	// In a real integration test, this would query an actual database
-	
+
 	t.Run("TrendingScoreOrder", func(t *testing.T) {
 		// Create mock clips with descending trending scores
 		clips := []models.Clip{
