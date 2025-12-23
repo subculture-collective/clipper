@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChannelSidebar, ChatView, EmptyState } from '@/components/chat';
-import { Channel } from '@/types/chat';
+import type { Channel } from '@/types/chat';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 

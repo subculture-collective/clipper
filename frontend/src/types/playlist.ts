@@ -1,4 +1,4 @@
-import { Clip } from './clip';
+import type { Clip } from './clip';
 
 export interface Playlist {
     id: string;

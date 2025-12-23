@@ -39,7 +39,7 @@ export function ModerationLogPage() {
       const data = await response.json();
       setActions(data.data || []);
     } catch (error) {
-      showToast('error', 'Failed to load moderation log');
+      showToast('Failed to load moderation log', 'error');
       console.error('Error loading moderation log:', error);
     } finally {
       setLoading(false);
