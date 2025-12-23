@@ -1,4 +1,4 @@
-import { useQueue, useRemoveFromQueue, useClearQueue } from '@/hooks/useQueue';
+import { useQueue, useRemoveFromQueue, useClearQueue, useReorderQueue } from '@/hooks/useQueue';
 import { formatDuration } from '@/lib/utils';
 import { X, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -8,7 +8,9 @@ export function QueuePanel() {
     const { data: queue, isLoading } = useQueue(100);
     const removeFromQueue = useRemoveFromQueue();
     const clearQueue = useClearQueue();
+    const reorderQueue = useReorderQueue();
     const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
 
     const handleRemove = (itemId: string) => {
         removeFromQueue.mutate(itemId);
@@ -24,14 +26,45 @@ export function QueuePanel() {
         setDraggedId(id);
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
+    const handleDragOver = (e: React.DragEvent, id: string) => {
         e.preventDefault();
+        setDragOverId(id);
     };
 
-    const handleDrop = () => {
-        // TODO: Implement drag-and-drop reordering
-        // This requires finding the positions and calling reorderQueue
+    const handleDragLeave = () => {
+        setDragOverId(null);
+    };
+
+    const handleDrop = (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        
+        if (!draggedId || draggedId === targetId) {
+            setDraggedId(null);
+            setDragOverId(null);
+            return;
+        }
+
+        const items = queue?.items || [];
+        const draggedIndex = items.findIndex(item => item.id === draggedId);
+        const targetIndex = items.findIndex(item => item.id === targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) {
+            setDraggedId(null);
+            setDragOverId(null);
+            return;
+        }
+
+        // Calculate new position (0-indexed)
+        const newPosition = targetIndex;
+
+        // Call the reorder API
+        reorderQueue.mutate({
+            item_id: draggedId,
+            new_position: newPosition,
+        });
+
         setDraggedId(null);
+        setDragOverId(null);
     };
 
     if (isLoading) {
@@ -82,10 +115,13 @@ export function QueuePanel() {
                                 key={item.id}
                                 draggable
                                 onDragStart={() => handleDragStart(item.id)}
-                                onDragOver={handleDragOver}
-                                onDrop={() => handleDrop(item.id)}
+                                onDragOver={(e) => handleDragOver(e, item.id)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, item.id)}
                                 className={`p-3 hover:bg-zinc-800/50 cursor-move transition-colors ${
                                     draggedId === item.id ? 'opacity-50 bg-zinc-800' : ''
+                                } ${
+                                    dragOverId === item.id ? 'border-t-2 border-purple-500' : ''
                                 }`}
                             >
                                 <div className="flex gap-3">
