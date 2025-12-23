@@ -8,6 +8,7 @@ import type { Clip } from '@/types/clip';
 import { Link, useNavigate } from 'react-router-dom';
 import { TwitchEmbed } from './TwitchEmbed';
 import { AddToPlaylistButton } from './AddToPlaylistButton';
+import { AddToQueueButton } from './AddToQueueButton';
 
 interface ClipCardProps {
     clip: Clip;
@@ -322,6 +323,8 @@ export function ClipCard({ clip }: ClipCardProps) {
                         </button>
 
                         <AddToPlaylistButton clipId={clip.id} />
+
+                        <AddToQueueButton clipId={clip.id} />
 
                         <button
                             className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-11 cursor-pointer'
