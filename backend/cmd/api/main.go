@@ -1270,6 +1270,9 @@ func main() {
 			forum.GET("/search", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.SearchThreads)
 			forum.GET("/replies/:id/votes", forumHandler.GetReplyVotes)
 			forum.GET("/users/:id/reputation", forumHandler.GetUserReputation)
+			forum.GET("/analytics", forumHandler.GetForumAnalytics)
+			forum.GET("/popular", forumHandler.GetPopularDiscussions)
+			forum.GET("/helpful-replies", forumHandler.GetMostHelpfulReplies)
 
 			// Protected forum endpoints (require authentication)
 			forum.POST("/threads", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), forumHandler.CreateThread)

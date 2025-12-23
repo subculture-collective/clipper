@@ -1158,3 +1158,409 @@ func (h *ForumHandler) HideLowQualityReplies(ctx context.Context) error {
 	_, err := h.db.Exec(ctx, query)
 	return err
 }
+
+// ForumAnalytics represents analytics data for the forum
+type ForumAnalytics struct {
+	TotalThreads      int       `json:"total_threads"`
+	TotalReplies      int       `json:"total_replies"`
+	TotalUsers        int       `json:"total_users"`
+	PostsToday        int       `json:"posts_today"`
+	PostsThisWeek     int       `json:"posts_this_week"`
+	PostsThisMonth    int       `json:"posts_this_month"`
+	ActiveUsersToday  int       `json:"active_users_today"`
+	ActiveUsersWeek   int       `json:"active_users_week"`
+	TrendingTopics    []string  `json:"trending_topics"`
+	PopularThreads    []ForumThread `json:"popular_threads"`
+	TopContributors   []UserContribution `json:"top_contributors"`
+	LastUpdated       time.Time `json:"last_updated"`
+}
+
+// UserContribution represents a user's forum contributions
+type UserContribution struct {
+	UserID          uuid.UUID `json:"user_id"`
+	Username        string    `json:"username"`
+	ThreadCount     int       `json:"thread_count"`
+	ReplyCount      int       `json:"reply_count"`
+	ReputationScore int       `json:"reputation_score"`
+}
+
+// GetForumAnalytics retrieves forum analytics data
+// GET /api/v1/forum/analytics
+func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	var analytics ForumAnalytics
+	analytics.LastUpdated = time.Now()
+	
+	// Get total threads
+	err := h.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM forum_threads WHERE is_deleted = FALSE
+	`).Scan(&analytics.TotalThreads)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get thread count"})
+		return
+	}
+	
+	// Get total replies
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM forum_replies WHERE is_deleted = FALSE
+	`).Scan(&analytics.TotalReplies)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get reply count"})
+		return
+	}
+	
+	// Get total unique forum users
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT user_id) FROM (
+			SELECT user_id FROM forum_threads WHERE is_deleted = FALSE
+			UNION
+			SELECT user_id FROM forum_replies WHERE is_deleted = FALSE
+		) u
+	`).Scan(&analytics.TotalUsers)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user count"})
+		return
+	}
+	
+	// Get posts today (threads + replies)
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM (
+			SELECT created_at FROM forum_threads 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE
+			UNION ALL
+			SELECT created_at FROM forum_replies 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE
+		) posts
+	`).Scan(&analytics.PostsToday)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get today's posts"})
+		return
+	}
+	
+	// Get posts this week
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM (
+			SELECT created_at FROM forum_threads 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+			UNION ALL
+			SELECT created_at FROM forum_replies 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+		) posts
+	`).Scan(&analytics.PostsThisWeek)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get week's posts"})
+		return
+	}
+	
+	// Get posts this month
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM (
+			SELECT created_at FROM forum_threads 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+			UNION ALL
+			SELECT created_at FROM forum_replies 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+		) posts
+	`).Scan(&analytics.PostsThisMonth)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get month's posts"})
+		return
+	}
+	
+	// Get active users today
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT user_id) FROM (
+			SELECT user_id FROM forum_threads 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE
+			UNION
+			SELECT user_id FROM forum_replies 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE
+		) u
+	`).Scan(&analytics.ActiveUsersToday)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get active users today"})
+		return
+	}
+	
+	// Get active users this week
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT user_id) FROM (
+			SELECT user_id FROM forum_threads 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+			UNION
+			SELECT user_id FROM forum_replies 
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+		) u
+	`).Scan(&analytics.ActiveUsersWeek)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get active users this week"})
+		return
+	}
+	
+	// Get trending topics (most used tags in the last 7 days)
+	rows, err := h.db.Query(ctx, `
+		SELECT unnest(tags) as tag, COUNT(*) as count
+		FROM forum_threads
+		WHERE is_deleted = FALSE 
+			AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+			AND tags IS NOT NULL
+		GROUP BY tag
+		ORDER BY count DESC
+		LIMIT 10
+	`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get trending topics"})
+		return
+	}
+	defer rows.Close()
+	
+	analytics.TrendingTopics = make([]string, 0)
+	for rows.Next() {
+		var topic string
+		var count int
+		if err := rows.Scan(&topic, &count); err != nil {
+			continue
+		}
+		analytics.TrendingTopics = append(analytics.TrendingTopics, topic)
+	}
+	
+	// Get popular threads (most replies + views in last 30 days)
+	threadRows, err := h.db.Query(ctx, `
+		SELECT 
+			ft.id, ft.user_id, u.username, ft.title, ft.content,
+			ft.game_id, g.title as game_name, ft.tags,
+			ft.view_count, ft.reply_count, ft.locked, ft.locked_at,
+			ft.pinned, ft.created_at, ft.updated_at
+		FROM forum_threads ft
+		INNER JOIN users u ON ft.user_id = u.id
+		LEFT JOIN games g ON ft.game_id = g.id
+		WHERE ft.is_deleted = FALSE
+			AND ft.created_at >= CURRENT_DATE - INTERVAL '30 days'
+		ORDER BY (ft.reply_count * 2 + ft.view_count) DESC
+		LIMIT 10
+	`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get popular threads"})
+		return
+	}
+	defer threadRows.Close()
+	
+	analytics.PopularThreads = make([]ForumThread, 0)
+	for threadRows.Next() {
+		var thread ForumThread
+		var gameName *string
+		err := threadRows.Scan(
+			&thread.ID, &thread.UserID, &thread.Username, &thread.Title, &thread.Content,
+			&thread.GameID, &gameName, pq.Array(&thread.Tags),
+			&thread.ViewCount, &thread.ReplyCount, &thread.Locked, &thread.LockedAt,
+			&thread.Pinned, &thread.CreatedAt, &thread.UpdatedAt,
+		)
+		if err != nil {
+			continue
+		}
+		thread.GameName = gameName
+		analytics.PopularThreads = append(analytics.PopularThreads, thread)
+	}
+	
+	// Get top contributors (users with most activity in last 30 days)
+	contribRows, err := h.db.Query(ctx, `
+		SELECT 
+			u.id, u.username,
+			COALESCE(t.thread_count, 0) as thread_count,
+			COALESCE(r.reply_count, 0) as reply_count,
+			COALESCE(ur.reputation_score, 0) as reputation_score
+		FROM users u
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) as thread_count
+			FROM forum_threads
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+			GROUP BY user_id
+		) t ON u.id = t.user_id
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) as reply_count
+			FROM forum_replies
+			WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+			GROUP BY user_id
+		) r ON u.id = r.user_id
+		LEFT JOIN user_reputation ur ON u.id = ur.user_id
+		WHERE (t.thread_count > 0 OR r.reply_count > 0)
+		ORDER BY (COALESCE(t.thread_count, 0) + COALESCE(r.reply_count, 0)) DESC
+		LIMIT 10
+	`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get top contributors"})
+		return
+	}
+	defer contribRows.Close()
+	
+	analytics.TopContributors = make([]UserContribution, 0)
+	for contribRows.Next() {
+		var contrib UserContribution
+		if err := contribRows.Scan(&contrib.UserID, &contrib.Username, &contrib.ThreadCount, &contrib.ReplyCount, &contrib.ReputationScore); err != nil {
+			continue
+		}
+		analytics.TopContributors = append(analytics.TopContributors, contrib)
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    analytics,
+	})
+}
+
+// GetPopularDiscussions retrieves popular discussions dashboard
+// GET /api/v1/forum/popular
+func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
+	ctx := c.Request.Context()
+	timeframe := c.DefaultQuery("timeframe", "week") // day, week, month, all
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	
+	var interval string
+	switch timeframe {
+	case "day":
+		interval = "1 day"
+	case "week":
+		interval = "7 days"
+	case "month":
+		interval = "30 days"
+	case "all":
+		interval = "10 years" // Effectively no time limit
+	default:
+		interval = "7 days"
+	}
+	
+	query := fmt.Sprintf(`
+		SELECT 
+			ft.id, ft.user_id, u.username, ft.title, ft.content,
+			ft.game_id, g.title as game_name, ft.tags,
+			ft.view_count, ft.reply_count, ft.locked, ft.locked_at,
+			ft.pinned, ft.created_at, ft.updated_at
+		FROM forum_threads ft
+		INNER JOIN users u ON ft.user_id = u.id
+		LEFT JOIN games g ON ft.game_id = g.id
+		WHERE ft.is_deleted = FALSE
+			AND ft.created_at >= CURRENT_DATE - INTERVAL '%s'
+		ORDER BY (ft.reply_count * 3 + ft.view_count / 10) DESC
+		LIMIT $1
+	`, interval)
+	
+	rows, err := h.db.Query(ctx, query, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get popular discussions"})
+		return
+	}
+	defer rows.Close()
+	
+	threads := make([]ForumThread, 0)
+	for rows.Next() {
+		var thread ForumThread
+		var gameName *string
+		err := rows.Scan(
+			&thread.ID, &thread.UserID, &thread.Username, &thread.Title, &thread.Content,
+			&thread.GameID, &gameName, pq.Array(&thread.Tags),
+			&thread.ViewCount, &thread.ReplyCount, &thread.Locked, &thread.LockedAt,
+			&thread.Pinned, &thread.CreatedAt, &thread.UpdatedAt,
+		)
+		if err != nil {
+			continue
+		}
+		thread.GameName = gameName
+		threads = append(threads, thread)
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"data":      threads,
+		"meta": gin.H{
+			"timeframe": timeframe,
+			"count":     len(threads),
+			"limit":     limit,
+		},
+	})
+}
+
+// GetMostHelpfulReplies retrieves most helpful (highly voted) replies
+// GET /api/v1/forum/helpful-replies
+func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
+	ctx := c.Request.Context()
+	timeframe := c.DefaultQuery("timeframe", "month") // week, month, all
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	
+	var interval string
+	switch timeframe {
+	case "week":
+		interval = "7 days"
+	case "month":
+		interval = "30 days"
+	case "all":
+		interval = "10 years"
+	default:
+		interval = "30 days"
+	}
+	
+	query := fmt.Sprintf(`
+		SELECT 
+			fr.id, fr.user_id, u.username, fr.thread_id, 
+			fr.parent_reply_id, fr.content, fr.depth, fr.path,
+			fr.created_at, fr.updated_at,
+			ft.title as thread_title,
+			COALESCE(fvc.net_votes, 0) as net_votes,
+			COALESCE(fvc.upvote_count, 0) as upvotes,
+			COALESCE(fvc.downvote_count, 0) as downvotes
+		FROM forum_replies fr
+		INNER JOIN users u ON fr.user_id = u.id
+		INNER JOIN forum_threads ft ON fr.thread_id = ft.id
+		LEFT JOIN forum_vote_counts fvc ON fr.id = fvc.reply_id
+		WHERE fr.is_deleted = FALSE
+			AND fr.created_at >= CURRENT_DATE - INTERVAL '%s'
+		ORDER BY COALESCE(fvc.net_votes, 0) DESC, fr.created_at DESC
+		LIMIT $1
+	`, interval)
+	
+	rows, err := h.db.Query(ctx, query, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get helpful replies"})
+		return
+	}
+	defer rows.Close()
+	
+	type HelpfulReply struct {
+		ForumReply
+		ThreadTitle string `json:"thread_title"`
+		NetVotes    int    `json:"net_votes"`
+		Upvotes     int    `json:"upvotes"`
+		Downvotes   int    `json:"downvotes"`
+	}
+	
+	replies := make([]HelpfulReply, 0)
+	for rows.Next() {
+		var reply HelpfulReply
+		err := rows.Scan(
+			&reply.ID, &reply.UserID, &reply.Username, &reply.ThreadID,
+			&reply.ParentReplyID, &reply.Content, &reply.Depth, &reply.Path,
+			&reply.CreatedAt, &reply.UpdatedAt,
+			&reply.ThreadTitle, &reply.NetVotes, &reply.Upvotes, &reply.Downvotes,
+		)
+		if err != nil {
+			continue
+		}
+		replies = append(replies, reply)
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    replies,
+		"meta": gin.H{
+			"timeframe": timeframe,
+			"count":     len(replies),
+			"limit":     limit,
+		},
+	})
+}
