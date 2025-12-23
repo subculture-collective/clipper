@@ -15,13 +15,13 @@ import (
 type CDNProvider interface {
 	// GenerateURL generates a CDN URL for a clip
 	GenerateURL(clip *models.Clip) (string, error)
-	
+
 	// PurgeCache purges the cache for a specific clip
 	PurgeCache(clipURL string) error
-	
+
 	// GetCacheHeaders returns appropriate cache headers for video content
 	GetCacheHeaders() map[string]string
-	
+
 	// GetMetrics retrieves current metrics from the CDN
 	GetMetrics(ctx context.Context) (*CDNProviderMetrics, error)
 }

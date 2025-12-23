@@ -10,11 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"golang.org/x/crypto/bcrypt"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // WatchPartyHandler handles watch party requests
@@ -648,7 +648,7 @@ func (h *WatchPartyHandler) WatchPartyWebSocket(c *gin.Context) {
 			responseHeader.Set("Sec-WebSocket-Protocol", subprotocol)
 		}
 	}
-	
+
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, responseHeader)
 	if err != nil {
 		return

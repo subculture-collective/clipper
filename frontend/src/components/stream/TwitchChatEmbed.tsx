@@ -48,7 +48,7 @@ export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedP
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
         <h3 className="font-bold text-gray-900 dark:text-white">Twitch Chat</h3>
-        
+
         {isUserLoggedIn && !isCheckingAuth && !isAuthenticated && (
           <button
             onClick={handleTwitchLogin}
@@ -57,7 +57,7 @@ export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedP
             Login to Chat
           </button>
         )}
-        
+
         {isAuthenticated && (
           <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
             <span className="w-2 h-2 bg-green-500 rounded-full"></span>

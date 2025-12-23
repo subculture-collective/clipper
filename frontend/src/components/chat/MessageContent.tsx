@@ -13,7 +13,7 @@ interface MessageContentProps {
  */
 export function MessageContent({ content, onMentionClick }: MessageContentProps) {
   const navigate = useNavigate();
-  
+
   const handleMentionClick = (mention: string) => {
     const username = mention.slice(1); // Remove @ symbol
     if (onMentionClick) {
@@ -39,7 +39,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
 
     // Find all matches with their positions
     const matches: Array<{ type: string; match: RegExpMatchArray; start: number; end: number }> = [];
-    
+
     for (const [type, pattern] of Object.entries(patterns)) {
       const regex = new RegExp(pattern.source, pattern.flags);
       let match;
