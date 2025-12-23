@@ -216,7 +216,7 @@ export function SubmitClipPage() {
             });
             // Set the submitted clip to show confirmation
             setSubmittedClip(response.submission);
-            
+
             // Track successful submission
             trackEvent(SubmissionEvents.SUBMISSION_CREATE_COMPLETED, {
                 submission_id: response.submission.id,
@@ -239,7 +239,7 @@ export function SubmitClipPage() {
             const errorMessage =
                 error.response?.data?.error || 'Failed to submit clip';
             setError(errorMessage);
-            
+
             // Track failed submission
             trackEvent(SubmissionEvents.SUBMISSION_CREATE_FAILED, {
                 error: errorMessage,

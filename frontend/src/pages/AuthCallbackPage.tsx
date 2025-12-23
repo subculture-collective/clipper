@@ -20,7 +20,7 @@ export function AuthCallbackPage() {
         setError(errorParam === 'access_denied'
           ? 'You cancelled the login process.'
           : 'Authentication failed. Please try again.');
-        
+
         // Track failed login
         trackEvent(AuthEvents.LOGIN_FAILED, {
           method: 'twitch',
@@ -70,7 +70,7 @@ export function AuthCallbackPage() {
         // After successful OAuth callback (or if backend already set cookies)
         // Fetch the user data
         await refreshUser();
-        
+
         // Track successful login
         trackEvent(AuthEvents.LOGIN_COMPLETED, {
           method: 'twitch',
@@ -84,7 +84,7 @@ export function AuthCallbackPage() {
       } catch (err) {
         console.error('Auth callback error:', err);
         setError('Failed to complete authentication. Please try again.');
-        
+
         // Track failed login
         trackEvent(AuthEvents.LOGIN_FAILED, {
           method: 'twitch',
