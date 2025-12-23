@@ -86,7 +86,15 @@ export function ForumIndex() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-            <h1 className="text-3xl font-bold text-white">Forum Discussions</h1>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-white">Forum Discussions</h1>
+              <Link
+                to="/forum/analytics"
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-1 inline-block"
+              >
+                View Analytics →
+              </Link>
+            </div>
             {user && (
               <Link
                 to="/forum/new"

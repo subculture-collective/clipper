@@ -116,4 +116,36 @@ export const forumApi = {
     );
     return response.data;
   },
+
+  /**
+   * Get forum analytics data
+   */
+  async getAnalytics() {
+    const response = await apiClient.get('/forum/analytics');
+    return response.data;
+  },
+
+  /**
+   * Get popular discussions
+   */
+  async getPopularDiscussions(timeframe: 'day' | 'week' | 'month' | 'all' = 'week', limit = 20) {
+    const params = new URLSearchParams();
+    params.append('timeframe', timeframe);
+    params.append('limit', limit.toString());
+    
+    const response = await apiClient.get(`/forum/popular?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Get most helpful replies
+   */
+  async getMostHelpfulReplies(timeframe: 'week' | 'month' | 'all' = 'month', limit = 20) {
+    const params = new URLSearchParams();
+    params.append('timeframe', timeframe);
+    params.append('limit', limit.toString());
+    
+    const response = await apiClient.get(`/forum/helpful-replies?${params.toString()}`);
+    return response.data;
+  },
 };
