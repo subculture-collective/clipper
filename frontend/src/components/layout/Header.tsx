@@ -94,6 +94,11 @@ export function Header() {
                                 🎵 Playlists
                             </Button>
                         </Link>
+                        <Link to='/watch-parties/browse'>
+                            <Button variant='ghost' size='sm'>
+                                👥 Watch Parties
+                            </Button>
+                        </Link>
                         {isAuthenticated && (
                             <>
                                 <Link to='/playlists'>
@@ -293,6 +298,18 @@ export function Header() {
                                     className='w-full justify-start'
                                 >
                                     🎵 Playlists
+                                </Button>
+                            </Link>
+                            <Link
+                                to='/watch-parties/browse'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='w-full justify-start'
+                                >
+                                    👥 Watch Parties
                                 </Button>
                             </Link>
                         </nav>

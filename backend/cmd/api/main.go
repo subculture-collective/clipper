@@ -1316,6 +1316,12 @@ func main() {
 			// Get watch party history (authenticated)
 			watchParties.GET("/history", middleware.AuthMiddleware(authService), watchPartyHandler.GetWatchPartyHistory)
 
+			// Get public watch parties for discovery (optional auth)
+			watchParties.GET("/public", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetPublicWatchParties)
+
+			// Get trending watch parties (optional auth)
+			watchParties.GET("/trending", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetTrendingWatchParties)
+
 			// Create watch party (authenticated, rate limited - 10 per hour)
 			watchParties.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), watchPartyHandler.CreateWatchParty)
 
@@ -1339,6 +1345,9 @@ func main() {
 
 			// Send emoji reaction (authenticated, rate limited - 30 per minute)
 			watchParties.POST("/:id/react", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), watchPartyHandler.SendReaction)
+
+			// Kick participant from watch party (authenticated, host only, rate limited - 20 per hour)
+			watchParties.POST("/:id/kick", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.KickParticipant)
 
 			// Leave watch party (authenticated)
 			watchParties.DELETE("/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)
