@@ -130,7 +130,10 @@ func (h *AdminUserHandler) BanUser(c *gin.Context) {
 		ModeratorID: adminUserID.(uuid.UUID),
 		Reason:      &req.Reason,
 	}
-	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
+	if err := h.auditLogRepo.Create(c.Request.Context(), auditLog); err != nil {
+		// Record audit log failure without affecting the main operation
+		_ = c.Error(err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User banned successfully",
@@ -191,7 +194,10 @@ func (h *AdminUserHandler) UnbanUser(c *gin.Context) {
 		ModeratorID: adminUserID.(uuid.UUID),
 		Reason:      &reason,
 	}
-	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
+	if err := h.auditLogRepo.Create(c.Request.Context(), auditLog); err != nil {
+		// Record audit log failure without affecting the main operation
+		_ = c.Error(err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User unbanned successfully",
@@ -266,7 +272,10 @@ func (h *AdminUserHandler) UpdateUserRole(c *gin.Context) {
 		ModeratorID: adminUserID.(uuid.UUID),
 		Reason:      &reason,
 	}
-	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
+	if err := h.auditLogRepo.Create(c.Request.Context(), auditLog); err != nil {
+		// Record audit log failure without affecting the main operation
+		_ = c.Error(err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User role updated successfully",
@@ -329,7 +338,10 @@ func (h *AdminUserHandler) UpdateUserKarma(c *gin.Context) {
 		ModeratorID: adminUserID.(uuid.UUID),
 		Reason:      &reason,
 	}
-	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
+	if err := h.auditLogRepo.Create(c.Request.Context(), auditLog); err != nil {
+		// Record audit log failure without affecting the main operation
+		_ = c.Error(err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User karma updated successfully",

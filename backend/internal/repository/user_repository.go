@@ -1038,6 +1038,13 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, userID uuid.UUID, 
 
 // AdminSearchUsers searches users with filtering for admin dashboard
 func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery string, role string, status string, limit, offset int) ([]*models.User, int, error) {
+	// Ensure limit is within a safe range to avoid excessive result sets
+	if limit < 1 {
+		limit = 10
+	} else if limit > 100 {
+		limit = 100
+	}
+
 	// Build dynamic query based on filters
 	baseQuery := `
 		SELECT
@@ -1117,6 +1124,11 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 
 // UpdateUserRole updates a user's role (user, moderator, admin)
 func (r *UserRepository) UpdateUserRole(ctx context.Context, userID uuid.UUID, role string) error {
+	// Validate role before updating
+	if role != "user" && role != "moderator" && role != "admin" {
+		return errors.New("invalid role: must be user, moderator, or admin")
+	}
+
 	query := `
 		UPDATE users
 		SET role = $2, updated_at = NOW()

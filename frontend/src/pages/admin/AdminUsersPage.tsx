@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Card, CardHeader, CardBody, Button, Input } from '../../components';
-import { Search, Shield, Ban, Edit, TrendingUp } from 'lucide-react';
+import { Search, Shield, Ban, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 
 interface User {
@@ -72,9 +72,16 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
                   type="number"
                   value={karmaValue}
                   onChange={(e) => {
-                    const parsed = parseInt(e.target.value);
-                    setKarmaValue(isNaN(parsed) ? 0 : parsed);
+                    const parsed = parseInt(e.target.value, 10);
+                    if (isNaN(parsed)) {
+                      setKarmaValue(0);
+                    } else {
+                      const clamped = Math.min(999999, Math.max(0, parsed));
+                      setKarmaValue(clamped);
+                    }
                   }}
+                  min={0}
+                  max={999999}
                   className="w-full"
                   required
                 />
@@ -119,6 +126,7 @@ export function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [actionType, setActionType] = useState<'ban' | 'unban' | 'promote' | 'demote' | 'karma' | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const queryClient = useQueryClient();
   const perPage = 25;
@@ -149,6 +157,10 @@ export function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setSelectedUser(null);
       setActionType(null);
+      setErrorMessage(null);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error.response?.data?.error || 'Failed to ban user');
     },
   });
 
@@ -161,6 +173,10 @@ export function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setSelectedUser(null);
       setActionType(null);
+      setErrorMessage(null);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error.response?.data?.error || 'Failed to unban user');
     },
   });
 
@@ -173,6 +189,10 @@ export function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setSelectedUser(null);
       setActionType(null);
+      setErrorMessage(null);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error.response?.data?.error || 'Failed to update user role');
     },
   });
 
@@ -185,6 +205,10 @@ export function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setSelectedUser(null);
       setActionType(null);
+      setErrorMessage(null);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error.response?.data?.error || 'Failed to update user karma');
     },
   });
 
@@ -219,6 +243,24 @@ export function AdminUsersPage() {
         <h1 className="text-3xl font-bold mb-2">User Management</h1>
         <p className="text-muted-foreground">Manage user accounts, roles, and permissions</p>
       </div>
+
+      {/* Error Message */}
+      {errorMessage && (
+        <Card className="mb-6">
+          <CardBody>
+            <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded">
+              <p className="font-bold">Error</p>
+              <p>{errorMessage}</p>
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="mt-2 text-sm underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="mb-6">

@@ -29,9 +29,11 @@ export function AdminSyncPage() {
   // Trigger manual sync mutation
   const triggerSyncMutation = useMutation({
     mutationFn: async () => {
-      setTriggering(true);
       const response = await axios.post('/api/v1/admin/sync/clips');
       return response.data;
+    },
+    onMutate: () => {
+      setTriggering(true);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sync-status'] });
