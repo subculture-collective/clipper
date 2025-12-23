@@ -3,12 +3,10 @@ import { useIsAuthenticated, useToast } from '@/hooks';
 
 interface AddToQueueButtonProps {
     clipId: string;
-    variant?: 'icon' | 'text';
 }
 
 export function AddToQueueButton({
     clipId,
-    variant = 'icon',
 }: AddToQueueButtonProps) {
     const isAuthenticated = useIsAuthenticated();
     const addToQueue = useAddToQueue();
@@ -69,9 +67,6 @@ export function AddToQueueButton({
                     d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h2M15 5h2a2 2 0 012 2v10a2 2 0 01-2 2h-2"
                 />
             </svg>
-            {variant === 'text' && (
-                <span className="hidden sm:inline">Add to Queue</span>
-            )}
         </button>
     );
 }
