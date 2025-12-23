@@ -402,6 +402,7 @@ func (r *VerificationRepository) GetApplicationCountByUserID(ctx context.Context
 
 // GetApplicationsByTwitchURL checks if there are existing applications with the same Twitch URL
 // Excludes applications from the specified user ID (for checking duplicates from other users)
+// This check includes all statuses (pending, approved, rejected) to prevent channel claiming abuse
 func (r *VerificationRepository) GetApplicationsByTwitchURL(ctx context.Context, twitchURL string, excludeUserID uuid.UUID) ([]*models.CreatorVerificationApplication, error) {
 	query := `
 		SELECT id, user_id, twitch_channel_url, follower_count, subscriber_count,
@@ -411,10 +412,9 @@ func (r *VerificationRepository) GetApplicationsByTwitchURL(ctx context.Context,
 		FROM creator_verification_applications
 		WHERE LOWER(twitch_channel_url) = LOWER($1)
 			AND user_id != $2
-			AND status != $3
 		ORDER BY created_at DESC`
 
-	rows, err := r.db.Query(ctx, query, twitchURL, excludeUserID, models.VerificationStatusRejected)
+	rows, err := r.db.Query(ctx, query, twitchURL, excludeUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -514,6 +514,7 @@ func (r *VerificationRepository) GetAuditLogsByUserID(ctx context.Context, userI
 
 // GetVerifiedUsersForAudit retrieves verified users that need periodic audit
 // Returns users who haven't been audited in the last N days
+// Note: Includes banned users so their verification can be automatically revoked
 func (r *VerificationRepository) GetVerifiedUsersForAudit(ctx context.Context, lastAuditedDaysAgo int, limit int) ([]*models.User, error) {
 	query := `
 		SELECT u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
@@ -522,14 +523,10 @@ func (r *VerificationRepository) GetVerifiedUsersForAudit(ctx context.Context, l
 			u.created_at
 		FROM users u
 		WHERE u.is_verified = true
-			AND u.is_banned = false
-			AND (
-				NOT EXISTS (
-					SELECT 1 FROM verification_audit_logs val
-					WHERE val.user_id = u.id
-						AND val.created_at > NOW() - INTERVAL '1 day' * $1
-				)
-				OR u.verified_at < NOW() - INTERVAL '1 day' * $1
+			AND NOT EXISTS (
+				SELECT 1 FROM verification_audit_logs val
+				WHERE val.user_id = u.id
+					AND val.created_at > NOW() - INTERVAL '1 day' * $1
 			)
 		ORDER BY u.verified_at ASC
 		LIMIT $2`
@@ -609,3 +606,37 @@ func (r *VerificationRepository) GetFlaggedAudits(ctx context.Context, limit, of
 	return logs, rows.Err()
 }
 
+
+// RevokeUserVerification revokes a user's verified status
+func (r *VerificationRepository) RevokeUserVerification(ctx context.Context, userID uuid.UUID) error {
+query := `
+UPDATE users
+SET is_verified = false,
+verified_at = NULL,
+updated_at = NOW()
+WHERE id = $1 AND is_verified = true`
+
+result, err := r.db.Exec(ctx, query, userID)
+if err != nil {
+return err
+}
+
+rowsAffected := result.RowsAffected()
+if rowsAffected == 0 {
+return fmt.Errorf("user not found or already not verified")
+}
+
+return nil
+}
+
+// IsUserVerified checks if a user is currently verified
+func (r *VerificationRepository) IsUserVerified(ctx context.Context, userID uuid.UUID) (bool, error) {
+query := `SELECT is_verified FROM users WHERE id = $1`
+
+var isVerified bool
+err := r.db.QueryRow(ctx, query, userID).Scan(&isVerified)
+if err == pgx.ErrNoRows {
+return false, fmt.Errorf("user not found")
+}
+return isVerified, err
+}

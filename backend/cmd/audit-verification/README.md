@@ -64,7 +64,7 @@ go run ./cmd/audit-verification/main.go --limit=50 --audit-period=60
 Based on audit results, the following actions may be taken:
 - **none**: Audit passed, no action needed
 - **further_review_required**: Flagged for manual admin review
-- **verification_revoked**: Verification status automatically revoked
+- **verification_revoked**: Verification status automatically revoked (user's is_verified set to false)
 - **warning_sent**: Warning notification sent to user (future enhancement)
 
 ## Scheduling

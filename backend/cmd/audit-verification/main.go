@@ -120,6 +120,19 @@ func runVerificationAudit(
 		case models.AuditStatusRevoked:
 			stats.RevokedAudits++
 			log.Printf("  ✗ Verification revoked: %s", *auditResult.Notes)
+			
+			// Actually revoke the user's verification status
+			if !dryRun {
+				if err := repo.RevokeUserVerification(ctx, user.ID); err != nil {
+					log.Printf("  ERROR: Failed to revoke verification: %v", err)
+					stats.LastError = err
+					// Continue to save audit log even if revocation fails
+				} else {
+					log.Printf("  ✓ Verification status revoked in database")
+				}
+			} else {
+				log.Printf("  [DRY RUN] Would revoke verification status")
+			}
 		}
 
 		// Save audit log (unless dry run)

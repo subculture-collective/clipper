@@ -58,6 +58,22 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 	
 	// === ABUSE PREVENTION CHECKS ===
 	
+	// 0. Check if user is already verified
+	isVerified, err := h.verificationRepo.IsUserVerified(ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to check verification status",
+		})
+		return
+	}
+	
+	if isVerified {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "You are already verified",
+		})
+		return
+	}
+	
 	// 1. Check if user already has a pending application
 	existing, err := h.verificationRepo.GetApplicationByUserID(ctx, userID, models.VerificationStatusPending)
 	if err != nil {
@@ -439,8 +455,8 @@ func (h *VerificationHandler) GetAuditLogs(c *gin.Context) {
 	if onlyFlagged {
 		logs, err = h.verificationRepo.GetFlaggedAudits(ctx, limit, offset)
 	} else if userIDParam != "" {
-		userID, err := uuid.Parse(userIDParam)
-		if err != nil {
+		userID, parseErr := uuid.Parse(userIDParam)
+		if parseErr != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "Invalid user_id parameter",
 			})
