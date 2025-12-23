@@ -518,7 +518,8 @@ func (r *VerificationRepository) GetVerifiedUsersForAudit(ctx context.Context, l
 	query := `
 		SELECT u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
 			u.bio, u.karma_points, u.trust_score, u.role, u.account_type,
-			u.is_verified, u.verified_at, u.created_at
+			u.is_verified, u.verified_at, u.is_banned, u.dmca_terminated, u.dmca_strikes_count,
+			u.created_at
 		FROM users u
 		WHERE u.is_verified = true
 			AND u.is_banned = false
@@ -556,6 +557,9 @@ func (r *VerificationRepository) GetVerifiedUsersForAudit(ctx context.Context, l
 			&user.AccountType,
 			&user.IsVerified,
 			&user.VerifiedAt,
+			&user.IsBanned,
+			&user.DMCATerminated,
+			&user.DMCAStrikesCount,
 			&user.CreatedAt,
 		)
 		if err != nil {
