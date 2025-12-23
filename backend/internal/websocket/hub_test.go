@@ -28,7 +28,7 @@ func (m *MockRedisClient) Publish(ctx context.Context, channel string, message i
 
 func TestNewChannelHub(t *testing.T) {
 	channelID := uuid.New().String()
-	
+
 	hub := NewChannelHub(channelID, nil, nil)
 
 	assert.NotNil(t, hub)
@@ -50,7 +50,7 @@ func TestChannelHub_GetClientCount(t *testing.T) {
 	// Add some clients
 	client1 := &ChatClient{UserID: uuid.New()}
 	client2 := &ChatClient{UserID: uuid.New()}
-	
+
 	hub.Mutex.Lock()
 	hub.Clients[client1] = true
 	hub.Clients[client2] = true
@@ -64,7 +64,7 @@ func TestChannelHub_HandleRegister(t *testing.T) {
 		ID:      uuid.New().String(),
 		Clients: make(map[*ChatClient]bool),
 	}
-	
+
 	client := &ChatClient{
 		UserID:   uuid.New(),
 		Username: "testuser",
@@ -91,7 +91,7 @@ func TestChannelHub_HandleUnregister(t *testing.T) {
 		ID:      uuid.New().String(),
 		Clients: make(map[*ChatClient]bool),
 	}
-	
+
 	client := &ChatClient{
 		UserID:   uuid.New(),
 		Username: "testuser",
@@ -113,7 +113,7 @@ func TestChannelHub_HandleUnregister(t *testing.T) {
 
 	// Verify client is unregistered
 	assert.Equal(t, 0, hub.GetClientCount())
-	
+
 	// Verify send channel is closed
 	_, ok := <-client.Send
 	assert.False(t, ok)
@@ -124,7 +124,7 @@ func TestChannelHub_BroadcastToClients(t *testing.T) {
 		ID:      uuid.New().String(),
 		Clients: make(map[*ChatClient]bool),
 	}
-	
+
 	client1 := &ChatClient{
 		UserID:   uuid.New(),
 		Username: "user1",
@@ -163,7 +163,7 @@ func TestChannelHub_BroadcastToClients(t *testing.T) {
 
 func TestChannelHub_Shutdown(t *testing.T) {
 	hub := NewChannelHub(uuid.New().String(), nil, nil)
-	
+
 	client1 := &ChatClient{
 		UserID:   uuid.New(),
 		Username: "user1",
@@ -187,7 +187,7 @@ func TestChannelHub_Shutdown(t *testing.T) {
 
 	// Verify all clients are removed
 	assert.Equal(t, 0, hub.GetClientCount())
-	
+
 	// Verify send channels are closed
 	_, ok1 := <-client1.Send
 	_, ok2 := <-client2.Send
@@ -198,7 +198,7 @@ func TestChannelHub_Shutdown(t *testing.T) {
 func TestTimePtrHelper(t *testing.T) {
 	now := time.Now()
 	ptr := timePtr(now)
-	
+
 	assert.NotNil(t, ptr)
 	assert.Equal(t, now, *ptr)
 }

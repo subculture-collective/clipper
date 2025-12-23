@@ -28,13 +28,13 @@ type User struct {
 	FollowerCount        int        `json:"follower_count" db:"follower_count"`
 	FollowingCount       int        `json:"following_count" db:"following_count"`
 	// DMCA-related fields
-	DMCAStrikesCount    int        `json:"dmca_strikes_count" db:"dmca_strikes_count"`
-	DMCASuspendedUntil  *time.Time `json:"dmca_suspended_until,omitempty" db:"dmca_suspended_until"`
-	DMCATerminated      bool       `json:"dmca_terminated" db:"dmca_terminated"`
-	DMCATerminatedAt    *time.Time `json:"dmca_terminated_at,omitempty" db:"dmca_terminated_at"`
+	DMCAStrikesCount   int        `json:"dmca_strikes_count" db:"dmca_strikes_count"`
+	DMCASuspendedUntil *time.Time `json:"dmca_suspended_until,omitempty" db:"dmca_suspended_until"`
+	DMCATerminated     bool       `json:"dmca_terminated" db:"dmca_terminated"`
+	DMCATerminatedAt   *time.Time `json:"dmca_terminated_at,omitempty" db:"dmca_terminated_at"`
 	// Verification fields
-	IsVerified          bool       `json:"is_verified" db:"is_verified"`
-	VerifiedAt          *time.Time `json:"verified_at,omitempty" db:"verified_at"`
+	IsVerified bool       `json:"is_verified" db:"is_verified"`
+	VerifiedAt *time.Time `json:"verified_at,omitempty" db:"verified_at"`
 	// Comment moderation fields
 	CommentSuspendedUntil *time.Time `json:"comment_suspended_until,omitempty" db:"comment_suspended_until"`
 	CommentsRequireReview bool       `json:"comments_require_review" db:"comments_require_review"`
@@ -151,18 +151,18 @@ type Clip struct {
 	DMCAReinstatedAt *time.Time `json:"dmca_reinstated_at,omitempty" db:"dmca_reinstated_at"`
 	// Stream clip fields
 	StreamSource *string    `json:"stream_source,omitempty" db:"stream_source"` // 'twitch' or 'stream'
-	Status       *string    `json:"status,omitempty" db:"status"`                // 'ready', 'processing', 'failed'
+	Status       *string    `json:"status,omitempty" db:"status"`               // 'ready', 'processing', 'failed'
 	VideoURL     *string    `json:"video_url,omitempty" db:"video_url"`
 	ProcessedAt  *time.Time `json:"processed_at,omitempty" db:"processed_at"`
 	Quality      *string    `json:"quality,omitempty" db:"quality"` // 'source', '1080p', '720p'
 	StartTime    *float64   `json:"start_time,omitempty" db:"start_time"`
 	EndTime      *float64   `json:"end_time,omitempty" db:"end_time"`
 	// CDN and mirror fields
-	PrimaryCDNURL     *string    `json:"primary_cdn_url,omitempty" db:"primary_cdn_url"`
-	CDNProvider       *string    `json:"cdn_provider,omitempty" db:"cdn_provider"`
-	IsMirrored        bool       `json:"is_mirrored" db:"is_mirrored"`
-	MirrorCount       int        `json:"mirror_count" db:"mirror_count"`
-	LastMirrorSyncAt  *time.Time `json:"last_mirror_sync_at,omitempty" db:"last_mirror_sync_at"`
+	PrimaryCDNURL    *string    `json:"primary_cdn_url,omitempty" db:"primary_cdn_url"`
+	CDNProvider      *string    `json:"cdn_provider,omitempty" db:"cdn_provider"`
+	IsMirrored       bool       `json:"is_mirrored" db:"is_mirrored"`
+	MirrorCount      int        `json:"mirror_count" db:"mirror_count"`
+	LastMirrorSyncAt *time.Time `json:"last_mirror_sync_at,omitempty" db:"last_mirror_sync_at"`
 }
 
 // Vote represents a user's vote on a clip
@@ -609,7 +609,7 @@ type NotificationPreferences struct {
 
 	// Broadcaster notifications
 	NotifyBroadcasterLive bool `json:"notify_broadcaster_live" db:"notify_broadcaster_live"`
-	
+
 	// Stream notifications
 	NotifyStreamLive bool `json:"notify_stream_live" db:"notify_stream_live"`
 
@@ -1598,21 +1598,21 @@ func GetSupportedWebhookEvents() []string {
 
 // OutboundWebhookDeadLetterQueue represents a permanently failed outbound webhook delivery
 type OutboundWebhookDeadLetterQueue struct {
-	ID                 uuid.UUID  `json:"id" db:"id"`
-	SubscriptionID     uuid.UUID  `json:"subscription_id" db:"subscription_id"`
-	DeliveryID         uuid.UUID  `json:"delivery_id" db:"delivery_id"`
-	EventType          string     `json:"event_type" db:"event_type"`
-	EventID            uuid.UUID  `json:"event_id" db:"event_id"`
-	Payload            string     `json:"payload" db:"payload"`
-	ErrorMessage       string     `json:"error_message" db:"error_message"`
-	HTTPStatusCode     *int       `json:"http_status_code,omitempty" db:"http_status_code"`
-	ResponseBody       *string    `json:"response_body,omitempty" db:"response_body"`
-	AttemptCount       int        `json:"attempt_count" db:"attempt_count"`
-	OriginalCreatedAt  time.Time  `json:"original_created_at" db:"original_created_at"`
-	MovedToDLQAt       time.Time  `json:"moved_to_dlq_at" db:"moved_to_dlq_at"`
-	ReplayedAt         *time.Time `json:"replayed_at,omitempty" db:"replayed_at"`
-	ReplaySuccessful   *bool      `json:"replay_successful,omitempty" db:"replay_successful"`
-	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
+	ID                uuid.UUID  `json:"id" db:"id"`
+	SubscriptionID    uuid.UUID  `json:"subscription_id" db:"subscription_id"`
+	DeliveryID        uuid.UUID  `json:"delivery_id" db:"delivery_id"`
+	EventType         string     `json:"event_type" db:"event_type"`
+	EventID           uuid.UUID  `json:"event_id" db:"event_id"`
+	Payload           string     `json:"payload" db:"payload"`
+	ErrorMessage      string     `json:"error_message" db:"error_message"`
+	HTTPStatusCode    *int       `json:"http_status_code,omitempty" db:"http_status_code"`
+	ResponseBody      *string    `json:"response_body,omitempty" db:"response_body"`
+	AttemptCount      int        `json:"attempt_count" db:"attempt_count"`
+	OriginalCreatedAt time.Time  `json:"original_created_at" db:"original_created_at"`
+	MovedToDLQAt      time.Time  `json:"moved_to_dlq_at" db:"moved_to_dlq_at"`
+	ReplayedAt        *time.Time `json:"replayed_at,omitempty" db:"replayed_at"`
+	ReplaySuccessful  *bool      `json:"replay_successful,omitempty" db:"replay_successful"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 }
 
 // TrustScoreHistory represents a trust score change audit log entry
@@ -2207,12 +2207,12 @@ type Stream struct {
 
 // StreamSession represents a user's watch session for a stream
 type StreamSession struct {
-	ID                  uuid.UUID  `json:"id" db:"id"`
-	UserID              uuid.UUID  `json:"user_id" db:"user_id"`
-	StreamID            uuid.UUID  `json:"stream_id" db:"stream_id"`
-	StartedAt           time.Time  `json:"started_at" db:"started_at"`
-	EndedAt             *time.Time `json:"ended_at,omitempty" db:"ended_at"`
-	WatchDurationSeconds int       `json:"watch_duration_seconds" db:"watch_duration_seconds"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	UserID               uuid.UUID  `json:"user_id" db:"user_id"`
+	StreamID             uuid.UUID  `json:"stream_id" db:"stream_id"`
+	StartedAt            time.Time  `json:"started_at" db:"started_at"`
+	EndedAt              *time.Time `json:"ended_at,omitempty" db:"ended_at"`
+	WatchDurationSeconds int        `json:"watch_duration_seconds" db:"watch_duration_seconds"`
 }
 
 // StreamInfo represents stream status information returned to the frontend
@@ -2615,72 +2615,72 @@ type MFAStatusResponse struct {
 
 // DMCANotice represents a DMCA takedown notice submitted by a copyright holder
 type DMCANotice struct {
-	ID                          uuid.UUID  `json:"id" db:"id"`
-	ComplainantName             string     `json:"complainant_name" db:"complainant_name"`
-	ComplainantEmail            string     `json:"complainant_email" db:"complainant_email"`
-	ComplainantAddress          string     `json:"complainant_address" db:"complainant_address"`
-	ComplainantPhone            *string    `json:"complainant_phone,omitempty" db:"complainant_phone"`
-	Relationship                string     `json:"relationship" db:"relationship"` // 'owner' or 'agent'
-	CopyrightedWorkDescription  string     `json:"copyrighted_work_description" db:"copyrighted_work_description"`
-	InfringingURLs              []string   `json:"infringing_urls" db:"infringing_urls"` // PostgreSQL array
-	GoodFaithStatement          bool       `json:"good_faith_statement" db:"good_faith_statement"`
-	AccuracyStatement           bool       `json:"accuracy_statement" db:"accuracy_statement"`
-	Signature                   string     `json:"signature" db:"signature"`
-	SubmittedAt                 time.Time  `json:"submitted_at" db:"submitted_at"`
-	ReviewedAt                  *time.Time `json:"reviewed_at,omitempty" db:"reviewed_at"`
-	ReviewedBy                  *uuid.UUID `json:"reviewed_by,omitempty" db:"reviewed_by"`
-	Status                      string     `json:"status" db:"status"` // pending, valid, invalid, processed
-	Notes                       *string    `json:"notes,omitempty" db:"notes"`
-	IPAddress                   *string    `json:"ip_address,omitempty" db:"ip_address"`
-	UserAgent                   *string    `json:"user_agent,omitempty" db:"user_agent"`
-	CreatedAt                   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt                   time.Time  `json:"updated_at" db:"updated_at"`
+	ID                         uuid.UUID  `json:"id" db:"id"`
+	ComplainantName            string     `json:"complainant_name" db:"complainant_name"`
+	ComplainantEmail           string     `json:"complainant_email" db:"complainant_email"`
+	ComplainantAddress         string     `json:"complainant_address" db:"complainant_address"`
+	ComplainantPhone           *string    `json:"complainant_phone,omitempty" db:"complainant_phone"`
+	Relationship               string     `json:"relationship" db:"relationship"` // 'owner' or 'agent'
+	CopyrightedWorkDescription string     `json:"copyrighted_work_description" db:"copyrighted_work_description"`
+	InfringingURLs             []string   `json:"infringing_urls" db:"infringing_urls"` // PostgreSQL array
+	GoodFaithStatement         bool       `json:"good_faith_statement" db:"good_faith_statement"`
+	AccuracyStatement          bool       `json:"accuracy_statement" db:"accuracy_statement"`
+	Signature                  string     `json:"signature" db:"signature"`
+	SubmittedAt                time.Time  `json:"submitted_at" db:"submitted_at"`
+	ReviewedAt                 *time.Time `json:"reviewed_at,omitempty" db:"reviewed_at"`
+	ReviewedBy                 *uuid.UUID `json:"reviewed_by,omitempty" db:"reviewed_by"`
+	Status                     string     `json:"status" db:"status"` // pending, valid, invalid, processed
+	Notes                      *string    `json:"notes,omitempty" db:"notes"`
+	IPAddress                  *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent                  *string    `json:"user_agent,omitempty" db:"user_agent"`
+	CreatedAt                  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                  time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // DMCACounterNotice represents a DMCA counter-notice submitted by a user
 type DMCACounterNotice struct {
-	ID                        uuid.UUID  `json:"id" db:"id"`
-	DMCANoticeID              uuid.UUID  `json:"dmca_notice_id" db:"dmca_notice_id"`
-	UserID                    *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
-	UserName                  string     `json:"user_name" db:"user_name"`
-	UserEmail                 string     `json:"user_email" db:"user_email"`
-	UserAddress               string     `json:"user_address" db:"user_address"`
-	UserPhone                 *string    `json:"user_phone,omitempty" db:"user_phone"`
-	RemovedMaterialURL        string     `json:"removed_material_url" db:"removed_material_url"`
-	RemovedMaterialDescription *string   `json:"removed_material_description,omitempty" db:"removed_material_description"`
-	GoodFaithStatement        bool       `json:"good_faith_statement" db:"good_faith_statement"`
-	ConsentToJurisdiction     bool       `json:"consent_to_jurisdiction" db:"consent_to_jurisdiction"`
-	ConsentToService          bool       `json:"consent_to_service" db:"consent_to_service"`
-	Signature                 string     `json:"signature" db:"signature"`
-	SubmittedAt               time.Time  `json:"submitted_at" db:"submitted_at"`
-	ForwardedAt               *time.Time `json:"forwarded_at,omitempty" db:"forwarded_at"`
-	WaitingPeriodEnds         *time.Time `json:"waiting_period_ends,omitempty" db:"waiting_period_ends"`
-	Status                    string     `json:"status" db:"status"` // pending, forwarded, waiting, reinstated, rejected
-	LawsuitFiled              bool       `json:"lawsuit_filed" db:"lawsuit_filed"`
-	LawsuitFiledAt            *time.Time `json:"lawsuit_filed_at,omitempty" db:"lawsuit_filed_at"`
-	Notes                     *string    `json:"notes,omitempty" db:"notes"`
-	IPAddress                 *string    `json:"ip_address,omitempty" db:"ip_address"`
-	UserAgent                 *string    `json:"user_agent,omitempty" db:"user_agent"`
-	CreatedAt                 time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt                 time.Time  `json:"updated_at" db:"updated_at"`
+	ID                         uuid.UUID  `json:"id" db:"id"`
+	DMCANoticeID               uuid.UUID  `json:"dmca_notice_id" db:"dmca_notice_id"`
+	UserID                     *uuid.UUID `json:"user_id,omitempty" db:"user_id"`
+	UserName                   string     `json:"user_name" db:"user_name"`
+	UserEmail                  string     `json:"user_email" db:"user_email"`
+	UserAddress                string     `json:"user_address" db:"user_address"`
+	UserPhone                  *string    `json:"user_phone,omitempty" db:"user_phone"`
+	RemovedMaterialURL         string     `json:"removed_material_url" db:"removed_material_url"`
+	RemovedMaterialDescription *string    `json:"removed_material_description,omitempty" db:"removed_material_description"`
+	GoodFaithStatement         bool       `json:"good_faith_statement" db:"good_faith_statement"`
+	ConsentToJurisdiction      bool       `json:"consent_to_jurisdiction" db:"consent_to_jurisdiction"`
+	ConsentToService           bool       `json:"consent_to_service" db:"consent_to_service"`
+	Signature                  string     `json:"signature" db:"signature"`
+	SubmittedAt                time.Time  `json:"submitted_at" db:"submitted_at"`
+	ForwardedAt                *time.Time `json:"forwarded_at,omitempty" db:"forwarded_at"`
+	WaitingPeriodEnds          *time.Time `json:"waiting_period_ends,omitempty" db:"waiting_period_ends"`
+	Status                     string     `json:"status" db:"status"` // pending, forwarded, waiting, reinstated, rejected
+	LawsuitFiled               bool       `json:"lawsuit_filed" db:"lawsuit_filed"`
+	LawsuitFiledAt             *time.Time `json:"lawsuit_filed_at,omitempty" db:"lawsuit_filed_at"`
+	Notes                      *string    `json:"notes,omitempty" db:"notes"`
+	IPAddress                  *string    `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent                  *string    `json:"user_agent,omitempty" db:"user_agent"`
+	CreatedAt                  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                  time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // DMCAStrike represents a copyright strike against a user
 type DMCAStrike struct {
-	ID             uuid.UUID  `json:"id" db:"id"`
-	UserID         uuid.UUID  `json:"user_id" db:"user_id"`
-	DMCANoticeID   uuid.UUID  `json:"dmca_notice_id" db:"dmca_notice_id"`
-	ClipID         *uuid.UUID `json:"clip_id,omitempty" db:"clip_id"`
-	SubmissionID   *uuid.UUID `json:"submission_id,omitempty" db:"submission_id"`
-	StrikeNumber   int        `json:"strike_number" db:"strike_number"`
-	IssuedAt       time.Time  `json:"issued_at" db:"issued_at"`
-	ExpiresAt      time.Time  `json:"expires_at" db:"expires_at"`
-	Status         string     `json:"status" db:"status"` // active, removed, expired
-	RemovalReason  *string    `json:"removal_reason,omitempty" db:"removal_reason"`
-	RemovedAt      *time.Time `json:"removed_at,omitempty" db:"removed_at"`
-	Notes          *string    `json:"notes,omitempty" db:"notes"`
-	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID  `json:"id" db:"id"`
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	DMCANoticeID  uuid.UUID  `json:"dmca_notice_id" db:"dmca_notice_id"`
+	ClipID        *uuid.UUID `json:"clip_id,omitempty" db:"clip_id"`
+	SubmissionID  *uuid.UUID `json:"submission_id,omitempty" db:"submission_id"`
+	StrikeNumber  int        `json:"strike_number" db:"strike_number"`
+	IssuedAt      time.Time  `json:"issued_at" db:"issued_at"`
+	ExpiresAt     time.Time  `json:"expires_at" db:"expires_at"`
+	Status        string     `json:"status" db:"status"` // active, removed, expired
+	RemovalReason *string    `json:"removal_reason,omitempty" db:"removal_reason"`
+	RemovedAt     *time.Time `json:"removed_at,omitempty" db:"removed_at"`
+	Notes         *string    `json:"notes,omitempty" db:"notes"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // SubmitDMCANoticeRequest represents the request to submit a DMCA takedown notice
@@ -2694,24 +2694,24 @@ type SubmitDMCANoticeRequest struct {
 	InfringingURLs             []string `json:"infringing_urls" binding:"required,min=1,dive,url"`
 	// Note: binding:"required" on booleans only validates presence, not truthiness
 	// Service layer validates these are true (dmca_service.go lines 168-173)
-	GoodFaithStatement         bool     `json:"good_faith_statement" binding:"required"`
-	AccuracyStatement          bool     `json:"accuracy_statement" binding:"required"`
-	Signature                  string   `json:"signature" binding:"required,min=2,max=255"`
+	GoodFaithStatement bool   `json:"good_faith_statement" binding:"required"`
+	AccuracyStatement  bool   `json:"accuracy_statement" binding:"required"`
+	Signature          string `json:"signature" binding:"required,min=2,max=255"`
 }
 
 // SubmitDMCACounterNoticeRequest represents the request to submit a counter-notice
 type SubmitDMCACounterNoticeRequest struct {
-	DMCANoticeID              uuid.UUID `json:"dmca_notice_id" binding:"required"`
-	UserName                  string    `json:"user_name" binding:"required,min=2,max=255"`
-	UserEmail                 string    `json:"user_email" binding:"required,email,max=255"`
-	UserAddress               string    `json:"user_address" binding:"required,min=10"`
-	UserPhone                 *string   `json:"user_phone,omitempty" binding:"omitempty,max=50"`
-	RemovedMaterialURL        string    `json:"removed_material_url" binding:"required,url"`
-	RemovedMaterialDescription *string  `json:"removed_material_description,omitempty"`
-	GoodFaithStatement        bool      `json:"good_faith_statement" binding:"required"`
-	ConsentToJurisdiction     bool      `json:"consent_to_jurisdiction" binding:"required"`
-	ConsentToService          bool      `json:"consent_to_service" binding:"required"`
-	Signature                 string    `json:"signature" binding:"required,min=2,max=255"`
+	DMCANoticeID               uuid.UUID `json:"dmca_notice_id" binding:"required"`
+	UserName                   string    `json:"user_name" binding:"required,min=2,max=255"`
+	UserEmail                  string    `json:"user_email" binding:"required,email,max=255"`
+	UserAddress                string    `json:"user_address" binding:"required,min=10"`
+	UserPhone                  *string   `json:"user_phone,omitempty" binding:"omitempty,max=50"`
+	RemovedMaterialURL         string    `json:"removed_material_url" binding:"required,url"`
+	RemovedMaterialDescription *string   `json:"removed_material_description,omitempty"`
+	GoodFaithStatement         bool      `json:"good_faith_statement" binding:"required"`
+	ConsentToJurisdiction      bool      `json:"consent_to_jurisdiction" binding:"required"`
+	ConsentToService           bool      `json:"consent_to_service" binding:"required"`
+	Signature                  string    `json:"signature" binding:"required,min=2,max=255"`
 }
 
 // UpdateDMCANoticeStatusRequest represents admin request to update notice status
@@ -2738,13 +2738,13 @@ type DMCAStrikeListResponse struct {
 
 // DMCADashboardStats represents admin dashboard statistics
 type DMCADashboardStats struct {
-	PendingNotices          int `json:"pending_notices"`
-	PendingCounterNotices   int `json:"pending_counter_notices"`
-	ContentAwaitingRemoval  int `json:"content_awaiting_removal"`
-	ContentAwaitingRestore  int `json:"content_awaiting_restore"`
-	UsersWithActiveStrikes  int `json:"users_with_active_strikes"`
-	UsersWithTwoStrikes     int `json:"users_with_two_strikes"`
-	TotalTakedownsThisMonth int `json:"total_takedowns_this_month"`
+	PendingNotices               int `json:"pending_notices"`
+	PendingCounterNotices        int `json:"pending_counter_notices"`
+	ContentAwaitingRemoval       int `json:"content_awaiting_removal"`
+	ContentAwaitingRestore       int `json:"content_awaiting_restore"`
+	UsersWithActiveStrikes       int `json:"users_with_active_strikes"`
+	UsersWithTwoStrikes          int `json:"users_with_two_strikes"`
+	TotalTakedownsThisMonth      int `json:"total_takedowns_this_month"`
 	TotalCounterNoticesThisMonth int `json:"total_counter_notices_this_month"`
 }
 
@@ -2770,13 +2770,13 @@ type ModerationQueueItem struct {
 
 // ModerationDecision represents a moderation decision audit entry
 type ModerationDecision struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	QueueItemID uuid.UUID  `json:"queue_item_id" db:"queue_item_id"`
-	ModeratorID uuid.UUID  `json:"moderator_id" db:"moderator_id"`
-	Action      string     `json:"action" db:"action"`
-	Reason      *string    `json:"reason,omitempty" db:"reason"`
-	Metadata    *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	ID          uuid.UUID `json:"id" db:"id"`
+	QueueItemID uuid.UUID `json:"queue_item_id" db:"queue_item_id"`
+	ModeratorID uuid.UUID `json:"moderator_id" db:"moderator_id"`
+	Action      string    `json:"action" db:"action"`
+	Reason      *string   `json:"reason,omitempty" db:"reason"`
+	Metadata    *string   `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
 // ModerationQueueStats represents statistics about the moderation queue
@@ -2827,16 +2827,16 @@ type ResolveAppealRequest struct {
 
 // ModerationDecisionWithDetails represents a moderation decision with additional context
 type ModerationDecisionWithDetails struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	QueueItemID     uuid.UUID  `json:"queue_item_id" db:"queue_item_id"`
-	ModeratorID     uuid.UUID  `json:"moderator_id" db:"moderator_id"`
-	ModeratorName   string     `json:"moderator_name" db:"moderator_name"`
-	Action          string     `json:"action" db:"action"`
-	ContentType     string     `json:"content_type" db:"content_type"`
-	ContentID       uuid.UUID  `json:"content_id" db:"content_id"`
-	Reason          *string    `json:"reason,omitempty" db:"reason"`
-	Metadata        *string    `json:"metadata,omitempty" db:"metadata"`
-	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	ID            uuid.UUID `json:"id" db:"id"`
+	QueueItemID   uuid.UUID `json:"queue_item_id" db:"queue_item_id"`
+	ModeratorID   uuid.UUID `json:"moderator_id" db:"moderator_id"`
+	ModeratorName string    `json:"moderator_name" db:"moderator_name"`
+	Action        string    `json:"action" db:"action"`
+	ContentType   string    `json:"content_type" db:"content_type"`
+	ContentID     uuid.UUID `json:"content_id" db:"content_id"`
+	Reason        *string   `json:"reason,omitempty" db:"reason"`
+	Metadata      *string   `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
 // TimeSeriesPoint represents a point in time series data
@@ -2847,12 +2847,12 @@ type TimeSeriesPoint struct {
 
 // ModerationAnalytics represents analytics data for moderation actions
 type ModerationAnalytics struct {
-	TotalActions         int                `json:"total_actions"`
-	ActionsByType        map[string]int     `json:"actions_by_type"`
-	ActionsByModerator   map[string]int     `json:"actions_by_moderator"`
-	ActionsOverTime      []TimeSeriesPoint  `json:"actions_over_time"`
-	ContentTypeBreakdown map[string]int     `json:"content_type_breakdown"`
-	AverageResponseTime  *float64           `json:"average_response_time_minutes,omitempty"`
+	TotalActions         int               `json:"total_actions"`
+	ActionsByType        map[string]int    `json:"actions_by_type"`
+	ActionsByModerator   map[string]int    `json:"actions_by_moderator"`
+	ActionsOverTime      []TimeSeriesPoint `json:"actions_over_time"`
+	ContentTypeBreakdown map[string]int    `json:"content_type_breakdown"`
+	AverageResponseTime  *float64          `json:"average_response_time_minutes,omitempty"`
 }
 
 // ============================================================================
@@ -2937,8 +2937,8 @@ const (
 type VerificationAuditLog struct {
 	ID          uuid.UUID              `json:"id" db:"id"`
 	UserID      uuid.UUID              `json:"user_id" db:"user_id"`
-	AuditType   string                 `json:"audit_type" db:"audit_type"`     // periodic_check, manual_review, abuse_detection
-	Status      string                 `json:"status" db:"status"`             // passed, flagged, revoked
+	AuditType   string                 `json:"audit_type" db:"audit_type"` // periodic_check, manual_review, abuse_detection
+	Status      string                 `json:"status" db:"status"`         // passed, flagged, revoked
 	Findings    map[string]interface{} `json:"findings,omitempty" db:"findings"`
 	Notes       *string                `json:"notes,omitempty" db:"notes"`
 	AuditedBy   *uuid.UUID             `json:"audited_by,omitempty" db:"audited_by"`
@@ -2948,9 +2948,9 @@ type VerificationAuditLog struct {
 
 // Audit type constants
 const (
-	AuditTypePeriodicCheck   = "periodic_check"
-	AuditTypeManualReview    = "manual_review"
-	AuditTypeAbuseDetection  = "abuse_detection"
+	AuditTypePeriodicCheck  = "periodic_check"
+	AuditTypeManualReview   = "manual_review"
+	AuditTypeAbuseDetection = "abuse_detection"
 )
 
 // Audit status constants
@@ -2970,15 +2970,15 @@ const (
 
 // ChatChannel represents a chat channel
 type ChatChannel struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	Name            string     `json:"name" db:"name"`
-	Description     *string    `json:"description,omitempty" db:"description"`
-	CreatorID       uuid.UUID  `json:"creator_id" db:"creator_id"`
-	ChannelType     string     `json:"channel_type" db:"channel_type"`
-	IsActive        bool       `json:"is_active" db:"is_active"`
-	MaxParticipants *int       `json:"max_participants,omitempty" db:"max_participants"`
-	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+	ID              uuid.UUID `json:"id" db:"id"`
+	Name            string    `json:"name" db:"name"`
+	Description     *string   `json:"description,omitempty" db:"description"`
+	CreatorID       uuid.UUID `json:"creator_id" db:"creator_id"`
+	ChannelType     string    `json:"channel_type" db:"channel_type"`
+	IsActive        bool      `json:"is_active" db:"is_active"`
+	MaxParticipants *int      `json:"max_participants,omitempty" db:"max_participants"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // ChatMessage represents a message in a chat channel
@@ -3116,15 +3116,15 @@ type UserFilterPreset struct {
 
 // FilterPresetFilters represents the filter configuration in a preset
 type FilterPresetFilters struct {
-	Games        []string `json:"games,omitempty"`
-	Streamers    []string `json:"streamers,omitempty"`
-	Tags         []string `json:"tags,omitempty"`
-	ExcludeTags  []string `json:"exclude_tags,omitempty"`
-	DateFrom     *string  `json:"date_from,omitempty"`
-	DateTo       *string  `json:"date_to,omitempty"`
-	Sort         *string  `json:"sort,omitempty"`
-	Language     *string  `json:"language,omitempty"`
-	NSFWFilter   *bool    `json:"nsfw_filter,omitempty"`
+	Games       []string `json:"games,omitempty"`
+	Streamers   []string `json:"streamers,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	ExcludeTags []string `json:"exclude_tags,omitempty"`
+	DateFrom    *string  `json:"date_from,omitempty"`
+	DateTo      *string  `json:"date_to,omitempty"`
+	Sort        *string  `json:"sort,omitempty"`
+	Language    *string  `json:"language,omitempty"`
+	NSFWFilter  *bool    `json:"nsfw_filter,omitempty"`
 }
 
 // CreateFilterPresetRequest represents the request to create a filter preset
@@ -3141,8 +3141,8 @@ type UpdateFilterPresetRequest struct {
 
 // ClipFiltersResponse represents enhanced clip feed response with filter metadata
 type ClipFiltersResponse struct {
-	Clips       interface{}   `json:"clips"`
-	Pagination  interface{}   `json:"pagination"`
+	Clips        interface{}   `json:"clips"`
+	Pagination   interface{}   `json:"pagination"`
 	FilterCounts *FilterCounts `json:"filter_counts,omitempty"`
 }
 
@@ -3170,12 +3170,12 @@ type UserPreference struct {
 
 // UserClipInteraction represents a user's interaction with a clip
 type UserClipInteraction struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	UserID          uuid.UUID  `json:"user_id" db:"user_id"`
-	ClipID          uuid.UUID  `json:"clip_id" db:"clip_id"`
-	InteractionType string     `json:"interaction_type" db:"interaction_type"` // 'view', 'like', 'share', 'dwell'
-	DwellTime       *int       `json:"dwell_time,omitempty" db:"dwell_time"`
-	Timestamp       time.Time  `json:"timestamp" db:"timestamp"`
+	ID              uuid.UUID `json:"id" db:"id"`
+	UserID          uuid.UUID `json:"user_id" db:"user_id"`
+	ClipID          uuid.UUID `json:"clip_id" db:"clip_id"`
+	InteractionType string    `json:"interaction_type" db:"interaction_type"` // 'view', 'like', 'share', 'dwell'
+	DwellTime       *int      `json:"dwell_time,omitempty" db:"dwell_time"`
+	Timestamp       time.Time `json:"timestamp" db:"timestamp"`
 }
 
 // ClipRecommendation represents a recommended clip with score and reason
@@ -3201,22 +3201,22 @@ type RecommendationResponse struct {
 
 // RecommendationMetadata contains metadata about the recommendation process
 type RecommendationMetadata struct {
-	AlgorithmUsed    string  `json:"algorithm_used"`
-	DiversityApplied bool    `json:"diversity_applied"`
-	ColdStart        bool    `json:"cold_start"`
-	CacheHit         bool    `json:"cache_hit"`
-	ProcessingTimeMs int64   `json:"processing_time_ms"`
+	AlgorithmUsed    string `json:"algorithm_used"`
+	DiversityApplied bool   `json:"diversity_applied"`
+	ColdStart        bool   `json:"cold_start"`
+	CacheHit         bool   `json:"cache_hit"`
+	ProcessingTimeMs int64  `json:"processing_time_ms"`
 }
 
 // RecommendationFeedback represents user feedback on a recommendation
 type RecommendationFeedback struct {
-	ID             uuid.UUID `json:"id" db:"id"`
-	UserID         uuid.UUID `json:"user_id" db:"user_id"`
-	ClipID         uuid.UUID `json:"clip_id" db:"clip_id"`
-	FeedbackType   string    `json:"feedback_type" db:"feedback_type"` // 'positive', 'negative'
-	Algorithm      string    `json:"algorithm" db:"algorithm"`
-	Score          float64   `json:"score" db:"score"`
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	ID           uuid.UUID `json:"id" db:"id"`
+	UserID       uuid.UUID `json:"user_id" db:"user_id"`
+	ClipID       uuid.UUID `json:"clip_id" db:"clip_id"`
+	FeedbackType string    `json:"feedback_type" db:"feedback_type"` // 'positive', 'negative'
+	Algorithm    string    `json:"algorithm" db:"algorithm"`
+	Score        float64   `json:"score" db:"score"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }
 
 // SubmitFeedbackRequest represents a request to submit feedback on a recommendation
@@ -3397,15 +3397,15 @@ const (
 
 // PlaylistCollaborator represents a collaborator on a playlist
 type PlaylistCollaborator struct {
-	ID         uuid.UUID `json:"id" db:"id"`
-	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
-	UserID     uuid.UUID `json:"user_id" db:"user_id"`
-	User       *User     `json:"user,omitempty"`
-	Permission string    `json:"permission" db:"permission"` // view, edit, admin
+	ID         uuid.UUID  `json:"id" db:"id"`
+	PlaylistID uuid.UUID  `json:"playlist_id" db:"playlist_id"`
+	UserID     uuid.UUID  `json:"user_id" db:"user_id"`
+	User       *User      `json:"user,omitempty"`
+	Permission string     `json:"permission" db:"permission"` // view, edit, admin
 	InvitedBy  *uuid.UUID `json:"invited_by,omitempty" db:"invited_by"`
-	InvitedAt  time.Time `json:"invited_at" db:"invited_at"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+	InvitedAt  time.Time  `json:"invited_at" db:"invited_at"`
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // PlaylistShare represents a share event for analytics
@@ -3446,14 +3446,14 @@ type TrackShareRequest struct {
 
 // QueueItem represents a clip in a user's playback queue
 type QueueItem struct {
-	ID       uuid.UUID  `json:"id" db:"id"`
-	UserID   uuid.UUID  `json:"user_id" db:"user_id"`
-	ClipID   uuid.UUID  `json:"clip_id" db:"clip_id"`
-	Position int        `json:"position" db:"position"`
-	AddedAt  time.Time  `json:"added_at" db:"added_at"`
-	PlayedAt *time.Time `json:"played_at,omitempty" db:"played_at"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID        uuid.UUID  `json:"id" db:"id"`
+	UserID    uuid.UUID  `json:"user_id" db:"user_id"`
+	ClipID    uuid.UUID  `json:"clip_id" db:"clip_id"`
+	Position  int        `json:"position" db:"position"`
+	AddedAt   time.Time  `json:"added_at" db:"added_at"`
+	PlayedAt  *time.Time `json:"played_at,omitempty" db:"played_at"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // QueueItemWithClip represents a queue item with clip information
@@ -3483,18 +3483,18 @@ type ReorderQueueRequest struct {
 
 // WatchHistoryEntry represents a watch history entry for a clip
 type WatchHistoryEntry struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	UserID          uuid.UUID  `json:"user_id" db:"user_id"`
-	ClipID          uuid.UUID  `json:"clip_id" db:"clip_id"`
-	Clip            *Clip      `json:"clip,omitempty"`
-	ProgressSeconds int        `json:"progress_seconds" db:"progress_seconds"`
-	DurationSeconds int        `json:"duration_seconds" db:"duration_seconds"`
-	ProgressPercent float64    `json:"progress_percent"`
-	Completed       bool       `json:"completed" db:"completed"`
-	SessionID       string     `json:"session_id" db:"session_id"`
-	WatchedAt       time.Time  `json:"watched_at" db:"watched_at"`
-	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+	ID              uuid.UUID `json:"id" db:"id"`
+	UserID          uuid.UUID `json:"user_id" db:"user_id"`
+	ClipID          uuid.UUID `json:"clip_id" db:"clip_id"`
+	Clip            *Clip     `json:"clip,omitempty"`
+	ProgressSeconds int       `json:"progress_seconds" db:"progress_seconds"`
+	DurationSeconds int       `json:"duration_seconds" db:"duration_seconds"`
+	ProgressPercent float64   `json:"progress_percent"`
+	Completed       bool      `json:"completed" db:"completed"`
+	SessionID       string    `json:"session_id" db:"session_id"`
+	WatchedAt       time.Time `json:"watched_at" db:"watched_at"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // RecordWatchProgressRequest represents the request to record watch progress
@@ -3522,20 +3522,20 @@ type ResumePositionResponse struct {
 
 // WatchParty represents a synchronized video watching session
 type WatchParty struct {
-	ID                     uuid.UUID              `json:"id" db:"id"`
-	HostUserID             uuid.UUID              `json:"host_user_id" db:"host_user_id"`
-	Title                  string                 `json:"title" db:"title"`
-	PlaylistID             *uuid.UUID             `json:"playlist_id,omitempty" db:"playlist_id"`
-	CurrentClipID          *uuid.UUID             `json:"current_clip_id,omitempty" db:"current_clip_id"`
-	CurrentPositionSeconds int                    `json:"current_position_seconds" db:"current_position_seconds"`
-	IsPlaying              bool                   `json:"is_playing" db:"is_playing"`
-	Visibility             string                 `json:"visibility" db:"visibility"`
-	Password               *string                `json:"-" db:"password"` // Password hash, never sent to client
-	InviteCode             string                 `json:"invite_code" db:"invite_code"`
-	MaxParticipants        int                    `json:"max_participants" db:"max_participants"`
-	CreatedAt              time.Time              `json:"created_at" db:"created_at"`
-	StartedAt              *time.Time             `json:"started_at,omitempty" db:"started_at"`
-	EndedAt                *time.Time             `json:"ended_at,omitempty" db:"ended_at"`
+	ID                     uuid.UUID               `json:"id" db:"id"`
+	HostUserID             uuid.UUID               `json:"host_user_id" db:"host_user_id"`
+	Title                  string                  `json:"title" db:"title"`
+	PlaylistID             *uuid.UUID              `json:"playlist_id,omitempty" db:"playlist_id"`
+	CurrentClipID          *uuid.UUID              `json:"current_clip_id,omitempty" db:"current_clip_id"`
+	CurrentPositionSeconds int                     `json:"current_position_seconds" db:"current_position_seconds"`
+	IsPlaying              bool                    `json:"is_playing" db:"is_playing"`
+	Visibility             string                  `json:"visibility" db:"visibility"`
+	Password               *string                 `json:"-" db:"password"` // Password hash, never sent to client
+	InviteCode             string                  `json:"invite_code" db:"invite_code"`
+	MaxParticipants        int                     `json:"max_participants" db:"max_participants"`
+	CreatedAt              time.Time               `json:"created_at" db:"created_at"`
+	StartedAt              *time.Time              `json:"started_at,omitempty" db:"started_at"`
+	EndedAt                *time.Time              `json:"ended_at,omitempty" db:"ended_at"`
 	Participants           []WatchPartyParticipant `json:"participants,omitempty" db:"-"`
 }
 
@@ -3554,11 +3554,11 @@ type WatchPartyParticipant struct {
 
 // CreateWatchPartyRequest represents a request to create a watch party
 type CreateWatchPartyRequest struct {
-	Title       string     `json:"title" binding:"required,min=1,max=200"`
-	PlaylistID  *uuid.UUID `json:"playlist_id,omitempty" binding:"omitempty,uuid"`
-	Visibility  string     `json:"visibility,omitempty" binding:"omitempty,oneof=private public friends invite"`
-	Password    *string    `json:"password,omitempty" binding:"omitempty,min=4,max=100"`
-	MaxParticipants *int   `json:"max_participants,omitempty" binding:"omitempty,min=2,max=1000"`
+	Title           string     `json:"title" binding:"required,min=1,max=200"`
+	PlaylistID      *uuid.UUID `json:"playlist_id,omitempty" binding:"omitempty,uuid"`
+	Visibility      string     `json:"visibility,omitempty" binding:"omitempty,oneof=private public friends invite"`
+	Password        *string    `json:"password,omitempty" binding:"omitempty,min=4,max=100"`
+	MaxParticipants *int       `json:"max_participants,omitempty" binding:"omitempty,min=2,max=1000"`
 }
 
 // UpdateWatchPartySettingsRequest represents a request to update watch party settings
@@ -3569,8 +3569,8 @@ type UpdateWatchPartySettingsRequest struct {
 
 // JoinWatchPartyResponse represents the response when joining a party
 type JoinWatchPartyResponse struct {
-	Party WatchParty `json:"party"`
-	InviteURL string  `json:"invite_url"`
+	Party     WatchParty `json:"party"`
+	InviteURL string     `json:"invite_url"`
 }
 
 // JoinWatchPartyRequest represents a request to join a watch party
@@ -3580,15 +3580,15 @@ type JoinWatchPartyRequest struct {
 
 // WatchPartyHistoryEntry represents a past watch party
 type WatchPartyHistoryEntry struct {
-	ID              uuid.UUID  `json:"id" db:"id"`
-	HostUserID      uuid.UUID  `json:"host_user_id" db:"host_user_id"`
-	Title           string     `json:"title" db:"title"`
-	Visibility      string     `json:"visibility" db:"visibility"`
-	ParticipantCount int       `json:"participant_count" db:"participant_count"`
-	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
-	StartedAt       *time.Time `json:"started_at,omitempty" db:"started_at"`
-	EndedAt         *time.Time `json:"ended_at,omitempty" db:"ended_at"`
-	Duration        *int       `json:"duration_seconds,omitempty"` // Calculated field
+	ID               uuid.UUID  `json:"id" db:"id"`
+	HostUserID       uuid.UUID  `json:"host_user_id" db:"host_user_id"`
+	Title            string     `json:"title" db:"title"`
+	Visibility       string     `json:"visibility" db:"visibility"`
+	ParticipantCount int        `json:"participant_count" db:"participant_count"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	StartedAt        *time.Time `json:"started_at,omitempty" db:"started_at"`
+	EndedAt          *time.Time `json:"ended_at,omitempty" db:"ended_at"`
+	Duration         *int       `json:"duration_seconds,omitempty"` // Calculated field
 }
 
 // WatchPartyCommand represents a command from client to server
@@ -3609,14 +3609,14 @@ type WatchPartySyncEvent struct {
 	Type            string                     `json:"type"` // sync, play, pause, seek, skip, participant-joined, participant-left, chat_message, reaction, typing
 	PartyID         string                     `json:"party_id"`
 	ClipID          *uuid.UUID                 `json:"clip_id,omitempty"`
-	Position        int                        `json:"position"`                   // playback position in seconds
+	Position        int                        `json:"position"` // playback position in seconds
 	IsPlaying       bool                       `json:"is_playing"`
-	ServerTimestamp int64                      `json:"server_timestamp"`           // server timestamp (Unix seconds)
+	ServerTimestamp int64                      `json:"server_timestamp"` // server timestamp (Unix seconds)
 	Participant     *WatchPartyParticipantInfo `json:"participant,omitempty"`
-	ChatMessage     *WatchPartyMessage         `json:"chat_message,omitempty"`     // for chat_message events
-	Reaction        *WatchPartyReaction        `json:"reaction,omitempty"`         // for reaction events
-	UserID          *uuid.UUID                 `json:"user_id,omitempty"`          // for typing events
-	IsTyping        bool                       `json:"is_typing,omitempty"`        // for typing events
+	ChatMessage     *WatchPartyMessage         `json:"chat_message,omitempty"` // for chat_message events
+	Reaction        *WatchPartyReaction        `json:"reaction,omitempty"`     // for reaction events
+	UserID          *uuid.UUID                 `json:"user_id,omitempty"`      // for typing events
+	IsTyping        bool                       `json:"is_typing,omitempty"`    // for typing events
 }
 
 // WatchPartyParticipantInfo represents basic participant info in events
@@ -3629,25 +3629,25 @@ type WatchPartyParticipantInfo struct {
 
 // WatchPartyMessage represents a chat message in a watch party
 type WatchPartyMessage struct {
-	ID            uuid.UUID `json:"id" db:"id"`
-	WatchPartyID  uuid.UUID `json:"watch_party_id" db:"watch_party_id"`
-	UserID        uuid.UUID `json:"user_id" db:"user_id"`
-	Username      string    `json:"username,omitempty" db:"-"`
-	DisplayName   string    `json:"display_name,omitempty" db:"-"`
-	AvatarURL     *string   `json:"avatar_url,omitempty" db:"-"`
-	Message       string    `json:"message" db:"message"`
-	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	ID           uuid.UUID `json:"id" db:"id"`
+	WatchPartyID uuid.UUID `json:"watch_party_id" db:"watch_party_id"`
+	UserID       uuid.UUID `json:"user_id" db:"user_id"`
+	Username     string    `json:"username,omitempty" db:"-"`
+	DisplayName  string    `json:"display_name,omitempty" db:"-"`
+	AvatarURL    *string   `json:"avatar_url,omitempty" db:"-"`
+	Message      string    `json:"message" db:"message"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }
 
 // WatchPartyReaction represents an emoji reaction in a watch party
 type WatchPartyReaction struct {
-	ID             uuid.UUID  `json:"id" db:"id"`
-	WatchPartyID   uuid.UUID  `json:"watch_party_id" db:"watch_party_id"`
-	UserID         uuid.UUID  `json:"user_id" db:"user_id"`
-	Username       string     `json:"username,omitempty" db:"-"`
-	Emoji          string     `json:"emoji" db:"emoji"`
-	VideoTimestamp *float64   `json:"video_timestamp,omitempty" db:"video_timestamp"`
-	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	ID             uuid.UUID `json:"id" db:"id"`
+	WatchPartyID   uuid.UUID `json:"watch_party_id" db:"watch_party_id"`
+	UserID         uuid.UUID `json:"user_id" db:"user_id"`
+	Username       string    `json:"username,omitempty" db:"-"`
+	Emoji          string    `json:"emoji" db:"emoji"`
+	VideoTimestamp *float64  `json:"video_timestamp,omitempty" db:"video_timestamp"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 }
 
 // SendMessageRequest represents a request to send a chat message
@@ -3663,22 +3663,22 @@ type SendReactionRequest struct {
 
 // TwitchAuth represents Twitch OAuth authentication data
 type TwitchAuth struct {
-	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
-	TwitchUserID  string     `json:"twitch_user_id" db:"twitch_user_id"`
+	UserID         uuid.UUID `json:"user_id" db:"user_id"`
+	TwitchUserID   string    `json:"twitch_user_id" db:"twitch_user_id"`
 	TwitchUsername string    `json:"twitch_username" db:"twitch_username"`
-	AccessToken   string     `json:"access_token" db:"access_token"`
-	RefreshToken  string     `json:"refresh_token" db:"refresh_token"`
-	ExpiresAt     time.Time  `json:"expires_at" db:"expires_at"`
-	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+	AccessToken    string    `json:"access_token" db:"access_token"`
+	RefreshToken   string    `json:"refresh_token" db:"refresh_token"`
+	ExpiresAt      time.Time `json:"expires_at" db:"expires_at"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // TwitchAuthStatusResponse represents the response for Twitch auth status
 type TwitchAuthStatusResponse struct {
-	Authenticated  bool      `json:"authenticated"`
-	Connected      bool      `json:"connected"`
-	TwitchUserID   *string   `json:"twitch_user_id,omitempty"`
-	TwitchUsername *string   `json:"twitch_username,omitempty"`
+	Authenticated  bool       `json:"authenticated"`
+	Connected      bool       `json:"connected"`
+	TwitchUserID   *string    `json:"twitch_user_id,omitempty"`
+	TwitchUsername *string    `json:"twitch_username,omitempty"`
 	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
 }
 
@@ -3748,8 +3748,8 @@ const (
 // Note: These constants use CamelCase (matching Go conventions), but their string values
 // use lowercase-with-hyphens (matching configuration and documentation conventions)
 const (
-	CDNProviderCloudflare    = "cloudflare"    // Cloudflare CDN
-	CDNProviderBunny         = "bunny"         // Bunny.net CDN
+	CDNProviderCloudflare    = "cloudflare"     // Cloudflare CDN
+	CDNProviderBunny         = "bunny"          // Bunny.net CDN
 	CDNProviderAWSCloudFront = "aws-cloudfront" // AWS CloudFront CDN
 )
 

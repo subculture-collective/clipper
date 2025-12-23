@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { ChatMessage } from '@/types/chat';
+import type { ChatMessage } from '@/types/chat';
 
 interface UseChatWebSocketOptions {
   channelId: string;
@@ -31,6 +31,7 @@ export function useChatWebSocket({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 10;
+  const connectRef = useRef<(() => void) | null>(null);
 
   const connect = useCallback(() => {
     try {
@@ -82,11 +83,11 @@ export function useChatWebSocket({
           const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           const attemptNumber = reconnectAttemptsRef.current + 1;
           reconnectAttemptsRef.current = attemptNumber;
-          
+
           console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${attemptNumber}/${maxReconnectAttempts})`);
-          
+
           reconnectTimeoutRef.current = window.setTimeout(() => {
-            connect();
+            connectRef.current?.();
           }, backoffDelay);
         } else {
           setError('Connection lost. Unable to reconnect after multiple attempts.');
@@ -99,6 +100,8 @@ export function useChatWebSocket({
   }, [channelId, onMessage, onTyping]);
 
   useEffect(() => {
+    // Store connect in ref so it can be called recursively
+    connectRef.current = connect;
     connect();
 
     return () => {

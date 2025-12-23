@@ -963,12 +963,12 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 	// Log dispute event
 	if s.auditLogSvc != nil && userID != uuid.Nil {
 		metadata := map[string]interface{}{
-			"dispute_id":          dispute.ID,
-			"amount_cents":        dispute.Amount,
-			"currency":            dispute.Currency,
-			"reason":              dispute.Reason,
-			"status":              string(dispute.Status),
-			"stripe_customer_id":  customerID,
+			"dispute_id":         dispute.ID,
+			"amount_cents":       dispute.Amount,
+			"currency":           dispute.Currency,
+			"reason":             dispute.Reason,
+			"status":             string(dispute.Status),
+			"stripe_customer_id": customerID,
 		}
 		// Only add charge_id if charge exists
 		if dispute.Charge != nil {

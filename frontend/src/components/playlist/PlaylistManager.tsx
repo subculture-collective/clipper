@@ -38,7 +38,7 @@ export function PlaylistManager() {
             toast.success('Playlist created successfully');
             setShowCreateForm(false);
             setFormData({ title: '', description: '', visibility: 'private' });
-        } catch (error) {
+        } catch {
             toast.error('Failed to create playlist');
         }
     };
@@ -55,7 +55,7 @@ export function PlaylistManager() {
             toast.success('Playlist updated successfully');
             setEditingPlaylist(null);
             setFormData({ title: '', description: '', visibility: 'private' });
-        } catch (error) {
+        } catch {
             toast.error('Failed to update playlist');
         }
     };
@@ -68,7 +68,7 @@ export function PlaylistManager() {
         try {
             await deleteMutation.mutateAsync(id);
             toast.success('Playlist deleted successfully');
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete playlist');
         }
     };

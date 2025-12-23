@@ -80,7 +80,7 @@ export function AppealResolutionModal({
     >
       {success ? (
         <div className="py-8 text-center">
-          <Alert type="success">
+          <Alert variant="success">
             Appeal resolved successfully!
           </Alert>
         </div>
@@ -116,7 +116,7 @@ export function AppealResolutionModal({
             </div>
 
             {error && (
-              <Alert type="error">
+              <Alert variant="error">
                 {error}
               </Alert>
             )}

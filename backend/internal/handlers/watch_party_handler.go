@@ -10,11 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"golang.org/x/crypto/bcrypt"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // WatchPartyHandler handles watch party requests
@@ -164,8 +164,8 @@ func (h *WatchPartyHandler) JoinWatchParty(c *gin.Context) {
 		return
 	}
 
-	// Get invite code from URL
-	inviteCode := c.Param("code")
+	// Get invite code from URL (matches :id in route)
+	inviteCode := c.Param("id")
 	if inviteCode == "" {
 		c.JSON(http.StatusBadRequest, StandardResponse{
 			Success: false,
@@ -648,7 +648,7 @@ func (h *WatchPartyHandler) WatchPartyWebSocket(c *gin.Context) {
 			responseHeader.Set("Sec-WebSocket-Protocol", subprotocol)
 		}
 	}
-	
+
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, responseHeader)
 	if err != nil {
 		return
@@ -1335,14 +1335,14 @@ func (h *WatchPartyHandler) GetWatchPartyAnalytics(c *gin.Context) {
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
 		Data: gin.H{
-			"party_id":               analytics.PartyID,
-			"unique_viewers":         analytics.UniqueViewers,
-			"peak_concurrent":        analytics.PeakConcurrentViewers,
-			"current_viewers":        currentViewers,
-			"avg_duration_seconds":   analytics.AvgDurationSeconds,
-			"chat_messages":          analytics.ChatMessages,
-			"reactions":              analytics.Reactions,
-			"total_engagement":       analytics.ChatMessages + analytics.Reactions,
+			"party_id":             analytics.PartyID,
+			"unique_viewers":       analytics.UniqueViewers,
+			"peak_concurrent":      analytics.PeakConcurrentViewers,
+			"current_viewers":      currentViewers,
+			"avg_duration_seconds": analytics.AvgDurationSeconds,
+			"chat_messages":        analytics.ChatMessages,
+			"reactions":            analytics.Reactions,
+			"total_engagement":     analytics.ChatMessages + analytics.Reactions,
 		},
 	})
 }

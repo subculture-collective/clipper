@@ -94,6 +94,7 @@ function LoadingFallback() {
 }
 
 function App() {
+  console.log('[App] Rendering...')
   return (
     <HelmetProvider>
       <ThemeProvider>
@@ -134,7 +135,7 @@ function App() {
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
-                    
+
                     {/* Forum Routes */}
                     <Route path="/forum" element={<ForumIndex />} />
                     <Route path="/forum/search" element={<ForumSearchPage />} />
@@ -147,7 +148,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    
+
                     {import.meta.env.DEV && (
                       <>
                         <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />

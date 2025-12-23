@@ -3,7 +3,7 @@
 
 interface Event {
   event_type: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, string | number | boolean | null>;
 }
 
 interface QueuedEvent extends Event {
@@ -88,7 +88,7 @@ export class FeedAnalytics {
     if (this.filterDebounceTimer !== null) {
       clearTimeout(this.filterDebounceTimer);
     }
-    
+
     // Set new timer - trailing debounce captures final selection after 500ms of inactivity
     this.filterDebounceTimer = window.setTimeout(() => {
       this.queueEvent({
@@ -149,7 +149,7 @@ export class FeedAnalytics {
    */
   private queueEvent(event: Event): void {
     this.eventQueue.push(event);
-    
+
     // Auto-flush if queue reaches max size
     if (this.eventQueue.length >= this.maxQueueSize) {
       this.flush();

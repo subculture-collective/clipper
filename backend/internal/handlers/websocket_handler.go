@@ -54,8 +54,8 @@ func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
 
 	// Verify channel exists and is active
 	var channelExists bool
-	err = h.db.QueryRow(c.Request.Context(), 
-		"SELECT EXISTS(SELECT 1 FROM chat_channels WHERE id = $1 AND is_active = true)", 
+	err = h.db.QueryRow(c.Request.Context(),
+		"SELECT EXISTS(SELECT 1 FROM chat_channels WHERE id = $1 AND is_active = true)",
 		channelUUID).Scan(&channelExists)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify channel"})
@@ -123,8 +123,8 @@ func (h *WebSocketHandler) GetMessageHistory(c *gin.Context) {
 
 	// Verify channel exists
 	var channelExists bool
-	err = h.db.QueryRow(c.Request.Context(), 
-		"SELECT EXISTS(SELECT 1 FROM chat_channels WHERE id = $1 AND is_active = true)", 
+	err = h.db.QueryRow(c.Request.Context(),
+		"SELECT EXISTS(SELECT 1 FROM chat_channels WHERE id = $1 AND is_active = true)",
 		channelUUID).Scan(&channelExists)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify channel"})

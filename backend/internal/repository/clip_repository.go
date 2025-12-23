@@ -14,11 +14,11 @@ import (
 const (
 	// HotClipsMaterializedView is the name of the materialized view for hot clips
 	HotClipsMaterializedView = "hot_clips_materialized"
-	
+
 	// Pagination limits for clip queries
-	DefaultClipLimit  = 50
-	MaxClipLimit      = 1000
-	MaxClipOffset     = 1000
+	DefaultClipLimit = 50
+	MaxClipLimit     = 1000
+	MaxClipOffset    = 1000
 )
 
 // ClipRepository handles database operations for clips
@@ -260,7 +260,7 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 func (r *ClipRepository) List(ctx context.Context, limit, offset int) ([]models.Clip, error) {
 	// Enforce pagination limits
 	r.helper.EnforcePaginationLimits(&limit, &offset)
-	
+
 	// Delegate to ListWithFilters with empty filters for reuse and to reduce duplication.
 	clips, total, err := r.ListWithFilters(ctx, ClipFilters{Sort: "new"}, limit, offset)
 	if err != nil {
@@ -383,7 +383,7 @@ func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string
 
 	// Only apply timeframe if custom date range is not provided
 	customDateRangeProvided := (filters.DateFrom != nil && *filters.DateFrom != "") || (filters.DateTo != nil && *filters.DateTo != "")
-	
+
 	if !customDateRangeProvided {
 		// Add timeframe filter for top sort
 		if filters.Sort == "top" && filters.Timeframe != nil {
@@ -422,7 +422,7 @@ func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string
 			}
 		}
 	}
-	
+
 	return whereClauses
 }
 
@@ -430,7 +430,7 @@ func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string
 func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilters, limit, offset int) ([]models.Clip, int, error) {
 	// Enforce pagination limits
 	r.helper.EnforcePaginationLimits(&limit, &offset)
-	
+
 	// Build WHERE clause
 	whereClauses := []string{"c.is_removed = false"}
 
@@ -496,7 +496,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		)`)
 	}
 
-// Add date range and timeframe filtering
+	// Add date range and timeframe filtering
 	whereClauses = buildDateFilterClauses(filters, whereClauses)
 
 	// Add cursor-based filtering if cursor is provided
@@ -515,7 +515,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		// For DESC sorts: WHERE (sort_field < cursor_value) OR (sort_field = cursor_value AND id < cursor_id)
 		// This ensures stable pagination even with duplicate sort values
 		cursorTimestamp := time.Unix(cursor.CreatedAt, 0)
-		
+
 		switch filters.Sort {
 		case "trending":
 			whereClauses = append(whereClauses, fmt.Sprintf(
@@ -715,7 +715,7 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 		)`)
 	}
 
-// Add date range and timeframe filtering
+	// Add date range and timeframe filtering
 	whereClauses = buildDateFilterClauses(filters, whereClauses)
 
 	whereClause := "WHERE " + whereClauses[0]
@@ -1339,7 +1339,7 @@ AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 // UpdateTrendingScores updates trending_score, hot_score, popularity_index, and engagement_count for all clips
 // This should be called periodically (e.g., hourly) by a scheduler job
 func (r *ClipRepository) UpdateTrendingScores(ctx context.Context) (int64, error) {
-query := `
+	query := `
 UPDATE clips
 SET 
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
@@ -1349,18 +1349,18 @@ popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favori
 WHERE is_removed = false AND is_hidden = false
 `
 
-result, err := r.pool.Exec(ctx, query)
-if err != nil {
-return 0, fmt.Errorf("failed to update trending scores: %w", err)
-}
+	result, err := r.pool.Exec(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update trending scores: %w", err)
+	}
 
-return result.RowsAffected(), nil
+	return result.RowsAffected(), nil
 }
 
 // UpdateTrendingScoresForTimeWindow updates trending scores for clips within a specific time window
 // This can be used to update only recent clips for better performance
 func (r *ClipRepository) UpdateTrendingScoresForTimeWindow(ctx context.Context, hours int) (int64, error) {
-query := `
+	query := `
 UPDATE clips
 SET 
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
@@ -1372,10 +1372,10 @@ AND is_hidden = false
 AND created_at > NOW() - INTERVAL '1 hour' * $1
 `
 
-result, err := r.pool.Exec(ctx, query, hours)
-if err != nil {
-return 0, fmt.Errorf("failed to update trending scores for time window: %w", err)
-}
+	result, err := r.pool.Exec(ctx, query, hours)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update trending scores for time window: %w", err)
+	}
 
-return result.RowsAffected(), nil
+	return result.RowsAffected(), nil
 }

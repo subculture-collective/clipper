@@ -70,7 +70,7 @@ func (a *QueryCostAnalyzer) GetLimits() QueryLimits {
 // AnalyzeQuery analyzes a SQL query and returns cost information
 func (a *QueryCostAnalyzer) AnalyzeQuery(query string) (*QueryCost, error) {
 	query = strings.ToUpper(strings.TrimSpace(query))
-	
+
 	cost := &QueryCost{
 		JoinCount:   countJoins(query),
 		ScanSize:    estimateScanSize(query),
@@ -78,13 +78,13 @@ func (a *QueryCostAnalyzer) AnalyzeQuery(query string) (*QueryCost, error) {
 		OffsetValue: extractOffset(query),
 		LimitValue:  extractLimit(query),
 	}
-	
+
 	// Calculate complexity score based on various factors
 	cost.Complexity = calculateComplexity(cost)
-	
+
 	// Estimate execution time (rough approximation)
 	cost.Estimated = estimateExecutionTime(cost)
-	
+
 	return cost, nil
 }
 
@@ -94,27 +94,27 @@ func (a *QueryCostAnalyzer) ValidateQuery(query string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Check join count
 	if cost.JoinCount > a.limits.MaxJoinDepth {
 		return fmt.Errorf("%w: %d joins (max: %d)", ErrTooManyJoins, cost.JoinCount, a.limits.MaxJoinDepth)
 	}
-	
+
 	// Check offset
 	if cost.HasOffset && cost.OffsetValue > a.limits.MaxOffset {
 		return fmt.Errorf("%w: offset %d (max: %d)", ErrOffsetTooLarge, cost.OffsetValue, a.limits.MaxOffset)
 	}
-	
+
 	// Check limit
 	if cost.LimitValue > a.limits.MaxResultSize {
 		return fmt.Errorf("%w: limit %d (max: %d)", ErrLimitTooLarge, cost.LimitValue, a.limits.MaxResultSize)
 	}
-	
+
 	// Check overall complexity
 	if cost.Complexity > 100 {
 		return fmt.Errorf("%w: complexity score %.2f", ErrQueryTooComplex, cost.Complexity)
 	}
-	
+
 	return nil
 }
 
@@ -123,11 +123,11 @@ func (a *QueryCostAnalyzer) ValidatePagination(limit, offset int) error {
 	if limit > a.limits.MaxResultSize {
 		return fmt.Errorf("%w: limit %d (max: %d)", ErrLimitTooLarge, limit, a.limits.MaxResultSize)
 	}
-	
+
 	if offset > a.limits.MaxOffset {
 		return fmt.Errorf("%w: offset %d (max: %d)", ErrOffsetTooLarge, offset, a.limits.MaxOffset)
 	}
-	
+
 	return nil
 }
 
@@ -146,7 +146,7 @@ func estimateScanSize(query string) int64 {
 	if limit > 0 {
 		return int64(limit)
 	}
-	
+
 	// If no LIMIT, assume full table scan potential
 	// This is conservative - actual scan size depends on WHERE clauses
 	return 10000 // Default estimate for queries without LIMIT
@@ -180,28 +180,28 @@ func extractOffset(query string) int {
 // Score ranges from 0-100+, with higher scores indicating more complex queries
 func calculateComplexity(cost *QueryCost) float64 {
 	complexity := 0.0
-	
+
 	// Base complexity for any query
 	complexity += 1.0
-	
+
 	// Add complexity for joins (each join adds significant cost)
 	complexity += float64(cost.JoinCount) * 10.0
-	
+
 	// Add complexity for large scans
 	if cost.ScanSize > 1000 {
 		complexity += float64(cost.ScanSize) / 100.0
 	}
-	
+
 	// Add complexity for large offsets (offset-based pagination is expensive)
 	if cost.HasOffset {
 		complexity += float64(cost.OffsetValue) / 100.0
 	}
-	
+
 	// Large result sets add complexity
 	if cost.LimitValue > 100 {
 		complexity += float64(cost.LimitValue) / 50.0
 	}
-	
+
 	return complexity
 }
 
@@ -209,19 +209,19 @@ func calculateComplexity(cost *QueryCost) float64 {
 func estimateExecutionTime(cost *QueryCost) time.Duration {
 	// Base time
 	duration := 10 * time.Millisecond
-	
+
 	// Add time for joins (each join is expensive)
 	duration += time.Duration(cost.JoinCount) * 20 * time.Millisecond
-	
+
 	// Add time for large scans
 	if cost.ScanSize > 1000 {
 		duration += time.Duration(cost.ScanSize/1000) * 50 * time.Millisecond
 	}
-	
+
 	// Add time for offset (offset-based pagination scans all rows up to offset)
 	if cost.HasOffset {
 		duration += time.Duration(cost.OffsetValue/100) * 10 * time.Millisecond
 	}
-	
+
 	return duration
 }

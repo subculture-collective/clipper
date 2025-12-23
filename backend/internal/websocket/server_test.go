@@ -30,7 +30,7 @@ func TestServer_GetOrCreateHub(t *testing.T) {
 		Unregister: make(chan *ChatClient),
 		Stop:       make(chan struct{}),
 	}
-	
+
 	server.HubsMux.Lock()
 	server.Hubs[channelID] = hub
 	server.HubsMux.Unlock()
@@ -60,14 +60,14 @@ func TestServer_GetStats(t *testing.T) {
 		ID:      channelID,
 		Clients: make(map[*ChatClient]bool),
 	}
-	
+
 	server.HubsMux.Lock()
 	server.Hubs[channelID] = hub
 	server.HubsMux.Unlock()
-	
+
 	client1 := &ChatClient{UserID: uuid.New()}
 	client2 := &ChatClient{UserID: uuid.New()}
-	
+
 	hub.Mutex.Lock()
 	hub.Clients[client1] = true
 	hub.Clients[client2] = true
@@ -77,7 +77,7 @@ func TestServer_GetStats(t *testing.T) {
 	stats = server.GetStats()
 	assert.Equal(t, 2, stats["total_connections"])
 	assert.Equal(t, 1, stats["active_channels"])
-	
+
 	channelStats := stats["channel_stats"].(map[string]int)
 	assert.Equal(t, 2, channelStats[channelID])
 }
@@ -88,7 +88,7 @@ func TestServer_GetStats_MultipleChannels(t *testing.T) {
 	// Create multiple hubs
 	channel1 := uuid.New().String()
 	channel2 := uuid.New().String()
-	
+
 	// Manually create hubs without starting goroutines (to avoid nil DB/Redis issues)
 	hub1 := &ChannelHub{
 		ID:      channel1,
@@ -98,18 +98,18 @@ func TestServer_GetStats_MultipleChannels(t *testing.T) {
 		ID:      channel2,
 		Clients: make(map[*ChatClient]bool),
 	}
-	
+
 	server.HubsMux.Lock()
 	server.Hubs[channel1] = hub1
 	server.Hubs[channel2] = hub2
 	server.HubsMux.Unlock()
-	
+
 	// Add clients to hub1
 	hub1.Mutex.Lock()
 	hub1.Clients[&ChatClient{UserID: uuid.New()}] = true
 	hub1.Clients[&ChatClient{UserID: uuid.New()}] = true
 	hub1.Mutex.Unlock()
-	
+
 	// Add clients to hub2
 	hub2.Mutex.Lock()
 	hub2.Clients[&ChatClient{UserID: uuid.New()}] = true
@@ -119,7 +119,7 @@ func TestServer_GetStats_MultipleChannels(t *testing.T) {
 	stats := server.GetStats()
 	assert.Equal(t, 3, stats["total_connections"])
 	assert.Equal(t, 2, stats["active_channels"])
-	
+
 	channelStats := stats["channel_stats"].(map[string]int)
 	assert.Equal(t, 2, channelStats[channel1])
 	assert.Equal(t, 1, channelStats[channel2])
@@ -131,7 +131,7 @@ func TestServer_Shutdown(t *testing.T) {
 	// Manually create some hubs without starting goroutines
 	channel1 := uuid.New().String()
 	channel2 := uuid.New().String()
-	
+
 	hub1 := &ChannelHub{
 		ID:      channel1,
 		Clients: make(map[*ChatClient]bool),
@@ -142,17 +142,17 @@ func TestServer_Shutdown(t *testing.T) {
 		Clients: make(map[*ChatClient]bool),
 		Stop:    make(chan struct{}),
 	}
-	
+
 	server.HubsMux.Lock()
 	server.Hubs[channel1] = hub1
 	server.Hubs[channel2] = hub2
 	server.HubsMux.Unlock()
-	
+
 	// Add clients
 	hub1.Mutex.Lock()
 	hub1.Clients[&ChatClient{UserID: uuid.New(), Send: make(chan []byte, 1)}] = true
 	hub1.Mutex.Unlock()
-	
+
 	hub2.Mutex.Lock()
 	hub2.Clients[&ChatClient{UserID: uuid.New(), Send: make(chan []byte, 1)}] = true
 	hub2.Mutex.Unlock()

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Container, Spinner } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { handleOAuthCallback } from '../lib/auth-api';
-import { trackEvent, AuthEvents } from '../lib/analytics';
+import { trackEvent, AuthEvents } from '../lib/telemetry';
 
 export function AuthCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -20,7 +20,7 @@ export function AuthCallbackPage() {
         setError(errorParam === 'access_denied'
           ? 'You cancelled the login process.'
           : 'Authentication failed. Please try again.');
-        
+
         // Track failed login
         trackEvent(AuthEvents.LOGIN_FAILED, {
           method: 'twitch',
@@ -70,7 +70,7 @@ export function AuthCallbackPage() {
         // After successful OAuth callback (or if backend already set cookies)
         // Fetch the user data
         await refreshUser();
-        
+
         // Track successful login
         trackEvent(AuthEvents.LOGIN_COMPLETED, {
           method: 'twitch',
@@ -84,7 +84,7 @@ export function AuthCallbackPage() {
       } catch (err) {
         console.error('Auth callback error:', err);
         setError('Failed to complete authentication. Please try again.');
-        
+
         // Track failed login
         trackEvent(AuthEvents.LOGIN_FAILED, {
           method: 'twitch',

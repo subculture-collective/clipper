@@ -643,7 +643,7 @@ func TestPermissionMatrixCompleteness(t *testing.T) {
 					break
 				}
 			}
-			
+
 			// Not all combinations are required, but we log which ones are missing
 			if !found {
 				t.Logf("No permission rule for %s:%s (may be intentional)", resourceType, action)

@@ -73,7 +73,6 @@ describe('SubmitClipPage', () => {
     const mockGetPublicConfig = vi.mocked(configApi.getPublicConfig);
     const mockUseAuth = vi.mocked(useAuth);
     const mockSearchTags = vi.mocked(tagApi.searchTags);
-    const mockCreateTag = vi.mocked(tagApi.createTag);
 
     beforeEach(() => {
         vi.clearAllMocks();

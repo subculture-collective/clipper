@@ -13,8 +13,9 @@ COMMENT ON COLUMN users.comments_require_review IS 'Flag to require all user com
 COMMENT ON COLUMN users.comment_warning_count IS 'Number of warnings issued to user for comment violations';
 
 -- Create index for checking active suspensions
+-- Note: We index only non-NULL values; time-based filtering happens in queries
 CREATE INDEX idx_users_comment_suspended ON users(comment_suspended_until) 
-WHERE comment_suspended_until IS NOT NULL AND comment_suspended_until > NOW();
+WHERE comment_suspended_until IS NOT NULL;
 
 -- Create index for users requiring review
 CREATE INDEX idx_users_comments_require_review ON users(comments_require_review) 

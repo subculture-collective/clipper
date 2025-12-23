@@ -71,7 +71,7 @@ func (h *ChatHandler) CreateChannel(c *gin.Context) {
 	err = tx.QueryRow(c.Request.Context(), channelQuery,
 		req.Name, req.Description, userID, channelType, req.MaxParticipants).Scan(
 		&channel.ID, &channel.CreatedAt, &channel.UpdatedAt)
-	
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create channel"})
 		return
@@ -299,8 +299,8 @@ func (h *ChatHandler) UpdateChannel(c *gin.Context) {
 	// Add channel ID to args
 	args = append(args, channelUUID)
 
-	query := "UPDATE chat_channels SET " + 
-		joinStrings(updateParts, ", ") + 
+	query := "UPDATE chat_channels SET " +
+		joinStrings(updateParts, ", ") +
 		" WHERE id = $" + strconv.Itoa(argIndex) +
 		" RETURNING id, name, description, creator_id, channel_type, is_active, max_participants, created_at, updated_at"
 
@@ -895,7 +895,7 @@ func (h *ChatHandler) AddChannelMember(c *gin.Context) {
 
 	// Check if target user exists
 	var userExists bool
-	err = h.db.QueryRow(c.Request.Context(), 
+	err = h.db.QueryRow(c.Request.Context(),
 		`SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, targetUserID).Scan(&userExists)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify user"})
@@ -917,7 +917,7 @@ func (h *ChatHandler) AddChannelMember(c *gin.Context) {
 	var member models.ChannelMember
 	err = h.db.QueryRow(c.Request.Context(), query,
 		channelUUID, targetUserID, role, inviterID).Scan(&member.ID, &member.JoinedAt)
-	
+
 	if err == pgx.ErrNoRows {
 		c.JSON(http.StatusConflict, gin.H{"error": "User is already a member"})
 		return
@@ -1184,7 +1184,7 @@ func (h *ChatHandler) UpdateChannelMemberRole(c *gin.Context) {
 	err = h.db.QueryRow(c.Request.Context(), updateQuery,
 		req.Role, channelUUID, memberUUID).Scan(
 		&member.ID, &member.ChannelID, &member.UserID, &member.Role, &member.JoinedAt, &member.InvitedBy)
-	
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update member role"})
 		return

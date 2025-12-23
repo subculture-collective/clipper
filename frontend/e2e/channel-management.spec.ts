@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
 
 /**
  * Channel Management E2E Tests
- * 
+ *
  * These tests validate the full channel management flow including:
  * - Channel creation with creator as owner
  * - Member role detection and permissions
@@ -15,22 +14,21 @@ import type { Page } from '@playwright/test';
 test.describe('Channel Management', () => {
   let testChannelId: string | null = null;
   let testChannelName: string;
-  let ownerUserId: string;
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     // Generate unique channel name for this test run
     testChannelName = `test-channel-${Date.now()}`;
-    
+
     // Navigate to chat page (assumes user is logged in via test setup)
     await page.goto('/chat');
     await page.waitForLoadState('networkidle');
   });
 
-  test('should create a channel and assign creator as owner', async ({ page }) => {
+  test('should create a channel and assign creator as owner', async () => {
     // Look for "Create Channel" button or similar
     // Note: This assumes there's a UI to create channels in the chat page
     // For now, we'll test by directly calling the API since UI might not exist yet
-    
+
     const response = await page.request.post('/api/v1/chat/channels', {
       data: {
         name: testChannelName,
@@ -51,7 +49,7 @@ test.describe('Channel Management', () => {
     expect(roleData.role).toBe('owner');
   });
 
-  test('should navigate to channel settings and display current user role', async ({ page }) => {
+  test('should navigate to channel settings and display current user role', async () => {
     // Create a channel first
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -72,7 +70,7 @@ test.describe('Channel Management', () => {
     await expect(page.getByText(/owner/i)).toBeVisible();
   });
 
-  test('should display member list with roles', async ({ page }) => {
+  test('should display member list with roles', async () => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -90,12 +88,12 @@ test.describe('Channel Management', () => {
 
     // Check for members section
     await expect(page.getByRole('heading', { name: /members/i })).toBeVisible();
-    
+
     // Should show at least 1 member (the owner)
     await expect(page.getByText(/Members \(1\)/i)).toBeVisible();
   });
 
-  test('owner should see invite and danger zone controls', async ({ page }) => {
+  test('owner should see invite and danger zone controls', async () => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -119,7 +117,7 @@ test.describe('Channel Management', () => {
     await expect(page.getByRole('button', { name: /delete channel/i })).toBeVisible();
   });
 
-  test('should prevent removing or demoting the owner', async ({ page }) => {
+  test('should prevent removing or demoting the owner', async () => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -134,7 +132,7 @@ test.describe('Channel Management', () => {
     // Get the members list to find owner's user_id
     const membersResponse = await page.request.get(`/api/v1/chat/channels/${testChannelId}/members`);
     const membersData = await membersResponse.json();
-    const ownerMember = membersData.members.find((m: any) => m.role === 'owner');
+    const ownerMember = membersData.members.find((m: { role: string }) => m.role === 'owner');
     expect(ownerMember).toBeDefined();
 
     // Try to remove owner (should fail)
@@ -157,7 +155,7 @@ test.describe('Channel Management', () => {
     expect(updateError.error).toContain('owner');
   });
 
-  test('owner should be able to delete channel', async ({ page }) => {
+  test('owner should be able to delete channel', async () => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -178,13 +176,13 @@ test.describe('Channel Management', () => {
     expect(getResponse.status()).toBe(404);
   });
 
-  test('non-owner should not be able to delete channel', async ({ page, browser }) => {
+  test('non-owner should not be able to delete channel', async () => {
     // This test would require creating a second user context
     // Skipping for now as it requires more complex setup
     test.skip();
   });
 
-  test('admin should be able to remove members but not owner', async ({ page }) => {
+  test('admin should be able to remove members but not owner', async () => {
     // This test would require:
     // 1. Creating a channel as user A (owner)
     // 2. Adding user B as admin
@@ -192,12 +190,12 @@ test.describe('Channel Management', () => {
     // 4. Logging in as user B
     // 5. Trying to remove user C (should succeed)
     // 6. Trying to remove user A (owner) (should fail)
-    
+
     // Skipping for now as it requires multi-user setup
     test.skip();
   });
 
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async () => {
     // Clean up: delete test channel if it was created
     if (testChannelId) {
       try {
@@ -212,17 +210,17 @@ test.describe('Channel Management', () => {
 });
 
 test.describe('Channel Member Permissions', () => {
-  test('member should not see admin controls', async ({ page }) => {
+  test('member should not see admin controls', async () => {
     // This would require multi-user setup
     test.skip();
   });
 
-  test('moderator should not be able to update roles', async ({ page }) => {
+  test('moderator should not be able to update roles', async () => {
     // This would require multi-user setup
     test.skip();
   });
 
-  test('only owner and admin can add members', async ({ page }) => {
+  test('only owner and admin can add members', async () => {
     // This would require multi-user setup
     test.skip();
   });

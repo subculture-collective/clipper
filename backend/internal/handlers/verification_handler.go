@@ -15,7 +15,7 @@ import (
 
 // VerificationHandler handles creator verification operations
 type VerificationHandler struct {
-	verificationRepo   *repository.VerificationRepository
+	verificationRepo    *repository.VerificationRepository
 	notificationService *services.NotificationService
 	db                  *pgxpool.Pool
 }
@@ -37,7 +37,7 @@ func NewVerificationHandler(
 // POST /api/v1/verification/applications
 func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// Get user ID from context
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -47,7 +47,7 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		return
 	}
 	userID := userIDVal.(uuid.UUID)
-	
+
 	var req models.CreateVerificationApplicationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -55,9 +55,9 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// === ABUSE PREVENTION CHECKS ===
-	
+
 	// 0. Check if user is already verified
 	isVerified, err := h.verificationRepo.IsUserVerified(ctx, userID)
 	if err != nil {
@@ -66,14 +66,14 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if isVerified {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "You are already verified",
 		})
 		return
 	}
-	
+
 	// 1. Check if user already has a pending application
 	existing, err := h.verificationRepo.GetApplicationByUserID(ctx, userID, models.VerificationStatusPending)
 	if err != nil {
@@ -82,14 +82,14 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if existing != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "You already have a pending verification application",
 		})
 		return
 	}
-	
+
 	// 2. Check for recently rejected applications (30-day cooldown)
 	recentRejection, err := h.verificationRepo.GetRecentRejectedApplicationByUserID(ctx, userID, 30)
 	if err != nil {
@@ -98,7 +98,7 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if recentRejection != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":       "You must wait 30 days after a rejection before reapplying",
@@ -106,7 +106,7 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// 3. Check total application count to detect potential abuse
 	totalApps, err := h.verificationRepo.GetApplicationCountByUserID(ctx, userID)
 	if err != nil {
@@ -115,14 +115,14 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if totalApps >= 5 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "You have reached the maximum number of verification applications",
 		})
 		return
 	}
-	
+
 	// 4. Check for duplicate Twitch URLs from other users
 	duplicateApps, err := h.verificationRepo.GetApplicationsByTwitchURL(ctx, req.TwitchChannelURL, userID)
 	if err != nil {
@@ -131,14 +131,14 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if len(duplicateApps) > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "This Twitch channel is already associated with another verification application",
 		})
 		return
 	}
-	
+
 	// Create application
 	app := &models.CreatorVerificationApplication{
 		UserID:             userID,
@@ -151,12 +151,12 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		Status:             models.VerificationStatusPending,
 		Priority:           50, // Default priority
 	}
-	
+
 	// Convert string map to interface map
 	for k, v := range req.SocialMediaLinks {
 		app.SocialMediaLinks[k] = v
 	}
-	
+
 	err = h.verificationRepo.CreateApplication(ctx, app)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -164,7 +164,7 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"data":    app,
@@ -176,7 +176,7 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 // GET /api/v1/verification/applications/me
 func (h *VerificationHandler) GetApplication(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// Get user ID from context
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -186,7 +186,7 @@ func (h *VerificationHandler) GetApplication(c *gin.Context) {
 		return
 	}
 	userID := userIDVal.(uuid.UUID)
-	
+
 	// Get latest application regardless of status (empty string means no status filter)
 	app, err := h.verificationRepo.GetApplicationByUserID(ctx, userID, "")
 	if err != nil {
@@ -195,14 +195,14 @@ func (h *VerificationHandler) GetApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if app == nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "No verification application found",
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    app,
@@ -213,18 +213,18 @@ func (h *VerificationHandler) GetApplication(c *gin.Context) {
 // GET /admin/verification/applications
 func (h *VerificationHandler) ListApplications(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// Parse query parameters
 	status := c.DefaultQuery("status", models.VerificationStatusPending)
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	
+
 	// Validate status parameter
 	validStatuses := map[string]bool{
 		models.VerificationStatusPending:  true,
 		models.VerificationStatusApproved: true,
 		models.VerificationStatusRejected: true,
-		"": true, // Allow empty for all statuses
+		"":                                true, // Allow empty for all statuses
 	}
 	if !validStatuses[status] {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -232,16 +232,16 @@ func (h *VerificationHandler) ListApplications(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if limit < 1 || limit > 100 {
 		limit = 50
 	}
 	if page < 1 {
 		page = 1
 	}
-	
+
 	offset := (page - 1) * limit
-	
+
 	apps, err := h.verificationRepo.ListApplications(ctx, status, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -249,7 +249,7 @@ func (h *VerificationHandler) ListApplications(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    apps,
@@ -266,7 +266,7 @@ func (h *VerificationHandler) ListApplications(c *gin.Context) {
 // GET /admin/verification/applications/:id
 func (h *VerificationHandler) GetApplicationByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	appID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -274,7 +274,7 @@ func (h *VerificationHandler) GetApplicationByID(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	app, err := h.verificationRepo.GetApplicationWithUser(ctx, appID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -282,7 +282,7 @@ func (h *VerificationHandler) GetApplicationByID(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    app,
@@ -293,7 +293,7 @@ func (h *VerificationHandler) GetApplicationByID(c *gin.Context) {
 // POST /admin/verification/applications/:id/review
 func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	appID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -301,7 +301,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Get reviewer ID from context
 	reviewerIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -311,7 +311,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		return
 	}
 	reviewerID := reviewerIDVal.(uuid.UUID)
-	
+
 	var req models.ReviewVerificationApplicationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -319,7 +319,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Get the application first to get user ID
 	app, err := h.verificationRepo.GetApplicationByID(ctx, appID)
 	if err != nil {
@@ -328,14 +328,14 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if app.Status != models.VerificationStatusPending {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Application has already been reviewed",
 		})
 		return
 	}
-	
+
 	// Update application status
 	var notes string
 	if req.Notes != nil {
@@ -348,7 +348,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Create decision audit entry
 	decision := &models.CreatorVerificationDecision{
 		ApplicationID: appID,
@@ -357,7 +357,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		Notes:         req.Notes,
 		Metadata:      make(map[string]interface{}),
 	}
-	
+
 	err = h.verificationRepo.CreateDecision(ctx, decision)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -365,7 +365,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Send notification to user (async - don't fail request if notification fails)
 	// Use background context to avoid cancellation when HTTP request completes
 	go func() {
@@ -373,7 +373,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 		var notificationType string
 		var title string
 		var message string
-		
+
 		if req.Decision == models.VerificationDecisionApproved {
 			notificationType = models.NotificationTypeSystemAlert
 			title = "Verification Approved"
@@ -386,20 +386,20 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 				message += " Note: " + notes
 			}
 		}
-		
+
 		_, _ = h.notificationService.CreateNotification(
 			bgCtx,
 			app.UserID,
 			notificationType,
 			title,
 			message,
-			nil,   // link
-			nil,   // sourceUserID
-			nil,   // sourceContentID
-			nil,   // sourceContentType
+			nil, // link
+			nil, // sourceUserID
+			nil, // sourceContentID
+			nil, // sourceContentType
 		)
 	}()
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Application reviewed successfully",
@@ -414,7 +414,7 @@ func (h *VerificationHandler) ReviewApplication(c *gin.Context) {
 // GET /admin/verification/stats
 func (h *VerificationHandler) GetApplicationStats(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	stats, err := h.verificationRepo.GetApplicationStats(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -422,7 +422,7 @@ func (h *VerificationHandler) GetApplicationStats(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    stats,
@@ -433,25 +433,25 @@ func (h *VerificationHandler) GetApplicationStats(c *gin.Context) {
 // GET /admin/verification/audit-logs
 func (h *VerificationHandler) GetAuditLogs(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// Parse query parameters
 	userIDParam := c.Query("user_id")
 	onlyFlagged := c.DefaultQuery("only_flagged", "false") == "true"
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	
+
 	if limit < 1 || limit > 100 {
 		limit = 50
 	}
 	if page < 1 {
 		page = 1
 	}
-	
+
 	offset := (page - 1) * limit
-	
+
 	var logs []*models.VerificationAuditLog
 	var err error
-	
+
 	if onlyFlagged {
 		logs, err = h.verificationRepo.GetFlaggedAudits(ctx, limit, offset)
 	} else if userIDParam != "" {
@@ -467,14 +467,14 @@ func (h *VerificationHandler) GetAuditLogs(c *gin.Context) {
 		// If neither flagged nor user_id specified, return flagged by default for admin view
 		logs, err = h.verificationRepo.GetFlaggedAudits(ctx, limit, offset)
 	}
-	
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve audit logs",
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    logs,
@@ -490,7 +490,7 @@ func (h *VerificationHandler) GetAuditLogs(c *gin.Context) {
 // GET /admin/verification/users/:user_id/audit-logs
 func (h *VerificationHandler) GetUserAuditHistory(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	userID, err := uuid.Parse(c.Param("user_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -498,19 +498,19 @@ func (h *VerificationHandler) GetUserAuditHistory(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	
+
 	if limit < 1 || limit > 100 {
 		limit = 50
 	}
 	if page < 1 {
 		page = 1
 	}
-	
+
 	offset := (page - 1) * limit
-	
+
 	logs, err := h.verificationRepo.GetAuditLogsByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -518,7 +518,7 @@ func (h *VerificationHandler) GetUserAuditHistory(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    logs,
@@ -529,5 +529,3 @@ func (h *VerificationHandler) GetUserAuditHistory(c *gin.Context) {
 		},
 	})
 }
-
-

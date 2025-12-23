@@ -95,7 +95,7 @@ func (et *EventTracker) TrackEvent(event models.Event) error {
 		return nil
 	default:
 		// Channel is full, log warning and return error for visibility
-		log.Printf("Warning: Event batch channel full, dropping event: %s (type: %s, session: %s)", 
+		log.Printf("Warning: Event batch channel full, dropping event: %s (type: %s, session: %s)",
 			event.ID, event.EventType, event.SessionID)
 		return nil // Still return nil to not break caller flow, but event is logged as dropped
 	}
@@ -138,7 +138,7 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 			// Log error with event details for troubleshooting
 			// Note: Failed events are dropped to maintain throughput.
 			// Consider implementing a dead letter queue or retry mechanism for production use.
-			log.Printf("Error writing event %s (type: %s, session: %s): %v", 
+			log.Printf("Error writing event %s (type: %s, session: %s): %v",
 				event.ID, event.EventType, event.SessionID, err)
 			failedCount++
 		} else {
@@ -152,7 +152,7 @@ func (et *EventTracker) flush(ctx context.Context, events []models.Event) error 
 	}
 
 	if successCount > 0 {
-		log.Printf("Successfully flushed %d/%d events to database (failed: %d)", 
+		log.Printf("Successfully flushed %d/%d events to database (failed: %d)",
 			successCount, len(events), failedCount)
 	}
 

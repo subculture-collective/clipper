@@ -257,9 +257,9 @@ func (h *ModerationHandler) GetModerationQueue(c *gin.Context) {
 
 	// Build query with filters
 	query := `
-		SELECT mq.id, mq.content_type, mq.content_id, mq.reason, mq.priority, 
+		SELECT mq.id, mq.content_type, mq.content_id, mq.reason, mq.priority,
 		       mq.status, mq.assigned_to, mq.reported_by, mq.report_count,
-		       mq.auto_flagged, mq.confidence_score, mq.created_at, 
+		       mq.auto_flagged, mq.confidence_score, mq.created_at,
 		       mq.reviewed_at, mq.reviewed_by
 		FROM moderation_queue mq
 		WHERE mq.status = $1
@@ -347,7 +347,7 @@ func (h *ModerationHandler) ApproveContent(c *gin.Context) {
 
 	// Update queue item
 	cmdTag, err := tx.Exec(ctx, `
-		UPDATE moderation_queue 
+		UPDATE moderation_queue
 		SET status = 'approved', reviewed_by = $1
 		WHERE id = $2 AND status = 'pending'
 	`, moderatorID, itemID)
@@ -446,7 +446,7 @@ func (h *ModerationHandler) RejectContent(c *gin.Context) {
 
 	// Update queue item
 	cmdTag, err := tx.Exec(ctx, `
-		UPDATE moderation_queue 
+		UPDATE moderation_queue
 		SET status = 'rejected', reviewed_by = $1
 		WHERE id = $2 AND status = 'pending'
 	`, moderatorID, itemID)
@@ -550,7 +550,7 @@ func (h *ModerationHandler) BulkModerate(c *gin.Context) {
 	for _, itemID := range itemIDs {
 		// Update queue item
 		cmdTag, err := tx.Exec(ctx, `
-			UPDATE moderation_queue 
+			UPDATE moderation_queue
 			SET status = $1, reviewed_by = $2
 			WHERE id = $3 AND status = 'pending'
 		`, status, moderatorID, itemID)
@@ -609,7 +609,7 @@ func (h *ModerationHandler) GetModerationStats(c *gin.Context) {
 	// Get all stats in a single optimized query using CTEs
 	rows, err := h.db.Query(ctx, `
 		WITH status_counts AS (
-			SELECT 
+			SELECT
 				COUNT(*) FILTER (WHERE status = 'pending') as total_pending,
 				COUNT(*) FILTER (WHERE status = 'approved') as total_approved,
 				COUNT(*) FILTER (WHERE status = 'rejected') as total_rejected,
@@ -632,7 +632,7 @@ func (h *ModerationHandler) GetModerationStats(c *gin.Context) {
 			WHERE status = 'pending'
 			GROUP BY reason
 		)
-		SELECT 'status' as type, NULL as name, 
+		SELECT 'status' as type, NULL as name,
 			   total_pending, total_approved, total_rejected, total_escalated,
 			   auto_flagged_count, user_reported_count, high_priority_count, oldest_age
 		FROM status_counts
@@ -826,8 +826,8 @@ func (h *ModerationHandler) GetAppeals(c *gin.Context) {
 	}
 
 	query := `
-		SELECT ma.id, ma.user_id, ma.moderation_action_id, ma.reason, 
-		       ma.status, ma.resolved_by, ma.resolution, 
+		SELECT ma.id, ma.user_id, ma.moderation_action_id, ma.reason,
+		       ma.status, ma.resolved_by, ma.resolution,
 		       ma.created_at, ma.resolved_at,
 		       u.username, u.display_name,
 		       md.action, md.reason as decision_reason,
@@ -852,20 +852,20 @@ func (h *ModerationHandler) GetAppeals(c *gin.Context) {
 
 	type AppealWithDetails struct {
 		models.ModerationAppeal
-		Username       string     `json:"username"`
-		DisplayName    string     `json:"display_name"`
-		DecisionAction string     `json:"decision_action"`
-		DecisionReason *string    `json:"decision_reason,omitempty"`
-		ContentType    string     `json:"content_type"`
-		ContentID      uuid.UUID  `json:"content_id"`
+		Username       string    `json:"username"`
+		DisplayName    string    `json:"display_name"`
+		DecisionAction string    `json:"decision_action"`
+		DecisionReason *string   `json:"decision_reason,omitempty"`
+		ContentType    string    `json:"content_type"`
+		ContentID      uuid.UUID `json:"content_id"`
 	}
 
 	var appeals []AppealWithDetails
 	for rows.Next() {
 		var appeal AppealWithDetails
 		err := rows.Scan(
-			&appeal.ID, &appeal.UserID, &appeal.ModerationActionID, 
-			&appeal.Reason, &appeal.Status, &appeal.ResolvedBy, 
+			&appeal.ID, &appeal.UserID, &appeal.ModerationActionID,
+			&appeal.Reason, &appeal.Status, &appeal.ResolvedBy,
 			&appeal.Resolution, &appeal.CreatedAt, &appeal.ResolvedAt,
 			&appeal.Username, &appeal.DisplayName,
 			&appeal.DecisionAction, &appeal.DecisionReason,
@@ -893,7 +893,7 @@ func (h *ModerationHandler) GetAppeals(c *gin.Context) {
 // POST /admin/moderation/appeals/:id/resolve
 func (h *ModerationHandler) ResolveAppeal(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	appealID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -928,7 +928,7 @@ func (h *ModerationHandler) ResolveAppeal(c *gin.Context) {
 
 	// Update appeal
 	cmdTag, err := h.db.Exec(ctx, `
-		UPDATE moderation_appeals 
+		UPDATE moderation_appeals
 		SET status = $1, resolved_by = $2, resolution = $3
 		WHERE id = $4 AND status = 'pending'
 	`, status, adminID, req.Resolution, appealID)
@@ -969,8 +969,8 @@ func (h *ModerationHandler) GetUserAppeals(c *gin.Context) {
 	userID := userIDVal.(uuid.UUID)
 
 	query := `
-		SELECT ma.id, ma.user_id, ma.moderation_action_id, ma.reason, 
-		       ma.status, ma.resolved_by, ma.resolution, 
+		SELECT ma.id, ma.user_id, ma.moderation_action_id, ma.reason,
+		       ma.status, ma.resolved_by, ma.resolution,
 		       ma.created_at, ma.resolved_at,
 		       md.action, md.reason as decision_reason,
 		       mq.content_type, mq.content_id
@@ -1102,7 +1102,7 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 		)
 		SELECT COUNT(*) FROM filtered_decisions
 	`, baseWhere)
-	
+
 	// Check if database is available before querying
 	if h.db == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
@@ -1130,10 +1130,10 @@ func (h *ModerationHandler) GetModerationAuditLogs(c *gin.Context) {
 
 	// Get paginated data
 	query := fmt.Sprintf(`
-		SELECT 
-			md.id, md.queue_item_id, md.moderator_id, 
+		SELECT
+			md.id, md.queue_item_id, md.moderator_id,
 			u.username as moderator_name,
-			md.action, 
+			md.action,
 			mq.content_type, mq.content_id,
 			md.reason, md.metadata, md.created_at
 		FROM moderation_decisions md
@@ -1308,7 +1308,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 
 	// Actions over time (daily aggregation)
 	rows, err = h.db.Query(ctx, `
-		SELECT 
+		SELECT
 			DATE(created_at) as date,
 			COUNT(*) as count
 		FROM moderation_decisions

@@ -35,10 +35,10 @@ const (
 
 // Permission defines a permission rule for a resource
 type Permission struct {
-	Resource         ResourceType
-	Action           Action
-	RequiresOwner    bool
-	AllowedRoles     []string
+	Resource            ResourceType
+	Action              Action
+	RequiresOwner       bool
+	AllowedRoles        []string
 	AllowedAccountTypes []string
 }
 
@@ -137,10 +137,10 @@ func (u *UserOwnershipChecker) IsOwner(ctx context.Context, resourceID, userID u
 
 // AuthorizationContext holds authorization information
 type AuthorizationContext struct {
-	UserID      uuid.UUID
-	User        *models.User
-	ResourceID  uuid.UUID
-	Action      Action
+	UserID       uuid.UUID
+	User         *models.User
+	ResourceID   uuid.UUID
+	Action       Action
 	ResourceType ResourceType
 }
 
@@ -166,7 +166,7 @@ func CanAccessResource(ctx *AuthorizationContext, checker ResourceOwnershipCheck
 		if err != nil {
 			return false, fmt.Errorf("failed to check ownership: %w", err)
 		}
-		
+
 		// If owner, allow access
 		if isOwner {
 			return true, nil

@@ -520,4 +520,3 @@ func TestInitRateLimitWhitelist(t *testing.T) {
 		})
 	}
 }
-

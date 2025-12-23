@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -20,16 +21,43 @@ func (m *MockCDNRepository) CreateMetric(ctx context.Context, metric *models.CDN
 	return args.Error(0)
 }
 
+func (m *MockCDNRepository) GetTotalCost(ctx context.Context, startTime time.Time, endTime time.Time) (float64, error) {
+	if len(m.ExpectedCalls) == 0 {
+		return 0, nil
+	}
+
+	args := m.Called(ctx, startTime, endTime)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockCDNRepository) GetCacheHitRate(ctx context.Context, provider string, startTime time.Time) (float64, error) {
+	if len(m.ExpectedCalls) == 0 {
+		return 0, nil
+	}
+
+	args := m.Called(ctx, provider, startTime)
+	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *MockCDNRepository) GetMetricsSummary(ctx context.Context, provider string, metricType string, startTime time.Time) (float64, error) {
+	if len(m.ExpectedCalls) == 0 {
+		return 0, nil
+	}
+
+	args := m.Called(ctx, provider, metricType, startTime)
+	return args.Get(0).(float64), args.Error(1)
+}
+
 func TestCDNService_GetCacheHeaders(t *testing.T) {
 	mockCDNRepo := new(MockCDNRepository)
 
-	config := &config.CDNConfig{
+	cdnConfig := &config.CDNConfig{
 		Enabled:  true,
 		Provider: models.CDNProviderCloudflare,
 		CacheTTL: 3600,
 	}
 
-	service := NewCDNService(mockCDNRepo, config)
+	service := NewCDNService(mockCDNRepo, cdnConfig)
 
 	t.Run("get cache headers when enabled", func(t *testing.T) {
 		headers := service.GetCacheHeaders()
@@ -52,11 +80,11 @@ func TestCDNService_GetCacheHeaders(t *testing.T) {
 func TestCDNService_GetCDNURL_Disabled(t *testing.T) {
 	mockCDNRepo := new(MockCDNRepository)
 
-	config := &config.CDNConfig{
+	cdnConfig := &config.CDNConfig{
 		Enabled: false,
 	}
 
-	service := NewCDNService(mockCDNRepo, config)
+	service := NewCDNService(mockCDNRepo, cdnConfig)
 
 	ctx := context.Background()
 	clip := &models.Clip{

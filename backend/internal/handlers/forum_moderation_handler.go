@@ -28,33 +28,33 @@ func NewForumModerationHandler(db *pgxpool.Pool) *ForumModerationHandler {
 
 // FlaggedContent represents flagged content in the queue
 type FlaggedContent struct {
-	ID           uuid.UUID  `json:"id"`
-	TargetType   string     `json:"target_type"`
-	TargetID     uuid.UUID  `json:"target_id"`
-	Reason       string     `json:"reason"`
-	Details      *string    `json:"details,omitempty"`
-	Status       string     `json:"status"`
-	UserID       uuid.UUID  `json:"user_id"`
-	Username     string     `json:"username"`
-	Title        *string    `json:"title,omitempty"`
-	Content      string     `json:"content"`
-	FlagCount    int        `json:"flag_count"`
-	CreatedAt    time.Time  `json:"created_at"`
-	ReviewedBy   *uuid.UUID `json:"reviewed_by,omitempty"`
-	ReviewedAt   *time.Time `json:"reviewed_at,omitempty"`
+	ID         uuid.UUID  `json:"id"`
+	TargetType string     `json:"target_type"`
+	TargetID   uuid.UUID  `json:"target_id"`
+	Reason     string     `json:"reason"`
+	Details    *string    `json:"details,omitempty"`
+	Status     string     `json:"status"`
+	UserID     uuid.UUID  `json:"user_id"`
+	Username   string     `json:"username"`
+	Title      *string    `json:"title,omitempty"`
+	Content    string     `json:"content"`
+	FlagCount  int        `json:"flag_count"`
+	CreatedAt  time.Time  `json:"created_at"`
+	ReviewedBy *uuid.UUID `json:"reviewed_by,omitempty"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
 }
 
 // ModerationAction represents a moderation action log entry
 type ModerationAction struct {
-	ID           uuid.UUID  `json:"id"`
-	ModeratorID  uuid.UUID  `json:"moderator_id"`
-	Moderator    string     `json:"moderator"`
-	ActionType   string     `json:"action_type"`
-	TargetType   string     `json:"target_type"`
-	TargetID     uuid.UUID  `json:"target_id"`
-	Reason       *string    `json:"reason,omitempty"`
-	Metadata     *string    `json:"metadata,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID          uuid.UUID `json:"id"`
+	ModeratorID uuid.UUID `json:"moderator_id"`
+	Moderator   string    `json:"moderator"`
+	ActionType  string    `json:"action_type"`
+	TargetType  string    `json:"target_type"`
+	TargetID    uuid.UUID `json:"target_id"`
+	Reason      *string   `json:"reason,omitempty"`
+	Metadata    *string   `json:"metadata,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // UserBan represents a user ban record

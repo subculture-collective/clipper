@@ -55,7 +55,7 @@ class StructuredLogger {
       if (sessionId) {
         context.session_id = sessionId;
       }
-    } catch (e) {
+    } catch {
       // Ignore errors accessing session storage
     }
 
@@ -68,7 +68,7 @@ class StructuredLogger {
           context.user_id = this.hashForLogging(user.id.toString());
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore errors accessing local storage
     }
 
@@ -116,7 +116,7 @@ class StructuredLogger {
     const redacted: Record<string, unknown> = {};
     for (const key in fields) {
       if (!Object.prototype.hasOwnProperty.call(fields, key)) continue;
-      
+
       const value = fields[key];
       const lowerKey = key.toLowerCase();
 
@@ -160,12 +160,12 @@ class StructuredLogger {
 
     // Check if in production mode (process.env is available in Vite)
     const isProduction = typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
-    
+
     // In production, send to log aggregation service
     if (isProduction) {
       // Log to console for now, can be extended to send to backend
       console.log(JSON.stringify(entry));
-      
+
       // TODO: Send to backend log collection endpoint
       // this.sendToBackend(entry);
     } else {

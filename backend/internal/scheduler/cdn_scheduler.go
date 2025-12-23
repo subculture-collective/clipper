@@ -15,12 +15,12 @@ type CDNServiceInterface interface {
 
 // CDNScheduler manages periodic CDN metrics collection
 type CDNScheduler struct {
-	cdnService       CDNServiceInterface
-	metricsInterval  time.Duration
-	stopChan         chan struct{}
-	stopOnce         sync.Once
-	running          bool
-	mu               sync.Mutex
+	cdnService      CDNServiceInterface
+	metricsInterval time.Duration
+	stopChan        chan struct{}
+	stopOnce        sync.Once
+	running         bool
+	mu              sync.Mutex
 }
 
 // NewCDNScheduler creates a new CDN scheduler

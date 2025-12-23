@@ -141,7 +141,7 @@ func TestEventTracker_TrackEvent_Queueing(t *testing.T) {
 	// For database integration tests, see integration test suite
 	err := et.TrackEvent(event)
 	assert.NoError(t, err)
-	
+
 	// TrackEvent modifies the event internally but doesn't return it,
 	// so we just verify no error occurred which means the event was queued
 }

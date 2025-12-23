@@ -145,13 +145,13 @@ func (s *PlaylistService) UpdatePlaylist(ctx context.Context, playlistID, userID
 		if playlist.UserID != userID {
 			return nil, fmt.Errorf("unauthorized: only the owner can change playlist visibility")
 		}
-		
+
 		oldVisibility := playlist.Visibility
 		playlist.Visibility = *req.Visibility
-		
+
 		// Generate share token if making public/unlisted from private
-		if oldVisibility == models.PlaylistVisibilityPrivate && 
-		   (*req.Visibility == models.PlaylistVisibilityPublic || *req.Visibility == models.PlaylistVisibilityUnlisted) {
+		if oldVisibility == models.PlaylistVisibilityPrivate &&
+			(*req.Visibility == models.PlaylistVisibilityPublic || *req.Visibility == models.PlaylistVisibilityUnlisted) {
 			if playlist.ShareToken == nil || *playlist.ShareToken == "" {
 				token, err := generateShareToken()
 				if err != nil {

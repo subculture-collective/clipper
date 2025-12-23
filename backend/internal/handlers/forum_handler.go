@@ -29,21 +29,21 @@ func NewForumHandler(db *pgxpool.Pool) *ForumHandler {
 
 // ForumThread represents a forum discussion thread
 type ForumThread struct {
-	ID          uuid.UUID  `json:"id"`
-	UserID      uuid.UUID  `json:"user_id"`
-	Username    string     `json:"username"`
-	Title       string     `json:"title"`
-	Content     string     `json:"content"`
-	GameID      *uuid.UUID `json:"game_id,omitempty"`
-	GameName    *string    `json:"game_name,omitempty"`
-	Tags        []string   `json:"tags"`
-	ViewCount   int        `json:"view_count"`
-	ReplyCount  int        `json:"reply_count"`
-	Locked      bool       `json:"locked"`
-	LockedAt    *time.Time `json:"locked_at,omitempty"`
-	Pinned      bool       `json:"pinned"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID         uuid.UUID  `json:"id"`
+	UserID     uuid.UUID  `json:"user_id"`
+	Username   string     `json:"username"`
+	Title      string     `json:"title"`
+	Content    string     `json:"content"`
+	GameID     *uuid.UUID `json:"game_id,omitempty"`
+	GameName   *string    `json:"game_name,omitempty"`
+	Tags       []string   `json:"tags"`
+	ViewCount  int        `json:"view_count"`
+	ReplyCount int        `json:"reply_count"`
+	Locked     bool       `json:"locked"`
+	LockedAt   *time.Time `json:"locked_at,omitempty"`
+	Pinned     bool       `json:"pinned"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
 }
 
 // ForumReply represents a reply in a forum thread
@@ -73,13 +73,13 @@ type Vote struct {
 
 // ReputationScore represents a user's reputation
 type ReputationScore struct {
-	UserID      uuid.UUID `json:"user_id"`
-	Score       int       `json:"score"`
-	Badge       string    `json:"badge"` // new, contributor, expert, moderator
-	Votes       int       `json:"votes"`
-	Threads     int       `json:"threads"`
-	Replies     int       `json:"replies"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UserID    uuid.UUID `json:"user_id"`
+	Score     int       `json:"score"`
+	Badge     string    `json:"badge"` // new, contributor, expert, moderator
+	Votes     int       `json:"votes"`
+	Threads   int       `json:"threads"`
+	Replies   int       `json:"replies"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // VoteStats represents vote statistics for a reply
@@ -330,8 +330,8 @@ func (h *ForumHandler) GetThread(c *gin.Context) {
 	// Increment view count atomically in the database
 	// Using UPDATE directly ensures atomic increment without race conditions
 	// Errors are ignored as view count increment is non-critical
-	_, _ = h.db.Exec(c.Request.Context(), 
-		"UPDATE forum_threads SET view_count = view_count + 1 WHERE id = $1", 
+	_, _ = h.db.Exec(c.Request.Context(),
+		"UPDATE forum_threads SET view_count = view_count + 1 WHERE id = $1",
 		threadID)
 
 	// Get all replies for the thread using ltree path for efficient hierarchical queries
@@ -710,11 +710,11 @@ func (h *ForumHandler) DeleteReply(c *gin.Context) {
 type ForumSearchResult struct {
 	Type       string     `json:"type"` // 'thread' or 'reply'
 	ID         uuid.UUID  `json:"id"`
-	Title      *string    `json:"title,omitempty"`      // Only for threads
-	Body       string     `json:"body"`                 // Thread content or reply content
+	Title      *string    `json:"title,omitempty"` // Only for threads
+	Body       string     `json:"body"`            // Thread content or reply content
 	AuthorID   uuid.UUID  `json:"author_id"`
 	AuthorName string     `json:"author_name"`
-	ThreadID   *uuid.UUID `json:"thread_id,omitempty"`  // Only for replies
+	ThreadID   *uuid.UUID `json:"thread_id,omitempty"` // Only for replies
 	VoteCount  int        `json:"vote_count"`
 	CreatedAt  time.Time  `json:"created_at"`
 	Headline   string     `json:"headline"` // Highlighted snippet
@@ -982,7 +982,7 @@ func (h *ForumHandler) VoteOnReply(c *gin.Context) {
 		// Create background context with timeout
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		
+
 		// Update reputation - errors are logged for debugging
 		if _, err := h.db.Exec(ctx, "SELECT update_reputation_score($1)", replyUserID); err != nil {
 			// Log error but don't fail the vote operation

@@ -128,7 +128,7 @@ export async function getWatchPartyHistory(page = 1, limit = 20): Promise<{
  */
 export async function getWatchPartyParticipants(partyId: string) {
   const response = await apiClient.get<StandardResponse<{
-    participants: any[];
+    participants: WatchPartyParticipant[];
     count: number;
   }>>(`/watch-parties/${partyId}/participants`);
 

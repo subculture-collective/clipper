@@ -28,7 +28,7 @@ export function QueuePanel() {
         e.preventDefault();
     };
 
-    const handleDrop = (targetId: string) => {
+    const handleDrop = () => {
         // TODO: Implement drag-and-drop reordering
         // This requires finding the positions and calling reorderQueue
         setDraggedId(null);

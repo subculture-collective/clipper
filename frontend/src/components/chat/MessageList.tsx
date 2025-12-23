@@ -91,11 +91,11 @@ export function MessageList({
           )}
         </div>
       )}
-      
+
       {messages.map((message) => (
         <MessageItem key={message.id} message={message} />
       ))}
-      
+
       <div ref={messagesEndRef} />
     </div>
   );

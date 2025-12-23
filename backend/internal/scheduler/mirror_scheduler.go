@@ -15,14 +15,14 @@ type MirrorServiceInterface interface {
 
 // MirrorScheduler manages periodic mirror sync and cleanup operations
 type MirrorScheduler struct {
-	mirrorService    MirrorServiceInterface
-	syncInterval     time.Duration
-	cleanupInterval  time.Duration
-	stopChan         chan struct{}
-	stopOnce         sync.Once
-	startOnce        sync.Once
-	running          bool
-	mu               sync.Mutex
+	mirrorService   MirrorServiceInterface
+	syncInterval    time.Duration
+	cleanupInterval time.Duration
+	stopChan        chan struct{}
+	stopOnce        sync.Once
+	startOnce       sync.Once
+	running         bool
+	mu              sync.Mutex
 }
 
 // NewMirrorScheduler creates a new mirror scheduler

@@ -16,7 +16,7 @@ Comprehensive event tracking system for Clipper web and mobile applications.
 ### Web (React)
 
 ```typescript
-import { trackEvent, AuthEvents, useAnalytics } from '@/lib/analytics';
+import { trackEvent, AuthEvents, useAnalytics } from '@/lib/telemetry';
 
 // In a component
 function MyComponent() {
@@ -39,7 +39,7 @@ trackEvent(AuthEvents.LOGIN_COMPLETED, {
 ### Mobile (React Native)
 
 ```typescript
-import { trackEvent, AuthEvents, trackScreenView } from '@/lib/analytics';
+import { trackEvent, AuthEvents, trackScreenView } from '@/lib/telemetry';
 
 // Track screen views
 trackScreenView('Home');
@@ -57,7 +57,7 @@ The analytics module includes 40+ predefined events organized into 8 categories:
 ### 1. Authentication Events
 
 ```typescript
-import { AuthEvents } from '@/lib/analytics';
+import { AuthEvents } from '@/lib/telemetry';
 
 // Signup
 trackEvent(AuthEvents.SIGNUP_STARTED);
@@ -76,7 +76,7 @@ trackEvent(AuthEvents.LOGOUT);
 ### 2. Submission Events (Clips)
 
 ```typescript
-import { SubmissionEvents } from '@/lib/analytics';
+import { SubmissionEvents } from '@/lib/telemetry';
 
 // Viewing
 trackEvent(SubmissionEvents.SUBMISSION_VIEWED, { 
@@ -106,7 +106,7 @@ trackEvent(SubmissionEvents.SUBMISSION_SHARED, {
 ### 3. Engagement Events
 
 ```typescript
-import { EngagementEvents } from '@/lib/analytics';
+import { EngagementEvents } from '@/lib/telemetry';
 
 // Voting
 trackEvent(EngagementEvents.UPVOTE_CLICKED, {
@@ -142,7 +142,7 @@ trackEvent(EngagementEvents.FAVORITE_ADDED, {
 ### 4. Premium/Subscription Events
 
 ```typescript
-import { PremiumEvents } from '@/lib/analytics';
+import { PremiumEvents } from '@/lib/telemetry';
 
 // Pricing page
 trackEvent(PremiumEvents.PRICING_PAGE_VIEWED);
@@ -176,7 +176,7 @@ trackEvent(PremiumEvents.PAYWALL_VIEWED, {
 ### 5. Navigation Events
 
 ```typescript
-import { NavigationEvents } from '@/lib/analytics';
+import { NavigationEvents } from '@/lib/telemetry';
 
 // Page views (auto-tracked by useAnalytics hook)
 trackEvent(NavigationEvents.PAGE_VIEWED, {
@@ -199,7 +199,7 @@ trackEvent(NavigationEvents.NAV_LINK_CLICKED, {
 ### 6. Settings Events
 
 ```typescript
-import { SettingsEvents } from '@/lib/analytics';
+import { SettingsEvents } from '@/lib/telemetry';
 
 // Theme
 trackEvent(SettingsEvents.THEME_CHANGED, {
@@ -217,7 +217,7 @@ trackEvent(SettingsEvents.CONSENT_UPDATED, {
 ### 7. Error Events
 
 ```typescript
-import { ErrorEvents, trackError } from '@/lib/analytics';
+import { ErrorEvents, trackError } from '@/lib/telemetry';
 
 // Generic errors
 trackEvent(ErrorEvents.ERROR_OCCURRED, {
@@ -246,7 +246,7 @@ try {
 ### 8. Performance Events
 
 ```typescript
-import { PerformanceEvents, trackPerformance } from '@/lib/analytics';
+import { PerformanceEvents, trackPerformance } from '@/lib/telemetry';
 
 // Track performance metrics
 trackPerformance('api_response_time', 245, 'ms');
@@ -277,7 +277,7 @@ resetUser();
 ### Mobile
 
 ```typescript
-import { identifyUser, resetUser } from '@/lib/analytics';
+import { identifyUser, resetUser } from '@/lib/telemetry';
 
 // After login
 identifyUser('user123', {
@@ -331,7 +331,7 @@ Analytics tracking is **disabled by default** and requires explicit user consent
 ### Consent Flow
 
 ```typescript
-import { enableAnalytics, disableAnalytics } from '@/lib/analytics';
+import { enableAnalytics, disableAnalytics } from '@/lib/telemetry';
 
 // When user grants consent
 await enableAnalytics();
@@ -356,7 +356,7 @@ VITE_ENABLE_DEBUG=true
 ### Manual Testing
 
 ```typescript
-import { getAnalyticsConfig, isAnalyticsEnabled } from '@/lib/analytics';
+import { getAnalyticsConfig, isAnalyticsEnabled } from '@/lib/telemetry';
 
 // Check if analytics is enabled
 console.log('Analytics enabled:', isAnalyticsEnabled());
@@ -381,7 +381,7 @@ To enable full PostHog integration on mobile:
    npm install posthog-react-native
    ```
 
-2. Uncomment the PostHog integration code in `mobile/lib/analytics.ts`
+2. Uncomment the PostHog integration code in `mobile/lib/telemetry.ts`
 
 3. Initialize in your app:
    ```typescript
@@ -404,7 +404,7 @@ To enable full PostHog integration on mobile:
 ## Architecture
 
 ```
-frontend/src/lib/analytics/
+frontend/src/lib/telemetry/
 ├── events.ts         # Event schema and type definitions
 ├── tracker.ts        # Unified tracking logic
 └── index.ts          # Public API exports

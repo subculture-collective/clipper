@@ -1059,12 +1059,12 @@ func (r *AnalyticsRepository) GetClipVoteCounts(ctx context.Context, clipID uuid
 
 // WatchPartyAnalytics represents aggregated analytics for a watch party
 type WatchPartyAnalytics struct {
-	PartyID                uuid.UUID `json:"party_id" db:"party_id"`
-	UniqueViewers          int       `json:"unique_viewers" db:"unique_viewers"`
-	PeakConcurrentViewers  int       `json:"peak_concurrent_viewers" db:"peak_concurrent_viewers"`
-	AvgDurationSeconds     int       `json:"avg_duration_seconds" db:"avg_watch_duration_seconds"`
-	ChatMessages           int       `json:"chat_messages" db:"chat_messages"`
-	Reactions              int       `json:"reactions" db:"reactions"`
+	PartyID               uuid.UUID `json:"party_id" db:"party_id"`
+	UniqueViewers         int       `json:"unique_viewers" db:"unique_viewers"`
+	PeakConcurrentViewers int       `json:"peak_concurrent_viewers" db:"peak_concurrent_viewers"`
+	AvgDurationSeconds    int       `json:"avg_duration_seconds" db:"avg_watch_duration_seconds"`
+	ChatMessages          int       `json:"chat_messages" db:"chat_messages"`
+	Reactions             int       `json:"reactions" db:"reactions"`
 }
 
 // HostStats represents statistics for a host user
@@ -1123,12 +1123,12 @@ func (r *AnalyticsRepository) GetWatchPartyAnalytics(ctx context.Context, partyI
 		// If no analytics found yet, return zero values
 		if err == pgx.ErrNoRows {
 			return &WatchPartyAnalytics{
-				PartyID:                partyID,
-				UniqueViewers:          0,
-				PeakConcurrentViewers:  0,
-				AvgDurationSeconds:     0,
-				ChatMessages:           0,
-				Reactions:              0,
+				PartyID:               partyID,
+				UniqueViewers:         0,
+				PeakConcurrentViewers: 0,
+				AvgDurationSeconds:    0,
+				ChatMessages:          0,
+				Reactions:             0,
 			}, nil
 		}
 		// Return actual database errors

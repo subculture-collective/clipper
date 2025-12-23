@@ -72,7 +72,7 @@ export function AppealForm({ open, onClose, moderationActionId, onSuccess }: App
     >
       {success ? (
         <div className="py-8 text-center">
-          <Alert type="success">
+          <Alert variant="success">
             Appeal submitted successfully! We'll review your appeal and get back to you soon.
           </Alert>
         </div>
@@ -87,7 +87,7 @@ export function AppealForm({ open, onClose, moderationActionId, onSuccess }: App
             </div>
 
             {error && (
-              <Alert type="error">
+              <Alert variant="error">
                 {error}
               </Alert>
             )}

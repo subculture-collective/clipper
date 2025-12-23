@@ -31,7 +31,7 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
     showNotification,
     isSupported,
   } = useDesktopNotifications();
-  
+
   const { messages, sendMessage, sendTyping, isConnected, error } = useChatWebSocket({
     channelId,
     onMessage: (message) => {
@@ -68,7 +68,7 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
         setTypingUsers((prev) => prev.filter((u) => u !== username));
         typingTimeoutsRef.current.delete(username);
       }, 3000);
-      
+
       typingTimeoutsRef.current.set(username, timeoutId);
     },
   });

@@ -9,43 +9,50 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
-	"github.com/subculture-collective/clipper/internal/repository"
 )
 
 // CDNProvider is the interface that all CDN providers must implement
 type CDNProvider interface {
 	// GenerateURL generates a CDN URL for a clip
 	GenerateURL(clip *models.Clip) (string, error)
-	
+
 	// PurgeCache purges the cache for a specific clip
 	PurgeCache(clipURL string) error
-	
+
 	// GetCacheHeaders returns appropriate cache headers for video content
 	GetCacheHeaders() map[string]string
-	
+
 	// GetMetrics retrieves current metrics from the CDN
 	GetMetrics(ctx context.Context) (*CDNProviderMetrics, error)
 }
 
 // CDNProviderMetrics represents metrics from a CDN provider
 type CDNProviderMetrics struct {
-	Bandwidth     float64 // GB transferred
-	Requests      int64   // Total requests
-	CacheHitRate  float64 // Percentage (0-100)
-	AvgLatencyMs  float64 // Average latency in milliseconds
-	CostUSD       float64 // Estimated cost in USD
+	Bandwidth    float64 // GB transferred
+	Requests     int64   // Total requests
+	CacheHitRate float64 // Percentage (0-100)
+	AvgLatencyMs float64 // Average latency in milliseconds
+	CostUSD      float64 // Estimated cost in USD
+}
+
+// CDNRepositoryContract captures repository calls CDNService relies on.
+type CDNRepositoryContract interface {
+	CreateMetric(ctx context.Context, metric *models.CDNMetrics) error
+	GetTotalCost(ctx context.Context, startTime time.Time, endTime time.Time) (float64, error)
+	GetCacheHitRate(ctx context.Context, provider string, startTime time.Time) (float64, error)
+	GetMetricsSummary(ctx context.Context, provider string, metricType string, startTime time.Time) (float64, error)
 }
 
 // CDNService manages CDN operations
 type CDNService struct {
-	cdnRepo   *repository.CDNRepository
+	cdnRepo   CDNRepositoryContract
 	config    *config.CDNConfig
 	providers map[string]CDNProvider
 }
 
 // NewCDNService creates a new CDNService
 func NewCDNService(
-	cdnRepo *repository.CDNRepository,
+	cdnRepo CDNRepositoryContract,
 	config *config.CDNConfig,
 ) *CDNService {
 	service := &CDNService{

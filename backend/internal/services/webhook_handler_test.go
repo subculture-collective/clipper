@@ -66,12 +66,12 @@ func TestWebhookIdempotency(t *testing.T) {
 		// Test that duplicate events are detected
 		processedEvents := make(map[string]bool)
 		eventID := "evt_test_duplicate"
-		
+
 		// First processing
 		_, exists := processedEvents[eventID]
 		assert.False(t, exists, "Event should not exist initially")
 		processedEvents[eventID] = true
-		
+
 		// Second processing (should be detected as duplicate)
 		_, exists = processedEvents[eventID]
 		assert.True(t, exists, "Event should exist after first processing")
@@ -91,7 +91,7 @@ func TestSubscriptionWebhookHandlers(t *testing.T) {
 			"CurrentPeriodEnd",
 			"CancelAtPeriodEnd",
 		}
-		
+
 		for _, field := range fields {
 			assert.NotEmpty(t, field)
 		}
@@ -100,7 +100,7 @@ func TestSubscriptionWebhookHandlers(t *testing.T) {
 	t.Run("subscription updated handles status changes", func(t *testing.T) {
 		// Test various subscription statuses
 		statuses := []string{"active", "canceled", "past_due", "incomplete", "trialing"}
-		
+
 		for _, status := range statuses {
 			assert.NotEmpty(t, status)
 		}
@@ -109,7 +109,7 @@ func TestSubscriptionWebhookHandlers(t *testing.T) {
 	t.Run("subscription deleted marks as inactive", func(t *testing.T) {
 		expectedStatus := "inactive"
 		expectedTier := "free"
-		
+
 		assert.Equal(t, "inactive", expectedStatus)
 		assert.Equal(t, "free", expectedTier)
 	})
@@ -118,7 +118,7 @@ func TestSubscriptionWebhookHandlers(t *testing.T) {
 		// Test that trial start and end dates are handled
 		hasTrialStart := true
 		hasTrialEnd := true
-		
+
 		assert.True(t, hasTrialStart)
 		assert.True(t, hasTrialEnd)
 	})
@@ -139,7 +139,7 @@ func TestInvoiceWebhookHandlers(t *testing.T) {
 			"CurrentPeriodEnd",
 			"Status",
 		}
-		
+
 		for _, field := range fields {
 			assert.NotEmpty(t, field)
 		}
@@ -189,7 +189,7 @@ func TestDisputeWebhookHandler(t *testing.T) {
 			"status":             "needs_response",
 			"stripe_customer_id": "cus_test_789",
 		}
-		
+
 		assert.Contains(t, metadata, "dispute_id")
 		assert.Contains(t, metadata, "charge_id")
 		assert.Contains(t, metadata, "amount_cents")
@@ -209,7 +209,7 @@ func TestDisputeWebhookHandler(t *testing.T) {
 			"subscription_canceled",
 			"unrecognized",
 		}
-		
+
 		for _, reason := range reasons {
 			assert.NotEmpty(t, reason)
 		}
@@ -293,7 +293,7 @@ func TestWebhookErrorHandling(t *testing.T) {
 		// Test HTTP status codes
 		successCode := 200
 		badRequestCode := 400
-		
+
 		assert.Equal(t, 200, successCode)
 		assert.Equal(t, 400, badRequestCode)
 	})
@@ -310,7 +310,7 @@ func TestWebhookAuditLogging(t *testing.T) {
 			"payment_failed",
 			"dispute_created",
 		}
-		
+
 		for _, event := range events {
 			assert.NotEmpty(t, event)
 		}
@@ -341,7 +341,7 @@ func TestWebhookTierMapping(t *testing.T) {
 			"price_yearly_pro":  "pro",
 			"unknown_price":     "free",
 		}
-		
+
 		assert.Equal(t, "pro", priceToTier["price_monthly_pro"])
 		assert.Equal(t, "pro", priceToTier["price_yearly_pro"])
 		assert.Equal(t, "free", priceToTier["unknown_price"])
@@ -350,7 +350,7 @@ func TestWebhookTierMapping(t *testing.T) {
 	t.Run("handles unknown price IDs", func(t *testing.T) {
 		unknownPriceID := "price_unknown_123"
 		defaultTier := "free"
-		
+
 		assert.NotEmpty(t, unknownPriceID)
 		assert.Equal(t, "free", defaultTier)
 	})

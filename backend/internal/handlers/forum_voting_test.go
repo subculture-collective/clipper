@@ -190,85 +190,85 @@ func TestGetUserReputation_InvalidUserID(t *testing.T) {
 // This tests the business logic documented in the issue
 func TestReputationCalculation(t *testing.T) {
 	testCases := []struct {
-		name       string
-		upvotes    int
-		downvotes  int
-		threads    int
-		replies    int
-		wantScore  int
-		wantBadge  string
+		name      string
+		upvotes   int
+		downvotes int
+		threads   int
+		replies   int
+		wantScore int
+		wantBadge string
 	}{
 		{
-			name:       "new user no activity",
-			upvotes:    0,
-			downvotes:  0,
-			threads:    0,
-			replies:    0,
-			wantScore:  0,
-			wantBadge:  "new",
+			name:      "new user no activity",
+			upvotes:   0,
+			downvotes: 0,
+			threads:   0,
+			replies:   0,
+			wantScore: 0,
+			wantBadge: "new",
 		},
 		{
-			name:       "user with 1 thread only",
-			upvotes:    0,
-			downvotes:  0,
-			threads:    1,
-			replies:    0,
-			wantScore:  10,
-			wantBadge:  "new",
+			name:      "user with 1 thread only",
+			upvotes:   0,
+			downvotes: 0,
+			threads:   1,
+			replies:   0,
+			wantScore: 10,
+			wantBadge: "new",
 		},
 		{
-			name:       "user with 5 replies",
-			upvotes:    0,
-			downvotes:  0,
-			threads:    0,
-			replies:    5,
-			wantScore:  10,
-			wantBadge:  "new",
+			name:      "user with 5 replies",
+			upvotes:   0,
+			downvotes: 0,
+			threads:   0,
+			replies:   5,
+			wantScore: 10,
+			wantBadge: "new",
 		},
 		{
-			name:       "contributor threshold (50 points)",
-			upvotes:    10,
-			downvotes:  0,
-			threads:    0,
-			replies:    0,
-			wantScore:  50,
-			wantBadge:  "contributor",
+			name:      "contributor threshold (50 points)",
+			upvotes:   10,
+			downvotes: 0,
+			threads:   0,
+			replies:   0,
+			wantScore: 50,
+			wantBadge: "contributor",
 		},
 		{
-			name:       "expert threshold (250 points)",
-			upvotes:    50,
-			downvotes:  0,
-			threads:    0,
-			replies:    0,
-			wantScore:  250,
-			wantBadge:  "expert",
+			name:      "expert threshold (250 points)",
+			upvotes:   50,
+			downvotes: 0,
+			threads:   0,
+			replies:   0,
+			wantScore: 250,
+			wantBadge: "expert",
 		},
 		{
-			name:       "mixed activity - contributor level",
-			upvotes:    5,
-			downvotes:  1,
-			threads:    2,
-			replies:    5,
-			wantScore:  53, // 5*5 - 1*2 + 2*10 + 5*2 = 25 - 2 + 20 + 10 = 53
-			wantBadge:  "contributor",
+			name:      "mixed activity - contributor level",
+			upvotes:   5,
+			downvotes: 1,
+			threads:   2,
+			replies:   5,
+			wantScore: 53, // 5*5 - 1*2 + 2*10 + 5*2 = 25 - 2 + 20 + 10 = 53
+			wantBadge: "contributor",
 		},
 		{
-			name:       "high activity - expert level",
-			upvotes:    40,
-			downvotes:  5,
-			threads:    5,
-			replies:    20,
-			wantScore:  280, // 40*5 - 5*2 + 5*10 + 20*2 = 200 - 10 + 50 + 40 = 280
-			wantBadge:  "expert",
+			name:      "high activity - expert level",
+			upvotes:   40,
+			downvotes: 5,
+			threads:   5,
+			replies:   20,
+			wantScore: 280, // 40*5 - 5*2 + 5*10 + 20*2 = 200 - 10 + 50 + 40 = 280
+			wantBadge: "expert",
 		},
 		{
-			name:       "negative votes don't go below zero",
-			upvotes:    0,
-			downvotes:  10,
-			threads:    0,
-			replies:    0,
-			wantScore:  0, // Would be -20, but clamped to 0
-			wantBadge:  "new",
+			name:      "negative votes don't go below zero",
+			upvotes:   0,
+			downvotes: 10,
+			threads:   0,
+			replies:   0,
+			wantScore: 0, // Would be -20, but clamped to 0
+			wantBadge: "new",
 		},
 	}
 
@@ -382,45 +382,45 @@ func TestVoteAggregation(t *testing.T) {
 // TestSpamDetectionThresholds validates spam detection logic
 func TestSpamDetectionThresholds(t *testing.T) {
 	testCases := []struct {
-		name          string
-		downvotes     int
-		netVotes      int
+		name            string
+		downvotes       int
+		netVotes        int
 		shouldBeFlagged bool
 	}{
 		{
-			name:          "no downvotes",
-			downvotes:     0,
-			netVotes:      5,
+			name:            "no downvotes",
+			downvotes:       0,
+			netVotes:        5,
 			shouldBeFlagged: false,
 		},
 		{
-			name:          "few downvotes",
-			downvotes:     3,
-			netVotes:      -1,
+			name:            "few downvotes",
+			downvotes:       3,
+			netVotes:        -1,
 			shouldBeFlagged: false,
 		},
 		{
-			name:          "threshold exactly - not flagged",
-			downvotes:     5,
-			netVotes:      -2,
+			name:            "threshold exactly - not flagged",
+			downvotes:       5,
+			netVotes:        -2,
 			shouldBeFlagged: false,
 		},
 		{
-			name:          "exceeds downvotes threshold",
-			downvotes:     6,
-			netVotes:      -3,
+			name:            "exceeds downvotes threshold",
+			downvotes:       6,
+			netVotes:        -3,
 			shouldBeFlagged: true,
 		},
 		{
-			name:          "exceeds both thresholds",
-			downvotes:     10,
-			netVotes:      -5,
+			name:            "exceeds both thresholds",
+			downvotes:       10,
+			netVotes:        -5,
 			shouldBeFlagged: true,
 		},
 		{
-			name:          "high downvotes but net positive",
-			downvotes:     10,
-			netVotes:      5,
+			name:            "high downvotes but net positive",
+			downvotes:       10,
+			netVotes:        5,
 			shouldBeFlagged: false,
 		},
 	}
@@ -440,9 +440,9 @@ func TestSpamDetectionThresholds(t *testing.T) {
 // TestLowQualityThresholds validates low quality hiding logic
 func TestLowQualityThresholds(t *testing.T) {
 	testCases := []struct {
-		name         string
-		netVotes     int
-		shouldHide   bool
+		name       string
+		netVotes   int
+		shouldHide bool
 	}{
 		{
 			name:       "positive votes",

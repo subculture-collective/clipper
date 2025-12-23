@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import {
+import type {
   WatchPartySyncEvent,
   WatchPartyCommand,
   WatchPartyMessage,
@@ -42,6 +42,8 @@ export function useWatchPartyWebSocket({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 10;
+  const connectRef = useRef<(() => void) | null>(null);
+  const sendCommandRef = useRef<((command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => void) | null>(null);
 
   const connect = useCallback(() => {
     if (!enabled) return;
@@ -50,7 +52,7 @@ export function useWatchPartyWebSocket({
       // Get WebSocket URL from environment or default
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = import.meta.env.VITE_WS_HOST || window.location.host;
-      
+
       // Get auth token from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
@@ -64,7 +66,7 @@ export function useWatchPartyWebSocket({
       // 2. Is encrypted by WSS/HTTPS
       // 3. Follows WebSocket authentication best practices
       const wsUrl = `${wsProtocol}//${wsHost}/api/v1/watch-parties/${partyId}/ws`;
-      
+
       // Pass token as subprotocol - server will extract it from Sec-WebSocket-Protocol header
       // Format: "auth.bearer.<base64_token>" to avoid protocol name conflicts
       const authProtocol = `auth.bearer.${btoa(token)}`;
@@ -76,15 +78,15 @@ export function useWatchPartyWebSocket({
         setError(null);
         reconnectAttemptsRef.current = 0;
         console.log(`Connected to watch party: ${partyId}`);
-        
+
         // Request initial sync
-        sendCommand({ type: 'sync-request' });
+        sendCommandRef.current?.({ type: 'sync-request' });
       };
 
       ws.onmessage = (event) => {
         try {
           const syncEvent = JSON.parse(event.data) as WatchPartySyncEvent;
-          
+
           // Call the general sync event handler
           onSyncEvent?.(syncEvent);
 
@@ -125,11 +127,11 @@ export function useWatchPartyWebSocket({
           const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           const attemptNumber = reconnectAttemptsRef.current + 1;
           reconnectAttemptsRef.current = attemptNumber;
-          
+
           console.log(`Attempting to reconnect in ${backoffDelay}ms (attempt ${attemptNumber}/${maxReconnectAttempts})`);
-          
+
           reconnectTimeoutRef.current = window.setTimeout(() => {
-            connect();
+            connectRef.current?.();
           }, backoffDelay);
         } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
           setError('Connection lost. Unable to reconnect after multiple attempts.');
@@ -141,19 +143,6 @@ export function useWatchPartyWebSocket({
     }
   }, [partyId, enabled, onSyncEvent, onChatMessage, onReaction, onTyping]);
 
-  useEffect(() => {
-    connect();
-
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [connect]);
-
   const sendCommand = useCallback((command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       const fullCommand: WatchPartyCommand = {
@@ -164,6 +153,22 @@ export function useWatchPartyWebSocket({
       wsRef.current.send(JSON.stringify(fullCommand));
     }
   }, [partyId]);
+
+  useEffect(() => {
+    // Store connect and sendCommand in refs so they can be called recursively
+    connectRef.current = connect;
+    sendCommandRef.current = sendCommand;
+    connect();
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [connect, sendCommand]);
 
   const sendChatMessage = useCallback((message: string) => {
     sendCommand({

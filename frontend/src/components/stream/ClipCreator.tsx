@@ -34,6 +34,7 @@ export function ClipCreator({ streamer, currentTime = 0, duration = 0 }: ClipCre
         navigate(`/clips/${data.clip_id}`);
       }, 1000);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       const message = error?.response?.data?.error || 'Failed to create clip. Please try again.';
       setErrorMessage(message);
@@ -53,7 +54,7 @@ export function ClipCreator({ streamer, currentTime = 0, duration = 0 }: ClipCre
 
   const handleSubmit = () => {
     setErrorMessage('');
-    
+
     // Validate inputs
     if (!title.trim()) {
       setErrorMessage('Please enter a title for your clip');

@@ -24,16 +24,16 @@ const (
 
 // DMCAService handles DMCA takedown notices, counter-notices, and strike management
 type DMCAService struct {
-	repo          *repository.DMCARepository
-	clipRepo      *repository.ClipRepository
-	userRepo      *repository.UserRepository
-	auditLogRepo  *repository.AuditLogRepository
-	emailService  *EmailService
-	searchIndexer SearchIndexer // Interface for search index operations
-	db            *pgxpool.Pool
-	baseURL       string
+	repo           *repository.DMCARepository
+	clipRepo       *repository.ClipRepository
+	userRepo       *repository.UserRepository
+	auditLogRepo   *repository.AuditLogRepository
+	emailService   *EmailService
+	searchIndexer  SearchIndexer // Interface for search index operations
+	db             *pgxpool.Pool
+	baseURL        string
 	dmcaAgentEmail string
-	logger        *utils.StructuredLogger
+	logger         *utils.StructuredLogger
 }
 
 // SearchIndexer interface for removing content from search index
@@ -59,16 +59,16 @@ func NewDMCAService(
 	cfg *DMCAServiceConfig,
 ) *DMCAService {
 	return &DMCAService{
-		repo:          repo,
-		clipRepo:      clipRepo,
-		userRepo:      userRepo,
-		auditLogRepo:  auditLogRepo,
-		emailService:  emailService,
-		searchIndexer: searchIndexer,
-		db:            db,
-		baseURL:       cfg.BaseURL,
+		repo:           repo,
+		clipRepo:       clipRepo,
+		userRepo:       userRepo,
+		auditLogRepo:   auditLogRepo,
+		emailService:   emailService,
+		searchIndexer:  searchIndexer,
+		db:             db,
+		baseURL:        cfg.BaseURL,
 		dmcaAgentEmail: cfg.DMCAAgentEmail,
-		logger:        utils.GetLogger(),
+		logger:         utils.GetLogger(),
 	}
 }
 
@@ -145,14 +145,14 @@ func (s *DMCAService) validateTakedownNotice(req *models.SubmitDMCANoticeRequest
 	if err != nil {
 		return fmt.Errorf("service configuration error: invalid base URL")
 	}
-	
+
 	// Validate URLs are from this platform
 	for _, urlStr := range req.InfringingURLs {
 		// Limit URL length to prevent log injection
 		if len(urlStr) > 500 {
 			return fmt.Errorf("URL exceeds maximum length of 500 characters")
 		}
-		
+
 		parsedURL, err := url.Parse(urlStr)
 		if err != nil {
 			return fmt.Errorf("invalid URL format in infringing URLs")
@@ -196,15 +196,15 @@ func (s *DMCAService) fuzzyMatchSignature(signature, name string) bool {
 
 	// Check if signature contains most of the name words
 	nameWords := strings.Fields(normName)
-	
+
 	// Edge case: if name has no valid words, require exact match
 	if len(nameWords) == 0 {
 		return normSig == normName
 	}
-	
+
 	matchCount := 0
 	validWordCount := 0 // Count words longer than 2 chars
-	
+
 	for _, word := range nameWords {
 		if len(word) > 2 {
 			validWordCount++
@@ -213,7 +213,7 @@ func (s *DMCAService) fuzzyMatchSignature(signature, name string) bool {
 			}
 		}
 	}
-	
+
 	// If all words are <= 2 chars, fall back to substring match
 	if validWordCount == 0 {
 		return strings.Contains(normSig, normName)
@@ -367,7 +367,7 @@ func (s *DMCAService) ProcessTakedown(ctx context.Context, noticeID, adminID uui
 		EntityID:    noticeID,
 		ModeratorID: adminID,
 		Metadata: map[string]interface{}{
-			"clips_removed": len(removedClipIDs),
+			"clips_removed":  len(removedClipIDs),
 			"users_affected": len(affectedUserIDs),
 		},
 	}); err != nil {
@@ -416,16 +416,16 @@ func (s *DMCAService) extractClipIDFromURL(urlStr string) (uuid.UUID, error) {
 	// Remove query params and fragments, then split path
 	path := strings.Trim(parsedURL.Path, "/")
 	parts := strings.Split(path, "/")
-	
+
 	// Expect exactly 2 parts: "clip" and the UUID
 	if len(parts) != 2 {
 		return uuid.Nil, fmt.Errorf("invalid clip URL format: expected /clip/{id}")
 	}
-	
+
 	if parts[0] != "clip" {
 		return uuid.Nil, fmt.Errorf("invalid clip URL format: path must start with /clip/")
 	}
-	
+
 	// Parse and validate UUID
 	clipID, err := uuid.Parse(parts[1])
 	if err != nil {
@@ -645,25 +645,25 @@ func (s *DMCAService) SubmitCounterNotice(ctx context.Context, req *models.Submi
 
 	// Create counter-notice with 10-14 business day waiting period
 	waitingPeriodEnd := s.calculateWaitingPeriodEnd(time.Now())
-	
+
 	counterNotice := &models.DMCACounterNotice{
-		DMCANoticeID:              req.DMCANoticeID,
-		UserID:                    userID, // Optional: nil if user not logged in
-		UserName:                  req.UserName,
-		UserEmail:                 req.UserEmail,
-		UserAddress:               req.UserAddress,
-		UserPhone:                 req.UserPhone,
-		RemovedMaterialURL:        req.RemovedMaterialURL,
+		DMCANoticeID:               req.DMCANoticeID,
+		UserID:                     userID, // Optional: nil if user not logged in
+		UserName:                   req.UserName,
+		UserEmail:                  req.UserEmail,
+		UserAddress:                req.UserAddress,
+		UserPhone:                  req.UserPhone,
+		RemovedMaterialURL:         req.RemovedMaterialURL,
 		RemovedMaterialDescription: req.RemovedMaterialDescription,
-		GoodFaithStatement:        req.GoodFaithStatement,
-		ConsentToJurisdiction:     req.ConsentToJurisdiction,
-		ConsentToService:          req.ConsentToService,
-		Signature:                 req.Signature,
-		SubmittedAt:               time.Now(),
-		WaitingPeriodEnds:         &waitingPeriodEnd,
-		Status:                    "pending",
-		IPAddress:                 &ipAddress,
-		UserAgent:                 &userAgent,
+		GoodFaithStatement:         req.GoodFaithStatement,
+		ConsentToJurisdiction:      req.ConsentToJurisdiction,
+		ConsentToService:           req.ConsentToService,
+		Signature:                  req.Signature,
+		SubmittedAt:                time.Now(),
+		WaitingPeriodEnds:          &waitingPeriodEnd,
+		Status:                     "pending",
+		IPAddress:                  &ipAddress,
+		UserAgent:                  &userAgent,
 	}
 
 	if err := s.repo.CreateCounterNotice(ctx, counterNotice); err != nil {
@@ -979,4 +979,3 @@ func (s *DMCAService) sendComplainantReinstatedEmail(ctx context.Context, notice
 	// TODO: Implement with email template
 	return nil
 }
-

@@ -40,7 +40,7 @@ func (p *CloudflareProvider) GenerateURL(clip *models.Clip) (string, error) {
 		return fmt.Sprintf("https://%s/clips/%s/%s.mp4",
 			p.cdnDomain, clip.TwitchClipID, clip.TwitchClipID), nil
 	}
-	
+
 	// Fallback to Twitch URL with Cloudflare proxy
 	return fmt.Sprintf("https://%s/twitch/%s", p.cdnDomain, clip.TwitchClipID), nil
 }
@@ -66,7 +66,7 @@ func (p *CloudflareProvider) GetCacheHeaders() map[string]string {
 func (p *CloudflareProvider) GetMetrics(ctx context.Context) (*CDNProviderMetrics, error) {
 	// In a real implementation, this would call Cloudflare Analytics API
 	// GET https://api.cloudflare.com/client/v4/zones/{zone_id}/analytics/dashboard
-	
+
 	// Return stub metrics for now
 	return &CDNProviderMetrics{
 		Bandwidth:    0,
@@ -101,7 +101,7 @@ func (p *BunnyProvider) GenerateURL(clip *models.Clip) (string, error) {
 		return fmt.Sprintf("https://%s.b-cdn.net/clips/%s/%s.mp4",
 			p.storageZone, clip.TwitchClipID, clip.TwitchClipID), nil
 	}
-	
+
 	return fmt.Sprintf("https://%s.b-cdn.net/twitch/%s", p.storageZone, clip.TwitchClipID), nil
 }
 
@@ -125,7 +125,7 @@ func (p *BunnyProvider) GetCacheHeaders() map[string]string {
 func (p *BunnyProvider) GetMetrics(ctx context.Context) (*CDNProviderMetrics, error) {
 	// In a real implementation, this would call Bunny Statistics API
 	// GET https://api.bunny.net/statistics
-	
+
 	// Return stub metrics for now
 	return &CDNProviderMetrics{
 		Bandwidth:    0,
@@ -171,7 +171,7 @@ func (p *AWSCloudFrontProvider) GenerateURL(clip *models.Clip) (string, error) {
 		return fmt.Sprintf("https://%s.cloudfront.net/clips/%s/%s.mp4",
 			p.distributionID, clip.TwitchClipID, clip.TwitchClipID), nil
 	}
-	
+
 	return fmt.Sprintf("https://%s.cloudfront.net/twitch/%s", p.distributionID, clip.TwitchClipID), nil
 }
 
@@ -194,7 +194,7 @@ func (p *AWSCloudFrontProvider) GetCacheHeaders() map[string]string {
 func (p *AWSCloudFrontProvider) GetMetrics(ctx context.Context) (*CDNProviderMetrics, error) {
 	// In a real implementation, this would call CloudWatch Metrics API
 	// using AWS SDK
-	
+
 	// Return stub metrics for now
 	return &CDNProviderMetrics{
 		Bandwidth:    0,

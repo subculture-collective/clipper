@@ -36,7 +36,7 @@ export function PlaylistDetail() {
                 await likeMutation.mutateAsync(id);
                 toast.success('Playlist liked');
             }
-        } catch (error) {
+        } catch {
             toast.error('Failed to update like status');
         }
     };

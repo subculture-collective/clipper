@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { useNavigate } from 'react-router-dom';
 import { LinkPreview } from './LinkPreview';
 
@@ -13,7 +13,7 @@ interface MessageContentProps {
  */
 export function MessageContent({ content, onMentionClick }: MessageContentProps) {
   const navigate = useNavigate();
-  
+
   const handleMentionClick = (mention: string) => {
     const username = mention.slice(1); // Remove @ symbol
     if (onMentionClick) {
@@ -39,7 +39,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
 
     // Find all matches with their positions
     const matches: Array<{ type: string; match: RegExpMatchArray; start: number; end: number }> = [];
-    
+
     for (const [type, pattern] of Object.entries(patterns)) {
       const regex = new RegExp(pattern.source, pattern.flags);
       let match;
@@ -56,8 +56,17 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
     // Sort matches by position
     matches.sort((a, b) => a.start - b.start);
 
+    // Drop overlapping matches (e.g., inline code inside a multiline block)
+    const nonOverlapping: typeof matches = [];
+    let lastEnd = -1;
+    for (const match of matches) {
+      if (match.start < lastEnd) continue;
+      nonOverlapping.push(match);
+      lastEnd = match.end;
+    }
+
     // Process matches and text in order
-    matches.forEach((item, idx) => {
+    nonOverlapping.forEach((item, idx) => {
       // Add text before this match
       if (currentIndex < item.start) {
         const textSegment = text.slice(currentIndex, item.start);
@@ -69,7 +78,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
       // Add the match
       const matchText = item.match[0];
       switch (item.type) {
-        case 'multilineCode':
+        case 'multilineCode': {
           const code = item.match[1] || '';
           elements.push(
             <pre
@@ -80,7 +89,8 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
             </pre>
           );
           break;
-        case 'inlineCode':
+        }
+        case 'inlineCode': {
           const inlineCode = item.match[1] || '';
           elements.push(
             <code
@@ -91,6 +101,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
             </code>
           );
           break;
+        }
         case 'url':
           elements.push(<LinkPreview key={`url-${idx}`} url={matchText} />);
           break;
@@ -129,7 +140,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
   };
 
   return (
-    <div className="text-sm break-words whitespace-pre-wrap">
+    <div className="text-sm wrap-break-word whitespace-pre-wrap">
       {parseContent(content)}
     </div>
   );

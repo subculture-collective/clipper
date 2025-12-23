@@ -148,185 +148,185 @@ func TestReviewVerificationApplication_InvalidDecision(t *testing.T) {
 
 // TestAbusePrevention_RejectionCooldown tests the 30-day cooldown after rejection
 func TestAbusePrevention_RejectionCooldown(t *testing.T) {
-tests := []struct {
-name              string
-daysSinceRejection int
-shouldBlock       bool
-}{
-{
-name:              "Within 30-day cooldown",
-daysSinceRejection: 15,
-shouldBlock:       true,
-},
-{
-name:              "Exactly 30 days",
-daysSinceRejection: 30,
-shouldBlock:       false,
-},
-{
-name:              "After cooldown period",
-daysSinceRejection: 31,
-shouldBlock:       false,
-},
-{
-name:              "Recent rejection (1 day)",
-daysSinceRejection: 1,
-shouldBlock:       true,
-},
-}
+	tests := []struct {
+		name               string
+		daysSinceRejection int
+		shouldBlock        bool
+	}{
+		{
+			name:               "Within 30-day cooldown",
+			daysSinceRejection: 15,
+			shouldBlock:        true,
+		},
+		{
+			name:               "Exactly 30 days",
+			daysSinceRejection: 30,
+			shouldBlock:        false,
+		},
+		{
+			name:               "After cooldown period",
+			daysSinceRejection: 31,
+			shouldBlock:        false,
+		},
+		{
+			name:               "Recent rejection (1 day)",
+			daysSinceRejection: 1,
+			shouldBlock:        true,
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-// Validate cooldown logic
-blocked := tt.daysSinceRejection < 30
-if blocked != tt.shouldBlock {
-t.Errorf("Expected shouldBlock=%v, got %v for %d days since rejection",
-tt.shouldBlock, blocked, tt.daysSinceRejection)
-}
-})
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Validate cooldown logic
+			blocked := tt.daysSinceRejection < 30
+			if blocked != tt.shouldBlock {
+				t.Errorf("Expected shouldBlock=%v, got %v for %d days since rejection",
+					tt.shouldBlock, blocked, tt.daysSinceRejection)
+			}
+		})
+	}
 }
 
 // TestAbusePrevention_ApplicationLimit tests the maximum application limit
 func TestAbusePrevention_ApplicationLimit(t *testing.T) {
-tests := []struct {
-name          string
-totalApps     int
-shouldBlock   bool
-maxAllowed    int
-}{
-{
-name:        "First application",
-totalApps:   0,
-shouldBlock: false,
-maxAllowed:  5,
-},
-{
-name:        "Within limit",
-totalApps:   3,
-shouldBlock: false,
-maxAllowed:  5,
-},
-{
-name:        "At limit",
-totalApps:   5,
-shouldBlock: true,
-maxAllowed:  5,
-},
-{
-name:        "Exceeds limit",
-totalApps:   6,
-shouldBlock: true,
-maxAllowed:  5,
-},
-}
+	tests := []struct {
+		name        string
+		totalApps   int
+		shouldBlock bool
+		maxAllowed  int
+	}{
+		{
+			name:        "First application",
+			totalApps:   0,
+			shouldBlock: false,
+			maxAllowed:  5,
+		},
+		{
+			name:        "Within limit",
+			totalApps:   3,
+			shouldBlock: false,
+			maxAllowed:  5,
+		},
+		{
+			name:        "At limit",
+			totalApps:   5,
+			shouldBlock: true,
+			maxAllowed:  5,
+		},
+		{
+			name:        "Exceeds limit",
+			totalApps:   6,
+			shouldBlock: true,
+			maxAllowed:  5,
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-// Validate application limit logic
-blocked := tt.totalApps >= tt.maxAllowed
-if blocked != tt.shouldBlock {
-t.Errorf("Expected shouldBlock=%v, got %v for %d total applications",
-tt.shouldBlock, blocked, tt.totalApps)
-}
-})
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Validate application limit logic
+			blocked := tt.totalApps >= tt.maxAllowed
+			if blocked != tt.shouldBlock {
+				t.Errorf("Expected shouldBlock=%v, got %v for %d total applications",
+					tt.shouldBlock, blocked, tt.totalApps)
+			}
+		})
+	}
 }
 
 // TestAbusePrevention_DuplicateTwitchURL tests duplicate Twitch URL detection
 func TestAbusePrevention_DuplicateTwitchURL(t *testing.T) {
-tests := []struct {
-name               string
-existingAppsCount  int
-shouldBlock        bool
-}{
-{
-name:              "No duplicate applications",
-existingAppsCount: 0,
-shouldBlock:       false,
-},
-{
-name:              "One duplicate application",
-existingAppsCount: 1,
-shouldBlock:       true,
-},
-{
-name:              "Multiple duplicate applications",
-existingAppsCount: 3,
-shouldBlock:       true,
-},
-}
+	tests := []struct {
+		name              string
+		existingAppsCount int
+		shouldBlock       bool
+	}{
+		{
+			name:              "No duplicate applications",
+			existingAppsCount: 0,
+			shouldBlock:       false,
+		},
+		{
+			name:              "One duplicate application",
+			existingAppsCount: 1,
+			shouldBlock:       true,
+		},
+		{
+			name:              "Multiple duplicate applications",
+			existingAppsCount: 3,
+			shouldBlock:       true,
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-// Validate duplicate URL detection logic
-blocked := tt.existingAppsCount > 0
-if blocked != tt.shouldBlock {
-t.Errorf("Expected shouldBlock=%v, got %v for %d existing applications",
-tt.shouldBlock, blocked, tt.existingAppsCount)
-}
-})
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Validate duplicate URL detection logic
+			blocked := tt.existingAppsCount > 0
+			if blocked != tt.shouldBlock {
+				t.Errorf("Expected shouldBlock=%v, got %v for %d existing applications",
+					tt.shouldBlock, blocked, tt.existingAppsCount)
+			}
+		})
+	}
 }
 
 // TestAuditLog_QueryParameters tests audit log query parameter validation
 func TestAuditLog_QueryParameters(t *testing.T) {
-tests := []struct {
-name        string
-limit       int
-page        int
-expectLimit int
-expectPage  int
-}{
-{
-name:        "Valid parameters",
-limit:       50,
-page:        1,
-expectLimit: 50,
-expectPage:  1,
-},
-{
-name:        "Limit too high",
-limit:       150,
-page:        1,
-expectLimit: 50, // Should default to 50
-expectPage:  1,
-},
-{
-name:        "Limit too low",
-limit:       0,
-page:        1,
-expectLimit: 50, // Should default to 50
-expectPage:  1,
-},
-{
-name:        "Invalid page number",
-limit:       25,
-page:        0,
-expectLimit: 25,
-expectPage:  1, // Should default to 1
-},
-}
+	tests := []struct {
+		name        string
+		limit       int
+		page        int
+		expectLimit int
+		expectPage  int
+	}{
+		{
+			name:        "Valid parameters",
+			limit:       50,
+			page:        1,
+			expectLimit: 50,
+			expectPage:  1,
+		},
+		{
+			name:        "Limit too high",
+			limit:       150,
+			page:        1,
+			expectLimit: 50, // Should default to 50
+			expectPage:  1,
+		},
+		{
+			name:        "Limit too low",
+			limit:       0,
+			page:        1,
+			expectLimit: 50, // Should default to 50
+			expectPage:  1,
+		},
+		{
+			name:        "Invalid page number",
+			limit:       25,
+			page:        0,
+			expectLimit: 25,
+			expectPage:  1, // Should default to 1
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-// Test parameter normalization logic
-actualLimit := tt.limit
-actualPage := tt.page
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test parameter normalization logic
+			actualLimit := tt.limit
+			actualPage := tt.page
 
-if actualLimit < 1 || actualLimit > 100 {
-actualLimit = 50
-}
-if actualPage < 1 {
-actualPage = 1
-}
+			if actualLimit < 1 || actualLimit > 100 {
+				actualLimit = 50
+			}
+			if actualPage < 1 {
+				actualPage = 1
+			}
 
-if actualLimit != tt.expectLimit {
-t.Errorf("Expected limit=%d, got %d", tt.expectLimit, actualLimit)
-}
-if actualPage != tt.expectPage {
-t.Errorf("Expected page=%d, got %d", tt.expectPage, actualPage)
-}
-})
-}
+			if actualLimit != tt.expectLimit {
+				t.Errorf("Expected limit=%d, got %d", tt.expectLimit, actualLimit)
+			}
+			if actualPage != tt.expectPage {
+				t.Errorf("Expected page=%d, got %d", tt.expectPage, actualPage)
+			}
+		})
+	}
 }

@@ -89,7 +89,7 @@ func (r *VerificationRepository) GetApplicationByID(ctx context.Context, id uuid
 func (r *VerificationRepository) GetApplicationByUserID(ctx context.Context, userID uuid.UUID, status string) (*models.CreatorVerificationApplication, error) {
 	var query string
 	var args []interface{}
-	
+
 	if status == "" {
 		// Get latest application regardless of status
 		query = `
@@ -394,7 +394,7 @@ func (r *VerificationRepository) GetRecentRejectedApplicationByUserID(ctx contex
 // GetApplicationCountByUserID returns the total number of applications submitted by a user
 func (r *VerificationRepository) GetApplicationCountByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
 	query := `SELECT COUNT(*) FROM creator_verification_applications WHERE user_id = $1`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query, userID).Scan(&count)
 	return count, err

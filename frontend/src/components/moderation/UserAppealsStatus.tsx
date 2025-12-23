@@ -52,7 +52,7 @@ export function UserAppealsStatus() {
 
   if (error) {
     return (
-      <Alert type="error">
+      <Alert variant="error">
         {error}
       </Alert>
     );
@@ -112,7 +112,7 @@ export function UserAppealsStatus() {
             </div>
 
             {appeal.status === 'pending' && (
-              <Alert type="info">
+              <Alert variant="info">
                 Your appeal is being reviewed by our moderation team. 
                 We'll notify you once a decision has been made.
               </Alert>
@@ -120,7 +120,7 @@ export function UserAppealsStatus() {
 
             {appeal.status === 'approved' && (
               <div>
-                <Alert type="success">
+                <Alert variant="success">
                   Your appeal has been approved. The original decision has been overturned.
                 </Alert>
                 {appeal.resolution && (
@@ -143,7 +143,7 @@ export function UserAppealsStatus() {
 
             {appeal.status === 'rejected' && (
               <div>
-                <Alert type="error">
+                <Alert variant="error">
                   Your appeal has been rejected. The original decision stands.
                 </Alert>
                 {appeal.resolution && (
