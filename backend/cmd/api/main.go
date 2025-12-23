@@ -362,6 +362,7 @@ func main() {
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
 	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
+	adminUserHandler := handlers.NewAdminUserHandler(userRepo, auditLogRepo, authService)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	consentHandler := handlers.NewConsentHandler(consentRepo)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
@@ -1393,9 +1394,14 @@ func main() {
 				adminReports.PUT("/:id", reportHandler.UpdateReport)
 			}
 
-			// Badge management
+			// User management
 			adminUsers := admin.Group("/users")
 			{
+				adminUsers.GET("", adminUserHandler.ListUsers)
+				adminUsers.POST("/:id/ban", adminUserHandler.BanUser)
+				adminUsers.POST("/:id/unban", adminUserHandler.UnbanUser)
+				adminUsers.PATCH("/:id/role", adminUserHandler.UpdateUserRole)
+				adminUsers.PATCH("/:id/karma", adminUserHandler.UpdateUserKarma)
 				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
 				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
 			}
