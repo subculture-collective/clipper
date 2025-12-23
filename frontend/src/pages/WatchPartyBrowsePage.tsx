@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, ScrollToTop, SEO } from '../components';
 import { MiniFooter } from '../components/layout';
@@ -11,6 +11,7 @@ import { Users, Play, TrendingUp, Plus } from 'lucide-react';
 export function WatchPartyBrowsePage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const inviteCodeInputRef = useRef<HTMLInputElement>(null);
   
   const [trendingParties, setTrendingParties] = useState<WatchParty[]>([]);
   const [publicParties, setPublicParties] = useState<WatchParty[]>([]);
@@ -178,6 +179,7 @@ export function WatchPartyBrowsePage() {
             </p>
             <div className="flex gap-2">
               <input
+                ref={inviteCodeInputRef}
                 type="text"
                 placeholder="Enter invite code"
                 className="flex-1 px-4 py-2 bg-surface-primary border border-divider rounded-lg text-content-primary placeholder-content-tertiary focus:outline-none focus:border-primary-500"
@@ -192,8 +194,7 @@ export function WatchPartyBrowsePage() {
               />
               <Button
                 onClick={() => {
-                  const input = document.querySelector('input[type="text"]') as HTMLInputElement;
-                  const code = input?.value.trim();
+                  const code = inviteCodeInputRef.current?.value.trim();
                   if (code) {
                     handleJoinParty(code);
                   }
