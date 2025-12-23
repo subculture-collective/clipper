@@ -164,8 +164,8 @@ func (h *WatchPartyHandler) JoinWatchParty(c *gin.Context) {
 		return
 	}
 
-	// Get invite code from URL
-	inviteCode := c.Param("code")
+	// Get invite code from URL (matches :id in route)
+	inviteCode := c.Param("id")
 	if inviteCode == "" {
 		c.JSON(http.StatusBadRequest, StandardResponse{
 			Success: false,

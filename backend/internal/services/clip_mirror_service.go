@@ -9,20 +9,38 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
-	"github.com/subculture-collective/clipper/internal/repository"
 )
+
+// MirrorRepositoryContract captures repository calls ClipMirrorService relies on.
+type MirrorRepositoryContract interface {
+	Create(ctx context.Context, mirror *models.ClipMirror) error
+	GetByID(ctx context.Context, id uuid.UUID) (*models.ClipMirror, error)
+	GetByClipAndRegion(ctx context.Context, clipID uuid.UUID, region string) (*models.ClipMirror, error)
+	ListByClip(ctx context.Context, clipID uuid.UUID) ([]*models.ClipMirror, error)
+	UpdateStatus(ctx context.Context, id uuid.UUID, status string, failureReason *string) error
+	RecordAccess(ctx context.Context, id uuid.UUID) error
+	DeleteExpired(ctx context.Context) (int64, error)
+	CreateMetric(ctx context.Context, metric *models.MirrorMetrics) error
+	GetMirrorHitRate(ctx context.Context, startTime time.Time) (float64, error)
+	GetPopularClipsForMirroring(ctx context.Context, threshold int, maxMirrors int, limit int) ([]uuid.UUID, error)
+}
+
+// ClipRepositoryContract captures clip repository calls ClipMirrorService uses.
+type ClipRepositoryContract interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*models.Clip, error)
+}
 
 // ClipMirrorService handles clip mirroring across regions
 type ClipMirrorService struct {
-	mirrorRepo *repository.MirrorRepository
-	clipRepo   *repository.ClipRepository
+	mirrorRepo MirrorRepositoryContract
+	clipRepo   ClipRepositoryContract
 	config     *config.MirrorConfig
 }
 
 // NewClipMirrorService creates a new ClipMirrorService
 func NewClipMirrorService(
-	mirrorRepo *repository.MirrorRepository,
-	clipRepo *repository.ClipRepository,
+	mirrorRepo MirrorRepositoryContract,
+	clipRepo ClipRepositoryContract,
 	config *config.MirrorConfig,
 ) *ClipMirrorService {
 	return &ClipMirrorService{

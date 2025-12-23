@@ -1306,7 +1306,7 @@ func main() {
 			watchParties.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), watchPartyHandler.CreateWatchParty)
 
 			// Join watch party by invite code (authenticated, rate limited - 30 per hour)
-			watchParties.POST("/:code/join", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Hour), watchPartyHandler.JoinWatchParty)
+			watchParties.POST("/:id/join", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Hour), watchPartyHandler.JoinWatchParty)
 
 			// Get watch party details (optional auth for visibility check)
 			watchParties.GET("/:id", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetWatchParty)

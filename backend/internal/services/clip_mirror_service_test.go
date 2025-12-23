@@ -96,12 +96,12 @@ func TestClipMirrorService_GetMirrorURL(t *testing.T) {
 	mockMirrorRepo := new(MockMirrorRepository)
 	mockClipRepo := new(MockClipRepository)
 
-	config := &config.MirrorConfig{
+	mirrorConfig := &config.MirrorConfig{
 		Enabled: true,
 		Regions: []string{"us-east-1", "eu-west-1"},
 	}
 
-	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, config)
+	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, mirrorConfig)
 
 	ctx := context.Background()
 	clipID := uuid.New()
@@ -144,11 +144,11 @@ func TestClipMirrorService_CleanupExpiredMirrors(t *testing.T) {
 	mockMirrorRepo := new(MockMirrorRepository)
 	mockClipRepo := new(MockClipRepository)
 
-	config := &config.MirrorConfig{
+	mirrorConfig := &config.MirrorConfig{
 		Enabled: true,
 	}
 
-	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, config)
+	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, mirrorConfig)
 
 	ctx := context.Background()
 
@@ -178,11 +178,11 @@ func TestClipMirrorService_GetMirrorHitRate(t *testing.T) {
 	mockMirrorRepo := new(MockMirrorRepository)
 	mockClipRepo := new(MockClipRepository)
 
-	config := &config.MirrorConfig{
+	mirrorConfig := &config.MirrorConfig{
 		Enabled: true,
 	}
 
-	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, config)
+	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, mirrorConfig)
 
 	ctx := context.Background()
 
@@ -202,13 +202,13 @@ func TestClipMirrorService_IdentifyPopularClips(t *testing.T) {
 	mockMirrorRepo := new(MockMirrorRepository)
 	mockClipRepo := new(MockClipRepository)
 
-	config := &config.MirrorConfig{
+	mirrorConfig := &config.MirrorConfig{
 		Enabled:              true,
 		ReplicationThreshold: 1000,
 		MaxMirrorsPerClip:    3,
 	}
 
-	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, config)
+	service := NewClipMirrorService(mockMirrorRepo, mockClipRepo, mirrorConfig)
 
 	ctx := context.Background()
 

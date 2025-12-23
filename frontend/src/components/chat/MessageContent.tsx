@@ -56,8 +56,17 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
     // Sort matches by position
     matches.sort((a, b) => a.start - b.start);
 
+    // Drop overlapping matches (e.g., inline code inside a multiline block)
+    const nonOverlapping: typeof matches = [];
+    let lastEnd = -1;
+    for (const match of matches) {
+      if (match.start < lastEnd) continue;
+      nonOverlapping.push(match);
+      lastEnd = match.end;
+    }
+
     // Process matches and text in order
-    matches.forEach((item, idx) => {
+    nonOverlapping.forEach((item, idx) => {
       // Add text before this match
       if (currentIndex < item.start) {
         const textSegment = text.slice(currentIndex, item.start);
@@ -129,7 +138,7 @@ export function MessageContent({ content, onMentionClick }: MessageContentProps)
   };
 
   return (
-    <div className="text-sm break-words whitespace-pre-wrap">
+    <div className="text-sm wrap-break-word whitespace-pre-wrap">
       {parseContent(content)}
     </div>
   );
