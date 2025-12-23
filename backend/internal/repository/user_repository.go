@@ -1194,14 +1194,16 @@ func (r *UserRepository) SuspendCommentPrivileges(
 	// Update user record
 	var updateQuery string
 	if suspensionType == models.SuspensionTypePermanent {
+		// For permanent suspensions, set to far future date (year 9999)
+		permanentDate := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
 		updateQuery = `
 			UPDATE users
-			SET comment_suspended_until = NULL,
+			SET comment_suspended_until = $2,
 				comment_warning_count = comment_warning_count + 1,
 				updated_at = NOW()
 			WHERE id = $1
 		`
-		_, err = tx.Exec(ctx, updateQuery, userID)
+		_, err = tx.Exec(ctx, updateQuery, userID, permanentDate)
 	} else if suspensionType == models.SuspensionTypeTemporary {
 		updateQuery = `
 			UPDATE users

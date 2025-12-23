@@ -35,6 +35,7 @@ CREATE TABLE comment_suspension_history (
     lifted_by UUID REFERENCES users(id) ON DELETE SET NULL,
     lift_reason TEXT,
     metadata JSONB, -- Additional context (e.g., related moderation action)
+    -- Note: suspension_type values must match models.SuspensionType* constants in models.go
     CONSTRAINT comment_suspension_valid_type CHECK (suspension_type IN ('warning', 'temporary', 'permanent'))
 );
 

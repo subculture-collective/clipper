@@ -126,7 +126,10 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
                     <Input
                       type="number"
                       value={durationHours}
-                      onChange={(e) => setDurationHours(parseInt(e.target.value, 10))}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value, 10);
+                        setDurationHours(isNaN(value) ? 24 : Math.max(1, Math.min(8760, value)));
+                      }}
                       min={1}
                       max={8760}
                       className="w-full"
@@ -548,7 +551,9 @@ export function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.users.map((user) => (
+                  {(() => {
+                    const now = new Date();
+                    return data.users.map((user) => (
                     <tr key={user.id} className="border-b border-border hover:bg-accent">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
@@ -602,7 +607,7 @@ export function AdminUsersPage() {
                             'Active'
                           )}
                         </span>
-                        {user.comment_suspended_until && new Date(user.comment_suspended_until) > new Date() && (
+                        {user.comment_suspended_until && new Date(user.comment_suspended_until) > now && (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-orange-500/20 text-orange-400 ml-1">
                             <MessageSquareOff className="w-3 h-3" />
                             Comment Suspended
@@ -651,7 +656,7 @@ export function AdminUsersPage() {
                           >
                             <Ban className="w-4 h-4" />
                           </Button>
-                          {user.comment_suspended_until && new Date(user.comment_suspended_until) > new Date() ? (
+                          {user.comment_suspended_until && new Date(user.comment_suspended_until) > now ? (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -683,7 +688,8 @@ export function AdminUsersPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ));
+                  })()}
                 </tbody>
               </table>
             </div>
