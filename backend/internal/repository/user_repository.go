@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -1033,4 +1034,135 @@ func (r *UserRepository) GetBlockedUsers(ctx context.Context, userID uuid.UUID, 
 	}
 
 	return blockedUsers, total, nil
+}
+
+// AdminSearchUsers searches users with filtering for admin dashboard
+func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery string, role string, status string, limit, offset int) ([]*models.User, int, error) {
+	// Ensure limit is within a safe range to avoid excessive result sets
+	if limit < 1 {
+		limit = 10
+	} else if limit > 100 {
+		limit = 100
+	}
+
+	// Build dynamic query based on filters
+	baseQuery := `
+		SELECT
+			id, twitch_id, username, display_name, email, avatar_url, bio,
+			karma_points, role, is_banned, created_at, updated_at, last_login_at
+		FROM users
+		WHERE 1=1
+	`
+	countQuery := `SELECT COUNT(*) FROM users WHERE 1=1`
+	
+	args := []interface{}{}
+	argNum := 1
+	whereClause := ""
+
+	// Add search filter
+	if searchQuery != "" {
+		whereClause += ` AND (LOWER(username) LIKE LOWER($` + strconv.Itoa(argNum) + `) 
+			OR LOWER(display_name) LIKE LOWER($` + strconv.Itoa(argNum) + `) 
+			OR LOWER(email) LIKE LOWER($` + strconv.Itoa(argNum) + `))`
+		args = append(args, "%"+searchQuery+"%")
+		argNum++
+	}
+
+	// Add role filter
+	if role != "" && role != "all" {
+		whereClause += ` AND role = $` + strconv.Itoa(argNum)
+		args = append(args, role)
+		argNum++
+	}
+
+	// Add status filter
+	if status != "" && status != "all" {
+		if status == "banned" {
+			whereClause += ` AND is_banned = true`
+		} else if status == "active" {
+			whereClause += ` AND is_banned = false`
+		}
+	}
+
+	// Get total count
+	var total int
+	err := r.db.QueryRow(ctx, countQuery+whereClause, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Add pagination
+	paginationArgs := append(args, limit, offset)
+	finalQuery := baseQuery + whereClause + ` ORDER BY created_at DESC LIMIT $` + strconv.Itoa(argNum) + ` OFFSET $` + strconv.Itoa(argNum+1)
+
+	rows, err := r.db.Query(ctx, finalQuery, paginationArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	users := []*models.User{}
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
+			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
+			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		users = append(users, &user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
+// UpdateUserRole updates a user's role (user, moderator, admin)
+func (r *UserRepository) UpdateUserRole(ctx context.Context, userID uuid.UUID, role string) error {
+	// Validate role before updating
+	if role != "user" && role != "moderator" && role != "admin" {
+		return errors.New("invalid role: must be user, moderator, or admin")
+	}
+
+	query := `
+		UPDATE users
+		SET role = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, role)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// SetUserKarma sets a user's karma points to a specific value (admin override)
+func (r *UserRepository) SetUserKarma(ctx context.Context, userID uuid.UUID, karma int) error {
+	query := `
+		UPDATE users
+		SET karma_points = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, karma)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
 }
