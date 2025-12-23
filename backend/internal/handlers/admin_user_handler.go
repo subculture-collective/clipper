@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 )
@@ -87,16 +88,9 @@ func (h *AdminUserHandler) BanUser(c *gin.Context) {
 
 	// Get reason from request body
 	var req struct {
-		Reason string `json:"reason"`
+		Reason string `json:"reason" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
-		return
-	}
-
-	if req.Reason == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Ban reason is required",
 		})
@@ -128,14 +122,15 @@ func (h *AdminUserHandler) BanUser(c *gin.Context) {
 	}
 
 	// Log audit event
-	_ = h.auditLogRepo.LogAction(
-		c.Request.Context(),
-		adminUserID.(uuid.UUID),
-		"ban_user",
-		"user",
-		userID.String(),
-		&req.Reason,
-	)
+	auditLog := &models.ModerationAuditLog{
+		ID:          uuid.New(),
+		Action:      "ban_user",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: adminUserID.(uuid.UUID),
+		Reason:      &req.Reason,
+	}
+	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User banned successfully",
@@ -188,14 +183,15 @@ func (h *AdminUserHandler) UnbanUser(c *gin.Context) {
 	if req.Reason != "" {
 		reason = req.Reason
 	}
-	_ = h.auditLogRepo.LogAction(
-		c.Request.Context(),
-		adminUserID.(uuid.UUID),
-		"unban_user",
-		"user",
-		userID.String(),
-		&reason,
-	)
+	auditLog := &models.ModerationAuditLog{
+		ID:          uuid.New(),
+		Action:      "unban_user",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: adminUserID.(uuid.UUID),
+		Reason:      &reason,
+	}
+	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User unbanned successfully",
@@ -262,14 +258,15 @@ func (h *AdminUserHandler) UpdateUserRole(c *gin.Context) {
 	if reason == "" {
 		reason = "Role changed to " + req.Role
 	}
-	_ = h.auditLogRepo.LogAction(
-		c.Request.Context(),
-		adminUserID.(uuid.UUID),
-		"update_user_role",
-		"user",
-		userID.String(),
-		&reason,
-	)
+	auditLog := &models.ModerationAuditLog{
+		ID:          uuid.New(),
+		Action:      "update_user_role",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: adminUserID.(uuid.UUID),
+		Reason:      &reason,
+	}
+	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User role updated successfully",
@@ -324,14 +321,15 @@ func (h *AdminUserHandler) UpdateUserKarma(c *gin.Context) {
 
 	// Log audit event
 	reason := "Karma manually adjusted by admin"
-	_ = h.auditLogRepo.LogAction(
-		c.Request.Context(),
-		adminUserID.(uuid.UUID),
-		"update_user_karma",
-		"user",
-		userID.String(),
-		&reason,
-	)
+	auditLog := &models.ModerationAuditLog{
+		ID:          uuid.New(),
+		Action:      "update_user_karma",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: adminUserID.(uuid.UUID),
+		Reason:      &reason,
+	}
+	_ = h.auditLogRepo.Create(c.Request.Context(), auditLog)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User karma updated successfully",

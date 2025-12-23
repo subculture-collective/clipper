@@ -71,7 +71,7 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
                 <Input
                   type="number"
                   value={karmaValue}
-                  onChange={(e) => setKarmaValue(parseInt(e.target.value))}
+                  onChange={(e) => setKarmaValue(parseInt(e.target.value) || 0)}
                   className="w-full"
                   required
                 />

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -1053,16 +1054,16 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 
 	// Add search filter
 	if searchQuery != "" {
-		whereClause += ` AND (LOWER(username) LIKE LOWER($` + string(rune(argNum+48)) + `) 
-			OR LOWER(display_name) LIKE LOWER($` + string(rune(argNum+48)) + `) 
-			OR LOWER(email) LIKE LOWER($` + string(rune(argNum+48)) + `))`
+		whereClause += ` AND (LOWER(username) LIKE LOWER($` + strconv.Itoa(argNum) + `) 
+			OR LOWER(display_name) LIKE LOWER($` + strconv.Itoa(argNum) + `) 
+			OR LOWER(email) LIKE LOWER($` + strconv.Itoa(argNum) + `))`
 		args = append(args, "%"+searchQuery+"%")
 		argNum++
 	}
 
 	// Add role filter
 	if role != "" && role != "all" {
-		whereClause += ` AND role = $` + string(rune(argNum+48))
+		whereClause += ` AND role = $` + strconv.Itoa(argNum)
 		args = append(args, role)
 		argNum++
 	}
@@ -1085,7 +1086,7 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 
 	// Add pagination
 	paginationArgs := append(args, limit, offset)
-	finalQuery := baseQuery + whereClause + ` ORDER BY created_at DESC LIMIT $` + string(rune(argNum+48)) + ` OFFSET $` + string(rune(argNum+49))
+	finalQuery := baseQuery + whereClause + ` ORDER BY created_at DESC LIMIT $` + strconv.Itoa(argNum) + ` OFFSET $` + strconv.Itoa(argNum+1)
 
 	rows, err := r.db.Query(ctx, finalQuery, paginationArgs...)
 	if err != nil {
