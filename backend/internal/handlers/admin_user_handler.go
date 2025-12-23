@@ -348,3 +348,255 @@ func (h *AdminUserHandler) UpdateUserKarma(c *gin.Context) {
 		"karma_points": req.KarmaPoints,
 	})
 }
+
+// SuspendCommentPrivileges handles POST /api/v1/admin/users/:id/suspend-comments
+func (h *AdminUserHandler) SuspendCommentPrivileges(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	var req models.CommentSuspensionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request data",
+		})
+		return
+	}
+
+	// Validate duration is provided for temporary suspensions
+	if req.SuspensionType == models.SuspensionTypeTemporary && req.DurationHours == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Duration is required for temporary suspensions",
+		})
+		return
+	}
+
+	// Get admin user ID
+	adminUserID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	// Apply suspension via repository
+	err = h.userRepo.SuspendCommentPrivileges(
+		c.Request.Context(),
+		userID,
+		adminUserID.(uuid.UUID),
+		req.SuspensionType,
+		req.Reason,
+		req.DurationHours,
+	)
+
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to suspend comment privileges",
+		})
+		return
+	}
+
+	// Log audit event
+	auditLog := &models.ModerationAuditLog{
+		ID:          uuid.New(),
+		Action:      "suspend_comment_privileges",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: adminUserID.(uuid.UUID),
+		Reason:      &req.Reason,
+	}
+	if err := h.auditLogRepo.Create(c.Request.Context(), auditLog); err != nil {
+		// Record audit log failure without affecting the main operation
+		_ = c.Error(err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Comment privileges suspended successfully",
+		"suspension_type": req.SuspensionType,
+	})
+}
+
+// LiftCommentSuspension handles POST /api/v1/admin/users/:id/lift-comment-suspension
+func (h *AdminUserHandler) LiftCommentSuspension(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	var req models.LiftSuspensionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Reason is required",
+		})
+		return
+	}
+
+	// Get admin user ID
+	adminUserID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	// Lift suspension via repository
+	err = h.userRepo.LiftCommentSuspension(
+		c.Request.Context(),
+		userID,
+		adminUserID.(uuid.UUID),
+		req.Reason,
+	)
+
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to lift comment suspension",
+		})
+		return
+	}
+
+	// Log audit event
+	auditLog := &models.ModerationAuditLog{
+		ID:          uuid.New(),
+		Action:      "lift_comment_suspension",
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: adminUserID.(uuid.UUID),
+		Reason:      &req.Reason,
+	}
+	if err := h.auditLogRepo.Create(c.Request.Context(), auditLog); err != nil {
+		// Record audit log failure without affecting the main operation
+		_ = c.Error(err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Comment suspension lifted successfully",
+	})
+}
+
+// GetCommentSuspensionHistory handles GET /api/v1/admin/users/:id/comment-suspension-history
+func (h *AdminUserHandler) GetCommentSuspensionHistory(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 50
+	}
+
+	history, err := h.userRepo.GetCommentSuspensionHistory(c.Request.Context(), userID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve suspension history",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"history": history,
+		"count":   len(history),
+	})
+}
+
+// ToggleCommentReview handles POST /api/v1/admin/users/:id/toggle-comment-review
+func (h *AdminUserHandler) ToggleCommentReview(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	var req struct {
+		RequireReview bool   `json:"require_review"`
+		Reason        string `json:"reason" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request data",
+		})
+		return
+	}
+
+	// Get admin user ID
+	adminUserID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	// Toggle review requirement via repository
+	err = h.userRepo.SetCommentReviewRequirement(
+		c.Request.Context(),
+		userID,
+		req.RequireReview,
+	)
+
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update comment review requirement",
+		})
+		return
+	}
+
+	// Log audit event
+	action := "enable_comment_review"
+	if !req.RequireReview {
+		action = "disable_comment_review"
+	}
+	auditLog := &models.ModerationAuditLog{
+		ID:          uuid.New(),
+		Action:      action,
+		EntityType:  "user",
+		EntityID:    userID,
+		ModeratorID: adminUserID.(uuid.UUID),
+		Reason:      &req.Reason,
+	}
+	if err := h.auditLogRepo.Create(c.Request.Context(), auditLog); err != nil {
+		// Record audit log failure without affecting the main operation
+		_ = c.Error(err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Comment review requirement updated successfully",
+		"require_review": req.RequireReview,
+	})
+}

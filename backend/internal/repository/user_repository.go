@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -1165,4 +1166,265 @@ func (r *UserRepository) SetUserKarma(ctx context.Context, userID uuid.UUID, kar
 	}
 
 	return nil
+}
+
+// SuspendCommentPrivileges suspends a user's comment privileges
+func (r *UserRepository) SuspendCommentPrivileges(
+	ctx context.Context,
+	userID uuid.UUID,
+	suspendedBy uuid.UUID,
+	suspensionType string,
+	reason string,
+	durationHours *int,
+) error {
+	// Validate suspension type before performing any database operations
+	if suspensionType != models.SuspensionTypeWarning && 
+	   suspensionType != models.SuspensionTypeTemporary && 
+	   suspensionType != models.SuspensionTypePermanent {
+		return fmt.Errorf("invalid suspension type: must be warning, temporary, or permanent")
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Calculate expiration time for temporary suspensions
+	var expiresAt *time.Time
+	var suspendedUntil *time.Time
+	if suspensionType == models.SuspensionTypeTemporary && durationHours != nil {
+		expiry := time.Now().Add(time.Duration(*durationHours) * time.Hour)
+		expiresAt = &expiry
+		suspendedUntil = &expiry
+	}
+
+	// Update user record
+	var updateQuery string
+	if suspensionType == models.SuspensionTypePermanent {
+		// For permanent suspensions, set to far future date (year 9999)
+		permanentDate := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+		updateQuery = `
+			UPDATE users
+			SET comment_suspended_until = $2,
+				updated_at = NOW()
+			WHERE id = $1
+		`
+		_, err = tx.Exec(ctx, updateQuery, userID, permanentDate)
+	} else if suspensionType == models.SuspensionTypeTemporary {
+		updateQuery = `
+			UPDATE users
+			SET comment_suspended_until = $2,
+				updated_at = NOW()
+			WHERE id = $1
+		`
+		_, err = tx.Exec(ctx, updateQuery, userID, suspendedUntil)
+	} else {
+		// Warning only - increment warning count
+		updateQuery = `
+			UPDATE users
+			SET comment_warning_count = comment_warning_count + 1,
+				updated_at = NOW()
+			WHERE id = $1
+		`
+		_, err = tx.Exec(ctx, updateQuery, userID)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Insert into suspension history
+	insertQuery := `
+		INSERT INTO comment_suspension_history (
+			id, user_id, suspended_by, suspension_type, reason,
+			duration_hours, suspended_at, expires_at, is_active
+		) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, true)
+	`
+
+	_, err = tx.Exec(ctx, insertQuery,
+		uuid.New(), userID, suspendedBy, suspensionType, reason,
+		durationHours, expiresAt,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// LiftCommentSuspension lifts a user's comment suspension
+func (r *UserRepository) LiftCommentSuspension(
+	ctx context.Context,
+	userID uuid.UUID,
+	liftedBy uuid.UUID,
+	reason string,
+) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Clear suspension from user record
+	updateQuery := `
+		UPDATE users
+		SET comment_suspended_until = NULL,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+	result, err := tx.Exec(ctx, updateQuery, userID)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	// Mark active suspensions as lifted in history
+	historyQuery := `
+		UPDATE comment_suspension_history
+		SET is_active = false,
+			lifted_at = NOW(),
+			lifted_by = $2,
+			lift_reason = $3
+		WHERE user_id = $1 AND is_active = true
+	`
+	_, err = tx.Exec(ctx, historyQuery, userID, liftedBy, reason)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// GetCommentSuspensionHistory retrieves a user's comment suspension history
+func (r *UserRepository) GetCommentSuspensionHistory(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int,
+) ([]*models.CommentSuspensionHistory, error) {
+	query := `
+		SELECT 
+			id, user_id, suspended_by, suspension_type, reason,
+			duration_hours, suspended_at, expires_at, is_active,
+			lifted_at, lifted_by, lift_reason, metadata
+		FROM comment_suspension_history
+		WHERE user_id = $1
+		ORDER BY suspended_at DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []*models.CommentSuspensionHistory
+	for rows.Next() {
+		h := &models.CommentSuspensionHistory{}
+		err := rows.Scan(
+			&h.ID, &h.UserID, &h.SuspendedBy, &h.SuspensionType, &h.Reason,
+			&h.DurationHours, &h.SuspendedAt, &h.ExpiresAt, &h.IsActive,
+			&h.LiftedAt, &h.LiftedBy, &h.LiftReason, &h.Metadata,
+		)
+		if err != nil {
+			return nil, err
+		}
+		history = append(history, h)
+	}
+
+	return history, rows.Err()
+}
+
+// SetCommentReviewRequirement sets whether a user's comments require review
+func (r *UserRepository) SetCommentReviewRequirement(
+	ctx context.Context,
+	userID uuid.UUID,
+	requireReview bool,
+) error {
+	query := `
+		UPDATE users
+		SET comments_require_review = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, requireReview)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// CanUserComment checks if a user can post comments (not suspended)
+func (r *UserRepository) CanUserComment(ctx context.Context, userID uuid.UUID) (bool, error) {
+	query := `
+		SELECT 
+			CASE 
+				WHEN is_banned THEN false
+				WHEN comment_suspended_until IS NOT NULL AND comment_suspended_until > NOW() THEN false
+				ELSE true
+			END as can_comment
+		FROM users
+		WHERE id = $1
+	`
+
+	var canComment bool
+	err := r.db.QueryRow(ctx, query, userID).Scan(&canComment)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return false, ErrUserNotFound
+		}
+		return false, err
+	}
+
+	return canComment, nil
+}
+
+// GetCommentSuspensionInfo returns suspension details for better error messaging
+func (r *UserRepository) GetCommentSuspensionInfo(ctx context.Context, userID uuid.UUID) (*time.Time, error) {
+	query := `
+		SELECT comment_suspended_until
+		FROM users
+		WHERE id = $1
+	`
+
+	var suspendedUntil *time.Time
+	err := r.db.QueryRow(ctx, query, userID).Scan(&suspendedUntil)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return suspendedUntil, nil
+}
+
+// DoesUserRequireCommentReview checks if user's comments need review
+func (r *UserRepository) DoesUserRequireCommentReview(ctx context.Context, userID uuid.UUID) (bool, error) {
+	query := `
+		SELECT comments_require_review
+		FROM users
+		WHERE id = $1
+	`
+
+	var requireReview bool
+	err := r.db.QueryRow(ctx, query, userID).Scan(&requireReview)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return false, ErrUserNotFound
+		}
+		return false, err
+	}
+
+	return requireReview, nil
 }
