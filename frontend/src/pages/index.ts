@@ -37,6 +37,12 @@ export { default as PricingPage } from './PricingPage';
 export { default as SubscriptionSuccessPage } from './SubscriptionSuccessPage';
 export { default as SubscriptionCancelPage } from './SubscriptionCancelPage';
 
+// Watch Party pages
+export { WatchPartyPage } from './WatchPartyPage';
+export { WatchPartyBrowsePage } from './WatchPartyBrowsePage';
+export { WatchPartyCreatePage } from './WatchPartyCreatePage';
+export { WatchPartySettingsPage } from './WatchPartySettingsPage';
+
 // Admin pages
 export { AdminDashboard } from './admin/AdminDashboard';
 export { AdminClipsPage } from './admin/AdminClipsPage';

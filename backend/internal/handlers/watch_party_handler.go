@@ -1418,3 +1418,222 @@ func (h *WatchPartyHandler) GetUserWatchPartyStats(c *gin.Context) {
 		Data:    stats,
 	})
 }
+
+// GetPublicWatchParties handles GET /api/v1/watch-parties/public
+func (h *WatchPartyHandler) GetPublicWatchParties(c *gin.Context) {
+	// Parse pagination parameters
+	limit := 20
+	offset := 0
+
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+			limit = parsedLimit
+		}
+	}
+
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+			offset = parsedOffset
+		}
+	}
+
+	// Get public parties
+	parties, totalCount, err := h.watchPartyRepo.GetPublicParties(c.Request.Context(), limit, offset)
+	if err != nil {
+		log.Printf("Error getting public parties: %v", err)
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get public parties",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"parties":     parties,
+			"total_count": totalCount,
+			"limit":       limit,
+			"offset":      offset,
+		},
+	})
+}
+
+// GetTrendingWatchParties handles GET /api/v1/watch-parties/trending
+func (h *WatchPartyHandler) GetTrendingWatchParties(c *gin.Context) {
+	// Parse limit parameter (default 10, max 50)
+	limit := 10
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 50 {
+			limit = parsedLimit
+		}
+	}
+
+	// Get trending parties
+	parties, err := h.watchPartyRepo.GetTrendingParties(c.Request.Context(), limit)
+	if err != nil {
+		log.Printf("Error getting trending parties: %v", err)
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get trending parties",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"parties": parties,
+		},
+	})
+}
+
+// KickParticipant handles POST /api/v1/watch-parties/:id/kick
+func (h *WatchPartyHandler) KickParticipant(c *gin.Context) {
+	// Get user ID from context (must be authenticated)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Get party ID from URL
+	partyIDStr := c.Param("id")
+	partyID, err := uuid.Parse(partyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid party ID",
+			},
+		})
+		return
+	}
+
+	// Parse request body for participant user ID
+	var req struct {
+		UserID string `json:"user_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "User ID is required",
+			},
+		})
+		return
+	}
+
+	participantID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Invalid participant user ID",
+			},
+		})
+		return
+	}
+
+	// Get party to verify host
+	party, err := h.watchPartyRepo.GetByID(c.Request.Context(), partyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get watch party",
+			},
+		})
+		return
+	}
+
+	if party == nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "NOT_FOUND",
+				Message: "Watch party not found",
+			},
+		})
+		return
+	}
+
+	// Check if user is host
+	if party.HostUserID != userID {
+		c.JSON(http.StatusForbidden, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "FORBIDDEN",
+				Message: "Only the host can kick participants",
+			},
+		})
+		return
+	}
+
+	// Cannot kick yourself
+	if participantID == userID {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "Cannot kick yourself",
+			},
+		})
+		return
+	}
+
+	// Remove participant
+	err = h.watchPartyRepo.RemoveParticipant(c.Request.Context(), partyID, participantID)
+	if err != nil {
+		log.Printf("Error kicking participant: %v", err)
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to kick participant",
+			},
+		})
+		return
+	}
+
+	// Notify via WebSocket
+	hub := h.hubManager.GetHub(partyID)
+	if hub != nil {
+		hub.BroadcastParticipantLeft(participantID)
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: gin.H{
+			"message": "Participant kicked successfully",
+		},
+	})
+}

@@ -250,3 +250,54 @@ export async function getUserWatchPartyStats(userId: string): Promise<import('@/
 
   return response.data.data;
 }
+
+/**
+ * Get public watch parties for discovery
+ */
+export async function getPublicWatchParties(limit = 20, offset = 0): Promise<{
+  parties: WatchParty[];
+  total_count: number;
+  limit: number;
+  offset: number;
+}> {
+  const response = await apiClient.get<StandardResponse<{
+    parties: WatchParty[];
+    total_count: number;
+    limit: number;
+    offset: number;
+  }>>(`/watch-parties/public?limit=${limit}&offset=${offset}`);
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || 'Failed to get public parties');
+  }
+
+  return response.data.data;
+}
+
+/**
+ * Get trending watch parties
+ */
+export async function getTrendingWatchParties(limit = 10): Promise<WatchParty[]> {
+  const response = await apiClient.get<StandardResponse<{
+    parties: WatchParty[];
+  }>>(`/watch-parties/trending?limit=${limit}`);
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || 'Failed to get trending parties');
+  }
+
+  return response.data.data.parties;
+}
+
+/**
+ * Kick a participant from a watch party (host only)
+ */
+export async function kickParticipant(partyId: string, userId: string): Promise<void> {
+  const response = await apiClient.post<StandardResponse<{
+    message: string;
+  }>>(`/watch-parties/${partyId}/kick`, { user_id: userId });
+
+  if (!response.data.success) {
+    throw new Error(response.data.error?.message || 'Failed to kick participant');
+  }
+}

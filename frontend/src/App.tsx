@@ -84,6 +84,10 @@ const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => (
 const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
 const ForumSearchPage = lazy(() => import('./pages/forum/ForumSearchPage').then(m => ({ default: m.ForumSearchPage })));
 const WebhookSubscriptionsPage = lazy(() => import('./pages/WebhookSubscriptionsPage').then(m => ({ default: m.WebhookSubscriptionsPage })));
+const WatchPartyPage = lazy(() => import('./pages/WatchPartyPage').then(m => ({ default: m.WatchPartyPage })));
+const WatchPartyBrowsePage = lazy(() => import('./pages/WatchPartyBrowsePage').then(m => ({ default: m.WatchPartyBrowsePage })));
+const WatchPartyCreatePage = lazy(() => import('./pages/WatchPartyCreatePage').then(m => ({ default: m.WatchPartyCreatePage })));
+const WatchPartySettingsPage = lazy(() => import('./pages/WatchPartySettingsPage').then(m => ({ default: m.WatchPartySettingsPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -298,6 +302,36 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <CreatorDashboardPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Watch Party Routes */}
+                    <Route
+                      path="/watch-parties/browse"
+                      element={<WatchPartyBrowsePage />}
+                    />
+                    <Route
+                      path="/watch-parties/create"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartyCreatePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-parties/:id"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartyPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-parties/:id/settings"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartySettingsPage />
                         </ProtectedRoute>
                       }
                     />
