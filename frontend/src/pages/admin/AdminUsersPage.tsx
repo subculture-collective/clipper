@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Card, CardHeader, CardBody, Button, Input } from '../../components';
-import { Search, Shield, Ban, TrendingUp } from 'lucide-react';
+import { Search, Shield, Ban, TrendingUp, MessageSquare, MessageSquareOff, Eye } from 'lucide-react';
 import axios from 'axios';
 
 interface User {
@@ -13,6 +13,9 @@ interface User {
   role: string;
   karma_points: number;
   is_banned: boolean;
+  comment_suspended_until?: string;
+  comments_require_review?: boolean;
+  comment_warning_count?: number;
   created_at: string;
   last_login_at: string;
 }
@@ -26,30 +29,40 @@ interface UsersResponse {
 
 interface UserActionModalProps {
   user: User;
-  actionType: 'ban' | 'unban' | 'promote' | 'demote' | 'karma';
+  actionType: 'ban' | 'unban' | 'promote' | 'demote' | 'karma' | 'suspend_comments' | 'lift_suspension' | 'toggle_review';
   onClose: () => void;
-  onConfirm: (reason?: string, value?: number) => void;
+  onConfirm: (reason?: string, value?: number, suspensionType?: string, durationHours?: number) => void;
 }
 
 function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionModalProps) {
   const [reason, setReason] = useState('');
   const [karmaValue, setKarmaValue] = useState(user.karma_points);
+  const [suspensionType, setSuspensionType] = useState<'warning' | 'temporary' | 'permanent'>('warning');
+  const [durationHours, setDurationHours] = useState(24);
+  const [requireReview, setRequireReview] = useState(user.comments_require_review || false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (actionType === 'karma') {
       onConfirm(undefined, karmaValue);
+    } else if (actionType === 'suspend_comments') {
+      onConfirm(reason, undefined, suspensionType, suspensionType === 'temporary' ? durationHours : undefined);
+    } else if (actionType === 'toggle_review') {
+      onConfirm(reason, requireReview ? 1 : 0);
     } else {
       onConfirm(reason);
     }
   };
 
-  const titles = {
+  const titles: Record<string, string> = {
     ban: 'Ban User',
     unban: 'Unban User',
     promote: 'Promote User',
     demote: 'Demote User',
-    karma: 'Adjust Karma Points'
+    karma: 'Adjust Karma Points',
+    suspend_comments: 'Suspend Comment Privileges',
+    lift_suspension: 'Lift Comment Suspension',
+    toggle_review: 'Toggle Comment Review'
   };
 
   return (
@@ -89,18 +102,98 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
                   Current: {user.karma_points} points
                 </p>
               </div>
+            ) : actionType === 'suspend_comments' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Suspension Type
+                  </label>
+                  <select
+                    value={suspensionType}
+                    onChange={(e) => setSuspensionType(e.target.value as 'warning' | 'temporary' | 'permanent')}
+                    className="w-full p-2 border border-border rounded-md bg-background"
+                  >
+                    <option value="warning">Warning (no suspension)</option>
+                    <option value="temporary">Temporary Suspension</option>
+                    <option value="permanent">Permanent Suspension</option>
+                  </select>
+                </div>
+                {suspensionType === 'temporary' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Duration (hours)
+                    </label>
+                    <Input
+                      type="number"
+                      value={durationHours}
+                      onChange={(e) => setDurationHours(parseInt(e.target.value, 10))}
+                      min={1}
+                      max={8760}
+                      className="w-full"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Common: 24h (1 day), 168h (1 week), 720h (30 days)
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Reason (Required)
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full p-2 border border-border rounded-md min-h-[100px] bg-background"
+                    placeholder="Enter reason for suspension..."
+                    minLength={10}
+                    required
+                  />
+                </div>
+              </>
+            ) : actionType === 'toggle_review' ? (
+              <>
+                <div>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={requireReview}
+                      onChange={(e) => setRequireReview(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <span className="text-sm font-medium">
+                      Require all comments to be reviewed before publishing
+                    </span>
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    When enabled, all comments from this user will be queued for moderation before being visible.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Reason (Required)
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full p-2 border border-border rounded-md min-h-[100px] bg-background"
+                    placeholder="Enter reason for this change..."
+                    required
+                  />
+                </div>
+              </>
             ) : (
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {actionType === 'ban' ? 'Ban Reason' : 'Action Reason'}
-                  {actionType === 'ban' && ' (Required)'}
+                  {actionType === 'ban' || actionType === 'suspend_comments' ? 'Reason (Required)' : 'Action Reason'}
                 </label>
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   className="w-full p-2 border border-border rounded-md min-h-[100px] bg-background"
                   placeholder={`Enter reason for ${actionType}...`}
-                  required={actionType === 'ban'}
+                  required={actionType === 'ban' || actionType === 'lift_suspension'}
+                  minLength={actionType === 'lift_suspension' ? 10 : undefined}
                 />
               </div>
             )}
@@ -108,7 +201,7 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
               <Button type="button" onClick={onClose} variant="outline">
                 Cancel
               </Button>
-              <Button type="submit" variant={actionType === 'ban' ? 'danger' : 'primary'}>
+              <Button type="submit" variant={actionType === 'ban' || actionType === 'suspend_comments' ? 'danger' : 'primary'}>
                 Confirm
               </Button>
             </div>
@@ -125,7 +218,7 @@ export function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [actionType, setActionType] = useState<'ban' | 'unban' | 'promote' | 'demote' | 'karma' | null>(null);
+  const [actionType, setActionType] = useState<'ban' | 'unban' | 'promote' | 'demote' | 'karma' | 'suspend_comments' | 'lift_suspension' | 'toggle_review' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const queryClient = useQueryClient();
@@ -212,12 +305,77 @@ export function AdminUsersPage() {
     },
   });
 
-  const handleAction = (user: User, action: 'ban' | 'unban' | 'promote' | 'demote' | 'karma') => {
+  // Suspend comment privileges mutation
+  const suspendCommentsMutation = useMutation({
+    mutationFn: async ({ userId, suspensionType, reason, durationHours }: {
+      userId: string;
+      suspensionType: string;
+      reason: string;
+      durationHours?: number;
+    }) => {
+      await axios.post(`/api/v1/admin/users/${userId}/suspend-comments`, {
+        user_id: userId,
+        suspension_type: suspensionType,
+        reason,
+        duration_hours: durationHours,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setSelectedUser(null);
+      setActionType(null);
+      setErrorMessage(null);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error.response?.data?.error || 'Failed to suspend comment privileges');
+    },
+  });
+
+  // Lift comment suspension mutation
+  const liftSuspensionMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      await axios.post(`/api/v1/admin/users/${userId}/lift-comment-suspension`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setSelectedUser(null);
+      setActionType(null);
+      setErrorMessage(null);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error.response?.data?.error || 'Failed to lift comment suspension');
+    },
+  });
+
+  // Toggle comment review requirement mutation
+  const toggleReviewMutation = useMutation({
+    mutationFn: async ({ userId, requireReview, reason }: {
+      userId: string;
+      requireReview: boolean;
+      reason: string;
+    }) => {
+      await axios.post(`/api/v1/admin/users/${userId}/toggle-comment-review`, {
+        require_review: requireReview,
+        reason,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setSelectedUser(null);
+      setActionType(null);
+      setErrorMessage(null);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error.response?.data?.error || 'Failed to toggle comment review');
+    },
+  });
+
+  const handleAction = (user: User, action: 'ban' | 'unban' | 'promote' | 'demote' | 'karma' | 'suspend_comments' | 'lift_suspension' | 'toggle_review') => {
     setSelectedUser(user);
     setActionType(action);
   };
 
-  const handleConfirmAction = (reason?: string, value?: number) => {
+  const handleConfirmAction = (reason?: string, value?: number, suspensionType?: string, durationHours?: number) => {
     if (!selectedUser) return;
 
     if (actionType === 'ban') {
@@ -232,6 +390,21 @@ export function AdminUsersPage() {
       updateRoleMutation.mutate({ userId: selectedUser.id, role: newRole, reason });
     } else if (actionType === 'karma' && value !== undefined) {
       updateKarmaMutation.mutate({ userId: selectedUser.id, karma: value });
+    } else if (actionType === 'suspend_comments' && suspensionType) {
+      suspendCommentsMutation.mutate({
+        userId: selectedUser.id,
+        suspensionType,
+        reason: reason || '',
+        durationHours,
+      });
+    } else if (actionType === 'lift_suspension') {
+      liftSuspensionMutation.mutate({ userId: selectedUser.id, reason: reason || '' });
+    } else if (actionType === 'toggle_review') {
+      toggleReviewMutation.mutate({
+        userId: selectedUser.id,
+        requireReview: value === 1,
+        reason: reason || '',
+      });
     }
   };
 
@@ -429,12 +602,29 @@ export function AdminUsersPage() {
                             'Active'
                           )}
                         </span>
+                        {user.comment_suspended_until && new Date(user.comment_suspended_until) > new Date() && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-orange-500/20 text-orange-400 ml-1">
+                            <MessageSquareOff className="w-3 h-3" />
+                            Comment Suspended
+                          </span>
+                        )}
+                        {user.comments_require_review && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 ml-1">
+                            <Eye className="w-3 h-3" />
+                            Review Required
+                          </span>
+                        )}
+                        {user.comment_warning_count && user.comment_warning_count > 0 && (
+                          <span className="text-xs text-yellow-400 ml-1">
+                            ({user.comment_warning_count} warning{user.comment_warning_count > 1 ? 's' : ''})
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 text-sm">
                         {new Date(user.created_at).toLocaleDateString()}
                       </td>
                       <td className="p-3">
-                        <div className="flex gap-1 justify-end">
+                        <div className="flex gap-1 justify-end flex-wrap">
                           <Button
                             size="sm"
                             variant="ghost"
@@ -460,6 +650,35 @@ export function AdminUsersPage() {
                             title={user.is_banned ? 'Unban' : 'Ban'}
                           >
                             <Ban className="w-4 h-4" />
+                          </Button>
+                          {user.comment_suspended_until && new Date(user.comment_suspended_until) > new Date() ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleAction(user, 'lift_suspension')}
+                              title="Lift Comment Suspension"
+                              className="text-orange-500"
+                            >
+                              <MessageSquareOff className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleAction(user, 'suspend_comments')}
+                              title="Suspend Comment Privileges"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleAction(user, 'toggle_review')}
+                            title={user.comments_require_review ? 'Disable Comment Review' : 'Require Comment Review'}
+                            className={user.comments_require_review ? 'text-blue-500' : ''}
+                          >
+                            <Eye className="w-4 h-4" />
                           </Button>
                         </div>
                       </td>
