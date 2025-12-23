@@ -3568,6 +3568,7 @@ type WatchParty struct {
 	StartedAt              *time.Time              `json:"started_at,omitempty" db:"started_at"`
 	EndedAt                *time.Time              `json:"ended_at,omitempty" db:"ended_at"`
 	Participants           []WatchPartyParticipant `json:"participants,omitempty" db:"-"`
+	ActiveParticipantCount int                     `json:"active_participant_count,omitempty" db:"-"` // Computed field for discovery endpoints
 }
 
 // WatchPartyParticipant represents a user participating in a watch party

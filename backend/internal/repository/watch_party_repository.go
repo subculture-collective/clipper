@@ -686,6 +686,7 @@ func (r *WatchPartyRepository) GetPublicParties(ctx context.Context, limit, offs
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan public party: %w", err)
 		}
+		party.ActiveParticipantCount = activeParticipants
 		parties = append(parties, party)
 	}
 
@@ -742,6 +743,7 @@ func (r *WatchPartyRepository) GetTrendingParties(ctx context.Context, limit int
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan trending party: %w", err)
 		}
+		party.ActiveParticipantCount = activeParticipants
 		parties = append(parties, party)
 	}
 

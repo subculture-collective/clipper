@@ -58,7 +58,7 @@ export function WatchPartyBrowsePage() {
   };
 
   const PartyCard = ({ party }: { party: WatchParty }) => {
-    const participantCount = party.participants?.length || 0;
+    const participantCount = party.active_participant_count || party.participants?.length || 0;
     const isJoining = joiningParty === party.invite_code;
 
     return (

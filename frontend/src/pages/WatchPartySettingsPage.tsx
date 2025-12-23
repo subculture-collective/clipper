@@ -91,7 +91,7 @@ export function WatchPartySettingsPage() {
           {/* Settings component */}
           <WatchPartySettings
             partyId={id!}
-            currentPrivacy={party.visibility as 'public' | 'friends' | 'invite'}
+            currentPrivacy={party.visibility as 'public' | 'friends' | 'invite' | 'private'}
             isHost={party.host_user_id === user?.id}
           />
         </div>

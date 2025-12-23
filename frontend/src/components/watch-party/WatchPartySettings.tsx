@@ -4,7 +4,7 @@ import type { UpdateWatchPartySettingsRequest } from '@/types/watchParty';
 
 interface WatchPartySettingsProps {
   partyId: string;
-  currentPrivacy: 'public' | 'friends' | 'invite';
+  currentPrivacy: 'public' | 'friends' | 'invite' | 'private';
   isHost: boolean;
   onSettingsUpdated?: () => void;
 }
@@ -15,7 +15,7 @@ export function WatchPartySettings({
   isHost,
   onSettingsUpdated,
 }: WatchPartySettingsProps) {
-  const [privacy, setPrivacy] = useState<'public' | 'friends' | 'invite'>(currentPrivacy);
+  const [privacy, setPrivacy] = useState<'public' | 'friends' | 'invite' | 'private'>(currentPrivacy);
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,15 +88,17 @@ export function WatchPartySettings({
           <select
             id="privacy-select"
             value={privacy}
-            onChange={(e) => setPrivacy(e.target.value as 'public' | 'friends' | 'invite')}
+            onChange={(e) => setPrivacy(e.target.value as 'public' | 'friends' | 'invite' | 'private')}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
           >
+            <option value="private">Private - Only accessible by invite</option>
             <option value="public">Public - Anyone can join</option>
             <option value="friends">Friends Only - Only friends can join</option>
             <option value="invite">Invite Only - Requires password</option>
           </select>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {privacy === 'private' && 'Only accessible via invite link'}
             {privacy === 'public' && 'Anyone with the invite link can join'}
             {privacy === 'friends' && 'Only users on your friends list can join'}
             {privacy === 'invite' && 'Requires a password to join'}

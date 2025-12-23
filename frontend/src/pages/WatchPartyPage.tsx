@@ -4,11 +4,11 @@ import { Container, ScrollToTop, SEO } from '../components';
 import { MiniFooter } from '../components/layout';
 import { ChatPanel, ReactionOverlay } from '../components/watch-party';
 import { useWatchPartyWebSocket } from '../hooks/useWatchPartyWebSocket';
-import { getWatchParty, getWatchPartyParticipants, leaveWatchParty, endWatchParty } from '../lib/watch-party-api';
+import { getWatchParty, getWatchPartyParticipants, leaveWatchParty, endWatchParty, kickParticipant } from '../lib/watch-party-api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
 import type { WatchParty, WatchPartyMessage, WatchPartyReaction, ReactionAnimation } from '../types/watchParty';
-import { Users, Settings, LogOut, StopCircle } from 'lucide-react';
+import { Users, Settings, LogOut, StopCircle, UserMinus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 export function WatchPartyPage() {
@@ -26,7 +26,6 @@ export function WatchPartyPage() {
   
   // WebSocket connection
   const {
-    sendCommand,
     sendChatMessage,
     sendReaction,
     sendTyping,
@@ -42,6 +41,35 @@ export function WatchPartyPage() {
           is_playing: event.is_playing,
           current_position_seconds: event.position,
         } : null);
+      }
+      
+      // Handle participant events
+      if (event.type === 'participant-joined' && event.participant) {
+        setParticipants((prev) => {
+          // Check if participant already exists
+          const exists = prev.some(p => p.user?.id === event.participant?.user_id);
+          if (exists) return prev;
+          
+          // Add new participant
+          return [...prev, {
+            id: event.participant.user_id || '',
+            party_id: id || '',
+            user_id: event.participant.user_id || '',
+            user: {
+              id: event.participant.user_id || '',
+              username: '',
+              display_name: event.participant.display_name || '',
+              avatar_url: event.participant.avatar_url,
+            },
+            role: event.participant.role as 'host' | 'co-host' | 'viewer',
+            joined_at: new Date().toISOString(),
+            sync_offset_ms: 0,
+          }];
+        });
+      }
+      
+      if (event.type === 'participant-left' && event.user_id) {
+        setParticipants((prev) => prev.filter(p => p.user?.id !== event.user_id));
       }
     },
     onChatMessage: (message) => {
@@ -123,6 +151,23 @@ export function WatchPartyPage() {
     } catch (err) {
       console.error('Error ending party:', err);
       showToast('Failed to end watch party', 'error');
+    }
+  };
+
+  const handleKickParticipant = async (userId: string) => {
+    if (!id || !party || party.host_user_id !== user?.id) return;
+    
+    if (!confirm('Are you sure you want to kick this participant?')) {
+      return;
+    }
+    
+    try {
+      await kickParticipant(id, userId);
+      showToast('Participant kicked', 'success');
+      // Participant list will update via WebSocket event
+    } catch (err) {
+      console.error('Error kicking participant:', err);
+      showToast('Failed to kick participant', 'error');
     }
   };
 
@@ -304,6 +349,15 @@ export function WatchPartyPage() {
                   </span>
                   {participant.role === 'host' && (
                     <span className="text-xs bg-primary-500 text-white px-2 py-0.5 rounded">Host</span>
+                  )}
+                  {isHost && participant.user_id !== user?.id && (
+                    <button
+                      onClick={() => handleKickParticipant(participant.user_id)}
+                      className="ml-1 p-1 hover:bg-error-500/10 text-error-600 rounded transition-colors"
+                      title="Kick participant"
+                    >
+                      <UserMinus className="w-3 h-3" />
+                    </button>
                   )}
                 </div>
               ))}
