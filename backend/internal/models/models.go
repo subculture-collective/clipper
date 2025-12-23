@@ -3595,7 +3595,7 @@ type CreateWatchPartyRequest struct {
 
 // UpdateWatchPartySettingsRequest represents a request to update watch party settings
 type UpdateWatchPartySettingsRequest struct {
-	Visibility *string `json:"visibility,omitempty" binding:"omitempty,oneof=public friends invite"`
+	Visibility *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public friends invite"`
 	Password   *string `json:"password,omitempty" binding:"omitempty,min=4,max=100"`
 }
 

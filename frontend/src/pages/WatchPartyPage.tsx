@@ -47,7 +47,7 @@ export function WatchPartyPage() {
       if (event.type === 'participant-joined' && event.participant) {
         setParticipants((prev) => {
           // Check if participant already exists
-          const exists = prev.some(p => p.user?.id === event.participant?.user_id);
+          const exists = prev.some(p => p.user_id === event.participant?.user_id);
           if (exists) return prev;
           
           // Add new participant
@@ -69,7 +69,7 @@ export function WatchPartyPage() {
       }
       
       if (event.type === 'participant-left' && event.user_id) {
-        setParticipants((prev) => prev.filter(p => p.user?.id !== event.user_id));
+        setParticipants((prev) => prev.filter(p => p.user_id !== event.user_id));
       }
     },
     onChatMessage: (message) => {
