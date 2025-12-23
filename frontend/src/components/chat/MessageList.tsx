@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/types/chat';
+import { useEffect, useRef, useState } from 'react';
 import { MessageItem } from './MessageItem';
 import { Spinner } from '@/components/ui/Spinner';
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 
 interface TypingIndicatorProps {
   typingUsers: string[];
