@@ -56,7 +56,25 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 		return
 	}
 	
-	// Check if user already has a pending application
+	// === ABUSE PREVENTION CHECKS ===
+	
+	// 0. Check if user is already verified
+	isVerified, err := h.verificationRepo.IsUserVerified(ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to check verification status",
+		})
+		return
+	}
+	
+	if isVerified {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "You are already verified",
+		})
+		return
+	}
+	
+	// 1. Check if user already has a pending application
 	existing, err := h.verificationRepo.GetApplicationByUserID(ctx, userID, models.VerificationStatusPending)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -68,6 +86,55 @@ func (h *VerificationHandler) CreateApplication(c *gin.Context) {
 	if existing != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "You already have a pending verification application",
+		})
+		return
+	}
+	
+	// 2. Check for recently rejected applications (30-day cooldown)
+	recentRejection, err := h.verificationRepo.GetRecentRejectedApplicationByUserID(ctx, userID, 30)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to check application history",
+		})
+		return
+	}
+	
+	if recentRejection != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":       "You must wait 30 days after a rejection before reapplying",
+			"rejected_at": recentRejection.ReviewedAt,
+		})
+		return
+	}
+	
+	// 3. Check total application count to detect potential abuse
+	totalApps, err := h.verificationRepo.GetApplicationCountByUserID(ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to check application history",
+		})
+		return
+	}
+	
+	if totalApps >= 5 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "You have reached the maximum number of verification applications",
+		})
+		return
+	}
+	
+	// 4. Check for duplicate Twitch URLs from other users
+	duplicateApps, err := h.verificationRepo.GetApplicationsByTwitchURL(ctx, req.TwitchChannelURL, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to validate Twitch channel",
+		})
+		return
+	}
+	
+	if len(duplicateApps) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "This Twitch channel is already associated with another verification application",
 		})
 		return
 	}
@@ -361,3 +428,106 @@ func (h *VerificationHandler) GetApplicationStats(c *gin.Context) {
 		"data":    stats,
 	})
 }
+
+// GetAuditLogs retrieves audit logs for verification (admin only)
+// GET /admin/verification/audit-logs
+func (h *VerificationHandler) GetAuditLogs(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	// Parse query parameters
+	userIDParam := c.Query("user_id")
+	onlyFlagged := c.DefaultQuery("only_flagged", "false") == "true"
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	if page < 1 {
+		page = 1
+	}
+	
+	offset := (page - 1) * limit
+	
+	var logs []*models.VerificationAuditLog
+	var err error
+	
+	if onlyFlagged {
+		logs, err = h.verificationRepo.GetFlaggedAudits(ctx, limit, offset)
+	} else if userIDParam != "" {
+		userID, parseErr := uuid.Parse(userIDParam)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid user_id parameter",
+			})
+			return
+		}
+		logs, err = h.verificationRepo.GetAuditLogsByUserID(ctx, userID, limit, offset)
+	} else {
+		// If neither flagged nor user_id specified, return flagged by default for admin view
+		logs, err = h.verificationRepo.GetFlaggedAudits(ctx, limit, offset)
+	}
+	
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve audit logs",
+		})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    logs,
+		"meta": gin.H{
+			"count": len(logs),
+			"limit": limit,
+			"page":  page,
+		},
+	})
+}
+
+// GetUserAuditHistory retrieves audit history for a specific user (admin only)
+// GET /admin/verification/users/:user_id/audit-logs
+func (h *VerificationHandler) GetUserAuditHistory(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+	
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	if page < 1 {
+		page = 1
+	}
+	
+	offset := (page - 1) * limit
+	
+	logs, err := h.verificationRepo.GetAuditLogsByUserID(ctx, userID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve audit logs",
+		})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    logs,
+		"meta": gin.H{
+			"count": len(logs),
+			"limit": limit,
+			"page":  page,
+		},
+	})
+}
+
+
