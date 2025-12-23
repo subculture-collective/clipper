@@ -64,9 +64,6 @@ In-depth documentation for major platform features:
 
 - **[[features/comments|Comment System]]** - Reddit-style nested threading, E2E testing, and performance optimization
 - **[[features/live-streams|Live Streams]]** - Watch Twitch streams with integrated chat, follow notifications, and clip creation
-- **[[features/playlists|Playlists]]** - User-created collections, queue management, and watch history
-- **[[features/theatre-mode|Theatre Mode]]** - Immersive viewing experience with customizable layouts
-- **[[features/queue-history|Queue & History]]** - Playback queue and watch history tracking
 
 ### For Developers
 
