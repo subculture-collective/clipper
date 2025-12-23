@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createCheckoutSession } from '../lib/subscription-api';
 import { SEO } from '../components';
-import { trackEvent, PremiumEvents } from '../lib/analytics';
+import { trackEvent, PremiumEvents } from '../lib/telemetry';
 import {
     trackPricingPageView,
     trackBillingPeriodChange,

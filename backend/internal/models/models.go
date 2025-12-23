@@ -2937,8 +2937,8 @@ const (
 type VerificationAuditLog struct {
 	ID          uuid.UUID              `json:"id" db:"id"`
 	UserID      uuid.UUID              `json:"user_id" db:"user_id"`
-	AuditType   string                 `json:"audit_type" db:"audit_type"`     // periodic_check, manual_review, abuse_detection
-	Status      string                 `json:"status" db:"status"`             // passed, flagged, revoked
+	AuditType   string                 `json:"audit_type" db:"audit_type"` // periodic_check, manual_review, abuse_detection
+	Status      string                 `json:"status" db:"status"`         // passed, flagged, revoked
 	Findings    map[string]interface{} `json:"findings,omitempty" db:"findings"`
 	Notes       *string                `json:"notes,omitempty" db:"notes"`
 	AuditedBy   *uuid.UUID             `json:"audited_by,omitempty" db:"audited_by"`
@@ -2948,9 +2948,9 @@ type VerificationAuditLog struct {
 
 // Audit type constants
 const (
-	AuditTypePeriodicCheck   = "periodic_check"
-	AuditTypeManualReview    = "manual_review"
-	AuditTypeAbuseDetection  = "abuse_detection"
+	AuditTypePeriodicCheck  = "periodic_check"
+	AuditTypeManualReview   = "manual_review"
+	AuditTypeAbuseDetection = "abuse_detection"
 )
 
 // Audit status constants

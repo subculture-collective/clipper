@@ -135,147 +135,147 @@ func TestGetApplicationStats_Calculation(t *testing.T) {
 
 // TestGetApplicationsByTwitchURL_QueryLogic tests the Twitch URL filtering logic
 func TestGetApplicationsByTwitchURL_QueryLogic(t *testing.T) {
-tests := []struct {
-name          string
-twitchURL     string
-excludeUserID uuid.UUID
-expectQuery   bool
-}{
-{
-name:          "Valid URL with excluded user",
-twitchURL:     "https://twitch.tv/testuser",
-excludeUserID: uuid.New(),
-expectQuery:   true,
-},
-{
-name:          "Empty URL",
-twitchURL:     "",
-excludeUserID: uuid.New(),
-expectQuery:   true,
-},
-}
+	tests := []struct {
+		name          string
+		twitchURL     string
+		excludeUserID uuid.UUID
+		expectQuery   bool
+	}{
+		{
+			name:          "Valid URL with excluded user",
+			twitchURL:     "https://twitch.tv/testuser",
+			excludeUserID: uuid.New(),
+			expectQuery:   true,
+		},
+		{
+			name:          "Empty URL",
+			twitchURL:     "",
+			excludeUserID: uuid.New(),
+			expectQuery:   true,
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-// Test validates query parameter construction
-// This ensures the method signature and logic are correct
-if tt.twitchURL == "" && !tt.expectQuery {
-t.Error("Empty URL should still execute query to check for matches")
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test validates query parameter construction
+			// This ensures the method signature and logic are correct
+			if tt.twitchURL == "" && !tt.expectQuery {
+				t.Error("Empty URL should still execute query to check for matches")
+			}
 
-// Verify exclude logic is case-insensitive for URLs
-// LOWER(twitch_channel_url) = LOWER($1) should handle this
-})
-}
+			// Verify exclude logic is case-insensitive for URLs
+			// LOWER(twitch_channel_url) = LOWER($1) should handle this
+		})
+	}
 }
 
 // TestGetRecentRejectedApplicationByUserID_DaysCalculation tests the days calculation
 func TestGetRecentRejectedApplicationByUserID_DaysCalculation(t *testing.T) {
-tests := []struct {
-name        string
-withinDays  int
-expectValid bool
-}{
-{
-name:        "30 day cooldown",
-withinDays:  30,
-expectValid: true,
-},
-{
-name:        "60 day cooldown",
-withinDays:  60,
-expectValid: true,
-},
-{
-name:        "Zero days",
-withinDays:  0,
-expectValid: true, // Query will execute but may return nothing
-},
-}
+	tests := []struct {
+		name        string
+		withinDays  int
+		expectValid bool
+	}{
+		{
+			name:        "30 day cooldown",
+			withinDays:  30,
+			expectValid: true,
+		},
+		{
+			name:        "60 day cooldown",
+			withinDays:  60,
+			expectValid: true,
+		},
+		{
+			name:        "Zero days",
+			withinDays:  0,
+			expectValid: true, // Query will execute but may return nothing
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-// Test validates that withinDays parameter is used correctly
-// The query should use: reviewed_at > NOW() - INTERVAL '1 day' * $3
-if tt.withinDays < 0 {
-t.Error("Negative days should not be allowed")
-}
-})
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test validates that withinDays parameter is used correctly
+			// The query should use: reviewed_at > NOW() - INTERVAL '1 day' * $3
+			if tt.withinDays < 0 {
+				t.Error("Negative days should not be allowed")
+			}
+		})
+	}
 }
 
 // TestAuditLog_StatusValidation tests audit log status validation
 func TestAuditLog_StatusValidation(t *testing.T) {
-validStatuses := []string{"passed", "flagged", "revoked"}
-invalidStatuses := []string{"invalid", "pending", "approved"}
+	validStatuses := []string{"passed", "flagged", "revoked"}
+	invalidStatuses := []string{"invalid", "pending", "approved"}
 
-for _, status := range validStatuses {
-t.Run("Valid status: "+status, func(t *testing.T) {
-// These should be accepted by the database constraint
-found := false
-for _, valid := range validStatuses {
-if status == valid {
-found = true
-break
-}
-}
-if !found {
-t.Errorf("Status %s should be valid", status)
-}
-})
-}
+	for _, status := range validStatuses {
+		t.Run("Valid status: "+status, func(t *testing.T) {
+			// These should be accepted by the database constraint
+			found := false
+			for _, valid := range validStatuses {
+				if status == valid {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Status %s should be valid", status)
+			}
+		})
+	}
 
-for _, status := range invalidStatuses {
-t.Run("Invalid status: "+status, func(t *testing.T) {
-// These should be rejected by the database constraint
-found := false
-for _, valid := range validStatuses {
-if status == valid {
-found = true
-break
-}
-}
-if found {
-t.Errorf("Status %s should be invalid", status)
-}
-})
-}
+	for _, status := range invalidStatuses {
+		t.Run("Invalid status: "+status, func(t *testing.T) {
+			// These should be rejected by the database constraint
+			found := false
+			for _, valid := range validStatuses {
+				if status == valid {
+					found = true
+					break
+				}
+			}
+			if found {
+				t.Errorf("Status %s should be invalid", status)
+			}
+		})
+	}
 }
 
 // TestAuditLog_ActionValidation tests audit log action validation
 func TestAuditLog_ActionValidation(t *testing.T) {
-validActions := []string{"none", "warning_sent", "verification_revoked", "further_review_required"}
-invalidActions := []string{"invalid", "delete", "suspend"}
+	validActions := []string{"none", "warning_sent", "verification_revoked", "further_review_required"}
+	invalidActions := []string{"invalid", "delete", "suspend"}
 
-for _, action := range validActions {
-t.Run("Valid action: "+action, func(t *testing.T) {
-// These should be accepted by the database constraint
-found := false
-for _, valid := range validActions {
-if action == valid {
-found = true
-break
-}
-}
-if !found {
-t.Errorf("Action %s should be valid", action)
-}
-})
-}
+	for _, action := range validActions {
+		t.Run("Valid action: "+action, func(t *testing.T) {
+			// These should be accepted by the database constraint
+			found := false
+			for _, valid := range validActions {
+				if action == valid {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Action %s should be valid", action)
+			}
+		})
+	}
 
-for _, action := range invalidActions {
-t.Run("Invalid action: "+action, func(t *testing.T) {
-// These should be rejected by the database constraint
-found := false
-for _, valid := range validActions {
-if action == valid {
-found = true
-break
-}
-}
-if found {
-t.Errorf("Action %s should be invalid", action)
-}
-})
-}
+	for _, action := range invalidActions {
+		t.Run("Invalid action: "+action, func(t *testing.T) {
+			// These should be rejected by the database constraint
+			found := false
+			for _, valid := range validActions {
+				if action == valid {
+					found = true
+					break
+				}
+			}
+			if found {
+				t.Errorf("Action %s should be invalid", action)
+			}
+		})
+	}
 }

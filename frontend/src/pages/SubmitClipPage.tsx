@@ -17,7 +17,7 @@ import {
     submitClip,
 } from '../lib/submission-api';
 import { getPublicConfig } from '../lib/config-api';
-import { trackEvent, SubmissionEvents } from '../lib/analytics';
+import { trackEvent, SubmissionEvents } from '../lib/telemetry';
 import type { ClipSubmission, SubmitClipRequest } from '../types/submission';
 import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';

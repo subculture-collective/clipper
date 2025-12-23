@@ -11,13 +11,13 @@ import {
   trackEvent,
   trackPageView,
   AuthEvents,
+  EventProperties,
   SubmissionEvents,
   EngagementEvents,
   PremiumEvents,
   NavigationEvents,
   SettingsEvents,
-  type EventProperties,
-} from '../lib/analytics';
+} from '../lib/telemetry';
 
 /**
  * Hook for tracking analytics events

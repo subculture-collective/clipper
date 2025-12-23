@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { initGoogleAnalytics, disableGoogleAnalytics, enableGoogleAnalytics } from '../lib/google-analytics';
 import { initPostHog, disablePostHog, enablePostHog } from '../lib/posthog-analytics';
-import { enableAnalytics as enableUnifiedAnalytics, disableAnalytics as disableUnifiedAnalytics, configureAnalytics } from '../lib/analytics';
+import { enableAnalytics as enableUnifiedAnalytics, disableAnalytics as disableUnifiedAnalytics, configureAnalytics } from '../lib/telemetry';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
 

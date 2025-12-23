@@ -15,13 +15,13 @@ import (
 
 // AuditStats tracks statistics for the audit operation
 type AuditStats struct {
-	TotalUsersAudited  int
-	PassedAudits       int
-	FlaggedAudits      int
-	RevokedAudits      int
-	StartTime          time.Time
-	EndTime            time.Time
-	LastError          error
+	TotalUsersAudited int
+	PassedAudits      int
+	FlaggedAudits     int
+	RevokedAudits     int
+	StartTime         time.Time
+	EndTime           time.Time
+	LastError         error
 }
 
 func main() {
@@ -85,7 +85,7 @@ func runVerificationAudit(
 	}
 
 	log.Printf("\n--- Retrieving verified users for audit ---")
-	
+
 	// Get verified users that need auditing
 	users, err := repo.GetVerifiedUsersForAudit(ctx, auditPeriodDays, limit)
 	if err != nil {
@@ -101,15 +101,15 @@ func runVerificationAudit(
 	}
 
 	log.Println("\n--- Auditing verified users ---")
-	
+
 	for i, user := range users {
 		log.Printf("\n[%d/%d] Auditing user: %s (ID: %s)", i+1, len(users), user.Username, user.ID)
-		
+
 		// Perform audit checks
 		auditResult := performUserAudit(ctx, repo, user)
-		
+
 		stats.TotalUsersAudited++
-		
+
 		switch auditResult.Status {
 		case models.AuditStatusPassed:
 			stats.PassedAudits++
@@ -120,7 +120,7 @@ func runVerificationAudit(
 		case models.AuditStatusRevoked:
 			stats.RevokedAudits++
 			log.Printf("  ✗ Verification revoked: %s", *auditResult.Notes)
-			
+
 			// Actually revoke the user's verification status
 			if !dryRun {
 				if err := repo.RevokeUserVerification(ctx, user.ID); err != nil {

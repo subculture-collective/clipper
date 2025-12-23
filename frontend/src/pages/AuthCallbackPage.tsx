@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Container, Spinner } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { handleOAuthCallback } from '../lib/auth-api';
-import { trackEvent, AuthEvents } from '../lib/analytics';
+import { trackEvent, AuthEvents } from '../lib/telemetry';
 
 export function AuthCallbackPage() {
   const [searchParams] = useSearchParams();

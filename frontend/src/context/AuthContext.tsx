@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
 import { isModeratorOrAdmin } from '../lib/roles';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/sentry';
-import { resetUser, identifyUser, trackEvent, AuthEvents } from '../lib/analytics';
+import { resetUser, identifyUser, trackEvent, AuthEvents } from '../lib/telemetry';
 import type { User } from '../lib/auth-api';
-import type { UserProperties } from '../lib/analytics';
+import type { UserProperties } from '../lib/telemetry';
 
 export interface AuthContextType {
   user: User | null;

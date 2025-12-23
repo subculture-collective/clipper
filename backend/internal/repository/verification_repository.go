@@ -394,7 +394,7 @@ func (r *VerificationRepository) GetRecentRejectedApplicationByUserID(ctx contex
 // GetApplicationCountByUserID returns the total number of applications submitted by a user
 func (r *VerificationRepository) GetApplicationCountByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
 	query := `SELECT COUNT(*) FROM creator_verification_applications WHERE user_id = $1`
-	
+
 	var count int
 	err := r.db.QueryRow(ctx, query, userID).Scan(&count)
 	return count, err

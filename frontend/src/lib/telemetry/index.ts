@@ -5,7 +5,7 @@
  * 
  * @example
  * ```typescript
- * import { trackEvent, AuthEvents, identifyUser } from '@/lib/analytics';
+ * import { trackEvent, AuthEvents, identifyUser } from '@/lib/telemetry';
  * 
  * // Track a login event
  * trackEvent(AuthEvents.LOGIN_COMPLETED, {
