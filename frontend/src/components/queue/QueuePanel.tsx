@@ -54,7 +54,7 @@ export function QueuePanel() {
             return;
         }
 
-        // Calculate new position (0-indexed)
+        // Use target position as the new position
         const newPosition = targetIndex;
 
         // Call the reorder API
@@ -121,7 +121,7 @@ export function QueuePanel() {
                                 className={`p-3 hover:bg-zinc-800/50 cursor-move transition-colors ${
                                     draggedId === item.id ? 'opacity-50 bg-zinc-800' : ''
                                 } ${
-                                    dragOverId === item.id ? 'border-t-2 border-purple-500' : ''
+                                    dragOverId === item.id ? 'border-t-2 border-primary' : ''
                                 }`}
                             >
                                 <div className="flex gap-3">
