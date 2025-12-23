@@ -4,3 +4,4 @@ export { AppealResolutionModal } from './AppealResolutionModal';
 export { UserAppealsStatus } from './UserAppealsStatus';
 export { ModerationAnalyticsDashboard } from './ModerationAnalyticsDashboard';
 export { AuditLogViewer } from './AuditLogViewer';
+export { ModerationQueueView } from './ModerationQueueView';
