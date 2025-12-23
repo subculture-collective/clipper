@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import { updateWatchPartySettings } from '@/lib/watch-party-api';
 import type { UpdateWatchPartySettingsRequest } from '@/types/watchParty';

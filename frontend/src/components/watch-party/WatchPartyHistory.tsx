@@ -1,9 +1,7 @@
-'use client';
-
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getWatchPartyHistory } from '@/lib/watch-party-api';
 import type { WatchPartyHistoryEntry } from '@/types/watchParty';
-import Link from 'next/link';
 
 export function WatchPartyHistory() {
   const [history, setHistory] = useState<WatchPartyHistoryEntry[]>([]);

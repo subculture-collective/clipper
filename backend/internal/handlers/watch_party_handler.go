@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -1624,11 +1625,15 @@ func (h *WatchPartyHandler) KickParticipant(c *gin.Context) {
 		return
 	}
 
-	// Notify via WebSocket
-	hub := h.hubManager.GetHub(partyID)
-	if hub != nil {
-		hub.BroadcastParticipantLeft(participantID)
+	// Notify via WebSocket - broadcast participant left event
+	hub := h.hubManager.GetOrCreateHub(partyID)
+	event := &models.WatchPartySyncEvent{
+		Type:            "participant-left",
+		PartyID:         partyID.String(),
+		ServerTimestamp: time.Now().Unix(),
+		UserID:          &participantID,
 	}
+	hub.Broadcast <- event
 
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,

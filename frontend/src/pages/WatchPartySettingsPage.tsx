@@ -89,7 +89,11 @@ export function WatchPartySettingsPage() {
           </div>
 
           {/* Settings component */}
-          <WatchPartySettings partyId={id!} />
+          <WatchPartySettings
+            partyId={id!}
+            currentPrivacy={party.visibility as 'public' | 'friends' | 'invite'}
+            isHost={party.host_user_id === user?.id}
+          />
         </div>
         <MiniFooter />
       </Container>
