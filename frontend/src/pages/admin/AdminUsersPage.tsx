@@ -71,7 +71,10 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
                 <Input
                   type="number"
                   value={karmaValue}
-                  onChange={(e) => setKarmaValue(parseInt(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const parsed = parseInt(e.target.value);
+                    setKarmaValue(isNaN(parsed) ? 0 : parsed);
+                  }}
                   className="w-full"
                   required
                 />
@@ -98,7 +101,7 @@ function UserActionModal({ user, actionType, onClose, onConfirm }: UserActionMod
               <Button type="button" onClick={onClose} variant="outline">
                 Cancel
               </Button>
-              <Button type="submit" variant={actionType === 'ban' ? 'destructive' : 'primary'}>
+              <Button type="submit" variant={actionType === 'ban' ? 'danger' : 'primary'}>
                 Confirm
               </Button>
             </div>
