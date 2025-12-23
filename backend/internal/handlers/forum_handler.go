@@ -1419,21 +1419,21 @@ func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
 		limit = 20
 	}
 	
-	var interval string
+	var intervalDays int
 	switch timeframe {
 	case "day":
-		interval = "1 day"
+		intervalDays = 1
 	case "week":
-		interval = "7 days"
+		intervalDays = 7
 	case "month":
-		interval = "30 days"
+		intervalDays = 30
 	case "all":
-		interval = "10 years" // Effectively no time limit
+		intervalDays = 3650 // ~10 years
 	default:
-		interval = "7 days"
+		intervalDays = 7
 	}
 	
-	query := fmt.Sprintf(`
+	query := `
 		SELECT 
 			ft.id, ft.user_id, u.username, ft.title, ft.content,
 			ft.game_id, g.title as game_name, ft.tags,
@@ -1443,12 +1443,12 @@ func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
 		INNER JOIN users u ON ft.user_id = u.id
 		LEFT JOIN games g ON ft.game_id = g.id
 		WHERE ft.is_deleted = FALSE
-			AND ft.created_at >= CURRENT_DATE - INTERVAL '%s'
+			AND ft.created_at >= CURRENT_DATE - ($2 || ' days')::INTERVAL
 		ORDER BY (ft.reply_count * 3 + ft.view_count / 10) DESC
 		LIMIT $1
-	`, interval)
+	`
 	
-	rows, err := h.db.Query(ctx, query, limit)
+	rows, err := h.db.Query(ctx, query, limit, intervalDays)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get popular discussions"})
 		return
@@ -1493,19 +1493,19 @@ func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
 		limit = 20
 	}
 	
-	var interval string
+	var intervalDays int
 	switch timeframe {
 	case "week":
-		interval = "7 days"
+		intervalDays = 7
 	case "month":
-		interval = "30 days"
+		intervalDays = 30
 	case "all":
-		interval = "10 years"
+		intervalDays = 3650 // ~10 years
 	default:
-		interval = "30 days"
+		intervalDays = 30
 	}
 	
-	query := fmt.Sprintf(`
+	query := `
 		SELECT 
 			fr.id, fr.user_id, u.username, fr.thread_id, 
 			fr.parent_reply_id, fr.content, fr.depth, fr.path,
@@ -1519,12 +1519,12 @@ func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
 		INNER JOIN forum_threads ft ON fr.thread_id = ft.id
 		LEFT JOIN forum_vote_counts fvc ON fr.id = fvc.reply_id
 		WHERE fr.is_deleted = FALSE
-			AND fr.created_at >= CURRENT_DATE - INTERVAL '%s'
+			AND fr.created_at >= CURRENT_DATE - ($2 || ' days')::INTERVAL
 		ORDER BY COALESCE(fvc.net_votes, 0) DESC, fr.created_at DESC
 		LIMIT $1
-	`, interval)
+	`
 	
-	rows, err := h.db.Query(ctx, query, limit)
+	rows, err := h.db.Query(ctx, query, limit, intervalDays)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get helpful replies"})
 		return

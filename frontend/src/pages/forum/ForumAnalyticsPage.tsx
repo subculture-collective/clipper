@@ -9,35 +9,44 @@ import {
   ArrowLeft,
   Activity,
   Clock,
-  Calendar
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { Container, SEO } from '@/components';
 import { forumApi } from '@/lib/forum-api';
 import { ThreadCard } from '@/components/forum/ThreadCard';
+import type { ForumThread, UserContribution, HelpfulReply } from '@/types/forum';
 
 export function ForumAnalyticsPage() {
   // Fetch analytics data
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ['forum-analytics'],
     queryFn: () => forumApi.getAnalytics(),
-    refetchInterval: 60000, // Refetch every minute
+    // Refetch every 5 minutes to reduce backend load while keeping data reasonably fresh
+    refetchInterval: 300000,
+    // Consider data fresh for 5 minutes to avoid unnecessary refetches on navigation/focus
+    staleTime: 300000,
   });
 
   // Fetch popular discussions
-  const { data: popular, isLoading: popularLoading } = useQuery({
+  const { data: popular, isLoading: popularLoading, error: popularError } = useQuery({
     queryKey: ['forum-popular', 'week'],
     queryFn: () => forumApi.getPopularDiscussions('week', 10),
+    staleTime: 300000,
   });
 
   // Fetch helpful replies
-  const { data: helpful, isLoading: helpfulLoading } = useQuery({
+  const { data: helpful, isLoading: helpfulLoading, error: helpfulError } = useQuery({
     queryKey: ['forum-helpful', 'month'],
     queryFn: () => forumApi.getMostHelpfulReplies('month', 10),
+    staleTime: 300000,
   });
 
   const analyticsData = analytics?.data;
   const popularThreads = popular?.data || [];
   const helpfulReplies = helpful?.data || [];
+
+  const hasError = analyticsError || popularError || helpfulError;
 
   return (
     <>
@@ -64,6 +73,24 @@ export function ForumAnalyticsPage() {
               </p>
             </div>
           </div>
+
+          {/* Error State */}
+          {hasError && (
+            <div className="bg-red-900/20 border border-red-800 rounded-lg p-6 mb-8">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-red-400 font-semibold mb-1">Failed to load analytics</h3>
+                  <p className="text-gray-300 text-sm">
+                    {analyticsError && 'Unable to fetch analytics data. '}
+                    {popularError && 'Unable to fetch popular discussions. '}
+                    {helpfulError && 'Unable to fetch helpful replies. '}
+                    Please try refreshing the page.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Loading State */}
           {analyticsLoading && (
@@ -226,7 +253,7 @@ export function ForumAnalyticsPage() {
                 </div>
                 {analyticsData.top_contributors.length > 0 ? (
                   <div className="space-y-3">
-                    {analyticsData.top_contributors.map((contributor: any, index: number) => (
+                    {analyticsData.top_contributors.map((contributor: UserContribution, index: number) => (
                       <div
                         key={contributor.user_id}
                         className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
@@ -261,7 +288,7 @@ export function ForumAnalyticsPage() {
             <div className="mt-8">
               <h2 className="text-2xl font-bold text-white mb-6">Popular This Week</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {popularThreads.map((thread: any) => (
+                {popularThreads.map((thread: ForumThread) => (
                   <ThreadCard key={thread.id} thread={thread} />
                 ))}
               </div>
@@ -273,7 +300,7 @@ export function ForumAnalyticsPage() {
             <div className="mt-8">
               <h2 className="text-2xl font-bold text-white mb-6">Most Helpful Replies This Month</h2>
               <div className="space-y-4">
-                {helpfulReplies.map((reply: any) => (
+                {helpfulReplies.map((reply: HelpfulReply) => (
                   <div
                     key={reply.id}
                     className="bg-gray-900 border border-gray-700 rounded-lg p-6 hover:border-gray-600 transition-colors"
