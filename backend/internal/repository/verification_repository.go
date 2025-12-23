@@ -606,37 +606,36 @@ func (r *VerificationRepository) GetFlaggedAudits(ctx context.Context, limit, of
 	return logs, rows.Err()
 }
 
-
 // RevokeUserVerification revokes a user's verified status
 func (r *VerificationRepository) RevokeUserVerification(ctx context.Context, userID uuid.UUID) error {
-query := `
-UPDATE users
-SET is_verified = false,
-verified_at = NULL,
-updated_at = NOW()
-WHERE id = $1 AND is_verified = true`
+	query := `
+		UPDATE users
+		SET is_verified = false,
+			verified_at = NULL,
+			updated_at = NOW()
+		WHERE id = $1 AND is_verified = true`
 
-result, err := r.db.Exec(ctx, query, userID)
-if err != nil {
-return err
-}
+	result, err := r.db.Exec(ctx, query, userID)
+	if err != nil {
+		return err
+	}
 
-rowsAffected := result.RowsAffected()
-if rowsAffected == 0 {
-return fmt.Errorf("user not found or already not verified")
-}
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found or already not verified")
+	}
 
-return nil
+	return nil
 }
 
 // IsUserVerified checks if a user is currently verified
 func (r *VerificationRepository) IsUserVerified(ctx context.Context, userID uuid.UUID) (bool, error) {
-query := `SELECT is_verified FROM users WHERE id = $1`
+	query := `SELECT is_verified FROM users WHERE id = $1`
 
-var isVerified bool
-err := r.db.QueryRow(ctx, query, userID).Scan(&isVerified)
-if err == pgx.ErrNoRows {
-return false, fmt.Errorf("user not found")
-}
-return isVerified, err
+	var isVerified bool
+	err := r.db.QueryRow(ctx, query, userID).Scan(&isVerified)
+	if err == pgx.ErrNoRows {
+		return false, fmt.Errorf("user not found")
+	}
+	return isVerified, err
 }
