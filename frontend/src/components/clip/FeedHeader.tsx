@@ -1,4 +1,5 @@
-import { FormEvent, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui';

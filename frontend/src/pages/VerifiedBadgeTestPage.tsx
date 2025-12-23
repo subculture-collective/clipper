@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Container, Card, CardBody } from '@/components';
 import { VerifiedBadge } from '@/components/user';
 

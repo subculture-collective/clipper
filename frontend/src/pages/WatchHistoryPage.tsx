@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, useToast } from '@/hooks';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { WatchHistoryEntry } from '@/types/watchHistory';
+import type { WatchHistoryEntry } from '@/types/watchHistory';
 
 type FilterType = 'all' | 'completed' | 'in-progress';
 
@@ -12,7 +12,7 @@ export function WatchHistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { isAuthenticated } = useAuth();
-  const { addToast } = useToast();
+  const { showToast } = useToast();
   const modalRef = useRef<HTMLDivElement>(null);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -34,7 +34,7 @@ export function WatchHistoryPage() {
         });
 
         if (!response.ok) {
-          addToast('Failed to fetch watch history', 'error');
+          showToast('Failed to fetch watch history', 'error');
           console.error('Failed to fetch watch history');
           return;
         }
@@ -42,7 +42,7 @@ export function WatchHistoryPage() {
         const data = await response.json();
         setHistory(data.history || []);
       } catch (error) {
-        addToast('Error loading watch history', 'error');
+        showToast('Error loading watch history', 'error');
         console.error('Error fetching watch history:', error);
       } finally {
         setIsLoading(false);
@@ -60,21 +60,21 @@ export function WatchHistoryPage() {
       });
 
       if (!response.ok) {
-        addToast('Failed to clear watch history', 'error');
+        showToast('Failed to clear watch history', 'error');
         console.error('Failed to clear watch history');
         return;
       }
 
       setHistory([]);
       setShowClearConfirm(false);
-      addToast('Watch history cleared successfully', 'success');
+      showToast('Watch history cleared successfully', 'success');
       
       // Return focus to the clear button
       if (clearButtonRef.current) {
         clearButtonRef.current.focus();
       }
     } catch (error) {
-      addToast('Error clearing watch history', 'error');
+      showToast('Error clearing watch history', 'error');
       console.error('Error clearing watch history:', error);
     }
   };
