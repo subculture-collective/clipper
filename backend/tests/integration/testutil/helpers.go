@@ -3,6 +3,7 @@
 package testutil
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -11,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/subculture-collective/clipper/config"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
@@ -66,28 +69,33 @@ func (tc *TestConfig) Cleanup() {
 }
 
 // CreateTestUser creates a test user in the database
-// Note: This is a placeholder. Implement when needed based on actual repository methods.
-/*
-func CreateTestUser(t *testing.T, db *database.DB, username string) uuid.UUID {
+func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User {
 	ctx := context.Background()
 	userRepo := repository.NewUserRepository(db.Pool)
 	
-	testUser := map[string]interface{}{
-		"twitch_id":      fmt.Sprintf("test_%s_%d", username, time.Now().Unix()),
-		"username":       username,
-		"display_name":   fmt.Sprintf("Test User %s", username),
-		"profile_image":  "https://example.com/avatar.png",
-		"email":          fmt.Sprintf("%s@example.com", username),
-		"account_type":   "member",
-		"role":           "user",
+	avatarURL := "https://example.com/avatar.png"
+	email := fmt.Sprintf("%s@example.com", username)
+	bio := "Test user bio"
+	lastLoginAt := time.Now()
+	
+	user := &models.User{
+		ID:          uuid.New(),
+		TwitchID:    fmt.Sprintf("test_%s_%d", username, time.Now().Unix()),
+		Username:    username,
+		DisplayName: fmt.Sprintf("Test User %s", username),
+		AvatarURL:   &avatarURL,
+		Email:       &email,
+		Bio:         &bio,
+		Role:        "user",
+		AccountType: "member",
+		LastLoginAt: &lastLoginAt,
 	}
 	
-	user, err := userRepo.CreateUser(ctx, testUser)
+	err := userRepo.Create(ctx, user)
 	require.NoError(t, err, "Failed to create test user")
 	
-	return user.ID
+	return user
 }
-*/
 
 // CreateTestClip creates a test clip in the database
 // Note: This is a placeholder. Implement when needed based on actual repository methods.
@@ -225,4 +233,15 @@ func RequireEnv(t *testing.T, key string) string {
 	value := GetEnv(key, "")
 	require.NotEmpty(t, value, "Required environment variable %s is not set", key)
 	return value
+}
+
+// GenerateTestTokens generates access and refresh tokens for a user ID
+func GenerateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UUID, role string) (accessToken, refreshToken string) {
+	accessToken, err := jwtManager.GenerateAccessToken(userID, role)
+	require.NoError(t, err, "Failed to generate access token")
+	
+	refreshToken, err = jwtManager.GenerateRefreshToken(userID)
+	require.NoError(t, err, "Failed to generate refresh token")
+	
+	return accessToken, refreshToken
 }

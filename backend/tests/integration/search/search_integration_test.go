@@ -36,7 +36,7 @@ func setupSearchTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *d
 			Password: testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
 			Name:     testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test"),
 		},
-		Redis: redispkg.Config{
+		Redis: config.RedisConfig{
 			Host: testutil.GetEnv("TEST_REDIS_HOST", "localhost"),
 			Port: testutil.GetEnv("TEST_REDIS_PORT", "6380"),
 		},

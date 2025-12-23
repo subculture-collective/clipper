@@ -210,7 +210,7 @@ func main() {
 	}
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
-	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
+	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
@@ -362,6 +362,7 @@ func main() {
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
 	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
+	adminUserHandler := handlers.NewAdminUserHandler(userRepo, auditLogRepo, authService)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	consentHandler := handlers.NewConsentHandler(consentRepo)
 	contactHandler := handlers.NewContactHandler(contactRepo, authService)
@@ -1393,11 +1394,21 @@ func main() {
 				adminReports.PUT("/:id", reportHandler.UpdateReport)
 			}
 
-			// Badge management
+			// User management (admin only - requires PermissionManageUsers)
 			adminUsers := admin.Group("/users")
 			{
+				adminUsers.GET("", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.ListUsers)
+				adminUsers.POST("/:id/ban", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.BanUser)
+				adminUsers.POST("/:id/unban", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.UnbanUser)
+				adminUsers.PATCH("/:id/role", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.UpdateUserRole)
+				adminUsers.PATCH("/:id/karma", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.UpdateUserKarma)
 				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
 				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
+				// Comment privilege suspension routes
+				adminUsers.POST("/:id/suspend-comments", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.SuspendCommentPrivileges)
+				adminUsers.POST("/:id/lift-comment-suspension", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.LiftCommentSuspension)
+				adminUsers.GET("/:id/comment-suspension-history", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.GetCommentSuspensionHistory)
+				adminUsers.POST("/:id/toggle-comment-review", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.ToggleCommentReview)
 			}
 
 			// Account type management (admin only)

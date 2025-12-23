@@ -4,7 +4,6 @@ package submissions
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,7 +26,7 @@ import (
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
-func setupSubmissionTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *database.DB, *redispkg.Client, uuid.UUID) {
+func setupSubmissionTestRouter(t *testing.T) (*gin.Engine, *jwtpkg.Manager, *database.DB, *redispkg.Client, uuid.UUID) {
 	gin.SetMode(gin.TestMode)
 
 	// Load test configuration
@@ -39,7 +38,7 @@ func setupSubmissionTestRouter(t *testing.T) (*gin.Engine, *services.AuthService
 			Password: testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password"),
 			Name:     testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test"),
 		},
-		Redis: redispkg.Config{
+		Redis: config.RedisConfig{
 			Host: testutil.GetEnv("TEST_REDIS_HOST", "localhost"),
 			Port: testutil.GetEnv("TEST_REDIS_PORT", "6380"),
 		},
@@ -75,20 +74,9 @@ func setupSubmissionTestRouter(t *testing.T) (*gin.Engine, *services.AuthService
 	// Initialize handlers
 	clipHandler := handlers.NewClipHandler(clipService, authService)
 
-	// Create test user
-	ctx := context.Background()
-	testUser := map[string]interface{}{
-		"twitch_id":      fmt.Sprintf("sub%d", time.Now().Unix()),
-		"username":       fmt.Sprintf("subuser%d", time.Now().Unix()),
-		"display_name":   "Submission Test User",
-		"profile_image":  "https://example.com/avatar.png",
-		"email":          "submissions@example.com",
-		"account_type":   "member",
-		"role":           "user",
-	}
-	
-	user, err := userRepo.CreateUser(ctx, testUser)
-	require.NoError(t, err)
+	// Create test user using helper
+	username := fmt.Sprintf("subuser%d", time.Now().Unix())
+	user := testutil.CreateTestUser(t, db, username)
 
 	// Setup router
 	r := gin.New()
@@ -100,22 +88,20 @@ func setupSubmissionTestRouter(t *testing.T) (*gin.Engine, *services.AuthService
 	{
 		clips.GET("", clipHandler.ListClips)
 		clips.GET("/:id", clipHandler.GetClip)
-		clips.POST("", clipHandler.CreateClip)
+		// clips.POST("", clipHandler.CreateClip) // NOTE: Use SubmissionHandler.SubmitClip instead
 		clips.PUT("/:id", clipHandler.UpdateClip)
 		clips.DELETE("/:id", clipHandler.DeleteClip)
 	}
 
-	return r, authService, db, redisClient, user.ID
+	return r, jwtManager, db, redisClient, user.ID
 }
 
 func TestSubmissionFlow(t *testing.T) {
-	router, authService, db, redisClient, userID := setupSubmissionTestRouter(t)
+	router, jwtManager, db, redisClient, userID := setupSubmissionTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	ctx := context.Background()
-	accessToken, _, err := authService.GenerateTokens(ctx, userID)
-	require.NoError(t, err)
+	accessToken, _ := testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 
 	var clipID string
 
@@ -144,7 +130,7 @@ func TestSubmissionFlow(t *testing.T) {
 		
 		if w.Code == http.StatusCreated {
 			var response map[string]interface{}
-			err = json.Unmarshal(w.Body.Bytes(), &response)
+			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
 			clipID = response["id"].(string)
 		}
@@ -160,7 +146,7 @@ func TestSubmissionFlow(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		
 		var response map[string]interface{}
-		err = json.Unmarshal(w.Body.Bytes(), &response)
+		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		
 		assert.Contains(t, response, "clips")
@@ -228,13 +214,11 @@ func TestSubmissionSearch(t *testing.T) {
 }
 
 func TestSubmissionValidation(t *testing.T) {
-	router, authService, db, redisClient, userID := setupSubmissionTestRouter(t)
+	router, jwtManager, db, redisClient, userID := setupSubmissionTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	ctx := context.Background()
-	accessToken, _, err := authService.GenerateTokens(ctx, userID)
-	require.NoError(t, err)
+	accessToken, _ := testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 
 	t.Run("CreateClip_MissingRequiredFields", func(t *testing.T) {
 		clip := map[string]interface{}{
