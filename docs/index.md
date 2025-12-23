@@ -63,6 +63,7 @@ Guides for using the Clipper platform:
 In-depth documentation for major platform features:
 
 - **[[features/comments|Comment System]]** - Reddit-style nested threading, E2E testing, and performance optimization
+- **[[features/live-streams|Live Streams]]** - Watch Twitch streams with integrated chat, follow notifications, and clip creation
 
 ### For Developers
 
