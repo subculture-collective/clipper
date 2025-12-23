@@ -1,4 +1,3 @@
-import 'react';
 import { MessageCircle } from 'lucide-react';
 
 /**

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useDesktopNotifications } from '@/hooks/useDesktopNotifications';
 import { useAuth } from '@/hooks/useAuth';

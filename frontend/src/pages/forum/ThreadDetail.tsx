@@ -16,7 +16,7 @@ import { formatTimestamp } from '@/lib/utils';
 export function ThreadDetail() {
   const { threadId } = useParams<{ threadId: string }>();
   const { user } = useAuth();
-  const { addToast } = useToast();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -62,10 +62,10 @@ export function ThreadDetail() {
       queryClient.invalidateQueries({ queryKey: ['forum-thread', threadId] });
       setReplyingTo(null);
       setShowMobileComposer(false);
-      addToast('Reply posted successfully', 'success');
+      showToast('Reply posted successfully', 'success');
     },
     onError: () => {
-      addToast('Failed to post reply', 'error');
+      showToast('Failed to post reply', 'error');
     },
   });
 
@@ -75,10 +75,10 @@ export function ThreadDetail() {
       forumApi.updateReply(replyId, { content }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['forum-thread', threadId] });
-      addToast('Reply updated successfully', 'success');
+      showToast('Reply updated successfully', 'success');
     },
     onError: () => {
-      addToast('Failed to update reply', 'error');
+      showToast('Failed to update reply', 'error');
     },
   });
 
@@ -87,10 +87,10 @@ export function ThreadDetail() {
     mutationFn: (replyId: string) => forumApi.deleteReply(replyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['forum-thread', threadId] });
-      addToast('Reply deleted successfully', 'success');
+      showToast('Reply deleted successfully', 'success');
     },
     onError: () => {
-      addToast('Failed to delete reply', 'error');
+      showToast('Failed to delete reply', 'error');
     },
   });
 

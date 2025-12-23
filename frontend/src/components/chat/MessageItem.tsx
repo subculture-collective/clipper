@@ -1,4 +1,3 @@
-import 'react';
 import type { ChatMessage } from '@/types/chat';
 import { Avatar } from '@/components/ui/Avatar';
 import { MessageContent } from './MessageContent';

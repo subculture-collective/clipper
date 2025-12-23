@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 export function CreateThread() {
   const { user } = useAuth();
-  const { addToast } = useToast();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
@@ -28,11 +28,11 @@ export function CreateThread() {
   const createThreadMutation = useMutation({
     mutationFn: forumApi.createThread,
     onSuccess: (thread) => {
-      addToast('Thread created successfully', 'success');
+      showToast('Thread created successfully', 'success');
       navigate(`/forum/threads/${thread.id}`);
     },
     onError: () => {
-      addToast('Failed to create thread', 'error');
+      showToast('Failed to create thread', 'error');
     },
   });
 
@@ -59,17 +59,17 @@ export function CreateThread() {
     e.preventDefault();
 
     if (!title.trim() || !content.trim()) {
-      addToast('Please fill in all required fields', 'error');
+      showToast('Please fill in all required fields', 'error');
       return;
     }
 
     if (title.length < 3 || title.length > 200) {
-      addToast('Title must be between 3 and 200 characters', 'error');
+      showToast('Title must be between 3 and 200 characters', 'error');
       return;
     }
 
     if (content.length < 10 || content.length > 5000) {
-      addToast('Content must be between 10 and 5000 characters', 'error');
+      showToast('Content must be between 10 and 5000 characters', 'error');
       return;
     }
 

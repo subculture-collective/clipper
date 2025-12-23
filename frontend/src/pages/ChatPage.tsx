@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChannelSidebar, ChatView, EmptyState } from '@/components/chat';
 import type { Channel } from '@/types/chat';
 import { Spinner } from '@/components/ui/Spinner';

@@ -2933,6 +2933,41 @@ const (
 	VerificationDecisionRejected = "rejected"
 )
 
+// VerificationAuditLog represents an audit log entry for verified users
+type VerificationAuditLog struct {
+	ID          uuid.UUID              `json:"id" db:"id"`
+	UserID      uuid.UUID              `json:"user_id" db:"user_id"`
+	AuditType   string                 `json:"audit_type" db:"audit_type"`     // periodic_check, manual_review, abuse_detection
+	Status      string                 `json:"status" db:"status"`             // passed, flagged, revoked
+	Findings    map[string]interface{} `json:"findings,omitempty" db:"findings"`
+	Notes       *string                `json:"notes,omitempty" db:"notes"`
+	AuditedBy   *uuid.UUID             `json:"audited_by,omitempty" db:"audited_by"`
+	ActionTaken *string                `json:"action_taken,omitempty" db:"action_taken"` // none, warning_sent, verification_revoked, further_review_required
+	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
+}
+
+// Audit type constants
+const (
+	AuditTypePeriodicCheck   = "periodic_check"
+	AuditTypeManualReview    = "manual_review"
+	AuditTypeAbuseDetection  = "abuse_detection"
+)
+
+// Audit status constants
+const (
+	AuditStatusPassed  = "passed"
+	AuditStatusFlagged = "flagged"
+	AuditStatusRevoked = "revoked"
+)
+
+// Audit action constants
+const (
+	AuditActionNone                  = "none"
+	AuditActionWarningSent           = "warning_sent"
+	AuditActionVerificationRevoked   = "verification_revoked"
+	AuditActionFurtherReviewRequired = "further_review_required"
+)
+
 // ChatChannel represents a chat channel
 type ChatChannel struct {
 	ID              uuid.UUID `json:"id" db:"id"`

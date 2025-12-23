@@ -248,7 +248,7 @@ export function ForumModerationPage() {
       const data = await response.json();
       setFlaggedContent(data.data || []);
     } catch (error) {
-      showToast('error', 'Failed to load flagged content');
+      showToast('Failed to load flagged content', 'error');
       console.error('Error loading flagged content:', error);
     } finally {
       setLoading(false);
@@ -272,10 +272,10 @@ export function ForumModerationPage() {
         throw new Error('Failed to lock thread');
       }
 
-      showToast('success', `Thread ${locked ? 'locked' : 'unlocked'} successfully`);
+      showToast(`Thread ${locked ? 'locked' : 'unlocked'} successfully`, 'success');
       loadFlaggedContent();
     } catch (error) {
-      showToast('error', 'Failed to lock thread');
+      showToast('Failed to lock thread', 'error');
       console.error('Error locking thread:', error);
     }
   };
@@ -293,10 +293,10 @@ export function ForumModerationPage() {
         throw new Error('Failed to pin thread');
       }
 
-      showToast('success', `Thread ${pinned ? 'pinned' : 'unpinned'} successfully`);
+      showToast(`Thread ${pinned ? 'pinned' : 'unpinned'} successfully`, 'success');
       loadFlaggedContent();
     } catch (error) {
-      showToast('error', 'Failed to pin thread');
+      showToast('Failed to pin thread', 'error');
       console.error('Error pinning thread:', error);
     }
   };
@@ -314,10 +314,10 @@ export function ForumModerationPage() {
         throw new Error('Failed to delete thread');
       }
 
-      showToast('success', 'Thread deleted successfully');
+      showToast('Thread deleted successfully', 'success');
       loadFlaggedContent();
     } catch (error) {
-      showToast('error', 'Failed to delete thread');
+      showToast('Failed to delete thread', 'error');
       console.error('Error deleting thread:', error);
     }
   };
@@ -335,10 +335,10 @@ export function ForumModerationPage() {
         throw new Error('Failed to ban user');
       }
 
-      showToast('success', 'User banned successfully');
+      showToast('User banned successfully', 'success');
       loadFlaggedContent();
     } catch (error) {
-      showToast('error', 'Failed to ban user');
+      showToast('Failed to ban user', 'error');
       console.error('Error banning user:', error);
     }
   };
