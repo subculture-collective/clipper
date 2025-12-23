@@ -52,6 +52,26 @@ func NewSearchHandlerWithHybridSearch(searchRepo *repository.SearchRepository, h
 	}
 }
 
+
+// parseIntQueryParam safely parses an integer query parameter with default value and bounds
+func parseIntQueryParam(c *gin.Context, key string, defaultValue, min, max int) int {
+	valueStr := c.Query(key)
+	if valueStr == "" {
+	return defaultValue
+	}
+	
+	var value int
+	if _, err := fmt.Sscanf(valueStr, "%d", &value); err != nil {
+	return defaultValue
+	}
+	
+	if value < min || value > max {
+	return defaultValue
+	}
+	
+	return value
+}
+
 // Search handles universal search requests
 // GET /api/v1/search
 func (h *SearchHandler) Search(c *gin.Context) {
@@ -227,23 +247,9 @@ func (h *SearchHandler) SearchWithScores(c *gin.Context) {
 // GetTrendingSearches returns the most popular search queries
 // GET /api/v1/search/trending
 func (h *SearchHandler) GetTrendingSearches(c *gin.Context) {
-days := 7
-if d := c.Query("days"); d != "" {
-if parsed, err := fmt.Sscanf(d, "%d", &days); err == nil && parsed == 1 {
-if days < 1 || days > 365 {
-days = 7
-}
-}
-}
+	days := parseIntQueryParam(c, "days", 7, 1, 365)
 
-limit := 20
-if l := c.Query("limit"); l != "" {
-if parsed, err := fmt.Sscanf(l, "%d", &limit); err == nil && parsed == 1 {
-if limit < 1 || limit > 100 {
-limit = 20
-}
-}
-}
+	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
 searches, err := h.searchRepo.GetTrendingSearches(c.Request.Context(), days, limit)
 if err != nil {
@@ -263,23 +269,9 @@ c.JSON(http.StatusOK, gin.H{
 // GetFailedSearches returns searches that returned no results
 // GET /api/v1/search/failed
 func (h *SearchHandler) GetFailedSearches(c *gin.Context) {
-days := 7
-if d := c.Query("days"); d != "" {
-if parsed, err := fmt.Sscanf(d, "%d", &days); err == nil && parsed == 1 {
-if days < 1 || days > 365 {
-days = 7
-}
-}
-}
+	days := parseIntQueryParam(c, "days", 7, 1, 365)
 
-limit := 20
-if l := c.Query("limit"); l != "" {
-if parsed, err := fmt.Sscanf(l, "%d", &limit); err == nil && parsed == 1 {
-if limit < 1 || limit > 100 {
-limit = 20
-}
-}
-}
+	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
 searches, err := h.searchRepo.GetFailedSearches(c.Request.Context(), days, limit)
 if err != nil {
@@ -316,14 +308,7 @@ c.JSON(http.StatusUnauthorized, gin.H{
 return
 }
 
-limit := 20
-if l := c.Query("limit"); l != "" {
-if parsed, err := fmt.Sscanf(l, "%d", &limit); err == nil && parsed == 1 {
-if limit < 1 || limit > 100 {
-limit = 20
-}
-}
-}
+	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
 history, err := h.searchRepo.GetUserSearchHistory(c.Request.Context(), user.ID, limit)
 if err != nil {
@@ -359,14 +344,7 @@ c.JSON(http.StatusForbidden, gin.H{
 return
 }
 
-days := 7
-if d := c.Query("days"); d != "" {
-if parsed, err := fmt.Sscanf(d, "%d", &days); err == nil && parsed == 1 {
-if days < 1 || days > 365 {
-days = 7
-}
-}
-}
+	days := parseIntQueryParam(c, "days", 7, 1, 365)
 
 summary, err := h.searchRepo.GetSearchAnalyticsSummary(c.Request.Context(), days)
 if err != nil {
