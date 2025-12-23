@@ -234,7 +234,7 @@ submissions.POST("", middleware.AuthMiddleware(...), submissionHandler.Create)
 ### ✅ Load Testing (100% Complete)
 
 - **Status**: Fully operational and validated
-- **Coverage**: All critical endpoints tested
+- **Coverage**: All critical endpoints included in load test scenarios; manual validation complete, but automated E2E/mobile test coverage has known gaps (see Integration & E2E Testing)
 - **Performance**: All SLOs met (p95 < 500ms, error rate < 0.1%)
 - **CI/CD**: Automated nightly runs
 
@@ -408,7 +408,7 @@ All submission flows have been manually validated:
 | Submission success rate | >95% | ✅ Ready | Backend validation + error handling implemented |
 | Metadata fetch latency | p95 <500ms | ✅ Met | Load testing validated |
 | Submit endpoint latency | p95 <300ms | ✅ Met | Load testing validated |
-| Test coverage | >80% | ✅ Met | Unit tests + integration structure complete |
+| Test coverage | >80% | ⚠️ Partially Met | Unit tests green; integration tests incomplete/non-compiling; automated coverage below target, with extensive manual E2E validation completed (see Testing section) |
 | Critical security vulnerabilities | 0 | ✅ Met | MFA + secrets management + RBAC implemented |
 
 ### Infrastructure Metrics
@@ -516,7 +516,7 @@ All submission flows have been manually validated:
 | Security hardening (#396, #397) | Week 3-4 | Completed | ✅ Done |
 | Production monitoring (#429) | Week 4-5 | Completed | ✅ Done |
 | Load testing, final QA | Week 5-6 | Completed | ✅ Done |
-| **Target Launch** | **Mid-January 2026** | **Ready** | ✅ **READY** |
+| **Target Launch** | **Mid-January 2026 (Jan 15-31)** | **Ready** | ✅ **READY** |
 
 ---
 

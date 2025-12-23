@@ -427,9 +427,9 @@ Execute rollback if:
 
 ### On-Call Rotation
 
-- **Primary**: [Team Lead]
-- **Secondary**: [Senior Engineer]
-- **Escalation**: [Engineering Manager]
+- **Primary**: User Submission On-Call Engineer (see on-call schedule or PagerDuty)
+- **Secondary**: Platform On-Call Engineer (see on-call schedule or PagerDuty)
+- **Escalation**: Engineering Incident Commander (see on-call schedule or PagerDuty)
 
 ### Key Resources
 
