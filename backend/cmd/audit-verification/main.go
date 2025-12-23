@@ -7,7 +7,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
