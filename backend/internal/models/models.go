@@ -370,6 +370,37 @@ type SearchResponseWithScores struct {
 	Scores []ClipScore `json:"scores,omitempty"`
 }
 
+// TrendingSearch represents a popular search query
+type TrendingSearch struct {
+	Query       string `json:"query"`
+	SearchCount int    `json:"search_count"`
+	UniqueUsers int    `json:"unique_users"`
+	AvgResults  int    `json:"avg_results"`
+}
+
+// FailedSearch represents a search query that returned no results
+type FailedSearch struct {
+	Query        string    `json:"query"`
+	SearchCount  int       `json:"search_count"`
+	LastSearched time.Time `json:"last_searched"`
+}
+
+// SearchHistoryItem represents a single search in a user's history
+type SearchHistoryItem struct {
+	Query       string    `json:"query"`
+	ResultCount int       `json:"result_count"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// SearchAnalyticsSummary represents overall search analytics
+type SearchAnalyticsSummary struct {
+	TotalSearches         int     `json:"total_searches"`
+	UniqueUsers           int     `json:"unique_users"`
+	FailedSearches        int     `json:"failed_searches"`
+	AvgResultsPerSearch   int     `json:"avg_results_per_search"`
+	SuccessRate           float64 `json:"success_rate"`
+}
+
 // ClipSubmission represents a user-submitted clip pending moderation
 type ClipSubmission struct {
 	ID                      uuid.UUID  `json:"id" db:"id"`
