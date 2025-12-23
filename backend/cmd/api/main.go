@@ -1522,6 +1522,8 @@ func main() {
 				verification.GET("/applications/:id", verificationHandler.GetApplicationByID)
 				verification.POST("/applications/:id/review", verificationHandler.ReviewApplication)
 				verification.GET("/stats", verificationHandler.GetApplicationStats)
+				verification.GET("/audit-logs", verificationHandler.GetAuditLogs)
+				verification.GET("/users/:user_id/audit-logs", verificationHandler.GetUserAuditHistory)
 			}
 
 			// Discovery list management (admin/moderator only)

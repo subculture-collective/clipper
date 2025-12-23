@@ -346,3 +346,262 @@ func (r *VerificationRepository) GetApplicationWithUser(ctx context.Context, id 
 	appWithUser.User = user
 	return appWithUser, nil
 }
+
+// ==============================================================================
+// Abuse Prevention Methods
+// ==============================================================================
+
+// GetRecentRejectedApplicationByUserID checks if user has a recently rejected application
+// Returns the most recent rejected application within the specified days, or nil if none found
+func (r *VerificationRepository) GetRecentRejectedApplicationByUserID(ctx context.Context, userID uuid.UUID, withinDays int) (*models.CreatorVerificationApplication, error) {
+	query := `
+		SELECT id, user_id, twitch_channel_url, follower_count, subscriber_count,
+			avg_viewers, content_description, social_media_links,
+			status, priority, reviewed_by, reviewed_at, reviewer_notes,
+			created_at, updated_at
+		FROM creator_verification_applications
+		WHERE user_id = $1 
+			AND status = $2
+			AND reviewed_at > NOW() - INTERVAL '1 day' * $3
+		ORDER BY reviewed_at DESC
+		LIMIT 1`
+
+	app := &models.CreatorVerificationApplication{}
+	err := r.db.QueryRow(ctx, query, userID, models.VerificationStatusRejected, withinDays).Scan(
+		&app.ID,
+		&app.UserID,
+		&app.TwitchChannelURL,
+		&app.FollowerCount,
+		&app.SubscriberCount,
+		&app.AvgViewers,
+		&app.ContentDescription,
+		&app.SocialMediaLinks,
+		&app.Status,
+		&app.Priority,
+		&app.ReviewedBy,
+		&app.ReviewedAt,
+		&app.ReviewerNotes,
+		&app.CreatedAt,
+		&app.UpdatedAt,
+	)
+
+	if err == pgx.ErrNoRows {
+		return nil, nil // No recent rejection is not an error
+	}
+	return app, err
+}
+
+// GetApplicationCountByUserID returns the total number of applications submitted by a user
+func (r *VerificationRepository) GetApplicationCountByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
+	query := `SELECT COUNT(*) FROM creator_verification_applications WHERE user_id = $1`
+	
+	var count int
+	err := r.db.QueryRow(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
+// GetApplicationsByTwitchURL checks if there are existing applications with the same Twitch URL
+// Excludes applications from the specified user ID (for checking duplicates from other users)
+func (r *VerificationRepository) GetApplicationsByTwitchURL(ctx context.Context, twitchURL string, excludeUserID uuid.UUID) ([]*models.CreatorVerificationApplication, error) {
+	query := `
+		SELECT id, user_id, twitch_channel_url, follower_count, subscriber_count,
+			avg_viewers, content_description, social_media_links,
+			status, priority, reviewed_by, reviewed_at, reviewer_notes,
+			created_at, updated_at
+		FROM creator_verification_applications
+		WHERE LOWER(twitch_channel_url) = LOWER($1)
+			AND user_id != $2
+			AND status != $3
+		ORDER BY created_at DESC`
+
+	rows, err := r.db.Query(ctx, query, twitchURL, excludeUserID, models.VerificationStatusRejected)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var apps []*models.CreatorVerificationApplication
+	for rows.Next() {
+		app := &models.CreatorVerificationApplication{}
+		err := rows.Scan(
+			&app.ID,
+			&app.UserID,
+			&app.TwitchChannelURL,
+			&app.FollowerCount,
+			&app.SubscriberCount,
+			&app.AvgViewers,
+			&app.ContentDescription,
+			&app.SocialMediaLinks,
+			&app.Status,
+			&app.Priority,
+			&app.ReviewedBy,
+			&app.ReviewedAt,
+			&app.ReviewerNotes,
+			&app.CreatedAt,
+			&app.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		apps = append(apps, app)
+	}
+
+	return apps, rows.Err()
+}
+
+// ==============================================================================
+// Audit Log Operations
+// ==============================================================================
+
+// CreateAuditLog creates a new verification audit log entry
+func (r *VerificationRepository) CreateAuditLog(ctx context.Context, log *models.VerificationAuditLog) error {
+	query := `
+		INSERT INTO verification_audit_logs (
+			user_id, audit_type, status, findings, notes, audited_by, action_taken
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, created_at`
+
+	err := r.db.QueryRow(ctx, query,
+		log.UserID,
+		log.AuditType,
+		log.Status,
+		log.Findings,
+		log.Notes,
+		log.AuditedBy,
+		log.ActionTaken,
+	).Scan(&log.ID, &log.CreatedAt)
+
+	return err
+}
+
+// GetAuditLogsByUserID retrieves all audit logs for a user
+func (r *VerificationRepository) GetAuditLogsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.VerificationAuditLog, error) {
+	query := `
+		SELECT id, user_id, audit_type, status, findings, notes, audited_by, action_taken, created_at
+		FROM verification_audit_logs
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []*models.VerificationAuditLog
+	for rows.Next() {
+		log := &models.VerificationAuditLog{}
+		err := rows.Scan(
+			&log.ID,
+			&log.UserID,
+			&log.AuditType,
+			&log.Status,
+			&log.Findings,
+			&log.Notes,
+			&log.AuditedBy,
+			&log.ActionTaken,
+			&log.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		logs = append(logs, log)
+	}
+
+	return logs, rows.Err()
+}
+
+// GetVerifiedUsersForAudit retrieves verified users that need periodic audit
+// Returns users who haven't been audited in the last N days
+func (r *VerificationRepository) GetVerifiedUsersForAudit(ctx context.Context, lastAuditedDaysAgo int, limit int) ([]*models.User, error) {
+	query := `
+		SELECT u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
+			u.bio, u.karma_points, u.trust_score, u.role, u.account_type,
+			u.is_verified, u.verified_at, u.created_at
+		FROM users u
+		WHERE u.is_verified = true
+			AND u.is_banned = false
+			AND (
+				NOT EXISTS (
+					SELECT 1 FROM verification_audit_logs val
+					WHERE val.user_id = u.id
+						AND val.created_at > NOW() - INTERVAL '1 day' * $1
+				)
+				OR u.verified_at < NOW() - INTERVAL '1 day' * $1
+			)
+		ORDER BY u.verified_at ASC
+		LIMIT $2`
+
+	rows, err := r.db.Query(ctx, query, lastAuditedDaysAgo, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(
+			&user.ID,
+			&user.TwitchID,
+			&user.Username,
+			&user.DisplayName,
+			&user.Email,
+			&user.AvatarURL,
+			&user.Bio,
+			&user.KarmaPoints,
+			&user.TrustScore,
+			&user.Role,
+			&user.AccountType,
+			&user.IsVerified,
+			&user.VerifiedAt,
+			&user.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, rows.Err()
+}
+
+// GetFlaggedAudits retrieves audit logs that require attention
+func (r *VerificationRepository) GetFlaggedAudits(ctx context.Context, limit, offset int) ([]*models.VerificationAuditLog, error) {
+	query := `
+		SELECT id, user_id, audit_type, status, findings, notes, audited_by, action_taken, created_at
+		FROM verification_audit_logs
+		WHERE status IN ($1, $2)
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4`
+
+	rows, err := r.db.Query(ctx, query, models.AuditStatusFlagged, models.AuditStatusRevoked, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []*models.VerificationAuditLog
+	for rows.Next() {
+		log := &models.VerificationAuditLog{}
+		err := rows.Scan(
+			&log.ID,
+			&log.UserID,
+			&log.AuditType,
+			&log.Status,
+			&log.Findings,
+			&log.Notes,
+			&log.AuditedBy,
+			&log.ActionTaken,
+			&log.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		logs = append(logs, log)
+	}
+
+	return logs, rows.Err()
+}
+
