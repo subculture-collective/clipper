@@ -38,13 +38,14 @@ const (
 type CommentService struct {
 	repo                *repository.CommentRepository
 	clipRepo            *repository.ClipRepository
+	userRepo            *repository.UserRepository
 	markdown            goldmark.Markdown
 	sanitizer           *bluemonday.Policy
 	notificationService *NotificationService
 }
 
 // NewCommentService creates a new CommentService
-func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository, notificationService *NotificationService) *CommentService {
+func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository, userRepo *repository.UserRepository, notificationService *NotificationService) *CommentService {
 	// Configure markdown processor
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -75,6 +76,7 @@ func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.
 	return &CommentService{
 		repo:                repo,
 		clipRepo:            clipRepo,
+		userRepo:            userRepo,
 		markdown:            md,
 		sanitizer:           sanitizer,
 		notificationService: notificationService,
@@ -139,6 +141,17 @@ func (s *CommentService) ValidateCreateComment(ctx context.Context, req *CreateC
 
 // CreateComment creates a new comment
 func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRequest, clipID, userID uuid.UUID) (*repository.CommentWithAuthor, error) {
+	// Check if user can comment (not suspended)
+	if s.userRepo != nil {
+		canComment, err := s.userRepo.CanUserComment(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check comment privileges: %w", err)
+		}
+		if !canComment {
+			return nil, fmt.Errorf("comment privileges are suspended")
+		}
+	}
+
 	// Validate request
 	if err := s.ValidateCreateComment(ctx, req, clipID); err != nil {
 		return nil, err

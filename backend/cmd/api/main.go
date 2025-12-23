@@ -210,7 +210,7 @@ func main() {
 	}
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
-	commentService := services.NewCommentService(commentRepo, clipRepo, notificationService)
+	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
@@ -1404,6 +1404,11 @@ func main() {
 				adminUsers.PATCH("/:id/karma", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.UpdateUserKarma)
 				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
 				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
+				// Comment privilege suspension routes
+				adminUsers.POST("/:id/suspend-comments", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.SuspendCommentPrivileges)
+				adminUsers.POST("/:id/lift-comment-suspension", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.LiftCommentSuspension)
+				adminUsers.GET("/:id/comment-suspension-history", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.GetCommentSuspensionHistory)
+				adminUsers.POST("/:id/toggle-comment-review", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.ToggleCommentReview)
 			}
 
 			// Account type management (admin only)

@@ -35,9 +35,13 @@ type User struct {
 	// Verification fields
 	IsVerified          bool       `json:"is_verified" db:"is_verified"`
 	VerifiedAt          *time.Time `json:"verified_at,omitempty" db:"verified_at"`
-	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
-	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	// Comment moderation fields
+	CommentSuspendedUntil *time.Time `json:"comment_suspended_until,omitempty" db:"comment_suspended_until"`
+	CommentsRequireReview bool       `json:"comments_require_review" db:"comments_require_review"`
+	CommentWarningCount   int        `json:"comment_warning_count" db:"comment_warning_count"`
+	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
+	LastLoginAt           *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
 }
 
 // UserSettings represents user privacy and other settings
@@ -1668,6 +1672,43 @@ type ManualTrustScoreAdjustment struct {
 	Reason   string  `json:"reason" binding:"required,min=3,max=100"`
 	Notes    *string `json:"notes,omitempty" binding:"omitempty,max=1000"`
 }
+
+// CommentSuspensionHistory represents a comment suspension action record
+type CommentSuspensionHistory struct {
+	ID             uuid.UUID  `json:"id" db:"id"`
+	UserID         uuid.UUID  `json:"user_id" db:"user_id"`
+	SuspendedBy    uuid.UUID  `json:"suspended_by" db:"suspended_by"`
+	SuspensionType string     `json:"suspension_type" db:"suspension_type"` // warning, temporary, permanent
+	Reason         string     `json:"reason" db:"reason"`
+	DurationHours  *int       `json:"duration_hours,omitempty" db:"duration_hours"`
+	SuspendedAt    time.Time  `json:"suspended_at" db:"suspended_at"`
+	ExpiresAt      *time.Time `json:"expires_at,omitempty" db:"expires_at"`
+	IsActive       bool       `json:"is_active" db:"is_active"`
+	LiftedAt       *time.Time `json:"lifted_at,omitempty" db:"lifted_at"`
+	LiftedBy       *uuid.UUID `json:"lifted_by,omitempty" db:"lifted_by"`
+	LiftReason     *string    `json:"lift_reason,omitempty" db:"lift_reason"`
+	Metadata       *string    `json:"metadata,omitempty" db:"metadata"` // JSONB stored as string
+}
+
+// CommentSuspensionRequest represents a request to suspend comment privileges
+type CommentSuspensionRequest struct {
+	UserID        uuid.UUID `json:"user_id" binding:"required"`
+	SuspensionType string   `json:"suspension_type" binding:"required,oneof=warning temporary permanent"`
+	Reason        string    `json:"reason" binding:"required,min=10,max=1000"`
+	DurationHours *int      `json:"duration_hours,omitempty" binding:"omitempty,min=1,max=8760"` // max 1 year
+}
+
+// LiftSuspensionRequest represents a request to lift a comment suspension
+type LiftSuspensionRequest struct {
+	Reason string `json:"reason" binding:"required,min=10,max=500"`
+}
+
+// Comment suspension type constants
+const (
+	SuspensionTypeWarning   = "warning"
+	SuspensionTypeTemporary = "temporary"
+	SuspensionTypePermanent = "permanent"
+)
 
 // BroadcasterFollow represents a user following a broadcaster
 type BroadcasterFollow struct {
