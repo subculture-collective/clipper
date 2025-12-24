@@ -14,6 +14,9 @@ import type {
   ForumThreadDetailResponse,
   ForumSearchResponse,
   ForumSort,
+  ForumAnalyticsResponse,
+  PopularDiscussionsResponse,
+  HelpfulRepliesResponse,
 } from '@/types/forum';
 
 interface ListThreadsParams {
@@ -114,6 +117,38 @@ export const forumApi = {
     const response = await apiClient.get<ForumSearchResponse>(
       `/forum/search?${queryParams.toString()}`
     );
+    return response.data;
+  },
+
+  /**
+   * Get forum analytics data
+   */
+  async getAnalytics(): Promise<ForumAnalyticsResponse> {
+    const response = await apiClient.get<ForumAnalyticsResponse>('/forum/analytics');
+    return response.data;
+  },
+
+  /**
+   * Get popular discussions
+   */
+  async getPopularDiscussions(timeframe: 'day' | 'week' | 'month' | 'all' = 'week', limit = 20): Promise<PopularDiscussionsResponse> {
+    const params = new URLSearchParams();
+    params.append('timeframe', timeframe);
+    params.append('limit', limit.toString());
+    
+    const response = await apiClient.get<PopularDiscussionsResponse>(`/forum/popular?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Get most helpful replies
+   */
+  async getMostHelpfulReplies(timeframe: 'week' | 'month' | 'all' = 'month', limit = 20): Promise<HelpfulRepliesResponse> {
+    const params = new URLSearchParams();
+    params.append('timeframe', timeframe);
+    params.append('limit', limit.toString());
+    
+    const response = await apiClient.get<HelpfulRepliesResponse>(`/forum/helpful-replies?${params.toString()}`);
     return response.data;
   },
 };

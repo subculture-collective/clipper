@@ -83,6 +83,7 @@ const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ de
 const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => ({ default: m.ThreadDetail })));
 const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
 const ForumSearchPage = lazy(() => import('./pages/forum/ForumSearchPage').then(m => ({ default: m.ForumSearchPage })));
+const ForumAnalyticsPage = lazy(() => import('./pages/forum/ForumAnalyticsPage').then(m => ({ default: m.ForumAnalyticsPage })));
 const WebhookSubscriptionsPage = lazy(() => import('./pages/WebhookSubscriptionsPage').then(m => ({ default: m.WebhookSubscriptionsPage })));
 const WatchPartyPage = lazy(() => import('./pages/WatchPartyPage').then(m => ({ default: m.WatchPartyPage })));
 const WatchPartyBrowsePage = lazy(() => import('./pages/WatchPartyBrowsePage').then(m => ({ default: m.WatchPartyBrowsePage })));
@@ -144,6 +145,7 @@ function App() {
                     {/* Forum Routes */}
                     <Route path="/forum" element={<ForumIndex />} />
                     <Route path="/forum/search" element={<ForumSearchPage />} />
+                    <Route path="/forum/analytics" element={<ForumAnalyticsPage />} />
                     <Route path="/forum/threads/:threadId" element={<ThreadDetail />} />
                     <Route
                       path="/forum/new"
