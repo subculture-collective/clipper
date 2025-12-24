@@ -11,6 +11,8 @@
     "**/dist/**",
     "**/.obsidian/**",
     ".git",
+    "vault/**",
+    "**/vault/**",
     "**/*.svg",
     "**/*.png"
   ],

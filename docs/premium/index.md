@@ -1,13 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Premium & Monetization](#premium--monetization)
-  - [Quick Links](#quick-links)
-  - [Documentation Index](#documentation-index)
-  - [Subscription Tiers](#subscription-tiers)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Premium & Monetization"
 summary: "Subscription model, pricing tiers, and payment integration."

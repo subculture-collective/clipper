@@ -1,21 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Semantic Search](#semantic-search)
-  - [Overview](#overview)
-  - [Architecture Decision](#architecture-decision)
-  - [System Architecture](#system-architecture)
-  - [Indexing Flow](#indexing-flow)
-  - [Search Flow](#search-flow)
-  - [Database Schema](#database-schema)
-  - [Embedding Service](#embedding-service)
-  - [Performance](#performance)
-  - [Configuration](#configuration)
-  - [Monitoring](#monitoring)
-  - [Troubleshooting](#troubleshooting)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Semantic Search"
 summary: "Hybrid BM25 + vector similarity search using pgvector for semantic understanding."

@@ -1,24 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [React Chunking Error - Fixed Deployment Guide](#react-chunking-error---fixed-deployment-guide)
-  - [Issue Summary](#issue-summary)
-  - [Solution Implemented](#solution-implemented)
-    - [Key Changes Made](#key-changes-made)
-    - [Why This Works](#why-this-works)
-    - [Build Output (After Fix)](#build-output-after-fix)
-    - [Performance Trade-offs](#performance-trade-offs)
-  - [Deployment Steps](#deployment-steps)
-    - [Option 1: Manual Deployment](#option-1-manual-deployment)
-    - [Option 2: Docker-based Deployment](#option-2-docker-based-deployment)
-    - [Option 3: Using Caddy Reverse Proxy](#option-3-using-caddy-reverse-proxy)
-  - [Verification Checklist](#verification-checklist)
-  - [Rollback Plan](#rollback-plan)
-  - [Related Files](#related-files)
-  - [Testing Before Production](#testing-before-production)
-  - [Support](#support)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # React Chunking Error - Fixed Deployment Guide
 

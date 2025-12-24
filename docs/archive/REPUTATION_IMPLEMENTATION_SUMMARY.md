@@ -1,30 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Reputation System Implementation Summary](#reputation-system-implementation-summary)
-  - [Overview](#overview)
-  - [Completed Features](#completed-features)
-    - [Backend Implementation ✅](#backend-implementation-)
-    - [Frontend Implementation ✅](#frontend-implementation-)
-  - [Technical Details](#technical-details)
-    - [Karma Calculation](#karma-calculation)
-    - [Trust Score (0-100)](#trust-score-0-100)
-    - [Engagement Score](#engagement-score)
-    - [Background Job Schedule](#background-job-schedule)
-  - [Security](#security)
-  - [Testing](#testing)
-    - [Backend Tests](#backend-tests)
-    - [Frontend Tests](#frontend-tests)
-  - [Files Changed/Added](#files-changedadded)
-    - [Backend](#backend)
-    - [Frontend](#frontend)
-    - [Tests](#tests)
-  - [What's Not Implemented (Future Enhancements)](#whats-not-implemented-future-enhancements)
-  - [API Documentation](#api-documentation)
-  - [Next Steps](#next-steps)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Reputation System Implementation Summary
 

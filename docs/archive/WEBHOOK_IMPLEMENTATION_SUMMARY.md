@@ -1,38 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Implementation Summary: Webhook Processor for Subscription Lifecycle](#implementation-summary-webhook-processor-for-subscription-lifecycle)
-  - [Issue](#issue)
-  - [Implementation Overview](#implementation-overview)
-  - [Delivered Features](#delivered-features)
-    - [1. Webhook Endpoint with Signature Verification ✅](#1-webhook-endpoint-with-signature-verification-)
-    - [2. Idempotent Event Handling and Persistence ✅](#2-idempotent-event-handling-and-persistence-)
-    - [3. Retry and Dead-Letter Strategy ✅](#3-retry-and-dead-letter-strategy-)
-    - [4. Observability (Metrics, Logs, Alerts) ✅](#4-observability-metrics-logs-alerts-)
-  - [Database Schema](#database-schema)
-    - [webhook_retry_queue](#webhook_retry_queue)
-    - [webhook_dead_letter_queue](#webhook_dead_letter_queue)
-  - [Event Types Supported](#event-types-supported)
-  - [Code Quality](#code-quality)
-    - [Tests](#tests)
-    - [Build](#build)
-    - [Security](#security)
-  - [Documentation](#documentation)
-    - [Created](#created)
-    - [Updated](#updated)
-  - [File Changes Summary](#file-changes-summary)
-    - [New Files (10)](#new-files-10)
-    - [Modified Files (6)](#modified-files-6)
-  - [Integration Points](#integration-points)
-    - [Application Startup](#application-startup)
-  - [Deployment Checklist](#deployment-checklist)
-  - [Acceptance Criteria Status](#acceptance-criteria-status)
-  - [Performance Characteristics](#performance-characteristics)
-  - [Future Enhancements](#future-enhancements)
-  - [Summary](#summary)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Implementation Summary: Webhook Processor for Subscription Lifecycle
 
 ## Issue

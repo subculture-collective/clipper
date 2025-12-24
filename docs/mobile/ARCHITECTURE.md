@@ -1,19 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Component Architecture Visualization](#component-architecture-visualization)
-  - [Component Hierarchy](#component-hierarchy)
-  - [Data Flow](#data-flow)
-  - [Component Interaction Flow](#component-interaction-flow)
-  - [Styling Architecture](#styling-architecture)
-  - [State Machine Diagram](#state-machine-diagram)
-  - [Type Relationships](#type-relationships)
-  - [Error Handling Flow](#error-handling-flow)
-  - [Component Responsibilities](#component-responsibilities)
-  - [Integration Points](#integration-points)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Component Architecture Visualization"
 summary: "```"

@@ -1,23 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [CI/CD Integration with Vault](#cicd-integration-with-vault)
-  - [Overview](#overview)
-  - [Current State vs. Target State](#current-state-vs-target-state)
-  - [GitHub Actions Integration](#github-actions-integration)
-    - [Option 1: Vault Agent in Deployment Pipeline](#option-1-vault-agent-in-deployment-pipeline)
-    - [Option 2: GitHub OIDC with Vault](#option-2-github-oidc-with-vault)
-    - [Option 3: Continue Using GitHub Secrets (Recommended for Now)](#option-3-continue-using-github-secrets-recommended-for-now)
-  - [Deployment Workflow Updates](#deployment-workflow-updates)
-    - [Production Deployment](#production-deployment)
-    - [Staging Deployment](#staging-deployment)
-  - [Secrets Synchronization](#secrets-synchronization)
-  - [Migration Plan](#migration-plan)
-  - [Security Considerations](#security-considerations)
-  - [Troubleshooting](#troubleshooting)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "CI/CD Integration with Vault"
 summary: "Guide for integrating HashiCorp Vault with CI/CD pipelines"

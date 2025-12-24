@@ -1,33 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Scraped Clips Section - Implementation Summary](#scraped-clips-section---implementation-summary)
-  - [What Was Implemented](#what-was-implemented)
-  - [Key Changes](#key-changes)
-    - [Backend (Go)](#backend-go)
-    - [Frontend (React/TypeScript)](#frontend-reacttypescript)
-  - [UI/UX Features](#uiux-features)
-    - [Page Header](#page-header)
-    - [Info Banner](#info-banner)
-    - [Tabs](#tabs)
-    - [Filters](#filters)
-    - [Clip Cards](#clip-cards)
-  - [Technical Details](#technical-details)
-    - [Data Flow](#data-flow)
-    - [Caching](#caching)
-    - [Database Query](#database-query)
-  - [Testing Done](#testing-done)
-  - [Remaining Work](#remaining-work)
-  - [How to Test](#how-to-test)
-  - [API Example](#api-example)
-  - [Files Changed](#files-changed)
-    - [Backend](#backend)
-    - [Frontend](#frontend)
-    - [Documentation](#documentation)
-  - [Design Decisions](#design-decisions)
-  - [Future Enhancements](#future-enhancements)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Scraped Clips Section - Implementation Summary
 

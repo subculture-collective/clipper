@@ -1,23 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Vault Access Control and Policies](#vault-access-control-and-policies)
-  - [Overview](#overview)
-  - [Current Access Control Structure](#current-access-control-structure)
-  - [Vault Policies](#vault-policies)
-    - [Backend Policy (clipper-backend.hcl)](#backend-policy-clipper-backendhcl)
-    - [Frontend Policy (clipper-frontend.hcl)](#frontend-policy-clipper-frontendhcl)
-    - [Admin Policy (Recommended)](#admin-policy-recommended)
-    - [CI/CD Policy (Optional)](#cicd-policy-optional)
-  - [AppRole Configuration](#approle-configuration)
-  - [User Access Management](#user-access-management)
-  - [Audit Logging](#audit-logging)
-  - [Access Review Procedures](#access-review-procedures)
-  - [Least Privilege Examples](#least-privilege-examples)
-  - [Emergency Access](#emergency-access)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Vault Access Control and Policies"
 summary: "Access control policies and procedures for HashiCorp Vault"
