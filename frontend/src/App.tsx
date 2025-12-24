@@ -70,6 +70,7 @@ const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPa
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m => ({ default: m.RoleBadgeTestPage })));
 const VerifiedBadgeTestPage = lazy(() => import('./pages/VerifiedBadgeTestPage').then(m => ({ default: m.VerifiedBadgeTestPage })));
+const VerificationApplicationPage = lazy(() => import('./pages/VerificationApplicationPage').then(m => ({ default: m.VerificationApplicationPage })));
 const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage })));
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage').then(m => ({ default: m.PlaylistDetailPage })));
 const PublicPlaylistsPage = lazy(() => import('./pages/PublicPlaylistsPage').then(m => ({ default: m.PublicPlaylistsPage })));
@@ -216,6 +217,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <ProfilePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/verification/apply"
+                      element={
+                        <ProtectedRoute>
+                          <VerificationApplicationPage />
                         </ProtectedRoute>
                       }
                     />
