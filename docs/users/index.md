@@ -1,13 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [User Documentation](#user-documentation)
-  - [Quick Links](#quick-links)
-  - [Documentation Index](#documentation-index)
-  - [Getting Help](#getting-help)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "User Documentation"
 summary: "Guides for using the Clipper platform as a user."

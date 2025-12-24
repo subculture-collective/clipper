@@ -1,4 +1,4 @@
-.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status
+.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -48,10 +48,93 @@ test-integration: ## Run integration tests (requires Docker)
 	@echo "Running database migrations..."
 	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
 	@echo "Running integration tests..."
-	cd backend && go test -v -tags=integration ./...
+	cd backend && go test -v -tags=integration ./tests/integration/...
 	@echo "Stopping test database..."
 	docker compose -f docker-compose.test.yml down
 	@echo "✓ Integration tests complete"
+
+test-integration-auth: ## Run authentication integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running authentication integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/auth/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Authentication tests complete"
+
+test-integration-submissions: ## Run submission integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running submission integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/submissions/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Submission tests complete"
+
+test-integration-engagement: ## Run engagement integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running engagement integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/engagement/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Engagement tests complete"
+
+test-integration-premium: ## Run premium integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running premium integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/premium/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Premium tests complete"
+
+test-integration-search: ## Run search integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running search integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/search/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Search tests complete"
+
+test-integration-api: ## Run API integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running API integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/api/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ API tests complete"
+
+test-e2e: ## Run frontend E2E tests
+	@echo "Running frontend E2E tests..."
+	cd frontend && npm run test:e2e
+	@echo "✓ E2E tests complete"
 
 test-coverage: ## Run tests with coverage report
 	@echo "Running backend tests with coverage..."
@@ -68,6 +151,7 @@ test-load: ## Run all load tests (requires k6)
 		k6 run backend/tests/load/scenarios/clip_detail.js; \
 		k6 run backend/tests/load/scenarios/search.js; \
 		k6 run backend/tests/load/scenarios/comments.js; \
+		k6 run backend/tests/load/scenarios/authentication.js; \
 		k6 run backend/tests/load/scenarios/mixed_behavior.js; \
 		echo "✓ All load tests complete"; \
 	else \
@@ -91,8 +175,33 @@ test-load-comments: ## Run comments load test
 test-load-submit: ## Run submission load test (requires AUTH_TOKEN)
 	@k6 run backend/tests/load/scenarios/submit.js
 
+test-load-auth: ## Run authentication load test
+	@k6 run backend/tests/load/scenarios/authentication.js
+
+test-load-report: ## Generate comprehensive load test report
+	@if command -v k6 > /dev/null; then \
+		echo "Generating comprehensive load test report..."; \
+		cd backend/tests/load && ./generate_report.sh; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
+
 test-load-mixed: ## Run mixed user behavior load test
 	@k6 run backend/tests/load/scenarios/mixed_behavior.js
+
+test-security: ## Run all security tests (IDOR, authorization)
+	@echo "Running IDOR security tests..."
+	cd backend && go test -v ./tests/security/
+	@echo "Running authorization middleware tests..."
+	cd backend && go test -v ./internal/middleware/ -run "TestCanAccessResource|TestPermissionMatrix|TestUserOwnership"
+	@echo "✓ All security tests passed"
+
+test-idor: ## Run IDOR vulnerability tests only
+	@echo "Running IDOR security tests..."
+	cd backend && go test -v ./tests/security/ -run TestIDOR
+	@echo "✓ IDOR tests complete"
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."

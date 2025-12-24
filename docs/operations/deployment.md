@@ -1,28 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Deployment](#deployment)
-  - [Overview](#overview)
-  - [Environments](#environments)
-  - [Docker Images](#docker-images)
-    - [Multi-Stage Builds](#multi-stage-builds)
-  - [Deployment Process](#deployment-process)
-    - [Staging Deployment](#staging-deployment)
-    - [Production Deployment](#production-deployment)
-  - [Server Setup](#server-setup)
-    - [Prerequisites](#prerequisites)
-    - [Initial Setup](#initial-setup)
-    - [Environment Configuration](#environment-configuration)
-  - [Rollback](#rollback)
-    - [Automatic Rollback](#automatic-rollback)
-    - [Manual Rollback](#manual-rollback)
-  - [Health Checks](#health-checks)
-  - [Troubleshooting](#troubleshooting)
-    - [Deployment Fails](#deployment-fails)
-    - [Zero Downtime Deployment](#zero-downtime-deployment)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Deployment"
 summary: "Production and staging deployment procedures using Docker and GitHub Actions."
@@ -281,8 +256,157 @@ For zero downtime:
 4. Health checks with startup grace period
 5. Load balancer with health checks
 
+## Blue/Green Deployment
+
+**NEW**: Clipper now supports blue/green deployment for zero-downtime production releases.
+
+### Quick Start
+
+```bash
+# Automated blue-green deployment
+./scripts/blue-green-deploy.sh
+
+# With specific version
+IMAGE_TAG=v1.2.3 ./scripts/blue-green-deploy.sh
+```
+
+### What is Blue/Green?
+
+Blue/green deployment maintains two identical production environments:
+- **Blue**: Currently active production
+- **Green**: New version being deployed
+
+Traffic is instantly switched between environments, enabling zero-downtime deployments and instant rollback.
+
+### Benefits
+
+✓ **Zero Downtime**: Instant traffic switching  
+✓ **Instant Rollback**: Revert in seconds if issues occur  
+✓ **Safe Testing**: Verify new version before switching traffic  
+✓ **Reduced Risk**: Old version remains running during deployment
+
+### Architecture
+
+```
+Caddy Proxy (Port 80/443)
+    │
+    ├─→ Blue Environment (Active)
+    │   ├─ Backend (Port 8080)
+    │   └─ Frontend (Port 80)
+    │
+    └─→ Green Environment (Standby)
+        ├─ Backend (Port 8080)
+        └─ Frontend (Port 80)
+        
+Shared: PostgreSQL, Redis
+```
+
+### Deployment Process
+
+1. **Detect Active Environment**: Script identifies blue or green
+2. **Pull New Images**: Latest images for target environment
+3. **Start Target Environment**: New version starts alongside current
+4. **Health Checks**: Verify new version is healthy (30 checks)
+5. **Switch Traffic**: Caddy redirects traffic to new environment
+6. **Monitor**: Watch metrics for 30 seconds
+7. **Stop Old Environment**: Previous version is stopped
+8. **Auto-Rollback**: On failure, automatically reverts
+
+### Manual Deployment
+
+For step-by-step control:
+
+```bash
+# 1. Start target environment (if blue is active, start green)
+docker compose -f docker-compose.blue-green.yml --profile green up -d
+
+# 2. Wait and verify health
+sleep 30
+./scripts/health-check.sh
+
+# 3. Switch traffic
+export ACTIVE_ENV=green
+docker compose -f docker-compose.blue-green.yml up -d caddy
+
+# 4. Monitor
+watch -n 5 'curl -s http://localhost/health'
+
+# 5. Stop old environment
+docker compose -f docker-compose.blue-green.yml stop backend-blue frontend-blue
+```
+
+### Rollback
+
+Quick rollback if issues occur:
+
+```bash
+# Automated rollback
+./scripts/rollback-blue-green.sh
+
+# Or manual rollback
+export ACTIVE_ENV=blue
+docker compose -f docker-compose.blue-green.yml up -d caddy
+```
+
+### Database Migrations
+
+**CRITICAL**: Migrations must be backward-compatible for blue/green deployment.
+
+✓ **Safe operations**:
+- Add new tables
+- Add nullable columns
+- Add columns with DEFAULT values
+- Create indexes (use CONCURRENTLY)
+
+✗ **Unsafe operations** (require two-phase migration):
+- DROP TABLE/COLUMN
+- RENAME TABLE/COLUMN  
+- Change column types
+- Make columns NOT NULL without defaults
+
+Check migration compatibility:
+
+```bash
+./scripts/check-migration-compatibility.sh
+```
+
+### Testing
+
+Test blue/green deployment in staging:
+
+```bash
+# Full test suite
+./scripts/test-blue-green-deployment.sh
+
+# Manual testing
+cd /opt/clipper-staging
+./scripts/blue-green-deploy.sh
+./scripts/health-check.sh
+```
+
+### Monitoring
+
+Monitor during deployment:
+
+```bash
+# Watch all health metrics
+watch -n 5 'curl -s http://localhost/health/stats'
+
+# Monitor container stats
+docker stats
+
+# Check logs for errors
+docker compose logs -f | grep -i error
+```
+
+### Complete Documentation
+
+For comprehensive blue/green deployment documentation:
+- **[Blue/Green Deployment Guide](./BLUE_GREEN_DEPLOYMENT.md)** - Complete setup and usage
+- **[Rollback Procedures](./BLUE_GREEN_ROLLBACK.md)** - Emergency rollback steps
+
 ---
 
-Related: [[preflight|Preflight Checklist]] · [[infra|Infrastructure]] · [[cicd|CI/CD]] · [[monitoring|Monitoring]]
+Related: [[preflight|Preflight Checklist]] · [[infra|Infrastructure]] · [[cicd|CI/CD]] · [[monitoring|Monitoring]] · [[BLUE_GREEN_DEPLOYMENT|Blue/Green Guide]] · [[BLUE_GREEN_ROLLBACK|Rollback]]
 
 [[../index|← Back to Index]]

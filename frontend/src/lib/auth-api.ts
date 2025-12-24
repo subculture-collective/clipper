@@ -13,6 +13,9 @@ export interface User {
   role: 'user' | 'admin' | 'moderator';
   karma_points: number;
   is_banned: boolean;
+  is_verified?: boolean;
+  is_premium?: boolean;
+  premium_tier?: string;
   created_at: string;
   last_login_at?: string;
 }
@@ -28,21 +31,21 @@ export interface AuthTokens {
  */
 export async function initiateOAuth() {
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
-  
+
   // Generate PKCE parameters
   const { codeVerifier, codeChallenge, state } = await generatePKCEParams();
-  
+
   // Store code verifier and state securely for callback validation
   await setSecureItem('oauth_code_verifier', codeVerifier);
   await setSecureItem('oauth_state', state);
-  
+
   // Build OAuth URL with PKCE parameters
   const params = new URLSearchParams({
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     state,
   });
-  
+
   // Redirect to backend OAuth endpoint with PKCE params
   window.location.href = `${apiUrl}/auth/twitch?${params.toString()}`;
 }
@@ -54,21 +57,21 @@ export async function initiateOAuth() {
 export async function handleOAuthCallback(code: string, state: string): Promise<{ success: boolean; error?: string }> {
   // Import secure storage once at the top of the function
   const { getSecureItem, removeSecureItem } = await import('./secure-storage');
-  
+
   try {
     // Retrieve stored state and code verifier
     const storedState = await getSecureItem('oauth_state');
     const codeVerifier = await getSecureItem('oauth_code_verifier');
-    
+
     // Validate state parameter (CSRF protection)
     if (!storedState || storedState !== state) {
       return { success: false, error: 'Invalid state parameter' };
     }
-    
+
     if (!codeVerifier) {
       return { success: false, error: 'Code verifier not found' };
     }
-    
+
     // Send code and verifier to backend
     // Backend will validate the verifier against the challenge
     await apiClient.post('/auth/twitch/callback', {
@@ -76,20 +79,20 @@ export async function handleOAuthCallback(code: string, state: string): Promise<
       state,
       code_verifier: codeVerifier,
     });
-    
+
     // Clean up stored PKCE parameters
     await removeSecureItem('oauth_state');
     await removeSecureItem('oauth_code_verifier');
-    
+
     return { success: true };
   } catch (error) {
     // Clean up on error (reuse the imported function)
     await removeSecureItem('oauth_state');
     await removeSecureItem('oauth_code_verifier');
-    
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Authentication failed' 
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Authentication failed'
     };
   }
 }
@@ -115,7 +118,7 @@ export async function refreshToken(): Promise<AuthTokens> {
  */
 export async function logout(): Promise<void> {
   const { clearSecureStorage } = await import('./secure-storage');
-  
+
   try {
     // Revoke tokens on backend
     await apiClient.post('/auth/logout');

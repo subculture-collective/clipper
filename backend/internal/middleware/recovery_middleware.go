@@ -16,13 +16,13 @@ func JSONRecoveryMiddleware() gin.HandlerFunc {
 				// Log the panic with stack trace using structured logger
 				stack := debug.Stack()
 				logger := utils.GetLogger()
-				
+
 				fields := map[string]interface{}{
 					"panic":      err,
 					"stack":      string(stack),
 					"request_id": c.GetString("RequestId"),
 				}
-				
+
 				logger.Error("PANIC recovered", nil, fields)
 
 				// Always return JSON error response

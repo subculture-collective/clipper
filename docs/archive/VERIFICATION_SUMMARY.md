@@ -1,20 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Summary: useClipById Verification Complete](#summary-useclipbyid-verification-complete)
-  - [Issue](#issue)
-  - [Solution](#solution)
-    - [Files Created/Modified](#files-createdmodified)
-  - [Verification Results](#verification-results)
-    - [✅ Build Success](#-build-success)
-    - [✅ Linting Success](#-linting-success)
-    - [✅ Security Check](#-security-check)
-    - [✅ Correctness Verification](#-correctness-verification)
-  - [Implementation Quality](#implementation-quality)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Summary: useClipById Verification Complete
 
 ## Issue

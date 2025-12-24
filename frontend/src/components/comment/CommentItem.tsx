@@ -2,7 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { Avatar } from '@/components/ui';
-import { UserRoleBadge } from '@/components/user';
+import { UserRoleBadge, VerifiedBadge } from '@/components/user';
 import { CommentVoteButtons } from './CommentVoteButtons';
 import { CommentActions } from './CommentActions';
 import { CommentForm } from './CommentForm';
@@ -151,6 +151,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             className="flex-shrink-0"
           />
           <span className="font-medium text-foreground">{comment.username}</span>
+
+          {comment.user_verified && (
+            <VerifiedBadge size="sm" />
+          )}
 
           {comment.user_role && comment.user_role !== 'user' && (
             <UserRoleBadge role={comment.user_role} size="sm" />

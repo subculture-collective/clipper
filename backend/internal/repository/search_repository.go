@@ -472,6 +472,158 @@ func (r *SearchRepository) TrackSearch(ctx context.Context, userID *uuid.UUID, q
 	return err
 }
 
+// GetTrendingSearches returns the most popular search queries in a given time period
+func (r *SearchRepository) GetTrendingSearches(ctx context.Context, days int, limit int) ([]models.TrendingSearch, error) {
+	if days <= 0 {
+		days = 7
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query := `
+		SELECT 
+			query,
+			COUNT(*) as search_count,
+			COUNT(DISTINCT user_id) as unique_users,
+			AVG(result_count)::int as avg_results
+		FROM search_queries
+		WHERE created_at >= NOW() - $1 * INTERVAL '1 day'
+			AND query != ''
+		GROUP BY query
+		ORDER BY search_count DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, days, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trending searches: %w", err)
+	}
+	defer rows.Close()
+
+	var searches []models.TrendingSearch
+	for rows.Next() {
+		var search models.TrendingSearch
+		if err := rows.Scan(&search.Query, &search.SearchCount, &search.UniqueUsers, &search.AvgResults); err != nil {
+			return nil, fmt.Errorf("failed to scan trending search: %w", err)
+		}
+		searches = append(searches, search)
+	}
+
+	return searches, nil
+}
+
+// GetFailedSearches returns searches that returned no results
+func (r *SearchRepository) GetFailedSearches(ctx context.Context, days int, limit int) ([]models.FailedSearch, error) {
+	if days <= 0 {
+		days = 7
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query := `
+		SELECT 
+			query,
+			COUNT(*) as search_count,
+			MAX(created_at) as last_searched
+		FROM search_queries
+		WHERE created_at >= NOW() - $1 * INTERVAL '1 day'
+			AND result_count = 0
+			AND query != ''
+		GROUP BY query
+		ORDER BY search_count DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, days, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get failed searches: %w", err)
+	}
+	defer rows.Close()
+
+	var searches []models.FailedSearch
+	for rows.Next() {
+		var search models.FailedSearch
+		if err := rows.Scan(&search.Query, &search.SearchCount, &search.LastSearched); err != nil {
+			return nil, fmt.Errorf("failed to scan failed search: %w", err)
+		}
+		searches = append(searches, search)
+	}
+
+	return searches, nil
+}
+
+// GetUserSearchHistory returns a user's recent search queries
+func (r *SearchRepository) GetUserSearchHistory(ctx context.Context, userID uuid.UUID, limit int) ([]models.SearchHistoryItem, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query := `
+		SELECT 
+			query,
+			result_count,
+			created_at
+		FROM search_queries
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user search history: %w", err)
+	}
+	defer rows.Close()
+
+	var history []models.SearchHistoryItem
+	for rows.Next() {
+		var item models.SearchHistoryItem
+		if err := rows.Scan(&item.Query, &item.ResultCount, &item.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan search history item: %w", err)
+		}
+		history = append(history, item)
+	}
+
+	return history, nil
+}
+
+// GetSearchAnalyticsSummary returns overall search analytics
+func (r *SearchRepository) GetSearchAnalyticsSummary(ctx context.Context, days int) (*models.SearchAnalyticsSummary, error) {
+	if days <= 0 {
+		days = 7
+	}
+
+	query := `
+		SELECT 
+			COUNT(*) as total_searches,
+			COUNT(DISTINCT user_id) as unique_users,
+			COUNT(CASE WHEN result_count = 0 THEN 1 END) as failed_searches,
+			AVG(result_count)::int as avg_results_per_search
+		FROM search_queries
+		WHERE created_at >= NOW() - $1 * INTERVAL '1 day'
+	`
+
+	var summary models.SearchAnalyticsSummary
+	err := r.db.QueryRow(ctx, query, days).Scan(
+		&summary.TotalSearches,
+		&summary.UniqueUsers,
+		&summary.FailedSearches,
+		&summary.AvgResultsPerSearch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get search analytics summary: %w", err)
+	}
+
+	// Calculate success rate
+	if summary.TotalSearches > 0 {
+		summary.SuccessRate = float64(summary.TotalSearches-summary.FailedSearches) / float64(summary.TotalSearches) * 100
+	}
+
+	return &summary, nil
+}
+
 // parseQueryToTSQuery converts a search query to PostgreSQL tsquery format
 func parseQueryToTSQuery(query string) string {
 	if query == "" {

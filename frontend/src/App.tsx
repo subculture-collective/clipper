@@ -49,8 +49,12 @@ const AdminClipsPage = lazy(() => import('./pages/admin/AdminClipsPage').then(m 
 const AdminCommentsPage = lazy(() => import('./pages/admin/AdminCommentsPage').then(m => ({ default: m.AdminCommentsPage })));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
+const AdminWebhookDLQPage = lazy(() => import('./pages/admin/AdminWebhookDLQPage').then(m => ({ default: m.AdminWebhookDLQPage })));
 const AdminSyncPage = lazy(() => import('./pages/admin/AdminSyncPage').then(m => ({ default: m.AdminSyncPage })));
 const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage').then(m => ({ default: m.ModerationQueuePage })));
+const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModerationQueuePage').then(m => ({ default: m.AdminModerationQueuePage })));
+const AdminVerificationQueuePage = lazy(() => import('./pages/admin/AdminVerificationQueuePage').then(m => ({ default: m.AdminVerificationQueuePage })));
+const AdminModerationAnalyticsPage = lazy(() => import('./pages/admin/AdminModerationAnalyticsPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
@@ -65,6 +69,27 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m => ({ default: m.RoleBadgeTestPage })));
+const VerifiedBadgeTestPage = lazy(() => import('./pages/VerifiedBadgeTestPage').then(m => ({ default: m.VerifiedBadgeTestPage })));
+const VerificationApplicationPage = lazy(() => import('./pages/VerificationApplicationPage').then(m => ({ default: m.VerificationApplicationPage })));
+const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage })));
+const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage').then(m => ({ default: m.PlaylistDetailPage })));
+const PublicPlaylistsPage = lazy(() => import('./pages/PublicPlaylistsPage').then(m => ({ default: m.PublicPlaylistsPage })));
+const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m => ({ default: m.WatchHistoryPage })));
+const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default: m.StreamPage })));
+const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage').then(m => ({ default: m.ForumModerationPage })));
+const ModerationLogPage = lazy(() => import('./pages/admin/ModerationLogPage').then(m => ({ default: m.ModerationLogPage })));
+const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
+const ChannelSettingsPage = lazy(() => import('./pages/ChannelSettingsPage').then(m => ({ default: m.ChannelSettingsPage })));
+const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex })));
+const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => ({ default: m.ThreadDetail })));
+const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
+const ForumSearchPage = lazy(() => import('./pages/forum/ForumSearchPage').then(m => ({ default: m.ForumSearchPage })));
+const ForumAnalyticsPage = lazy(() => import('./pages/forum/ForumAnalyticsPage').then(m => ({ default: m.ForumAnalyticsPage })));
+const WebhookSubscriptionsPage = lazy(() => import('./pages/WebhookSubscriptionsPage').then(m => ({ default: m.WebhookSubscriptionsPage })));
+const WatchPartyPage = lazy(() => import('./pages/WatchPartyPage').then(m => ({ default: m.WatchPartyPage })));
+const WatchPartyBrowsePage = lazy(() => import('./pages/WatchPartyBrowsePage').then(m => ({ default: m.WatchPartyBrowsePage })));
+const WatchPartyCreatePage = lazy(() => import('./pages/WatchPartyCreatePage').then(m => ({ default: m.WatchPartyCreatePage })));
+const WatchPartySettingsPage = lazy(() => import('./pages/WatchPartySettingsPage').then(m => ({ default: m.WatchPartySettingsPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -76,6 +101,7 @@ function LoadingFallback() {
 }
 
 function App() {
+  console.log('[App] Rendering...')
   return (
     <HelmetProvider>
       <ThemeProvider>
@@ -100,6 +126,7 @@ function App() {
                     <Route path="/game/:gameId" element={<GamePage />} />
                     <Route path="/category/:categorySlug" element={<CategoryPage />} />
                     <Route path="/broadcaster/:broadcasterId" element={<BroadcasterPage />} />
+                    <Route path="/stream/:streamer" element={<StreamPage />} />
                     <Route path="/creator/:creatorName/analytics" element={<CreatorAnalyticsPage />} />
                     <Route path="/user/:username" element={<UserProfilePage />} />
                     <Route path="/tag/:tagSlug" element={<TagPage />} />
@@ -115,8 +142,26 @@ function App() {
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
                     <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
+
+                    {/* Forum Routes */}
+                    <Route path="/forum" element={<ForumIndex />} />
+                    <Route path="/forum/search" element={<ForumSearchPage />} />
+                    <Route path="/forum/analytics" element={<ForumAnalyticsPage />} />
+                    <Route path="/forum/threads/:threadId" element={<ThreadDetail />} />
+                    <Route
+                      path="/forum/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateThread />
+                        </ProtectedRoute>
+                      }
+                    />
+
                     {import.meta.env.DEV && (
-                      <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                      <>
+                        <Route path="/test/role-badges" element={<RoleBadgeTestPage />} />
+                        <Route path="/test/verified-badge" element={<VerifiedBadgeTestPage />} />
+                      </>
                     )}
 
                     {/* Guest Routes (redirect to home if authenticated) */}
@@ -142,10 +187,44 @@ function App() {
                       }
                     />
                     <Route
+                      path="/watch-history"
+                      element={
+                        <ProtectedRoute>
+                          <WatchHistoryPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/playlists"
+                      element={
+                        <ProtectedRoute>
+                          <PlaylistsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/playlists/discover"
+                      element={<PublicPlaylistsPage />}
+                    />
+                    <Route
+                      path="/playlists/:id"
+                      element={
+                        <PlaylistDetailPage />
+                      }
+                    />
+                    <Route
                       path="/profile"
                       element={
                         <ProtectedRoute>
                           <ProfilePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/verification/apply"
+                      element={
+                        <ProtectedRoute>
+                          <VerificationApplicationPage />
                         </ProtectedRoute>
                       }
                     />
@@ -162,6 +241,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <CookieSettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings/webhooks"
+                      element={
+                        <ProtectedRoute>
+                          <WebhookSubscriptionsPage />
                         </ProtectedRoute>
                       }
                     />
@@ -206,10 +293,56 @@ function App() {
                       }
                     />
                     <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute>
+                          <ChatPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chat/channels/:id/settings"
+                      element={
+                        <ProtectedRoute>
+                          <ChannelSettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/creator/:creatorId/dashboard"
                       element={
                         <ProtectedRoute>
                           <CreatorDashboardPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Watch Party Routes */}
+                    <Route
+                      path="/watch-parties/browse"
+                      element={<WatchPartyBrowsePage />}
+                    />
+                    <Route
+                      path="/watch-parties/create"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartyCreatePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-parties/:id"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartyPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-parties/:id/settings"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartySettingsPage />
                         </ProtectedRoute>
                       }
                     />
@@ -256,6 +389,14 @@ function App() {
                       }
                     />
                     <Route
+                      path="/admin/webhooks/dlq"
+                      element={
+                        <AdminRoute>
+                          <AdminWebhookDLQPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
                       path="/admin/sync"
                       element={
                         <AdminRoute>
@@ -296,6 +437,30 @@ function App() {
                       }
                     />
                     <Route
+                      path="/admin/moderation"
+                      element={
+                        <AdminRoute>
+                          <AdminModerationQueuePage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/moderation/analytics"
+                      element={
+                        <AdminRoute>
+                          <AdminModerationAnalyticsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/verification"
+                      element={
+                        <AdminRoute>
+                          <AdminVerificationQueuePage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
                       path="/admin/discovery-lists"
                       element={
                         <AdminRoute>
@@ -308,6 +473,22 @@ function App() {
                       element={
                         <AdminRoute>
                           <AdminDiscoveryListFormPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/forum/moderation"
+                      element={
+                        <AdminRoute>
+                          <ForumModerationPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/forum/moderation-log"
+                      element={
+                        <AdminRoute>
+                          <ModerationLogPage />
                         </AdminRoute>
                       }
                     />

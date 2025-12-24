@@ -1,37 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Twitch OAuth Implementation Summary](#twitch-oauth-implementation-summary)
-  - [Overview](#overview)
-  - [Completed Features](#completed-features)
-    - [✅ Core Authentication Components](#-core-authentication-components)
-    - [✅ Database](#-database)
-    - [✅ Configuration](#-configuration)
-    - [✅ Security Features](#-security-features)
-    - [✅ Testing & Documentation](#-testing--documentation)
-    - [✅ Main Application Integration](#-main-application-integration)
-  - [Test Results](#test-results)
-    - [Build Status](#build-status)
-    - [Test Status](#test-status)
-    - [Integration Test Status](#integration-test-status)
-    - [Security Scan](#security-scan)
-    - [Code Quality](#code-quality)
-  - [Architecture](#architecture)
-    - [Request Flow](#request-flow)
-    - [OAuth Flow](#oauth-flow)
-    - [Token Refresh Flow](#token-refresh-flow)
-  - [Dependencies Added](#dependencies-added)
-    - [Go Modules](#go-modules)
-    - [Development Tools](#development-tools)
-  - [Files Created/Modified](#files-createdmodified)
-    - [New Files (21)](#new-files-21)
-    - [Modified Files (5)](#modified-files-5)
-    - [Removed Files (4)](#removed-files-4)
-  - [Environment Setup Required](#environment-setup-required)
-  - [Next Steps](#next-steps)
-  - [Verification](#verification)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Twitch OAuth Implementation Summary
 

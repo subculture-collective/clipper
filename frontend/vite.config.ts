@@ -46,10 +46,21 @@ export default defineConfig(({ mode }) => ({
         // so React and ReactDOM initialize in the same execution unit.
         rollupOptions: {
             output: {
-                // Disable manual vendor chunking
-                manualChunks: undefined,
-                // Inline dynamic imports at the entry to avoid multi-chunk init ordering issues
-                inlineDynamicImports: true,
+                // Disable manual vendor chunking to allow proper automatic splitting
+                manualChunks: (id) => {
+                    // Vendor chunks for better caching
+                    if (id.includes('node_modules')) {
+                        if (id.includes('react')) {
+                            return 'react-vendor';
+                        }
+                        if (id.includes('@tanstack')) {
+                            return 'query-vendor';
+                        }
+                        return 'vendor';
+                    }
+                },
+                // Enable dynamic imports as separate chunks
+                inlineDynamicImports: false,
                 entryFileNames: 'assets/app-[hash].js',
                 chunkFileNames: 'assets/chunk-[hash].js',
                 assetFileNames: 'assets/[name]-[hash][extname]',

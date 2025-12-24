@@ -197,6 +197,21 @@ export function AdminDashboard() {
                     </Card>
                 </Link>
 
+                <Link to='/admin/verification' className='touch-target'>
+                    <Card hover clickable>
+                        <CardHeader>
+                            <h3 className='text-lg xs:text-xl font-semibold'>
+                                Creator Verification
+                            </h3>
+                        </CardHeader>
+                        <CardBody>
+                            <p className='text-sm xs:text-base text-muted-foreground'>
+                                Review and manage creator verification applications
+                            </p>
+                        </CardBody>
+                    </Card>
+                </Link>
+
                 <Link to='/admin/campaigns' className='touch-target'>
                     <Card hover clickable>
                         <CardHeader>
@@ -223,6 +238,21 @@ export function AdminDashboard() {
                         <CardBody>
                             <p className='text-sm xs:text-base text-muted-foreground'>
                                 Create and manage curated discovery lists
+                            </p>
+                        </CardBody>
+                    </Card>
+                </Link>
+
+                <Link to='/admin/webhooks/dlq' className='touch-target'>
+                    <Card hover clickable>
+                        <CardHeader>
+                            <h3 className='text-lg xs:text-xl font-semibold'>
+                                Webhook DLQ
+                            </h3>
+                        </CardHeader>
+                        <CardBody>
+                            <p className='text-sm xs:text-base text-muted-foreground'>
+                                View and replay failed webhook deliveries
                             </p>
                         </CardBody>
                     </Card>

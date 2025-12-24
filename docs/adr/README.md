@@ -1,14 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Architecture Decision Records (ADR)](#architecture-decision-records-adr)
-  - [What is an ADR?](#what-is-an-adr)
-  - [ADR Format](#adr-format)
-  - [Index of ADRs](#index-of-adrs)
-  - [Creating a New ADR](#creating-a-new-adr)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Architecture Decision Records (ADR)
 
 This directory contains Architecture Decision Records (ADRs) documenting significant architectural decisions made for the Clipper project.

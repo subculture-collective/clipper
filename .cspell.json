@@ -11,6 +11,8 @@
     "**/dist/**",
     "**/.obsidian/**",
     ".git",
+    "vault/**",
+    "**/vault/**",
     "**/*.svg",
     "**/*.png"
   ],
@@ -101,6 +103,18 @@
     "schemaname",
     "tablename",
     "DKIM",
-    "Sendgrid"
+    "Sendgrid",
+    "golangci",
+    "Memorystore",
+    "Traefik",
+    "Fastly",
+    "runbook",
+    "Runbook",
+    "psql",
+    "pokimane",
+    "indexrelid",
+    "blks",
+    "statio",
+    "tsquery"
   ]
 }

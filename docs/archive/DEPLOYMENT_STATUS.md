@@ -1,21 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [React Initialization Error - Deployment Status](#react-initialization-error---deployment-status)
-  - [Issue](#issue)
-  - [Root Cause](#root-cause)
-  - [Fix Deployed](#fix-deployed)
-  - [Current Status](#current-status)
-  - [Action Required](#action-required)
-    - [Option 1: Wait for Automatic Deployment (Recommended)](#option-1-wait-for-automatic-deployment-recommended)
-    - [Option 2: Manual Deployment (If Auto-Deployment Fails)](#option-2-manual-deployment-if-auto-deployment-fails)
-    - [Option 3: User Cache Clearing (Immediate Workaround)](#option-3-user-cache-clearing-immediate-workaround)
-  - [Verification After Deployment](#verification-after-deployment)
-  - [Files Modified](#files-modified)
-  - [Next Steps](#next-steps)
-  - [Emergency Rollback (If Needed)](#emergency-rollback-if-needed)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # React Initialization Error - Deployment Status
 

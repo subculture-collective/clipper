@@ -1,29 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [API Reference](#api-reference)
-  - [Base URL](#base-url)
-  - [Authentication](#authentication)
-  - [Common Patterns](#common-patterns)
-    - [Success Response](#success-response)
-    - [Error Response](#error-response)
-    - [HTTP Status Codes](#http-status-codes)
-    - [Pagination](#pagination)
-  - [Endpoints](#endpoints)
-    - [Health Check](#health-check)
-    - [Authentication](#authentication-1)
-    - [Clips](#clips)
-    - [Comments](#comments)
-    - [Search](#search)
-    - [Users](#users)
-    - [Premium](#premium)
-  - [Rate Limiting](#rate-limiting)
-  - [Versioning](#versioning)
-  - [WebSockets (Future)](#websockets-future)
-  - [Related Documentation](#related-documentation)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "API Reference"
 summary: "Complete REST API documentation including endpoints, authentication, pagination, and error handling."
@@ -693,6 +667,213 @@ Add clip to favorites.
 Remove from favorites.
 
 **Auth**: Required
+
+---
+
+### Streams
+
+See [[../features/live-streams|Live Streams Guide]] for feature details.
+
+#### GET /streams/:streamer
+
+Get current stream status for a streamer.
+
+**Auth**: Optional
+
+**Path Parameters**:
+- `streamer` (string): Twitch username (4-25 characters, alphanumeric + underscore)
+
+**Response (200 OK)**:
+```json
+{
+  "streamer_username": "shroud",
+  "is_live": true,
+  "title": "Valorant Ranked | !pc !sponsor",
+  "game_name": "VALORANT",
+  "viewer_count": 15234,
+  "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_shroud-{width}x{height}.jpg",
+  "started_at": "2024-12-23T18:30:00Z",
+  "last_went_offline": null
+}
+```
+
+**Response (404 Not Found)** - Streamer doesn't exist:
+```json
+{
+  "error": "streamer not found"
+}
+```
+
+**Cache**: Responses cached for 60 seconds in Redis
+
+#### POST /streams/:streamer/clips
+
+Create a clip from a live stream.
+
+**Auth**: Required
+
+**Rate Limit**: 10 requests per hour per user
+
+**Path Parameters**:
+- `streamer` (string): Twitch username
+
+**Request Body**:
+```json
+{
+  "streamer_username": "shroud",
+  "start_time": 150.5,
+  "end_time": 180.5,
+  "quality": "1080p",
+  "title": "Amazing ace clutch!"
+}
+```
+
+**Validation**:
+- `title`: 3-255 characters (required)
+- `start_time`: Non-negative number (required)
+- `end_time`: Must be greater than start_time (required)
+- Duration (`end_time - start_time`): 5-60 seconds
+- `quality`: One of "source", "1080p", "720p" (required)
+- Stream must be currently live
+
+**Response (201 Created)**:
+```json
+{
+  "clip_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "processing"
+}
+```
+
+**Error Responses**:
+
+400 Bad Request - Invalid input:
+```json
+{
+  "error": "clip duration must be between 5 and 60 seconds"
+}
+```
+
+400 Bad Request - Stream offline:
+```json
+{
+  "error": "stream must be live to create a clip"
+}
+```
+
+404 Not Found - Stream doesn't exist:
+```json
+{
+  "error": "stream not found or VOD not available"
+}
+```
+
+#### POST /streams/:streamer/follow
+
+Follow a streamer for live notifications.
+
+**Auth**: Required
+
+**Rate Limit**: 20 requests per minute per user
+
+**Path Parameters**:
+- `streamer` (string): Twitch username (4-25 characters)
+
+**Request Body** (optional):
+```json
+{
+  "notifications_enabled": true
+}
+```
+
+**Response (200 OK)**:
+```json
+{
+  "following": true,
+  "notifications_enabled": true,
+  "message": "Successfully following shroud"
+}
+```
+
+**Validation**:
+- Username must be valid Twitch format
+- User cannot follow themselves (if streamer)
+
+#### DELETE /streams/:streamer/follow
+
+Unfollow a streamer.
+
+**Auth**: Required
+
+**Path Parameters**:
+- `streamer` (string): Twitch username
+
+**Response (200 OK)**:
+```json
+{
+  "following": false,
+  "message": "Successfully unfollowed shroud"
+}
+```
+
+#### GET /streams/:streamer/follow-status
+
+Get follow status for a specific streamer.
+
+**Auth**: Required
+
+**Path Parameters**:
+- `streamer` (string): Twitch username
+
+**Response (200 OK)**:
+```json
+{
+  "following": true,
+  "notifications_enabled": true
+}
+```
+
+**Response (200 OK)** - Not following:
+```json
+{
+  "following": false,
+  "notifications_enabled": false
+}
+```
+
+#### GET /streams/following
+
+Get list of followed streamers for the authenticated user.
+
+**Auth**: Required
+
+**Query Parameters**:
+- `limit` (int, default 50): Items per page
+- `offset` (int, default 0): Pagination offset
+
+**Response (200 OK)**:
+```json
+{
+  "follows": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "user_id": "user-uuid",
+      "streamer_username": "shroud",
+      "notifications_enabled": true,
+      "created_at": "2024-01-15T10:00:00Z",
+      "updated_at": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "user_id": "user-uuid",
+      "streamer_username": "pokimane",
+      "notifications_enabled": false,
+      "created_at": "2024-01-16T15:30:00Z",
+      "updated_at": "2024-01-20T12:00:00Z"
+    }
+  ],
+  "count": 2
+}
+```
 
 ---
 

@@ -27,6 +27,10 @@ type Config struct {
 	Jobs         JobsConfig
 	RateLimit    RateLimitConfig
 	Security     SecurityConfig
+	QueryLimits  QueryLimitsConfig
+	SearchLimits SearchLimitsConfig
+	CDN          CDNConfig
+	Mirror       MirrorConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -173,11 +177,85 @@ type RateLimitConfig struct {
 	ReportLimit          int // POST /api/v1/reports
 	ExportLimit          int // GET export endpoints
 	AccountDeletionLimit int // POST account deletion
+
+	// IP whitelist for bypassing rate limits (comma-separated, for development/testing)
+	WhitelistIPs string
 }
 
 // SecurityConfig holds security-related configuration
 type SecurityConfig struct {
 	MFAEncryptionKey string // 32-byte key for AES-256 encryption of MFA secrets
+}
+
+// QueryLimitsConfig holds database query limits
+type QueryLimitsConfig struct {
+	MaxResultSize   int // Maximum rows per query (default: 1000)
+	MaxOffset       int // Maximum pagination offset (default: 1000)
+	MaxJoinDepth    int // Maximum number of joins (default: 3)
+	MaxQueryTimeSec int // Maximum query execution time in seconds (default: 10)
+}
+
+// SearchLimitsConfig holds OpenSearch query limits
+type SearchLimitsConfig struct {
+	MaxResultSize      int // Maximum results per search (default: 100)
+	MaxAggregationSize int // Maximum aggregation buckets (default: 100)
+	MaxAggregationNest int // Maximum aggregation depth (default: 2)
+	MaxQueryClauses    int // Maximum query clauses (default: 20)
+	MaxSearchTimeSec   int // Maximum search timeout in seconds (default: 5)
+	MaxOffset          int // Maximum search pagination offset (default: 1000)
+}
+
+// CDNConfig holds CDN provider configuration
+type CDNConfig struct {
+	Enabled          bool
+	Provider         string // cloudflare, bunny, aws-cloudfront
+	CloudflareZoneID string
+	CloudflareAPIKey string
+	BunnyAPIKey      string
+	BunnyStorageZone string
+	AWSAccessKeyID   string
+	AWSSecretKey     string
+	AWSRegion        string
+	CacheTTL         int     // Cache TTL in seconds (default: 3600)
+	MaxCostPerGB     float64 // Maximum cost per GB in USD (default: 0.10)
+}
+
+// MirrorConfig holds mirror hosting configuration
+type MirrorConfig struct {
+	Enabled                bool
+	Regions                []string // List of regions to mirror clips to (e.g., us-east-1, eu-west-1)
+	ReplicationThreshold   int      // Minimum view count to trigger mirroring (default: 1000)
+	TTLDays                int      // Mirror TTL in days (default: 7)
+	MaxMirrorsPerClip      int      // Maximum mirrors per clip (default: 3)
+	SyncIntervalMinutes    int      // Interval to check for popular clips (default: 60)
+	CleanupIntervalMinutes int      // Interval to cleanup expired mirrors (default: 1440, 24 hours)
+	MinMirrorHitRate       float64  // Minimum mirror hit rate percentage (default: 60.0)
+}
+
+// getEnvBool gets a boolean environment variable with a fallback default value
+func getEnvBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolVal, err := strconv.ParseBool(value); err == nil {
+			return boolVal
+		}
+	}
+	return defaultValue
+}
+
+// parseRegions parses a comma-separated list of regions
+func parseRegions(value string) []string {
+	if value == "" {
+		return []string{}
+	}
+	regions := strings.Split(value, ",")
+	result := make([]string, 0, len(regions))
+	for _, region := range regions {
+		trimmed := strings.TrimSpace(region)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 // Load loads configuration from environment variables
@@ -307,9 +385,49 @@ func Load() (*Config, error) {
 			ReportLimit:          getEnvInt("RATE_LIMIT_REPORT", 10),
 			ExportLimit:          getEnvInt("RATE_LIMIT_EXPORT", 1),
 			AccountDeletionLimit: getEnvInt("RATE_LIMIT_ACCOUNT_DELETION", 1),
+
+			// IP whitelist for development/testing (localhost always included)
+			WhitelistIPs: getEnv("RATE_LIMIT_WHITELIST_IPS", ""),
 		},
 		Security: SecurityConfig{
 			MFAEncryptionKey: getEnv("MFA_ENCRYPTION_KEY", ""),
+		},
+		QueryLimits: QueryLimitsConfig{
+			MaxResultSize:   getEnvInt("QUERY_MAX_RESULT_SIZE", 1000),
+			MaxOffset:       getEnvInt("QUERY_MAX_OFFSET", 1000),
+			MaxJoinDepth:    getEnvInt("QUERY_MAX_JOIN_DEPTH", 3),
+			MaxQueryTimeSec: getEnvInt("QUERY_MAX_TIME_SEC", 10),
+		},
+		SearchLimits: SearchLimitsConfig{
+			MaxResultSize:      getEnvInt("SEARCH_MAX_RESULT_SIZE", 100),
+			MaxAggregationSize: getEnvInt("SEARCH_MAX_AGGREGATION_SIZE", 100),
+			MaxAggregationNest: getEnvInt("SEARCH_MAX_AGGREGATION_NEST", 2),
+			MaxQueryClauses:    getEnvInt("SEARCH_MAX_QUERY_CLAUSES", 20),
+			MaxSearchTimeSec:   getEnvInt("SEARCH_MAX_TIME_SEC", 5),
+			MaxOffset:          getEnvInt("SEARCH_MAX_OFFSET", 1000),
+		},
+		CDN: CDNConfig{
+			Enabled:          getEnvBool("CDN_ENABLED", false),
+			Provider:         getEnv("CDN_PROVIDER", "cloudflare"),
+			CloudflareZoneID: getEnv("CDN_CLOUDFLARE_ZONE_ID", ""),
+			CloudflareAPIKey: getEnv("CDN_CLOUDFLARE_API_KEY", ""),
+			BunnyAPIKey:      getEnv("CDN_BUNNY_API_KEY", ""),
+			BunnyStorageZone: getEnv("CDN_BUNNY_STORAGE_ZONE", ""),
+			AWSAccessKeyID:   getEnv("CDN_AWS_ACCESS_KEY_ID", ""),
+			AWSSecretKey:     getEnv("CDN_AWS_SECRET_KEY", ""),
+			AWSRegion:        getEnv("CDN_AWS_REGION", "us-east-1"),
+			CacheTTL:         getEnvInt("CDN_CACHE_TTL", 3600),
+			MaxCostPerGB:     getEnvFloat("CDN_MAX_COST_PER_GB", 0.10),
+		},
+		Mirror: MirrorConfig{
+			Enabled:                getEnvBool("MIRROR_ENABLED", false),
+			Regions:                parseRegions(getEnv("MIRROR_REGIONS", "us-east-1,eu-west-1,ap-southeast-1")),
+			ReplicationThreshold:   getEnvInt("MIRROR_REPLICATION_THRESHOLD", 1000),
+			TTLDays:                getEnvInt("MIRROR_TTL_DAYS", 7),
+			MaxMirrorsPerClip:      getEnvInt("MIRROR_MAX_PER_CLIP", 3),
+			SyncIntervalMinutes:    getEnvInt("MIRROR_SYNC_INTERVAL_MINUTES", 60),
+			CleanupIntervalMinutes: getEnvInt("MIRROR_CLEANUP_INTERVAL_MINUTES", 1440),
+			MinMirrorHitRate:       getEnvFloat("MIRROR_MIN_HIT_RATE", 60.0),
 		},
 	}
 

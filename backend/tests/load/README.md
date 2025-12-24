@@ -67,6 +67,21 @@ make test-load-comments      # Comments (read-only without auth)
 make test-load-mixed         # Mixed user behavior (recommended)
 ```
 
+## Quick Start: Generate Full Report
+
+For a comprehensive load test report covering all scenarios:
+
+```bash
+# Ensure backend is running
+make backend-dev
+
+# In another terminal, generate report
+cd backend/tests/load
+./generate_report.sh
+```
+
+This will run all load test scenarios and generate a comprehensive report in `backend/tests/load/reports/`.
+
 ## Test Scenarios
 
 ### 1. Feed Browsing (`scenarios/feed_browsing.js`)
@@ -158,7 +173,33 @@ k6 run backend/tests/load/scenarios/comments.js
 k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/comments.js
 ```
 
-### 5. Clip Submission (`scenarios/submit.js`)
+### 5. Authentication (`scenarios/authentication.js`)
+
+Tests authentication workflow performance including user profile fetching, token refresh simulation, and logout operations.
+
+**Load Pattern:**
+- Ramp up: 30s to 5 users, 1m to 10 users, 2m to 20 users
+- Sustain: 2m at 20 users (20 auth flows/minute)
+- Ramp down: 30s to 0 users
+
+**Thresholds:**
+- User profile fetch p95: <50ms
+- Token refresh p95: <100ms
+- Logout p95: <30ms
+
+**Run:**
+```bash
+make test-load-auth
+# or
+k6 run backend/tests/load/scenarios/authentication.js
+```
+
+**Run (with authentication):**
+```bash
+k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/authentication.js
+```
+
+### 6. Clip Submission (`scenarios/submit.js`)
 
 Tests clip submission workflow (requires authentication).
 
@@ -179,7 +220,7 @@ k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/submit.js
 make test-load-submit AUTH_TOKEN=your_jwt_token
 ```
 
-### 6. Mixed User Behavior (`scenarios/mixed_behavior.js`) **[Recommended]**
+### 7. Mixed User Behavior (`scenarios/mixed_behavior.js`) **[Recommended]**
 
 Simulates realistic user behavior with mixed activity patterns:
 - 40% Casual browsers (feed browsing)
@@ -303,10 +344,56 @@ Key metrics to monitor:
 
 ## CI/CD Integration
 
-Add load tests to your CI/CD pipeline:
+### GitHub Actions Workflow
+
+Load tests are fully integrated into CI/CD with a dedicated workflow:
+
+**Workflow File**: `.github/workflows/load-tests.yml`
+
+#### Automated Nightly Runs
+
+Load tests run automatically every night at 2 AM UTC. Results are available as artifacts in the GitHub Actions workflow runs.
+
+#### Manual Trigger
+
+You can manually trigger load tests from the GitHub Actions UI:
+
+1. Go to **Actions** tab in GitHub
+2. Select **Load Tests** workflow
+3. Click **Run workflow**
+4. Select test type (all, feed, clip, search, comments, auth, submit, mixed)
+5. Click **Run workflow**
+
+#### What the Workflow Does
+
+1. **Sets up environment**: PostgreSQL, Redis, Go, K6
+2. **Prepares data**: Runs migrations and seeds load test data
+3. **Starts backend**: Launches API server
+4. **Runs tests**: Executes selected load test scenarios
+5. **Generates reports**: Creates comprehensive markdown reports
+6. **Uploads artifacts**: Stores reports and metrics (90-day retention)
+
+#### Accessing Results
+
+**From GitHub Actions:**
+
+1. Go to workflow run in Actions tab
+2. View summary in the run page
+3. Download artifacts:
+   - `load-test-reports-*` - Markdown reports and detailed outputs
+   - `load-test-metrics-*` - JSON metrics for trend analysis
+
+**In Grafana Dashboard:**
+
+- View real-time metrics at `https://clpr.tv/grafana`
+- Dashboard: "K6 Load Test Trends" (UID: `k6-load-test-trends`)
+- See `monitoring/dashboards/LOAD_TEST_DASHBOARD.md` for details
+
+#### Example: Adding to Your Workflow
+
+To add load tests to your own workflow:
 
 ```yaml
-# Example GitHub Actions workflow
 - name: Run Load Tests
   run: |
     make docker-up
@@ -315,6 +402,24 @@ Add load tests to your CI/CD pipeline:
     make backend-dev &
     sleep 10
     make test-load-mixed
+```
+
+Or trigger the dedicated workflow:
+
+```yaml
+- name: Trigger Load Tests
+  uses: actions/github-script@v7
+  with:
+    script: |
+      await github.rest.actions.createWorkflowDispatch({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        workflow_id: 'load-tests.yml',
+        ref: 'main',
+        inputs: {
+          test_type: 'all'
+        }
+      })
 ```
 
 ## Troubleshooting
@@ -345,6 +450,94 @@ make migrate-seed-load-test
 ### K6 not installed
 
 Install K6 following the prerequisites section above.
+
+## Generating Reports
+
+### Comprehensive Load Test Report
+
+Generate a full report covering all load test scenarios:
+
+```bash
+# Start backend server
+make backend-dev
+
+# In another terminal, generate report
+cd backend/tests/load
+./generate_report.sh
+```
+
+The script will:
+1. Execute all load test scenarios
+2. Collect performance metrics
+3. Generate a comprehensive Markdown report
+4. Save detailed results for each scenario
+
+Reports are saved to `backend/tests/load/reports/load_test_report_TIMESTAMP.md`
+
+### Viewing Historical Trends
+
+**GitHub Actions Artifacts:**
+
+All nightly and manual load test runs store their results as artifacts:
+
+1. Navigate to **Actions** → **Load Tests** in GitHub
+2. Browse historical workflow runs
+3. Download artifacts to compare results over time
+4. Artifacts are retained for 90 days
+
+**Grafana Dashboard:**
+
+For real-time monitoring and trend visualization:
+
+1. Access Grafana at `https://clpr.tv/grafana`
+2. Open "K6 Load Test Trends" dashboard
+3. View metrics:
+   - Response time trends (p95, p99) over time
+   - Error rates by scenario
+   - Throughput patterns
+   - Check success rates
+4. Adjust time range to view historical data
+
+See `monitoring/dashboards/LOAD_TEST_DASHBOARD.md` for dashboard details.
+
+**Trend Analysis Script:**
+
+For offline analysis of historical results:
+
+```bash
+# Download multiple test artifacts from GitHub Actions
+# Extract JSON files to a directory
+# Run the analysis script
+./backend/tests/load/analyze_trends.sh ./path/to/json/files
+```
+
+The script will:
+- Analyze multiple K6 JSON outputs
+- Calculate statistics (average, min, max) for key metrics
+- Show trends comparing earliest vs. latest results
+- Identify performance improvements or regressions
+
+Example output:
+```
+Response Time Statistics (ms):
+  p95: Average: 45.2, Min: 38.1, Max: 52.3
+  p99: Average: 89.5, Min: 76.2, Max: 98.1
+
+p95 Response Time Change:
+  ↓ Decreased by 7.2ms (-13.7%)
+```
+
+### Manual Report Generation
+
+For individual test reports:
+
+```bash
+# Run test and save output
+k6 run scenario.js > results.txt
+
+# Generate custom report
+# (see PROFILING_REPORT_TEMPLATE.md for structure)
+```
 
 ## Advanced Usage
 

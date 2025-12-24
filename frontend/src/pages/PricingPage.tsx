@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createCheckoutSession } from '../lib/subscription-api';
 import { SEO } from '../components';
+import { trackEvent, PremiumEvents } from '../lib/telemetry';
 import {
     trackPricingPageView,
     trackBillingPeriodChange,
@@ -31,12 +32,22 @@ export default function PricingPage() {
 
     // Track pricing page view
     useEffect(() => {
+        trackEvent(PremiumEvents.PRICING_PAGE_VIEWED, {
+            source: 'pricing_page',
+            user_authenticated: !!user,
+            user_id: user?.id,
+        });
+        // Keep legacy tracking for backwards compatibility
         trackPricingPageView({
             userId: user?.id,
         });
     }, [user?.id]);
 
     const handleBillingPeriodChange = (period: 'monthly' | 'yearly') => {
+        trackEvent(PremiumEvents.PRICING_TIER_CLICKED, {
+            billing_period: period,
+        });
+        // Keep legacy tracking for backwards compatibility
         trackBillingPeriodChange({
             billingPeriod: period,
             userId: user?.id,

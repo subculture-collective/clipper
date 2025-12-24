@@ -9,13 +9,17 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { registerServiceWorker } from './lib/sw-register'
 
 // Initialize Sentry before rendering the app
-initSentry({
-  dsn: import.meta.env.VITE_SENTRY_DSN || '',
-  environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
-  release: import.meta.env.VITE_SENTRY_RELEASE || '',
-  tracesSampleRate: parseFloat(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE || '1.0'),
-  enabled: import.meta.env.VITE_SENTRY_ENABLED === 'true',
-})
+try {
+  initSentry({
+    dsn: import.meta.env.VITE_SENTRY_DSN || '',
+    environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
+    release: import.meta.env.VITE_SENTRY_RELEASE || '',
+    tracesSampleRate: parseFloat(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE || '1.0'),
+    enabled: import.meta.env.VITE_SENTRY_ENABLED === 'true',
+  })
+} catch (error) {
+  console.error('Failed to initialize Sentry:', error)
+}
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -28,15 +32,27 @@ const queryClient = new QueryClient({
   },
 })
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-)
+try {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  )
+} catch (error) {
+  console.error('Failed to render app:', error)
+  const root = document.getElementById('root')
+  if (root) {
+    root.innerHTML = '<div style="padding: 20px; color: red;"><h1>Failed to load application</h1><p>Check the console for details.</p></div>'
+  }
+}
 
 // Register service worker for PWA functionality
-registerServiceWorker()
+try {
+  registerServiceWorker()
+} catch (error) {
+  console.error('Failed to register service worker:', error)
+}

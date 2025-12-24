@@ -151,6 +151,10 @@ func (s *WebhookRetryService) GetRetryQueueStats(ctx context.Context) (map[strin
 		return nil, fmt.Errorf("failed to count DLQ items: %w", err)
 	}
 
+	// Update Prometheus metrics
+	webhookRetryQueueSize.Set(float64(pendingCount))
+	webhookDeadLetterQueueSize.Set(float64(dlqCount))
+
 	stats := map[string]interface{}{
 		"pending_retries": pendingCount,
 		"dlq_items":       dlqCount,

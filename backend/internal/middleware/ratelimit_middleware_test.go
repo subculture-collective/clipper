@@ -455,3 +455,68 @@ func TestGetUserRateLimitMultiplier(t *testing.T) {
 		})
 	}
 }
+
+func TestInitRateLimitWhitelist(t *testing.T) {
+	tests := []struct {
+		name         string
+		whitelistIPs string
+		checkIPs     map[string]bool // IP -> should be whitelisted
+	}{
+		{
+			name:         "empty whitelist",
+			whitelistIPs: "",
+			checkIPs: map[string]bool{
+				"127.0.0.1":      true,  // localhost always included
+				"::1":            true,  // IPv6 localhost always included
+				"192.168.1.1":    false, // not whitelisted
+				"173.165.22.142": false, // not whitelisted
+			},
+		},
+		{
+			name:         "single IP",
+			whitelistIPs: "192.168.1.100",
+			checkIPs: map[string]bool{
+				"127.0.0.1":     true,  // localhost always included
+				"::1":           true,  // IPv6 localhost always included
+				"192.168.1.100": true,  // whitelisted
+				"192.168.1.101": false, // not whitelisted
+			},
+		},
+		{
+			name:         "multiple IPs",
+			whitelistIPs: "192.168.1.100,10.0.0.50,173.165.22.142",
+			checkIPs: map[string]bool{
+				"127.0.0.1":      true,  // localhost always included
+				"::1":            true,  // IPv6 localhost always included
+				"192.168.1.100":  true,  // whitelisted
+				"10.0.0.50":      true,  // whitelisted
+				"173.165.22.142": true,  // whitelisted
+				"192.168.1.101":  false, // not whitelisted
+			},
+		},
+		{
+			name:         "IPs with spaces",
+			whitelistIPs: " 192.168.1.100 , 10.0.0.50 ",
+			checkIPs: map[string]bool{
+				"192.168.1.100": true,  // whitelisted (trimmed)
+				"10.0.0.50":     true,  // whitelisted (trimmed)
+				"192.168.1.101": false, // not whitelisted
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Initialize whitelist with test data
+			InitRateLimitWhitelist(tt.whitelistIPs)
+
+			// Check each IP using thread-safe accessor
+			for ip, expectedWhitelisted := range tt.checkIPs {
+				actualWhitelisted := isIPWhitelisted(ip)
+				if actualWhitelisted != expectedWhitelisted {
+					t.Errorf("IP %s: got whitelisted=%v, want %v", ip, actualWhitelisted, expectedWhitelisted)
+				}
+			}
+		})
+	}
+}

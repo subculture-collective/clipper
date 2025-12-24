@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+// Wildcard host so requests to http://localhost:8080/api/v1 and relative /api/v1 both match
+const API_BASE_URL = '*/api/v1';
 
 // Mock data
 export const mockClips = [
@@ -281,6 +282,19 @@ export const handlers = [
                 { id: 'music', name: 'Music' },
                 { id: 'art', name: 'Art' },
             ],
+        });
+    }),
+
+    // GET /forum/replies/:id/votes - Get vote stats for reply
+    http.get(`${API_BASE_URL}/forum/replies/:id/votes`, ({ params }) => {
+        return HttpResponse.json({
+            data: {
+                upvotes: 0,
+                downvotes: 0,
+                net_votes: 0,
+                user_vote: 0,
+                reply_id: params.id,
+            },
         });
     }),
 ];

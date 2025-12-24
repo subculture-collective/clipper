@@ -1,28 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [CI/CD Quick Start Guide](#cicd-quick-start-guide)
-  - [🚀 For Developers](#-for-developers)
-    - [Before You Push](#before-you-push)
-    - [What Happens on Push/PR](#what-happens-on-pushpr)
-    - [Checking CI Status](#checking-ci-status)
-    - [Common CI Failures](#common-ci-failures)
-  - [🐳 Working with Docker](#-working-with-docker)
-    - [Build Images Locally](#build-images-locally)
-    - [Pull from Registry](#pull-from-registry)
-  - [📦 Releases](#-releases)
-    - [Creating a Release](#creating-a-release)
-    - [Version Format](#version-format)
-  - [🔧 Troubleshooting](#-troubleshooting)
-    - ["Workflow permissions error"](#workflow-permissions-error)
-    - ["Docker image not found"](#docker-image-not-found)
-    - ["Codecov upload failed"](#codecov-upload-failed)
-    - ["Deployment failed"](#deployment-failed)
-  - [📚 More Information](#-more-information)
-  - [🆘 Getting Help](#-getting-help)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "CI/CD Quick Start Guide"
 summary: "A quick reference for developers working with the Clipper CI/CD pipeline."

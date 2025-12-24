@@ -17,6 +17,7 @@ import {
     submitClip,
 } from '../lib/submission-api';
 import { getPublicConfig } from '../lib/config-api';
+import { trackEvent, SubmissionEvents } from '../lib/telemetry';
 import type { ClipSubmission, SubmitClipRequest } from '../types/submission';
 import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';
@@ -216,6 +217,14 @@ export function SubmitClipPage() {
             // Set the submitted clip to show confirmation
             setSubmittedClip(response.submission);
 
+            // Track successful submission
+            trackEvent(SubmissionEvents.SUBMISSION_CREATE_COMPLETED, {
+                submission_id: response.submission.id,
+                title: response.submission.title,
+                is_nsfw: response.submission.is_nsfw,
+                tags: Array.isArray(tagsToSubmit) ? tagsToSubmit : [],
+            });
+
             // Reset form
             setFormData({
                 clip_url: '',
@@ -230,6 +239,11 @@ export function SubmitClipPage() {
             const errorMessage =
                 error.response?.data?.error || 'Failed to submit clip';
             setError(errorMessage);
+
+            // Track failed submission
+            trackEvent(SubmissionEvents.SUBMISSION_CREATE_FAILED, {
+                error: errorMessage,
+            });
         } finally {
             setIsSubmitting(false);
         }

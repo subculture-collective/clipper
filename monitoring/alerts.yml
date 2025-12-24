@@ -425,6 +425,221 @@ groups:
           description: "BM25 search P95 latency is {{ $value }}ms, target is < 50ms."
           runbook: "docs/operations/playbooks/search-incidents.md#bm25-search-slow"
 
+  - name: clipper_webhook_alerts
+    interval: 30s
+    rules:
+      # High Webhook Failure Rate
+      - alert: HighWebhookFailureRate
+        expr: |
+          (
+            sum(rate(webhook_delivery_total{status="failed"}[5m]))
+            /
+            sum(rate(webhook_delivery_total[5m]))
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High webhook delivery failure rate"
+          description: "Webhook delivery failure rate is {{ $value | humanizePercentage }}, target is < 10%."
+          runbook: "docs/backend/webhooks.md#troubleshooting"
+
+      # Critical Webhook Failure Rate
+      - alert: CriticalWebhookFailureRate
+        expr: |
+          (
+            sum(rate(webhook_delivery_total{status="failed"}[5m]))
+            /
+            sum(rate(webhook_delivery_total[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical webhook delivery failure rate"
+          description: "Webhook delivery failure rate is {{ $value | humanizePercentage }} (threshold: 50%)."
+          runbook: "docs/backend/webhooks.md#troubleshooting"
+
+      # Large Webhook Retry Queue
+      - alert: LargeWebhookRetryQueue
+        expr: webhook_retry_queue_size > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large webhook retry queue"
+          description: "Webhook retry queue has {{ $value }} items pending."
+          runbook: "docs/backend/webhook-retry.md#high-retry-queue-size"
+
+      # Critical Webhook Retry Queue
+      - alert: CriticalWebhookRetryQueue
+        expr: webhook_retry_queue_size > 500
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical webhook retry queue size"
+          description: "Webhook retry queue has {{ $value }} items pending. Immediate action required."
+          runbook: "docs/backend/webhook-retry.md#high-retry-queue-size"
+
+      # Webhook Dead-Letter Queue Items
+      - alert: WebhookDeadLetterQueueItems
+        expr: webhook_dead_letter_queue_size > 10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhooks in dead-letter queue"
+          description: "{{ $value }} webhook deliveries have failed permanently and are in the dead-letter queue."
+          runbook: "docs/backend/webhook-retry.md#events-in-dlq"
+
+      # Critical Webhook Dead-Letter Queue
+      - alert: CriticalWebhookDeadLetterQueue
+        expr: webhook_dead_letter_queue_size > 50
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical number of webhooks in dead-letter queue"
+          description: "{{ $value }} webhook deliveries have failed permanently. Investigation required."
+          runbook: "docs/backend/webhook-retry.md#events-in-dlq"
+
+      # High Webhook Delivery Latency
+      - alert: HighWebhookDeliveryLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(webhook_delivery_duration_seconds_bucket{status="success"}[5m])) by (le)
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High webhook delivery latency"
+          description: "P95 webhook delivery latency is {{ $value }}s, target is < 5s."
+          runbook: "docs/backend/webhooks.md#troubleshooting"
+
+      # Webhook Delivery Latency Spike
+      - alert: WebhookDeliveryLatencySpike
+        expr: |
+          (
+            histogram_quantile(0.95,
+              sum(rate(webhook_delivery_duration_seconds_bucket{status="success"}[5m])) by (le)
+            )
+            /
+            histogram_quantile(0.95,
+              sum(rate(webhook_delivery_duration_seconds_bucket{status="success"}[1h])) by (le)
+            )
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhook delivery latency spike detected"
+          description: "P95 latency has increased by {{ humanize $value }}x compared to 1-hour baseline."
+          runbook: "docs/backend/webhooks.md#troubleshooting"
+
+      # High DLQ Movement Rate
+      - alert: HighDLQMovementRate
+        expr: |
+          sum(rate(webhook_dlq_movements_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of webhooks moving to DLQ"
+          description: "{{ $value }} webhooks/sec are being moved to the dead-letter queue."
+          runbook: "docs/backend/webhook-retry.md#high-dlq-movement-rate"
+
+      # Critical DLQ Movement Rate
+      - alert: CriticalDLQMovementRate
+        expr: |
+          sum(rate(webhook_dlq_movements_total[5m])) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical rate of webhooks moving to DLQ"
+          description: "{{ $value }} webhooks/sec are being moved to the dead-letter queue. Immediate investigation required."
+          runbook: "docs/backend/webhook-retry.md#high-dlq-movement-rate"
+
+      # Subscription Consecutive Failures
+      - alert: WebhookSubscriptionConsecutiveFailures
+        expr: webhook_consecutive_failures_count > 5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhook subscription experiencing consecutive failures"
+          description: "Subscription {{ $labels.subscription_id }} for event {{ $labels.event_type }} has {{ $value }} consecutive failures."
+          runbook: "docs/backend/webhooks.md#subscription-health"
+
+      # Subscription Critical Consecutive Failures
+      - alert: WebhookSubscriptionCriticalFailures
+        expr: webhook_consecutive_failures_count > 20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Webhook subscription critically failing"
+          description: "Subscription {{ $labels.subscription_id }} for event {{ $labels.event_type }} has {{ $value }} consecutive failures. Subscription may need attention."
+          runbook: "docs/backend/webhooks.md#subscription-health"
+
+      # Subscription Health Degradation
+      - alert: WebhookSubscriptionHealthDegradation
+        expr: |
+          (
+            sum(rate(webhook_subscription_delivery_total{status="failed"}[5m])) by (subscription_id)
+            /
+            sum(rate(webhook_subscription_delivery_total[5m])) by (subscription_id)
+          ) > 0.5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhook subscription health degraded"
+          description: "Subscription {{ $labels.subscription_id }} has {{ $value | humanizePercentage }} failure rate."
+          runbook: "docs/backend/webhooks.md#subscription-health"
+
+      # High Retry Exhaustion Rate
+      - alert: HighRetryExhaustionRate
+        expr: |
+          (
+            sum(rate(webhook_retry_attempts_count{final_status="failed"}[5m]))
+            /
+            sum(rate(webhook_retry_attempts_count[5m]))
+          ) * 100 > 30
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High webhook retry exhaustion rate"
+          description: "{{ $value | humanizePercentage }} of webhook retries are exhausting all attempts."
+          runbook: "docs/backend/webhook-retry.md#high-exhaustion-rate"
+
+      # Webhook Delivery Stalled
+      - alert: WebhookDeliveryStalled
+        expr: |
+          rate(webhook_delivery_total[5m]) == 0
+          and webhook_retry_queue_size > 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Webhook delivery processing appears stalled"
+          description: "No webhook deliveries processed in 10 minutes, but retry queue has items."
+          runbook: "docs/backend/webhooks.md#delivery-stalled"
+
+      # No Active Webhook Subscriptions (informational)
+      - alert: NoActiveWebhookSubscriptions
+        expr: webhook_subscriptions_active == 0
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "No active webhook subscriptions"
+          description: "There are currently no active webhook subscriptions configured."
+          runbook: "docs/backend/webhooks.md"
+
   - name: clipper_logging_alerts
     interval: 30s
     rules:

@@ -7,6 +7,7 @@ export interface Comment {
   user_avatar?: string;
   user_karma?: number;
   user_role?: 'admin' | 'moderator' | 'user';
+  user_verified?: boolean;
   parent_comment_id: string | null;
   content: string;
   rendered_content?: string;

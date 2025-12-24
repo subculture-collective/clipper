@@ -1,31 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Deployment Improvements Summary](#deployment-improvements-summary)
-  - [What Was Fixed](#what-was-fixed)
-    - [1. ✅ Chunking Issue (Root Cause)](#1--chunking-issue-root-cause)
-    - [2. ✅ Zero-Downtime Deployments](#2--zero-downtime-deployments)
-    - [3. ✅ Traffic Management](#3--traffic-management)
-    - [4. ✅ Live Development Workflow](#4--live-development-workflow)
-    - [5. ✅ Deployment & Monitoring Guide](#5--deployment--monitoring-guide)
-    - [6. ✅ Nginx Configuration](#6--nginx-configuration)
-    - [7. ✅ Enhanced Health Checks](#7--enhanced-health-checks)
-  - [Files Changed/Created](#files-changedcreated)
-    - [Modified](#modified)
-    - [Created](#created)
-  - [Deployment Workflow](#deployment-workflow)
-    - [For Development](#for-development)
-    - [For Production Deployment](#for-production-deployment)
-  - [How to Get Started](#how-to-get-started)
-    - [1. Fix the Chunking Issue Now](#1-fix-the-chunking-issue-now)
-    - [2. Set Up Blue-Green Locally (Optional)](#2-set-up-blue-green-locally-optional)
-    - [3. Configure Nginx on VPS](#3-configure-nginx-on-vps)
-    - [4. Test Deployment](#4-test-deployment)
-  - [Verification Checklist](#verification-checklist)
-  - [Key Benefits](#key-benefits)
-  - [Questions?](#questions)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Deployment Improvements Summary
 

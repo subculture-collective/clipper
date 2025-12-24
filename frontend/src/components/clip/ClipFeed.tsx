@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Spinner, Button, ScrollToTop } from '@/components/ui';
 import { MiniFooter } from '@/components/layout';
 import { ClipCard } from './ClipCard';
@@ -43,7 +42,6 @@ export function ClipFeed({
     showSearch = false,
     useSortTitle = true,
 }: ClipFeedProps) {
-    const { i18n } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const containerRef = useRef<HTMLDivElement>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -59,7 +57,7 @@ export function ClipFeed({
     // Combine URL filters with additional filters and current language
     const filters: ClipFeedFilters = {
         sort,
-        timeframe: sort === 'top' ? timeframe : undefined,
+        timeframe: sort === 'top' || sort === 'trending' ? timeframe : undefined,
         // Do not filter by UI language by default; include language only if explicitly provided
         ...additionalFilters,
     };
@@ -77,6 +75,7 @@ export function ClipFeed({
 
     // Get all clips from all pages
     const clips = data?.pages.flatMap(page => page.clips) ?? [];
+    const validClips = clips.filter(clip => clip?.id);
 
     // Intersection observer for infinite scroll
     const { ref: loadMoreRef, inView } = useInView({
@@ -132,10 +131,16 @@ export function ClipFeed({
     const handleSortChange = (newSort: SortOption) => {
         const params = new URLSearchParams(searchParams);
         params.set('sort', newSort);
-        if (newSort !== 'top') {
+        if (newSort !== 'top' && newSort !== 'trending') {
             params.delete('timeframe');
         }
         setSearchParams(params);
+        // Persist sort preference to localStorage
+        try {
+            localStorage.setItem('feedSort', newSort);
+        } catch (error) {
+            console.error('Failed to save sort preference:', error);
+        }
     };
 
     const handleTimeframeChange = (newTimeframe: TimeFrame) => {
@@ -145,11 +150,14 @@ export function ClipFeed({
     };
 
     const sortLabelMap: Record<SortOption, string> = {
+        trending: 'Trending',
         hot: 'Hot',
+        popular: 'Most Popular',
         new: 'New',
         top: 'Top',
         rising: 'Rising',
         discussed: 'Discussed',
+        views: 'Views',
     };
 
     const timeframeLabelMap: Partial<Record<TimeFrame, string>> = {
@@ -163,7 +171,7 @@ export function ClipFeed({
 
     const resolvedTitle =
         useSortTitle ?
-            sort === 'top' ?
+            sort === 'top' || sort === 'trending' ?
                 `${sortLabelMap[sort]} — ${timeframeLabelMap[timeframe] ?? 'Past Day'}`
             :   `${sortLabelMap[sort]} Feed`
         :   title;
@@ -254,7 +262,7 @@ export function ClipFeed({
             )}
 
             {/* Empty state */}
-            {!isLoading && !isError && clips.length === 0 && (
+            {!isLoading && !isError && validClips.length === 0 && (
                 <EmptyState
                     title='No clips found'
                     message='Try adjusting your filters or check back later.'
@@ -277,7 +285,7 @@ export function ClipFeed({
             )}
 
             {/* Clips list with pull-to-refresh */}
-            {!isLoading && !isError && clips.length > 0 && (
+            {!isLoading && !isError && validClips.length > 0 && (
                 <div
                     ref={containerRef}
                     onTouchStart={handleTouchStart}
@@ -285,7 +293,7 @@ export function ClipFeed({
                     onTouchEnd={handleTouchEnd}
                 >
                     <div className='space-y-4'>
-                        {clips.map(clip => (
+                        {validClips.map(clip => (
                             <MemoizedClipCard key={clip.id} clip={clip} />
                         ))}
                     </div>
@@ -306,7 +314,7 @@ export function ClipFeed({
                     )}
 
                     {/* End of results */}
-                    {!hasNextPage && clips.length > 0 && (
+                    {!hasNextPage && validClips.length > 0 && (
                         <div className='text-center py-8 text-muted-foreground'>
                             <p>You've reached the end!</p>
                         </div>

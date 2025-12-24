@@ -26,7 +26,8 @@ func NewMFARepository(db *pgxpool.Pool) *MFARepository {
 func (r *MFARepository) GetMFAByUserID(ctx context.Context, userID uuid.UUID) (*models.UserMFA, error) {
 	query := `
 		SELECT id, user_id, secret, enabled, enrolled_at, backup_codes, 
-		       backup_codes_generated_at, created_at, updated_at
+		       backup_codes_generated_at, mfa_required, mfa_required_at, 
+		       grace_period_end, created_at, updated_at
 		FROM user_mfa
 		WHERE user_id = $1
 	`
@@ -41,6 +42,9 @@ func (r *MFARepository) GetMFAByUserID(ctx context.Context, userID uuid.UUID) (*
 		&mfa.EnrolledAt,
 		&mfa.BackupCodes,
 		&mfa.BackupCodesGeneratedAt,
+		&mfa.MFARequired,
+		&mfa.MFARequiredAt,
+		&mfa.GracePeriodEnd,
 		&mfa.CreatedAt,
 		&mfa.UpdatedAt,
 	)
@@ -58,8 +62,10 @@ func (r *MFARepository) GetMFAByUserID(ctx context.Context, userID uuid.UUID) (*
 // CreateMFA creates a new MFA configuration for a user
 func (r *MFARepository) CreateMFA(ctx context.Context, mfa *models.UserMFA) error {
 	query := `
-		INSERT INTO user_mfa (user_id, secret, enabled, enrolled_at, backup_codes, backup_codes_generated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO user_mfa (user_id, secret, enabled, enrolled_at, backup_codes, 
+		                      backup_codes_generated_at, mfa_required, mfa_required_at, 
+		                      grace_period_end)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -72,6 +78,9 @@ func (r *MFARepository) CreateMFA(ctx context.Context, mfa *models.UserMFA) erro
 		mfa.EnrolledAt,
 		mfa.BackupCodes,
 		mfa.BackupCodesGeneratedAt,
+		mfa.MFARequired,
+		mfa.MFARequiredAt,
+		mfa.GracePeriodEnd,
 	).Scan(&mfa.ID, &mfa.CreatedAt, &mfa.UpdatedAt)
 
 	if err != nil {
@@ -86,8 +95,9 @@ func (r *MFARepository) UpdateMFA(ctx context.Context, mfa *models.UserMFA) erro
 	query := `
 		UPDATE user_mfa
 		SET secret = $1, enabled = $2, enrolled_at = $3, backup_codes = $4, 
-		    backup_codes_generated_at = $5, updated_at = NOW()
-		WHERE user_id = $6
+		    backup_codes_generated_at = $5, mfa_required = $6, mfa_required_at = $7,
+		    grace_period_end = $8, updated_at = NOW()
+		WHERE user_id = $9
 		RETURNING updated_at
 	`
 
@@ -99,6 +109,9 @@ func (r *MFARepository) UpdateMFA(ctx context.Context, mfa *models.UserMFA) erro
 		mfa.EnrolledAt,
 		mfa.BackupCodes,
 		mfa.BackupCodesGeneratedAt,
+		mfa.MFARequired,
+		mfa.MFARequiredAt,
+		mfa.GracePeriodEnd,
 		mfa.UserID,
 	).Scan(&mfa.UpdatedAt)
 
@@ -391,4 +404,62 @@ func (r *MFARepository) CleanupExpiredTrustedDevices(ctx context.Context) error 
 	}
 
 	return nil
+}
+
+// SetMFARequired marks MFA as required for a user and sets grace period
+func (r *MFARepository) SetMFARequired(ctx context.Context, userID uuid.UUID, gracePeriodDays int) error {
+	now := time.Now()
+	gracePeriodEnd := now.AddDate(0, 0, gracePeriodDays)
+
+	query := `
+		INSERT INTO user_mfa (user_id, secret, enabled, mfa_required, mfa_required_at, grace_period_end, backup_codes)
+		VALUES ($1, '', false, true, $2, $3, ARRAY[]::TEXT[])
+		ON CONFLICT (user_id) 
+		DO UPDATE SET 
+			mfa_required = true,
+			mfa_required_at = CASE 
+				WHEN user_mfa.mfa_required = false THEN $2 
+				ELSE user_mfa.mfa_required_at 
+			END,
+			grace_period_end = CASE 
+				WHEN user_mfa.mfa_required = false OR user_mfa.grace_period_end IS NULL OR user_mfa.grace_period_end < NOW() THEN $3
+				ELSE user_mfa.grace_period_end 
+			END,
+			updated_at = NOW()
+	`
+
+	_, err := r.db.Exec(ctx, query, userID, now, gracePeriodEnd)
+	if err != nil {
+		return fmt.Errorf("failed to set MFA required: %w", err)
+	}
+
+	return nil
+}
+
+// GetUsersWithExpiredGracePeriod retrieves users whose MFA grace period has expired
+func (r *MFARepository) GetUsersWithExpiredGracePeriod(ctx context.Context) ([]uuid.UUID, error) {
+	query := `
+		SELECT user_id
+		FROM user_mfa
+		WHERE mfa_required = true 
+		  AND enabled = false 
+		  AND grace_period_end < NOW()
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users with expired grace period: %w", err)
+	}
+	defer rows.Close()
+
+	var userIDs []uuid.UUID
+	for rows.Next() {
+		var userID uuid.UUID
+		if err := rows.Scan(&userID); err != nil {
+			return nil, fmt.Errorf("failed to scan user ID: %w", err)
+		}
+		userIDs = append(userIDs, userID)
+	}
+
+	return userIDs, nil
 }
