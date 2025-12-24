@@ -298,8 +298,8 @@ Based on 99.5% availability SLO:
 - **System Health:** `system-health.json` - Infrastructure metrics
 
 **Dashboard Access:**
-- Grafana: http://localhost:3000 (development)
-- Production: https://grafana.clipper.app (requires authentication)
+- Grafana: <http://localhost:3000> (development)
+- Production: <https://grafana.clipper.app> (requires authentication)
 
 ## Alerting Strategy
 
@@ -445,6 +445,6 @@ Level 3: Engineering Manager
 - [Error Budgets](https://sre.google/sre-book/embracing-risk/)
 
 **Monitoring Tools:**
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
-- Alertmanager: http://localhost:9093
+- Prometheus: <http://localhost:9090>
+- Grafana: <http://localhost:3000>
+- Alertmanager: <http://localhost:9093>

@@ -566,5 +566,5 @@ wget -O- http://localhost:8080/health
 
 For issues or questions:
 - Slack: #ops-deployments
-- Email: ops-team@clipper.app
+- Email: <ops-team@clipper.app>
 - On-call: Check PagerDuty rotation

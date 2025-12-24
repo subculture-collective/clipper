@@ -2,27 +2,32 @@
 # React Initialization Error - Deployment Status
 
 ## Issue
+
 You're seeing this error on **clpr.tv** (production):
 ```
 Uncaught TypeError: Cannot set properties of undefined (setting 'Activity')
 ```
 
 ## Root Cause
+
 The production site is still running the **old build** (with broken React chunking).
 
 ## Fix Deployed
+
 ✅ Code fix committed to `main` branch (commit: `0a2559a`)
 - Frontend vite.config.ts updated
 - React/ReactDOM kept in main bundle
 - Prevents race condition in React initialization
 
 ## Current Status
+
 - ✅ Fix committed locally
 - ⏳ GitHub Actions deployment may be in progress or waiting for approval
 
 ## Action Required
 
 ### Option 1: Wait for Automatic Deployment (Recommended)
+
 The GitHub Actions workflow should automatically:
 1. Build Docker images with the fix
 2. Push to container registry
@@ -32,11 +37,12 @@ The GitHub Actions workflow should automatically:
 **Estimated time:** 5-15 minutes after commit
 
 **To check status:**
-- Visit: https://github.com/subculture-collective/clipper/actions
+- Visit: <https://github.com/subculture-collective/clipper/actions>
 - Look for: "Deploy to Production" workflow
 - Check if it shows "✅ Success" or "⏳ In Progress"
 
 ### Option 2: Manual Deployment (If Auto-Deployment Fails)
+
 Connect to production VPS and run:
 ```bash
 cd /opt/clipper
@@ -46,6 +52,7 @@ curl http://localhost:8080/health
 ```
 
 ### Option 3: User Cache Clearing (Immediate Workaround)
+
 Users can clear their cache while waiting for deployment:
 1. Press `Ctrl+Shift+Delete` (Windows/Linux) or `Cmd+Shift+Delete` (Mac)
 2. Select "Cached images and files"
@@ -105,4 +112,4 @@ git push origin main
 **Need help?** Check these docs:
 - Technical details: [CHUNKING_FIX_EXPLANATION.md](CHUNKING_FIX_EXPLANATION.md)
 - Deployment process: [docs/deployment-live-development.md](docs/deployment-live-development.md)
-- GitHub Actions logs: https://github.com/subculture-collective/clipper/actions
+- GitHub Actions logs: <https://github.com/subculture-collective/clipper/actions>

@@ -5,6 +5,7 @@ This directory contains OpenAPI 3.0 specifications for the Clipper API.
 ## Available Specifications
 
 ### Clip Submission API
+
 - **File**: [`clip-submission-api.yaml`](./clip-submission-api.yaml)
 - **Description**: API for submitting Twitch clips to the platform
 - **Version**: 1.0.0
@@ -15,6 +16,7 @@ This directory contains OpenAPI 3.0 specifications for the Clipper API.
   - `GET /api/v1/submissions/stats` - Get submission statistics
 
 ### Comments API
+
 - **File**: [`comments-api.yaml`](./comments-api.yaml)
 - **Description**: API for managing comments on clips with nested threading support
 - **Version**: 1.0.0
@@ -36,7 +38,7 @@ This directory contains OpenAPI 3.0 specifications for the Clipper API.
 
 You can view and interact with these specifications using:
 
-1. **Swagger Editor**: https://editor.swagger.io/
+1. **Swagger Editor**: <https://editor.swagger.io/>
    - Copy and paste the YAML content into the editor
 
 2. **Redoc**: Generate a beautiful HTML documentation
@@ -48,7 +50,7 @@ You can view and interact with these specifications using:
    ```bash
    docker run -p 8081:8080 -e SWAGGER_JSON=/api/clip-submission-api.yaml -v $(pwd)/docs/openapi:/api swaggerapi/swagger-ui
    ```
-   Then visit http://localhost:8081
+   Then visit <http://localhost:8081>
 
 ### VS Code Extension
 
@@ -63,6 +65,7 @@ Install the [OpenAPI (Swagger) Editor](https://marketplace.visualstudio.com/item
 You can generate client libraries in various languages using [OpenAPI Generator](https://openapi-generator.tech/):
 
 ### TypeScript/JavaScript
+
 ```bash
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/clip-submission-api.yaml \
@@ -71,6 +74,7 @@ npx @openapitools/openapi-generator-cli generate \
 ```
 
 ### Python
+
 ```bash
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/clip-submission-api.yaml \
@@ -79,6 +83,7 @@ npx @openapitools/openapi-generator-cli generate \
 ```
 
 ### Go
+
 ```bash
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/clip-submission-api.yaml \

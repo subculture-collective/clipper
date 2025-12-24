@@ -48,12 +48,14 @@ Payment via Stripe. Manage subscription in Customer Portal.
 ## Quotas
 
 ### Free Tier
+
 - Clip submissions: 10/day
 - Favorites: 50 total
 - Collections: 0
 - Search history: 10 recent (local)
 
 ### Pro Tier
+
 - Clip submissions: 50/day
 - Favorites: Unlimited
 - Collections: Unlimited

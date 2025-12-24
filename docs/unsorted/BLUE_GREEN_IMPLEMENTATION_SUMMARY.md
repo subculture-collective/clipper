@@ -14,6 +14,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 ### 1. Infrastructure (3 files)
 
 #### docker-compose.blue-green.yml
+
 - **Enhanced Configuration**: Full environment variables for both blue and green environments
 - **Caddy Integration**: Reverse proxy for traffic switching
 - **Health Checks**: Configured for all services
@@ -21,6 +22,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 - **Shared Services**: PostgreSQL and Redis shared between environments
 
 #### Caddyfile (2 versions)
+
 - **Simple Version** (`Caddyfile`): Production-ready with manual switching via sed
 - **Advanced Version** (`Caddyfile.blue-green`): Reference implementation with dynamic routing
 - **Features**: Health checks, security headers, logging, compression
@@ -28,6 +30,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 ### 2. Automation Scripts (4 files, ~1,280 lines)
 
 #### blue-green-deploy.sh (380 lines, 12KB)
+
 **Purpose**: Automated zero-downtime deployment
 
 **Features**:
@@ -45,6 +48,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 **Usage**: `./scripts/blue-green-deploy.sh`
 
 #### rollback-blue-green.sh (250 lines, 8KB)
+
 **Purpose**: Quick rollback to previous environment
 
 **Features**:
@@ -59,6 +63,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 **Usage**: `./scripts/rollback-blue-green.sh [--yes]`
 
 #### check-migration-compatibility.sh (200 lines, 6KB)
+
 **Purpose**: Database migration safety checker
 
 **Features**:
@@ -74,6 +79,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 **Usage**: `./scripts/check-migration-compatibility.sh`
 
 #### test-blue-green-deployment.sh (450 lines, 11KB)
+
 **Purpose**: Comprehensive test suite for deployment
 
 **Features**:
@@ -92,6 +98,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 ### 3. Documentation (4 files, ~43KB)
 
 #### BLUE_GREEN_DEPLOYMENT.md (14KB, ~450 lines)
+
 **Complete deployment guide** covering:
 - Overview and benefits
 - Architecture diagrams
@@ -105,6 +112,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 - Best practices
 
 #### BLUE_GREEN_ROLLBACK.md (10KB, ~350 lines)
+
 **Rollback procedures** including:
 - When to rollback
 - Automatic rollback (how it works)
@@ -116,6 +124,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 - Troubleshooting
 
 #### BLUE_GREEN_QUICK_REFERENCE.md (9KB, ~350 lines)
+
 **Quick reference card** with:
 - Quick commands
 - Deployment checklists
@@ -127,6 +136,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 - Key metrics
 
 #### Updated Documentation
+
 - **README.md**: Added blue/green deployment section
 - **deployment.md**: Added comprehensive blue/green section
 - **scripts/README.md**: Documented all new scripts
@@ -134,6 +144,7 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 ### 4. Configuration (1 file)
 
 #### .env.blue-green.example (4KB)
+
 **Example environment configuration** with:
 - Database settings
 - Application configuration
@@ -208,29 +219,34 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 ## Key Features
 
 ### ✅ Zero-Downtime (Minimal Downtime)
+
 - **Reality**: < 3 seconds of downtime during Caddy restart
 - **Why**: Configuration updates require Caddy reload
 - **Note**: True zero-downtime requires HAProxy hitless reload or multiple proxies
 
 ### ✅ Instant Rollback
+
 - **Speed**: < 30 seconds total rollback time
 - **Method**: Start old environment, update config, switch traffic
 - **Automatic**: On health check failure during deployment
 - **Manual**: Single command with confirmation
 
 ### ✅ Health Checking
+
 - **Retries**: 30 attempts with 10-second intervals
 - **Endpoints**: `/health`, `/health/ready`, `/health/live`
 - **Coverage**: Backend, frontend, database, Redis
 - **Failure Action**: Automatic rollback
 
 ### ✅ Database Safety
+
 - **Strategy**: Backward-compatible migrations only
 - **Checker**: Automated compatibility analysis
 - **Guidelines**: Two-phase migration pattern
 - **Safe Ops**: CREATE, ADD with DEFAULT, CREATE INDEX
 
 ### ✅ Monitoring Integration
+
 - **Webhooks**: Slack, Discord, PagerDuty support
 - **Events**: Deployment start, success, failure, rollback
 - **Metrics**: Health checks, response times, error rates
@@ -253,18 +269,21 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 ## Testing Results
 
 ### Migration Compatibility Checker
+
 - **Migrations Scanned**: 40
 - **Issues Found**: 1 (false positive - NOT NULL with DEFAULT)
 - **Warnings**: 3 (columns without defaults, safe for read operations)
 - **Result**: ✅ All migrations safe for blue/green deployment
 
 ### Docker Compose Validation
+
 - **Status**: ✅ Valid configuration
 - **Networks**: Properly configured
 - **Health Checks**: All services have health checks
 - **Dependencies**: Correct service dependencies
 
 ### Script Validation
+
 - **Executability**: ✅ All scripts executable
 - **Syntax**: ✅ No shell syntax errors
 - **Dependencies**: ✅ All required tools documented
@@ -272,38 +291,46 @@ Successfully implemented a complete blue/green deployment infrastructure for Cli
 ## Code Review Feedback - Addressed
 
 ### Issue 1: Port Consistency ✅ Fixed
+
 **Problem**: Comments showed green on port 8081, actual config uses 8080  
 **Solution**: Updated all comments to show correct port 8080
 
 ### Issue 2: Traffic Switch Persistence ✅ Fixed
+
 **Problem**: Configuration relied only on environment variables  
 **Solution**: Added sed-based Caddyfile updates before reload
 
 ### Issue 3: Migration Execution ✅ Improved
+
 **Problem**: Migration marked as not implemented with no guidance  
 **Solution**: Added detailed TODO with examples and options
 
 ### Issue 4: Downtime Expectations ✅ Clarified
+
 **Problem**: Tests allowed downtime contradicting "zero-downtime"  
 **Solution**: Updated docs and tests to clarify < 3s during Caddy restart
 
 ### Issue 5: Environment Detection ✅ Improved
+
 **Problem**: Rollback detection could fail with stale env vars  
 **Solution**: Enhanced detection logic with multiple fallbacks
 
 ## Security Review
 
 ### Dependency Check
+
 - **Caddy v2**: ✅ No known vulnerabilities
 - **Docker Images**: Use official images (ghcr.io)
 - **Scripts**: No external dependencies with CVEs
 
 ### CodeQL Analysis
+
 - **Languages**: Bash scripts (not analyzed by CodeQL)
 - **Go Backend**: No changes (existing health endpoints used)
 - **Result**: ✅ No security issues detected
 
 ### Secret Management
+
 - **Environment Files**: Properly ignored in .gitignore
 - **.env.blue-green.example**: Contains no real secrets
 - **Documentation**: Recommends secrets manager for production
@@ -333,12 +360,14 @@ Clipper Repository
 ## Metrics
 
 ### Code Statistics
+
 - **Total Files Created/Modified**: 14
 - **Total Lines of Code**: ~1,280 (scripts only)
 - **Total Documentation**: ~1,500 lines (~43KB)
 - **Total Implementation**: ~2,780 lines
 
 ### Script Breakdown
+
 | Script | Lines | Size | Functions |
 |--------|-------|------|-----------|
 | blue-green-deploy.sh | 380 | 12KB | 10 |
@@ -348,6 +377,7 @@ Clipper Repository
 | **Total** | **1,280** | **37KB** | **40** |
 
 ### Documentation Breakdown
+
 | Document | Lines | Size | Sections |
 |----------|-------|------|----------|
 | BLUE_GREEN_DEPLOYMENT.md | 450 | 14KB | 12 |
@@ -361,18 +391,21 @@ Clipper Repository
 ## Next Steps
 
 ### Immediate (Ready Now)
+
 1. ✅ Merge PR to main branch
 2. ⏳ Test in staging environment
 3. ⏳ Validate deployment scripts
 4. ⏳ Test rollback procedure
 
 ### Short-term (Next Sprint)
+
 1. Implement actual migration execution in scripts
 2. Set up monitoring webhooks (Slack/Discord)
 3. Create deployment runbook for ops team
 4. Train team on blue/green deployment
 
 ### Long-term (Future Enhancements)
+
 1. Consider HAProxy for true zero-downtime
 2. Implement gradual rollout (canary deployment)
 3. Add automated smoke tests post-deployment
@@ -382,6 +415,7 @@ Clipper Repository
 ## Lessons Learned
 
 ### What Went Well
+
 - Comprehensive planning before implementation
 - Reusing existing health check infrastructure
 - Clear separation of concerns (scripts, config, docs)
@@ -389,12 +423,14 @@ Clipper Repository
 - Code review feedback addressed promptly
 
 ### Challenges Faced
+
 - Caddy configuration persistence without reload downtime
 - Balancing "zero-downtime" terminology with reality
 - Migration execution varies by setup (needs customization)
 - Testing locally without full environment
 
 ### Best Practices Applied
+
 - Automated rollback on failure
 - Health checks with adequate retries
 - Backward-compatible migrations only
@@ -405,19 +441,22 @@ Clipper Repository
 ## Support Information
 
 ### Documentation
+
 - **Complete Guide**: [docs/operations/BLUE_GREEN_DEPLOYMENT.md](../docs/operations/BLUE_GREEN_DEPLOYMENT.md)
 - **Rollback Procedures**: [docs/operations/BLUE_GREEN_ROLLBACK.md](../docs/operations/BLUE_GREEN_ROLLBACK.md)
 - **Quick Reference**: [docs/operations/BLUE_GREEN_QUICK_REFERENCE.md](../docs/operations/BLUE_GREEN_QUICK_REFERENCE.md)
 
 ### Scripts
+
 - **Deployment**: `./scripts/blue-green-deploy.sh --help`
 - **Rollback**: `./scripts/rollback-blue-green.sh --help`
 - **Testing**: `./scripts/test-blue-green-deployment.sh`
 - **Migration Check**: `./scripts/check-migration-compatibility.sh`
 
 ### Contact
+
 - **Slack**: #ops-deployments
-- **Email**: ops-team@clipper.app
+- **Email**: <ops-team@clipper.app>
 - **On-Call**: Check PagerDuty rotation
 
 ---

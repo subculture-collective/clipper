@@ -1,6 +1,7 @@
 # Twitch Chat Integration & OAuth Implementation Summary
 
 ## Overview
+
 This implementation adds Twitch chat integration with OAuth authentication to the Clipper platform, allowing users to view and interact with Twitch chat alongside live streams.
 
 ## Features Implemented
@@ -8,6 +9,7 @@ This implementation adds Twitch chat integration with OAuth authentication to th
 ### Backend Components
 
 #### 1. Database Schema
+
 - **Migration**: `000068_add_twitch_auth.up.sql`
 - **Table**: `twitch_auth` stores user OAuth credentials
   - Primary key: `user_id` (references users table)
@@ -16,10 +18,12 @@ This implementation adds Twitch chat integration with OAuth authentication to th
   - Auto-update trigger for `updated_at` timestamp
 
 #### 2. Data Models
+
 - **TwitchAuth**: Model for OAuth authentication data
 - **TwitchAuthStatusResponse**: Response model for auth status endpoint
 
 #### 3. Repository Layer
+
 - **TwitchAuthRepository** (`internal/repository/twitch_auth_repository.go`)
   - `UpsertTwitchAuth`: Insert or update OAuth credentials
   - `GetTwitchAuth`: Retrieve credentials for a user
@@ -28,6 +32,7 @@ This implementation adds Twitch chat integration with OAuth authentication to th
   - `IsTokenExpired`: Check if token needs refresh (5-minute buffer)
 
 #### 4. Handler Layer
+
 - **TwitchOAuthHandler** (`internal/handlers/twitch_oauth_handler.go`)
   - `InitiateTwitchOAuth`: Start OAuth flow, redirects to Twitch
   - `TwitchOAuthCallback`: Handle OAuth callback, exchange code for tokens
@@ -36,6 +41,7 @@ This implementation adds Twitch chat integration with OAuth authentication to th
   - `refreshTwitchToken`: Internal method for token refresh
 
 #### 5. API Routes
+
 All routes under `/api/v1/twitch`:
 - `GET /oauth/authorize` - Initiate OAuth (requires auth)
 - `GET /oauth/callback` - OAuth callback handler (requires auth)
@@ -43,12 +49,14 @@ All routes under `/api/v1/twitch`:
 - `DELETE /auth` - Revoke OAuth (requires auth)
 
 #### 6. OAuth Scopes
+
 - `chat:read` - Read Twitch chat messages
 - `chat:edit` - Send messages to Twitch chat
 
 ### Frontend Components
 
 #### 1. TwitchChatEmbed Component
+
 - **Location**: `frontend/src/components/stream/TwitchChatEmbed.tsx`
 - **Features**:
   - Embeds Twitch chat iframe
@@ -60,12 +68,14 @@ All routes under `/api/v1/twitch`:
   - Read-only mode for unauthenticated users
 
 #### 2. API Client
+
 - **Location**: `frontend/src/lib/twitch-api.ts`
 - **Functions**:
   - `checkTwitchAuthStatus()`: Check if user is authenticated
   - `revokeTwitchAuth()`: Revoke OAuth credentials
 
 #### 3. StreamPage Integration
+
 - **Updates**: `frontend/src/pages/StreamPage.tsx`
 - **Features**:
   - Chat embed integrated into stream layout
@@ -77,6 +87,7 @@ All routes under `/api/v1/twitch`:
 ### Testing
 
 #### Backend Tests
+
 1. **TwitchAuthRepository Tests** (`twitch_auth_repository_test.go`)
    - Test CRUD operations
    - Test token refresh
@@ -89,6 +100,7 @@ All routes under `/api/v1/twitch`:
    - Test OAuth initiation
 
 #### Test Coverage
+
 - Repository operations: 100%
 - Handler endpoints: Core functionality covered
 - Token refresh logic: Tested
@@ -96,6 +108,7 @@ All routes under `/api/v1/twitch`:
 ## Configuration
 
 ### Environment Variables
+
 All required variables are already documented in `.env.example` files:
 
 **Backend** (`backend/.env.example`):
@@ -112,7 +125,8 @@ VITE_TWITCH_CLIENT_ID=your-twitch-client-id
 ```
 
 ### Twitch Application Setup
-1. Go to https://dev.twitch.tv/console/apps
+
+1. Go to <https://dev.twitch.tv/console/apps>
 2. Create a new application
 3. Set OAuth Redirect URL: `http://localhost:8080/api/v1/twitch/oauth/callback`
 4. Copy Client ID and Client Secret to environment files
@@ -138,6 +152,7 @@ VITE_TWITCH_CLIENT_ID=your-twitch-client-id
 ## User Experience
 
 ### Authenticated Users
+
 1. User clicks "Login to Chat" button
 2. Redirected to Twitch OAuth page
 3. After authorization, redirected back to streams page
@@ -145,11 +160,13 @@ VITE_TWITCH_CLIENT_ID=your-twitch-client-id
 5. User can interact with chat via Twitch iframe
 
 ### Unauthenticated Users
+
 1. Chat displays in read-only mode
 2. No login button shown if user not logged into Clipper
 3. Full chat functionality available without Clipper authentication
 
 ### Chat Controls
+
 - **Show/Hide Toggle**: Minimize chat to focus on stream
 - **Position Control**: Switch between side and bottom layouts
 - **Responsive**: Automatically adjusts on mobile devices
@@ -157,6 +174,7 @@ VITE_TWITCH_CLIENT_ID=your-twitch-client-id
 ## Future Enhancements
 
 ### Potential Improvements
+
 1. **Chat Replay**: Store and replay chat messages for VODs
 2. **Chat Filters**: Custom filters for chat messages
 3. **Emote Support**: Enhanced emote rendering
@@ -166,6 +184,7 @@ VITE_TWITCH_CLIENT_ID=your-twitch-client-id
 7. **Chat Themes**: Customizable chat appearance
 
 ### Technical Debt
+
 1. Consider using WebSocket for real-time token refresh
 2. Add E2E tests for OAuth flow with test Twitch account
 3. Add metrics/logging for OAuth success rates

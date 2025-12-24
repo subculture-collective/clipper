@@ -73,6 +73,7 @@ This document tracks the 25 feature audit issues that need to be created based o
 ## Issue Creation Guidelines
 
 ### Required Labels for Each Issue
+
 - `feature-audit` - Main tracking label
 - `documentation` - All issues involve docs
 - `testing` - All issues involve tests
@@ -80,9 +81,11 @@ This document tracks the 25 feature audit issues that need to be created based o
 - Category-specific label (e.g., `authentication`, `clips`, `search`, etc.)
 
 ### Milestone
+
 - Assign to: **GA (polish, growth, docs, SEO)**
 
 ### Template
+
 Use the template from [feature-inventory.md](feature-inventory.md#issue-template)
 
 ---
@@ -137,16 +140,19 @@ go test -v ./internal/services/clip_sync_service_test.go
 ```
 
 ### Known Gaps
+
 - Scheduler tests have race conditions or timing issues
 - Performance monitoring not implemented
 - Error handling documentation incomplete
 - No alerting for failed scraping jobs
 
 ### Related Issues
+
 - Related to: Clip submission system
 - Blocks: Production scraping deployment
 
 ### Documentation Links
+
 - Implementation: `backend/scripts/scrape_clips.go`, `internal/services/clip_sync_service.go`
 - API Docs: [Twitch Integration](../backend/twitch-integration.md)
 - User Docs: [Scraped Clips](scraped-clips.md)
@@ -154,6 +160,7 @@ go test -v ./internal/services/clip_sync_service_test.go
 - Inventory: [Feature Inventory - Scraped Clips](feature-inventory.md#23-scraped-clips)
 
 ### Labels
+
 `feature-audit`, `P1`, `clips`, `testing`, `documentation`
 ```
 
@@ -215,17 +222,20 @@ npm run test:e2e -- submission
 ```
 
 ### Known Gaps
+
 - E2E submission flow tests missing
 - Abuse detection tuning not documented
 - Mobile submission testing incomplete
 - No load testing for submission queue
 
 ### Related Issues
+
 - Related to: Scraped Clips (#4)
 - Related to: Clip CRUD (#2)
 - Related to: Moderation Queue (#15)
 
 ### Documentation Links
+
 - Implementation: `backend/internal/services/submission_service.go`
 - API Docs: [Clip Submission API Guide](../backend/clip-submission-api-guide.md)
 - Frontend: `frontend/src/pages/SubmitClipPage.tsx`
@@ -233,6 +243,7 @@ npm run test:e2e -- submission
 - Inventory: [Feature Inventory - Clip Submission](feature-inventory.md#22-clip-submission-system)
 
 ### Labels
+
 `feature-audit`, `P2`, `clips`, `testing`, `documentation`
 ```
 

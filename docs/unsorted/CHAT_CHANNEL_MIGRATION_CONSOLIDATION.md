@@ -1,11 +1,13 @@
 # Chat Channel Migration Consolidation
 
 ## Overview
+
 This document describes the resolution of migration collisions and consolidation of chat channel CRUD functionality that occurred when PRs #746, #747, and #749 were merged.
 
 ## Migration Collision Resolution
 
 ### Problem
+
 Two migrations had the same number (000068):
 - `000068_add_twitch_auth` - Twitch OAuth integration
 - `000068_add_watch_parties` - Watch party functionality
@@ -13,6 +15,7 @@ Two migrations had the same number (000068):
 This would cause migration failures on deployment.
 
 ### Solution
+
 Renumbered migrations to eliminate collisions:
 
 | Old Number | Migration Name | New Number |
@@ -26,6 +29,7 @@ Renumbered migrations to eliminate collisions:
 | 000074 | add_forum_hierarchical_support | **000080** |
 
 ### New Migration Added
+
 **000070_add_channel_members** - Tracks channel membership and roles
 
 This migration was missing from the original PRs and is now properly sequenced.
@@ -55,6 +59,7 @@ This migration was missing from the original PRs and is now properly sequenced.
 ### Updated Functionality
 
 #### 1. CreateChannel (Enhanced)
+
 - **Old**: Simple insert of channel record
 - **New**: Transaction-based creation
   - Creates channel record
@@ -62,6 +67,7 @@ This migration was missing from the original PRs and is now properly sequenced.
   - Ensures atomic operation
 
 #### 2. DeleteChannel (New)
+
 - Allows channel creators/owners to delete their channels
 - Cascades to remove all related records (messages, bans, members, etc.)
 - Proper authorization checks
@@ -69,6 +75,7 @@ This migration was missing from the original PRs and is now properly sequenced.
 #### 3. Channel Member Management (New)
 
 ##### AddChannelMember
+
 - Add users to channels with specific roles
 - Roles: `owner`, `admin`, `moderator`, `member`
 - Permission checks:
@@ -77,6 +84,7 @@ This migration was missing from the original PRs and is now properly sequenced.
 - Rate limited: 20 requests/minute
 
 ##### RemoveChannelMember
+
 - Remove members from channels
 - Users can remove themselves (except owners)
 - Permission checks:
@@ -86,11 +94,13 @@ This migration was missing from the original PRs and is now properly sequenced.
 - Rate limited: 20 requests/minute
 
 ##### ListChannelMembers
+
 - List all members of a channel with their roles
 - Includes user information (username, display name, avatar)
 - Paginated (limit/offset)
 
 ##### UpdateChannelMemberRole
+
 - Update a member's role in the channel
 - Only owner can change roles
 - Cannot change owner role
@@ -136,6 +146,7 @@ CREATE TABLE channel_members (
 ```
 
 ### Indexes
+
 - `idx_channel_members_channel` - (channel_id, role)
 - `idx_channel_members_user` - (user_id)
 - `idx_channel_members_joined` - (joined_at DESC)
@@ -150,9 +161,11 @@ All existing tests pass, plus new tests added:
 ## Migration Instructions
 
 ### For Fresh Deployments
+
 Simply run migrations in order. The sequence is now clean with no collisions.
 
 ### For Existing Deployments
+
 If migrations 000068-000074 have already been applied:
 
 1. This is a schema-compatible change - the renumbered migrations have the same content

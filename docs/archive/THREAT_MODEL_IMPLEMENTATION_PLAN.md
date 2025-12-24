@@ -43,24 +43,28 @@ The threat modeling exercise identified **70 potential security threats** across
 ## Implementation Timeline
 
 ### Sprint 1 (Weeks 1-2) - Critical Items
+
 - [ ] **Issue #397:** Deploy secrets management solution
 - [ ] **Issue #397:** Migrate database credentials
 - [ ] **Issue #396:** Implement TOTP-based MFA
 - [ ] **Issue #396:** Enforce MFA for admin/moderator roles
 
 ### Sprint 2 (Weeks 3-4) - Critical + High Priority
+
 - [ ] **Issue #397:** Complete API key migration
 - [ ] **Issue #397:** Automated credential rotation
 - [ ] **Issue #398:** IDOR security audit begins
 - [ ] **Issue #399:** OpenSearch query validation framework
 
 ### Sprint 3 (Weeks 5-6) - High Priority
+
 - [ ] **Issue #398:** Authorization framework implementation
 - [ ] **Issue #399:** Parameterized query builder
 - [ ] **Issue #400:** Query cost analysis framework
 - [ ] **Issue #400:** Database query limits
 
 ### Sprint 4 (Weeks 7-8) - Testing and Optimization
+
 - [ ] **Issue #398:** Automated IDOR testing
 - [ ] **Issue #399:** Security testing and fuzzing
 - [ ] **Issue #400:** Performance optimization
@@ -96,6 +100,7 @@ These items have existing mitigations and should be monitored but don't require 
 ## Security Controls Status
 
 ### ✅ Implemented Controls
+
 - OAuth 2.0 with Twitch
 - JWT-based session management (RS256)
 - HTTP-only, Secure cookies
@@ -110,11 +115,13 @@ These items have existing mitigations and should be monitored but don't require 
 - Audit logging
 
 ### 🟡 Partially Implemented
+
 - Secrets management (env vars, needs centralization)
 - Query validation (basic, needs enhancement)
 - Monitoring and alerting (basic, needs expansion)
 
 ### 🔴 Missing Controls
+
 - Multi-Factor Authentication (MFA)
 - Automated credential rotation
 - Comprehensive IDOR testing
@@ -127,6 +134,7 @@ These items have existing mitigations and should be monitored but don't require 
 ## Monitoring and Metrics
 
 ### Security Metrics to Track
+
 - Failed authentication attempts
 - Rate limit violations
 - CSRF validation failures
@@ -136,6 +144,7 @@ These items have existing mitigations and should be monitored but don't require 
 - Webhook processing failures
 
 ### Alert Thresholds
+
 | Event | Threshold | Severity | Issue Link |
 |-------|-----------|----------|------------|
 | Failed admin logins | 3 in 5 min | High | #396 |
@@ -147,6 +156,7 @@ These items have existing mitigations and should be monitored but don't require 
 ## Compliance and Governance
 
 ### Security Testing Schedule
+
 - **Weekly:** Dependency vulnerability scanning
 - **Monthly:** Security code review
 - **Quarterly:** Threat model review and update
@@ -154,6 +164,7 @@ These items have existing mitigations and should be monitored but don't require 
 - **Annually:** Third-party security assessment
 
 ### Documentation Updates Required
+
 - [ ] Add MFA setup guide for admins (#396)
 - [ ] Document secrets management procedures (#397)
 - [ ] Create authorization testing guide (#398)
@@ -164,18 +175,21 @@ These items have existing mitigations and should be monitored but don't require 
 ## Success Metrics
 
 ### Phase 1 (Critical Items) - Target: End of Q1 2025
+
 - ✅ All admin accounts using MFA
 - ✅ All secrets in secrets management solution
 - ✅ Automated credential rotation active
 - ✅ Zero critical vulnerabilities
 
 ### Phase 2 (High Priority) - Target: End of Q2 2025
+
 - ✅ Zero IDOR vulnerabilities in production
 - ✅ Comprehensive query validation
 - ✅ Query performance within targets (<100ms p95)
 - ✅ Security test coverage >80%
 
 ### Phase 3 (Medium Priority) - Target: End of Q3 2025
+
 - ✅ PKCE implemented
 - ✅ CDN-level DDoS protection
 - ✅ Redis ACL configured
@@ -184,6 +198,7 @@ These items have existing mitigations and should be monitored but don't require 
 ## Resources
 
 ### Internal Documentation
+
 - [Threat Model](THREAT_MODEL.md) - Complete threat analysis
 - [Security Documentation](SECURITY.md) - Current security features
 - [Authentication](AUTHENTICATION.md) - Auth implementation details
@@ -191,6 +206,7 @@ These items have existing mitigations and should be monitored but don't require 
 - [API Documentation](API.md) - API security features
 
 ### External References
+
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)
 - [STRIDE Threat Modeling](https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats)
@@ -203,6 +219,7 @@ These items have existing mitigations and should be monitored but don't require 
 **Document Owner:** Security Team
 
 ### Review Checklist
+
 - [ ] Review progress on open issues
 - [ ] Update risk ratings based on changes
 - [ ] Identify new threats from system changes

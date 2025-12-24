@@ -167,6 +167,7 @@ The infrastructure was already in place:
 ## Usage Examples
 
 ### Rotate Database Password
+
 ```bash
 cd /opt/clipper
 export VAULT_ADDR=https://vault.subcult.tv
@@ -175,22 +176,26 @@ vault login
 ```
 
 ### Test Secret Retrieval
+
 ```bash
 ./scripts/test-secrets-retrieval.sh
 ```
 
 ### Check Rotation Status
+
 ```bash
 sudo systemctl status clipper-rotation-reminder.timer
 sudo journalctl -u clipper-rotation-reminder.service
 ```
 
 ### Emergency Break-Glass
+
 See [docs/operations/break-glass-procedures.md](docs/operations/break-glass-procedures.md)
 
 ## Security Improvements
 
 ### Before
+
 - ⚠️ Secrets stored in Vault but no automated rotation
 - ⚠️ Manual rotation procedures not documented
 - ⚠️ No rotation monitoring or reminders
@@ -198,6 +203,7 @@ See [docs/operations/break-glass-procedures.md](docs/operations/break-glass-proc
 - ⚠️ Access control not fully documented
 
 ### After
+
 - ✅ Automated rotation scripts for all critical credentials
 - ✅ Comprehensive rotation runbook with step-by-step procedures
 - ✅ Automated rotation monitoring with systemd timer
@@ -209,12 +215,14 @@ See [docs/operations/break-glass-procedures.md](docs/operations/break-glass-proc
 ## Files Created
 
 ### Scripts (4 files)
+
 1. `scripts/rotate-db-password.sh` - Database password rotation
 2. `scripts/rotate-api-keys.sh` - API key rotation
 3. `scripts/rotate-jwt-keys.sh` - JWT key rotation
 4. `scripts/test-secrets-retrieval.sh` - Secret validation
 
 ### Documentation (9 files)
+
 1. `docs/operations/credential-rotation-runbook.md` - Rotation procedures
 2. `docs/operations/break-glass-procedures.md` - Emergency access
 3. `docs/operations/vault-access-control.md` - Access policies
@@ -226,10 +234,12 @@ See [docs/operations/break-glass-procedures.md](docs/operations/break-glass-proc
 9. `docs/operations/SECRETS_AUDIT_EXECUTIVE_SUMMARY.md` - Audit summary *(New - 2025-12-16)*
 
 ### Systemd Files (2 files)
+
 1. `backend/scripts/systemd/clipper-rotation-reminder.service` - Reminder service
 2. `backend/scripts/systemd/clipper-rotation-reminder.timer` - Weekly timer
 
 ### Configuration (1 file)
+
 1. `.gitignore` - Updated to prevent secret commits
 
 **Total:** 16 new/updated files
@@ -254,6 +264,7 @@ See [docs/operations/break-glass-procedures.md](docs/operations/break-glass-proc
 ## Next Steps (For Operations Team)
 
 ### Immediate (Week 1)
+
 1. **Review documentation:**
    - Read credential-rotation-runbook.md
    - Understand break-glass-procedures.md
@@ -274,6 +285,7 @@ See [docs/operations/break-glass-procedures.md](docs/operations/break-glass-proc
    ```
 
 ### Short-term (Week 2-4)
+
 1. **Enable Vault audit logging:**
    ```bash
    vault audit enable file file_path=/vault/logs/audit.log
@@ -296,6 +308,7 @@ See [docs/operations/break-glass-procedures.md](docs/operations/break-glass-proc
    ```
 
 ### Medium-term (Month 2-3)
+
 1. **Schedule rotations:**
    - Add rotation dates to team calendar
    - Document rotation completion in log
@@ -351,7 +364,7 @@ This implementation addresses the following threats from the threat model:
 - Systemd files in `backend/scripts/systemd/`
 
 **Support Contacts:**
-- Security Team: security@clipper.gg
+- Security Team: <security@clipper.gg>
 - Documentation: docs/operations/
 - Emergency: See break-glass-procedures.md
 
@@ -370,6 +383,7 @@ This implementation addresses the following threats from the threat model:
 As part of the comprehensive secrets management audit (Issue: "Security: Secrets management audit and rotation"), the following additional deliverables were created:
 
 #### 1. Complete Secrets Inventory ✅
+
 **Document:** `docs/operations/SECRETS_INVENTORY.md`
 
 **Contents:**
@@ -388,6 +402,7 @@ As part of the comprehensive secrets management audit (Issue: "Security: Secrets
 - All stored in HashiCorp Vault with proper access controls
 
 #### 2. Rotation Execution Tracking ✅
+
 **Document:** `docs/operations/ROTATION_EXECUTION_LOG.md`
 
 **Purpose:** Centralized tracking and logging of all credential rotation activities
@@ -407,6 +422,7 @@ As part of the comprehensive secrets management audit (Issue: "Security: Secrets
 - Lessons learned documentation
 
 #### 3. Audit Executive Summary ✅
+
 **Document:** `docs/operations/SECRETS_AUDIT_EXECUTIVE_SUMMARY.md`
 
 **Purpose:** Executive-level summary of secrets management audit

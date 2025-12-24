@@ -112,6 +112,7 @@ This document provides a comprehensive threat model for the Clipper application,
 ### Data Flow Diagrams
 
 #### Authentication Flow
+
 ```
 User → Frontend → Backend OAuth Handler → Twitch OAuth
                                       ↓
@@ -125,6 +126,7 @@ User → Frontend → Backend OAuth Handler → Twitch OAuth
 ```
 
 #### API Request Flow
+
 ```
 User → Frontend → Nginx → Backend Middleware Stack:
                               1. CORS
@@ -561,6 +563,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Implemented Controls
 
 #### Authentication & Authorization
+
 - ✅ OAuth 2.0 with Twitch
 - ✅ JWT-based session management (RS256)
 - ✅ HTTP-only, Secure cookies
@@ -569,6 +572,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ✅ Token expiration (15 min access, 7 day refresh)
 
 #### API Security
+
 - ✅ Content Security Policy (CSP)
 - ✅ CSRF Protection (double-submit cookie pattern)
 - ✅ Input validation middleware
@@ -578,6 +582,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ✅ CORS configuration
 
 #### Data Protection
+
 - ✅ Parameterized database queries
 - ✅ Input sanitization
 - ✅ Security headers (HSTS, X-Frame-Options, etc.)
@@ -585,6 +590,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ✅ XSS pattern detection
 
 #### Monitoring & Logging
+
 - ✅ Audit logging for critical actions
 - ✅ Structured logging
 - ✅ Webhook event logging
@@ -593,6 +599,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Missing/Incomplete Controls
 
 #### High Priority Gaps
+
 - ❌ Multi-Factor Authentication (MFA) for admin accounts
 - ❌ Centralized secrets management solution
 - ❌ Automated credential rotation
@@ -601,6 +608,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ❌ Database-level audit logging
 
 #### Medium Priority Gaps
+
 - ❌ PKCE for OAuth 2.0
 - ❌ JWT ID (jti) tracking for replay prevention
 - ❌ CDN-level DDoS protection
@@ -609,6 +617,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ❌ Comprehensive search query validation
 
 #### Monitoring Gaps
+
 - ❌ Security event alerting
 - ❌ Anomaly detection
 - ❌ Failed authentication monitoring
@@ -696,6 +705,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Security Metrics to Track
 
 #### Authentication Metrics
+
 - Failed login attempts per user/IP
 - Password reset requests
 - OAuth callback failures
@@ -703,6 +713,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - Admin login events
 
 #### API Security Metrics
+
 - Rate limit violations per endpoint
 - CSRF validation failures
 - Input validation failures
@@ -710,6 +721,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - Abuse detection triggers
 
 #### Data Access Metrics
+
 - Database query errors
 - Slow query frequency
 - Unauthorized access attempts
@@ -717,6 +729,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - Export/download activities
 
 #### Third-Party Integration Metrics
+
 - API error rates per service
 - Rate limit approaches
 - Webhook processing failures
@@ -779,36 +792,42 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Incident Response Procedures
 
 #### 1. Detection and Triage (0-15 minutes)
+
 - Verify the incident through multiple sources
 - Classify severity level
 - Activate incident response team
 - Document initial findings
 
 #### 2. Containment (15-60 minutes)
+
 - Isolate affected systems if necessary
 - Revoke compromised credentials
 - Block malicious IPs/users
 - Enable enhanced logging
 
 #### 3. Investigation (1-4 hours)
+
 - Analyze logs and audit trails
 - Identify root cause
 - Determine scope of impact
 - Collect forensic evidence
 
 #### 4. Remediation (4-24 hours)
+
 - Deploy fixes
 - Restore services
 - Verify security controls
 - Update monitoring rules
 
 #### 5. Recovery (24-48 hours)
+
 - Return to normal operations
 - Monitor for recurrence
 - Validate all systems
 - Communication with stakeholders
 
 #### 6. Post-Incident Review (48-72 hours)
+
 - Document lessons learned
 - Update runbooks and procedures
 - Implement preventive measures

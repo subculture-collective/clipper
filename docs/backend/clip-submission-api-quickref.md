@@ -82,6 +82,7 @@ const { submission } = await res.json();
 ## Response Examples
 
 ### Success (Auto-Approved)
+
 ```json
 {
   "success": true,
@@ -95,6 +96,7 @@ const { submission } = await res.json();
 ```
 
 ### Success (Pending Review)
+
 ```json
 {
   "success": true,
@@ -107,6 +109,7 @@ const { submission } = await res.json();
 ```
 
 ### Error (Duplicate)
+
 ```json
 {
   "success": false,
@@ -116,6 +119,7 @@ const { submission } = await res.json();
 ```
 
 ### Error (Rate Limit)
+
 ```json
 {
   "success": false,

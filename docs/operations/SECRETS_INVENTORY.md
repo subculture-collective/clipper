@@ -116,7 +116,7 @@ This document provides a comprehensive inventory of all secrets, credentials, an
 **Used By:** Backend application (payment service)  
 **Impact if Compromised:** Financial fraud, unauthorized charges, refunds  
 **Rotation Script:** `scripts/rotate-api-keys.sh --service stripe`  
-**Provider Dashboard:** https://dashboard.stripe.com/apikeys  
+**Provider Dashboard:** <https://dashboard.stripe.com/apikeys>  
 **Special Notes:** Coordinate rotation with accounting team for reconciliation
 
 ---
@@ -133,7 +133,7 @@ This document provides a comprehensive inventory of all secrets, credentials, an
 **Used By:** Backend application (auth service, Twitch integration)  
 **Impact if Compromised:** Account hijacking, unauthorized API access  
 **Rotation Script:** `scripts/rotate-api-keys.sh --service twitch`  
-**Provider Dashboard:** https://dev.twitch.tv/console/apps  
+**Provider Dashboard:** <https://dev.twitch.tv/console/apps>  
 **Special Notes:** Update redirect URI in Twitch dashboard if domain changes
 
 ---
@@ -149,8 +149,8 @@ This document provides a comprehensive inventory of all secrets, credentials, an
 **Used By:** Backend application (search service)  
 **Impact if Compromised:** Unauthorized API usage, cost implications  
 **Rotation Script:** `scripts/rotate-api-keys.sh --service openai`  
-**Provider Dashboard:** https://platform.openai.com/api-keys  
-**Cost Monitoring:** Monitor usage at https://platform.openai.com/usage
+**Provider Dashboard:** <https://platform.openai.com/api-keys>  
+**Cost Monitoring:** Monitor usage at <https://platform.openai.com/usage>
 
 ---
 
@@ -164,7 +164,7 @@ This document provides a comprehensive inventory of all secrets, credentials, an
 **Used By:** Backend application (notification service)  
 **Impact if Compromised:** Email spam, phishing attacks  
 **Rotation:** Manual via SendGrid dashboard  
-**Provider Dashboard:** https://app.sendgrid.com/settings/api_keys
+**Provider Dashboard:** <https://app.sendgrid.com/settings/api_keys>
 
 ---
 
@@ -179,7 +179,7 @@ This document provides a comprehensive inventory of all secrets, credentials, an
 **Used By:** Backend and frontend applications  
 **Impact if Compromised:** Information disclosure (error details, stack traces)  
 **Rotation:** Via Sentry dashboard  
-**Provider Dashboard:** https://sentry.io/settings/
+**Provider Dashboard:** <https://sentry.io/settings/>
 
 ---
 
@@ -468,8 +468,8 @@ YYYY-MM-DD HH:MM:SS | [SECRET_TYPE] | [ACTION] | [OPERATOR] | [STATUS] | [NOTES]
 
 ## Support
 
-**Security Team:** security@clipper.gg  
-**Operations Team:** ops@clipper.gg  
+**Security Team:** <security@clipper.gg>  
+**Operations Team:** <ops@clipper.gg>  
 **Emergency:** See [Break-Glass Procedures](./break-glass-procedures.md)
 
 **Next Review Date:** 2026-03-16

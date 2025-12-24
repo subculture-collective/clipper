@@ -165,7 +165,7 @@ All scripts support `--dry-run` flag for testing without making changes.
 **Steps:**
 
 1. **Generate new secret key:**
-   - Go to https://dashboard.stripe.com/apikeys
+   - Go to <https://dashboard.stripe.com/apikeys>
    - Click "Create secret key" or "Roll secret key"
    - Name: `clipper-production-YYYYMMDD`
    - Copy the new key
@@ -178,7 +178,7 @@ All scripts support `--dry-run` flag for testing without making changes.
    ```
 
 3. **Rotate webhook secrets:**
-   - Go to https://dashboard.stripe.com/webhooks
+   - Go to <https://dashboard.stripe.com/webhooks>
    - Click on your webhook endpoint
    - Click "Roll secret"
    - Update Vault:
@@ -215,7 +215,7 @@ All scripts support `--dry-run` flag for testing without making changes.
 **Steps:**
 
 1. **Generate new credentials:**
-   - Go to https://dev.twitch.tv/console/apps
+   - Go to <https://dev.twitch.tv/console/apps>
    - Select "Clipper" application
    - Click "Manage" → "New Secret"
    - Copy the new Client ID and Client Secret
@@ -257,7 +257,7 @@ All scripts support `--dry-run` flag for testing without making changes.
 **Steps:**
 
 1. **Generate new key:**
-   - Go to https://platform.openai.com/api-keys
+   - Go to <https://platform.openai.com/api-keys>
    - Click "Create new secret key"
    - Name: `clipper-production-YYYYMMDD`
    - Copy the key (only shown once!)
@@ -499,7 +499,7 @@ After each rotation:
    ```
 
 4. **Notify security team** (for compliance):
-   - Email: security@clipper.gg
+   - Email: <security@clipper.gg>
    - Include: What was rotated, when, by whom
    - Attach: Rotation logs and verification results
 

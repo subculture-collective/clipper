@@ -215,6 +215,7 @@ done
 ## Troubleshooting
 
 ### "jq: command not found"
+
 Install jq:
 ```bash
 # macOS
@@ -228,12 +229,15 @@ choco install jq
 ```
 
 ### "Unauthorized" Error
+
 Make sure your JWT token is valid and not expired. Re-authenticate if necessary.
 
 ### "Clip not found on Twitch"
+
 Verify the clip exists by visiting it directly on Twitch. Some clips may be deleted or from suspended channels.
 
 ### TypeScript Compilation Errors
+
 Ensure you have the correct type definitions:
 ```bash
 npm install --save-dev @types/node axios

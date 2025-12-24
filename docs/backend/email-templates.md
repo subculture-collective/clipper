@@ -22,10 +22,11 @@ All email templates are implemented in `/backend/internal/services/email_service
 ### Account & Authentication (3 templates)
 
 #### 1. Welcome Email
+
 - **Type**: `welcome`
 - **Trigger**: New user registration
 - **Subject**: "Welcome to Clipper! 🎬"
-- **Content**: 
+- **Content**:
   - Greeting with username
   - Platform introduction
   - Getting started guide
@@ -33,6 +34,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Documentation and support links
 
 #### 2. Password Reset
+
 - **Type**: `password_reset`
 - **Trigger**: User requests password reset
 - **Subject**: "Reset Your Clipper Password"
@@ -43,6 +45,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Support email link
 
 #### 3. Email Verification
+
 - **Type**: `email_verification`
 - **Trigger**: User needs to verify email address
 - **Subject**: "Verify Your Email Address"
@@ -55,6 +58,7 @@ All email templates are implemented in `/backend/internal/services/email_service
 ### Content Notifications (5 templates)
 
 #### 1. Comment Reply
+
 - **Type**: `models.NotificationTypeReply`
 - **Trigger**: Someone replies to user's comment
 - **Subject**: "{Author} replied to your comment"
@@ -65,6 +69,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Link to reply
 
 #### 2. Mention
+
 - **Type**: `models.NotificationTypeMention`
 - **Trigger**: User is mentioned in a comment
 - **Subject**: "{Author} mentioned you in a comment"
@@ -75,6 +80,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Link to comment
 
 #### 3. Submission Approved
+
 - **Type**: `models.NotificationTypeSubmissionApproved`
 - **Trigger**: User's clip submission is approved
 - **Subject**: "Your Clip Submission Has Been Approved! 🎉"
@@ -85,6 +91,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Encouragement to share
 
 #### 4. Submission Rejected
+
 - **Type**: `models.NotificationTypeSubmissionRejected`
 - **Trigger**: User's clip submission is rejected
 - **Subject**: "Clip Submission Status Update"
@@ -96,6 +103,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Appeal and resubmit buttons
 
 #### 5. Clip Trending
+
 - **Type**: `models.NotificationTypeContentTrending`
 - **Trigger**: User's clip is trending
 - **Subject**: "🔥 Your Clip is Trending!"
@@ -108,6 +116,7 @@ All email templates are implemented in `/backend/internal/services/email_service
 ### Moderation (2 templates)
 
 #### 1. Content Flagged
+
 - **Type**: `models.NotificationTypeContentFlagged`
 - **Trigger**: User's content is flagged for review
 - **Subject**: "Content Flagged for Review"
@@ -119,6 +128,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Appeal option
 
 #### 2. Ban/Suspension
+
 - **Type**: `models.NotificationTypeBan`
 - **Trigger**: Account is banned or suspended
 - **Subject**: "Account Status Update"
@@ -132,6 +142,7 @@ All email templates are implemented in `/backend/internal/services/email_service
 ### System Alerts (2 templates)
 
 #### 1. Security Alert
+
 - **Type**: `models.NotificationTypeLoginNewDevice`
 - **Trigger**: New device login detected
 - **Subject**: "⚠️ New Login Detected"
@@ -144,6 +155,7 @@ All email templates are implemented in `/backend/internal/services/email_service
   - Instructions if not user
 
 #### 2. Policy Update
+
 - **Type**: `policy_update`
 - **Trigger**: Platform policy changes
 - **Subject**: "Important Update to Our Policies"
@@ -157,6 +169,7 @@ All email templates are implemented in `/backend/internal/services/email_service
 ## Design Standards
 
 ### Visual Design
+
 - **Color Scheme**: Gradient headers matching clpr.tv branding
 - **Typography**: Arial, sans-serif for maximum compatibility
 - **Layout**: Max-width 600px for optimal email client display
@@ -164,12 +177,14 @@ All email templates are implemented in `/backend/internal/services/email_service
 - **Spacing**: Consistent padding and margins
 
 ### Responsive Design
+
 - Inline CSS styles for compatibility
 - Mobile-friendly layouts
 - Tested on major email clients
 - Works with images disabled
 
 ### Content Requirements
+
 All templates include:
 - Clear, branded header with gradient background
 - Main content area with white/light gray background
@@ -179,6 +194,7 @@ All templates include:
 - Company information footer
 
 ### Accessibility
+
 - Semantic HTML structure
 - Alt text for images (when used)
 - High contrast text
@@ -233,6 +249,7 @@ go test ./internal/services/email_service_test.go ./internal/services/email_serv
 ```
 
 ### Test Coverage
+
 - Template generation for all 12 types
 - HTML and text content validation
 - Required fields presence
@@ -334,6 +351,7 @@ For questions or issues with email templates:
 ## Changelog
 
 ### v1.0.0 (2025-12-09)
+
 - Initial implementation of 12 email templates
 - Comprehensive test coverage
 - Responsive design with inline CSS

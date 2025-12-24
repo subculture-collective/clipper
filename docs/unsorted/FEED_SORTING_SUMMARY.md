@@ -1,6 +1,7 @@
 # Feed Sorting & Trending Algorithms - Implementation Summary
 
 ## Overview
+
 This PR implements dynamic sorting algorithms (trending, hot, popular) for the feed with real-time ranking updates, as specified in issue #668.
 
 ## What Was Implemented
@@ -8,6 +9,7 @@ This PR implements dynamic sorting algorithms (trending, hot, popular) for the f
 ### ✅ Completed Features
 
 #### Backend (Go)
+
 1. **Database Schema Enhancement**
    - Added 4 new columns to `clips` table: `trending_score`, `hot_score`, `popularity_index`, `engagement_count`
    - Created performance indexes for all new columns with WHERE clauses for optimization
@@ -31,6 +33,7 @@ This PR implements dynamic sorting algorithms (trending, hot, popular) for the f
    - Maintained full backward compatibility
 
 #### Frontend (React/TypeScript)
+
 1. **Type Definitions**
    - Added 'popular' to `SortOption` union type (trending was already there)
    - Added trending metric fields to `Clip` interface
@@ -76,6 +79,7 @@ The following items from the acceptance criteria were intentionally deferred as 
 ## How It Works
 
 ### Trending Score Algorithm
+
 ```
 trending_score = engagement / age_in_hours
 where:
@@ -85,6 +89,7 @@ where:
 This formula gives higher scores to recent content with high engagement. The weighting prioritizes meaningful interactions (comments > likes > views).
 
 ### Hot Score Algorithm
+
 ```
 hot_score = current_engagement + (velocity × 0.5)
 where:
@@ -93,12 +98,14 @@ where:
 This identifies content that's gaining traction quickly by measuring the rate of engagement growth.
 
 ### Popular Score
+
 ```
 popularity_index = views + (likes × 2) + (comments × 3) + (favorites × 2)
 ```
 Simple total engagement for all-time popular content, without recency weighting.
 
 ### Update Schedule
+
 - Scheduler runs every 60 minutes
 - Updates all non-removed, non-hidden clips
 - Uses database functions for consistency
@@ -107,6 +114,7 @@ Simple total engagement for all-time popular content, without recency weighting.
 ## Files Changed
 
 ### Backend
+
 - `backend/migrations/000054_add_trending_columns.up.sql` ⭐ (new)
 - `backend/migrations/000054_add_trending_columns.down.sql` ⭐ (new)
 - `backend/internal/models/models.go` (4 new fields)
@@ -116,17 +124,20 @@ Simple total engagement for all-time popular content, without recency weighting.
 - `backend/cmd/api/main.go` (scheduler integration)
 
 ### Frontend
+
 - `frontend/src/types/clip.ts` (updated types)
 - `frontend/src/components/clip/FeedFilters.tsx` (new sort options)
 - `frontend/src/components/clip/ClipFeed.tsx` (localStorage, label maps)
 
 ### Documentation
+
 - `TRENDING_TESTING_GUIDE.md` ⭐ (new, comprehensive testing guide)
 - `FEED_SORTING_SUMMARY.md` ⭐ (this file)
 
 ## Testing
 
 ### Automated Tests
+
 ```bash
 # Backend unit tests
 cd backend
@@ -139,6 +150,7 @@ go test -short ./internal/models/... ./internal/repository/... ./internal/schedu
 ```
 
 ### Manual Testing Checklist
+
 See `TRENDING_TESTING_GUIDE.md` for comprehensive manual testing procedures including:
 - Database migration verification
 - API endpoint testing with curl examples
@@ -149,12 +161,14 @@ See `TRENDING_TESTING_GUIDE.md` for comprehensive manual testing procedures incl
 ## Performance Characteristics
 
 ### Query Performance
+
 - **Target**: p95 < 200ms for 100k+ clips
 - **Strategy**: Indexes on all new columns with WHERE clauses
 - **Fallback**: Real-time calculation if pre-calculated scores unavailable
 - **Optimization**: COALESCE ensures graceful degradation
 
 ### Scheduler Performance
+
 - **Frequency**: Every 60 minutes (configurable)
 - **Scope**: Only non-removed, non-hidden clips
 - **Logging**: Execution time and clip count logged
@@ -163,6 +177,7 @@ See `TRENDING_TESTING_GUIDE.md` for comprehensive manual testing procedures incl
 ## Usage Examples
 
 ### API Requests
+
 ```bash
 # Get trending clips from the last day (default timeframe)
 curl "http://localhost:8080/api/v1/feeds/clips?sort=trending"
@@ -175,6 +190,7 @@ curl "http://localhost:8080/api/v1/feeds/clips?sort=popular"
 ```
 
 ### Frontend Usage
+
 1. Navigate to feed page
 2. Click sort dropdown
 3. Select "Trending 🔥" or "Most Popular ⭐"
@@ -184,6 +200,7 @@ curl "http://localhost:8080/api/v1/feeds/clips?sort=popular"
 ## Migration Path
 
 ### Staging Deployment
+
 1. Run migration: `migrate -path backend/migrations -database $DB_URL up`
 2. Verify columns exist: `\d clips` in psql
 3. Manually trigger initial score calculation (see testing guide)
@@ -192,6 +209,7 @@ curl "http://localhost:8080/api/v1/feeds/clips?sort=popular"
 6. Deploy frontend with new sort options
 
 ### Production Deployment
+
 1. Schedule migration during low-traffic window
 2. Run migration (takes ~1-2 seconds for 100k clips)
 3. Initial score calculation (~5-10 seconds for 100k clips)
@@ -204,31 +222,34 @@ curl "http://localhost:8080/api/v1/feeds/clips?sort=popular"
 
 1. **Update Frequency**: Scores update hourly, not real-time
    - **Mitigation**: Acceptable for MVP; consider more frequent updates if needed
-   
+
 2. **Timeframe Filtering**: Works on creation date, not trending calculation window
    - **Mitigation**: Matches user expectations for "trending in the last week"
-   
+
 3. **Cold Start**: New clips have 0 scores until first scheduler run
    - **Mitigation**: Fallback to real-time calculation in queries
-   
+
 4. **No Caching**: Results not cached in Redis
    - **Mitigation**: Database indexes provide good performance; add caching if needed
 
 ## Future Enhancements
 
 ### Short Term (1-2 sprints)
+
 - Add Redis caching for trending results (30min TTL)
 - Implement materialized view for faster calculations
 - Add sort indicator badges in UI
 - Increase scheduler frequency to 15 minutes for hot content
 
 ### Medium Term (3-6 sprints)
+
 - Personalized trending based on user follows
 - Game-specific trending leaderboards
 - Trending predictions and forecasting
 - A/B testing framework for algorithm tuning
 
 ### Long Term (6+ months)
+
 - Real-time trending using streaming analytics
 - Machine learning for engagement prediction
 - Geographic trending (trending in your region)

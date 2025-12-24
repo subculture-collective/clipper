@@ -43,8 +43,8 @@ This playbook provides step-by-step procedures for responding to SLO (Service Le
    ```
 
 3. **Open monitoring dashboards**
-   - Primary SLO Dashboard: http://localhost:3000/d/slo-dashboard
-   - Prometheus Alerts: http://localhost:9090/alerts
+   - Primary SLO Dashboard: <http://localhost:3000/d/slo-dashboard>
+   - Prometheus Alerts: <http://localhost:9090/alerts>
    - Relevant service dashboard based on alert
 
 4. **Assess severity and impact**

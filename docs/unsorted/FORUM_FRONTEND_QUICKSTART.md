@@ -3,11 +3,13 @@
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ installed
 - Backend API running on `http://localhost:8080`
 - Frontend dependencies installed (`npm install`)
 
 ### Running the Forum
+
 ```bash
 cd frontend
 npm install
@@ -53,18 +55,21 @@ frontend/src/
 ## 🎨 Key Components
 
 ### ThreadCard
+
 Displays thread summary with title, preview, stats, and tags.
 ```tsx
 <ThreadCard thread={threadData} />
 ```
 
 ### ThreadList
+
 Manages list of threads with loading and empty states.
 ```tsx
 <ThreadList threads={threads} loading={isLoading} />
 ```
 
 ### ReplyTree
+
 Renders nested replies recursively up to 10 levels.
 ```tsx
 <ReplyTree
@@ -78,6 +83,7 @@ Renders nested replies recursively up to 10 levels.
 ```
 
 ### ReplyComposer
+
 Form for creating/editing replies with markdown support.
 ```tsx
 <ReplyComposer
@@ -91,6 +97,7 @@ Form for creating/editing replies with markdown support.
 ## 🔧 API Usage
 
 ### List Threads
+
 ```typescript
 import { forumApi } from '@/lib/forum-api';
 
@@ -104,11 +111,13 @@ const threads = await forumApi.listThreads({
 ```
 
 ### Get Thread Detail
+
 ```typescript
 const { thread, replies } = await forumApi.getThread(threadId);
 ```
 
 ### Create Thread
+
 ```typescript
 const newThread = await forumApi.createThread({
   title: 'My Thread',
@@ -118,6 +127,7 @@ const newThread = await forumApi.createThread({
 ```
 
 ### Create Reply
+
 ```typescript
 const newReply = await forumApi.createReply(threadId, {
   content: 'My reply',
@@ -126,6 +136,7 @@ const newReply = await forumApi.createReply(threadId, {
 ```
 
 ### Update Reply
+
 ```typescript
 await forumApi.updateReply(replyId, {
   content: 'Updated content'
@@ -133,11 +144,13 @@ await forumApi.updateReply(replyId, {
 ```
 
 ### Delete Reply
+
 ```typescript
 await forumApi.deleteReply(replyId);
 ```
 
 ### Search
+
 ```typescript
 const results = await forumApi.search({
   q: 'search query',
@@ -170,40 +183,48 @@ const mutation = useMutation({
 ## 🎯 Common Tasks
 
 ### Add a New Filter
+
 1. Update `ForumFilters.tsx` component
 2. Add filter to `ForumFiltersType` in `types/forum.ts`
 3. Update `forumApi.listThreads()` to handle new filter
 4. Update URL parameter handling in `ForumIndex.tsx`
 
 ### Add a Sort Option
+
 1. Update `ForumSort` type in `types/forum.ts`
 2. Add option to `sortOptions` in `SortSelector.tsx`
 3. Ensure backend supports the sort type
 
 ### Customize Thread Card
+
 Edit `ThreadCard.tsx` to change layout or add fields.
 
 ### Add Custom Tag
+
 Tags are user-defined. Pre-defined tags in filters can be modified in `ForumFilters.tsx`.
 
 ## 🧪 Testing
 
 ### Run All Tests
+
 ```bash
 npm run test
 ```
 
 ### Run Forum Tests Only
+
 ```bash
 npm run test -- src/components/forum
 ```
 
 ### Run Tests in Watch Mode
+
 ```bash
 npm run test -- --watch
 ```
 
 ### Test Coverage
+
 ```bash
 npm run test:coverage
 ```
@@ -211,12 +232,15 @@ npm run test:coverage
 ## 🐛 Debugging
 
 ### Enable React Query Devtools
+
 Already included in development mode. Check bottom-right corner of browser.
 
 ### Check API Calls
+
 Open browser DevTools → Network tab → Filter by "forum"
 
 ### Debug State
+
 Use React DevTools to inspect component state and props.
 
 ### Common Issues
@@ -327,6 +351,7 @@ function MyComponent() {
 ## 🚢 Deployment
 
 ### Build for Production
+
 ```bash
 npm run build
 ```
@@ -334,12 +359,14 @@ npm run build
 Output in `dist/` directory.
 
 ### Environment Variables
+
 Create `.env.production`:
 ```
 VITE_API_BASE_URL=https://api.yoursite.com/api/v1
 ```
 
 ### Deploy to CDN
+
 Upload `dist/` contents to CDN or static hosting.
 
 ## 📚 Additional Resources

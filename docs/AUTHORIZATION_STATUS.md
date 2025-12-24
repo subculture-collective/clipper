@@ -79,15 +79,18 @@ These endpoints have authorization checks in handlers/services that align with o
 These endpoints could optionally add the new authorization middleware for defense-in-depth:
 
 #### High Priority
+
 - [ ] `PUT /comments/:id` - Add `RequireResourceOwnership` middleware
 - [ ] `DELETE /comments/:id` - Add `RequireResourceOwnership` middleware
 - [ ] `PUT /users/:id/profile` - Add `RequireResourceOwnership` middleware (if ID-based endpoint added)
 
 #### Medium Priority
+
 - [ ] `PUT /clips/:id/metadata` - Add `RequireResourceOwnership` middleware
 - [ ] `DELETE /clips/:id/favorite` - Add ownership check middleware
 
 #### Low Priority
+
 - [ ] Favorite list endpoints - Currently don't exist, would need ownership checks
 
 ## Migration Path (Optional)
@@ -135,6 +138,7 @@ comments.PUT("/:id",
 ## Authorization Patterns
 
 ### Pattern 1: Context-Based Self-Access (Current)
+
 Used for: User settings, profile updates
 ```go
 // User can only access their own resources
@@ -145,6 +149,7 @@ settings := service.GetSettings(ctx, userID)
 **Status:** ✅ Secure - User can only access their own resources
 
 ### Pattern 2: Service-Level Ownership Check (Current)
+
 Used for: Comment updates, clip metadata
 ```go
 // Service checks if user owns resource
@@ -160,6 +165,7 @@ func (s *Service) UpdateResource(resourceID, userID uuid.UUID) error {
 **Status:** ✅ Secure - Ownership verified before action
 
 ### Pattern 3: Role-Based Middleware (Current)
+
 Used for: Admin/moderator endpoints
 ```go
 router.DELETE("/clips/:id", 
@@ -171,6 +177,7 @@ router.DELETE("/clips/:id",
 **Status:** ✅ Secure - Role checked before handler execution
 
 ### Pattern 4: Resource Ownership Middleware (New, Optional)
+
 Can be used for: Additional defense layer
 ```go
 router.PUT("/comments/:id",
@@ -188,12 +195,14 @@ router.PUT("/comments/:id",
 ## Security Posture
 
 ### Current State ✅
+
 - **Strong:** All critical endpoints have authorization checks
 - **Location:** Primarily in service layer (business logic)
 - **Coverage:** 100% of sensitive operations
 - **Testing:** Unit tests in handlers/services
 
 ### With New Framework ✅
+
 - **Enhanced:** Additional authorization layer available
 - **Testing:** Comprehensive IDOR test suite (31 test cases)
 - **Documentation:** Permission matrix documented
@@ -203,18 +212,21 @@ router.PUT("/comments/:id",
 ## Recommendations
 
 ### Immediate (Done ✅)
+
 1. ✅ Document all existing authorization patterns
 2. ✅ Create comprehensive IDOR test suite
 3. ✅ Establish permission matrix
 4. ✅ Add security testing to CI/CD
 
 ### Short Term (Optional)
+
 1. Add middleware layer to critical endpoints for defense-in-depth
 2. Integrate authorization failure logging with monitoring
 3. Add performance metrics for authorization checks
 4. Create security dashboard
 
 ### Long Term (Future)
+
 1. Consider migrating to middleware-based authorization for consistency
 2. Implement fine-grained permissions beyond owner/role
 3. Add resource-level ACLs if needed
@@ -223,6 +235,7 @@ router.PUT("/comments/:id",
 ## Testing Coverage
 
 ### IDOR Tests (Automated) ✅
+
 - Comment ownership: 8 test cases
 - User settings access: 7 test cases  
 - Clip operations: 5 test cases
@@ -231,6 +244,7 @@ router.PUT("/comments/:id",
 - **Total: 31 test cases passing**
 
 ### Service-Level Tests (Existing)
+
 - Comment service tests
 - User settings service tests
 - Clip service tests

@@ -118,10 +118,12 @@ BACKEND_URL=http://localhost:8081 bash scripts/health-check.sh
 ## Files Changed/Created
 
 ### Modified
+
 - ✅ [frontend/vite.config.ts](frontend/vite.config.ts) - Code splitting fix
 - ✅ [scripts/health-check.sh](scripts/health-check.sh) - Enhanced monitoring
 
 ### Created
+
 - ✅ [docker-compose.blue-green.yml](docker-compose.blue-green.yml) - Blue-green setup
 - ✅ [scripts/deploy-blue-green.sh](scripts/deploy-blue-green.sh) - Deployment automation
 - ✅ [scripts/blue-green-traffic.sh](scripts/blue-green-traffic.sh) - Traffic management

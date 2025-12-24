@@ -324,12 +324,12 @@ When reviewing PRs that add/modify endpoints:
 
 - **Documentation:** `/docs/AUTHORIZATION_FRAMEWORK.md`
 - **Threat Model:** `/docs/product/threat-model.md`
-- **OWASP IDOR Guide:** https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References
+- **OWASP IDOR Guide:** <https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References>
 - **Security Issues:** Label issues with `security` tag
 
 ## Contact
 
-- **Security Team:** security@example.com
+- **Security Team:** <security@example.com>
 - **On-call:** Use PagerDuty for urgent issues
 - **Slack:** #security channel
 

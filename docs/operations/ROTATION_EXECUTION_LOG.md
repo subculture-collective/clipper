@@ -306,8 +306,8 @@ Document improvements and learnings from each rotation to improve future rotatio
 
 ### Rotation Support
 
-**Primary Contact:** Operations Team (ops@clipper.gg)  
-**Security Contact:** Security Team (security@clipper.gg)  
+**Primary Contact:** Operations Team (<ops@clipper.gg>)  
+**Security Contact:** Security Team (<security@clipper.gg>)  
 **Emergency Contact:** [On-call rotation]
 
 ### Escalation Path
@@ -330,7 +330,7 @@ Document improvements and learnings from each rotation to improve future rotatio
 
 ### B. Vault Information
 
-- **Vault URL:** https://vault.subcult.tv
+- **Vault URL:** <https://vault.subcult.tv>
 - **KV Engine:** kv/ (version 2)
 - **Backend Path:** kv/clipper/backend
 - **Frontend Path:** kv/clipper/frontend

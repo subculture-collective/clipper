@@ -29,6 +29,7 @@ Based on code review and profiling setup, we've identified several areas for opt
 ### 1.1 Identified N+1 Query Patterns
 
 #### Pattern 1: Comments with User Data
+
 **Location**: Comment listing endpoints  
 **Issue**: Comments are fetched, then user data is fetched individually for each comment  
 **Impact**: For 50 comments, this results in 1 + 50 = 51 queries
@@ -61,6 +62,7 @@ query := `
 **Expected Impact**: 50x reduction in queries, ~80% latency improvement for comment endpoints
 
 #### Pattern 2: Clips with Vote/Favorite Status
+
 **Location**: Feed endpoints (authenticated users)  
 **Issue**: After fetching clips, separate queries check if user voted/favorited each clip  
 **Impact**: For 50 clips with vote + favorite checks = 1 + 50 + 50 = 101 queries
@@ -84,6 +86,7 @@ query := `
 **Expected Impact**: 100x reduction in queries, ~70% latency improvement for feed endpoints
 
 #### Pattern 3: Clips with Tag Data
+
 **Location**: Clip detail and feed endpoints  
 **Issue**: Tags are fetched separately for each clip  
 **Impact**: For 50 clips = 1 + 50 = 51 queries
@@ -121,6 +124,7 @@ query := `
 Based on common query patterns, the following indexes should be added:
 
 #### High Priority Indexes
+
 ```sql
 -- Composite index for feed queries (most common query)
 CREATE INDEX CONCURRENTLY idx_clips_not_removed_hot 
@@ -141,12 +145,13 @@ CREATE INDEX CONCURRENTLY idx_favorites_user_clip
 ON favorites(user_id, clip_id);
 ```
 
-**Expected Impact**: 
+**Expected Impact**:
 - 40-60% reduction in query execution time
 - Eliminates sequential scans on large tables
 - Reduces buffer reads
 
 #### Medium Priority Indexes
+
 ```sql
 -- Game filtering with sorting
 CREATE INDEX CONCURRENTLY idx_clips_game_not_removed_created 
@@ -170,6 +175,7 @@ ON comments(user_id, is_removed, created_at DESC);
 ### 1.3 Query Optimization
 
 #### Slow Query 1: Hot Clips Calculation
+
 **Current**: Calculates hot score on every request
 ```sql
 SELECT *, (vote_score / POWER((EXTRACT(EPOCH FROM NOW() - created_at) / 3600) + 2, 1.5)) as hot_score
@@ -183,6 +189,7 @@ ORDER BY hot_score DESC;
 - Expected improvement: 90% reduction in CPU time
 
 #### Slow Query 2: User Karma Calculation
+
 **Current**: Recalculates on every profile view
 ```sql
 SELECT SUM(karma_delta) FROM reputation_events WHERE user_id = $1;
@@ -400,24 +407,28 @@ func (p *WorkerPool) Submit(task func()) {
 ## 5. Implementation Roadmap
 
 ### Phase 1: Quick Wins (Week 1) - Expected 40-60% improvement
+
 - [ ] Add high-priority database indexes
 - [ ] Implement feed results caching
 - [ ] Implement clip metadata caching
 - [ ] Fix N+1 query for comments with user data
 
 ### Phase 2: Core Optimizations (Week 1-2) - Expected 60-80% improvement
+
 - [ ] Fix N+1 query for clips with vote/favorite status
 - [ ] Implement user interactions caching
 - [ ] Optimize database connection pool
 - [ ] Add medium-priority indexes
 
 ### Phase 3: Advanced Optimizations (Week 2) - Expected 80-90% improvement
+
 - [ ] Fix N+1 query for clips with tags
 - [ ] Implement comment tree caching
 - [ ] Optimize search results caching
 - [ ] Implement cache invalidation strategy
 
 ### Phase 4: Tuning (Week 2-3) - Expected 90-95% improvement
+
 - [ ] Fine-tune cache TTLs
 - [ ] Optimize Redis connection pool
 - [ ] Implement JSON serialization optimization
@@ -460,16 +471,19 @@ func (p *WorkerPool) Submit(task func()) {
 ## 7. Risk Assessment
 
 ### Low Risk
+
 - Adding indexes (use CONCURRENTLY)
 - Implementing read-through caching
 - Connection pool tuning
 
 ### Medium Risk
+
 - Cache invalidation strategy (test thoroughly)
 - Batch operations (ensure transaction safety)
 - Query optimization (verify correctness)
 
 ### High Risk
+
 - Materialized view refreshes (may impact write performance)
 - Major query refactoring (extensive testing needed)
 

@@ -7,32 +7,38 @@ This guide covers the webhook monitoring infrastructure, metrics, alerts, and tr
 ## Monitoring Architecture
 
 ### Metrics Collection
+
 - **Prometheus**: Collects metrics from the backend service every 10 seconds
 - **Grafana**: Visualizes metrics through the dedicated Webhook Monitoring Dashboard
 - **Alertmanager**: Routes alerts to on-call engineers via configured channels
 
 ### Dashboard Access
+
 - **Webhook Monitoring Dashboard**: `https://grafana.clipper.com/d/webhook-monitoring/webhook-monitoring-dashboard`
 - **System Health**: Available via Grafana → Dashboards → "System Health Dashboard"
 
 ## Key Metrics
 
 ### Delivery Metrics
+
 - `webhook_delivery_total` - Total webhook delivery attempts by event type and status
 - `webhook_delivery_duration_seconds` - Histogram of delivery latency
 - `webhook_http_status_code_total` - HTTP status codes returned by webhook endpoints
 
 ### Queue Metrics
+
 - `webhook_retry_queue_size` - Current size of the retry queue
 - `webhook_dead_letter_queue_size` - Current size of the dead-letter queue
 - `webhook_retry_queue_processing_rate` - Rate of processing items from retry queue
 
 ### Subscription Metrics
+
 - `webhook_subscriptions_active` - Number of active webhook subscriptions
 - `webhook_subscription_delivery_total` - Deliveries per subscription
 - `webhook_consecutive_failures` - Consecutive failures per subscription
 
 ### Performance Metrics
+
 - `webhook_time_to_success_seconds` - Time from first attempt to successful delivery
 - `webhook_retry_attempts` - Distribution of retry attempts
 - `webhook_retry_total` - Total retry attempts by retry number
@@ -41,6 +47,7 @@ This guide covers the webhook monitoring infrastructure, metrics, alerts, and tr
 ## Alert Severity Levels
 
 ### Critical (P1)
+
 **Response Time**: Immediate (within 15 minutes)
 
 Alerts:
@@ -54,6 +61,7 @@ Alerts:
 **Action**: Page on-call engineer immediately
 
 ### Warning (P2)
+
 **Response Time**: Within 1 hour during business hours
 
 Alerts:
@@ -70,6 +78,7 @@ Alerts:
 **Action**: Investigate during next available window or escalate if worsening
 
 ### Info (P3)
+
 **Response Time**: Review during next business day
 
 Alerts:

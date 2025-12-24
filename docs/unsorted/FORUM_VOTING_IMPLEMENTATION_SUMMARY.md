@@ -1,11 +1,13 @@
 # Forum Voting System & Reputation Mechanics - Implementation Summary
 
 ## Overview
+
 Successfully implemented a comprehensive voting system and reputation mechanics for the Clipper forum, enabling users to upvote/downvote replies and earn reputation based on their contributions.
 
 ## Implementation Scope
 
 ### 📊 Changes Summary
+
 - **12 files changed**
 - **1,619 lines added** (11 deletions)
 - **3 commits** with all tests passing
@@ -14,6 +16,7 @@ Successfully implemented a comprehensive voting system and reputation mechanics 
 ### 🗄️ Database Layer
 
 #### New Tables
+
 1. **`forum_votes`** - Tracks individual votes on replies
    - Fields: `id`, `user_id`, `reply_id`, `vote_value` (-1, 0, 1), timestamps
    - Unique constraint: `(user_id, reply_id)` - one vote per user per reply
@@ -30,10 +33,12 @@ Successfully implemented a comprehensive voting system and reputation mechanics 
    - Optimized for read-heavy workloads
 
 #### Added Columns
+
 - `forum_replies.flagged_as_spam` - Boolean flag for spam detection
 - `forum_replies.hidden` - Boolean flag for low-quality content
 
 #### Database Functions
+
 1. **`update_reputation_score(user_id)`** - Calculates reputation
    - Formula: `upvotes×5 - downvotes×2 + threads×10 + replies×2`
    - Returns non-negative scores only
@@ -44,6 +49,7 @@ Successfully implemented a comprehensive voting system and reputation mechanics 
    - Handles zero-vote cleanup automatically
 
 #### Triggers
+
 - `trg_forum_votes_update_counts` - Auto-refreshes vote counts on INSERT/UPDATE/DELETE
 
 ### 🔌 Backend API (Go)
@@ -72,6 +78,7 @@ Successfully implemented a comprehensive voting system and reputation mechanics 
 - Publicly accessible
 
 #### New Types/Structs
+
 ```go
 type Vote struct {
     ID        uuid.UUID
@@ -101,12 +108,14 @@ type VoteStats struct {
 ```
 
 #### Background Job Methods
+
 - `DetectSpamReplies()` - Flags replies with >5 downvotes AND net_votes < -2
 - `HideLowQualityReplies()` - Hides replies with net_votes ≤ -5
 
 ### 🎨 Frontend Components (React/TypeScript)
 
 #### 1. VoteButtons Component
+
 **File:** `frontend/src/components/forum/VoteButtons.tsx`
 
 Features:
@@ -131,6 +140,7 @@ Features:
 ```
 
 #### 2. ReputationBadge Component
+
 **File:** `frontend/src/components/forum/ReputationBadge.tsx`
 
 Features:
@@ -153,6 +163,7 @@ Features:
 ```
 
 #### 3. ReputationProgressBar Component
+
 Features:
 - Visual progress within current tier
 - Shows points needed for next tier
@@ -164,6 +175,7 @@ Features:
 ```
 
 #### Integration
+
 - **ReplyItem** component updated to:
   - Fetch vote stats on mount
   - Display VoteButtons below reply content
@@ -171,6 +183,7 @@ Features:
   - Fixed useEffect to prevent infinite loops
 
 #### Updated Types
+
 ```typescript
 interface VoteStats {
   upvotes: number;
@@ -193,6 +206,7 @@ interface ReputationScore {
 ### ✅ Testing
 
 #### Backend Tests (Go)
+
 **File:** `backend/internal/handlers/forum_voting_test.go`
 
 **10 tests covering:**
@@ -205,6 +219,7 @@ interface ReputationScore {
 **All tests passing ✓**
 
 #### Frontend Tests (Vitest + Testing Library)
+
 **Files:**
 - `frontend/src/components/forum/VoteButtons.test.tsx` (6 tests)
 - `frontend/src/components/forum/ReputationBadge.test.tsx` (14 tests)
@@ -225,10 +240,12 @@ interface ReputationScore {
 ### 🔒 Security
 
 #### CodeQL Analysis
+
 - **Go scan:** 0 alerts ✓
 - **JavaScript scan:** 0 alerts ✓
 
 #### Security Features
+
 - Input validation for vote values
 - Authentication required for voting
 - Rate limiting (50 votes/minute)
@@ -261,22 +278,26 @@ interface ReputationScore {
 ### 📋 Reputation System Details
 
 #### Score Calculation
+
 ```
 score = (upvotes × 5) - (downvotes × 2) + (threads × 10) + (replies × 2)
 score = max(0, score)  // No negative scores
 ```
 
 #### Badge Thresholds
+
 - **New Member:** 0-49 points
 - **Contributor:** 50-249 points
 - **Expert:** 250+ points
 - **Moderator:** Manually assigned
 
 #### Spam Detection
+
 Replies are flagged as spam when:
 - `downvote_count > 5` AND `net_votes < -2`
 
 #### Auto-Hide Low Quality
+
 Replies are hidden when:
 - `net_votes ≤ -5`
 
@@ -316,6 +337,7 @@ All critical feedback addressed:
 ### 🚀 Deployment Notes
 
 #### Database Migration
+
 ```bash
 # Run migration
 migrate -path backend/migrations -database $DATABASE_URL up
@@ -329,6 +351,7 @@ migrate -path backend/migrations -database $DATABASE_URL up
 ```
 
 #### API Routes Added
+
 ```
 POST   /api/v1/forum/replies/:id/vote          (Auth required)
 GET    /api/v1/forum/replies/:id/votes         (Public)
@@ -336,6 +359,7 @@ GET    /api/v1/forum/users/:id/reputation      (Public)
 ```
 
 #### Environment Variables
+
 No new environment variables required.
 
 ### 🔮 Future Enhancements (Not in Scope)

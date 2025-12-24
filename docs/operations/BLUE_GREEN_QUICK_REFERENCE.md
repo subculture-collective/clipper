@@ -387,7 +387,7 @@ alias bgstatus='docker ps --filter "name=clipper" --format "table {{.Names}}\t{{
 ## Support
 
 - **Slack**: #ops-deployments
-- **Email**: ops-team@clipper.app
+- **Email**: <ops-team@clipper.app>
 - **On-Call**: Check PagerDuty rotation
 - **Emergency**: Escalate to CTO
 

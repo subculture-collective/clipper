@@ -1,11 +1,13 @@
 # Watch Party Settings & History - Integration Guide
 
 ## Overview
+
 This document provides guidance for integrating the Watch Party Settings & History feature into the application UI.
 
 ## What's Been Implemented
 
 ### Backend (Complete ✅)
+
 - Database migration for password storage and visibility indexing
 - PATCH `/api/v1/watch-parties/{id}/settings` endpoint
 - GET `/api/v1/watch-parties/history` endpoint  
@@ -14,6 +16,7 @@ This document provides guidance for integrating the Watch Party Settings & Histo
 - Comprehensive unit tests
 
 ### Frontend (Complete ✅)
+
 - `WatchPartySettings` component
 - `WatchPartyHistory` component
 - TypeScript types and API client methods
@@ -172,6 +175,7 @@ function CreatePartyForm() {
 ## API Reference
 
 ### Update Settings
+
 ```typescript
 PATCH /api/v1/watch-parties/{id}/settings
 Headers: Authorization: Bearer {token}
@@ -182,6 +186,7 @@ Body: {
 ```
 
 ### Get History
+
 ```typescript
 GET /api/v1/watch-parties/history?page=1&limit=20
 Headers: Authorization: Bearer {token}
@@ -200,6 +205,7 @@ Response: {
 ```
 
 ### Join with Password
+
 ```typescript
 POST /api/v1/watch-parties/{code}/join
 Headers: Authorization: Bearer {token}

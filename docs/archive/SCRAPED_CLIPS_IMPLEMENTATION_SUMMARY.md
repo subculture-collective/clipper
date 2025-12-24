@@ -58,29 +58,34 @@ This PR implements a complete scraped clips discovery section that allows users 
 ## UI/UX Features
 
 ### Page Header
+
 ```
 Discover on Twitch
 Found these great clips from Twitch. You can submit them as posts to the community.
 ```
 
 ### Info Banner
+
 Blue info banner explaining:
 - These clips are from Twitch
 - Not yet submitted by community members
 - Users can submit them with "Post This Clip" button
 
 ### Tabs
+
 - **Trending** - Most popular on Twitch
 - **Latest** - Recently scraped clips
 - **Top Views** - Most viewed clips
 
 ### Filters
+
 - Top 10k Streamers toggle
 - Game filter (inherited from feed)
 - Tag filter (inherited from feed)
 - Search (inherited from feed)
 
 ### Clip Cards
+
 Each clip card shows:
 - Thumbnail/video preview
 - Clip title
@@ -115,11 +120,13 @@ Each clip card shows:
    ```
 
 ### Caching
+
 - Redis cache for non-authenticated requests
 - Cache key includes `:scraped` suffix to separate from regular clips
 - Same TTL strategy as main feed
 
 ### Database Query
+
 Scraped clips filter:
 ```sql
 WHERE c.is_removed = false 
@@ -174,7 +181,7 @@ As noted in the PR description, the following items remain:
 
 3. **Navigate to:**
    - Click "Discover" in navigation, or
-   - Go to http://localhost:5173/discover/scraped
+   - Go to <http://localhost:5173/discover/scraped>
 
 4. **Test Scenarios:**
    - Browse scraped clips
@@ -219,12 +226,14 @@ GET /api/v1/scraped-clips?page=1&limit=10&sort=trending&top10k_streamers=true
 ## Files Changed
 
 ### Backend
+
 - `backend/cmd/api/main.go` - Added route
 - `backend/internal/handlers/clip_handler.go` - Added handler
 - `backend/internal/services/clip_service.go` - Added service method
 - `backend/internal/repository/clip_repository.go` - Added repository method
 
 ### Frontend
+
 - `frontend/src/App.tsx` - Added route
 - `frontend/src/pages/ScrapedClipsPage.tsx` - New page
 - `frontend/src/pages/index.ts` - Export new page
@@ -234,6 +243,7 @@ GET /api/v1/scraped-clips?page=1&limit=10&sort=trending&top10k_streamers=true
 - `frontend/src/components/layout/Header.tsx` - Added navigation links
 
 ### Documentation
+
 - `docs/SCRAPED_CLIPS_FEATURE.md` - Feature documentation
 - `docs/SCRAPED_CLIPS_IMPLEMENTATION_SUMMARY.md` - This file
 

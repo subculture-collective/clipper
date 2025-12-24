@@ -34,7 +34,7 @@ The Clipper application has a **production-ready secrets management infrastructu
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| **Secrets Manager** | ✅ Deployed | HashiCorp Vault at https://vault.subcult.tv |
+| **Secrets Manager** | ✅ Deployed | HashiCorp Vault at <https://vault.subcult.tv> |
 | **Automated Rotation** | ✅ Ready | Scripts for all critical credentials |
 | **Access Control** | ✅ Enforced | AppRole + policies implementing least privilege |
 | **Documentation** | ✅ Complete | Comprehensive runbooks and procedures |

@@ -384,7 +384,7 @@ For assistance with rollbacks:
 
 1. Check logs: `/var/log/clipper/deployment.log`
 2. Run diagnostics: `./scripts/preflight-check.sh`
-3. Contact: ops-team@clipper.app
+3. Contact: <ops-team@clipper.app>
 4. Escalate: CTO (for critical issues)
 
 ## Related Documentation

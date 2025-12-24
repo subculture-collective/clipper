@@ -297,12 +297,14 @@ Full-text search across all documentation.
 ## Future Enhancements
 
 ### 1. Advanced Search Features
+
 - **Fuzzy matching** - Handle typos and variations
 - **Filters** - By section, file type, date modified
 - **Autocomplete** - Suggest queries as you type
 - **Search history** - Remember recent searches
 
 ### 2. Versioning
+
 Support multiple documentation versions:
 - `/docs/v1.0/`, `/docs/v2.0/`, etc.
 - Version selector in UI
@@ -310,6 +312,7 @@ Support multiple documentation versions:
 - Archive old versions
 
 ### 3. Table of Contents
+
 Auto-generate TOC for long documents:
 - Parse headings from markdown
 - Render sticky TOC sidebar
@@ -317,6 +320,7 @@ Auto-generate TOC for long documents:
 - Smooth scroll to headings
 
 ### 4. Analytics
+
 Track documentation usage:
 - Most viewed pages
 - Search queries (what users look for)
@@ -324,6 +328,7 @@ Track documentation usage:
 - User feedback (helpful/not helpful)
 
 ### 5. Hot Reload
+
 Watch docs directory for changes:
 - Use `fsnotify` or similar
 - Rebuild doc tree on file change
@@ -331,12 +336,14 @@ Watch docs directory for changes:
 - Webhook from GitHub on commits
 
 ### 6. Offline Support
+
 - Cache docs in browser storage
 - Service worker for offline access
 - Download docs as PDF/ZIP
 - Mobile app integration
 
 ### 7. Collaboration Features
+
 - Inline comments on docs
 - Suggest edits without GitHub
 - Track changes and approvals

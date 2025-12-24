@@ -75,27 +75,34 @@ This document summarizes all documentation resources for the Clip Submission API
 
 ## Quick Navigation Guide
 
-### I want to...
+### I want to
 
 #### Submit my first clip
+
 → Start with the [Quick Reference](./CLIP_SUBMISSION_API_QUICKREF.md), then run the [shell script example](./examples/clip-submission-test.sh)
 
 #### Build a TypeScript/JavaScript app
+
 → Check the [TypeScript SDK example](./examples/clip-submission-example.ts) and [Developer Guide](./CLIP_SUBMISSION_API_GUIDE.md)
 
 #### Build a React component
+
 → See the [React Hook example](./CLIP_SUBMISSION_API_GUIDE.md#react-hook-example) in the Developer Guide
 
 #### Generate a client SDK in another language
+
 → Use the [OpenAPI Specification](./openapi/clip-submission-api.yaml) with [OpenAPI Generator](./openapi/README.md#generating-client-sdks)
 
 #### Test the API interactively
+
 → Load the [OpenAPI spec](./openapi/clip-submission-api.yaml) into [Swagger UI](./openapi/README.md#online-viewers)
 
 #### Understand error responses
+
 → Check the [Error Handling section](./CLIP_SUBMISSION_API_GUIDE.md#error-handling) in the Developer Guide
 
 #### Debug issues
+
 → Review the [Troubleshooting section](./CLIP_SUBMISSION_API_GUIDE.md#troubleshooting) in the Developer Guide
 
 ## Common Use Cases

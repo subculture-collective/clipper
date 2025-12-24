@@ -28,7 +28,7 @@ LEGAL REVIEW CHECKLIST FOR ATTORNEY:
 Clipper respects intellectual property rights and complies with the Digital Millennium Copyright Act ("DMCA"), 17 U.S.C. § 512. This policy outlines our procedures for handling copyright infringement claims and counter-notices.
 
 **Service Provider:** Subculture Collective (Clipper)  
-**Website:** https://clpr.tv  
+**Website:** <https://clpr.tv>  
 **Service:** Community-driven Twitch clip curation platform
 
 ### DMCA Safe Harbor Protection
@@ -54,13 +54,13 @@ All DMCA notices, counter-notices, and copyright-related inquiries must be sent 
 [CITY, STATE ZIP_CODE]  
 United States
 
-**Email:** dmca@clpr.tv  
+**Email:** <dmca@clpr.tv>  
 **Phone:** [PHONE_NUMBER]  
-**Alternative Contact:** legal@clpr.tv
+**Alternative Contact:** <legal@clpr.tv>
 
 **Copyright Office Registration:** [REGISTRATION_NUMBER] (Certificate available at `/docs/legal/dmca-registration.pdf`)
 
-**Important:** This agent is designated solely for receiving DMCA notices and counter-notices. For general inquiries, please contact support@clpr.tv.
+**Important:** This agent is designated solely for receiving DMCA notices and counter-notices. For general inquiries, please contact <support@clpr.tv>.
 
 <!-- ATTORNEY NOTE: Verify all agent information matches U.S. Copyright Office registration -->
 
@@ -85,7 +85,7 @@ Under 17 U.S.C. § 512(c)(3), a valid DMCA takedown notice must include **all** 
 
 3. **Identification of Infringing Material**
    - Specific URL(s) on Clipper where the allegedly infringing material is located
-   - URLs must be specific enough for us to locate the material (e.g., https://clpr.tv/clip/abc123)
+   - URLs must be specific enough for us to locate the material (e.g., <https://clpr.tv/clip/abc123>)
    - General descriptions (e.g., "all clips by user X") are insufficient
 
 4. **Your Contact Information**
@@ -163,7 +163,7 @@ Printed Name: [FULL NAME]
 
 ### How to Submit
 
-**Preferred Method:** Email to dmca@clpr.tv  
+**Preferred Method:** Email to <dmca@clpr.tv>  
 - Subject line: "DMCA Takedown Notice"
 - Attach all supporting documentation (copyright registration, proof of ownership)
 - Include all required information in the email body or attached document
@@ -296,7 +296,7 @@ Printed Name: [FULL NAME]
 
 ### How to Submit
 
-**Preferred Method:** Email to dmca@clpr.tv  
+**Preferred Method:** Email to <dmca@clpr.tv>  
 - Subject line: "DMCA Counter-Notice"
 - Include all required information in the email body or attached document
 - Attach supporting evidence (license agreement, fair use analysis, proof of ownership)
@@ -379,7 +379,7 @@ Clipper has adopted and implements a policy of terminating, in appropriate circu
 
 Users may appeal strikes by:
 
-1. **Submitting a written appeal** to dmca@clpr.tv with subject "DMCA Strike Appeal"
+1. **Submitting a written appeal** to <dmca@clpr.tv> with subject "DMCA Strike Appeal"
 2. **Providing evidence** that:
    - The DMCA notice was invalid or incomplete
    - They have obtained permission or a license from the copyright holder
@@ -548,11 +548,11 @@ Clipper hosts user-submitted links to Twitch clips. Important considerations:
 
 If you believe a Twitch clip on Clipper infringes your copyright:
 
-**Option 1: Submit a notice to Clipper** (dmca@clpr.tv)
+**Option 1: Submit a notice to Clipper** (<dmca@clpr.tv>)
 - We will remove the clip from Clipper's platform
 - The clip will remain on Twitch unless you also notify Twitch
 
-**Option 2: Submit a notice to Twitch** (https://www.twitch.tv/p/legal/dmca-guidelines/)
+**Option 2: Submit a notice to Twitch** (<https://www.twitch.tv/p/legal/dmca-guidelines/>)
 - Twitch may remove the clip from their platform
 - If Twitch removes the clip, it will no longer be accessible on Clipper
 
@@ -577,10 +577,10 @@ If you are in a jurisdiction with different copyright notice-and-takedown proced
 **European Union (EU):**
 - EU Copyright Directive (Article 17) may apply
 - Users may have additional rights under EU law
-- Contact us at legal@clpr.tv for EU-specific inquiries
+- Contact us at <legal@clpr.tv> for EU-specific inquiries
 
 **Other Jurisdictions:**
-- Contact us at legal@clpr.tv to discuss alternative takedown procedures
+- Contact us at <legal@clpr.tv> to discuss alternative takedown procedures
 - We may accommodate requests under other legal frameworks on a case-by-case basis
 
 ---
@@ -617,32 +617,32 @@ We reserve the right to update this DMCA policy at any time to reflect:
 
 ### Copyright Information
 
-- **U.S. Copyright Office:** https://www.copyright.gov/
-- **DMCA Text (17 U.S.C. § 512):** https://www.law.cornell.edu/uscode/text/17/512
-- **Copyright Basics:** https://www.copyright.gov/circs/circ01.pdf
-- **Fair Use:** https://www.copyright.gov/fair-use/
+- **U.S. Copyright Office:** <https://www.copyright.gov/>
+- **DMCA Text (17 U.S.C. § 512):** <https://www.law.cornell.edu/uscode/text/17/512>
+- **Copyright Basics:** <https://www.copyright.gov/circs/circ01.pdf>
+- **Fair Use:** <https://www.copyright.gov/fair-use/>
 
 ### DMCA Templates and Guides
 
 - **DMCA Notice Template:** See "DMCA Takedown Notice Template" section above
 - **DMCA Counter-Notice Template:** See "DMCA Counter-Notice Template" section above
-- **Copyright Alliance Resources:** https://copyrightalliance.org/education/dmca-notice-takedown-process/
+- **Copyright Alliance Resources:** <https://copyrightalliance.org/education/dmca-notice-takedown-process/>
 
 ### Legal Assistance
 
 If you need legal advice about copyright or DMCA issues:
 
-- **Lawyer Referral Services:** https://www.americanbar.org/groups/legal_services/flh-home/
-- **Legal Aid:** https://www.lsc.gov/what-legal-aid/find-legal-aid (for low-income individuals)
-- **Copyright Bar Association:** https://www.cobar.org/
+- **Lawyer Referral Services:** <https://www.americanbar.org/groups/legal_services/flh-home/>
+- **Legal Aid:** <https://www.lsc.gov/what-legal-aid/find-legal-aid> (for low-income individuals)
+- **Copyright Bar Association:** <https://www.cobar.org/>
 
 ### Contact Us
 
 For questions about this DMCA policy:
 
-- **DMCA Agent:** dmca@clpr.tv
-- **Legal Inquiries:** legal@clpr.tv
-- **General Support:** support@clpr.tv
+- **DMCA Agent:** <dmca@clpr.tv>
+- **Legal Inquiries:** <legal@clpr.tv>
+- **General Support:** <support@clpr.tv>
 
 ---
 
@@ -655,13 +655,13 @@ Subculture Collective (Clipper)
 [CITY, STATE ZIP_CODE]  
 United States
 
-**Email:** dmca@clpr.tv  
+**Email:** <dmca@clpr.tv>  
 **Phone:** [PHONE_NUMBER]  
-**Alternative Contact:** legal@clpr.tv
+**Alternative Contact:** <legal@clpr.tv>
 
-**Website:** https://clpr.tv  
-**Terms of Service:** https://clpr.tv/terms  
-**Privacy Policy:** https://clpr.tv/privacy
+**Website:** <https://clpr.tv>  
+**Terms of Service:** <https://clpr.tv/terms>  
+**Privacy Policy:** <https://clpr.tv/privacy>
 
 ---
 
@@ -679,14 +679,14 @@ United States
    - [REGISTRATION_NUMBER] - U.S. Copyright Office registration number
    - [FAX_NUMBER] - Fax number (if applicable)
 
-4. **Registration Required:** The designated DMCA agent must be registered with the U.S. Copyright Office BEFORE this policy takes effect. Registration is completed at https://www.copyright.gov/dmca-directory/ ($6 fee).
+4. **Registration Required:** The designated DMCA agent must be registered with the U.S. Copyright Office BEFORE this policy takes effect. Registration is completed at <https://www.copyright.gov/dmca-directory/> ($6 fee).
 
 5. **Certificate Required:** Upon completion of registration, save the confirmation certificate to `/docs/legal/dmca-registration.pdf` and update this policy with the registration number.
 
 6. **Integration Required:** This policy must be:
    - Linked from the website footer
    - Referenced in Terms of Service
-   - Accessible at https://clpr.tv/legal/dmca or https://clpr.tv/dmca
+   - Accessible at <https://clpr.tv/legal/dmca> or <https://clpr.tv/dmca>
    - Displayed prominently on the website
 
 7. **Training Required:** Staff responsible for handling DMCA notices must be trained on:
@@ -719,4 +719,4 @@ United States
 
 *This policy is designed to comply with the Digital Millennium Copyright Act (DMCA), 17 U.S.C. § 512. It establishes Clipper's eligibility for DMCA safe harbor protection by providing clear procedures for handling copyright infringement claims and implementing a repeat infringer policy.*
 
-**For questions or to report copyright infringement, contact: dmca@clpr.tv**
+**For questions or to report copyright infringement, contact: <dmca@clpr.tv>**

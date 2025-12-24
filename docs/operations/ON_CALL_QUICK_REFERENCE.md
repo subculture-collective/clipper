@@ -7,7 +7,7 @@
 - **On-Call Lead:** [Phone number]
 - **Engineering Manager:** [Phone number]
 - **VP Engineering:** [Phone number]
-- **Security Team:** security@clipper.app
+- **Security Team:** <security@clipper.app>
 
 ## Alert Response Times
 
@@ -20,20 +20,23 @@
 ## Quick Links
 
 ### Dashboards
-- **SLO Dashboard:** http://localhost:3000/d/slo-dashboard
-- **Prometheus Alerts:** http://localhost:9090/alerts
-- **Alertmanager:** http://localhost:9093
-- **Application Overview:** http://localhost:3000/d/app-overview
+
+- **SLO Dashboard:** <http://localhost:3000/d/slo-dashboard>
+- **Prometheus Alerts:** <http://localhost:9090/alerts>
+- **Alertmanager:** <http://localhost:9093>
+- **Application Overview:** <http://localhost:3000/d/app-overview>
 
 ### Documentation
+
 - **SLO Definitions:** `docs/operations/slos.md`
 - **Response Playbook:** `docs/operations/playbooks/slo-breach-response.md`
 - **Operations Runbook:** `docs/operations/runbook.md`
 
 ### Communication
+
 - **Slack Incidents:** #incidents
 - **Slack Alerts:** #alerts
-- **PagerDuty:** https://clipper.pagerduty.com
+- **PagerDuty:** <https://clipper.pagerduty.com>
 
 ## Common Alert Response Checklist
 
@@ -104,48 +107,56 @@ redis-cli FLUSHDB
 ## Alert Type Quick Guide
 
 ### 🚨 SLOAvailabilityBreach
+
 - **Meaning:** Less than 99.5% of requests succeeding
 - **Check:** Service health, error logs, recent deployments
 - **Actions:** Rollback, scale up, restart unhealthy pods
 - **Runbook:** [Availability SLO Breach](../../docs/operations/playbooks/slo-breach-response.md#availability-slo-breach)
 
 ### 🚨 SLOErrorRateBreach
+
 - **Meaning:** More than 0.5% of requests returning 5xx errors
 - **Check:** Error logs, stack traces, database connectivity
 - **Actions:** Rollback, fix database connections, hotfix
 - **Runbook:** [Error Rate SLO Breach](../../docs/operations/playbooks/slo-breach-response.md#error-rate-slo-breach)
 
 ### 🚨 SLOLatencyBreach
+
 - **Meaning:** P95 response time exceeds target
 - **Check:** Slow endpoints, database queries, cache hit rate
 - **Actions:** Add indexes, scale database, optimize queries
 - **Runbook:** [Latency SLO Breach](../../docs/operations/playbooks/slo-breach-response.md#latency-slo-breach)
 
 ### 🚨 ServiceDown
+
 - **Meaning:** Service not responding to health checks
 - **Check:** Pod status, container logs, crashes
 - **Actions:** Check logs for panic, restart pods, rollback
 - **Runbook:** [Operations Runbook](../../docs/operations/runbook.md#high-error-rate)
 
 ### ⚠️ ErrorBudgetFastBurn
+
 - **Meaning:** Consuming > 10% error budget in 1 hour
 - **Check:** Recent changes, error patterns, traffic spikes
 - **Actions:** Immediate mitigation to stop budget burn
 - **Runbook:** [SLO Breach Response](../../docs/operations/playbooks/slo-breach-response.md)
 
 ### ⚠️ HighErrorRate
+
 - **Meaning:** Error rate elevated but below SLO breach
 - **Check:** Error logs, specific endpoints, error types
 - **Actions:** Monitor, investigate, prepare mitigation
 - **Runbook:** [High Error Rate](../../docs/operations/runbook.md#high-error-rate)
 
 ### ⚠️ HighResponseTime
+
 - **Meaning:** Response times elevated
 - **Check:** Slow queries, high load, resource usage
 - **Actions:** Optimize queries, scale if needed
 - **Runbook:** [High Latency](../../docs/operations/runbook.md#high-latency)
 
 ### 🛡️ Security Alerts
+
 - **Meaning:** Suspicious activity detected
 - **Check:** Security logs, IP addresses, attack patterns
 - **Actions:** Block IPs, notify security team, verify input validation
@@ -154,6 +165,7 @@ redis-cli FLUSHDB
 ## Communication Templates
 
 ### Initial Response (Post Immediately)
+
 ```
 🚨 Incident: [Alert Name]
 Status: Investigating
@@ -166,6 +178,7 @@ Updates every 15 minutes
 ```
 
 ### Status Update (Every 15 min for P1)
+
 ```
 📊 Update [Time]
 Status: [Investigating/Mitigating/Resolving]
@@ -175,6 +188,7 @@ Impact: [Current state]
 ```
 
 ### Resolution
+
 ```
 ✅ Resolved [Time]
 Duration: [How long]
@@ -191,7 +205,7 @@ Next: Post-mortem scheduled
 - [ ] Create action items
 - [ ] Update runbooks with learnings
 
-## Don't Panic!
+## Don't Panic
 
 Remember:
 - ✅ Follow the runbooks - they're tested

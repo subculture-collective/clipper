@@ -580,10 +580,10 @@ docker exec clipper-staging-postgres pg_dump -U clipper_staging clipper_staging_
 
 ### URLs
 
-- **Application**: https://staging.clpr.tv
-- **API**: https://staging.clpr.tv/api/v1
-- **Health**: https://staging.clpr.tv/api/v1/health
-- **Caddy Admin**: http://localhost:2019 (server only)
+- **Application**: <https://staging.clpr.tv>
+- **API**: <https://staging.clpr.tv/api/v1>
+- **Health**: <https://staging.clpr.tv/api/v1/health>
+- **Caddy Admin**: <http://localhost:2019> (server only)
 
 ### Support
 

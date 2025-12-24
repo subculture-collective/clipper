@@ -5,6 +5,7 @@ This document outlines how to test the new trending and popular sorting algorith
 ## Backend Testing
 
 ### Unit Tests
+
 Run the following to test the scheduler and repository:
 ```bash
 cd backend
@@ -14,6 +15,7 @@ go test ./internal/models/... -v
 ```
 
 ### Database Migration Testing
+
 1. Start the database (if using Docker):
 ```bash
 docker-compose up -d postgres
@@ -50,6 +52,7 @@ psql -h localhost -U clipper -d clipper
 ```
 
 ### API Endpoint Testing
+
 Test the trending and popular sort options with curl or Postman:
 
 ```bash
@@ -93,6 +96,7 @@ Expected response structure:
 ```
 
 ### Scheduler Testing
+
 To test the trending score scheduler:
 
 1. Check logs for scheduler startup:
@@ -132,7 +136,7 @@ cd frontend
 npm run dev
 ```
 
-2. Navigate to the feed page (usually http://localhost:5173)
+2. Navigate to the feed page (usually <http://localhost:5173>)
 
 3. Test the sort dropdown:
    - Select "Trending 🔥" from the sort dropdown
@@ -159,6 +163,7 @@ npm run dev
    - Change sort to "Popular" and verify URL updates
 
 ### Visual Testing Checklist
+
 - [ ] Sort dropdown shows all options including "Trending 🔥" and "Most Popular ⭐"
 - [ ] Timeframe selector appears for "Trending" and "Top" sorts
 - [ ] Timeframe selector does NOT appear for "Popular", "Hot", "New", "Rising", "Discussed"
@@ -170,6 +175,7 @@ npm run dev
 ## Performance Testing
 
 ### Query Performance
+
 Test that trending queries execute within acceptable time:
 
 ```sql
@@ -195,6 +201,7 @@ LIMIT 20;
 ```
 
 ### Load Testing
+
 If k6 is available, test concurrent requests:
 
 ```bash

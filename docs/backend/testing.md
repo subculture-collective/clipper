@@ -499,7 +499,6 @@ func TestComplexScenario(t *testing.T) {
 - [Playwright Documentation](https://playwright.dev/)
 - [k6 Documentation](https://k6.io/docs/)
 
-
 ---
 
 [[../index|← Back to Index]]

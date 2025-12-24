@@ -52,7 +52,7 @@ To send emails from your custom domain (e.g., `noreply@clpr.tv`):
 
 SPF (Sender Policy Framework) and DKIM (DomainKeys Identified Mail) authenticate your emails and improve deliverability.
 
-#### Add the following DNS records to your domain:
+#### Add the following DNS records to your domain
 
 **SPF Record (TXT)**:
 ```
@@ -470,8 +470,8 @@ This allows gradual rollout and emergency shutoff if needed.
 ## Support
 
 For additional support:
-- SendGrid Documentation: https://docs.sendgrid.com/
-- SendGrid Support: https://support.sendgrid.com/
+- SendGrid Documentation: <https://docs.sendgrid.com/>
+- SendGrid Support: <https://support.sendgrid.com/>
 - Clipper Internal Documentation: See `docs/` directory
 
 ## Appendix

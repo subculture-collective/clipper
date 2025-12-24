@@ -28,9 +28,9 @@ Automated CI/CD via GitHub Actions:
 
 | Environment | Branch | Approval | URL |
 |-------------|--------|----------|-----|
-| Development | Local dev | N/A | http://localhost:3000 |
-| Staging | `develop` | Automatic | https://staging.clipper.app |
-| Production | `main` | Manual | https://clipper.app |
+| Development | Local dev | N/A | <http://localhost:3000> |
+| Staging | `develop` | Automatic | <https://staging.clipper.app> |
+| Production | `main` | Manual | <https://clipper.app> |
 
 ## Docker Images
 

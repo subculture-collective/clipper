@@ -212,7 +212,7 @@ bash scripts/deploy-blue-green.sh
 
 ## Avoiding Common Issues
 
-### ❌ Don't do this:
+### ❌ Don't do this
 
 ```bash
 # Don't commit directly to main
@@ -231,7 +231,7 @@ npm run build  # Check for errors first
 make test      # Ensure tests pass
 ```
 
-### ✅ Do this instead:
+### ✅ Do this instead
 
 ```bash
 # Always use feature branches
@@ -253,17 +253,20 @@ git merge origin/develop  # Safer if others have based work on your branch
 ## Deployment Environments
 
 ### Development (Local)
+
 - `make dev` - Runs on your machine
 - Full debugging with live reload
 - Can test against real backend if needed
 
 ### Staging
+
 - Deployed automatically on push to `develop`
 - Full feature testing before production
 - Share with team for feedback
 - **Auto-deploys** - no action needed
 
 ### Production
+
 - Deployed automatically on push to `main`
 - Blue-green deployment strategy
 - Zero downtime

@@ -54,9 +54,9 @@ Break-glass procedures should ONLY be used when:
    ```
 
 3. **If Vault Remains Down - Use Emergency Secrets:**
-   
+
    Create temporary `.env` file for backend:
-   
+
    ```bash
    cd /opt/clipper/backend
    
@@ -368,9 +368,9 @@ When credentials are compromised, rotate in this order:
 | Role | Contact | When to Contact |
 |------|---------|----------------|
 | On-Call Engineer | See PagerDuty | Any production emergency |
-| Security Team | security@clipper.gg | Security incident or compromise |
-| Infrastructure Lead | infra@clipper.gg | Vault or infrastructure issues |
-| Database Admin | dba@clipper.gg | Database access issues |
+| Security Team | <security@clipper.gg> | Security incident or compromise |
+| Infrastructure Lead | <infra@clipper.gg> | Vault or infrastructure issues |
+| Database Admin | <dba@clipper.gg> | Database access issues |
 
 ## Post-Incident Requirements
 
