@@ -228,6 +228,14 @@ export function ProfilePage() {
                                         <p className='text-sm xs:text-base text-muted-foreground mb-2'>
                                             @{user.username}
                                         </p>
+                                        {!user.is_verified && (
+                                            <Link 
+                                                to="/verification/apply"
+                                                className='inline-block text-xs xs:text-sm text-blue-600 dark:text-blue-400 hover:underline'
+                                            >
+                                                Apply for verification →
+                                            </Link>
+                                        )}
                                     </div>
                                     <Button
                                         onClick={handleReauthorize}
