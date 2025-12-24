@@ -14,18 +14,33 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
+	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
+	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
+
+// generateTestTokens is a helper to generate JWT tokens for testing
+func generateTestTokens(t *testing.T, userID uuid.UUID) (accessToken string) {
+	cfg := &config.Config{
+		JWT: config.JWTConfig{
+			PrivateKey: testutil.GenerateTestJWTKey(t),
+		},
+	}
+	jwtManager, err := jwtpkg.NewManager(cfg.JWT.PrivateKey)
+	require.NoError(t, err)
+	
+	accessToken, _ = testutil.GenerateTestTokens(t, jwtManager, userID, "user")
+	return accessToken
+}
 
 // TestSubscriptionLifecycleCreation tests new subscription creation flows
 func TestSubscriptionLifecycleCreation(t *testing.T) {
-	router, authService, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, _, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	ctx := context.Background()
-	accessToken, _, err := authService.GenerateTokens(ctx, userID)
-	require.NoError(t, err)
+	accessToken := generateTestTokens(t, userID)
 
 	t.Run("CreateNewMonthlySubscription", func(t *testing.T) {
 		req := models.CreateCheckoutSessionRequest{
@@ -43,7 +58,7 @@ func TestSubscriptionLifecycleCreation(t *testing.T) {
 		// Test will fail if Stripe is not configured, but we verify the flow
 		if w.Code == http.StatusOK {
 			var response models.CreateCheckoutSessionResponse
-			err = json.Unmarshal(w.Body.Bytes(), &response)
+			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
 			assert.NotEmpty(t, response.SessionID)
 			assert.NotEmpty(t, response.SessionURL)
@@ -65,8 +80,8 @@ func TestSubscriptionLifecycleCreation(t *testing.T) {
 
 		if w.Code == http.StatusOK {
 			var response models.CreateCheckoutSessionResponse
-			err = json.Unmarshal(w.Body.Bytes(), &response)
-			require.NoError(t, err)
+			jsonErr := json.Unmarshal(w.Body.Bytes(), &response)
+			require.NoError(t, jsonErr)
 			assert.NotEmpty(t, response.SessionID)
 			assert.NotEmpty(t, response.SessionURL)
 		}
@@ -110,6 +125,7 @@ func TestSubscriptionLifecycleCreation(t *testing.T) {
 
 	t.Run("VerifyCustomerCreation", func(t *testing.T) {
 		// Test that customer is created in database
+		ctx := context.Background()
 		sub, err := subscriptionService.GetSubscriptionByUserID(ctx, userID)
 		if err == nil {
 			assert.NotEmpty(t, sub.StripeCustomerID)
@@ -119,13 +135,12 @@ func TestSubscriptionLifecycleCreation(t *testing.T) {
 
 // TestSubscriptionLifecycleCancellation tests subscription cancellation flows
 func TestSubscriptionLifecycleCancellation(t *testing.T) {
-	router, authService, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, _, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	ctx := context.Background()
-	accessToken, _, err := authService.GenerateTokens(ctx, userID)
-	require.NoError(t, err)
+	accessToken := generateTestTokens(t, userID)
+	
 
 	t.Run("CancelImmediately", func(t *testing.T) {
 		// Test immediate cancellation webhook
@@ -202,13 +217,12 @@ func TestPaymentMethodUpdate(t *testing.T) {
 	t.Run("PortalSessionForPaymentUpdate", func(t *testing.T) {
 		// Users update payment methods via Stripe Customer Portal
 		// We verify the portal session creation works
-		router, authService, _, db, redisClient, userID := setupPremiumTestRouter(t)
+		router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
 		defer db.Close()
 		defer redisClient.Close()
 
-		ctx := context.Background()
-		accessToken, _, err := authService.GenerateTokens(ctx, userID)
-		require.NoError(t, err)
+		accessToken := generateTestTokens(t, userID)
+		
 
 		httpReq := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/portal", nil)
 		httpReq.Header.Set("Authorization", "Bearer "+accessToken)
@@ -357,13 +371,12 @@ func TestPaymentFailureHandling(t *testing.T) {
 
 // TestProrationCalculations tests proration for plan changes
 func TestProrationCalculations(t *testing.T) {
-	router, authService, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, _, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	ctx := context.Background()
-	accessToken, _, err := authService.GenerateTokens(ctx, userID)
-	require.NoError(t, err)
+	accessToken := generateTestTokens(t, userID)
+	
 
 	t.Run("UpgradeFromMonthlyToYearly", func(t *testing.T) {
 		// Test proration when upgrading from monthly to yearly
@@ -442,13 +455,12 @@ func TestProrationCalculations(t *testing.T) {
 func TestSubscriptionReactivation(t *testing.T) {
 	t.Run("ReactivateCanceledSubscription", func(t *testing.T) {
 		// Test that users can reactivate via portal
-		router, authService, _, db, redisClient, userID := setupPremiumTestRouter(t)
+		router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
 		defer db.Close()
 		defer redisClient.Close()
 
-		ctx := context.Background()
-		accessToken, _, err := authService.GenerateTokens(ctx, userID)
-		require.NoError(t, err)
+		accessToken := generateTestTokens(t, userID)
+		
 
 		// Access portal to reactivate
 		httpReq := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/portal", nil)
@@ -491,13 +503,12 @@ func TestSubscriptionReactivation(t *testing.T) {
 
 	t.Run("CreateNewSubscriptionAfterCancellation", func(t *testing.T) {
 		// Test creating new subscription after full cancellation
-		router, authService, _, db, redisClient, userID := setupPremiumTestRouter(t)
+		router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
 		defer db.Close()
 		defer redisClient.Close()
 
-		ctx := context.Background()
-		accessToken, _, err := authService.GenerateTokens(ctx, userID)
-		require.NoError(t, err)
+		accessToken := generateTestTokens(t, userID)
+		
 
 		req := models.CreateCheckoutSessionRequest{
 			PriceID: "price_test_monthly",
