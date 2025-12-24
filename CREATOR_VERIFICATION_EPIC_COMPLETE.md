@@ -216,7 +216,7 @@ GET  /admin/verification/users/:user_id/audit-logs
 ```
 frontend/src/
 ├── pages/
-│   ├── VerificationApplicationPage.tsx (NEW - 465 lines)
+│   ├── VerificationApplicationPage.tsx (NEW - 445 lines)
 │   ├── ProfilePage.tsx (modified - added link)
 │   └── admin/
 │       └── AdminVerificationQueuePage.tsx (403 lines)

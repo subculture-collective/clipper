@@ -26,7 +26,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function VerificationApplicationPage() {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [existingApplication, setExistingApplication] = useState<VerificationApplication | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -94,11 +94,24 @@ export function VerificationApplicationPage() {
             if (socialMediaLinks.instagram.trim()) links.instagram = socialMediaLinks.instagram.trim();
             if (socialMediaLinks.discord.trim()) links.discord = socialMediaLinks.discord.trim();
 
+            // Parse and validate numeric inputs
+            const parsedFollowerCount = followerCount ? parseInt(followerCount, 10) : undefined;
+            const parsedSubscriberCount = subscriberCount ? parseInt(subscriberCount, 10) : undefined;
+            const parsedAvgViewers = avgViewers ? parseInt(avgViewers, 10) : undefined;
+
+            // Check for invalid numbers
+            if ((parsedFollowerCount !== undefined && isNaN(parsedFollowerCount)) ||
+                (parsedSubscriberCount !== undefined && isNaN(parsedSubscriberCount)) ||
+                (parsedAvgViewers !== undefined && isNaN(parsedAvgViewers))) {
+                setError('Please enter valid numbers for follower count, subscriber count, and average viewers');
+                return;
+            }
+
             await createVerificationApplication({
                 twitch_channel_url: twitchChannelUrl.trim(),
-                follower_count: followerCount ? parseInt(followerCount, 10) : undefined,
-                subscriber_count: subscriberCount ? parseInt(subscriberCount, 10) : undefined,
-                avg_viewers: avgViewers ? parseInt(avgViewers, 10) : undefined,
+                follower_count: parsedFollowerCount,
+                subscriber_count: parsedSubscriberCount,
+                avg_viewers: parsedAvgViewers,
                 content_description: contentDescription.trim() || undefined,
                 social_media_links: Object.keys(links).length > 0 ? links : undefined,
             });
@@ -293,10 +306,11 @@ export function VerificationApplicationPage() {
                 <form onSubmit={handleSubmit}>
                     <Card className="p-6 space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="twitch-channel-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Twitch Channel URL <span className="text-red-500">*</span>
                             </label>
                             <Input
+                                id="twitch-channel-url"
                                 type="url"
                                 value={twitchChannelUrl}
                                 onChange={(e) => setTwitchChannelUrl(e.target.value)}
@@ -310,10 +324,11 @@ export function VerificationApplicationPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label htmlFor="follower-count" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Follower Count
                                 </label>
                                 <Input
+                                    id="follower-count"
                                     type="number"
                                     value={followerCount}
                                     onChange={(e) => setFollowerCount(e.target.value)}
@@ -323,10 +338,11 @@ export function VerificationApplicationPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label htmlFor="subscriber-count" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Subscriber Count
                                 </label>
                                 <Input
+                                    id="subscriber-count"
                                     type="number"
                                     value={subscriberCount}
                                     onChange={(e) => setSubscriberCount(e.target.value)}
@@ -336,10 +352,11 @@ export function VerificationApplicationPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label htmlFor="avg-viewers" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Average Viewers
                                 </label>
                                 <Input
+                                    id="avg-viewers"
                                     type="number"
                                     value={avgViewers}
                                     onChange={(e) => setAvgViewers(e.target.value)}
@@ -350,10 +367,11 @@ export function VerificationApplicationPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="content-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Content Description
                             </label>
                             <TextArea
+                                id="content-description"
                                 value={contentDescription}
                                 onChange={(e) => setContentDescription(e.target.value)}
                                 placeholder="Tell us about your content (games you play, streaming schedule, community focus, etc.)"
@@ -367,10 +385,11 @@ export function VerificationApplicationPage() {
                             </h4>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    <label htmlFor="twitter-link" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                         Twitter/X
                                     </label>
                                     <Input
+                                        id="twitter-link"
                                         type="url"
                                         value={socialMediaLinks.twitter}
                                         onChange={(e) =>
@@ -381,10 +400,11 @@ export function VerificationApplicationPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    <label htmlFor="youtube-link" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                         YouTube
                                     </label>
                                     <Input
+                                        id="youtube-link"
                                         type="url"
                                         value={socialMediaLinks.youtube}
                                         onChange={(e) =>
@@ -395,10 +415,11 @@ export function VerificationApplicationPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    <label htmlFor="instagram-link" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                         Instagram
                                     </label>
                                     <Input
+                                        id="instagram-link"
                                         type="url"
                                         value={socialMediaLinks.instagram}
                                         onChange={(e) =>
@@ -409,10 +430,11 @@ export function VerificationApplicationPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    <label htmlFor="discord-link" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                         Discord Server
                                     </label>
                                     <Input
+                                        id="discord-link"
                                         type="url"
                                         value={socialMediaLinks.discord}
                                         onChange={(e) =>
