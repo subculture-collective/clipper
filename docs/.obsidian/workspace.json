@@ -4,19 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "c6f255b0d7144795",
+        "id": "e7126c19c13037e2",
         "type": "tabs",
         "children": [
           {
-            "id": "82ab06c128e066e1",
+            "id": "e0ec848f240719d6",
             "type": "leaf",
             "state": {
-              "type": "release-notes",
+              "type": "markdown",
               "state": {
-                "currentVersion": "1.10.6"
+                "file": "backend/api.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-book-up",
-              "title": "Release Notes 1.10.6"
+              "icon": "lucide-file",
+              "title": "api"
             }
           }
         ]
@@ -51,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#go",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -72,8 +74,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -163,6 +164,16 @@
               "icon": "lucide-list",
               "title": "Outline of ARCHITECTURE"
             }
+          },
+          {
+            "id": "112830b31d87c456",
+            "type": "leaf",
+            "state": {
+              "type": "calendar",
+              "state": {},
+              "icon": "calendar-with-checkmark",
+              "title": "Calendar"
+            }
           }
         ],
         "currentTab": 2
@@ -180,12 +191,15 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "bases:Create new base": false,
-      "templater-obsidian:Templater": false,
-      "table-editor-obsidian:Advanced Tables Toolbar": false
+      "table-editor-obsidian:Advanced Tables Toolbar": false,
+      "obsidian-git:Open Git source control": false,
+      "omnisearch:Omnisearch": false,
+      "homepage:Open homepage": false
     }
   },
-  "active": "feb81d535271f0b2",
+  "active": "e0ec848f240719d6",
   "lastOpenFiles": [
+    "index.md",
     "product/clip-serving-strategy.md",
     "gdpr-compliance.md",
     "users/user-guide.md",
@@ -213,7 +227,6 @@
     "product/query-grammar.md",
     "product/keyboard-shortcuts.md",
     "product/index.md",
-    "product/features.md",
     "product",
     "premium",
     "pipelines",
