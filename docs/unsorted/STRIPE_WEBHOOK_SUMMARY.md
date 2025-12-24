@@ -22,6 +22,7 @@ All required event types are fully implemented and tested:
 ### 1. Customer Subscription Events ✅
 
 #### `customer.subscription.created`
+
 - **Handler**: `handleSubscriptionCreated()`
 - **Actions**:
   - Updates subscription record with Stripe subscription ID
@@ -32,6 +33,7 @@ All required event types are fully implemented and tested:
 - **Location**: `internal/services/subscription_service.go:320`
 
 #### `customer.subscription.updated`
+
 - **Handler**: `handleSubscriptionUpdated()`
 - **Actions**:
   - Updates subscription status (active, canceled, past_due, etc.)
@@ -42,6 +44,7 @@ All required event types are fully implemented and tested:
 - **Location**: `internal/services/subscription_service.go:386`
 
 #### `customer.subscription.deleted`
+
 - **Handler**: `handleSubscriptionDeleted()`
 - **Actions**:
   - Sets subscription status to "inactive"
@@ -53,6 +56,7 @@ All required event types are fully implemented and tested:
 ### 2. Invoice Payment Events ✅
 
 #### `invoice.payment_succeeded` (and `invoice.paid`)
+
 - **Handler**: `handleInvoicePaid()`
 - **Actions**:
   - Updates subscription status to "active"
@@ -63,6 +67,7 @@ All required event types are fully implemented and tested:
 - **Location**: `internal/services/subscription_service.go:485`
 
 #### `invoice.payment_failed`
+
 - **Handler**: `handleInvoicePaymentFailed()`
 - **Actions**:
   - Triggers dunning process
@@ -75,6 +80,7 @@ All required event types are fully implemented and tested:
 ### 3. Dispute Events ✅
 
 #### `charge.dispute.created`
+
 - **Handler**: `handleDisputeCreated()`
 - **Actions**:
   - Logs dispute event with full metadata
@@ -86,6 +92,7 @@ All required event types are fully implemented and tested:
 ### 4. Additional Events
 
 #### `invoice.finalized`
+
 - **Handler**: `handleInvoiceFinalized()`
 - **Actions**:
   - Sends invoice notification email (if PDF delivery enabled)
@@ -94,6 +101,7 @@ All required event types are fully implemented and tested:
 - **Location**: `internal/services/subscription_service.go:591`
 
 #### `payment_intent.succeeded`
+
 - **Handler**: `handlePaymentIntentSucceeded()`
 - **Actions**:
   - Logs successful payment intent
@@ -101,6 +109,7 @@ All required event types are fully implemented and tested:
 - **Location**: `internal/services/subscription_service.go:842`
 
 #### `payment_intent.payment_failed`
+
 - **Handler**: `handlePaymentIntentFailed()`
 - **Actions**:
   - Logs failed payment intent
@@ -356,7 +365,7 @@ STRIPE_INVOICE_PDF_ENABLED=true  # Optional, for invoice emails
 
 For issues or questions, refer to:
 - Testing guide: `backend/docs/STRIPE_WEBHOOK_TESTING.md`
-- Stripe webhook docs: https://stripe.com/docs/webhooks
+- Stripe webhook docs: <https://stripe.com/docs/webhooks>
 - Code comments in: `internal/services/subscription_service.go`
 
 ## Compliance

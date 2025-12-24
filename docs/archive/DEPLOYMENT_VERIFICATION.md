@@ -13,6 +13,7 @@ The React chunking fix has been successfully deployed to production.
 ## Deployment Summary
 
 ### Frontend Build
+
 - **Build Date:** December 7, 2025 @ 17:56 UTC
 - **Bundle Name:** `app-UlI5Uk2Z.js`
 - **Bundle Size:** 518 KB (164.93 KB gzipped)
@@ -20,6 +21,7 @@ The React chunking fix has been successfully deployed to production.
 - **Chunking Strategy:** Only heavy optional dependencies (recharts, markdown, lodash) split out
 
 ### Docker Container Status
+
 - **Image:** `clipper-frontend:latest` (rebuilt Dec 7 18:16 UTC)
 - **Container:** `clipper-frontend` (running on web network, port 80 internal)
 - **Health Status:** ✅ Healthy

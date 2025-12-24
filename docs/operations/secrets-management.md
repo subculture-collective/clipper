@@ -234,7 +234,6 @@ Before deploying to production:
 - [ ] All team members are trained on secrets management
 - [ ] Incident response plan includes secret compromise scenarios
 
-
 ## Emergency Procedures
 
 ### If Secrets are Compromised
@@ -264,7 +263,7 @@ Before deploying to production:
 
 For security concerns or suspected compromises:
 
-- **Security Team:** security@clipper.gg
+- **Security Team:** <security@clipper.gg>
 - **On-Call Engineer:** See PagerDuty or [break-glass-procedures.md](./break-glass-procedures.md)
 - **Emergency Documentation:** [Break-Glass Emergency Procedures](./break-glass-procedures.md)
 

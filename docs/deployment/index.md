@@ -52,16 +52,19 @@ graph LR
 ## Key Documentation
 
 ### Deployment Guides
+
 - [[docker|Docker Deployment]] - Multi-stage builds and containerization
 - [[ci_cd|CI/CD Pipeline]] - GitHub Actions workflows
 - [[infra|Infrastructure]] - Kubernetes, databases, and scaling
 
 ### Operational Procedures
+
 - [[runbook|Operations Runbook]] - Common tasks and incident response
 - [[../operations/monitoring|Monitoring]] - Observability and alerting
 - [[../operations/migration|Migrations]] - Database migration procedures
 
 ### Security & Secrets
+
 - [[../operations/secrets-management|Secrets Management]] - Secure credential handling
 - [[../operations/security-scanning|Security Scanning]] - Automated security checks
 

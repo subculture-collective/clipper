@@ -1,6 +1,7 @@
 # Watch Party Reaction Overlay Usage Guide
 
 ## Overview
+
 The `ReactionOverlay` component has been refactored to use proper React patterns (forwardRef/useImperativeHandle) instead of window globals. This ensures memory safety, proper cleanup, and follows React best practices.
 
 ## Updated Component Interface
@@ -60,6 +61,7 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 ## Key Changes from Previous Implementation
 
 ### Before (Window Globals - ❌ Not Recommended)
+
 ```typescript
 // Old implementation used window globals
 useEffect(() => {
@@ -83,6 +85,7 @@ useEffect(() => {
 - Hard to test
 
 ### After (React Refs - ✅ Recommended)
+
 ```typescript
 // New implementation uses forwardRef
 const ReactionOverlay = forwardRef<ReactionOverlayHandle, ReactionOverlayProps>(

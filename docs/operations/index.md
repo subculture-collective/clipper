@@ -74,4 +74,3 @@ SORT title ASC
 [[../backend/architecture|Backend Architecture]] ·
 [[../setup/development|Development Setup]] ·
 [[../index|Documentation Home]]
-

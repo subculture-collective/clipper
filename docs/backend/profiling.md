@@ -38,11 +38,11 @@ make backend-dev
 ```
 
 The backend now exposes profiling endpoints at:
-- **Prometheus Metrics**: http://localhost:8080/debug/metrics
-- **pprof Index**: http://localhost:8080/debug/pprof/
-- **CPU Profile**: http://localhost:8080/debug/pprof/profile?seconds=30
-- **Heap Profile**: http://localhost:8080/debug/pprof/heap
-- **Goroutine Profile**: http://localhost:8080/debug/pprof/goroutine
+- **Prometheus Metrics**: <http://localhost:8080/debug/metrics>
+- **pprof Index**: <http://localhost:8080/debug/pprof/>
+- **CPU Profile**: <http://localhost:8080/debug/pprof/profile?seconds=30>
+- **Heap Profile**: <http://localhost:8080/debug/pprof/heap>
+- **Goroutine Profile**: <http://localhost:8080/debug/pprof/goroutine>
 
 ### 2. Run Load Tests
 
@@ -182,6 +182,7 @@ This script:
 ## Profiling Cheat Sheet
 
 ### pprof Commands
+
 ```bash
 # CPU profile
 go tool pprof http://localhost:8080/debug/pprof/profile?seconds=30
@@ -203,6 +204,7 @@ go tool pprof http://localhost:8080/debug/pprof/mutex
 ```
 
 ### pprof Interactive Commands
+
 ```
 top             # Top functions by metric
 top20           # Top 20 functions
@@ -229,6 +231,7 @@ Error rate target: <1%
 ## Common Optimization Strategies
 
 ### 1. Database Optimizations
+
 - Add indexes for frequently queried columns
 - Use EXPLAIN ANALYZE to identify slow queries
 - Implement connection pooling (already configured)
@@ -237,6 +240,7 @@ Error rate target: <1%
 - Avoid N+1 queries with eager loading
 
 ### 2. Caching Optimizations
+
 - Cache frequently accessed data (clips, users, tags)
 - Set appropriate TTLs (Time To Live)
 - Use cache warming for popular content
@@ -244,6 +248,7 @@ Error rate target: <1%
 - Consider Redis cluster for scaling
 
 ### 3. Query Optimizations
+
 - Paginate large result sets
 - Use database cursors for streaming
 - Implement field selection (don't fetch unused fields)
@@ -251,6 +256,7 @@ Error rate target: <1%
 - Consider read replicas for read-heavy workloads
 
 ### 4. Application Optimizations
+
 - Use goroutines for parallel operations
 - Implement request coalescing
 - Use connection pooling for external services
@@ -263,11 +269,13 @@ Error rate target: <1%
 When creating profiling reports, include:
 
 ### Executive Summary
+
 - Key findings
 - Performance vs. targets
 - Critical bottlenecks identified
 
 ### Baseline Metrics
+
 - Load test configuration
 - p50, p95, p99 latencies for each endpoint
 - Throughput (requests/second)
@@ -275,6 +283,7 @@ When creating profiling reports, include:
 - Resource utilization (CPU, memory, connections)
 
 ### Bottleneck Analysis
+
 - Top CPU consumers
 - Memory hotspots
 - Database query analysis
@@ -282,11 +291,13 @@ When creating profiling reports, include:
 - External API latency
 
 ### Optimization Recommendations
+
 - Prioritized list of improvements
 - Expected impact of each optimization
 - Implementation effort estimate
 
 ### Before/After Metrics
+
 - Side-by-side comparison
 - Percentage improvements
 - New performance characteristics
@@ -325,18 +336,21 @@ debug.Use(middleware.RequireRole("admin"))
 ## Troubleshooting
 
 ### pprof not working
+
 - Ensure the backend is running
 - Check firewall rules
 - Verify the URL is correct
 - Try `curl` first to test connectivity
 
 ### High memory usage in profiles
+
 - Check for goroutine leaks
 - Look for unbounded caches
 - Review connection pool sizes
 - Check for memory-intensive operations
 
 ### Slow queries not showing in logs
+
 - Enable PostgreSQL query logging
 - Adjust log_min_duration_statement
 - Check log file location

@@ -174,7 +174,7 @@ A Grafana dashboard for search quality metrics is available at `monitoring/dashb
 
 ### Importing the Dashboard
 
-1. Open Grafana (http://localhost:3000)
+1. Open Grafana (<http://localhost:3000>)
 2. Navigate to Dashboards → Import
 3. Upload `search-quality.json`
 4. Select Prometheus as the data source

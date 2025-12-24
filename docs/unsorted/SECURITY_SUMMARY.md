@@ -1,11 +1,13 @@
 # Security Summary - Webhook Subscription Management
 
 ## Overview
+
 This document provides a security assessment of the webhook subscription management implementation.
 
 ## Security Scan Results
 
 ### CodeQL Analysis ✅
+
 - **Status**: PASSED
 - **Vulnerabilities Found**: 0
 - **Language**: JavaScript/TypeScript
@@ -14,12 +16,14 @@ This document provides a security assessment of the webhook subscription managem
 ## Security Features Implemented
 
 ### 1. Authentication & Authorization ✅
+
 - **All webhook endpoints require authentication**
 - Users can only manage their own subscriptions
 - JWT-based authentication via existing middleware
 - No anonymous access to webhook management
 
 ### 2. Secret Management ✅
+
 - **Generation**: Cryptographically secure 32-byte random secrets
 - **Storage**: Stored in database, never exposed in logs
 - **Display**: Shown only once on creation/rotation
@@ -27,6 +31,7 @@ This document provides a security assessment of the webhook subscription managem
 - **Usage**: HMAC-SHA256 signature verification
 
 ### 3. SSRF Protection ✅
+
 - **URL Validation**: Prevents server-side request forgery
 - **Blocked Addresses**:
   - Private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
@@ -36,18 +41,21 @@ This document provides a security assessment of the webhook subscription managem
 - **Implementation**: Backend validates all webhook URLs
 
 ### 4. Rate Limiting ✅
+
 - **Create Subscription**: 10 requests per hour per user
 - **Regenerate Secret**: 5 requests per hour per user
 - **Get Events**: 60 requests per minute per user
 - **Purpose**: Prevent abuse and resource exhaustion
 
 ### 5. Input Validation ✅
+
 - **URL**: Max 2048 characters, valid URL format
 - **Events**: Min 1, Max 10 events per subscription
 - **Description**: Max 500 characters
 - **Backend Validation**: Server-side validation on all inputs
 
 ### 6. Error Handling ✅
+
 - **No Sensitive Data in Errors**: Generic error messages to users
 - **Logging**: Detailed errors logged server-side only
 - **Client-Side**: Toast notifications with safe messages
@@ -56,18 +64,21 @@ This document provides a security assessment of the webhook subscription managem
 ## Webhook Delivery Security
 
 ### Signature Verification
+
 - **Algorithm**: HMAC-SHA256
 - **Header**: X-Webhook-Signature
 - **Purpose**: Verify webhook authenticity
 - **Documentation**: Verification examples provided
 
 ### Retry Mechanism
+
 - **Max Attempts**: 5 retries
 - **Exponential Backoff**: 30s, 60s, 120s, 240s, 480s
 - **Dead Letter Queue**: Failed deliveries stored for investigation
 - **No Infinite Loops**: Clear maximum retry limit
 
 ### Delivery Audit Log
+
 - **Complete History**: All attempts logged
 - **Status Tracking**: pending, delivered, failed
 - **Error Messages**: Stored for debugging
@@ -76,12 +87,14 @@ This document provides a security assessment of the webhook subscription managem
 ## Data Protection
 
 ### Secrets Storage
+
 - **Database**: Stored in webhook_subscriptions table
 - **Access**: Query-scoped to user_id
 - **Rotation**: Old secret invalidated immediately
 - **Transmission**: HTTPS only in production
 
 ### User Data Isolation
+
 - **Subscriptions**: Filtered by user_id
 - **Deliveries**: Accessible only through owned subscriptions
 - **No Cross-User Access**: Authorization checks on all endpoints
@@ -89,12 +102,14 @@ This document provides a security assessment of the webhook subscription managem
 ## Frontend Security
 
 ### API Client
+
 - **CSRF Protection**: Tokens included in state-changing requests
 - **Credential Handling**: Cookies with httpOnly flag
 - **Error Handling**: No sensitive data in client errors
 - **Type Safety**: TypeScript prevents common errors
 
 ### UI Security
+
 - **XSS Prevention**: React escapes output by default
 - **Input Sanitization**: Validated before submission
 - **Safe URLs**: No javascript: or data: URLs allowed
@@ -103,12 +118,14 @@ This document provides a security assessment of the webhook subscription managem
 ## Compliance
 
 ### GDPR
+
 - **Data Access**: Users can view all their webhook data
 - **Data Deletion**: Users can delete subscriptions
 - **Data Export**: Delivery history available for review
 - **Audit Trail**: Complete log of all deliveries
 
 ### Best Practices
+
 - **Least Privilege**: Users access only their resources
 - **Defense in Depth**: Multiple security layers
 - **Secure Defaults**: Active webhooks require explicit creation
@@ -117,13 +134,15 @@ This document provides a security assessment of the webhook subscription managem
 ## Known Limitations & Mitigations
 
 ### 1. Webhook Endpoint Security
+
 - **Risk**: User-provided endpoints may be insecure
-- **Mitigation**: 
+- **Mitigation**:
   - HTTPS recommended in documentation
   - Signature verification required
   - Rate limiting prevents abuse
 
 ### 2. Delivery Failures
+
 - **Risk**: Legitimate deliveries may fail
 - **Mitigation**:
   - Retry mechanism with exponential backoff
@@ -131,6 +150,7 @@ This document provides a security assessment of the webhook subscription managem
   - Audit log for debugging
 
 ### 3. Secret Rotation Impact
+
 - **Risk**: Rotating secret breaks existing integrations
 - **Mitigation**:
   - Clear warning in UI
@@ -140,6 +160,7 @@ This document provides a security assessment of the webhook subscription managem
 ## Recommendations for Users
 
 ### Security Best Practices
+
 1. **Use HTTPS**: Always use HTTPS webhook endpoints
 2. **Verify Signatures**: Implement HMAC verification
 3. **Rotate Secrets**: Periodically regenerate secrets
@@ -150,6 +171,7 @@ This document provides a security assessment of the webhook subscription managem
 8. **Timeout Handling**: Respond within 10 seconds
 
 ### Detection & Response
+
 - **Monitor Audit Log**: Check for unusual patterns
 - **Failed Deliveries**: Investigate causes promptly
 - **Rotate if Compromised**: Regenerate secret immediately
@@ -158,6 +180,7 @@ This document provides a security assessment of the webhook subscription managem
 ## Audit Trail
 
 ### What's Logged
+
 - ✅ Subscription creation, updates, deletion
 - ✅ Secret regeneration events
 - ✅ All delivery attempts
@@ -166,6 +189,7 @@ This document provides a security assessment of the webhook subscription managem
 - ✅ Timestamps for all events
 
 ### What's NOT Logged
+
 - ❌ Actual secret values (only when displayed once)
 - ❌ User passwords or authentication tokens
 - ❌ Full request/response bodies (truncated)
@@ -188,4 +212,5 @@ The webhook subscription management implementation follows security best practic
 **The implementation is secure and ready for production use.**
 
 ## Security Contact
+
 For security concerns or to report vulnerabilities, please follow the security policy in SECURITY.md.

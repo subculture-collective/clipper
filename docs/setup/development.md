@@ -69,7 +69,7 @@ pnpm install
 pnpm dev
 ```
 
-Default dev server: http://localhost:5173
+Default dev server: <http://localhost:5173>
 
 ## Mobile (React Native)
 

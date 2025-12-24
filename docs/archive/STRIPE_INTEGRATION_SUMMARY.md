@@ -98,6 +98,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
 ### Database Schema
 
 #### Core Subscription Tables
+
 - **Table**: `subscriptions`
   - User subscription records
   - Stripe customer and subscription IDs
@@ -110,6 +111,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
   - Webhook event deduplication via `stripe_event_id`
 
 #### Stripe Infrastructure Tables (Migration 000040)
+
 - **Table**: `stripe_customers`
   - Tracks Stripe customer sync with user accounts
   - Stores customer metadata and email
@@ -128,6 +130,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
   - Enables debugging and replay
 
 #### Webhook Retry Infrastructure
+
 - **Table**: `webhook_retry_queue`
   - Failed webhook events pending retry
   - Exponential backoff support
@@ -137,6 +140,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
   - Manual review and recovery
 
 #### Dunning Tables
+
 - **Table**: `payment_failures`
   - Failed payment tracking
   - Retry scheduling

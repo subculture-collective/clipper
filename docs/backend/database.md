@@ -35,6 +35,7 @@ postgresql://<user>:<pass>@<host>:5432/<db>?sslmode=require
 ## Core Tables
 
 ### users
+
 User accounts and profiles.
 
 **Key Columns**:
@@ -47,6 +48,7 @@ User accounts and profiles.
 - `created_at`, `updated_at` (timestamptz)
 
 ### clips
+
 Twitch clip metadata and engagement.
 
 **Key Columns**:
@@ -71,6 +73,7 @@ Twitch clip metadata and engagement.
 - HNSW on `embedding` for vector similarity
 
 ### comments
+
 User comments on clips.
 
 **Key Columns**:
@@ -83,6 +86,7 @@ User comments on clips.
 - `created_at`, `updated_at` (timestamptz)
 
 ### votes
+
 Vote records for clips and comments.
 
 **Key Columns**:
@@ -97,6 +101,7 @@ Vote records for clips and comments.
 - Unique index on `(user_id, votable_type, votable_id)` to prevent duplicate votes
 
 ### favorites
+
 User-saved clips.
 
 **Key Columns**:
@@ -109,6 +114,7 @@ User-saved clips.
 - Unique on `(user_id, clip_id)`
 
 ### tags
+
 Clip categorization tags.
 
 **Key Columns**:
@@ -119,6 +125,7 @@ Clip categorization tags.
 - `created_at` (timestamptz)
 
 ### clip_tags
+
 Many-to-many junction table.
 
 **Key Columns**:
@@ -127,6 +134,7 @@ Many-to-many junction table.
 - Primary key on `(clip_id, tag_id)`
 
 ### subscriptions
+
 Premium subscription records.
 
 **Key Columns**:

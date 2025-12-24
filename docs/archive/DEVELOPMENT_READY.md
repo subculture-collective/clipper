@@ -10,11 +10,13 @@ Your development environment is **fully configured and ready to use**. All infra
 ## What's Been Done
 
 ### 1. ✅ Fixed Chunking Issue (Previous Session)
+
 - **Problem**: Frontend bundled into single massive file → timeout on load
 - **Solution**: Configured intelligent code splitting in vite.config.ts
 - **Result**: Faster parallel chunk loading, no more timeouts
 
 ### 2. ✅ Fixed Backend Configuration (This Session)
+
 - **Problem**: Backend tried connecting to `localhost` instead of Docker service names
 - **Solution**: Updated .env files for both container and local development:
   - Docker: Uses `clipper-postgres:5432` and `clipper-redis:6379`
@@ -22,12 +24,14 @@ Your development environment is **fully configured and ready to use**. All infra
 - **Result**: Backend can now connect to database in both environments
 
 ### 3. ✅ Established Development Workflows
+
 - Created comprehensive development plans
 - Documented git branching strategy
 - Outlined feature development process
 - Created deployment procedures
 
 ### 4. ✅ Created Documentation
+
 - **DEVELOPMENT_PLAN.md** - Complete dev guide (30+ min read, reference material)
 - **DEV_STATUS_AND_PLAN.md** - Quick status and action items
 - **DEPLOYMENT_IMPROVEMENTS.md** - Deployment overview
@@ -39,12 +43,14 @@ Your development environment is **fully configured and ready to use**. All infra
 ## Quick Start (Right Now)
 
 ### Terminal 1: Start Database & Services
+
 ```bash
 cd /home/onnwee/projects/clipper
 docker compose up -d postgres redis vault-agent
 ```
 
 ### Terminal 2: Start Backend
+
 ```bash
 cd /home/onnwee/projects/clipper/backend
 go run cmd/api/main.go
@@ -52,6 +58,7 @@ go run cmd/api/main.go
 ```
 
 ### Terminal 3: Start Frontend
+
 ```bash
 cd /home/onnwee/projects/clipper/frontend
 npm run dev
@@ -59,7 +66,8 @@ npm run dev
 ```
 
 ### Browser
-Open: **http://localhost:5173**
+
+Open: **<http://localhost:5173>**
 
 That's it! Development environment is running.
 
@@ -101,11 +109,13 @@ bash scripts/dev-setup.sh           # Environment setup guide
 ## Feature Development Process
 
 ### 1. Create Feature Branch
+
 ```bash
 git checkout -b feature/my-awesome-feature develop
 ```
 
 ### 2. Start Development
+
 ```bash
 # Three terminals:
 docker compose up -d postgres redis  # Terminal 1
@@ -114,11 +124,13 @@ cd frontend && npm run dev            # Terminal 3
 ```
 
 ### 3. Make Changes
+
 - Edit code → hot reload in browser
 - Changes auto-reload on save
 - Test in browser immediately
 
 ### 4. Commit & Push
+
 ```bash
 git add .
 git commit -m "feat: description of what you did"
@@ -126,13 +138,15 @@ git push origin feature/my-awesome-feature
 ```
 
 ### 5. Create PR on GitHub
-- Go to https://github.com/subculture-collective/clipper
+
+- Go to <https://github.com/subculture-collective/clipper>
 - Click "Compare & pull request"
 - Ensure base is `develop` (not main!)
 - Add description, link issues
 - Request review
 
 ### 6. After Review & Merge
+
 - Automatic deployment to staging
 - Team tests on staging environment
 - If good, merge to main when ready
@@ -143,16 +157,19 @@ git push origin feature/my-awesome-feature
 ## Environment Configuration
 
 ### Backend (.env files)
+
 - **backend/.env** - Main config (localhost for local dev)
 - **backend/.env.local** - Alternative (for reference)
 - Changes: `DB_HOST` and `REDIS_HOST` for proper connections
 
 ### Frontend (.env files)
+
 - **frontend/.env** - Development config
 - **frontend/.env.production** - Production config
-- API endpoint: http://localhost:8080 (local dev)
+- API endpoint: <http://localhost:8080> (local dev)
 
 ### Services Running
+
 - PostgreSQL: localhost:5436 (mapped from 5432 inside Docker)
 - Redis: localhost:6379 (host port, 6379 inside Docker)
 - Vault: localhost:8200 (secrets management)
@@ -254,12 +271,14 @@ Local branches available:
 ## Next Actions
 
 ### Immediate (Now)
+
 1. ✅ Start database services: `docker compose up -d postgres redis`
 2. ✅ Start backend: `cd backend && go run cmd/api/main.go`
 3. ✅ Start frontend: `cd frontend && npm run dev`
-4. ✅ Open http://localhost:5173 in browser
+4. ✅ Open <http://localhost:5173> in browser
 
 ### Today
+
 1. Choose a feature or fix to work on
 2. Create feature branch: `git checkout -b feature/your-task develop`
 3. Make changes and test
@@ -267,6 +286,7 @@ Local branches available:
 5. Create PR on GitHub
 
 ### This Week
+
 1. Get feedback on PR
 2. Address review comments
 3. Merge to develop (auto-deploys to staging)

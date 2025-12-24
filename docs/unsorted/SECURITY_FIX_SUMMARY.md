@@ -1,6 +1,7 @@
 # Security Fix Summary: Watch Party WebSocket Authentication and Rate Limiting
 
 ## Issue Overview
+
 PR #749 introduced watch party chat/reactions with three critical security vulnerabilities:
 
 1. **Weak Authentication**: WebSocket connections lacked proper token validation
@@ -19,7 +20,7 @@ PR #749 introduced watch party chat/reactions with three critical security vulne
 
 **Solution:**
 - Frontend now passes token via WebSocket subprotocol (`Sec-WebSocket-Protocol` header)
-- Format: `auth.bearer.<base64_encoded_token>` 
+- Format: `auth.bearer.<base64_encoded_token>`
 - Backend extracts and validates token from subprotocol before WebSocket upgrade
 - Tokens never appear in URLs, preventing exposure in:
   - Proxy logs and load balancer logs
@@ -122,7 +123,8 @@ reactionOverlayRef.current?.addReaction(emoji);
 
 ## Documentation Updates
 
-### Updated Files:
+### Updated Files
+
 1. **WATCH_PARTY_CHAT_IMPLEMENTATION.md**
    - Added authentication requirements
    - Documented distributed rate limiting
@@ -143,7 +145,8 @@ reactionOverlayRef.current?.addReaction(emoji);
 
 ## Test Coverage
 
-### New Tests Added:
+### New Tests Added
+
 1. **Authentication Tests** (`auth_middleware_websocket_test.go`)
    - Subprotocol extraction and validation
    - Token precedence validation (Header > Subprotocol > Cookie)
@@ -160,7 +163,8 @@ reactionOverlayRef.current?.addReaction(emoji);
    - Benchmark tests
    - All tests passing (requires Redis)
 
-### Test Results:
+### Test Results
+
 ```
 ✓ TestExtractToken_QueryParameter (0.01s)
   ✓ token_from_Authorization_header
@@ -175,30 +179,35 @@ reactionOverlayRef.current?.addReaction(emoji);
 
 ## Deployment Considerations
 
-### Redis Requirements:
+### Redis Requirements
+
 - **Required for multi-instance deployments**
 - Recommended: Redis Cluster or Sentinel for HA
 - Rate limit keys auto-expire after window + 1 minute
 - Handles infrastructure failures with fail-closed behavior
 
-### Single Instance Deployments:
+### Single Instance Deployments
+
 - Can use in-memory fallback (optional)
 - Simpler setup but limited scalability
 - Rate limits per-instance only
 
-### Load Balancer Configuration:
+### Load Balancer Configuration
+
 - WebSocket sticky sessions recommended (but not required)
 - Ensure proper HTTPS/WSS termination
 - Forward auth tokens correctly
 
 ## Performance Impact
 
-### Rate Limiter Performance:
+### Rate Limiter Performance
+
 - Redis operations: ~1-2ms latency per check
 - Pipeline usage minimizes round trips
 - Minimal overhead compared to WebSocket message processing
 
-### Memory Usage:
+### Memory Usage
+
 - Removed window globals reduces frontend memory footprint
 - Redis handles rate limit state (not in app memory)
 - Automatic cleanup prevents memory growth

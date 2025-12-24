@@ -50,16 +50,19 @@ Handles all database operations:
 Implements the recommendation algorithms:
 
 #### Content-Based Filtering
+
 - Recommends clips similar to user's preferences
 - Weights: 50% game match, 30% streamer match, 20% popularity
 - Uses user's favorite games and followed streamers
 
 #### Collaborative Filtering
+
 - Finds similar users based on shared likes
 - Recommends clips liked by similar users
 - Uses Jaccard similarity for user matching
 
 #### Hybrid Algorithm
+
 - Combines multiple signals with weighted scoring:
   - Content-based: 50%
   - Collaborative: 30%
@@ -68,6 +71,7 @@ Implements the recommendation algorithms:
 - Provides best overall recommendations
 
 #### Cold Start Handling
+
 - Detects users without interaction history
 - Falls back to trending clips
 - Ensures new users get quality content immediately
@@ -271,6 +275,7 @@ migrate -path backend/migrations \
 ## Future Enhancements
 
 ### Phase 2 (Not in this PR)
+
 - Real-time recommendation updates
 - Social recommendations (friends' likes)
 - Category-based exploration
@@ -279,6 +284,7 @@ migrate -path backend/migrations \
 - Personalized ranking weights
 
 ### Monitoring & Analytics
+
 - Track CTR (click-through rate)
 - Monitor dwell time
 - Measure diversity scores
@@ -303,6 +309,7 @@ No additional configuration needed. The system uses:
 ## Maintenance
 
 ### Regular Tasks
+
 1. Monitor cache hit rate
 2. Review recommendation quality metrics
 3. Analyze user feedback

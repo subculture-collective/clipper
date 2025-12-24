@@ -235,6 +235,7 @@ End a watch party (host only).
 ### Client → Server Messages
 
 #### Play Command
+
 ```json
 {
   "type": "play",
@@ -244,6 +245,7 @@ End a watch party (host only).
 ```
 
 #### Pause Command
+
 ```json
 {
   "type": "pause",
@@ -253,6 +255,7 @@ End a watch party (host only).
 ```
 
 #### Seek Command
+
 ```json
 {
   "type": "seek",
@@ -263,6 +266,7 @@ End a watch party (host only).
 ```
 
 #### Skip to Clip
+
 ```json
 {
   "type": "skip",
@@ -273,6 +277,7 @@ End a watch party (host only).
 ```
 
 #### Request Sync
+
 ```json
 {
   "type": "sync-request",
@@ -284,6 +289,7 @@ End a watch party (host only).
 ### Server → Client Events
 
 #### Sync Event
+
 ```json
 {
   "type": "sync",
@@ -296,6 +302,7 @@ End a watch party (host only).
 ```
 
 #### Play Event
+
 ```json
 {
   "type": "play",
@@ -307,6 +314,7 @@ End a watch party (host only).
 ```
 
 #### Pause Event
+
 ```json
 {
   "type": "pause",
@@ -318,6 +326,7 @@ End a watch party (host only).
 ```
 
 #### Seek Event
+
 ```json
 {
   "type": "seek",
@@ -329,6 +338,7 @@ End a watch party (host only).
 ```
 
 #### Skip Event
+
 ```json
 {
   "type": "skip",
@@ -341,6 +351,7 @@ End a watch party (host only).
 ```
 
 #### Participant Joined
+
 ```json
 {
   "type": "participant-joined",
@@ -356,6 +367,7 @@ End a watch party (host only).
 ```
 
 #### Participant Left
+
 ```json
 {
   "type": "participant-left",
@@ -373,17 +385,20 @@ End a watch party (host only).
 ## Roles and Permissions
 
 ### Host
+
 - Created the party
 - Full control over playback (play, pause, seek, skip)
 - Can end the party
 - Cannot be removed from the party
 
 ### Co-Host
+
 - Elevated by the host
 - Full control over playback (play, pause, seek, skip)
 - Cannot end the party
 
 ### Viewer
+
 - Default role for participants
 - Can request sync to catch up
 - Cannot control playback

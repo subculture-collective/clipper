@@ -1,9 +1,11 @@
 # Epic Issues & Label Hygiene Summary
+
 **Date:** December 15, 2025
 **Status:** Complete
 **Created By:** GitHub Copilot
 
 ## Overview
+
 This document summarizes the comprehensive epic and issue structure created for Clipper's Phase 2 and Phase 3 development roadmap.
 
 ## New Epics Created
@@ -42,29 +44,34 @@ This document summarizes the comprehensive epic and issue structure created for 
 ## Epic Breakdown by Feature Area
 
 ### 🎬 Discovery & Feed Features (176-236 hours)
+
 - Feed filtering with presets (#668)
 - Trending algorithms and search analytics
 - Feed pagination and performance optimization
 
 ### 📺 Playlist & Playback Features (120-160 hours)
+
 - Playlist management and sharing (#669)
 - Theatre mode immersive player
 - Queue and watch history systems
 - Multi-clip playback scenarios
 
 ### 👥 Community & Social Features (248-320 hours)
+
 - Meta forum with discussions (#670)
 - Live chat system (#671)
 - Watch parties with friends (#672)
 - Live stream integration (#673)
 
 ### 🛡️ Admin & Moderation (132-180 hours)
+
 - Comment moderation interface (#674)
 - Existing clip moderation (#664)
 - User management systems (#665)
 - Sync controls and reporting
 
 ### 🌐 Infrastructure (52-64 hours)
+
 - Mirror hosting and CDN integration (#666)
 - Existing infrastructure improvements
 
@@ -73,6 +80,7 @@ This document summarizes the comprehensive epic and issue structure created for 
 All issues follow a standardized labeling system using **5 label categories**:
 
 ### 1. **Area Labels** (`area/`)
+
 Defines which part of the system this work affects.
 
 ```
@@ -88,6 +96,7 @@ area/monitoring  - Observability, logging, metrics
 ```
 
 ### 2. **Priority Labels** (`priority/`)
+
 Impact and urgency of the work.
 
 ```
@@ -98,6 +107,7 @@ priority/P3      - LOW: Backlog, low priority
 ```
 
 ### 3. **Kind Labels** (`kind/`)
+
 Type of issue to help identify what kind of work is involved.
 
 ```
@@ -112,6 +122,7 @@ kind/improvement  - Enhancement to existing feature
 ```
 
 ### 4. **Milestone Labels** (`milestone/`)
+
 Release or project phase the work targets.
 
 ```
@@ -123,6 +134,7 @@ milestone/PostLaunch  - After MVP launch
 ```
 
 ### 5. **Status Labels** (`status/`)
+
 Current state of the issue.
 
 ```
@@ -136,14 +148,16 @@ status/active      - Epic actively being worked on
 
 ## Label Application Rules
 
-### When Creating Issues:
+### When Creating Issues
+
 1. ✅ **Always apply:** 1 `area/*` label (what system does it affect?)
 2. ✅ **Always apply:** 1 `priority/*` label (P0-P3)
 3. ✅ **Always apply:** 1 `kind/*` label (epic/feature/bug/etc)
 4. ✅ **Always apply:** 1 `milestone/*` label (when should it ship?)
 5. ✅ **Apply when needed:** 1 `status/*` label (if non-ready state)
 
-### Epic Labels:
+### Epic Labels
+
 - Epic #668: `area/frontend`, `area/backend`, `priority/P1`, `kind/epic`, `milestone/Phase2`
 - Epic #669: `area/frontend`, `area/backend`, `priority/P1`, `kind/epic`, `milestone/Phase2`
 - Epic #670: `area/frontend`, `area/backend`, `priority/P1`, `kind/epic`, `milestone/Phase3`
@@ -152,7 +166,8 @@ status/active      - Epic actively being worked on
 - Epic #673: `area/frontend`, `area/backend`, `priority/P1`, `kind/epic`, `milestone/Phase3`
 - Epic #674: `area/admin`, `priority/P0`, `kind/epic`, `milestone/Phase2`
 
-### Child Issue Labels:
+### Child Issue Labels
+
 - Inherit `priority/*` and `milestone/*` from parent epic
 - Specialize `area/*` if more specific (e.g., `area/frontend` for UI work)
 - Use `kind/feature` or `kind/chore` for specific tasks
@@ -218,12 +233,14 @@ Detailed checklist of must-haves:
 ## GitHub Project Recommendations
 
 ### Organize by Milestone
+
 Create separate GitHub Project boards:
 - **MVP Launch (Week 4)** - Filter by `milestone/MVP`
 - **Phase 2 (Weeks 2-3)** - Filter by `milestone/Phase2`
 - **Phase 3 (Weeks 4+)** - Filter by `milestone/Phase3`
 
 ### Organize by Area
+
 Create separate views:
 - **Frontend** - Filter by `area/frontend`
 - **Backend** - Filter by `area/backend`
@@ -231,6 +248,7 @@ Create separate views:
 - **Infrastructure** - Filter by `area/infrastructure`
 
 ### Organize by Status
+
 Use columns: Ready → In Progress → Review → Done
 
 ## Epic-to-Issue Mapping

@@ -219,76 +219,76 @@ def webhook():
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"io"
-	"log"
-	"net/http"
-	"os"
+ "crypto/hmac"
+ "crypto/sha256"
+ "encoding/hex"
+ "io"
+ "log"
+ "net/http"
+ "os"
 )
 
 // Load webhook secret from environment variable for security
 // Fallback to placeholder only for example purposes
 func getWebhookSecret() string {
-	if secret := os.Getenv("WEBHOOK_SECRET"); secret != "" {
-		return secret
-	}
-	return "your-webhook-secret-here"
+ if secret := os.Getenv("WEBHOOK_SECRET"); secret != "" {
+  return secret
+ }
+ return "your-webhook-secret-here"
 }
 
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
-	// Only accept POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+ // Only accept POST requests
+ if r.Method != http.MethodPost {
+  http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+  return
+ }
 
-	// Get signature from header
-	signature := r.Header.Get("X-Webhook-Signature")
-	eventType := r.Header.Get("X-Webhook-Event")
-	deliveryID := r.Header.Get("X-Webhook-Delivery-ID")
+ // Get signature from header
+ signature := r.Header.Get("X-Webhook-Signature")
+ eventType := r.Header.Get("X-Webhook-Event")
+ deliveryID := r.Header.Get("X-Webhook-Delivery-ID")
 
-	if signature == "" {
-		http.Error(w, "Missing signature", http.StatusUnauthorized)
-		return
-	}
+ if signature == "" {
+  http.Error(w, "Missing signature", http.StatusUnauthorized)
+  return
+ }
 
-	// Read the raw request body
-	rawBody, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
+ // Read the raw request body
+ rawBody, err := io.ReadAll(r.Body)
+ if err != nil {
+  http.Error(w, "Failed to read body", http.StatusBadRequest)
+  return
+ }
+ defer r.Body.Close()
 
-	// Compute HMAC-SHA256 signature
-	webhookSecret := getWebhookSecret()
-	mac := hmac.New(sha256.New, []byte(webhookSecret))
-	mac.Write(rawBody)
-	computedSignature := hex.EncodeToString(mac.Sum(nil))
+ // Compute HMAC-SHA256 signature
+ webhookSecret := getWebhookSecret()
+ mac := hmac.New(sha256.New, []byte(webhookSecret))
+ mac.Write(rawBody)
+ computedSignature := hex.EncodeToString(mac.Sum(nil))
 
-	// Compare signatures (constant-time comparison)
-	if !hmac.Equal([]byte(signature), []byte(computedSignature)) {
-		log.Printf("Invalid webhook signature for delivery %s", deliveryID)
-		http.Error(w, "Invalid signature", http.StatusUnauthorized)
-		return
-	}
+ // Compare signatures (constant-time comparison)
+ if !hmac.Equal([]byte(signature), []byte(computedSignature)) {
+  log.Printf("Invalid webhook signature for delivery %s", deliveryID)
+  http.Error(w, "Invalid signature", http.StatusUnauthorized)
+  return
+ }
 
-	// Signature is valid - parse and process the webhook
-	log.Printf("Received %s event: %s", eventType, deliveryID)
+ // Signature is valid - parse and process the webhook
+ log.Printf("Received %s event: %s", eventType, deliveryID)
 
-	// Process webhook event here...
-	// payload := parseJSON(rawBody)
+ // Process webhook event here...
+ // payload := parseJSON(rawBody)
 
-	// Acknowledge receipt
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+ // Acknowledge receipt
+ w.WriteHeader(http.StatusOK)
+ w.Write([]byte("OK"))
 }
 
 func main() {
-	http.HandleFunc("/webhook", webhookHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+ http.HandleFunc("/webhook", webhookHandler)
+ log.Fatal(http.ListenAndServe(":8080", nil))
 }
 ```
 
@@ -563,10 +563,12 @@ All webhook events follow this structure:
 ### Event-Specific Fields
 
 #### clip.submitted
+
 - Standard payload (shown above)
 - If auto-approved, also includes `"auto_approved": true` in the `clip.approved` event that follows
 
 #### clip.approved
+
 ```json
 {
   "event": "clip.approved",
@@ -581,6 +583,7 @@ All webhook events follow this structure:
 ```
 
 #### clip.rejected
+
 ```json
 {
   "event": "clip.rejected",
@@ -711,12 +714,15 @@ If your webhook secret is compromised, regenerate it:
 ## Best Practices
 
 ### 1. Use HTTPS
+
 Always use HTTPS for your webhook endpoints to ensure data is encrypted in transit.
 
 ### 2. Validate Signatures
+
 Always verify the `X-Webhook-Signature` header before processing webhook events to ensure they're from Clipper.
 
 ### 3. Return Quickly
+
 Process webhooks asynchronously. Acknowledge receipt immediately (return 200) and process the event in the background.
 
 ```javascript
@@ -737,6 +743,7 @@ app.post('/webhook', async (req, res) => {
 ```
 
 ### 4. Handle Duplicates
+
 The same event may be delivered multiple times (e.g., during retries). Use the `X-Webhook-Delivery-ID` header or `submission_id` to implement idempotency.
 
 ```javascript
@@ -754,11 +761,13 @@ function processWebhook(deliveryId, payload) {
 ```
 
 ### 5. Monitor Your Endpoints
+
 - Log all webhook deliveries
 - Set up alerts for high failure rates
 - Monitor response times
 
 ### 6. Test Webhooks
+
 Use tools like [webhook.site](https://webhook.site) or [ngrok](https://ngrok.com) to test your webhook integration during development.
 
 ## Rate Limits
@@ -1220,5 +1229,5 @@ Before going to production, verify:
 
 For issues or questions:
 - Check the [API documentation](https://docs.clpr.tv)
-- Contact support at support@clpr.tv
-- GitHub issues: https://github.com/subculture-collective/clipper/issues
+- Contact support at <support@clpr.tv>
+- GitHub issues: <https://github.com/subculture-collective/clipper/issues>

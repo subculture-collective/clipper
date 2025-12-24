@@ -58,16 +58,19 @@ This document outlines the comprehensive strategy for executing database schema 
 For complex migrations, use a three-phase approach:
 
 #### Phase 1: Expand
+
 - Add new schema elements (tables, columns, indexes)
 - Deploy new application code that writes to both old and new schema
 - Old code continues to work
 
 #### Phase 2: Migrate
+
 - Backfill data from old to new schema
 - Validate data consistency
 - Switch reads to new schema gradually
 
 #### Phase 3: Contract
+
 - Remove old schema elements after verification
 - Clean up deprecated code
 - Archive old data if needed
@@ -742,12 +745,14 @@ migrate -path backend/migrations -database "$DATABASE_URL" up
 ```
 
 ## Validation
+
 - [ ] Table created: `\dt <table_name>`
 - [ ] Indexes created: `\di`
 - [ ] Application healthy
 - [ ] No errors in logs
 
 ## Rollback
+
 ```bash
 migrate -path backend/migrations -database "$DATABASE_URL" down 1
 ```
@@ -788,17 +793,20 @@ END $$;
 ```
 
 ## Monitoring
+
 ```bash
 # Watch progress
 watch -n 5 "psql -d clipper_db -c 'SELECT COUNT(*) FROM <table_name> WHERE <field_name> IS NULL;'"
 ```
 
 ## Validation
+
 - [ ] All records backfilled: `SELECT COUNT(*) FROM <table_name> WHERE <field_name> IS NULL;` = 0
 - [ ] Data looks correct: `SELECT * FROM <table_name> LIMIT 10;`
 - [ ] Application healthy
 
 ## Rollback
+
 ```bash
 # Set field back to NULL if needed
 UPDATE <table_name> SET <field_name> = NULL;
@@ -828,18 +836,21 @@ ON <table_name>(<column_name>);
 ```
 
 ## Monitoring
+
 ```bash
 # Watch index creation progress
 watch -n 5 "psql -d clipper_db -c \"SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read, idx_tup_fetch FROM pg_stat_user_indexes WHERE indexname = 'idx_<table_name>_<column_name>';\""
 ```
 
 ## Validation
+
 - [ ] Index created: `\di idx_<table_name>_<column_name>`
 - [ ] Index valid: `SELECT indexname, indexdef FROM pg_indexes WHERE indexname = 'idx_<table_name>_<column_name>';`
 - [ ] Query uses index: `EXPLAIN SELECT * FROM <table_name> WHERE <column_name> = 'value';`
 - [ ] Application healthy
 
 ## Rollback
+
 ```sql
 DROP INDEX CONCURRENTLY idx_<table_name>_<column_name>;
 ```

@@ -95,7 +95,7 @@ Karma is a score that represents your positive contributions to the Clipper comm
 
 **Karma Ranks**:
 
-| Karma Range | Rank | 
+| Karma Range | Rank |
 |------------|------|
 | 0-99 | Newcomer |
 | 100-499 | Member |

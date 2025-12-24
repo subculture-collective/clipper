@@ -111,7 +111,7 @@
   - 90-day retention policy active
   - PII redaction implemented
   - Log-based alerts configured
-  - Dashboard: http://localhost:3000/explore
+  - Dashboard: <http://localhost:3000/explore>
   - Documentation: `CENTRALIZED_LOGGING_SUMMARY.md`
 
 - [x] **Metrics collection active**
@@ -434,8 +434,8 @@ Execute rollback if:
 ### Key Resources
 
 - **Runbooks**: `docs/operations/`
-- **Monitoring**: Grafana at http://monitoring.clipper.app
-- **Logs**: Loki at http://monitoring.clipper.app/explore
+- **Monitoring**: Grafana at <http://monitoring.clipper.app>
+- **Logs**: Loki at <http://monitoring.clipper.app/explore>
 - **Alerts**: Configured in Prometheus AlertManager
 - **Support**: #engineering-support Slack channel
 
@@ -475,10 +475,10 @@ FEATURE_USER_SUBMISSIONS=false
 
 ### Monitoring URLs
 
-- Grafana Dashboard: http://monitoring.clipper.app
-- Prometheus: http://monitoring.clipper.app:9090
-- AlertManager: http://monitoring.clipper.app:9093
-- Loki Logs: http://monitoring.clipper.app/explore
+- Grafana Dashboard: <http://monitoring.clipper.app>
+- Prometheus: <http://monitoring.clipper.app:9090>
+- AlertManager: <http://monitoring.clipper.app:9093>
+- Loki Logs: <http://monitoring.clipper.app/explore>
 
 ---
 

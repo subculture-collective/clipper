@@ -1,9 +1,11 @@
 ## Summary
+
 Build system configuration UI allowing admins to toggle feature flags, edit rate limits, manage notification settings, and control premium tiers without code deployment.
 
 ## Scope
 
 ### Backend Requirements
+
 - Config API: `GET /api/v1/admin/config` returns all editable settings
 - Config update API: `PATCH /api/v1/admin/config` with key-value pairs
 - Settings schema: feature_flags (object), rate_limits (object), email_templates (object), premium_tiers (array), maintenance_mode (bool)
@@ -12,6 +14,7 @@ Build system configuration UI allowing admins to toggle feature flags, edit rate
 - Rollback: ability to revert config to previous version
 
 ### Frontend Requirements
+
 - Configuration panel with tabs:
   - **Feature Flags**: toggles for experimental features (e.g., theatre_mode, watch_parties, webhooks)
   - **Rate Limits**: input fields for submission rate limit (per user), API rate limit (per IP), search rate limit
@@ -24,6 +27,7 @@ Build system configuration UI allowing admins to toggle feature flags, edit rate
 - Validation: warn about potentially dangerous settings (e.g., setting rate limits too low)
 
 ### Acceptance Criteria
+
 - [ ] Feature flag toggle takes effect within 30s globally
 - [ ] Rate limit changes apply to new requests immediately
 - [ ] Email template changes reflected in next email sent
@@ -36,6 +40,7 @@ Build system configuration UI allowing admins to toggle feature flags, edit rate
 - [ ] Invalid config (e.g., negative rate limit) rejected with helpful error
 
 ## Definition of Done
+
 - Admins can manage feature rollout without code deploy
 - Config changes reach all services quickly
 - No production incidents from config changes

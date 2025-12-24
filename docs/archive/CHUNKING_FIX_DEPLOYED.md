@@ -2,6 +2,7 @@
 # React Chunking Error - Fixed Deployment Guide
 
 ## Issue Summary
+
 **Error**: `Uncaught TypeError: Cannot set properties of undefined (setting 'Activity')`
 - Occurred at React initialization when chunks loaded out of order
 - Root cause: Previous config with `inlineDynamicImports: true` created a massive single bundle (1.4MB)

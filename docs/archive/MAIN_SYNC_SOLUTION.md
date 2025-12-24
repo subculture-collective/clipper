@@ -1,6 +1,7 @@
 # Main Branch Sync & Chunking Solution
 
 ## Problem
+
 - Main branch had diverged from origin/main
 - Attempted fixes made chunking worse, causing React initialization errors
 - Need stable, reliable builds for deployment
@@ -76,7 +77,7 @@ If bundle size becomes an issue (>500 KB gzipped):
 
 - `frontend/vite.config.ts` - Build configuration (no chunking)
 - `.github/workflows/deploy-production.yml` - Auto-deployment on main push
-- Origin: https://github.com/subculture-collective/clipper
+- Origin: <https://github.com/subculture-collective/clipper>
 
 ## Testing
 

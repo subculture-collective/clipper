@@ -4,6 +4,7 @@
 ## Current System Status
 
 ### Running Services
+
 - ✅ PostgreSQL (clipper-postgres:5436) - HEALTHY
 - ✅ Redis (clipper-redis:6379) - HEALTHY
 - ✅ Frontend (nginx:80) - UNHEALTHY (disconnected from backend)
@@ -100,6 +101,7 @@ bash scripts/deploy-blue-green.sh
 ## Environment Setup
 
 ### Prerequisites
+
 - Go 1.24+ (check: `go version`)
 - Node 20+ (check: `node --version`)
 - npm 11+ (check: `npm --version`)
@@ -137,6 +139,7 @@ make backend-dev
 ## Development Commands
 
 ### Database
+
 ```bash
 make migrate-up              # Run pending migrations
 make migrate-down            # Rollback last migration
@@ -146,6 +149,7 @@ make migrate-seed            # Seed with test data
 ```
 
 ### Testing
+
 ```bash
 make test                # All tests
 make test-unit           # Unit tests only
@@ -154,6 +158,7 @@ make test-load-mixed      # Load testing
 ```
 
 ### Building
+
 ```bash
 make build              # Build backend + frontend
 make backend-build      # Build backend only
@@ -162,6 +167,7 @@ make lint               # Run linters
 ```
 
 ### Development
+
 ```bash
 make dev               # Start everything (backend + frontend)
 make backend-dev       # Backend with hot reload
@@ -383,6 +389,7 @@ docker logs -f clipper-postgres-test
 ## Performance Optimization
 
 ### Frontend Bundle Size
+
 ```bash
 cd frontend
 npm run build
@@ -394,6 +401,7 @@ npm run analyze  # Visual breakdown
 ```
 
 ### Database Queries
+
 ```bash
 # Enable slow query logging
 # In backend logs, look for slow queries
@@ -406,6 +414,7 @@ make migrate-up
 ```
 
 ### Caching Strategy
+
 - Frontend: Browser caching for static assets
 - Backend: Redis for session data, expensive queries
 - Database: Query result caching via Redis
@@ -413,6 +422,7 @@ make migrate-up
 ## Monitoring in Development
 
 ### Logs
+
 ```bash
 docker logs -f clipper-postgres   # DB logs
 docker logs -f clipper-redis      # Cache logs
@@ -420,6 +430,7 @@ make backend-dev                  # Backend logs in terminal
 ```
 
 ### Health Checks
+
 ```bash
 bash scripts/health-check.sh
 
@@ -429,9 +440,10 @@ curl http://localhost:80/health.html
 ```
 
 ### Metrics (Staging/Production)
-- Grafana: http://your-domain:3000
-- Prometheus: http://your-domain:9090
-- AlertManager: http://your-domain:9093
+
+- Grafana: <http://your-domain:3000>
+- Prometheus: <http://your-domain:9090>
+- AlertManager: <http://your-domain:9093>
 
 ## Next Steps
 

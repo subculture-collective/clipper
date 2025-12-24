@@ -1,6 +1,7 @@
 # Comment API Endpoints - Implementation Summary
 
 ## Overview
+
 This document summarizes the implementation of nested comment tree structure support in the backend API.
 
 ## Changes Implemented
@@ -8,6 +9,7 @@ This document summarizes the implementation of nested comment tree structure sup
 ### 1. API Endpoints
 
 #### GET `/api/v1/clips/{clipId}/comments`
+
 Returns comments for a specified clip.
 
 **Query Parameters:**
@@ -72,6 +74,7 @@ curl http://localhost:8080/api/v1/clips/{clipId}/comments?include_replies=true
 ```
 
 #### GET `/api/v1/comments/{commentId}/replies`
+
 Returns direct replies (1 level deep) to a specified comment.
 
 **Query Parameters:**
@@ -143,24 +146,28 @@ All comment objects include:
 ### 3. Implementation Details
 
 #### Depth Limiting
+
 - Maximum nesting depth: 10 levels
 - Enforced in `buildReplyTree` method
 - Prevents infinite recursion and performance issues
 - Comments beyond depth 10 are not loaded (front-end can show "Load more" link)
 
 #### Performance Optimization
+
 - Nested replies per level limited to 50
 - This is reasonable for UX while preventing excessive database queries
 - Top-level comments use paginated limit (from query param)
 - Database queries are optimized with proper indexing
 
 #### Markdown Processing
+
 - All content is processed through goldmark markdown parser
 - HTML is sanitized with bluemonday
 - Supports: bold, italic, strikethrough, links, code blocks, lists, tables, blockquotes
 - XSS protection enabled
 
 #### Error Handling
+
 - Invalid UUID: Returns 400 Bad Request
 - Invalid clip/comment: Repository returns error, handler returns 500
 - Missing parent comment: Validation error in service layer
@@ -168,11 +175,13 @@ All comment objects include:
 ### 4. Testing
 
 #### Unit Tests
+
 - `TestListComments_InvalidClipID`: Validates UUID parsing
 - `TestGetReplies_InvalidCommentID`: Validates UUID parsing
 - All existing tests continue to pass
 
 #### Manual Testing
+
 To test manually:
 1. Start Docker services: `make docker-up`
 2. Run migrations: `make migrate-up`

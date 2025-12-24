@@ -12,6 +12,7 @@ last_reviewed: 2025-12-11
 # Quick Reference Card
 
 ## Chunking Fix
+
 ```bash
 # Verify the fix worked
 cd frontend && npm run build
@@ -19,6 +20,7 @@ ls dist/assets/ | wc -l  # Should see 10+ files, not just 1-2
 ```
 
 ## Local Development
+
 ```bash
 # Start everything
 make dev
@@ -30,6 +32,7 @@ make frontend-dev      # Terminal 3
 ```
 
 ## Feature Development
+
 ```bash
 git checkout -b feature/my-feature develop
 # ... work and test ...
@@ -38,6 +41,7 @@ git push origin feature/my-feature
 ```
 
 ## Promote to Production
+
 ```bash
 git checkout develop
 git pull origin develop
@@ -46,6 +50,7 @@ git pull origin develop
 ```
 
 ## Zero-Downtime Deployment
+
 ```bash
 # Automated (recommended)
 bash scripts/deploy-blue-green.sh
@@ -58,6 +63,7 @@ sudo bash scripts/blue-green-traffic.sh switch green
 ```
 
 ## Health Checks
+
 ```bash
 # Basic
 bash scripts/health-check.sh
@@ -70,6 +76,7 @@ sudo bash scripts/blue-green-traffic.sh status
 ```
 
 ## Emergency Rollback
+
 ```bash
 # Immediately switch traffic back
 sudo bash scripts/blue-green-traffic.sh switch blue
@@ -90,6 +97,7 @@ docker-compose -f docker-compose.blue-green.yml down backend-green frontend-gree
 | Rebuild frontend | `cd frontend && npm run build` |
 
 ## Files to Know
+
 - `frontend/vite.config.ts` - Chunking configuration
 - `docker-compose.blue-green.yml` - Blue-green setup
 - `scripts/deploy-blue-green.sh` - Deployment automation

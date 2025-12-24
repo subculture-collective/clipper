@@ -416,7 +416,6 @@ The implemented rate limits are more generous than typical API requirements for 
 
 These limits prevent abuse while rarely impacting legitimate users. Monitoring data can inform future adjustments.
 
-
 ## Abuse Detection
 
 ### Implementation

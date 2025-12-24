@@ -19,12 +19,14 @@ Clipper is a modern, community-driven platform for discovering, curating, and sh
 ## Key Features
 
 ### 🎮 Discovery & Browsing
+
 - **Smart Feed**: Algorithm-driven recommendations
 - **Trending**: Popular clips across the platform
 - **Categories**: Browse by game, streamer, or tags
 - **Personalization**: Tailored to your interests
 
 ### 🔍 Advanced Search
+
 - **Hybrid Search**: BM25 + semantic vector search
 - **Query Language**: Human-readable syntax for complex queries
 - **Filters**: Date, views, game, streamer, and more
@@ -33,6 +35,7 @@ Clipper is a modern, community-driven platform for discovering, curating, and sh
 See [[backend/search|Search Platform]] and [[backend/semantic-search|Semantic Search]].
 
 ### ⬆️ Community Curation
+
 - **Voting**: Upvote/downvote to surface best content
 - **Karma**: Build reputation through contributions
 - **Comments**: Markdown-supported discussions
@@ -40,6 +43,7 @@ See [[backend/search|Search Platform]] and [[backend/semantic-search|Semantic Se
 - **Tags**: Community-driven categorization
 
 ### 🔐 Authentication & Security
+
 - **Twitch OAuth**: Seamless login
 - **JWT Tokens**: Secure session management
 - **RBAC**: Role-based access control
@@ -48,6 +52,7 @@ See [[backend/search|Search Platform]] and [[backend/semantic-search|Semantic Se
 See [[backend/rbac|RBAC Documentation]].
 
 ### 📱 Multi-Platform
+
 - **Responsive Web**: Desktop and mobile browsers
 - **Native Apps**: iOS and Android via React Native
 - **API Access**: RESTful API for integrations
@@ -55,6 +60,7 @@ See [[backend/rbac|RBAC Documentation]].
 See [[mobile/architecture|Mobile Architecture]] and [[backend/api|API Reference]].
 
 ### 💎 Premium Features
+
 - Unlimited favorites and collections
 - Advanced search filters
 - Cross-device sync  
@@ -99,18 +105,23 @@ See [[backend/architecture|Backend Architecture]].
 ## Core Concepts
 
 ### Clips
+
 Twitch clips with metadata, engagement metrics, tags, and analytics.
 
 ### Users
+
 Authenticated users can vote, submit clips, comment, favorite, and build karma.
 
 ### Karma System
+
 Users earn karma through quality contributions. See [[users/faq|FAQ]].
 
 ### Search Index
+
 Hybrid BM25 text search + vector semantic search with filters.
 
 ### Premium Entitlements
+
 Feature access controlled via Free/Pro tiers. See [[premium/entitlements|Entitlements]].
 
 ## Development Workflow

@@ -35,6 +35,7 @@ Should be addressed in next sprint:
 ## 📊 At a Glance
 
 ### What We Found
+
 - **70 threats** identified using STRIDE methodology
 - **3 critical** security gaps requiring immediate action
 - **8 high-priority** items for next sprint
@@ -42,6 +43,7 @@ Should be addressed in next sprint:
 - **7 low-risk** items being monitored
 
 ### What's Covered
+
 ✅ Authentication (Twitch OAuth, JWT, sessions)  
 ✅ API Endpoints (public, authenticated, admin)  
 ✅ Data Storage (PostgreSQL, Redis, OpenSearch)  
@@ -62,26 +64,31 @@ We already have strong security in place:
 ## 🎯 Key Security Gaps
 
 ### 1. Admin Account Protection
+
 **Problem:** Admin accounts use password-only authentication  
 **Risk:** Complete system takeover if credentials compromised  
 **Fix:** Add TOTP-based MFA (#396)
 
 ### 2. Secrets Management
+
 **Problem:** API keys and credentials in .env files  
 **Risk:** Credentials exposed if repository compromised  
 **Fix:** Centralized secrets manager with rotation (#397)
 
 ### 3. Authorization Testing
+
 **Problem:** No systematic testing for IDOR vulnerabilities  
 **Risk:** Users accessing other users' resources  
 **Fix:** Automated IDOR testing framework (#398)
 
 ### 4. Query Injection
+
 **Problem:** OpenSearch queries could be manipulated  
 **Risk:** Data exposure via query injection  
 **Fix:** Comprehensive query validation (#399)
 
 ### 5. Resource Exhaustion
+
 **Problem:** No limits on query complexity  
 **Risk:** DoS via expensive queries  
 **Fix:** Query cost analysis and limits (#400)
@@ -98,6 +105,7 @@ Week 7-8:  High - Query limits + Automated testing
 ## 🔍 For Developers
 
 ### When Writing Code
+
 - ✅ Always check user authorization before resource access
 - ✅ Use parameterized queries, never string concatenation
 - ✅ Validate all inputs (length, format, allowed values)
@@ -107,6 +115,7 @@ Week 7-8:  High - Query limits + Automated testing
 - ⚠️ Never trust client-side validation alone
 
 ### When Reviewing Code
+
 - 🔍 Check for IDOR vulnerabilities (authorization for every resource)
 - 🔍 Look for SQL/NoSQL injection risks
 - 🔍 Verify rate limiting on new endpoints
@@ -129,11 +138,13 @@ Week 7-8:  High - Query limits + Automated testing
 ## 📈 Success Metrics
 
 ### Phase 1 (Q1 2025) - Critical Items
+
 - [ ] 100% of admin accounts using MFA
 - [ ] All secrets in secrets manager
 - [ ] Automated credential rotation active
 
 ### Phase 2 (Q2 2025) - High Priority
+
 - [ ] Zero IDOR vulnerabilities found in audits
 - [ ] Query performance <100ms (p95)
 - [ ] >80% security test coverage

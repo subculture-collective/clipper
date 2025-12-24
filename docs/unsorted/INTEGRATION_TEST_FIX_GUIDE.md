@@ -10,6 +10,7 @@ This guide documents the fixes applied to integration tests and provides pattern
 ## Root Causes Identified
 
 ### 1. Redis Config Type Mismatch ✅ FIXED GLOBALLY
+
 **Problem**: Tests used `redispkg.Config` which doesn't exist  
 **Solution**: Use `config.RedisConfig` instead  
 **Status**: Fixed in all 7 test files
@@ -29,6 +30,7 @@ Redis: config.RedisConfig{
 ```
 
 ### 2. User Creation API Mismatch ⚠️ PARTIALLY FIXED
+
 **Problem**: Tests called `userRepo.CreateUser(ctx, map[string]interface{})` which doesn't exist  
 **Solution**: Use `userRepo.Create(ctx, *models.User)` with proper User struct  
 **Status**: Fixed in 2 files, needs fixing in 5 files
@@ -75,6 +77,7 @@ err := userRepo.Create(ctx, user)
 - Other optional fields
 
 ### 3. Token Generation API Mismatch ⚠️ PARTIALLY FIXED
+
 **Problem**: Tests called `authService.GenerateTokens(ctx, userID)` which doesn't exist  
 **Solution**: Use JWT manager directly via helper function  
 **Status**: Fixed in 2 files, needs fixing in 5 files
@@ -99,6 +102,7 @@ require.NoError(t, err)
 ### Location: `backend/tests/integration/testutil/helpers.go`
 
 #### 1. CreateTestUser
+
 Creates a test user with proper field types:
 
 ```go
@@ -107,6 +111,7 @@ user := testutil.CreateTestUser(t, db, "username")
 ```
 
 #### 2. GenerateTestTokens
+
 Generates JWT access and refresh tokens:
 
 ```go
@@ -117,6 +122,7 @@ accessToken, refreshToken := testutil.GenerateTestTokens(t, jwtManager, userID, 
 ## Files Fixed (2/7)
 
 ### ✅ auth/auth_integration_test.go
+
 **Status**: 100% fixed, compiles successfully
 
 **Changes Applied**:
@@ -137,6 +143,7 @@ token, _ := testutil.GenerateTestTokens(t, jwtManager, user.ID, user.Role)
 ```
 
 ### ✅ submissions/submission_integration_test.go
+
 **Status**: 100% fixed, compiles successfully
 
 **Changes Applied**:
@@ -162,6 +169,7 @@ return r, jwtManager, db, redisClient, user.ID
 ## Files Needing Fixes (5/7)
 
 ### ⚠️ submissions/submission_repository_test.go
+
 **Estimated Effort**: 30-45 minutes
 
 **Known Issues to Fix**:
@@ -170,6 +178,7 @@ return r, jwtManager, db, redisClient, user.ID
 - Check for `GenerateTokens` calls - replace with testutil helper
 
 ### ⚠️ engagement/engagement_integration_test.go
+
 **Estimated Effort**: 45-60 minutes
 
 **Known Issues to Fix**:
@@ -185,6 +194,7 @@ tests/integration/engagement/engagement_integration_test.go:accessToken, _, err 
 ```
 
 ### ⚠️ premium/premium_integration_test.go
+
 **Estimated Effort**: 45-60 minutes
 
 **Known Issues to Fix**:
@@ -200,6 +210,7 @@ tests/integration/premium/premium_integration_test.go:accessToken, _, err := aut
 ```
 
 ### ⚠️ search/search_integration_test.go
+
 **Estimated Effort**: 30-45 minutes
 
 **Known Issues to Fix**:
@@ -207,6 +218,7 @@ tests/integration/premium/premium_integration_test.go:accessToken, _, err := aut
 - Verify if it has user creation or token generation (may not need fixes)
 
 ### ⚠️ api/api_integration_test.go
+
 **Estimated Effort**: 30-45 minutes
 
 **Known Issues to Fix**:
@@ -218,12 +230,14 @@ tests/integration/premium/premium_integration_test.go:accessToken, _, err := aut
 For each remaining test file, follow this process:
 
 ### Step 1: Search for Issues
+
 ```bash
 cd backend
 grep -n "CreateUser\|GenerateTokens" tests/integration/<dir>/<file>.go
 ```
 
 ### Step 2: Fix User Creation
+
 Replace all occurrences of:
 ```go
 testUser := map[string]interface{}{...}
@@ -242,6 +256,7 @@ user := testutil.CreateTestUser(t, db, username)
 ```
 
 ### Step 3: Fix Token Generation
+
 Replace all occurrences of:
 ```go
 token, _, err := authService.GenerateTokens(ctx, userID)
@@ -253,6 +268,7 @@ accessToken, _ := testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 ```
 
 ### Step 4: Update Function Signatures
+
 If setup function returns authService, consider returning jwtManager instead:
 
 ```go
@@ -269,6 +285,7 @@ return r, jwtManager, db, redisClient
 ```
 
 ### Step 5: Fix Test Function Calls
+
 Update test functions that call setup:
 
 ```go
@@ -280,12 +297,14 @@ router, jwtManager, db, redisClient := setupTestRouter(t)
 ```
 
 ### Step 6: Remove Unused Imports
+
 Remove these if no longer used:
 - `"context"` - if not using ctx anywhere
 - `"github.com/google/uuid"` - if not manually creating UUIDs
 - Other unused imports
 
 ### Step 7: Fix Variable Declarations
+
 Ensure all variables are properly declared:
 ```go
 // Wrong
@@ -296,12 +315,14 @@ err := json.Unmarshal(...)
 ```
 
 ### Step 8: Compile Test
+
 ```bash
 cd backend
 go test -tags=integration -c ./tests/integration/<dir>/... 2>&1
 ```
 
 ### Step 9: Fix Compilation Errors
+
 Address any compilation errors that appear. Common issues:
 - Unused imports
 - Undefined variables
@@ -311,6 +332,7 @@ Address any compilation errors that appear. Common issues:
 ## Testing Validation
 
 ### Compile All Tests
+
 ```bash
 cd backend
 go test -tags=integration -c ./tests/integration/auth/...
@@ -322,6 +344,7 @@ go test -tags=integration -c ./tests/integration/api/...
 ```
 
 ### Run Tests (After Compilation Fixes)
+
 ```bash
 # Start test services
 docker-compose -f docker-compose.test.yml up -d

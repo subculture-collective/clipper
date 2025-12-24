@@ -106,7 +106,7 @@ GA_MEASUREMENT_ID: "G-XXXXXXXXXX"
 ### 7. Verify Installation
 
 1. Deploy your changes
-2. Visit https://clpr.tv
+2. Visit <https://clpr.tv>
 3. Open GA4 → **Reports** → **Realtime**
 4. You should see your visit in real-time
 5. Test custom events by interacting with the site (upvote, comment, etc.)

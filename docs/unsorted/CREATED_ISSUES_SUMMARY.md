@@ -2,6 +2,7 @@
 # Epic Sub-Issues Created - Summary
 
 ## Overview
+
 Created detailed, agent-completable sub-issues for all 7 newly created epics. Each sub-issue includes:
 - Comprehensive acceptance criteria (15-25 items)
 - Database schema examples with SQL
@@ -15,6 +16,7 @@ Created detailed, agent-completable sub-issues for all 7 newly created epics. Ea
 ---
 
 ## Epic #668: Home Page & Feed Filtering
+
 **Status:** ✅ Complete (5 sub-issues)
 **Total Effort:** 56-76 hours
 
@@ -29,6 +31,7 @@ Created detailed, agent-completable sub-issues for all 7 newly created epics. Ea
 ---
 
 ## Epic #669: Clip Playlists, Theatre Mode & Queue
+
 **Status:** ✅ Complete (5 sub-issues)
 **Total Effort:** 60-80 hours
 
@@ -43,6 +46,7 @@ Created detailed, agent-completable sub-issues for all 7 newly created epics. Ea
 ---
 
 ## Epic #670: Meta Forum & Community Discussions
+
 **Status:** 🟡 In Progress (5 sub-issues planned, 3 created)
 **Total Effort:** 68-88 hours
 
@@ -57,6 +61,7 @@ Created detailed, agent-completable sub-issues for all 7 newly created epics. Ea
 ---
 
 ## Epic #671: Live Chat System & Community Channels
+
 **Status:** 🟡 In Progress (5 sub-issues planned, 1 created)
 **Total Effort:** 76-96 hours
 
@@ -69,6 +74,7 @@ Created detailed, agent-completable sub-issues for all 7 newly created epics. Ea
 ---
 
 ## Epic #672: Watch Parties with Friends & Community
+
 **Status:** ⏳ Not Started (4 sub-issues planned)
 **Total Effort:** 56-72 hours
 
@@ -81,6 +87,7 @@ Sub-issues needed:
 ---
 
 ## Epic #673: Live Stream Watching & Integration
+
 **Status:** ⏳ Not Started (4 sub-issues planned)
 **Total Effort:** 48-64 hours
 
@@ -93,6 +100,7 @@ Sub-issues needed:
 ---
 
 ## Epic #674: Admin Comment Moderation Interface
+
 **Status:** ⏳ Not Started (4 sub-issues planned)
 **Total Effort:** 40-56 hours
 
@@ -107,6 +115,7 @@ Sub-issues needed:
 ## Created Issues Checklist
 
 ### Feed & Discovery (Epic #668)
+
 - [x] #675 - Feed Filtering UI & API with Presets
 - [x] #677 - Sort & Trending Algorithms
 - [x] #678 - Cursor-Based Pagination & Infinite Scroll
@@ -114,31 +123,37 @@ Sub-issues needed:
 - [x] #680 - Analytics & Performance Monitoring
 
 ### Playlists (Epic #669)
+
 - [x] #676 - Playlist Creation, Management & Sharing
 - [x] #681 - Theatre Mode Player & Quality Selection
 - [x] #682 - Queue System & Up-Next Management
 
 ### Forum (Epic #670)
+
 - [x] #683 - Backend & Data Model with Hierarchical Replies
 - [x] #684 - Frontend UI & Discussion Interface
 - [x] #685 - Voting System & Reputation Mechanics
 
 ### Live Chat (Epic #671)
+
 - [x] #686 - WebSocket Server & Message Infrastructure
 
 ### Watch Parties (Epic #672)
+
 - [ ] Core sync and group management
 - [ ] Chat and reactions
 - [ ] Settings and history
 - [ ] Analytics
 
 ### Stream Integration (Epic #673)
+
 - [ ] Stream embedding
 - [ ] Chat integration
 - [ ] Notifications
 - [ ] Clip submission
 
 ### Comment Moderation (Epic #674)
+
 - [ ] Moderation queue
 - [ ] Bulk actions
 - [ ] Appeals system
@@ -151,6 +166,7 @@ Sub-issues needed:
 All issues follow these standards:
 
 ### Acceptance Criteria Structure
+
 1. Backend API endpoints with parameters
 2. Database schema with indexes
 3. Frontend UI components
@@ -159,6 +175,7 @@ All issues follow these standards:
 6. Testing requirements
 
 ### Implementation Guidance
+
 - Complete Go backend code patterns
 - TypeScript/React component structures
 - SQL migrations and queries
@@ -166,12 +183,14 @@ All issues follow these standards:
 - Docker/infrastructure considerations
 
 ### Testing Strategy
+
 - Unit tests for business logic
 - Integration tests for API workflows
 - Load tests for performance targets
 - Mobile/responsive design tests
 
 ### Effort Estimation
+
 - Clear breakdown by component
 - Realistic hours per task
 - Total range (min-max)
@@ -182,18 +201,21 @@ All issues follow these standards:
 ## Next Steps
 
 ### Immediate (Create remaining issues)
+
 1. **Forum** - Add 2 more sub-issues (moderation, search/indexing)
 2. **Watch Parties** - Create 4 sub-issues for sync, chat, settings, analytics
 3. **Stream Integration** - Create 4 sub-issues for embedding, chat, notifications, clip submission
 4. **Comment Moderation** - Create 4 sub-issues for queue, bulk actions, appeals, audit
 
 ### Short Term (Organization)
+
 1. Link all sub-issues to parent epics (add ## Related Epic section)
 2. Create GitHub Project boards by milestone
 3. Organize issues by area (frontend, backend, infrastructure)
 4. Assign to team leads or mark as ready for Copilot
 
 ### Medium Term (Execution)
+
 1. Start with Feed Filtering epic (#668) - lowest dependency
 2. Parallel work on Playlists (#669) and Forum (#670)
 3. Watch Parties and Chat can start after core infrastructure ready

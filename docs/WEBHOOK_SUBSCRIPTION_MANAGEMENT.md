@@ -13,6 +13,7 @@ The webhook subscription management feature allows users to create and manage we
 ## Features
 
 ### User Interface
+
 - **Access**: Navigate to Settings > Webhooks or directly to `/settings/webhooks`
 - **CRUD Operations**: Create, read, update, and delete webhook subscriptions
 - **Event Selection**: Subscribe to specific events (clip.submitted, clip.approved, clip.rejected)
@@ -24,12 +25,14 @@ The webhook subscription management feature allows users to create and manage we
 All webhook endpoints require authentication.
 
 #### Get Supported Events
+
 ```
 GET /api/v1/webhooks/events
 ```
 Returns a list of available webhook events.
 
 #### Create Webhook Subscription
+
 ```
 POST /api/v1/webhooks
 Content-Type: application/json
@@ -43,18 +46,21 @@ Content-Type: application/json
 Returns the created subscription and the secret (only shown once).
 
 #### List Webhook Subscriptions
+
 ```
 GET /api/v1/webhooks
 ```
 Returns all webhook subscriptions for the authenticated user.
 
 #### Get Webhook Subscription
+
 ```
 GET /api/v1/webhooks/:id
 ```
 Returns details of a specific webhook subscription.
 
 #### Update Webhook Subscription
+
 ```
 PATCH /api/v1/webhooks/:id
 Content-Type: application/json
@@ -69,18 +75,21 @@ Content-Type: application/json
 All fields are optional.
 
 #### Delete Webhook Subscription
+
 ```
 DELETE /api/v1/webhooks/:id
 ```
 Deletes the webhook subscription.
 
 #### Regenerate Secret
+
 ```
 POST /api/v1/webhooks/:id/regenerate-secret
 ```
 Generates a new secret for the webhook subscription. The old secret becomes invalid.
 
 #### Get Delivery History
+
 ```
 GET /api/v1/webhooks/:id/deliveries?page=1&limit=20
 ```
@@ -89,6 +98,7 @@ Returns delivery history with pagination.
 ## Admin Endpoints (Admin/Moderator Only)
 
 ### Get Dead-Letter Queue Items
+
 ```
 GET /api/v1/admin/webhooks/dlq?page=1&limit=20
 ```
@@ -124,6 +134,7 @@ Response:
 ```
 
 ### Replay Dead-Letter Queue Item
+
 ```
 POST /api/v1/admin/webhooks/dlq/:id/replay
 ```
@@ -137,6 +148,7 @@ Response:
 ```
 
 ### Delete Dead-Letter Queue Item
+
 ```
 DELETE /api/v1/admin/webhooks/dlq/:id
 ```
@@ -152,17 +164,20 @@ Response:
 ## Security Features
 
 ### Secret Management
+
 - Secrets are 32-byte cryptographically secure random values
 - Secrets are only shown once upon creation or regeneration
 - Secrets should be stored securely by the webhook consumer
 - Secrets are used for HMAC-SHA256 signature verification
 
 ### SSRF Protection
+
 - Webhook URLs are validated to prevent Server-Side Request Forgery
 - Private IP ranges and localhost are blocked
 - Only HTTP and HTTPS schemes are allowed
 
 ### Rate Limiting
+
 - Create webhook: 10 requests per hour
 - Regenerate secret: 5 requests per hour
 - Get events: 60 requests per minute
@@ -216,17 +231,20 @@ function verifySignature(payload, signature, secret) {
 ## Delivery Guarantees
 
 ### Retry Logic
+
 - Failed deliveries are automatically retried with exponential backoff
 - Maximum 5 retry attempts
 - Retry intervals: 30s, 60s, 120s, 240s, 480s
 - After exhausting all retries, deliveries are moved to the dead-letter queue (DLQ)
 
 ### Delivery Status
+
 - **pending**: Delivery is scheduled or in progress
 - **delivered**: Successfully delivered (HTTP 2xx response)
 - **failed**: All retry attempts exhausted (moved to DLQ)
 
 ### Dead-Letter Queue (DLQ)
+
 When a webhook delivery fails after all retry attempts, it is moved to the dead-letter queue. Administrators can:
 - View all failed deliveries in the admin panel at `/admin/webhooks/dlq`
 - Inspect the full payload and error details
@@ -240,6 +258,7 @@ When a webhook delivery fails after all retry attempts, it is moved to the dead-
 - **Audit Trail**: Track replay attempts and their success/failure status
 
 ### Audit Log
+
 The delivery history provides a complete audit log including:
 - Event type and timestamp
 - HTTP status code
@@ -261,6 +280,7 @@ The delivery history provides a complete audit log including:
 ## Troubleshooting
 
 ### Webhook Not Receiving Events
+
 1. Check that the subscription is active
 2. Verify the URL is correct and accessible
 3. Check delivery history for error messages
@@ -269,11 +289,13 @@ The delivery history provides a complete audit log including:
 6. **If deliveries are in DLQ**: Check admin panel for failed deliveries and replay them after fixing issues
 
 ### Authentication Failures
+
 1. Verify signature verification is implemented correctly
 2. Ensure you're using the current secret
 3. Check that the payload hasn't been modified
 
 ### Persistent Failures
+
 If webhooks consistently fail and appear in the DLQ:
 1. **Check endpoint availability**: Ensure your webhook endpoint is accessible from the internet
 2. **Review error messages**: Check the DLQ for specific error details
@@ -282,12 +304,14 @@ If webhooks consistently fail and appear in the DLQ:
 5. **Fix and replay**: After resolving issues, use the admin panel to replay failed deliveries
 
 ### Rate Limiting
+
 If you hit rate limits:
 1. Reduce creation frequency
 2. Implement exponential backoff
 3. Cache supported events list
 
 ### Monitoring and Observability
+
 For production deployments:
 1. **Monitor DLQ size**: Keep track of failed deliveries
 2. **Set up alerts**: Get notified when DLQ items exceed threshold

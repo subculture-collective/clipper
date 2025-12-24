@@ -36,6 +36,7 @@ The `SubmissionAbuseDetector` service monitors submission patterns and automatic
 ### Detection Rules
 
 #### 1. Burst Detection
+
 **Threshold:** 2 submissions within 1 minute  
 **Cooldown:** 15 minutes  
 **Severity:** Throttle
@@ -43,6 +44,7 @@ The `SubmissionAbuseDetector` service monitors submission patterns and automatic
 Detects users who are submitting clips too rapidly in a short time window. This prevents automated spam and script-based abuse.
 
 #### 2. Velocity Detection
+
 **Threshold:** 3 submissions within 5 minutes  
 **Cooldown:** 30 minutes  
 **Severity:** Throttle
@@ -50,6 +52,7 @@ Detects users who are submitting clips too rapidly in a short time window. This 
 Monitors sustained rapid submission rates over a slightly longer window. Users who exceed this threshold are temporarily blocked.
 
 #### 3. IP Sharing Detection
+
 **Threshold:** 5 different users from same IP within 1 hour  
 **Cooldown:** N/A (warning only)  
 **Severity:** Warning
@@ -62,6 +65,7 @@ Flags submissions when multiple users are submitting from the same IP address. T
 Submissions are **allowed** but flagged for moderator review.
 
 #### 4. Duplicate Submission Tracking
+
 **Threshold:** 3 duplicate attempts within 1 hour  
 **Cooldown:** 1 hour  
 **Severity:** Throttle
@@ -84,6 +88,7 @@ The `ModerationEventService` creates a centralized queue for all submission-rela
 ### Event Types
 
 #### Submission Events
+
 - `submission_received` - Normal submission created (info)
 - `submission_approved` - Submission auto-approved (info)
 - `submission_rejected` - Submission rejected by moderator (info)
@@ -92,6 +97,7 @@ The `ModerationEventService` creates a centralized queue for all submission-rela
 - `submission_duplicate` - Duplicate submission attempt detected (warning)
 
 #### Abuse Events
+
 - `abuse_detected` - General abuse pattern detected (warning)
 - `rate_limit_exceeded` - User hit rate limit (warning)
 - `velocity_violation` - Rapid submission detected (critical)

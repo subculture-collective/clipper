@@ -126,15 +126,18 @@ This document describes the automated security scanning and vulnerability manage
 ### Dependency Vulnerabilities (as of 2025-11-14)
 
 #### Frontend
+
 - ✅ **0 vulnerabilities** (all fixed)
 - Recent fix: js-yaml upgraded from 4.1.0 → 4.1.1 (CVE fix for prototype pollution)
 
 #### Mobile
+
 - ⚠️ **23 moderate vulnerabilities** in development dependencies (Jest)
 - **Status**: Acceptable - only affects test environment
 - **Risk**: Low (not in production code)
 
 #### Backend
+
 - ✅ **0 known vulnerabilities** in Go dependencies
 - Regular monitoring via Dependabot
 

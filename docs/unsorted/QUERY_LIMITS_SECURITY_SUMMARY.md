@@ -7,6 +7,7 @@ This implementation successfully addresses HIGH-risk denial of service threats b
 ## Threats Mitigated
 
 ### API-D-02: DoS via Expensive API Queries
+
 **Status**: ✅ MITIGATED
 **Risk Level**: HIGH
 
@@ -20,6 +21,7 @@ This implementation successfully addresses HIGH-risk denial of service threats b
 **Impact**: Prevents malicious actors from overwhelming the search infrastructure with expensive queries.
 
 ### DB-D-01: DoS via Expensive Database Queries
+
 **Status**: ⚠️ PARTIALLY MITIGATED
 **Risk Level**: MEDIUM-HIGH
 
@@ -33,6 +35,7 @@ This implementation successfully addresses HIGH-risk denial of service threats b
 **Impact**: Prevents database resource exhaustion from large result sets and deep pagination. Join depth limiting can be enabled by integrating the ExecuteWithTimeout method.
 
 ### SEARCH-D-01: DoS via Complex Search Aggregations
+
 **Status**: ✅ MITIGATED
 **Risk Level**: HIGH
 
@@ -48,12 +51,14 @@ This implementation successfully addresses HIGH-risk denial of service threats b
 ## Security Controls Implemented
 
 ### 1. Input Validation
+
 - All pagination parameters validated before use
 - Query complexity analyzed before execution
 - Aggregation structure validated before search
 - Automatic capping of excessive values
 
 ### 2. Resource Limits
+
 ```go
 // Database Limits (Enforced: pagination, timeouts)
 MaxResultSize:   1000 rows ✅
@@ -71,12 +76,14 @@ MaxOffset:          1000 ✅
 ```
 
 ### 3. Timeout Protection
+
 - Database query timeout: 10 seconds (configurable)
 - Search query timeout: 5 seconds (configurable)
 - Context-based cancellation for all queries
 - Prevents long-running queries from blocking resources
 
 ### 4. Automatic Enforcement
+
 - Repository helper automatically enforces limits
 - No manual validation required in most cases
 - Consistent enforcement across all repositories
@@ -85,12 +92,14 @@ MaxOffset:          1000 ✅
 ## Verification
 
 ### Code Quality
+
 ✅ **CodeQL Scan**: No security vulnerabilities detected
 ✅ **Code Review**: All issues resolved
 ✅ **Build Status**: Successful
 ✅ **Test Coverage**: 17 new tests, all passing
 
 ### Testing
+
 - Query analyzer: 11 test cases
 - Search limits: 6 test suites
 - All edge cases covered
@@ -118,6 +127,7 @@ SEARCH_MAX_TIME_SEC=5
 ## Monitoring Recommendations
 
 ### Metrics to Track
+
 1. Query execution time (p50, p95, p99)
 2. Slow query count (>1s)
 3. Query complexity scores
@@ -125,6 +135,7 @@ SEARCH_MAX_TIME_SEC=5
 5. Timeout rate
 
 ### Alert Thresholds
+
 ```yaml
 alerts:
   - name: slow_query_spike
@@ -143,21 +154,25 @@ alerts:
 ## Attack Scenarios Prevented
 
 ### Scenario 1: Expensive Join Attack
+
 **Attack**: Malicious query with 10 joins causing database overload
 **Prevention**: Query rejected due to join depth exceeding limit (3)
 **Result**: Attack mitigated, database protected
 
 ### Scenario 2: Deep Pagination Attack
+
 **Attack**: Request for page 10,000 with offset 100,000
 **Prevention**: Offset automatically capped at 1,000
 **Result**: Inefficient query prevented, performance maintained
 
 ### Scenario 3: Complex Aggregation Attack
+
 **Attack**: 5-level nested aggregations with 1000 buckets each
 **Prevention**: Query rejected due to depth (5 > 2) and size violations
 **Result**: OpenSearch protected from resource exhaustion
 
 ### Scenario 4: Large Result Set Attack
+
 **Attack**: Query requesting 100,000 rows
 **Prevention**: Automatically capped at 1,000 rows
 **Result**: Memory exhaustion prevented
@@ -165,12 +180,14 @@ alerts:
 ## Performance Impact
 
 ### Overhead
+
 - Query analysis: <1ms per query
 - Validation overhead: Negligible
 - No impact on normal operations
 - Protects against cascading failures
 
 ### Benefits
+
 - Prevents database overload
 - Maintains consistent response times
 - Reduces infrastructure costs
@@ -203,7 +220,7 @@ The implementation successfully mitigates HIGH-risk DoS threats through:
 - Join depth analysis available but not yet integrated in execution path
 
 **Security Status**: ✅ APPROVED FOR MERGE
-**Risk Reduction**: 
+**Risk Reduction**:
 - SEARCH-D-01: HIGH → LOW ✅
 - API-D-02: HIGH → LOW ✅
 - DB-D-01: HIGH → MEDIUM ⚠️ (can be LOW with join depth integration)

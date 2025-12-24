@@ -25,11 +25,13 @@ Architecture:
 - Hybrid Search Service: Orchestrates BM25 + vector re-ranking
 
 ## Architecture Decision
+
 See [[../decisions/adr-001-semantic-search-vector-db|ADR-001: Semantic Search Vector Database]] for rationale.
 
 Selected: pgvector in PostgreSQL with hybrid BM25 + vector re-ranking.
 
 ## System Architecture
+
 ```text
 Client → API (Gin) → Search Handler / Embedding Service / Clip Handler
                   → Hybrid Search Service (BM25 + Vector)
@@ -37,6 +39,7 @@ Client → API (Gin) → Search Handler / Embedding Service / Clip Handler
 ```
 
 ## Indexing Flow
+
 1. User submits/updates clip
 2. Validate input
 3. Save metadata to PostgreSQL
@@ -55,6 +58,7 @@ go run cmd/backfill-embeddings/main.go -batch 50
 ```
 
 ## Search Flow
+
 ```text
 1. Generate query embedding (768-dim)
 2. BM25 in OpenSearch → top 100
@@ -66,6 +70,7 @@ go run cmd/backfill-embeddings/main.go -batch 50
 Weights are configurable.
 
 ## Database Schema
+
 Embedding column:
 ```sql
 ALTER TABLE clips ADD COLUMN embedding vector(768);
@@ -86,6 +91,7 @@ LIMIT 100;
 ```
 
 ## Embedding Service
+
 Models:
 - OpenAI `text-embedding-ada-002` (1536 dims → truncated to 768)
 - Hugging Face: `sentence-transformers/all-MiniLM-L6-v2` (384), `instructor-base` (768)
@@ -99,6 +105,7 @@ HF_MODEL=sentence-transformers/all-MiniLM-L6-v2
 ```
 
 ## Performance
+
 Targets (p95):
 - Embedding generation <200ms
 - Vector search (100 results) <50ms
@@ -113,6 +120,7 @@ Optimizations:
 - Limit TopK to 100 before re-ranking
 
 ## Configuration
+
 Hybrid search config:
 ```go
 // config/search.go
@@ -128,6 +136,7 @@ SET hnsw.ef_search = 40;  -- Range: 10-200
 ```
 
 ## Monitoring
+
 Coverage of embeddings:
 ```sql
 SELECT COUNT(*) FILTER (WHERE embedding IS NOT NULL)::float / COUNT(*) * 100 AS coverage_pct
@@ -140,6 +149,7 @@ FROM pg_stat_user_indexes WHERE indexname = 'idx_clips_embedding_hnsw';
 ```
 
 ## Troubleshooting
+
 - Missing embeddings → run backfill tool
 - Poor results → adjust weights, check model quality, increase `ef_search`
 - Slow search → reduce TopK, tune HNSW params, rebuild index if needed
