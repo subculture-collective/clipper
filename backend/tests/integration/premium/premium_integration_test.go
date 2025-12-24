@@ -265,23 +265,6 @@ func TestSubscriptionTiers(t *testing.T) {
 	})
 }
 
-func TestSubscriptionCancellation(t *testing.T) {
-	t.Skip("Requires active subscription to test cancellation")
-	
-	// Placeholder for cancellation tests:
-	// - Immediate cancellation
-	// - End of period cancellation
-	// - Refund processing
-	// - Downgrade to free tier
-}
-
-func TestDunningProcess(t *testing.T) {
-	t.Skip("Requires payment failure simulation")
-	
-	// Placeholder for dunning tests:
-	// - Payment failure notification
-	// - Retry logic
-	// - Grace period handling
-	// - Subscription suspension
-	// - Subscription reactivation
-}
+// Note: Comprehensive subscription lifecycle tests including cancellation, dunning,
+// payment failures, proration, reactivation, and disputes are implemented in
+// subscription_lifecycle_test.go
