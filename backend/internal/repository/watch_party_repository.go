@@ -627,3 +627,129 @@ func (r *WatchPartyRepository) GetHistory(ctx context.Context, userID uuid.UUID,
 
 	return history, totalCount, nil
 }
+
+// GetPublicParties retrieves public/active watch parties for discovery
+func (r *WatchPartyRepository) GetPublicParties(ctx context.Context, limit, offset int) ([]models.WatchParty, int, error) {
+	// Get total count
+	var totalCount int
+	countQuery := `
+		SELECT COUNT(*)
+		FROM watch_parties
+		WHERE visibility = 'public' AND ended_at IS NULL
+	`
+	err := r.pool.QueryRow(ctx, countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count public parties: %w", err)
+	}
+
+	// Get parties with participant counts
+	query := `
+		SELECT 
+			wp.id, wp.host_user_id, wp.title, wp.playlist_id, wp.current_clip_id,
+			wp.current_position_seconds, wp.is_playing, wp.visibility, wp.invite_code,
+			wp.max_participants, wp.created_at, wp.started_at, wp.ended_at,
+			COUNT(wpp.id) FILTER (WHERE wpp.left_at IS NULL) as active_participants
+		FROM watch_parties wp
+		LEFT JOIN watch_party_participants wpp ON wp.id = wpp.party_id
+		WHERE wp.visibility = 'public' AND wp.ended_at IS NULL
+		GROUP BY wp.id
+		ORDER BY active_participants DESC, wp.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query public parties: %w", err)
+	}
+	defer rows.Close()
+
+	var parties []models.WatchParty
+	for rows.Next() {
+		var party models.WatchParty
+		var activeParticipants int
+		err := rows.Scan(
+			&party.ID,
+			&party.HostUserID,
+			&party.Title,
+			&party.PlaylistID,
+			&party.CurrentClipID,
+			&party.CurrentPositionSeconds,
+			&party.IsPlaying,
+			&party.Visibility,
+			&party.InviteCode,
+			&party.MaxParticipants,
+			&party.CreatedAt,
+			&party.StartedAt,
+			&party.EndedAt,
+			&activeParticipants,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan public party: %w", err)
+		}
+		party.ActiveParticipantCount = activeParticipants
+		parties = append(parties, party)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating public parties: %w", err)
+	}
+
+	return parties, totalCount, nil
+}
+
+// GetTrendingParties retrieves trending watch parties (by participant count)
+func (r *WatchPartyRepository) GetTrendingParties(ctx context.Context, limit int) ([]models.WatchParty, error) {
+	query := `
+		SELECT 
+			wp.id, wp.host_user_id, wp.title, wp.playlist_id, wp.current_clip_id,
+			wp.current_position_seconds, wp.is_playing, wp.visibility, wp.invite_code,
+			wp.max_participants, wp.created_at, wp.started_at, wp.ended_at,
+			COUNT(wpp.id) FILTER (WHERE wpp.left_at IS NULL) as active_participants
+		FROM watch_parties wp
+		LEFT JOIN watch_party_participants wpp ON wp.id = wpp.party_id
+		WHERE wp.visibility = 'public' AND wp.ended_at IS NULL
+		GROUP BY wp.id
+		HAVING COUNT(wpp.id) FILTER (WHERE wpp.left_at IS NULL) > 0
+		ORDER BY active_participants DESC, wp.created_at DESC
+		LIMIT $1
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query trending parties: %w", err)
+	}
+	defer rows.Close()
+
+	var parties []models.WatchParty
+	for rows.Next() {
+		var party models.WatchParty
+		var activeParticipants int
+		err := rows.Scan(
+			&party.ID,
+			&party.HostUserID,
+			&party.Title,
+			&party.PlaylistID,
+			&party.CurrentClipID,
+			&party.CurrentPositionSeconds,
+			&party.IsPlaying,
+			&party.Visibility,
+			&party.InviteCode,
+			&party.MaxParticipants,
+			&party.CreatedAt,
+			&party.StartedAt,
+			&party.EndedAt,
+			&activeParticipants,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan trending party: %w", err)
+		}
+		party.ActiveParticipantCount = activeParticipants
+		parties = append(parties, party)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating trending parties: %w", err)
+	}
+
+	return parties, nil
+}

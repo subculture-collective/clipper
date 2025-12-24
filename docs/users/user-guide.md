@@ -9,6 +9,7 @@
     - [Navigating the Interface](#navigating-the-interface)
   - [Using the Platform](#using-the-platform)
     - [Browsing Clips](#browsing-clips)
+    - [Watching Live Streams](#watching-live-streams)
     - [Voting on Clips](#voting-on-clips)
     - [Saving Favorites](#saving-favorites)
     - [Commenting](#commenting)
@@ -110,6 +111,47 @@ Your Twitch account is automatically linked when you sign in using Twitch OAuth.
 - **Top**: Highest-voted clips
 - **New**: Most recent clips
 - **Controversial**: Clips with mixed voting patterns
+
+### Watching Live Streams
+
+**Viewing a Stream**:
+
+1. Navigate to `/stream/:streamer` (e.g., `/stream/shroud`)
+2. If the streamer is live, the stream player will load automatically
+3. If offline, you'll see recent clips from that streamer
+4. Chat is displayed alongside the stream (side-by-side on desktop, below on mobile)
+
+**Stream Features**:
+
+- **Follow Streamers**: Click the "Follow" button to get notified when they go live
+- **Create Clips**: Click "Create Clip" during a live stream to capture moments
+  - Choose start and end times (5-60 seconds)
+  - Add a title and select quality
+  - Clip will be processed and added to your submissions
+- **Chat Controls**: Toggle chat visibility or change position (side/bottom)
+- **Live Indicator**: See viewer count and live status in real-time
+
+**Creating Clips from Streams**:
+
+1. Watch a live stream
+2. Click the "Create Clip" button when you see something noteworthy
+3. Fill in the clip details:
+   - Title (3-255 characters)
+   - Start time (seconds from stream start)
+   - End time (must be 5-60 seconds after start)
+   - Quality (source, 1080p, or 720p)
+4. Click "Create Clip"
+5. Wait for processing (usually < 30 seconds)
+6. You'll be redirected to the clip page
+
+**Following Streamers**:
+
+- Follow your favorite streamers to track when they go live
+- Enable/disable notifications per streamer
+- View your followed streamers in your profile
+- Get notified when followed streamers start streaming
+
+For more details, see the [Live Streams Guide](../features/live-streams.md).
 
 ### Voting on Clips
 

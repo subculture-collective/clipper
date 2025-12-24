@@ -70,8 +70,10 @@ const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPa
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 const RoleBadgeTestPage = lazy(() => import('./pages/RoleBadgeTestPage').then(m => ({ default: m.RoleBadgeTestPage })));
 const VerifiedBadgeTestPage = lazy(() => import('./pages/VerifiedBadgeTestPage').then(m => ({ default: m.VerifiedBadgeTestPage })));
+const VerificationApplicationPage = lazy(() => import('./pages/VerificationApplicationPage').then(m => ({ default: m.VerificationApplicationPage })));
 const PlaylistsPage = lazy(() => import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage })));
 const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage').then(m => ({ default: m.PlaylistDetailPage })));
+const PublicPlaylistsPage = lazy(() => import('./pages/PublicPlaylistsPage').then(m => ({ default: m.PublicPlaylistsPage })));
 const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m => ({ default: m.WatchHistoryPage })));
 const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default: m.StreamPage })));
 const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage').then(m => ({ default: m.ForumModerationPage })));
@@ -82,7 +84,12 @@ const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ de
 const ThreadDetail = lazy(() => import('./pages/forum/ThreadDetail').then(m => ({ default: m.ThreadDetail })));
 const CreateThread = lazy(() => import('./pages/forum/CreateThread').then(m => ({ default: m.CreateThread })));
 const ForumSearchPage = lazy(() => import('./pages/forum/ForumSearchPage').then(m => ({ default: m.ForumSearchPage })));
+const ForumAnalyticsPage = lazy(() => import('./pages/forum/ForumAnalyticsPage').then(m => ({ default: m.ForumAnalyticsPage })));
 const WebhookSubscriptionsPage = lazy(() => import('./pages/WebhookSubscriptionsPage').then(m => ({ default: m.WebhookSubscriptionsPage })));
+const WatchPartyPage = lazy(() => import('./pages/WatchPartyPage').then(m => ({ default: m.WatchPartyPage })));
+const WatchPartyBrowsePage = lazy(() => import('./pages/WatchPartyBrowsePage').then(m => ({ default: m.WatchPartyBrowsePage })));
+const WatchPartyCreatePage = lazy(() => import('./pages/WatchPartyCreatePage').then(m => ({ default: m.WatchPartyCreatePage })));
+const WatchPartySettingsPage = lazy(() => import('./pages/WatchPartySettingsPage').then(m => ({ default: m.WatchPartySettingsPage })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -139,6 +146,7 @@ function App() {
                     {/* Forum Routes */}
                     <Route path="/forum" element={<ForumIndex />} />
                     <Route path="/forum/search" element={<ForumSearchPage />} />
+                    <Route path="/forum/analytics" element={<ForumAnalyticsPage />} />
                     <Route path="/forum/threads/:threadId" element={<ThreadDetail />} />
                     <Route
                       path="/forum/new"
@@ -195,6 +203,10 @@ function App() {
                       }
                     />
                     <Route
+                      path="/playlists/discover"
+                      element={<PublicPlaylistsPage />}
+                    />
+                    <Route
                       path="/playlists/:id"
                       element={
                         <PlaylistDetailPage />
@@ -205,6 +217,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <ProfilePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/verification/apply"
+                      element={
+                        <ProtectedRoute>
+                          <VerificationApplicationPage />
                         </ProtectedRoute>
                       }
                     />
@@ -293,6 +313,36 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <CreatorDashboardPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Watch Party Routes */}
+                    <Route
+                      path="/watch-parties/browse"
+                      element={<WatchPartyBrowsePage />}
+                    />
+                    <Route
+                      path="/watch-parties/create"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartyCreatePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-parties/:id"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartyPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/watch-parties/:id/settings"
+                      element={
+                        <ProtectedRoute>
+                          <WatchPartySettingsPage />
                         </ProtectedRoute>
                       }
                     />

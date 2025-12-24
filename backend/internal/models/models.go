@@ -370,6 +370,37 @@ type SearchResponseWithScores struct {
 	Scores []ClipScore `json:"scores,omitempty"`
 }
 
+// TrendingSearch represents a popular search query
+type TrendingSearch struct {
+	Query       string `json:"query"`
+	SearchCount int    `json:"search_count"`
+	UniqueUsers int    `json:"unique_users"`
+	AvgResults  int    `json:"avg_results"`
+}
+
+// FailedSearch represents a search query that returned no results
+type FailedSearch struct {
+	Query        string    `json:"query"`
+	SearchCount  int       `json:"search_count"`
+	LastSearched time.Time `json:"last_searched"`
+}
+
+// SearchHistoryItem represents a single search in a user's history
+type SearchHistoryItem struct {
+	Query       string    `json:"query"`
+	ResultCount int       `json:"result_count"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// SearchAnalyticsSummary represents overall search analytics
+type SearchAnalyticsSummary struct {
+	TotalSearches         int     `json:"total_searches"`
+	UniqueUsers           int     `json:"unique_users"`
+	FailedSearches        int     `json:"failed_searches"`
+	AvgResultsPerSearch   int     `json:"avg_results_per_search"`
+	SuccessRate           float64 `json:"success_rate"`
+}
+
 // ClipSubmission represents a user-submitted clip pending moderation
 type ClipSubmission struct {
 	ID                      uuid.UUID  `json:"id" db:"id"`
@@ -3537,6 +3568,7 @@ type WatchParty struct {
 	StartedAt              *time.Time              `json:"started_at,omitempty" db:"started_at"`
 	EndedAt                *time.Time              `json:"ended_at,omitempty" db:"ended_at"`
 	Participants           []WatchPartyParticipant `json:"participants,omitempty" db:"-"`
+	ActiveParticipantCount int                     `json:"active_participant_count,omitempty" db:"-"` // Computed field for discovery endpoints
 }
 
 // WatchPartyParticipant represents a user participating in a watch party
@@ -3563,7 +3595,7 @@ type CreateWatchPartyRequest struct {
 
 // UpdateWatchPartySettingsRequest represents a request to update watch party settings
 type UpdateWatchPartySettingsRequest struct {
-	Visibility *string `json:"visibility,omitempty" binding:"omitempty,oneof=public friends invite"`
+	Visibility *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public friends invite"`
 	Password   *string `json:"password,omitempty" binding:"omitempty,min=4,max=100"`
 }
 

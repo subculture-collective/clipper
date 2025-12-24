@@ -724,6 +724,19 @@ func main() {
 			search.GET("", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.Search)
 			search.GET("/suggestions", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.GetSuggestions)
 			search.GET("/scores", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.SearchWithScores) // Hybrid search with similarity scores
+			
+			// Search analytics endpoints
+			search.GET("/trending", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), searchHandler.GetTrendingSearches) // Popular searches (public)
+			search.GET("/history", middleware.AuthMiddleware(authService), searchHandler.GetSearchHistory)                            // User search history (authenticated)
+			
+			// Admin-only analytics endpoints
+			searchAdmin := search.Group("")
+			searchAdmin.Use(middleware.AuthMiddleware(authService))
+			searchAdmin.Use(middleware.RequireRole("admin"))
+			{
+				searchAdmin.GET("/failed", searchHandler.GetFailedSearches)       // Failed searches (admin only)
+				searchAdmin.GET("/analytics", searchHandler.GetSearchAnalytics)   // Search analytics summary (admin only)
+			}
 		}
 
 		// Submission routes (if submission handler is available)
@@ -1257,6 +1270,9 @@ func main() {
 			forum.GET("/search", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.SearchThreads)
 			forum.GET("/replies/:id/votes", forumHandler.GetReplyVotes)
 			forum.GET("/users/:id/reputation", forumHandler.GetUserReputation)
+			forum.GET("/analytics", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.GetForumAnalytics)
+			forum.GET("/popular", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.GetPopularDiscussions)
+			forum.GET("/helpful-replies", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), forumHandler.GetMostHelpfulReplies)
 
 			// Protected forum endpoints (require authentication)
 			forum.POST("/threads", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), forumHandler.CreateThread)
@@ -1303,6 +1319,12 @@ func main() {
 			// Get watch party history (authenticated)
 			watchParties.GET("/history", middleware.AuthMiddleware(authService), watchPartyHandler.GetWatchPartyHistory)
 
+			// Get public watch parties for discovery (optional auth)
+			watchParties.GET("/public", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetPublicWatchParties)
+
+			// Get trending watch parties (optional auth)
+			watchParties.GET("/trending", middleware.OptionalAuthMiddleware(authService), watchPartyHandler.GetTrendingWatchParties)
+
 			// Create watch party (authenticated, rate limited - 10 per hour)
 			watchParties.POST("", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), watchPartyHandler.CreateWatchParty)
 
@@ -1326,6 +1348,9 @@ func main() {
 
 			// Send emoji reaction (authenticated, rate limited - 30 per minute)
 			watchParties.POST("/:id/react", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), watchPartyHandler.SendReaction)
+
+			// Kick participant from watch party (authenticated, host only, rate limited - 20 per hour)
+			watchParties.POST("/:id/kick", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.KickParticipant)
 
 			// Leave watch party (authenticated)
 			watchParties.DELETE("/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)

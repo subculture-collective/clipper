@@ -124,3 +124,59 @@ export interface ReputationScore {
 export interface VoteRequest {
   vote_value: -1 | 0 | 1;
 }
+
+// Analytics types
+export interface UserContribution {
+  user_id: string;
+  username: string;
+  thread_count: number;
+  reply_count: number;
+  reputation_score: number;
+}
+
+export interface ForumAnalytics {
+  total_threads: number;
+  total_replies: number;
+  total_users: number;
+  posts_today: number;
+  posts_this_week: number;
+  posts_this_month: number;
+  active_users_today: number;
+  active_users_week: number;
+  trending_topics: string[];
+  popular_threads: ForumThread[];
+  top_contributors: UserContribution[];
+  last_updated: string;
+}
+
+export interface ForumAnalyticsResponse {
+  success: boolean;
+  data: ForumAnalytics;
+}
+
+export interface PopularDiscussionsResponse {
+  success: boolean;
+  data: ForumThread[];
+  meta: {
+    timeframe: string;
+    count: number;
+    limit: number;
+  };
+}
+
+export interface HelpfulReply extends ForumReply {
+  thread_title: string;
+  net_votes: number;
+  upvotes: number;
+  downvotes: number;
+}
+
+export interface HelpfulRepliesResponse {
+  success: boolean;
+  data: HelpfulReply[];
+  meta: {
+    timeframe: string;
+    count: number;
+    limit: number;
+  };
+}

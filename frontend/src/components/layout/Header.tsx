@@ -89,11 +89,21 @@ export function Header() {
                                 🏆 {t('nav.leaderboards')}
                             </Button>
                         </Link>
+                        <Link to='/playlists/discover'>
+                            <Button variant='ghost' size='sm'>
+                                🎵 Playlists
+                            </Button>
+                        </Link>
+                        <Link to='/watch-parties/browse'>
+                            <Button variant='ghost' size='sm'>
+                                👥 Watch Parties
+                            </Button>
+                        </Link>
                         {isAuthenticated && (
                             <>
                                 <Link to='/playlists'>
                                     <Button variant='ghost' size='sm'>
-                                        📋 Playlists
+                                        📋 My Playlists
                                     </Button>
                                 </Link>
                                 <Link to='/watch-history'>
@@ -278,6 +288,30 @@ export function Header() {
                                     🏆 {t('nav.leaderboards')}
                                 </Button>
                             </Link>
+                            <Link
+                                to='/playlists/discover'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='w-full justify-start'
+                                >
+                                    🎵 Playlists
+                                </Button>
+                            </Link>
+                            <Link
+                                to='/watch-parties/browse'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='w-full justify-start'
+                                >
+                                    👥 Watch Parties
+                                </Button>
+                            </Link>
                         </nav>
 
                         {isAuthenticated ?
@@ -315,7 +349,7 @@ export function Header() {
                                         size='sm'
                                         className='w-full justify-start'
                                     >
-                                        📋 Playlists
+                                        📋 My Playlists
                                     </Button>
                                 </Link>
                                 <Link
