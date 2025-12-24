@@ -9,38 +9,28 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
 // generateTestTokens is a helper to generate JWT tokens for testing
-func generateTestTokens(t *testing.T, userID uuid.UUID) (accessToken string) {
-	cfg := &config.Config{
-		JWT: config.JWTConfig{
-			PrivateKey: testutil.GenerateTestJWTKey(t),
-		},
-	}
-	jwtManager, err := jwtpkg.NewManager(cfg.JWT.PrivateKey)
-	require.NoError(t, err)
-	
+func generateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UUID) (accessToken string) {
 	accessToken, _ = testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 	return accessToken
 }
 
 // TestSubscriptionLifecycleCreation tests new subscription creation flows
 func TestSubscriptionLifecycleCreation(t *testing.T) {
-	router, _, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, jwtManager, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	accessToken := generateTestTokens(t, userID)
+	accessToken := generateTestTokens(t, jwtManager, userID)
 
 	t.Run("CreateNewMonthlySubscription", func(t *testing.T) {
 		req := models.CreateCheckoutSessionRequest{
@@ -135,11 +125,11 @@ func TestSubscriptionLifecycleCreation(t *testing.T) {
 
 // TestSubscriptionLifecycleCancellation tests subscription cancellation flows
 func TestSubscriptionLifecycleCancellation(t *testing.T) {
-	router, _, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, jwtManager, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	accessToken := generateTestTokens(t, userID)
+	accessToken := generateTestTokens(t, jwtManager, userID)
 	
 
 	t.Run("CancelImmediately", func(t *testing.T) {
@@ -211,17 +201,15 @@ func TestSubscriptionLifecycleCancellation(t *testing.T) {
 		assert.Contains(t, []int{http.StatusOK, http.StatusNotFound, http.StatusInternalServerError}, w.Code)
 	})
 }
-
-// TestPaymentMethodUpdate tests payment method update flows
 func TestPaymentMethodUpdate(t *testing.T) {
 	t.Run("PortalSessionForPaymentUpdate", func(t *testing.T) {
 		// Users update payment methods via Stripe Customer Portal
 		// We verify the portal session creation works
-		router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
+		router, jwtManager, _, db, redisClient, userID := setupPremiumTestRouter(t)
 		defer db.Close()
 		defer redisClient.Close()
 
-		accessToken := generateTestTokens(t, userID)
+		accessToken := generateTestTokens(t, jwtManager, userID)
 		
 
 		httpReq := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/portal", nil)
@@ -371,11 +359,11 @@ func TestPaymentFailureHandling(t *testing.T) {
 
 // TestProrationCalculations tests proration for plan changes
 func TestProrationCalculations(t *testing.T) {
-	router, _, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, jwtManager, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	accessToken := generateTestTokens(t, userID)
+	accessToken := generateTestTokens(t, jwtManager, userID)
 	
 
 	t.Run("UpgradeFromMonthlyToYearly", func(t *testing.T) {
@@ -455,11 +443,11 @@ func TestProrationCalculations(t *testing.T) {
 func TestSubscriptionReactivation(t *testing.T) {
 	t.Run("ReactivateCanceledSubscription", func(t *testing.T) {
 		// Test that users can reactivate via portal
-		router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
+		router, jwtManager, _, db, redisClient, userID := setupPremiumTestRouter(t)
 		defer db.Close()
 		defer redisClient.Close()
 
-		accessToken := generateTestTokens(t, userID)
+		accessToken := generateTestTokens(t, jwtManager, userID)
 		
 
 		// Access portal to reactivate
@@ -503,11 +491,11 @@ func TestSubscriptionReactivation(t *testing.T) {
 
 	t.Run("CreateNewSubscriptionAfterCancellation", func(t *testing.T) {
 		// Test creating new subscription after full cancellation
-		router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
+		router, jwtManager, _, db, redisClient, userID := setupPremiumTestRouter(t)
 		defer db.Close()
 		defer redisClient.Close()
 
-		accessToken := generateTestTokens(t, userID)
+		accessToken := generateTestTokens(t, jwtManager, userID)
 		
 
 		req := models.CreateCheckoutSessionRequest{
@@ -697,9 +685,4 @@ func TestInvoiceFinalized(t *testing.T) {
 
 		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
 	})
-}
-
-// timePtr returns a pointer to a time.Time
-func timePtr(t time.Time) *time.Time {
-	return &t
 }

@@ -26,7 +26,7 @@ import (
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
-func setupPremiumTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *services.SubscriptionService, *database.DB, *redispkg.Client, uuid.UUID) {
+func setupPremiumTestRouter(t *testing.T) (*gin.Engine, *jwtpkg.Manager, *services.SubscriptionService, *database.DB, *redispkg.Client, uuid.UUID) {
 	gin.SetMode(gin.TestMode)
 
 	cfg := &config.Config{
@@ -96,23 +96,14 @@ func setupPremiumTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *
 	// Webhook routes
 	r.POST("/api/v1/webhooks/stripe", subscriptionHandler.HandleWebhook)
 
-	return r, authService, subscriptionService, db, redisClient, user.ID
+	return r, jwtManager, subscriptionService, db, redisClient, user.ID
 }
 
 func TestSubscriptionFlow(t *testing.T) {
-	router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, jwtManager, _, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	// Generate JWT manually for testing
-	cfg := &config.Config{
-		JWT: config.JWTConfig{
-			PrivateKey: testutil.GenerateTestJWTKey(t),
-		},
-	}
-	jwtManager, err := jwtpkg.NewManager(cfg.JWT.PrivateKey)
-	require.NoError(t, err)
-	
 	accessToken, _ := testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 
 	t.Run("GetSubscriptionStatus_NoSubscription", func(t *testing.T) {
@@ -144,7 +135,7 @@ func TestSubscriptionFlow(t *testing.T) {
 		
 		if w.Code == http.StatusOK {
 			var response map[string]interface{}
-			err = json.Unmarshal(w.Body.Bytes(), &response)
+			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
 			assert.NotEmpty(t, response["checkout_url"])
 		}
@@ -202,18 +193,10 @@ func TestStripeWebhooks(t *testing.T) {
 }
 
 func TestSubscriptionTiers(t *testing.T) {
-	router, _, _, db, redisClient, userID := setupPremiumTestRouter(t)
+	router, jwtManager, _, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
-	cfg := &config.Config{
-		JWT: config.JWTConfig{
-			PrivateKey: testutil.GenerateTestJWTKey(t),
-		},
-	}
-	jwtManager, err := jwtpkg.NewManager(cfg.JWT.PrivateKey)
-	require.NoError(t, err)
-	
 	accessToken, _ := testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 
 	t.Run("CreateCheckoutSession_PremiumTier", func(t *testing.T) {

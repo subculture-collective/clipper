@@ -10,7 +10,7 @@ This document summarizes the implementation of comprehensive Stripe subscription
 
 **File**: `backend/tests/integration/premium/subscription_lifecycle_test.go`  
 **Lines of Code**: 640+  
-**Test Functions**: 14
+**Test Functions**: 9
 
 #### Test Coverage
 
