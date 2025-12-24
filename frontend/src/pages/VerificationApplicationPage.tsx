@@ -106,14 +106,12 @@ export function VerificationApplicationPage() {
             setSuccess('Your verification application has been submitted successfully! Our team will review it soon.');
 
             // Reload the application status
-            setTimeout(async () => {
-                try {
-                    const response = await getMyVerificationApplication();
-                    setExistingApplication(response.data);
-                } catch (err) {
-                    console.error('Failed to reload application:', err);
-                }
-            }, 1000);
+            try {
+                const response = await getMyVerificationApplication();
+                setExistingApplication(response.data);
+            } catch (err) {
+                console.error('Failed to reload application:', err);
+            }
         } catch (err: unknown) {
             setError(getErrorMessage(err));
         } finally {
