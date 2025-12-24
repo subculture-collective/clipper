@@ -1,29 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Twitch API Integration](#twitch-api-integration)
-  - [Features](#features)
-    - [Twitch API Client (`pkg/twitch/`)](#twitch-api-client-pkgtwitch)
-    - [Clip Sync Service (`internal/services/clip_sync_service.go`)](#clip-sync-service-internalservicesclip_sync_servicego)
-    - [Background Scheduler (`internal/scheduler/clip_sync_scheduler.go`)](#background-scheduler-internalschedulerclip_sync_schedulergo)
-    - [API Endpoints](#api-endpoints)
-  - [Configuration](#configuration)
-    - [Getting Twitch Credentials](#getting-twitch-credentials)
-  - [Usage](#usage)
-    - [Initialize the Twitch Client](#initialize-the-twitch-client)
-    - [Fetch Clips](#fetch-clips)
-    - [Sync Service](#sync-service)
-    - [Background Scheduler](#background-scheduler)
-  - [Database Schema](#database-schema)
-  - [Rate Limiting](#rate-limiting)
-  - [Caching](#caching)
-  - [Error Handling](#error-handling)
-  - [Testing](#testing)
-  - [Architecture](#architecture)
-  - [Future Enhancements](#future-enhancements)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Twitch API Integration"
 summary: "This package provides a comprehensive Twitch API integration for fetching and syncing Twitch clips."

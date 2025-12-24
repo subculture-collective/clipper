@@ -1,27 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [OpenAPI Specifications](#openapi-specifications)
-  - [Available Specifications](#available-specifications)
-    - [Clip Submission API](#clip-submission-api)
-  - [Viewing the Specifications](#viewing-the-specifications)
-    - [Online Viewers](#online-viewers)
-    - [VS Code Extension](#vs-code-extension)
-  - [Generating Client SDKs](#generating-client-sdks)
-    - [TypeScript/JavaScript](#typescriptjavascript)
-    - [Python](#python)
-    - [Go](#go)
-    - [Other Languages](#other-languages)
-  - [Validating Specifications](#validating-specifications)
-  - [Testing the API](#testing-the-api)
-    - [Using the Swagger UI](#using-the-swagger-ui)
-    - [Using Postman](#using-postman)
-    - [Using cURL](#using-curl)
-  - [Contributing](#contributing)
-  - [Related Documentation](#related-documentation)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # OpenAPI Specifications
 
 This directory contains OpenAPI 3.0 specifications for the Clipper API.

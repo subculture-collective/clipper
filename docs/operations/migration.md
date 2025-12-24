@@ -1,22 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Database Migrations](#database-migrations)
-  - [Overview](#overview)
-  - [Migration Files](#migration-files)
-  - [Creating Migrations](#creating-migrations)
-  - [Running Migrations](#running-migrations)
-    - [Development](#development)
-    - [Production](#production)
-  - [CI/CD Integration](#cicd-integration)
-  - [Best Practices](#best-practices)
-  - [Troubleshooting](#troubleshooting)
-    - [Migration Fails](#migration-fails)
-    - [Locked Table](#locked-table)
-    - [Performance Impact](#performance-impact)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Database Migrations"
 summary: "Schema migration procedures using golang-migrate."

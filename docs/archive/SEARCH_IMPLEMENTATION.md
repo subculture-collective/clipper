@@ -1,28 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Search Implementation Summary](#search-implementation-summary)
-  - [Overview](#overview)
-  - [Backend Implementation](#backend-implementation)
-    - [Database Changes](#database-changes)
-    - [Search Features](#search-features)
-    - [Search Ranking](#search-ranking)
-  - [Frontend Implementation](#frontend-implementation)
-    - [Components](#components)
-    - [API Integration](#api-integration)
-  - [Performance Optimizations](#performance-optimizations)
-  - [Security](#security)
-  - [Future Enhancements](#future-enhancements)
-  - [Testing](#testing)
-  - [Usage Examples](#usage-examples)
-    - [Backend API](#backend-api)
-    - [Frontend](#frontend)
-  - [Database Schema](#database-schema)
-    - [search_vector columns](#search_vector-columns)
-    - [search_queries table](#search_queries-table)
-  - [Migration Instructions](#migration-instructions)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Search Implementation Summary
 

@@ -1,25 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [useClipById Hook Verification - Final Report](#useclipbyid-hook-verification---final-report)
-  - [Executive Summary](#executive-summary)
-  - [What Was Done](#what-was-done)
-    - [1. Analysis](#1-analysis)
-    - [2. Implementation](#2-implementation)
-    - [3. Verification](#3-verification)
-    - [4. Documentation](#4-documentation)
-  - [Why This Change Is Correct](#why-this-change-is-correct)
-    - [Technical Reasoning](#technical-reasoning)
-    - [The Problem with Using useInfiniteQuery for Single Resources](#the-problem-with-using-useinfinitequery-for-single-resources)
-    - [Parameters That Were Removed](#parameters-that-were-removed)
-  - [Comparison Table](#comparison-table)
-  - [Code Quality Metrics](#code-quality-metrics)
-  - [Conclusion](#conclusion)
-    - [What This Enables](#what-this-enables)
-  - [Next Steps](#next-steps)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # useClipById Hook Verification - Final Report
 
 ## Executive Summary

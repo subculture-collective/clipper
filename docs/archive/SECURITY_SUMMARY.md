@@ -1,35 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Security Summary](#security-summary)
-  - [Security Scanning and Vulnerability Management](#security-scanning-and-vulnerability-management)
-  - [Executive Summary](#executive-summary)
-  - [Security Scanning Infrastructure](#security-scanning-infrastructure)
-    - [1. Static Application Security Testing (SAST)](#1-static-application-security-testing-sast)
-    - [2. Dependency Vulnerability Scanning](#2-dependency-vulnerability-scanning)
-    - [3. Secret Scanning](#3-secret-scanning)
-  - [Vulnerability Fixes Applied](#vulnerability-fixes-applied)
-    - [1. js-yaml Prototype Pollution (Moderate Severity)](#1-js-yaml-prototype-pollution-moderate-severity)
-  - [Security Best Practices Implemented](#security-best-practices-implemented)
-    - [Code Security](#code-security)
-    - [Infrastructure Security](#infrastructure-security)
-    - [Development Security](#development-security)
-  - [Compliance Status](#compliance-status)
-    - [OWASP Top 10 (2021)](#owasp-top-10-2021)
-  - [CI/CD Security Integration](#cicd-security-integration)
-    - [Pull Request Checks](#pull-request-checks)
-    - [Continuous Monitoring](#continuous-monitoring)
-  - [Recommendations](#recommendations)
-    - [Immediate Actions](#immediate-actions)
-    - [Short-term (Next 30 days)](#short-term-next-30-days)
-    - [Long-term (Next 90 days)](#long-term-next-90-days)
-  - [Security Metrics](#security-metrics)
-    - [Current Status](#current-status)
-    - [Scanning Coverage](#scanning-coverage)
-  - [Audit Trail](#audit-trail)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Security Summary
 

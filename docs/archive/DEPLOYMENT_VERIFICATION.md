@@ -1,22 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Deployment Verification - December 7, 2025](#deployment-verification---december-7-2025)
-  - [Status: ✅ DEPLOYED AND VERIFIED](#status--deployed-and-verified)
-  - [What Was Fixed](#what-was-fixed)
-  - [Deployment Summary](#deployment-summary)
-    - [Frontend Build](#frontend-build)
-    - [Docker Container Status](#docker-container-status)
-    - [Verification Results](#verification-results)
-  - [How to Verify in Browser](#how-to-verify-in-browser)
-  - [Technical Details](#technical-details)
-    - [Changed Files](#changed-files)
-    - [Related Fixes Applied Earlier](#related-fixes-applied-earlier)
-  - [Rollback Instructions (if needed)](#rollback-instructions-if-needed)
-  - [Next Steps](#next-steps)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Deployment Verification - December 7, 2025
 
 ## Status: ✅ DEPLOYED AND VERIFIED
