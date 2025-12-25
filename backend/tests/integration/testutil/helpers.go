@@ -246,33 +246,15 @@ func GenerateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UU
 	return accessToken, refreshToken
 }
 
-// WithTransaction runs a test function within a database transaction that is rolled back after the test
-// This ensures complete test isolation and automatic cleanup
-func WithTransaction(t *testing.T, db *database.DB, fn func(tx *database.DB)) {
-	ctx := context.Background()
-	
-	// Begin transaction
-	conn, err := db.Pool.Acquire(ctx)
-	require.NoError(t, err, "Failed to acquire connection for transaction")
-	defer conn.Release()
-	
-	tx, err := conn.Begin(ctx)
-	require.NoError(t, err, "Failed to begin transaction")
-	
-	// Ensure rollback on panic or test completion
+// WithTestCleanup runs a test with a cleanup function that's guaranteed to execute
+// Use this pattern when you need to ensure cleanup of test data
+func WithTestCleanup(t *testing.T, setup func() func()) {
+	cleanup := setup()
 	defer func() {
-		if err := tx.Rollback(ctx); err != nil {
-			t.Logf("Transaction rollback error (may be expected if already committed): %v", err)
+		if cleanup != nil {
+			cleanup()
 		}
 	}()
-	
-	// Create a temporary DB with the transaction
-	txDB := &database.DB{
-		Pool: db.Pool, // Keep the pool reference
-	}
-	
-	// Run the test function
-	fn(txDB)
 }
 
 // IsolatedTest runs a test with automatic cleanup of test data

@@ -185,24 +185,45 @@ func TestWithMocks(t *testing.T) {
 
 ## Test Isolation and Parallel Execution
 
-### Transactional Tests
+### Test Cleanup
 
-Use `WithTransaction` for automatic cleanup:
+Use `WithTestCleanup` for guaranteed cleanup:
 
 ```go
-func TestWithTransaction(t *testing.T) {
+func TestWithCleanup(t *testing.T) {
     testEnv := testutil.SetupTestEnvironment(t)
     defer testEnv.Cleanup()
     
-    testutil.WithTransaction(t, testEnv.DB, func(tx *database.DB) {
-        // All database operations here are automatically rolled back
-        user := testutil.CreateTestUser(t, tx, "testuser")
+    var userID uuid.UUID
+    
+    testutil.WithTestCleanup(t, func() func() {
+        // Setup: Create test user
+        user := testutil.CreateTestUser(t, testEnv.DB, "testuser")
+        userID = user.ID
         
-        // Run your test
-        // ...
-        
-        // No cleanup needed - transaction is rolled back automatically
+        // Return cleanup function
+        return func() {
+            testutil.CleanupTestData(t, testEnv.DB, []uuid.UUID{userID})
+        }
     })
+    
+    // Run your test with the test user
+    // Cleanup is automatically called at the end
+}
+```
+
+Alternatively, use defer for simple cleanup:
+
+```go
+func TestSimpleCleanup(t *testing.T) {
+    testEnv := testutil.SetupTestEnvironment(t)
+    defer testEnv.Cleanup()
+    
+    user := testutil.CreateTestUser(t, testEnv.DB, "testuser")
+    defer testutil.CleanupTestData(t, testEnv.DB, []uuid.UUID{user.ID})
+    
+    // Run your test
+    // ...
 }
 ```
 

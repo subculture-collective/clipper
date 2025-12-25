@@ -5,6 +5,7 @@ package mocks
 import (
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 )
@@ -215,7 +216,7 @@ func (m *MockStorageService) GetFilesByPrefix(prefix string) []*MockFile {
 
 	var files []*MockFile
 	for key, file := range m.Files {
-		if len(key) >= len(prefix) && key[:len(prefix)] == prefix {
+		if strings.HasPrefix(key, prefix) {
 			fileCopy := &MockFile{
 				Key:         file.Key,
 				Content:     make([]byte, len(file.Content)),

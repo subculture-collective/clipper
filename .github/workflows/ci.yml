@@ -166,6 +166,7 @@ jobs:
         run: |
           cd backend
           go tool cover -func=coverage-integration.out
+          go tool cover -html=coverage-integration.out -o coverage-integration.html
           coverage=$(go tool cover -func=coverage-integration.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Integration test coverage: ${coverage}%"
           # Check if coverage meets minimum threshold (70%)
