@@ -77,6 +77,7 @@ docker-compose -f docker-compose.monitoring.yml ps
 
 **Available Dashboards:**
 - **SLO Compliance Dashboard** ⭐ - Real-time SLO tracking, error budget, compliance status
+- **Background Jobs Monitoring** ⭐ - Job execution status, duration, queue sizes, failure rates
 - **System Health Dashboard** - CPU, memory, disk, network metrics
 - **API Performance Dashboard** - Request rate, latency, throughput, errors
 - **Database Dashboard** - Connections, query time, slow queries, cache hits
@@ -180,6 +181,14 @@ Alert rules organized by priority and category:
 - Dead-letter queue items
 - High delivery latency
 - Subscription health degradation
+
+**Background Job Alerts:**
+- Job execution failures (>0.1/sec)
+- Critical failure rate (>50%)
+- Stale jobs (no success >2h or >24h)
+- High/critical duration (P95 >300s or >600s)
+- Queue growing or critical size
+- High item processing failure rate (>20%)
 
 **Security & Logging Alerts:**
 - High error log rate
@@ -420,7 +429,78 @@ docker-compose -f docker-compose.monitoring.yml exec grafana \
   tar czf /var/lib/grafana/backup.tar.gz /var/lib/grafana/grafana.db
 ```
 
+## Background Job Monitoring
+
+Clipper uses background jobs (schedulers) for periodic maintenance tasks. All jobs are instrumented with Prometheus metrics for monitoring execution status, performance, and failures.
+
+### Available Jobs
+
+- **hot_score_refresh**: Updates hot scores for trending clips (every 5 minutes)
+- **trending_score_refresh**: Recalculates trending scores (every 60 minutes)  
+- **clip_sync**: Syncs clips from Twitch API (every 15 minutes)
+- **reputation_tasks**: Awards badges and updates user stats (every 6 hours)
+- **webhook_retry**: Retries failed webhook deliveries (every 1 minute)
+- **embedding_generation**: Generates embeddings for new clips (configurable)
+
+### Metrics
+
+All jobs expose standardized metrics:
+
+```
+job_execution_total{job_name, status}           # Total executions (success/failed)
+job_execution_duration_seconds{job_name}        # Duration histogram
+job_last_success_timestamp_seconds{job_name}    # Last successful run timestamp
+job_items_processed_total{job_name, status}     # Items processed (success/failed/skipped)
+job_queue_size{job_name}                        # Current queue size (if applicable)
+```
+
+### Dashboard
+
+Access the Background Jobs dashboard at:
+- **Grafana**: `http://localhost:3000/d/background-jobs`
+- **File**: `monitoring/dashboards/background-jobs.json`
+
+Key panels include:
+- Job execution status and success rates
+- Queue sizes and growth trends
+- Duration (P50/P95) by job
+- Time since last successful run
+- Items processed and failure rates
+
+### Alerts
+
+Background job alerts are configured in `monitoring/alerts.yml`:
+
+- **BackgroundJobFailing**: Job has failures (>0.1/sec for 5m)
+- **BackgroundJobCriticalFailureRate**: >50% failure rate
+- **BackgroundJobNotRunning**: No success for >2 hours
+- **BackgroundJobCriticallyStale**: No success for >24 hours  
+- **BackgroundJobHighDuration**: P95 duration >300 seconds
+- **BackgroundJobCriticalDuration**: P95 duration >600 seconds
+- **BackgroundJobQueueGrowing**: Queue growing >50% over 10m
+- **BackgroundJobCriticalQueueSize**: Queue size >1000
+- **BackgroundJobHighItemFailureRate**: >20% item failure rate
+
+### Troubleshooting
+
+See the comprehensive runbook at:
+- [docs/operations/runbooks/background-jobs.md](../docs/operations/runbooks/background-jobs.md)
+
+Common issues:
+- **Job failing**: Check logs, verify database/Redis connectivity
+- **Stale job**: Restart backend pods, check for stuck processes
+- **High duration**: Optimize queries, add indexes, check external APIs
+- **Queue growing**: Scale horizontally, increase parallelism
+
+### Time to Detect
+
+Target metrics for background job monitoring:
+- **Detection**: < 5 minutes for failures
+- **Alerting**: Low noise, actionable alerts only
+- **Coverage**: All critical background jobs monitored
+
 ## Troubleshooting
+```
 
 ### Prometheus not scraping targets
 
