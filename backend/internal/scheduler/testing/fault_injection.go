@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // FaultInjector provides utilities for injecting errors and faults in tests
@@ -216,7 +217,7 @@ func (t *RetryTracker) RecordAttempt(operationID string, attempt int, err error,
 		Attempt:   attempt,
 		Error:     err,
 		Backoff:   backoff,
-		Timestamp: int64(atomic.LoadInt32(&callCount)),
+		Timestamp: time.Now().UnixNano(),
 	})
 }
 
@@ -250,8 +251,6 @@ func (t *RetryTracker) Clear() {
 	defer t.mu.Unlock()
 	t.attempts = make(map[string][]RetryAttempt)
 }
-
-var callCount int32
 
 // MockServiceWithFaults provides a mock service with configurable fault injection
 type MockServiceWithFaults struct {
