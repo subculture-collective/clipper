@@ -159,7 +159,8 @@ func (m *MockTwitchClient) GetUsers(ctx context.Context, userIDs []string, login
 
 	var users []twitch.User
 	for _, user := range m.Users {
-		// Check if user ID matches
+		// Apply filters - user must match all provided filter types (AND logic)
+		// If userIDs provided, user ID must match
 		if len(userIDs) > 0 {
 			found := false
 			for _, id := range userIDs {
@@ -173,7 +174,7 @@ func (m *MockTwitchClient) GetUsers(ctx context.Context, userIDs []string, login
 			}
 		}
 
-		// Check if login matches
+		// If logins provided, login must match
 		if len(logins) > 0 {
 			found := false
 			for _, login := range logins {
@@ -213,33 +214,36 @@ func (m *MockTwitchClient) GetGames(ctx context.Context, gameIDs []string, gameN
 	defer m.mu.RUnlock()
 
 	var games []twitch.Game
+	
+	idFilterProvided := len(gameIDs) > 0
+	nameFilterProvided := len(gameNames) > 0
+
 	for _, game := range m.Games {
-		// Check if game ID matches
-		if len(gameIDs) > 0 {
-			found := false
+		// Determine if this game matches any provided IDs
+		idMatch := !idFilterProvided
+		if idFilterProvided {
 			for _, id := range gameIDs {
 				if game.ID == id {
-					found = true
+					idMatch = true
 					break
 				}
-			}
-			if !found {
-				continue
 			}
 		}
 
-		// Check if name matches
-		if len(gameNames) > 0 {
-			found := false
+		// Determine if this game matches any provided names
+		nameMatch := !nameFilterProvided
+		if nameFilterProvided {
 			for _, name := range gameNames {
 				if game.Name == name {
-					found = true
+					nameMatch = true
 					break
 				}
 			}
-			if !found {
-				continue
-			}
+		}
+
+		// If any filters are provided, require at least one to match (OR logic)
+		if (idFilterProvided || nameFilterProvided) && !(idMatch || nameMatch) {
+			continue
 		}
 
 		games = append(games, *game)

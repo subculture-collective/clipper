@@ -248,21 +248,26 @@ func GenerateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UU
 
 // WithTestCleanup runs a test with a cleanup function that's guaranteed to execute
 // Use this pattern when you need to ensure cleanup of test data
-func WithTestCleanup(t *testing.T, setup func() func()) {
+func WithTestCleanup(t *testing.T, setup func() func(), testFn func()) {
+	t.Helper()
+
 	cleanup := setup()
 	defer func() {
 		if cleanup != nil {
 			cleanup()
 		}
 	}()
+
+	testFn()
 }
 
 // IsolatedTest runs a test with automatic cleanup of test data
 // It tracks created resources and cleans them up after the test completes
-func IsolatedTest(t *testing.T, db *database.DB, redisClient *redispkg.Client, fn func()) {
+// The test function receives a unique prefix to use for Redis key naming
+func IsolatedTest(t *testing.T, db *database.DB, redisClient *redispkg.Client, fn func(prefix string)) {
 	ctx := context.Background()
 	
-	// Get current max IDs for cleanup tracking
+	// Generate a unique prefix for this test
 	testPrefix := fmt.Sprintf("test_%s_", uuid.New().String()[:8])
 	
 	// Clean up Redis test keys after the test
@@ -277,8 +282,8 @@ func IsolatedTest(t *testing.T, db *database.DB, redisClient *redispkg.Client, f
 		}
 	}()
 	
-	// Run the test function
-	fn()
+	// Run the test function with the prefix
+	fn(testPrefix)
 }
 
 // ParallelTest marks a test as safe to run in parallel and sets up isolation

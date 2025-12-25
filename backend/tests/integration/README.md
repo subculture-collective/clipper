@@ -145,7 +145,7 @@ docker compose -f docker-compose.test.yml logs redis
 
 ## Mocks for External Dependencies
 
-Interface-based mocks are available in `testutil/mocks/` for:
+Interface-based mocks are available in `backend/tests/integration/mocks/` for:
 
 - **Twitch API**: Mock client for clip, user, game, and stream operations
 - **Email Service**: Mock for SendGrid/email operations with verification
@@ -205,10 +205,11 @@ func TestWithCleanup(t *testing.T) {
         return func() {
             testutil.CleanupTestData(t, testEnv.DB, []uuid.UUID{userID})
         }
+    }, func() {
+        // Run your test with the test user
+        // Test logic goes here
+        // Cleanup is automatically called at the end
     })
-    
-    // Run your test with the test user
-    // Cleanup is automatically called at the end
 }
 ```
 
@@ -245,16 +246,19 @@ func TestParallel(t *testing.T) {
 
 ### Isolated Tests
 
-Use `IsolatedTest` for automatic Redis cleanup:
+Use `IsolatedTest` for automatic Redis cleanup with unique prefix:
 
 ```go
 func TestIsolated(t *testing.T) {
     testEnv := testutil.SetupTestEnvironment(t)
     defer testEnv.Cleanup()
     
-    testutil.IsolatedTest(t, testEnv.DB, testEnv.RedisClient, func() {
+    testutil.IsolatedTest(t, testEnv.DB, testEnv.RedisClient, func(prefix string) {
         // Test implementation
+        // Use prefix for Redis keys: prefix + "mykey"
         // Redis keys with test prefix are automatically cleaned up
+        ctx := context.Background()
+        testEnv.RedisClient.Client.Set(ctx, prefix+"mykey", "value", 0)
     })
 }
 ```

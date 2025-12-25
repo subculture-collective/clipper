@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -272,8 +273,8 @@ func TestMockParallelSafety(t *testing.T) {
 	// Add initial data
 	for i := 0; i < 10; i++ {
 		mockTwitch.AddUser(&twitch.User{
-			ID:    string(rune('0' + i)),
-			Login: string(rune('a' + i)),
+			ID:    fmt.Sprintf("%d", i),
+			Login: fmt.Sprintf("user%d", i),
 		})
 	}
 
@@ -285,7 +286,7 @@ func TestMockParallelSafety(t *testing.T) {
 				t.Parallel()
 
 				// Safe to call concurrently
-				_, err := mockTwitch.GetUsers(ctx, []string{string(rune('0' + i))}, nil)
+				_, err := mockTwitch.GetUsers(ctx, []string{fmt.Sprintf("%d", i)}, nil)
 				require.NoError(t, err)
 			})
 		}
