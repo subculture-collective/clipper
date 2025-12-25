@@ -15,7 +15,7 @@ test.describe('Channel Management', () => {
   let testChannelId: string | null = null;
   let testChannelName: string;
 
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ page }) => {
     // Generate unique channel name for this test run
     testChannelName = `test-channel-${Date.now()}`;
 
@@ -24,7 +24,7 @@ test.describe('Channel Management', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('should create a channel and assign creator as owner', async () => {
+  test('should create a channel and assign creator as owner', async ({ page }) => {
     // Look for "Create Channel" button or similar
     // Note: This assumes there's a UI to create channels in the chat page
     // For now, we'll test by directly calling the API since UI might not exist yet
@@ -49,7 +49,7 @@ test.describe('Channel Management', () => {
     expect(roleData.role).toBe('owner');
   });
 
-  test('should navigate to channel settings and display current user role', async () => {
+  test('should navigate to channel settings and display current user role', async ({ page }) => {
     // Create a channel first
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -70,7 +70,7 @@ test.describe('Channel Management', () => {
     await expect(page.getByText(/owner/i)).toBeVisible();
   });
 
-  test('should display member list with roles', async () => {
+  test('should display member list with roles', async ({ page }) => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -117,7 +117,7 @@ test.describe('Channel Management', () => {
     await expect(page.getByRole('button', { name: /delete channel/i })).toBeVisible();
   });
 
-  test('should prevent removing or demoting the owner', async () => {
+  test('should prevent removing or demoting the owner', async ({ page }) => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {

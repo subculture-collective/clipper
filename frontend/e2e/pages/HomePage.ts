@@ -22,7 +22,6 @@ export class HomePage extends BasePage {
   // Locators
   private readonly searchInput: Locator;
   private readonly clipCards: Locator;
-  private readonly sortButtons: Locator;
   private readonly submitButton: Locator;
 
   constructor(page: Page) {
@@ -31,7 +30,6 @@ export class HomePage extends BasePage {
     // Initialize locators
     this.searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
     this.clipCards = page.getByTestId('clip-card');
-    this.sortButtons = page.locator('button').filter({ hasText: /new|hot|top|trending/i });
     this.submitButton = page.locator('button, a').filter({ hasText: /submit|upload|add clip/i });
   }
 

@@ -83,7 +83,7 @@ export const test = base.extend<CustomFixtures>({
    * 2. Or perform actual login before tests
    * 3. And save the state for reuse
    */
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page }: { page: Page }, use: (page: Page) => Promise<void>) => {
     // Attempt to login
     // In production, you'd load from storageState file
     // For now, we'll just provide the page as-is
@@ -107,7 +107,7 @@ export const test = base.extend<CustomFixtures>({
    * Authenticated user fixture
    * Creates a test user and logs them in
    */
-  authenticatedUser: async ({ page }, use) => {
+  authenticatedUser: async ({ page }: { page: Page }, use: (user: any) => Promise<void>) => {
     // Create a test user
     const user = await createUser(page, {
       username: `testuser_${Date.now()}`,
@@ -132,7 +132,7 @@ export const test = base.extend<CustomFixtures>({
    * Creates a user without authentication
    * Automatically cleans up after test
    */
-  testUser: async ({ page }, use) => {
+  testUser: async ({ page }: { page: Page }, use: (user: any) => Promise<void>) => {
     const user = await createUser(page);
     await use(user);
     
@@ -151,7 +151,7 @@ export const test = base.extend<CustomFixtures>({
    * Creates a clip for testing
    * Automatically cleans up after test
    */
-  testClip: async ({ page }, use) => {
+  testClip: async ({ page }: { page: Page }, use: (clip: any) => Promise<void>) => {
     const clip = await createClip(page, {
       title: `Test Clip ${Date.now()}`,
       streamerName: 'TestStreamer',

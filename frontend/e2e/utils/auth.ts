@@ -40,10 +40,9 @@ export interface AuthTokens {
  * 3. Use test accounts with real OAuth (not recommended for CI)
  * 
  * @param page - Playwright Page object
- * @param credentials - User credentials (optional, for test accounts)
  * @returns Promise that resolves when login is complete
  */
-export async function login(page: Page, credentials?: AuthCredentials): Promise<void> {
+export async function login(page: Page): Promise<void> {
   await page.goto('/');
   
   // Click login button

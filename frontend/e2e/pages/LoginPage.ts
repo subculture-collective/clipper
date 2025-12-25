@@ -79,11 +79,8 @@ export class LoginPage extends BasePage {
    * 1. Mock the OAuth endpoints
    * 2. Use test credentials and complete the form
    * 3. Use authentication state from fixtures
-   * 
-   * @param username - Twitch username (for test accounts)
-   * @param password - Twitch password (for test accounts)
    */
-  async loginWithTwitch(username?: string, password?: string): Promise<void> {
+  async loginWithTwitch(): Promise<void> {
     const context = this.page.context();
     
     // Set up popup promise before clicking

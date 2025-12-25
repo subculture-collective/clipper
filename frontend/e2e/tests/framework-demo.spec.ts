@@ -102,14 +102,11 @@ test.describe('Framework Demo - Custom Fixtures', () => {
    * - Automatic cleanup
    * - Working with seeded data
    */
-  test('should use test clip fixture', async ({ testClip, page }) => {
+  test('should use test clip fixture', async ({ testClip }) => {
     // testClip is automatically created and will be cleaned up
     expect(testClip).toBeDefined();
     expect(testClip.id).toBeDefined();
     expect(testClip.title).toBeDefined();
-    
-    // Navigate to the test clip
-    const clipPage = new ClipPage(page, testClip.id);
     
     // Note: This might fail if the clip isn't actually in the database
     // In a real test environment with proper backend integration, this would work

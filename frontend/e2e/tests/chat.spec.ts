@@ -43,7 +43,7 @@ test.describe('Chat Page', () => {
     await page.waitForLoadState('networkidle');
 
     // Find search input
-    const searchInput = page.getByPlaceholderText('Search channels...');
+    const searchInput = page.getByPlaceholder('Search channels...');
     if (await searchInput.isVisible()) {
       await searchInput.fill('general');
 
