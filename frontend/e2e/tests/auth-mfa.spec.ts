@@ -8,7 +8,6 @@ import {
   mockMFAStatus,
   mockMFARegenerateRecoveryCodes,
   mockMFALockout,
-  generateMockTOTPCode,
   clearMFAMocks,
 } from '../utils/mfa-mock';
 import { mockOAuthSuccess } from '../utils/oauth-mock';
@@ -45,7 +44,7 @@ test.describe('MFA Authentication', () => {
 
   test('should enroll in MFA with TOTP', async ({ page }) => {
     // Mock MFA enrollment
-    const { secret, qrCodeUrl, backupCodes } = await mockMFAEnrollment(page);
+    await mockMFAEnrollment(page);
 
     // Navigate to security settings
     await page.goto('/settings/security');
@@ -63,16 +62,16 @@ test.describe('MFA Authentication', () => {
       // Verify QR code or secret is displayed
       const qrCodeOrSecret = page.locator('img[alt*="qr" i], [data-testid="qr-code"], text=/secret/i');
       await expect(qrCodeOrSecret.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-        console.log('QR code or secret display not found in expected format');
+        // QR code or secret display not found - UI may vary
       });
 
       // Verify backup codes are displayed
       const backupCodesSection = page.locator('text=/backup|recovery.*code/i');
       await expect(backupCodesSection.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-        console.log('Backup codes section not found');
+        // Backup codes section not found - UI may vary
       });
     } else {
-      console.log('Enable MFA button not found - may already be enabled or different UI');
+      // Enable MFA button not found - may already be enabled or different UI
     }
   });
 
@@ -107,7 +106,7 @@ test.describe('MFA Authentication', () => {
         // Verify success message or MFA enabled state
         const successIndicator = page.locator('text=/enabled|success|activated/i, [data-testid="mfa-enabled"]');
         await expect(successIndicator.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-          console.log('MFA enabled confirmation not found');
+          
         });
       }
     }
@@ -140,7 +139,7 @@ test.describe('MFA Authentication', () => {
         // Verify error message
         const errorMessage = page.locator('text=/invalid|incorrect|wrong/i, [role="alert"]');
         await expect(errorMessage.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-          console.log('Error message not found for invalid code');
+          
         });
       }
     }
@@ -177,7 +176,7 @@ test.describe('MFA Authentication', () => {
         // Verify successful login
         const authenticated = page.locator('[data-testid="user-menu"], button:has-text("profile")');
         await expect(authenticated.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-          console.log('Authentication indicator not found after MFA');
+          
         });
       }
     }
@@ -211,7 +210,7 @@ test.describe('MFA Authentication', () => {
         // Verify error message
         const errorMessage = page.locator('text=/invalid|incorrect|wrong|failed/i');
         await expect(errorMessage.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-          console.log('MFA error message not displayed');
+          
         });
 
         // Should still be on MFA challenge
@@ -256,7 +255,7 @@ test.describe('MFA Authentication', () => {
           // Verify successful authentication
           const authenticated = page.locator('[data-testid="user-menu"], button:has-text("profile")');
           await expect(authenticated.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-            console.log('Not authenticated after recovery code');
+            
           });
         }
       }
@@ -264,7 +263,7 @@ test.describe('MFA Authentication', () => {
   });
 
   test('should regenerate recovery codes', async ({ page }) => {
-    const newCodes = await mockMFARegenerateRecoveryCodes(page, {
+    await mockMFARegenerateRecoveryCodes(page, {
       codeCount: 10,
       requireCode: true,
       shouldSucceed: true,
@@ -292,7 +291,7 @@ test.describe('MFA Authentication', () => {
       // Verify new codes are displayed
       const codesDisplay = page.locator('text=/new.*code|recovery.*code/i');
       await expect(codesDisplay.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-        console.log('New recovery codes not displayed');
+        
       });
     }
   });
@@ -331,7 +330,7 @@ test.describe('MFA Authentication', () => {
         // Verify MFA disabled
         const successMessage = page.locator('text=/disabled|turned off|deactivated/i');
         await expect(successMessage.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-          console.log('MFA disable confirmation not shown');
+          
         });
       }
     }
@@ -363,7 +362,7 @@ test.describe('MFA Authentication', () => {
         // Verify lockout message
         const lockoutMessage = page.locator('text=/locked|too many.*attempt|try.*later/i');
         await expect(lockoutMessage.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-          console.log('Lockout message not displayed');
+          
         });
       }
     }
@@ -397,7 +396,7 @@ test.describe('MFA Authentication', () => {
         // Check for remaining attempts message
         const attemptsMessage = page.locator('text=/attempt.*remain|.*left/i');
         await expect(attemptsMessage.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-          console.log('Remaining attempts message not shown');
+          
         });
       }
     }

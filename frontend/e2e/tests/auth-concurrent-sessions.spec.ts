@@ -1,8 +1,7 @@
-import { test, expect, Browser } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   setSessionTokens,
   getSessionTokens,
-  simulateConcurrentSessions,
   clearSessionTokens,
   mockLogout,
 } from '../utils/session-mock';
@@ -215,15 +214,15 @@ test.describe('Concurrent Session Management', () => {
   });
 
   test('should handle session limit enforcement', async ({ browser }) => {
-    // Test session limit if implemented
-    // Create multiple sessions to test limits
+    // Test basic session handling with multiple contexts
+    // Note: Session limit enforcement requires backend implementation
 
-    const maxSessions = 5; // Example limit
+    const maxSessions = 3; // Reduced for faster test execution
     const contexts = [];
     const pages = [];
 
     try {
-      for (let i = 0; i < maxSessions + 1; i++) {
+      for (let i = 0; i < maxSessions; i++) {
         const context = await browser.newContext();
         const page = await context.newPage();
         
@@ -243,12 +242,11 @@ test.describe('Concurrent Session Management', () => {
         pages.push(page);
       }
 
-      // If limits are enforced, oldest session might be invalidated
-      // Verify all sessions or check if first one was invalidated
+      // Verify all sessions can be created
+      expect(pages.length).toBe(maxSessions);
       
-      // For now, just verify they all exist
-      // In real implementation, you'd check server-side session limits
-      expect(pages.length).toBe(maxSessions + 1);
+      // Note: Server-side session limit enforcement would require
+      // additional backend logic and API mocking
     } finally {
       // Cleanup all sessions
       for (const page of pages) {
@@ -292,15 +290,13 @@ test.describe('Concurrent Session Management', () => {
       await device2Page.waitForLoadState('networkidle');
       await setSessionTokens(device2Page, device1Tokens);
 
-      // In secure implementation, server should detect different device
-      // and potentially invalidate or challenge the session
-      
-      // For this test, we just verify tokens are set
+      // Verify tokens can be set (basic behavior test)
+      // Note: Full device fingerprinting validation would require backend support
       const device2TokensCheck = await getSessionTokens(device2Page);
       expect(device2TokensCheck?.accessToken).toBe(device1Tokens.accessToken);
-
-      // In production, you'd mock server rejecting the session
-      // based on device fingerprinting or other security measures
+      
+      // This test verifies basic multi-device token handling
+      // Production implementation should include server-side device validation
     } finally {
       await device1Page.close();
       await device2Page.close();

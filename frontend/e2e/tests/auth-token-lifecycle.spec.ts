@@ -57,8 +57,8 @@ test.describe('Token Lifecycle Management', () => {
       newTokens,
     });
 
-    // Wait for token to approach expiry
-    await page.waitForTimeout(2000);
+    // Simulate approaching expiry without long wait
+    await simulateTokenExpiry(page);
 
     // Make a request that should trigger refresh
     await page.goto('/');
@@ -180,7 +180,7 @@ test.describe('Token Lifecycle Management', () => {
 
     await setSessionTokens(page, tokens);
 
-    // Mock refresh
+    // Mock refresh and track calls
     let refreshCount = 0;
     await page.route('**/api/v1/auth/refresh', async (route) => {
       refreshCount++;
@@ -208,10 +208,10 @@ test.describe('Token Lifecycle Management', () => {
 
     await page.waitForLoadState('networkidle');
 
-    // Should only refresh once (de-duplicated)
-    // In a perfect implementation, refreshCount should be 1
-    // But we accept it might be called multiple times
+    // Verify refresh was called (ideally once for deduplication, but accepting multiple)
     expect(refreshCount).toBeGreaterThanOrEqual(1);
+    // Note: Perfect deduplication would result in refreshCount === 1,
+    // but this is acceptable implementation-dependent behavior
   });
 
   test('should handle token expiry edge case (expired mid-request)', async ({ page }) => {

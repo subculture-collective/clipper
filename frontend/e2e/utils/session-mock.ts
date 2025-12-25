@@ -297,7 +297,7 @@ export async function simulateTokenExpiry(page: Page): Promise<void> {
   const expiredTokens: SessionTokens = {
     accessToken: `expired_token_${Date.now()}`,
     refreshToken: `refresh_${Date.now()}`,
-    expiresAt: Date.now() - 1000, // Expired 1 second ago
+    expiresAt: Date.now() - 60000, // Expired 1 minute ago
   };
 
   await setSessionTokens(page, expiredTokens);
@@ -417,7 +417,6 @@ export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
   const tokens = await getSessionTokens(page);
   
   if (tokens) {
-    console.log('Session tokens still present after logout');
     return false;
   }
 
@@ -427,7 +426,6 @@ export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
   });
 
   if (hasLocalStorage) {
-    console.log('LocalStorage not cleared after logout');
     return false;
   }
 
@@ -437,30 +435,10 @@ export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
   });
 
   if (hasSessionStorage) {
-    console.log('SessionStorage not cleared after logout');
     return false;
   }
 
   return true;
-}
-
-/**
- * Monitor token refresh calls
- * 
- * Tracks when token refresh endpoint is called
- * 
- * @param page - Playwright Page object
- * @returns Array of refresh call timestamps
- */
-export async function monitorTokenRefreshCalls(page: Page): Promise<number[]> {
-  const refreshCalls: number[] = [];
-
-  await page.route('**/api/v1/auth/refresh', async (route: Route) => {
-    refreshCalls.push(Date.now());
-    await route.continue();
-  });
-
-  return refreshCalls;
 }
 
 /**

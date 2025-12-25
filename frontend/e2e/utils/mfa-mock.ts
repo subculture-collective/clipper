@@ -61,10 +61,12 @@ export function generateMockRecoveryCodes(count: number = 10): string[] {
 /**
  * Generate mock TOTP code
  * 
- * In real implementation, this would use TOTP algorithm
- * For testing, we generate predictable codes
+ * In real implementation, this would use TOTP algorithm with the secret.
+ * For testing, we generate predictable codes regardless of secret.
+ * 
+ * @param _secret - TOTP secret (reserved for future use)
  */
-export function generateMockTOTPCode(secret?: string): MFATOTPCode {
+export function generateMockTOTPCode(_secret?: string): MFATOTPCode {
   return {
     code: '123456', // Standard test code
     timestamp: Date.now(),
@@ -87,7 +89,7 @@ export async function mockMFAEnrollment(
   } = {}
 ): Promise<MFASecret> {
   const secret = options.secret || generateMockTOTPSecret();
-  const backupCodes = generateMockRecoveryCodes(options.backupCodeCount);
+  const backupCodes = generateMockRecoveryCodes(options.backupCodeCount ?? 10);
   const qrCodeUrl = `otpauth://totp/Clipper:testuser?secret=${secret}&issuer=Clipper`;
 
   // Mock MFA enrollment endpoint

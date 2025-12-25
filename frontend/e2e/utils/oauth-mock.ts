@@ -257,8 +257,8 @@ export async function simulateOAuthPopup(
     // Simulate OAuth approval
     await popup.waitForLoadState('domcontentloaded');
     
-    // In real scenario, user would click "Authorize" button
-    // For mock, we can just close the popup after setting up callback
+    // In this mock, we skip the "Authorize" button click and just close the popup
+    // The route mocking in mockOAuthSuccess handles the callback automatically
     await popup.close();
     
     return popup;

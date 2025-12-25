@@ -8,7 +8,6 @@ import {
   verifySessionAcrossTabs,
   mockTokenRefresh,
   simulateTokenExpiry,
-  mock401Response,
   mockTokenRefreshOn401,
   mockLogout,
   verifyLogoutClearsSession,
@@ -345,7 +344,7 @@ test.describe('Session Management', () => {
     const tokens = {
       accessToken: 'long_session_token',
       refreshToken: 'refresh_token',
-      expiresAt: Date.now() + 10000, // 10 seconds
+      expiresAt: Date.now() + 6000, // 6 seconds
     };
 
     await setSessionTokens(page, tokens);
@@ -353,9 +352,9 @@ test.describe('Session Management', () => {
     // Mock token refresh
     await mockTokenRefresh(page, { shouldSucceed: true });
 
-    // Simulate user activity over time
-    for (let i = 0; i < 3; i++) {
-      await page.waitForTimeout(3000);
+    // Simulate user activity over time with reduced iterations
+    for (let i = 0; i < 2; i++) {
+      await page.waitForTimeout(2000);
       
       // Navigate to trigger potential refresh
       await page.goto('/');

@@ -33,7 +33,7 @@ test.describe('OAuth Authentication', () => {
 
   test('should complete successful OAuth login flow', async ({ page }) => {
     // Mock successful OAuth
-    const { user, tokens } = await mockOAuthSuccess(page, {
+    await mockOAuthSuccess(page, {
       user: {
         username: 'testuser_oauth',
         displayName: 'Test OAuth User',
@@ -75,7 +75,7 @@ test.describe('OAuth Authentication', () => {
     const errorIndicator = page.locator('text=/denied|error|failed/i');
     await expect(errorIndicator.first()).toBeVisible({ timeout: 5000 }).catch(() => {
       // Error might be shown in different ways, so this is optional
-      console.log('Error message not found in expected format');
+      
     });
 
     // Verify user is still not logged in
@@ -97,7 +97,7 @@ test.describe('OAuth Authentication', () => {
     // Verify error is handled gracefully
     const errorIndicator = page.locator('text=/error|failed|try again/i');
     await expect(errorIndicator.first()).toBeVisible({ timeout: 5000 }).catch(() => {
-      console.log('Server error message not found in expected format');
+      
     });
 
     // User should still be on login flow
@@ -117,7 +117,7 @@ test.describe('OAuth Authentication', () => {
       await page.waitForLoadState('networkidle', { timeout: 3000 });
     } catch (error) {
       // Request aborted is expected
-      console.log('OAuth aborted as expected');
+      
     }
 
     // Verify user remains logged out
@@ -147,7 +147,7 @@ test.describe('OAuth Authentication', () => {
 
   test('should complete PKCE OAuth flow', async ({ page }) => {
     // Mock PKCE OAuth flow
-    const { user, tokens } = await mockOAuthPKCE(page, {
+    await mockOAuthPKCE(page, {
       user: {
         username: 'pkce_user',
         displayName: 'PKCE Test User',
@@ -211,7 +211,7 @@ test.describe('OAuth Authentication', () => {
       await popup.close();
     } else {
       // Redirect flow: verify redirect occurred
-      console.log('No popup detected, using redirect flow');
+      
     }
 
     // Wait for completion
@@ -250,21 +250,20 @@ test.describe('OAuth Authentication', () => {
   });
 
   test('should handle OAuth timeout gracefully', async ({ page }) => {
-    // Mock OAuth with long delay to simulate timeout
+    // Mock OAuth with short delay to simulate timeout
     await page.route('**/api/v1/auth/twitch', async (route) => {
-      // Don't fulfill - let it timeout
-      // In real test, we'd wait for timeout handling
+      // Abort after short delay to simulate timeout
       setTimeout(async () => {
         await route.abort('timedout');
-      }, 5000);
+      }, 2000);
     });
 
     // Click login button
     const loginButton = page.getByRole('button', { name: /login|sign in/i }).first();
     await loginButton.click();
 
-    // Wait a bit for timeout handling
-    await page.waitForTimeout(6000);
+    // Wait for timeout handling
+    await page.waitForTimeout(3000);
 
     // Should still be able to see login button or error
     const hasLoginOrError = await Promise.race([
