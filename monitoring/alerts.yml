@@ -341,7 +341,7 @@ groups:
       # Low Embedding Coverage
       - alert: LowEmbeddingCoverage
         expr: |
-          (clips_with_embeddings + clips_without_embeddings) > 0 
+          (clips_with_embeddings + clips_without_embeddings) > 0
           and clips_without_embeddings / (clips_with_embeddings + clips_without_embeddings) > 0.1
         for: 30m
         labels:
@@ -899,4 +899,3 @@ groups:
           summary: "High item failure rate for job {{ $labels.job_name }}"
           description: "Job {{ $labels.job_name }} has {{ $value | humanizePercentage }} item failure rate (threshold: 20%)."
           runbook: "docs/operations/runbooks/background-jobs.md#high-item-failure-rate"
-
