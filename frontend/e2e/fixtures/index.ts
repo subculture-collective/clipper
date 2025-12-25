@@ -1,7 +1,15 @@
 import { test as base, Page } from '@playwright/test';
-import { LoginPage, HomePage, ClipPage } from '../pages';
+import { LoginPage, HomePage, ClipPage, SubmitClipPage, AdminModerationPage } from '../pages';
 import { login, isAuthenticated } from '../utils/auth';
-import { createUser, createClip, deleteUser, deleteClip } from '../utils/db-seed';
+import { 
+  createUser, 
+  createClip, 
+  createSubmission,
+  deleteUser, 
+  deleteClip,
+  deleteSubmission,
+  seedSubmissions 
+} from '../utils/db-seed';
 
 /**
  * Custom Test Fixtures
@@ -33,14 +41,18 @@ type CustomFixtures = {
   loginPage: LoginPage;
   homePage: HomePage;
   clipPage: ClipPage;
+  submitClipPage: SubmitClipPage;
+  adminModerationPage: AdminModerationPage;
   
   // Authenticated context
   authenticatedPage: Page;
   authenticatedUser: any;
+  adminUser: any;
   
   // Test data
   testUser: any;
   testClip: any;
+  testSubmission: any;
 };
 
 /**
@@ -72,6 +84,24 @@ export const test = base.extend<CustomFixtures>({
   clipPage: async ({ page }, use) => {
     const clipPage = new ClipPage(page);
     await use(clipPage);
+  },
+
+  /**
+   * SubmitClipPage fixture
+   * Automatically initialized for each test
+   */
+  submitClipPage: async ({ page }, use) => {
+    const submitClipPage = new SubmitClipPage(page);
+    await use(submitClipPage);
+  },
+
+  /**
+   * AdminModerationPage fixture
+   * Automatically initialized for each test
+   */
+  adminModerationPage: async ({ page }, use) => {
+    const adminModerationPage = new AdminModerationPage(page);
+    await use(adminModerationPage);
   },
 
   /**
@@ -147,6 +177,30 @@ export const test = base.extend<CustomFixtures>({
   },
 
   /**
+   * Admin user fixture
+   * Creates an admin user for testing admin features
+   * Automatically cleans up after test
+   */
+  adminUser: async ({ page }, use) => {
+    const user = await createUser(page, {
+      username: `admin_${Date.now()}`,
+      email: `admin_${Date.now()}@example.com`,
+      role: 'admin',
+    });
+    
+    await use(user);
+    
+    // Cleanup
+    if (user.id && !user.id.startsWith('mock-')) {
+      try {
+        await deleteUser(page, user.id);
+      } catch (error) {
+        console.warn('Could not delete admin user:', error);
+      }
+    }
+  },
+
+  /**
    * Test clip fixture
    * Creates a clip for testing
    * Automatically cleans up after test
@@ -166,6 +220,32 @@ export const test = base.extend<CustomFixtures>({
         await deleteClip(page, clip.id);
       } catch (error) {
         console.warn('Could not delete test clip:', error);
+      }
+    }
+  },
+
+  /**
+   * Test submission fixture
+   * Creates a submission for testing
+   * Automatically cleans up after test
+   */
+  testSubmission: async ({ page, testUser }, use) => {
+    const submission = await createSubmission(page, {
+      clipUrl: `https://clips.twitch.tv/test-${Date.now()}`,
+      title: `Test Submission ${Date.now()}`,
+      description: 'Test submission description',
+      tags: ['test', 'e2e'],
+      userId: testUser.id,
+    });
+    
+    await use(submission);
+    
+    // Cleanup
+    if (submission.id && !submission.id.startsWith('mock-')) {
+      try {
+        await deleteSubmission(page, submission.id);
+      } catch (error) {
+        console.warn('Could not delete test submission:', error);
       }
     }
   },

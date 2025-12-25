@@ -260,6 +260,22 @@ export async function deleteClip(page: Page, clipId: string): Promise<void> {
 }
 
 /**
+ * Delete a submission (cleanup)
+ * 
+ * @param page - Playwright Page object
+ * @param submissionId - ID of submission to delete
+ */
+export async function deleteSubmission(page: Page, submissionId: string): Promise<void> {
+  const apiUrl = getApiBaseUrl();
+  
+  try {
+    await page.request.delete(`${apiUrl}/submissions/${submissionId}`);
+  } catch (error) {
+    console.warn('Failed to delete submission:', error);
+  }
+}
+
+/**
  * Seed multiple test clips
  * 
  * @param page - Playwright Page object
@@ -284,6 +300,35 @@ export async function seedClips(
   }
   
   return clips;
+}
+
+/**
+ * Seed multiple submissions for a user
+ * 
+ * @param page - Playwright Page object
+ * @param userId - User ID to create submissions for
+ * @param count - Number of submissions to create
+ * @returns Promise that resolves to array of created submissions
+ */
+export async function seedSubmissions(
+  page: Page,
+  userId: string,
+  count: number = 10
+): Promise<any[]> {
+  const submissions = [];
+  
+  for (let i = 0; i < count; i++) {
+    const submission = await createSubmission(page, {
+      clipUrl: `https://clips.twitch.tv/test-${Date.now()}-${i}`,
+      title: `Test Submission ${i + 1}`,
+      description: `Test submission description ${i + 1}`,
+      tags: ['test', 'e2e'],
+      userId,
+    });
+    submissions.push(submission);
+  }
+  
+  return submissions;
 }
 
 /**
@@ -323,5 +368,31 @@ export async function clearTestData(page: Page): Promise<void> {
     }
   } catch (error) {
     console.warn('Failed to clear test data:', error);
+  }
+}
+
+/**
+ * Get notifications for a user
+ * 
+ * @param page - Playwright Page object
+ * @param userId - User ID to get notifications for
+ * @returns Promise that resolves to array of notifications
+ */
+export async function getNotifications(page: Page, userId: string): Promise<any[]> {
+  const apiUrl = getApiBaseUrl();
+  
+  try {
+    const response = await page.request.get(`${apiUrl}/users/${userId}/notifications`);
+    
+    if (!response.ok()) {
+      console.warn('Failed to get notifications via API');
+      return [];
+    }
+    
+    const data = await response.json();
+    return data.notifications || data.data || [];
+  } catch (error) {
+    console.warn('API not available for notifications:', error);
+    return [];
   }
 }

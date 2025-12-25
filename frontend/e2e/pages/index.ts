@@ -14,3 +14,5 @@ export { BasePage } from './BasePage';
 export { LoginPage } from './LoginPage';
 export { HomePage } from './HomePage';
 export { ClipPage } from './ClipPage';
+export { SubmitClipPage } from './SubmitClipPage';
+export { AdminModerationPage } from './AdminModerationPage';
