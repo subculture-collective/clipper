@@ -16,7 +16,7 @@ type TwitchClientInterface interface {
 	GetClips(ctx context.Context, params *twitch.ClipParams) (*twitch.ClipsResponse, error)
 	GetUsers(ctx context.Context, userIDs []string, logins []string) (*twitch.UsersResponse, error)
 	GetGames(ctx context.Context, gameIDs []string, gameNames []string) (*twitch.GamesResponse, error)
-	GetStreams(ctx context.Context, params *twitch.StreamParams) (*twitch.StreamsResponse, error)
+	GetStreams(ctx context.Context, userIDs []string) (*twitch.StreamsResponse, error)
 	ValidateClip(ctx context.Context, clipID string) (*twitch.Clip, error)
 	GetCachedUser(ctx context.Context, userID string) (*twitch.User, error)
 	GetCachedGame(ctx context.Context, gameID string) (*twitch.Game, error)
@@ -251,7 +251,7 @@ func (m *MockTwitchClient) GetGames(ctx context.Context, gameIDs []string, gameN
 }
 
 // GetStreams returns mock streams
-func (m *MockTwitchClient) GetStreams(ctx context.Context, params *twitch.StreamParams) (*twitch.StreamsResponse, error) {
+func (m *MockTwitchClient) GetStreams(ctx context.Context, userIDs []string) (*twitch.StreamsResponse, error) {
 	if m.SimulateLatency > 0 {
 		time.Sleep(m.SimulateLatency)
 	}
@@ -270,24 +270,10 @@ func (m *MockTwitchClient) GetStreams(ctx context.Context, params *twitch.Stream
 	var streams []twitch.Stream
 	for _, stream := range m.Streams {
 		// Filter by user IDs
-		if len(params.UserIDs) > 0 {
+		if len(userIDs) > 0 {
 			found := false
-			for _, id := range params.UserIDs {
+			for _, id := range userIDs {
 				if stream.UserID == id {
-					found = true
-					break
-				}
-			}
-			if !found {
-				continue
-			}
-		}
-
-		// Filter by game IDs
-		if len(params.GameIDs) > 0 {
-			found := false
-			for _, id := range params.GameIDs {
-				if stream.GameID == id {
 					found = true
 					break
 				}
