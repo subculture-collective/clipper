@@ -2,8 +2,7 @@ import { test, expect } from '../fixtures';
 import { 
   seedSubmissions, 
   createClip, 
-  deleteClip,
-  getNotifications 
+  deleteClip
 } from '../utils/db-seed';
 
 /**
@@ -25,7 +24,6 @@ import {
 // Test constants
 const VALID_TWITCH_CLIP_URL = 'https://clips.twitch.tv/AwkwardHelplessSalamanderSwiftRage';
 const DUPLICATE_CLIP_URL = 'https://clips.twitch.tv/DuplicateClipTestId';
-const DUPLICATE_TWITCH_CLIP_ID = 'DuplicateClipTestId';
 
 test.describe('Clip Submission E2E Flow', () => {
   test.describe('Authentication & Authorization', () => {
@@ -233,9 +231,6 @@ test.describe('Clip Submission E2E Flow', () => {
       
       await adminModerationPage.goto();
       await adminModerationPage.waitForQueueLoad();
-      
-      // Get the submission ID from the page (simplified for E2E test)
-      const submissionId = 'test-submission-id'; // In real scenario, extract from UI
       
       // Note: In a full implementation, we'd extract the actual submission ID
       // from the confirmation page or API response. For now, we validate

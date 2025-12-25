@@ -7,8 +7,7 @@ import {
   createSubmission,
   deleteUser, 
   deleteClip,
-  deleteSubmission,
-  seedSubmissions 
+  deleteSubmission
 } from '../utils/db-seed';
 
 /**
@@ -137,7 +136,8 @@ export const test = base.extend<CustomFixtures>({
    * Authenticated user fixture
    * Creates a test user and logs them in
    */
-  authenticatedUser: async ({ page }, use) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  authenticatedUser: async ({ page }: any, use: any) => {
     // Create a test user
     const user = await createUser(page, {
       username: `testuser_${Date.now()}`,
@@ -162,7 +162,8 @@ export const test = base.extend<CustomFixtures>({
    * Creates a user without authentication
    * Automatically cleans up after test
    */
-  testUser: async ({ page }, use) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  testUser: async ({ page }: any, use: any) => {
     const user = await createUser(page);
     await use(user);
     
@@ -181,7 +182,8 @@ export const test = base.extend<CustomFixtures>({
    * Creates an admin user for testing admin features
    * Automatically cleans up after test
    */
-  adminUser: async ({ page }, use) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminUser: async ({ page }: any, use: any) => {
     const user = await createUser(page, {
       username: `admin_${Date.now()}`,
       email: `admin_${Date.now()}@example.com`,
@@ -205,7 +207,8 @@ export const test = base.extend<CustomFixtures>({
    * Creates a clip for testing
    * Automatically cleans up after test
    */
-  testClip: async ({ page }, use) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  testClip: async ({ page }: any, use: any) => {
     const clip = await createClip(page, {
       title: `Test Clip ${Date.now()}`,
       streamerName: 'TestStreamer',
@@ -229,7 +232,8 @@ export const test = base.extend<CustomFixtures>({
    * Creates a submission for testing
    * Automatically cleans up after test
    */
-  testSubmission: async ({ page, testUser }, use) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  testSubmission: async ({ page, testUser }: any, use: any) => {
     const submission = await createSubmission(page, {
       clipUrl: `https://clips.twitch.tv/test-${Date.now()}`,
       title: `Test Submission ${Date.now()}`,
