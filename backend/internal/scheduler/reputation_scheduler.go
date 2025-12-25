@@ -160,7 +160,7 @@ func (s *ReputationScheduler) runTasks(ctx context.Context) {
 	// Record metrics
 	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
 	metrics.JobItemsProcessed.WithLabelValues(jobName, "success").Add(float64(statsUpdated))
-	
+
 	if errors > 0 {
 		metrics.JobItemsProcessed.WithLabelValues(jobName, "failed").Add(float64(errors))
 	}
