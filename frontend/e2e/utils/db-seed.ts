@@ -291,6 +291,14 @@ export async function seedClips(
  * 
  * Note: This is a destructive operation. Only use in test environments.
  * 
+ * **Security:** Requires the ALLOW_TEST_DATA_CLEAR environment variable to be set to 'true'.
+ * This prevents accidental data deletion in non-test environments.
+ * 
+ * **Usage:**
+ * ```bash
+ * ALLOW_TEST_DATA_CLEAR=true npm run test:e2e
+ * ```
+ * 
  * @param page - Playwright Page object
  */
 export async function clearTestData(page: Page): Promise<void> {
