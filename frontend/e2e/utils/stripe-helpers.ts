@@ -39,6 +39,23 @@ export const TEST_CARD_DETAILS = {
 } as const;
 
 /**
+ * Default test price IDs (fallback when not configured)
+ */
+export const TEST_PRICE_IDS = {
+  monthly: 'price_test_monthly',
+  yearly: 'price_test_yearly',
+} as const;
+
+/**
+ * Stripe Checkout iframe selectors
+ */
+const STRIPE_IFRAME_SELECTORS = {
+  cardNumber: 'iframe[title*="Secure card number"]',
+  expiry: 'iframe[title*="Secure expiration"]',
+  cvc: 'iframe[title*="Secure CVC"]',
+} as const;
+
+/**
  * Webhook event types for subscription lifecycle
  */
 export const WEBHOOK_EVENTS = {
@@ -100,15 +117,15 @@ export async function fillStripeCheckoutForm(
   }
 
   // Fill card number
-  const cardNumberField = page.frameLocator('iframe[title*="Secure card number"]').locator('input[name="cardnumber"], input[placeholder*="card number"]');
+  const cardNumberField = page.frameLocator(STRIPE_IFRAME_SELECTORS.cardNumber).locator('input[name="cardnumber"], input[placeholder*="card number"]');
   await cardNumberField.fill(cardNumber);
 
   // Fill expiry
-  const expiryField = page.frameLocator('iframe[title*="Secure expiration"]').locator('input[name="exp-date"], input[placeholder*="MM"]');
+  const expiryField = page.frameLocator(STRIPE_IFRAME_SELECTORS.expiry).locator('input[name="exp-date"], input[placeholder*="MM"]');
   await expiryField.fill(expiry);
 
   // Fill CVC
-  const cvcField = page.frameLocator('iframe[title*="Secure CVC"]').locator('input[name="cvc"], input[placeholder*="CVC"]');
+  const cvcField = page.frameLocator(STRIPE_IFRAME_SELECTORS.cvc).locator('input[name="cvc"], input[placeholder*="CVC"]');
   await cvcField.fill(cvc);
 
   // Fill ZIP if visible
@@ -169,6 +186,10 @@ export async function completeStripeCheckout(
 /**
  * Mock a Stripe webhook event
  * Sends webhook to backend for testing
+ * 
+ * NOTE: This creates webhooks without proper Stripe signatures.
+ * This is acceptable for E2E testing but should NEVER be used in production.
+ * Production webhook handling must always validate Stripe signatures.
  */
 export async function sendMockWebhook(
   page: Page,
@@ -190,8 +211,8 @@ export async function sendMockWebhook(
     created: Math.floor(Date.now() / 1000),
   };
 
-  // In a real scenario, you'd use Stripe signature
-  // For testing, we assume webhook endpoint accepts test events
+  // NOTE: In a real scenario, you'd use Stripe signature
+  // For E2E testing, we assume webhook endpoint accepts test events
   const response = await page.request.post(`${baseUrl}/api/v1/webhooks/stripe`, {
     data: webhookPayload,
     headers: {
@@ -270,8 +291,8 @@ export async function verifyStripeTestMode(page: Page) {
  */
 export function getStripePriceIds() {
   return {
-    monthly: process.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || 'price_test_monthly',
-    yearly: process.env.VITE_STRIPE_PRO_YEARLY_PRICE_ID || 'price_test_yearly',
+    monthly: process.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID || TEST_PRICE_IDS.monthly,
+    yearly: process.env.VITE_STRIPE_PRO_YEARLY_PRICE_ID || TEST_PRICE_IDS.yearly,
   };
 }
 

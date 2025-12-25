@@ -13,7 +13,7 @@ export class SubscriptionSuccessPage extends BasePage {
   readonly goToHomeButton: Locator;
 
   constructor(page: Page) {
-    super(page);
+    super(page, '/subscription/success');
     
     this.successMessage = page.locator('text=/success|welcome.*pro|subscription.*active/i').first();
     this.subscriptionDetails = page.locator('[data-testid="subscription-details"]');
@@ -50,7 +50,7 @@ export class SubscriptionCancelPage extends BasePage {
   readonly returnToHomeButton: Locator;
 
   constructor(page: Page) {
-    super(page);
+    super(page, '/subscription/cancel');
     
     this.cancelMessage = page.locator('text=/cancel|subscription.*ended/i').first();
     this.feedbackForm = page.locator('form:has-text("feedback"), [data-testid="cancel-feedback"]');

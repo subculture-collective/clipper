@@ -169,8 +169,8 @@ test.describe('Premium Subscription - Cancellation', () => {
       await confirmButton.click();
     }
     
-    // Wait for status update
-    await page.waitForTimeout(2000);
+    // Wait for status update - watch for loading state to complete
+    await page.waitForLoadState('networkidle');
     
     // Verify cancellation indication
     // Could be immediate or scheduled for period end
@@ -213,8 +213,8 @@ test.describe('Premium Subscription - Cancellation', () => {
     // Click reactivate
     await settingsPage.clickReactivateSubscription();
     
-    // Wait for status update
-    await page.waitForTimeout(2000);
+    // Wait for status update - watch for loading state to complete
+    await page.waitForLoadState('networkidle');
     
     // Verify cancellation is removed
     const activeText = page.locator('text=/active|renew/i');

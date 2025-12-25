@@ -216,8 +216,10 @@ test.describe('Premium Subscription - Webhook Idempotency Verification', () => {
       
       states.push({ plan, status });
       
-      // Wait a bit between loads
-      await page.waitForTimeout(1000);
+      // Wait for any pending updates to complete
+      if (i < 2) {
+        await page.waitForLoadState('networkidle');
+      }
     }
     
     // All states should be identical

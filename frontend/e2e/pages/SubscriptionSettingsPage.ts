@@ -23,7 +23,7 @@ export class SubscriptionSettingsPage extends BasePage {
   readonly upgradeButton: Locator;
 
   constructor(page: Page) {
-    super(page);
+    super(page, '/settings');
     
     // Main subscription section
     this.subscriptionSection = page.locator('[data-testid="subscription-section"], section:has-text("Subscription")');

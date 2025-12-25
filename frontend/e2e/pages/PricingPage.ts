@@ -21,7 +21,7 @@ export class PricingPage extends BasePage {
   readonly pricingHeader: Locator;
 
   constructor(page: Page) {
-    super(page);
+    super(page, '/pricing');
     
     // Billing period toggles
     this.monthlyToggle = page.getByRole('button', { name: /monthly/i });
