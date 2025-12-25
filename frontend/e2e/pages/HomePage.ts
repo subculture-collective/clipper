@@ -100,7 +100,8 @@ export class HomePage extends BasePage {
     
     if (await sortButton.isVisible()) {
       await sortButton.click();
-      await this.page.waitForTimeout(1000); // Wait for content to update
+      // Wait for network activity to settle after sort change
+      await this.page.waitForLoadState('networkidle');
     }
   }
 
@@ -108,8 +109,21 @@ export class HomePage extends BasePage {
    * Scroll to load more clips (infinite scroll)
    */
   async scrollToLoadMore(): Promise<void> {
+    const previousCount = await this.clipCards.count();
     await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await this.page.waitForTimeout(2000); // Wait for new clips to load
+    
+    // Wait for new clips to appear or timeout
+    await this.page.waitForFunction(
+      (expectedCount) => {
+        const elements = document.querySelectorAll('[data-testid="clip-card"]');
+        return elements.length > expectedCount;
+      },
+      previousCount,
+      { timeout: 5000 }
+    ).catch(() => {
+      // If no new clips load, that's okay (might be at the end)
+      console.log('No new clips loaded after scroll');
+    });
   }
 
   /**

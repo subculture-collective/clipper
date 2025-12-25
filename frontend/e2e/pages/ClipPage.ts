@@ -143,7 +143,16 @@ export class ClipPage extends BasePage {
   async postComment(commentText: string): Promise<void> {
     await this.fillInput(this.commentInput, commentText);
     await this.click(this.submitCommentButton);
-    await this.page.waitForTimeout(1000); // Wait for comment to post
+    
+    // Wait for the comment to appear in the list
+    await this.page
+      .locator('[data-testid="comment"], .comment')
+      .filter({ hasText: commentText })
+      .first()
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => {
+        console.log('Comment may not have appeared yet');
+      });
   }
 
   /**

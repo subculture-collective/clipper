@@ -110,7 +110,10 @@ export async function logout(page: Page): Promise<void> {
     const userMenu = page.locator('[data-testid="user-menu"], button:has-text("profile"), [aria-label*="user" i]');
     if (await userMenu.isVisible({ timeout: 1000 }).catch(() => false)) {
       await userMenu.first().click();
-      await page.waitForTimeout(500);
+      // Wait for logout button to become visible after opening menu
+      await logoutButton.waitFor({ state: 'visible', timeout: 2000 }).catch(() => {
+        console.log('Logout button not found in menu');
+      });
     }
   }
   

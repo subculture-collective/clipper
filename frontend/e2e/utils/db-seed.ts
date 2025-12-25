@@ -59,7 +59,15 @@ export interface CommentData {
  * Get API base URL from environment or page context
  */
 function getApiBaseUrl(): string {
-  return process.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+  const envUrl = process.env.VITE_API_URL;
+
+  if (!envUrl) {
+    console.warn(
+      'VITE_API_URL is not set; falling back to default http://localhost:8080/api/v1'
+    );
+  }
+
+  return envUrl || 'http://localhost:8080/api/v1';
 }
 
 /**
@@ -287,11 +295,23 @@ export async function seedClips(
  */
 export async function clearTestData(page: Page): Promise<void> {
   const apiUrl = getApiBaseUrl();
+  const allowClear = process.env.ALLOW_TEST_DATA_CLEAR === 'true';
+
+  if (!allowClear) {
+    console.warn(
+      'clearTestData was called but ALLOW_TEST_DATA_CLEAR is not set to "true". Skipping test data deletion.'
+    );
+    return;
+  }
   
   try {
     // Only clear test data in non-production environments
     if (apiUrl.includes('localhost') || apiUrl.includes('test')) {
       await page.request.delete(`${apiUrl}/admin/test-data`);
+    } else {
+      console.warn(
+        `clearTestData was allowed by environment variable but API base URL "${apiUrl}" does not look like a test environment. Skipping test data deletion.`
+      );
     }
   } catch (error) {
     console.warn('Failed to clear test data:', error);

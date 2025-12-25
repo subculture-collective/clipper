@@ -171,8 +171,12 @@ test.describe('Framework Demo - API Mocking', () => {
     // Navigate and verify mocked data appears
     await homePage.goto();
     
-    // Wait a moment for any API calls to be intercepted
-    await page.waitForTimeout(1000);
+    // Wait for the mocked clips API call to complete
+    await page.waitForResponse((response) =>
+      response.url().includes('clips') && response.request().method() === 'GET'
+    ).catch(() => {
+      console.log('Clips API call not intercepted');
+    });
     
     // In a real test, you'd verify the mocked data appears
     // This is just a framework demonstration
