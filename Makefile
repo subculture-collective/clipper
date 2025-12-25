@@ -48,10 +48,28 @@ test-integration: ## Run integration tests (requires Docker)
 	@echo "Running database migrations..."
 	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
 	@echo "Running integration tests..."
-	cd backend && go test -v -tags=integration ./tests/integration/...
+	cd backend && go test -v -tags=integration -race -parallel=4 ./tests/integration/...
 	@echo "Stopping test database..."
 	docker compose -f docker-compose.test.yml down
 	@echo "✓ Integration tests complete"
+
+test-integration-coverage: ## Run integration tests with coverage report
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running integration tests with coverage..."
+	cd backend && go test -v -tags=integration -race -parallel=4 -coverprofile=coverage-integration.out -covermode=atomic ./tests/integration/...
+	@echo "Generating coverage report..."
+	cd backend && go tool cover -html=coverage-integration.out -o coverage-integration.html
+	@echo "Calculating coverage percentage..."
+	@cd backend && go tool cover -func=coverage-integration.out | grep total | awk '{print "Integration test coverage: " $$3}'
+	@echo "Coverage report generated at backend/coverage-integration.html"
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Integration tests with coverage complete"
 
 test-integration-auth: ## Run authentication integration tests only
 	@echo "Starting test database..."

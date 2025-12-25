@@ -245,3 +245,67 @@ func GenerateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UU
 	
 	return accessToken, refreshToken
 }
+
+// WithTestCleanup runs a test with a cleanup function that's guaranteed to execute
+// Use this pattern when you need to ensure cleanup of test data
+func WithTestCleanup(t *testing.T, setup func() func(), testFn func()) {
+	t.Helper()
+
+	cleanup := setup()
+	defer func() {
+		if cleanup != nil {
+			cleanup()
+		}
+	}()
+
+	testFn()
+}
+
+// IsolatedTest runs a test with automatic cleanup of test data
+// It tracks created resources and cleans them up after the test completes
+// The test function receives a unique prefix to use for Redis key naming
+func IsolatedTest(t *testing.T, db *database.DB, redisClient *redispkg.Client, fn func(prefix string)) {
+	ctx := context.Background()
+	
+	// Generate a unique prefix for this test
+	testPrefix := fmt.Sprintf("test_%s_", uuid.New().String()[:8])
+	
+	// Clean up Redis test keys after the test
+	defer func() {
+		if redisClient != nil {
+			keys, err := redisClient.Client.Keys(ctx, testPrefix+"*").Result()
+			if err == nil {
+				for _, key := range keys {
+					_ = redisClient.Client.Del(ctx, key).Err()
+				}
+			}
+		}
+	}()
+	
+	// Run the test function with the prefix
+	fn(testPrefix)
+}
+
+// ParallelTest marks a test as safe to run in parallel and sets up isolation
+func ParallelTest(t *testing.T) {
+	t.Parallel()
+	
+	// Additional parallel-safe setup can go here
+	// Each parallel test should use its own test data to avoid conflicts
+}
+
+// CleanupTestData removes test data created during a test
+// This is a fallback for when transactional tests aren't feasible
+func CleanupTestData(t *testing.T, db *database.DB, userIDs []uuid.UUID) {
+	ctx := context.Background()
+	
+	// Clean up users and their related data
+	for _, userID := range userIDs {
+		// Note: Actual cleanup would depend on your schema's cascade rules
+		// This is a simplified version
+		_, err := db.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
+		if err != nil {
+			t.Logf("Warning: Failed to cleanup user %s: %v", userID, err)
+		}
+	}
+}
