@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // ReputationServiceInterface defines the interface required by the scheduler
@@ -76,6 +77,7 @@ func (s *ReputationScheduler) Stop() {
 
 // runTasks executes reputation maintenance tasks
 func (s *ReputationScheduler) runTasks(ctx context.Context) {
+	jobName := "reputation_tasks"
 	log.Println("Starting scheduled reputation tasks...")
 	startTime := time.Now()
 
@@ -83,6 +85,8 @@ func (s *ReputationScheduler) runTasks(ctx context.Context) {
 	userIDs, err := s.userRepo.GetAllActiveUserIDs(ctx)
 	if err != nil {
 		log.Printf("Failed to get active users: %v", err)
+		metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
+		metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(time.Since(startTime).Seconds())
 		return
 	}
 
@@ -152,6 +156,33 @@ func (s *ReputationScheduler) runTasks(ctx context.Context) {
 	wg.Wait()
 	close(resultCh)
 	duration := time.Since(startTime)
+
+	// Record metrics
+	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
+	metrics.JobItemsProcessed.WithLabelValues(jobName, "success").Add(float64(statsUpdated))
+	
+	if errors > 0 {
+		metrics.JobItemsProcessed.WithLabelValues(jobName, "failed").Add(float64(errors))
+	}
+
+	// Consider the job successful if majority of operations succeeded
+	totalOperations := statsUpdated + errors
+	if totalOperations == 0 {
+		// No operations processed, treat as successful
+		metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
+		metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+	} else {
+		failureRatio := float64(errors) / float64(totalOperations)
+		if failureRatio > 0.5 {
+			// More than 50% failures - mark as failed
+			metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
+		} else {
+			// Majority succeeded - mark as success
+			metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
+			metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+		}
+	}
+
 	log.Printf("Reputation tasks completed: users=%d badges_awarded=%d stats_updated=%d errors=%d duration=%v",
 		len(userIDs), badgesAwarded, statsUpdated, errors, duration)
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // ClipSyncServiceInterface defines the interface required by the scheduler
@@ -64,14 +65,30 @@ func (s *ClipSyncScheduler) Stop() {
 
 // runSync executes a sync operation
 func (s *ClipSyncScheduler) runSync(ctx context.Context) {
+	jobName := "clip_sync"
 	log.Println("Starting scheduled clip sync...")
+	startTime := time.Now()
 
 	// Sync trending clips from the last 24 hours
 	// Rotate pagination over a fixed window to keep volume low
 	stats, err := s.syncService.SyncTrendingClips(ctx, 24, &services.TrendingSyncOptions{MaxPages: services.DefaultTrendingPageWindow})
+	duration := time.Since(startTime)
+
+	// Record metrics
+	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
+
 	if err != nil {
 		log.Printf("Scheduled sync failed: %v", err)
+		metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
 		return
+	}
+
+	metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
+	metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+	metrics.JobItemsProcessed.WithLabelValues(jobName, "success").Add(float64(stats.ClipsCreated + stats.ClipsUpdated))
+	metrics.JobItemsProcessed.WithLabelValues(jobName, "skipped").Add(float64(stats.ClipsSkipped))
+	if len(stats.Errors) > 0 {
+		metrics.JobItemsProcessed.WithLabelValues(jobName, "failed").Add(float64(len(stats.Errors)))
 	}
 
 	log.Printf("Scheduled sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v",
