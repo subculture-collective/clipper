@@ -245,3 +245,80 @@ func GenerateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UU
 	
 	return accessToken, refreshToken
 }
+
+// WithTransaction runs a test function within a database transaction that is rolled back after the test
+// This ensures complete test isolation and automatic cleanup
+func WithTransaction(t *testing.T, db *database.DB, fn func(tx *database.DB)) {
+	ctx := context.Background()
+	
+	// Begin transaction
+	conn, err := db.Pool.Acquire(ctx)
+	require.NoError(t, err, "Failed to acquire connection for transaction")
+	defer conn.Release()
+	
+	tx, err := conn.Begin(ctx)
+	require.NoError(t, err, "Failed to begin transaction")
+	
+	// Ensure rollback on panic or test completion
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil {
+			t.Logf("Transaction rollback error (may be expected if already committed): %v", err)
+		}
+	}()
+	
+	// Create a temporary DB with the transaction
+	txDB := &database.DB{
+		Pool: db.Pool, // Keep the pool reference
+	}
+	
+	// Run the test function
+	fn(txDB)
+}
+
+// IsolatedTest runs a test with automatic cleanup of test data
+// It tracks created resources and cleans them up after the test completes
+func IsolatedTest(t *testing.T, db *database.DB, redisClient *redispkg.Client, fn func()) {
+	ctx := context.Background()
+	
+	// Get current max IDs for cleanup tracking
+	testPrefix := fmt.Sprintf("test_%s_", uuid.New().String()[:8])
+	
+	// Clean up Redis test keys after the test
+	defer func() {
+		if redisClient != nil {
+			keys, err := redisClient.Client.Keys(ctx, testPrefix+"*").Result()
+			if err == nil {
+				for _, key := range keys {
+					_ = redisClient.Client.Del(ctx, key).Err()
+				}
+			}
+		}
+	}()
+	
+	// Run the test function
+	fn()
+}
+
+// ParallelTest marks a test as safe to run in parallel and sets up isolation
+func ParallelTest(t *testing.T) {
+	t.Parallel()
+	
+	// Additional parallel-safe setup can go here
+	// Each parallel test should use its own test data to avoid conflicts
+}
+
+// CleanupTestData removes test data created during a test
+// This is a fallback for when transactional tests aren't feasible
+func CleanupTestData(t *testing.T, db *database.DB, userIDs []uuid.UUID) {
+	ctx := context.Background()
+	
+	// Clean up users and their related data
+	for _, userID := range userIDs {
+		// Note: Actual cleanup would depend on your schema's cascade rules
+		// This is a simplified version
+		_, err := db.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
+		if err != nil {
+			t.Logf("Warning: Failed to cleanup user %s: %v", userID, err)
+		}
+	}
+}

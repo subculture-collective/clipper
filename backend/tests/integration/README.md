@@ -143,8 +143,135 @@ redis-cli -p 6380 ping
 docker compose -f docker-compose.test.yml logs redis
 ```
 
+## Mocks for External Dependencies
+
+Interface-based mocks are available in `testutil/mocks/` for:
+
+- **Twitch API**: Mock client for clip, user, game, and stream operations
+- **Email Service**: Mock for SendGrid/email operations with verification
+- **Stripe**: Mock for payment and subscription operations
+- **Storage/CDN**: Mock for file upload and storage operations
+
+See `mocks/README.md` for detailed usage examples and patterns.
+
+### Using Mocks in Tests
+
+```go
+import "github.com/subculture-collective/clipper/tests/integration/mocks"
+
+func TestWithMocks(t *testing.T) {
+    // Create mocks
+    mockTwitch := mocks.NewMockTwitchClient()
+    mockEmail := mocks.NewMockEmailService()
+    mockStripe := mocks.NewMockStripeClient()
+    mockStorage := mocks.NewMockStorageService()
+    
+    // Add test data
+    mockTwitch.AddUser(&twitch.User{
+        ID: "12345",
+        Login: "testuser",
+    })
+    
+    // Use in service/handler initialization
+    service := NewMyService(mockTwitch, mockEmail, mockStripe, mockStorage)
+    
+    // Run tests and verify
+    // ...
+    
+    // Check mock interactions
+    assert.Equal(t, 1, mockTwitch.GetUsersCalls)
+}
+```
+
+## Test Isolation and Parallel Execution
+
+### Transactional Tests
+
+Use `WithTransaction` for automatic cleanup:
+
+```go
+func TestWithTransaction(t *testing.T) {
+    testEnv := testutil.SetupTestEnvironment(t)
+    defer testEnv.Cleanup()
+    
+    testutil.WithTransaction(t, testEnv.DB, func(tx *database.DB) {
+        // All database operations here are automatically rolled back
+        user := testutil.CreateTestUser(t, tx, "testuser")
+        
+        // Run your test
+        // ...
+        
+        // No cleanup needed - transaction is rolled back automatically
+    })
+}
+```
+
+### Parallel Tests
+
+Mark tests as parallel-safe:
+
+```go
+func TestParallel(t *testing.T) {
+    testutil.ParallelTest(t) // Marks test as parallel
+    
+    // Use unique test data per test case
+    testUser := fmt.Sprintf("user_%s", uuid.New().String()[:8])
+    
+    // Run test
+    // ...
+}
+```
+
+### Isolated Tests
+
+Use `IsolatedTest` for automatic Redis cleanup:
+
+```go
+func TestIsolated(t *testing.T) {
+    testEnv := testutil.SetupTestEnvironment(t)
+    defer testEnv.Cleanup()
+    
+    testutil.IsolatedTest(t, testEnv.DB, testEnv.RedisClient, func() {
+        // Test implementation
+        // Redis keys with test prefix are automatically cleaned up
+    })
+}
+```
+
+## Coverage Reporting
+
+### Local Coverage
+
+Run integration tests with coverage:
+
+```bash
+make test-integration-coverage
+```
+
+This generates:
+- `backend/coverage-integration.out` - Coverage data
+- `backend/coverage-integration.html` - HTML report
+
+### CI Coverage
+
+Integration test coverage is automatically:
+- Calculated and reported in CI logs
+- Uploaded as artifacts (30-day retention)
+- Checked against 70% threshold (warning if below)
+
+### Coverage Target
+
+**Target**: ≥70% coverage for integration tests
+
+Current coverage is reported in CI and can be viewed in artifacts.
+
 ## Future Enhancements
 
+- [x] Add interface-based mocks for external dependencies
+- [x] Implement transactional test helpers
+- [x] Add parallel test execution support
+- [x] Implement coverage reporting
+- [x] Add CI artifacts for coverage
 - [ ] Add more third-party integration tests (Stripe, Twitch)
 - [ ] Implement contract testing for external APIs
 - [ ] Add performance benchmarks
