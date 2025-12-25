@@ -93,7 +93,7 @@ test.describe('Channel Management', () => {
     await expect(page.getByText(/Members \(1\)/i)).toBeVisible();
   });
 
-  test('owner should see invite and danger zone controls', async () => {
+  test('owner should see invite and danger zone controls', async ({ page }) => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -155,7 +155,7 @@ test.describe('Channel Management', () => {
     expect(updateError.error).toContain('owner');
   });
 
-  test('owner should be able to delete channel', async () => {
+  test('owner should be able to delete channel', async ({ page }) => {
     // Create a channel
     const createResponse = await page.request.post('/api/v1/chat/channels', {
       data: {
@@ -176,13 +176,13 @@ test.describe('Channel Management', () => {
     expect(getResponse.status()).toBe(404);
   });
 
-  test('non-owner should not be able to delete channel', async () => {
+  test('non-owner should not be able to delete channel', async ({ page }) => {
     // This test would require creating a second user context
     // Skipping for now as it requires more complex setup
     test.skip();
   });
 
-  test('admin should be able to remove members but not owner', async () => {
+  test('admin should be able to remove members but not owner', async ({ page }) => {
     // This test would require:
     // 1. Creating a channel as user A (owner)
     // 2. Adding user B as admin
@@ -195,7 +195,7 @@ test.describe('Channel Management', () => {
     test.skip();
   });
 
-  test.afterEach(async () => {
+  test.afterEach(async ({ page }) => {
     // Clean up: delete test channel if it was created
     if (testChannelId) {
       try {
@@ -210,17 +210,17 @@ test.describe('Channel Management', () => {
 });
 
 test.describe('Channel Member Permissions', () => {
-  test('member should not see admin controls', async () => {
+  test('member should not see admin controls', async ({ page }) => {
     // This would require multi-user setup
     test.skip();
   });
 
-  test('moderator should not be able to update roles', async () => {
+  test('moderator should not be able to update roles', async ({ page }) => {
     // This would require multi-user setup
     test.skip();
   });
 
-  test('only owner and admin can add members', async () => {
+  test('only owner and admin can add members', async ({ page }) => {
     // This would require multi-user setup
     test.skip();
   });
