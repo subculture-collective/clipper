@@ -35,6 +35,13 @@ dist-ssr
 coverage
 .nyc_output
 
+# Playwright E2E Test Artifacts
+playwright-report/
+test-results/
+playwright/.cache/
+*.mp4
+*.webm
+
 # Build artifacts
 *.tsbuildinfo
 

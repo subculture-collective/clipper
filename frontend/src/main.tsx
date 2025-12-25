@@ -8,6 +8,21 @@ import { initSentry } from './lib/sentry'
 import ErrorBoundary from './components/ErrorBoundary'
 import { registerServiceWorker } from './lib/sw-register'
 
+// Add global error handler to catch any module errors
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', {
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    error: event.error?.stack,
+  })
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason)
+})
+
 // Initialize Sentry before rendering the app
 try {
   initSentry({
