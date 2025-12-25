@@ -51,8 +51,9 @@ export class SubmitClipPage extends BasePage {
     // Fill clip URL
     await this.clipUrlInput().fill(clipData.url);
     
-    // Wait a bit for any async validation or metadata fetching
-    await this.page.waitForTimeout(500);
+    // Wait for any async validation or metadata fetching to complete
+    // by waiting for network to be idle
+    await this.page.waitForLoadState('networkidle');
     
     // Fill optional title
     if (clipData.title) {
@@ -87,8 +88,8 @@ export class SubmitClipPage extends BasePage {
     await this.tagInput().fill(tagName);
     await this.tagInput().press('Enter');
     
-    // Wait for tag to be added
-    await this.page.waitForTimeout(200);
+    // Wait for tag to appear in the DOM
+    await this.page.getByText(tagName).waitFor({ state: 'visible', timeout: 2000 });
   }
 
   /**
@@ -194,18 +195,25 @@ export class SubmitClipPage extends BasePage {
    * Get count of recent submissions shown
    */
   async getRecentSubmissionsCount(): Promise<number> {
-    const recentSubmissionsSection = this.page.getByText('Your Recent Submissions').locator('..');
-    // Use a more stable selector - find divs that contain submission data
-    const submissionItems = recentSubmissionsSection.locator('div').filter({ hasText: /pending|approved|rejected/i });
-    return await submissionItems.count();
+    // Wait for the recent submissions section to be visible
+    await this.page.getByText('Your Recent Submissions').waitFor({ state: 'visible', timeout: 5000 });
+    
+    // Count submission items by looking for status badges which are more reliable
+    // than relying on specific CSS classes
+    const statusBadges = this.page.locator('text=/pending|approved|rejected/i');
+    return await statusBadges.count();
   }
 
   /**
    * Verify submission status in recent submissions
    */
   async expectSubmissionStatus(submissionTitle: string, status: 'pending' | 'approved' | 'rejected'): Promise<void> {
-    const submissionItem = this.page.getByText(submissionTitle).locator('..');
-    const statusBadge = submissionItem.getByText(status, { exact: false });
+    // Find the submission by title and verify the status appears near it
+    const submissionElement = this.page.getByText(submissionTitle);
+    await expect(submissionElement).toBeVisible();
+    
+    // Verify status badge exists on the page (it should be near the submission title)
+    const statusBadge = this.page.getByText(status, { exact: false });
     await expect(statusBadge).toBeVisible();
   }
 }

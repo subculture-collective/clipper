@@ -300,8 +300,10 @@ test.describe('Clip Submission E2E Flow', () => {
             tags: ['test'],
           });
           
-          // Wait for error to appear - either validation or API error
+          // Wait for error to appear and verify it's displayed
           await page.waitForLoadState('networkidle');
+          // Note: Some invalid URLs may fail at client-side validation,
+          // others at API level. We're verifying the request completes.
         }
       });
     }
@@ -467,21 +469,15 @@ test.describe('Clip Submission E2E Flow', () => {
       
       await submitClipPage.goto();
       
-      // Wait for recent submissions to load by checking for the section or waiting for network idle
+      // Wait for recent submissions to load
       await page.waitForLoadState('networkidle');
       
-      // Check if recent submissions section is visible
-      const hasRecentSubmissions = await page.getByText('Your Recent Submissions')
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
+      // Recent submissions section should be visible after seeding data
+      await submitClipPage.expectRecentSubmissionsVisible();
       
-      if (hasRecentSubmissions) {
-        await submitClipPage.expectRecentSubmissionsVisible();
-        
-        const count = await submitClipPage.getRecentSubmissionsCount();
-        expect(count).toBeGreaterThan(0);
-        expect(count).toBeLessThanOrEqual(5); // Shows max 5 recent
-      }
+      const count = await submitClipPage.getRecentSubmissionsCount();
+      expect(count).toBeGreaterThan(0);
+      expect(count).toBeLessThanOrEqual(5); // Shows max 5 recent
     });
   });
 
@@ -500,11 +496,14 @@ test.describe('Clip Submission E2E Flow', () => {
         }));
       }, authenticatedUser);
       
+      // NOTE: This measures full page navigation time, including network latency
+      // and resource loading, because submitClipPage.goto() waits for 'networkidle'.
+      // This is an end-to-end performance budget, not just client-side rendering time.
       const startTime = Date.now();
       await submitClipPage.goto();
       const loadTime = Date.now() - startTime;
       
-      // Form should load in under 5 seconds
+      // Form should load in under 5 seconds (including network + navigation time)
       expect(loadTime).toBeLessThan(5000);
     });
 

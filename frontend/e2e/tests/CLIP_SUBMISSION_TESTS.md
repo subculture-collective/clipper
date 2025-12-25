@@ -304,4 +304,4 @@ For questions or issues with the E2E tests:
 
 **Created**: 2025-12-25
 **Author**: GitHub Copilot
-**Related Issue**: #TBD - Clip Submission E2E Tests
+**Related Issue**: Part of Roadmap 5.0 - Phase 1: Testing Infrastructure

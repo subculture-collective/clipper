@@ -61,15 +61,16 @@ export class AdminModerationPage extends BasePage {
     
     if (cardExists) {
       await submissionCard.click();
-      await this.page.waitForTimeout(500);
+      // Wait for any transition or modal to appear
+      await this.page.waitForLoadState('networkidle');
     }
     
     // Click approve button
     const approveBtn = this.getApproveButton(submissionId);
     await approveBtn.click();
     
-    // Wait for action to complete
-    await this.page.waitForTimeout(1000);
+    // Wait for the approval action to complete by watching for network activity
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**
@@ -82,23 +83,27 @@ export class AdminModerationPage extends BasePage {
     
     if (cardExists) {
       await submissionCard.click();
-      await this.page.waitForTimeout(500);
+      // Wait for any transition or modal to appear
+      await this.page.waitForLoadState('networkidle');
     }
     
     // Click reject button
     const rejectBtn = this.getRejectButton(submissionId);
     await rejectBtn.click();
     
-    // Fill rejection reason in modal
+    // Wait for rejection modal/form to appear
     const reasonTextarea = this.page.getByLabel(/rejection reason/i);
+    await reasonTextarea.waitFor({ state: 'visible', timeout: 5000 });
+    
+    // Fill rejection reason in modal
     await reasonTextarea.fill(reason);
     
     // Confirm rejection
     const confirmRejectBtn = this.page.getByRole('button', { name: /confirm|reject/i }).last();
     await confirmRejectBtn.click();
     
-    // Wait for action to complete
-    await this.page.waitForTimeout(1000);
+    // Wait for the rejection action to complete
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**
@@ -170,6 +175,5 @@ export class AdminModerationPage extends BasePage {
    */
   async waitForQueueLoad(): Promise<void> {
     await this.page.waitForLoadState('networkidle');
-    await this.page.waitForTimeout(1000);
   }
 }

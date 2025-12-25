@@ -305,7 +305,12 @@ export async function seedClips(
 /**
  * Seed multiple submissions for a user
  * 
- * @param page - Playwright Page object
+ * **Note:** This function requires the page context to have valid authentication
+ * credentials (cookies/headers) if the API enforces authentication. Ensure the
+ * test has set up authentication before calling this function, or use it with
+ * test fixtures that provide authenticated pages.
+ * 
+ * @param page - Playwright Page object with authentication context
  * @param userId - User ID to create submissions for
  * @param count - Number of submissions to create
  * @returns Promise that resolves to array of created submissions
@@ -371,28 +376,4 @@ export async function clearTestData(page: Page): Promise<void> {
   }
 }
 
-/**
- * Get notifications for a user
- * 
- * @param page - Playwright Page object
- * @param userId - User ID to get notifications for
- * @returns Promise that resolves to array of notifications
- */
-export async function getNotifications(page: Page, userId: string): Promise<any[]> {
-  const apiUrl = getApiBaseUrl();
-  
-  try {
-    const response = await page.request.get(`${apiUrl}/users/${userId}/notifications`);
-    
-    if (!response.ok()) {
-      console.warn('Failed to get notifications via API');
-      return [];
-    }
-    
-    const data = await response.json();
-    return data.notifications || data.data || [];
-  } catch (error) {
-    console.warn('API not available for notifications:', error);
-    return [];
-  }
-}
+
