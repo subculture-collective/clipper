@@ -1,35 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Service Level Objectives (SLOs)](#service-level-objectives-slos)
-  - [Overview](#overview)
-  - [SLO Definitions](#slo-definitions)
-    - [1. Availability SLO](#1-availability-slo)
-    - [2. Latency SLOs](#2-latency-slos)
-    - [3. Error Rate SLO](#3-error-rate-slo)
-    - [4. Search Performance SLO](#4-search-performance-slo)
-    - [5. Webhook Delivery SLO](#5-webhook-delivery-slo)
-  - [Error Budget](#error-budget)
-    - [Availability Error Budget](#availability-error-budget)
-    - [Error Budget Burn Rate](#error-budget-burn-rate)
-    - [Error Budget Policy](#error-budget-policy)
-  - [Measurement and Monitoring](#measurement-and-monitoring)
-    - [Data Sources](#data-sources)
-    - [Calculation Windows](#calculation-windows)
-    - [Dashboards](#dashboards)
-  - [Alerting Strategy](#alerting-strategy)
-    - [Alert Severity Levels](#alert-severity-levels)
-    - [Alert Channels](#alert-channels)
-    - [Escalation Policy](#escalation-policy)
-  - [SLO Breach Response](#slo-breach-response)
-    - [Critical (P1) Response](#critical-p1-response)
-    - [Warning (P2) Response](#warning-p2-response)
-    - [Info (P3) Response](#info-p3-response)
-  - [Review and Iteration](#review-and-iteration)
-  - [References](#references)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Service Level Objectives (SLOs)"
 summary: "Defined SLOs for availability, latency, and error rates with monitoring and alerting strategy"
@@ -330,8 +298,8 @@ Based on 99.5% availability SLO:
 - **System Health:** `system-health.json` - Infrastructure metrics
 
 **Dashboard Access:**
-- Grafana: http://localhost:3000 (development)
-- Production: https://grafana.clipper.app (requires authentication)
+- Grafana: <http://localhost:3000> (development)
+- Production: <https://grafana.clipper.app> (requires authentication)
 
 ## Alerting Strategy
 
@@ -477,6 +445,6 @@ Level 3: Engineering Manager
 - [Error Budgets](https://sre.google/sre-book/embracing-risk/)
 
 **Monitoring Tools:**
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
-- Alertmanager: http://localhost:9093
+- Prometheus: <http://localhost:9090>
+- Grafana: <http://localhost:3000>
+- Alertmanager: <http://localhost:9093>

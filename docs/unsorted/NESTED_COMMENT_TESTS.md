@@ -11,6 +11,7 @@ This document summarizes the test coverage for nested comment threading function
 The frontend has **comprehensive existing test coverage** across three test files:
 
 #### CommentTree.test.tsx (21 tests)
+
 - ✅ CommentTree renders nested structure
 - ✅ Proper depth and indentation (ml-4, border-l-2, pl-4 classes)
 - ✅ MaxDepth handling and propagation
@@ -21,6 +22,7 @@ The frontend has **comprehensive existing test coverage** across three test file
 - ✅ Accessibility (semantic HTML, anchor IDs)
 
 #### CommentItem.test.tsx (23 tests)
+
 - ✅ Collapse/expand toggles reply visibility
 - ✅ Badge visibility and styling (▼/▶ icons)
 - ✅ Reply count display (singular/plural)
@@ -34,6 +36,7 @@ The frontend has **comprehensive existing test coverage** across three test file
 - ✅ Delete shows removal state ([deleted]/[removed])
 
 #### CommentSection.test.tsx (13 tests)
+
 - ✅ Loading and error states
 - ✅ Empty state with "Add Comment" button
 - ✅ Comments display with correct count
@@ -85,12 +88,14 @@ The mobile platform currently has no existing comment tests.
 ## Test Execution
 
 ### Frontend
+
 ```bash
 cd frontend && npm test
 # Expected: 57 comment-related tests pass
 ```
 
 ### Backend
+
 ```bash
 cd backend && go test ./internal/services ./internal/handlers
 # Current: 22 tests pass (markdown, validation, constants)
@@ -98,6 +103,7 @@ cd backend && go test ./internal/services ./internal/handlers
 ```
 
 ### Mobile
+
 ```bash
 cd mobile && npm test
 # Current: No comment tests

@@ -39,13 +39,13 @@ This document provides a comprehensive summary of the centralized logging implem
    - Retention enforcement enabled
 
 6. **Log search and filtering UI**
-   - Grafana Log Explorer at http://localhost:3000/explore
+   - Grafana Log Explorer at <http://localhost:3000/explore>
    - Pre-built dashboard: Centralized Logging Dashboard
    - LogQL query language support
    - Real-time log streaming
 
 7. **Sensitive data redacted from logs**
-   - Emails: user@example.com → [REDACTED_EMAIL]
+   - Emails: <user@example.com> → [REDACTED_EMAIL]
    - Phone numbers: 555-123-4567 → [REDACTED_PHONE]
    - Credit cards: 4111-1111-1111-1111 → [REDACTED_CARD]
    - SSN: 123-45-6789 → [REDACTED_SSN]
@@ -98,6 +98,7 @@ This document provides a comprehensive summary of the centralized logging implem
 ## Files Created/Modified
 
 ### Backend (Go)
+
 - **backend/pkg/utils/logger.go** - Enhanced structured logger
   - Added FATAL log level
   - Implemented comprehensive PII redaction
@@ -114,6 +115,7 @@ This document provides a comprehensive summary of the centralized logging implem
   - Includes stack traces in structured format
 
 ### Frontend (TypeScript)
+
 - **frontend/src/lib/logger.ts** - New structured logger
   - JSON structured logging
   - PII redaction
@@ -122,6 +124,7 @@ This document provides a comprehensive summary of the centralized logging implem
   - Fixed deprecated `substr()` usage
 
 ### Mobile (React Native)
+
 - **mobile/lib/logger.ts** - New async logger
   - Async logging for React Native
   - Platform context (device_id, platform, app_version)
@@ -130,6 +133,7 @@ This document provides a comprehensive summary of the centralized logging implem
   - Fixed deprecated `substr()` usage
 
 ### Monitoring Infrastructure
+
 - **monitoring/loki-config.yml** - New Loki configuration
   - 90-day retention (2160h)
   - TSDB-based storage
@@ -169,6 +173,7 @@ This document provides a comprehensive summary of the centralized logging implem
   - Query examples
 
 ### Documentation
+
 - **docs/operations/centralized-logging.md** - Comprehensive guide
   - Overview and architecture
   - Log structure and format
@@ -183,6 +188,7 @@ This document provides a comprehensive summary of the centralized logging implem
 ## Testing Results
 
 ### Backend Tests
+
 ```
 ✅ TestRedactPII/Redact_email - PASS
 ✅ TestRedactPII/Redact_phone_number - PASS
@@ -201,15 +207,18 @@ PASS: 6/6 test suites
 ```
 
 ### Build Verification
+
 - ✅ Backend builds successfully
 - ✅ No TypeScript errors in frontend logger
 - ✅ No TypeScript errors in mobile logger
 
 ### Security Scanning
+
 - ✅ CodeQL: No alerts found (Go)
 - ✅ CodeQL: No alerts found (JavaScript)
 
 ### Code Review
+
 - ✅ All review comments addressed
 - ✅ Deprecated methods replaced
 - ✅ Regex patterns optimized
@@ -267,10 +276,10 @@ docker-compose -f docker-compose.monitoring.yml up -d loki promtail grafana
 
 ### 2. Configure Grafana
 
-1. Access Grafana at http://localhost:3000
+1. Access Grafana at <http://localhost:3000>
 2. Login with admin credentials
 3. Add Loki data source:
-   - URL: http://loki:3100
+   - URL: <http://loki:3100>
    - Click "Save & Test"
 4. Import dashboard:
    - Import `monitoring/dashboards/logging-dashboard.json`

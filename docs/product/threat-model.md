@@ -1,64 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Clipper Threat Model and Risk Assessment](#clipper-threat-model-and-risk-assessment)
-  - [Document Information](#document-information)
-  - [Executive Summary](#executive-summary)
-    - [Risk Summary](#risk-summary)
-  - [Table of Contents](#table-of-contents)
-  - [System Architecture Overview](#system-architecture-overview)
-    - [Technology Stack](#technology-stack)
-    - [Security Boundaries](#security-boundaries)
-  - [Assets and Data Flow](#assets-and-data-flow)
-    - [Critical Assets](#critical-assets)
-    - [Data Flow Diagrams](#data-flow-diagrams)
-  - [Threat Analysis by Component](#threat-analysis-by-component)
-  - [1. Authentication System](#1-authentication-system)
-    - [1.1 Twitch OAuth Integration](#11-twitch-oauth-integration)
-    - [1.2 JWT Token Management](#12-jwt-token-management)
-  - [2. API Endpoints](#2-api-endpoints)
-    - [2.1 Public Endpoints](#21-public-endpoints)
-    - [2.2 Authenticated Endpoints](#22-authenticated-endpoints)
-    - [2.3 Admin Endpoints](#23-admin-endpoints)
-  - [3. Data Storage](#3-data-storage)
-    - [3.1 PostgreSQL Database](#31-postgresql-database)
-    - [3.2 Redis Cache](#32-redis-cache)
-    - [3.3 OpenSearch](#33-opensearch)
-  - [4. Third-Party Integrations](#4-third-party-integrations)
-    - [4.1 Twitch API](#41-twitch-api)
-    - [4.2 Stripe Payment Integration](#42-stripe-payment-integration)
-    - [4.3 OpenAI API](#43-openai-api)
-  - [High-Risk Items and Prioritization](#high-risk-items-and-prioritization)
-    - [Critical Priority (Immediate Action Required)](#critical-priority-immediate-action-required)
-    - [High Priority (Next Sprint)](#high-priority-next-sprint)
-    - [Medium Priority (Backlog)](#medium-priority-backlog)
-    - [Low Priority (Monitor)](#low-priority-monitor)
-  - [Security Controls Summary](#security-controls-summary)
-    - [Implemented Controls](#implemented-controls)
-    - [Missing/Incomplete Controls](#missingincomplete-controls)
-  - [Recommendations](#recommendations)
-    - [Immediate Actions (0-30 days)](#immediate-actions-0-30-days)
-    - [Short-term Improvements (30-90 days)](#short-term-improvements-30-90-days)
-    - [Long-term Enhancements (90+ days)](#long-term-enhancements-90-days)
-  - [Monitoring and Detection](#monitoring-and-detection)
-    - [Security Metrics to Track](#security-metrics-to-track)
-    - [Alert Thresholds](#alert-thresholds)
-    - [Log Aggregation and Analysis](#log-aggregation-and-analysis)
-  - [Incident Response](#incident-response)
-    - [Incident Classification](#incident-classification)
-    - [Incident Response Procedures](#incident-response-procedures)
-    - [Communication Plan](#communication-plan)
-  - [Appendix](#appendix)
-    - [A. Security Tools and Dependencies](#a-security-tools-and-dependencies)
-    - [B. Security Testing Checklist](#b-security-testing-checklist)
-    - [C. Security Training Resources](#c-security-training-resources)
-    - [D. Compliance Considerations](#d-compliance-considerations)
-    - [E. Third-Party Security Assessments](#e-third-party-security-assessments)
-  - [Document Maintenance](#document-maintenance)
-  - [References](#references)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Clipper Threat Model and Risk Assessment"
 summary: "**Version:** 1.0"
@@ -173,6 +112,7 @@ This document provides a comprehensive threat model for the Clipper application,
 ### Data Flow Diagrams
 
 #### Authentication Flow
+
 ```
 User → Frontend → Backend OAuth Handler → Twitch OAuth
                                       ↓
@@ -186,6 +126,7 @@ User → Frontend → Backend OAuth Handler → Twitch OAuth
 ```
 
 #### API Request Flow
+
 ```
 User → Frontend → Nginx → Backend Middleware Stack:
                               1. CORS
@@ -622,6 +563,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Implemented Controls
 
 #### Authentication & Authorization
+
 - ✅ OAuth 2.0 with Twitch
 - ✅ JWT-based session management (RS256)
 - ✅ HTTP-only, Secure cookies
@@ -630,6 +572,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ✅ Token expiration (15 min access, 7 day refresh)
 
 #### API Security
+
 - ✅ Content Security Policy (CSP)
 - ✅ CSRF Protection (double-submit cookie pattern)
 - ✅ Input validation middleware
@@ -639,6 +582,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ✅ CORS configuration
 
 #### Data Protection
+
 - ✅ Parameterized database queries
 - ✅ Input sanitization
 - ✅ Security headers (HSTS, X-Frame-Options, etc.)
@@ -646,6 +590,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ✅ XSS pattern detection
 
 #### Monitoring & Logging
+
 - ✅ Audit logging for critical actions
 - ✅ Structured logging
 - ✅ Webhook event logging
@@ -654,6 +599,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Missing/Incomplete Controls
 
 #### High Priority Gaps
+
 - ❌ Multi-Factor Authentication (MFA) for admin accounts
 - ❌ Centralized secrets management solution
 - ❌ Automated credential rotation
@@ -662,6 +608,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ❌ Database-level audit logging
 
 #### Medium Priority Gaps
+
 - ❌ PKCE for OAuth 2.0
 - ❌ JWT ID (jti) tracking for replay prevention
 - ❌ CDN-level DDoS protection
@@ -670,6 +617,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - ❌ Comprehensive search query validation
 
 #### Monitoring Gaps
+
 - ❌ Security event alerting
 - ❌ Anomaly detection
 - ❌ Failed authentication monitoring
@@ -757,6 +705,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Security Metrics to Track
 
 #### Authentication Metrics
+
 - Failed login attempts per user/IP
 - Password reset requests
 - OAuth callback failures
@@ -764,6 +713,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - Admin login events
 
 #### API Security Metrics
+
 - Rate limit violations per endpoint
 - CSRF validation failures
 - Input validation failures
@@ -771,6 +721,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - Abuse detection triggers
 
 #### Data Access Metrics
+
 - Database query errors
 - Slow query frequency
 - Unauthorized access attempts
@@ -778,6 +729,7 @@ User → Frontend → Nginx → Backend Middleware Stack:
 - Export/download activities
 
 #### Third-Party Integration Metrics
+
 - API error rates per service
 - Rate limit approaches
 - Webhook processing failures
@@ -840,36 +792,42 @@ User → Frontend → Nginx → Backend Middleware Stack:
 ### Incident Response Procedures
 
 #### 1. Detection and Triage (0-15 minutes)
+
 - Verify the incident through multiple sources
 - Classify severity level
 - Activate incident response team
 - Document initial findings
 
 #### 2. Containment (15-60 minutes)
+
 - Isolate affected systems if necessary
 - Revoke compromised credentials
 - Block malicious IPs/users
 - Enable enhanced logging
 
 #### 3. Investigation (1-4 hours)
+
 - Analyze logs and audit trails
 - Identify root cause
 - Determine scope of impact
 - Collect forensic evidence
 
 #### 4. Remediation (4-24 hours)
+
 - Deploy fixes
 - Restore services
 - Verify security controls
 - Update monitoring rules
 
 #### 5. Recovery (24-48 hours)
+
 - Return to normal operations
 - Monitor for recurrence
 - Validate all systems
 - Communication with stakeholders
 
 #### 6. Post-Incident Review (48-72 hours)
+
 - Document lessons learned
 - Update runbooks and procedures
 - Implement preventive measures

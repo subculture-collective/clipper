@@ -1,13 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Setup & Configuration](#setup--configuration)
-  - [Quick Links](#quick-links)
-  - [Documentation Index](#documentation-index)
-  - [Getting Started](#getting-started)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Setup & Configuration"
 summary: "Getting started with Clipper development and configuration."

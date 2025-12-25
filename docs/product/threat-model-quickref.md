@@ -1,33 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Security Threat Model - Quick Reference Guide](#security-threat-model---quick-reference-guide)
-  - [🚨 Critical Action Items](#-critical-action-items)
-  - [🟡 High Priority Items](#-high-priority-items)
-  - [📊 At a Glance](#-at-a-glance)
-    - [What We Found](#what-we-found)
-    - [What's Covered](#whats-covered)
-  - [🛡️ Current Security Strengths](#-current-security-strengths)
-  - [🎯 Key Security Gaps](#-key-security-gaps)
-    - [1. Admin Account Protection](#1-admin-account-protection)
-    - [2. Secrets Management](#2-secrets-management)
-    - [3. Authorization Testing](#3-authorization-testing)
-    - [4. Query Injection](#4-query-injection)
-    - [5. Resource Exhaustion](#5-resource-exhaustion)
-  - [📅 Implementation Timeline](#-implementation-timeline)
-  - [🔍 For Developers](#-for-developers)
-    - [When Writing Code](#when-writing-code)
-    - [When Reviewing Code](#when-reviewing-code)
-  - [📚 Full Documentation](#-full-documentation)
-  - [🆘 Security Incident?](#-security-incident)
-  - [📈 Success Metrics](#-success-metrics)
-    - [Phase 1 (Q1 2025) - Critical Items](#phase-1-q1-2025---critical-items)
-    - [Phase 2 (Q2 2025) - High Priority](#phase-2-q2-2025---high-priority)
-  - [🔄 Review Schedule](#-review-schedule)
-  - [Quick Links](#quick-links)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Security Threat Model - Quick Reference Guide"
 summary: "> **TL;DR:** This threat model identified 70 security threats. 3 are critical, 8 are high priority. "
@@ -65,6 +35,7 @@ Should be addressed in next sprint:
 ## 📊 At a Glance
 
 ### What We Found
+
 - **70 threats** identified using STRIDE methodology
 - **3 critical** security gaps requiring immediate action
 - **8 high-priority** items for next sprint
@@ -72,6 +43,7 @@ Should be addressed in next sprint:
 - **7 low-risk** items being monitored
 
 ### What's Covered
+
 ✅ Authentication (Twitch OAuth, JWT, sessions)  
 ✅ API Endpoints (public, authenticated, admin)  
 ✅ Data Storage (PostgreSQL, Redis, OpenSearch)  
@@ -92,26 +64,31 @@ We already have strong security in place:
 ## 🎯 Key Security Gaps
 
 ### 1. Admin Account Protection
+
 **Problem:** Admin accounts use password-only authentication  
 **Risk:** Complete system takeover if credentials compromised  
 **Fix:** Add TOTP-based MFA (#396)
 
 ### 2. Secrets Management
+
 **Problem:** API keys and credentials in .env files  
 **Risk:** Credentials exposed if repository compromised  
 **Fix:** Centralized secrets manager with rotation (#397)
 
 ### 3. Authorization Testing
+
 **Problem:** No systematic testing for IDOR vulnerabilities  
 **Risk:** Users accessing other users' resources  
 **Fix:** Automated IDOR testing framework (#398)
 
 ### 4. Query Injection
+
 **Problem:** OpenSearch queries could be manipulated  
 **Risk:** Data exposure via query injection  
 **Fix:** Comprehensive query validation (#399)
 
 ### 5. Resource Exhaustion
+
 **Problem:** No limits on query complexity  
 **Risk:** DoS via expensive queries  
 **Fix:** Query cost analysis and limits (#400)
@@ -128,6 +105,7 @@ Week 7-8:  High - Query limits + Automated testing
 ## 🔍 For Developers
 
 ### When Writing Code
+
 - ✅ Always check user authorization before resource access
 - ✅ Use parameterized queries, never string concatenation
 - ✅ Validate all inputs (length, format, allowed values)
@@ -137,6 +115,7 @@ Week 7-8:  High - Query limits + Automated testing
 - ⚠️ Never trust client-side validation alone
 
 ### When Reviewing Code
+
 - 🔍 Check for IDOR vulnerabilities (authorization for every resource)
 - 🔍 Look for SQL/NoSQL injection risks
 - 🔍 Verify rate limiting on new endpoints
@@ -159,11 +138,13 @@ Week 7-8:  High - Query limits + Automated testing
 ## 📈 Success Metrics
 
 ### Phase 1 (Q1 2025) - Critical Items
+
 - [ ] 100% of admin accounts using MFA
 - [ ] All secrets in secrets manager
 - [ ] Automated credential rotation active
 
 ### Phase 2 (Q2 2025) - High Priority
+
 - [ ] Zero IDOR vulnerabilities found in audits
 - [ ] Query performance <100ms (p95)
 - [ ] >80% security test coverage

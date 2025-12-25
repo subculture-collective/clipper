@@ -163,6 +163,7 @@ The system respects legal data retention requirements:
 ## Database Schema
 
 ### User Settings
+
 ```sql
 CREATE TABLE user_settings (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -174,6 +175,7 @@ CREATE TABLE user_settings (
 ```
 
 ### Account Deletions
+
 ```sql
 CREATE TABLE account_deletions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -188,6 +190,7 @@ CREATE TABLE account_deletions (
 ```
 
 ### Cookie Consent
+
 ```sql
 CREATE TABLE cookie_consent (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -206,6 +209,7 @@ CREATE TABLE cookie_consent (
 ```
 
 ### Audit Logs
+
 ```sql
 CREATE TABLE audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -224,19 +228,23 @@ CREATE TABLE audit_logs (
 ## API Endpoints
 
 ### User Data Export
+
 - `GET /api/v1/users/me/export` - Download complete data export (ZIP)
 
 ### Account Deletion
+
 - `POST /api/v1/users/me/delete` - Request account deletion
 - `POST /api/v1/users/me/delete/cancel` - Cancel pending deletion
 - `GET /api/v1/users/me/delete/status` - Check deletion status
 
 ### Profile Rectification
+
 - `PUT /api/v1/users/me/profile` - Update display name and bio
 - `PUT /api/v1/users/me/settings` - Update privacy settings
 - `PUT /api/v1/users/me/social-links` - Update social links
 
 ### Cookie Consent
+
 - `GET /api/v1/consent` - Get current consent preferences
 - `POST /api/v1/consent` - Update consent preferences
 
@@ -254,41 +262,49 @@ CREATE TABLE audit_logs (
 The following features from the comprehensive GDPR issue are **not implemented** but are not strictly required for basic GDPR compliance:
 
 ### 1. Unified Data Subject Request System
+
 - **Status:** Not implemented
 - **Rationale:** Current implementation provides all required GDPR rights through individual endpoints. A unified tracking system is an enterprise feature useful for organizations with high request volumes but not legally required.
 - **Alternative:** Current system with separate endpoints and audit logging meets compliance.
 
 ### 2. Admin Panel for GDPR Requests
+
 - **Status:** Not implemented
 - **Rationale:** Most requests (export, rectification) are fully automated. Deletion requests have a 30-day grace period which provides sufficient time for manual review if needed.
 - **Alternative:** Audit logs can be queried directly for compliance review.
 
 ### 3. Right to Restriction of Processing (Article 18)
+
 - **Status:** Not implemented as automated feature
 - **Rationale:** This right applies to specific circumstances (accuracy disputes, legal claims, etc.) and is rarely exercised. GDPR allows handling via support tickets.
-- **Alternative:** Users can contact privacy@clipper.gg for restriction requests, which can be handled manually.
+- **Alternative:** Users can contact <privacy@clipper.gg> for restriction requests, which can be handled manually.
 
 ### 4. Right to Object to Processing (Article 21)
+
 - **Status:** Partially implemented (cookie consent covers marketing/analytics)
 - **Rationale:** Cookie consent system allows users to object to marketing and analytics processing. Other objections are rare and can be handled via support.
-- **Alternative:** Cookie Settings + privacy@clipper.gg for specific objection requests.
+- **Alternative:** Cookie Settings + <privacy@clipper.gg> for specific objection requests.
 
 ### 5. Email Notifications for Request Lifecycle
+
 - **Status:** Not implemented
 - **Rationale:** Export is immediate (no waiting), deletion has 30-day grace period with status check available.
 - **Alternative:** In-app status indicators and user-initiated status checks.
 
 ### 6. Two-Step Email Verification for Deletion
+
 - **Status:** Not implemented
 - **Rationale:** User must be logged in (session authenticated) and type exact confirmation text. Additional email step would add friction without significant security benefit for logged-in users.
 - **Alternative:** Current confirmation requirement + 30-day cancellation period.
 
 ### 7. Advanced Identity Verification (SMS)
+
 - **Status:** Not implemented
 - **Rationale:** Session authentication + explicit confirmation text provides adequate verification for standard accounts.
 - **Alternative:** Manual verification available for high-risk accounts via support.
 
 ### 8. Rate Limiting (3 requests/24 hours)
+
 - **Status:** Basic rate limiting exists (1 request/hour for exports)
 - **Rationale:** Current rate limiting prevents abuse. Lower limit would improve DoS protection but is not legally required.
 - **Alternative:** Monitoring and manual intervention for suspicious activity.
@@ -344,8 +360,8 @@ The following features from the comprehensive GDPR issue are **not implemented**
 ## Contact Information
 
 For privacy inquiries, data subject requests, or compliance questions:
-- **Email:** privacy@clipper.gg
-- **Data Protection Officer:** Available via support@clipper.gg
+- **Email:** <privacy@clipper.gg>
+- **Data Protection Officer:** Available via <support@clipper.gg>
 
 ## References
 

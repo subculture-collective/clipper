@@ -2,7 +2,7 @@
   "name": "clipper-docs",
   "private": true,
   "scripts": {
-    "docs:toc": "doctoc --notitle --maxlevel 3 docs README.md",
+    "docs:toc": "doctoc --notitle --maxlevel 3 README.md",
     "docs:lint": "markdownlint-cli2 \"docs/**/*.md\" \"README.md\" \"!node_modules\"",
     "docs:spell": "cspell --no-progress \"docs/**/*.md\" \"README.md\" --config .cspell.json",
     "docs:links": "lychee --accept 200,206,429 --retry-wait 2 --max-redirects 5 --timeout 20 --exclude-file .lycheeignore docs README.md",

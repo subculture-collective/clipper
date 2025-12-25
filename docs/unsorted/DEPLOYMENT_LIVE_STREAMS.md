@@ -77,24 +77,28 @@ Since this PR only adds documentation, deployment is straightforward:
 After deployment, verify the following:
 
 ### Stream Watching
+
 - [ ] Navigate to `/stream/{streamer}` (e.g., `/stream/shroud`)
 - [ ] Verify stream loads if online
 - [ ] Check offline screen displays if stream offline
 - [ ] Test chat toggle functionality
 
 ### Stream Following
+
 - [ ] Test follow button on stream page
 - [ ] Verify follow status persists
 - [ ] Check notification preferences can be changed
 - [ ] Test unfollow functionality
 
 ### Clip Creation
+
 - [ ] Watch a live stream
 - [ ] Click "Create Clip" button
 - [ ] Fill in clip details and create
 - [ ] Verify clip is created and accessible
 
 ### Documentation
+
 - [ ] Check `/docs/features/live-streams` loads correctly
 - [ ] Verify API documentation includes stream endpoints
 - [ ] Check user guide mentions stream features

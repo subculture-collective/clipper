@@ -160,11 +160,11 @@ v1.GET("/users/:id/dmca-strikes", middleware.RequireAuth(), dmcaHandler.GetUserS
 // DMCA admin endpoints
 adminDMCA := admin.Group("/dmca")
 {
-	adminDMCA.GET("/notices", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ListDMCANotices)
-	adminDMCA.PATCH("/notices/:id/review", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ReviewNotice)
-	adminDMCA.POST("/notices/:id/process", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ProcessTakedown)
-	adminDMCA.POST("/counter-notices/:id/forward", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ForwardCounterNotice)
-	adminDMCA.GET("/dashboard", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.GetDashboardStats)
+ adminDMCA.GET("/notices", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ListDMCANotices)
+ adminDMCA.PATCH("/notices/:id/review", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ReviewNotice)
+ adminDMCA.POST("/notices/:id/process", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ProcessTakedown)
+ adminDMCA.POST("/counter-notices/:id/forward", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.ForwardCounterNotice)
+ adminDMCA.GET("/dashboard", middleware.RequirePermission(models.PermissionManageContent), dmcaHandler.GetDashboardStats)
 }
 ```
 
@@ -173,17 +173,17 @@ adminDMCA := admin.Group("/dmca")
 // Initialize DMCA handler
 dmcaRepo := repository.NewDMCARepository(db)
 dmcaService := services.NewDMCAService(
-	dmcaRepo,
-	clipRepo,
-	userRepo,
-	auditLogRepo,
-	emailService,
-	searchIndexer,
-	db,
-	&services.DMCAServiceConfig{
-		BaseURL:        cfg.Server.BaseURL,
-		DMCAAgentEmail: "dmca@clpr.tv",
-	},
+ dmcaRepo,
+ clipRepo,
+ userRepo,
+ auditLogRepo,
+ emailService,
+ searchIndexer,
+ db,
+ &services.DMCAServiceConfig{
+  BaseURL:        cfg.Server.BaseURL,
+  DMCAAgentEmail: "dmca@clpr.tv",
+ },
 )
 dmcaHandler := handlers.NewDMCAHandler(dmcaService, authService)
 ```
@@ -273,13 +273,13 @@ Modify `GetClipByID` to return 451 for DMCA-removed clips:
 ```go
 // Check if clip is DMCA removed
 if clip.DMCARemoved {
-	c.JSON(http.StatusUnavailableForLegalReasons, gin.H{
-		"error": "This content has been removed in response to a DMCA takedown notice",
-		"dmca_notice_id": clip.DMCANoticeID,
-		"removed_at": clip.DMCARemovedAt,
-		"message": "If you believe this removal was in error, you may file a counter-notice at /legal/dmca/counter-notice",
-	})
-	return
+ c.JSON(http.StatusUnavailableForLegalReasons, gin.H{
+  "error": "This content has been removed in response to a DMCA takedown notice",
+  "dmca_notice_id": clip.DMCANoticeID,
+  "removed_at": clip.DMCARemovedAt,
+  "message": "If you believe this removal was in error, you may file a counter-notice at /legal/dmca/counter-notice",
+ })
+ return
 }
 ```
 
@@ -295,18 +295,19 @@ Create scheduled jobs for:
 ```go
 // Run daily at midnight
 c.AddFunc("0 0 * * *", func() {
-	dmcaService.ExpireOldStrikes(context.Background())
+ dmcaService.ExpireOldStrikes(context.Background())
 })
 
 // Run hourly
 c.AddFunc("0 * * * *", func() {
-	dmcaService.ProcessExpiredWaitingPeriods(context.Background())
+ dmcaService.ProcessExpiredWaitingPeriods(context.Background())
 })
 ```
 
 ## Testing Requirements
 
 ### Unit Tests
+
 - [x] Repository layer (basic compilation tested)
 - [ ] Service layer validation logic
 - [ ] Handler authorization checks
@@ -314,6 +315,7 @@ c.AddFunc("0 * * * *", func() {
 - [ ] Business day calculations
 
 ### Integration Tests
+
 - [ ] Full takedown workflow (submission → review → removal → notification)
 - [ ] Counter-notice workflow (submission → forward → waiting period → reinstatement)
 - [ ] Three-strike system (3 takedowns → account termination)
@@ -321,6 +323,7 @@ c.AddFunc("0 * * * *", func() {
 - [ ] Database trigger for strike counts
 
 ### Manual Testing Checklist
+
 - [ ] Submit takedown notice via API
 - [ ] Admin reviews and validates notice
 - [ ] Admin processes takedown
@@ -336,6 +339,7 @@ c.AddFunc("0 * * * *", func() {
 ## Production Readiness Checklist
 
 ### Backend
+
 - [x] Database migrations tested
 - [x] Models with validation
 - [x] Repository layer implemented
@@ -350,6 +354,7 @@ c.AddFunc("0 * * * *", func() {
 - [ ] Scheduled jobs configured
 
 ### Frontend
+
 - [x] DMCA policy page exists
 - [ ] Takedown notice form
 - [ ] Counter-notice form
@@ -360,7 +365,8 @@ c.AddFunc("0 * * * *", func() {
 - [ ] Admin strike management
 
 ### Operations
-- [ ] DMCA agent email configured (dmca@clpr.tv)
+
+- [ ] DMCA agent email configured (<dmca@clpr.tv>)
 - [ ] Email templates deployed
 - [ ] Scheduled jobs running
 - [ ] Monitoring/alerts for pending notices
@@ -371,18 +377,21 @@ c.AddFunc("0 * * * *", func() {
 ## Performance Considerations
 
 ### Database
+
 - ✅ Indexes on frequently queried fields (status, user_id, waiting_period_ends)
 - ✅ Efficient pagination queries
 - ✅ Proper foreign key constraints
 - ✅ Triggers for automatic updates
 
 ### API
+
 - Transaction support for critical operations
 - Proper error handling
 - Rate limiting (use existing middleware)
 - Caching for dashboard stats (consider Redis)
 
 ### Scheduled Jobs
+
 - Process counter-notices in batches
 - Limit email sending rate
 - Background job for strike expiration
@@ -390,6 +399,7 @@ c.AddFunc("0 * * * *", func() {
 ## Legal Compliance Notes
 
 ### DMCA Safe Harbor Requirements
+
 - ✅ Designated DMCA agent information available
 - ✅ Expeditious removal of infringing content
 - ✅ Notification to users
@@ -398,12 +408,14 @@ c.AddFunc("0 * * * *", func() {
 - ✅ No monitoring obligation
 
 ### Record Retention
+
 - All DMCA notices retained indefinitely (legal defense)
 - Audit logs preserved permanently
 - IP addresses tracked for all submissions
 - User agent strings recorded
 
 ### Legal Review Required
+
 - [ ] Attorney review of DMCA procedures
 - [ ] Verification of notice/counter-notice templates
 - [ ] Review of strike system fairness
@@ -415,6 +427,7 @@ c.AddFunc("0 * * * *", func() {
 ### Public Endpoints
 
 #### Submit Takedown Notice
+
 ```
 POST /api/v1/dmca/takedown
 Content-Type: application/json
@@ -442,6 +455,7 @@ Response 201:
 ```
 
 #### Submit Counter-Notice
+
 ```
 POST /api/v1/dmca/counter-notice
 Content-Type: application/json
@@ -476,7 +490,7 @@ Response 201:
 4. **Deploy Email Templates** - Configure SendGrid templates
 5. **Configure Scheduled Jobs** - Set up cron jobs
 6. **Deploy Frontend** - DMCA forms and admin panel
-7. **Configure DMCA Agent Email** - Set up dmca@clpr.tv
+7. **Configure DMCA Agent Email** - Set up <dmca@clpr.tv>
 8. **Legal Review** - Attorney approval
 9. **Register DMCA Agent** - U.S. Copyright Office
 10. **Go Live** - Monitor for issues
@@ -484,12 +498,14 @@ Response 201:
 ## Support & Maintenance
 
 ### Monitoring
+
 - Track pending notice count
 - Alert on counter-notices nearing waiting period end
 - Monitor strike issuance rate
 - Track takedown processing time
 
 ### Common Issues
+
 - Invalid URLs in takedown notices → Send incomplete notice email
 - Missing counter-notice fields → Return validation error
 - Disputed takedowns → Forward counter-notice to complainant

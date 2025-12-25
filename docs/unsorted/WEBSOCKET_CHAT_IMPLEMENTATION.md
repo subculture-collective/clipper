@@ -108,6 +108,7 @@ Fixed pre-existing issues discovered during implementation:
 ## Architecture
 
 ### WebSocket Flow
+
 ```
 Client → WebSocket Upgrade → ChatClient → ChannelHub → Redis Pub/Sub → All Instances
                                    ↓
@@ -142,6 +143,7 @@ Client → WebSocket Upgrade → ChatClient → ChannelHub → Redis Pub/Sub →
 ## Performance Characteristics
 
 ### Requirements Met ✅
+
 - **Concurrent connections**: Support 1000+ per instance (no artificial limit)
 - **Message latency**: < 50ms p95 (tracked via histogram)
 - **Redis throughput**: 10,000+ msg/s (Redis capability)
@@ -149,12 +151,14 @@ Client → WebSocket Upgrade → ChatClient → ChannelHub → Redis Pub/Sub →
 - **Message size**: Max 500 characters
 
 ### Scalability
+
 - Horizontal scaling via Redis Pub/Sub
 - Each instance can handle 1000+ connections
 - Messages distributed across all instances
 - No single point of failure
 
 ### Monitoring
+
 - Prometheus metrics for all operations
 - Connection counts per channel
 - Message latency tracking
@@ -164,6 +168,7 @@ Client → WebSocket Upgrade → ChatClient → ChannelHub → Redis Pub/Sub →
 ## API Reference
 
 ### Create Channel
+
 ```http
 POST /api/v1/chat/channels
 Authorization: Bearer <JWT>
@@ -178,18 +183,21 @@ Content-Type: application/json
 ```
 
 ### List Channels
+
 ```http
 GET /api/v1/chat/channels?limit=50&offset=0&type=public
 Authorization: Bearer <JWT>
 ```
 
 ### Get Channel
+
 ```http
 GET /api/v1/chat/channels/:id
 Authorization: Bearer <JWT>
 ```
 
 ### Update Channel
+
 ```http
 PATCH /api/v1/chat/channels/:id
 Authorization: Bearer <JWT>
@@ -202,6 +210,7 @@ Content-Type: application/json
 ```
 
 ### WebSocket Connection
+
 ```http
 GET /api/v1/chat/channels/:id/ws
 Authorization: Bearer <JWT>
@@ -282,6 +291,7 @@ Upgrade: websocket
 ## Database Schema
 
 ### Tables Created
+
 1. `chat_channels` - Channel metadata (already existed)
 2. `chat_messages` - Persisted messages (already existed)
 3. `chat_bans` - User bans per channel (already existed)
@@ -289,6 +299,7 @@ Upgrade: websocket
 5. `user_presence` - User presence tracking (NEW)
 
 ### Indexes
+
 - Optimized for channel queries
 - Message history queries
 - Presence lookups
@@ -296,11 +307,13 @@ Upgrade: websocket
 ## Testing
 
 ### Unit Tests
+
 - All WebSocket tests pass
 - All handler tests pass
 - Test coverage for validation logic
 
 ### Manual Testing Steps
+
 1. Start the API server
 2. Create a channel via POST /api/v1/chat/channels
 3. Connect via WebSocket to /api/v1/chat/channels/:id/ws
@@ -312,18 +325,21 @@ Upgrade: websocket
 ## Deployment Notes
 
 ### Environment Variables
+
 No new environment variables required. Existing configuration:
 - `REDIS_HOST` - Redis server for Pub/Sub
 - `DATABASE_URL` - PostgreSQL connection
 - `JWT_PRIVATE_KEY` - For JWT authentication
 
 ### Database Migration
+
 Run migration 000070_add_user_presence before deploying:
 ```bash
 migrate -path ./migrations -database "postgres://..." up
 ```
 
 ### Monitoring
+
 Prometheus metrics available at `/metrics` endpoint.
 
 Recommended alerts:
@@ -335,11 +351,13 @@ Recommended alerts:
 ## Files Changed
 
 ### New Files
+
 - `backend/internal/websocket/metrics.go`
 - `backend/migrations/000070_add_user_presence.up.sql`
 - `backend/migrations/000070_add_user_presence.down.sql`
 
 ### Modified Files
+
 - `backend/cmd/api/main.go` - Added channel CRUD routes
 - `backend/internal/handlers/chat_handler.go` - Added CRUD handlers
 - `backend/internal/handlers/chat_handler_test.go` - Added tests

@@ -353,7 +353,7 @@ AND created_at > NOW() - INTERVAL '30 days';
 
 **Overall Result**: ☐ Pass ☐ Fail ☐ Pass with Issues
 
-**Issues Found**: 
+**Issues Found**:
 - Issue 1: ___________________________
 - Issue 2: ___________________________
 - Issue 3: ___________________________
@@ -382,7 +382,7 @@ AND created_at > NOW() - INTERVAL '30 days';
 
 - **Engineering Lead**: [Name] - [Email/Slack]
 - **DevOps**: [Name] - [Email/Slack]
-- **Stripe Support**: support@stripe.com
+- **Stripe Support**: <support@stripe.com>
 
 ---
 

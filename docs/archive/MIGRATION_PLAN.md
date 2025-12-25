@@ -1,64 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Database Migration Plan](#database-migration-plan)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-    - [Current State](#current-state)
-    - [Migration Types](#migration-types)
-    - [Risk Assessment](#risk-assessment)
-  - [Migration Strategy](#migration-strategy)
-    - [Principles](#principles)
-    - [Three-Phase Deployment Pattern](#three-phase-deployment-pattern)
-  - [Pre-Migration Checklist](#pre-migration-checklist)
-    - [Planning](#planning)
-    - [Testing](#testing)
-    - [Backup](#backup)
-    - [Communication](#communication)
-    - [Environment Validation](#environment-validation)
-  - [Backup Strategy](#backup-strategy)
-    - [Automated Backups](#automated-backups)
-    - [Pre-Migration Backup](#pre-migration-backup)
-    - [Backup Verification](#backup-verification)
-    - [Backup Retention](#backup-retention)
-  - [Migration Execution](#migration-execution)
-    - [Standard Migration (Low Risk)](#standard-migration-low-risk)
-    - [Migration with Downtime (High Risk)](#migration-with-downtime-high-risk)
-    - [Migration Monitoring](#migration-monitoring)
-  - [Rollback Procedures](#rollback-procedures)
-    - [Automatic Rollback](#automatic-rollback)
-    - [Manual Rollback to Backup](#manual-rollback-to-backup)
-    - [Partial Rollback (Down Migration)](#partial-rollback-down-migration)
-    - [Rollback Decision Tree](#rollback-decision-tree)
-  - [Zero-Downtime Migrations](#zero-downtime-migrations)
-    - [Adding a Column (Nullable)](#adding-a-column-nullable)
-    - [Adding a Column (NOT NULL)](#adding-a-column-not-null)
-    - [Renaming a Column](#renaming-a-column)
-    - [Adding an Index](#adding-an-index)
-    - [Changing a Data Type](#changing-a-data-type)
-  - [Data Migration Patterns](#data-migration-patterns)
-    - [Large Data Backfill](#large-data-backfill)
-    - [Data Transformation](#data-transformation)
-    - [Archive and Purge](#archive-and-purge)
-  - [Testing Strategy](#testing-strategy)
-    - [Local Testing](#local-testing)
-    - [Staging Testing](#staging-testing)
-    - [Production-Like Testing](#production-like-testing)
-  - [Monitoring and Validation](#monitoring-and-validation)
-    - [During Migration](#during-migration)
-    - [Post-Migration Validation](#post-migration-validation)
-  - [Migration Runbook Templates](#migration-runbook-templates)
-    - [Template: Adding New Table](#template-adding-new-table)
-  - [Validation](#validation)
-  - [Rollback](#rollback)
-  - [Monitoring](#monitoring)
-  - [Validation](#validation-1)
-  - [Rollback](#rollback-1)
-  - [Monitoring](#monitoring-1)
-  - [Validation](#validation-2)
-  - [Rollback](#rollback-2)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Database Migration Plan
 
@@ -119,16 +58,19 @@ This document outlines the comprehensive strategy for executing database schema 
 For complex migrations, use a three-phase approach:
 
 #### Phase 1: Expand
+
 - Add new schema elements (tables, columns, indexes)
 - Deploy new application code that writes to both old and new schema
 - Old code continues to work
 
 #### Phase 2: Migrate
+
 - Backfill data from old to new schema
 - Validate data consistency
 - Switch reads to new schema gradually
 
 #### Phase 3: Contract
+
 - Remove old schema elements after verification
 - Clean up deprecated code
 - Archive old data if needed
@@ -803,12 +745,14 @@ migrate -path backend/migrations -database "$DATABASE_URL" up
 ```
 
 ## Validation
+
 - [ ] Table created: `\dt <table_name>`
 - [ ] Indexes created: `\di`
 - [ ] Application healthy
 - [ ] No errors in logs
 
 ## Rollback
+
 ```bash
 migrate -path backend/migrations -database "$DATABASE_URL" down 1
 ```
@@ -849,17 +793,20 @@ END $$;
 ```
 
 ## Monitoring
+
 ```bash
 # Watch progress
 watch -n 5 "psql -d clipper_db -c 'SELECT COUNT(*) FROM <table_name> WHERE <field_name> IS NULL;'"
 ```
 
 ## Validation
+
 - [ ] All records backfilled: `SELECT COUNT(*) FROM <table_name> WHERE <field_name> IS NULL;` = 0
 - [ ] Data looks correct: `SELECT * FROM <table_name> LIMIT 10;`
 - [ ] Application healthy
 
 ## Rollback
+
 ```bash
 # Set field back to NULL if needed
 UPDATE <table_name> SET <field_name> = NULL;
@@ -889,18 +836,21 @@ ON <table_name>(<column_name>);
 ```
 
 ## Monitoring
+
 ```bash
 # Watch index creation progress
 watch -n 5 "psql -d clipper_db -c \"SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read, idx_tup_fetch FROM pg_stat_user_indexes WHERE indexname = 'idx_<table_name>_<column_name>';\""
 ```
 
 ## Validation
+
 - [ ] Index created: `\di idx_<table_name>_<column_name>`
 - [ ] Index valid: `SELECT indexname, indexdef FROM pg_indexes WHERE indexname = 'idx_<table_name>_<column_name>';`
 - [ ] Query uses index: `EXPLAIN SELECT * FROM <table_name> WHERE <column_name> = 'value';`
 - [ ] Application healthy
 
 ## Rollback
+
 ```sql
 DROP INDEX CONCURRENTLY idx_<table_name>_<column_name>;
 ```

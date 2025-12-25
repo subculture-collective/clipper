@@ -158,88 +158,88 @@ if __name__ == '__main__':
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"io"
-	"log"
-	"net/http"
-	"os"
+ "crypto/hmac"
+ "crypto/sha256"
+ "encoding/hex"
+ "encoding/json"
+ "io"
+ "log"
+ "net/http"
+ "os"
 )
 
 // verifyWebhookSignature verifies the HMAC-SHA256 signature
 func verifyWebhookSignature(payload []byte, signature, secret string) bool {
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write(payload)
-	expectedSignature := hex.EncodeToString(h.Sum(nil))
-	
-	// Use constant-time comparison to prevent timing attacks
-	return hmac.Equal([]byte(signature), []byte(expectedSignature))
+ h := hmac.New(sha256.New, []byte(secret))
+ h.Write(payload)
+ expectedSignature := hex.EncodeToString(h.Sum(nil))
+ 
+ // Use constant-time comparison to prevent timing attacks
+ return hmac.Equal([]byte(signature), []byte(expectedSignature))
 }
 
 // WebhookPayload represents the structure of incoming webhook data
 type WebhookPayload struct {
-	Event     string                 `json:"event"`
-	Timestamp string                 `json:"timestamp"`
-	Data      map[string]interface{} `json:"data"`
+ Event     string                 `json:"event"`
+ Timestamp string                 `json:"timestamp"`
+ Data      map[string]interface{} `json:"data"`
 }
 
 func webhookHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	
-	// Read the raw body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Printf("Error reading body: %v", err)
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-	
-	// Get headers
-	signature := r.Header.Get("X-Webhook-Signature")
-	event := r.Header.Get("X-Webhook-Event")
-	deliveryID := r.Header.Get("X-Webhook-Delivery-ID")
-	
-	// Get secret from environment
-	secret := os.Getenv("WEBHOOK_SECRET")
-	
-	// Verify signature
-	if !verifyWebhookSignature(body, signature, secret) {
-		log.Println("Invalid webhook signature")
-		http.Error(w, "Invalid signature", http.StatusUnauthorized)
-		return
-	}
-	
-	// Parse payload after verification
-	var payload WebhookPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
-		log.Printf("Error parsing payload: %v", err)
-		http.Error(w, "Invalid payload", http.StatusBadRequest)
-		return
-	}
-	
-	log.Printf("Received webhook: %s (%s)", event, deliveryID)
-	log.Printf("Payload: %+v", payload)
-	
-	// Process the webhook event
-	// ... your business logic here ...
-	
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+ if r.Method != http.MethodPost {
+  http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+  return
+ }
+ 
+ // Read the raw body
+ body, err := io.ReadAll(r.Body)
+ if err != nil {
+  log.Printf("Error reading body: %v", err)
+  http.Error(w, "Error reading request body", http.StatusBadRequest)
+  return
+ }
+ defer r.Body.Close()
+ 
+ // Get headers
+ signature := r.Header.Get("X-Webhook-Signature")
+ event := r.Header.Get("X-Webhook-Event")
+ deliveryID := r.Header.Get("X-Webhook-Delivery-ID")
+ 
+ // Get secret from environment
+ secret := os.Getenv("WEBHOOK_SECRET")
+ 
+ // Verify signature
+ if !verifyWebhookSignature(body, signature, secret) {
+  log.Println("Invalid webhook signature")
+  http.Error(w, "Invalid signature", http.StatusUnauthorized)
+  return
+ }
+ 
+ // Parse payload after verification
+ var payload WebhookPayload
+ if err := json.Unmarshal(body, &payload); err != nil {
+  log.Printf("Error parsing payload: %v", err)
+  http.Error(w, "Invalid payload", http.StatusBadRequest)
+  return
+ }
+ 
+ log.Printf("Received webhook: %s (%s)", event, deliveryID)
+ log.Printf("Payload: %+v", payload)
+ 
+ // Process the webhook event
+ // ... your business logic here ...
+ 
+ w.WriteHeader(http.StatusOK)
+ w.Write([]byte("OK"))
 }
 
 func main() {
-	http.HandleFunc("/webhook", webhookHandler)
-	
-	log.Println("Webhook server listening on :3000")
-	if err := http.ListenAndServe(":3000", nil); err != nil {
-		log.Fatal(err)
-	}
+ http.HandleFunc("/webhook", webhookHandler)
+ 
+ log.Println("Webhook server listening on :3000")
+ if err := http.ListenAndServe(":3000", nil); err != nil {
+  log.Fatal(err)
+ }
 }
 ```
 

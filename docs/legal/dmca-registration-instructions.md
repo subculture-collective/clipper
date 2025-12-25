@@ -13,7 +13,7 @@ Before Clipper can launch and claim DMCA safe harbor protection, a designated DM
 
 ### 1. Visit Copyright Office DMCA Directory
 
-Navigate to: https://www.copyright.gov/dmca-directory/
+Navigate to: <https://www.copyright.gov/dmca-directory/>
 
 ### 2. Create Account
 
@@ -35,7 +35,7 @@ Fill out the online form with the following information:
 - Physical Address: [TO BE DETERMINED - Must be a US address]
 - City, State, ZIP: [TO BE DETERMINED]
 - Country: United States
-- Email: dmca@clpr.tv
+- Email: <dmca@clpr.tv>
 - Phone: [TO BE DETERMINED]
 - Fax (optional): [TO BE DETERMINED]
 
@@ -77,7 +77,7 @@ Once registration is complete:
 **2. Designated Agent**
 - [ ] Decide who will be the designated agent (individual or company)
 - [ ] Ensure agent can respond to DMCA notices promptly
-- [ ] Consider using a company/role email (dmca@clpr.tv) rather than personal
+- [ ] Consider using a company/role email (<dmca@clpr.tv>) rather than personal
 
 **3. Physical Address**
 - [ ] MUST be a United States physical address
@@ -85,7 +85,7 @@ Once registration is complete:
 - [ ] Should be an address where legal notices can be received
 
 **4. Contact Information**
-- [ ] Email: dmca@clpr.tv (must be set up before registration)
+- [ ] Email: <dmca@clpr.tv> (must be set up before registration)
 - [ ] Phone: Valid US phone number
 - [ ] Ensure contact methods are monitored regularly
 
@@ -96,23 +96,27 @@ Once registration is complete:
 After registration is complete:
 
 ### 1. Update Documentation
+
 - [ ] Update `/docs/legal/dmca-policy.md` with agent information
 - [ ] Save certificate to `/docs/legal/dmca-registration.pdf`
 - [ ] Update Terms of Service to reference DMCA policy
 
 ### 2. Website Integration
+
 - [ ] Display agent information prominently on website
 - [ ] Add link to DMCA policy in footer
 - [ ] Create DMCA policy page at `/legal/dmca` route
 - [ ] Add link to DMCA policy in submission flow
 
 ### 3. Email Setup
-- [ ] Set up dmca@clpr.tv email
+
+- [ ] Set up <dmca@clpr.tv> email
 - [ ] Configure email forwarding to designated agent
 - [ ] Set up auto-responder (optional)
 - [ ] Create email templates for DMCA responses
 
 ### 4. Process Setup
+
 - [ ] Train staff on DMCA procedures
 - [ ] Create DMCA notice submission form (optional)
 - [ ] Set up admin panel for reviewing takedown requests
@@ -120,6 +124,7 @@ After registration is complete:
 - [ ] Create user notification email templates
 
 ### 5. Record-Keeping
+
 - [ ] Set up database/filing system for DMCA notices
 - [ ] Create templates for documenting takedowns
 - [ ] Establish retention policy (minimum 3 years)
@@ -152,18 +157,18 @@ If you operate multiple services (e.g., web, mobile app, API), you can:
 
 ## Resources
 
-- **Copyright Office DMCA Directory:** https://www.copyright.gov/dmca-directory/
-- **DMCA Registration Instructions:** https://www.copyright.gov/dmca-directory/instructions.pdf
-- **17 U.S.C. § 512 (DMCA Text):** https://www.law.cornell.edu/uscode/text/17/512
-- **FAQ:** https://www.copyright.gov/dmca-directory/faq.pdf
+- **Copyright Office DMCA Directory:** <https://www.copyright.gov/dmca-directory/>
+- **DMCA Registration Instructions:** <https://www.copyright.gov/dmca-directory/instructions.pdf>
+- **17 U.S.C. § 512 (DMCA Text):** <https://www.law.cornell.edu/uscode/text/17/512>
+- **FAQ:** <https://www.copyright.gov/dmca-directory/faq.pdf>
 
 ---
 
 ## Contact
 
 For questions about DMCA registration:
-- **Legal Inquiries:** legal@clpr.tv
-- **General Support:** support@clpr.tv
+- **Legal Inquiries:** <legal@clpr.tv>
+- **General Support:** <support@clpr.tv>
 
 ---
 
@@ -172,7 +177,7 @@ For questions about DMCA registration:
 1. ✅ DMCA policy document created
 2. ⏳ Finalize legal entity name and address
 3. ⏳ Designate DMCA agent
-4. ⏳ Set up dmca@clpr.tv email
+4. ⏳ Set up <dmca@clpr.tv> email
 5. ⏳ Complete online registration at copyright.gov
 6. ⏳ Save certificate and update documentation
 7. ⏳ Integrate with website

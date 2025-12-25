@@ -1,37 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Development Environment Status & Action Plan](#development-environment-status--action-plan)
-  - [System Status ✅](#system-status-)
-    - [Running Services](#running-services)
-    - [Local Build Status](#local-build-status)
-  - [Fixed Issues](#fixed-issues)
-  - [How to Start Development Now](#how-to-start-development-now)
-    - [Quick Start (5 minutes)](#quick-start-5-minutes)
-    - [Or use the startup script](#or-use-the-startup-script)
-  - [Development Workflow](#development-workflow)
-    - [1. Feature Development](#1-feature-development)
-    - [2. Staging Testing](#2-staging-testing)
-    - [3. Production Deployment](#3-production-deployment)
-  - [Available Commands](#available-commands)
-  - [Git Branches](#git-branches)
-    - [Current Branches](#current-branches)
-    - [Create Your Feature](#create-your-feature)
-  - [Troubleshooting](#troubleshooting)
-    - [Backend won't start](#backend-wont-start)
-    - [Frontend can't reach API](#frontend-cant-reach-api)
-    - [Port already in use](#port-already-in-use)
-    - [Docker issues](#docker-issues)
-  - [Documentation References](#documentation-references)
-  - [Team Coordination](#team-coordination)
-    - [Daily Standup](#daily-standup)
-    - [Code Review](#code-review)
-    - [Staging Testing](#staging-testing)
-    - [Production Release](#production-release)
-  - [Next Immediate Steps](#next-immediate-steps)
-  - [Questions?](#questions)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Development Environment Status & Action Plan
 
@@ -40,6 +6,7 @@ Generated: 2025-12-07
 ## System Status ✅
 
 ### Running Services
+
 | Service | Status | Port | Notes |
 |---------|--------|------|-------|
 | PostgreSQL | ✅ HEALTHY | 5436 | Connection verified |
@@ -50,6 +17,7 @@ Generated: 2025-12-07
 | Monitoring Stack | ✅ RUNNING | Various | Prometheus, Grafana, Loki, AlertManager |
 
 ### Local Build Status
+
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Go Build | ✅ SUCCESS | `backend/bin/api` created |
@@ -174,6 +142,7 @@ bash scripts/dev-setup.sh           # Setup environment
 ## Git Branches
 
 ### Current Branches
+
 ```
 main                           → Production (auto-deploys)
 develop                        → Staging (auto-deploys)
@@ -203,6 +172,7 @@ git push origin feature/your-feature-name
 ## Troubleshooting
 
 ### Backend won't start
+
 ```bash
 # Check database connection
 cat backend/.env | grep DB_
@@ -221,6 +191,7 @@ go build -o bin/api ./cmd/api
 ```
 
 ### Frontend can't reach API
+
 ```bash
 # Check environment
 cat frontend/.env | grep VITE_API
@@ -236,6 +207,7 @@ curl http://localhost:8080/health
 ```
 
 ### Port already in use
+
 ```bash
 # Find what's using the port
 lsof -i :8080   # Backend
@@ -250,6 +222,7 @@ cd backend && PORT=8081 go run cmd/api/main.go
 ```
 
 ### Docker issues
+
 ```bash
 # Stop everything
 docker compose down
@@ -277,11 +250,13 @@ docker compose logs -f redis
 ## Team Coordination
 
 ### Daily Standup
+
 - What are you working on?
 - Are you blocked on anything?
 - What will you work on next?
 
 ### Code Review
+
 - Create PR with clear description
 - Link related issues
 - Wait for team review
@@ -289,12 +264,14 @@ docker compose logs -f redis
 - Merge when approved
 
 ### Staging Testing
+
 - After PR merge to develop
 - GitHub Actions auto-builds and deploys
 - Team tests on staging.your-domain.com
 - Log issues if found
 
 ### Production Release
+
 - When stable in staging
 - Create PR: develop -> main
 - After merge, auto-deploys

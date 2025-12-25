@@ -9,6 +9,7 @@ The watch party chat and reactions system enables real-time communication and en
 ## Features Implemented
 
 ### Backend Features
+
 - ✅ Real-time chat messaging via WebSocket
 - ✅ Persistent chat message storage (last 100 messages)
 - ✅ Emoji reactions with optional video timestamps
@@ -18,6 +19,7 @@ The watch party chat and reactions system enables real-time communication and en
 - ✅ Automatic reconnection with exponential backoff
 
 ### Frontend Features
+
 - ✅ Chat panel with message list and composer
 - ✅ Emoji picker integration
 - ✅ Reaction overlay with floating animations
@@ -31,6 +33,7 @@ The watch party chat and reactions system enables real-time communication and en
 ### Database Schema
 
 #### watch_party_messages
+
 ```sql
 CREATE TABLE watch_party_messages (
     id UUID PRIMARY KEY,
@@ -42,6 +45,7 @@ CREATE TABLE watch_party_messages (
 ```
 
 #### watch_party_reactions
+
 ```sql
 CREATE TABLE watch_party_reactions (
     id UUID PRIMARY KEY,
@@ -56,6 +60,7 @@ CREATE TABLE watch_party_reactions (
 ### API Endpoints
 
 #### Chat Messages
+
 - `POST /api/v1/watch-parties/:id/messages` - Send a message
   - Rate limit: 10 requests/minute
   - Request: `{ "message": "Hello!" }`
@@ -66,6 +71,7 @@ CREATE TABLE watch_party_reactions (
   - Response: `{ "success": true, "data": { "messages": [...], "count": 50 } }`
 
 #### Reactions
+
 - `POST /api/v1/watch-parties/:id/react` - Send a reaction
   - Rate limit: 30 requests/minute
   - Request: `{ "emoji": "🔥", "video_timestamp": 42.5 }`
@@ -75,7 +81,7 @@ CREATE TABLE watch_party_reactions (
 
 Connect to: `wss://[host]/api/v1/watch-parties/:id/ws`
 
-**Authentication**: 
+**Authentication**:
 - WebSocket connections require authentication via JWT token
 - Token is passed via `Sec-WebSocket-Protocol` header as a subprotocol
 - Format: `auth.bearer.<base64_encoded_token>`
@@ -213,6 +219,7 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 ## Rate Limiting
 
 ### Per-User Limits
+
 - **Chat Messages**: 10 messages per minute
 - **Reactions**: 30 reactions per minute
 - Implemented using Redis-backed distributed rate limiter with sliding window algorithm
@@ -220,17 +227,20 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 - Failed rate limit checks are logged but silently dropped (no error sent to client)
 
 ### Architecture
+
 - Uses Redis sorted sets for distributed rate limiting
 - Sliding window algorithm ensures accurate rate limiting across instances
 - Automatic cleanup of expired entries
 - Fallback to in-memory rate limiter if Redis is unavailable (per-instance only)
 
 ### HTTP Endpoint Limits
+
 - Enforced by middleware at HTTP layer
 - Same limits as WebSocket (10 msgs/min, 30 reactions/min)
 - Returns 429 status code when exceeded
 
 ### WebSocket Limits
+
 - Enforced within watch party hub
 - Silent drop of messages when limit exceeded
 - Logged for monitoring
@@ -238,12 +248,14 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 ## Performance Characteristics
 
 ### Target Metrics
+
 - **Message Latency**: < 100ms p95 (WebSocket broadcast)
 - **Reaction Animation**: 60fps smooth floating animation
 - **Chat History Load**: < 200ms for last 100 messages
 - **Concurrent Users**: Tested with 100 simultaneous participants
 
 ### Optimizations
+
 - Connection pooling for database queries
 - Buffered broadcast channels (256 capacity)
 - Efficient message storage with indexes
@@ -272,6 +284,7 @@ function WatchPartyPage({ partyId }: { partyId: string }) {
 ## Testing
 
 ### Unit Tests
+
 ```bash
 # Backend tests
 cd backend
@@ -284,6 +297,7 @@ go test ./internal/repository/watch_party_repository_test.go -v
 ```
 
 ### Manual Testing
+
 1. Create a watch party
 2. Join from multiple browser sessions
 3. Send chat messages and verify real-time delivery
@@ -303,15 +317,17 @@ go test ./internal/repository/watch_party_repository_test.go -v
 ## Deployment Considerations
 
 ### Multi-Instance Deployments
+
 - **Rate Limiting**: Requires Redis for distributed rate limiting across instances
 - **WebSocket Connections**: Each instance maintains its own WebSocket connections
 - **Load Balancing**: Configure load balancer for WebSocket sticky sessions or use Redis pub/sub
-- **Redis Requirements**: 
+- **Redis Requirements**:
   - Must be accessible from all backend instances
   - Recommended: Redis Cluster or Sentinel for high availability
   - Rate limit keys automatically expire after window + 1 minute
 
 ### Single Instance Deployments
+
 - Can use in-memory rate limiter fallback if Redis is unavailable
 - Simpler setup but limited scalability
 - Rate limits are per-instance (can be bypassed by connecting to different instances)
@@ -331,6 +347,7 @@ go test ./internal/repository/watch_party_repository_test.go -v
 ## Migration Guide
 
 ### Database Migration
+
 ```bash
 # Run migration
 migrate -path backend/migrations -database "postgres://..." up
@@ -341,6 +358,7 @@ psql -c "SELECT * FROM watch_party_reactions LIMIT 1;"
 ```
 
 ### Frontend Integration
+
 1. Import components from `@/components/watch-party`
 2. Import hook from `@/hooks/useWatchPartyWebSocket`
 3. Import API functions from `@/lib/watch-party-api`
@@ -350,6 +368,7 @@ psql -c "SELECT * FROM watch_party_reactions LIMIT 1;"
 ## Troubleshooting
 
 ### WebSocket Connection Issues
+
 - **Problem**: Connection fails with 401 Unauthorized
 - **Solution**: Ensure JWT token is present in localStorage
 
@@ -357,10 +376,12 @@ psql -c "SELECT * FROM watch_party_reactions LIMIT 1;"
 - **Solution**: Check network stability, firewall rules, load balancer configuration
 
 ### Rate Limiting Issues
+
 - **Problem**: Messages not appearing
 - **Solution**: Check console for rate limit errors, wait for window to reset
 
 ### Animation Performance
+
 - **Problem**: Reactions lag or stutter
 - **Solution**: Reduce number of concurrent animations, check browser GPU acceleration
 

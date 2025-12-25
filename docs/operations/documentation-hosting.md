@@ -1,45 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Documentation Hosting Implementation](#documentation-hosting-implementation)
-  - [Overview](#overview)
-  - [Architecture](#architecture)
-    - [Backend (Go)](#backend-go)
-    - [Frontend (React)](#frontend-react)
-  - [Features](#features)
-    - [1. Full-Text Search ✅](#1-full-text-search-)
-    - [2. GitHub Edit Links ✅](#2-github-edit-links-)
-    - [3. Admin Dashboard Integration ✅](#3-admin-dashboard-integration-)
-    - [4. Hierarchical Navigation](#4-hierarchical-navigation)
-    - [5. Wikilink Support](#5-wikilink-support)
-    - [6. Markdown Rendering](#6-markdown-rendering)
-    - [7. Security](#7-security)
-  - [Usage](#usage)
-    - [Accessing Documentation](#accessing-documentation)
-    - [Searching Documentation](#searching-documentation)
-    - [Admin Quick Access](#admin-quick-access)
-    - [Editing Documentation](#editing-documentation)
-    - [Adding New Documentation](#adding-new-documentation)
-  - [API Reference](#api-reference)
-    - [GET /api/v1/docs](#get-apiv1docs)
-    - [GET /api/v1/docs/:path](#get-apiv1docspath)
-    - [GET /api/v1/docs/search](#get-apiv1docssearch)
-  - [Future Enhancements](#future-enhancements)
-    - [1. Advanced Search Features](#1-advanced-search-features)
-    - [2. Versioning](#2-versioning)
-    - [3. Table of Contents](#3-table-of-contents)
-    - [4. Analytics](#4-analytics)
-    - [5. Hot Reload](#5-hot-reload)
-    - [6. Offline Support](#6-offline-support)
-    - [7. Collaboration Features](#7-collaboration-features)
-  - [Deployment Notes](#deployment-notes)
-  - [Testing](#testing)
-    - [Manual Testing](#manual-testing)
-    - [Automated Testing](#automated-testing)
-  - [Related Files](#related-files)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Documentation Hosting Implementation"
 summary: "The Clipper documentation is now hosted within the application and accessible from the admin panel a"
@@ -339,12 +297,14 @@ Full-text search across all documentation.
 ## Future Enhancements
 
 ### 1. Advanced Search Features
+
 - **Fuzzy matching** - Handle typos and variations
 - **Filters** - By section, file type, date modified
 - **Autocomplete** - Suggest queries as you type
 - **Search history** - Remember recent searches
 
 ### 2. Versioning
+
 Support multiple documentation versions:
 - `/docs/v1.0/`, `/docs/v2.0/`, etc.
 - Version selector in UI
@@ -352,6 +312,7 @@ Support multiple documentation versions:
 - Archive old versions
 
 ### 3. Table of Contents
+
 Auto-generate TOC for long documents:
 - Parse headings from markdown
 - Render sticky TOC sidebar
@@ -359,6 +320,7 @@ Auto-generate TOC for long documents:
 - Smooth scroll to headings
 
 ### 4. Analytics
+
 Track documentation usage:
 - Most viewed pages
 - Search queries (what users look for)
@@ -366,6 +328,7 @@ Track documentation usage:
 - User feedback (helpful/not helpful)
 
 ### 5. Hot Reload
+
 Watch docs directory for changes:
 - Use `fsnotify` or similar
 - Rebuild doc tree on file change
@@ -373,12 +336,14 @@ Watch docs directory for changes:
 - Webhook from GitHub on commits
 
 ### 6. Offline Support
+
 - Cache docs in browser storage
 - Service worker for offline access
 - Download docs as PDF/ZIP
 - Mobile app integration
 
 ### 7. Collaboration Features
+
 - Inline comments on docs
 - Suggest edits without GitHub
 - Track changes and approvals

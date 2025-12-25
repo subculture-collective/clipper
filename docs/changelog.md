@@ -1,19 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Changelog](#changelog)
-    - [[Unreleased]](#unreleased)
-        - [Added](#added)
-        - [Changed](#changed)
-        - [Deprecated](#deprecated)
-        - [Removed](#removed)
-        - [Fixed](#fixed)
-        - [Security](#security)
-    - [Release Notes](#release-notes)
-        - [Upcoming Releases](#upcoming-releases)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 
 title: "Changelog"
@@ -88,15 +72,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guidelines
 - MIT License
 - **[RFC 002: Advanced Query Language](docs/rfcs/002-advanced-query-language.md)** - Human-readable query syntax for advanced search and filtering
-    - Formal EBNF grammar specification in [QUERY_GRAMMAR.md](docs/QUERY_GRAMMAR.md)
-    - Comprehensive examples and test cases in [QUERY_LANGUAGE_EXAMPLES.md](docs/QUERY_LANGUAGE_EXAMPLES.md)
-    - Support for field filters (game:, creator:, tag:, etc.)
-    - Boolean operators (OR, implicit AND) and negation (-)
-    - Range queries (votes:>50, duration:10..30)
-    - Date filtering (after:2025-01-01, after:last-week)
-    - Grouping with parentheses for complex queries
-    - Query escaping and quoting rules
-    - Error codes and validation rules
+  - Formal EBNF grammar specification in [QUERY_GRAMMAR.md](docs/QUERY_GRAMMAR.md)
+  - Comprehensive examples and test cases in [QUERY_LANGUAGE_EXAMPLES.md](docs/QUERY_LANGUAGE_EXAMPLES.md)
+  - Support for field filters (game:, creator:, tag:, etc.)
+  - Boolean operators (OR, implicit AND) and negation (-)
+  - Range queries (votes:>50, duration:10..30)
+  - Date filtering (after:2025-01-01, after:last-week)
+  - Grouping with parentheses for complex queries
+  - Query escaping and quoting rules
+  - Error codes and validation rules
 
 ### Changed
 

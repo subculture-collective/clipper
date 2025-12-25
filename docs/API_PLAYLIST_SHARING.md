@@ -302,14 +302,16 @@ Common error codes:
 
 ## Database Schema
 
-### playlists table additions:
+### playlists table additions
+
 ```sql
 share_token VARCHAR(100) UNIQUE
 view_count INT DEFAULT 0
 share_count INT DEFAULT 0
 ```
 
-### playlist_collaborators table:
+### playlist_collaborators table
+
 ```sql
 CREATE TABLE playlist_collaborators (
     id UUID PRIMARY KEY,
@@ -324,7 +326,8 @@ CREATE TABLE playlist_collaborators (
 );
 ```
 
-### playlist_shares table:
+### playlist_shares table
+
 ```sql
 CREATE TABLE playlist_shares (
     id UUID PRIMARY KEY,
@@ -451,7 +454,8 @@ function PlaylistList() {
 
 ## Analytics Queries
 
-### Get most shared playlists:
+### Get most shared playlists
+
 ```sql
 SELECT p.id, p.title, p.share_count
 FROM playlists p
@@ -460,7 +464,8 @@ ORDER BY p.share_count DESC
 LIMIT 10;
 ```
 
-### Get share breakdown by platform:
+### Get share breakdown by platform
+
 ```sql
 SELECT platform, COUNT(*) as share_count
 FROM playlist_shares
@@ -469,7 +474,8 @@ GROUP BY platform
 ORDER BY share_count DESC;
 ```
 
-### Get most viewed playlists:
+### Get most viewed playlists
+
 ```sql
 SELECT p.id, p.title, p.view_count
 FROM playlists p
@@ -478,7 +484,8 @@ ORDER BY p.view_count DESC
 LIMIT 10;
 ```
 
-### Get playlists with most collaborators:
+### Get playlists with most collaborators
+
 ```sql
 SELECT p.id, p.title, COUNT(pc.id) as collaborator_count
 FROM playlists p

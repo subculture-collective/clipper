@@ -1,24 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Rate Limiting Fallback Implementation](#rate-limiting-fallback-implementation)
-  - [Overview](#overview)
-  - [Problem Statement](#problem-statement)
-  - [Solution](#solution)
-    - [Key Components](#key-components)
-    - [Behavior Comparison](#behavior-comparison)
-    - [Headers](#headers)
-    - [Test Coverage](#test-coverage)
-    - [Security Benefits](#security-benefits)
-    - [Performance Characteristics](#performance-characteristics)
-    - [Monitoring](#monitoring)
-    - [Limitations](#limitations)
-    - [Future Enhancements](#future-enhancements)
-    - [Testing the Implementation](#testing-the-implementation)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Rate Limiting Fallback Implementation
 
 ## Overview

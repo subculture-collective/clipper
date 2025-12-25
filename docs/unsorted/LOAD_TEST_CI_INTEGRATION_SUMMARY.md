@@ -58,6 +58,7 @@ December 2024
 ### ✅ 3. Documentation
 
 #### Workflow Documentation
+
 - **Main Guide**: `.github/workflows/LOAD_TESTS_README.md`
   - How to run tests (automatic and manual)
   - Accessing results and artifacts
@@ -65,6 +66,7 @@ December 2024
   - Maintenance guidelines
 
 #### Dashboard Documentation
+
 - **Dashboard Guide**: `monitoring/dashboards/LOAD_TEST_DASHBOARD.md`
   - Panel descriptions
   - How to interpret results
@@ -72,6 +74,7 @@ December 2024
   - Setup instructions
 
 #### Updated Load Test Documentation
+
 - **Load Test README**: `backend/tests/load/README.md`
   - CI/CD integration section
   - Accessing historical trends

@@ -88,46 +88,54 @@ docs/
 
 ### ✅ File Movements & Cleanup
 
-#### Moved from `backend/docs/` to `docs/backend/`:
+#### Moved from `backend/docs/` to `docs/backend/`
+
 - Webhooks, Email Templates, Profiling
 - Trust Score Implementation & Security
 - Broadcaster Live Sync Implementation & Testing
 - Optimization Analysis
 
-#### Moved to `docs/backend/`:
+#### Moved to `docs/backend/`
+
 - Clip API, Comment API, Submission API docs
 - Redis Operations, Caching Strategy
 - Webhook Retry, Rate Limiting
 - Email Service, Twitch Integration
 
-#### Moved to `docs/premium/`:
+#### Moved to `docs/premium/`
+
 - Dunning, Entitlement Matrix, Paywall Analytics
 - Subscriptions, Subscription Privileges Matrix
 - Trials & Discounts, Stripe Testing
 
-#### Moved to `docs/operations/`:
+#### Moved to `docs/operations/`
+
 - Secrets Management, CI/CD Secrets
 - Quick Start CI/CD, Security Scanning
 - Observability, Performance
 - Documentation Hosting
 
-#### Moved to `docs/product/`:
+#### Moved to `docs/product/`
+
 - Ad Slot Specification, Analytics, Engagement Metrics
 - Discovery Lists, Query Grammar & Examples
 - Reputation System, Trust System, Tagging System
 - Threat Model, User Settings, Keyboard Shortcuts
 
-#### Moved to `docs/frontend/`:
+#### Moved to `docs/frontend/`
+
 - Component Library, Accessibility
 - CSS Injection Prevention, Environment Policy
 - Performance Accessibility Audit
 
-#### Moved to `docs/mobile/`:
+#### Moved to `docs/mobile/`
+
 - Deep Linking (with examples and test cases)
 - OAuth PKCE, Offline Caching, i18n
 - Mobile-First Visual Examples, Responsive QA
 
-#### Deleted Duplicates:
+#### Deleted Duplicates
+
 - Removed 10+ duplicate files where newer versions with frontmatter existed
 - Examples: ARCHITECTURE.md, AUTHENTICATION.md, DEPLOYMENT.md, etc.
 

@@ -4,3 +4,7 @@ https://localhost:*
 http://127.0.0.1:*
 https://127.0.0.1:*
 clips.twitch.tv/*
+
+# Ignore vault directory (secrets management, not docs)
+vault/**
+**/vault/**

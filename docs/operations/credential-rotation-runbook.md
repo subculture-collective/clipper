@@ -1,26 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Credential Rotation Runbook](#credential-rotation-runbook)
-  - [Overview](#overview)
-  - [Rotation Schedule](#rotation-schedule)
-  - [Prerequisites](#prerequisites)
-  - [Automated Rotation Scripts](#automated-rotation-scripts)
-  - [Rotation Procedures](#rotation-procedures)
-    - [1. Database Password Rotation](#1-database-password-rotation)
-    - [2. JWT Signing Keys Rotation](#2-jwt-signing-keys-rotation)
-    - [3. Stripe API Keys Rotation](#3-stripe-api-keys-rotation)
-    - [4. Twitch OAuth Credentials Rotation](#4-twitch-oauth-credentials-rotation)
-    - [5. OpenAI API Key Rotation](#5-openai-api-key-rotation)
-    - [6. Redis Password Rotation](#6-redis-password-rotation)
-    - [7. Vault AppRole Credentials Rotation](#7-vault-approle-credentials-rotation)
-  - [Monitoring and Verification](#monitoring-and-verification)
-  - [Troubleshooting](#troubleshooting)
-  - [Rollback Procedures](#rollback-procedures)
-  - [Audit and Compliance](#audit-and-compliance)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Credential Rotation Runbook"
 summary: "Comprehensive guide for rotating all credentials and secrets"
@@ -188,7 +165,7 @@ All scripts support `--dry-run` flag for testing without making changes.
 **Steps:**
 
 1. **Generate new secret key:**
-   - Go to https://dashboard.stripe.com/apikeys
+   - Go to <https://dashboard.stripe.com/apikeys>
    - Click "Create secret key" or "Roll secret key"
    - Name: `clipper-production-YYYYMMDD`
    - Copy the new key
@@ -201,7 +178,7 @@ All scripts support `--dry-run` flag for testing without making changes.
    ```
 
 3. **Rotate webhook secrets:**
-   - Go to https://dashboard.stripe.com/webhooks
+   - Go to <https://dashboard.stripe.com/webhooks>
    - Click on your webhook endpoint
    - Click "Roll secret"
    - Update Vault:
@@ -238,7 +215,7 @@ All scripts support `--dry-run` flag for testing without making changes.
 **Steps:**
 
 1. **Generate new credentials:**
-   - Go to https://dev.twitch.tv/console/apps
+   - Go to <https://dev.twitch.tv/console/apps>
    - Select "Clipper" application
    - Click "Manage" → "New Secret"
    - Copy the new Client ID and Client Secret
@@ -280,7 +257,7 @@ All scripts support `--dry-run` flag for testing without making changes.
 **Steps:**
 
 1. **Generate new key:**
-   - Go to https://platform.openai.com/api-keys
+   - Go to <https://platform.openai.com/api-keys>
    - Click "Create new secret key"
    - Name: `clipper-production-YYYYMMDD`
    - Copy the key (only shown once!)
@@ -522,7 +499,7 @@ After each rotation:
    ```
 
 4. **Notify security team** (for compliance):
-   - Email: security@clipper.gg
+   - Email: <security@clipper.gg>
    - Include: What was rotated, when, by whom
    - Attach: Rotation logs and verification results
 

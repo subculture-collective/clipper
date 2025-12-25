@@ -194,7 +194,7 @@ docker-compose -f docker-compose.monitoring.yml up -d loki promtail grafana
 
 ### Accessing Logs
 
-**Grafana Log Explorer**: http://localhost:3000/explore
+**Grafana Log Explorer**: <http://localhost:3000/explore>
 
 Query examples:
 ```logql
@@ -247,7 +247,7 @@ Alertmanager monitors logs for specific patterns and triggers alerts.
 8. **DatabaseConnectionErrors**: DB connection failures
 9. **RedisConnectionErrors**: Redis connection failures
 
-View alerts in Alertmanager: http://localhost:9093
+View alerts in Alertmanager: <http://localhost:9093>
 
 ## Best Practices
 

@@ -1,25 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Operations: Runbook](#operations-runbook)
-  - [Common Tasks](#common-tasks)
-    - [Check Service Health](#check-service-health)
-    - [Database Operations](#database-operations)
-    - [Search Operations](#search-operations)
-    - [Cache Operations](#cache-operations)
-    - [Scaling](#scaling)
-    - [Deployments](#deployments)
-    - [Database Backups](#database-backups)
-  - [Incident Scenarios](#incident-scenarios)
-    - [High Error Rate](#high-error-rate)
-    - [High Latency](#high-latency)
-    - [Database Connection Exhaustion](#database-connection-exhaustion)
-    - [OpenSearch Cluster Red](#opensearch-cluster-red)
-    - [Out of Disk Space](#out-of-disk-space)
-  - [Maintenance Windows](#maintenance-windows)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Operations Runbook"
 summary: "Operational procedures and commands for managing Clipper in production."

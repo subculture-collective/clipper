@@ -1,23 +1,7 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Main Branch Sync & Chunking Solution](#main-branch-sync--chunking-solution)
-  - [Problem](#problem)
-  - [Solution: No Chunking Strategy](#solution-no-chunking-strategy)
-  - [Why This Works](#why-this-works)
-  - [Build Output](#build-output)
-  - [Current Status](#current-status)
-  - [Deployment](#deployment)
-  - [When Main Should Update](#when-main-should-update)
-  - [Future Optimization](#future-optimization)
-  - [Files](#files)
-  - [Testing](#testing)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Main Branch Sync & Chunking Solution
 
 ## Problem
+
 - Main branch had diverged from origin/main
 - Attempted fixes made chunking worse, causing React initialization errors
 - Need stable, reliable builds for deployment
@@ -93,7 +77,7 @@ If bundle size becomes an issue (>500 KB gzipped):
 
 - `frontend/vite.config.ts` - Build configuration (no chunking)
 - `.github/workflows/deploy-production.yml` - Auto-deployment on main push
-- Origin: https://github.com/subculture-collective/clipper
+- Origin: <https://github.com/subculture-collective/clipper>
 
 ## Testing
 

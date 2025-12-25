@@ -1,32 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Clip Submission API Documentation Summary](#clip-submission-api-documentation-summary)
-  - [Overview](#overview)
-  - [Documentation Resources](#documentation-resources)
-    - [📘 For Getting Started](#-for-getting-started)
-    - [📚 For Comprehensive Learning](#-for-comprehensive-learning)
-    - [🔧 For Technical Integration](#-for-technical-integration)
-    - [📖 For API Reference](#-for-api-reference)
-  - [Quick Navigation Guide](#quick-navigation-guide)
-    - [I want to...](#i-want-to)
-  - [Common Use Cases](#common-use-cases)
-    - [Use Case 1: Building a Web App](#use-case-1-building-a-web-app)
-    - [Use Case 2: Building a CLI Tool](#use-case-2-building-a-cli-tool)
-    - [Use Case 3: Building a Mobile App](#use-case-3-building-a-mobile-app)
-    - [Use Case 4: API Testing and Validation](#use-case-4-api-testing-and-validation)
-  - [File Structure](#file-structure)
-  - [API Endpoints Summary](#api-endpoints-summary)
-  - [Authentication](#authentication)
-  - [Rate Limits](#rate-limits)
-  - [Support and Issues](#support-and-issues)
-  - [Contributing](#contributing)
-  - [Version History](#version-history)
-  - [Related Documentation](#related-documentation)
-  - [Feedback](#feedback)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Clip Submission API Documentation Summary"
 summary: "This document summarizes all documentation resources for the Clip Submission API. Use this as a navi"
@@ -104,27 +75,34 @@ This document summarizes all documentation resources for the Clip Submission API
 
 ## Quick Navigation Guide
 
-### I want to...
+### I want to
 
 #### Submit my first clip
+
 → Start with the [Quick Reference](./CLIP_SUBMISSION_API_QUICKREF.md), then run the [shell script example](./examples/clip-submission-test.sh)
 
 #### Build a TypeScript/JavaScript app
+
 → Check the [TypeScript SDK example](./examples/clip-submission-example.ts) and [Developer Guide](./CLIP_SUBMISSION_API_GUIDE.md)
 
 #### Build a React component
+
 → See the [React Hook example](./CLIP_SUBMISSION_API_GUIDE.md#react-hook-example) in the Developer Guide
 
 #### Generate a client SDK in another language
+
 → Use the [OpenAPI Specification](./openapi/clip-submission-api.yaml) with [OpenAPI Generator](./openapi/README.md#generating-client-sdks)
 
 #### Test the API interactively
+
 → Load the [OpenAPI spec](./openapi/clip-submission-api.yaml) into [Swagger UI](./openapi/README.md#online-viewers)
 
 #### Understand error responses
+
 → Check the [Error Handling section](./CLIP_SUBMISSION_API_GUIDE.md#error-handling) in the Developer Guide
 
 #### Debug issues
+
 → Review the [Troubleshooting section](./CLIP_SUBMISSION_API_GUIDE.md#troubleshooting) in the Developer Guide
 
 ## Common Use Cases

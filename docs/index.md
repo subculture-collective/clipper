@@ -1,28 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Clipper Documentation](#clipper-documentation)
-  - [🚀 Quick Start](#-quick-start)
-  - [📚 Documentation Sections](#-documentation-sections)
-    - [For Users](#for-users)
-    - [For Developers](#for-developers)
-    - [Premium & Monetization](#premium--monetization)
-    - [Operations & Deployment](#operations--deployment)
-    - [Architecture Decisions](#architecture-decisions)
-    - [Product](#product)
-  - [📖 Additional Resources](#-additional-resources)
-  - [🏗️ Project Status](#-project-status)
-    - [Implementation Status](#implementation-status)
-  - [🔗 External Links](#-external-links)
-  - [💡 Using This Documentation](#-using-this-documentation)
-    - [Navigation Tips](#navigation-tips)
-    - [Markdown Conventions](#markdown-conventions)
-    - [Contributing to Docs](#contributing-to-docs)
-  - [📝 Documentation Validation](#-documentation-validation)
-  - [🆘 Getting Help](#-getting-help)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Clipper Documentation"
 summary: "Complete documentation hub for the Clipper platform - a modern, community-driven Twitch clip curation platform."
@@ -64,6 +39,10 @@ In-depth documentation for major platform features:
 
 - **[[features/comments|Comment System]]** - Reddit-style nested threading, E2E testing, and performance optimization
 - **[[features/live-streams|Live Streams]]** - Watch Twitch streams with integrated chat, follow notifications, and clip creation
+- **[[features/feature-feed-filtering|Feed Filtering]]** - Personalized content filtering
+- **[[features/feature-playlists|Playlists]]** - User-created clip collections
+- **[[features/feature-queue-history|Queue History]]** - Viewing history and playback queue
+- **[[features/feature-theatre-mode|Theatre Mode]]** - Immersive fullscreen viewing
 
 ### For Developers
 
@@ -124,15 +103,15 @@ In-depth documentation for major platform features:
 - **[[premium/trials-and-discounts|Trials & Discounts]]** - Trial periods and discount codes
 - **[[product/ad-slot-specification|Ad Slot Specification]]** - Ad taxonomy, placements, sizes, and fallback rules
 
-### Operations & Deployment
+### Deployment & Operations
 
-- **[[operations/deployment|Deployment]]** - Production deployment procedures
+- **[[deployment/docker|Docker Deployment]]** - Container-based deployment and multi-stage builds
+- **[[deployment/ci_cd|CI/CD Pipeline]]** - GitHub Actions workflows and automation
+- **[[deployment/infra|Infrastructure]]** - Kubernetes, cloud providers, and scaling
+- **[[deployment/runbook|Operations Runbook]]** - Day-to-day operational procedures
 - **[[operations/preflight|Preflight Checklist]]** - Pre-deployment validation steps
 - **[[operations/migration|Database Migrations]]** - Migration planning and execution
-- **[[operations/infra|Infrastructure]]** - Server setup, Docker, SSL, and backups
-- **[[operations/cicd|CI/CD Pipeline]]** - GitHub Actions workflows and automation
 - **[[operations/monitoring|Monitoring]]** - Error tracking, logging, and observability
-- **[[operations/runbook|Runbook]]** - Incident response and operational procedures
 - **[[operations/feature-flags|Feature Flags]]** - Gradual rollout and feature toggles
 - **[[operations/secrets-management|Secrets Management]]** - Secure credential handling
 - **[[operations/security-scanning|Security Scanning]]** - Automated security checks

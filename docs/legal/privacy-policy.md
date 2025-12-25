@@ -55,13 +55,13 @@ Clipper is a community-driven Twitch clip curation platform operated by Subcultu
 
 **Legal Entity:** Subculture Collective  
 **Service Name:** Clipper  
-**Website:** https://clpr.tv  
-**Contact Email:** privacy@clpr.tv
+**Website:** <https://clpr.tv>  
+**Contact Email:** <privacy@clpr.tv>
 
 ### 1.2 What This Policy Covers
 
 This Privacy Policy applies to all information collected through:
-- Our website (https://clpr.tv)
+- Our website (<https://clpr.tv>)
 - Our mobile applications (iOS and Android)
 - Our API and related services
 - Email, text, and other electronic communications
@@ -143,7 +143,7 @@ Payment processing is handled by Stripe, Inc. We do not store your full credit c
 - **Billing address** (collected by Stripe, may be shared with us)
 - **Transaction history** (dates, amounts, status)
 
-Stripe's privacy practices are governed by their Privacy Policy: https://stripe.com/privacy
+Stripe's privacy practices are governed by their Privacy Policy: <https://stripe.com/privacy>
 
 ### 2.8 Usage and Technical Data
 
@@ -334,28 +334,28 @@ We share information with trusted third-party service providers who process data
   - Data shared: Email, name, payment method, billing address, transaction amounts
   - Purpose: Process payments, manage subscriptions, handle refunds
   - Location: United States
-  - Privacy Policy: https://stripe.com/privacy
+  - Privacy Policy: <https://stripe.com/privacy>
 
 **Cloud Infrastructure:**
 - **Amazon Web Services (AWS)** (hosting, storage, computing)
   - Data shared: All data stored on our platform
   - Purpose: Host application, store data, process requests
   - Location: United States (configurable regions)
-  - Privacy Policy: https://aws.amazon.com/privacy/
+  - Privacy Policy: <https://aws.amazon.com/privacy/>
 
 **Authentication:**
 - **Twitch Interactive, Inc.** (OAuth authentication, Twitch API access)
   - Data shared: Twitch user ID, OAuth tokens, public Twitch data
   - Purpose: Authenticate users, access Twitch clips and channel data
   - Location: United States
-  - Privacy Policy: https://www.twitch.tv/p/legal/privacy-notice/
+  - Privacy Policy: <https://www.twitch.tv/p/legal/privacy-notice/>
 
 **Error Tracking:**
 - **Sentry** (error monitoring, crash reporting)
   - Data shared: Error logs, stack traces, device info, IP address (anonymized)
   - Purpose: Monitor application errors, diagnose crashes, improve stability
   - Location: United States
-  - Privacy Policy: https://sentry.io/privacy/
+  - Privacy Policy: <https://sentry.io/privacy/>
 
 **Search and Analytics:**
 - **OpenSearch** (search functionality)
@@ -407,12 +407,15 @@ We may share aggregated, de-identified, or anonymized data that cannot reasonabl
 If you are located in the EEA, UK, or Switzerland, you have the following rights under GDPR:
 
 #### 7.1.1 Right to Access
+
 You have the right to request a copy of the personal data we hold about you. We will provide this in a structured, commonly used, machine-readable format (JSON or CSV).
 
 #### 7.1.2 Right to Rectification
+
 You have the right to request correction of inaccurate or incomplete personal data. You can update most information directly in your account settings.
 
 #### 7.1.3 Right to Erasure ("Right to be Forgotten")
+
 You have the right to request deletion of your personal data when:
 - The data is no longer necessary for the purposes collected
 - You withdraw consent (where consent was the legal basis)
@@ -423,6 +426,7 @@ You have the right to request deletion of your personal data when:
 Note: We may retain certain data for legal obligations, dispute resolution, or legitimate business purposes.
 
 #### 7.1.4 Right to Restrict Processing
+
 You have the right to request restriction of processing when:
 - You contest the accuracy of the data (during verification)
 - Processing is unlawful but you prefer restriction to deletion
@@ -430,22 +434,27 @@ You have the right to request restriction of processing when:
 - You have objected to processing (pending verification of overriding grounds)
 
 #### 7.1.5 Right to Data Portability
+
 You have the right to receive your personal data in a portable format (JSON or CSV) and transmit it to another service where technically feasible.
 
 #### 7.1.6 Right to Object
+
 You have the right to object to processing based on legitimate interests or for direct marketing purposes. We will cease processing unless we have compelling legitimate grounds that override your interests.
 
 #### 7.1.7 Right to Withdraw Consent
+
 Where processing is based on consent, you have the right to withdraw consent at any time. This does not affect the lawfulness of processing before withdrawal.
 
 #### 7.1.8 Right to Lodge a Complaint
+
 You have the right to lodge a complaint with your local data protection authority (supervisory authority) if you believe we have violated your rights.
 
-**EU Supervisory Authorities:** https://edpb.europa.eu/about-edpb/board/members_en  
-**UK Information Commissioner's Office:** https://ico.org.uk/  
-**Swiss Federal Data Protection Authority:** https://www.edoeb.admin.ch/
+**EU Supervisory Authorities:** <https://edpb.europa.eu/about-edpb/board/members_en>  
+**UK Information Commissioner's Office:** <https://ico.org.uk/>  
+**Swiss Federal Data Protection Authority:** <https://www.edoeb.admin.ch/>
 
 #### 7.1.9 Automated Decision-Making
+
 We do not make decisions based solely on automated processing (including profiling) that produce legal effects or similarly significantly affect you. Our content recommendations and personalization features do not fall under this category, but you can opt-out of personalized recommendations in your settings.
 
 ### 7.2 CCPA Rights (California Users)
@@ -453,6 +462,7 @@ We do not make decisions based solely on automated processing (including profili
 If you are a California resident, you have the following rights under the California Consumer Privacy Act (CCPA):
 
 #### 7.2.1 Right to Know
+
 You have the right to request disclosure of:
 - Categories of personal information we collected (in the last 12 months)
 - Categories of sources from which we collected personal information
@@ -461,12 +471,15 @@ You have the right to request disclosure of:
 - Specific pieces of personal information we collected about you
 
 #### 7.2.2 Right to Delete
+
 You have the right to request deletion of personal information we collected from you, subject to certain exceptions (legal obligations, fraud prevention, internal uses).
 
 #### 7.2.3 Right to Opt-Out of Sale
+
 **We do not sell your personal information.** You have the right to opt-out of the sale of personal information, but this right is not applicable to Clipper as we do not sell data.
 
 #### 7.2.4 Right to Non-Discrimination
+
 You have the right to not be discriminated against for exercising your CCPA rights. We will not:
 - Deny goods or services to you
 - Charge different prices or rates
@@ -474,21 +487,24 @@ You have the right to not be discriminated against for exercising your CCPA righ
 - Suggest you will receive a different price or level of service
 
 #### 7.2.5 Right to Disclosure of Data Shared
+
 You have the right to know:
 - Categories of personal information we disclosed for a business purpose
 - Categories of third parties to whom we disclosed personal information
 
 #### 7.2.6 Financial Incentive Disclosure
+
 We do not offer financial incentives or price differences in exchange for retention or sale of your personal information.
 
 #### 7.2.7 Authorized Agent
+
 You may designate an authorized agent to make CCPA requests on your behalf. The agent must provide proof of authorization, and we may require you to verify your identity directly with us.
 
 ### 7.3 How to Exercise Your Rights
 
 To exercise any of the above rights, please:
 
-**Email us:** privacy@clpr.tv  
+**Email us:** <privacy@clpr.tv>  
 **Subject line:** "Privacy Rights Request - [Your Name]"  
 **Include:**
 - Your full name
@@ -498,7 +514,7 @@ To exercise any of the above rights, please:
 - Proof of identity (for security purposes)
 
 **Account Settings:**
-- You can access, update, and delete certain information directly in your account settings at: https://clpr.tv/settings/privacy
+- You can access, update, and delete certain information directly in your account settings at: <https://clpr.tv/settings/privacy>
 
 **Response Time:**
 - We will respond to your request within 30 days (GDPR) or 45 days (CCPA)
@@ -525,7 +541,7 @@ Note: Some data may be retained for legal obligations, fraud prevention, or disp
 To opt-out of marketing emails:
 - Click "Unsubscribe" in any marketing email
 - Update preferences in Settings > Notifications
-- Email privacy@clpr.tv with "Unsubscribe" in subject line
+- Email <privacy@clpr.tv> with "Unsubscribe" in subject line
 
 You will continue to receive transactional emails (account security, billing) even after opting out of marketing.
 
@@ -548,6 +564,7 @@ Cookies are small text files stored on your device by your web browser. They hel
 ### 8.2 Types of Cookies We Use
 
 #### 8.2.1 Essential Cookies (Required)
+
 These cookies are necessary for the Service to function and cannot be disabled:
 - **Session cookies** (authentication, maintain logged-in state)
 - **Security cookies** (CSRF protection, fraud prevention)
@@ -558,6 +575,7 @@ These cookies are necessary for the Service to function and cannot be disabled:
 **Legal Basis:** Contract performance, legitimate interest
 
 #### 8.2.2 Functional Cookies (Optional)
+
 These cookies enhance functionality and remember your preferences:
 - **Preference cookies** (language, theme, display settings)
 - **Feature cookies** (remember collapsed sections, sort orders)
@@ -568,6 +586,7 @@ These cookies enhance functionality and remember your preferences:
 **Legal Basis:** Consent, legitimate interest
 
 #### 8.2.3 Analytics Cookies (Optional)
+
 These cookies help us understand how users interact with the Service:
 - **Usage analytics** (pages visited, features used, session duration)
 - **Performance monitoring** (page load times, errors)
@@ -582,6 +601,7 @@ These cookies help us understand how users interact with the Service:
 **Legal Basis:** Consent
 
 #### 8.2.4 Advertising Cookies (Not Currently Used)
+
 We do not currently use advertising cookies. If we implement advertising in the future:
 - We will update this policy and notify you
 - You will be able to opt-out via cookie settings
@@ -594,13 +614,13 @@ The following third-party services may set cookies:
 **Stripe** (payment processing):
 - Purpose: Fraud prevention, secure payment processing
 - Duration: Varies
-- Privacy Policy: https://stripe.com/privacy
+- Privacy Policy: <https://stripe.com/privacy>
 - Opt-out: Not possible (required for payment security)
 
 **Twitch** (if you use Twitch OAuth):
 - Purpose: Authentication, maintain Twitch login state
 - Duration: Varies
-- Privacy Policy: https://www.twitch.tv/p/legal/privacy-notice/
+- Privacy Policy: <https://www.twitch.tv/p/legal/privacy-notice/>
 - Opt-out: Disconnect Twitch in account settings
 
 ### 8.4 How to Control Cookies
@@ -815,7 +835,7 @@ If you are located in the European Economic Area (EEA), United Kingdom, or Switz
 - We use the European Commission's Standard Contractual Clauses (also known as Model Clauses) for transfers to third countries
 - SCCs are a set of contractual terms that provide adequate data protection safeguards
 - We have SCCs in place with AWS, Stripe, Sentry, and other US-based processors
-- You can request a copy of our SCCs by emailing privacy@clpr.tv
+- You can request a copy of our SCCs by emailing <privacy@clpr.tv>
 
 **Supplementary Measures:**
 - Encryption in transit (TLS 1.3) and at rest (AES-256)
@@ -872,7 +892,7 @@ If not required, remove this section.
 We have appointed a Data Protection Officer to oversee our data protection practices:
 
 **Data Protection Officer:** [TO BE DETERMINED - Required if processing at large scale or sensitive data]  
-**Email:** dpo@clpr.tv  
+**Email:** <dpo@clpr.tv>  
 **Responsibilities:**
 - Monitor GDPR compliance
 - Advise on data protection obligations
@@ -915,7 +935,7 @@ If you are between 13 and 17 years old:
 - Parents/guardians can request access to their child's data
 - Parents/guardians can request deletion of their child's data
 - Parents/guardians can refuse further collection or use of their child's data
-- Contact us at privacy@clpr.tv with proof of guardianship
+- Contact us at <privacy@clpr.tv> with proof of guardianship
 
 ### 12.4 If We Discover Underage Users
 
@@ -928,7 +948,7 @@ If we become aware that we have collected personal information from a child unde
 ### 12.5 How to Report Underage Users
 
 If you believe a user is under 13, please contact us immediately:
-- Email: privacy@clpr.tv
+- Email: <privacy@clpr.tv>
 - Subject line: "Underage User Report"
 - Include: Username, evidence of age (if available), your relationship to the user
 
@@ -984,7 +1004,7 @@ For minor changes (e.g., clarifications, formatting, contact info updates), we w
 ### 13.4 Reviewing Changes
 
 - We will maintain an archive of previous versions of this policy
-- You can view the change history at https://clpr.tv/legal/privacy-policy/history
+- You can view the change history at <https://clpr.tv/legal/privacy-policy/history>
 - We will highlight significant changes in the updated policy
 
 ### 13.5 Your Choices After Changes
@@ -1001,7 +1021,7 @@ If you do not agree with the updated Privacy Policy:
 
 For questions, concerns, or requests regarding this Privacy Policy or our data practices:
 
-**Email:** privacy@clpr.tv  
+**Email:** <privacy@clpr.tv>  
 **Subject line:** "Privacy Inquiry - [Brief Description]"  
 **Response time:** Within 5 business days
 
@@ -1009,7 +1029,7 @@ For questions, concerns, or requests regarding this Privacy Policy or our data p
 
 To exercise your GDPR or CCPA rights (access, deletion, portability, etc.):
 
-**Email:** privacy@clpr.tv  
+**Email:** <privacy@clpr.tv>  
 **Subject line:** "Data Rights Request - [Specific Right]"  
 **Include:** Full name, email address, account username, specific request details  
 **Response time:** Within 30 days (GDPR) or 45 days (CCPA)
@@ -1018,7 +1038,7 @@ To exercise your GDPR or CCPA rights (access, deletion, portability, etc.):
 
 For GDPR-related matters:
 
-**Email:** dpo@clpr.tv  
+**Email:** <dpo@clpr.tv>  
 **Role:** Oversee GDPR compliance, handle complaints, liaise with supervisory authorities
 
 ### 14.4 EU Representative
@@ -1043,8 +1063,8 @@ For EU residents to contact our EU representative:
 
 For general support inquiries (not privacy-related):
 
-**Email:** support@clpr.tv  
-**Help Center:** https://clpr.tv/help
+**Email:** <support@clpr.tv>  
+**Help Center:** <https://clpr.tv/help>
 
 ---
 
@@ -1144,10 +1164,10 @@ The following data types are collected through our Android app:
 
 For your reference, here are links to privacy policies of third-party services we use:
 
-- **Stripe:** https://stripe.com/privacy
-- **Amazon Web Services (AWS):** https://aws.amazon.com/privacy/
-- **Twitch:** https://www.twitch.tv/p/legal/privacy-notice/
-- **Sentry:** https://sentry.io/privacy/
+- **Stripe:** <https://stripe.com/privacy>
+- **Amazon Web Services (AWS):** <https://aws.amazon.com/privacy/>
+- **Twitch:** <https://www.twitch.tv/p/legal/privacy-notice/>
+- **Sentry:** <https://sentry.io/privacy/>
 - **OpenSearch:** (self-hosted, no third-party privacy policy applicable)
 
 We encourage you to review these policies to understand how these services handle your data.

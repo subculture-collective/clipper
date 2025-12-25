@@ -1,65 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Trust Score Algorithm](#trust-score-algorithm)
-  - [Executive Summary](#executive-summary)
-  - [Trust Score Formula](#trust-score-formula)
-  - [Score Components](#score-components)
-    - [1. Account Age & Verification (20% - Max 20 Points)](#1-account-age--verification-20%25---max-20-points)
-    - [2. Content Quality via Karma (40% - Max 40 Points)](#2-content-quality-via-karma-40%25---max-40-points)
-    - [3. Community Participation (20% - Max 20 Points)](#3-community-participation-20%25---max-20-points)
-    - [4. Report Accuracy (20% - Max 20 Points)](#4-report-accuracy-20%25---max-20-points)
-    - [5. Negative Signals - Ban Penalty (50% Reduction)](#5-negative-signals---ban-penalty-50%25-reduction)
-  - [Trust Score Ranges & Meaning](#trust-score-ranges--meaning)
-  - [Score Calculation Examples](#score-calculation-examples)
-    - [Example 1: New User (Score: 12)](#example-1-new-user-score-12)
-    - [Example 2: Active Community Member (Score: 68)](#example-2-active-community-member-score-68)
-    - [Example 3: Veteran Contributor (Score: 95)](#example-3-veteran-contributor-score-95)
-    - [Example 4: Previously Banned User (Score: 30)](#example-4-previously-banned-user-score-30)
-    - [Example 5: Inactive Lurker (Score: 15)](#example-5-inactive-lurker-score-15)
-  - [Use Cases for Trust Scores](#use-cases-for-trust-scores)
-    - [Content Filtering](#content-filtering)
-    - [Moderation Weight](#moderation-weight)
-    - [Feature Access](#feature-access)
-    - [Spam Detection](#spam-detection)
-  - [Recovery from Low Trust](#recovery-from-low-trust)
-    - [Temporary Ban Recovery](#temporary-ban-recovery)
-    - [Building Trust After Violations](#building-trust-after-violations)
-    - [Recovery Timeline Examples](#recovery-timeline-examples)
-  - [Transparency and User Visibility](#transparency-and-user-visibility)
-    - [What Users See](#what-users-see)
-    - [What Users Don't See](#what-users-dont-see)
-    - [Admin Tools](#admin-tools)
-  - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-    - [General Questions](#general-questions)
-    - [Improving Your Score](#improving-your-score)
-    - [Bans and Penalties](#bans-and-penalties)
-    - [Negative Scores](#negative-scores)
-    - [Reports and Accuracy](#reports-and-accuracy)
-    - [Technical Questions](#technical-questions)
-    - [Privacy and Visibility](#privacy-and-visibility)
-  - [Visual Score Breakdown](#visual-score-breakdown)
-    - [Trust Score Components Pie Chart](#trust-score-components-pie-chart)
-    - [Example User Trust Score Dashboard](#example-user-trust-score-dashboard)
-    - [Trust Level Progression Path](#trust-level-progression-path)
-  - [Admin Dashboard](#admin-dashboard)
-    - [Score Explanation Tool](#score-explanation-tool)
-    - [Example Admin View](#example-admin-view)
-  - [Internal Documentation (Support Team)](#internal-documentation-support-team)
-    - [Common Support Scenarios](#common-support-scenarios)
-    - [Support Team Tools](#support-team-tools)
-  - [Algorithm Maintenance](#algorithm-maintenance)
-    - [Monitoring](#monitoring)
-    - [Adjustments](#adjustments)
-    - [Version History](#version-history)
-  - [Related Documentation](#related-documentation)
-  - [Appendix: Mathematical Details](#appendix-mathematical-details)
-    - [Score Normalization](#score-normalization)
-    - [Integer Rounding](#integer-rounding)
-    - [Database Implementation](#database-implementation)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Trust Score Algorithm"
 summary: "The Trust Score is a 0-100 metric that measures user trustworthiness and positive community contribu"
@@ -239,18 +177,21 @@ END IF
 **Ban Types and Recovery:**
 
 #### Temporary Ban
+
 - **Duration:** 24 hours to 30 days
 - **Trust Impact:** Score halved during ban period
 - **Recovery:** Full score restored immediately upon ban expiration
 - **Example:** User with 80 trust score → 40 during ban → 80 after ban ends
 
 #### Permanent Ban
+
 - **Duration:** Indefinite
 - **Trust Impact:** Score permanently halved
 - **Recovery:** Only through successful appeal and ban reversal
 - **Example:** User with 60 trust score → 30 permanently
 
 #### Shadow Ban (Under Development)
+
 - **Duration:** Variable
 - **Trust Impact:** Score may be affected without user notification
 - **Recovery:** Based on improved behavior patterns
@@ -391,16 +332,19 @@ Trust Score = (20 + 0.02 + 8.5 + 0) × 1 = 28.52 ≈ 29 points
 ## Use Cases for Trust Scores
 
 ### Content Filtering
+
 - **High Trust (75+):** Content auto-approved, minimal review
 - **Medium Trust (40-74):** Standard moderation queue
 - **Low Trust (0-39):** Enhanced review, may require manual approval
 
 ### Moderation Weight
+
 - **High Trust (75+):** Reports prioritized, user may receive early mod tools
 - **Medium Trust (40-74):** Standard report handling
 - **Low Trust (0-39):** Reports require additional verification
 
 ### Feature Access
+
 Some features may require minimum trust scores:
 - **Trust 20+:** Submit clips without approval
 - **Trust 40+:** Create custom tags
@@ -408,17 +352,20 @@ Some features may require minimum trust scores:
 - **Trust 75+:** Access to beta features
 
 ### Spam Detection
+
 - Trust scores below 20 combined with rapid posting trigger spam filters
 - New accounts (<30 days) with trust <10 have rate limits
 
 ## Recovery from Low Trust
 
 ### Temporary Ban Recovery
+
 1. **During Ban:** Trust score is halved
 2. **Ban Expires:** Score immediately restored to pre-ban level
 3. **Long-term:** Continue positive contributions to improve underlying metrics
 
 ### Building Trust After Violations
+
 1. **Post Quality Content:** Focus on submitting clips that get upvotes
 2. **Engage Positively:** Write helpful comments that receive upvotes
 3. **Be Active:** Regular participation increases activity score
@@ -442,17 +389,20 @@ Some features may require minimum trust scores:
 ## Transparency and User Visibility
 
 ### What Users See
+
 - **Overall Trust Score:** Displayed as 0-100 number
 - **Trust Level Badge:** Visual indicator (Very Low → Exceptional)
 - **Score Breakdown:** Component scores visible on profile
 - **Score History:** Graph showing trust score over time (future)
 
 ### What Users Don't See
+
 - Exact calculation formulas (to prevent gaming)
 - Other users' detailed breakdowns (privacy)
 - Real-time updates (scores update every 24 hours)
 
 ### Admin Tools
+
 Admins and moderators can view:
 - Complete score breakdown for any user
 - History of trust score changes
@@ -628,6 +578,7 @@ Score    Level              Typical Timeline
 Administrators have access to additional tools for understanding and explaining trust scores:
 
 ### Score Explanation Tool
+
 When viewing a user's profile, admins can click "Explain Trust Score" to see:
 
 1. **Current Score Breakdown**
@@ -691,6 +642,7 @@ Recovery Projection:
 ### Common Support Scenarios
 
 #### Scenario 1: "Why is my trust score so low?"
+
 **Response Template:**
 ```
 Hi [User],
@@ -714,6 +666,7 @@ Clipper Support
 ```
 
 #### Scenario 2: "My score dropped after a ban"
+
 **Response Template:**
 ```
 Hi [User],
@@ -734,6 +687,7 @@ Clipper Support
 ```
 
 #### Scenario 3: "Someone else has a higher score with less karma"
+
 **Response Template:**
 ```
 Hi [User],
@@ -777,11 +731,13 @@ Clipper Support
 ## Algorithm Maintenance
 
 ### Monitoring
+
 - Weekly reports on score distribution
 - Alerts for unusual patterns (mass score drops)
 - Track component averages over time
 
 ### Adjustments
+
 Any changes to the algorithm weights or formulas require:
 1. Data analysis and simulation
 2. Team review and approval
@@ -789,6 +745,7 @@ Any changes to the algorithm weights or formulas require:
 4. Gradual rollout (A/B testing when possible)
 
 ### Version History
+
 - **v1.0 (Current):** Initial implementation with 4 components + ban penalty
 - **v1.1 (Planned):** Add email verification weight
 - **v2.0 (Planned):** Time decay for karma, weighted recent activity
@@ -803,6 +760,7 @@ Any changes to the algorithm weights or formulas require:
 ## Appendix: Mathematical Details
 
 ### Score Normalization
+
 All components are independently normalized to their max values before being summed:
 
 ```
@@ -815,11 +773,13 @@ This ensures:
 - Components are weighted proportionally
 
 ### Integer Rounding
+
 Final scores are stored as integers (0-100). Rounding follows standard rules:
 - 0.5 and above rounds up
 - Below 0.5 rounds down
 
 ### Database Implementation
+
 Trust scores are calculated via PostgreSQL function `calculate_trust_score(user_id)` defined in migration `000005_add_reputation_system.up.sql`.
 
 The function:

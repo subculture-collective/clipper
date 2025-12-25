@@ -1,39 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Staging Environment](#staging-environment)
-  - [Overview](#overview)
-  - [Architecture](#architecture)
-  - [Infrastructure Components](#infrastructure-components)
-  - [Setup Instructions](#setup-instructions)
-    - [Prerequisites](#prerequisites)
-    - [Server Setup](#server-setup)
-    - [Automated Setup](#automated-setup)
-    - [Manual Setup](#manual-setup)
-  - [Configuration](#configuration)
-    - [Environment Variables](#environment-variables)
-    - [Domain Configuration](#domain-configuration)
-    - [SSL Certificate Setup](#ssl-certificate-setup)
-  - [Database Management](#database-management)
-    - [Seeding Test Data](#seeding-test-data)
-    - [Backups](#backups)
-    - [Migrations](#migrations)
-  - [Deployment](#deployment)
-    - [Automatic Deployment via CI/CD](#automatic-deployment-via-cicd)
-    - [Manual Deployment](#manual-deployment)
-  - [Monitoring and Testing](#monitoring-and-testing)
-    - [Health Checks](#health-checks)
-    - [Smoke Tests](#smoke-tests)
-    - [Log Access](#log-access)
-  - [Maintenance](#maintenance)
-    - [Updates](#updates)
-    - [Data Reset](#data-reset)
-    - [Troubleshooting](#troubleshooting)
-  - [Security](#security)
-  - [Differences from Production](#differences-from-production)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Staging Environment"
 summary: "Complete guide to setting up and managing the Clipper staging environment"
@@ -616,10 +580,10 @@ docker exec clipper-staging-postgres pg_dump -U clipper_staging clipper_staging_
 
 ### URLs
 
-- **Application**: https://staging.clpr.tv
-- **API**: https://staging.clpr.tv/api/v1
-- **Health**: https://staging.clpr.tv/api/v1/health
-- **Caddy Admin**: http://localhost:2019 (server only)
+- **Application**: <https://staging.clpr.tv>
+- **API**: <https://staging.clpr.tv/api/v1>
+- **Health**: <https://staging.clpr.tv/api/v1/health>
+- **Caddy Admin**: <http://localhost:2019> (server only)
 
 ### Support
 

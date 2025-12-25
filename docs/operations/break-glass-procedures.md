@@ -1,27 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Break-Glass Emergency Procedures](#break-glass-emergency-procedures)
-  - [Overview](#overview)
-  - [When to Use Break-Glass Procedures](#when-to-use-break-glass-procedures)
-  - [Emergency Access Scenarios](#emergency-access-scenarios)
-    - [Scenario 1: Vault is Unavailable](#scenario-1-vault-is-unavailable)
-    - [Scenario 2: Lost Vault Access Credentials](#scenario-2-lost-vault-access-credentials)
-    - [Scenario 3: Suspected Credential Compromise](#scenario-3-suspected-credential-compromise)
-    - [Scenario 4: Backend Cannot Start Due to Secret Issues](#scenario-4-backend-cannot-start-due-to-secret-issues)
-  - [Break-Glass Access Methods](#break-glass-access-methods)
-    - [Method 1: Emergency Environment Variables](#method-1-emergency-environment-variables)
-    - [Method 2: Vault Unseal Process](#method-2-vault-unseal-process)
-    - [Method 3: Direct Database Access](#method-3-direct-database-access)
-  - [Emergency Rotation Procedures](#emergency-rotation-procedures)
-    - [Immediate Rotation Steps](#immediate-rotation-steps)
-    - [Post-Compromise Actions](#post-compromise-actions)
-  - [Emergency Contacts](#emergency-contacts)
-  - [Post-Incident Requirements](#post-incident-requirements)
-  - [Recovery Validation](#recovery-validation)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Break-Glass Emergency Procedures"
 summary: "Emergency procedures for accessing secrets when normal methods fail"
@@ -78,9 +54,9 @@ Break-glass procedures should ONLY be used when:
    ```
 
 3. **If Vault Remains Down - Use Emergency Secrets:**
-   
+
    Create temporary `.env` file for backend:
-   
+
    ```bash
    cd /opt/clipper/backend
    
@@ -392,9 +368,9 @@ When credentials are compromised, rotate in this order:
 | Role | Contact | When to Contact |
 |------|---------|----------------|
 | On-Call Engineer | See PagerDuty | Any production emergency |
-| Security Team | security@clipper.gg | Security incident or compromise |
-| Infrastructure Lead | infra@clipper.gg | Vault or infrastructure issues |
-| Database Admin | dba@clipper.gg | Database access issues |
+| Security Team | <security@clipper.gg> | Security incident or compromise |
+| Infrastructure Lead | <infra@clipper.gg> | Vault or infrastructure issues |
+| Database Admin | <dba@clipper.gg> | Database access issues |
 
 ## Post-Incident Requirements
 

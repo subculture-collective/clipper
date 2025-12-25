@@ -1,35 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
--   [Clip Management API Documentation](#clip-management-api-documentation)
-    -   [Overview](#overview)
-    -   [Base URL](#base-url)
-    -   [Authentication](#authentication)
-    -   [Endpoints](#endpoints)
-        -   [1. List Clips](#1-list-clips)
-        -   [2. Get Single Clip](#2-get-single-clip)
-        -   [3. Vote on Clip](#3-vote-on-clip)
-        -   [4. Add to Favorites](#4-add-to-favorites)
-        -   [5. Remove from Favorites](#5-remove-from-favorites)
-        -   [6. Get Related Clips](#6-get-related-clips)
-        -   [7. Update Clip (Admin)](#7-update-clip-admin)
-        -   [8. Delete Clip (Admin)](#8-delete-clip-admin)
-    -   [Error Responses](#error-responses)
-        -   [Common Error Codes](#common-error-codes)
-    -   [Caching](#caching)
-    -   [Rate Limits](#rate-limits)
-    -   [Database Performance](#database-performance)
-        -   [Indexes](#indexes)
-        -   [Database Functions](#database-functions)
-        -   [Query Optimization](#query-optimization)
-    -   [Examples](#examples)
-        -   [JavaScript (Fetch API)](#javascript-fetch-api)
-        -   [cURL](#curl)
-    -   [Changelog](#changelog)
-        -   [Version 1.0 (Current)](#version-10-current)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 
 title: "Clip Management API Documentation"
@@ -124,11 +92,11 @@ Retrieve a paginated list of clips with optional filtering and sorting.
 
 #### Sorting Algorithms
 
--   **hot**: Wilson score + time decay (default)
--   **new**: Most recent clips (created_at DESC)
--   **top**: Highest vote_score (requires timeframe)
--   **rising**: Recent clips with high velocity (48 hours, views + votes)
--   **discussed**: Clips with most comments (requires timeframe)
+- **hot**: Wilson score + time decay (default)
+- **new**: Most recent clips (created_at DESC)
+- **top**: Highest vote_score (requires timeframe)
+- **rising**: Recent clips with high velocity (48 hours, views + votes)
+- **discussed**: Clips with most comments (requires timeframe)
 
 #### Content Filtering
 
@@ -205,9 +173,9 @@ Retrieve details for a specific clip.
 
 #### Notes
 
--   View count is incremented asynchronously
--   Returns 404 if clip not found or removed
--   User-specific data (`user_vote`, `is_favorited`) only included if authenticated
+- View count is incremented asynchronously
+- Returns 404 if clip not found or removed
+- User-specific data (`user_vote`, `is_favorited`) only included if authenticated
 
 ---
 
@@ -254,9 +222,9 @@ Vote on a clip (upvote, downvote, or remove vote).
 
 #### Notes
 
--   Voting updates user karma asynchronously
--   Vote changes are upserted (previous vote is replaced)
--   Triggers update clip vote_score automatically
+- Voting updates user karma asynchronously
+- Vote changes are upserted (previous vote is replaced)
+- Triggers update clip vote_score automatically
 
 ---
 
@@ -288,8 +256,8 @@ Add a clip to user's favorites.
 
 #### Notes
 
--   Idempotent operation (returns 200 if already favorited)
--   Triggers increment clip favorite_count automatically
+- Idempotent operation (returns 200 if already favorited)
+- Triggers increment clip favorite_count automatically
 
 ---
 
@@ -321,8 +289,8 @@ Remove a clip from user's favorites.
 
 #### Notes
 
--   Idempotent operation (returns 200 even if not favorited)
--   Triggers decrement clip favorite_count automatically
+- Idempotent operation (returns 200 even if not favorited)
+- Triggers decrement clip favorite_count automatically
 
 ---
 
@@ -367,9 +335,9 @@ Clips are ranked by:
 
 #### Notes
 
--   Excludes the current clip
--   Limit to 10 results
--   Returns empty array if no related clips found
+- Excludes the current clip
+- Limit to 10 results
+- Returns empty array if no related clips found
 
 ---
 
@@ -400,10 +368,10 @@ Update clip properties.
 
 #### Allowed Fields
 
--   `is_featured` (boolean)
--   `is_nsfw` (boolean)
--   `is_removed` (boolean)
--   `removed_reason` (string, nullable)
+- `is_featured` (boolean)
+- `is_nsfw` (boolean)
+- `is_removed` (boolean)
+- `removed_reason` (string, nullable)
 
 #### Response
 
@@ -421,9 +389,9 @@ Update clip properties.
 
 #### Notes
 
--   Only allowed fields can be updated
--   Cache is invalidated after update
--   Admin actions should be logged (TODO)
+- Only allowed fields can be updated
+- Cache is invalidated after update
+- Admin actions should be logged (TODO)
 
 ---
 
@@ -466,10 +434,10 @@ Soft delete a clip (mark as removed).
 
 #### Notes
 
--   Soft delete (sets `is_removed=true`)
--   Data retained for audit trail
--   Removed from public feeds
--   Cache is invalidated after deletion
+- Soft delete (sets `is_removed=true`)
+- Data retained for audit trail
+- Removed from public feeds
+- Cache is invalidated after deletion
 
 ---
 
@@ -514,9 +482,9 @@ Clip feeds are cached in Redis with the following TTLs:
 
 Cache is invalidated on:
 
--   New votes
--   Clip updates
--   Clip deletions
+- New votes
+- Clip updates
+- Clip deletions
 
 ---
 
@@ -538,22 +506,22 @@ The API leverages several database optimizations:
 
 ### Indexes
 
--   `idx_clips_vote_score` - For top sorting
--   `idx_clips_created` - For new sorting
--   `idx_clips_hot` - For hot sorting (composite)
--   `idx_clips_game` - For game filtering
--   `idx_clips_broadcaster` - For broadcaster filtering
+- `idx_clips_vote_score` - For top sorting
+- `idx_clips_created` - For new sorting
+- `idx_clips_hot` - For hot sorting (composite)
+- `idx_clips_game` - For game filtering
+- `idx_clips_broadcaster` - For broadcaster filtering
 
 ### Database Functions
 
--   `calculate_hot_score()` - Wilson score + time decay algorithm
--   Triggers for automatic vote_score, comment_count, favorite_count updates
+- `calculate_hot_score()` - Wilson score + time decay algorithm
+- Triggers for automatic vote_score, comment_count, favorite_count updates
 
 ### Query Optimization
 
--   Covering indexes for common queries
--   Related clips use CTE for efficient relevance calculation
--   Pagination uses LIMIT/OFFSET
+- Covering indexes for common queries
+- Related clips use CTE for efficient relevance calculation
+- Pagination uses LIMIT/OFFSET
 
 ---
 
@@ -601,12 +569,12 @@ curl -X POST 'http://localhost:8080/api/v1/clips/{id}/favorite' \
 
 ### Version 1.0 (Current)
 
--   ✅ Full CRUD operations for clips
--   ✅ Advanced filtering and sorting
--   ✅ Vote system with karma
--   ✅ Favorites system
--   ✅ Related clips algorithm
--   ✅ Redis caching
--   ✅ Admin controls
--   ✅ Rate limiting
--   ✅ Comprehensive error handling
+- ✅ Full CRUD operations for clips
+- ✅ Advanced filtering and sorting
+- ✅ Vote system with karma
+- ✅ Favorites system
+- ✅ Related clips algorithm
+- ✅ Redis caching
+- ✅ Admin controls
+- ✅ Rate limiting
+- ✅ Comprehensive error handling

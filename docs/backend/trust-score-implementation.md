@@ -1,50 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Trust Score System Implementation](#trust-score-system-implementation)
-  - [Overview](#overview)
-  - [Architecture](#architecture)
-    - [Components](#components)
-  - [Trust Score Calculation](#trust-score-calculation)
-    - [Formula](#formula)
-    - [Components](#components-1)
-  - [Caching Strategy](#caching-strategy)
-    - [Cache Keys](#cache-keys)
-    - [Cache Hit Rate Target](#cache-hit-rate-target)
-  - [Performance Targets](#performance-targets)
-    - [Calculation Performance](#calculation-performance)
-    - [Batch Job Performance](#batch-job-performance)
-  - [Real-time Updates](#real-time-updates)
-    - [Triggering Events](#triggering-events)
-    - [Implementation Pattern](#implementation-pattern)
-    - [Graceful Degradation](#graceful-degradation)
-  - [Scheduled Recalculation](#scheduled-recalculation)
-    - [Daily Job](#daily-job)
-    - [Integration](#integration)
-  - [Admin Features](#admin-features)
-    - [Score Breakdown View](#score-breakdown-view)
-    - [Manual Adjustment](#manual-adjustment)
-    - [Audit Trail](#audit-trail)
-  - [Testing](#testing)
-    - [Unit Tests](#unit-tests)
-    - [Integration Tests](#integration-tests)
-    - [Performance Tests](#performance-tests)
-  - [Monitoring](#monitoring)
-    - [Metrics to Track](#metrics-to-track)
-    - [Alerts](#alerts)
-  - [Migration Guide](#migration-guide)
-    - [Database Migration](#database-migration)
-    - [Backwards Compatibility](#backwards-compatibility)
-  - [Future Enhancements](#future-enhancements)
-    - [Potential Improvements](#potential-improvements)
-    - [API Enhancements](#api-enhancements)
-  - [Troubleshooting](#troubleshooting)
-    - [Score Not Updating](#score-not-updating)
-    - [Performance Issues](#performance-issues)
-    - [Incorrect Scores](#incorrect-scores)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Trust Score System Implementation"
 summary: "This document describes the trust score system implementation for the Clipper platform. The trust sc"
@@ -134,11 +87,13 @@ if IsBanned:
 ## Caching Strategy
 
 ### Cache Keys
+
 - Format: `trust_score:{user_id}`
 - TTL: 1 hour
 - Invalidation: On score updates
 
 ### Cache Hit Rate Target
+
 - Target: >95%
 - Monitoring: Track via cache service metrics
 - Warm-up: Pre-load active user scores on startup
@@ -146,6 +101,7 @@ if IsBanned:
 ## Performance Targets
 
 ### Calculation Performance
+
 - Target: <100ms per user
 - Optimized via:
   - Database function (single query)
@@ -153,6 +109,7 @@ if IsBanned:
   - Redis caching
 
 ### Batch Job Performance
+
 - Target: Complete within 30 minutes for all users
 - Parallelization: 20 concurrent workers
 - Graceful failure: Continues on individual user errors
@@ -182,6 +139,7 @@ if trustScoreService != nil {
 ```
 
 ### Graceful Degradation
+
 - Real-time updates have 100ms timeout
 - Errors are logged but don't block operations
 - Score will be corrected on next scheduled run
@@ -189,6 +147,7 @@ if trustScoreService != nil {
 ## Scheduled Recalculation
 
 ### Daily Job
+
 - Runs via `ReputationScheduler`
 - Updates all user scores
 - Runs during low-traffic hours
@@ -196,6 +155,7 @@ if trustScoreService != nil {
 - Logs: badges awarded, stats updated, errors
 
 ### Integration
+
 ```go
 // In reputation service UpdateUserStats
 err = reputationRepo.UpdateUserTrustScore(
@@ -212,6 +172,7 @@ err = reputationRepo.UpdateUserTrustScore(
 ## Admin Features
 
 ### Score Breakdown View
+
 Shows detailed component scores for debugging:
 - Current total score
 - Each component score with raw data
@@ -219,6 +180,7 @@ Shows detailed component scores for debugging:
 - Recent changes
 
 ### Manual Adjustment
+
 Allows admins to override score:
 - Validation: 0-100 range
 - Requires reason and notes
@@ -226,6 +188,7 @@ Allows admins to override score:
 - Invalidates cache immediately
 
 ### Audit Trail
+
 All score changes tracked with:
 - Old and new scores
 - Change reason
@@ -237,17 +200,20 @@ All score changes tracked with:
 ## Testing
 
 ### Unit Tests
+
 - Service layer: Mock dependencies
 - Repository layer: Structure validation
 - Coverage: All public methods
 
 ### Integration Tests
+
 - Database migration verification
 - End-to-end score calculation
 - Cache integration
 - Real data scenarios
 
 ### Performance Tests
+
 - Single calculation: <100ms
 - Batch 10,000 users: <30 minutes
 - Cache hit rate: >95%
@@ -255,6 +221,7 @@ All score changes tracked with:
 ## Monitoring
 
 ### Metrics to Track
+
 1. Average calculation time
 2. Cache hit rate
 3. Batch job completion time
@@ -262,6 +229,7 @@ All score changes tracked with:
 5. Manual adjustments count
 
 ### Alerts
+
 - Calculation time >150ms
 - Cache hit rate <90%
 - Batch job fails
@@ -270,6 +238,7 @@ All score changes tracked with:
 ## Migration Guide
 
 ### Database Migration
+
 ```bash
 # Apply migration
 migrate -path backend/migrations \
@@ -281,6 +250,7 @@ psql -c "SELECT trust_score, trust_score_updated_at FROM users LIMIT 5;"
 ```
 
 ### Backwards Compatibility
+
 - New columns are nullable initially
 - Migration populates existing users
 - Old code continues to work
@@ -289,6 +259,7 @@ psql -c "SELECT trust_score, trust_score_updated_at FROM users LIMIT 5;"
 ## Future Enhancements
 
 ### Potential Improvements
+
 1. Machine learning-based score adjustment
 2. Decay for inactive accounts
 3. Bonus for consistency over time
@@ -296,6 +267,7 @@ psql -c "SELECT trust_score, trust_score_updated_at FROM users LIMIT 5;"
 5. Category-specific trust scores
 
 ### API Enhancements
+
 1. User-facing score explanation
 2. Score prediction for actions
 3. Comparative analytics
@@ -304,18 +276,21 @@ psql -c "SELECT trust_score, trust_score_updated_at FROM users LIMIT 5;"
 ## Troubleshooting
 
 ### Score Not Updating
+
 1. Check cache expiration
 2. Verify scheduler is running
 3. Check audit log for errors
 4. Manually trigger recalculation
 
 ### Performance Issues
+
 1. Check database indexes
 2. Monitor cache hit rate
 3. Review batch job parallelization
 4. Optimize calculation queries
 
 ### Incorrect Scores
+
 1. Review component calculations
 2. Check source data (karma, reports, etc.)
 3. Verify database function logic

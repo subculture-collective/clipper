@@ -1,6 +1,7 @@
 # Forum Admin Moderation Interface & Tools - Implementation Summary
 
 ## Overview
+
 This implementation adds a comprehensive admin moderation interface for forum management with thread locking, user banning, and content management capabilities.
 
 ## Database Schema (Migration 000069)
@@ -8,6 +9,7 @@ This implementation adds a comprehensive admin moderation interface for forum ma
 ### Tables Created
 
 #### 1. `forum_threads`
+
 Stores forum discussion threads.
 - `id` - UUID primary key
 - `user_id` - Foreign key to users table
@@ -22,6 +24,7 @@ Stores forum discussion threads.
 - `created_at`, `updated_at` - Timestamps
 
 #### 2. `forum_replies`
+
 Stores replies to forum threads.
 - `id` - UUID primary key
 - `thread_id` - Foreign key to forum_threads
@@ -32,6 +35,7 @@ Stores replies to forum threads.
 - `created_at`, `updated_at` - Timestamps
 
 #### 3. `moderation_actions`
+
 Audit log for all moderation actions.
 - `id` - UUID primary key
 - `moderator_id` - Foreign key to users (moderator)
@@ -43,6 +47,7 @@ Audit log for all moderation actions.
 - `created_at` - Timestamp
 
 #### 4. `user_bans`
+
 Tracks user bans with expiry support.
 - `id` - UUID primary key
 - `user_id` - Foreign key to banned user
@@ -53,6 +58,7 @@ Tracks user bans with expiry support.
 - `created_at`, `updated_at` - Timestamps
 
 #### 5. `content_flags`
+
 Reports/flags on forum content.
 - `id` - UUID primary key
 - `user_id` - Foreign key to reporting user
@@ -66,20 +72,24 @@ Reports/flags on forum content.
 - `created_at` - Timestamp
 
 ### Triggers
+
 - `trg_update_thread_reply_count` - Automatically updates thread reply counts
 - `trg_update_thread_flag_count` - Automatically updates flag counts on threads
 
 ### Indexes
+
 Performance indexes created on all foreign keys and commonly queried columns.
 
 ## Backend API
 
 ### Handler: `ForumModerationHandler`
+
 Located at: `backend/internal/handlers/forum_moderation_handler.go`
 
 ### Endpoints
 
 #### 1. GET `/api/v1/admin/forum/flagged`
+
 Get flagged content for moderation review.
 
 **Query Parameters:**
@@ -115,6 +125,7 @@ Get flagged content for moderation review.
 ```
 
 #### 2. POST `/api/v1/admin/forum/threads/:id/lock`
+
 Lock or unlock a thread.
 
 **Request Body:**
@@ -134,6 +145,7 @@ Lock or unlock a thread.
 ```
 
 #### 3. POST `/api/v1/admin/forum/threads/:id/pin`
+
 Pin or unpin a thread.
 
 **Request Body:**
@@ -153,6 +165,7 @@ Pin or unpin a thread.
 ```
 
 #### 4. POST `/api/v1/admin/forum/threads/:id/delete`
+
 Soft delete a thread.
 
 **Request Body:**
@@ -171,6 +184,7 @@ Soft delete a thread.
 ```
 
 #### 5. POST `/api/v1/admin/forum/users/:id/ban`
+
 Ban a user from the forum.
 
 **Request Body:**
@@ -192,6 +206,7 @@ Ban a user from the forum.
 ```
 
 #### 6. GET `/api/v1/admin/forum/moderation-log`
+
 Get audit trail of moderation actions.
 
 **Query Parameters:**
@@ -223,6 +238,7 @@ Get audit trail of moderation actions.
 ```
 
 #### 7. GET `/api/v1/admin/forum/bans`
+
 Get list of user bans.
 
 **Query Parameters:**
@@ -259,6 +275,7 @@ Get list of user bans.
 ### Pages
 
 #### 1. ForumModerationPage
+
 **Route:** `/admin/forum/moderation`
 
 **Features:**
@@ -278,6 +295,7 @@ Get list of user bans.
 - `BanUserModal` - Modal for banning users with form validation
 
 #### 2. ModerationLogPage
+
 **Route:** `/admin/forum/moderation-log`
 
 **Features:**
@@ -294,30 +312,35 @@ Get list of user bans.
 ## Security Features
 
 ### Authorization
+
 - All endpoints require admin or moderator role
 - Protected by `AdminRoute` wrapper in frontend
 - Backend validates user authentication and role permissions
 - MFA required for admin actions (existing middleware)
 
 ### Audit Trail
+
 - Every moderation action is logged in `moderation_actions` table
 - Includes moderator ID, timestamp, reason, and metadata
 - Immutable log entries (no deletion possible)
 - Full audit trail accessible via moderation log page
 
 ### Input Validation
+
 - Required reason for sensitive actions (ban, delete)
 - UUID validation for all IDs
 - Sanitized user input
 - SQL injection protection via parameterized queries
 
 ### No Security Vulnerabilities
+
 - CodeQL security scan: **0 alerts**
 - All tests passing: **4/4**
 
 ## Testing
 
 ### Unit Tests
+
 File: `backend/internal/handlers/forum_moderation_handler_test.go`
 
 **Test Cases:**
@@ -331,17 +354,20 @@ All tests verify proper error handling and response formats.
 ## Performance Considerations
 
 ### Database Indexes
+
 - All foreign keys indexed
 - Composite indexes for common queries (pinned + created_at)
 - Partial indexes on boolean flags (active bans, non-deleted threads)
 - Flag status and count indexes for fast moderation queue loading
 
 ### Query Optimization
+
 - Efficient WHERE clause building with parameterized queries
 - JOINs optimized with proper indexes
 - Limit enforced on all list endpoints (max 100 results)
 
 ### Expected Performance
+
 - Moderation queue loads in < 200ms (as per requirements)
 - Moderation actions complete in < 100ms
 - Audit log queries optimized with date-based indexes
@@ -349,12 +375,14 @@ All tests verify proper error handling and response formats.
 ## Integration with Existing System
 
 ### Follows Existing Patterns
+
 - Handler pattern consistent with other handlers (e.g., `ChatHandler`, `ModerationHandler`)
 - Uses Gin framework and pgxpool for database
 - Follows naming conventions and error handling patterns
 - Integrates with existing middleware (auth, rate limiting, MFA)
 
 ### Route Structure
+
 - Nested under `/api/v1/admin/forum/*`
 - Consistent with existing admin routes
 - Uses same authentication and authorization flow
@@ -374,6 +402,7 @@ Potential improvements for future iterations:
 ## Files Changed
 
 ### Created
+
 - `backend/migrations/000069_add_forum_moderation.up.sql`
 - `backend/migrations/000069_add_forum_moderation.down.sql`
 - `backend/internal/handlers/forum_moderation_handler.go`
@@ -382,6 +411,7 @@ Potential improvements for future iterations:
 - `frontend/src/pages/admin/ModerationLogPage.tsx`
 
 ### Modified
+
 - `backend/cmd/api/main.go` - Added forum moderation handler and routes
 - `frontend/src/App.tsx` - Added routes for forum moderation pages
 

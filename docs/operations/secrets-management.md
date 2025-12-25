@@ -1,24 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Secrets Management Guide](#secrets-management-guide)
-  - [Overview](#overview)
-  - [Best Practices](#best-practices)
-    - [1. Never Commit Secrets to Git](#1-never-commit-secrets-to-git)
-    - [2. Use Environment Variables](#2-use-environment-variables)
-    - [3. Use a Secrets Manager (Recommended for Production)](#3-use-a-secrets-manager-recommended-for-production)
-    - [4. Secret Rotation](#4-secret-rotation)
-    - [5. Secure Password Generation](#5-secure-password-generation)
-    - [6. Access Control](#6-access-control)
-    - [7. Monitoring and Auditing](#7-monitoring-and-auditing)
-  - [Secret Validation Checklist](#secret-validation-checklist)
-  - [Emergency Procedures](#emergency-procedures)
-    - [If Secrets are Compromised](#if-secrets-are-compromised)
-    - [Contact Information](#contact-information)
-  - [References](#references)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Secrets Management Guide"
 summary: "This document outlines best practices for managing secrets in production environments."
@@ -255,7 +234,6 @@ Before deploying to production:
 - [ ] All team members are trained on secrets management
 - [ ] Incident response plan includes secret compromise scenarios
 
-
 ## Emergency Procedures
 
 ### If Secrets are Compromised
@@ -285,7 +263,7 @@ Before deploying to production:
 
 For security concerns or suspected compromises:
 
-- **Security Team:** security@clipper.gg
+- **Security Team:** <security@clipper.gg>
 - **On-Call Engineer:** See PagerDuty or [break-glass-procedures.md](./break-glass-procedures.md)
 - **Emergency Documentation:** [Break-Glass Emergency Procedures](./break-glass-procedures.md)
 

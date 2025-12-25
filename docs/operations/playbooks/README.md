@@ -13,6 +13,7 @@ This directory contains incident response playbooks and operational procedures f
 ### Primary Playbooks
 
 #### [SLO Breach Response](./slo-breach-response.md) 🆕
+
 **When to use:** Alert for SLO breach (availability, latency, error rate)
 
 **Covers:**
@@ -29,6 +30,7 @@ This directory contains incident response playbooks and operational procedures f
 ---
 
 #### [Search Incidents](./search-incidents.md)
+
 **When to use:** Search functionality degraded or failing
 
 **Covers:**
@@ -57,21 +59,25 @@ This directory contains incident response playbooks and operational procedures f
 ## Common Scenarios
 
 ### Service Degradation
+
 - **High Error Rate** → [SLO Breach Response - Error Rate](./slo-breach-response.md#error-rate-slo-breach)
 - **Slow Response Times** → [SLO Breach Response - Latency](./slo-breach-response.md#latency-slo-breach)
 - **Service Unavailable** → [SLO Breach Response - Availability](./slo-breach-response.md#availability-slo-breach)
 
 ### Search Issues
+
 - **Search is Slow** → [Search Incidents - High Latency](./search-incidents.md#high-latency)
 - **No Search Results** → [Search Incidents - Zero Results](./search-incidents.md#zero-results)
 - **Embedding Failures** → [Search Incidents - Embedding Failures](./search-incidents.md#embedding-failures)
 
 ### Infrastructure
+
 - **Database Problems** → [Operations Runbook - Database](../runbook.md#database-operations)
 - **Redis Issues** → [Operations Runbook - Cache](../runbook.md#cache-operations)
 - **Deployment Issues** → [Operations Runbook - Deployments](../runbook.md#deployments)
 
 ### Security
+
 - **Authentication Failures** → [SLO Breach Response - Security](./slo-breach-response.md)
 - **SQL Injection Attempts** → [SLO Breach Response - Security](./slo-breach-response.md)
 - **Suspicious Activity** → [SLO Breach Response - Security](./slo-breach-response.md)
@@ -79,19 +85,22 @@ This directory contains incident response playbooks and operational procedures f
 ## Monitoring & Alerting
 
 ### Dashboards
-- **SLO Compliance:** http://localhost:3000/d/slo-dashboard
-- **Application Overview:** http://localhost:3000/d/app-overview
-- **API Performance:** http://localhost:3000/d/api-performance
-- **System Health:** http://localhost:3000/d/system-health
-- **Search Quality:** http://localhost:3000/d/search-quality
-- **Webhook Monitoring:** http://localhost:3000/d/webhook-monitoring
+
+- **SLO Compliance:** <http://localhost:3000/d/slo-dashboard>
+- **Application Overview:** <http://localhost:3000/d/app-overview>
+- **API Performance:** <http://localhost:3000/d/api-performance>
+- **System Health:** <http://localhost:3000/d/system-health>
+- **Search Quality:** <http://localhost:3000/d/search-quality>
+- **Webhook Monitoring:** <http://localhost:3000/d/webhook-monitoring>
 
 ### Alert Management
-- **Prometheus Alerts:** http://localhost:9090/alerts
-- **Alertmanager:** http://localhost:9093
-- **PagerDuty:** https://clipper.pagerduty.com
+
+- **Prometheus Alerts:** <http://localhost:9090/alerts>
+- **Alertmanager:** <http://localhost:9093>
+- **PagerDuty:** <https://clipper.pagerduty.com>
 
 ### Configuration
+
 - **Alert Rules:** `../../monitoring/alerts.yml`
 - **Alert Routing:** `../../monitoring/alertmanager.yml`
 - **Alertmanager Setup:** `../../monitoring/ALERTMANAGER_SETUP.md`
@@ -118,6 +127,7 @@ Level 4: VP Engineering + CTO (1+ hour)
 ## Quick Command Reference
 
 ### Service Health
+
 ```bash
 # Kubernetes
 kubectl get pods -n clipper
@@ -130,6 +140,7 @@ docker-compose logs -f backend
 ```
 
 ### Database
+
 ```bash
 # Connection test
 psql $POSTGRES_URL -c "SELECT 1"
@@ -142,6 +153,7 @@ psql -c "SELECT * FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10;
 ```
 
 ### Cache
+
 ```bash
 # Connection test
 redis-cli PING
@@ -154,6 +166,7 @@ redis-cli INFO stats
 ```
 
 ### Deployments
+
 ```bash
 # Rollback
 kubectl rollout undo deployment/backend -n clipper
@@ -204,6 +217,7 @@ After every incident:
 ## Resources
 
 ### Internal Documentation
+
 - [SLO Documentation](../slos.md)
 - [Monitoring Setup](../../monitoring/README.md)
 - [Alert Configuration](../../monitoring/alerts.yml)
@@ -211,6 +225,7 @@ After every incident:
 - [Security Procedures](../break-glass-procedures.md)
 
 ### External Resources
+
 - [Google SRE Book](https://sre.google/sre-book/table-of-contents/)
 - [Incident Response Guide](https://response.pagerduty.com/)
 - [Kubernetes Debugging](https://kubernetes.io/docs/tasks/debug/)

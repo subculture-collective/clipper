@@ -20,11 +20,13 @@ This significantly reduces the risk of:
 ## MFA Enforcement Policy
 
 ### Who Needs MFA?
+
 - **Admin accounts**: Required
 - **Moderator accounts**: Required
 - **Regular users**: Optional (but recommended)
 
 ### Grace Period
+
 When you are promoted to admin or moderator:
 - You have **7 days** to set up MFA
 - During this grace period, you can access admin features with a warning
@@ -179,13 +181,16 @@ If your grace period has expired and you haven't set up MFA:
 ## API Endpoints Reference
 
 ### Enrollment
+
 - `POST /api/v1/auth/mfa/enroll` - Start MFA enrollment
 - `POST /api/v1/auth/mfa/verify-enrollment` - Complete enrollment
 
 ### Login
+
 - `POST /api/v1/auth/mfa/verify-login` - Verify MFA code during login
 
 ### Management
+
 - `GET /api/v1/auth/mfa/status` - Get MFA status
 - `POST /api/v1/auth/mfa/regenerate-backup-codes` - Get new backup codes
 - `POST /api/v1/auth/mfa/disable` - Disable MFA
@@ -225,24 +230,28 @@ If you need assistance with MFA setup:
 ## Technical Details
 
 ### TOTP Configuration
+
 - **Algorithm**: SHA-1 (RFC 6238 compliant)
 - **Period**: 30 seconds
 - **Digits**: 6
 - **Time skew tolerance**: ±30 seconds
 
 ### Backup Codes
+
 - **Count**: 10 codes per generation
 - **Length**: 8 alphanumeric characters
 - **Storage**: Bcrypt hashed
 - **Single-use**: Each code can only be used once
 
 ### Trusted Devices
+
 - **Duration**: 30 days
 - **Fingerprinting**: Based on user agent + IP address
 - **Auto-expiration**: Devices are automatically removed after 30 days
 - **Renewal**: Using a trusted device extends its expiration
 
 ### Grace Period
+
 - **Duration**: 7 days from admin/moderator promotion
 - **Actions**: Admin actions allowed with warnings
 - **Expiration**: Admin actions blocked until MFA enabled
