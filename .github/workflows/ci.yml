@@ -324,6 +324,11 @@ jobs:
           REDIS_PORT: 6379
           JWT_SECRET: test-secret-key-for-e2e-testing
           PORT: 8080
+          # Stripe test keys for backend webhook handling
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_TEST_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_TEST_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_TEST_YEARLY_PRICE_ID }}
         run: |
           ./clipper-backend &
           echo $! > backend.pid
@@ -350,6 +355,10 @@ jobs:
       - name: Run E2E tests
         env:
           VITE_API_URL: http://localhost:8080/api/v1
+          # Stripe test keys for subscription E2E tests
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY }}
+          VITE_STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_TEST_MONTHLY_PRICE_ID }}
+          VITE_STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_TEST_YEARLY_PRICE_ID }}
         run: |
           cd frontend
           npm run test:e2e
