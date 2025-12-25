@@ -30,14 +30,8 @@ export class AdminModerationPage extends BasePage {
    * Get approve button for a submission
    */
   private getApproveButton(submissionId: string): Locator {
-    // First try with data-testid
-    const cardWithTestId = this.page.locator(`[data-testid="submission-${submissionId}"]`);
-    if (cardWithTestId) {
-      return cardWithTestId.getByRole('button', { name: /approve/i });
-    }
-    
-    // Fallback: find by submission ID in the card and then the button
-    return this.page.locator(`[data-submission-id="${submissionId}"]`)
+    // Try to find button within submission card
+    return this.page.locator(`[data-testid="submission-${submissionId}"], [data-submission-id="${submissionId}"]`)
       .getByRole('button', { name: /approve/i });
   }
 
@@ -45,12 +39,7 @@ export class AdminModerationPage extends BasePage {
    * Get reject button for a submission
    */
   private getRejectButton(submissionId: string): Locator {
-    const cardWithTestId = this.page.locator(`[data-testid="submission-${submissionId}"]`);
-    if (cardWithTestId) {
-      return cardWithTestId.getByRole('button', { name: /reject/i });
-    }
-    
-    return this.page.locator(`[data-submission-id="${submissionId}"]`)
+    return this.page.locator(`[data-testid="submission-${submissionId}"], [data-submission-id="${submissionId}"]`)
       .getByRole('button', { name: /reject/i });
   }
 
@@ -58,13 +47,8 @@ export class AdminModerationPage extends BasePage {
    * Get status badge for a submission
    */
   private getStatusBadge(submissionId: string): Locator {
-    const cardWithTestId = this.page.locator(`[data-testid="submission-${submissionId}"]`);
-    if (cardWithTestId) {
-      return cardWithTestId.locator('[data-testid="status-badge"]');
-    }
-    
-    return this.page.locator(`[data-submission-id="${submissionId}"]`)
-      .locator('.status-badge, [class*="badge"]');
+    return this.page.locator(`[data-testid="submission-${submissionId}"], [data-submission-id="${submissionId}"]`)
+      .locator('[data-testid="status-badge"], .status-badge, [class*="badge"]');
   }
 
   /**

@@ -300,9 +300,8 @@ test.describe('Clip Submission E2E Flow', () => {
             tags: ['test'],
           });
           
-          // Expect some form of error (invalid URL or API error)
-          // This might show as an inline validation error or API error
-          await page.waitForTimeout(1000); // Wait for validation
+          // Wait for error to appear - either validation or API error
+          await page.waitForLoadState('networkidle');
         }
       });
     }
@@ -468,8 +467,8 @@ test.describe('Clip Submission E2E Flow', () => {
       
       await submitClipPage.goto();
       
-      // Wait for recent submissions to load
-      await page.waitForTimeout(2000);
+      // Wait for recent submissions to load by checking for the section or waiting for network idle
+      await page.waitForLoadState('networkidle');
       
       // Check if recent submissions section is visible
       const hasRecentSubmissions = await page.getByText('Your Recent Submissions')

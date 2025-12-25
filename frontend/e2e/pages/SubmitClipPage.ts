@@ -195,7 +195,8 @@ export class SubmitClipPage extends BasePage {
    */
   async getRecentSubmissionsCount(): Promise<number> {
     const recentSubmissionsSection = this.page.getByText('Your Recent Submissions').locator('..');
-    const submissionItems = recentSubmissionsSection.locator('div[class*="bg-background-secondary"]');
+    // Use a more stable selector - find divs that contain submission data
+    const submissionItems = recentSubmissionsSection.locator('div').filter({ hasText: /pending|approved|rejected/i });
     return await submissionItems.count();
   }
 

@@ -1,4 +1,13 @@
+/* 
+ * Disable react-hooks/rules-of-hooks - ESLint incorrectly flags Playwright's fixture `use` 
+ * as a React hook. This is a false positive - these are Playwright test fixtures, not React hooks.
+ * See: https://github.com/microsoft/playwright/issues/17239
+ */
 /* eslint-disable react-hooks/rules-of-hooks */
+/* 
+ * Disable @typescript-eslint/no-explicit-any - Playwright fixtures use dynamic typing.
+ * The `use` callback parameter requires any type for flexibility across different fixture types.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test as base, Page } from '@playwright/test';
 import { LoginPage, HomePage, ClipPage, SubmitClipPage, AdminModerationPage } from '../pages';
