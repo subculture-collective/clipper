@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "backend/api.md",
+                "file": "product/FEATURE_INVENTORY_COMPLETION_SUMMARY.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "api"
+              "title": "FEATURE_INVENTORY_COMPLETION_SUMMARY"
             }
           }
         ]
@@ -199,6 +199,24 @@
   },
   "active": "e0ec848f240719d6",
   "lastOpenFiles": [
+    "backend/api.md",
+    "unsorted/EPIC_VERIFICATION_CHECKLIST2.md",
+    "testing/index.md",
+    "product/feature-inventory.md",
+    "product/feature-audit-issues-tracking.md",
+    "product/FEATURE_INVENTORY_COMPLETION_SUMMARY.md",
+    "legal/index.md",
+    "features/index.md",
+    "features/feature-theatre-mode.md",
+    "features/feature-queue-history.md",
+    "features/feature-playlists.md",
+    "features/feature-feed-filtering.md",
+    "deployment/runbook.md",
+    "deployment/infra.md",
+    "deployment/index.md",
+    "deployment/docker.md",
+    "deployment/ci_cd.md",
+    "deployment",
     "unsorted/CHAT_EPIC_COMPLETION_SUMMARY copy.md",
     "unsorted/CREATOR_VERIFICATION_EPIC_COMPLETE copy.md",
     "unsorted/DEPLOYMENT_LIVE_STREAMS copy.md",
@@ -208,23 +226,6 @@
     "unsorted/LIVE_STREAM_EPIC_COMPLETION_SUMMARY copy.md",
     "unsorted/META_FORUM_EPIC_COMPLETION copy.md",
     "unsorted/SOCIAL_COMMUNITY_EPIC_FINAL_VERIFICATION copy.md",
-    "unsorted/CHAT_EPIC_COMPLETION_SUMMARY.md",
-    "unsorted/CREATOR_VERIFICATION_EPIC_COMPLETE.md",
-    "unsorted/DEPLOYMENT_LIVE_STREAMS.md",
-    "unsorted/EPIC_COMPLETION_FINAL_SUMMARY_HOME_FEED.md",
-    "unsorted/EPIC_COMPLETION_FINAL_SUMMARY.md",
-    "unsorted/EPIC_VERIFICATION_CHECKLIST copy.md",
-    "unsorted/LIVE_STREAM_EPIC_COMPLETION_SUMMARY.md",
-    "unsorted/META_FORUM_EPIC_COMPLETION.md",
-    "unsorted/SOCIAL_COMMUNITY_EPIC_FINAL_VERIFICATION.md",
-    "unsorted/HOME_FEED_EPIC_COMPLETION.md",
-    "testing/STRIPE_TESTING_SUMMARY.md",
-    "testing/STRIPE_SUBSCRIPTION_TESTING_CHECKLIST.md",
-    "testing/STRIPE_SUBSCRIPTION_TESTING.md",
-    "features/live-streams.md",
-    "PLAYLIST_THEATRE_QUEUE_EPIC_COMPLETION.md",
-    "index.md",
-    "product/clip-serving-strategy.md",
     "users",
     "setup",
     "product",
@@ -233,7 +234,6 @@
     "operations/playbooks",
     "operations",
     "openapi/clip-submission-api.yaml",
-    "openapi",
-    "legal"
+    "openapi"
   ]
 }
