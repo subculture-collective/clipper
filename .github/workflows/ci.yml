@@ -171,7 +171,7 @@ jobs:
           echo "Integration test coverage: ${coverage}%"
           # Check if coverage meets minimum threshold (70%)
           threshold=70
-          if (( $(echo "$coverage < $threshold" | bc -l) )); then
+          if [ $(echo "$coverage $threshold" | awk '{print ($1 < $2)}') -eq 1 ]; then
             echo "Warning: Integration coverage ${coverage}% is below target ${threshold}%"
             echo "This is acceptable during initial rollout, but should improve over time"
           else
