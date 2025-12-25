@@ -13,7 +13,6 @@
 
 import { test, expect } from '../fixtures';
 import { SubscriptionSettingsPage } from '../pages';
-import { waitForSubscriptionStatus } from '../utils/stripe-helpers';
 
 test.describe('Premium Subscription - Settings & Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -301,11 +300,6 @@ test.describe('Premium Subscription - Navigation', () => {
     
     // Look for subscription-related navigation items
     const navItems = page.locator('nav a, nav button');
-    const navText = await navItems.allTextContents();
-    
-    const hasSubscriptionNav = navText.some(text => 
-      /subscription|billing|plan|pricing|upgrade/i.test(text)
-    );
     
     // It's okay if there's no explicit subscription nav item
     // but there should be some way to access it

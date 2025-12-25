@@ -33,7 +33,7 @@ export const STRIPE_TEST_CARDS = {
  */
 export const TEST_CARD_DETAILS = {
   number: STRIPE_TEST_CARDS.SUCCESS,
-  expiry: '12/34', // Far future expiry
+  expiry: '12/99', // Far future expiry
   cvc: '123',
   zip: '12345',
 } as const;
@@ -48,11 +48,12 @@ export const TEST_PRICE_IDS = {
 
 /**
  * Stripe Checkout iframe selectors
+ * Using specific title matches for Stripe Elements iframes
  */
 const STRIPE_IFRAME_SELECTORS = {
-  cardNumber: 'iframe[title*="Secure card number"]',
-  expiry: 'iframe[title*="Secure expiration"]',
-  cvc: 'iframe[title*="Secure CVC"]',
+  cardNumber: 'iframe[title="Secure card number input frame"]',
+  expiry: 'iframe[title="Secure expiration date input frame"]',
+  cvc: 'iframe[title="Secure CVC input frame"]',
 } as const;
 
 /**
@@ -79,6 +80,7 @@ export async function waitForStripeCheckout(page: Page, timeout: number = 10000)
     await page.waitForLoadState('networkidle', { timeout });
     return true;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.warn('Stripe Checkout did not load:', error);
     return false;
   }
@@ -111,8 +113,15 @@ export async function fillStripeCheckoutForm(
   // Fill email if required
   if (email) {
     const emailField = page.locator('input[type="email"], input[name="email"]');
-    if (await emailField.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await emailField.fill(email);
+    try {
+      const emailVisible = await emailField.isVisible({ timeout: 2000 });
+      if (emailVisible) {
+        await emailField.fill(email);
+      }
+    } catch (error) {
+      // Email field may not be required in all Stripe checkout flows
+      // eslint-disable-next-line no-console
+      console.debug('Stripe checkout: Email field not visible or required:', error);
     }
   }
 
@@ -130,8 +139,15 @@ export async function fillStripeCheckoutForm(
 
   // Fill ZIP if visible
   const zipField = page.locator('input[name="postal"], input[name="zip"], input[placeholder*="ZIP"]');
-  if (await zipField.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await zipField.fill(zip);
+  try {
+    const zipVisible = await zipField.isVisible({ timeout: 2000 });
+    if (zipVisible) {
+      await zipField.fill(zip);
+    }
+  } catch (error) {
+    // ZIP field is optional in Stripe checkout - log but continue
+    // eslint-disable-next-line no-console
+    console.debug('Stripe checkout: ZIP field not visible or required:', error);
   }
 }
 
@@ -200,7 +216,19 @@ export async function sendMockWebhook(
     webhookSecret?: string;
   } = {}
 ) {
-  const { baseUrl = 'http://localhost:8080', webhookSecret } = options;
+  // Runtime check: Ensure this is only used in test environments
+  const isTestEnv = process.env.NODE_ENV === 'test' || 
+                    process.env.CI === 'true' || 
+                    process.env.PLAYWRIGHT_TEST === 'true';
+  
+  if (!isTestEnv) {
+    throw new Error('sendMockWebhook should only be used in test environments. Set NODE_ENV=test or PLAYWRIGHT_TEST=true.');
+  }
+
+  const { 
+    baseUrl = process.env.VITE_API_URL ?? process.env.BASE_URL ?? 'http://localhost:8080', 
+    webhookSecret 
+  } = options;
 
   const webhookPayload = {
     id: `evt_test_${Date.now()}`,
@@ -300,9 +328,6 @@ export function getStripePriceIds() {
  * Verify pro features are accessible
  */
 export async function verifyProFeaturesEnabled(page: Page) {
-  // Check for pro badge or indicator
-  const proBadge = page.locator('text=/pro|premium/i, [data-testid*="pro"], .pro-badge');
-  
   // Check that paywall is not shown
   const paywall = page.locator('[data-testid="paywall-modal"], text=/upgrade.*to.*pro/i');
   await expect(paywall).not.toBeVisible({ timeout: 5000 });

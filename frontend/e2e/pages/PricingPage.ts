@@ -60,8 +60,10 @@ export class PricingPage extends BasePage {
    */
   async selectMonthlyBilling() {
     await this.click(this.monthlyToggle);
-    // Wait for UI to update
-    await this.page.waitForTimeout(500);
+    // Wait for UI state to update
+    await this.page.waitForLoadState('domcontentloaded');
+    // Verify selection reflected in DOM
+    await this.verifyMonthlySelected();
   }
 
   /**
@@ -69,8 +71,10 @@ export class PricingPage extends BasePage {
    */
   async selectYearlyBilling() {
     await this.click(this.yearlyToggle);
-    // Wait for UI to update
-    await this.page.waitForTimeout(500);
+    // Wait for UI state to update
+    await this.page.waitForLoadState('domcontentloaded');
+    // Verify selection reflected in DOM
+    await this.verifyYearlySelected();
   }
 
   /**
@@ -148,7 +152,7 @@ export class PricingPage extends BasePage {
    */
   async waitForSubscribeButtonReady() {
     await this.subscribeMonthlyButton.or(this.subscribeYearlyButton).waitFor({ state: 'visible' });
-    // Wait a bit for any loading states to clear
-    await this.page.waitForTimeout(1000);
+    // Wait for page to be fully interactive
+    await this.page.waitForLoadState('networkidle');
   }
 }
