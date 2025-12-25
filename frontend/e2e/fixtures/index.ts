@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test as base, Page } from '@playwright/test';
 import { LoginPage, HomePage, ClipPage, SubmitClipPage, AdminModerationPage } from '../pages';
 import { login, isAuthenticated } from '../utils/auth';
@@ -136,7 +138,6 @@ export const test = base.extend<CustomFixtures>({
    * Authenticated user fixture
    * Creates a test user and logs them in
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authenticatedUser: async ({ page }: any, use: any) => {
     // Create a test user
     const user = await createUser(page, {
@@ -162,7 +163,6 @@ export const test = base.extend<CustomFixtures>({
    * Creates a user without authentication
    * Automatically cleans up after test
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   testUser: async ({ page }: any, use: any) => {
     const user = await createUser(page);
     await use(user);
@@ -182,7 +182,6 @@ export const test = base.extend<CustomFixtures>({
    * Creates an admin user for testing admin features
    * Automatically cleans up after test
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adminUser: async ({ page }: any, use: any) => {
     const user = await createUser(page, {
       username: `admin_${Date.now()}`,
@@ -207,7 +206,6 @@ export const test = base.extend<CustomFixtures>({
    * Creates a clip for testing
    * Automatically cleans up after test
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   testClip: async ({ page }: any, use: any) => {
     const clip = await createClip(page, {
       title: `Test Clip ${Date.now()}`,
@@ -232,7 +230,6 @@ export const test = base.extend<CustomFixtures>({
    * Creates a submission for testing
    * Automatically cleans up after test
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   testSubmission: async ({ page, testUser }: any, use: any) => {
     const submission = await createSubmission(page, {
       clipUrl: `https://clips.twitch.tv/test-${Date.now()}`,
