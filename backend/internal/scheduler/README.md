@@ -77,6 +77,85 @@ Retries failed webhook deliveries with exponential backoff.
 
 **Logging prefix:** `[WEBHOOK_SCHEDULER]` for easy log filtering
 
+### CDNScheduler
+Ensures clip assets are synchronized to and refreshed in the CDN.
+
+**Configuration:**
+- Interval: Configurable in minutes or hours
+- Max items per run: Limits the number of assets processed per execution
+
+**Metrics:**
+- Uses the standard scheduler metrics described above for job execution, duration, and last success time.
+
+### DunningScheduler
+Runs dunning workflows for users with failed or overdue payments.
+
+**Configuration:**
+- Interval: Configurable in minutes or hours
+- Batch size: Number of accounts to process per run
+
+**Metrics:**
+- Uses the standard scheduler metrics described above for job execution, duration, and last success time.
+
+### EmailMetricsScheduler
+Collects and aggregates metrics related to outbound emails (opens, clicks, bounces).
+
+**Configuration:**
+- Interval: Configurable in minutes
+- Lookback window: Time window for pulling fresh email events
+
+**Metrics:**
+- Uses the standard scheduler metrics described above, plus email-specific counters as implemented in the email service.
+
+### ExportScheduler
+Triggers generation and delivery of scheduled data exports.
+
+**Configuration:**
+- Interval: Configurable in minutes or hours
+- Max exports per run: Limits the number of exports processed per execution
+
+**Metrics:**
+- Uses the standard scheduler metrics described above for job execution, duration, and last success time.
+
+### LiveStatusScheduler
+Refreshes live status information (e.g., whether channels or streams are currently live).
+
+**Configuration:**
+- Interval: Configurable in minutes (typically short to keep status fresh)
+- Page size: Number of channels/status entries fetched per run
+
+**Metrics:**
+- Uses the standard scheduler metrics described above for job execution, duration, and last success time.
+
+### MirrorScheduler
+Mirrors or replicates clip data and metadata to secondary storage or services.
+
+**Configuration:**
+- Interval: Configurable in minutes or hours
+- Max items per run: Limits the number of records mirrored per execution
+
+**Metrics:**
+- Uses the standard scheduler metrics described above for job execution, duration, and last success time.
+
+### OutboundWebhookScheduler
+Manages scheduled or batched outbound webhooks that are not covered by the retry scheduler.
+
+**Configuration:**
+- Interval: Configurable in minutes
+- Batch size: Number of webhooks to send per run
+
+**Metrics:**
+- Uses the standard scheduler metrics described above for job execution, duration, and last success time.
+
+### ReputationScheduler
+Recalculates and updates reputation scores for users or channels based on recent activity.
+
+**Configuration:**
+- Interval: Configurable in minutes or hours
+- Lookback window: Time range of activity considered per run
+
+**Metrics:**
+- Uses the standard scheduler metrics described above for job execution, duration, and last success time.
 ## Testing Patterns
 
 ### Mock Services
