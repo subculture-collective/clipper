@@ -160,12 +160,27 @@ func (s *ReputationScheduler) runTasks(ctx context.Context) {
 	// Record metrics
 	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
 	metrics.JobItemsProcessed.WithLabelValues(jobName, "success").Add(float64(statsUpdated))
+	
 	if errors > 0 {
 		metrics.JobItemsProcessed.WithLabelValues(jobName, "failed").Add(float64(errors))
-		metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
-	} else {
+	}
+
+	// Consider the job successful if majority of operations succeeded
+	totalOperations := statsUpdated + errors
+	if totalOperations == 0 {
+		// No operations processed, treat as successful
 		metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
 		metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+	} else {
+		failureRatio := float64(errors) / float64(totalOperations)
+		if failureRatio > 0.5 {
+			// More than 50% failures - mark as failed
+			metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
+		} else {
+			// Majority succeeded - mark as success
+			metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
+			metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+		}
 	}
 
 	log.Printf("Reputation tasks completed: users=%d badges_awarded=%d stats_updated=%d errors=%d duration=%v",

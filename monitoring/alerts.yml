@@ -784,13 +784,20 @@ groups:
       # Job Execution Failures
       - alert: BackgroundJobFailing
         expr: |
-          rate(job_execution_total{status="failed"}[10m]) > 0.1
+          (
+            rate(job_execution_total{status="failed"}[10m])
+            / (rate(job_execution_total{status="success"}[10m]) + rate(job_execution_total{status="failed"}[10m]))
+          ) > 0.05
+          and
+          (
+            (rate(job_execution_total{status="success"}[10m]) + rate(job_execution_total{status="failed"}[10m])) > 0
+          )
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "Background job {{ $labels.job_name }} is failing"
-          description: "Job {{ $labels.job_name }} has {{ $value }} failures per second over the last 10 minutes."
+          description: "Job {{ $labels.job_name }} has a failure rate of {{ $value | humanizePercentage }} (threshold: 5% over the last 10 minutes)."
           runbook: "docs/operations/runbooks/background-jobs.md#job-failures"
 
       # Critical Job Failure Rate
@@ -800,6 +807,10 @@ groups:
             rate(job_execution_total{status="failed"}[5m])
             / (rate(job_execution_total{status="success"}[5m]) + rate(job_execution_total{status="failed"}[5m]))
           ) > 0.5
+          and
+          (
+            (rate(job_execution_total{status="success"}[5m]) + rate(job_execution_total{status="failed"}[5m])) > 0
+          )
         for: 5m
         labels:
           severity: critical
@@ -809,6 +820,9 @@ groups:
           runbook: "docs/operations/runbooks/background-jobs.md#critical-failure-rate"
 
       # Job Not Running (Stale)
+      # Note: 2-hour threshold works for most jobs (hot_score: 5m, trending_score: 60m, clip_sync: 15m)
+      # but may not detect failures in infrequent jobs (reputation_tasks: 6h). Adjust threshold or
+      # create job-specific alerts for jobs with intervals > 2 hours.
       - alert: BackgroundJobNotRunning
         expr: |
           (time() - job_last_success_timestamp_seconds) > 7200
@@ -864,7 +878,7 @@ groups:
       - alert: BackgroundJobQueueGrowing
         expr: |
           job_queue_size > 100
-          and (job_queue_size / (job_queue_size offset 10m)) > 1.5
+          and (job_queue_size / ((job_queue_size offset 10m) or vector(0))) > 1.5
         for: 15m
         labels:
           severity: warning
@@ -890,8 +904,14 @@ groups:
         expr: |
           (
             rate(job_items_processed_total{status="failed"}[10m])
-            / (rate(job_items_processed_total{status="success"}[10m]) + rate(job_items_processed_total{status="failed"}[10m]))
+            / clamp_min(
+              rate(job_items_processed_total{status="success"}[10m]) + rate(job_items_processed_total{status="failed"}[10m]),
+              0.01
+            )
           ) > 0.2
+          and (
+            rate(job_items_processed_total{status="success"}[10m]) + rate(job_items_processed_total{status="failed"}[10m])
+          ) > 0
         for: 15m
         labels:
           severity: warning

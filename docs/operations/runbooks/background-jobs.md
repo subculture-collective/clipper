@@ -261,7 +261,7 @@ All background jobs expose the following Prometheus metrics:
 ## Monitoring Dashboard
 
 Access the Background Jobs dashboard in Grafana:
-- URL: `https://grafana.clipper.app/d/background-jobs`
+- URL: `<your-grafana-url>/d/background-jobs`
 - Dashboard: "Background Jobs Monitoring"
 
 Key panels:

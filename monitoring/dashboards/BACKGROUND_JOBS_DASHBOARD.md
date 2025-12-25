@@ -148,9 +148,9 @@ job_queue_size{job_name="webhook_retry"}
 
 This dashboard complements the following alerts configured in `monitoring/alerts.yml`:
 
-- **BackgroundJobFailing**: Fires when failure rate > 0.1/sec
-- **BackgroundJobCriticalFailureRate**: Fires when failure rate > 50%
-- **BackgroundJobNotRunning**: Fires when no success for > 2 hours
+- **BackgroundJobFailing**: Fires when failure rate > 5% over a 10-minute window
+- **BackgroundJobCriticalFailureRate**: Fires when failure rate > 50% over a 5-minute window
+- **BackgroundJobNotRunning**: Fires when no success for > 2 hours (Note: may not detect failures in jobs with intervals > 2h like reputation_tasks)
 - **BackgroundJobCriticallyStale**: Fires when no success for > 24 hours
 - **BackgroundJobHighDuration**: Fires when P95 > 300 seconds
 - **BackgroundJobCriticalDuration**: Fires when P95 > 600 seconds

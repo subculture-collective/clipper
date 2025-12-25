@@ -471,9 +471,9 @@ Key panels include:
 
 Background job alerts are configured in `monitoring/alerts.yml`:
 
-- **BackgroundJobFailing**: Job has failures (>0.1/sec for 5m)
+- **BackgroundJobFailing**: Job has failures (>5% failure rate, 10m)
 - **BackgroundJobCriticalFailureRate**: >50% failure rate
-- **BackgroundJobNotRunning**: No success for >2 hours
+- **BackgroundJobNotRunning**: No success for >2 hours (Note: may not detect failures in jobs with intervals > 2h)
 - **BackgroundJobCriticallyStale**: No success for >24 hours  
 - **BackgroundJobHighDuration**: P95 duration >300 seconds
 - **BackgroundJobCriticalDuration**: P95 duration >600 seconds
@@ -500,7 +500,6 @@ Target metrics for background job monitoring:
 - **Coverage**: All critical background jobs monitored
 
 ## Troubleshooting
-```
 
 ### Prometheus not scraping targets
 

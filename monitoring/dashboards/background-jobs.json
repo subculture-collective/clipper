@@ -43,7 +43,7 @@
               "mode": "absolute",
               "steps": [
                 {"value": null, "color": "green"},
-                {"value": 0.1, "color": "yellow"},
+                {"value": 6, "color": "yellow"},
                 {"value": 1, "color": "red"}
               ]
             }
@@ -57,7 +57,7 @@
         "gridPos": {"x": 0, "y": 4, "w": 8, "h": 6},
         "targets": [
           {
-            "expr": "(sum(rate(job_execution_total{status=\"success\"}[5m])) / (sum(rate(job_execution_total[5m])) + 0.001)) * 100",
+            "expr": "sum(rate(job_execution_total{status=\"success\"}[5m])) / clamp_min(sum(rate(job_execution_total[5m])), 0.01) * 100",
             "legendFormat": "Success Rate",
             "refId": "A"
           }
@@ -250,7 +250,7 @@
         "gridPos": {"x": 12, "y": 23, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "(rate(job_execution_total{status=\"failed\"}[10m]) / (rate(job_execution_total[10m]) + 0.001)) * 100",
+            "expr": "100 * (sum by (job_name) (rate(job_execution_total{status=\"failed\"}[10m])) / clamp_min(sum by (job_name) (rate(job_execution_total[10m])), 0.01))",
             "legendFormat": "{{ job_name }}",
             "refId": "A",
             "instant": true

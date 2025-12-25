@@ -52,11 +52,25 @@ var (
 	)
 )
 
+func registerJobMetrics() {
+	// Helper function to register metrics, ignoring AlreadyRegisteredError
+	register := func(c prometheus.Collector) {
+		if err := prometheus.Register(c); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				// Only panic for non-AlreadyRegisteredError errors
+				panic(err)
+			}
+		}
+	}
+
+	register(JobExecutionTotal)
+	register(JobExecutionDuration)
+	register(JobLastSuccessTimestamp)
+	register(JobItemsProcessed)
+	register(JobQueueSize)
+}
+
 func init() {
 	// Register job metrics with Prometheus
-	prometheus.MustRegister(JobExecutionTotal)
-	prometheus.MustRegister(JobExecutionDuration)
-	prometheus.MustRegister(JobLastSuccessTimestamp)
-	prometheus.MustRegister(JobItemsProcessed)
-	prometheus.MustRegister(JobQueueSize)
+	registerJobMetrics()
 }
