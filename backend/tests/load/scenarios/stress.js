@@ -26,7 +26,6 @@ import { Rate, Trend, Counter, Gauge } from 'k6/metrics';
 // Custom metrics for stress testing
 const errorRate = new Rate('errors');
 const degradationRate = new Rate('degraded_responses');
-const recoveryRate = new Rate('recovery_successful');
 const pageLoadTime = new Trend('page_load_time');
 const totalRequests = new Counter('total_requests');
 const concurrentUsers = new Gauge('concurrent_users');
@@ -92,10 +91,10 @@ export default function () {
     concurrentUsers.add(1);
     totalRequests.add(1);
     
-    // Determine which phase we're in based on VU count
-    const vu = __VU;
-    const vus = __ENV.K6_VUS || 1;
-    updatePhase(vus);
+    // Determine which phase we're in based on current stage
+    // Note: This is approximate as k6 doesn't expose current VU count directly
+    // Phase detection based on iteration and stage progression
+    updatePhase();
     
     // Chaos mode: Occasionally inject delays or failures
     if (ENABLE_CHAOS && Math.random() < 0.05) {
@@ -123,16 +122,21 @@ export default function () {
     }
 }
 
-function updatePhase(vus) {
-    if (vus < 75) {
+function updatePhase() {
+    // Approximate phase detection based on __VU and __ITER
+    // This is a rough estimate since k6 doesn't expose current active VU count
+    // Tags in metrics will provide more accurate phase tracking
+    const currentVU = __VU;
+    
+    if (currentVU < 75) {
         currentPhase = 'baseline';
-    } else if (vus < 125) {
+    } else if (currentVU < 125) {
         currentPhase = 'increased';
-    } else if (vus < 175) {
+    } else if (currentVU < 175) {
         currentPhase = 'high';
-    } else if (vus < 250) {
+    } else if (currentVU < 250) {
         currentPhase = 'stress';
-    } else if (vus < 350) {
+    } else if (currentVU < 350) {
         currentPhase = 'extreme';
     } else {
         currentPhase = 'peak';

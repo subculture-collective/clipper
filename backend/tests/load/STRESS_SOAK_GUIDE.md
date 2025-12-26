@@ -200,9 +200,9 @@ k6 run -e TARGET_VUS=100 backend/tests/load/scenarios/soak.js
 # Terminal 1: Start backend
 make backend-dev
 
-# Terminal 2: Collect profiles during soak
+# Terminal 2: Start automated monitoring and profiling
 cd backend/tests/load
-./collect_profile.sh
+./monitor_soak.sh
 
 # Terminal 3: Run soak test
 make test-soak-short

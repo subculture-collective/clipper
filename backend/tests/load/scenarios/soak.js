@@ -77,9 +77,9 @@ export const options = {
         'errors': ['rate<0.01'], // Less than 1%
         'http_req_failed': ['rate<0.01'],
         
-        // Slow requests should not increase over time
-        'slow_requests': ['count<1000'], // Adjust based on duration
-        'very_slow_requests': ['count<100'],
+        // Slow requests should not increase over time - scales with duration
+        'slow_requests': [`count<${Math.floor(1000 * DURATION_HOURS / 24)}`],
+        'very_slow_requests': [`count<${Math.floor(100 * DURATION_HOURS / 24)}`],
         
         // Time to first byte should remain stable
         'time_to_first_byte': ['p(95)<50'],
@@ -91,8 +91,8 @@ export const options = {
 };
 
 // Track test progress for hourly reporting
-let testStartTime;
 let lastHourReported = 0;
+let testStartTime = null; // Will be initialized in setup and passed via data
 const performanceBaseline = {
     p95: null,
     p99: null,
@@ -139,6 +139,8 @@ export default function () {
 }
 
 function updateHourlyMetrics() {
+    // testStartTime is initialized in setup() and should be consistent across all VUs
+    // We use Date.now() for per-VU tracking since k6 doesn't share state across VUs
     if (!testStartTime) {
         testStartTime = Date.now();
     }
@@ -185,7 +187,7 @@ function performHealthCheck() {
 
 function casualBrowserSoak() {
     // Browse feed casually
-    const response = browseFeed();
+    browseFeed();
     
     // Long think time - casual users are slow
     sleep(Math.random() * 5 + 10); // 10-15 seconds

@@ -41,6 +41,15 @@ if ! curl -s "$BASE_URL/api/v1/health" > /dev/null; then
     exit 1
 fi
 echo -e "${GREEN}✓ Backend is accessible${NC}"
+
+# Check if jq is installed
+if ! command -v jq &> /dev/null; then
+    echo -e "${RED}✗ jq is not installed${NC}"
+    echo "  jq is required for JSON parsing"
+    echo "  Install it with: apt-get install jq (Debian/Ubuntu) or brew install jq (macOS)"
+    exit 1
+fi
+echo -e "${GREEN}✓ jq is installed${NC}"
 echo ""
 
 # Initialize CSV files for trend tracking
@@ -246,7 +255,7 @@ cleanup() {
 
 Compare first and last heap profiles:
 \`\`\`bash
-go tool pprof -base $MONITOR_DIR/profiles/heap_*.pb.gz | head | tail $MONITOR_DIR/profiles/heap_*.pb.gz | tail
+go tool pprof -base \$(ls $MONITOR_DIR/profiles/heap_*.pb.gz | head -1) \$(ls $MONITOR_DIR/profiles/heap_*.pb.gz | tail -1)
 \`\`\`
 
 View memory trends:
@@ -258,7 +267,7 @@ cat $MONITOR_DIR/memory_trends.csv
 
 View goroutine profile:
 \`\`\`bash
-go tool pprof -http=:8081 $MONITOR_DIR/profiles/goroutine_*.pb.gz | tail
+go tool pprof -http=:8081 \$(ls $MONITOR_DIR/profiles/goroutine_*.pb.gz | tail -1)
 \`\`\`
 
 ### Response Time Analysis
@@ -303,10 +312,15 @@ while true; do
     collect_metrics "$TIMESTAMP"
     extract_memory_stats "$TIMESTAMP"
     
-    # Generate interim report every 4 hours
+    # Generate interim report every 4 hours (based on elapsed time, not sample count)
     ELAPSED_HOURS_INT=$(echo "$ELAPSED_HOURS / 1" | bc)
-    if [ $((ELAPSED_HOURS_INT % 4)) -eq 0 ] && [ $ELAPSED_HOURS_INT -gt 0 ] && [ $((SAMPLE_COUNT % 4)) -eq 0 ]; then
-        generate_interim_report "$ELAPSED_HOURS_INT"
+    if [ $((ELAPSED_HOURS_INT % 4)) -eq 0 ] && [ $ELAPSED_HOURS_INT -gt 0 ]; then
+        # Only generate if we haven't already generated for this 4-hour mark
+        LAST_REPORT_HOUR=${LAST_REPORT_HOUR:-0}
+        if [ $ELAPSED_HOURS_INT -gt $LAST_REPORT_HOUR ]; then
+            generate_interim_report "$ELAPSED_HOURS_INT"
+            LAST_REPORT_HOUR=$ELAPSED_HOURS_INT
+        fi
     fi
     
     echo ""
