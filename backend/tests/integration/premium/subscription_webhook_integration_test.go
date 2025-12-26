@@ -19,6 +19,19 @@ import (
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
+// createWebhookPayload creates a Stripe webhook event payload for testing
+func createWebhookPayload(eventID, eventType string, dataObject map[string]interface{}) []byte {
+	payload := map[string]interface{}{
+		"id":   eventID,
+		"type": eventType,
+		"data": map[string]interface{}{
+			"object": dataObject,
+		},
+	}
+	jsonBytes, _ := json.Marshal(payload)
+	return jsonBytes
+}
+
 // TestWebhookIdempotencyWithDatabaseAssertion tests comprehensive idempotency
 func TestWebhookIdempotencyWithDatabaseAssertion(t *testing.T) {
 	router, _, subscriptionService, db, redisClient, _ := setupPremiumTestRouter(t)
@@ -99,8 +112,7 @@ func TestWebhookIdempotencyWithDatabaseAssertion(t *testing.T) {
 		}`, eventID2, testSubscriptionID, testCustomerID))
 
 		// Simulate concurrent requests
-		done := make(chan bool, 2)
-		var responses []*httptest.ResponseRecorder
+		done := make(chan *httptest.ResponseRecorder, 2)
 
 		for i := 0; i < 2; i++ {
 			go func() {
@@ -110,17 +122,17 @@ func TestWebhookIdempotencyWithDatabaseAssertion(t *testing.T) {
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
-				responses = append(responses, w)
-				done <- true
+				done <- w
 			}()
 		}
 
-		// Wait for both to complete
-		<-done
-		<-done
+		// Wait for both to complete and collect responses
+		response1 := <-done
+		response2 := <-done
 
 		// Both should return a response (one processes, one detects duplicate)
-		assert.Len(t, responses, 2)
+		assert.NotNil(t, response1)
+		assert.NotNil(t, response2)
 	})
 
 	t.Run("WebhookLogTableTracksEvents", func(t *testing.T) {
@@ -170,18 +182,13 @@ func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 	t.Run("CanceledSubscriptionRemovesEntitlements", func(t *testing.T) {
 		// Simulate subscription.deleted webhook
 		eventID := fmt.Sprintf("evt_cancel_%s", uuid.New().String()[:8])
-		payload := []byte(fmt.Sprintf(`{
-			"id": "%s",
-			"type": "customer.subscription.deleted",
-			"data": {
-				"object": {
-					"id": "%s",
-					"customer": "%s",
-					"status": "canceled",
-					"canceled_at": %d
-				}
-			}
-		}`, eventID, testSubscriptionID, testCustomerID, time.Now().Unix()))
+		dataObject := map[string]interface{}{
+			"id":          testSubscriptionID,
+			"customer":    testCustomerID,
+			"status":      "canceled",
+			"canceled_at": time.Now().Unix(),
+		}
+		payload := createWebhookPayload(eventID, "customer.subscription.deleted", dataObject)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/stripe", bytes.NewBuffer(payload))
 		req.Header.Set("Content-Type", "application/json")

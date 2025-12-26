@@ -132,7 +132,7 @@ test-integration-stripe: ## Run Stripe subscription & payment integration tests 
 	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
 	@echo "Running Stripe integration tests..."
 	@echo "Note: Tests use Stripe test mode keys. Set TEST_STRIPE_SECRET_KEY and TEST_STRIPE_WEBHOOK_SECRET env vars for full testing."
-	cd backend && go test -v -tags=integration ./tests/integration/premium/subscription_webhook_integration_test.go ./tests/integration/premium/premium_integration_test.go ./tests/integration/premium/subscription_lifecycle_test.go -run "TestWebhook|TestEntitlement|TestProration|TestPaymentFailure"
+	cd backend && go test -v -tags=integration ./tests/integration/premium/ -run "TestWebhook.*|TestEntitlement.*|TestProration.*|TestPaymentFailure.*"
 	@echo "Stopping test database..."
 	docker compose -f docker-compose.test.yml down
 	@echo "✓ Stripe integration tests complete"
