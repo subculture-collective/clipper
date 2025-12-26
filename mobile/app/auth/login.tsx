@@ -11,6 +11,7 @@ import {
     exchangeCodeForTokens,
     getCurrentUser,
 } from '../../services/auth';
+import { getMFAStatus } from '../../services/mfa';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -26,11 +27,25 @@ export default function LoginScreen() {
             // Step 2: Exchange code for tokens via backend
             await exchangeCodeForTokens(code, state, codeVerifier);
 
-            // Step 3: Get user info (tokens are now in cookies managed by backend)
+            // Step 3: Check if MFA is required
+            try {
+                const mfaStatus = await getMFAStatus();
+                
+                if (mfaStatus.enabled) {
+                    // MFA is enabled, navigate to challenge screen
+                    router.replace('/auth/mfa-challenge');
+                    return;
+                }
+            } catch (mfaError) {
+                // If MFA status check fails, continue with normal flow
+                console.warn('Could not check MFA status:', mfaError);
+            }
+
+            // Step 4: Get user info (tokens are now in cookies managed by backend)
             const user = await getCurrentUser();
             setUser(user);
 
-            // Step 4: Navigate to the main app
+            // Step 5: Navigate to the main app
             router.replace('/(tabs)');
         } catch (error) {
             console.error('Login error:', error);
