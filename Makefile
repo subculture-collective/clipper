@@ -240,6 +240,71 @@ test-load-html: ## Generate HTML reports for all load tests
 		exit 1; \
 	fi
 
+# API Endpoint Benchmarks (Top 20 Endpoints with SLO Enforcement)
+
+test-benchmark-feed-list: ## Run feed list endpoint benchmark (p50<20ms, p95<75ms)
+	@if command -v k6 > /dev/null; then \
+		echo "Running feed list endpoint benchmark..."; \
+		k6 run backend/tests/load/scenarios/benchmarks/feed_list.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmark-clip-detail: ## Run clip detail endpoint benchmark (p50<15ms, p95<50ms)
+	@if command -v k6 > /dev/null; then \
+		echo "Running clip detail endpoint benchmark..."; \
+		k6 run backend/tests/load/scenarios/benchmarks/clip_detail.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmark-search: ## Run search endpoint benchmark (p50<30ms, p95<100ms)
+	@if command -v k6 > /dev/null; then \
+		echo "Running search endpoint benchmark..."; \
+		k6 run backend/tests/load/scenarios/benchmarks/search.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmarks-all: ## Run all endpoint benchmarks
+	@if command -v k6 > /dev/null; then \
+		echo "Running all endpoint benchmarks..."; \
+		cd backend/tests/load && ./run_all_benchmarks.sh; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmarks-with-profiling: ## Run benchmarks with query profiling
+	@if command -v k6 > /dev/null; then \
+		echo "Running benchmarks with database query profiling..."; \
+		for script in backend/tests/load/scenarios/benchmarks/*.js; do \
+			endpoint=$$(basename "$$script" .js); \
+			echo ""; \
+			echo "Profiling endpoint: $$endpoint"; \
+			cd backend/tests/load && ./profile_queries.sh "$$endpoint" 60 || true; \
+		done; \
+		echo "✓ All benchmarks with profiling complete"; \
+		echo "View reports in backend/tests/load/profiles/benchmarks/ and profiles/queries/"; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-profile-queries: ## Profile queries for a specific endpoint (usage: make test-profile-queries ENDPOINT=feed_list DURATION=60)
+	@if [ -z "$(ENDPOINT)" ]; then \
+		echo "Error: ENDPOINT required"; \
+		echo "Usage: make test-profile-queries ENDPOINT=feed_list DURATION=60"; \
+		echo "Available endpoints: feed_list, clip_detail, search, etc."; \
+		exit 1; \
+	fi
+	@DURATION=$${DURATION:-60}; \
+	echo "Profiling endpoint $(ENDPOINT) for $$DURATION seconds..."; \
+	cd backend/tests/load && ./profile_queries.sh $(ENDPOINT) $$DURATION
+
 test-stress: ## Run stress test (push system beyond capacity)
 	@if command -v k6 > /dev/null; then \
 		echo "Running stress test (20 min full)..."; \
