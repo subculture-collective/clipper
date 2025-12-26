@@ -9,6 +9,7 @@ This directory contains K6 load testing scenarios for the Clipper API. These tes
 
 ## Quick Links
 
+- **[Quick Start Guide](QUICK_START.md)** - Get started quickly with new features
 - **[Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md)** - Comprehensive guide for stress and endurance testing
 - **[Execution Guide](EXECUTION_GUIDE.md)** - Step-by-step test execution instructions
 - **[Performance Summary](PERFORMANCE_SUMMARY.md)** - Performance targets and baselines
