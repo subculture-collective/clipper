@@ -119,8 +119,26 @@ extract_metrics() {
     
     # Get environment info
     local os_type=$(uname -s)
-    local cpu_cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "unknown")
-    local memory_gb=$(free -g 2>/dev/null | awk '/^Mem:/{print $2}' || sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || echo "unknown")
+    
+    # Determine CPU cores with fallback and warning on failure
+    local cpu_cores
+    cpu_cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "")
+    if [ -z "$cpu_cores" ]; then
+        cpu_cores=0
+        echo -e "${YELLOW}Warning: Unable to determine CPU core count; recording as 0 in baseline.${NC}" >&2
+    fi
+    
+    # Determine memory in GiB with fallback and warning on failure
+    local memory_gb
+    if free -g >/dev/null 2>&1; then
+        memory_gb=$(free -g | awk '/^Mem:/{print $2}')
+    elif command -v sysctl >/dev/null 2>&1; then
+        memory_gb=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}')
+    fi
+    if [ -z "$memory_gb" ]; then
+        memory_gb=0
+        echo -e "${YELLOW}Warning: Unable to determine system memory; recording as 0 in baseline.${NC}" >&2
+    fi
     
     # Create baseline JSON
     cat > "$baseline_file" <<EOF

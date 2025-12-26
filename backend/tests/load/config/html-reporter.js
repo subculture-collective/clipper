@@ -23,8 +23,8 @@ export function simpleHtmlReport(data, testName) {
     const timestamp = new Date().toISOString();
     const reportDir = __ENV.REPORT_DIR || 'backend/tests/load/reports';
     
-    const htmlFileName = `${reportDir}/${testName}_${timestamp.replace(/[:.]/g, '-')}.html`;
-    const jsonFileName = `${reportDir}/${testName}_${timestamp.replace(/[:.]/g, '-')}.json`;
+    const htmlFileName = `${reportDir}/${testName}_${timestamp.replace(/[:.TZ]/g, '-')}.html`;
+    const jsonFileName = `${reportDir}/${testName}_${timestamp.replace(/[:.TZ]/g, '-')}.json`;
     
     // Extract key metrics
     const metrics = data.metrics;

@@ -68,8 +68,13 @@ build_k6_with_reporter() {
     echo -e "${CYAN}Building k6 with xk6-reporter extension...${NC}"
     cd "$LOAD_TEST_DIR"
     
-    # Build k6 with reporter extension
-    xk6 build --with github.com/benc-uk/k6-reporter@latest --output "$K6_BINARY"
+    # Pin to a specific version for security and reproducibility
+    # Version 2.3.0 released 2023-01-04, commit hash: 73ffd3a
+    # Periodically review and update this pinned version
+    local K6_REPORTER_VERSION="v2.3.0"
+    
+    # Build k6 with reporter extension (pinned version)
+    xk6 build --with "github.com/benc-uk/k6-reporter@${K6_REPORTER_VERSION}" --output "$K6_BINARY"
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ Custom k6 binary built successfully${NC}"
@@ -114,9 +119,9 @@ run_scenario_with_html() {
         echo -e "  JSON: $json_report"
         
         # Check if HTML was generated (by handleSummary in the scenario)
-        local html_report="${REPORT_DIR}/${scenario_name}_*.html"
-        if ls $html_report 2>/dev/null 1>&2; then
-            echo -e "  HTML: $html_report"
+        local html_pattern="${REPORT_DIR}/${scenario_name}_*.html"
+        if compgen -G "$html_pattern" > /dev/null; then
+            echo -e "  HTML: $html_pattern"
         else
             echo -e "${YELLOW}  Note: No HTML report generated. Add handleSummary() to scenario to enable HTML.${NC}"
         fi

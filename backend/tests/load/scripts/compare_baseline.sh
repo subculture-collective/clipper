@@ -262,9 +262,10 @@ for scenario in "${scenarios[@]}"; do
     compare_scenario "$scenario"
 done
 
-# Update summary in report
-sed -i.bak "s/## Executive Summary/## Executive Summary\n\n**Total Scenarios:** ${#scenarios[@]}  \n**Regressions Found:** $REGRESSIONS_FOUND  \n**Improvements Found:** $IMPROVEMENTS_FOUND\n/" "$REPORT_FILE"
-rm -f "${REPORT_FILE}.bak"
+# Update summary in report (portable across macOS and Linux)
+temp_report_file="$(mktemp)"
+sed "s/## Executive Summary/## Executive Summary\n\n**Total Scenarios:** ${#scenarios[@]}  \n**Regressions Found:** $REGRESSIONS_FOUND  \n**Improvements Found:** $IMPROVEMENTS_FOUND\n/" "$REPORT_FILE" > "$temp_report_file"
+mv "$temp_report_file" "$REPORT_FILE"
 
 # Add regression detection thresholds to report
 cat >> "$REPORT_FILE" <<EOF

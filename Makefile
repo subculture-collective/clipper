@@ -211,8 +211,9 @@ test-load-mixed: ## Run mixed user behavior load test
 
 test-load-baseline-capture: ## Capture performance baselines (requires VERSION env var)
 	@if [ -z "$(VERSION)" ]; then \
-		echo "Error: VERSION environment variable required"; \
-		echo "Usage: make test-load-baseline-capture VERSION=v1.0.0"; \
+		echo "Error: VERSION environment variable required in semantic versioning format"; \
+		echo "Usage: make test-load-baseline-capture VERSION=vX.Y.Z"; \
+		echo "Example: make test-load-baseline-capture VERSION=v1.0.0"; \
 		exit 1; \
 	fi
 	@echo "Capturing baseline for version $(VERSION)..."; \
@@ -220,9 +221,10 @@ test-load-baseline-capture: ## Capture performance baselines (requires VERSION e
 
 test-load-baseline-compare: ## Compare against baseline (requires VERSION env var)
 	@if [ -z "$(VERSION)" ]; then \
-		echo "Error: VERSION environment variable required"; \
-		echo "Usage: make test-load-baseline-compare VERSION=v1.0.0"; \
+		echo "Error: VERSION environment variable required in semantic versioning format"; \
+		echo "Usage: make test-load-baseline-compare VERSION=vX.Y.Z"; \
 		echo "       make test-load-baseline-compare VERSION=current"; \
+		echo "Example: make test-load-baseline-compare VERSION=v1.0.0"; \
 		exit 1; \
 	fi
 	@echo "Comparing against baseline $(VERSION)..."; \

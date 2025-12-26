@@ -61,22 +61,9 @@ Each baseline file is a JSON document containing:
       "max": 100
     }
   },
-  "thresholds": {
-    "http_req_duration_p95": {
-      "target": 100,
-      "actual": 45.2,
-      "passed": true
-    },
-    "http_req_failed_rate": {
-      "target": 0.05,
-      "actual": 0.001,
-      "passed": true
-    }
-  },
   "environment": {
     "os": "linux",
     "k6_version": "0.49.0",
-    "go_version": "1.22.x",
     "cpu_cores": 4,
     "memory_gb": 16
   }

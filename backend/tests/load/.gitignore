@@ -10,6 +10,12 @@ reports/*.txt
 reports/*.log
 
 # Baseline temporary files
+# NOTE: "baselines/current" is a symlink created by capture_baseline.sh and is
+# used for baseline comparisons. Symlinks can be problematic on some platforms
+# (especially Windows), so this path is ignored in git and treated as a
+# local-only helper. On platforms where symlinks are unreliable, compare
+# directly against the concrete baseline directories under "baselines/"
+# instead of relying on this symlink.
 baselines/current
 
 # Temporary test data
