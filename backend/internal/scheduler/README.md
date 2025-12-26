@@ -156,6 +156,58 @@ Recalculates and updates reputation scores for users or channels based on recent
 
 **Metrics:**
 - Uses the standard scheduler metrics described above for job execution, duration, and last success time.
+
+## Testing Framework
+
+A comprehensive testing framework is available in the [`testing/`](./testing/) subdirectory to enhance scheduler test coverage, determinism, and performance validation.
+
+### Features
+
+The testing framework provides:
+
+1. **Time Mocking** - Deterministic clock control for testing without real time delays
+2. **Job Execution Hooks** - Capture and verify job execution events and outcomes
+3. **Fault Injection** - Inject errors to test retry logic and backoff behavior
+4. **Concurrency Testing** - Worker pools and queue monitoring for concurrent execution validation
+5. **Performance Benchmarks** - Throughput and latency measurements with minimal overhead
+
+### Quick Example
+
+```go
+import schedulertesting "github.com/subculture-collective/clipper/internal/scheduler/testing"
+
+func TestSchedulerWithFramework(t *testing.T) {
+    // Use mock clock for deterministic timing
+    clock := schedulertesting.NewMockClock(time.Now())
+    
+    // Set up execution hooks
+    hook := schedulertesting.NewJobExecutionHook()
+    
+    // Configure fault injection
+    injector := schedulertesting.NewFaultInjector()
+    injector.FailNTimes(2) // First 2 attempts fail
+    
+    // Create scheduler and advance time
+    scheduler := NewScheduler(mockService, clock)
+    clock.Advance(1 * time.Minute)
+    
+    // Verify execution
+    events := hook.GetEvents()
+    assert.Equal(t, 3, len(events)) // 2 failures + 1 success
+}
+```
+
+### Documentation
+
+See [Testing Framework README](./testing/README.md) for complete documentation including:
+
+- Clock interface usage
+- Job execution hooks and metrics
+- Fault injection patterns
+- Concurrency testing utilities
+- Performance benchmarking
+- Best practices and examples
+
 ## Testing Patterns
 
 ### Mock Services
@@ -274,22 +326,25 @@ func TestContextCancellation(t *testing.T) {
 
 #### ✅ DO
 
-1. **Use mock services** - Don't rely on real databases or external APIs in unit tests
-2. **Test initialization** - Verify schedulers are configured correctly
-3. **Test thread safety** - Use concurrent goroutines to test race conditions
-4. **Use context timeouts** - Tests should have maximum execution times
-5. **Test error handling** - Mock failures to verify graceful error handling
-6. **Verify idempotency** - Multiple Stop() calls should be safe
-7. **Allow startup time** - Use small sleeps (50-100ms) to let goroutines start
-8. **Use test timeouts** - Prevent hung tests with `select` and `time.After`
+1. **Use the testing framework** - Leverage `testing/` utilities for deterministic tests
+2. **Use mock clock** - Replace time.Sleep with MockClock.Advance for instant tests
+3. **Use mock services** - Don't rely on real databases or external APIs in unit tests
+4. **Capture execution events** - Use JobExecutionHook to verify job behavior
+5. **Test initialization** - Verify schedulers are configured correctly
+6. **Test thread safety** - Use concurrent goroutines to test race conditions
+7. **Use context timeouts** - Tests should have maximum execution times
+8. **Test error handling** - Use FaultInjector to test retry logic and backoff
+9. **Verify idempotency** - Multiple Stop() calls should be safe
+10. **Run benchmarks** - Establish performance baselines with the testing framework
 
 #### ❌ DON'T
 
-1. **Don't use shared global state** - Each test should be isolated
-2. **Don't use fixed sleeps for timing** - Use channels and select statements where possible
+1. **Don't use real time.Sleep** - Use MockClock.Advance for deterministic timing
+2. **Don't use shared global state** - Each test should be isolated
 3. **Don't test actual work logic** - That belongs in service tests; scheduler tests verify scheduling mechanics
-4. **Don't forget cleanup** - Always defer cancel() on contexts
+4. **Don't forget cleanup** - Always defer cancel() on contexts and Stop() on schedulers
 5. **Don't skip race detector** - Always run scheduler tests with `-race` flag
+6. **Don't skip fault injection** - Error paths are critical for reliability
 
 ### Running Tests
 
@@ -298,7 +353,7 @@ func TestContextCancellation(t *testing.T) {
 cd backend
 go test ./internal/scheduler/
 
-# Run with race detector
+# Run with race detector (REQUIRED for scheduler tests)
 go test -race ./internal/scheduler/
 
 # Run specific test
@@ -310,6 +365,12 @@ go test -count=50 -race ./internal/scheduler/
 # Run tests with coverage
 go test -coverprofile=coverage.out ./internal/scheduler/
 go tool cover -html=coverage.out
+
+# Run benchmarks
+go test -bench=. ./internal/scheduler/testing/
+
+# Run benchmarks with memory profiling
+go test -bench=. -benchmem ./internal/scheduler/testing/
 ```
 
 ## Determinism and Stability
@@ -366,9 +427,16 @@ When adding a new scheduler, follow this checklist:
 - [ ] Test concurrent Stop() calls (thread safety)
 - [ ] Test Stop() while Start() is running
 - [ ] Test context cancellation
-- [ ] Test error handling in job execution
+- [ ] Test error handling in job execution with FaultInjector
+- [ ] **Use the testing framework:**
+  - [ ] Use MockClock for deterministic timing tests
+  - [ ] Use JobExecutionHook to capture and verify job events
+  - [ ] Use FaultInjector to test retry and backoff logic
+  - [ ] Use WorkerPool if scheduler manages concurrent execution
+  - [ ] Create benchmarks for throughput and latency
 - [ ] Run tests with `-race` flag
 - [ ] Verify tests pass 50+ consecutive runs
+- [ ] Add performance benchmarks
 
 ### Documentation
 
