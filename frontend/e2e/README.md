@@ -12,6 +12,7 @@ Comprehensive end-to-end testing framework for the Clipper application using Pla
 - [Fixtures](#fixtures)
 - [Utilities](#utilities)
 - [Writing Tests](#writing-tests)
+- [Test Suites](#test-suites)
 - [Best Practices](#best-practices)
 - [Debugging](#debugging)
 - [CI/CD Integration](#cicd-integration)
@@ -336,6 +337,55 @@ const clip = await createClip(page, { title: 'Test Clip' });
 await deleteUser(page, user.id);
 ```
 
+### Social Features Helpers
+
+```typescript
+import { 
+  createComment, 
+  voteOnClip, 
+  followUser, 
+  createPlaylist,
+  blockUser,
+  triggerRateLimit 
+} from '../utils/social-features';
+
+// Comments
+const comment = await createComment(page, { 
+  clipId: 'clip-id', 
+  content: 'Great clip!' 
+});
+await voteOnComment(page, comment.id, 1); // upvote
+
+// Voting
+await voteOnClip(page, 'clip-id', 1); // upvote
+await voteOnClip(page, 'clip-id', -1); // downvote
+await removeClipVote(page, 'clip-id');
+
+// Following
+await followUser(page, 'user-id');
+await unfollowUser(page, 'user-id');
+const isFollowing = await getFollowingStatus(page, 'user-id');
+
+// Playlists
+const playlist = await createPlaylist(page, {
+  title: 'My Playlist',
+  visibility: 'public'
+});
+await addClipsToPlaylist(page, playlist.id, ['clip-1', 'clip-2']);
+const shareLink = await getPlaylistShareLink(page, playlist.id);
+
+// Blocking
+await blockUser(page, 'user-id', 'spam');
+await unblockUser(page, 'user-id');
+const isBlocked = await isUserBlocked(page, 'user-id');
+
+// Rate Limiting
+const result = await triggerRateLimit(page, 'comment', 'clip-id', 20);
+if (result.triggered) {
+  await waitForRateLimitClear(page);
+}
+```
+
 ### API Mocking
 
 ```typescript
@@ -419,6 +469,82 @@ await page.locator('button').waitFor({ timeout: 5000 });
 // Wait for API call
 await page.waitForResponse(resp => resp.url().includes('/api/clips'));
 ```
+
+## Test Suites
+
+### Social Features Tests (`social-features.spec.ts`)
+
+Comprehensive E2E tests for all social features with ≥95% target pass rate:
+
+**Comments CRUD:**
+- Create, edit, delete comments
+- Reply to comments (nested threads)
+- Retrieve comments with sorting
+- Moderation states and content hiding
+
+**Voting System:**
+- Upvote/downvote clips and comments
+- Vote persistence across sessions
+- Vote changes (upvote → downvote)
+- Duplicate vote prevention (anti-abuse)
+- Immediate UI reflection
+
+**Following System:**
+- Follow/unfollow users
+- Check following status
+- Feed updates from followed users
+- Notification triggers
+
+**Playlists:**
+- Create, update, delete playlists
+- Add/remove clips from playlists
+- Share link generation
+- Visibility controls (private/public/unlisted)
+- Permission enforcement
+
+**User Blocking:**
+- Block/unblock users
+- Content hiding for blocked users
+- Interaction prevention
+- Blocked users list management
+
+**Rate Limiting:**
+- Trigger rate limits safely
+- Error message verification
+- Retry-after handling
+- Exponential backoff
+- Countdown timer display
+
+**Cross-User Scenarios:**
+- Multiple users on same content
+- Blocked user visibility
+- Follower notifications
+
+**Performance Tests:**
+- Comment pagination
+- Vote handling under load
+- Concurrent access stability
+
+Run the full suite:
+```bash
+npm run test:e2e -- tests/social-features.spec.ts
+```
+
+Run specific test group:
+```bash
+npm run test:e2e -- tests/social-features.spec.ts --grep "Comments - CRUD"
+npm run test:e2e -- tests/social-features.spec.ts --grep "Voting"
+npm run test:e2e -- tests/social-features.spec.ts --grep "Playlists"
+```
+
+### Other Test Suites
+
+- `framework-demo.spec.ts` - Framework validation and examples
+- `clips.spec.ts` - Clip feed and detail pages
+- `auth-*.spec.ts` - Authentication flows (OAuth, MFA, sessions)
+- `premium-*.spec.ts` - Subscription and payment features
+- `chat.spec.ts` - Chat functionality
+- `channel-management.spec.ts` - Channel operations
 
 ## Best Practices
 
