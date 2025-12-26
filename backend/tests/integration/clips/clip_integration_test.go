@@ -265,7 +265,10 @@ func TestClipValidation(t *testing.T) {
 		clip := testutil.CreateTestClip(t, db, &userID)
 		
 		// Title too long (over 255 chars)
-		longTitle := string(make([]byte, 300))
+		longTitle := string([]rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'})
+		for i := 0; i < 15; i++ {
+			longTitle += longTitle // Double the string to make it > 255 chars
+		}
 		update := models.UpdateClipMetadataRequest{
 			Title: &longTitle,
 		}
@@ -418,8 +421,7 @@ func TestClipVoting(t *testing.T) {
 		firstData := firstResponse["data"].(map[string]interface{})
 		firstScore := firstData["vote_score"].(float64)
 		
-		// Second vote (idempotent)
-		bodyBytes, _ = json.Marshal(vote)
+		// Second vote (idempotent) - reuse same body
 		req2 := httptest.NewRequest(http.MethodPost, "/api/v1/clips/"+clip.ID.String()+"/vote", bytes.NewBuffer(bodyBytes))
 		req2.Header.Set("Authorization", "Bearer "+user2Token)
 		req2.Header.Set("Content-Type", "application/json")
