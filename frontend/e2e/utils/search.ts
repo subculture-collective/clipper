@@ -92,8 +92,8 @@ export async function performSearch(page: Page, options: SearchOptions): Promise
   
   if (filters) {
     if (filters.language) params.append('language', filters.language);
-    if (filters.gameId) params.append('game_id', filters.gameId);
-    if (filters.game) params.append('game_id', filters.game);
+    const gameFilter = filters.gameId ?? filters.game;
+    if (gameFilter) params.append('game_id', gameFilter);
     if (filters.dateFrom) params.append('date_from', filters.dateFrom);
     if (filters.dateTo) params.append('date_to', filters.dateTo);
     if (filters.minVotes !== undefined) params.append('min_votes', filters.minVotes.toString());
@@ -232,8 +232,8 @@ export async function applyAndVerifyFilters(
   const params = currentUrl.searchParams;
   
   if (filters.language) params.set('language', filters.language);
-  if (filters.gameId) params.set('game_id', filters.gameId);
-  if (filters.game) params.set('game_id', filters.game);
+  const gameFilter = filters.gameId ?? filters.game;
+  if (gameFilter) params.set('game_id', gameFilter);
   if (filters.dateFrom) params.set('date_from', filters.dateFrom);
   if (filters.dateTo) params.set('date_to', filters.dateTo);
   if (filters.minVotes !== undefined) params.set('min_votes', filters.minVotes.toString());
@@ -251,8 +251,7 @@ export async function applyAndVerifyFilters(
   let allMatch = true;
   
   if (filters.language && newParams.get('language') !== filters.language) allMatch = false;
-  if (filters.gameId && newParams.get('game_id') !== filters.gameId) allMatch = false;
-  if (filters.game && newParams.get('game_id') !== filters.game) allMatch = false;
+  if (gameFilter && newParams.get('game_id') !== gameFilter) allMatch = false;
   if (filters.minVotes !== undefined && newParams.get('min_votes') !== filters.minVotes.toString()) allMatch = false;
   
   return allMatch;
@@ -348,12 +347,10 @@ export async function measureSuggestionLatency(
     await searchInput.clear();
     await searchInput.click();
     
-    const startTime = performance.now();
+    const startTime = Date.now();
     
-    // Type query character by character
-    for (const char of query) {
-      await searchInput.pressSequentially(char, { delay: 50 });
-    }
+    // Type query character by character using pressSequentially
+    await searchInput.pressSequentially(query, { delay: 50 });
     
     // Wait for suggestions to appear
     try {
@@ -362,7 +359,7 @@ export async function measureSuggestionLatency(
         timeout: SUGGESTION_TIMEOUT,
       });
       
-      const endTime = performance.now();
+      const endTime = Date.now();
       latencies.push(endTime - startTime);
     } catch {
       // Suggestions didn't appear - record as timeout
@@ -519,7 +516,7 @@ export async function measureSearchLatency(
     await searchInput.fill(query);
     
     // Start timing
-    const startTime = performance.now();
+    const startTime = Date.now();
     
     // Listen for search API response
     const responsePromise = page.waitForResponse(
@@ -536,7 +533,7 @@ export async function measureSearchLatency(
       timeout: DEFAULT_SEARCH_TIMEOUT,
     });
     
-    const endTime = performance.now();
+    const endTime = Date.now();
     latencies.push(endTime - startTime);
     
     // Small delay between iterations

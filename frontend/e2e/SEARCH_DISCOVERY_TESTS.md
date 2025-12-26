@@ -18,7 +18,7 @@ This test suite validates all aspects of the search functionality including:
 ## Test Files
 
 ### Core Test Suite
-- **`tests/search-discovery.spec.ts`**: Main test suite (59 comprehensive tests)
+- **`tests/search-discovery.spec.ts`**: Main test suite (57 comprehensive E2E tests)
 
 ### Supporting Infrastructure
 - **`pages/SearchPage.ts`**: Page Object Model for search UI interactions
@@ -612,7 +612,7 @@ When adding search features:
 - [Main E2E README](./README.md)
 - [Playwright Documentation](https://playwright.dev)
 - [Social Features Tests](./SOCIAL_FEATURES_TESTS.md) (similar pattern)
-- [GitHub Issue #XXX](https://github.com/subculture-collective/clipper/issues/XXX)
+- [GitHub Issue #878](https://github.com/subculture-collective/clipper/issues/878)
 
 ## License
 

@@ -657,11 +657,21 @@ export class SearchPage extends BasePage {
     totalTime: number;
   }> {
     return await this.page.evaluate(() => {
-      const perfData = performance.timing;
+      const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      const navEntry = navigationEntries[0];
+
+      if (!navEntry) {
+        return {
+          domContentLoaded: 0,
+          loadComplete: 0,
+          totalTime: 0,
+        };
+      }
+
       return {
-        domContentLoaded: perfData.domContentLoadedEventEnd - perfData.navigationStart,
-        loadComplete: perfData.loadEventEnd - perfData.navigationStart,
-        totalTime: perfData.loadEventEnd - perfData.fetchStart,
+        domContentLoaded: navEntry.domContentLoadedEventEnd - navEntry.startTime,
+        loadComplete: navEntry.loadEventEnd - navEntry.startTime,
+        totalTime: navEntry.loadEventEnd - navEntry.responseStart,
       };
     });
   }

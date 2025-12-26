@@ -16,28 +16,16 @@
  * - Flakiness < 1%
  * - Regression detection on latency deltas
  * 
- * @see Issue #XXX - Search & Discovery E2E Tests
+ * @see Issue #878 - Search & Discovery E2E Tests
  */
 
 import { test, expect } from '../fixtures';
 import {
-  performSearch,
   measureSearchLatency,
-  measureSuggestionLatency,
   measurePerformanceMetrics,
-  getSuggestions,
-  verifySuggestionQuality,
-  verifySearchRelevance,
   getSearchHistory,
   addToSearchHistory,
   clearSearchHistory,
-  verifySearchHistoryPersistence,
-  applyAndVerifyFilters,
-  testFilterCombinations,
-  clearAllFilters,
-  testPagination,
-  seedSearchData,
-  cleanupSearchData,
   calculatePercentile,
 } from '../utils/search';
 
@@ -104,10 +92,10 @@ test.describe('Search - Text Search & Relevance', () => {
     await searchPage.goto();
     
     await searchPage.search('first query');
-    const firstResults = await searchPage.getResultCount();
+    await searchPage.getResultCount();
     
     await searchPage.search('second query');
-    const secondResults = await searchPage.getResultCount();
+    await searchPage.getResultCount();
     
     // Results should change (unless both queries return same count coincidentally)
     // At minimum, URL should update
