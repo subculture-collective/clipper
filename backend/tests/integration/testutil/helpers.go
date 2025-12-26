@@ -80,7 +80,7 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 
 	user := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_%s_%s", username, uuid.New().String()[:13]), // Use UUID for uniqueness
+		TwitchID:    fmt.Sprintf("test_%s_%s", username, uuid.New().String()[:16]), // Use 16 chars of UUID for uniqueness within 50 char limit
 		Username:    username,
 		DisplayName: fmt.Sprintf("Test User %s", username),
 		AvatarURL:   &avatarURL,
@@ -102,7 +102,7 @@ func CreateTestClip(t *testing.T, db *database.DB, userID *uuid.UUID) *models.Cl
 	ctx := context.Background()
 	clipRepo := repository.NewClipRepository(db.Pool)
 
-	twitchClipID := fmt.Sprintf("clip_%d_%s", time.Now().Unix(), uuid.New().String()[:8])
+	twitchClipID := fmt.Sprintf("clip_%d_%s", time.Now().Unix(), uuid.New().String()[:16]) // Use 16 chars for uniqueness
 	thumbnailURL := "https://example.com/thumbnail.jpg"
 	language := "en"
 	duration := 30.0

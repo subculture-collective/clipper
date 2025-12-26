@@ -263,11 +263,12 @@ func TestClipValidation(t *testing.T) {
 
 	t.Run("UpdateClipMetadata_InvalidTitle", func(t *testing.T) {
 		clip := testutil.CreateTestClip(t, db, &userID)
+		defer testutil.CleanupTestClip(t, db, clip.ID)
 		
 		// Title too long (over 255 chars)
-		longTitle := string([]rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'})
-		for i := 0; i < 15; i++ {
-			longTitle += longTitle // Double the string to make it > 255 chars
+		longTitle := string(make([]rune, 300))
+		for i := range longTitle {
+			longTitle = longTitle[:i] + "a" + longTitle[i+1:]
 		}
 		update := models.UpdateClipMetadataRequest{
 			Title: &longTitle,
@@ -298,6 +299,7 @@ func TestClipVoting(t *testing.T) {
 	user2Token, _ := testutil.GenerateTestTokens(t, jwtManager, user2.ID, "user")
 
 	clip := testutil.CreateTestClip(t, db, &userID)
+	defer testutil.CleanupTestClip(t, db, clip.ID)
 
 	t.Run("VoteOnClip_Upvote", func(t *testing.T) {
 		vote := map[string]interface{}{
@@ -417,12 +419,14 @@ func TestClipVoting(t *testing.T) {
 		
 		assert.Equal(t, http.StatusOK, w.Code)
 		var firstResponse map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &firstResponse)
+		err := json.Unmarshal(w.Body.Bytes(), &firstResponse)
+		require.NoError(t, err)
 		firstData := firstResponse["data"].(map[string]interface{})
 		firstScore := firstData["vote_score"].(float64)
 		
-		// Second vote (idempotent) - reuse same body
-		req2 := httptest.NewRequest(http.MethodPost, "/api/v1/clips/"+clip.ID.String()+"/vote", bytes.NewBuffer(bodyBytes))
+		// Second vote (idempotent) - create fresh buffer
+		bodyBytes2, _ := json.Marshal(vote)
+		req2 := httptest.NewRequest(http.MethodPost, "/api/v1/clips/"+clip.ID.String()+"/vote", bytes.NewBuffer(bodyBytes2))
 		req2.Header.Set("Authorization", "Bearer "+user2Token)
 		req2.Header.Set("Content-Type", "application/json")
 		w2 := httptest.NewRecorder()
@@ -430,7 +434,8 @@ func TestClipVoting(t *testing.T) {
 		
 		assert.Equal(t, http.StatusOK, w2.Code)
 		var secondResponse map[string]interface{}
-		json.Unmarshal(w2.Body.Bytes(), &secondResponse)
+		err = json.Unmarshal(w2.Body.Bytes(), &secondResponse)
+		require.NoError(t, err)
 		secondData := secondResponse["data"].(map[string]interface{})
 		secondScore := secondData["vote_score"].(float64)
 		
@@ -462,6 +467,7 @@ func TestClipFavorites(t *testing.T) {
 
 	userToken, _ := testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 	clip := testutil.CreateTestClip(t, db, &userID)
+	defer testutil.CleanupTestClip(t, db, clip.ID)
 
 	t.Run("AddFavorite_Success", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/clips/"+clip.ID.String()+"/favorite", nil)
@@ -550,6 +556,7 @@ func TestClipVisibility(t *testing.T) {
 	user2Token, _ := testutil.GenerateTestTokens(t, jwtManager, user2.ID, "user")
 
 	clip := testutil.CreateTestClip(t, db, &userID)
+	defer testutil.CleanupTestClip(t, db, clip.ID)
 
 	t.Run("UpdateVisibility_Owner_Success", func(t *testing.T) {
 		update := models.UpdateClipVisibilityRequest{
@@ -567,8 +574,11 @@ func TestClipVisibility(t *testing.T) {
 		if w.Code != http.StatusOK {
 			// Log the error for debugging
 			var response map[string]interface{}
-			json.Unmarshal(w.Body.Bytes(), &response)
-			t.Logf("Update visibility failed with status %d: %v", w.Code, response)
+			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+				t.Logf("Update visibility failed with status %d; could not parse response body as JSON: %v; raw body: %s", w.Code, err, w.Body.String())
+			} else {
+				t.Logf("Update visibility failed with status %d: %v", w.Code, response)
+			}
 			
 			// If owner can't update visibility, it might be a permissions issue
 			// Skip the rest of the visibility tests
@@ -597,11 +607,7 @@ func TestClipVisibility(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("GetClip_Hidden_OtherUser", func(t *testing.T) {
-		// This test only makes sense if we successfully hid the clip
-		// Since UpdateVisibility might fail due to permissions, we skip if not hidden
-		t.Skip("Skipping hidden clip test - visibility update was skipped")
-	})
+	// Note: GetClip_Hidden_OtherUser test removed since visibility updates may fail due to permissions
 
 	t.Run("UpdateVisibility_NonOwner_Forbidden", func(t *testing.T) {
 		update := models.UpdateClipVisibilityRequest{
@@ -621,9 +627,10 @@ func TestClipVisibility(t *testing.T) {
 
 	t.Run("ListClips_ExcludesHidden", func(t *testing.T) {
 		// Create new clips with explicit visibility settings for this test
-		testUserID := userID
-		_ = testutil.CreateTestClipWithDetails(t, db, &testUserID, "Public Clip Vis Test", false, false)
-		hiddenClip := testutil.CreateTestClipWithDetails(t, db, &testUserID, "Hidden Clip Vis Test", true, false)
+		publicClip := testutil.CreateTestClipWithDetails(t, db, &userID, "Public Clip Vis Test", false, false)
+		hiddenClip := testutil.CreateTestClipWithDetails(t, db, &userID, "Hidden Clip Vis Test", true, false)
+		defer testutil.CleanupTestClip(t, db, publicClip.ID)
+		defer testutil.CleanupTestClip(t, db, hiddenClip.ID)
 		
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips", nil)
 		req.Header.Set("Authorization", "Bearer "+user2Token)
@@ -664,8 +671,11 @@ func TestRelatedClips(t *testing.T) {
 
 	// Create multiple clips with related content
 	clip1 := testutil.CreateTestClipWithDetails(t, db, &userID, "Awesome Gaming Moment", false, false)
-	_ = testutil.CreateTestClipWithDetails(t, db, &userID, "Gaming Highlight", false, false)
-	_ = testutil.CreateTestClipWithDetails(t, db, &userID, "Epic Play", false, false)
+	clip2 := testutil.CreateTestClipWithDetails(t, db, &userID, "Gaming Highlight", false, false)
+	clip3 := testutil.CreateTestClipWithDetails(t, db, &userID, "Epic Play", false, false)
+	defer testutil.CleanupTestClip(t, db, clip1.ID)
+	defer testutil.CleanupTestClip(t, db, clip2.ID)
+	defer testutil.CleanupTestClip(t, db, clip3.ID)
 
 	t.Run("GetRelatedClips_Success", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+clip1.ID.String()+"/related", nil)
@@ -720,6 +730,7 @@ func TestClipMetadata(t *testing.T) {
 	user2Token, _ := testutil.GenerateTestTokens(t, jwtManager, user2.ID, "user")
 
 	clip := testutil.CreateTestClip(t, db, &userID)
+	defer testutil.CleanupTestClip(t, db, clip.ID)
 
 	t.Run("UpdateMetadata_Owner_Success", func(t *testing.T) {
 		newTitle := "Updated Title"
@@ -769,8 +780,8 @@ func TestClipMetadata(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 
-	t.Run("UpdateMetadata_EmptyTitle_Success", func(t *testing.T) {
-		// Empty title should be rejected (validation error)
+	t.Run("UpdateMetadata_EmptyRequest", func(t *testing.T) {
+		// Empty request body should be handled gracefully
 		update := models.UpdateClipMetadataRequest{}
 		bodyBytes, _ := json.Marshal(update)
 		
