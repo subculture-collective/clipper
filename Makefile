@@ -149,6 +149,19 @@ test-integration-api: ## Run API integration tests only
 	docker compose -f docker-compose.test.yml down
 	@echo "✓ API tests complete"
 
+test-integration-clips: ## Run clip management integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running clip integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/clips/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Clip tests complete"
+
 test-e2e: ## Run frontend E2E tests
 	@echo "Running frontend E2E tests..."
 	cd frontend && npm run test:e2e
