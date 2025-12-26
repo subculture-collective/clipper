@@ -72,12 +72,12 @@ func (tc *TestConfig) Cleanup() {
 func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User {
 	ctx := context.Background()
 	userRepo := repository.NewUserRepository(db.Pool)
-	
+
 	avatarURL := "https://example.com/avatar.png"
 	email := fmt.Sprintf("%s@example.com", username)
 	bio := "Test user bio"
 	lastLoginAt := time.Now()
-	
+
 	user := &models.User{
 		ID:          uuid.New(),
 		TwitchID:    fmt.Sprintf("test_%s_%d", username, time.Now().Unix()),
@@ -90,10 +90,10 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 		AccountType: "member",
 		LastLoginAt: &lastLoginAt,
 	}
-	
+
 	err := userRepo.Create(ctx, user)
 	require.NoError(t, err, "Failed to create test user")
-	
+
 	return user
 }
 
@@ -103,7 +103,7 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 func CreateTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
 	ctx := context.Background()
 	clipRepo := repository.NewClipRepository(db.Pool)
-	
+
 	testClip := map[string]interface{}{
 		"twitch_clip_id": fmt.Sprintf("clip_%d", time.Now().Unix()),
 		"title":          "Test Clip",
@@ -114,10 +114,10 @@ func CreateTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
 		"created_at":     time.Now(),
 		"submitter_id":   userID,
 	}
-	
+
 	clip, err := clipRepo.CreateClip(ctx, testClip)
 	require.NoError(t, err, "Failed to create test clip")
-	
+
 	return clip.ID
 }
 */
@@ -128,7 +128,7 @@ func CreateTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
 func CleanupTestUser(t *testing.T, db *database.DB, userID uuid.UUID) {
 	ctx := context.Background()
 	userRepo := repository.NewUserRepository(db.Pool)
-	
+
 	err := userRepo.DeleteUser(ctx, userID)
 	if err != nil {
 		t.Logf("Warning: Failed to cleanup test user %s: %v", userID, err)
@@ -142,7 +142,7 @@ func CleanupTestUser(t *testing.T, db *database.DB, userID uuid.UUID) {
 func CleanupTestClip(t *testing.T, db *database.DB, clipID uuid.UUID) {
 	ctx := context.Background()
 	clipRepo := repository.NewClipRepository(db.Pool)
-	
+
 	err := clipRepo.DeleteClip(ctx, clipID)
 	if err != nil {
 		t.Logf("Warning: Failed to cleanup test clip %s: %v", clipID, err)
@@ -239,10 +239,10 @@ func RequireEnv(t *testing.T, key string) string {
 func GenerateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UUID, role string) (accessToken, refreshToken string) {
 	accessToken, err := jwtManager.GenerateAccessToken(userID, role)
 	require.NoError(t, err, "Failed to generate access token")
-	
+
 	refreshToken, err = jwtManager.GenerateRefreshToken(userID)
 	require.NoError(t, err, "Failed to generate refresh token")
-	
+
 	return accessToken, refreshToken
 }
 
@@ -266,22 +266,22 @@ func WithTestCleanup(t *testing.T, setup func() func(), testFn func()) {
 // The test function receives a unique prefix to use for Redis key naming
 func IsolatedTest(t *testing.T, db *database.DB, redisClient *redispkg.Client, fn func(prefix string)) {
 	ctx := context.Background()
-	
+
 	// Generate a unique prefix for this test
 	testPrefix := fmt.Sprintf("test_%s_", uuid.New().String()[:8])
-	
+
 	// Clean up Redis test keys after the test
 	defer func() {
 		if redisClient != nil {
-			keys, err := redisClient.Client.Keys(ctx, testPrefix+"*").Result()
+			keys, err := redisClient.Keys(ctx, testPrefix+"*")
 			if err == nil {
 				for _, key := range keys {
-					_ = redisClient.Client.Del(ctx, key).Err()
+					_ = redisClient.Delete(ctx, key)
 				}
 			}
 		}
 	}()
-	
+
 	// Run the test function with the prefix
 	fn(testPrefix)
 }
@@ -289,7 +289,7 @@ func IsolatedTest(t *testing.T, db *database.DB, redisClient *redispkg.Client, f
 // ParallelTest marks a test as safe to run in parallel and sets up isolation
 func ParallelTest(t *testing.T) {
 	t.Parallel()
-	
+
 	// Additional parallel-safe setup can go here
 	// Each parallel test should use its own test data to avoid conflicts
 }
@@ -298,7 +298,7 @@ func ParallelTest(t *testing.T) {
 // This is a fallback for when transactional tests aren't feasible
 func CleanupTestData(t *testing.T, db *database.DB, userIDs []uuid.UUID) {
 	ctx := context.Background()
-	
+
 	// Clean up users and their related data
 	for _, userID := range userIDs {
 		// Note: Actual cleanup would depend on your schema's cascade rules
@@ -308,4 +308,94 @@ func CleanupTestData(t *testing.T, db *database.DB, userIDs []uuid.UUID) {
 			t.Logf("Warning: Failed to cleanup user %s: %v", userID, err)
 		}
 	}
+}
+
+// CreateTestUserWithRole creates a test user with a specific role
+func CreateTestUserWithRole(t *testing.T, db *database.DB, username string, role string) *models.User {
+	user := CreateTestUser(t, db, username)
+
+	// Update role
+	ctx := context.Background()
+	userRepo := repository.NewUserRepository(db.Pool)
+	err := userRepo.UpdateUserRole(ctx, user.ID, role)
+	require.NoError(t, err, "Failed to update user role")
+
+	// Refetch user to get updated role
+	updatedUser, err := userRepo.GetByID(ctx, user.ID)
+	require.NoError(t, err, "Failed to fetch updated user")
+
+	return updatedUser
+}
+
+// CreateTestUserWithAccountType creates a test user with a specific account type
+func CreateTestUserWithAccountType(t *testing.T, db *database.DB, username string, accountType string) *models.User {
+	ctx := context.Background()
+	userRepo := repository.NewUserRepository(db.Pool)
+
+	avatarURL := "https://example.com/avatar.png"
+	email := fmt.Sprintf("%s@example.com", username)
+	bio := "Test user bio"
+	lastLoginAt := time.Now()
+
+	user := &models.User{
+		ID:          uuid.New(),
+		TwitchID:    fmt.Sprintf("test_%s_%d", username, time.Now().Unix()),
+		Username:    username,
+		DisplayName: fmt.Sprintf("Test User %s", username),
+		AvatarURL:   &avatarURL,
+		Email:       &email,
+		Bio:         &bio,
+		Role:        "user",
+		AccountType: accountType,
+		LastLoginAt: &lastLoginAt,
+	}
+
+	err := userRepo.Create(ctx, user)
+	require.NoError(t, err, "Failed to create test user with account type")
+
+	return user
+}
+
+// CleanupTestUser removes a test user from the database
+func CleanupTestUser(t *testing.T, db *database.DB, userID uuid.UUID) {
+	ctx := context.Background()
+	_, err := db.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
+	if err != nil {
+		t.Logf("Warning: Failed to cleanup test user %s: %v", userID, err)
+	}
+}
+
+// MockOAuthState stores a mock OAuth state in Redis for testing
+func MockOAuthState(t *testing.T, redisClient *redispkg.Client, state string, codeChallenge string, codeChallengeMethod string) {
+	ctx := context.Background()
+	stateKey := fmt.Sprintf("oauth:state:%s", state)
+	var stateValue string
+
+	if codeChallenge != "" && codeChallengeMethod != "" {
+		stateValue = fmt.Sprintf("%s:%s", codeChallenge, codeChallengeMethod)
+	} else {
+		stateValue = "1"
+	}
+
+	err := redisClient.Set(ctx, stateKey, stateValue, 5*time.Minute)
+	require.NoError(t, err, "Failed to store mock OAuth state")
+}
+
+// GenerateTestRefreshToken stores a refresh token for testing
+func GenerateTestRefreshToken(t *testing.T, db *database.DB, userID uuid.UUID, token string) {
+	ctx := context.Background()
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
+
+	expiresAt := time.Now().Add(30 * 24 * time.Hour)
+	err := refreshTokenRepo.Create(ctx, userID, token, expiresAt)
+	require.NoError(t, err, "Failed to create test refresh token")
+}
+
+// VerifyUserDeleted checks that a user has been deleted from the database
+func VerifyUserDeleted(t *testing.T, db *database.DB, userID uuid.UUID) bool {
+	ctx := context.Background()
+	userRepo := repository.NewUserRepository(db.Pool)
+
+	_, err := userRepo.GetByID(ctx, userID)
+	return err != nil && err == repository.ErrUserNotFound
 }
