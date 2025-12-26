@@ -42,7 +42,19 @@ export default function MFAChallengeScreen() {
 
     // Check biometric availability on mount
     useEffect(() => {
-        checkBiometricSupport();
+        const initBiometric = async () => {
+            try {
+                const capability = await checkBiometricCapability();
+                setBiometricAvailable(capability.available && capability.enrolled);
+                if (capability.biometricType) {
+                    setBiometricType(getBiometricTypeLabel(capability.biometricType));
+                }
+            } catch (error) {
+                console.error('Error checking biometric support:', error);
+                setBiometricAvailable(false);
+            }
+        };
+        initBiometric();
     }, []);
 
     // TOTP timer countdown
@@ -67,19 +79,6 @@ export default function MFAChallengeScreen() {
             return () => clearTimeout(timeout);
         }
     }, [resendCooldown]);
-
-    const checkBiometricSupport = async () => {
-        try {
-            const capability = await checkBiometricCapability();
-            setBiometricAvailable(capability.available && capability.enrolled);
-            if (capability.biometricType) {
-                setBiometricType(getBiometricTypeLabel(capability.biometricType));
-            }
-        } catch (error) {
-            console.error('Error checking biometric support:', error);
-            setBiometricAvailable(false);
-        }
-    };
 
     const handleBiometricAuth = async () => {
         try {

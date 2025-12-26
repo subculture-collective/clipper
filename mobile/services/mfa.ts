@@ -80,13 +80,15 @@ export async function revokeTrustedDevice(deviceId: number): Promise<void> {
 
 /**
  * Check if device supports biometric authentication
+ * Note: This is a placeholder. Actual implementation is in lib/biometric.ts
+ * via checkBiometricCapability()
  */
 export async function checkBiometricSupport(): Promise<{
     available: boolean;
     enrolled: boolean;
 }> {
-    // This will be implemented using expo-local-authentication
-    // Returns whether biometrics are available and if user has enrolled
+    // This function is deprecated - use checkBiometricCapability from lib/biometric.ts instead
+    console.warn('checkBiometricSupport is deprecated. Use checkBiometricCapability from lib/biometric.ts');
     return {
         available: false,
         enrolled: false,
