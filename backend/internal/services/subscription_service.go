@@ -1010,3 +1010,8 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 func timePtr(t time.Time) *time.Time {
 	return &t
 }
+
+// GetRepository returns the subscription repository (for testing)
+func (s *SubscriptionService) GetRepository() *repository.SubscriptionRepository {
+	return s.repo
+}
