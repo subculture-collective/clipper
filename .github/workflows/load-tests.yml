@@ -19,6 +19,8 @@ on:
           - mixed
           - stress-lite
           - soak-short
+          - benchmarks-all
+          - benchmarks-with-profiling
   schedule:
     # Run nightly at 2 AM UTC
     - cron: '0 2 * * *'
@@ -214,6 +216,24 @@ jobs:
                   backend/tests/load/scenarios/soak.js \
                   | tee backend/tests/load/reports/output_soak_${TIMESTAMP}.txt
                 ;;
+              benchmarks-all)
+                echo "Running all endpoint benchmarks..."
+                cd backend/tests/load
+                ./run_all_benchmarks.sh ./reports/benchmarks_${TIMESTAMP}
+                ;;
+              benchmarks-with-profiling)
+                echo "Running benchmarks with query profiling..."
+                # Enable pg_stat_statements
+                PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test \
+                  -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" || true
+                # Run benchmarks with profiling
+                cd backend/tests/load
+                for script in scenarios/benchmarks/*.js; do
+                  endpoint=$(basename "$script" .js)
+                  echo "Profiling endpoint: $endpoint"
+                  ./profile_queries.sh "$endpoint" 60 || true
+                done
+                ;;
             esac
           fi
 
@@ -254,6 +274,7 @@ jobs:
           path: |
             backend/tests/load/reports/*.md
             backend/tests/load/reports/*.txt
+            backend/tests/load/reports/*.html
           retention-days: 90
 
       - name: Upload load test metrics (JSON)
@@ -263,3 +284,13 @@ jobs:
           name: load-test-metrics-${{ github.run_number }}
           path: backend/tests/load/reports/*.json
           retention-days: 90
+
+      - name: Upload baselines
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-baselines-${{ github.run_number }}
+          path: backend/tests/load/baselines/**/*.json
+          # Baseline JSON files are versioned in git and kept permanently in the repository.
+          # This retention period applies only to the uploaded CI artifact, not to the baselines in git.
+          retention-days: 365

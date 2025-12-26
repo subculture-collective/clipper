@@ -149,6 +149,19 @@ test-integration-api: ## Run API integration tests only
 	docker compose -f docker-compose.test.yml down
 	@echo "✓ API tests complete"
 
+test-integration-clips: ## Run clip management integration tests only
+	@echo "Starting test database..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for database to be ready..."
+	@sleep 5
+	@echo "Running database migrations..."
+	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
+	@echo "Running clip integration tests..."
+	cd backend && go test -v -tags=integration ./tests/integration/clips/...
+	@echo "Stopping test database..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Clip tests complete"
+
 test-e2e: ## Run frontend E2E tests
 	@echo "Running frontend E2E tests..."
 	cd frontend && npm run test:e2e
@@ -208,6 +221,102 @@ test-load-report: ## Generate comprehensive load test report
 
 test-load-mixed: ## Run mixed user behavior load test
 	@k6 run backend/tests/load/scenarios/mixed_behavior.js
+
+test-load-baseline-capture: ## Capture performance baselines (requires VERSION env var)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION environment variable required in semantic versioning format"; \
+		echo "Usage: make test-load-baseline-capture VERSION=vX.Y.Z"; \
+		echo "Example: make test-load-baseline-capture VERSION=v1.0.0"; \
+		exit 1; \
+	fi
+	@echo "Capturing baseline for version $(VERSION)..."; \
+	cd backend/tests/load && ./scripts/capture_baseline.sh $(VERSION)
+
+test-load-baseline-compare: ## Compare against baseline (requires VERSION env var)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION environment variable required in semantic versioning format"; \
+		echo "Usage: make test-load-baseline-compare VERSION=vX.Y.Z"; \
+		echo "       make test-load-baseline-compare VERSION=current"; \
+		echo "Example: make test-load-baseline-compare VERSION=v1.0.0"; \
+		exit 1; \
+	fi
+	@echo "Comparing against baseline $(VERSION)..."; \
+	cd backend/tests/load && ./scripts/compare_baseline.sh $(VERSION)
+
+test-load-html: ## Generate HTML reports for all load tests
+	@if command -v k6 > /dev/null; then \
+		echo "Generating HTML reports for all load tests..."; \
+		cd backend/tests/load && ./scripts/generate_html_report.sh all; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
+
+# API Endpoint Benchmarks (Top 20 Endpoints with SLO Enforcement)
+
+test-benchmark-feed-list: ## Run feed list endpoint benchmark (p50<20ms, p95<75ms)
+	@if command -v k6 > /dev/null; then \
+		echo "Running feed list endpoint benchmark..."; \
+		k6 run backend/tests/load/scenarios/benchmarks/feed_list.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmark-clip-detail: ## Run clip detail endpoint benchmark (p50<15ms, p95<50ms)
+	@if command -v k6 > /dev/null; then \
+		echo "Running clip detail endpoint benchmark..."; \
+		k6 run backend/tests/load/scenarios/benchmarks/clip_detail.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmark-search: ## Run search endpoint benchmark (p50<30ms, p95<100ms)
+	@if command -v k6 > /dev/null; then \
+		echo "Running search endpoint benchmark..."; \
+		k6 run backend/tests/load/scenarios/benchmarks/search.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmarks-all: ## Run all endpoint benchmarks
+	@if command -v k6 > /dev/null; then \
+		echo "Running all endpoint benchmarks..."; \
+		cd backend/tests/load && ./run_all_benchmarks.sh; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-benchmarks-with-profiling: ## Run benchmarks with query profiling
+	@if command -v k6 > /dev/null; then \
+		echo "Running benchmarks with database query profiling..."; \
+		for script in backend/tests/load/scenarios/benchmarks/*.js; do \
+			endpoint=$$(basename "$$script" .js); \
+			echo ""; \
+			echo "Profiling endpoint: $$endpoint"; \
+			cd backend/tests/load && ./profile_queries.sh "$$endpoint" 60 || true; \
+		done; \
+		echo "✓ All benchmarks with profiling complete"; \
+		echo "View reports in backend/tests/load/profiles/benchmarks/ and profiles/queries/"; \
+	else \
+		echo "Error: k6 is not installed"; \
+		exit 1; \
+	fi
+
+test-profile-queries: ## Profile queries for a specific endpoint (usage: make test-profile-queries ENDPOINT=feed_list DURATION=60)
+	@if [ -z "$(ENDPOINT)" ]; then \
+		echo "Error: ENDPOINT required"; \
+		echo "Usage: make test-profile-queries ENDPOINT=feed_list DURATION=60"; \
+		echo "Available endpoints: feed_list, clip_detail, search, etc."; \
+		exit 1; \
+	fi
+	@DURATION=$${DURATION:-60}; \
+	echo "Profiling endpoint $(ENDPOINT) for $$DURATION seconds..."; \
+	cd backend/tests/load && ./profile_queries.sh $(ENDPOINT) $$DURATION
 
 test-stress: ## Run stress test (push system beyond capacity)
 	@if command -v k6 > /dev/null; then \

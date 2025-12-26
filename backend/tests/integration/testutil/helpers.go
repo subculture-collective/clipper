@@ -80,7 +80,7 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 
 	user := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_%s_%d", username, time.Now().Unix()),
+		TwitchID:    fmt.Sprintf("test_%s_%s", username, uuid.New().String()[:16]), // Use 16 chars of UUID for uniqueness within 50 char limit
 		Username:    username,
 		DisplayName: fmt.Sprintf("Test User %s", username),
 		AvatarURL:   &avatarURL,
@@ -98,43 +98,82 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 }
 
 // CreateTestClip creates a test clip in the database
-// Note: This is a placeholder. Implement when needed based on actual repository methods.
-/*
-func CreateTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
+func CreateTestClip(t *testing.T, db *database.DB, userID *uuid.UUID) *models.Clip {
 	ctx := context.Background()
 	clipRepo := repository.NewClipRepository(db.Pool)
 
-	testClip := map[string]interface{}{
-		"twitch_clip_id": fmt.Sprintf("clip_%d", time.Now().Unix()),
-		"title":          "Test Clip",
-		"broadcaster":    "testbroadcaster",
-		"url":            "https://clips.twitch.tv/testclip",
-		"thumbnail_url":  "https://example.com/thumbnail.jpg",
-		"view_count":     100,
-		"created_at":     time.Now(),
-		"submitter_id":   userID,
+	twitchClipID := fmt.Sprintf("clip_%d_%s", time.Now().Unix(), uuid.New().String()[:16]) // Use 16 chars for uniqueness
+	thumbnailURL := "https://example.com/thumbnail.jpg"
+	language := "en"
+	duration := 30.0
+	embedURL := fmt.Sprintf("https://clips.twitch.tv/embed?clip=%s", twitchClipID)
+
+	clip := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    twitchClipID,
+		TwitchClipURL:   fmt.Sprintf("https://clips.twitch.tv/%s", twitchClipID),
+		EmbedURL:        embedURL,
+		Title:           fmt.Sprintf("Test Clip %d", time.Now().Unix()),
+		CreatorName:     "testcreator",
+		BroadcasterName: "testbroadcaster",
+		ThumbnailURL:    &thumbnailURL,
+		Language:        &language,
+		Duration:        &duration,
+		ViewCount:       100,
+		CreatedAt:       time.Now().Add(-24 * time.Hour),
+		ImportedAt:      time.Now(),
+		VoteScore:       0,
+		CommentCount:    0,
+		FavoriteCount:   0,
+		IsFeatured:      false,
+		IsNSFW:          false,
+		IsRemoved:       false,
+		IsHidden:        false,
 	}
 
-	clip, err := clipRepo.CreateClip(ctx, testClip)
+	if userID != nil {
+		submittedAt := time.Now()
+		clip.SubmittedByUserID = userID
+		clip.SubmittedAt = &submittedAt
+	}
+
+	err := clipRepo.Create(ctx, clip)
 	require.NoError(t, err, "Failed to create test clip")
 
-	return clip.ID
+	return clip
 }
-*/
+
+// CreateTestClipWithDetails creates a test clip with specific details
+func CreateTestClipWithDetails(t *testing.T, db *database.DB, userID *uuid.UUID, title string, isHidden bool, isNSFW bool) *models.Clip {
+	clip := CreateTestClip(t, db, userID)
+	
+	ctx := context.Background()
+	_, err := db.Pool.Exec(ctx, 
+		"UPDATE clips SET title = $1, is_hidden = $2, is_nsfw = $3 WHERE id = $4",
+		title, isHidden, isNSFW, clip.ID)
+	require.NoError(t, err, "Failed to update test clip details")
+	
+	clip.Title = title
+	clip.IsHidden = isHidden
+	clip.IsNSFW = isNSFW
+	return clip
+}
 
 // CleanupTestClip removes a test clip from the database
-// Note: This is a placeholder. Implement when needed based on actual repository methods.
-/*
 func CleanupTestClip(t *testing.T, db *database.DB, clipID uuid.UUID) {
 	ctx := context.Background()
-	clipRepo := repository.NewClipRepository(db.Pool)
-
-	err := clipRepo.DeleteClip(ctx, clipID)
+	
+	// Delete related data first (votes, favorites, comments)
+	_, _ = db.Pool.Exec(ctx, "DELETE FROM votes WHERE clip_id = $1", clipID)
+	_, _ = db.Pool.Exec(ctx, "DELETE FROM favorites WHERE clip_id = $1", clipID)
+	_, _ = db.Pool.Exec(ctx, "DELETE FROM comments WHERE clip_id = $1", clipID)
+	
+	// Delete the clip
+	_, err := db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = $1", clipID)
 	if err != nil {
 		t.Logf("Warning: Failed to cleanup test clip %s: %v", clipID, err)
 	}
 }
-*/
 
 // WaitForCondition waits for a condition to become true or timeout
 func WaitForCondition(t *testing.T, condition func() bool, timeout time.Duration, message string) {
