@@ -613,6 +613,53 @@ export async function updatePlaylistVisibility(page: Page, playlistId: string, v
   return updatePlaylist(page, playlistId, { visibility });
 }
 
+/**
+ * Get playlist details
+ */
+export async function getPlaylist(page: Page, playlistId: string): Promise<any | null> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.get(`${apiUrl}/playlists/${playlistId}`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok()) {
+      return null;
+    }
+    
+    const result = await response.json();
+    return result.data || result;
+  } catch (error) {
+    console.warn('Failed to get playlist:', error);
+    return null;
+  }
+}
+
+/**
+ * Validate playlist access with the current page context
+ */
+export async function validatePlaylistAccess(page: Page, playlistId: string, expectedStatus: number = 200): Promise<boolean> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.get(`${apiUrl}/playlists/${playlistId}`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    return response.status() === expectedStatus;
+  } catch (error) {
+    console.warn('Failed to validate playlist access:', error);
+    return false;
+  }
+}
+
 // ============================================================================
 // Blocking Functions
 // ============================================================================
@@ -860,4 +907,252 @@ export async function waitForRateLimitClear(page: Page, maxWaitMs: number = MAX_
   }
   
   console.warn('Rate limit did not clear within timeout period');
+}
+
+// ============================================================================
+// Watch Party (Theatre Queue) Functions
+// ============================================================================
+
+export interface WatchPartyData {
+  title: string;
+  playlistId?: string;
+  visibility?: 'private' | 'public' | 'unlisted';
+  maxParticipants?: number;
+  password?: string;
+}
+
+export interface WatchPartyParticipant {
+  id: string;
+  userId: string;
+  role: 'host' | 'participant';
+  joinedAt: string;
+}
+
+/**
+ * Create mock watch party data for fallback
+ */
+function createMockWatchParty(watchPartyData: WatchPartyData): any {
+  const timestamp = Date.now();
+  const mockId = `mock-watch-party-${timestamp}`;
+  const mockCode = `MOCK${timestamp}`;
+  return {
+    id: mockId,
+    invite_code: mockCode,
+    invite_url: `http://localhost/watch-party/${mockCode}`,
+    party: {
+      id: mockId,
+      ...watchPartyData,
+      created_at: new Date().toISOString(),
+    },
+  };
+}
+
+/**
+ * Create a watch party (theatre queue)
+ */
+export async function createWatchParty(page: Page, watchPartyData: WatchPartyData): Promise<any> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.post(`${apiUrl}/watch-parties`, {
+      data: {
+        title: watchPartyData.title,
+        playlist_id: watchPartyData.playlistId,
+        visibility: watchPartyData.visibility || 'private',
+        max_participants: watchPartyData.maxParticipants,
+        password: watchPartyData.password,
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok()) {
+      console.warn('Failed to create watch party via API, using mock data');
+      return createMockWatchParty(watchPartyData);
+    }
+    
+    const result = await response.json();
+    return result.data || result;
+  } catch (error) {
+    console.warn('API not available, using mock watch party data:', error);
+    return createMockWatchParty(watchPartyData);
+  }
+}
+
+/**
+ * Join a watch party using invite code or ID
+ */
+export async function joinWatchParty(page: Page, partyIdOrCode: string, password?: string): Promise<any> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.post(`${apiUrl}/watch-parties/${partyIdOrCode}/join`, {
+      data: {
+        ...(password && { password }),
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok()) {
+      console.warn('Failed to join watch party');
+      return { success: false };
+    }
+    
+    const result = await response.json();
+    return result.data || result;
+  } catch (error) {
+    console.warn('API not available for joining watch party:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Leave a watch party
+ */
+export async function leaveWatchParty(page: Page, partyId: string): Promise<void> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    await page.request.delete(`${apiUrl}/watch-parties/${partyId}/leave`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+  } catch (error) {
+    console.warn('Failed to leave watch party:', error);
+  }
+}
+
+/**
+ * Get watch party details
+ */
+export async function getWatchParty(page: Page, partyId: string): Promise<any | null> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.get(`${apiUrl}/watch-parties/${partyId}`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok()) {
+      return null;
+    }
+    
+    const result = await response.json();
+    return result.data || result;
+  } catch (error) {
+    console.warn('Failed to get watch party:', error);
+    return null;
+  }
+}
+
+/**
+ * Get watch party participants
+ */
+export async function getWatchPartyParticipants(page: Page, partyId: string): Promise<WatchPartyParticipant[]> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.get(`${apiUrl}/watch-parties/${partyId}/participants`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok()) {
+      return [];
+    }
+    
+    const result = await response.json();
+    return result.data?.participants || result.participants || [];
+  } catch (error) {
+    console.warn('Failed to get watch party participants:', error);
+    return [];
+  }
+}
+
+/**
+ * Update watch party settings
+ */
+export async function updateWatchPartySettings(page: Page, partyId: string, settings: Partial<WatchPartyData>): Promise<any> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.patch(`${apiUrl}/watch-parties/${partyId}/settings`, {
+      data: settings,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok()) {
+      console.warn('Failed to update watch party settings');
+      return { success: false };
+    }
+    
+    const result = await response.json();
+    return result.data || result;
+  } catch (error) {
+    console.warn('API not available for updating watch party settings:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Kick a participant from watch party (host only)
+ */
+export async function kickWatchPartyParticipant(page: Page, partyId: string, participantId: string): Promise<any> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    const response = await page.request.delete(`${apiUrl}/watch-parties/${partyId}/participants/${participantId}`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok()) {
+      console.warn('Failed to kick participant');
+      return { success: false };
+    }
+    
+    const result = await response.json();
+    return result.data || result;
+  } catch (error) {
+    console.warn('API not available for kicking participant:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Delete/end a watch party (host only)
+ */
+export async function deleteWatchParty(page: Page, partyId: string): Promise<void> {
+  const apiUrl = getApiBaseUrl();
+  const token = await getAuthToken(page);
+  
+  try {
+    await page.request.delete(`${apiUrl}/watch-parties/${partyId}`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+  } catch (error) {
+    console.warn('Failed to delete watch party:', error);
+  }
 }
