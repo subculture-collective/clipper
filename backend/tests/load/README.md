@@ -2,6 +2,18 @@
 
 This directory contains K6 load testing scenarios for the Clipper API. These tests help establish performance baselines and identify bottlenecks under various load conditions.
 
+**Test Types**:
+- **Load Tests**: Standard performance testing with realistic user loads
+- **Stress Tests**: Push system beyond capacity to find breaking points
+- **Soak Tests**: Extended duration (24h) testing for memory leaks and stability
+
+## Quick Links
+
+- **[Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md)** - Comprehensive guide for stress and endurance testing
+- **[Execution Guide](EXECUTION_GUIDE.md)** - Step-by-step test execution instructions
+- **[Performance Summary](PERFORMANCE_SUMMARY.md)** - Performance targets and baselines
+- **[Dashboard Guide](../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md)** - Grafana dashboard documentation
+
 ## Prerequisites
 
 Install K6:
@@ -350,6 +362,19 @@ Load tests are fully integrated into CI/CD with a dedicated workflow:
 
 **Workflow File**: `.github/workflows/load-tests.yml`
 
+#### Available Test Types
+
+- `all` - Run all standard load tests
+- `feed` - Feed browsing test
+- `clip` - Clip detail test
+- `search` - Search functionality test
+- `comments` - Comments test
+- `auth` - Authentication test
+- `submit` - Submission test
+- `mixed` - Mixed behavior test (recommended)
+- `stress-lite` - Stress test (5 min, suitable for CI)
+- `soak-short` - Soak test (1 hour version)
+
 #### Automated Nightly Runs
 
 Load tests run automatically every night at 2 AM UTC. Results are available as artifacts in the GitHub Actions workflow runs.
@@ -582,15 +607,28 @@ k6 run --out influxdb=http://localhost:8086/k6 scenario.js
 
 When adding new load test scenarios:
 
-1. Follow the existing file structure
+1. Follow the existing file structure in `scenarios/`
 2. Use descriptive names for metrics
 3. Set realistic thresholds
 4. Document the scenario in this README
 5. Update the Makefile with a new target
+6. Consider CI/CD integration (duration, resources)
+
+**For Stress/Soak Tests:**
+- See [Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md)
+- Use template from existing stress.js or soak.js
+- Document expected behavior and exit criteria
+- Include memory leak detection metrics
+- Plan for extended monitoring
 
 ## Resources
 
-- [K6 Documentation](https://k6.io/docs/)
-- [K6 Examples](https://k6.io/docs/examples/)
-- [Performance Testing Best Practices](https://k6.io/docs/testing-guides/test-types/)
-- [K6 Metrics](https://k6.io/docs/using-k6/metrics/)
+- [K6 Documentation](https://k6.io/docs/) - Official K6 docs
+- [K6 Examples](https://k6.io/docs/examples/) - Example test scripts
+- [Performance Testing Best Practices](https://k6.io/docs/testing-guides/test-types/) - Test types and patterns
+- [K6 Metrics](https://k6.io/docs/using-k6/metrics/) - Understanding metrics
+- [Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md) - Comprehensive stress/soak guide
+- [Quick Reference](STRESS_SOAK_QUICK_REFERENCE.md) - Commands and cheat sheet
+- [Execution Guide](EXECUTION_GUIDE.md) - Step-by-step instructions
+- [Performance Summary](PERFORMANCE_SUMMARY.md) - Performance baselines and targets
+- [Load Test Dashboard](../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md) - Grafana dashboard guide
