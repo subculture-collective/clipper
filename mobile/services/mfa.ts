@@ -77,20 +77,3 @@ export async function getTrustedDevices(): Promise<TrustedDevice[]> {
 export async function revokeTrustedDevice(deviceId: number): Promise<void> {
     await api.delete(`/auth/mfa/trusted-devices/${deviceId}`);
 }
-
-/**
- * Check if device supports biometric authentication
- * Note: This is a placeholder. Actual implementation is in lib/biometric.ts
- * via checkBiometricCapability()
- */
-export async function checkBiometricSupport(): Promise<{
-    available: boolean;
-    enrolled: boolean;
-}> {
-    // This function is deprecated - use checkBiometricCapability from lib/biometric.ts instead
-    console.warn('checkBiometricSupport is deprecated. Use checkBiometricCapability from lib/biometric.ts');
-    return {
-        available: false,
-        enrolled: false,
-    };
-}

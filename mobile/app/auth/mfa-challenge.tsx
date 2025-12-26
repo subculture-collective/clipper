@@ -55,7 +55,7 @@ export default function MFAChallengeScreen() {
             }
         };
         initBiometric();
-    }, []);
+    }, [checkBiometricCapability, getBiometricTypeLabel]);
 
     // TOTP timer countdown
     useEffect(() => {
@@ -83,21 +83,30 @@ export default function MFAChallengeScreen() {
     const handleBiometricAuth = async () => {
         try {
             const success = await authenticateWithBiometrics(
-                'Authenticate to access your MFA code',
+                'Verify your identity',
                 'Use passcode'
             );
 
             if (success) {
-                // Biometric auth is only a convenience gate
-                // User still needs to enter TOTP or it can auto-fill if stored
+                // Biometric auth confirmed user identity
+                // Focus on code input for better UX
                 Alert.alert(
-                    'Biometric Verified',
-                    'Please enter your MFA code to continue'
+                    'Identity Verified',
+                    'You may now enter your verification code.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    'Verification Failed',
+                    'Please enter your verification code manually.'
                 );
             }
         } catch (error) {
             console.error('Biometric auth error:', error);
-            Alert.alert('Error', 'Biometric authentication failed');
+            Alert.alert(
+                'Error',
+                'Biometric authentication failed. Please enter your code manually.'
+            );
         }
     };
 

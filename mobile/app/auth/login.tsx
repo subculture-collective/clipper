@@ -36,9 +36,27 @@ export default function LoginScreen() {
                     router.replace('/auth/mfa-challenge');
                     return;
                 }
+                
+                // If MFA is required but not enabled (admin/moderator in grace period),
+                // the backend will enforce this on protected endpoints
             } catch (mfaError) {
-                // If MFA status check fails, continue with normal flow
-                console.warn('Could not check MFA status:', mfaError);
+                // Log the error for debugging
+                console.error('Failed to check MFA status:', mfaError);
+                
+                // If MFA check fails and the error suggests MFA is required,
+                // navigate to challenge screen to be safe
+                if (mfaError instanceof Error) {
+                    const errorMsg = mfaError.message.toLowerCase();
+                    if (errorMsg.includes('mfa') || errorMsg.includes('authentication required')) {
+                        console.warn('MFA may be required, navigating to challenge screen');
+                        router.replace('/auth/mfa-challenge');
+                        return;
+                    }
+                }
+                
+                // For other errors (network issues, etc.), log but continue
+                // The backend will enforce MFA on protected endpoints if needed
+                console.warn('Could not verify MFA status, continuing with login');
             }
 
             // Step 4: Get user info (tokens are now in cookies managed by backend)
