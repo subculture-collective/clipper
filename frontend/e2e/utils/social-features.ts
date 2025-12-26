@@ -932,8 +932,9 @@ export interface WatchPartyParticipant {
  * Create mock watch party data for fallback
  */
 function createMockWatchParty(watchPartyData: WatchPartyData): any {
-  const mockId = `mock-watch-party-${Date.now()}`;
-  const mockCode = `MOCK${Date.now()}`;
+  const timestamp = Date.now();
+  const mockId = `mock-watch-party-${timestamp}`;
+  const mockCode = `MOCK${timestamp}`;
   return {
     id: mockId,
     invite_code: mockCode,

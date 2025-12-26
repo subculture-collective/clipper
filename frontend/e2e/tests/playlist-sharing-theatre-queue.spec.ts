@@ -97,7 +97,7 @@ test.describe('Playlist Sharing - Link Generation and Access Controls', () => {
     // Owner can generate share link for private playlist
     const shareLink = await getPlaylistShareLink(page, playlist.id);
     
-    // Note: This only tests owner access. Multi-user unauthorized access requires separate contexts
+    // Note: Testing unauthorized access requires separate browser contexts with different authenticated users
     if (shareLink && !playlist.id.startsWith('mock-')) {
       expect(shareLink).toBeTruthy();
     }
