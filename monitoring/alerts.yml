@@ -341,7 +341,7 @@ groups:
       # Low Embedding Coverage
       - alert: LowEmbeddingCoverage
         expr: |
-          (clips_with_embeddings + clips_without_embeddings) > 0 
+          (clips_with_embeddings + clips_without_embeddings) > 0
           and clips_without_embeddings / (clips_with_embeddings + clips_without_embeddings) > 0.1
         for: 30m
         labels:
@@ -777,3 +777,145 @@ groups:
           summary: "Redis connection errors in {{ $labels.service }}"
           description: "{{ $labels.service }} has {{ $value }} Redis connection errors per second."
           runbook: "Check Redis health, verify connection configuration."
+
+  - name: clipper_background_jobs_alerts
+    interval: 30s
+    rules:
+      # Job Execution Failures
+      - alert: BackgroundJobFailing
+        expr: |
+          (
+            rate(job_execution_total{status="failed"}[10m])
+            / (rate(job_execution_total{status="success"}[10m]) + rate(job_execution_total{status="failed"}[10m]))
+          ) > 0.05
+          and
+          (
+            (rate(job_execution_total{status="success"}[10m]) + rate(job_execution_total{status="failed"}[10m])) > 0
+          )
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Background job {{ $labels.job_name }} is failing"
+          description: "Job {{ $labels.job_name }} has a failure rate of {{ $value | humanizePercentage }} (threshold: 5% over the last 10 minutes)."
+          runbook: "docs/operations/runbooks/background-jobs.md#job-failures"
+
+      # Critical Job Failure Rate
+      - alert: BackgroundJobCriticalFailureRate
+        expr: |
+          (
+            rate(job_execution_total{status="failed"}[5m])
+            / (rate(job_execution_total{status="success"}[5m]) + rate(job_execution_total{status="failed"}[5m]))
+          ) > 0.5
+          and
+          (
+            (rate(job_execution_total{status="success"}[5m]) + rate(job_execution_total{status="failed"}[5m])) > 0
+          )
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical failure rate for job {{ $labels.job_name }}"
+          description: "Job {{ $labels.job_name }} has a failure rate of {{ $value | humanizePercentage }} (threshold: 50%)."
+          runbook: "docs/operations/runbooks/background-jobs.md#critical-failure-rate"
+
+      # Job Not Running (Stale)
+      # Note: 2-hour threshold works for most jobs (hot_score: 5m, trending_score: 60m, clip_sync: 15m)
+      # but may not detect failures in infrequent jobs (reputation_tasks: 6h). Adjust threshold or
+      # create job-specific alerts for jobs with intervals > 2 hours.
+      - alert: BackgroundJobNotRunning
+        expr: |
+          (time() - job_last_success_timestamp_seconds) > 7200
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Background job {{ $labels.job_name }} has not run successfully"
+          description: "Job {{ $labels.job_name }} has not completed successfully for {{ $value | humanizeDuration }}."
+          runbook: "docs/operations/runbooks/background-jobs.md#job-not-running"
+
+      # Critical Job Stale (24 hours)
+      - alert: BackgroundJobCriticallyStale
+        expr: |
+          (time() - job_last_success_timestamp_seconds) > 86400
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Background job {{ $labels.job_name }} critically stale"
+          description: "Job {{ $labels.job_name }} has not completed successfully for {{ $value | humanizeDuration }} (>24 hours)."
+          runbook: "docs/operations/runbooks/background-jobs.md#job-critically-stale"
+
+      # High Job Duration
+      - alert: BackgroundJobHighDuration
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(job_execution_duration_seconds_bucket[10m])) by (job_name, le)
+          ) > 300
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Background job {{ $labels.job_name }} running slowly"
+          description: "P95 duration for job {{ $labels.job_name }} is {{ $value }}s (threshold: 300s)."
+          runbook: "docs/operations/runbooks/background-jobs.md#high-duration"
+
+      # Critical Job Duration
+      - alert: BackgroundJobCriticalDuration
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(job_execution_duration_seconds_bucket[10m])) by (job_name, le)
+          ) > 600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Background job {{ $labels.job_name }} critically slow"
+          description: "P95 duration for job {{ $labels.job_name }} is {{ $value }}s (threshold: 600s / 10 minutes)."
+          runbook: "docs/operations/runbooks/background-jobs.md#critical-duration"
+
+      # Job Queue Growing
+      - alert: BackgroundJobQueueGrowing
+        expr: |
+          job_queue_size > 100
+          and (job_queue_size / ((job_queue_size offset 10m) or vector(0))) > 1.5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Job queue for {{ $labels.job_name }} is growing"
+          description: "Queue size for job {{ $labels.job_name }} is {{ $value }} and growing by >50% over 10m."
+          runbook: "docs/operations/runbooks/background-jobs.md#queue-growing"
+
+      # Critical Job Queue Size
+      - alert: BackgroundJobCriticalQueueSize
+        expr: |
+          job_queue_size > 1000
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical queue size for {{ $labels.job_name }}"
+          description: "Queue size for job {{ $labels.job_name }} is {{ $value }} (threshold: 1000)."
+          runbook: "docs/operations/runbooks/background-jobs.md#critical-queue-size"
+
+      # High Item Processing Failure Rate
+      - alert: BackgroundJobHighItemFailureRate
+        expr: |
+          (
+            rate(job_items_processed_total{status="failed"}[10m])
+            / clamp_min(
+              rate(job_items_processed_total{status="success"}[10m]) + rate(job_items_processed_total{status="failed"}[10m]),
+              0.01
+            )
+          ) > 0.2
+          and (
+            rate(job_items_processed_total{status="success"}[10m]) + rate(job_items_processed_total{status="failed"}[10m])
+          ) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High item failure rate for job {{ $labels.job_name }}"
+          description: "Job {{ $labels.job_name }} has {{ $value | humanizePercentage }} item failure rate (threshold: 20%)."
+          runbook: "docs/operations/runbooks/background-jobs.md#high-item-failure-rate"

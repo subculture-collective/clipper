@@ -20,6 +20,11 @@ Comprehensive testing guides and procedures for ensuring quality across the plat
 - [[STRIPE_SUBSCRIPTION_TESTING|Stripe Subscription Testing]] - Testing subscription flows
 - [[STRIPE_SUBSCRIPTION_TESTING_CHECKLIST|Stripe Testing Checklist]] - QA checklist for Stripe
 - [[STRIPE_TESTING_SUMMARY|Stripe Testing Summary]] - Summary of Stripe integration testing
+- [[STRIPE_CI_SECRETS|Stripe CI/CD Secrets Configuration]] - Setting up Stripe test keys in CI
+
+## E2E Test Suites
+
+- [[../../frontend/e2e/tests/PREMIUM_SUBSCRIPTION_TESTS|Premium Subscription E2E Tests]] - Playwright E2E test suite for subscription flows
 
 ## Related Documentation
 

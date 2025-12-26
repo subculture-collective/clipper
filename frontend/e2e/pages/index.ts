@@ -16,3 +16,6 @@ export { HomePage } from './HomePage';
 export { ClipPage } from './ClipPage';
 export { SubmitClipPage } from './SubmitClipPage';
 export { AdminModerationPage } from './AdminModerationPage';
+export { PricingPage } from './PricingPage';
+export { SubscriptionSettingsPage } from './SubscriptionSettingsPage';
+export { SubscriptionSuccessPage, SubscriptionCancelPage } from './SubscriptionPages';

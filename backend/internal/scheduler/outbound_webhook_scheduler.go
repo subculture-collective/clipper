@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/subculture-collective/clipper/internal/services"
@@ -14,6 +15,7 @@ type OutboundWebhookScheduler struct {
 	interval       time.Duration
 	batchSize      int
 	stopChan       chan struct{}
+	stopOnce       sync.Once
 }
 
 // NewOutboundWebhookScheduler creates a new outbound webhook scheduler
@@ -50,9 +52,11 @@ func (s *OutboundWebhookScheduler) Start(ctx context.Context) {
 	}
 }
 
-// Stop stops the webhook delivery scheduler
+// Stop stops the webhook delivery scheduler in a thread-safe manner
 func (s *OutboundWebhookScheduler) Stop() {
-	close(s.stopChan)
+	s.stopOnce.Do(func() {
+		close(s.stopChan)
+	})
 }
 
 // processDeliveries processes pending webhook deliveries

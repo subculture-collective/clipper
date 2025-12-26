@@ -5,6 +5,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // TrendingScoreRepositoryInterface defines the interface required by the trending score scheduler
@@ -62,15 +64,24 @@ func (s *TrendingScoreScheduler) Stop() {
 
 // refreshTrendingScores executes a trending score refresh operation
 func (s *TrendingScoreScheduler) refreshTrendingScores(ctx context.Context) {
+	jobName := "trending_score_refresh"
 	log.Println("Starting scheduled trending score refresh...")
 	startTime := time.Now()
 
 	rowsUpdated, err := s.clipRepo.UpdateTrendingScores(ctx)
+	duration := time.Since(startTime)
+
+	// Record metrics
+	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
+
 	if err != nil {
 		log.Printf("Trending score refresh failed: %v", err)
+		metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
 		return
 	}
 
-	duration := time.Since(startTime)
+	metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
+	metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+	metrics.JobItemsProcessed.WithLabelValues(jobName, "success").Add(float64(rowsUpdated))
 	log.Printf("Trending score refresh completed in %v (updated %d clips)", duration, rowsUpdated)
 }
