@@ -10,7 +10,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test as base, Page } from '@playwright/test';
-import { LoginPage, HomePage, ClipPage, SubmitClipPage, AdminModerationPage } from '../pages';
+import { LoginPage, HomePage, ClipPage, SubmitClipPage, AdminModerationPage, SearchPage } from '../pages';
 import { login, isAuthenticated } from '../utils/auth';
 import { 
   createUser, 
@@ -53,6 +53,7 @@ type CustomFixtures = {
   clipPage: ClipPage;
   submitClipPage: SubmitClipPage;
   adminModerationPage: AdminModerationPage;
+  searchPage: SearchPage;
   
   // Authenticated context
   authenticatedPage: Page;
@@ -112,6 +113,15 @@ export const test = base.extend<CustomFixtures>({
   adminModerationPage: async ({ page }, use) => {
     const adminModerationPage = new AdminModerationPage(page);
     await use(adminModerationPage);
+  },
+
+  /**
+   * SearchPage fixture
+   * Automatically initialized for each test
+   */
+  searchPage: async ({ page }, use) => {
+    const searchPage = new SearchPage(page);
+    await use(searchPage);
   },
 
   /**

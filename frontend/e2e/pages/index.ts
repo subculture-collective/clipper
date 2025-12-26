@@ -19,3 +19,4 @@ export { AdminModerationPage } from './AdminModerationPage';
 export { PricingPage } from './PricingPage';
 export { SubscriptionSettingsPage } from './SubscriptionSettingsPage';
 export { SubscriptionSuccessPage, SubscriptionCancelPage } from './SubscriptionPages';
+export { SearchPage } from './SearchPage';

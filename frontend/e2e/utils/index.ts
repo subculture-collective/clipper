@@ -16,3 +16,4 @@ export * from './oauth-mock';
 export * from './mfa-mock';
 export * from './session-mock';
 export * from './social-features';
+export * from './search';
