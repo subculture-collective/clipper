@@ -209,6 +209,47 @@ test-load-report: ## Generate comprehensive load test report
 test-load-mixed: ## Run mixed user behavior load test
 	@k6 run backend/tests/load/scenarios/mixed_behavior.js
 
+test-stress: ## Run stress test (push system beyond capacity)
+	@if command -v k6 > /dev/null; then \
+		echo "Running stress test (20 min full)..."; \
+		k6 run backend/tests/load/scenarios/stress.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
+
+test-stress-lite: ## Run stress test lite version (5 min for CI)
+	@if command -v k6 > /dev/null; then \
+		echo "Running stress test lite (5 min)..."; \
+		k6 run -e DURATION_MULTIPLIER=0.25 backend/tests/load/scenarios/stress.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
+
+test-soak: ## Run 24-hour soak test
+	@if command -v k6 > /dev/null; then \
+		echo "Running 24-hour soak test..."; \
+		echo "This will take approximately 24 hours to complete."; \
+		k6 run backend/tests/load/scenarios/soak.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
+
+test-soak-short: ## Run 1-hour soak test (for testing)
+	@if command -v k6 > /dev/null; then \
+		echo "Running 1-hour soak test..."; \
+		k6 run -e DURATION_HOURS=1 backend/tests/load/scenarios/soak.js; \
+	else \
+		echo "Error: k6 is not installed"; \
+		echo "Install it with: brew install k6 (macOS) or visit https://k6.io/docs/getting-started/installation/"; \
+		exit 1; \
+	fi
+
 test-security: ## Run all security tests (IDOR, authorization)
 	@echo "Running IDOR security tests..."
 	cd backend && go test -v ./tests/security/
