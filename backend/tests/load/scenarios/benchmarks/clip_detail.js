@@ -17,6 +17,9 @@ const responseTime = new Trend('endpoint_response_time');
 const cacheHitRate = new Rate('cache_hits');
 const n_plus_one_detected = new Counter('n_plus_one_queries');
 
+// N+1 detection threshold
+const N1_DURATION_THRESHOLD_MS = parseInt(__ENV.N1_DURATION_THRESHOLD_MS || '50');
+
 export const options = {
     stages: [
         { duration: '30s', target: 20 },
@@ -119,8 +122,17 @@ export default function () {
     });
     
     // Check for N+1 if loading related data
-    if (duration > 50) {
-        n_plus_one_detected.add(1);
+    // Slow response might indicate multiple queries for tags, user data, etc.
+    if (duration > N1_DURATION_THRESHOLD_MS) {
+        try {
+            const body = JSON.parse(response.body);
+            // Check if response has nested data that could indicate N+1
+            if (body.data && (body.data.tags || body.data.user)) {
+                n_plus_one_detected.add(1);
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
     }
     
     errorRate.add(!result);

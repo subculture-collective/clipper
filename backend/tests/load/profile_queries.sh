@@ -122,7 +122,7 @@ psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -t -A -F","
 
 # Capture EXPLAIN ANALYZE for top slow queries
 echo "Capturing EXPLAIN ANALYZE for slow queries..."
-cat > "${PROFILE_OUTPUT_DIR}/explain_analyze.txt" << 'EOF'
+cat > "${PROFILE_OUTPUT_DIR}/explain_analyze.txt" << EOF
 # EXPLAIN ANALYZE Results for Slow Queries
 # Generated: $(date)
 # Endpoint: ${ENDPOINT_NAME}

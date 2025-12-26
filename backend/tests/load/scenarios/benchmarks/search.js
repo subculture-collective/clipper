@@ -61,8 +61,8 @@ const searchQueries = [
     { q: 'clutch', weight: 3 },
     { q: 'highlights', weight: 3 },
     { q: 'tutorial', weight: 2 },
-    // Random/unique queries (not cached)
-    { q: 'random_' + Date.now(), weight: 8 },  // Simulates unique searches
+    // Random/unique queries (not cached) - 8% weight for unique searches
+    { q: '__RANDOM__', weight: 8 },
 ];
 
 function selectSearchQuery() {
@@ -74,7 +74,7 @@ function selectSearchQuery() {
         cumulative += query.weight;
         if (rand < cumulative) {
             // For random queries, generate unique query each time
-            if (query.q.startsWith('random_')) {
+            if (query.q === '__RANDOM__') {
                 return `search_${Math.random().toString(36).substring(7)}`;
             }
             return query.q;

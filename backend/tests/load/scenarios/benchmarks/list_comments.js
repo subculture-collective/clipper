@@ -17,6 +17,10 @@ const responseTime = new Trend('endpoint_response_time');
 const cacheHitRate = new Rate('cache_hits');
 const n_plus_one_detected = new Counter('n_plus_one_queries');
 
+// N+1 detection thresholds
+const N1_DURATION_THRESHOLD_MS = parseInt(__ENV.N1_DURATION_THRESHOLD_MS || '50');
+const N1_ITEM_COUNT_THRESHOLD = parseInt(__ENV.N1_ITEM_COUNT_THRESHOLD || '5');
+
 export const options = {
     stages: [
         { duration: '30s', target: 17 },
@@ -113,10 +117,10 @@ export default function () {
     
     // N+1 detection - if response is slow and has many comments with user data
     // This might indicate separate queries for each user
-    if (duration > 50) {
+    if (duration > N1_DURATION_THRESHOLD_MS) {
         try {
             const body = JSON.parse(response.body);
-            if (body.data && body.data.length > 5) {
+            if (body.data && body.data.length > N1_ITEM_COUNT_THRESHOLD) {
                 n_plus_one_detected.add(1);
             }
         } catch (e) {

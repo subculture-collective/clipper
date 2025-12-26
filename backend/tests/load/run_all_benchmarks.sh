@@ -104,10 +104,12 @@ for result in "${RESULTS[@]}"; do
     JSON_FILE="${REPORT_DIR}/${name}.json"
     
     if [ -f "$JSON_FILE" ]; then
-        # Extract metrics from k6 JSON output (last line has summary)
-        # For now, placeholder - would need jq or similar to parse properly
+        # TODO: Extract metrics from k6 JSON output
+        # This requires jq or similar JSON parser
+        # For now, metrics are shown in individual logs
+        # Future enhancement: parse JSON and populate table
         cat >> "${REPORT_FILE}" << EOF
-| ${name} | ${status} | - | - | - | - | - | - |
+| ${name} | ${status} | See ${name}.log | - | - | - | - | - |
 EOF
     else
         cat >> "${REPORT_FILE}" << EOF

@@ -19,6 +19,10 @@ const responseTime = new Trend('endpoint_response_time');
 const cacheHitRate = new Rate('cache_hits');
 const n_plus_one_detected = new Counter('n_plus_one_queries');
 
+// N+1 detection thresholds - configurable via environment
+const N1_DURATION_THRESHOLD_MS = parseInt(__ENV.N1_DURATION_THRESHOLD_MS || '100');
+const N1_ITEM_COUNT_THRESHOLD = parseInt(__ENV.N1_ITEM_COUNT_THRESHOLD || '10');
+
 // Performance targets from endpoint-targets.yaml
 export const options = {
     stages: [
@@ -145,10 +149,10 @@ export default function () {
     
     // Detect potential N+1 issues
     // If response time is high and there are many clips, might indicate N+1
-    if (duration > 100) {
+    if (duration > N1_DURATION_THRESHOLD_MS) {
         try {
             const body = JSON.parse(response.body);
-            if (body.data && body.data.length > 10) {
+            if (body.data && body.data.length > N1_ITEM_COUNT_THRESHOLD) {
                 n_plus_one_detected.add(1);
             }
         } catch (e) {
