@@ -4,7 +4,7 @@ This guide explains how to test Stripe webhook handlers using the Stripe CLI, au
 
 ## Quick Start: Automated Integration Tests
 
-**New**: Run comprehensive integration tests that validate webhook idempotency, entitlement updates, payment failures, and proration calculations:
+**New**: Run integration tests that validate subscription infrastructure, database schema, and handler wiring:
 
 ```bash
 # Run all Stripe integration tests
@@ -15,16 +15,18 @@ cd backend
 go test -v -tags=integration ./tests/integration/premium/ -run "TestWebhook|TestEntitlement|TestProration|TestPaymentFailure"
 ```
 
-**Test Coverage**:
-- ✅ Webhook idempotency (duplicate event prevention)
-- ✅ Entitlement sync on subscription status changes
-- ✅ Grace period handling for past_due subscriptions
-- ✅ Webhook retry queue and exponential backoff
-- ✅ Proration invoice processing
-- ✅ Payment failure escalation
-- ✅ Database schema validation
+**What these automated tests cover**:
+- ✅ Infrastructure wiring for webhook endpoints and handlers
+- ✅ Basic entitlement and subscription status update flows
+- ✅ Grace period and subscription state transitions at the database level
+- ✅ Presence of retry/queue mechanisms for webhook processing
+- ✅ Proration- and invoice-related database interactions
+- ✅ Payment failure–related database interactions and escalation paths
+- ✅ Database schema and migration validation
 
-**Environment Variables** (optional for enhanced testing):
+> **Note**: These integration tests focus on infrastructure, schema, and handler wiring. They do **not** use valid Stripe webhook signatures and therefore do **not** fully validate end-to-end Stripe webhook verification or business logic. For full webhook behavior testing, use the Stripe CLI and the flows described below.
+
+**Environment Variables** (for future full end-to-end testing):
 ```bash
 export TEST_STRIPE_SECRET_KEY=sk_test_your_key
 export TEST_STRIPE_WEBHOOK_SECRET=whsec_test_your_secret

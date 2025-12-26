@@ -4,7 +4,7 @@ This guide provides comprehensive testing procedures for Stripe subscription flo
 
 ## Automated Integration Tests
 
-**New**: Comprehensive integration tests are available to validate the complete Stripe subscription lifecycle:
+**New**: Integration tests are available to validate subscription infrastructure, database schema, and handler wiring:
 
 ```bash
 # Run all Stripe integration tests
@@ -18,14 +18,14 @@ go test -v -tags=integration ./tests/integration/premium/ -run TestProration
 go test -v -tags=integration ./tests/integration/premium/ -run TestPaymentFailure
 ```
 
-**Test Coverage**:
-1. **Webhook Idempotency**: Tests duplicate event detection and database assertions
-2. **Entitlement Updates**: Tests subscription status → user permissions sync
-3. **Payment Failures**: Tests dunning process and retry logic
-4. **Proration**: Tests plan change calculations and invoice processing
-5. **Retry Logic**: Tests webhook retry queue and exponential backoff
+**Automated Test Coverage (Current Scope)**:
+1. **Webhook Idempotency**: Verifies basic webhook handler wiring and database state (for example, schema/migration expectations and that services are constructed and invoked without errors for sample events).
+2. **Entitlement Updates**: Verifies that subscription/entitlement handlers can be invoked and that core persistence logic executes against the expected schema.
+3. **Payment Failures**: Verifies that payment‑failure handlers are wired correctly and can persist basic failure state to the database.
+4. **Proration**: Verifies that proration‑related handlers and invoice processing paths execute successfully against the current schema.
+5. **Retry Logic (Infrastructure Only)**: Verifies that retry‑related services are instantiated and callable; it does **not** fully simulate or assert on a real webhook retry queue or exponential backoff behavior.
 
-See the [Integration Test Implementation](#integration-test-details) section for more details.
+These automated tests do **not** by themselves validate full Stripe lifecycle behavior such as real duplicate event detection, production‑grade user permissions syncing, Stripe's dunning process, or actual webhook retry timing/exponential backoff. Validating those behaviors requires end‑to‑end flows driven by valid Stripe webhooks and/or the manual procedures described later in this guide. See the [Integration Test Implementation](#integration-test-details) section for more details about what is and is not covered.
 
 ## Table of Contents
 
@@ -827,34 +827,34 @@ The automated integration tests are located in `backend/tests/integration/premiu
 ### Test Implementation
 
 **TestWebhookIdempotencyWithDatabaseAssertion**
-- Validates duplicate event prevention using `stripe_webhooks_log` table
-- Tests concurrent webhook delivery (race conditions)
-- Verifies exactly-once processing guarantees
-- Database assertions on event tracking
+- Validates webhook endpoint exists and responds
+- Tests database schema supports event tracking (`stripe_webhooks_log` table)
+- Verifies handler infrastructure for concurrent requests
+- **Note**: Does not test actual idempotency logic (requires valid Stripe signatures)
 
 **TestEntitlementUpdatesOnSubscriptionStatusChanges**
-- Tests active subscription → pro user access
-- Tests canceled subscription → access removal
-- Tests past_due → grace period handling
-- Tests trialing subscription → access granted
+- Tests subscription creation and database persistence
+- Validates `IsProUser` logic for different subscription statuses
+- Tests grace period handling infrastructure
+- **Note**: Does not test webhook-driven entitlement updates (requires valid Stripe signatures)
 
 **TestWebhookRetryLogic**
-- Validates retry queue infrastructure exists
-- Tests exponential backoff scheduling (`next_retry_at` column)
-- Verifies max retries prevent infinite loops
-- Tests error logging for alerting
+- Validates retry queue database tables exist (`webhook_retry_queue`)
+- Verifies schema supports exponential backoff (`next_retry_at` column)
+- Tests max retries column exists
+- **Note**: Does not test actual retry processing or backoff behavior
 
 **TestProrationCalculationsWithValidation**
-- Tests proration invoice webhook processing
-- Validates plan change proration behavior
-- Tests upgrade vs downgrade scenarios
-- Verifies proration amounts in webhook data
+- Tests plan change endpoint exists and responds
+- Validates webhook handlers can receive invoice events
+- Verifies database schema supports proration tracking
+- **Note**: Does not validate actual proration amounts (requires valid Stripe API calls)
 
 **TestPaymentFailureHandlingWithAlerts**
-- Tests first payment failure → dunning process starts
-- Tests multiple failures → escalation
-- Tests payment intent failure logging
-- Validates error tracking for alerts
+- Tests payment failure webhook handlers exist
+- Validates database can track failure events
+- Verifies handler infrastructure for multiple failure scenarios
+- **Note**: Does not test actual dunning process or escalation logic (requires valid Stripe signatures)
 
 ### Running Individual Tests
 

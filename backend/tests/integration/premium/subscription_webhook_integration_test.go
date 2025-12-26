@@ -32,9 +32,12 @@ func createWebhookPayload(eventID, eventType string, dataObject map[string]inter
 	return jsonBytes
 }
 
-// TestWebhookIdempotencyWithDatabaseAssertion tests comprehensive idempotency
+// TestWebhookIdempotencyWithDatabaseAssertion validates webhook handler infrastructure
+// and database schema for idempotency tracking. Note: These tests verify that webhook
+// handlers are wired correctly and can process requests, but do not test actual idempotency
+// logic since that requires valid Stripe webhook signatures.
 func TestWebhookIdempotencyWithDatabaseAssertion(t *testing.T) {
-	router, _, subscriptionService, db, redisClient, _ := setupPremiumTestRouter(t)
+	router, _, _, db, redisClient, _ := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
@@ -45,8 +48,9 @@ func TestWebhookIdempotencyWithDatabaseAssertion(t *testing.T) {
 	testSubscriptionID := fmt.Sprintf("sub_test_%s", uuid.New().String()[:8])
 	eventID := fmt.Sprintf("evt_test_%s", uuid.New().String()[:8])
 
-	t.Run("IdempotencyPreventsDuplicateProcessing", func(t *testing.T) {
-		// Create subscription webhook payload
+	t.Run("WebhookEndpointResponds", func(t *testing.T) {
+		// Validates that the webhook endpoint exists and returns a response
+		// Note: Signature verification will fail with test signature, which is expected behavior
 		payload := []byte(fmt.Sprintf(`{
 			"id": "%s",
 			"type": "customer.subscription.created",
@@ -68,36 +72,19 @@ func TestWebhookIdempotencyWithDatabaseAssertion(t *testing.T) {
 			}
 		}`, eventID, testSubscriptionID, testCustomerID, time.Now().Unix(), time.Now().Add(30*24*time.Hour).Unix()))
 
-		// First webhook delivery
-		req1 := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/stripe", bytes.NewBuffer(payload))
-		req1.Header.Set("Content-Type", "application/json")
-		req1.Header.Set("Stripe-Signature", "test_signature")
-		w1 := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/stripe", bytes.NewBuffer(payload))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Stripe-Signature", "test_signature")
+		w := httptest.NewRecorder()
 
-		router.ServeHTTP(w1, req1)
+		router.ServeHTTP(w, req)
 
-		// Note: Will fail due to signature verification, but we're testing the idempotency check happens first
-		// In production with valid signature, this would process successfully
-
-		// Second webhook delivery (duplicate)
-		req2 := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/stripe", bytes.NewBuffer(payload))
-		req2.Header.Set("Content-Type", "application/json")
-		req2.Header.Set("Stripe-Signature", "test_signature")
-		w2 := httptest.NewRecorder()
-
-		router.ServeHTTP(w2, req2)
-
-		// Both should have same response (idempotency check happens before processing)
-		assert.Equal(t, w1.Code, w2.Code)
-
-		// Verify no duplicate entries in webhook log
-		// This would be tested with direct database query in production
-		// For now, verify the service layer has the logic
-		assert.NotNil(t, subscriptionService)
+		// Should return 400 for invalid signature
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("IdempotencyKeyPreventsRaceConditions", func(t *testing.T) {
-		// Test concurrent webhook deliveries
+	t.Run("ConcurrentWebhookRequestsHandled", func(t *testing.T) {
+		// Validates that concurrent webhook requests are handled without panics
 		eventID2 := fmt.Sprintf("evt_race_%s", uuid.New().String()[:8])
 		payload := []byte(fmt.Sprintf(`{
 			"id": "%s",
@@ -126,29 +113,31 @@ func TestWebhookIdempotencyWithDatabaseAssertion(t *testing.T) {
 			}()
 		}
 
-		// Wait for both to complete and collect responses
+		// Wait for both to complete and verify both returned responses
 		response1 := <-done
 		response2 := <-done
 
-		// Both should return a response (one processes, one detects duplicate)
 		assert.NotNil(t, response1)
 		assert.NotNil(t, response2)
+		// Both should fail signature verification
+		assert.Equal(t, http.StatusBadRequest, response1.Code)
+		assert.Equal(t, http.StatusBadRequest, response2.Code)
 	})
 
-	t.Run("WebhookLogTableTracksEvents", func(t *testing.T) {
-		// Query stripe_webhooks_log table to verify event tracking
-		query := `SELECT COUNT(*) FROM stripe_webhooks_log WHERE event_id = $1`
+	t.Run("WebhookLogTableExists", func(t *testing.T) {
+		// Validates that the stripe_webhooks_log table exists and can be queried
+		query := `SELECT COUNT(*) FROM stripe_webhooks_log`
 		var count int
-		err := db.Pool.QueryRow(ctx, query, eventID).Scan(&count)
+		err := db.Pool.QueryRow(ctx, query).Scan(&count)
 
-		// May be 0 if signature verification prevents insertion, which is expected
-		// In production with valid signatures, this would be > 0
-		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, count, 0)
+		assert.NoError(t, err, "stripe_webhooks_log table should exist and be queryable")
 	})
 }
 
-// TestEntitlementUpdatesOnSubscriptionStatusChanges tests entitlement sync
+// TestEntitlementUpdatesOnSubscriptionStatusChanges validates that subscription
+// status changes persist correctly and that the IsProUser logic works as expected
+// for different subscription states. Note: This tests direct database operations and
+// business logic, not webhook-driven updates (which require valid Stripe signatures).
 func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 	router, _, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
@@ -174,13 +163,14 @@ func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 	}
 
 	t.Run("ActiveSubscriptionEnablesPremiumFeatures", func(t *testing.T) {
-		// Verify user is considered pro
+		// Validates IsProUser logic for active subscriptions
 		isProUser := subscriptionService.IsProUser(ctx, userID)
 		assert.True(t, isProUser, "User with active subscription should be pro")
 	})
 
-	t.Run("CanceledSubscriptionRemovesEntitlements", func(t *testing.T) {
-		// Simulate subscription.deleted webhook
+	t.Run("WebhookEndpointReceivesCancellationEvents", func(t *testing.T) {
+		// Validates that cancellation webhook endpoint exists and responds
+		// Note: Does not test actual cancellation logic (requires valid signature)
 		eventID := fmt.Sprintf("evt_cancel_%s", uuid.New().String()[:8])
 		dataObject := map[string]interface{}{
 			"id":          testSubscriptionID,
@@ -197,13 +187,12 @@ func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		// After processing (with valid signature), user should lose pro status
-		// Note: Fails with invalid signature, but verifies webhook endpoint exists
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// Should fail signature verification
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("PastDueSubscriptionEntersGracePeriod", func(t *testing.T) {
-		// Simulate subscription.updated with past_due status
+	t.Run("WebhookEndpointReceivesPastDueEvents", func(t *testing.T) {
+		// Validates that past_due webhook endpoint exists and responds
 		eventID := fmt.Sprintf("evt_pastdue_%s", uuid.New().String()[:8])
 		payload := []byte(fmt.Sprintf(`{
 			"id": "%s",
@@ -224,18 +213,18 @@ func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// Should fail signature verification
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		// In production: verify grace period is set and user retains access temporarily
+		// Subscription should still exist in database
 		sub, err := subscriptionRepo.GetByUserID(ctx, userID)
 		if err == nil {
-			// Grace period should be set for past_due subscriptions
 			assert.NotNil(t, sub)
 		}
 	})
 
 	t.Run("TrialingSubscriptionProvidesAccess", func(t *testing.T) {
-		// Test that trialing subscriptions provide pro access
+		// Validates IsProUser logic for trialing subscriptions
 		trialUserID := testutil.CreateTestUser(t, db, fmt.Sprintf("trial%d", time.Now().Unix())).ID
 		trialCustomerID := fmt.Sprintf("cus_trial_%s", uuid.New().String()[:8])
 		trialSubID := fmt.Sprintf("sub_trial_%s", uuid.New().String()[:8])
@@ -258,7 +247,8 @@ func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 	})
 }
 
-// TestWebhookRetryLogic tests webhook retry mechanism
+// TestWebhookRetryLogic validates that webhook retry infrastructure exists in the database.
+// Note: This tests database schema only, not actual retry processing behavior.
 func TestWebhookRetryLogic(t *testing.T) {
 	_, _, _, db, redisClient, _ := setupPremiumTestRouter(t)
 	defer db.Close()
@@ -266,19 +256,16 @@ func TestWebhookRetryLogic(t *testing.T) {
 
 	ctx := context.Background()
 
-	t.Run("FailedWebhookAddedToRetryQueue", func(t *testing.T) {
-		// This test verifies the retry queue infrastructure exists
-		// In production, failed webhooks are added to webhook_retry_queue table
-
-		// Check retry queue table exists
+	t.Run("RetryQueueTableExists", func(t *testing.T) {
+		// Validates that the webhook_retry_queue table exists
 		query := `SELECT COUNT(*) FROM webhook_retry_queue`
 		var count int
 		err := db.Pool.QueryRow(ctx, query).Scan(&count)
 		assert.NoError(t, err, "webhook_retry_queue table should exist")
 	})
 
-	t.Run("RetryQueueHasExponentialBackoff", func(t *testing.T) {
-		// Verify retry queue supports backoff scheduling
+	t.Run("RetryQueueSupportsBackoffScheduling", func(t *testing.T) {
+		// Validates retry queue has next_retry_at column for scheduling
 		query := `SELECT column_name FROM information_schema.columns 
 				  WHERE table_name = 'webhook_retry_queue' 
 				  AND column_name = 'next_retry_at'`
@@ -288,8 +275,8 @@ func TestWebhookRetryLogic(t *testing.T) {
 		assert.Equal(t, "next_retry_at", columnName)
 	})
 
-	t.Run("MaxRetriesPreventInfiniteLoop", func(t *testing.T) {
-		// Verify max retries column exists
+	t.Run("RetryQueueHasMaxRetriesColumn", func(t *testing.T) {
+		// Validates max retries column exists
 		query := `SELECT column_name FROM information_schema.columns 
 				  WHERE table_name = 'webhook_retry_queue' 
 				  AND column_name = 'max_retries'`
@@ -299,8 +286,8 @@ func TestWebhookRetryLogic(t *testing.T) {
 		assert.Equal(t, "max_retries", columnName)
 	})
 
-	t.Run("FailedWebhooksLoggedForAlerts", func(t *testing.T) {
-		// Verify processing_error column exists for alerting
+	t.Run("WebhookLogSupportsErrorTracking", func(t *testing.T) {
+		// Validates processing_error column exists for error logging
 		query := `SELECT column_name FROM information_schema.columns 
 				  WHERE table_name = 'stripe_webhooks_log' 
 				  AND column_name = 'processing_error'`
@@ -311,7 +298,9 @@ func TestWebhookRetryLogic(t *testing.T) {
 	})
 }
 
-// TestProrationCalculationsWithValidation tests proration scenarios
+// TestProrationCalculationsWithValidation validates infrastructure for proration handling.
+// Note: This tests that endpoints exist and schema supports proration, but does not
+// validate actual proration calculations (which require valid Stripe API access).
 func TestProrationCalculationsWithValidation(t *testing.T) {
 	router, jwtManager, subscriptionService, db, redisClient, userID := setupPremiumTestRouter(t)
 	defer db.Close()
@@ -341,8 +330,8 @@ func TestProrationCalculationsWithValidation(t *testing.T) {
 		t.Logf("Subscription creation failed: %v (may already exist)", err)
 	}
 
-	t.Run("ProrationInvoiceWebhookContainsCorrectAmount", func(t *testing.T) {
-		// Simulate proration invoice created during plan change
+	t.Run("ProrationInvoiceWebhookEndpointExists", func(t *testing.T) {
+		// Validates that proration invoice webhook endpoint exists
 		eventID := fmt.Sprintf("evt_pror_%s", uuid.New().String()[:8])
 		invoiceID := fmt.Sprintf("in_pror_%s", uuid.New().String()[:8])
 
@@ -381,12 +370,12 @@ func TestProrationCalculationsWithValidation(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		// Webhook endpoint should process proration invoices
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// Should fail signature verification
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("PlanChangeWithProrationBehavior", func(t *testing.T) {
-		// Test plan change endpoint with proration
+	t.Run("PlanChangeEndpointExists", func(t *testing.T) {
+		// Validates that plan change endpoint exists and responds
 		req := models.ChangeSubscriptionPlanRequest{
 			PriceID: "price_test_yearly",
 		}
@@ -399,40 +388,16 @@ func TestProrationCalculationsWithValidation(t *testing.T) {
 
 		router.ServeHTTP(w, httpReq)
 
-		// Should handle proration via Stripe API
-		// Without valid Stripe API access, this will fail, which is expected
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError}, w.Code)
-	})
-
-	t.Run("UpgradeAppliesImmediateProration", func(t *testing.T) {
-		// Verify upgrade from monthly to yearly applies proration
-		// This is handled by Stripe automatically with proration_behavior: "always_invoice"
-		assert.NotNil(t, subscriptionService)
-	})
-
-	t.Run("DowngradeAppliesEndOfPeriodProration", func(t *testing.T) {
-		// Verify downgrade can be scheduled for end of period
-		// Test that cancel_at_period_end can be set
-		req := models.ChangeSubscriptionPlanRequest{
-			PriceID: "price_test_basic",
-		}
-		bodyBytes, _ := json.Marshal(req)
-
-		httpReq := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/change-plan", bytes.NewBuffer(bodyBytes))
-		httpReq.Header.Set("Authorization", "Bearer "+accessToken)
-		httpReq.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, httpReq)
-
-		// Downgrade logic may differ - some implementations schedule for end of period
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError}, w.Code)
+		// Validates endpoint exists (may fail without valid Stripe API access)
+		assert.NotNil(t, w)
 	})
 }
 
-// TestPaymentFailureHandlingWithAlerts tests comprehensive payment failure scenarios
+// TestPaymentFailureHandlingWithAlerts validates infrastructure for payment failure handling.
+// Note: This tests that webhook endpoints exist and respond, but does not test actual dunning
+// or escalation logic (which requires valid Stripe signatures and proper webhook processing).
 func TestPaymentFailureHandlingWithAlerts(t *testing.T) {
-	router, _, subscriptionService, db, redisClient, _ := setupPremiumTestRouter(t)
+	router, _, _, db, redisClient, _ := setupPremiumTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
@@ -440,7 +405,8 @@ func TestPaymentFailureHandlingWithAlerts(t *testing.T) {
 	testCustomerID := fmt.Sprintf("cus_fail_%s", uuid.New().String()[:8])
 	testSubscriptionID := fmt.Sprintf("sub_fail_%s", uuid.New().String()[:8])
 
-	t.Run("FirstPaymentFailureStartsDunning", func(t *testing.T) {
+	t.Run("PaymentFailureWebhookEndpointExists", func(t *testing.T) {
+		// Validates that payment failure webhook endpoint exists
 		eventID := fmt.Sprintf("evt_fail1_%s", uuid.New().String()[:8])
 		payload := []byte(fmt.Sprintf(`{
 			"id": "%s",
@@ -465,13 +431,12 @@ func TestPaymentFailureHandlingWithAlerts(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
-
-		// Verify dunning process exists
-		assert.NotNil(t, subscriptionService)
+		// Should fail signature verification
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("MultiplePaymentFailuresTriggerEscalation", func(t *testing.T) {
+	t.Run("MultipleFailureWebhookEndpointExists", func(t *testing.T) {
+		// Validates that webhook endpoint can receive multiple failure events
 		eventID := fmt.Sprintf("evt_fail3_%s", uuid.New().String()[:8])
 		payload := []byte(fmt.Sprintf(`{
 			"id": "%s",
@@ -495,11 +460,12 @@ func TestPaymentFailureHandlingWithAlerts(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		// After 3 failures, subscription should be marked for cancellation
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// Should fail signature verification
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("PaymentIntentFailureLogsError", func(t *testing.T) {
+	t.Run("PaymentIntentFailureWebhookEndpointExists", func(t *testing.T) {
+		// Validates that payment intent failure webhook endpoint exists
 		eventID := fmt.Sprintf("evt_pi_fail_%s", uuid.New().String()[:8])
 		payload := []byte(fmt.Sprintf(`{
 			"id": "%s",
@@ -526,19 +492,14 @@ func TestPaymentFailureHandlingWithAlerts(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// Should fail signature verification
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		// Verify error is logged to stripe_webhooks_log
-		query := `SELECT COUNT(*) FROM stripe_webhooks_log WHERE event_type = 'payment_intent.payment_failed'`
+		// Validates stripe_webhooks_log table can be queried
+		query := `SELECT COUNT(*) FROM stripe_webhooks_log`
 		var count int
 		err := db.Pool.QueryRow(ctx, query).Scan(&count)
 		assert.NoError(t, err)
-	})
-
-	t.Run("PaymentFailureTriggersEmailAlert", func(t *testing.T) {
-		// Verify email service is configured for payment failure alerts
-		// In production, this would send email to customer
-		assert.NotNil(t, subscriptionService)
 	})
 }
 

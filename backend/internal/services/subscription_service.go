@@ -1011,7 +1011,10 @@ func timePtr(t time.Time) *time.Time {
 	return &t
 }
 
-// GetRepository returns the subscription repository (for testing)
+// GetRepository exposes the subscription repository for testing purposes only.
+// This method should not be used outside of test code as it breaks encapsulation.
+// Production code should interact with the service's public methods instead.
+// TODO: Consider refactoring tests to use service methods or dependency injection for better encapsulation.
 func (s *SubscriptionService) GetRepository() *repository.SubscriptionRepository {
 	return s.repo
 }
