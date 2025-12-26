@@ -89,7 +89,7 @@ This implementation provides comprehensive end-to-end testing coverage for all s
 
 ## Utility Functions
 
-### Comment Functions (7)
+### Comment Functions (6)
 - `createComment` - Create comment on clip
 - `editComment` - Edit existing comment
 - `deleteComment` - Delete comment

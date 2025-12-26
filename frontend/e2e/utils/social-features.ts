@@ -32,7 +32,6 @@ export interface CommentData {
   clipId: string;
   content: string;
   parentCommentId?: string | null;
-  userId?: string;
 }
 
 export interface PlaylistData {
@@ -742,6 +741,10 @@ export async function getBlockedUsers(page: Page): Promise<any[]> {
  * Note: The default 20 attempts with 50ms delay between each is designed to trigger
  * typical rate limits while keeping test execution time reasonable (~1 second total).
  * Adjust these values based on your specific rate limit configuration.
+ * 
+ * Warning: This function creates test data (comments) that are not automatically cleaned up.
+ * Consider using a dedicated test endpoint that doesn't persist data, or manually clean up
+ * test comments after rate limit tests complete.
  */
 export async function triggerRateLimit(
   page: Page, 
@@ -824,6 +827,11 @@ export async function verifyRateLimitMessage(page: Page, expectedMessage?: strin
  * 
  * Uses exponential backoff starting at 1 second, doubling each attempt up to 10 seconds.
  * This pattern is recommended for handling rate limits gracefully while not overloading the server.
+ * 
+ * Note: This function uses the /health endpoint to check if rate limiting has cleared.
+ * Health endpoints are typically exempt from rate limiting. In production, consider using
+ * a lightweight endpoint that is subject to rate limiting, or accept that this function
+ * primarily validates the backoff timing rather than actual rate limit clearance.
  */
 export async function waitForRateLimitClear(page: Page, maxWaitMs: number = MAX_RATE_LIMIT_WAIT_MS): Promise<void> {
   const startTime = Date.now();

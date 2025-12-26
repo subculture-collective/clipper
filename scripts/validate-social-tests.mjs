@@ -45,14 +45,14 @@ try {
   ];
   
   console.log('✅ Required Test Scenarios:');
-  let allScenariosCovered = true;
   
-  for (const scenario of requiredScenarios) {
+  const scenarioResults = requiredScenarios.map((scenario) => {
     const found = scenario.pattern.test(content);
     const status = found ? '✓' : '✗';
     console.log(`  ${status} ${scenario.name}`);
-    if (!found) allScenariosCovered = false;
-  }
+    return found;
+  });
+  const allScenariosCovered = scenarioResults.every(Boolean);
   
   console.log();
   
@@ -97,14 +97,14 @@ try {
   ];
   
   console.log('📦 Utility Function Usage:');
-  let allUtilitiesImported = true;
   
-  for (const utility of requiredUtilities) {
+  const utilityResults = requiredUtilities.map((utility) => {
     const found = content.includes(utility);
     const status = found ? '✓' : '✗';
     console.log(`  ${status} ${utility}`);
-    if (!found) allUtilitiesImported = false;
-  }
+    return found;
+  });
+  const allUtilitiesImported = utilityResults.every(Boolean);
   
   console.log();
   
