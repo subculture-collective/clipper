@@ -196,10 +196,9 @@ func TestRefreshTokenFlow(t *testing.T) {
 }
 
 func TestUserLifecycle(t *testing.T) {
-	_, _, db, redisClient, jwtManager := setupTestRouter(t)
+	_, _, db, redisClient, _ := setupTestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
-	_ = jwtManager // jwtManager may be used by some subtests
 
 	t.Run("CreateUser_Success", func(t *testing.T) {
 		username := fmt.Sprintf("newuser%d", time.Now().Unix())
@@ -393,12 +392,8 @@ func TestSessionManagement(t *testing.T) {
 		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		// Verify refresh token was deleted
-		refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
-		// Note: Verifying token deletion requires access to token hash
-		// which is handled at service layer. The important part is that
-		// logout returns success status.
-		_ = refreshTokenRepo
+		// Session revocation is handled at the service layer
+		// The test verifies the endpoint responds successfully
 	})
 
 	t.Run("TokenExpiration", func(t *testing.T) {
@@ -487,7 +482,7 @@ func TestOAuthFlow(t *testing.T) {
 		// Second callback with same state should fail with ErrInvalidState
 		_, _, _, err = authService.HandleCallback(ctx, "test_code", state, "")
 		assert.Error(t, err)
-		// State should be deleted after first use
+		assert.Equal(t, services.ErrInvalidState, err, "Second callback should return ErrInvalidState after state is consumed")
 	})
 }
 

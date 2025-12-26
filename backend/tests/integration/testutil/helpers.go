@@ -122,20 +122,6 @@ func CreateTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
 }
 */
 
-// CleanupTestUser removes a test user from the database
-// Note: This is a placeholder. Implement when needed based on actual repository methods.
-/*
-func CleanupTestUser(t *testing.T, db *database.DB, userID uuid.UUID) {
-	ctx := context.Background()
-	userRepo := repository.NewUserRepository(db.Pool)
-
-	err := userRepo.DeleteUser(ctx, userID)
-	if err != nil {
-		t.Logf("Warning: Failed to cleanup test user %s: %v", userID, err)
-	}
-}
-*/
-
 // CleanupTestClip removes a test clip from the database
 // Note: This is a placeholder. Implement when needed based on actual repository methods.
 /*
@@ -329,30 +315,21 @@ func CreateTestUserWithRole(t *testing.T, db *database.DB, username string, role
 
 // CreateTestUserWithAccountType creates a test user with a specific account type
 func CreateTestUserWithAccountType(t *testing.T, db *database.DB, username string, accountType string) *models.User {
-	ctx := context.Background()
-	userRepo := repository.NewUserRepository(db.Pool)
+	// First create a standard test user using the existing helper to avoid duplicating logic
+	user := CreateTestUser(t, db, username)
 
-	avatarURL := "https://example.com/avatar.png"
-	email := fmt.Sprintf("%s@example.com", username)
-	bio := "Test user bio"
-	lastLoginAt := time.Now()
-
-	user := &models.User{
-		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_%s_%d", username, time.Now().Unix()),
-		Username:    username,
-		DisplayName: fmt.Sprintf("Test User %s", username),
-		AvatarURL:   &avatarURL,
-		Email:       &email,
-		Bio:         &bio,
-		Role:        "user",
-		AccountType: accountType,
-		LastLoginAt: &lastLoginAt,
+	// If no specific account type is requested or it's already set, just return the user
+	if accountType == "" || user.AccountType == accountType {
+		return user
 	}
 
-	err := userRepo.Create(ctx, user)
-	require.NoError(t, err, "Failed to create test user with account type")
+	// Otherwise, update the account_type for this user in the database
+	ctx := context.Background()
+	_, err := db.Pool.Exec(ctx, "UPDATE users SET account_type = $1 WHERE id = $2", accountType, user.ID)
+	require.NoError(t, err, "Failed to update test user account type")
 
+	// Keep the in-memory struct in sync with the database
+	user.AccountType = accountType
 	return user
 }
 
@@ -385,7 +362,7 @@ func MockOAuthState(t *testing.T, redisClient *redispkg.Client, state string, co
 func GenerateTestRefreshToken(t *testing.T, db *database.DB, userID uuid.UUID, token string) {
 	ctx := context.Background()
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
-	
+
 	// Hash the token before storing (tokens are stored as hashes)
 	tokenHash := jwtpkg.HashToken(token)
 	expiresAt := time.Now().Add(30 * 24 * time.Hour)

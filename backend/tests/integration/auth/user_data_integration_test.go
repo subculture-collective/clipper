@@ -72,19 +72,25 @@ func TestAccountDeletion(t *testing.T) {
 		// Create some related data (e.g., refresh tokens)
 		refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
 		token := fmt.Sprintf("refresh_token_%d", time.Now().Unix())
+		tokenHash := "hashed_" + token // Use a simple hash for testing
 		expiresAt := time.Now().Add(30 * 24 * time.Hour)
-		err := refreshTokenRepo.Create(ctx, user.ID, token, expiresAt)
+		err := refreshTokenRepo.Create(ctx, user.ID, tokenHash, expiresAt)
 		require.NoError(t, err)
 
-		// Note: We can't verify token existence without the hash
-		// Just ensure creation succeeded
+		// Verify token exists before deletion
+		var count int
+		err = db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM refresh_tokens WHERE user_id = $1", user.ID).Scan(&count)
+		require.NoError(t, err)
+		assert.Equal(t, 1, count, "Refresh token should exist before user deletion")
+
 		// Delete user
 		_, err = db.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", user.ID)
 		require.NoError(t, err)
 
-		// Verify related data is handled appropriately
-		// Note: Cascade behavior depends on database schema
-		// This test ensures we're aware of related data cleanup
+		// Verify related refresh tokens are also deleted (cascade behavior)
+		err = db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM refresh_tokens WHERE user_id = $1", user.ID).Scan(&count)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count, "Refresh tokens should be cascaded/deleted when user is deleted")
 	})
 
 	t.Run("AccountDeletion_PreventsDuplicateRequests", func(t *testing.T) {
@@ -166,7 +172,7 @@ func TestUserDataPrivacy(t *testing.T) {
 		err := db.Pool.QueryRow(ctx, `
 			SELECT profile_visibility FROM user_settings WHERE user_id = $1
 		`, user.ID).Scan(&existingVisibility)
-		
+
 		if err != nil {
 			// Create default settings if they don't exist
 			_, err = db.Pool.Exec(ctx, `
