@@ -19,9 +19,7 @@
 import { test, expect } from '../fixtures';
 import { 
   createPlaylist,
-  updatePlaylist,
   deletePlaylist,
-  addClipsToPlaylist,
   getPlaylistShareLink,
   updatePlaylistVisibility,
   getPlaylist,
@@ -32,10 +30,8 @@ import {
   getWatchParty,
   getWatchPartyParticipants,
   updateWatchPartySettings,
-  kickWatchPartyParticipant,
   deleteWatchParty,
 } from '../utils/social-features';
-import { createUser, deleteUser } from '../utils/db-seed';
 
 // ============================================================================
 // Playlist Sharing - Link Generation and Access Controls
@@ -88,22 +84,21 @@ test.describe('Playlist Sharing - Link Generation and Access Controls', () => {
     }
   });
 
-  test('should not allow share link for private playlist to unauthorized users', async ({ page }) => {
+  test('should generate share link for private playlist (owner only)', async ({ page }) => {
     const playlist = await createPlaylist(page, {
-      title: `Private No Share ${Date.now()}`,
+      title: `Private Share Test ${Date.now()}`,
       visibility: 'private',
-      description: 'Private playlist should not be shareable',
+      description: 'Private playlist share link test',
     });
     
     expect(playlist).toBeDefined();
     expect(playlist.visibility).toBe('private');
     
-    // Private playlists may not generate public share links or should require authentication
+    // Owner can generate share link for private playlist
     const shareLink = await getPlaylistShareLink(page, playlist.id);
     
-    // Either no share link or it requires authentication to access
+    // Note: This only tests owner access. Multi-user unauthorized access requires separate contexts
     if (shareLink && !playlist.id.startsWith('mock-')) {
-      // If share link exists, it should be access-controlled
       expect(shareLink).toBeTruthy();
     }
     
@@ -246,11 +241,10 @@ test.describe('Playlist Sharing - Error Cases', () => {
     expect(shareLink).toBeNull();
   });
 
-  test('should prevent unauthorized users from updating playlist visibility', async ({ page }) => {
-    // This test would require multi-user setup
-    // For now, we test that only the owner can update
+  test('should allow owner to update playlist visibility', async ({ page }) => {
+    // Note: Testing unauthorized user updates would require multi-user setup
     const playlist = await createPlaylist(page, {
-      title: `Owner Only Test ${Date.now()}`,
+      title: `Owner Update Test ${Date.now()}`,
       visibility: 'private',
     });
     
@@ -329,7 +323,7 @@ test.describe('Theatre Queue (Watch Party) - Creation and Joining', () => {
     const joinResult = await joinWatchParty(page, watchParty.invite_code || watchParty.id);
     
     if (!watchParty.id.startsWith('mock-')) {
-      expect(joinResult.success !== false).toBeTruthy();
+      expect(joinResult.success).toBe(true);
     }
     
     // Cleanup
@@ -422,7 +416,7 @@ test.describe('Theatre Queue (Watch Party) - Participant Management', () => {
     });
     
     if (!watchParty.id.startsWith('mock-')) {
-      expect(updateResult.success !== false).toBeTruthy();
+      expect(updateResult.success).toBe(true);
     }
     
     // Cleanup
@@ -456,7 +450,7 @@ test.describe('Theatre Queue (Watch Party) - Participant Management', () => {
 // ============================================================================
 
 test.describe('Theatre Queue (Watch Party) - Permission and Access Control', () => {
-  test('should enforce max participants limit', async ({ page }) => {
+  test('should set max participants limit on watch party', async ({ page }) => {
     const watchParty = await createWatchParty(page, {
       title: `Max Limit Test ${Date.now()}`,
       visibility: 'public',
@@ -466,20 +460,24 @@ test.describe('Theatre Queue (Watch Party) - Permission and Access Control', () 
     expect(watchParty).toBeDefined();
     expect(watchParty.party?.max_participants || watchParty.party?.maxParticipants).toBe(2);
     
+    // Note: Actual enforcement of limit requires attempting to exceed it with multiple users
+    
     // Cleanup
     if (watchParty.id && !watchParty.id.startsWith('mock-')) {
       await deleteWatchParty(page, watchParty.id);
     }
   });
 
-  test('should require authentication to join private watch party', async ({ page }) => {
+  test('should create private watch party', async ({ page }) => {
     const watchParty = await createWatchParty(page, {
       title: `Private Auth Test ${Date.now()}`,
       visibility: 'private',
     });
     
-    // Private watch party should require authentication
+    // Private watch party is created with correct visibility
     expect(watchParty.party?.visibility).toBe('private');
+    
+    // Note: Testing actual authentication requirement needs unauthenticated context
     
     // Cleanup
     if (watchParty.id && !watchParty.id.startsWith('mock-')) {

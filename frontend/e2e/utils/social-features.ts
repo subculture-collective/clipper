@@ -929,6 +929,24 @@ export interface WatchPartyParticipant {
 }
 
 /**
+ * Create mock watch party data for fallback
+ */
+function createMockWatchParty(watchPartyData: WatchPartyData): any {
+  const mockId = `mock-watch-party-${Date.now()}`;
+  const mockCode = `MOCK${Date.now()}`;
+  return {
+    id: mockId,
+    invite_code: mockCode,
+    invite_url: `http://localhost/watch-party/${mockCode}`,
+    party: {
+      id: mockId,
+      ...watchPartyData,
+      created_at: new Date().toISOString(),
+    },
+  };
+}
+
+/**
  * Create a watch party (theatre queue)
  */
 export async function createWatchParty(page: Page, watchPartyData: WatchPartyData): Promise<any> {
@@ -952,32 +970,14 @@ export async function createWatchParty(page: Page, watchPartyData: WatchPartyDat
     
     if (!response.ok()) {
       console.warn('Failed to create watch party via API, using mock data');
-      return {
-        id: `mock-watch-party-${Date.now()}`,
-        invite_code: `MOCK${Date.now()}`,
-        invite_url: `http://localhost/watch-party/MOCK${Date.now()}`,
-        party: {
-          id: `mock-watch-party-${Date.now()}`,
-          ...watchPartyData,
-          created_at: new Date().toISOString(),
-        },
-      };
+      return createMockWatchParty(watchPartyData);
     }
     
     const result = await response.json();
     return result.data || result;
   } catch (error) {
     console.warn('API not available, using mock watch party data:', error);
-    return {
-      id: `mock-watch-party-${Date.now()}`,
-      invite_code: `MOCK${Date.now()}`,
-      invite_url: `http://localhost/watch-party/MOCK${Date.now()}`,
-      party: {
-        id: `mock-watch-party-${Date.now()}`,
-        ...watchPartyData,
-        created_at: new Date().toISOString(),
-      },
-    };
+    return createMockWatchParty(watchPartyData);
   }
 }
 
