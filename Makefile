@@ -272,12 +272,7 @@ test-benchmark-search: ## Run search endpoint benchmark (p50<30ms, p95<100ms)
 test-benchmarks-all: ## Run all endpoint benchmarks
 	@if command -v k6 > /dev/null; then \
 		echo "Running all endpoint benchmarks..."; \
-		for script in backend/tests/load/scenarios/benchmarks/*.js; do \
-			echo ""; \
-			echo "Running $$script..."; \
-			k6 run "$$script" || true; \
-		done; \
-		echo "✓ All benchmarks complete"; \
+		cd backend/tests/load && ./run_all_benchmarks.sh; \
 	else \
 		echo "Error: k6 is not installed"; \
 		exit 1; \
@@ -293,7 +288,7 @@ test-benchmarks-with-profiling: ## Run benchmarks with query profiling
 			cd backend/tests/load && ./profile_queries.sh "$$endpoint" 60 || true; \
 		done; \
 		echo "✓ All benchmarks with profiling complete"; \
-		echo "View reports in backend/tests/load/profiles/queries/"; \
+		echo "View reports in backend/tests/load/profiles/benchmarks/ and profiles/queries/"; \
 	else \
 		echo "Error: k6 is not installed"; \
 		exit 1; \

@@ -44,10 +44,15 @@ export const options = {
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN || '';
 
+let authTokenWarningLogged = false;
+
 export default function () {
     if (!AUTH_TOKEN) {
         // Skip if no auth token provided
-        console.log('Warning: No AUTH_TOKEN provided, benchmark will test unauthenticated behavior');
+        if (!authTokenWarningLogged) {
+            console.log('Warning: No AUTH_TOKEN provided, benchmark will test unauthenticated behavior');
+            authTokenWarningLogged = true;
+        }
         sleep(1);
         return;
     }

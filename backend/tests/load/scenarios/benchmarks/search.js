@@ -10,7 +10,7 @@
 
 import { check, sleep } from 'k6';
 import http from 'k6/http';
-import { Rate, Trend, Counter } from 'k6/metrics';
+import { Rate, Trend } from 'k6/metrics';
 
 const errorRate = new Rate('endpoint_errors');
 const responseTime = new Trend('endpoint_response_time');

@@ -36,7 +36,10 @@ if ! command -v k6 > /dev/null; then
 fi
 
 # Find all benchmark scripts
-BENCHMARKS=($(find "${BENCHMARK_DIR}" -name "*.js" -type f | sort))
+BENCHMARKS=()
+while IFS= read -r -d '' benchmark; do
+    BENCHMARKS+=("$benchmark")
+done < <(find "${BENCHMARK_DIR}" -name "*.js" -type f -print0 | sort -z)
 
 if [ ${#BENCHMARKS[@]} -eq 0 ]; then
     echo "Error: No benchmark scripts found in ${BENCHMARK_DIR}"

@@ -18,7 +18,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROFILE_DIR="${SCRIPT_DIR}/../profiles/queries"
+PROFILE_DIR="${SCRIPT_DIR}/profiles/queries"
 ENDPOINT_NAME="${1:-mixed}"
 DURATION="${2:-60}"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -145,11 +145,12 @@ psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -t -A -c \
     echo "=== Query: ${query:0:100}... ===" >> "${PROFILE_OUTPUT_DIR}/explain_analyze.txt"
     echo "" >> "${PROFILE_OUTPUT_DIR}/explain_analyze.txt"
     
-    # Attempt to EXPLAIN the query (may fail for some queries)
+    # Attempt to EXPLAIN the query (may fail for parameterized queries with $1, $2, etc.)
+    # Note: Queries with parameter placeholders ($1, $2) cannot be explained without actual values
     psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -c \
       "EXPLAIN (ANALYZE, BUFFERS, VERBOSE, FORMAT TEXT) ${query};" \
       >> "${PROFILE_OUTPUT_DIR}/explain_analyze.txt" 2>&1 || \
-      echo "Could not explain this query" >> "${PROFILE_OUTPUT_DIR}/explain_analyze.txt"
+      echo "Could not explain this query (likely contains parameter placeholders)" >> "${PROFILE_OUTPUT_DIR}/explain_analyze.txt"
     echo "" >> "${PROFILE_OUTPUT_DIR}/explain_analyze.txt"
   fi
 done

@@ -64,15 +64,27 @@ export function handleSummary(data) {
   - RPS: 25+
   - Cache: 50%+
 
+- **`related_clips.js`** - Related clips recommendation
+  - Target: p50<25ms, p95<75ms, p99<150ms
+  - RPS: 30+
+  - Cache: 70%+
+
+- **`list_comments.js`** - Comments for a clip
+  - Target: p50<20ms, p95<50ms, p99<100ms
+  - RPS: 35+
+  - Cache: 60%+
+
+- **`auth_me.js`** - Current user endpoint
+  - Target: p50<15ms, p95<40ms, p99<75ms
+  - RPS: 30+
+  - Cache: 70%+
+
 ### Additional Benchmarks (To Be Created)
 
-- `related_clips.js` - Related clips recommendation
 - `search_suggestions.js` - Autocomplete
-- `list_comments.js` - Comments for a clip
 - `create_comment.js` - Create comment
 - `vote_clip.js` - Voting on clips
 - `user_profile.js` - User profile
-- `auth_me.js` - Current user endpoint
 - And more...
 
 ## Running Benchmarks
@@ -106,7 +118,7 @@ Combine benchmarks with database query analysis:
 
 ```bash
 # Profile queries while running benchmark
-./backend/tests/load/profile_queries.sh feed_list 60
+backend/tests/load/profile_queries.sh feed_list 60
 
 # This will:
 # - Enable query logging
@@ -118,7 +130,7 @@ Combine benchmarks with database query analysis:
 
 ## Performance Targets
 
-All targets are defined in `../config/endpoint-targets.yaml`.
+All targets are defined in `../../config/endpoint-targets.yaml`.
 
 | Endpoint | p50 (ms) | p95 (ms) | p99 (ms) | RPS | Cache % |
 |----------|----------|----------|----------|-----|---------|
