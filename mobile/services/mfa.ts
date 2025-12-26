@@ -77,3 +77,14 @@ export async function getTrustedDevices(): Promise<TrustedDevice[]> {
 export async function revokeTrustedDevice(deviceId: number): Promise<void> {
     await api.delete(`/auth/mfa/trusted-devices/${deviceId}`);
 }
+
+/**
+ * Request a new email OTP to be sent
+ * Note: This endpoint needs to be implemented on the backend
+ */
+export async function resendEmailOTP(): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>(
+        '/auth/mfa/resend-email-otp'
+    );
+    return response.data;
+}

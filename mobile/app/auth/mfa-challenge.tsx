@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { verifyMFALogin } from '@/services/mfa';
+import { verifyMFALogin, resendEmailOTP } from '@/services/mfa';
 import { getCurrentUser } from '@/services/auth';
 import { checkBiometricCapability, authenticateWithBiometrics, getBiometricTypeLabel } from '@/lib/biometric';
 
@@ -55,7 +55,7 @@ export default function MFAChallengeScreen() {
             }
         };
         initBiometric();
-    }, [checkBiometricCapability, getBiometricTypeLabel]);
+    }, []);
 
     // TOTP timer countdown
     useEffect(() => {
@@ -122,6 +122,11 @@ export default function MFAChallengeScreen() {
             return;
         }
 
+        if (mode === 'email' && code.length !== 6) {
+            setError('Email verification code must be 6 digits');
+            return;
+        }
+
         if (mode === 'backup' && code.length !== 8) {
             setError('Backup code must be 8 characters');
             return;
@@ -174,7 +179,19 @@ export default function MFAChallengeScreen() {
         if (resendCooldown > 0) return;
 
         setResendCooldown(60); // 60 second cooldown
-        Alert.alert('Email Sent', 'A new verification code has been sent to your email.');
+        
+        try {
+            await resendEmailOTP();
+            Alert.alert('Email Sent', 'A new verification code has been sent to your email.');
+        } catch (error) {
+            console.error('Error resending email OTP:', error);
+            setResendCooldown(0); // Reset cooldown on error
+            Alert.alert(
+                'Error',
+                'Failed to send verification email. Please try again.',
+                [{ text: 'OK' }]
+            );
+        }
     };
 
     const handleSwitchMode = (newMode: ChallengeMode) => {
@@ -204,7 +221,7 @@ export default function MFAChallengeScreen() {
             className="flex-1 bg-white"
         >
             <ScrollView
-                contentContainerClassName="flex-grow justify-center p-6"
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
                 keyboardShouldPersistTaps="handled"
             >
                 <View className="max-w-md w-full mx-auto">

@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useConsent } from '@/contexts/ConsentContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import {
     getUserSettings,
     updateUserSettings,
@@ -21,7 +20,6 @@ import { getMFAStatus, type MFAStatus } from '@/services/mfa';
 
 export default function SettingsScreen() {
   const { isAuthenticated } = useAuth();
-  const router = useRouter();
   const { isNotificationsEnabled, enableNotifications, disableNotifications } = useNotifications();
   const { consent, updateConsent } = useConsent();
   const [notifications, setNotifications] = useState(isNotificationsEnabled);
