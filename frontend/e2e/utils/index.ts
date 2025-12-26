@@ -15,3 +15,4 @@ export * from './api-mock';
 export * from './oauth-mock';
 export * from './mfa-mock';
 export * from './session-mock';
+export * from './social-features';
