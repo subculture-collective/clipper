@@ -17,9 +17,9 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import * as LocalAuthentication from 'expo-local-authentication';
 import { verifyMFALogin } from '@/services/mfa';
 import { getCurrentUser } from '@/services/auth';
+import { checkBiometricCapability, authenticateWithBiometrics, getBiometricTypeLabel } from '@/lib/biometric';
 
 type ChallengeMode = 'totp' | 'email' | 'backup';
 
@@ -37,6 +37,7 @@ export default function MFAChallengeScreen() {
     const [timer, setTimer] = useState(30);
     const [resendCooldown, setResendCooldown] = useState(0);
     const [biometricAvailable, setBiometricAvailable] = useState(false);
+    const [biometricType, setBiometricType] = useState<string>('Biometric');
     const [error, setError] = useState<string | null>(null);
 
     // Check biometric availability on mount
@@ -69,9 +70,11 @@ export default function MFAChallengeScreen() {
 
     const checkBiometricSupport = async () => {
         try {
-            const compatible = await LocalAuthentication.hasHardwareAsync();
-            const enrolled = await LocalAuthentication.isEnrolledAsync();
-            setBiometricAvailable(compatible && enrolled);
+            const capability = await checkBiometricCapability();
+            setBiometricAvailable(capability.available && capability.enrolled);
+            if (capability.biometricType) {
+                setBiometricType(getBiometricTypeLabel(capability.biometricType));
+            }
         } catch (error) {
             console.error('Error checking biometric support:', error);
             setBiometricAvailable(false);
@@ -80,13 +83,12 @@ export default function MFAChallengeScreen() {
 
     const handleBiometricAuth = async () => {
         try {
-            const result = await LocalAuthentication.authenticateAsync({
-                promptMessage: 'Authenticate to access your MFA code',
-                fallbackLabel: 'Use passcode',
-                disableDeviceFallback: false,
-            });
+            const success = await authenticateWithBiometrics(
+                'Authenticate to access your MFA code',
+                'Use passcode'
+            );
 
-            if (result.success) {
+            if (success) {
                 // Biometric auth is only a convenience gate
                 // User still needs to enter TOTP or it can auto-fill if stored
                 Alert.alert(
@@ -310,7 +312,7 @@ export default function MFAChallengeScreen() {
                             disabled={isLoading}
                         >
                             <Text className="text-center text-primary-600 font-medium">
-                                🔐 Use Biometrics
+                                🔐 Use {biometricType}
                             </Text>
                         </TouchableOpacity>
                     )}

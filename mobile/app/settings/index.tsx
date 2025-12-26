@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useConsent } from '@/contexts/ConsentContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import {
     getUserSettings,
     updateUserSettings,
@@ -16,9 +17,11 @@ import {
     getDeletionStatus,
     type UserSettings,
 } from '@/services/users';
+import { getMFAStatus, type MFAStatus } from '@/services/mfa';
 
 export default function SettingsScreen() {
   const { isAuthenticated } = useAuth();
+  const router = useRouter();
   const { isNotificationsEnabled, enableNotifications, disableNotifications } = useNotifications();
   const { consent, updateConsent } = useConsent();
   const [notifications, setNotifications] = useState(isNotificationsEnabled);
@@ -36,6 +39,13 @@ export default function SettingsScreen() {
   const { data: deletionStatus, refetch: refetchDeletionStatus } = useQuery({
     queryKey: ['deletionStatus'],
     queryFn: getDeletionStatus,
+    enabled: isAuthenticated,
+  });
+
+  // Fetch MFA status
+  const { data: mfaStatus } = useQuery<MFAStatus>({
+    queryKey: ['mfaStatus'],
+    queryFn: getMFAStatus,
     enabled: isAuthenticated,
   });
 
@@ -363,6 +373,66 @@ export default function SettingsScreen() {
                 trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
               />
             </View>
+          </View>
+
+          <View className="bg-white p-4 mb-2">
+            <Text className="text-xs font-semibold text-gray-500 uppercase mb-2">
+              Security
+            </Text>
+            
+            <TouchableOpacity
+              className="py-3 border-b border-gray-100"
+              onPress={() => {
+                Alert.alert(
+                  'MFA Enrollment',
+                  'MFA enrollment UI will be available soon. This is the challenge UI implementation.'
+                );
+              }}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-base text-gray-900">
+                    Two-Factor Authentication
+                  </Text>
+                  <Text className="text-xs text-gray-500 mt-1">
+                    {mfaStatus?.enabled
+                      ? `Enabled • ${mfaStatus.backup_codes_remaining} backup codes remaining`
+                      : 'Add an extra layer of security to your account'}
+                  </Text>
+                </View>
+                <View className="ml-2">
+                  {mfaStatus?.enabled ? (
+                    <View className="bg-green-100 px-2 py-1 rounded">
+                      <Text className="text-xs text-green-800 font-medium">Enabled</Text>
+                    </View>
+                  ) : (
+                    <Text className="text-gray-400">›</Text>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {mfaStatus?.enabled && (
+              <TouchableOpacity
+                className="py-3"
+                onPress={() => {
+                  Alert.alert(
+                    'Trusted Devices',
+                    `You have ${mfaStatus.trusted_devices_count} trusted device(s).\n\nTrusted devices skip MFA for 30 days.`
+                  );
+                }}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1">
+                    <Text className="text-base text-gray-900">Trusted Devices</Text>
+                    <Text className="text-xs text-gray-500 mt-1">
+                      {mfaStatus.trusted_devices_count} device(s)
+                    </Text>
+                  </View>
+                  <Text className="text-gray-400 ml-2">›</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View className="bg-white p-4 mb-2">
