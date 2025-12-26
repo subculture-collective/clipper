@@ -152,7 +152,7 @@ func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 		StripeCustomerID:     testCustomerID,
 		StripeSubscriptionID: &testSubscriptionID,
 		Status:               "active",
-		Tier:                 "premium",
+		Tier:                 "pro",
 	}
 
 	subscriptionRepo := subscriptionService.GetRepository()
@@ -238,7 +238,7 @@ func TestEntitlementUpdatesOnSubscriptionStatusChanges(t *testing.T) {
 			StripeCustomerID:     trialCustomerID,
 			StripeSubscriptionID: &trialSubID,
 			Status:               "trialing",
-			Tier:                 "premium",
+			Tier:                 "pro",
 			TrialStart:           ptrTime(time.Now()),
 			TrialEnd:             ptrTime(time.Now().Add(14 * 24 * time.Hour)),
 		}
@@ -322,7 +322,7 @@ func TestProrationCalculationsWithValidation(t *testing.T) {
 		StripeCustomerID:     testCustomerID,
 		StripeSubscriptionID: &testSubscriptionID,
 		Status:               "active",
-		Tier:                 "premium",
+		Tier:                 "pro",
 		StripePriceID:        ptrString("price_test_monthly"),
 		CurrentPeriodStart:   ptrTime(time.Now()),
 		CurrentPeriodEnd:     ptrTime(time.Now().Add(30 * 24 * time.Hour)),
