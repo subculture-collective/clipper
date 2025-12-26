@@ -385,9 +385,11 @@ func MockOAuthState(t *testing.T, redisClient *redispkg.Client, state string, co
 func GenerateTestRefreshToken(t *testing.T, db *database.DB, userID uuid.UUID, token string) {
 	ctx := context.Background()
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
-
+	
+	// Hash the token before storing (tokens are stored as hashes)
+	tokenHash := jwtpkg.HashToken(token)
 	expiresAt := time.Now().Add(30 * 24 * time.Hour)
-	err := refreshTokenRepo.Create(ctx, userID, token, expiresAt)
+	err := refreshTokenRepo.Create(ctx, userID, tokenHash, expiresAt)
 	require.NoError(t, err, "Failed to create test refresh token")
 }
 

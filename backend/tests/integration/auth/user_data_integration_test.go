@@ -161,12 +161,20 @@ func TestUserDataPrivacy(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Create default settings
-		_, err := db.Pool.Exec(ctx, `
-			INSERT INTO user_settings (user_id, profile_visibility, show_karma_publicly)
-			VALUES ($1, 'public', true)
-		`, user.ID)
-		require.NoError(t, err)
+		// Check if settings already exist (they may be created automatically)
+		var existingVisibility string
+		err := db.Pool.QueryRow(ctx, `
+			SELECT profile_visibility FROM user_settings WHERE user_id = $1
+		`, user.ID).Scan(&existingVisibility)
+		
+		if err != nil {
+			// Create default settings if they don't exist
+			_, err = db.Pool.Exec(ctx, `
+				INSERT INTO user_settings (user_id, profile_visibility, show_karma_publicly)
+				VALUES ($1, 'public', true)
+			`, user.ID)
+			require.NoError(t, err)
+		}
 
 		// Verify settings exist
 		var visibility string
