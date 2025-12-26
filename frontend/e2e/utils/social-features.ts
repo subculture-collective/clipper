@@ -640,7 +640,7 @@ export async function getPlaylist(page: Page, playlistId: string): Promise<any |
 }
 
 /**
- * Validate playlist access with specific token
+ * Validate playlist access with the current page context
  */
 export async function validatePlaylistAccess(page: Page, playlistId: string, expectedStatus: number = 200): Promise<boolean> {
   const apiUrl = getApiBaseUrl();

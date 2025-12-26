@@ -271,8 +271,7 @@ Artifacts are retained for 7 days in CI and can be downloaded from the GitHub Ac
 
 - [E2E Testing Framework README](../README.md)
 - [Social Features Tests](./SOCIAL_FEATURES_TESTS.md)
-- [Playlist API Documentation](../../../docs/api/playlists.md)
-- [Watch Party API Documentation](../../../docs/api/watch-parties.md)
+- Backend API documentation (see backend/internal/handlers/)
 
 ## Contributing
 
