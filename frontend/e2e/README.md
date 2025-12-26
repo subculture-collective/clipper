@@ -537,6 +537,69 @@ npm run test:e2e -- tests/social-features.spec.ts --grep "Voting"
 npm run test:e2e -- tests/social-features.spec.ts --grep "Playlists"
 ```
 
+### Search & Discovery Tests (`search-discovery.spec.ts`)
+
+Comprehensive E2E tests for search functionality with ≥95% target pass rate and performance SLAs:
+
+**Text Search & Relevance:**
+- Query handling and result display
+- Special character and case handling
+- Result count validation
+- Query persistence
+
+**Filters:**
+- Language, game, date range, tags filters
+- Multiple filter combinations
+- Filter persistence through navigation
+- Clear filters functionality
+
+**Autocomplete/Suggestions:**
+- Suggestion display and quality
+- Keyboard navigation
+- Selection and search
+- Latency validation (< 300ms p95)
+
+**Search History:**
+- localStorage persistence
+- History display and selection
+- History clearing
+- Recent items limit (10)
+
+**Pagination:**
+- Multi-page navigation
+- State preservation
+- Filter/query persistence
+
+**Performance:**
+- Search latency measurement
+- p50/p95/p99 metrics calculation
+- SLA validation (p95 < 500ms)
+- Regression detection
+
+**Empty States:**
+- No results handling
+- Error messaging
+- Recovery actions
+
+**Accessibility:**
+- Keyboard navigation
+- Screen reader support
+- ARIA attributes
+
+Run the full suite:
+```bash
+npm run test:e2e -- tests/search-discovery.spec.ts
+```
+
+Run specific test group:
+```bash
+npm run test:e2e -- tests/search-discovery.spec.ts --grep "Performance"
+npm run test:e2e -- tests/search-discovery.spec.ts --grep "Filters"
+npm run test:e2e -- tests/search-discovery.spec.ts --grep "Suggestions"
+```
+
+**Documentation:** See [SEARCH_DISCOVERY_TESTS.md](./SEARCH_DISCOVERY_TESTS.md) for detailed information.
+
 ### Other Test Suites
 
 - `framework-demo.spec.ts` - Framework validation and examples
