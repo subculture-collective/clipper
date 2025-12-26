@@ -25,7 +25,9 @@ if [ $# -eq 0 ]; then
 fi
 
 VERSION="$1"
-BASELINES_DIR="backend/tests/load/baselines"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOAD_TEST_DIR="$(dirname "$SCRIPT_DIR")"
+BASELINES_DIR="${LOAD_TEST_DIR}/baselines"
 VERSION_DIR="${BASELINES_DIR}/${VERSION}"
 TEMP_DIR="/tmp/k6_baseline_${VERSION}_$$"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -173,7 +175,7 @@ EOF
 
 # Run each scenario
 for scenario in "${scenarios[@]}"; do
-    scenario_file="backend/tests/load/scenarios/${scenario}.js"
+    scenario_file="${LOAD_TEST_DIR}/scenarios/${scenario}.js"
     
     if [ ! -f "$scenario_file" ]; then
         echo -e "${YELLOW}⚠ Scenario not found: $scenario_file, skipping${NC}"

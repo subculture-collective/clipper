@@ -35,11 +35,13 @@ if [ $# -eq 0 ]; then
 fi
 
 BASELINE_VERSION="$1"
-BASELINES_DIR="backend/tests/load/baselines"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOAD_TEST_DIR="$(dirname "$SCRIPT_DIR")"
+BASELINES_DIR="${LOAD_TEST_DIR}/baselines"
 BASELINE_DIR="${BASELINES_DIR}/${BASELINE_VERSION}"
 TEMP_DIR="/tmp/k6_comparison_$$"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-REPORT_DIR="backend/tests/load/reports"
+REPORT_DIR="${LOAD_TEST_DIR}/reports"
 REPORT_FILE="${REPORT_DIR}/comparison_${BASELINE_VERSION}_$(date +%Y%m%d_%H%M%S).md"
 
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
@@ -136,7 +138,7 @@ compare_scenario() {
     
     # Run current test
     echo -e "${CYAN}Running: ${scenario_name}${NC}"
-    local scenario_file="backend/tests/load/scenarios/${scenario_name}.js"
+    local scenario_file="${LOAD_TEST_DIR}/scenarios/${scenario_name}.js"
     k6 run --out json="$current_json" "$scenario_file" > /dev/null 2>&1 || {
         echo -e "${YELLOW}⚠ Test failed, skipping comparison${NC}"
         return
@@ -163,14 +165,21 @@ compare_scenario() {
     local throughput_change=$(calculate_change "$baseline_throughput" "$current_throughput")
     local check_change=$(calculate_change "$baseline_check_rate" "$current_check_rate")
     
-    # Detect regressions
+    # Detect regressions (track individually)
+    local p95_regression=0
+    local p99_regression=0
+    local error_regression=0
+    local throughput_regression=0
+    local check_regression=0
+    
     local has_regression=0
     local regression_details=""
     
     # Check p95 regression
     if [ "$p95_change" != "N/A" ]; then
-        local p95_regression=$(echo "$p95_change > $(echo "$LATENCY_P95_THRESHOLD * 100" | bc)" | bc)
-        if [ "$p95_regression" -eq 1 ]; then
+        local p95_check=$(echo "$p95_change > $(echo "$LATENCY_P95_THRESHOLD * 100" | bc)" | bc)
+        if [ "$p95_check" -eq 1 ]; then
+            p95_regression=1
             has_regression=1
             regression_details="${regression_details}\n  - p95 latency increased by ${p95_change}% (threshold: 10%)"
         fi
@@ -178,8 +187,9 @@ compare_scenario() {
     
     # Check p99 regression
     if [ "$p99_change" != "N/A" ]; then
-        local p99_regression=$(echo "$p99_change > $(echo "$LATENCY_P99_THRESHOLD * 100" | bc)" | bc)
-        if [ "$p99_regression" -eq 1 ]; then
+        local p99_check=$(echo "$p99_change > $(echo "$LATENCY_P99_THRESHOLD * 100" | bc)" | bc)
+        if [ "$p99_check" -eq 1 ]; then
+            p99_regression=1
             has_regression=1
             regression_details="${regression_details}\n  - p99 latency increased by ${p99_change}% (threshold: 15%)"
         fi
@@ -187,8 +197,9 @@ compare_scenario() {
     
     # Check error rate regression
     if [ "$error_change" != "N/A" ]; then
-        local error_regression=$(echo "$error_change > $(echo "$ERROR_RATE_THRESHOLD * 100" | bc)" | bc)
-        if [ "$error_regression" -eq 1 ]; then
+        local error_check=$(echo "$error_change > $(echo "$ERROR_RATE_THRESHOLD * 100" | bc)" | bc)
+        if [ "$error_check" -eq 1 ]; then
+            error_regression=1
             has_regression=1
             regression_details="${regression_details}\n  - Error rate increased by ${error_change}% (threshold: 50%)"
         fi
@@ -196,8 +207,9 @@ compare_scenario() {
     
     # Check throughput regression (negative change is bad)
     if [ "$throughput_change" != "N/A" ]; then
-        local throughput_regression=$(echo "$throughput_change < -$(echo "$THROUGHPUT_THRESHOLD * 100" | bc)" | bc)
-        if [ "$throughput_regression" -eq 1 ]; then
+        local throughput_check=$(echo "$throughput_change < -$(echo "$THROUGHPUT_THRESHOLD * 100" | bc)" | bc)
+        if [ "$throughput_check" -eq 1 ]; then
+            throughput_regression=1
             has_regression=1
             regression_details="${regression_details}\n  - Throughput decreased by ${throughput_change}% (threshold: -10%)"
         fi
@@ -212,18 +224,18 @@ compare_scenario() {
         echo -e "${GREEN}✓ No regressions detected${NC}"
     fi
     
-    # Add to report
+    # Add to report with individual status
     cat >> "$REPORT_FILE" <<EOF
 
 ### ${scenario_name}
 
 | Metric | Baseline | Current | Change | Status |
 |--------|----------|---------|--------|--------|
-| p95 Latency | ${baseline_p95}ms | ${current_p95}ms | ${p95_change}% | $([ $has_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
-| p99 Latency | ${baseline_p99}ms | ${current_p99}ms | ${p99_change}% | $([ $has_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
-| Error Rate | ${baseline_error_rate} | ${current_error_rate} | ${error_change}% | $([ $has_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
-| Throughput | ${baseline_throughput} req/s | ${current_throughput} req/s | ${throughput_change}% | $([ $has_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
-| Check Success | ${baseline_check_rate} | ${current_check_rate} | ${check_change}% | $([ $has_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
+| p95 Latency | ${baseline_p95}ms | ${current_p95}ms | ${p95_change}% | $([ $p95_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
+| p99 Latency | ${baseline_p99}ms | ${current_p99}ms | ${p99_change}% | $([ $p99_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
+| Error Rate | ${baseline_error_rate} | ${current_error_rate} | ${error_change}% | $([ $error_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
+| Throughput | ${baseline_throughput} req/s | ${current_throughput} req/s | ${throughput_change}% | $([ $throughput_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
+| Check Success | ${baseline_check_rate} | ${current_check_rate} | ${check_change}% | $([ $check_regression -eq 1 ] && echo "⚠️ REGRESSION" || echo "✅ OK") |
 
 EOF
 

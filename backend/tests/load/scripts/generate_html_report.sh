@@ -95,31 +95,33 @@ run_scenario_with_html() {
     mkdir -p "$REPORT_DIR"
     
     local timestamp=$(date +%Y%m%d_%H%M%S)
-    local html_report="${REPORT_DIR}/${scenario_name}_${timestamp}.html"
     local json_report="${REPORT_DIR}/${scenario_name}_${timestamp}.json"
     
     echo -e "${CYAN}Running: ${scenario_name}${NC}"
-    echo -e "${CYAN}HTML Report: ${html_report}${NC}"
     
-    # Run k6 with custom binary and HTML reporter
+    # Note: HTML report generation requires the scenario to have a handleSummary function
+    # that uses the simpleHtmlReport() from config/html-reporter.js
+    # See scenarios/example_with_html.js for an example
+    
+    # Run k6 with JSON output
     "$K6_BINARY" run \
         --out json="$json_report" \
         "$scenario_file" \
         2>&1 | tee "${REPORT_DIR}/${scenario_name}_${timestamp}.log"
     
-    # Generate HTML report from JSON using k6-reporter
-    if [ -f "$json_report" ]; then
-        echo -e "${CYAN}Generating HTML report...${NC}"
-        
-        # Use the built-in reporter functionality
-        # Note: The actual HTML generation happens via the handleSummary in the k6 script
-        # We'll need to modify the scenarios to include HTML output
-        
-        echo -e "${GREEN}✓ Reports generated${NC}"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ Test completed${NC}"
         echo -e "  JSON: $json_report"
-        echo -e "  HTML: $html_report"
+        
+        # Check if HTML was generated (by handleSummary in the scenario)
+        local html_report="${REPORT_DIR}/${scenario_name}_*.html"
+        if ls $html_report 2>/dev/null 1>&2; then
+            echo -e "  HTML: $html_report"
+        else
+            echo -e "${YELLOW}  Note: No HTML report generated. Add handleSummary() to scenario to enable HTML.${NC}"
+        fi
     else
-        echo -e "${YELLOW}⚠ JSON report not found, HTML report not generated${NC}"
+        echo -e "${RED}✗ Test failed${NC}"
     fi
     
     echo ""

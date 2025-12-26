@@ -161,7 +161,7 @@ export function simpleHtmlReport(data, testName) {
                 </div>
                 <div class="metric-label">Failed Requests</div>
                 <div class="metric-sub">
-                    <span>Failed: <strong>${httpReqFailed.values.passes || 0}</strong></span>
+                    <span>Failed: <strong>${httpReqFailed.values.fails || 0}</strong></span>
                     <span>Total: <strong>${httpReqs.values.count}</strong></span>
                 </div>
             </div>
