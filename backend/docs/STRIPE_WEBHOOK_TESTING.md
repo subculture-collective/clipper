@@ -1,6 +1,36 @@
 # Stripe Webhook Testing Guide
 
-This guide explains how to test Stripe webhook handlers using the Stripe CLI and verify webhook functionality in development and production environments.
+This guide explains how to test Stripe webhook handlers using the Stripe CLI, automated integration tests, and verify webhook functionality in development and production environments.
+
+## Quick Start: Automated Integration Tests
+
+**New**: Run comprehensive integration tests that validate webhook idempotency, entitlement updates, payment failures, and proration calculations:
+
+```bash
+# Run all Stripe integration tests
+make test-integration-stripe
+
+# Or run from backend directory
+cd backend
+go test -v -tags=integration ./tests/integration/premium/ -run "TestWebhook|TestEntitlement|TestProration|TestPaymentFailure"
+```
+
+**Test Coverage**:
+- ✅ Webhook idempotency (duplicate event prevention)
+- ✅ Entitlement sync on subscription status changes
+- ✅ Grace period handling for past_due subscriptions
+- ✅ Webhook retry queue and exponential backoff
+- ✅ Proration invoice processing
+- ✅ Payment failure escalation
+- ✅ Database schema validation
+
+**Environment Variables** (optional for enhanced testing):
+```bash
+export TEST_STRIPE_SECRET_KEY=sk_test_your_key
+export TEST_STRIPE_WEBHOOK_SECRET=whsec_test_your_secret
+```
+
+See `backend/tests/integration/premium/subscription_webhook_integration_test.go` for test implementation details.
 
 ## Prerequisites
 

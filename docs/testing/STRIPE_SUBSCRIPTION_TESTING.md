@@ -1,6 +1,31 @@
 # Stripe Subscription Lifecycle Testing Guide
 
-This guide provides comprehensive testing procedures for Stripe subscription flows, including manual test cases, edge cases, and dashboard reconciliation procedures.
+This guide provides comprehensive testing procedures for Stripe subscription flows, including automated integration tests, manual test cases, edge cases, and dashboard reconciliation procedures.
+
+## Automated Integration Tests
+
+**New**: Comprehensive integration tests are available to validate the complete Stripe subscription lifecycle:
+
+```bash
+# Run all Stripe integration tests
+make test-integration-stripe
+
+# Run specific test categories
+cd backend
+go test -v -tags=integration ./tests/integration/premium/ -run TestWebhookIdempotency
+go test -v -tags=integration ./tests/integration/premium/ -run TestEntitlementUpdates
+go test -v -tags=integration ./tests/integration/premium/ -run TestProration
+go test -v -tags=integration ./tests/integration/premium/ -run TestPaymentFailure
+```
+
+**Test Coverage**:
+1. **Webhook Idempotency**: Tests duplicate event detection and database assertions
+2. **Entitlement Updates**: Tests subscription status → user permissions sync
+3. **Payment Failures**: Tests dunning process and retry logic
+4. **Proration**: Tests plan change calculations and invoice processing
+5. **Retry Logic**: Tests webhook retry queue and exponential backoff
+
+See the [Integration Test Implementation](#integration-test-details) section for more details.
 
 ## Table of Contents
 
@@ -795,8 +820,87 @@ After completing all tests, verify:
 5. Set up monitoring and alerts
 6. Plan for ongoing testing and maintenance
 
+## Integration Test Details
+
+The automated integration tests are located in `backend/tests/integration/premium/subscription_webhook_integration_test.go`.
+
+### Test Implementation
+
+**TestWebhookIdempotencyWithDatabaseAssertion**
+- Validates duplicate event prevention using `stripe_webhooks_log` table
+- Tests concurrent webhook delivery (race conditions)
+- Verifies exactly-once processing guarantees
+- Database assertions on event tracking
+
+**TestEntitlementUpdatesOnSubscriptionStatusChanges**
+- Tests active subscription → pro user access
+- Tests canceled subscription → access removal
+- Tests past_due → grace period handling
+- Tests trialing subscription → access granted
+
+**TestWebhookRetryLogic**
+- Validates retry queue infrastructure exists
+- Tests exponential backoff scheduling (`next_retry_at` column)
+- Verifies max retries prevent infinite loops
+- Tests error logging for alerting
+
+**TestProrationCalculationsWithValidation**
+- Tests proration invoice webhook processing
+- Validates plan change proration behavior
+- Tests upgrade vs downgrade scenarios
+- Verifies proration amounts in webhook data
+
+**TestPaymentFailureHandlingWithAlerts**
+- Tests first payment failure → dunning process starts
+- Tests multiple failures → escalation
+- Tests payment intent failure logging
+- Validates error tracking for alerts
+
+### Running Individual Tests
+
+```bash
+# Test webhook idempotency
+go test -v -tags=integration ./tests/integration/premium/ -run TestWebhookIdempotencyWithDatabaseAssertion
+
+# Test entitlement updates
+go test -v -tags=integration ./tests/integration/premium/ -run TestEntitlementUpdatesOnSubscriptionStatusChanges
+
+# Test retry logic
+go test -v -tags=integration ./tests/integration/premium/ -run TestWebhookRetryLogic
+
+# Test proration
+go test -v -tags=integration ./tests/integration/premium/ -run TestProrationCalculationsWithValidation
+
+# Test payment failures
+go test -v -tags=integration ./tests/integration/premium/ -run TestPaymentFailureHandlingWithAlerts
+```
+
+### Test Database
+
+Tests use the test database configured in `docker-compose.test.yml`:
+- **Host**: localhost:5437
+- **Database**: clipper_test
+- **User**: clipper
+- **Password**: clipper_password
+
+The Makefile target `test-integration-stripe` automatically:
+1. Starts the test database
+2. Runs migrations
+3. Executes integration tests
+4. Stops the test database
+
+### CI/CD Integration
+
+For CI pipelines, set environment variables:
+```bash
+export TEST_STRIPE_SECRET_KEY=sk_test_your_test_key
+export TEST_STRIPE_WEBHOOK_SECRET=whsec_test_your_webhook_secret
+```
+
+Tests will run with mock Stripe clients if keys are not provided, but with actual Stripe test keys, tests will validate against real Stripe API behavior in test mode.
+
 ---
 
-**Last Updated**: December 24, 2025  
-**Version**: 1.0  
+**Last Updated**: December 26, 2025  
+**Version**: 1.1  
 **Maintained By**: Clipper Engineering Team
