@@ -607,15 +607,28 @@ k6 run --out influxdb=http://localhost:8086/k6 scenario.js
 
 When adding new load test scenarios:
 
-1. Follow the existing file structure
+1. Follow the existing file structure in `scenarios/`
 2. Use descriptive names for metrics
 3. Set realistic thresholds
 4. Document the scenario in this README
 5. Update the Makefile with a new target
+6. Consider CI/CD integration (duration, resources)
+
+**For Stress/Soak Tests:**
+- See [Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md)
+- Use template from existing stress.js or soak.js
+- Document expected behavior and exit criteria
+- Include memory leak detection metrics
+- Plan for extended monitoring
 
 ## Resources
 
-- [K6 Documentation](https://k6.io/docs/)
-- [K6 Examples](https://k6.io/docs/examples/)
-- [Performance Testing Best Practices](https://k6.io/docs/testing-guides/test-types/)
-- [K6 Metrics](https://k6.io/docs/using-k6/metrics/)
+- [K6 Documentation](https://k6.io/docs/) - Official K6 docs
+- [K6 Examples](https://k6.io/docs/examples/) - Example test scripts
+- [Performance Testing Best Practices](https://k6.io/docs/testing-guides/test-types/) - Test types and patterns
+- [K6 Metrics](https://k6.io/docs/using-k6/metrics/) - Understanding metrics
+- [Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md) - Comprehensive stress/soak guide
+- [Quick Reference](STRESS_SOAK_QUICK_REFERENCE.md) - Commands and cheat sheet
+- [Execution Guide](EXECUTION_GUIDE.md) - Step-by-step instructions
+- [Performance Summary](PERFORMANCE_SUMMARY.md) - Performance baselines and targets
+- [Load Test Dashboard](../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md) - Grafana dashboard guide
