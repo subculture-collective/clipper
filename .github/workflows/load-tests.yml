@@ -254,6 +254,7 @@ jobs:
           path: |
             backend/tests/load/reports/*.md
             backend/tests/load/reports/*.txt
+            backend/tests/load/reports/*.html
           retention-days: 90
 
       - name: Upload load test metrics (JSON)
@@ -263,3 +264,13 @@ jobs:
           name: load-test-metrics-${{ github.run_number }}
           path: backend/tests/load/reports/*.json
           retention-days: 90
+
+      - name: Upload baselines
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-baselines-${{ github.run_number }}
+          path: backend/tests/load/baselines/**/*.json
+          # Baseline JSON files are versioned in git and kept permanently in the repository.
+          # This retention period applies only to the uploaded CI artifact, not to the baselines in git.
+          retention-days: 365
