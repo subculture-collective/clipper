@@ -2,6 +2,18 @@
 
 This directory contains K6 load testing scenarios for the Clipper API. These tests help establish performance baselines and identify bottlenecks under various load conditions.
 
+**Test Types**:
+- **Load Tests**: Standard performance testing with realistic user loads
+- **Stress Tests**: Push system beyond capacity to find breaking points
+- **Soak Tests**: Extended duration (24h) testing for memory leaks and stability
+
+## Quick Links
+
+- **[Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md)** - Comprehensive guide for stress and endurance testing
+- **[Execution Guide](EXECUTION_GUIDE.md)** - Step-by-step test execution instructions
+- **[Performance Summary](PERFORMANCE_SUMMARY.md)** - Performance targets and baselines
+- **[Dashboard Guide](../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md)** - Grafana dashboard documentation
+
 ## Prerequisites
 
 Install K6:
@@ -349,6 +361,19 @@ Key metrics to monitor:
 Load tests are fully integrated into CI/CD with a dedicated workflow:
 
 **Workflow File**: `.github/workflows/load-tests.yml`
+
+#### Available Test Types
+
+- `all` - Run all standard load tests
+- `feed` - Feed browsing test
+- `clip` - Clip detail test
+- `search` - Search functionality test
+- `comments` - Comments test
+- `auth` - Authentication test
+- `submit` - Submission test
+- `mixed` - Mixed behavior test (recommended)
+- `stress-lite` - Stress test (5 min, suitable for CI)
+- `soak-short` - Soak test (1 hour version)
 
 #### Automated Nightly Runs
 
