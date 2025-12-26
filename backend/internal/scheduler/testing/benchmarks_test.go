@@ -3,6 +3,7 @@ package testing
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -90,8 +91,11 @@ func BenchmarkWorkerPool_Throughput(b *testing.B) {
 	pool.Start()
 	defer pool.Shutdown()
 	
-	// Consume results in background
+	// Consume results in background with proper synchronization
+	var resultsWg sync.WaitGroup
+	resultsWg.Add(1)
 	go func() {
+		defer resultsWg.Done()
 		for range pool.Results() {
 			// Discard results
 		}
@@ -112,6 +116,7 @@ func BenchmarkWorkerPool_Throughput(b *testing.B) {
 	}
 	
 	pool.Stop()
+	resultsWg.Wait() // Ensure result consumer completes
 }
 
 // BenchmarkWorkerPool_WithWork benchmarks with simulated work
@@ -121,16 +126,22 @@ func BenchmarkWorkerPool_WithWork(b *testing.B) {
 	pool.Start()
 	defer pool.Shutdown()
 	
-	// Consume results in background
+	// Consume results in background with proper synchronization
+	var resultsWg sync.WaitGroup
+	resultsWg.Add(1)
 	go func() {
+		defer resultsWg.Done()
 		for range pool.Results() {
 			// Discard results
 		}
 	}()
 	
 	workFunc := func(ctx context.Context) error {
-		// Simulate 1ms of work
-		time.Sleep(1 * time.Millisecond)
+		// Simulate CPU-bound work instead of sleep for reliable benchmarks
+		sum := 0
+		for i := 0; i < 10000; i++ {
+			sum += i
+		}
 		return nil
 	}
 	
@@ -144,6 +155,7 @@ func BenchmarkWorkerPool_WithWork(b *testing.B) {
 	}
 	
 	pool.Stop()
+	resultsWg.Wait() // Ensure result consumer completes
 }
 
 // BenchmarkQueueMonitor_RecordOperations benchmarks queue monitoring
@@ -195,8 +207,11 @@ func BenchmarkWorkerPool_Parallel(b *testing.B) {
 	pool.Start()
 	defer pool.Shutdown()
 	
-	// Consume results in background
+	// Consume results in background with proper synchronization
+	var resultsWg sync.WaitGroup
+	resultsWg.Add(1)
 	go func() {
+		defer resultsWg.Done()
 		for range pool.Results() {
 			// Discard results
 		}
@@ -220,6 +235,7 @@ func BenchmarkWorkerPool_Parallel(b *testing.B) {
 	})
 	
 	pool.Stop()
+	resultsWg.Wait() // Ensure result consumer completes
 }
 
 // BenchmarkConcurrentHookAccess benchmarks concurrent access to hooks

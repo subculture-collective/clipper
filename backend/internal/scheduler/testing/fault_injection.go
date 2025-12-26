@@ -70,22 +70,26 @@ func (f *FaultInjector) ShouldFail() (bool, error) {
 		return true, errors.New("injected fault: fail count")
 	}
 	
-	// Check fail after N
+	// Check fail after N - fail exactly once on the (N+1)th call
 	f.mu.RLock()
 	failAfterN := f.failAfterN
 	f.mu.RUnlock()
 	
-	if failAfterN > 0 && callNum > failAfterN {
+	if failAfterN > 0 && callNum == failAfterN+1 {
 		return true, errors.New("injected fault: fail after N")
 	}
 	
-	// Check failure rate
+	// Check failure rate - use proper randomization
 	f.mu.RLock()
 	failureRate := f.failureRate
 	f.mu.RUnlock()
 	
-	if failureRate > 0 && float64(callNum%10) < failureRate*10 {
-		return true, errors.New("injected fault: random failure")
+	if failureRate > 0 {
+		// Use hash-based pseudo-randomization for deterministic but varied patterns
+		hash := uint32(callNum * 2654435761) // Knuth's multiplicative hash
+		if float64(hash%10000)/10000.0 < failureRate {
+			return true, errors.New("injected fault: random failure")
+		}
 	}
 	
 	return false, nil

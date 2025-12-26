@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -44,13 +45,11 @@ func TestSchedulerWithMockClock(t *testing.T) {
 func TestSchedulerWithJobExecutionHooks(t *testing.T) {
 	hook := schedulertesting.NewJobExecutionHook()
 	
-	// Simulate job execution
+	// Simulate job execution (no real-time delay needed)
 	hook.OnJobStart("sync-job", map[string]interface{}{"batch": 1})
-	time.Sleep(10 * time.Millisecond) // Simulate work
 	hook.OnJobEnd("sync-job", map[string]interface{}{"items": 100})
 	
 	hook.OnJobStart("sync-job", map[string]interface{}{"batch": 2})
-	time.Sleep(10 * time.Millisecond) // Simulate work
 	hook.OnJobError("sync-job", errors.New("network error"), map[string]interface{}{"items": 50})
 	
 	// Verify events were recorded
@@ -172,12 +171,15 @@ func TestSchedulerWithWorkerPool(t *testing.T) {
 	
 	// Submit jobs
 	for i := 0; i < numJobs; i++ {
-		jobID := string(rune('A' + i))
+		jobID := fmt.Sprintf("job-%d", i)
 		job := schedulertesting.Job{
 			ID: jobID,
 			WorkFunc: func(ctx context.Context) error {
-				// Simulate work
-				time.Sleep(10 * time.Millisecond)
+				// Simulate minimal CPU work
+				sum := 0
+				for j := 0; j < 1000; j++ {
+					sum += j
+				}
 				return nil
 			},
 		}

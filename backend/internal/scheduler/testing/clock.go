@@ -124,7 +124,7 @@ func (m *MockClock) Advance(d time.Duration) {
 	
 	// Trigger all active tickers
 	for _, ticker := range m.tickers {
-		if !ticker.stopped {
+		if !ticker.IsStopped() {
 			select {
 			case ticker.c <- m.now:
 			default:

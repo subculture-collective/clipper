@@ -279,10 +279,16 @@ func TestFaultInjector_FailAfterN(t *testing.T) {
 		}
 	}
 	
-	// 3rd call should fail
+	// 3rd call should fail (the (N+1)th call)
 	shouldFail, err := injector.ShouldFail()
 	if !shouldFail || err == nil {
 		t.Error("Call 3: expected failure, got success")
+	}
+	
+	// 4th call should succeed again
+	shouldFail, _ = injector.ShouldFail()
+	if shouldFail {
+		t.Error("Call 4: expected success after single failure, got failure")
 	}
 }
 

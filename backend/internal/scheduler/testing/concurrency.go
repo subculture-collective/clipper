@@ -99,9 +99,12 @@ func (wp *WorkerPool) executeJob(job Job) {
 		atomic.AddInt64(&wp.failedJobs, 1)
 	}
 	
+	// Non-blocking send to avoid deadlocks if results are not consumed
 	select {
 	case wp.results <- result:
 	case <-wp.ctx.Done():
+	default:
+		// Results channel full or no consumer, drop the result
 	}
 }
 
@@ -120,6 +123,8 @@ func (wp *WorkerPool) Stop() {
 	if atomic.CompareAndSwapInt32(&wp.stopped, 0, 1) {
 		close(wp.jobQueue)
 		wp.wg.Wait()
+		// Small delay to ensure workers finish sending results
+		time.Sleep(10 * time.Millisecond)
 		close(wp.results)
 	}
 }
@@ -130,6 +135,8 @@ func (wp *WorkerPool) Shutdown() {
 		wp.cancel()
 		close(wp.jobQueue)
 		wp.wg.Wait()
+		// Small delay to ensure workers finish sending results
+		time.Sleep(10 * time.Millisecond)
 		close(wp.results)
 	}
 }
@@ -221,9 +228,15 @@ func (qm *QueueMonitor) RecordDequeue() {
 	qm.mu.Lock()
 	defer qm.mu.Unlock()
 	
-	if qm.queueLength > 0 {
-		qm.queueLength--
+	// Only record a dequeue when the monitor's view of the queue
+	// indicates that an item is available. This keeps queueLength
+	// and dequeuedCount consistent even if RecordDequeue is called
+	// more times than RecordEnqueue.
+	if qm.queueLength == 0 {
+		return
 	}
+	
+	qm.queueLength--
 	atomic.AddInt64(&qm.dequeuedCount, 1)
 }
 
