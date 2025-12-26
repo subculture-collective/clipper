@@ -21,6 +21,13 @@ import { Page } from '@playwright/test';
  * ```
  */
 
+// Configuration constants
+const DEFAULT_RATE_LIMIT_ATTEMPTS = 20; // Number of rapid actions to trigger rate limit
+const RATE_LIMIT_DELAY_MS = 50; // Small delay between rate limit attempts (ms)
+const MAX_RATE_LIMIT_WAIT_MS = 60000; // Maximum time to wait for rate limit to clear (ms)
+const RATE_LIMIT_BACKOFF_START_MS = 1000; // Initial backoff delay (ms)
+const RATE_LIMIT_BACKOFF_MAX_MS = 10000; // Maximum backoff delay (ms)
+
 export interface CommentData {
   clipId: string;
   content: string;
@@ -47,10 +54,12 @@ export interface BlockData {
 }
 
 /**
- * Get API base URL from environment
+ * Get API base URL from environment or use default
+ * The fallback to localhost is suitable for local development
+ * but should be overridden via VITE_API_URL in other environments
  */
 function getApiBaseUrl(): string {
-  return process.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+  return process.env.VITE_API_URL || process.env.PLAYWRIGHT_API_URL || 'http://localhost:8080/api/v1';
 }
 
 /**
@@ -723,13 +732,22 @@ export async function getBlockedUsers(page: Page): Promise<any[]> {
 
 /**
  * Trigger rate limit by performing rapid actions
- * Returns true if rate limit was triggered, false otherwise
+ * 
+ * @param page - Playwright Page object
+ * @param action - Type of action to perform ('comment' | 'vote' | 'follow')
+ * @param targetId - ID of the target (clip or user)
+ * @param attempts - Number of rapid attempts (default: 20, empirically determined to trigger most rate limits)
+ * @returns Object indicating if rate limit was triggered and the response
+ * 
+ * Note: The default 20 attempts with 50ms delay between each is designed to trigger
+ * typical rate limits while keeping test execution time reasonable (~1 second total).
+ * Adjust these values based on your specific rate limit configuration.
  */
 export async function triggerRateLimit(
   page: Page, 
   action: 'comment' | 'vote' | 'follow',
   targetId: string,
-  attempts: number = 20
+  attempts: number = DEFAULT_RATE_LIMIT_ATTEMPTS
 ): Promise<{ triggered: boolean; response?: any }> {
   let lastResponse: any = null;
   
@@ -753,8 +771,9 @@ export async function triggerRateLimit(
         return { triggered: true, response: lastResponse };
       }
       
-      // Small delay between attempts
-      await page.waitForTimeout(50);
+      // Small delay between attempts to prevent overwhelming the server
+      // while still being fast enough to trigger rate limits
+      await page.waitForTimeout(RATE_LIMIT_DELAY_MS);
     } catch (error: any) {
       // Check if error indicates rate limiting
       if (error?.message?.includes('429') || error?.message?.includes('rate limit')) {
@@ -798,15 +817,21 @@ export async function verifyRateLimitMessage(page: Page, expectedMessage?: strin
 }
 
 /**
- * Wait for rate limit to clear (exponential backoff)
+ * Wait for rate limit to clear using exponential backoff
+ * 
+ * @param page - Playwright Page object
+ * @param maxWaitMs - Maximum time to wait in milliseconds (default: 60 seconds)
+ * 
+ * Uses exponential backoff starting at 1 second, doubling each attempt up to 10 seconds.
+ * This pattern is recommended for handling rate limits gracefully while not overloading the server.
  */
-export async function waitForRateLimitClear(page: Page, maxWaitMs: number = 60000): Promise<void> {
+export async function waitForRateLimitClear(page: Page, maxWaitMs: number = MAX_RATE_LIMIT_WAIT_MS): Promise<void> {
   const startTime = Date.now();
-  let delay = 1000; // Start with 1 second
+  let delay = RATE_LIMIT_BACKOFF_START_MS;
   
   while (Date.now() - startTime < maxWaitMs) {
     await page.waitForTimeout(delay);
-    delay = Math.min(delay * 2, 10000); // Max 10 second delay
+    delay = Math.min(delay * 2, RATE_LIMIT_BACKOFF_MAX_MS); // Exponential backoff with cap
     
     // Check if rate limit has cleared by making a simple request
     try {
