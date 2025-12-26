@@ -1,0 +1,17 @@
+# k6 Load Test Generated Files
+
+# Custom k6 binary with xk6-reporter
+k6-with-reporter
+
+# Report outputs (already tracked selectively via artifacts)
+reports/*.html
+reports/*.json
+reports/*.txt
+reports/*.log
+
+# Baseline temporary files
+baselines/current
+
+# Temporary test data
+*.tmp
+*.temp

@@ -13,6 +13,37 @@ This directory contains K6 load testing scenarios for the Clipper API. These tes
 - **[Execution Guide](EXECUTION_GUIDE.md)** - Step-by-step test execution instructions
 - **[Performance Summary](PERFORMANCE_SUMMARY.md)** - Performance targets and baselines
 - **[Dashboard Guide](../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md)** - Grafana dashboard documentation
+- **[Baseline Management](baselines/README.md)** - Guide to baseline storage and regression detection
+
+## New Features
+
+### 🎨 HTML Report Generation
+Generate beautiful, interactive HTML reports for your load tests:
+```bash
+# Generate HTML reports for all scenarios
+make test-load-html
+
+# Or generate for a specific scenario
+./backend/tests/load/scripts/generate_html_report.sh feed_browsing
+```
+
+### 📊 Baseline Storage & Regression Detection
+Capture and compare performance baselines across versions:
+```bash
+# Capture baseline for a version
+make test-load-baseline-capture VERSION=v1.0.0
+
+# Compare current performance against baseline
+make test-load-baseline-compare VERSION=v1.0.0
+
+# Compare against the latest baseline
+make test-load-baseline-compare VERSION=current
+```
+
+Baselines are stored in `baselines/` organized by version, enabling:
+- Automatic regression detection (>10% p95 latency increase)
+- Performance trend tracking across releases
+- SLO validation gates in CI/CD
 
 ## Prerequisites
 
@@ -395,8 +426,10 @@ You can manually trigger load tests from the GitHub Actions UI:
 2. **Prepares data**: Runs migrations and seeds load test data
 3. **Starts backend**: Launches API server
 4. **Runs tests**: Executes selected load test scenarios
-5. **Generates reports**: Creates comprehensive markdown reports
-6. **Uploads artifacts**: Stores reports and metrics (90-day retention)
+5. **Generates reports**: Creates comprehensive markdown and HTML reports
+6. **Baseline comparison**: Compares results against stored baselines (if available)
+7. **Regression detection**: Fails build if performance regressions detected
+8. **Uploads artifacts**: Stores reports, metrics, and HTML visualizations
 
 #### Accessing Results
 
@@ -405,14 +438,28 @@ You can manually trigger load tests from the GitHub Actions UI:
 1. Go to workflow run in Actions tab
 2. View summary in the run page
 3. Download artifacts:
-   - `load-test-reports-*` - Markdown reports and detailed outputs
+   - `load-test-reports-*` - Markdown reports, HTML visualizations, and detailed outputs
    - `load-test-metrics-*` - JSON metrics for trend analysis
+   - `load-test-baselines-*` - Baseline files (365-day retention)
 
 **In Grafana Dashboard:**
 
 - View real-time metrics at `https://clpr.tv/grafana`
 - Dashboard: "K6 Load Test Trends" (UID: `k6-load-test-trends`)
 - See `monitoring/dashboards/LOAD_TEST_DASHBOARD.md` for details
+
+#### Baseline Management in CI
+
+The CI workflow automatically:
+- Stores baseline files as artifacts (retained for 365 days)
+- Compares test results against baselines when available
+- Fails the build if performance regressions exceed thresholds
+- Generates comparison reports showing changes
+
+To update baselines after performance improvements:
+1. Run tests locally and capture new baseline
+2. Commit baseline files to `backend/tests/load/baselines/`
+3. CI will use new baselines for future comparisons
 
 #### Example: Adding to Your Workflow
 
