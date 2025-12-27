@@ -36,6 +36,16 @@ export interface TrustedDevice {
     ip_address?: string;
 }
 
+export interface EnrollMFAResponse {
+    secret: string;           // Base32 encoded secret for manual entry
+    qr_code_url: string;      // Data URL for QR code image
+    backup_codes: string[];   // Plain text backup codes (shown once)
+}
+
+export interface VerifyEnrollmentRequest {
+    code: string;
+}
+
 /**
  * Get MFA status for the current user
  */
@@ -85,6 +95,39 @@ export async function revokeTrustedDevice(deviceId: number): Promise<void> {
 export async function resendEmailOTP(): Promise<{ message: string }> {
     const response = await api.post<{ message: string }>(
         '/auth/mfa/resend-email-otp'
+    );
+    return response.data;
+}
+
+/**
+ * Start MFA enrollment - generates TOTP secret and backup codes
+ */
+export async function startEnrollment(): Promise<EnrollMFAResponse> {
+    const response = await api.post<EnrollMFAResponse>('/auth/mfa/enroll');
+    return response.data;
+}
+
+/**
+ * Verify enrollment code and enable MFA
+ */
+export async function verifyEnrollment(
+    code: string,
+    trustDevice?: boolean
+): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>(
+        '/auth/mfa/verify-enrollment',
+        { code, trust_device: trustDevice }
+    );
+    return response.data;
+}
+
+/**
+ * Regenerate backup codes (requires MFA code)
+ */
+export async function regenerateBackupCodes(code: string): Promise<{ backup_codes: string[] }> {
+    const response = await api.post<{ backup_codes: string[] }>(
+        '/auth/mfa/regenerate-backup-codes',
+        { code }
     );
     return response.data;
 }
