@@ -54,7 +54,7 @@ The following packages are required:
 
 ```json
 {
-  "posthog-react-native": "^3.x",
+  "posthog-react-native": "^4.x",
   "expo-file-system": "~18.x",
   "expo-application": "~6.x",
   "expo-device": "~8.x",
