@@ -724,18 +724,18 @@ func main() {
 			search.GET("", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.Search)
 			search.GET("/suggestions", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.GetSuggestions)
 			search.GET("/scores", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.SearchWithScores) // Hybrid search with similarity scores
-			
+
 			// Search analytics endpoints
 			search.GET("/trending", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), searchHandler.GetTrendingSearches) // Popular searches (public)
-			search.GET("/history", middleware.AuthMiddleware(authService), searchHandler.GetSearchHistory)                            // User search history (authenticated)
-			
+			search.GET("/history", middleware.AuthMiddleware(authService), searchHandler.GetSearchHistory)                           // User search history (authenticated)
+
 			// Admin-only analytics endpoints
 			searchAdmin := search.Group("")
 			searchAdmin.Use(middleware.AuthMiddleware(authService))
 			searchAdmin.Use(middleware.RequireRole("admin"))
 			{
-				searchAdmin.GET("/failed", searchHandler.GetFailedSearches)       // Failed searches (admin only)
-				searchAdmin.GET("/analytics", searchHandler.GetSearchAnalytics)   // Search analytics summary (admin only)
+				searchAdmin.GET("/failed", searchHandler.GetFailedSearches)     // Failed searches (admin only)
+				searchAdmin.GET("/analytics", searchHandler.GetSearchAnalytics) // Search analytics summary (admin only)
 			}
 		}
 

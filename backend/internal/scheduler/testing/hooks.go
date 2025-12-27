@@ -32,7 +32,7 @@ func NewJobExecutionHook() *JobExecutionHook {
 func (h *JobExecutionHook) OnJobStart(jobName string, metadata map[string]interface{}) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	h.events = append(h.events, JobEvent{
 		JobName:   jobName,
 		EventType: "start",
@@ -45,7 +45,7 @@ func (h *JobExecutionHook) OnJobStart(jobName string, metadata map[string]interf
 func (h *JobExecutionHook) OnJobEnd(jobName string, metadata map[string]interface{}) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	h.events = append(h.events, JobEvent{
 		JobName:   jobName,
 		EventType: "end",
@@ -58,7 +58,7 @@ func (h *JobExecutionHook) OnJobEnd(jobName string, metadata map[string]interfac
 func (h *JobExecutionHook) OnJobError(jobName string, err error, metadata map[string]interface{}) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	h.events = append(h.events, JobEvent{
 		JobName:   jobName,
 		EventType: "error",
@@ -72,7 +72,7 @@ func (h *JobExecutionHook) OnJobError(jobName string, err error, metadata map[st
 func (h *JobExecutionHook) GetEvents() []JobEvent {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	// Return a copy to prevent external modification
 	eventsCopy := make([]JobEvent, len(h.events))
 	copy(eventsCopy, h.events)
@@ -83,7 +83,7 @@ func (h *JobExecutionHook) GetEvents() []JobEvent {
 func (h *JobExecutionHook) GetEventsByType(eventType string) []JobEvent {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	filtered := make([]JobEvent, 0)
 	for _, event := range h.events {
 		if event.EventType == eventType {
@@ -97,7 +97,7 @@ func (h *JobExecutionHook) GetEventsByType(eventType string) []JobEvent {
 func (h *JobExecutionHook) GetEventsByJob(jobName string) []JobEvent {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	filtered := make([]JobEvent, 0)
 	for _, event := range h.events {
 		if event.JobName == jobName {
@@ -125,10 +125,10 @@ func (h *JobExecutionHook) Clear() {
 func (h *JobExecutionHook) WaitForEvents(ctx context.Context, n int, timeout time.Duration) bool {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -143,14 +143,14 @@ func (h *JobExecutionHook) WaitForEvents(ctx context.Context, n int, timeout tim
 
 // JobMetrics tracks metrics for job execution
 type JobMetrics struct {
-	mu               sync.RWMutex
-	executionCount   int
-	successCount     int
-	errorCount       int
-	totalDuration    time.Duration
-	lastExecutionAt  time.Time
-	itemsProcessed   int
-	itemsFailed      int
+	mu              sync.RWMutex
+	executionCount  int
+	successCount    int
+	errorCount      int
+	totalDuration   time.Duration
+	lastExecutionAt time.Time
+	itemsProcessed  int
+	itemsFailed     int
 }
 
 // NewJobMetrics creates a new job metrics tracker
@@ -162,13 +162,13 @@ func NewJobMetrics() *JobMetrics {
 func (m *JobMetrics) RecordExecution(duration time.Duration, success bool, itemsProcessed, itemsFailed int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.executionCount++
 	m.totalDuration += duration
 	m.lastExecutionAt = time.Now()
 	m.itemsProcessed += itemsProcessed
 	m.itemsFailed += itemsFailed
-	
+
 	if success {
 		m.successCount++
 	} else {
@@ -201,7 +201,7 @@ func (m *JobMetrics) GetErrorCount() int {
 func (m *JobMetrics) GetAverageDuration() time.Duration {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if m.executionCount == 0 {
 		return 0
 	}
@@ -233,7 +233,7 @@ func (m *JobMetrics) GetLastExecutionAt() time.Time {
 func (m *JobMetrics) Reset() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.executionCount = 0
 	m.successCount = 0
 	m.errorCount = 0

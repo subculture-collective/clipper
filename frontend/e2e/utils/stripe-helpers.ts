@@ -80,7 +80,7 @@ export async function waitForStripeCheckout(page: Page, timeout: number = 10000)
     await page.waitForLoadState('networkidle', { timeout });
     return true;
   } catch (error) {
-    // eslint-disable-next-line no-console
+     
     console.warn('Stripe Checkout did not load:', error);
     return false;
   }
@@ -120,7 +120,7 @@ export async function fillStripeCheckoutForm(
       }
     } catch (error) {
       // Email field may not be required in all Stripe checkout flows
-      // eslint-disable-next-line no-console
+       
       console.debug('Stripe checkout: Email field not visible or required:', error);
     }
   }
@@ -146,7 +146,7 @@ export async function fillStripeCheckoutForm(
     }
   } catch (error) {
     // ZIP field is optional in Stripe checkout - log but continue
-    // eslint-disable-next-line no-console
+     
     console.debug('Stripe checkout: ZIP field not visible or required:', error);
   }
 }
