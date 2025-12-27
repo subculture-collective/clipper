@@ -256,6 +256,10 @@ export default function MFAEnrollScreen() {
                 <TouchableOpacity
                     className="bg-primary-600 rounded-lg py-4 mb-3"
                     onPress={() => setCurrentStep('scan')}
+                    accessible={true}
+                    accessibilityLabel="Get started with two-factor authentication setup"
+                    accessibilityRole="button"
+                    accessibilityHint="Starts the MFA enrollment process"
                 >
                     <Text className="text-center text-white font-semibold text-base">
                         Get Started
@@ -265,6 +269,9 @@ export default function MFAEnrollScreen() {
                 <TouchableOpacity
                     className="py-3"
                     onPress={() => router.back()}
+                    accessible={true}
+                    accessibilityLabel="Cancel enrollment"
+                    accessibilityRole="button"
                 >
                     <Text className="text-center text-gray-600 text-base">
                         Cancel
@@ -296,6 +303,10 @@ export default function MFAEnrollScreen() {
                     <TouchableOpacity
                         className="bg-primary-600 rounded-lg py-4 mb-3"
                         onPress={() => setCurrentStep('manual')}
+                        accessible={true}
+                        accessibilityLabel="Enter code manually"
+                        accessibilityRole="button"
+                        accessibilityHint="Opens manual secret key entry screen"
                     >
                         <Text className="text-center text-white font-semibold text-base">
                             Enter Code Manually
@@ -304,6 +315,10 @@ export default function MFAEnrollScreen() {
                     <TouchableOpacity
                         className="border border-gray-300 rounded-lg py-4 mb-3"
                         onPress={() => setCurrentStep('email-verify')}
+                        accessible={true}
+                        accessibilityLabel="Verify via email"
+                        accessibilityRole="button"
+                        accessibilityHint="Verify your identity via email before setup"
                     >
                         <Text className="text-center text-gray-900 font-semibold text-base">
                             Verify via Email
@@ -312,6 +327,9 @@ export default function MFAEnrollScreen() {
                     <TouchableOpacity
                         className="py-3"
                         onPress={() => router.back()}
+                        accessible={true}
+                        accessibilityLabel="Cancel enrollment"
+                        accessibilityRole="button"
                     >
                         <Text className="text-center text-gray-600 text-base">
                             Cancel
@@ -540,6 +558,9 @@ export default function MFAEnrollScreen() {
                     keyboardType="number-pad"
                     maxLength={6}
                     autoFocus
+                    accessible={true}
+                    accessibilityLabel="Verification code input"
+                    accessibilityHint="Enter the 6-digit code from your authenticator app"
                 />
 
                 <View className="bg-white rounded-lg p-4 mb-6">
@@ -556,6 +577,11 @@ export default function MFAEnrollScreen() {
                             value={trustDevice}
                             onValueChange={setTrustDevice}
                             trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
+                            accessible={true}
+                            accessibilityLabel="Trust this device"
+                            accessibilityRole="switch"
+                            accessibilityState={{ checked: trustDevice }}
+                            accessibilityHint="When enabled, you won't need to enter MFA codes on this device for 30 days"
                         />
                     </View>
                 </View>
@@ -566,6 +592,13 @@ export default function MFAEnrollScreen() {
                     disabled={verificationCode.length !== 6 || isLoading}
                     style={{
                         opacity: verificationCode.length !== 6 || isLoading ? 0.5 : 1,
+                    }}
+                    accessible={true}
+                    accessibilityLabel="Verify and enable two-factor authentication"
+                    accessibilityRole="button"
+                    accessibilityState={{ 
+                        disabled: verificationCode.length !== 6 || isLoading,
+                        busy: isLoading 
                     }}
                 >
                     {isLoading ? (
@@ -584,6 +617,9 @@ export default function MFAEnrollScreen() {
                         setVerificationCode('');
                         setError(null);
                     }}
+                    accessible={true}
+                    accessibilityLabel="Go back"
+                    accessibilityRole="button"
                 >
                     <Text className="text-center text-gray-600 text-base">
                         Back
@@ -609,13 +645,22 @@ export default function MFAEnrollScreen() {
                     </Text>
                 </View>
 
-                <View className="bg-white rounded-lg p-4 mb-4">
+                <View 
+                    className="bg-white rounded-lg p-4 mb-4"
+                    accessible={true}
+                    accessibilityLabel={`Backup codes. ${enrollmentData?.backup_codes.length} codes displayed`}
+                    accessibilityHint="Each code can only be used once. Copy or share these codes to save them securely"
+                >
                     {enrollmentData?.backup_codes.map((code, index) => (
                         <View
                             key={index}
                             className={`py-2 ${index < enrollmentData.backup_codes.length - 1 ? 'border-b border-gray-100' : ''}`}
                         >
-                            <Text className="text-base font-mono text-gray-900">
+                            <Text 
+                                className="text-base font-mono text-gray-900"
+                                accessible={true}
+                                accessibilityLabel={`Backup code ${index + 1}: ${code.split('').join(' ')}`}
+                            >
                                 {code}
                             </Text>
                         </View>
@@ -626,6 +671,10 @@ export default function MFAEnrollScreen() {
                     <TouchableOpacity
                         className="flex-1 bg-gray-100 rounded-lg py-3"
                         onPress={handleCopyBackupCodes}
+                        accessible={true}
+                        accessibilityLabel="Copy backup codes to clipboard"
+                        accessibilityRole="button"
+                        accessibilityHint="Copies all backup codes to your clipboard"
                     >
                         <Text className="text-center text-gray-900 font-medium">
                             Copy Codes
@@ -635,6 +684,10 @@ export default function MFAEnrollScreen() {
                     <TouchableOpacity
                         className="flex-1 bg-gray-100 rounded-lg py-3"
                         onPress={handleShareBackupCodes}
+                        accessible={true}
+                        accessibilityLabel="Share backup codes"
+                        accessibilityRole="button"
+                        accessibilityHint="Opens share sheet to save codes to a secure location"
                     >
                         <Text className="text-center text-gray-900 font-medium">
                             Share Codes
@@ -648,6 +701,10 @@ export default function MFAEnrollScreen() {
                         setBackupCodesViewed(true);
                         handleComplete();
                     }}
+                    accessible={true}
+                    accessibilityLabel="Confirm that backup codes have been saved"
+                    accessibilityRole="button"
+                    accessibilityHint="Completes the MFA enrollment process"
                 >
                     <Text className="text-center text-white font-semibold text-base">
                         I&apos;ve Saved My Codes
