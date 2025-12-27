@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -413,6 +414,81 @@ func (h *ClipHandler) GetClip(c *gin.Context) {
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
 		Data:    clip,
+	})
+}
+
+// BatchGetClipMedia handles POST /clips/batch-media
+func (h *ClipHandler) BatchGetClipMedia(c *gin.Context) {
+	var req struct {
+		ClipIDs []string `json:"clip_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: "clip_ids array is required",
+			},
+		})
+		return
+	}
+
+	// Validate and parse UUIDs
+	if len(req.ClipIDs) == 0 {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "EMPTY_REQUEST",
+				Message: "clip_ids array cannot be empty",
+			},
+		})
+		return
+	}
+
+	if len(req.ClipIDs) > 100 {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "TOO_MANY_CLIPS",
+				Message: "Maximum 100 clips per batch request",
+			},
+		})
+		return
+	}
+
+	clipIDs := make([]uuid.UUID, 0, len(req.ClipIDs))
+	for _, idStr := range req.ClipIDs {
+		clipID, err := uuid.Parse(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_CLIP_ID",
+					Message: fmt.Sprintf("Invalid clip ID: %s", idStr),
+				},
+			})
+			return
+		}
+		clipIDs = append(clipIDs, clipID)
+	}
+
+	// Fetch batch media
+	mediaInfo, err := h.clipService.BatchGetClipMedia(c.Request.Context(), clipIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to fetch clip media",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data:    mediaInfo,
 	})
 }
 

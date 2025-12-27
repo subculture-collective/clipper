@@ -639,6 +639,9 @@ func main() {
 			clips.GET("/:id", clipHandler.GetClip)
 			clips.GET("/:id/related", clipHandler.GetRelatedClips)
 
+			// Batch endpoint for media URLs (public)
+			clips.POST("/batch-media", clipHandler.BatchGetClipMedia)
+
 			// Clip tags (public)
 			clips.GET("/:id/tags", tagHandler.GetClipTags)
 
