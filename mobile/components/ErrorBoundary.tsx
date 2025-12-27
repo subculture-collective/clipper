@@ -50,6 +50,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             hasError: false,
             error: null,
         });
+        
+        // Force a re-render by reloading the app
+        // This is more reliable than just clearing state
+        if (typeof window !== 'undefined' && window.location) {
+            window.location.reload();
+        }
     };
 
     render(): React.ReactNode {

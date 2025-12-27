@@ -84,30 +84,28 @@ trackAppStart(); // Measures time to first render
 trackScreenTransition('HomeScreen'); // Tracks navigation performance
 ```
 
-**API Requests**:
+**App Start** (call finish when app is ready):
+```typescript
+const tracker = trackAppStart();
+// ... app initialization ...
+tracker.finish(); // Records actual startup duration
+```
+
+**Screen Navigation** (call finish when screen is rendered):
+```typescript
+const tracker = trackScreenTransition('HomeScreen');
+// ... navigation and render ...
+tracker.finish(); // Records actual navigation duration
+```
+
+**API Requests** (call finish when request completes):
 ```typescript
 const tracker = trackApiRequest('/api/v1/clips');
 // ... make request ...
-tracker.finish(200); // Record when request completes with status code
+tracker.finish(200); // Records request duration and status code
 ```
 
-**Note**: The performance tracking functions use a simplified approach where spans are created when `finish()` is called. For long-running async operations, consider using Sentry's native span management for more accurate timing.
-
-**Current Limitations:**
-- The simplified implementation provides event markers rather than precise duration measurements
-- For production use with accurate timing, consider implementing proper async span tracking
-- Future enhancement: Integrate with React Navigation for automatic screen tracking
-
-**Alternative for Precise Timing:**
-```typescript
-import * as Sentry from '@sentry/react-native';
-
-// For operations requiring precise timing
-Sentry.withActiveSpan((span) => {
-  // Your operation here
-  // Span automatically tracks duration
-});
-```
+The performance tracking functions now properly measure elapsed time from when the tracker is created until `finish()` is called, providing accurate duration measurements.
 
 ### 5. PII Scrubbing
 

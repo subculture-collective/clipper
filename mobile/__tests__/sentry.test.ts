@@ -118,7 +118,8 @@ describe('Sentry Integration', () => {
     describe('Performance Monitoring', () => {
         it('should track app start', () => {
             const { trackAppStart } = require('../lib/performance');
-            trackAppStart();
+            const tracker = trackAppStart();
+            tracker.finish();
 
             expect(Sentry.startSpan).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -131,7 +132,8 @@ describe('Sentry Integration', () => {
 
         it('should track screen transition', () => {
             const { trackScreenTransition } = require('../lib/performance');
-            trackScreenTransition('HomeScreen');
+            const tracker = trackScreenTransition('HomeScreen');
+            tracker.finish();
 
             expect(Sentry.startSpan).toHaveBeenCalledWith(
                 expect.objectContaining({

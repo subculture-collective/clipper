@@ -101,7 +101,9 @@ export function initSentry(): void {
             
             // Integration configuration
             integrations: [
-                Sentry.reactNavigationIntegration(),
+                // Note: React Navigation integration requires navigation ref
+                // Remove this if not using React Navigation integration
+                // Sentry.reactNavigationIntegration(),
             ],
             
             // Debug settings

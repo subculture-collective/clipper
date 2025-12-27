@@ -1,84 +1,114 @@
 /**
  * Performance monitoring utilities for tracking app performance
- * 
- * Note: Current implementation uses simplified span tracking that creates
- * spans at completion time rather than tracking actual operation duration.
- * 
- * TODO: Implement proper async span management for accurate timing:
- * - Use active span context for tracking long-running operations
- * - Integrate with React Navigation for automatic screen tracking
- * - Consider implementing custom transaction tracking for complex flows
  */
 
 import * as Sentry from '@sentry/react-native';
 
 /**
  * Track app start performance
+ * Returns a finish function that should be called when the app is ready
  */
-export function trackAppStart(): void {
-    // Use startSpan for performance tracking
-    Sentry.startSpan(
-        {
-            name: 'App Start',
-            op: 'app.start',
+export function trackAppStart(): { finish: () => void } {
+    const startTime = Date.now();
+
+    return {
+        finish: () => {
+            const durationMs = Date.now() - startTime;
+            Sentry.startSpan(
+                {
+                    name: 'App Start',
+                    op: 'app.start',
+                    data: {
+                        duration_ms: durationMs,
+                    },
+                },
+                () => {
+                    // Span completes with recorded duration
+                }
+            );
         },
-        () => {
-            // Span automatically finishes when function completes
-        }
-    );
+    };
 }
 
 /**
  * Track screen navigation performance
+ * Returns a finish function that should be called when the screen is ready
  */
-export function trackScreenTransition(screenName: string): void {
-    Sentry.startSpan(
-        {
-            name: `Screen: ${screenName}`,
-            op: 'navigation',
+export function trackScreenTransition(screenName: string): { finish: () => void } {
+    const startTime = Date.now();
+
+    return {
+        finish: () => {
+            const durationMs = Date.now() - startTime;
+            Sentry.startSpan(
+                {
+                    name: `Screen: ${screenName}`,
+                    op: 'navigation',
+                    data: {
+                        navigation_duration_ms: durationMs,
+                    },
+                },
+                () => {
+                    // Span completes with recorded duration
+                }
+            );
         },
-        () => {
-            // Span automatically finishes
-        }
-    );
+    };
 }
 
 /**
  * Track API request performance
+ * Returns a finish function that should be called when the request completes
  */
 export function trackApiRequest(endpoint: string): { finish: (statusCode?: number) => void } {
-    // For tracking async operations, we use manual span management
-    // Note: In @sentry/react-native v7+, spans are managed differently
-    // For now, we'll use a simpler approach with span sampling
-    const spanContext = {
-        name: `API: ${endpoint}`,
-        op: 'http.client',
-    };
+    const startTime = Date.now();
 
-    // Start tracking when finish is called
     return {
         finish: (statusCode?: number) => {
-            Sentry.startSpan(spanContext, () => {
-                // Span completes when callback finishes
-                if (statusCode) {
-                    Sentry.setTag('http.status_code', statusCode.toString());
+            const durationMs = Date.now() - startTime;
+            Sentry.startSpan(
+                {
+                    name: `API: ${endpoint}`,
+                    op: 'http.client',
+                    data: {
+                        duration_ms: durationMs,
+                        ...(statusCode && { status_code: statusCode }),
+                    },
+                },
+                () => {
+                    // Span completes with recorded duration and status
+                    if (statusCode) {
+                        Sentry.setTag('http.status_code', statusCode.toString());
+                    }
                 }
-            });
+            );
         },
     };
 }
 
 /**
  * Track custom operation performance
+ * Returns a finish function that should be called when the operation completes
  */
 export function trackOperation(name: string, op: string): { finish: () => void } {
-    const spanContext = { name, op };
+    const startTime = Date.now();
 
     return {
         finish: () => {
-            Sentry.startSpan(spanContext, () => {
-                // Span completes when callback finishes
-            });
+            const durationMs = Date.now() - startTime;
+            Sentry.startSpan(
+                {
+                    name,
+                    op,
+                    data: {
+                        duration_ms: durationMs,
+                    },
+                },
+                () => {
+                    // Span completes with recorded duration
+                }
+            );
         },
     };
 }
+

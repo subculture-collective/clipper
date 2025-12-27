@@ -3,7 +3,7 @@
  * Handles global providers and navigation
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,12 +16,6 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { initSentry } from '../lib/sentry';
 import { trackAppStart } from '../lib/performance';
 import '../global.css';
-
-// Initialize Sentry as early as possible
-initSentry();
-
-// Track app start performance
-trackAppStart();
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -40,9 +34,25 @@ const queryClient = new QueryClient({
 // enable deep linking without manual linking configuration.
 
 export default function RootLayout() {
+    const appStartTracker = useRef<{ finish: () => void } | null>(null);
+
     useEffect(() => {
+        // Initialize Sentry when component mounts
+        initSentry();
+        
+        // Start tracking app startup time
+        appStartTracker.current = trackAppStart();
+        
         // Hide splash screen after app is ready
-        SplashScreen.hideAsync();
+        const hideSplash = async () => {
+            await SplashScreen.hideAsync();
+            // Finish tracking app start after splash is hidden
+            if (appStartTracker.current) {
+                appStartTracker.current.finish();
+            }
+        };
+        
+        hideSplash();
     }, []);
 
     return (
