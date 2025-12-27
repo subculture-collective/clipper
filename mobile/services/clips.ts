@@ -86,10 +86,11 @@ export async function batchGetClipMedia(clipIds: string[]) {
     return res.data.data;
 }
 
-// Prefetch media for improved performance
-// This can be called to preload media URLs before they're needed
+// Convenience helper for prefetching media in calling code.
+// Note: This is a thin wrapper around batchGetClipMedia; callers are responsible
+// for invoking it in a background/preload context if desired (e.g., via React Query
+// prefetch or manual invocation before navigation).
 export async function prefetchClipMedia(clipIds: string[]) {
-    // Same as batchGetClipMedia, but intended for background prefetching
     return batchGetClipMedia(clipIds);
 }
 

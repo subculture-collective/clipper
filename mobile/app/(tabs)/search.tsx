@@ -263,26 +263,28 @@ export default function SearchScreen() {
 
                 {/* Results */}
                 {showResults && (
-                    {/* @ts-ignore - FlashList type definitions may not match perfectly */}
-                    <FlashList
-                        data={data.data}
-                        estimatedItemSize={300}
-                        renderItem={({ item }) => {
-                            const media = mediaMap.get(item.id);
-                            return (
-                                <ClipListItemCard
-                                    clip={item}
-                                    videoUrl={media?.embed_url}
-                                    thumbnailUrl={media?.thumbnail_url}
-                                    onPress={() => handleClipPress(item.id)}
-                                />
-                            );
-                        }}
-                        contentContainerStyle={{
-                            paddingTop: 12,
-                            paddingBottom: 16,
-                        }}
-                    />
+                    <>
+                        {/* @ts-expect-error TS2769: FlashList props type mismatch with @shopify/flash-list v2.2.0; safe at runtime but TypeScript definitions need updating */}
+                        <FlashList
+                            data={data.data}
+                            estimatedItemSize={300}
+                            renderItem={({ item }) => {
+                                const media = mediaMap.get(item.id);
+                                return (
+                                    <ClipListItemCard
+                                        clip={item}
+                                        videoUrl={media?.embed_url}
+                                        thumbnailUrl={media?.thumbnail_url}
+                                        onPress={() => handleClipPress(item.id)}
+                                    />
+                                );
+                            }}
+                            contentContainerStyle={{
+                                paddingTop: 12,
+                                paddingBottom: 16,
+                            }}
+                        />
+                    </>
                 )}
 
                 {/* Empty State */}

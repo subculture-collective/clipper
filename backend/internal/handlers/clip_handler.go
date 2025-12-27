@@ -476,6 +476,8 @@ func (h *ClipHandler) BatchGetClipMedia(c *gin.Context) {
 	// Fetch batch media
 	mediaInfo, err := h.clipService.BatchGetClipMedia(c.Request.Context(), clipIDs)
 	if err != nil {
+		// Log the actual error for debugging
+		c.Error(err)
 		c.JSON(http.StatusInternalServerError, StandardResponse{
 			Success: false,
 			Error: &ErrorInfo{

@@ -44,12 +44,20 @@ export default function FeedScreen() {
         }
     }, [isLoading, data?.data]);
 
-    // Finish tracking when media is loaded
+    // Finish tracking when media is loaded or cleanup on unmount
     useEffect(() => {
         if (renderTrackerRef.current && mediaData && data?.data) {
             renderTrackerRef.current.finish(data.data.length);
             renderTrackerRef.current = null;
         }
+        
+        // Cleanup: finish tracking if component unmounts before media loads
+        return () => {
+            if (renderTrackerRef.current) {
+                renderTrackerRef.current.finish(0);
+                renderTrackerRef.current = null;
+            }
+        };
     }, [mediaData, data?.data]);
 
     // Track memory for long sessions
@@ -90,7 +98,7 @@ export default function FeedScreen() {
 
     return (
         <View className='flex-1 bg-gray-100'>
-            {/* @ts-ignore - FlashList type definitions may not match perfectly */}
+            {/* @ts-expect-error TS2769: No overload matches this call for FlashList; upstream @shopify/flash-list JSX props are slightly incompatible with our React Native/TypeScript versions. */}
             <FlashList
                 data={data?.data ?? []}
                 estimatedItemSize={300}

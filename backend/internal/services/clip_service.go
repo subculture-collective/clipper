@@ -763,7 +763,7 @@ func (s *ClipService) BatchGetClipMedia(ctx context.Context, clipIDs []uuid.UUID
 		return nil, fmt.Errorf("failed to fetch clips: %w", err)
 	}
 
-	// Build result map for efficient lookup
+	// Build result slice with media info
 	result := make([]ClipMediaInfo, 0, len(clips))
 	for _, clip := range clips {
 		result = append(result, ClipMediaInfo{

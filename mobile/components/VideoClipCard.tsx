@@ -80,12 +80,15 @@ export default function VideoClipCard({
                                 transition={200}
                             />
                         )}
-                        <VideoView
-                            player={player}
-                            style={{ width: '100%', height: '100%' }}
-                            contentFit='cover'
-                            allowsPictureInPicture
-                        />
+                        {/* Only render VideoView when playing or when no thumbnail available */}
+                        {(isPlaying || !thumbnailUrl) && (
+                            <VideoView
+                                player={player}
+                                style={{ width: '100%', height: '100%' }}
+                                contentFit='cover'
+                                allowsPictureInPicture
+                            />
+                        )}
                     </>
                 :   thumbnailUrl ?
                     <Image
