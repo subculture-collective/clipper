@@ -221,17 +221,17 @@ You can combine `pointerEvents` with other styles using NativeWind:
 
 ## ESLint Integration
 
-Our codebase includes a custom ESLint rule that prevents using the deprecated prop syntax:
+Our ESLint configuration is prepared for future enforcement of pointer events best practices. Once a suitable plugin like `eslint-plugin-react-native` is added, you can enable a rule to prevent the deprecated prop syntax:
 
 ```json
 {
   "rules": {
-    "react-native-custom/no-pointer-events-prop": "error"
+    "react-native/no-pointer-events-prop": "error"
   }
 }
 ```
 
-This will show an error if you try to use:
+This would show an error if you try to use:
 ```tsx
 <View pointerEvents="none"> // ❌ ESLint error
 ```
@@ -240,6 +240,8 @@ And suggest using:
 ```tsx
 <View style={{ pointerEvents: 'none' }}> // ✅ Correct
 ```
+
+**Current Status**: The configuration is prepared in `eslint.config.js`, but the rule is not yet active. The codebase audit confirmed zero deprecated usage, so this is a preventive measure for future development.
 
 ## Testing Touch Interactions
 

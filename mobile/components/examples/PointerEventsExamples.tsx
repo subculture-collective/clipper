@@ -21,10 +21,10 @@ export const DisabledButtonExample = () => {
         // ✅ Correct: pointerEvents in style
         pointerEvents: isDisabled ? 'none' : 'auto',
       }}
-      onPress={() => console.log('Button pressed!')}
+      onPress={() => setIsDisabled(!isDisabled)}
     >
       <Text style={{ color: 'white', textAlign: 'center' }}>
-        {isDisabled ? 'Disabled' : 'Enabled'}
+        {isDisabled ? 'Disabled' : 'Tap to Toggle'}
       </Text>
     </TouchableOpacity>
   );

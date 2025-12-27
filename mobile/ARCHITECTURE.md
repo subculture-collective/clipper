@@ -8,7 +8,7 @@ For proper handling of touch interactions in React Native 0.81+, see **[docs/POI
 **Key Points:**
 - ✅ Use `pointerEvents` in the `style` prop: `style={{ pointerEvents: 'none' }}`
 - ❌ Never use `pointerEvents` as a direct prop (deprecated)
-- ESLint will enforce this automatically
+- ESLint can enforce this automatically once a pointerEvents rule is added (e.g., via `eslint-plugin-react-native`)
 
 ## Component Hierarchy
 

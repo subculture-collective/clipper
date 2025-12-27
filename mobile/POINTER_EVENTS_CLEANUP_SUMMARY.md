@@ -58,15 +58,11 @@ A complete 300+ line guide covering:
 
 **File**: `mobile/components/examples/PointerEventsExamples.tsx`
 
-Seven production-ready examples demonstrating:
+Three production-ready examples demonstrating:
 
-1. **DisabledButtonExample**: Conditional disabled state
+1. **DisabledButtonExample**: Conditional disabled state with toggle
 2. **LoadingOverlayExample**: Blocking overlay
-3. **NonBlockingLoadingExample**: Non-blocking indicator
-4. **InteractiveCardExample**: Nested touch targets
-5. **SingleTouchCardExample**: Container-only touch handling
-6. **ConditionalInteractionExample**: Loading state management
-7. **ModalExample**: Modal with backdrop
+3. **InteractiveCardExample**: Nested touch targets
 
 ### 3. Test Suite
 
