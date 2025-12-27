@@ -92,12 +92,12 @@ export default function MFAEnrollScreen() {
         if (!isScanning) return;
 
         setIsScanning(false);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
         // Parse the otpauth:// URI
         const otpData = parseOTPAuthURI(data);
         
         if (!validateOTPAuthData(otpData)) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert(
                 'Invalid QR Code',
                 'The scanned QR code is not a valid authenticator code. Please try again or enter the secret manually.',
@@ -106,16 +106,7 @@ export default function MFAEnrollScreen() {
             return;
         }
 
-        // Verify the secret matches what we got from the server
-        if (otpData && otpData.secret !== enrollmentData?.secret) {
-            Alert.alert(
-                'QR Code Mismatch',
-                'The scanned QR code does not match the expected secret. Please scan the correct QR code.',
-                [{ text: 'OK', onPress: () => setIsScanning(true) }]
-            );
-            return;
-        }
-
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setCurrentStep('verify');
     };
 
@@ -125,8 +116,8 @@ export default function MFAEnrollScreen() {
             return;
         }
 
-        // Basic validation - should be base32
-        if (!/^[A-Z2-7]+=*$/i.test(manualSecret.trim())) {
+        // Basic validation - should be base32 (case-sensitive, uppercase)
+        if (!/^[A-Z2-7]+=*$/.test(manualSecret.trim())) {
             setError('Invalid secret key format. Please check and try again.');
             return;
         }
@@ -176,7 +167,7 @@ export default function MFAEnrollScreen() {
         const codesText = enrollmentData.backup_codes.join('\n');
         try {
             await Share.share({
-                message: `Clipper MFA Backup Codes:\n\n${codesText}\n\nStore these codes securely. Each code can only be used once.`,
+                message: `MFA Backup Codes:\n\n${codesText}\n\nStore these codes securely. Each code can only be used once.`,
             });
         } catch (error) {
             console.error('Error sharing backup codes:', error);
@@ -648,7 +639,7 @@ export default function MFAEnrollScreen() {
                 <View 
                     className="bg-white rounded-lg p-4 mb-4"
                     accessible={true}
-                    accessibilityLabel={`Backup codes. ${enrollmentData?.backup_codes.length} codes displayed`}
+                    accessibilityLabel={enrollmentData?.backup_codes ? `Backup codes. ${enrollmentData.backup_codes.length} codes displayed` : 'Backup codes'}
                     accessibilityHint="Each code can only be used once. Copy or share these codes to save them securely"
                 >
                     {enrollmentData?.backup_codes.map((code, index) => (
@@ -725,12 +716,21 @@ export default function MFAEnrollScreen() {
                     As an alternative to scanning the QR code, you can verify your identity via email before setting up your authenticator app.
                 </Text>
 
-                <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                     <Text className="text-sm font-medium text-blue-900 mb-1">
                         ℹ️ How it works
                     </Text>
                     <Text className="text-sm text-blue-800">
                         We&apos;ll send a verification code to your email. After confirming your email, you can proceed with manual setup of your authenticator app.
+                    </Text>
+                </View>
+
+                <View className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                    <Text className="text-sm font-medium text-amber-900 mb-1">
+                        ⚠️ Note
+                    </Text>
+                    <Text className="text-sm text-amber-800">
+                        Email verification during enrollment is currently in development. For now, you can proceed directly to manual setup.
                     </Text>
                 </View>
 
@@ -742,42 +742,28 @@ export default function MFAEnrollScreen() {
 
                 <TouchableOpacity
                     className="bg-primary-600 rounded-lg py-4 mb-3"
-                    onPress={async () => {
-                        try {
-                            setIsLoading(true);
-                            // In a real implementation, this would call an API to send email OTP
-                            // For now, we'll skip to manual entry
-                            Alert.alert(
-                                'Email Sent',
-                                'A verification code has been sent to your email. For this demo, you can proceed directly to manual setup.',
-                                [
-                                    {
-                                        text: 'Continue to Manual Setup',
-                                        onPress: () => setCurrentStep('manual'),
-                                    },
-                                ]
-                            );
-                        } catch (err: any) {
-                            setError(err.message || 'Failed to send email');
-                        } finally {
-                            setIsLoading(false);
-                        }
+                    onPress={() => {
+                        // TODO: Implement actual email OTP sending when backend endpoint is ready
+                        // For now, proceed directly to manual setup
+                        setCurrentStep('manual');
                     }}
                     disabled={isLoading}
                     style={{ opacity: isLoading ? 0.5 : 1 }}
+                    accessible={true}
+                    accessibilityLabel="Continue to manual setup"
+                    accessibilityRole="button"
                 >
-                    {isLoading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <Text className="text-center text-white font-semibold text-base">
-                            Send Verification Email
-                        </Text>
-                    )}
+                    <Text className="text-center text-white font-semibold text-base">
+                        Continue to Manual Setup
+                    </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     className="py-3"
                     onPress={() => setCurrentStep('scan')}
+                    accessible={true}
+                    accessibilityLabel="Back to QR scan"
+                    accessibilityRole="button"
                 >
                     <Text className="text-center text-gray-600 text-base">
                         Back to QR Scan

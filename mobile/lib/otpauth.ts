@@ -89,8 +89,8 @@ export function validateOTPAuthData(data: OTPAuthData | null): boolean {
         return false;
     }
 
-    // Secret should be base32 (A-Z, 2-7, and optional padding =)
-    if (!/^[A-Z2-7]+=*$/i.test(data.secret)) {
+    // Secret should be base32 (uppercase A-Z, 2-7, and optional padding =)
+    if (!/^[A-Z2-7]+=*$/.test(data.secret)) {
         return false;
     }
 
