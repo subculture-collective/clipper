@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useEvent } from 'expo';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 interface VideoClipCardProps {
@@ -67,11 +68,33 @@ export default function VideoClipCard({
                 style={{ height: VIDEO_HEIGHT }}
             >
                 {videoUrl ?
-                    <VideoView
-                        player={player}
+                    <>
+                        {/* Show thumbnail when not playing */}
+                        {!isPlaying && thumbnailUrl && (
+                            <Image
+                                source={{ uri: thumbnailUrl }}
+                                style={{ width: '100%', height: '100%', position: 'absolute' }}
+                                contentFit='cover'
+                                cachePolicy='memory-disk'
+                                priority='high'
+                                transition={200}
+                            />
+                        )}
+                        <VideoView
+                            player={player}
+                            style={{ width: '100%', height: '100%' }}
+                            contentFit='cover'
+                            allowsPictureInPicture
+                        />
+                    </>
+                :   thumbnailUrl ?
+                    <Image
+                        source={{ uri: thumbnailUrl }}
                         style={{ width: '100%', height: '100%' }}
                         contentFit='cover'
-                        allowsPictureInPicture
+                        cachePolicy='memory-disk'
+                        priority='normal'
+                        transition={200}
                     />
                 :   <View className='w-full h-full bg-gray-200 items-center justify-center'>
                         <Ionicons

@@ -65,6 +65,27 @@ export async function getClip(id: string) {
     return res.data.data;
 }
 
+// Batch fetch media URLs for multiple clips
+export type ClipMediaInfo = {
+    id: string;
+    embed_url: string;
+    thumbnail_url?: string;
+};
+
+export async function batchGetClipMedia(clipIds: string[]) {
+    if (clipIds.length === 0) {
+        return [];
+    }
+
+    const res = await api.post<ApiResponse<ClipMediaInfo[]>>(
+        '/clips/batch-media',
+        {
+            clip_ids: clipIds,
+        }
+    );
+    return res.data.data;
+}
+
 // Clip submission types
 export type SubmitClipRequest = {
     clip_url: string;
