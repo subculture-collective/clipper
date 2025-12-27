@@ -498,13 +498,14 @@ app/auth/mfa-enroll.tsx (Main Enrollment Orchestrator)
 
 ### Enrollment Methods
 
-#### 1. QR Code Scanning
+#### 1. QR Code Display
 
-- Uses `expo-barcode-scanner` for native camera access
-- Parses `otpauth://` URIs with `lib/otpauth.ts` utility
-- Validates scanned data against server-provided secret
-- Supports iOS (Face ID/Touch ID) and Android (Fingerprint/Face)
-- Gracefully handles camera permission denial
+- Server generates QR code containing TOTP secret
+- App displays QR code from `enrollmentData.qr_code_url` (data URL)
+- User scans displayed QR code with their authenticator app (Google Authenticator, Authy, etc.)
+- User enters TOTP code from authenticator app to verify enrollment
+- No camera permissions required - QR code is shown, not scanned by the app
+- Gracefully handles missing QR code data
 - Falls back to manual or email verification
 
 #### 2. Manual Secret Entry
@@ -556,12 +557,6 @@ app/auth/mfa-enroll.tsx (Main Enrollment Orchestrator)
 └──────────────────────────────────────────────────────────────┘
 
 ┌─────────────────┐
-│  expo-barcode-  │ QR code scanning
-│    scanner      │ • Camera access
-└────────┬────────┘ • QR detection
-         │          • Permission handling
-         ▼
-┌─────────────────┐
 │ expo-clipboard  │ Copy backup codes
 └────────┬────────┘ • System clipboard
          │          • Share sheet integration
@@ -581,25 +576,25 @@ app/auth/mfa-enroll.tsx (Main Enrollment Orchestrator)
 
 The enrollment flow handles various error scenarios:
 
-1. **Camera Permission Denied**
-   - Show permission explanation
+1. **Missing QR Code Data**
+   - Show error message if QR code URL unavailable
    - Offer alternative methods (manual, email)
-   - Provide settings link
-
-2. **Invalid QR Code**
-   - Alert with clear message
-   - Option to retry or use alternative
-   - Resume scanning automatically
-
-3. **Network Errors**
-   - Display user-friendly error
-   - Offer retry functionality
    - Maintain enrollment state
 
-4. **Invalid Verification Code**
+2. **Invalid Verification Code**
    - Inline error message
    - Allow immediate retry
    - Clear input on retry
+
+3. **Manual Entry Mismatch**
+   - Validate entered secret matches server secret
+   - Clear error message about mismatch
+   - Allow user to retry
+
+4. **Network Errors**
+   - Display user-friendly error
+   - Offer retry functionality
+   - Maintain enrollment state
 
 ### Accessibility
 
@@ -662,8 +657,7 @@ The enrollment flow implements comprehensive accessibility:
 
 ```json
 {
-  "expo-barcode-scanner": "^13.0.1",
-  "expo-clipboard": "^7.0.0",
+  "expo-clipboard": "^8.0.8",
   "expo-haptics": "^15.0.7",
   "expo-local-authentication": "~15.0.0"
 }

@@ -110,10 +110,13 @@ export async function startEnrollment(): Promise<EnrollMFAResponse> {
 /**
  * Verify enrollment code and enable MFA
  */
-export async function verifyEnrollment(code: string): Promise<{ message: string }> {
+export async function verifyEnrollment(
+    code: string,
+    trustDevice?: boolean
+): Promise<{ message: string }> {
     const response = await api.post<{ message: string }>(
         '/auth/mfa/verify-enrollment',
-        { code }
+        { code, trust_device: trustDevice }
     );
     return response.data;
 }

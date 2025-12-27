@@ -12,15 +12,13 @@ import {
     ScrollView,
     Switch,
     TextInput,
-    Platform,
     Share,
+    Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BarCodeScanner, BarCodeScannerResult } from 'expo-barcode-scanner';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { startEnrollment, verifyEnrollment, type EnrollMFAResponse } from '@/services/mfa';
-import { parseOTPAuthURI, validateOTPAuthData } from '@/lib/otpauth';
 
 type EnrollmentStep = 'intro' | 'scan' | 'manual' | 'email-verify' | 'verify' | 'backup-codes' | 'complete';
 
@@ -39,17 +37,7 @@ export default function MFAEnrollScreen() {
     // UI state
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-    const [isScanning, setIsScanning] = useState(false);
     const [backupCodesViewed, setBackupCodesViewed] = useState(false);
-
-    // Request camera permission
-    useEffect(() => {
-        (async () => {
-            const { status } = await BarCodeScanner.requestPermissionsAsync();
-            setHasPermission(status === 'granted');
-        })();
-    }, []);
 
     const handleStartEnrollment = React.useCallback(async () => {
         setIsLoading(true);
@@ -88,37 +76,33 @@ export default function MFAEnrollScreen() {
         }
     }, [currentStep, enrollmentData, handleStartEnrollment]);
 
-    const handleBarCodeScanned = ({ type, data }: BarCodeScannerResult) => {
-        if (!isScanning) return;
-
-        setIsScanning(false);
-
-        // Parse the otpauth:// URI
-        const otpData = parseOTPAuthURI(data);
-        
-        if (!validateOTPAuthData(otpData)) {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert(
-                'Invalid QR Code',
-                'The scanned QR code is not a valid authenticator code. Please try again or enter the secret manually.',
-                [{ text: 'OK', onPress: () => setIsScanning(true) }]
-            );
-            return;
-        }
-
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setCurrentStep('verify');
-    };
+    // The QR code enrollment flow does not involve scanning with the device camera.
+    // Instead, the app displays the QR code (from enrollmentData.qr_code_url)
+    // and the user scans it with their authenticator app (Google Authenticator, Authy, etc.).
+    // The user then enters the TOTP code from their authenticator app to verify enrollment.
 
     const handleManualEntry = () => {
-        if (!manualSecret.trim()) {
+        const trimmedSecret = manualSecret.trim();
+
+        if (!trimmedSecret) {
             setError('Please enter the secret key');
             return;
         }
 
         // Basic validation - should be base32 (case-sensitive, uppercase)
-        if (!/^[A-Z2-7]+=*$/.test(manualSecret.trim())) {
+        if (!/^[A-Z2-7]+=*$/.test(trimmedSecret)) {
             setError('Invalid secret key format. Please check and try again.');
+            return;
+        }
+
+        // Ensure the manually entered secret matches the server-provided secret
+        if (!enrollmentData || !enrollmentData.secret) {
+            setError('Unable to validate the secret key. Please try again.');
+            return;
+        }
+
+        if (trimmedSecret !== enrollmentData.secret.trim()) {
+            setError('The secret key you entered does not match the one provided. Please double-check and try again.');
             return;
         }
 
@@ -135,7 +119,7 @@ export default function MFAEnrollScreen() {
         setError(null);
 
         try {
-            await verifyEnrollment(verificationCode);
+            await verifyEnrollment(verificationCode, trustDevice);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setCurrentStep('backup-codes');
         } catch (err: any) {
@@ -273,36 +257,89 @@ export default function MFAEnrollScreen() {
     );
 
     const renderScanStep = () => {
-        if (hasPermission === null) {
+        if (isLoading || !enrollmentData) {
             return (
                 <View className="flex-1 items-center justify-center bg-gray-50">
                     <ActivityIndicator size="large" color="#2563eb" />
-                    <Text className="mt-4 text-gray-600">Requesting camera permission...</Text>
+                    <Text className="mt-4 text-gray-600">Preparing QR code...</Text>
                 </View>
             );
         }
 
-        if (hasPermission === false) {
-            return (
-                <View className="flex-1 bg-gray-50 p-6">
+        return (
+            <ScrollView className="flex-1 bg-gray-50">
+                <View className="p-6">
                     <Text className="text-2xl font-bold text-gray-900 mb-4">
-                        Camera Permission Required
+                        Scan QR Code
                     </Text>
+
                     <Text className="text-base text-gray-700 mb-6">
-                        We need camera permission to scan the QR code. Please enable camera access in your device settings, or use an alternative method below.
+                        Open your authenticator app (Google Authenticator, Authy, 1Password, etc.) and scan this QR code to add your account.
                     </Text>
+
+                    {/* Display the QR code from the server */}
+                    <View className="items-center mb-6">
+                        <View className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            {enrollmentData.qr_code_url ? (
+                                <Image
+                                    source={{ uri: enrollmentData.qr_code_url }}
+                                    style={{ width: 250, height: 250 }}
+                                    resizeMode="contain"
+                                    accessible={true}
+                                    accessibilityLabel="QR code for two-factor authentication setup"
+                                />
+                            ) : (
+                                <View 
+                                    style={{ width: 250, height: 250 }} 
+                                    className="items-center justify-center bg-gray-100"
+                                >
+                                    <Text className="text-gray-500">QR Code unavailable</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+
+                    <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <Text className="text-sm font-medium text-blue-900 mb-1">
+                            💡 Tip
+                        </Text>
+                        <Text className="text-sm text-blue-800">
+                            After scanning, your authenticator app will display a 6-digit code that changes every 30 seconds. You&apos;ll need to enter one of these codes in the next step.
+                        </Text>
+                    </View>
+
+                    {error && (
+                        <View className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <Text className="text-red-800 text-sm">{error}</Text>
+                        </View>
+                    )}
+
                     <TouchableOpacity
                         className="bg-primary-600 rounded-lg py-4 mb-3"
+                        onPress={() => setCurrentStep('verify')}
+                        accessible={true}
+                        accessibilityLabel="Continue to verification"
+                        accessibilityRole="button"
+                        accessibilityHint="Proceed to enter the verification code from your authenticator app"
+                    >
+                        <Text className="text-center text-white font-semibold text-base">
+                            I&apos;ve Scanned the Code
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-white border border-gray-300 rounded-lg py-4 mb-3"
                         onPress={() => setCurrentStep('manual')}
                         accessible={true}
                         accessibilityLabel="Enter code manually"
                         accessibilityRole="button"
                         accessibilityHint="Opens manual secret key entry screen"
                     >
-                        <Text className="text-center text-white font-semibold text-base">
-                            Enter Code Manually
+                        <Text className="text-center text-gray-900 font-semibold text-base">
+                            Can&apos;t Scan? Enter Manually
                         </Text>
                     </TouchableOpacity>
+
                     <TouchableOpacity
                         className="border border-gray-300 rounded-lg py-4 mb-3"
                         onPress={() => setCurrentStep('email-verify')}
@@ -315,9 +352,13 @@ export default function MFAEnrollScreen() {
                             Verify via Email
                         </Text>
                     </TouchableOpacity>
+
                     <TouchableOpacity
                         className="py-3"
-                        onPress={() => router.back()}
+                        onPress={() => {
+                            setCurrentStep('intro');
+                            setEnrollmentData(null);
+                        }}
                         accessible={true}
                         accessibilityLabel="Cancel enrollment"
                         accessibilityRole="button"
@@ -327,98 +368,7 @@ export default function MFAEnrollScreen() {
                         </Text>
                     </TouchableOpacity>
                 </View>
-            );
-        }
-
-        if (isLoading || !enrollmentData) {
-            return (
-                <View className="flex-1 items-center justify-center bg-gray-50">
-                    <ActivityIndicator size="large" color="#2563eb" />
-                    <Text className="mt-4 text-gray-600">Preparing QR code...</Text>
-                </View>
-            );
-        }
-
-        return (
-            <View className="flex-1 bg-black">
-                <View className="flex-1">
-                    {Platform.OS === 'web' ? (
-                        <View className="flex-1 items-center justify-center bg-gray-900">
-                            <Text className="text-white text-center mb-4">
-                                QR scanning is not available on web.
-                            </Text>
-                            <TouchableOpacity
-                                className="bg-primary-600 rounded-lg py-3 px-6"
-                                onPress={() => setCurrentStep('manual')}
-                            >
-                                <Text className="text-center text-white font-semibold">
-                                    Enter Code Manually
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <BarCodeScanner
-                            onBarCodeScanned={isScanning ? handleBarCodeScanned : undefined}
-                            style={{ flex: 1 }}
-                            barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
-                        />
-                    )}
-                </View>
-
-                <View className="absolute top-0 left-0 right-0 bg-black/70 p-6 pt-12">
-                    <Text className="text-white text-xl font-bold mb-2">
-                        Scan QR Code
-                    </Text>
-                    <Text className="text-white/90 text-sm">
-                        Open your authenticator app and scan this QR code
-                    </Text>
-                </View>
-
-                <View className="absolute bottom-0 left-0 right-0 bg-black/70 p-6">
-                    <TouchableOpacity
-                        className="bg-white rounded-lg py-4 mb-3"
-                        onPress={() => {
-                            setIsScanning(!isScanning);
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        }}
-                        disabled={Platform.OS === 'web'}
-                    >
-                        <Text className="text-center text-gray-900 font-semibold text-base">
-                            {isScanning ? 'Pause Scanner' : 'Start Scanner'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="bg-primary-600 rounded-lg py-4 mb-3"
-                        onPress={() => setCurrentStep('manual')}
-                    >
-                        <Text className="text-center text-white font-semibold text-base">
-                            Enter Code Manually
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="border border-white rounded-lg py-4 mb-3"
-                        onPress={() => setCurrentStep('email-verify')}
-                    >
-                        <Text className="text-center text-white font-semibold text-base">
-                            Verify via Email
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="py-3"
-                        onPress={() => {
-                            setCurrentStep('intro');
-                            setEnrollmentData(null);
-                        }}
-                    >
-                        <Text className="text-center text-white text-base">
-                            Cancel
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+            </ScrollView>
         );
     };
 
