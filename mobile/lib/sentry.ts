@@ -59,7 +59,7 @@ export function initSentry(): void {
                 // Scrub user data
                 if (event.user) {
                     // Only keep non-identifying information
-                    const { id, username, ...rest } = event.user;
+                    const { id, username } = event.user;
                     event.user = { id, username };
                 }
                 

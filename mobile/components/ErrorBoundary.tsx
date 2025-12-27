@@ -59,7 +59,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                     <View style={styles.content}>
                         <Text style={styles.title}>Oops! Something went wrong</Text>
                         <Text style={styles.message}>
-                            We've been notified and are working on a fix. Please try again.
+                            We&apos;ve been notified and are working on a fix. Please try again.
                         </Text>
                         {__DEV__ && this.state.error && (
                             <View style={styles.errorDetails}>
