@@ -234,8 +234,6 @@ export async function initAnalytics(): Promise<void> {
       {
         host: POSTHOG_HOST,
         captureAppLifecycleEvents: true,
-        captureDeepLinks: true,
-        debug: config.debug,
       }
     );
 

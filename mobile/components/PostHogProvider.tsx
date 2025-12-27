@@ -36,8 +36,8 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
   const { canTrackAnalytics, hasConsented } = useConsent();
   const { user } = useAuth();
   const pathname = usePathname();
-  const segments = useSegments() as string[];
-  const previousPathnameRef = useRef<string>();
+  const segments = useSegments();
+  const previousPathnameRef = useRef<string | undefined>(undefined);
   const initializedRef = useRef(false);
 
   // Initialize PostHog when consent is granted
