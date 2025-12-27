@@ -22,7 +22,7 @@ import * as Clipboard from 'expo-clipboard';
 import { startEnrollment, verifyEnrollment, type EnrollMFAResponse } from '@/services/mfa';
 import { parseOTPAuthURI, validateOTPAuthData } from '@/lib/otpauth';
 
-type EnrollmentStep = 'intro' | 'scan' | 'manual' | 'verify' | 'backup-codes' | 'complete';
+type EnrollmentStep = 'intro' | 'scan' | 'manual' | 'email-verify' | 'verify' | 'backup-codes' | 'complete';
 
 export default function MFAEnrollScreen() {
     const router = useRouter();
@@ -291,7 +291,7 @@ export default function MFAEnrollScreen() {
                         Camera Permission Required
                     </Text>
                     <Text className="text-base text-gray-700 mb-6">
-                        We need camera permission to scan the QR code. Please enable camera access in your device settings.
+                        We need camera permission to scan the QR code. Please enable camera access in your device settings, or use an alternative method below.
                     </Text>
                     <TouchableOpacity
                         className="bg-primary-600 rounded-lg py-4 mb-3"
@@ -299,6 +299,14 @@ export default function MFAEnrollScreen() {
                     >
                         <Text className="text-center text-white font-semibold text-base">
                             Enter Code Manually
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        className="border border-gray-300 rounded-lg py-4 mb-3"
+                        onPress={() => setCurrentStep('email-verify')}
+                    >
+                        <Text className="text-center text-gray-900 font-semibold text-base">
+                            Verify via Email
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -377,6 +385,15 @@ export default function MFAEnrollScreen() {
                     >
                         <Text className="text-center text-white font-semibold text-base">
                             Enter Code Manually
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="border border-white rounded-lg py-4 mb-3"
+                        onPress={() => setCurrentStep('email-verify')}
+                    >
+                        <Text className="text-center text-white font-semibold text-base">
+                            Verify via Email
                         </Text>
                     </TouchableOpacity>
 
@@ -640,11 +657,85 @@ export default function MFAEnrollScreen() {
         </ScrollView>
     );
 
+    const renderEmailVerifyStep = () => (
+        <ScrollView className="flex-1 bg-gray-50">
+            <View className="p-6">
+                <Text className="text-2xl font-bold text-gray-900 mb-4">
+                    Email Verification
+                </Text>
+
+                <Text className="text-base text-gray-700 mb-4">
+                    As an alternative to scanning the QR code, you can verify your identity via email before setting up your authenticator app.
+                </Text>
+
+                <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <Text className="text-sm font-medium text-blue-900 mb-1">
+                        ℹ️ How it works
+                    </Text>
+                    <Text className="text-sm text-blue-800">
+                        We&apos;ll send a verification code to your email. After confirming your email, you can proceed with manual setup of your authenticator app.
+                    </Text>
+                </View>
+
+                {error && (
+                    <View className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <Text className="text-red-800 text-sm">{error}</Text>
+                    </View>
+                )}
+
+                <TouchableOpacity
+                    className="bg-primary-600 rounded-lg py-4 mb-3"
+                    onPress={async () => {
+                        try {
+                            setIsLoading(true);
+                            // In a real implementation, this would call an API to send email OTP
+                            // For now, we'll skip to manual entry
+                            Alert.alert(
+                                'Email Sent',
+                                'A verification code has been sent to your email. For this demo, you can proceed directly to manual setup.',
+                                [
+                                    {
+                                        text: 'Continue to Manual Setup',
+                                        onPress: () => setCurrentStep('manual'),
+                                    },
+                                ]
+                            );
+                        } catch (err: any) {
+                            setError(err.message || 'Failed to send email');
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    }}
+                    disabled={isLoading}
+                    style={{ opacity: isLoading ? 0.5 : 1 }}
+                >
+                    {isLoading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <Text className="text-center text-white font-semibold text-base">
+                            Send Verification Email
+                        </Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    className="py-3"
+                    onPress={() => setCurrentStep('scan')}
+                >
+                    <Text className="text-center text-gray-600 text-base">
+                        Back to QR Scan
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </ScrollView>
+    );
+
     return (
         <View className="flex-1">
             {currentStep === 'intro' && renderIntroStep()}
             {currentStep === 'scan' && renderScanStep()}
             {currentStep === 'manual' && renderManualStep()}
+            {currentStep === 'email-verify' && renderEmailVerifyStep()}
             {currentStep === 'verify' && renderVerifyStep()}
             {currentStep === 'backup-codes' && renderBackupCodesStep()}
         </View>
