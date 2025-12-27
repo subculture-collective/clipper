@@ -86,6 +86,13 @@ export async function batchGetClipMedia(clipIds: string[]) {
     return res.data.data;
 }
 
+// Prefetch media for improved performance
+// This can be called to preload media URLs before they're needed
+export async function prefetchClipMedia(clipIds: string[]) {
+    // Same as batchGetClipMedia, but intended for background prefetching
+    return batchGetClipMedia(clipIds);
+}
+
 // Clip submission types
 export type SubmitClipRequest = {
     clip_url: string;

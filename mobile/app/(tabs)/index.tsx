@@ -8,10 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 import { FlashList } from '@shopify/flash-list';
 import ClipListItemCard from '../../components/ClipListItemCard';
 import { listClips, batchGetClipMedia, ClipMediaInfo } from '../../services/clips';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
+import { trackFeedInitialRender, trackFeedMemory } from '../../lib/performance';
 
 export default function FeedScreen() {
     const router = useRouter();
+    const renderTrackerRef = useRef<ReturnType<typeof trackFeedInitialRender> | null>(null);
 
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ['clips', { sort: 'hot', limit: 10 }],
@@ -34,6 +36,29 @@ export default function FeedScreen() {
         mediaData?.forEach(media => map.set(media.id, media));
         return map;
     }, [mediaData]);
+
+    // Track feed initial render time
+    useEffect(() => {
+        if (!isLoading && data?.data && !renderTrackerRef.current) {
+            renderTrackerRef.current = trackFeedInitialRender();
+        }
+    }, [isLoading, data?.data]);
+
+    // Finish tracking when media is loaded
+    useEffect(() => {
+        if (renderTrackerRef.current && mediaData && data?.data) {
+            renderTrackerRef.current.finish(data.data.length);
+            renderTrackerRef.current = null;
+        }
+    }, [mediaData, data?.data]);
+
+    // Track memory for long sessions
+    useEffect(() => {
+        trackFeedMemory('start');
+        return () => {
+            trackFeedMemory('end');
+        };
+    }, []);
 
     const handleClipPress = (id: string) => {
         router.push(`/clip/${id}`);
