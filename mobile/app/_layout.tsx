@@ -12,6 +12,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { ConsentProvider } from '../contexts/ConsentContext';
 import { ConsentModal } from '../components/ConsentModal';
+import { PostHogProvider } from '../components/PostHogProvider';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { initSentry } from '../lib/sentry';
 import { trackAppStart } from '../lib/performance';
@@ -61,40 +62,42 @@ export default function RootLayout() {
                 <ConsentProvider>
                     <NotificationProvider>
                         <QueryClientProvider client={queryClient}>
-                            <StatusBar style='auto' />
-                            <Stack>
-                                <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-                                <Stack.Screen
-                                    name='auth/login'
-                                    options={{ headerShown: false }}
-                                />
-                                <Stack.Screen
-                                    name='clip/[id]'
-                                    options={{
-                                        presentation: 'modal',
-                                        title: 'Clip Details',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name='settings/index'
-                                    options={{ title: 'Settings' }}
-                                />
-                                <Stack.Screen
-                                    name='submit/index'
-                                    options={{
-                                        presentation: 'modal',
-                                        title: 'Submit Clip',
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name='profile/[id]'
-                                    options={{
-                                        presentation: 'modal',
-                                        title: 'User Profile',
-                                    }}
-                                />
-                            </Stack>
-                            <ConsentModal />
+                            <PostHogProvider>
+                                <StatusBar style='auto' />
+                                <Stack>
+                                    <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+                                    <Stack.Screen
+                                        name='auth/login'
+                                        options={{ headerShown: false }}
+                                    />
+                                    <Stack.Screen
+                                        name='clip/[id]'
+                                        options={{
+                                            presentation: 'modal',
+                                            title: 'Clip Details',
+                                        }}
+                                    />
+                                    <Stack.Screen
+                                        name='settings/index'
+                                        options={{ title: 'Settings' }}
+                                    />
+                                    <Stack.Screen
+                                        name='submit/index'
+                                        options={{
+                                            presentation: 'modal',
+                                            title: 'Submit Clip',
+                                        }}
+                                    />
+                                    <Stack.Screen
+                                        name='profile/[id]'
+                                        options={{
+                                            presentation: 'modal',
+                                            title: 'User Profile',
+                                        }}
+                                    />
+                                </Stack>
+                                <ConsentModal />
+                            </PostHogProvider>
                         </QueryClientProvider>
                     </NotificationProvider>
                 </ConsentProvider>
