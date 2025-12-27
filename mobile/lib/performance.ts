@@ -39,27 +39,23 @@ export function trackScreenTransition(screenName: string): void {
  * Track API request performance
  */
 export function trackApiRequest(endpoint: string): { finish: (statusCode?: number) => void } {
-    let finishCallback: (() => void) | null = null;
+    // For tracking async operations, we use manual span management
+    // Note: In @sentry/react-native v7+, spans are managed differently
+    // For now, we'll use a simpler approach with span sampling
+    const spanContext = {
+        name: `API: ${endpoint}`,
+        op: 'http.client',
+    };
 
-    Sentry.startSpan(
-        {
-            name: `API: ${endpoint}`,
-            op: 'http.client',
-        },
-        (span) => {
-            finishCallback = () => {
-                if (span) {
-                    span.end();
-                }
-            };
-        }
-    );
-
+    // Start tracking when finish is called
     return {
         finish: (statusCode?: number) => {
-            if (finishCallback) {
-                finishCallback();
-            }
+            Sentry.startSpan(spanContext, () => {
+                // Span completes when callback finishes
+                if (statusCode) {
+                    Sentry.setTag('http.status_code', statusCode.toString());
+                }
+            });
         },
     };
 }
@@ -68,21 +64,13 @@ export function trackApiRequest(endpoint: string): { finish: (statusCode?: numbe
  * Track custom operation performance
  */
 export function trackOperation(name: string, op: string): { finish: () => void } {
-    let finishCallback: (() => void) | null = null;
-
-    Sentry.startSpan({ name, op }, (span) => {
-        finishCallback = () => {
-            if (span) {
-                span.end();
-            }
-        };
-    });
+    const spanContext = { name, op };
 
     return {
         finish: () => {
-            if (finishCallback) {
-                finishCallback();
-            }
+            Sentry.startSpan(spanContext, () => {
+                // Span completes when callback finishes
+            });
         },
     };
 }

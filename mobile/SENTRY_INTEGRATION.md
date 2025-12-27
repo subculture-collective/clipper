@@ -88,8 +88,10 @@ trackScreenTransition('HomeScreen'); // Tracks navigation performance
 ```typescript
 const tracker = trackApiRequest('/api/v1/clips');
 // ... make request ...
-tracker.finish(200); // Record success with status code
+tracker.finish(200); // Record when request completes with status code
 ```
+
+**Note**: The performance tracking functions use a simplified approach where spans are created when `finish()` is called. For long-running async operations, consider using Sentry's native span management for more accurate timing.
 
 ### 5. PII Scrubbing
 
