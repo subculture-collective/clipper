@@ -28,6 +28,7 @@
     "expo-haptics": "^15.0.7",
     "expo-image": "^3.0.10",
     "expo-linking": "^8.0.8",
+    "expo-local-authentication": "~15.0.0",
     "expo-network": "^8.0.7",
     "expo-notifications": "^0.32.12",
     "expo-router": "^6.0.14",
