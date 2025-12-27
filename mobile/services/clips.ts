@@ -65,6 +65,35 @@ export async function getClip(id: string) {
     return res.data.data;
 }
 
+// Batch fetch media URLs for multiple clips
+export type ClipMediaInfo = {
+    id: string;
+    embed_url: string;
+    thumbnail_url?: string;
+};
+
+export async function batchGetClipMedia(clipIds: string[]) {
+    if (clipIds.length === 0) {
+        return [];
+    }
+
+    const res = await api.post<ApiResponse<ClipMediaInfo[]>>(
+        '/clips/batch-media',
+        {
+            clip_ids: clipIds,
+        }
+    );
+    return res.data.data;
+}
+
+// Convenience helper for prefetching media in calling code.
+// Note: This is a thin wrapper around batchGetClipMedia; callers are responsible
+// for invoking it in a background/preload context if desired (e.g., via React Query
+// prefetch or manual invocation before navigation).
+export async function prefetchClipMedia(clipIds: string[]) {
+    return batchGetClipMedia(clipIds);
+}
+
 // Clip submission types
 export type SubmitClipRequest = {
     clip_url: string;

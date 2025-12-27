@@ -1379,3 +1379,52 @@ AND created_at > NOW() - INTERVAL '1 hour' * $1
 
 	return result.RowsAffected(), nil
 }
+
+// GetClipsByIDs retrieves multiple clips by their IDs
+func (r *ClipRepository) GetClipsByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]models.Clip, error) {
+if len(clipIDs) == 0 {
+return []models.Clip{}, nil
+}
+
+query := `
+SELECT 
+id, twitch_clip_id, twitch_clip_url, embed_url, title,
+creator_name, creator_id, broadcaster_name, broadcaster_id,
+game_id, game_name, language, thumbnail_url, duration,
+view_count, created_at, imported_at, vote_score, comment_count,
+favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+is_hidden, submitted_by_user_id, submitted_at
+FROM clips
+WHERE id = ANY($1)
+AND is_removed = false
+`
+
+rows, err := r.pool.Query(ctx, query, clipIDs)
+if err != nil {
+return nil, fmt.Errorf("failed to query clips: %w", err)
+}
+defer rows.Close()
+
+var clips []models.Clip
+for rows.Next() {
+var clip models.Clip
+err := rows.Scan(
+&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL, &clip.Title,
+&clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName, &clip.BroadcasterID,
+&clip.GameID, &clip.GameName, &clip.Language, &clip.ThumbnailURL, &clip.Duration,
+&clip.ViewCount, &clip.CreatedAt, &clip.ImportedAt, &clip.VoteScore, &clip.CommentCount,
+&clip.FavoriteCount, &clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+&clip.IsHidden, &clip.SubmittedByUserID, &clip.SubmittedAt,
+)
+if err != nil {
+return nil, fmt.Errorf("failed to scan clip: %w", err)
+}
+clips = append(clips, clip)
+}
+
+if err := rows.Err(); err != nil {
+return nil, fmt.Errorf("rows iteration error: %w", err)
+}
+
+return clips, nil
+}
