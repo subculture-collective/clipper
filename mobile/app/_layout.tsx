@@ -3,7 +3,7 @@
  * Handles global providers and navigation
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,6 +12,10 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { ConsentProvider } from '../contexts/ConsentContext';
 import { ConsentModal } from '../components/ConsentModal';
+import { PostHogProvider } from '../components/PostHogProvider';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { initSentry } from '../lib/sentry';
+import { trackAppStart } from '../lib/performance';
 import '../global.css';
 
 // Keep the splash screen visible while we fetch resources
@@ -31,53 +35,73 @@ const queryClient = new QueryClient({
 // enable deep linking without manual linking configuration.
 
 export default function RootLayout() {
+    const appStartTracker = useRef<{ finish: () => void } | null>(null);
+
     useEffect(() => {
+        // Initialize Sentry when component mounts
+        initSentry();
+        
+        // Start tracking app startup time
+        appStartTracker.current = trackAppStart();
+        
         // Hide splash screen after app is ready
-        SplashScreen.hideAsync();
+        const hideSplash = async () => {
+            await SplashScreen.hideAsync();
+            // Finish tracking app start after splash is hidden
+            if (appStartTracker.current) {
+                appStartTracker.current.finish();
+            }
+        };
+        
+        hideSplash();
     }, []);
 
     return (
-        <AuthProvider>
-            <ConsentProvider>
-                <NotificationProvider>
-                    <QueryClientProvider client={queryClient}>
-                        <StatusBar style='auto' />
-                        <Stack>
-                            <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-                            <Stack.Screen
-                                name='auth/login'
-                                options={{ headerShown: false }}
-                            />
-                            <Stack.Screen
-                                name='clip/[id]'
-                                options={{
-                                    presentation: 'modal',
-                                    title: 'Clip Details',
-                                }}
-                            />
-                            <Stack.Screen
-                                name='settings/index'
-                                options={{ title: 'Settings' }}
-                            />
-                            <Stack.Screen
-                                name='submit/index'
-                                options={{
-                                    presentation: 'modal',
-                                    title: 'Submit Clip',
-                                }}
-                            />
-                            <Stack.Screen
-                                name='profile/[id]'
-                                options={{
-                                    presentation: 'modal',
-                                    title: 'User Profile',
-                                }}
-                            />
-                        </Stack>
-                        <ConsentModal />
-                    </QueryClientProvider>
-                </NotificationProvider>
-            </ConsentProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <ConsentProvider>
+                    <NotificationProvider>
+                        <QueryClientProvider client={queryClient}>
+                            <PostHogProvider>
+                                <StatusBar style='auto' />
+                                <Stack>
+                                    <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+                                    <Stack.Screen
+                                        name='auth/login'
+                                        options={{ headerShown: false }}
+                                    />
+                                    <Stack.Screen
+                                        name='clip/[id]'
+                                        options={{
+                                            presentation: 'modal',
+                                            title: 'Clip Details',
+                                        }}
+                                    />
+                                    <Stack.Screen
+                                        name='settings/index'
+                                        options={{ title: 'Settings' }}
+                                    />
+                                    <Stack.Screen
+                                        name='submit/index'
+                                        options={{
+                                            presentation: 'modal',
+                                            title: 'Submit Clip',
+                                        }}
+                                    />
+                                    <Stack.Screen
+                                        name='profile/[id]'
+                                        options={{
+                                            presentation: 'modal',
+                                            title: 'User Profile',
+                                        }}
+                                    />
+                                </Stack>
+                                <ConsentModal />
+                            </PostHogProvider>
+                        </QueryClientProvider>
+                    </NotificationProvider>
+                </ConsentProvider>
+            </AuthProvider>
+        </ErrorBoundary>
     );
 }

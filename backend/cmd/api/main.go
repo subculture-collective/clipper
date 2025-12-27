@@ -639,6 +639,9 @@ func main() {
 			clips.GET("/:id", clipHandler.GetClip)
 			clips.GET("/:id/related", clipHandler.GetRelatedClips)
 
+			// Batch endpoint for media URLs (public, rate limited)
+			clips.POST("/batch-media", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), clipHandler.BatchGetClipMedia)
+
 			// Clip tags (public)
 			clips.GET("/:id/tags", tagHandler.GetClipTags)
 

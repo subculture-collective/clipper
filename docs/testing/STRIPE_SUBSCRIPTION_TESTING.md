@@ -1,6 +1,31 @@
 # Stripe Subscription Lifecycle Testing Guide
 
-This guide provides comprehensive testing procedures for Stripe subscription flows, including manual test cases, edge cases, and dashboard reconciliation procedures.
+This guide provides comprehensive testing procedures for Stripe subscription flows, including automated integration tests, manual test cases, edge cases, and dashboard reconciliation procedures.
+
+## Automated Integration Tests
+
+**New**: Integration tests are available to validate subscription infrastructure, database schema, and handler wiring:
+
+```bash
+# Run all Stripe integration tests
+make test-integration-stripe
+
+# Run specific test categories
+cd backend
+go test -v -tags=integration ./tests/integration/premium/ -run TestWebhookIdempotency
+go test -v -tags=integration ./tests/integration/premium/ -run TestEntitlementUpdates
+go test -v -tags=integration ./tests/integration/premium/ -run TestProration
+go test -v -tags=integration ./tests/integration/premium/ -run TestPaymentFailure
+```
+
+**Automated Test Coverage (Current Scope)**:
+1. **Webhook Idempotency**: Verifies basic webhook handler wiring and database state (for example, schema/migration expectations and that services are constructed and invoked without errors for sample events).
+2. **Entitlement Updates**: Verifies that subscription/entitlement handlers can be invoked and that core persistence logic executes against the expected schema.
+3. **Payment Failures**: Verifies that payment‑failure handlers are wired correctly and can persist basic failure state to the database.
+4. **Proration**: Verifies that proration‑related handlers and invoice processing paths execute successfully against the current schema.
+5. **Retry Logic (Infrastructure Only)**: Verifies that retry‑related services are instantiated and callable; it does **not** fully simulate or assert on a real webhook retry queue or exponential backoff behavior.
+
+These automated tests do **not** by themselves validate full Stripe lifecycle behavior such as real duplicate event detection, production‑grade user permissions syncing, Stripe's dunning process, or actual webhook retry timing/exponential backoff. Validating those behaviors requires end‑to‑end flows driven by valid Stripe webhooks and/or the manual procedures described later in this guide. See the [Integration Test Implementation](#integration-test-details) section for more details about what is and is not covered.
 
 ## Table of Contents
 
@@ -795,8 +820,87 @@ After completing all tests, verify:
 5. Set up monitoring and alerts
 6. Plan for ongoing testing and maintenance
 
+## Integration Test Details
+
+The automated integration tests are located in `backend/tests/integration/premium/subscription_webhook_integration_test.go`.
+
+### Test Implementation
+
+**TestWebhookIdempotencyWithDatabaseAssertion**
+- Validates webhook endpoint exists and responds
+- Tests database schema supports event tracking (`stripe_webhooks_log` table)
+- Verifies handler infrastructure for concurrent requests
+- **Note**: Does not test actual idempotency logic (requires valid Stripe signatures)
+
+**TestEntitlementUpdatesOnSubscriptionStatusChanges**
+- Tests subscription creation and database persistence
+- Validates `IsProUser` logic for different subscription statuses
+- Tests grace period handling infrastructure
+- **Note**: Does not test webhook-driven entitlement updates (requires valid Stripe signatures)
+
+**TestWebhookRetryLogic**
+- Validates retry queue database tables exist (`webhook_retry_queue`)
+- Verifies schema supports exponential backoff (`next_retry_at` column)
+- Tests max retries column exists
+- **Note**: Does not test actual retry processing or backoff behavior
+
+**TestProrationCalculationsWithValidation**
+- Tests plan change endpoint exists and responds
+- Validates webhook handlers can receive invoice events
+- Verifies database schema supports proration tracking
+- **Note**: Does not validate actual proration amounts (requires valid Stripe API calls)
+
+**TestPaymentFailureHandlingWithAlerts**
+- Tests payment failure webhook handlers exist
+- Validates database can track failure events
+- Verifies handler infrastructure for multiple failure scenarios
+- **Note**: Does not test actual dunning process or escalation logic (requires valid Stripe signatures)
+
+### Running Individual Tests
+
+```bash
+# Test webhook idempotency
+go test -v -tags=integration ./tests/integration/premium/ -run TestWebhookIdempotencyWithDatabaseAssertion
+
+# Test entitlement updates
+go test -v -tags=integration ./tests/integration/premium/ -run TestEntitlementUpdatesOnSubscriptionStatusChanges
+
+# Test retry logic
+go test -v -tags=integration ./tests/integration/premium/ -run TestWebhookRetryLogic
+
+# Test proration
+go test -v -tags=integration ./tests/integration/premium/ -run TestProrationCalculationsWithValidation
+
+# Test payment failures
+go test -v -tags=integration ./tests/integration/premium/ -run TestPaymentFailureHandlingWithAlerts
+```
+
+### Test Database
+
+Tests use the test database configured in `docker-compose.test.yml`:
+- **Host**: localhost:5437
+- **Database**: clipper_test
+- **User**: clipper
+- **Password**: clipper_password
+
+The Makefile target `test-integration-stripe` automatically:
+1. Starts the test database
+2. Runs migrations
+3. Executes integration tests
+4. Stops the test database
+
+### CI/CD Integration
+
+For CI pipelines, set environment variables:
+```bash
+export TEST_STRIPE_SECRET_KEY=sk_test_your_test_key
+export TEST_STRIPE_WEBHOOK_SECRET=whsec_test_your_webhook_secret
+```
+
+Tests will run with mock Stripe clients if keys are not provided, but with actual Stripe test keys, tests will validate against real Stripe API behavior in test mode.
+
 ---
 
-**Last Updated**: December 24, 2025  
-**Version**: 1.0  
+**Last Updated**: December 26, 2025  
+**Version**: 1.1  
 **Maintained By**: Clipper Engineering Team

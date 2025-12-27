@@ -1,16 +1,17 @@
 /**
  * Mobile Analytics Module
  * 
- * Simplified analytics tracking for React Native mobile app.
- * Uses AsyncStorage for consent management and lightweight tracking.
- * 
- * Note: For full PostHog React Native integration, install posthog-react-native:
- *   npm install posthog-react-native
- * 
- * For now, this provides a minimal implementation that can be extended.
+ * PostHog React Native integration for product analytics.
+ * Handles event tracking, user identification, screen views, and feature flags.
+ * Respects user privacy preferences and GDPR compliance.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PostHog from 'posthog-react-native';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Application from 'expo-application';
+import * as Localization from 'expo-localization';
 
 /**
  * Event Categories
@@ -144,9 +145,9 @@ export const PerformanceEvents = {
  * Type definitions for events and properties
  */
 export type EventName = string;
-export type EventProperties = Record<string, unknown>;
-export type BaseEventProperties = Record<string, unknown>;
-export type UserProperties = Record<string, string | number | boolean | undefined>;
+export type EventProperties = Record<string, string | number | boolean | null>;
+export type BaseEventProperties = Record<string, string | number | boolean | null>;
+export type UserProperties = Record<string, string | number | boolean>;
 
 /**
  * Analytics configuration
@@ -155,17 +156,47 @@ interface AnalyticsConfig {
   enabled: boolean;
   debug: boolean;
   userId?: string;
-  userProperties?: Record<string, string | number | boolean | undefined>;
+  userProperties?: Record<string, string | number | boolean>;
 }
 
 const CONSENT_STORAGE_KEY = '@clipper:analytics_consent';
 const ENV_TRUE = 'true';
 const ANALYTICS_ENABLED = process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === ENV_TRUE;
+const POSTHOG_API_KEY = process.env.EXPO_PUBLIC_POSTHOG_API_KEY || '';
+const POSTHOG_HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
 
 let config: AnalyticsConfig = {
   enabled: false,
   debug: __DEV__,
 };
+
+// PostHog client instance
+let posthogClient: PostHog | null = null;
+
+/**
+ * Get device and application properties
+ * These properties are automatically added to all events
+ */
+async function getDeviceProperties(): Promise<Record<string, string | number | boolean>> {
+  try {
+    return {
+      app_version: Application.nativeApplicationVersion || Constants.expoConfig?.version || '1.0.0',
+      app_build: Application.nativeBuildVersion || '1',
+      device_model: Device.modelName || 'unknown',
+      device_brand: Device.brand || 'unknown',
+      device_os: Device.osName || 'unknown',
+      device_os_version: Device.osVersion || 'unknown',
+      device_year_class: Device.deviceYearClass || 0,
+      locale: Localization.getLocales()[0]?.languageCode || 'en',
+      timezone: Localization.getCalendars()[0]?.timeZone || 'UTC',
+      is_device: Device.isDevice || false,
+      platform: 'mobile',
+    };
+  } catch (error) {
+    console.error('[Analytics] Failed to get device properties:', error);
+    return { platform: 'mobile' };
+  }
+}
 
 /**
  * Initialize analytics
@@ -178,16 +209,58 @@ export async function initAnalytics(): Promise<void> {
     }
     return;
   }
+
+  if (!POSTHOG_API_KEY) {
+    if (config.debug) {
+      console.log('[Analytics] No PostHog API key configured');
+    }
+    return;
+  }
   
   try {
     const consentStr = await AsyncStorage.getItem(CONSENT_STORAGE_KEY);
     const consent = consentStr ? JSON.parse(consentStr) : { analytics: false };
     
-    if (consent.analytics) {
-      config.enabled = true;
+    // Validate consent data structure
+    if (typeof consent !== 'object' || consent === null || typeof consent.analytics !== 'boolean') {
+      console.warn('[Analytics] Invalid consent data, defaulting to false');
+      return;
+    }
+    
+    if (!consent.analytics) {
       if (config.debug) {
-        console.log('[Analytics] Initialized with user consent');
+        console.log('[Analytics] User has not granted consent');
       }
+      return;
+    }
+
+    // Check if already initialized to prevent double initialization
+    if (posthogClient) {
+      if (config.debug) {
+        console.log('[Analytics] Already initialized');
+      }
+      return;
+    }
+
+    // Initialize PostHog client
+    posthogClient = new PostHog(
+      POSTHOG_API_KEY,
+      {
+        host: POSTHOG_HOST,
+        captureAppLifecycleEvents: true,
+      }
+    );
+
+    config.enabled = true;
+
+    // Set default properties
+    const deviceProps = await getDeviceProperties();
+    if (posthogClient?.register) {
+      posthogClient.register(deviceProps);
+    }
+
+    if (config.debug) {
+      console.log('[Analytics] PostHog initialized successfully');
     }
   } catch (error) {
     console.error('[Analytics] Failed to initialize:', error);
@@ -204,6 +277,8 @@ export async function enableAnalytics(): Promise<void> {
     if (config.debug) {
       console.log('[Analytics] Enabled');
     }
+    // Re-initialize PostHog after consent is granted
+    await initAnalytics();
   } catch (error) {
     console.error('[Analytics] Failed to enable:', error);
   }
@@ -216,6 +291,14 @@ export async function disableAnalytics(): Promise<void> {
   config.enabled = false;
   try {
     await AsyncStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify({ analytics: false }));
+    
+    // Opt out and reset PostHog
+    if (posthogClient) {
+      posthogClient.optOut();
+      posthogClient.reset();
+      posthogClient = null;
+    }
+    
     if (config.debug) {
       console.log('[Analytics] Disabled');
     }
@@ -236,9 +319,9 @@ export function isAnalyticsEnabled(): boolean {
  */
 export function identifyUser(
   userId: string,
-  properties?: Record<string, string | number | boolean | undefined>
+  properties?: Record<string, string | number | boolean>
 ): void {
-  if (!config.enabled) {
+  if (!config.enabled || !posthogClient) {
     if (config.debug) {
       console.log('[Analytics] Identify skipped (disabled):', { userId, properties });
     }
@@ -248,13 +331,23 @@ export function identifyUser(
   config.userId = userId;
   config.userProperties = properties;
   
-  if (config.debug) {
-    console.log('[Analytics] User identified:', { userId, properties });
-  }
+  // Filter out undefined values
+  const cleanProperties = properties 
+    ? Object.fromEntries(
+        Object.entries(properties).filter(([, v]) => v !== undefined)
+      ) as Record<string, string | number | boolean>
+    : undefined;
   
-  // TODO: Integrate with PostHog React Native when installed
-  // import { posthog } from 'posthog-react-native';
-  // posthog.identify(userId, properties);
+  // Identify user in PostHog
+  try {
+    posthogClient.identify(userId, cleanProperties);
+    
+    if (config.debug) {
+      console.log('[Analytics] User identified:', { userId, properties: cleanProperties });
+    }
+  } catch (error) {
+    console.error('[Analytics] Failed to identify user:', error);
+  }
 }
 
 /**
@@ -264,13 +357,14 @@ export function resetUser(): void {
   config.userId = undefined;
   config.userProperties = undefined;
   
+  // Reset PostHog user
+  if (posthogClient) {
+    posthogClient.reset();
+  }
+  
   if (config.debug) {
     console.log('[Analytics] User reset');
   }
-  
-  // TODO: Integrate with PostHog React Native when installed
-  // import { posthog } from 'posthog-react-native';
-  // posthog.reset();
 }
 
 /**
@@ -278,35 +372,39 @@ export function resetUser(): void {
  */
 export function trackEvent(
   eventName: string,
-  properties?: Record<string, unknown>
+  properties?: Record<string, string | number | boolean | null>
 ): void {
-  if (!config.enabled) {
+  if (!config.enabled || !posthogClient) {
     if (config.debug) {
       console.log('[Analytics] Event skipped (disabled):', eventName, properties);
     }
     return;
   }
   
-  const enrichedProperties = {
+  const enrichedProperties: Record<string, string | number | boolean | null> = {
     ...properties,
-    user_id: config.userId,
-    platform: 'mobile',
+    user_id: config.userId || null,
     timestamp: new Date().toISOString(),
   };
   
-  if (config.debug) {
-    console.log('[Analytics] Event tracked:', eventName, enrichedProperties);
+  // Capture event in PostHog
+  try {
+    posthogClient.capture(eventName, enrichedProperties);
+    
+    if (config.debug) {
+      console.log('[Analytics] Event tracked:', eventName, enrichedProperties);
+    }
+  } catch (error) {
+    if (config.debug) {
+      console.error('[Analytics] Failed to capture event:', error);
+    }
   }
-  
-  // TODO: Integrate with PostHog React Native when installed
-  // import { posthog } from 'posthog-react-native';
-  // posthog.capture(eventName, enrichedProperties);
 }
 
 /**
  * Track a page/screen view
  */
-export function trackScreenView(screenName: string, properties?: Record<string, unknown>): void {
+export function trackScreenView(screenName: string, properties?: Record<string, string | number | boolean | null>): void {
   trackEvent(NavigationEvents.SCREEN_VIEWED, {
     screen_name: screenName,
     ...properties,
@@ -326,7 +424,134 @@ export function trackError(
   trackEvent(ErrorEvents.ERROR_OCCURRED, {
     error_type: context?.errorType || error.name,
     error_message: error.message,
-    error_stack: error.stack,
-    error_code: context?.errorCode,
+    error_stack: error.stack || null,
+    error_code: context?.errorCode || null,
   });
+}
+
+/**
+ * Get a feature flag value
+ */
+export function getFeatureFlag(
+  flagKey: string,
+  defaultValue?: boolean | string
+): boolean | string | undefined {
+  if (!config.enabled || !posthogClient) {
+    return defaultValue;
+  }
+
+  try {
+    return posthogClient.getFeatureFlag(flagKey) ?? defaultValue;
+  } catch (error) {
+    if (config.debug) {
+      console.error('[Analytics] Failed to get feature flag:', error);
+    }
+    return defaultValue;
+  }
+}
+
+/**
+ * Check if a feature flag is enabled
+ */
+export function isFeatureFlagEnabled(flagKey: string): boolean {
+  if (!config.enabled || !posthogClient) {
+    return false;
+  }
+
+  try {
+    return posthogClient.isFeatureEnabled(flagKey) ?? false;
+  } catch (error) {
+    if (config.debug) {
+      console.error('[Analytics] Failed to check feature flag:', error);
+    }
+    return false;
+  }
+}
+
+/**
+ * Get all feature flags
+ */
+export function getAllFeatureFlags(): Record<string, boolean | string> {
+  if (!config.enabled || !posthogClient) {
+    return {};
+  }
+
+  try {
+    return posthogClient.getFeatureFlags() ?? {};
+  } catch (error) {
+    if (config.debug) {
+      console.error('[Analytics] Failed to get all feature flags:', error);
+    }
+    return {};
+  }
+}
+
+/**
+ * Force reload feature flags from server
+ */
+export async function reloadFeatureFlags(): Promise<void> {
+  if (!config.enabled || !posthogClient) {
+    return;
+  }
+
+  try {
+    await posthogClient.reloadFeatureFlagsAsync();
+    if (config.debug) {
+      console.log('[Analytics] Feature flags reloaded');
+    }
+  } catch (error) {
+    console.error('[Analytics] Failed to reload feature flags:', error);
+  }
+}
+
+/**
+ * Group identify - associate user with a group
+ */
+export function groupIdentify(
+  groupType: string,
+  groupKey: string,
+  properties?: Record<string, string | number | boolean>
+): void {
+  if (!config.enabled || !posthogClient) {
+    if (config.debug) {
+      console.log('[Analytics] Group identify skipped (disabled)');
+    }
+    return;
+  }
+
+  try {
+    posthogClient.group(groupType, groupKey, properties);
+    if (config.debug) {
+      console.log('[Analytics] Group identified:', { groupType, groupKey, properties });
+    }
+  } catch (error) {
+    console.error('[Analytics] Failed to identify group:', error);
+  }
+}
+
+/**
+ * Get the PostHog client instance
+ * For advanced usage only
+ */
+export function getPostHogClient(): PostHog | null {
+  return posthogClient;
+}
+
+/**
+ * Flush any pending events
+ * Useful before app shutdown
+ */
+export async function flush(): Promise<void> {
+  if (!posthogClient) {
+    return;
+  }
+
+  try {
+    await posthogClient.flush();
+    if (config.debug) {
+      console.log('[Analytics] Flushed pending events');
+    }
+  } catch (error) {
+    console.error('[Analytics] Failed to flush events:', error);
+  }
 }

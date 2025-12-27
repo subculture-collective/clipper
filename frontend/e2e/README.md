@@ -346,7 +346,9 @@ import {
   followUser, 
   createPlaylist,
   blockUser,
-  triggerRateLimit 
+  triggerRateLimit,
+  createWatchParty,
+  joinWatchParty,
 } from '../utils/social-features';
 
 // Comments
@@ -373,6 +375,18 @@ const playlist = await createPlaylist(page, {
 });
 await addClipsToPlaylist(page, playlist.id, ['clip-1', 'clip-2']);
 const shareLink = await getPlaylistShareLink(page, playlist.id);
+await updatePlaylistVisibility(page, playlist.id, 'private');
+
+// Watch Parties (Theatre Queue)
+const watchParty = await createWatchParty(page, {
+  title: 'Movie Night',
+  playlistId: playlist.id,
+  visibility: 'public',
+  maxParticipants: 10,
+});
+await joinWatchParty(page, watchParty.invite_code);
+const participants = await getWatchPartyParticipants(page, watchParty.id);
+await leaveWatchParty(page, watchParty.id);
 
 // Blocking
 await blockUser(page, 'user-id', 'spam');
@@ -536,6 +550,105 @@ npm run test:e2e -- tests/social-features.spec.ts --grep "Comments - CRUD"
 npm run test:e2e -- tests/social-features.spec.ts --grep "Voting"
 npm run test:e2e -- tests/social-features.spec.ts --grep "Playlists"
 ```
+
+### Search & Discovery Tests (`search-discovery.spec.ts`)
+
+Comprehensive E2E tests for search functionality with ≥95% target pass rate and performance SLAs:
+
+**Text Search & Relevance:**
+- Query handling and result display
+- Special character and case handling
+- Result count validation
+- Query persistence
+
+**Filters:**
+- Language, game, date range, tags filters
+- Multiple filter combinations
+- Filter persistence through navigation
+- Clear filters functionality
+
+**Autocomplete/Suggestions:**
+- Suggestion display and quality
+- Keyboard navigation
+- Selection and search
+- Latency validation (< 300ms p95)
+
+**Search History:**
+- localStorage persistence
+- History display and selection
+- History clearing
+- Recent items limit (10)
+
+**Pagination:**
+- Multi-page navigation
+- State preservation
+- Filter/query persistence
+
+**Performance:**
+- Search latency measurement
+- p50/p95/p99 metrics calculation
+- SLA validation (p95 < 500ms)
+- Regression detection
+
+**Empty States:**
+- No results handling
+- Error messaging
+- Recovery actions
+
+**Accessibility:**
+- Keyboard navigation
+- Screen reader support
+- ARIA attributes
+
+Run the full suite:
+```bash
+npm run test:e2e -- tests/search-discovery.spec.ts
+```
+
+Run specific test group:
+```bash
+npm run test:e2e -- tests/search-discovery.spec.ts --grep "Performance"
+npm run test:e2e -- tests/search-discovery.spec.ts --grep "Filters"
+npm run test:e2e -- tests/search-discovery.spec.ts --grep "Suggestions"
+```
+
+**Documentation:** See [SEARCH_DISCOVERY_TESTS.md](./SEARCH_DISCOVERY_TESTS.md) for detailed information.
+
+### Playlist Sharing & Theatre Queue Tests (`playlist-sharing-theatre-queue.spec.ts`)
+
+Comprehensive E2E tests for playlist sharing and theatre queue (watch party) features with ≥95% target pass rate:
+
+**Playlist Sharing:**
+- Share link generation for public/unlisted/private playlists
+- Access control and permission enforcement
+- Visibility changes and access revocation
+- Error handling for invalid/unauthorized requests
+
+**Theatre Queue (Watch Party):**
+- Creation with/without playlists
+- Invite-based joining with codes
+- Participant management (list, leave, kick)
+- Host permissions and settings
+- Multi-user synchronization scenarios
+
+**Integration:**
+- Creating watch parties from shared playlists
+- Invite link sharing flows
+- Playlist visibility affecting watch party access
+
+Run the full suite:
+```bash
+npm run test:e2e -- tests/playlist-sharing-theatre-queue.spec.ts
+```
+
+Run specific test group:
+```bash
+npm run test:e2e -- tests/playlist-sharing-theatre-queue.spec.ts --grep "Playlist Sharing"
+npm run test:e2e -- tests/playlist-sharing-theatre-queue.spec.ts --grep "Theatre Queue"
+npm run test:e2e -- tests/playlist-sharing-theatre-queue.spec.ts --grep "Integration"
+```
+
+**Documentation:** See [PLAYLIST_SHARING_THEATRE_QUEUE_TESTS.md](./tests/PLAYLIST_SHARING_THEATRE_QUEUE_TESTS.md) for detailed information.
 
 ### Other Test Suites
 
