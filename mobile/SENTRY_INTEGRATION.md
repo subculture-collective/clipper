@@ -93,6 +93,22 @@ tracker.finish(200); // Record when request completes with status code
 
 **Note**: The performance tracking functions use a simplified approach where spans are created when `finish()` is called. For long-running async operations, consider using Sentry's native span management for more accurate timing.
 
+**Current Limitations:**
+- The simplified implementation provides event markers rather than precise duration measurements
+- For production use with accurate timing, consider implementing proper async span tracking
+- Future enhancement: Integrate with React Navigation for automatic screen tracking
+
+**Alternative for Precise Timing:**
+```typescript
+import * as Sentry from '@sentry/react-native';
+
+// For operations requiring precise timing
+Sentry.withActiveSpan((span) => {
+  // Your operation here
+  // Span automatically tracks duration
+});
+```
+
 ### 5. PII Scrubbing
 
 Personally Identifiable Information (PII) is automatically removed:

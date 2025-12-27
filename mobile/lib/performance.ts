@@ -1,5 +1,13 @@
 /**
  * Performance monitoring utilities for tracking app performance
+ * 
+ * Note: Current implementation uses simplified span tracking that creates
+ * spans at completion time rather than tracking actual operation duration.
+ * 
+ * TODO: Implement proper async span management for accurate timing:
+ * - Use active span context for tracking long-running operations
+ * - Integrate with React Navigation for automatic screen tracking
+ * - Consider implementing custom transaction tracking for complex flows
  */
 
 import * as Sentry from '@sentry/react-native';
