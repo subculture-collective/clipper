@@ -1,5 +1,15 @@
 # Component Architecture Visualization
 
+## Development Guidelines
+
+### Touch Interaction & Pointer Events
+For proper handling of touch interactions in React Native 0.81+, see **[docs/POINTER_EVENTS_GUIDE.md](./docs/POINTER_EVENTS_GUIDE.md)**. 
+
+**Key Points:**
+- ✅ Use `pointerEvents` in the `style` prop: `style={{ pointerEvents: 'none' }}`
+- ❌ Never use `pointerEvents` as a direct prop (deprecated)
+- ESLint can enforce this automatically once a pointerEvents rule is added (e.g., via `eslint-plugin-react-native`)
+
 ## Component Hierarchy
 
 ```
