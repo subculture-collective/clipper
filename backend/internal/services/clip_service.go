@@ -742,36 +742,36 @@ func (s *ClipService) ListCreatorClips(ctx context.Context, creatorTwitchID stri
 
 // ClipMediaInfo contains the media URLs for a clip
 type ClipMediaInfo struct {
-ID           uuid.UUID `json:"id"`
-EmbedURL     string    `json:"embed_url"`
-ThumbnailURL *string   `json:"thumbnail_url,omitempty"`
+	ID           uuid.UUID `json:"id"`
+	EmbedURL     string    `json:"embed_url"`
+	ThumbnailURL *string   `json:"thumbnail_url,omitempty"`
 }
 
 // BatchGetClipMedia retrieves media URLs for multiple clips efficiently
 func (s *ClipService) BatchGetClipMedia(ctx context.Context, clipIDs []uuid.UUID) ([]ClipMediaInfo, error) {
-if len(clipIDs) == 0 {
-return []ClipMediaInfo{}, nil
-}
+	if len(clipIDs) == 0 {
+		return []ClipMediaInfo{}, nil
+	}
 
-// Limit batch size to prevent abuse
-if len(clipIDs) > 100 {
-return nil, errors.New("batch size exceeds maximum of 100 clips")
-}
+	// Limit batch size to prevent abuse
+	if len(clipIDs) > 100 {
+		return nil, errors.New("batch size exceeds maximum of 100 clips")
+	}
 
-clips, err := s.clipRepo.GetClipsByIDs(ctx, clipIDs)
-if err != nil {
-return nil, fmt.Errorf("failed to fetch clips: %w", err)
-}
+	clips, err := s.clipRepo.GetClipsByIDs(ctx, clipIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clips: %w", err)
+	}
 
-// Build result map for efficient lookup
-result := make([]ClipMediaInfo, 0, len(clips))
-for _, clip := range clips {
-result = append(result, ClipMediaInfo{
-ID:           clip.ID,
-EmbedURL:     clip.EmbedURL,
-ThumbnailURL: clip.ThumbnailURL,
-})
-}
+	// Build result map for efficient lookup
+	result := make([]ClipMediaInfo, 0, len(clips))
+	for _, clip := range clips {
+		result = append(result, ClipMediaInfo{
+			ID:           clip.ID,
+			EmbedURL:     clip.EmbedURL,
+			ThumbnailURL: clip.ThumbnailURL,
+		})
+	}
 
-return result, nil
+	return result, nil
 }

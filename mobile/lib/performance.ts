@@ -187,6 +187,15 @@ export function trackFeedScroll(itemCount: number): { recordFrame: (fps: number)
 
 /**
  * Track memory usage for long feed sessions
+ * 
+ * Note: This is currently a placeholder for future native module integration.
+ * React Native doesn't provide direct memory API access. This function adds
+ * breadcrumbs for debugging but doesn't collect actual memory metrics.
+ * 
+ * Future enhancement: Integrate with native memory profiling modules
+ * for iOS (Instruments) and Android (Memory Profiler).
+ * 
+ * @param action - 'start' when feed session begins, 'end' when it ends
  */
 export function trackFeedMemory(action: 'start' | 'end'): void {
     // Note: React Native doesn't have direct memory API access
@@ -195,6 +204,10 @@ export function trackFeedMemory(action: 'start' | 'end'): void {
         category: 'memory',
         message: `Feed session ${action}`,
         level: 'info',
+        data: {
+            timestamp: Date.now(),
+            action,
+        },
     });
 }
 
