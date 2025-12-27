@@ -26,6 +26,8 @@
     "expo": "^54.0.22",
     "expo-application": "^7.0.8",
     "expo-auth-session": "^7.0.8",
+    "expo-barcode-scanner": "^13.0.1",
+    "expo-clipboard": "^8.0.8",
     "expo-constants": "^18.0.10",
     "expo-device": "^8.0.10",
     "expo-file-system": "^19.0.21",

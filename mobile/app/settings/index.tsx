@@ -4,6 +4,7 @@
 
 import { View, Text, Switch, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useConsent } from '@/contexts/ConsentContext';
@@ -19,6 +20,7 @@ import {
 import { getMFAStatus, type MFAStatus } from '@/services/mfa';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { isNotificationsEnabled, enableNotifications, disableNotifications } = useNotifications();
   const { consent, updateConsent } = useConsent();
@@ -381,10 +383,19 @@ export default function SettingsScreen() {
             <TouchableOpacity
               className="py-3 border-b border-gray-100"
               onPress={() => {
-                Alert.alert(
-                  'MFA Enrollment',
-                  'MFA enrollment UI will be available soon. This is the challenge UI implementation.'
-                );
+                if (mfaStatus?.enabled) {
+                  Alert.alert(
+                    'Two-Factor Authentication',
+                    'MFA is already enabled on your account.',
+                    [
+                      {
+                        text: 'OK',
+                      },
+                    ]
+                  );
+                } else {
+                  router.push('/auth/mfa-enroll');
+                }
               }}
             >
               <View className="flex-row items-center justify-between">
