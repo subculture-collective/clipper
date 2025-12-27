@@ -221,9 +221,23 @@ export async function initAnalytics(): Promise<void> {
     const consentStr = await AsyncStorage.getItem(CONSENT_STORAGE_KEY);
     const consent = consentStr ? JSON.parse(consentStr) : { analytics: false };
     
+    // Validate consent data structure
+    if (typeof consent !== 'object' || consent === null || typeof consent.analytics !== 'boolean') {
+      console.warn('[Analytics] Invalid consent data, defaulting to false');
+      return;
+    }
+    
     if (!consent.analytics) {
       if (config.debug) {
         console.log('[Analytics] User has not granted consent');
+      }
+      return;
+    }
+
+    // Check if already initialized to prevent double initialization
+    if (posthogClient) {
+      if (config.debug) {
+        console.log('[Analytics] Already initialized');
       }
       return;
     }
@@ -325,10 +339,14 @@ export function identifyUser(
     : undefined;
   
   // Identify user in PostHog
-  posthogClient.identify(userId, cleanProperties);
-  
-  if (config.debug) {
-    console.log('[Analytics] User identified:', { userId, properties: cleanProperties });
+  try {
+    posthogClient.identify(userId, cleanProperties);
+    
+    if (config.debug) {
+      console.log('[Analytics] User identified:', { userId, properties: cleanProperties });
+    }
+  } catch (error) {
+    console.error('[Analytics] Failed to identify user:', error);
   }
 }
 
@@ -370,10 +388,16 @@ export function trackEvent(
   };
   
   // Capture event in PostHog
-  posthogClient.capture(eventName, enrichedProperties);
-  
-  if (config.debug) {
-    console.log('[Analytics] Event tracked:', eventName, enrichedProperties);
+  try {
+    posthogClient.capture(eventName, enrichedProperties);
+    
+    if (config.debug) {
+      console.log('[Analytics] Event tracked:', eventName, enrichedProperties);
+    }
+  } catch (error) {
+    if (config.debug) {
+      console.error('[Analytics] Failed to capture event:', error);
+    }
   }
 }
 

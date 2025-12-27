@@ -55,10 +55,10 @@ The following packages are required:
 ```json
 {
   "posthog-react-native": "^4.x",
-  "expo-file-system": "~18.x",
-  "expo-application": "~6.x",
-  "expo-device": "~8.x",
-  "expo-localization": "~16.x"
+  "expo-file-system": "^19.x",
+  "expo-application": "^7.x",
+  "expo-device": "^8.x",
+  "expo-localization": "^17.x"
 }
 ```
 

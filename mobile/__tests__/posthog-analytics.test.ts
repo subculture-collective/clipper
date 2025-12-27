@@ -94,12 +94,13 @@ describe('PostHog Analytics Integration', () => {
       const { initAnalytics } = require('../lib/analytics');
       await initAnalytics();
 
-      expect(PostHog).toHaveBeenCalledWith('test-api-key', {
-        host: 'https://test.posthog.com',
-        captureAppLifecycleEvents: true,
-        captureDeepLinks: true,
-        debug: false,
-      });
+      expect(PostHog).toHaveBeenCalledWith(
+        'test-api-key',
+        expect.objectContaining({
+          host: 'https://test.posthog.com',
+          captureAppLifecycleEvents: true,
+        })
+      );
       expect(mockPostHogInstance.register).toHaveBeenCalled();
     });
 

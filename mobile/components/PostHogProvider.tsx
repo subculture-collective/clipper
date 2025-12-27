@@ -40,9 +40,10 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
   const previousPathnameRef = useRef<string | undefined>(undefined);
   const initializedRef = useRef(false);
 
-  // Initialize PostHog when consent is granted
+  // Initialize PostHog and handle consent/enablement changes
   useEffect(() => {
-    const initialize = async () => {
+    const syncAnalyticsState = async () => {
+      // Initialization / teardown based on tracking capability
       if (canTrackAnalytics && !initializedRef.current) {
         await initAnalytics();
         initializedRef.current = true;
@@ -53,20 +54,18 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
         await disableAnalytics();
         initializedRef.current = false;
       }
+      
+      // Handle consent changes (enable/disable analytics)
+      if (hasConsented) {
+        if (canTrackAnalytics) {
+          await enableAnalytics();
+        } else {
+          await disableAnalytics();
+        }
+      }
     };
 
-    initialize();
-  }, [canTrackAnalytics]);
-
-  // Handle consent changes
-  useEffect(() => {
-    if (hasConsented) {
-      if (canTrackAnalytics) {
-        enableAnalytics();
-      } else {
-        disableAnalytics();
-      }
-    }
+    syncAnalyticsState();
   }, [canTrackAnalytics, hasConsented]);
 
   // Identify user when logged in
@@ -75,23 +74,27 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
       return;
     }
 
-    if (user) {
-      // Identify user with properties
-      identifyUser(user.id, {
-        username: user.username,
-        display_name: user.display_name,
-        role: user.role,
-        reputation_score: user.reputation_score,
-        is_banned: user.is_banned,
-        created_at: user.created_at,
-      });
-      
-      // Reload feature flags for this user
-      reloadFeatureFlags();
-    } else {
-      // Reset user when logged out
-      resetUser();
-    }
+    const updateUser = async () => {
+      if (user) {
+        // Identify user with properties
+        identifyUser(user.id, {
+          username: user.username,
+          display_name: user.display_name,
+          role: user.role,
+          reputation_score: user.reputation_score,
+          is_banned: user.is_banned,
+          created_at: user.created_at,
+        });
+        
+        // Reload feature flags for this user
+        await reloadFeatureFlags();
+      } else {
+        // Reset user when logged out
+        resetUser();
+      }
+    };
+
+    updateUser();
   }, [user, canTrackAnalytics]);
 
   // Track screen views based on pathname changes
