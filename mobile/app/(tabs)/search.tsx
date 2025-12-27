@@ -6,15 +6,15 @@ import {
     View,
     Text,
     TextInput,
-    FlatList,
     TouchableOpacity,
     ActivityIndicator,
 } from 'react-native';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { listClips, ListClipsParams } from '@/services/clips';
+import { FlashList } from '@shopify/flash-list';
+import { listClips, ListClipsParams, batchGetClipMedia, ClipMediaInfo } from '@/services/clips';
 import ClipListItemCard from '@/components/ClipListItemCard';
 import { FilterChip } from '@/components/FilterChip';
 import { FilterSheet } from '@/components/FilterSheet';
@@ -83,6 +83,23 @@ export default function SearchScreen() {
         queryFn: () => listClips(queryParams),
         enabled: shouldSearch,
     });
+
+    // Batch fetch media URLs for search results
+    const clipIds = useMemo(() => data?.data.map(clip => clip.id) ?? [], [data?.data]);
+    
+    const { data: mediaData } = useQuery({
+        queryKey: ['search-media', clipIds],
+        queryFn: () => batchGetClipMedia(clipIds),
+        enabled: clipIds.length > 0,
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+
+    // Create a map for quick lookup of media URLs
+    const mediaMap = useMemo(() => {
+        const map = new Map<string, ClipMediaInfo>();
+        mediaData?.forEach(media => map.set(media.id, media));
+        return map;
+    }, [mediaData]);
 
     const handleSearch = useCallback(() => {
         if (query.trim()) {
@@ -246,20 +263,25 @@ export default function SearchScreen() {
 
                 {/* Results */}
                 {showResults && (
-                    <FlatList
+                    {/* @ts-ignore - FlashList type definitions may not match perfectly */}
+                    <FlashList
                         data={data.data}
-                        keyExtractor={item => item.id}
-                        renderItem={({ item }) => (
-                            <ClipListItemCard
-                                clip={item}
-                                onPress={() => handleClipPress(item.id)}
-                            />
-                        )}
+                        estimatedItemSize={300}
+                        renderItem={({ item }) => {
+                            const media = mediaMap.get(item.id);
+                            return (
+                                <ClipListItemCard
+                                    clip={item}
+                                    videoUrl={media?.embed_url}
+                                    thumbnailUrl={media?.thumbnail_url}
+                                    onPress={() => handleClipPress(item.id)}
+                                />
+                            );
+                        }}
                         contentContainerStyle={{
                             paddingTop: 12,
                             paddingBottom: 16,
                         }}
-                        showsVerticalScrollIndicator={false}
                     />
                 )}
 
