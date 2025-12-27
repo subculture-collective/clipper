@@ -10,6 +10,7 @@ import {
     type ReactNode,
 } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { setSentryUser } from '../lib/sentry';
 
 export type User = {
     id: string;
@@ -71,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     isLoading: false,
                     isAuthenticated: true,
                 });
+                // Set user context in Sentry
+                setSentryUser({ id: user.id, username: user.username });
             } else {
                 setState({
                     user: null,
@@ -110,6 +113,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             isAuthenticated: true,
         }));
+        
+        // Set user context in Sentry
+        setSentryUser({ id: user.id, username: user.username });
         
         // Store in secure storage asynchronously
         SecureStore.setItemAsync(USER_KEY, JSON.stringify(user)).catch(error => {
@@ -153,6 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isLoading: false,
                 isAuthenticated: false,
             });
+            // Clear user context in Sentry
+            setSentryUser(null);
         } catch (error) {
             console.error('Failed to clear auth data:', error);
             throw error;
