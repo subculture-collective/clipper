@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "type-check": "tsc --noEmit",
     "test": "jest"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "@react-navigation/bottom-tabs": "^7.7.3",
     "@react-navigation/elements": "^2.8.1",
     "@react-navigation/native": "^7.1.19",
+    "@sentry/react-native": "^7.8.0",
     "@tanstack/react-query": "^5.90.6",
     "axios": "^1.13.2",
     "axios-retry": "^4.5.0",
