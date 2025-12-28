@@ -25,7 +25,9 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
 
   useEffect(() => {
     if (isSupported) {
-      setPermission(Notification.permission);
+      queueMicrotask(() => {
+        setPermission(Notification.permission);
+      });
     }
   }, [isSupported]);
 
@@ -99,17 +101,19 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
 
   // Cleanup on unmount
   useEffect(() => {
+    const notifs = notificationRefs.current;
+    const timeouts = timeoutRefs.current;
     return () => {
-      notificationRefs.current.forEach((notification) => {
+      notifs.forEach((notification) => {
         notification.close();
       });
-      notificationRefs.current.clear();
+      notifs.clear();
       
       // Clear all pending timeouts
-      timeoutRefs.current.forEach((timeout) => {
+      timeouts.forEach((timeout) => {
         clearTimeout(timeout);
       });
-      timeoutRefs.current.clear();
+      timeouts.clear();
     };
   }, []);
 

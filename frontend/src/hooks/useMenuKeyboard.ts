@@ -19,7 +19,9 @@ export function useMenuKeyboard(
   // Reset focused index when menu opens
   useEffect(() => {
     if (isOpen) {
-      setFocusedIndex(-1);
+      queueMicrotask(() => {
+        setFocusedIndex(-1);
+      });
     }
   }, [isOpen]);
 

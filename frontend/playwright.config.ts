@@ -2,62 +2,62 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright E2E Test Configuration
- * 
+ *
  * This configuration sets up comprehensive E2E testing with:
  * - Configurable base URL for local/staging/production environments
  * - Proper timeouts for global (30s) and expect (5s) operations
  * - Retry logic (2 on CI, 0 locally)
  * - Parallel workers (4 on CI)
  * - Screenshot, video, and trace capture on failures
- * 
+ *
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './e2e/tests',
-  
+
   /* Maximum time one test can run for */
   timeout: 30 * 1000,
-  
+
   /* Maximum time expect() should wait for the condition to be met */
   expect: {
     timeout: 5 * 1000,
   },
-  
+
   /* Run tests in files in parallel */
   fullyParallel: true,
-  
+
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
-  
+
   /* Retry on CI only - 2 retries as per requirements */
   retries: process.env.CI ? 2 : 0,
-  
+
   /* Parallel workers - 4 on CI as per requirements, auto-detect locally */
   workers: process.env.CI ? 4 : undefined,
-  
+
   /* Reporter to use - HTML format with CI-friendly list reporter */
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['list'],
   ],
-  
+
   /* Shared settings for all the projects below */
   use: {
     /* Base URL - configurable via environment variable for local/staging/production */
     baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.VITE_APP_URL || 'http://localhost:5173',
-    
+
     /* Collect trace on first retry as per requirements */
     trace: 'on-first-retry',
-    
+
     /* Capture screenshot on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Capture video on failure */
     video: 'retain-on-failure',
-    
+
     /* Maximum time for each action */
     actionTimeout: 10 * 1000,
-    
+
     /* Maximum time for navigation */
     navigationTimeout: 30 * 1000,
   },

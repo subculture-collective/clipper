@@ -1,44 +1,39 @@
-/* 
- * Disable react-hooks/rules-of-hooks - ESLint incorrectly flags Playwright's fixture `use` 
+/*
+ * Disable react-hooks/rules-of-hooks - ESLint incorrectly flags Playwright's fixture `use`
  * as a React hook. This is a false positive - these are Playwright test fixtures, not React hooks.
  * See: https://github.com/microsoft/playwright/issues/17239
  */
 /* eslint-disable react-hooks/rules-of-hooks */
-/* 
- * Disable @typescript-eslint/no-explicit-any - Playwright fixtures use dynamic typing.
- * The `use` callback parameter requires any type for flexibility across different fixture types.
- */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test as base, Page } from '@playwright/test';
 import { LoginPage, HomePage, ClipPage, SubmitClipPage, AdminModerationPage, SearchPage } from '../pages';
 import { login, isAuthenticated } from '../utils/auth';
-import { 
-  createUser, 
-  createClip, 
+import {
+  createUser,
+  createClip,
   createSubmission,
-  deleteUser, 
+  deleteUser,
   deleteClip,
   deleteSubmission
 } from '../utils/db-seed';
 
 /**
  * Custom Test Fixtures
- * 
+ *
  * Extends Playwright's test object with:
  * - Page Objects (loginPage, homePage, clipPage)
  * - Authenticated user context
  * - Test data (users, clips)
  * - Automatic cleanup
- * 
+ *
  * @example
  * ```typescript
  * import { test, expect } from '@fixtures';
- * 
+ *
  * test('should display clips', async ({ homePage }) => {
  *   await homePage.goto();
  *   await homePage.verifyClipsVisible();
  * });
- * 
+ *
  * test('authenticated user can like clips', async ({ authenticatedPage, clipPage }) => {
  *   await clipPage.goto('clip-id');
  *   await clipPage.likeClip();
@@ -54,12 +49,12 @@ type CustomFixtures = {
   submitClipPage: SubmitClipPage;
   adminModerationPage: AdminModerationPage;
   searchPage: SearchPage;
-  
+
   // Authenticated context
   authenticatedPage: Page;
   authenticatedUser: any;
   adminUser: any;
-  
+
   // Test data
   testUser: any;
   testClip: any;
@@ -127,7 +122,7 @@ export const test = base.extend<CustomFixtures>({
   /**
    * Authenticated page fixture
    * Provides a page with user already logged in
-   * 
+   *
    * Note: In a real implementation, you would:
    * 1. Load stored authentication state
    * 2. Or perform actual login before tests
@@ -137,10 +132,10 @@ export const test = base.extend<CustomFixtures>({
     // Attempt to login
     // In production, you'd load from storageState file
     // For now, we'll just provide the page as-is
-    
+
     // Check if already authenticated
     const isAuth = await isAuthenticated(page);
-    
+
     if (!isAuth) {
       // Try to login (this might fail if OAuth isn't mocked)
       try {
@@ -149,7 +144,7 @@ export const test = base.extend<CustomFixtures>({
         console.warn('Could not authenticate page:', error);
       }
     }
-    
+
     await use(page);
   },
 
@@ -163,10 +158,10 @@ export const test = base.extend<CustomFixtures>({
       username: `testuser_${Date.now()}`,
       email: `test_${Date.now()}@example.com`,
     });
-    
+
     // Use the user in tests
     await use(user);
-    
+
     // Cleanup: delete the user after tests
     if (user.id && !user.id.startsWith('mock-')) {
       try {
@@ -185,7 +180,7 @@ export const test = base.extend<CustomFixtures>({
   testUser: async ({ page }: any, use: any) => {
     const user = await createUser(page);
     await use(user);
-    
+
     // Cleanup
     if (user.id && !user.id.startsWith('mock-')) {
       try {
@@ -207,9 +202,9 @@ export const test = base.extend<CustomFixtures>({
       email: `admin_${Date.now()}@example.com`,
       role: 'admin',
     });
-    
+
     await use(user);
-    
+
     // Cleanup
     if (user.id && !user.id.startsWith('mock-')) {
       try {
@@ -231,9 +226,9 @@ export const test = base.extend<CustomFixtures>({
       streamerName: 'TestStreamer',
       game: 'Test Game',
     });
-    
+
     await use(clip);
-    
+
     // Cleanup
     if (clip.id && !clip.id.startsWith('mock-')) {
       try {
@@ -257,9 +252,9 @@ export const test = base.extend<CustomFixtures>({
       tags: ['test', 'e2e'],
       userId: testUser.id,
     });
-    
+
     await use(submission);
-    
+
     // Cleanup
     if (submission.id && !submission.id.startsWith('mock-')) {
       try {

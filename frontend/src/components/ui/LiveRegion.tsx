@@ -26,14 +26,16 @@ export const LiveRegion: React.FC<LiveRegionProps> = ({
     priority = 'polite',
     clearAfter = 1000,
 }) => {
-    const [currentMessage, setCurrentMessage] = useState(message);
+    const [displayMessage, setDisplayMessage] = useState('');
 
     useEffect(() => {
-        setCurrentMessage(message);
+        queueMicrotask(() => {
+            setDisplayMessage(message);
+        });
 
         if (message && clearAfter > 0) {
             const timer = setTimeout(() => {
-                setCurrentMessage('');
+                setDisplayMessage('');
             }, clearAfter);
 
             return () => clearTimeout(timer);
@@ -47,7 +49,7 @@ export const LiveRegion: React.FC<LiveRegionProps> = ({
             aria-atomic='true'
             className='sr-only'
         >
-            {currentMessage}
+            {displayMessage}
         </div>
     );
 };

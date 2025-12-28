@@ -343,7 +343,7 @@ export async function measureSuggestionLatency(
   for (let i = 0; i < iterations; i++) {
     await page.goto('/search', { waitUntil: 'networkidle' });
     
-    const searchInput = page.locator('input[type="search"], input[name="q"]').first();
+    const searchInput = page.locator('[data-testid="search-input"], input[type="search"], input[name="q"], input[placeholder*="search" i]').first();
     await searchInput.clear();
     await searchInput.click();
     
@@ -409,6 +409,10 @@ export function verifySuggestionQuality(
  * @returns Array of search history items
  */
 export async function getSearchHistory(page: Page): Promise<string[]> {
+  // Ensure we are on an app origin before accessing storage
+  if (page.url() === 'about:blank') {
+    await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  }
   return await page.evaluate(() => {
     const history = localStorage.getItem('searchHistory');
     if (!history) return [];
@@ -428,6 +432,9 @@ export async function getSearchHistory(page: Page): Promise<string[]> {
  * @param query - Search query to add
  */
 export async function addToSearchHistory(page: Page, query: string): Promise<void> {
+  if (page.url() === 'about:blank') {
+    await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  }
   await page.evaluate((q) => {
     const history = localStorage.getItem('searchHistory');
     let items: string[] = [];
@@ -455,6 +462,9 @@ export async function addToSearchHistory(page: Page, query: string): Promise<voi
  * @param page - Playwright Page object
  */
 export async function clearSearchHistory(page: Page): Promise<void> {
+  if (page.url() === 'about:blank') {
+    await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  }
   await page.evaluate(() => {
     localStorage.removeItem('searchHistory');
     

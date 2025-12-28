@@ -16,8 +16,10 @@ export function useSyncManager() {
   useEffect(() => {
     // Subscribe to sync state changes
     const unsubscribe = syncManager.onSyncStateChange((state) => {
-      setSyncState(state);
-      setPendingCount(syncManager.getPendingOperationCount());
+      queueMicrotask(() => {
+        setSyncState(state);
+        setPendingCount(syncManager.getPendingOperationCount());
+      });
     });
 
     // Initialize sync manager
@@ -26,7 +28,9 @@ export function useSyncManager() {
     });
 
     // Update initial pending count
-    setPendingCount(syncManager.getPendingOperationCount());
+    queueMicrotask(() => {
+      setPendingCount(syncManager.getPendingOperationCount());
+    });
 
     return unsubscribe;
   }, [syncManager]);

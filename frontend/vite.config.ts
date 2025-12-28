@@ -43,6 +43,10 @@ export default defineConfig(({ mode }) => ({
             '@': path.resolve(__dirname, './src'),
         },
     },
+    server: {
+        port: 5173,
+        strictPort: true,
+    },
     build: {
         // Generate source maps for production
         sourcemap: true,

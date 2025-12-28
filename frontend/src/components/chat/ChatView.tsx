@@ -79,9 +79,10 @@ export function ChatView({ channelId, channelName }: ChatViewProps) {
 
   // Cleanup typing timeouts on unmount
   useEffect(() => {
+    const typingTimeouts = typingTimeoutsRef.current;
     return () => {
-      typingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
-      typingTimeoutsRef.current.clear();
+      typingTimeouts.forEach((timeout) => clearTimeout(timeout));
+      typingTimeouts.clear();
     };
   }, []);
 

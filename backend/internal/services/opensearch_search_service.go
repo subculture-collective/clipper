@@ -253,7 +253,7 @@ func (s *OpenSearchService) searchCreators(ctx context.Context, req *models.Sear
 		"query": query,
 		"from":  from,
 		"size":  req.Limit,
-		"sort":  s.buildSortClause(req.Sort),
+		"sort":  s.buildUserSortClause(req.Sort),
 	}
 
 	hits, total, err := s.executeSearch(ctx, UsersIndex, searchBody)
@@ -590,7 +590,7 @@ func (s *OpenSearchService) buildTagQuery(req *models.SearchRequest) map[string]
 	}
 }
 
-// buildSortClause builds sort criteria
+// buildSortClause builds sort criteria for clips
 func (s *OpenSearchService) buildSortClause(sort string) []map[string]interface{} {
 	switch sort {
 	case "popular":
@@ -608,6 +608,72 @@ func (s *OpenSearchService) buildSortClause(sort string) []map[string]interface{
 		return []map[string]interface{}{
 			{"_score": "desc"},
 			{"vote_score": "desc"},
+		}
+	}
+}
+
+// buildUserSortClause builds sort criteria for users (no vote_score field)
+func (s *OpenSearchService) buildUserSortClause(sort string) []map[string]interface{} {
+	switch sort {
+	case "popular":
+		return []map[string]interface{}{
+			{"karma_points": "desc"},
+			{"created_at": "desc"},
+		}
+	case "recent":
+		return []map[string]interface{}{
+			{"created_at": "desc"},
+		}
+	case "relevance":
+		fallthrough
+	default:
+		return []map[string]interface{}{
+			{"_score": "desc"},
+			{"karma_points": "desc"},
+		}
+	}
+}
+
+// buildGameSortClause builds sort criteria for games (no vote_score field)
+func (s *OpenSearchService) buildGameSortClause(sort string) []map[string]interface{} {
+	switch sort {
+	case "popular":
+		return []map[string]interface{}{
+			{"clip_count": "desc"},
+		}
+	case "recent":
+		// Games don't have created_at, sort by name
+		return []map[string]interface{}{
+			{"name.keyword": "asc"},
+		}
+	case "relevance":
+		fallthrough
+	default:
+		return []map[string]interface{}{
+			{"_score": "desc"},
+			{"clip_count": "desc"},
+		}
+	}
+}
+
+// buildTagSortClause builds sort criteria for tags (no vote_score field)
+func (s *OpenSearchService) buildTagSortClause(sort string) []map[string]interface{} {
+	switch sort {
+	case "popular":
+		return []map[string]interface{}{
+			{"usage_count": "desc"},
+			{"created_at": "desc"},
+		}
+	case "recent":
+		return []map[string]interface{}{
+			{"created_at": "desc"},
+		}
+	case "relevance":
+		fallthrough
+	default:
+		return []map[string]interface{}{
+			{"_score": "desc"},
+			{"usage_count": "desc"},
 		}
 	}
 }

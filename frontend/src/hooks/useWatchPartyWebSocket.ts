@@ -158,7 +158,9 @@ export function useWatchPartyWebSocket({
     // Store connect and sendCommand in refs so they can be called recursively
     connectRef.current = connect;
     sendCommandRef.current = sendCommand;
-    connect();
+    queueMicrotask(() => {
+      connect();
+    });
 
     return () => {
       if (reconnectTimeoutRef.current) {

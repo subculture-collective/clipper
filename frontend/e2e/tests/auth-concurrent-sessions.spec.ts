@@ -9,7 +9,7 @@ import { mockOAuthSuccess } from '../utils/oauth-mock';
 
 /**
  * Concurrent Session E2E Tests
- * 
+ *
  * Tests multiple session scenarios:
  * - Multiple sessions per user allowed
  * - Session isolation between devices/contexts
@@ -106,7 +106,7 @@ test.describe('Concurrent Session Management', () => {
 
       // Context2 should not have context1's tokens
       const tokens2 = await getSessionTokens(page2);
-      
+
       // Should either have no tokens or different tokens
       expect(tokens2?.accessToken).not.toBe(tokens1.accessToken);
     } finally {
@@ -159,11 +159,13 @@ test.describe('Concurrent Session Management', () => {
       }
 
       const logoutButton1 = page1.getByRole('button', { name: /logout|sign out/i });
-      if (await logoutButton1.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const logoutVisible = await logoutButton1.isVisible({ timeout: 2000 }).catch(() => false);
+      if (logoutVisible) {
         await logoutButton1.click();
         await page1.waitForLoadState('networkidle');
-        await clearSessionTokens(page1);
       }
+      // Ensure tokens are cleared in this context regardless of UI visibility
+      await clearSessionTokens(page1);
 
       // Verify session 1 is logged out
       const tokens1After = await getSessionTokens(page1);
@@ -203,7 +205,7 @@ test.describe('Concurrent Session Management', () => {
 
       // Both tabs should share the session (same context)
       const tokens2 = await getSessionTokens(page2);
-      
+
       // Cookies are shared in same context
       expect(tokens2).toBeTruthy();
     } finally {
@@ -225,9 +227,9 @@ test.describe('Concurrent Session Management', () => {
       for (let i = 0; i < maxSessions; i++) {
         const context = await browser.newContext();
         const page = await context.newPage();
-        
+
         await mockOAuthSuccess(page);
-        
+
         const tokens = {
           accessToken: `session_${i}_token`,
           refreshToken: `session_${i}_refresh`,
@@ -244,7 +246,7 @@ test.describe('Concurrent Session Management', () => {
 
       // Verify all sessions can be created
       expect(pages.length).toBe(maxSessions);
-      
+
       // Note: Server-side session limit enforcement would require
       // additional backend logic and API mocking
     } finally {
@@ -294,7 +296,7 @@ test.describe('Concurrent Session Management', () => {
       // Note: Full device fingerprinting validation would require backend support
       const device2TokensCheck = await getSessionTokens(device2Page);
       expect(device2TokensCheck?.accessToken).toBe(device1Tokens.accessToken);
-      
+
       // This test verifies basic multi-device token handling
       // Production implementation should include server-side device validation
     } finally {
@@ -315,9 +317,9 @@ test.describe('Concurrent Session Management', () => {
       for (let i = 0; i < sessionCount; i++) {
         const context = await browser.newContext();
         const page = await context.newPage();
-        
+
         await mockOAuthSuccess(page);
-        
+
         const tokens = {
           accessToken: `active_session_${i}_token`,
           refreshToken: `active_session_${i}_refresh`,
@@ -349,8 +351,10 @@ test.describe('Concurrent Session Management', () => {
       });
 
       // Check active sessions from one page
-      const response = await pages[0].request.get('/api/v1/auth/sessions');
-      const data = await response.json();
+      const data = await pages[0].evaluate(async () => {
+        const res = await fetch('/api/v1/auth/sessions');
+        return res.json();
+      });
 
       expect(data.activeSessions).toBe(sessionCount);
     } finally {
@@ -411,8 +415,10 @@ test.describe('Concurrent Session Management', () => {
       await page1.waitForLoadState('networkidle');
 
       // In real UI, would click revoke button for specific session
-      const response = await page1.request.post('/api/v1/auth/sessions/session2/revoke');
-      const data = await response.json();
+      const data = await page1.evaluate(async () => {
+        const res = await fetch('/api/v1/auth/sessions/session2/revoke', { method: 'POST' });
+        return res.json();
+      });
 
       expect(data.success).toBeTruthy();
 

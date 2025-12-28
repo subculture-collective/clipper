@@ -57,18 +57,22 @@ export function SearchPage() {
 
     // Update tab when type param changes
     useEffect(() => {
-        setActiveTab(typeParam as SearchType);
+        queueMicrotask(() => {
+            setActiveTab(typeParam as SearchType);
+        });
     }, [typeParam]);
     
     // Update filters from URL params
     useEffect(() => {
-        setFilters({
-            language: languageParam,
-            gameId: gameIdParam,
-            dateFrom: dateFromParam,
-            dateTo: dateToParam,
-            minVotes: minVotesParam ? parseInt(minVotesParam, 10) : undefined,
-            tags: tagsParam ? tagsParam.split(',') : undefined,
+        queueMicrotask(() => {
+            setFilters({
+                language: languageParam,
+                gameId: gameIdParam,
+                dateFrom: dateFromParam,
+                dateTo: dateToParam,
+                minVotes: minVotesParam ? parseInt(minVotesParam, 10) : undefined,
+                tags: tagsParam ? tagsParam.split(',') : undefined,
+            });
         });
     }, [languageParam, gameIdParam, dateFromParam, dateToParam, minVotesParam, tagsParam]);
 
@@ -144,6 +148,36 @@ export function SearchPage() {
         setSearchParams(newParams);
     };
 
+    const seoTitle = query ? `Search: ${query}` : 'Search Clips';
+    const seoDescription = query 
+        ? `Search results for "${query}" on Clipper. Find Twitch clips, games, creators, and tags matching your query.`
+        : 'Search for Twitch clips, games, creators, and tags on Clipper. Discover amazing gaming moments from your favorite streamers.';
+
+    if (!query.trim()) {
+        return (
+            <>
+                <SEO
+                    title={seoTitle}
+                    description={seoDescription}
+                    canonicalUrl="/search"
+                    noindex
+                />
+                <Container className='py-4 xs:py-6 md:py-8'>
+                    <div className='mb-6 xs:mb-8 flex justify-center'>
+                        <SearchBar initialQuery={query} onSearch={handleSearch} />
+                    </div>
+
+                    <div className='text-center text-muted-foreground py-8 xs:py-12'>
+                        <p className='text-base xs:text-lg px-4'>
+                            Enter a search query to find clips, games, creators, and
+                            tags.
+                        </p>
+                    </div>
+                </Container>
+            </>
+        );
+    }
+
     const tabs = [
         {
             id: 'all',
@@ -163,11 +197,6 @@ export function SearchPage() {
         { id: 'games', label: 'Games', count: data?.counts.games || 0 },
         { id: 'tags', label: 'Tags', count: data?.counts.tags || 0 },
     ];
-
-    const seoTitle = query ? `Search: ${query}` : 'Search Clips';
-    const seoDescription = query 
-        ? `Search results for "${query}" on Clipper. Find Twitch clips, games, creators, and tags matching your query.`
-        : 'Search for Twitch clips, games, creators, and tags on Clipper. Discover amazing gaming moments from your favorite streamers.';
 
     return (
         <>
@@ -200,7 +229,7 @@ export function SearchPage() {
                         <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
                             Search Results
                         </h1>
-                        <p className='text-sm xs:text-base text-muted-foreground'>
+                        <p className='text-sm xs:text-base text-muted-foreground' data-testid='results-count'>
                             Found {data?.meta.total_items || 0} results for:{' '}
                             <span className='font-semibold'>"{query}"</span>
                         </p>
@@ -322,7 +351,7 @@ export function SearchPage() {
                                                 (creator) => (
                                                     <div
                                                         key={creator.id}
-                                                        className='p-4 rounded-lg border border-border hover:border-primary transition-colors'
+                                                        className='p-4 rounded-lg border border-border hover:border-primary transition-colors search-result-card'
                                                     >
                                                         <div className='flex items-center gap-3'>
                                                             {creator.avatar_url && (
@@ -382,7 +411,7 @@ export function SearchPage() {
                                             {data.results.games.map((game) => (
                                                 <div
                                                     key={game.id}
-                                                    className='p-4 rounded-lg border border-border hover:border-primary transition-colors'
+                                                    className='p-4 rounded-lg border border-border hover:border-primary transition-colors search-result-card'
                                                 >
                                                     <h3 className='font-semibold text-lg'>
                                                         {game.name}
@@ -410,7 +439,7 @@ export function SearchPage() {
                                             {data.results.tags.map((tag) => (
                                                 <div
                                                     key={tag.id}
-                                                    className='px-3 py-1.5 rounded-full border border-border hover:border-primary transition-colors'
+                                                    className='px-3 py-1.5 rounded-full border border-border hover:border-primary transition-colors search-result-card'
                                                     style={
                                                         tag.color
                                                             ? {

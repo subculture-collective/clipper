@@ -47,6 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       // Not authenticated or session expired
       console.log('[AuthContext] No auth or error:', error)
+      try {
+        const { clearAuthStorage } = await import('../lib/auth-storage');
+        await clearAuthStorage();
+      } catch (e) {
+        console.warn('[AuthContext] clearAuthStorage during checkAuth failed:', e);
+      }
       setUser(null);
       clearSentryUser();
       resetUser();
@@ -78,6 +84,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear any persisted auth/session tokens in this browser context
+      try {
+        const { clearAuthStorage } = await import('../lib/auth-storage');
+        await clearAuthStorage();
+      } catch (e) {
+        // Non-fatal: ensure logout continues even if storage cleanup fails
+        console.warn('[AuthContext] clearAuthStorage failed:', e);
+      }
       setUser(null);
       clearSentryUser();
       resetUser();

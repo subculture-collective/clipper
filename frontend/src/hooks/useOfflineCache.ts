@@ -73,8 +73,10 @@ export function useCachedClip(clipId: string | undefined) {
 
   useEffect(() => {
     if (!clipId) {
-      setCachedClip(null);
-      setLoading(false);
+      queueMicrotask(() => {
+        setCachedClip(null);
+        setLoading(false);
+      });
       return;
     }
 
@@ -82,12 +84,16 @@ export function useCachedClip(clipId: string | undefined) {
     
     cache.getClip(clipId)
       .then((clip) => {
-        setCachedClip(clip);
-        setLoading(false);
+        queueMicrotask(() => {
+          setCachedClip(clip);
+          setLoading(false);
+        });
       })
       .catch((err) => {
         console.error('[useCachedClip] Failed to get clip:', err);
-        setLoading(false);
+        queueMicrotask(() => {
+          setLoading(false);
+        });
       });
   }, [clipId]);
 
@@ -104,8 +110,10 @@ export function useCachedComments(clipId: string | undefined) {
 
   useEffect(() => {
     if (!clipId) {
-      setCachedComments([]);
-      setLoading(false);
+      queueMicrotask(() => {
+        setCachedComments([]);
+        setLoading(false);
+      });
       return;
     }
 
@@ -113,12 +121,16 @@ export function useCachedComments(clipId: string | undefined) {
     
     cache.getCommentsByClipId(clipId)
       .then((comments) => {
-        setCachedComments(comments);
-        setLoading(false);
+        queueMicrotask(() => {
+          setCachedComments(comments);
+          setLoading(false);
+        });
       })
       .catch((err) => {
         console.error('[useCachedComments] Failed to get comments:', err);
-        setLoading(false);
+        queueMicrotask(() => {
+          setLoading(false);
+        });
       });
   }, [clipId]);
 

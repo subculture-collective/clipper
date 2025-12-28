@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
@@ -30,17 +30,7 @@ export function ChannelSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!channelId) {
-      setError('Channel ID is required');
-      setLoading(false);
-      return;
-    }
-
-    fetchData();
-  }, [channelId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!channelId) return;
 
     try {
@@ -61,7 +51,17 @@ export function ChannelSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [channelId]);
+
+  useEffect(() => {
+    if (!channelId) {
+      setError('Channel ID is required');
+      setLoading(false);
+      return;
+    }
+
+    fetchData();
+  }, [fetchData, channelId]);
 
   const handleRemoveMember = async (userId: string) => {
     if (!channelId) return;

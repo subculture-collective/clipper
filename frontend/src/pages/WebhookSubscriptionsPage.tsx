@@ -692,7 +692,9 @@ function DeliveriesModal({
     
     // Reset page when subscriptionId changes
     useEffect(() => {
-        setPage(1);
+        queueMicrotask(() => {
+            setPage(1);
+        });
     }, [subscriptionId]);
     
     const { data, isLoading } = useQuery({

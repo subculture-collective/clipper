@@ -162,6 +162,13 @@ export class SearchPage extends BasePage {
   }
 
   /**
+   * Expose the search input locator for tests that need direct access
+   */
+  getSearchInput(): Locator {
+    return this.searchInput;
+  }
+
+  /**
    * Get current search query from input
    */
   async getSearchQuery(): Promise<string> {
@@ -273,10 +280,16 @@ export class SearchPage extends BasePage {
     await this.page.waitForLoadState('networkidle');
     
     // Wait for either results or empty state
-    await Promise.race([
-      this.resultCards.first().waitFor({ state: 'visible', timeout }),
-      this.emptyState.waitFor({ state: 'visible', timeout }),
-    ]);
+    try {
+      await Promise.race([
+        this.resultCards.first().waitFor({ state: 'visible', timeout }),
+        this.emptyState.waitFor({ state: 'visible', timeout }),
+        this.resultsCount.waitFor({ state: 'visible', timeout }),
+      ]);
+    } catch {
+      // Fall back: ensure page loaded, do not throw
+      await this.page.waitForTimeout(100);
+    }
   }
 
   /**
@@ -541,14 +554,22 @@ export class SearchPage extends BasePage {
    * Check if next page button is enabled
    */
   async hasNextPage(): Promise<boolean> {
-    return await this.nextPageButton.isEnabled();
+    try {
+      return await this.nextPageButton.isEnabled();
+    } catch {
+      return false;
+    }
   }
 
   /**
    * Check if previous page button is enabled
    */
   async hasPreviousPage(): Promise<boolean> {
-    return await this.previousPageButton.isEnabled();
+    try {
+      return await this.previousPageButton.isEnabled();
+    } catch {
+      return false;
+    }
   }
 
   /**

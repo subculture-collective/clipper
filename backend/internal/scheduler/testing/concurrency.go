@@ -99,12 +99,10 @@ func (wp *WorkerPool) executeJob(job Job) {
 		atomic.AddInt64(&wp.failedJobs, 1)
 	}
 
-	// Non-blocking send to avoid deadlocks if results are not consumed
+	// Deliver results unless the pool has been cancelled
 	select {
 	case wp.results <- result:
 	case <-wp.ctx.Done():
-	default:
-		// Results channel full or no consumer, drop the result
 	}
 }
 

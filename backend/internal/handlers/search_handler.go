@@ -108,6 +108,8 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	}
 
 	if err != nil {
+		// Log the actual error for debugging
+		fmt.Printf("Search error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to perform search",
 		})

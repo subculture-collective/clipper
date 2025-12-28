@@ -25,18 +25,21 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
   } = useConsent();
 
   const [showDetails, setShowDetails] = useState(false);
-  const [localPreferences, setLocalPreferences] = useState({
+  // Derive local preferences from consent to avoid sync issues
+  const [pendingPreferences, setPendingPreferences] = useState({
     functional: consent.functional,
     analytics: consent.analytics,
     advertising: consent.advertising,
   });
 
-  // Sync local preferences when consent changes (e.g., from settings page)
+  // Update pending preferences when consent changes (e.g., from settings page)
   useEffect(() => {
-    setLocalPreferences({
-      functional: consent.functional,
-      analytics: consent.analytics,
-      advertising: consent.advertising,
+    queueMicrotask(() => {
+      setPendingPreferences({
+        functional: consent.functional,
+        analytics: consent.analytics,
+        advertising: consent.advertising,
+      });
     });
   }, [consent.functional, consent.analytics, consent.advertising]);
 
@@ -45,7 +48,7 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
   }
 
   const handleSavePreferences = () => {
-    updateConsent(localPreferences);
+    updateConsent(pendingPreferences);
   };
 
   return (
@@ -150,8 +153,8 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Functional</h3>
                   <Toggle
-                    checked={localPreferences.functional}
-                    onChange={(e) => setLocalPreferences(prev => ({ 
+                    checked={pendingPreferences.functional}
+                    onChange={(e) => setPendingPreferences(prev => ({ 
                       ...prev, 
                       functional: e.target.checked 
                     }))}
@@ -170,8 +173,8 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Analytics</h3>
                   <Toggle
-                    checked={localPreferences.analytics}
-                    onChange={(e) => setLocalPreferences(prev => ({ 
+                    checked={pendingPreferences.analytics}
+                    onChange={(e) => setPendingPreferences(prev => ({ 
                       ...prev, 
                       analytics: e.target.checked 
                     }))}
@@ -190,8 +193,8 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Advertising</h3>
                   <Toggle
-                    checked={localPreferences.advertising}
-                    onChange={(e) => setLocalPreferences(prev => ({ 
+                    checked={pendingPreferences.advertising}
+                    onChange={(e) => setPendingPreferences(prev => ({ 
                       ...prev, 
                       advertising: e.target.checked 
                     }))}

@@ -68,13 +68,15 @@ export function DocsPage() {
     }, []);
 
     useEffect(() => {
-        fetchDocsList();
+        queueMicrotask(() => {
+            fetchDocsList();
 
-        // Check for doc parameter in URL
-        const docParam = searchParams.get('doc');
-        if (docParam) {
-            fetchDoc(docParam);
-        }
+            // Check for doc parameter in URL
+            const docParam = searchParams.get('doc');
+            if (docParam) {
+                fetchDoc(docParam);
+            }
+        });
     }, [fetchDoc, fetchDocsList, searchParams]);
 
     const handleBackToIndex = () => {

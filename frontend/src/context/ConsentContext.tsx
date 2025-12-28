@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { initGoogleAnalytics, disableGoogleAnalytics, enableGoogleAnalytics } from '../lib/google-analytics';
 import { initPostHog, disablePostHog, enablePostHog } from '../lib/posthog-analytics';
@@ -189,26 +190,28 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
   // Initialize consent state on mount
   useEffect(() => {
     const dnt = detectDoNotTrack();
-    setDoNotTrack(dnt);
+    queueMicrotask(() => {
+      setDoNotTrack(dnt);
 
-    const storedConsent = loadStoredConsent();
-    if (storedConsent) {
-      setConsent(storedConsent);
-      setHasConsented(true);
-      setShowConsentBanner(false);
+      const storedConsent = loadStoredConsent();
+      if (storedConsent) {
+        setConsent(storedConsent);
+        setHasConsented(true);
+        setShowConsentBanner(false);
 
-      // Initialize analytics if user has consented and DNT is not enabled
-      if (storedConsent.analytics && !dnt) {
-        initGoogleAnalytics();
-        initPostHog();
-        configureAnalytics({ enabled: true });
-        enableUnifiedAnalytics();
+        // Initialize analytics if user has consented and DNT is not enabled
+        if (storedConsent.analytics && !dnt) {
+          initGoogleAnalytics();
+          initPostHog();
+          configureAnalytics({ enabled: true });
+          enableUnifiedAnalytics();
+        }
+      } else {
+        // No stored consent - show banner
+        // If DNT is enabled, we default to privacy-preserving settings
+        setShowConsentBanner(true);
       }
-    } else {
-      // No stored consent - show banner
-      // If DNT is enabled, we default to privacy-preserving settings
-      setShowConsentBanner(true);
-    }
+    });
   }, []);
 
   // Load consent from backend for logged-in users
@@ -218,18 +221,20 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     loadConsentFromBackend().then((backendConsent) => {
       if (backendConsent && !isConsentExpired(backendConsent)) {
         // Backend consent exists and is valid - use it
-        setConsent(backendConsent);
-        setHasConsented(true);
-        setShowConsentBanner(false);
-        saveConsent(backendConsent); // Sync to local storage
+        queueMicrotask(() => {
+          setConsent(backendConsent);
+          setHasConsented(true);
+          setShowConsentBanner(false);
+          saveConsent(backendConsent); // Sync to local storage
 
-        // Initialize analytics if consented
-        if (backendConsent.analytics && !doNotTrack) {
-          initGoogleAnalytics();
-          initPostHog();
-          configureAnalytics({ enabled: true });
-          enableUnifiedAnalytics();
-        }
+          // Initialize analytics if consented
+          if (backendConsent.analytics && !doNotTrack) {
+            initGoogleAnalytics();
+            initPostHog();
+            configureAnalytics({ enabled: true });
+            enableUnifiedAnalytics();
+          }
+        });
       }
     });
   }, [user, doNotTrack]);

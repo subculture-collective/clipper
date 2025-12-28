@@ -167,6 +167,7 @@ export function SearchBar({
                         placeholder='Search clips, games, creators...'
                         autoFocus={autoFocus}
                         className='pr-10'
+                        data-testid='search-input'
                     />
                     <button
                         type='submit'
@@ -223,6 +224,7 @@ export function SearchBar({
                 <div
                     ref={suggestionsRef}
                     className='absolute z-50 mt-2 w-full rounded-lg border border-border bg-background shadow-lg'
+                    data-testid='suggestions'
                 >
                     {isLoading && (
                         <div className='p-4 text-center text-sm text-muted-foreground'>

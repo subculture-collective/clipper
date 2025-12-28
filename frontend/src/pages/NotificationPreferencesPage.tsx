@@ -25,7 +25,9 @@ export function NotificationPreferencesPage() {
   // Update form data when preferences load
   useEffect(() => {
     if (preferences) {
-      setFormData(preferences);
+      queueMicrotask(() => {
+        setFormData(preferences);
+      });
     }
   }, [preferences]);
 
