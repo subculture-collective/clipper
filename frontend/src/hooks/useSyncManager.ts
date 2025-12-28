@@ -1,6 +1,6 @@
 /**
  * React hook for background sync manager
- * 
+ *
  * Provides access to sync state and operations
  */
 

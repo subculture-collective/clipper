@@ -108,7 +108,7 @@ export function useDesktopNotifications(): UseDesktopNotificationsReturn {
         notification.close();
       });
       notifs.clear();
-      
+
       // Clear all pending timeouts
       timeouts.forEach((timeout) => {
         clearTimeout(timeout);

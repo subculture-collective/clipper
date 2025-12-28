@@ -1,6 +1,6 @@
 /**
  * React hooks for offline cache integration
- * 
+ *
  * Provides hooks to integrate offline cache with React Query and components
  */
 
@@ -19,7 +19,7 @@ export function useOfflineCacheInit() {
 
   useEffect(() => {
     const cache = getOfflineCache();
-    
+
     cache.init()
       .then(() => {
         setIsReady(true);
@@ -81,7 +81,7 @@ export function useCachedClip(clipId: string | undefined) {
     }
 
     const cache = getOfflineCache();
-    
+
     cache.getClip(clipId)
       .then((clip) => {
         queueMicrotask(() => {
@@ -118,7 +118,7 @@ export function useCachedComments(clipId: string | undefined) {
     }
 
     const cache = getOfflineCache();
-    
+
     cache.getCommentsByClipId(clipId)
       .then((comments) => {
         queueMicrotask(() => {

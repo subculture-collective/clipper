@@ -689,14 +689,14 @@ function DeliveriesModal({
     subscriptionId: string;
 }) {
     const [page, setPage] = useState(1);
-    
+
     // Reset page when subscriptionId changes
     useEffect(() => {
         queueMicrotask(() => {
             setPage(1);
         });
     }, [subscriptionId]);
-    
+
     const { data, isLoading } = useQuery({
         queryKey: ['webhookDeliveries', subscriptionId, page],
         queryFn: () => getWebhookDeliveries(subscriptionId, page, 20),

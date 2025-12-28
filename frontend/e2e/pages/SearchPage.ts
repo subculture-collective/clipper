@@ -3,14 +3,14 @@ import { BasePage } from './BasePage';
 
 /**
  * SearchPage - Page Object for search functionality
- * 
+ *
  * Handles interactions with:
  * - Search bar and autocomplete suggestions
  * - Search filters (duration, category, tags, uploader)
  * - Search results and pagination
  * - Search history
  * - Empty states
- * 
+ *
  * @example
  * ```typescript
  * const searchPage = new SearchPage(page);
@@ -25,12 +25,12 @@ export class SearchPage extends BasePage {
   private readonly searchInput: Locator;
   private readonly searchButton: Locator;
   private readonly clearSearchButton: Locator;
-  
+
   // Suggestions/Autocomplete
   private readonly suggestionsContainer: Locator;
   private readonly suggestionItems: Locator;
   private readonly suggestionsLoading: Locator;
-  
+
   // Results
   private readonly searchResults: Locator;
   private readonly resultCards: Locator;
@@ -38,20 +38,20 @@ export class SearchPage extends BasePage {
   private readonly emptyState: Locator;
   private readonly emptyStateMessage: Locator;
   private readonly emptyStateAction: Locator;
-  
+
   // Tabs
   private readonly allTab: Locator;
   private readonly clipsTab: Locator;
   private readonly creatorsTab: Locator;
   private readonly gamesTab: Locator;
   private readonly tagsTab: Locator;
-  
+
   // Sort
   private readonly sortDropdown: Locator;
   private readonly sortRelevance: Locator;
   private readonly sortRecent: Locator;
   private readonly sortPopular: Locator;
-  
+
   // Filters
   private readonly filtersSection: Locator;
   private readonly showFiltersButton: Locator;
@@ -61,12 +61,12 @@ export class SearchPage extends BasePage {
   private readonly dateRangeFilters: Locator;
   private readonly tagFilters: Locator;
   private readonly minVotesInput: Locator;
-  
+
   // Pagination
   private readonly nextPageButton: Locator;
   private readonly previousPageButton: Locator;
   private readonly pageNumber: Locator;
-  
+
   // Search History
   private readonly searchHistoryContainer: Locator;
   private readonly searchHistoryItems: Locator;
@@ -74,17 +74,17 @@ export class SearchPage extends BasePage {
 
   constructor(page: Page) {
     super(page, '/search');
-    
+
     // Initialize locators - Search Bar
     this.searchInput = page.locator('input[type="search"], input[name="q"], input[placeholder*="search" i]').first();
     this.searchButton = page.locator('button[type="submit"]').first();
     this.clearSearchButton = page.locator('button[aria-label*="clear" i]');
-    
+
     // Suggestions/Autocomplete
     this.suggestionsContainer = page.locator('[role="listbox"], [data-testid="suggestions"], .suggestions-dropdown').first();
     this.suggestionItems = this.suggestionsContainer.locator('[role="option"], .suggestion-item, li');
     this.suggestionsLoading = this.suggestionsContainer.locator('.loading, [aria-busy="true"]');
-    
+
     // Results
     this.searchResults = page.locator('.search-results, [data-testid="search-results"]').first();
     this.resultCards = page.locator('[data-testid="clip-card"], .clip-card, .search-result-card');
@@ -92,20 +92,20 @@ export class SearchPage extends BasePage {
     this.emptyState = page.locator('.empty-state, [data-testid="empty-state"]').first();
     this.emptyStateMessage = this.emptyState.locator('p, .message').first();
     this.emptyStateAction = this.emptyState.locator('button, a').first();
-    
+
     // Tabs
     this.allTab = page.locator('button, a').filter({ hasText: /^all$/i });
     this.clipsTab = page.locator('button, a').filter({ hasText: /^clips$/i });
     this.creatorsTab = page.locator('button, a').filter({ hasText: /^creators$/i });
     this.gamesTab = page.locator('button, a').filter({ hasText: /^games$/i });
     this.tagsTab = page.locator('button, a').filter({ hasText: /^tags$/i });
-    
+
     // Sort
     this.sortDropdown = page.locator('select').filter({ has: page.locator('option[value="relevance"]') });
     this.sortRelevance = page.locator('option[value="relevance"]');
     this.sortRecent = page.locator('option[value="recent"]');
     this.sortPopular = page.locator('option[value="popular"]');
-    
+
     // Filters
     this.filtersSection = page.locator('.filters, [data-testid="filters"]').first();
     this.showFiltersButton = page.locator('button').filter({ hasText: /show/i });
@@ -115,12 +115,12 @@ export class SearchPage extends BasePage {
     this.dateRangeFilters = this.filtersSection.locator('.date-range-filter, [data-filter="date"]');
     this.tagFilters = this.filtersSection.locator('.tag-filter, [data-filter="tags"]');
     this.minVotesInput = this.filtersSection.locator('input[name="minVotes"], input[placeholder*="votes" i]');
-    
+
     // Pagination
     this.nextPageButton = page.locator('button, a').filter({ hasText: /next|→|›/i }).last();
     this.previousPageButton = page.locator('button, a').filter({ hasText: /prev|←|‹/i }).first();
     this.pageNumber = page.locator('.page-number, [data-testid="page-number"]').first();
-    
+
     // Search History
     this.searchHistoryContainer = page.locator('.search-history, [data-testid="search-history"]').first();
     this.searchHistoryItems = this.searchHistoryContainer.locator('li, .history-item');
@@ -139,7 +139,7 @@ export class SearchPage extends BasePage {
   async search(query: string, waitForResults: boolean = true): Promise<void> {
     await this.fillInput(this.searchInput, query);
     await this.pressKey('Enter');
-    
+
     if (waitForResults) {
       await this.page.waitForLoadState('networkidle');
     }
@@ -209,12 +209,12 @@ export class SearchPage extends BasePage {
     await this.waitForSuggestions();
     const count = await this.suggestionItems.count();
     const texts: string[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const text = await this.suggestionItems.nth(i).textContent();
       if (text) texts.push(text.trim());
     }
-    
+
     return texts;
   }
 
@@ -259,12 +259,12 @@ export class SearchPage extends BasePage {
   async measureSuggestionLatency(query: string): Promise<number> {
     await this.searchInput.clear();
     await this.searchInput.click();
-    
+
     const startTime = Date.now();
     await this.typeInput(this.searchInput, query, 50);
     await this.waitForSuggestions(5000);
     const endTime = Date.now();
-    
+
     return endTime - startTime;
   }
 
@@ -278,7 +278,7 @@ export class SearchPage extends BasePage {
    */
   async waitForResults(timeout: number = 10000): Promise<void> {
     await this.page.waitForLoadState('networkidle');
-    
+
     // Wait for either results or empty state
     try {
       await Promise.race([
@@ -368,7 +368,7 @@ export class SearchPage extends BasePage {
       games: this.gamesTab,
       tags: this.tagsTab,
     }[tab];
-    
+
     await tabLocator.click();
     await this.page.waitForLoadState('networkidle');
   }
@@ -385,20 +385,20 @@ export class SearchPage extends BasePage {
       { name: 'games', locator: this.gamesTab },
       { name: 'tags', locator: this.tagsTab },
     ];
-    
+
     for (const tab of tabs) {
       const ariaSelected = await tab.locator.getAttribute('aria-selected');
       if (ariaSelected === 'true') {
         return tab.name;
       }
-      
+
       // Also check for active class
       const className = await tab.locator.getAttribute('class');
       if (className?.includes('active') || className?.includes('selected')) {
         return tab.name;
       }
     }
-    
+
     return 'unknown';
   }
 
@@ -465,8 +465,8 @@ export class SearchPage extends BasePage {
    */
   async filterByDateRange(range: 'last_hour' | 'last_day' | 'last_week' | 'last_month'): Promise<void> {
     await this.showFilters();
-    const dateOption = this.dateRangeFilters.locator('button, input').filter({ 
-      hasText: new RegExp(range.replace('_', ' '), 'i') 
+    const dateOption = this.dateRangeFilters.locator('button, input').filter({
+      hasText: new RegExp(range.replace('_', ' '), 'i')
     });
     await dateOption.click();
     await this.page.waitForLoadState('networkidle');
@@ -494,19 +494,19 @@ export class SearchPage extends BasePage {
     minVotes?: number;
   }): Promise<void> {
     await this.showFilters();
-    
+
     if (filters.language) {
       await this.filterByLanguage(filters.language);
     }
-    
+
     if (filters.game) {
       await this.filterByGame(filters.game);
     }
-    
+
     if (filters.dateRange) {
       await this.filterByDateRange(filters.dateRange);
     }
-    
+
     if (filters.minVotes !== undefined) {
       await this.filterByMinVotes(filters.minVotes);
     }
@@ -597,12 +597,12 @@ export class SearchPage extends BasePage {
   async getSearchHistory(): Promise<string[]> {
     const count = await this.searchHistoryItems.count();
     const items: string[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const text = await this.searchHistoryItems.nth(i).textContent();
       if (text) items.push(text.trim());
     }
-    
+
     return items;
   }
 
@@ -636,7 +636,7 @@ export class SearchPage extends BasePage {
           return [];
         }
       }
-      
+
       // Could also check IndexedDB here if needed
       return [];
     });
@@ -653,18 +653,18 @@ export class SearchPage extends BasePage {
    */
   async measureSearchLatency(query: string): Promise<number> {
     await this.fillInput(this.searchInput, query);
-    
+
     const startTime = Date.now();
-    
+
     // Start listening for response before triggering search
     const responsePromise = this.page.waitForResponse(
       response => response.url().includes('/search') && response.status() === 200,
       { timeout: 10000 }
     );
-    
+
     await this.page.keyboard.press('Enter');
     await responsePromise;
-    
+
     const endTime = Date.now();
     return endTime - startTime;
   }
@@ -727,13 +727,13 @@ export class SearchPage extends BasePage {
    */
   async verifyFiltersPersist(expectedFilters: Record<string, string>): Promise<boolean> {
     const params = this.getSearchParams();
-    
+
     for (const [key, value] of Object.entries(expectedFilters)) {
       if (params.get(key) !== value) {
         return false;
       }
     }
-    
+
     return true;
   }
 }

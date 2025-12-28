@@ -19,13 +19,13 @@ export function SearchPage() {
     const dateToParam = searchParams.get('date_to') || undefined;
     const minVotesParam = searchParams.get('min_votes');
     const tagsParam = searchParams.get('tags');
-    
+
     type SearchType = NonNullable<SearchRequest['type']>;
     type SortType = NonNullable<SearchRequest['sort']>;
     const [activeTab, setActiveTab] = useState<SearchType>(
         typeParam as SearchType
     );
-    
+
     const [filters, setFilters] = useState<SearchFiltersType>({
         language: languageParam,
         gameId: gameIdParam,
@@ -61,7 +61,7 @@ export function SearchPage() {
             setActiveTab(typeParam as SearchType);
         });
     }, [typeParam]);
-    
+
     // Update filters from URL params
     useEffect(() => {
         queueMicrotask(() => {
@@ -99,25 +99,25 @@ export function SearchPage() {
         newParams.set('sort', 'relevance');
         setSearchParams(newParams);
     };
-    
+
     // Handle filters change
     const handleFiltersChange = (newFilters: SearchFiltersType) => {
         setFilters(newFilters);
         const newParams = new URLSearchParams(searchParams);
-        
+
         // Update URL params
         if (newFilters.language) {
             newParams.set('language', newFilters.language);
         } else {
             newParams.delete('language');
         }
-        
+
         if (newFilters.gameId) {
             newParams.set('game_id', newFilters.gameId);
         } else {
             newParams.delete('game_id');
         }
-        
+
         if (newFilters.dateFrom) {
             newParams.set('date_from', newFilters.dateFrom);
         } else {
@@ -144,12 +144,12 @@ export function SearchPage() {
         } else {
             newParams.delete('tags');
         }
-        
+
         setSearchParams(newParams);
     };
 
     const seoTitle = query ? `Search: ${query}` : 'Search Clips';
-    const seoDescription = query 
+    const seoDescription = query
         ? `Search results for "${query}" on Clipper. Find Twitch clips, games, creators, and tags matching your query.`
         : 'Search for Twitch clips, games, creators, and tags on Clipper. Discover amazing gaming moments from your favorite streamers.';
 

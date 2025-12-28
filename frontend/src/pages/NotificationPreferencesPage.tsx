@@ -428,7 +428,7 @@ export function NotificationPreferencesPage() {
               >
                 {isResetting ? 'Resetting...' : 'Reset to Defaults'}
               </Button>
-              
+
               <div className="flex gap-3">
                 <Link to="/notifications">
                   <Button variant="ghost">Cancel</Button>

@@ -32,7 +32,7 @@ export function AdminDiscoveryListFormPage() {
   const [description, setDescription] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [clips, setClips] = useState<Clip[]>([]);
-  
+
   // Clip search state
   const [searchQuery, setSearchQuery] = useState('');
   const [showClipSearch, setShowClipSearch] = useState(false);

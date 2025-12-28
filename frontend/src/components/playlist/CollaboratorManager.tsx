@@ -170,8 +170,8 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
                 <div>
                     <h3 className="text-lg font-bold text-white">Collaborators</h3>
                     <p className="text-sm text-zinc-400 mt-1">
-                        {collaborators.length === 0 
-                            ? 'No collaborators yet' 
+                        {collaborators.length === 0
+                            ? 'No collaborators yet'
                             : `${collaborators.length} collaborator${collaborators.length === 1 ? '' : 's'}`
                         }
                     </p>
