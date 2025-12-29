@@ -1,3 +1,17 @@
+// TWITCH COMPLIANCE:
+// This component embeds Twitch clips using ONLY official Twitch embed URLs.
+// See: https://dev.twitch.tv/docs/embed/video-and-clips/
+// See: https://legal.twitch.com/legal/developer-agreement/
+// See: docs/compliance/twitch-embeds.md for full compliance documentation
+//
+// COMPLIANCE REQUIREMENTS:
+// - Uses official clips.twitch.tv/embed URL only (no custom players)
+// - Includes 'parent' parameter with actual domain (required by Twitch)
+// - HTTPS only (required by Twitch)
+// - No re-hosting, proxying, or downloading of video files
+// - No stripping of Twitch branding or attribution
+// - Respects creator's right to delete clips (graceful error handling)
+
 import { useState } from 'react';
 import { useVolumePreference } from '@/hooks';
 import { MutedIcon } from '@/components/ui';
@@ -21,7 +35,10 @@ export function TwitchEmbed({
   const [hasError, setHasError] = useState(false);
   const { embedMuted: volumePreferredMuted, hasSetPreference, setUnmutedPreference } = useVolumePreference();
 
-  // Get the parent domain for Twitch embed
+  // COMPLIANCE: Get the actual parent domain for Twitch embed
+  // Twitch requires the 'parent' parameter to match the actual domain hosting the embed
+  // This is a security measure to prevent unauthorized embedding
+  // See: https://dev.twitch.tv/docs/embed/video-and-clips/#embedded-experiences
   const parentDomain = typeof window !== 'undefined' 
     ? window.location.hostname 
     : 'localhost';
@@ -31,6 +48,14 @@ export function TwitchEmbed({
   // - After loaded (iframe shown): use user's volume preference from localStorage
   // This ensures the iframe URL is generated with the correct mute parameter
   const embedMuted = isLoaded ? volumePreferredMuted : muted;
+
+  // COMPLIANCE: Official Twitch embed URL only
+  // MUST use https://clips.twitch.tv/embed (no custom players, no video re-hosting)
+  // Per Twitch Developer Agreement, we MUST NOT:
+  // - Re-host or proxy video files
+  // - Use unofficial embed methods
+  // - Strip Twitch branding or attribution
+  // - Download or cache video content
   const embedUrl = `https://clips.twitch.tv/embed?clip=${clipId}&parent=${parentDomain}&autoplay=${isLoaded ? 'true' : 'false'}&muted=${embedMuted}`;
 
   const handleLoadClick = () => {
