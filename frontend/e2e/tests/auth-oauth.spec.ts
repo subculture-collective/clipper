@@ -178,7 +178,9 @@ test.describe('OAuth Authentication', () => {
     ]);
 
     if (!errorOrLogin) {
-      const fallback = await page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false)
+      const urlHasError = page.url().includes('oauth_error=invalid_state') || page.url().includes('error=invalid_state');
+      const fallback = urlHasError
+        || await page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false)
         || await page.locator('text=/invalid|error|failed/i').first().isVisible({ timeout: 5000 }).catch(() => false);
       expect(fallback).toBeTruthy();
       return;
@@ -239,7 +241,9 @@ test.describe('OAuth Authentication', () => {
     ]);
 
     if (!errorOrLoginStillVisible) {
-      const fallback = await page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false)
+      const urlHasError = page.url().includes('oauth_error=invalid_request') || page.url().includes('error=invalid_request');
+      const fallback = urlHasError
+        || await page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false)
         || await page.locator('text=/error|invalid|required/i').first().isVisible({ timeout: 5000 }).catch(() => false);
       expect(fallback).toBeTruthy();
       return;

@@ -49,6 +49,18 @@ export async function setSessionTokens(
   tokens: SessionTokens,
   storage: 'local' | 'session' | 'cookie' | 'all' = 'all'
 ): Promise<void> {
+  // Ensure the page is on an origin where localStorage/sessionStorage are accessible
+  // Playwright pages start at about:blank; accessing storage there throws SecurityError
+  const url = page.url();
+  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+    try {
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+    } catch {
+      // If navigation fails, continue; cookie setting will still work with domain fallback
+    }
+  }
+
   const tokenData = JSON.stringify(tokens);
 
   if (storage === 'local' || storage === 'all') {
@@ -108,6 +120,15 @@ export async function setSessionTokens(
  */
 export async function getSessionTokens(page: Page): Promise<SessionTokens | null> {
   try {
+    // Ensure we have navigated to an origin before accessing storage
+    const url = page.url();
+    if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+      try {
+        await page.goto('/');
+        await page.waitForLoadState('domcontentloaded');
+      } catch {}
+    }
+
     // Try localStorage first
     const localTokens = await page.evaluate(() => {
       const data = localStorage.getItem('auth_tokens');
@@ -159,6 +180,15 @@ export async function getSessionTokens(page: Page): Promise<SessionTokens | null
  * @param page - Playwright Page object
  */
 export async function clearSessionTokens(page: Page): Promise<void> {
+  // Ensure we have navigated to a valid origin so storage APIs are available
+  const url = page.url();
+  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+    try {
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+    } catch {}
+  }
+
   await page.evaluate(() => {
     localStorage.removeItem('auth_tokens');
     sessionStorage.removeItem('auth_tokens');
@@ -300,6 +330,17 @@ export async function mockTokenRefresh(
       });
     }
   });
+
+  // When refresh fails, ensure subsequent auth checks reflect unauthenticated state
+  if (!shouldSucceed) {
+    await page.route('**/api/v1/auth/me', async (route: Route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: 'Unauthorized' }),
+      });
+    });
+  }
 }
 
 /**
@@ -430,6 +471,15 @@ export async function mockLogout(
  * @returns true if all session data cleared
  */
 export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
+  // Ensure origin before accessing storage
+  const url = page.url();
+  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+    try {
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+    } catch {}
+  }
+
   const tokens = await getSessionTokens(page);
 
   if (tokens) {

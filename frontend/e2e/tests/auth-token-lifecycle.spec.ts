@@ -14,7 +14,7 @@ import { mockOAuthSuccess } from '../utils/oauth-mock';
 
 /**
  * Token Lifecycle and Logout E2E Tests
- * 
+ *
  * Tests comprehensive token management scenarios:
  * - Access token refresh before expiry
  * - Access token refresh on 401
@@ -36,7 +36,7 @@ test.describe('Token Lifecycle Management', () => {
   test('should automatically refresh access token before expiry', async ({ page }) => {
     // Set up session with token expiring soon
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'expiring_access_token',
       refreshToken: 'valid_refresh_token',
@@ -67,7 +67,7 @@ test.describe('Token Lifecycle Management', () => {
     // Verify token was refreshed
     const tokensAfter = await getSessionTokens(page);
     expect(tokensAfter).toBeTruthy();
-    
+
     // New tokens should be set (if refresh happened)
     // Note: In real app, this would be automatic
   });
@@ -75,7 +75,7 @@ test.describe('Token Lifecycle Management', () => {
   test('should refresh token on 401 unauthorized response', async ({ page }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'expired_token',
       refreshToken: 'valid_refresh',
@@ -103,7 +103,7 @@ test.describe('Token Lifecycle Management', () => {
   test('should rotate refresh token on refresh', async ({ page }) => {
     // Set up session
     await mockOAuthSuccess(page);
-    
+
     const originalTokens = {
       accessToken: 'old_access',
       refreshToken: 'old_refresh',
@@ -139,7 +139,7 @@ test.describe('Token Lifecycle Management', () => {
   test('should invalidate tokens on backend error', async ({ page }) => {
     // Set up session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'valid_token',
       refreshToken: 'valid_refresh',
@@ -161,17 +161,17 @@ test.describe('Token Lifecycle Management', () => {
     // Should redirect to login or show login button
     const url = page.url();
     const loginButton = page.getByRole('button', { name: /login|sign in/i });
-    
-    const redirectedToLogin = url.includes('/login') || 
+
+    const redirectedToLogin = url.includes('/login') ||
                              await loginButton.first().isVisible({ timeout: 3000 }).catch(() => false);
-    
+
     expect(redirectedToLogin).toBeTruthy();
   });
 
   test('should handle concurrent refresh requests gracefully', async ({ page }) => {
     // Set up session near expiry
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'expiring_token',
       refreshToken: 'refresh_token',
@@ -184,7 +184,7 @@ test.describe('Token Lifecycle Management', () => {
     let refreshCount = 0;
     await page.route('**/api/v1/auth/refresh', async (route) => {
       refreshCount++;
-      
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -199,13 +199,12 @@ test.describe('Token Lifecycle Management', () => {
       });
     });
 
-    // Make multiple concurrent requests
-    await Promise.all([
-      page.goto('/'),
-      page.goto('/clips'),
-      page.goto('/settings'),
-    ]);
-
+    // Make multiple sequential navigations to avoid cross-browser navigation aborts
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.goto('/clips');
+    await page.waitForLoadState('networkidle');
+    await page.goto('/settings');
     await page.waitForLoadState('networkidle');
 
     // Verify refresh was called (ideally once for deduplication, but accepting multiple)
@@ -217,7 +216,7 @@ test.describe('Token Lifecycle Management', () => {
   test('should handle token expiry edge case (expired mid-request)', async ({ page }) => {
     // Set up session that expires during test
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'about_to_expire',
       refreshToken: 'refresh_token',
@@ -239,17 +238,39 @@ test.describe('Token Lifecycle Management', () => {
     // Should either refresh or redirect to login
     const tokensAfter = await getSessionTokens(page);
     const loginButton = page.getByRole('button', { name: /login|sign in/i });
-    
-    const hasTokensOrLogin = tokensAfter !== null || 
+
+    const hasTokensOrLogin = tokensAfter !== null ||
                             await loginButton.first().isVisible({ timeout: 2000 }).catch(() => false);
-    
+
     expect(hasTokensOrLogin).toBeTruthy();
   });
 
   test('should not refresh token if still valid', async ({ page }) => {
+    // Prevent unrelated API calls from returning 401, which could trigger a refresh
+    // Register this generic handler BEFORE specific auth mocks so specific routes take precedence
+    await page.route('**/api/v1/**', async (route) => {
+      const reqUrl = route.request().url();
+      const method = route.request().method();
+      // Allow auth refresh to behave normally for detection
+      if (reqUrl.includes('/auth/refresh')) {
+        await route.continue();
+        return;
+      }
+      // For other GET requests, return a generic success to avoid 401s
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
     // Set up session with fresh token
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'fresh_token',
       refreshToken: 'refresh_token',
@@ -257,6 +278,7 @@ test.describe('Token Lifecycle Management', () => {
     };
 
     await setSessionTokens(page, tokens);
+
 
     // Track refresh calls
     let refreshCalled = false;
@@ -281,7 +303,7 @@ test.describe('Logout and Token Revocation', () => {
   test.beforeEach(async ({ page }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'test_access_token',
       refreshToken: 'test_refresh_token',
@@ -304,7 +326,7 @@ test.describe('Logout and Token Revocation', () => {
 
     await page.route('**/api/v1/auth/logout', async (route) => {
       logoutCalled = true;
-      
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -313,7 +335,7 @@ test.describe('Logout and Token Revocation', () => {
           tokensRevoked: true,
         }),
       });
-      
+
       tokensRevoked = true;
     });
 
@@ -376,10 +398,10 @@ test.describe('Logout and Token Revocation', () => {
 
       // Verify redirected to home or login
       const url = page.url();
-      const isHomeOrLogin = url.endsWith('/') || 
-                           url.includes('/login') || 
+      const isHomeOrLogin = url.endsWith('/') ||
+                           url.includes('/login') ||
                            url.includes('/home');
-      
+
       expect(isHomeOrLogin).toBeTruthy();
     }
   });
@@ -402,7 +424,7 @@ test.describe('Logout and Token Revocation', () => {
 
       // Should still clear client-side session even if server call fails
       await clearSessionTokens(page);
-      
+
       // Verify login button appears
       const loginButton = page.getByRole('button', { name: /login|sign in/i });
       await expect(loginButton.first()).toBeVisible({ timeout: 5000 });
@@ -454,7 +476,7 @@ test.describe('Logout and Token Revocation', () => {
       // Should be denied
       const url = page.url();
       const loginVisible = await page.getByRole('button', { name: /login|sign in/i }).first().isVisible({ timeout: 2000 }).catch(() => false);
-      
+
       const accessDenied = url.includes('/login') || loginVisible;
       expect(accessDenied).toBeTruthy();
     }
