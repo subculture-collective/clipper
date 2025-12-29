@@ -26,21 +26,22 @@ export const LiveRegion: React.FC<LiveRegionProps> = ({
     priority = 'polite',
     clearAfter = 1000,
 }) => {
-    const [displayMessage, setDisplayMessage] = useState('');
+    const [isCleared, setIsCleared] = useState(false);
 
     useEffect(() => {
-        queueMicrotask(() => {
-            setDisplayMessage(message);
-        });
+        // Reset the cleared state whenever the message changes so updates are immediate
+        setIsCleared(false);
 
         if (message && clearAfter > 0) {
             const timer = setTimeout(() => {
-                setDisplayMessage('');
+                setIsCleared(true);
             }, clearAfter);
 
             return () => clearTimeout(timer);
         }
     }, [message, clearAfter]);
+
+    const displayMessage = isCleared ? '' : message;
 
     return (
         <div

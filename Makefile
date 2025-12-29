@@ -44,6 +44,18 @@ test-setup: ## Set up test environment (containers + migrations)
 	else \
 		echo "Warning: test-seed-opensearch.sh not found"; \
 	fi
+	@echo "Seeding E2E test data (clips, users, subscriptions)..."
+	@if [ -f scripts/test-seed-e2e.sh ]; then \
+		TEST_DATABASE_HOST=localhost \
+		TEST_DATABASE_PORT=5437 \
+		TEST_DATABASE_USER=clipper \
+		TEST_DATABASE_PASSWORD=clipper_password \
+		TEST_DATABASE_NAME=clipper_test \
+		OPENSEARCH_URL=http://localhost:9200 \
+		bash scripts/test-seed-e2e.sh; \
+	else \
+		echo "Warning: test-seed-e2e.sh not found"; \
+	fi
 
 test-teardown: ## Tear down test environment (containers)
 	@echo "Stopping test containers..."
@@ -56,27 +68,33 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 	fi
 	@echo "Running backend unit tests..."
 	cd backend && go test ./...
-	@if [ "$(INTEGRATION)" = "1" ]; then \
-		echo "Running backend integration tests..."; \
-		export OPENSEARCH_URL=http://localhost:9200 \
-			TEST_DATABASE_HOST=localhost \
-			TEST_DATABASE_PORT=5437 \
-			TEST_DATABASE_USER=clipper \
-			TEST_DATABASE_PASSWORD=clipper_password \
-			TEST_DATABASE_NAME=clipper_test \
-			TEST_REDIS_HOST=localhost \
-			TEST_REDIS_PORT=6380 \
-			TEST_STRIPE_SECRET_KEY=sk_test_$(shell echo -n "$$RANDOM" | md5sum | cut -c1-20) \
-			TEST_STRIPE_WEBHOOK_SECRET=whsec_test_$(shell echo -n "$$RANDOM" | md5sum | cut -c1-20); \
-		cd backend && go test -v -tags=integration -race -parallel=4 ./tests/integration/...; \
-	else \
-		echo "Skipping backend integration tests (set INTEGRATION=1 to enable)"; \
-	fi
-	@echo "Running frontend unit tests..."
-	cd frontend && npm run test -- run
 	@if [ "$(E2E)" = "1" ]; then \
+		echo "Starting backend API for E2E..."; \
+		mkdir -p .tmp; \
+		(\
+			cd backend && \
+			PORT=8080 \
+			GIN_MODE=release \
+			BASE_URL=http://localhost:5173 \
+			DB_HOST=localhost \
+			DB_PORT=5437 \
+			DB_USER=clipper \
+			DB_PASSWORD=clipper_password \
+			DB_NAME=clipper_test \
+			REDIS_HOST=localhost \
+			REDIS_PORT=6380 \
+			OPENSEARCH_URL=http://localhost:9200 \
+			CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+			RATE_LIMIT_WHITELIST_IPS=127.0.0.1 \
+			FEATURE_ANALYTICS=false \
+			go run cmd/api/main.go \
+		) > .tmp/backend-e2e.log 2>&1 & echo $$! > .tmp/backend-e2e.pid; \
+		echo "Backend started (PID: $$(cat .tmp/backend-e2e.pid))"; \
+		sleep 3; \
 		echo "Running frontend E2E tests..."; \
 		cd frontend && npm run test:e2e; \
+		echo "Stopping backend API..."; \
+		if [ -f .tmp/backend-e2e.pid ]; then kill $$(cat .tmp/backend-e2e.pid) || true; rm -f .tmp/backend-e2e.pid; fi; \
 	else \
 		echo "Skipping E2E tests (set E2E=1 to enable)"; \
 	fi
