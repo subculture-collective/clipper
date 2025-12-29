@@ -11,7 +11,7 @@ export function UserMenu() {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
-  
+
   // Calculate menu item count
   const menuItemCount = isModeratorOrAdmin ? 5 : 4; // Profile, Settings, Favorites, (Admin), Logout
   const { menuRef } = useMenuKeyboard(isOpen, () => setIsOpen(false), menuItemCount);
@@ -60,6 +60,7 @@ export function UserMenu() {
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label="User menu"
+        data-testid="user-menu"
       >
         {user.avatar_url ? (
           <img
@@ -85,7 +86,7 @@ export function UserMenu() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div 
+        <div
           ref={menuRef}
           className="absolute right-0 mt-2 w-56 bg-background border border-border rounded-md shadow-lg overflow-hidden z-50"
           role="menu"
@@ -160,7 +161,7 @@ export function UserMenu() {
             >
               📤 My Submissions
             </Link>
-            
+
             {isModeratorOrAdmin && (
               <>
                 <div className="border-t border-border my-1"></div>
@@ -177,7 +178,7 @@ export function UserMenu() {
             )}
 
             <div className="border-t border-border my-1"></div>
-            
+
             <button
               onClick={handleLogout}
               className="block w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors text-error-600 cursor-pointer focus-visible:outline-none focus-visible:bg-muted"

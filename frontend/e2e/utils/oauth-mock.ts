@@ -2,20 +2,20 @@ import { Page, Route, BrowserContext } from '@playwright/test';
 
 /**
  * OAuth Mock Utilities
- * 
+ *
  * Provides comprehensive mocking for Twitch OAuth flows:
  * - Success, error, and abort scenarios
  * - PKCE flow support
  * - State validation
  * - Token generation
- * 
+ *
  * @example
  * ```typescript
  * import { mockOAuthSuccess, mockOAuthError } from '@utils/oauth-mock';
- * 
+ *
  * // Mock successful OAuth
  * await mockOAuthSuccess(page, { username: 'testuser' });
- * 
+ *
  * // Mock OAuth error
  * await mockOAuthError(page, 'access_denied');
  * ```
@@ -75,9 +75,9 @@ export function generateMockUser(overrides: Partial<MockOAuthUser> = {}): MockOA
 
 /**
  * Mock successful Twitch OAuth flow
- * 
+ *
  * Intercepts OAuth endpoints and simulates successful authentication
- * 
+ *
  * @param page - Playwright Page object
  * @param options - OAuth user and token overrides
  */
@@ -92,41 +92,21 @@ export async function mockOAuthSuccess(
   const mockUser = generateMockUser(options.user);
   const mockTokens = { ...generateMockTokens(), ...options.tokens };
 
-  // Mock OAuth initiation endpoint
-  await page.route('**/api/v1/auth/twitch', async (route: Route) => {
-    // Simulate redirect to OAuth callback with code
-    const url = new URL(route.request().url());
-    const state = url.searchParams.get('state') || `state_${Date.now()}`;
-    const code = `mock_code_${Date.now()}`;
-    
-    // Store state for validation
-    await page.evaluate(
-      ({ key, value }) => sessionStorage.setItem(key, value),
-      { key: `oauth_state`, value: state }
-    );
-    
+  // Track the state from the OAuth request so we can use it in the callback
+  let capturedState: string | null = null;
+
+  // Mock /auth/me endpoint to return authenticated user
+  await page.route('**/api/v1/auth/me', async (route: Route) => {
     await route.fulfill({
-      status: 302,
-      headers: {
-        Location: `/auth/callback?code=${code}&state=${state}`,
-      },
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockUser),
     });
   });
 
-  // Mock OAuth callback endpoint
-  await page.route('**/api/v1/auth/twitch/callback**', async (route: Route) => {
-    const method = route.request().method();
-    
-    if (method === 'GET') {
-      // Handle redirect callback
-      await route.fulfill({
-        status: 302,
-        headers: {
-          Location: '/auth/success',
-        },
-      });
-    } else if (method === 'POST') {
-      // Handle PKCE callback
+  // Mock /auth/twitch/callback POST endpoint
+  await page.route('**/api/v1/auth/twitch/callback', async (route: Route) => {
+    if (route.request().method() === 'POST') {
       const response: any = {
         success: true,
         user: mockUser,
@@ -148,12 +128,39 @@ export async function mockOAuthSuccess(
     }
   });
 
-  // Mock /auth/me endpoint to return authenticated user
-  await page.route('**/api/v1/auth/me', async (route: Route) => {
+  // Mock /auth/twitch endpoint - intercept OAuth initiation
+  // When user clicks login, initiateOAuth() sets window.location.href which we intercept here
+  // The PKCE parameters (code_verifier, state) are already stored by initiateOAuth()
+  // We just need to simulate the OAuth flow by navigating to the callback page
+  await page.route('**/api/v1/auth/twitch**', async (route: Route) => {
+    const url = new URL(route.request().url());
+    const state = url.searchParams.get('state');
+    const code = `mock_code_${Date.now()}`;
+
+    // Capture state for the callback
+    capturedState = state;
+
+    // Abort the original request (don't actually navigate to the auth endpoint)
+    await route.abort('aborted');
+
+    // Drive navigation in the page context for reliability
+    const callbackUrl = `/auth/callback?code=${code}&state=${state}`;
+    await page.evaluate((url) => {
+      try {
+        window.location.assign(url);
+      } catch {}
+    }, callbackUrl);
+  });
+
+  // Mock /auth/refresh endpoint to return tokens
+  await page.route('**/api/v1/auth/refresh', async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(mockUser),
+      body: JSON.stringify({
+        success: true,
+        tokens: mockTokens,
+      }),
     });
   });
 
@@ -162,9 +169,9 @@ export async function mockOAuthSuccess(
 
 /**
  * Mock OAuth error flow
- * 
+ *
  * Simulates OAuth errors like access_denied, server_error, etc.
- * 
+ *
  * @param page - Playwright Page object
  * @param error - OAuth error code
  * @param errorDescription - Optional error description
@@ -176,13 +183,10 @@ export async function mockOAuthError(
 ): Promise<void> {
   await page.route('**/api/v1/auth/twitch', async (route: Route) => {
     const state = `state_${Date.now()}`;
-    
-    await route.fulfill({
-      status: 302,
-      headers: {
-        Location: `/auth/callback?error=${error}&error_description=${errorDescription || error}&state=${state}`,
-      },
-    });
+    // Prevent real navigation to backend and drive app to callback explicitly
+    await route.abort('aborted');
+    const url = `/auth/callback?error=${error}&error_description=${encodeURIComponent(errorDescription || error)}&state=${state}`;
+    await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
   });
 
   await page.route('**/api/v1/auth/twitch/callback**', async (route: Route) => {
@@ -200,9 +204,9 @@ export async function mockOAuthError(
 
 /**
  * Mock OAuth abort flow
- * 
+ *
  * Simulates user canceling/closing OAuth popup
- * 
+ *
  * @param page - Playwright Page object
  */
 export async function mockOAuthAbort(page: Page): Promise<void> {
@@ -214,12 +218,19 @@ export async function mockOAuthAbort(page: Page): Promise<void> {
 
 /**
  * Mock OAuth state validation error
- * 
+ *
  * Simulates CSRF protection failure
- * 
+ *
  * @param page - Playwright Page object
  */
 export async function mockOAuthInvalidState(page: Page): Promise<void> {
+  // Intercept initiation to force navigation to callback with invalid state
+  await page.route('**/api/v1/auth/twitch', async (route: Route) => {
+    await route.abort('aborted');
+    const badState = `bad_state_${Date.now()}`;
+    page.goto(`/auth/callback?error=invalid_state&error_description=${encodeURIComponent('State parameter validation failed')}&state=${badState}`, { waitUntil: 'networkidle' }).catch(() => {});
+  });
+
   await page.route('**/api/v1/auth/twitch/callback**', async (route: Route) => {
     await route.fulfill({
       status: 400,
@@ -235,9 +246,9 @@ export async function mockOAuthInvalidState(page: Page): Promise<void> {
 
 /**
  * Simulate OAuth popup window
- * 
+ *
  * Opens and manages OAuth popup for testing
- * 
+ *
  * @param context - Browser context
  * @param shouldComplete - Whether to complete OAuth or abort
  */
@@ -247,20 +258,20 @@ export async function simulateOAuthPopup(
 ): Promise<Page | null> {
   try {
     const popup = await context.waitForEvent('page', { timeout: 5000 });
-    
+
     if (!shouldComplete) {
       // Simulate user closing popup
       await popup.close();
       return null;
     }
-    
+
     // Simulate OAuth approval
     await popup.waitForLoadState('domcontentloaded');
-    
+
     // In this mock, we skip the "Authorize" button click and just close the popup
     // The route mocking in mockOAuthSuccess handles the callback automatically
     await popup.close();
-    
+
     return popup;
   } catch (error) {
     // No popup appeared (redirect flow)
@@ -270,7 +281,7 @@ export async function simulateOAuthPopup(
 
 /**
  * Mock PKCE flow specifically
- * 
+ *
  * @param page - Playwright Page object
  * @param options - PKCE flow options
  */
@@ -286,6 +297,15 @@ export async function mockOAuthPKCE(
   const mockUser = generateMockUser(options.user);
   const mockTokens = generateMockTokens();
 
+  // Ensure authenticated user can be fetched after callback
+  await page.route('**/api/v1/auth/me', async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockUser),
+    });
+  });
+
   // Mock OAuth initiation with PKCE
   await page.route('**/api/v1/auth/twitch**', async (route: Route) => {
     const url = new URL(route.request().url());
@@ -296,34 +316,22 @@ export async function mockOAuthPKCE(
     if (codeChallenge && codeChallengeMethod === 'S256') {
       // Valid PKCE parameters
       const code = `mock_code_${Date.now()}`;
-      
-      await route.fulfill({
-        status: 302,
-        headers: {
-          Location: `/auth/callback?code=${code}&state=${state}`,
-        },
-      });
+      // Abort and drive navigation to callback explicitly
+      await route.abort('aborted');
+      const url = `/auth/callback?code=${code}&state=${state}`;
+      await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
     } else if (options.shouldValidate === false) {
       // Allow without PKCE for testing
       const code = `mock_code_${Date.now()}`;
-      
-      await route.fulfill({
-        status: 302,
-        headers: {
-          Location: `/auth/callback?code=${code}&state=${state}`,
-        },
-      });
+      await route.abort('aborted');
+      const url = `/auth/callback?code=${code}&state=${state}`;
+      await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
     } else {
       // Missing PKCE parameters
-      await route.fulfill({
-        status: 400,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: false,
-          error: 'invalid_request',
-          errorDescription: 'PKCE parameters required',
-        }),
-      });
+      // Drive to callback with error so UI displays failure state
+      await route.abort('aborted');
+      const url = `/auth/callback?error=invalid_request&error_description=${encodeURIComponent('PKCE parameters required')}&state=${state}`;
+      await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
     }
   });
 
@@ -331,7 +339,7 @@ export async function mockOAuthPKCE(
   await page.route('**/api/v1/auth/twitch/callback', async (route: Route) => {
     if (route.request().method() === 'POST') {
       const postData = route.request().postDataJSON();
-      
+
       if (options.shouldValidate !== false && !postData?.code_verifier) {
         await route.fulfill({
           status: 400,
@@ -364,7 +372,7 @@ export async function mockOAuthPKCE(
 
 /**
  * Clear all OAuth mocks
- * 
+ *
  * @param page - Playwright Page object
  */
 export async function clearOAuthMocks(page: Page): Promise<void> {

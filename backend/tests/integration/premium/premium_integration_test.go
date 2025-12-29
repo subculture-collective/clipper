@@ -92,7 +92,7 @@ func setupPremiumTestRouter(t *testing.T) (*gin.Engine, *jwtpkg.Manager, *servic
 		subscriptions.GET("/me", middleware.AuthMiddleware(authService), subscriptionHandler.GetSubscription)
 		subscriptions.POST("/portal", middleware.AuthMiddleware(authService), subscriptionHandler.CreatePortalSession)
 	}
-	
+
 	// Webhook routes
 	r.POST("/api/v1/webhooks/stripe", subscriptionHandler.HandleWebhook)
 
@@ -122,7 +122,7 @@ func TestSubscriptionFlow(t *testing.T) {
 			"price_id": "price_test_premium",
 		}
 		bodyBytes, _ := json.Marshal(checkout)
-		
+
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/checkout", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 		req.Header.Set("Content-Type", "application/json")
@@ -132,7 +132,7 @@ func TestSubscriptionFlow(t *testing.T) {
 
 		// Stripe integration may not be available in test environment
 		assert.Contains(t, []int{http.StatusOK, http.StatusInternalServerError, http.StatusBadRequest}, w.Code)
-		
+
 		if w.Code == http.StatusOK {
 			var response map[string]interface{}
 			err := json.Unmarshal(w.Body.Bytes(), &response)
@@ -170,8 +170,8 @@ func TestStripeWebhooks(t *testing.T) {
 			},
 		}
 		bodyBytes, _ := json.Marshal(webhook)
-		
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/webhook", bytes.NewBuffer(bodyBytes))
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/stripe", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 		// Missing or invalid Stripe-Signature header
 		w := httptest.NewRecorder()
@@ -184,7 +184,7 @@ func TestStripeWebhooks(t *testing.T) {
 
 	t.Run("WebhookEndpoint_ValidSignature", func(t *testing.T) {
 		t.Skip("Requires Stripe signature generation for testing")
-		
+
 		// In actual test, would:
 		// 1. Generate valid Stripe webhook signature
 		// 2. Send webhook with signature
@@ -204,7 +204,7 @@ func TestSubscriptionTiers(t *testing.T) {
 			"price_id": "price_test_premium",
 		}
 		bodyBytes, _ := json.Marshal(checkout)
-		
+
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/checkout", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 		req.Header.Set("Content-Type", "application/json")
@@ -220,7 +220,7 @@ func TestSubscriptionTiers(t *testing.T) {
 			"price_id": "price_test_pro",
 		}
 		bodyBytes, _ := json.Marshal(checkout)
-		
+
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/checkout", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 		req.Header.Set("Content-Type", "application/json")
@@ -236,7 +236,7 @@ func TestSubscriptionTiers(t *testing.T) {
 			"price_id": "invalid_price_id",
 		}
 		bodyBytes, _ := json.Marshal(checkout)
-		
+
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions/checkout", bytes.NewBuffer(bodyBytes))
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 		req.Header.Set("Content-Type", "application/json")

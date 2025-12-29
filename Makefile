@@ -24,13 +24,67 @@ build: ## Build backend, frontend, and mobile
 	cd mobile && npm run ios -- --configuration Release || echo "⚠ Mobile iOS build skipped (requires macOS)"
 	@echo "✓ Build complete"
 
-test: ## Run all tests
-	@echo "Running backend tests..."
+test-setup: ## Set up test environment (containers + migrations)
+	@echo "Starting test containers (Postgres + Redis + OpenSearch)..."
+	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for test Postgres on localhost:5437..."
+	@bash -c 'until pg_isready -h localhost -p 5437 -U clipper -d clipper_test >/dev/null 2>&1; do sleep 1; done'
+	@echo "Postgres is ready. Running test migrations..."
+	@if command -v migrate > /dev/null; then \
+		migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true; \
+	else \
+		echo "Warning: golang-migrate not installed. Skipping migrations."; \
+		echo "Install with: go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest"; \
+	fi
+	@echo "Waiting for OpenSearch on localhost:9200..."
+	@bash -c 'for i in {1..60}; do if curl -f -s http://localhost:9200/_cluster/health >/dev/null 2>&1; then echo "OpenSearch is ready"; exit 0; fi; sleep 1; done; echo "OpenSearch failed to become ready"; exit 1'
+	@echo "Seeding OpenSearch with test indices..."
+	@if [ -f scripts/test-seed-opensearch.sh ]; then \
+		OPENSEARCH_URL=http://localhost:9200 bash scripts/test-seed-opensearch.sh; \
+	else \
+		echo "Warning: test-seed-opensearch.sh not found"; \
+	fi
+
+test-teardown: ## Tear down test environment (containers)
+	@echo "Stopping test containers..."
+	docker compose -f docker-compose.test.yml down
+	@echo "✓ Test environment teardown complete"
+
+test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expand)
+	@if [ "$(INTEGRATION)" = "1" ] || [ "$(E2E)" = "1" ]; then \
+		$(MAKE) test-setup; \
+	fi
+	@echo "Running backend unit tests..."
 	cd backend && go test ./...
-	@echo "Running frontend tests..."
+	@if [ "$(INTEGRATION)" = "1" ]; then \
+		echo "Running backend integration tests..."; \
+		export OPENSEARCH_URL=http://localhost:9200 \
+			TEST_DATABASE_HOST=localhost \
+			TEST_DATABASE_PORT=5437 \
+			TEST_DATABASE_USER=clipper \
+			TEST_DATABASE_PASSWORD=clipper_password \
+			TEST_DATABASE_NAME=clipper_test \
+			TEST_REDIS_HOST=localhost \
+			TEST_REDIS_PORT=6380 \
+			TEST_STRIPE_SECRET_KEY=sk_test_$(shell echo -n "$$RANDOM" | md5sum | cut -c1-20) \
+			TEST_STRIPE_WEBHOOK_SECRET=whsec_test_$(shell echo -n "$$RANDOM" | md5sum | cut -c1-20); \
+		cd backend && go test -v -tags=integration -race -parallel=4 ./tests/integration/...; \
+	else \
+		echo "Skipping backend integration tests (set INTEGRATION=1 to enable)"; \
+	fi
+	@echo "Running frontend unit tests..."
 	cd frontend && npm run test -- run
+	@if [ "$(E2E)" = "1" ]; then \
+		echo "Running frontend E2E tests..."; \
+		cd frontend && npm run test:e2e; \
+	else \
+		echo "Skipping E2E tests (set E2E=1 to enable)"; \
+	fi
 	@echo "Running mobile tests..."
 	cd mobile && npm run test || echo "Mobile tests not configured"
+	@if [ "$(INTEGRATION)" = "1" ] || [ "$(E2E)" = "1" ]; then \
+		$(MAKE) test-teardown; \
+	fi
 	@echo "✓ Tests complete"
 
 test-unit: ## Run unit tests only

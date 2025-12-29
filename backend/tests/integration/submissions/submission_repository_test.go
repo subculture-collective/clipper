@@ -159,10 +159,24 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err, "Failed to create submission")
 
+		// Create a reviewer user
+		reviewerEmail := testutil.RandomEmail()
+		reviewer := &models.User{
+			ID:          uuid.New(),
+			TwitchID:    fmt.Sprintf("reviewer_%d", time.Now().UnixNano()),
+			Username:    fmt.Sprintf("reviewer_%d", time.Now().UnixNano()),
+			DisplayName: "Reviewer",
+			Email:       &reviewerEmail,
+			Role:        models.RoleAdmin,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+		err = env.userRepo.Create(env.ctx, reviewer)
+		require.NoError(t, err, "Failed to create reviewer user")
+
 		// Approve the submission
-		adminID := uuid.New()
 		notes := "Looks good!"
-		err = env.submissionRepo.UpdateStatus(env.ctx, submission.ID, "approved", adminID, &notes)
+		err = env.submissionRepo.UpdateStatus(env.ctx, submission.ID, "approved", reviewer.ID, &notes)
 		require.NoError(t, err, "Failed to update submission status")
 
 		// Verify status was updated
@@ -170,7 +184,7 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 		require.NoError(t, err, "Failed to retrieve updated submission")
 		assert.Equal(t, "approved", updated.Status)
 		assert.NotNil(t, updated.ReviewedBy)
-		assert.Equal(t, adminID, *updated.ReviewedBy)
+		assert.Equal(t, reviewer.ID, *updated.ReviewedBy)
 	})
 
 	t.Run("UpdateSubmissionStatus_Rejection", func(t *testing.T) {
@@ -188,10 +202,24 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 		err := env.submissionRepo.Create(env.ctx, submission)
 		require.NoError(t, err, "Failed to create submission")
 
+		// Create a reviewer user
+		reviewerEmail := testutil.RandomEmail()
+		reviewer := &models.User{
+			ID:          uuid.New(),
+			TwitchID:    fmt.Sprintf("reviewer2_%d", time.Now().UnixNano()),
+			Username:    fmt.Sprintf("reviewer2_%d", time.Now().UnixNano()),
+			DisplayName: "Reviewer 2",
+			Email:       &reviewerEmail,
+			Role:        models.RoleAdmin,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+		err = env.userRepo.Create(env.ctx, reviewer)
+		require.NoError(t, err, "Failed to create reviewer user")
+
 		// Reject the submission
-		adminID := uuid.New()
 		rejectionReason := "Duplicate content"
-		err = env.submissionRepo.UpdateStatus(env.ctx, submission.ID, "rejected", adminID, &rejectionReason)
+		err = env.submissionRepo.UpdateStatus(env.ctx, submission.ID, "rejected", reviewer.ID, &rejectionReason)
 		require.NoError(t, err, "Failed to reject submission")
 
 		// Verify rejection details
@@ -205,7 +233,7 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 		// Get all pending submissions (for moderation queue)
 		pending, total, err := env.submissionRepo.ListPending(env.ctx, 1, 50)
 		require.NoError(t, err, "Failed to get pending submissions")
-		
+
 		// Should have at least some pending submissions from previous tests
 		t.Logf("Found %d total pending submissions, returned %d", total, len(pending))
 		assert.GreaterOrEqual(t, total, 0, "Total should be non-negative")
@@ -317,7 +345,7 @@ func TestCustomTitlesAndTagsStorage(t *testing.T) {
 		assert.NotNil(t, retrieved.CustomTitle, "Custom title should not be nil")
 		assert.Equal(t, customTitle, *retrieved.CustomTitle, "Custom title should match")
 		assert.Equal(t, len(customTags), len(retrieved.Tags), "Should have same number of tags")
-		
+
 		// Verify all tags are present
 		for i, tag := range customTags {
 			assert.Equal(t, tag, retrieved.Tags[i], "Tag should match")

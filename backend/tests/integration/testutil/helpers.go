@@ -146,13 +146,13 @@ func CreateTestClip(t *testing.T, db *database.DB, userID *uuid.UUID) *models.Cl
 // CreateTestClipWithDetails creates a test clip with specific details
 func CreateTestClipWithDetails(t *testing.T, db *database.DB, userID *uuid.UUID, title string, isHidden bool, isNSFW bool) *models.Clip {
 	clip := CreateTestClip(t, db, userID)
-	
+
 	ctx := context.Background()
-	_, err := db.Pool.Exec(ctx, 
+	_, err := db.Pool.Exec(ctx,
 		"UPDATE clips SET title = $1, is_hidden = $2, is_nsfw = $3 WHERE id = $4",
 		title, isHidden, isNSFW, clip.ID)
 	require.NoError(t, err, "Failed to update test clip details")
-	
+
 	clip.Title = title
 	clip.IsHidden = isHidden
 	clip.IsNSFW = isNSFW
@@ -162,12 +162,12 @@ func CreateTestClipWithDetails(t *testing.T, db *database.DB, userID *uuid.UUID,
 // CleanupTestClip removes a test clip from the database
 func CleanupTestClip(t *testing.T, db *database.DB, clipID uuid.UUID) {
 	ctx := context.Background()
-	
+
 	// Delete related data first (votes, favorites, comments)
 	_, _ = db.Pool.Exec(ctx, "DELETE FROM votes WHERE clip_id = $1", clipID)
 	_, _ = db.Pool.Exec(ctx, "DELETE FROM favorites WHERE clip_id = $1", clipID)
 	_, _ = db.Pool.Exec(ctx, "DELETE FROM comments WHERE clip_id = $1", clipID)
-	
+
 	// Delete the clip
 	_, err := db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = $1", clipID)
 	if err != nil {
@@ -269,6 +269,21 @@ func GenerateTestTokens(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UU
 	require.NoError(t, err, "Failed to generate refresh token")
 
 	return accessToken, refreshToken
+}
+
+// GenerateTestTokensWithStorage generates tokens and stores the refresh token in the database
+func GenerateTestTokensWithStorage(t *testing.T, jwtManager *jwtpkg.Manager, userID uuid.UUID, role string, db *database.DB) (accessToken, refreshToken string) {
+	access, refresh := GenerateTestTokens(t, jwtManager, userID, role)
+
+	// Store refresh token in database
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
+	tokenHash := jwtpkg.HashToken(refresh)
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+
+	err := refreshTokenRepo.Create(context.Background(), userID, tokenHash, expiresAt)
+	require.NoError(t, err, "Failed to store refresh token")
+
+	return access, refresh
 }
 
 // WithTestCleanup runs a test with a cleanup function that's guaranteed to execute

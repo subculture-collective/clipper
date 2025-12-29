@@ -76,7 +76,7 @@ export class SearchPage extends BasePage {
     super(page, '/search');
 
     // Initialize locators - Search Bar
-    this.searchInput = page.locator('input[type="search"], input[name="q"], input[placeholder*="search" i]').first();
+    this.searchInput = page.locator(':is([data-testid="search-input"], input[type="search"], input[name="q"], input[placeholder*="search" i], [role="searchbox"])').first();
     this.searchButton = page.locator('button[type="submit"]').first();
     this.clearSearchButton = page.locator('button[aria-label*="clear" i]');
 
@@ -86,22 +86,22 @@ export class SearchPage extends BasePage {
     this.suggestionsLoading = this.suggestionsContainer.locator('.loading, [aria-busy="true"]');
 
     // Results
-    this.searchResults = page.locator('.search-results, [data-testid="search-results"]').first();
+    this.searchResults = page.getByTestId('search-results').first();
     this.resultCards = page.locator('[data-testid="clip-card"], .clip-card, .search-result-card');
-    this.resultsCount = page.locator('.results-count, [data-testid="results-count"]').first();
+    this.resultsCount = page.getByTestId('results-count').first();
     this.emptyState = page.locator('.empty-state, [data-testid="empty-state"]').first();
     this.emptyStateMessage = this.emptyState.locator('p, .message').first();
     this.emptyStateAction = this.emptyState.locator('button, a').first();
 
     // Tabs
-    this.allTab = page.locator('button, a').filter({ hasText: /^all$/i });
-    this.clipsTab = page.locator('button, a').filter({ hasText: /^clips$/i });
-    this.creatorsTab = page.locator('button, a').filter({ hasText: /^creators$/i });
-    this.gamesTab = page.locator('button, a').filter({ hasText: /^games$/i });
-    this.tagsTab = page.locator('button, a').filter({ hasText: /^tags$/i });
+    this.allTab = page.getByTestId('tab-all');
+    this.clipsTab = page.getByTestId('tab-clips');
+    this.creatorsTab = page.getByTestId('tab-creators');
+    this.gamesTab = page.getByTestId('tab-games');
+    this.tagsTab = page.getByTestId('tab-tags');
 
     // Sort
-    this.sortDropdown = page.locator('select').filter({ has: page.locator('option[value="relevance"]') });
+    this.sortDropdown = page.getByTestId('search-sort-select');
     this.sortRelevance = page.locator('option[value="relevance"]');
     this.sortRecent = page.locator('option[value="recent"]');
     this.sortPopular = page.locator('option[value="popular"]');
@@ -117,9 +117,9 @@ export class SearchPage extends BasePage {
     this.minVotesInput = this.filtersSection.locator('input[name="minVotes"], input[placeholder*="votes" i]');
 
     // Pagination
-    this.nextPageButton = page.locator('button, a').filter({ hasText: /next|→|›/i }).last();
-    this.previousPageButton = page.locator('button, a').filter({ hasText: /prev|←|‹/i }).first();
-    this.pageNumber = page.locator('.page-number, [data-testid="page-number"]').first();
+    this.nextPageButton = page.getByTestId('pagination-next');
+    this.previousPageButton = page.getByTestId('pagination-prev');
+    this.pageNumber = page.getByTestId('page-number').first();
 
     // Search History
     this.searchHistoryContainer = page.locator('.search-history, [data-testid="search-history"]').first();
@@ -137,11 +137,38 @@ export class SearchPage extends BasePage {
    * @param waitForResults - Wait for results to load (default: true)
    */
   async search(query: string, waitForResults: boolean = true): Promise<void> {
-    await this.fillInput(this.searchInput, query);
-    await this.pressKey('Enter');
+      // Ensure page has loaded before trying to interact
+      await this.page.waitForLoadState('domcontentloaded');
+
+      // Try a set of robust selectors to locate the search input
+      const selectors: Array<{ selector: string; timeout: number }> = [
+        { selector: '[data-testid="search-input"]', timeout: 15000 },
+        { selector: 'input[type="search"]', timeout: 5000 },
+        { selector: 'input[name="q"]', timeout: 5000 },
+        { selector: 'input[placeholder*="search" i]', timeout: 5000 },
+        { selector: '[role="searchbox"]', timeout: 5000 },
+      ];
+
+      let filled = false;
+      for (const { selector, timeout } of selectors) {
+        try {
+          await this.page.fill(selector, query, { timeout });
+          filled = true;
+          break;
+        } catch (err) {
+          // try next selector
+        }
+      }
+
+      if (!filled) {
+        throw new Error('Search input not found or not interactable');
+      }
+
+      // Submit
+      await this.pressKey('Enter');
 
     if (waitForResults) {
-      await this.page.waitForLoadState('networkidle');
+      await this.waitForResults();
     }
   }
 
@@ -257,6 +284,7 @@ export class SearchPage extends BasePage {
    * @returns Time in milliseconds
    */
   async measureSuggestionLatency(query: string): Promise<number> {
+    await this.goto();
     await this.searchInput.clear();
     await this.searchInput.click();
 
@@ -296,6 +324,14 @@ export class SearchPage extends BasePage {
    * Get number of search results
    */
   async getResultCount(): Promise<number> {
+    await this.waitForResults();
+
+    const countText = await this.resultsCount.textContent();
+    const match = countText?.match(/Found\s+(\d+)/i);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+
     try {
       await this.resultCards.first().waitFor({ state: 'visible', timeout: 5000 });
       return await this.resultCards.count();
@@ -369,8 +405,9 @@ export class SearchPage extends BasePage {
       tags: this.tagsTab,
     }[tab];
 
-    await tabLocator.click();
-    await this.page.waitForLoadState('networkidle');
+    await tabLocator.first().waitFor({ state: 'visible', timeout: 10000 });
+    await tabLocator.first().click();
+    await this.waitForResults();
   }
 
   /**
@@ -538,16 +575,30 @@ export class SearchPage extends BasePage {
    * Go to next page of results
    */
   async goToNextPage(): Promise<void> {
+    const currentUrl = new URL(this.page.url());
+    const targetPage = Number(currentUrl.searchParams.get('page') || '1') + 1;
     await this.nextPageButton.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForURL((url) => url.searchParams.get('page') === String(targetPage));
+    await this.page.waitForFunction((expected) => {
+      const el = document.querySelector('[data-testid="page-number"]');
+      return el?.textContent?.includes(`Page ${expected}`);
+    }, targetPage);
+    await this.waitForResults();
   }
 
   /**
    * Go to previous page of results
    */
   async goToPreviousPage(): Promise<void> {
+    const currentUrl = new URL(this.page.url());
+    const targetPage = Math.max(1, Number(currentUrl.searchParams.get('page') || '1') - 1);
     await this.previousPageButton.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForURL((url) => url.searchParams.get('page') === String(targetPage) || (!url.searchParams.get('page') && targetPage === 1));
+    await this.page.waitForFunction((expected) => {
+      const el = document.querySelector('[data-testid="page-number"]');
+      return el?.textContent?.includes(`Page ${expected}`);
+    }, targetPage);
+    await this.waitForResults();
   }
 
   /**
@@ -652,18 +703,19 @@ export class SearchPage extends BasePage {
    * @returns Time in milliseconds
    */
   async measureSearchLatency(query: string): Promise<number> {
+    await this.goto();
     await this.fillInput(this.searchInput, query);
 
     const startTime = Date.now();
 
-    // Start listening for response before triggering search
-    const responsePromise = this.page.waitForResponse(
-      response => response.url().includes('/search') && response.status() === 200,
-      { timeout: 10000 }
-    );
-
     await this.page.keyboard.press('Enter');
-    await responsePromise;
+
+    // Measure until UI reflects loaded state (results or empty)
+    await Promise.race([
+      this.resultsCount.waitFor({ state: 'visible', timeout: 10000 }),
+      this.searchResults.first().waitFor({ state: 'visible', timeout: 10000 }),
+      this.emptyState.waitFor({ state: 'visible', timeout: 10000 }),
+    ]);
 
     const endTime = Date.now();
     return endTime - startTime;
@@ -716,9 +768,31 @@ export class SearchPage extends BasePage {
   /**
    * Get current search parameters from URL
    */
-  getSearchParams(): URLSearchParams {
+  async getSearchParams(): Promise<URLSearchParams> {
+    await this.page.waitForLoadState('domcontentloaded');
+
+    await this.page.waitForFunction(() => {
+      const params = new URL(window.location.href).searchParams;
+      const stored = sessionStorage.getItem('search:lastParams');
+      return Boolean(params.get('q') || stored);
+    }, { timeout: 2000 });
+
     const url = new URL(this.page.url());
-    return url.searchParams;
+    if (url.searchParams.get('q')) {
+      return url.searchParams;
+    }
+
+    try {
+      const stored = await this.page.evaluate(() => sessionStorage.getItem('search:lastParams'));
+      if (stored) {
+        return new URLSearchParams(stored);
+      }
+    } catch {
+      // ignore navigation races
+    }
+
+    const latest = new URL(this.page.url());
+    return latest.searchParams;
   }
 
   /**
@@ -726,7 +800,7 @@ export class SearchPage extends BasePage {
    * @param expectedFilters - Filters that should be in URL
    */
   async verifyFiltersPersist(expectedFilters: Record<string, string>): Promise<boolean> {
-    const params = this.getSearchParams();
+    const params = await this.getSearchParams();
 
     for (const [key, value] of Object.entries(expectedFilters)) {
       if (params.get(key) !== value) {

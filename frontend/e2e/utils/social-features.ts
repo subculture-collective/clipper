@@ -116,6 +116,17 @@ function getApiBaseUrl(): string {
 async function getAuthToken(page: Page): Promise<string | null> {
   try {
     const token = await page.evaluate(() => {
+      const authTokensJson = localStorage.getItem('auth_tokens') || sessionStorage.getItem('auth_tokens');
+      if (authTokensJson) {
+        try {
+          const parsed = JSON.parse(authTokensJson);
+          if (parsed?.accessToken) return parsed.accessToken;
+          if (parsed?.access_token) return parsed.access_token;
+        } catch {
+          // fall through to other sources
+        }
+      }
+
       const localToken = localStorage.getItem('auth_token');
       const sessionToken = sessionStorage.getItem('auth_token');
       const rawToken = localToken || sessionToken;

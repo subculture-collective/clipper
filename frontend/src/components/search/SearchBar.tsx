@@ -157,7 +157,8 @@ export function SearchBar({
                 <div className='relative'>
                     <Input
                         ref={inputRef}
-                        type='text'
+                        type='search'
+                        name='q'
                         value={query}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
@@ -165,6 +166,7 @@ export function SearchBar({
                             suggestions.length > 0 && setShowSuggestions(true)
                         }
                         placeholder='Search clips, games, creators...'
+                        aria-label='Search'
                         autoFocus={autoFocus}
                         className='pr-10'
                         data-testid='search-input'
@@ -172,6 +174,7 @@ export function SearchBar({
                     <button
                         type='submit'
                         className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground'
+                        tabIndex={-1}
                         aria-label='Search'
                     >
                         <svg

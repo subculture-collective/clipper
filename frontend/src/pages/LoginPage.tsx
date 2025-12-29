@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { Container, Card, CardHeader, CardBody, Button, Stack } from '../components';
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
   const { login, isLoading } = useAuth();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   // Store the return URL when the login page is accessed
   useEffect(() => {
@@ -27,6 +28,11 @@ export function LoginPage() {
           <p className="text-center text-muted-foreground mt-2">
             Sign in to upvote, comment, and save your favorite clips
           </p>
+          {searchParams.get('error') && (
+            <div data-testid="login-error" className="mt-3 text-center text-red-600 text-sm">
+              Authentication failed: {searchParams.get('error')}
+            </div>
+          )}
         </CardHeader>
         <CardBody>
           <Stack direction="vertical" gap={4}>
@@ -34,6 +40,8 @@ export function LoginPage() {
               onClick={handleTwitchLogin}
               variant="primary"
               className="w-full bg-[#9146FF] hover:bg-[#772CE8] text-white font-semibold py-3"
+              data-testid="login-button"
+              aria-label="Continue with Twitch"
               disabled={isLoading}
             >
               <span className="flex items-center justify-center gap-2">
@@ -48,7 +56,7 @@ export function LoginPage() {
                 Continue with Twitch
               </span>
             </Button>
-            
+
             <div className="text-xs text-center text-muted-foreground">
               By continuing, you agree to our Terms of Service and Privacy Policy
             </div>

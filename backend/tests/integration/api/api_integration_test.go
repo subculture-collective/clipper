@@ -64,7 +64,6 @@ func setupAPITestRouter(t *testing.T) (*gin.Engine, *database.DB, *redispkg.Clie
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, cfg)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo, clipRepo)
 	gameHandler := handlers.NewGameHandler(gameRepo, clipRepo, authService)
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, nil, authService)
@@ -102,12 +101,12 @@ func setupAPITestRouter(t *testing.T) (*gin.Engine, *database.DB, *redispkg.Clie
 		v1.GET("/categories/:id", categoryHandler.GetCategory)
 
 		// Games
-		v1.GET("/games", gameHandler.ListGames)
 		v1.GET("/games/:id", gameHandler.GetGame)
+		v1.GET("/games/:id/clips", gameHandler.ListGameClips)
 
 		// Broadcasters
-		v1.GET("/broadcasters", broadcasterHandler.ListBroadcasters)
-		v1.GET("/broadcasters/:id", broadcasterHandler.GetBroadcaster)
+		v1.GET("/broadcasters/:id", broadcasterHandler.GetBroadcasterProfile)
+		v1.GET("/broadcasters/:id/clips", broadcasterHandler.ListBroadcasterClips)
 	}
 
 	return r, db, redisClient
@@ -186,21 +185,23 @@ func TestGameEndpoints(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("ListGames", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/games", nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
 	t.Run("GetGame", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/games/1", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
+		// May return game or not found
+		assert.Contains(t, []int{http.StatusOK, http.StatusNotFound}, w.Code)
+	})
+
+	t.Run("GetGameClips", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/games/1/clips", nil)
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		// May return clips or not found
 		assert.Contains(t, []int{http.StatusOK, http.StatusNotFound}, w.Code)
 	})
 }
@@ -210,21 +211,23 @@ func TestBroadcasterEndpoints(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("ListBroadcasters", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/broadcasters", nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("GetBroadcaster", func(t *testing.T) {
+	t.Run("GetBroadcasterProfile", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/broadcasters/testbroadcaster", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
+		// May return profile or not found
+		assert.Contains(t, []int{http.StatusOK, http.StatusNotFound}, w.Code)
+	})
+
+	t.Run("ListBroadcasterClips", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/broadcasters/testbroadcaster/clips", nil)
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		// May return clips or not found
 		assert.Contains(t, []int{http.StatusOK, http.StatusNotFound}, w.Code)
 	})
 }
@@ -244,8 +247,8 @@ func TestEndpointCoverage(t *testing.T) {
 		{http.MethodGet, "/api/v1/ping", []int{http.StatusOK}},
 		{http.MethodGet, "/api/v1/config", []int{http.StatusOK}},
 		{http.MethodGet, "/api/v1/categories", []int{http.StatusOK}},
-		{http.MethodGet, "/api/v1/games", []int{http.StatusOK}},
-		{http.MethodGet, "/api/v1/broadcasters", []int{http.StatusOK}},
+		{http.MethodGet, "/api/v1/games/1", []int{http.StatusOK, http.StatusNotFound}},
+		{http.MethodGet, "/api/v1/broadcasters/test", []int{http.StatusOK, http.StatusNotFound}},
 	}
 
 	for _, endpoint := range endpoints {
@@ -255,8 +258,8 @@ func TestEndpointCoverage(t *testing.T) {
 
 			router.ServeHTTP(w, req)
 
-			assert.Contains(t, endpoint.expected, w.Code, 
-				"Expected status code %v for %s %s, got %d", 
+			assert.Contains(t, endpoint.expected, w.Code,
+				"Expected status code %v for %s %s, got %d",
 				endpoint.expected, endpoint.method, endpoint.path, w.Code)
 		})
 	}
@@ -326,7 +329,7 @@ func TestConcurrentRequests(t *testing.T) {
 }
 
 func TestDatabaseConnection(t *testing.T) {
-	router, db, redisClient := setupAPITestRouter(t)
+	_, db, redisClient := setupAPITestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
@@ -346,7 +349,7 @@ func TestDatabaseConnection(t *testing.T) {
 }
 
 func TestRedisConnection(t *testing.T) {
-	router, db, redisClient := setupAPITestRouter(t)
+	_, db, redisClient := setupAPITestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 

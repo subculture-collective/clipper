@@ -26,7 +26,7 @@ const CategoryPage = lazy(() => import('./pages/CategoryPage').then(m => ({ defa
 const BroadcasterPage = lazy(() => import('./pages/BroadcasterPage').then(m => ({ default: m.BroadcasterPage })));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
 const TagPage = lazy(() => import('./pages/TagPage').then(m => ({ default: m.TagPage })));
-const SearchPage = lazy(() => import('./pages/SearchPage').then(m => ({ default: m.SearchPage })));
+import { SearchPage } from './pages/SearchPage';
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));

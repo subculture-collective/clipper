@@ -522,24 +522,18 @@ export async function measureSearchLatency(
   for (let i = 0; i < iterations; i++) {
     await page.goto('/search', { waitUntil: 'networkidle' });
 
-    const searchInput = page.locator('input[type="search"], input[name="q"]').first();
+    const searchInput = page.locator('[data-testid="search-input"], input[type="search"], input[name="q"]').first();
+    await searchInput.waitFor({ state: 'visible', timeout: DEFAULT_SEARCH_TIMEOUT });
     await searchInput.fill(query);
 
     // Start timing
     const startTime = Date.now();
 
-    // Listen for search API response
-    const responsePromise = page.waitForResponse(
-      response => response.url().includes('/search') && response.status() === 200,
-      { timeout: DEFAULT_SEARCH_TIMEOUT }
-    );
-
     // Submit search
     await page.keyboard.press('Enter');
 
-    // Wait for response and results to render
-    await responsePromise;
-    await page.waitForSelector('[data-testid="clip-card"], .search-result-card, .empty-state', {
+    // Wait for UI-ready signals instead of network
+    await page.waitForSelector('[data-testid="results-count"], [data-testid="clip-card"], .search-result-card, [data-testid="empty-state"]', {
       timeout: DEFAULT_SEARCH_TIMEOUT,
     });
 

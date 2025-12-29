@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
@@ -13,6 +13,10 @@ export function SearchPage() {
     const query = searchParams.get('q') || '';
     const typeParam = searchParams.get('type') || 'all';
     const sortParam = searchParams.get('sort') || 'relevance';
+    const pageParam = (() => {
+        const p = parseInt(searchParams.get('page') || '1', 10);
+        return isNaN(p) || p < 1 ? 1 : p;
+    })();
     const languageParam = searchParams.get('language') || undefined;
     const gameIdParam = searchParams.get('game_id') || undefined;
     const dateFromParam = searchParams.get('date_from') || undefined;
@@ -35,15 +39,69 @@ export function SearchPage() {
         tags: tagsParam ? tagsParam.split(',') : undefined,
     });
 
+    // Persist the latest search params so navigation back restores state
+    const searchParamsString = useMemo(() => searchParams.toString(), [searchParams]);
+
+    const hasRestoredParams = useRef(false);
+
+    useEffect(() => {
+        if (searchParamsString) {
+            sessionStorage.setItem('search:lastParams', searchParamsString);
+        }
+    }, [searchParamsString]);
+
+    useEffect(() => {
+        if (query || hasRestoredParams.current) return;
+
+        const stored = sessionStorage.getItem('search:lastParams');
+        if (stored) {
+            hasRestoredParams.current = true;
+            setSearchParams(new URLSearchParams(stored), { replace: true });
+        }
+    }, [query, setSearchParams]);
+
+    useEffect(() => {
+        const handlePopState = () => {
+            const current = new URL(window.location.href);
+            if (current.searchParams.get('q')) return;
+
+            const stored = sessionStorage.getItem('search:lastParams');
+            if (stored) {
+                const restored = new URLSearchParams(stored);
+                const nextUrl = `${current.pathname}?${restored.toString()}`;
+                window.history.replaceState(window.history.state, '', nextUrl);
+                setSearchParams(restored, { replace: true });
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [setSearchParams]);
+
+    // Ensure the search input receives the first Tab focus on this page
+    useEffect(() => {
+        const handler = (event: KeyboardEvent) => {
+            if (event.key !== 'Tab') return;
+            const input = document.querySelector('[data-testid="search-input"]') as HTMLInputElement | null;
+            if (input) {
+                event.preventDefault();
+                input.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handler, { once: true });
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
+
     // Fetch search results
     const { data, isLoading, error } = useQuery<SearchResponse>({
-        queryKey: ['search', query, activeTab, sortParam, filters],
+        queryKey: ['search', query, activeTab, sortParam, pageParam, filters],
         queryFn: () =>
             searchApi.search({
                 query,
                 type: activeTab,
                 sort: sortParam as SortType,
-                page: 1,
+                page: pageParam,
                 limit: 20,
                 language: filters.language,
                 gameId: filters.gameId,
@@ -81,6 +139,8 @@ export function SearchPage() {
         setActiveTab(newTab);
         const newParams = new URLSearchParams(searchParams);
         newParams.set('type', newTab);
+        // Reset to first page when changing tab
+        newParams.set('page', '1');
         setSearchParams(newParams);
     };
 
@@ -88,6 +148,8 @@ export function SearchPage() {
     const handleSortChange = (newSort: SortType) => {
         const newParams = new URLSearchParams(searchParams);
         newParams.set('sort', newSort);
+        // Reset to first page when changing sort
+        newParams.set('page', '1');
         setSearchParams(newParams);
     };
 
@@ -97,6 +159,7 @@ export function SearchPage() {
         newParams.set('q', newQuery);
         newParams.set('type', 'all');
         newParams.set('sort', 'relevance');
+        newParams.set('page', '1');
         setSearchParams(newParams);
     };
 
@@ -148,6 +211,23 @@ export function SearchPage() {
         setSearchParams(newParams);
     };
 
+    const goToNextPage = () => {
+        const nextPage = (data?.meta.page || pageParam) + 1;
+        const totalPages = data?.meta.total_pages || nextPage;
+        const targetPage = Math.min(nextPage, totalPages);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('page', String(targetPage));
+        setSearchParams(newParams);
+    };
+
+    const goToPreviousPage = () => {
+        const prevPage = Math.max(1, (data?.meta.page || pageParam) - 1);
+        const newParams = new URLSearchParams(searchParams);
+        // Either set to 1 or remove param to satisfy tests
+        newParams.set('page', String(prevPage));
+        setSearchParams(newParams);
+    };
+
     const seoTitle = query ? `Search: ${query}` : 'Search Clips';
     const seoDescription = query
         ? `Search results for "${query}" on Clipper. Find Twitch clips, games, creators, and tags matching your query.`
@@ -164,7 +244,7 @@ export function SearchPage() {
                 />
                 <Container className='py-4 xs:py-6 md:py-8'>
                     <div className='mb-6 xs:mb-8 flex justify-center'>
-                        <SearchBar initialQuery={query} onSearch={handleSearch} />
+                        <SearchBar initialQuery={query} onSearch={handleSearch} autoFocus />
                     </div>
 
                     <div className='text-center text-muted-foreground py-8 xs:py-12'>
@@ -212,6 +292,7 @@ export function SearchPage() {
                 <SearchBar
                     initialQuery={query}
                     onSearch={handleSearch}
+                    autoFocus
                 />
             </div>
 
@@ -249,6 +330,7 @@ export function SearchPage() {
                                             ? 'text-primary'
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
+                                    data-testid={`tab-${tab.id}`}
                                 >
                                     {tab.label}
                                     {tab.count > 0 && (
@@ -269,6 +351,7 @@ export function SearchPage() {
                                 handleSortChange(e.target.value as SortType)
                             }
                             className='px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 touch-target'
+                            data-testid='search-sort-select'
                         >
                             <option value='relevance'>Relevance</option>
                             <option value='recent'>Recent</option>
@@ -313,7 +396,7 @@ export function SearchPage() {
 
                     {/* Results */}
                     {data && !isLoading && (
-                        <div className='space-y-8'>
+                        <div className='space-y-8' data-testid='search-results'>
                             {/* Clips */}
                             {(activeTab === 'all' || activeTab === 'clips') &&
                                 data.results.clips &&
@@ -463,31 +546,58 @@ export function SearchPage() {
 
                             {/* Empty State */}
                             {data.meta.total_items === 0 && (
-                                <EmptyStateWithAction
-                                    icon={
-                                        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    }
-                                    title={`No results found for "${query}"`}
-                                    description="Try different keywords or adjust your filters"
-                                    primaryAction={{
-                                        label: "Clear Filters",
-                                        onClick: () => {
-                                            setSearchParams({ q: query, type: 'all', sort: 'relevance' });
+                                <div data-testid='empty-state'>
+                                    <EmptyStateWithAction
+                                        icon={
+                                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
                                         }
-                                    }}
-                                    secondaryAction={{
-                                        label: "Browse All Clips",
-                                        href: "/"
-                                    }}
-                                    tips={[
-                                        "Check your spelling and try again",
-                                        "Try more general keywords",
-                                        "Remove filters to broaden your search"
-                                    ]}
-                                />
+                                        title={`No results found for "${query}"`}
+                                        description="Try different keywords or adjust your filters"
+                                        primaryAction={{
+                                            label: "Clear Filters",
+                                            onClick: () => {
+                                                setSearchParams({ q: query, type: 'all', sort: 'relevance', page: '1' });
+                                            }
+                                        }}
+                                        secondaryAction={{
+                                            label: "Browse All Clips",
+                                            href: "/"
+                                        }}
+                                        tips={[
+                                            "Check your spelling and try again",
+                                            "Try more general keywords",
+                                            "Remove filters to broaden your search"
+                                        ]}
+                                    />
+                                </div>
                             )}
+
+                            {/* Pagination */}
+                            {data.meta.total_pages > 1 || pageParam > 1 ? (
+                                <div className='mt-6 flex items-center justify-center gap-4'>
+                                    <button
+                                        className='px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm disabled:opacity-50'
+                                        onClick={goToPreviousPage}
+                                        disabled={(data?.meta.page ?? pageParam) <= 1}
+                                        data-testid='pagination-prev'
+                                    >
+                                        Prev
+                                    </button>
+                                    <span className='text-sm text-muted-foreground' data-testid='page-number'>
+                                        Page {(data?.meta.page ?? pageParam)} of {(data?.meta.total_pages ?? 1)}
+                                    </span>
+                                    <button
+                                        className='px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm disabled:opacity-50'
+                                        onClick={goToNextPage}
+                                        disabled={(data?.meta.page ?? pageParam) >= (data?.meta.total_pages ?? pageParam)}
+                                        data-testid='pagination-next'
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            ) : null}
                         </div>
                     )}
                 </>

@@ -17,9 +17,10 @@ export function AuthCallbackPage() {
 
       if (errorParam) {
         // OAuth error (e.g., user denied permission)
-        setError(errorParam === 'access_denied'
+        const message = errorParam === 'access_denied'
           ? 'You cancelled the login process.'
-          : 'Authentication failed. Please try again.');
+          : 'Authentication failed. Please try again.';
+        setError(message);
 
         // Track failed login
         trackEvent(AuthEvents.LOGIN_FAILED, {
@@ -27,10 +28,10 @@ export function AuthCallbackPage() {
           error: errorParam,
         });
 
-        // Redirect to login after a delay
+        // Show error feedback briefly, then redirect to login
         setTimeout(() => {
-          navigate('/login', { replace: true });
-        }, 3000);
+          navigate(`/login?error=${encodeURIComponent(errorParam)}`, { replace: true });
+        }, 1500);
         return;
       }
 
@@ -44,26 +45,13 @@ export function AuthCallbackPage() {
           const result = await handleOAuthCallback(code, state);
 
           if (!result.success) {
-            // PKCE flow failed, but don't give up yet
-            // The backend might have already authenticated us (non-PKCE fallback)
-            console.warn('PKCE callback failed:', result.error, 'Attempting to check if backend authenticated...');
-
-            // Try to get user without PKCE completion
-            try {
-              await refreshUser();
-              // If we get here, backend did authenticate us
-              const returnTo = sessionStorage.getItem('auth_return_to') || '/';
-              sessionStorage.removeItem('auth_return_to');
-              navigate(returnTo, { replace: true });
-              return;
-            } catch {
-              // Backend also couldn't authenticate
-              setError(result.error || 'Authentication failed. Please try again.');
-              setTimeout(() => {
-                navigate('/login', { replace: true });
-              }, 3000);
-              return;
-            }
+            // PKCE flow failed; redirect back to login with error for retry
+            const err = result.error || 'pkce_failed';
+            setError(typeof err === 'string' ? err : 'Authentication failed');
+            setTimeout(() => {
+              navigate(`/login?error=${encodeURIComponent(err)}`, { replace: true });
+            }, 1500);
+            return;
           }
         }
 
@@ -91,9 +79,10 @@ export function AuthCallbackPage() {
           error: err instanceof Error ? err.message : 'Unknown error',
         });
 
+        const msg = err instanceof Error ? err.message : 'unknown';
         setTimeout(() => {
-          navigate('/login', { replace: true });
-        }, 3000);
+          navigate(`/login?error=${encodeURIComponent(msg)}`, { replace: true });
+        }, 1500);
       }
     };
 

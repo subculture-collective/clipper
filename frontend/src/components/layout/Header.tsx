@@ -172,7 +172,7 @@ export function Header() {
                                 <UserMenu />
                             </div>
                         :   <Link to='/login' className='hidden md:block'>
-                                <Button variant='primary' size='sm'>
+                                <Button variant='primary' size='sm' data-testid='login-button' aria-label='Login'>
                                     {t('nav.login')}
                                 </Button>
                             </Link>
@@ -417,6 +417,8 @@ export function Header() {
                                     variant='primary'
                                     size='sm'
                                     className='w-full'
+                                    data-testid='login-button'
+                                    aria-label='Login'
                                 >
                                     {t('nav.login')}
                                 </Button>

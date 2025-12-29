@@ -53,14 +53,20 @@ export async function setSessionTokens(
 
   if (storage === 'local' || storage === 'all') {
     await page.evaluate(
-      (data) => localStorage.setItem('auth_tokens', data),
+      (data) => {
+        localStorage.setItem('auth_tokens', data);
+        localStorage.setItem('auth_token', JSON.parse(data).accessToken || '');
+      },
       tokenData
     );
   }
 
   if (storage === 'session' || storage === 'all') {
     await page.evaluate(
-      (data) => sessionStorage.setItem('auth_tokens', data),
+      (data) => {
+        sessionStorage.setItem('auth_tokens', data);
+        sessionStorage.setItem('auth_token', JSON.parse(data).accessToken || '');
+      },
       tokenData
     );
   }
