@@ -25,6 +25,11 @@ export interface AuthTokens {
   refresh_token: string;
 }
 
+export interface TestLoginParams {
+  user_id?: string;
+  username?: string;
+}
+
 /**
  * Initiates Twitch OAuth flow with PKCE
  * Generates code verifier/challenge and stores verifier securely
@@ -45,6 +50,16 @@ export async function initiateOAuth() {
     code_challenge_method: 'S256',
     state,
   });
+
+  // In E2E environments, trigger the OAuth endpoint without performing a full navigation
+  if (typeof window !== 'undefined' && (window as any).__E2E_MOCK_OAUTH__) {
+    try {
+      await fetch(`${apiUrl}/auth/twitch?${params.toString()}`, { credentials: 'include', mode: 'no-cors' });
+    } catch (err) {
+      console.warn('[initiateOAuth] Mock OAuth fetch failed:', err);
+    }
+    return;
+  }
 
   // Redirect to backend OAuth endpoint with PKCE params
   window.location.href = `${apiUrl}/auth/twitch?${params.toString()}`;
@@ -126,4 +141,12 @@ export async function logout(): Promise<void> {
     // Clear all secure storage regardless of API call result
     await clearSecureStorage();
   }
+}
+
+/**
+ * Test-only login helper for E2E/local environments
+ */
+export async function testLogin(params: TestLoginParams): Promise<User> {
+  const response = await apiClient.post<{ user: User }>('/auth/test-login', params);
+  return response.data.user;
 }

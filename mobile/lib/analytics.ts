@@ -1,6 +1,6 @@
 /**
  * Mobile Analytics Module
- * 
+ *
  * PostHog React Native integration for product analytics.
  * Handles event tracking, user identification, screen views, and feature flags.
  * Respects user privacy preferences and GDPR compliance.
@@ -161,9 +161,10 @@ interface AnalyticsConfig {
 
 const CONSENT_STORAGE_KEY = '@clipper:analytics_consent';
 const ENV_TRUE = 'true';
-const ANALYTICS_ENABLED = process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === ENV_TRUE;
-const POSTHOG_API_KEY = process.env.EXPO_PUBLIC_POSTHOG_API_KEY || '';
-const POSTHOG_HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
+
+const getAnalyticsEnvEnabled = () => process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === ENV_TRUE;
+const getPosthogApiKey = () => process.env.EXPO_PUBLIC_POSTHOG_API_KEY || '';
+const getPosthogHost = () => process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
 
 let config: AnalyticsConfig = {
   enabled: false,
@@ -203,30 +204,33 @@ async function getDeviceProperties(): Promise<Record<string, string | number | b
  * Should be called on app startup after checking consent
  */
 export async function initAnalytics(): Promise<void> {
-  if (!ANALYTICS_ENABLED) {
+  const apiKey = getPosthogApiKey();
+  const analyticsEnabled = getAnalyticsEnvEnabled();
+
+  if (!analyticsEnabled) {
     if (config.debug) {
       console.log('[Analytics] Disabled via environment variable');
     }
     return;
   }
 
-  if (!POSTHOG_API_KEY) {
+  if (!apiKey) {
     if (config.debug) {
       console.log('[Analytics] No PostHog API key configured');
     }
     return;
   }
-  
+
   try {
     const consentStr = await AsyncStorage.getItem(CONSENT_STORAGE_KEY);
     const consent = consentStr ? JSON.parse(consentStr) : { analytics: false };
-    
+
     // Validate consent data structure
     if (typeof consent !== 'object' || consent === null || typeof consent.analytics !== 'boolean') {
       console.warn('[Analytics] Invalid consent data, defaulting to false');
       return;
     }
-    
+
     if (!consent.analytics) {
       if (config.debug) {
         console.log('[Analytics] User has not granted consent');
@@ -243,13 +247,10 @@ export async function initAnalytics(): Promise<void> {
     }
 
     // Initialize PostHog client
-    posthogClient = new PostHog(
-      POSTHOG_API_KEY,
-      {
-        host: POSTHOG_HOST,
-        captureAppLifecycleEvents: true,
-      }
-    );
+    posthogClient = new PostHog(apiKey, {
+      host: getPosthogHost(),
+      captureAppLifecycleEvents: true,
+    });
 
     config.enabled = true;
 
@@ -291,14 +292,14 @@ export async function disableAnalytics(): Promise<void> {
   config.enabled = false;
   try {
     await AsyncStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify({ analytics: false }));
-    
+
     // Opt out and reset PostHog
     if (posthogClient) {
       posthogClient.optOut();
       posthogClient.reset();
       posthogClient = null;
     }
-    
+
     if (config.debug) {
       console.log('[Analytics] Disabled');
     }
@@ -327,21 +328,21 @@ export function identifyUser(
     }
     return;
   }
-  
+
   config.userId = userId;
   config.userProperties = properties;
-  
+
   // Filter out undefined values
-  const cleanProperties = properties 
+  const cleanProperties = properties
     ? Object.fromEntries(
         Object.entries(properties).filter(([, v]) => v !== undefined)
       ) as Record<string, string | number | boolean>
     : undefined;
-  
+
   // Identify user in PostHog
   try {
     posthogClient.identify(userId, cleanProperties);
-    
+
     if (config.debug) {
       console.log('[Analytics] User identified:', { userId, properties: cleanProperties });
     }
@@ -356,12 +357,12 @@ export function identifyUser(
 export function resetUser(): void {
   config.userId = undefined;
   config.userProperties = undefined;
-  
+
   // Reset PostHog user
   if (posthogClient) {
     posthogClient.reset();
   }
-  
+
   if (config.debug) {
     console.log('[Analytics] User reset');
   }
@@ -380,17 +381,17 @@ export function trackEvent(
     }
     return;
   }
-  
+
   const enrichedProperties: Record<string, string | number | boolean | null> = {
     ...properties,
     user_id: config.userId || null,
     timestamp: new Date().toISOString(),
   };
-  
+
   // Capture event in PostHog
   try {
     posthogClient.capture(eventName, enrichedProperties);
-    
+
     if (config.debug) {
       console.log('[Analytics] Event tracked:', eventName, enrichedProperties);
     }

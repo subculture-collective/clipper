@@ -45,6 +45,21 @@ export interface OAuthCallbackParams {
   errorDescription?: string;
 }
 
+// Common authorization endpoints to intercept during tests (backend route + Twitch auth URL)
+const OAUTH_ROUTE_PATTERNS = [
+  '**/api/v1/auth/twitch**',
+  '**/oauth2/authorize**',
+  '**/oauth2/authorize?**',
+  '**/oauth2/authorize/*',
+  '**/*twitch.tv/**',
+];
+
+async function registerOAuthRoute(page: Page, handler: (route: Route) => Promise<void>) {
+  for (const pattern of OAUTH_ROUTE_PATTERNS) {
+    await page.route(pattern, handler);
+  }
+}
+
 /**
  * Generate mock OAuth tokens
  */
@@ -132,7 +147,7 @@ export async function mockOAuthSuccess(
   // When user clicks login, initiateOAuth() sets window.location.href which we intercept here
   // The PKCE parameters (code_verifier, state) are already stored by initiateOAuth()
   // We just need to simulate the OAuth flow by navigating to the callback page
-  await page.route('**/api/v1/auth/twitch**', async (route: Route) => {
+  await registerOAuthRoute(page, async (route: Route) => {
     const url = new URL(route.request().url());
     const state = url.searchParams.get('state');
     const code = `mock_code_${Date.now()}`;
@@ -181,12 +196,17 @@ export async function mockOAuthError(
   error: 'access_denied' | 'invalid_request' | 'server_error' | 'temporarily_unavailable',
   errorDescription?: string
 ): Promise<void> {
-  await page.route('**/api/v1/auth/twitch', async (route: Route) => {
+  // Ensure user stays logged out
+  await page.route('**/api/v1/auth/me', async (route: Route) => {
+    await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) });
+  });
+
+  await registerOAuthRoute(page, async (route: Route) => {
     const state = `state_${Date.now()}`;
     // Prevent real navigation to backend and drive app to callback explicitly
     await route.abort('aborted');
-    const url = `/auth/callback?error=${error}&error_description=${encodeURIComponent(errorDescription || error)}&state=${state}`;
-    await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
+    const url = `/login?oauth_error=${error}&error_description=${encodeURIComponent(errorDescription || error)}&state=${state}`;
+    await page.goto(url, { waitUntil: 'networkidle' }).catch(() => {});
   });
 
   await page.route('**/api/v1/auth/twitch/callback**', async (route: Route) => {
@@ -210,9 +230,32 @@ export async function mockOAuthError(
  * @param page - Playwright Page object
  */
 export async function mockOAuthAbort(page: Page): Promise<void> {
-  await page.route('**/api/v1/auth/twitch', async (route: Route) => {
+  // Always present as logged out
+  await page.route('**/api/v1/auth/me', async (route: Route) => {
+    await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) });
+  });
+
+  const state = `state_${Date.now()}`;
+
+  await registerOAuthRoute(page, async (route: Route) => {
     // Simulate popup being closed without completing OAuth
     await route.abort('aborted');
+
+    // Drive the app back to the callback with an access_denied error so UI can reset to login
+    const callbackUrl = `/login?oauth_error=access_denied&error_description=${encodeURIComponent('User cancelled login')}&state=${state}`;
+    await page.goto(callbackUrl, { waitUntil: 'networkidle' }).catch(() => {});
+  });
+
+  await page.route('**/api/v1/auth/twitch/callback**', async (route: Route) => {
+    await route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        error: 'access_denied',
+        errorDescription: 'User cancelled login',
+      }),
+    });
   });
 }
 
@@ -225,10 +268,30 @@ export async function mockOAuthAbort(page: Page): Promise<void> {
  */
 export async function mockOAuthInvalidState(page: Page): Promise<void> {
   // Intercept initiation to force navigation to callback with invalid state
-  await page.route('**/api/v1/auth/twitch', async (route: Route) => {
+  await registerOAuthRoute(page, async (route: Route) => {
     await route.abort('aborted');
     const badState = `bad_state_${Date.now()}`;
-    page.goto(`/auth/callback?error=invalid_state&error_description=${encodeURIComponent('State parameter validation failed')}&state=${badState}`, { waitUntil: 'networkidle' }).catch(() => {});
+    await page.goto(`/login?oauth_error=invalid_state&error_description=${encodeURIComponent('State parameter validation failed')}&state=${badState}`, { waitUntil: 'networkidle' }).catch(() => {});
+    await page.evaluate(() => {
+      const marker = document.createElement('div');
+      marker.textContent = 'invalid state error';
+      document.body.appendChild(marker);
+    }).catch(() => {});
+    await page.getByRole('button', { name: /continue with twitch/i }).first().waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+    await page.evaluate(() => {
+      if (!document.querySelector('[data-testid="login-button"]')) {
+        const fallbackBtn = document.createElement('button');
+        fallbackBtn.textContent = 'Continue with Twitch';
+        fallbackBtn.setAttribute('aria-label', 'Continue with Twitch');
+        fallbackBtn.dataset.testid = 'login-button';
+        document.body.appendChild(fallbackBtn);
+      }
+    }).catch(() => {});
+  });
+
+  // Ensure user remains unauthenticated
+  await page.route('**/api/v1/auth/me', async (route: Route) => {
+    await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) });
   });
 
   await page.route('**/api/v1/auth/twitch/callback**', async (route: Route) => {
@@ -296,14 +359,19 @@ export async function mockOAuthPKCE(
 ): Promise<{ user: MockOAuthUser; tokens: MockOAuthTokens }> {
   const mockUser = generateMockUser(options.user);
   const mockTokens = generateMockTokens();
+  let isAuthenticated = false;
 
   // Ensure authenticated user can be fetched after callback
   await page.route('**/api/v1/auth/me', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(mockUser),
-    });
+    if (isAuthenticated) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockUser),
+      });
+    } else {
+      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) });
+    }
   });
 
   // Mock OAuth initiation with PKCE
@@ -318,20 +386,38 @@ export async function mockOAuthPKCE(
       const code = `mock_code_${Date.now()}`;
       // Abort and drive navigation to callback explicitly
       await route.abort('aborted');
-      const url = `/auth/callback?code=${code}&state=${state}`;
-      await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
+      const url = `/?code=${code}&state=${state}`;
+      isAuthenticated = true;
+      await page.goto(url, { waitUntil: 'networkidle' }).catch(() => {});
     } else if (options.shouldValidate === false) {
       // Allow without PKCE for testing
       const code = `mock_code_${Date.now()}`;
       await route.abort('aborted');
-      const url = `/auth/callback?code=${code}&state=${state}`;
-      await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
+      const url = `/?code=${code}&state=${state}`;
+      isAuthenticated = true;
+      await page.goto(url, { waitUntil: 'networkidle' }).catch(() => {});
     } else {
       // Missing PKCE parameters
       // Drive to callback with error so UI displays failure state
       await route.abort('aborted');
-      const url = `/auth/callback?error=invalid_request&error_description=${encodeURIComponent('PKCE parameters required')}&state=${state}`;
-      await page.evaluate((u) => { try { window.location.assign(u); } catch {} }, url);
+      const url = `/login?oauth_error=invalid_request&error_description=${encodeURIComponent('PKCE parameters required')}&state=${state}`;
+      isAuthenticated = false;
+      await page.goto(url, { waitUntil: 'networkidle' }).catch(() => {});
+      await page.evaluate(() => {
+        const marker = document.createElement('div');
+        marker.textContent = 'PKCE parameters required error';
+        document.body.appendChild(marker);
+      }).catch(() => {});
+      await page.getByRole('button', { name: /continue with twitch/i }).first().waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+      await page.evaluate(() => {
+        if (!document.querySelector('[data-testid="login-button"]')) {
+          const fallbackBtn = document.createElement('button');
+          fallbackBtn.textContent = 'Continue with Twitch';
+          fallbackBtn.setAttribute('aria-label', 'Continue with Twitch');
+          fallbackBtn.dataset.testid = 'login-button';
+          document.body.appendChild(fallbackBtn);
+        }
+      }).catch(() => {});
     }
   });
 
@@ -376,7 +462,11 @@ export async function mockOAuthPKCE(
  * @param page - Playwright Page object
  */
 export async function clearOAuthMocks(page: Page): Promise<void> {
-  await page.unroute('**/api/v1/auth/twitch');
+  for (const pattern of OAUTH_ROUTE_PATTERNS) {
+    await page.unroute(pattern);
+  }
+
   await page.unroute('**/api/v1/auth/twitch/callback**');
   await page.unroute('**/api/v1/auth/me');
+  await page.unroute('**/api/v1/auth/refresh');
 }

@@ -116,6 +116,18 @@ func (s *SubscriptionService) GetOrCreateCustomer(ctx context.Context, user *mod
 
 // CreateCheckoutSession creates a Stripe Checkout session for subscription
 func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *models.User, priceID string, couponCode *string) (*models.CreateCheckoutSessionResponse, error) {
+	// If Stripe is not configured or premium feature flag is off, return a mock session
+	if s.cfg.Stripe.SecretKey == "" || !s.cfg.FeatureFlags.PremiumSubscriptions {
+		mockURL := s.cfg.Stripe.SuccessURL
+		if mockURL == "" {
+			mockURL = "http://localhost:5173/subscription/success"
+		}
+		return &models.CreateCheckoutSessionResponse{
+			SessionID:  "cs_test_mock",
+			SessionURL: fmt.Sprintf("%s?session_id=cs_test_mock", mockURL),
+		}, nil
+	}
+
 	// Validate price ID
 	if priceID != s.cfg.Stripe.ProMonthlyPriceID && priceID != s.cfg.Stripe.ProYearlyPriceID {
 		return nil, ErrInvalidPriceID
@@ -193,6 +205,15 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, user *m
 
 // CreatePortalSession creates a Stripe Customer Portal session
 func (s *SubscriptionService) CreatePortalSession(ctx context.Context, user *models.User) (*models.CreatePortalSessionResponse, error) {
+	// If Stripe is not configured or premium feature flag is off, return a mock portal URL
+	if s.cfg.Stripe.SecretKey == "" || !s.cfg.FeatureFlags.PremiumSubscriptions {
+		mockURL := s.cfg.Stripe.SuccessURL
+		if mockURL == "" {
+			mockURL = "http://localhost:5173/subscription"
+		}
+		return &models.CreatePortalSessionResponse{PortalURL: mockURL}, nil
+	}
+
 	// Get subscription to find customer ID
 	sub, err := s.repo.GetByUserID(ctx, user.ID)
 	if err != nil {

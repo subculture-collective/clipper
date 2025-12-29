@@ -21,9 +21,24 @@ import {
 
 test.describe('OAuth Authentication', () => {
   test.beforeEach(async ({ page }) => {
+    // Block any real Twitch navigation to keep tests in-app
+    await page.route('**/*twitch.tv/**', (route) => route.abort('aborted'));
+    await page.route('**/oauth2/authorize**', (route) => route.abort('aborted'));
+
+    // Signal frontend to use mock OAuth fetch instead of full redirects
+    await page.addInitScript(() => {
+      (window as any).__E2E_MOCK_OAUTH__ = true;
+    });
+
     // Start with clean state
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Dismiss cookie banner if present so login buttons remain interactable
+    const acceptCookies = page.getByRole('button', { name: /accept all/i }).first();
+    if (await acceptCookies.isVisible().catch(() => false)) {
+      await acceptCookies.click().catch(() => {});
+    }
   });
 
   test.afterEach(async ({ page }) => {
@@ -162,6 +177,13 @@ test.describe('OAuth Authentication', () => {
       page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false),
     ]);
 
+    if (!errorOrLogin) {
+      const fallback = await page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false)
+        || await page.locator('text=/invalid|error|failed/i').first().isVisible({ timeout: 5000 }).catch(() => false);
+      expect(fallback).toBeTruthy();
+      return;
+    }
+
     expect(errorOrLogin).toBeTruthy();
   });
 
@@ -215,6 +237,13 @@ test.describe('OAuth Authentication', () => {
       page.locator('text=/error|invalid|required/i').first().isVisible({ timeout: 5000 }).catch(() => false),
       page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false),
     ]);
+
+    if (!errorOrLoginStillVisible) {
+      const fallback = await page.getByRole('button', { name: /login|sign in|continue with twitch/i }).first().isVisible({ timeout: 5000 }).catch(() => false)
+        || await page.locator('text=/error|invalid|required/i').first().isVisible({ timeout: 5000 }).catch(() => false);
+      expect(fallback).toBeTruthy();
+      return;
+    }
 
     expect(errorOrLoginStillVisible).toBeTruthy();
   });

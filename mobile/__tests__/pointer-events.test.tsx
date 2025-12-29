@@ -5,7 +5,7 @@
 
 import { render, fireEvent } from '@testing-library/react-native';
 import React from 'react';
-import { View, TouchableOpacity, Text } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 describe('Pointer Events Best Practices', () => {
   describe('Disabled State Handling', () => {
@@ -53,7 +53,7 @@ describe('Pointer Events Best Practices', () => {
       );
 
       const { getByText, rerender } = render(<TestComponent disabled={true} />);
-      
+
       // When disabled
       fireEvent.press(getByText('Dynamic Button'));
       expect(onPress).not.toHaveBeenCalled();
@@ -69,9 +69,9 @@ describe('Pointer Events Best Practices', () => {
     it('should allow child interactions with box-none', () => {
       const onContainerPress = jest.fn();
       const onChildPress = jest.fn();
-      
+
       const { getByText } = render(
-        <TouchableOpacity 
+        <TouchableOpacity
           style={{ pointerEvents: 'box-none' }}
           onPress={onContainerPress}
         >
@@ -88,9 +88,9 @@ describe('Pointer Events Best Practices', () => {
     it('should prevent child interactions with box-only', () => {
       const onContainerPress = jest.fn();
       const onChildPress = jest.fn();
-      
+
       const { getByText } = render(
-        <TouchableOpacity 
+        <TouchableOpacity
           style={{ pointerEvents: 'box-only' }}
           onPress={onContainerPress}
         >
@@ -115,7 +115,7 @@ describe('Pointer Events Best Practices', () => {
 
       const { getByTestId } = render(
         <View>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={onBackgroundPress}
             testID="background"
           >
@@ -149,7 +149,7 @@ describe('Pointer Events Best Practices', () => {
 
       const { getByTestId } = render(
         <View>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={onBackgroundPress}
             testID="background"
           >
@@ -237,8 +237,9 @@ describe('Pointer Events Best Practices', () => {
       );
 
       const view = getByTestId('array-styled-view');
-      // Style arrays are flattened
-      expect(view.props.style).toEqual(
+      // Style arrays need flattening when asserting
+      const flattened = StyleSheet.flatten(view.props.style);
+      expect(flattened).toEqual(
         expect.objectContaining({
           flex: 1,
           pointerEvents: 'auto',

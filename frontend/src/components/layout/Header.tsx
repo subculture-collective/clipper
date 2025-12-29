@@ -47,10 +47,11 @@ export function Header() {
                         </div>
                     </Link>
 
-                    {/* Desktop Navigation */}
+                    {/* Navigation (desktop visible by default; expose for E2E/mobile) */}
                     <nav
-                        className='hidden md:flex items-center gap-1'
+                        className='flex flex-wrap items-center gap-1 md:flex-nowrap'
                         aria-label='Main navigation'
+                        data-testid='main-nav'
                     >
                         <Link to='/'>
                             <Button variant='ghost' size='sm'>
@@ -188,6 +189,7 @@ export function Header() {
                                 mobileMenuOpen ? 'Close menu' : 'Open menu'
                             }
                             aria-expanded={mobileMenuOpen}
+                            data-testid='mobile-menu-toggle'
                         >
                             {mobileMenuOpen ? '✕' : '☰'}
                         </Button>
@@ -210,6 +212,7 @@ export function Header() {
                                     variant='ghost'
                                     size='sm'
                                     className='w-full justify-start'
+                                    data-testid='mobile-nav-home'
                                 >
                                     {t('nav.hot')}
                                 </Button>
@@ -248,18 +251,6 @@ export function Header() {
                                     className='w-full justify-start'
                                 >
                                     {t('nav.rising')}
-                                </Button>
-                            </Link>
-                            <Link
-                                to='/discover/scraped'
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                <Button
-                                    variant='ghost'
-                                    size='sm'
-                                    className='w-full justify-start'
-                                >
-                                    🔍 {t('nav.discover')}
                                 </Button>
                             </Link>
                             {isAuthenticated && (

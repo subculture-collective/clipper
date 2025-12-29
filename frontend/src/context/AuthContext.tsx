@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, logout as logoutApi, initiateOAuth } from '../lib/auth-api';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { getCurrentUser, logout as logoutApi, initiateOAuth, testLogin } from '../lib/auth-api';
 import { isModeratorOrAdmin } from '../lib/roles';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/sentry';
 import { resetUser, identifyUser, trackEvent, AuthEvents } from '../lib/telemetry';
@@ -24,6 +24,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   console.log('[AuthProvider] Initializing...')
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const autoLoginAttemptedRef = useRef(false);
+
+  const applyUserContext = useCallback((currentUser: User) => {
+    setUser(currentUser);
+    setSentryUser(currentUser.id, currentUser.username);
+    const userProperties: UserProperties = {
+      user_id: currentUser.id,
+      username: currentUser.username,
+      is_premium: currentUser.is_premium || false,
+      premium_tier: currentUser.premium_tier,
+      signup_date: currentUser.created_at,
+      is_verified: currentUser.is_verified || false,
+    };
+    identifyUser(currentUser.id, userProperties);
+  }, []);
+
+  const autoLoginEnabled = import.meta.env.VITE_E2E_TEST_LOGIN === 'true';
+  const autoLoginUser = import.meta.env.VITE_E2E_TEST_USER || 'user1_e2e';
+  const autoLoginUserId = import.meta.env.VITE_E2E_TEST_USER_ID;
+
+  const tryAutoLogin = useCallback(async () => {
+    if (!autoLoginEnabled || autoLoginAttemptedRef.current) {
+      return null;
+    }
+
+    autoLoginAttemptedRef.current = true;
+    try {
+      console.log('[AuthContext] Attempting test auto-login for E2E...');
+      const autoUser = await testLogin({ username: autoLoginUser, user_id: autoLoginUserId });
+      applyUserContext(autoUser);
+      return autoUser;
+    } catch (autoErr) {
+      console.warn('[AuthContext] Auto-login failed:', autoErr);
+      return null;
+    }
+  }, [applyUserContext, autoLoginEnabled, autoLoginUser, autoLoginUserId]);
 
   // Check for existing session on mount
   const checkAuth = useCallback(async () => {
@@ -31,19 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AuthContext] Starting checkAuth...')
       const currentUser = await getCurrentUser();
       console.log('[AuthContext] Got current user:', currentUser)
-      setUser(currentUser);
-      // Set user context in Sentry
-      setSentryUser(currentUser.id, currentUser.username);
-      // Identify user in analytics
-      const userProperties: UserProperties = {
-        user_id: currentUser.id,
-        username: currentUser.username,
-        is_premium: currentUser.is_premium || false,
-        premium_tier: currentUser.premium_tier,
-        signup_date: currentUser.created_at,
-        is_verified: currentUser.is_verified || false,
-      };
-      identifyUser(currentUser.id, userProperties);
+      applyUserContext(currentUser);
     } catch (error) {
       // Not authenticated or session expired
       console.log('[AuthContext] No auth or error:', error)
@@ -53,14 +77,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.warn('[AuthContext] clearAuthStorage during checkAuth failed:', e);
       }
-      setUser(null);
-      clearSentryUser();
-      resetUser();
+      const autoLoggedInUser = await tryAutoLogin();
+      if (!autoLoggedInUser) {
+        setUser(null);
+        clearSentryUser();
+        resetUser();
+      }
     } finally {
       console.log('[AuthContext] Setting isLoading to false')
       setIsLoading(false);
     }
-  }, []);
+  }, [applyUserContext, tryAutoLogin]);
 
   useEffect(() => {
     checkAuth();
@@ -102,19 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     try {
       const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      // Update user context in Sentry
-      setSentryUser(currentUser.id, currentUser.username);
-      // Update user in analytics
-      const userProperties: UserProperties = {
-        user_id: currentUser.id,
-        username: currentUser.username,
-        is_premium: currentUser.is_premium || false,
-        premium_tier: currentUser.premium_tier,
-        signup_date: currentUser.created_at,
-        is_verified: currentUser.is_verified || false,
-      };
-      identifyUser(currentUser.id, userProperties);
+      applyUserContext(currentUser);
     } catch (error) {
       console.error('Failed to refresh user:', error);
       setUser(null);

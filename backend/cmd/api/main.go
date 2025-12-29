@@ -600,6 +600,9 @@ func main() {
 			auth.GET("/twitch", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), authHandler.InitiateOAuth)
 			auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.HandleCallback)
 			auth.POST("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.HandlePKCECallback)
+			if cfg.Server.GinMode != "release" {
+				auth.POST("/test-login", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), authHandler.TestLogin)
+			}
 			auth.POST("/refresh", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.RefreshToken)
 			auth.POST("/logout", authHandler.Logout)
 

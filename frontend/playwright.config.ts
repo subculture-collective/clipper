@@ -92,7 +92,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'VITE_AUTO_CONSENT=true VITE_ENABLE_ANALYTICS=false VITE_API_URL=http://localhost:8080/api/v1 npm run dev',
+  command: 'VITE_AUTO_CONSENT=true VITE_ENABLE_ANALYTICS=false VITE_API_URL=http://localhost:8080/api/v1 VITE_STRIPE_PRO_MONTHLY_PRICE_ID=price_e2e_monthly VITE_STRIPE_PRO_YEARLY_PRICE_ID=price_e2e_yearly VITE_E2E_TEST_LOGIN=true VITE_E2E_TEST_USER=user1_e2e npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // 120 seconds for CI environments

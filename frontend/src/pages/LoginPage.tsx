@@ -7,6 +7,7 @@ export function LoginPage() {
   const { login, isLoading } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const oauthError = searchParams.get('error') || searchParams.get('oauth_error');
 
   // Store the return URL when the login page is accessed
   useEffect(() => {
@@ -28,9 +29,9 @@ export function LoginPage() {
           <p className="text-center text-muted-foreground mt-2">
             Sign in to upvote, comment, and save your favorite clips
           </p>
-          {searchParams.get('error') && (
+          {oauthError && (
             <div data-testid="login-error" className="mt-3 text-center text-red-600 text-sm">
-              Authentication failed: {searchParams.get('error')}
+              Authentication failed: {oauthError}
             </div>
           )}
         </CardHeader>
