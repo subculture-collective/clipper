@@ -108,8 +108,12 @@ function buildHeadingMap(files) {
 function main() {
   console.log('🔗 Checking anchor links...\n');
 
-  // Find all markdown files
-  const docsFiles = glob.sync('**/*.md', { cwd: DOCS_DIR, absolute: true });
+  // Find all markdown files (excluding vault directory)
+  const docsFiles = glob.sync('**/*.md', { 
+    cwd: DOCS_DIR, 
+    absolute: true,
+    ignore: ['**/vault/**', 'vault/**', 'archive/**']
+  });
   const allFiles = [...docsFiles];
 
   if (fs.existsSync(README_PATH)) {
