@@ -45,10 +45,12 @@ export function HlsPlayer({
       // For Safari and other browsers with native HLS support
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = src;
-        setIsLoading(false);
+        queueMicrotask(() => setIsLoading(false));
       } else {
-        setError('HLS is not supported in this browser');
-        setIsLoading(false);
+        queueMicrotask(() => {
+          setError('HLS is not supported in this browser');
+          setIsLoading(false);
+        });
       }
       return;
     }
@@ -68,8 +70,10 @@ export function HlsPlayer({
 
     // Handle events
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setIsLoading(false);
-      setError(null);
+      queueMicrotask(() => {
+        setIsLoading(false);
+        setError(null);
+      });
       video.play().catch(() => {
         // Autoplay might be prevented, that's okay
       });
@@ -79,15 +83,15 @@ export function HlsPlayer({
       if (data.fatal) {
         switch (data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
-            setError('Network error occurred');
+            queueMicrotask(() => setError('Network error occurred'));
             hls.startLoad();
             break;
           case Hls.ErrorTypes.MEDIA_ERROR:
-            setError('Media error occurred');
+            queueMicrotask(() => setError('Media error occurred'));
             hls.recoverMediaError();
             break;
           default:
-            setError('Fatal error occurred');
+            queueMicrotask(() => setError('Fatal error occurred'));
             hls.destroy();
             break;
         }
@@ -132,7 +136,7 @@ export function HlsPlayer({
         hlsRef.current = null;
       }
     };
-  }, [src, autoQuality, onQualityChange, onBandwidthUpdate, onBufferHealthUpdate]);
+  }, [src, autoQuality, onQualityChange, onBandwidthUpdate, onBufferHealthUpdate, videoRef]);
 
   // Handle manual quality selection
   useEffect(() => {

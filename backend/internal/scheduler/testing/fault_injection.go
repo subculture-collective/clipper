@@ -52,38 +52,38 @@ func (f *FaultInjector) SetCustomErrorFunc(fn func(callNum int) error) {
 // ShouldFail returns whether the current call should fail and the error to return
 func (f *FaultInjector) ShouldFail() (bool, error) {
 	callNum := int(atomic.AddInt32(&f.callCount, 1))
-	
+
 	// Check custom error function first
 	f.mu.RLock()
 	customFunc := f.customErrorFunc
 	f.mu.RUnlock()
-	
+
 	if customFunc != nil {
 		if err := customFunc(callNum); err != nil {
 			return true, err
 		}
 	}
-	
+
 	// Check fail count
 	if failCount := atomic.LoadInt32(&f.failCount); failCount > 0 {
 		atomic.AddInt32(&f.failCount, -1)
 		return true, errors.New("injected fault: fail count")
 	}
-	
+
 	// Check fail after N - fail exactly once on the (N+1)th call
 	f.mu.RLock()
 	failAfterN := f.failAfterN
 	f.mu.RUnlock()
-	
+
 	if failAfterN > 0 && callNum == failAfterN+1 {
 		return true, errors.New("injected fault: fail after N")
 	}
-	
+
 	// Check failure rate - use proper randomization
 	f.mu.RLock()
 	failureRate := f.failureRate
 	f.mu.RUnlock()
-	
+
 	if failureRate > 0 {
 		// Use hash-based pseudo-randomization for deterministic but varied patterns
 		hash := uint32(callNum * 2654435761) // Knuth's multiplicative hash
@@ -91,7 +91,7 @@ func (f *FaultInjector) ShouldFail() (bool, error) {
 			return true, errors.New("injected fault: random failure")
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -99,7 +99,7 @@ func (f *FaultInjector) ShouldFail() (bool, error) {
 func (f *FaultInjector) Reset() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	f.failureRate = 0
 	f.failAfterN = 0
 	atomic.StoreInt32(&f.failCount, 0)
@@ -169,7 +169,7 @@ func (b *BackoffCalculator) CalculateBackoff(attempt int) int64 {
 	if attempt <= 0 {
 		return 0
 	}
-	
+
 	backoff := float64(b.config.InitialBackoff)
 	for i := 1; i < attempt; i++ {
 		backoff *= b.config.BackoffMultiple
@@ -178,7 +178,7 @@ func (b *BackoffCalculator) CalculateBackoff(attempt int) int64 {
 			break
 		}
 	}
-	
+
 	return int64(backoff)
 }
 
@@ -212,11 +212,11 @@ func NewRetryTracker() *RetryTracker {
 func (t *RetryTracker) RecordAttempt(operationID string, attempt int, err error, backoff int64) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	if _, exists := t.attempts[operationID]; !exists {
 		t.attempts[operationID] = make([]RetryAttempt, 0)
 	}
-	
+
 	t.attempts[operationID] = append(t.attempts[operationID], RetryAttempt{
 		Attempt:   attempt,
 		Error:     err,
@@ -229,7 +229,7 @@ func (t *RetryTracker) RecordAttempt(operationID string, attempt int, err error,
 func (t *RetryTracker) GetAttempts(operationID string) []RetryAttempt {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	if attempts, exists := t.attempts[operationID]; exists {
 		result := make([]RetryAttempt, len(attempts))
 		copy(result, attempts)
@@ -242,7 +242,7 @@ func (t *RetryTracker) GetAttempts(operationID string) []RetryAttempt {
 func (t *RetryTracker) GetAttemptCount(operationID string) int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	if attempts, exists := t.attempts[operationID]; exists {
 		return len(attempts)
 	}
@@ -285,10 +285,10 @@ func (m *MockServiceWithFaults) Call(ctx context.Context) error {
 	if shouldFail, err := m.injector.ShouldFail(); shouldFail {
 		return err
 	}
-	
+
 	if m.callFunc != nil {
 		return m.callFunc(ctx)
 	}
-	
+
 	return nil
 }

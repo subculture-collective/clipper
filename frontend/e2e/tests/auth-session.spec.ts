@@ -17,7 +17,7 @@ import { mockOAuthSuccess } from '../utils/oauth-mock';
 
 /**
  * Session Management E2E Tests
- * 
+ *
  * Tests comprehensive session management scenarios:
  * - Session persistence across navigation
  * - Session persistence across reloads
@@ -40,7 +40,7 @@ test.describe('Session Management', () => {
   test('should persist session across page navigation', async ({ page }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'test_access_token',
       refreshToken: 'test_refresh_token',
@@ -78,7 +78,7 @@ test.describe('Session Management', () => {
   test('should persist session across page reload', async ({ page }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'test_access_token',
       refreshToken: 'test_refresh_token',
@@ -86,7 +86,7 @@ test.describe('Session Management', () => {
     };
 
     await setSessionTokens(page, tokens);
-    
+
     // Get tokens before reload
     const tokensBefore = await getSessionTokens(page);
 
@@ -109,7 +109,7 @@ test.describe('Session Management', () => {
   test('should share session across multiple tabs', async ({ page, context }) => {
     // Set up authenticated session in first tab
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'shared_access_token',
       refreshToken: 'shared_refresh_token',
@@ -125,10 +125,10 @@ test.describe('Session Management', () => {
 
     // Check if session is shared
     const tokens2 = await getSessionTokens(page2);
-    
+
     // Cookies should be shared across tabs
     expect(tokens2).toBeTruthy();
-    
+
     // Close second tab
     await page2.close();
 
@@ -153,14 +153,14 @@ test.describe('Session Management', () => {
     // Check if either redirected to login or refresh happened
     const url = page.url();
     const hasLoginOrSettings = url.includes('/login') || url.includes('/settings');
-    
+
     expect(hasLoginOrSettings).toBeTruthy();
   });
 
   test('should refresh token before expiry', async ({ page }) => {
     // Set up session with token expiring soon
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'expiring_token',
       refreshToken: 'refresh_token',
@@ -187,7 +187,7 @@ test.describe('Session Management', () => {
 
     // Check if token was refreshed
     const tokensAfter = await getSessionTokens(page);
-    
+
     // Token might have been refreshed
     expect(tokensAfter).toBeTruthy();
   });
@@ -195,7 +195,7 @@ test.describe('Session Management', () => {
   test('should refresh token on 401 response', async ({ page }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'invalid_token',
       refreshToken: 'valid_refresh',
@@ -220,7 +220,7 @@ test.describe('Session Management', () => {
   test('should logout and clear all session data', async ({ page }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'test_access_token',
       refreshToken: 'test_refresh_token',
@@ -238,7 +238,7 @@ test.describe('Session Management', () => {
 
     // Find and click logout button
     const logoutButton = page.getByRole('button', { name: /logout|sign out/i });
-    
+
     // May need to open user menu first
     const userMenu = page.locator('[data-testid="user-menu"], button:has-text("profile")');
     if (await userMenu.first().isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -266,7 +266,7 @@ test.describe('Session Management', () => {
   test('should clear session across all tabs on logout', async ({ page, context }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'test_access_token',
       refreshToken: 'test_refresh_token',
@@ -330,17 +330,17 @@ test.describe('Session Management', () => {
     // Should redirect to login or show error
     const url = page.url();
     const loginButton = page.getByRole('button', { name: /login|sign in/i });
-    
-    const redirectedOrError = url.includes('/login') || 
+
+    const redirectedOrError = url.includes('/login') ||
                              await loginButton.first().isVisible({ timeout: 3000 }).catch(() => false);
-    
+
     expect(redirectedOrError).toBeTruthy();
   });
 
   test('should maintain session during long activity', async ({ page }) => {
     // Set up authenticated session
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'long_session_token',
       refreshToken: 'refresh_token',
@@ -355,7 +355,7 @@ test.describe('Session Management', () => {
     // Simulate user activity over time with reduced iterations
     for (let i = 0; i < 2; i++) {
       await page.waitForTimeout(2000);
-      
+
       // Navigate to trigger potential refresh
       await page.goto('/');
       await page.waitForLoadState('networkidle');
@@ -375,16 +375,16 @@ test.describe('Session Management', () => {
     };
 
     await setSessionTokens(page, localTokens, 'local');
-    
+
     const retrievedLocal = await page.evaluate(() => {
       return localStorage.getItem('auth_tokens');
     });
-    
+
     expect(retrievedLocal).toBeTruthy();
 
     // Test sessionStorage
     await clearSessionTokens(page);
-    
+
     const sessionTokens = {
       accessToken: 'session_token',
       refreshToken: 'session_refresh',
@@ -392,16 +392,16 @@ test.describe('Session Management', () => {
     };
 
     await setSessionTokens(page, sessionTokens, 'session');
-    
+
     const retrievedSession = await page.evaluate(() => {
       return sessionStorage.getItem('auth_tokens');
     });
-    
+
     expect(retrievedSession).toBeTruthy();
 
     // Test cookies
     await clearSessionTokens(page);
-    
+
     const cookieTokens = {
       accessToken: 'cookie_token',
       refreshToken: 'cookie_refresh',
@@ -409,17 +409,17 @@ test.describe('Session Management', () => {
     };
 
     await setSessionTokens(page, cookieTokens, 'cookie');
-    
+
     const cookies = await page.context().cookies();
     const accessCookie = cookies.find((c) => c.name === 'access_token');
-    
+
     expect(accessCookie?.value).toBe('cookie_token');
   });
 
   test('should handle concurrent refresh requests', async ({ page }) => {
     // Set up session near expiry
     await mockOAuthSuccess(page);
-    
+
     const tokens = {
       accessToken: 'expiring_token',
       refreshToken: 'refresh_token',
@@ -434,13 +434,12 @@ test.describe('Session Management', () => {
       delay: 1000,
     });
 
-    // Trigger multiple API calls that might refresh
-    await Promise.all([
-      page.goto('/'),
-      page.goto('/clips'),
-      page.goto('/settings'),
-    ]);
-
+    // Trigger multiple requests that might refresh (sequential to avoid navigation aborts)
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.goto('/clips');
+    await page.waitForLoadState('networkidle');
+    await page.goto('/settings');
     await page.waitForLoadState('networkidle');
 
     // Should handle concurrent refresh gracefully

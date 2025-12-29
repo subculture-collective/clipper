@@ -19,7 +19,9 @@ export function useMenuKeyboard(
   // Reset focused index when menu opens
   useEffect(() => {
     if (isOpen) {
-      setFocusedIndex(-1);
+      queueMicrotask(() => {
+        setFocusedIndex(-1);
+      });
     }
   }, [isOpen]);
 
@@ -33,27 +35,27 @@ export function useMenuKeyboard(
           e.preventDefault();
           setFocusedIndex(prev => (prev + 1) % itemCount);
           break;
-        
+
         case 'ArrowUp':
           e.preventDefault();
           setFocusedIndex(prev => (prev - 1 + itemCount) % itemCount);
           break;
-        
+
         case 'Home':
           e.preventDefault();
           setFocusedIndex(0);
           break;
-        
+
         case 'End':
           e.preventDefault();
           setFocusedIndex(itemCount - 1);
           break;
-        
+
         case 'Escape':
           e.preventDefault();
           onClose();
           break;
-        
+
         case 'Enter':
         case ' ':
           if (focusedIndex >= 0) {

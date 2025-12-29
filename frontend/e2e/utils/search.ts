@@ -2,7 +2,7 @@ import { Page } from '@playwright/test';
 
 /**
  * Search & Discovery Testing Utilities
- * 
+ *
  * Provides functions for testing search features:
  * - Search execution and result verification
  * - Filter combinations and persistence
@@ -10,11 +10,11 @@ import { Page } from '@playwright/test';
  * - Search history management
  * - Performance measurements
  * - Test data seeding for search
- * 
+ *
  * @example
  * ```typescript
  * import { performSearch, measureSearchLatency, seedSearchData } from '@utils/search';
- * 
+ *
  * await seedSearchData(page, 10); // Create 10 test clips
  * const latency = await measureSearchLatency(page, 'gaming');
  * const results = await performSearch(page, 'fps highlights');
@@ -86,10 +86,10 @@ function getApiBaseUrl(): string {
  */
 export async function performSearch(page: Page, options: SearchOptions): Promise<SearchResult[]> {
   const { query, type = 'all', sort = 'relevance', filters, timeout = DEFAULT_SEARCH_TIMEOUT } = options;
-  
+
   // Build search URL with parameters
   const params = new URLSearchParams({ q: query, type, sort });
-  
+
   if (filters) {
     if (filters.language) params.append('language', filters.language);
     const gameFilter = filters.gameId ?? filters.game;
@@ -100,10 +100,10 @@ export async function performSearch(page: Page, options: SearchOptions): Promise
     if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','));
     if (filters.creatorId) params.append('creator_id', filters.creatorId);
   }
-  
+
   // Navigate to search page
   await page.goto(`/search?${params.toString()}`, { waitUntil: 'networkidle', timeout });
-  
+
   // Extract results from page
   const results = await extractSearchResults(page);
   return results;
@@ -118,11 +118,11 @@ export async function performSearch(page: Page, options: SearchOptions): Promise
 export async function performSearchAPI(page: Page, options: SearchOptions): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const { query, type, sort, filters } = options;
-  
+
   const params: Record<string, any> = { q: query };
   if (type) params.type = type;
   if (sort) params.sort = sort;
-  
+
   if (filters) {
     Object.assign(params, {
       language: filters.language,
@@ -134,14 +134,14 @@ export async function performSearchAPI(page: Page, options: SearchOptions): Prom
       creator_id: filters.creatorId,
     });
   }
-  
+
   try {
     const response = await page.request.get(`${apiUrl}/search`, { params });
-    
+
     if (!response.ok()) {
       throw new Error(`Search API returned ${response.status()}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Search API request failed:', error);
@@ -156,7 +156,7 @@ export async function performSearchAPI(page: Page, options: SearchOptions): Prom
  */
 async function extractSearchResults(page: Page): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
-  
+
   // Wait for results to load
   await page.waitForSelector('[data-testid="clip-card"], .search-result-card, .empty-state', {
     timeout: DEFAULT_SEARCH_TIMEOUT,
@@ -164,38 +164,38 @@ async function extractSearchResults(page: Page): Promise<SearchResult[]> {
     // No results or timeout - return empty array
     return null;
   });
-  
+
   // Check for empty state
   const emptyState = await page.locator('.empty-state, [data-testid="empty-state"]').isVisible();
   if (emptyState) {
     return [];
   }
-  
+
   // Extract result cards
   const resultCards = page.locator('[data-testid="clip-card"], .clip-card, .search-result-card');
   const count = await resultCards.count();
-  
+
   for (let i = 0; i < count; i++) {
     const card = resultCards.nth(i);
-    
+
     // Extract title
     const titleElement = card.locator('h2, h3, .title, [data-testid="clip-title"]').first();
     const title = await titleElement.textContent() || '';
-    
+
     // Extract type (clip by default for now)
     const type = 'clip' as const;
-    
+
     // Extract URL if available
     const linkElement = card.locator('a').first();
     const url = await linkElement.getAttribute('href') || undefined;
-    
+
     results.push({
       title: title.trim(),
       type,
       url,
     });
   }
-  
+
   return results;
 }
 
@@ -207,8 +207,8 @@ async function extractSearchResults(page: Page): Promise<SearchResult[]> {
  */
 export function verifySearchRelevance(results: SearchResult[], expectedTerms: string[]): boolean {
   const resultText = results.map(r => r.title.toLowerCase()).join(' ');
-  
-  return expectedTerms.every(term => 
+
+  return expectedTerms.every(term =>
     resultText.includes(term.toLowerCase())
   );
 }
@@ -230,7 +230,7 @@ export async function applyAndVerifyFilters(
   // Apply filters via URL parameters
   const currentUrl = new URL(page.url());
   const params = currentUrl.searchParams;
-  
+
   if (filters.language) params.set('language', filters.language);
   const gameFilter = filters.gameId ?? filters.game;
   if (gameFilter) params.set('game_id', gameFilter);
@@ -238,22 +238,22 @@ export async function applyAndVerifyFilters(
   if (filters.dateTo) params.set('date_to', filters.dateTo);
   if (filters.minVotes !== undefined) params.set('min_votes', filters.minVotes.toString());
   if (filters.tags) params.set('tags', filters.tags.join(','));
-  
+
   // Navigate with filters
   await page.goto(`${currentUrl.pathname}?${params.toString()}`, {
     waitUntil: 'networkidle',
   });
-  
+
   // Verify filters persist
   const newUrl = new URL(page.url());
   const newParams = newUrl.searchParams;
-  
+
   let allMatch = true;
-  
+
   if (filters.language && newParams.get('language') !== filters.language) allMatch = false;
   if (gameFilter && newParams.get('game_id') !== gameFilter) allMatch = false;
   if (filters.minVotes !== undefined && newParams.get('min_votes') !== filters.minVotes.toString()) allMatch = false;
-  
+
   return allMatch;
 }
 
@@ -270,7 +270,7 @@ export async function testFilterCombinations(
   filterCombinations: SearchFilters[]
 ): Promise<Array<{ filters: SearchFilters; resultCount: number }>> {
   const results: Array<{ filters: SearchFilters; resultCount: number }> = [];
-  
+
   for (const filters of filterCombinations) {
     const searchResults = await performSearch(page, { query, filters });
     results.push({
@@ -278,7 +278,7 @@ export async function testFilterCombinations(
       resultCount: searchResults.length,
     });
   }
-  
+
   return results;
 }
 
@@ -289,7 +289,7 @@ export async function testFilterCombinations(
 export async function clearAllFilters(page: Page): Promise<void> {
   const url = new URL(page.url());
   const query = url.searchParams.get('q') || '';
-  
+
   // Navigate to clean search URL with only query
   await page.goto(`/search?q=${encodeURIComponent(query)}`, {
     waitUntil: 'networkidle',
@@ -308,16 +308,16 @@ export async function clearAllFilters(page: Page): Promise<void> {
  */
 export async function getSuggestions(page: Page, query: string): Promise<string[]> {
   const apiUrl = getApiBaseUrl();
-  
+
   try {
     const response = await page.request.get(`${apiUrl}/search/suggestions`, {
       params: { q: query },
     });
-    
+
     if (!response.ok()) {
       return [];
     }
-    
+
     const data = await response.json();
     return data.suggestions?.map((s: any) => s.text) || [];
   } catch (error) {
@@ -339,37 +339,37 @@ export async function measureSuggestionLatency(
   iterations: number = PERFORMANCE_SAMPLE_SIZE
 ): Promise<number> {
   const latencies: number[] = [];
-  
+
   for (let i = 0; i < iterations; i++) {
     await page.goto('/search', { waitUntil: 'networkidle' });
-    
-    const searchInput = page.locator('input[type="search"], input[name="q"]').first();
+
+    const searchInput = page.locator('[data-testid="search-input"], input[type="search"], input[name="q"], input[placeholder*="search" i]').first();
     await searchInput.clear();
     await searchInput.click();
-    
+
     const startTime = Date.now();
-    
+
     // Type query character by character using pressSequentially
     await searchInput.pressSequentially(query, { delay: 50 });
-    
+
     // Wait for suggestions to appear
     try {
       await page.locator('[role="listbox"], [data-testid="suggestions"]').first().waitFor({
         state: 'visible',
         timeout: SUGGESTION_TIMEOUT,
       });
-      
+
       const endTime = Date.now();
       latencies.push(endTime - startTime);
     } catch {
       // Suggestions didn't appear - record as timeout
       latencies.push(SUGGESTION_TIMEOUT);
     }
-    
+
     // Small delay between iterations
     await page.waitForTimeout(500);
   }
-  
+
   // Calculate average
   const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
   return Math.round(avg);
@@ -386,14 +386,14 @@ export function verifySuggestionQuality(
   query: string
 ): 'relevant' | 'partial' | 'irrelevant' {
   if (suggestions.length === 0) return 'irrelevant';
-  
+
   const queryLower = query.toLowerCase();
-  const relevantCount = suggestions.filter(s => 
+  const relevantCount = suggestions.filter(s =>
     s.toLowerCase().includes(queryLower) || queryLower.includes(s.toLowerCase())
   ).length;
-  
+
   const relevanceRatio = relevantCount / suggestions.length;
-  
+
   if (relevanceRatio >= 0.7) return 'relevant';
   if (relevanceRatio >= 0.3) return 'partial';
   return 'irrelevant';
@@ -409,10 +409,14 @@ export function verifySuggestionQuality(
  * @returns Array of search history items
  */
 export async function getSearchHistory(page: Page): Promise<string[]> {
+  // Ensure we are on an app origin before accessing storage
+  if (page.url() === 'about:blank') {
+    await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  }
   return await page.evaluate(() => {
     const history = localStorage.getItem('searchHistory');
     if (!history) return [];
-    
+
     try {
       const parsed = JSON.parse(history);
       return Array.isArray(parsed) ? parsed : [];
@@ -428,10 +432,13 @@ export async function getSearchHistory(page: Page): Promise<string[]> {
  * @param query - Search query to add
  */
 export async function addToSearchHistory(page: Page, query: string): Promise<void> {
+  if (page.url() === 'about:blank') {
+    await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  }
   await page.evaluate((q) => {
     const history = localStorage.getItem('searchHistory');
     let items: string[] = [];
-    
+
     if (history) {
       try {
         items = JSON.parse(history);
@@ -439,13 +446,13 @@ export async function addToSearchHistory(page: Page, query: string): Promise<voi
         items = [];
       }
     }
-    
+
     // Add new query at the beginning, remove duplicates
     items = [q, ...items.filter(item => item !== q)];
-    
+
     // Limit to 10 most recent
     items = items.slice(0, 10);
-    
+
     localStorage.setItem('searchHistory', JSON.stringify(items));
   }, query);
 }
@@ -455,9 +462,12 @@ export async function addToSearchHistory(page: Page, query: string): Promise<voi
  * @param page - Playwright Page object
  */
 export async function clearSearchHistory(page: Page): Promise<void> {
+  if (page.url() === 'about:blank') {
+    await page.goto('/search', { waitUntil: 'domcontentloaded' });
+  }
   await page.evaluate(() => {
     localStorage.removeItem('searchHistory');
-    
+
     // Also try to clear from IndexedDB if used
     if ('indexedDB' in window) {
       try {
@@ -508,38 +518,32 @@ export async function measureSearchLatency(
   iterations: number = PERFORMANCE_SAMPLE_SIZE
 ): Promise<number> {
   const latencies: number[] = [];
-  
+
   for (let i = 0; i < iterations; i++) {
     await page.goto('/search', { waitUntil: 'networkidle' });
-    
-    const searchInput = page.locator('input[type="search"], input[name="q"]').first();
+
+    const searchInput = page.locator('[data-testid="search-input"], input[type="search"], input[name="q"]').first();
+    await searchInput.waitFor({ state: 'visible', timeout: DEFAULT_SEARCH_TIMEOUT });
     await searchInput.fill(query);
-    
+
     // Start timing
     const startTime = Date.now();
-    
-    // Listen for search API response
-    const responsePromise = page.waitForResponse(
-      response => response.url().includes('/search') && response.status() === 200,
-      { timeout: DEFAULT_SEARCH_TIMEOUT }
-    );
-    
+
     // Submit search
     await page.keyboard.press('Enter');
-    
-    // Wait for response and results to render
-    await responsePromise;
-    await page.waitForSelector('[data-testid="clip-card"], .search-result-card, .empty-state', {
+
+    // Wait for UI-ready signals instead of network
+    await page.waitForSelector('[data-testid="results-count"], [data-testid="clip-card"], .search-result-card, [data-testid="empty-state"]', {
       timeout: DEFAULT_SEARCH_TIMEOUT,
     });
-    
+
     const endTime = Date.now();
     latencies.push(endTime - startTime);
-    
+
     // Small delay between iterations
     await page.waitForTimeout(500);
   }
-  
+
   // Calculate average
   const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
   return Math.round(avg);
@@ -553,7 +557,7 @@ export async function measureSearchLatency(
  */
 export function calculatePercentile(values: number[], percentile: number): number {
   if (values.length === 0) return 0;
-  
+
   const sorted = [...values].sort((a, b) => a - b);
   const index = Math.ceil((percentile / 100) * sorted.length) - 1;
   return sorted[Math.max(0, index)];
@@ -580,14 +584,14 @@ export async function measurePerformanceMetrics(
   samples: number[];
 }> {
   const samples: number[] = [];
-  
+
   for (let i = 0; i < sampleSize; i++) {
     const latency = await measureSearchLatency(page, query, 1);
     samples.push(latency);
   }
-  
+
   samples.sort((a, b) => a - b);
-  
+
   return {
     p50: calculatePercentile(samples, 50),
     p95: calculatePercentile(samples, 95),
@@ -621,16 +625,16 @@ export async function seedSearchData(
 ): Promise<string[]> {
   const apiUrl = getApiBaseUrl();
   const clipIds: string[] = [];
-  
+
   const games = options?.games || ['Valorant', 'CS:GO', 'League of Legends', 'Dota 2', 'Overwatch'];
   const tags = options?.tags || ['highlight', 'funny', 'epic', 'fail', 'clutch', 'ace'];
   const languages = options?.languages || ['en', 'es', 'fr', 'de', 'pt'];
-  
+
   for (let i = 0; i < count; i++) {
     const game = games[i % games.length];
     const language = languages[i % languages.length];
     const randomTags = tags.slice(0, Math.floor(Math.random() * 3) + 1);
-    
+
     const clipData = {
       title: `Test Clip ${i + 1} - ${game} ${randomTags.join(' ')}`,
       url: `https://clips.twitch.tv/test-${Date.now()}-${i}`,
@@ -644,7 +648,7 @@ export async function seedSearchData(
       viewCount: Math.floor(Math.random() * 10000),
       likeCount: Math.floor(Math.random() * 1000),
     };
-    
+
     try {
       const response = await page.request.post(`${apiUrl}/admin/clips`, {
         data: clipData,
@@ -652,7 +656,7 @@ export async function seedSearchData(
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (response.ok()) {
         const clip = await response.json();
         clipIds.push(clip.id);
@@ -665,7 +669,7 @@ export async function seedSearchData(
       clipIds.push(`mock-clip-${Date.now()}-${i}`);
     }
   }
-  
+
   return clipIds;
 }
 
@@ -676,10 +680,10 @@ export async function seedSearchData(
  */
 export async function cleanupSearchData(page: Page, clipIds: string[]): Promise<void> {
   const apiUrl = getApiBaseUrl();
-  
+
   for (const id of clipIds) {
     if (id.startsWith('mock-')) continue; // Skip mock IDs
-    
+
     try {
       await page.request.delete(`${apiUrl}/admin/clips/${id}`);
     } catch (error) {
@@ -705,26 +709,26 @@ export async function testPagination(
   maxPages: number = 3
 ): Promise<number[]> {
   const resultCounts: number[] = [];
-  
+
   // Start with first page
   await performSearch(page, { query });
-  
+
   for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
     // Count results on current page
     const results = await extractSearchResults(page);
     resultCounts.push(results.length);
-    
+
     // Try to go to next page
     const nextButton = page.locator('button, a').filter({ hasText: /next|→|›/i }).last();
     const isEnabled = await nextButton.isEnabled().catch(() => false);
-    
+
     if (!isEnabled || pageNum === maxPages) {
       break;
     }
-    
+
     await nextButton.click();
     await page.waitForLoadState('networkidle');
   }
-  
+
   return resultCounts;
 }

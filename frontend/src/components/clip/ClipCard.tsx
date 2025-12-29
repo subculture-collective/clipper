@@ -75,7 +75,7 @@ export function ClipCard({ clip }: ClipCardProps) {
     const timestamp = formatTimestamp(clip.created_at);
 
     return (
-        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render'>
+        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render' data-testid='clip-card'>
             <div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
                 {/* Vote sidebar - horizontal on mobile, vertical on larger screens */}
                 <div className='flex xs:flex-col items-center justify-center xs:justify-start xs:w-10 gap-3 xs:gap-2 order-2 xs:order-1 shrink-0'>

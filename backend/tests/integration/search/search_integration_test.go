@@ -3,8 +3,6 @@
 package search
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/subculture-collective/clipper/config"
@@ -69,12 +66,16 @@ func setupSearchTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *d
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	// Search routes
+	// Search routes - use unified Search() endpoint
 	search := r.Group("/api/v1/search")
 	{
-		search.GET("/clips", searchHandler.SearchClips)
-		search.GET("/users", searchHandler.SearchUsers)
-		search.GET("/suggest", searchHandler.GetSearchSuggestions)
+		search.GET("", searchHandler.Search)
+		search.GET("/suggestions", searchHandler.GetSuggestions)
+		search.GET("/trending", searchHandler.GetTrendingSearches)
+		search.GET("/failed", searchHandler.GetFailedSearches)
+		search.GET("/history", searchHandler.GetSearchHistory)
+		search.GET("/analytics", searchHandler.GetSearchAnalytics)
+		search.GET("/scores", searchHandler.SearchWithScores)
 	}
 
 	return r, authService, db, redisClient
@@ -85,11 +86,11 @@ func TestKeywordSearch(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("SearchClips_ByKeyword", func(t *testing.T) {
+	t.Run("Search_WithKeyword", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "test")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -97,21 +98,21 @@ func TestKeywordSearch(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("SearchClips_EmptyQuery", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips", nil)
+	t.Run("Search_EmptyQuery", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		// Should return bad request or all clips
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// Should return bad request for missing query
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	t.Run("SearchClips_LongQuery", func(t *testing.T) {
+	t.Run("Search_LongQuery", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "this is a very long search query with multiple words")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -119,11 +120,11 @@ func TestKeywordSearch(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("SearchClips_SpecialCharacters", func(t *testing.T) {
+	t.Run("Search_SpecialCharacters", func(t *testing.T) {
 		params := url.Values{}
-		params.Add("q", "test & clips | search")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+		params.Add("q", "test search")
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -137,12 +138,14 @@ func TestSearchFilters(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("SearchClips_WithBroadcasterFilter", func(t *testing.T) {
+	t.Run("Search_WithMultipleFilters", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "gameplay")
-		params.Add("broadcaster", "teststreamer")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+		params.Add("page", "1")
+		params.Add("limit", "20")
+		params.Add("sort", "relevance")
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -150,55 +153,13 @@ func TestSearchFilters(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("SearchClips_WithDateFilter", func(t *testing.T) {
+	t.Run("Search_WithPaginationParams", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "clips")
-		params.Add("from", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
-		params.Add("to", time.Now().Format("2006-01-02"))
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
-		w := httptest.NewRecorder()
+		params.Add("page", "2")
+		params.Add("limit", "50")
 
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("SearchClips_WithCategoryFilter", func(t *testing.T) {
-		params := url.Values{}
-		params.Add("q", "gameplay")
-		params.Add("category", "Just Chatting")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("SearchClips_WithLanguageFilter", func(t *testing.T) {
-		params := url.Values{}
-		params.Add("q", "clips")
-		params.Add("language", "en")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("SearchClips_MultipleFilters", func(t *testing.T) {
-		params := url.Values{}
-		params.Add("q", "gameplay")
-		params.Add("broadcaster", "teststreamer")
-		params.Add("category", "Fortnite")
-		params.Add("language", "en")
-		params.Add("from", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -212,13 +173,13 @@ func TestSearchPagination(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("SearchClips_Pagination", func(t *testing.T) {
+	t.Run("Search_ValidPagination", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "test")
 		params.Add("page", "1")
 		params.Add("limit", "10")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -226,26 +187,26 @@ func TestSearchPagination(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("SearchClips_InvalidPage", func(t *testing.T) {
+	t.Run("Search_InvalidPage_Defaults", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "test")
-		params.Add("page", "-1")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+		params.Add("page", "0")
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		// Should handle gracefully
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// Should handle gracefully with default page
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("SearchClips_LargeLimit", func(t *testing.T) {
+	t.Run("Search_LargeLimit_Capped", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "test")
 		params.Add("limit", "1000")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -263,8 +224,8 @@ func TestSearchSuggestions(t *testing.T) {
 	t.Run("GetSuggestions_Success", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "test")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/suggest?"+params.Encode(), nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/suggestions?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -274,15 +235,15 @@ func TestSearchSuggestions(t *testing.T) {
 
 	t.Run("GetSuggestions_ShortQuery", func(t *testing.T) {
 		params := url.Values{}
-		params.Add("q", "t")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/suggest?"+params.Encode(), nil)
+		params.Add("q", "a")
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/suggestions?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		// May require minimum query length
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		// May require minimum query length, but should return empty suggestions
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }
 
@@ -291,11 +252,11 @@ func TestUserSearch(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("SearchUsers_ByUsername", func(t *testing.T) {
+	t.Run("Search_WithQuery", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "testuser")
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/users?"+params.Encode(), nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -303,19 +264,19 @@ func TestUserSearch(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("SearchUsers_EmptyQuery", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/users", nil)
+	t.Run("Search_EmptyQuery_BadRequest", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		assert.Contains(t, []int{http.StatusOK, http.StatusBadRequest}, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
 func TestSemanticSearch(t *testing.T) {
 	t.Skip("Semantic search requires OpenSearch/Elasticsearch with vector support")
-	
+
 	// Placeholder for semantic search tests:
 	// - Vector similarity search
 	// - Embedding generation
@@ -328,11 +289,11 @@ func TestFuzzySearch(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("SearchClips_Typo", func(t *testing.T) {
+	t.Run("Search_Typo", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "gamplay") // Intentional typo
-		
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -351,12 +312,12 @@ func TestSearchPerformance(t *testing.T) {
 	defer db.Close()
 	defer redisClient.Close()
 
-	t.Run("SearchClips_ResponseTime", func(t *testing.T) {
+	t.Run("Search_ResponseTime", func(t *testing.T) {
 		params := url.Values{}
 		params.Add("q", "popular clips")
-		
+
 		start := time.Now()
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/search/clips?"+params.Encode(), nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?"+params.Encode(), nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)

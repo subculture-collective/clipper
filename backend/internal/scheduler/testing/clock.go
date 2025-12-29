@@ -84,13 +84,13 @@ func (m *MockClock) After(d time.Duration) <-chan time.Time {
 	m.mu.Lock()
 	m.afterChans = append(m.afterChans, ch)
 	m.mu.Unlock()
-	
+
 	go func() {
 		// In a real scenario, this would be triggered by Advance()
 		// For now, we'll send immediately for backwards compatibility
 		ch <- m.Now().Add(d)
 	}()
-	
+
 	return ch
 }
 
@@ -102,11 +102,11 @@ func (m *MockClock) NewTicker(d time.Duration) Ticker {
 		clock:    m,
 		stopped:  false,
 	}
-	
+
 	m.mu.Lock()
 	m.tickers = append(m.tickers, ticker)
 	m.mu.Unlock()
-	
+
 	return ticker
 }
 
@@ -119,9 +119,9 @@ func (m *MockClock) Sleep(d time.Duration) {
 func (m *MockClock) Advance(d time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.now = m.now.Add(d)
-	
+
 	// Trigger all active tickers
 	for _, ticker := range m.tickers {
 		if !ticker.IsStopped() {

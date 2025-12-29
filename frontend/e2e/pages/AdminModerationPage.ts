@@ -3,9 +3,9 @@ import { BasePage } from './BasePage';
 
 /**
  * AdminModerationPage - Page Object for Admin Moderation Queue
- * 
+ *
  * Provides methods for admin/moderator actions on pending submissions.
- * 
+ *
  * @example
  * ```typescript
  * const moderationPage = new AdminModerationPage(page);
@@ -32,7 +32,7 @@ export class AdminModerationPage extends BasePage {
   private getApproveButton(submissionId: string): Locator {
     // Try to find button within submission card
     return this.page.locator(`[data-testid="submission-${submissionId}"], [data-submission-id="${submissionId}"]`)
-      .getByRole('button', { name: /approve/i });
+      .getByRole('button', { name: /approve/i }).or(this.page.getByRole('button', { name: /approve/i }).first());
   }
 
   /**
@@ -40,7 +40,7 @@ export class AdminModerationPage extends BasePage {
    */
   private getRejectButton(submissionId: string): Locator {
     return this.page.locator(`[data-testid="submission-${submissionId}"], [data-submission-id="${submissionId}"]`)
-      .getByRole('button', { name: /reject/i });
+      .getByRole('button', { name: /reject/i }).or(this.page.getByRole('button', { name: /reject/i }).first());
   }
 
   /**
@@ -58,17 +58,17 @@ export class AdminModerationPage extends BasePage {
     // Click on the submission card first (might open details)
     const submissionCard = this.getSubmissionCard(submissionId);
     const cardExists = await submissionCard.isVisible({ timeout: 2000 }).catch(() => false);
-    
+
     if (cardExists) {
       await submissionCard.click();
       // Wait for any transition or modal to appear
       await this.page.waitForLoadState('networkidle');
     }
-    
+
     // Click approve button
     const approveBtn = this.getApproveButton(submissionId);
     await approveBtn.click();
-    
+
     // Wait for the approval action to complete by watching for network activity
     await this.page.waitForLoadState('networkidle');
   }
@@ -80,28 +80,28 @@ export class AdminModerationPage extends BasePage {
     // Click on the submission card first
     const submissionCard = this.getSubmissionCard(submissionId);
     const cardExists = await submissionCard.isVisible({ timeout: 2000 }).catch(() => false);
-    
+
     if (cardExists) {
       await submissionCard.click();
       // Wait for any transition or modal to appear
       await this.page.waitForLoadState('networkidle');
     }
-    
+
     // Click reject button
     const rejectBtn = this.getRejectButton(submissionId);
     await rejectBtn.click();
-    
+
     // Wait for rejection modal/form to appear
     const reasonTextarea = this.page.getByLabel(/rejection reason/i);
     await reasonTextarea.waitFor({ state: 'visible', timeout: 5000 });
-    
+
     // Fill rejection reason in modal
     await reasonTextarea.fill(reason);
-    
+
     // Confirm rejection
     const confirmRejectBtn = this.page.getByRole('button', { name: /confirm|reject/i }).last();
     await confirmRejectBtn.click();
-    
+
     // Wait for the rejection action to complete
     await this.page.waitForLoadState('networkidle');
   }
@@ -143,7 +143,12 @@ export class AdminModerationPage extends BasePage {
    */
   async getPendingSubmissionsCount(): Promise<number> {
     const submissions = this.page.locator('[data-testid^="submission-"]');
-    return await submissions.count();
+    const countByTestId = await submissions.count();
+    if (countByTestId > 0) return countByTestId;
+
+    // Fallback: moderation cards rendered without test IDs
+    const cards = this.page.locator('div.bg-background-secondary');
+    return await cards.count();
   }
 
   /**
@@ -152,7 +157,7 @@ export class AdminModerationPage extends BasePage {
   async expectSuccessMessage(message?: string): Promise<void> {
     const successAlert = this.page.locator('[role="alert"]').filter({ hasText: /success/i });
     await expect(successAlert).toBeVisible({ timeout: 5000 });
-    
+
     if (message) {
       await expect(successAlert).toContainText(message);
     }
@@ -164,7 +169,7 @@ export class AdminModerationPage extends BasePage {
   async expectErrorMessage(message?: string): Promise<void> {
     const errorAlert = this.page.locator('[role="alert"]').filter({ hasText: /error|failed/i });
     await expect(errorAlert).toBeVisible({ timeout: 5000 });
-    
+
     if (message) {
       await expect(errorAlert).toContainText(message);
     }

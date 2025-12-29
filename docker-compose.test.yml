@@ -29,3 +29,25 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  opensearch-test:
+    image: opensearchproject/opensearch:2.11.1
+    container_name: clipper-opensearch-test
+    environment:
+      - discovery.type=single-node
+      - "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"
+      - "DISABLE_SECURITY_PLUGIN=true"
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch-test-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  opensearch-test-data:

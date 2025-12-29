@@ -3,14 +3,14 @@ import { BasePage } from './BasePage';
 
 /**
  * ClipPage - Page Object for individual clip detail page
- * 
+ *
  * Handles interactions with:
  * - Video player
  * - Clip metadata
  * - Comments
  * - Like/favorite actions
  * - Share functionality
- * 
+ *
  * @example
  * ```typescript
  * const clipPage = new ClipPage(page);
@@ -32,9 +32,11 @@ export class ClipPage extends BasePage {
 
   constructor(page: Page, clipId?: string) {
     super(page, clipId ? `/clip/${clipId}` : '/clip');
-    
+
     // Initialize locators
-    this.videoPlayer = page.locator('video, [data-testid="video-player"]').first();
+    this.videoPlayer = page
+      .locator('video, iframe, [data-testid="video-player"]')
+      .first();
     this.clipTitle = page.locator('h1, [data-testid="clip-title"]').first();
     this.likeButton = page.locator('button').filter({ hasText: /like|upvote|vote/i }).first();
     this.favoriteButton = page.locator('button').filter({ hasText: /favorite|bookmark|save/i }).first();
@@ -92,7 +94,7 @@ export class ClipPage extends BasePage {
   async playVideo(): Promise<void> {
     // Check if video is already playing
     const isPaused = await this.videoPlayer.evaluate((video: any) => video.paused);
-    
+
     if (isPaused) {
       await this.videoPlayer.click(); // Click to play
     }
@@ -103,7 +105,7 @@ export class ClipPage extends BasePage {
    */
   async pauseVideo(): Promise<void> {
     const isPaused = await this.videoPlayer.evaluate((video: any) => video.paused);
-    
+
     if (!isPaused) {
       await this.videoPlayer.click(); // Click to pause
     }
@@ -143,7 +145,7 @@ export class ClipPage extends BasePage {
   async postComment(commentText: string): Promise<void> {
     await this.fillInput(this.commentInput, commentText);
     await this.click(this.submitCommentButton);
-    
+
     // Wait for the comment to appear in the list
     await this.page
       .locator('[data-testid="comment"], .comment')
@@ -163,12 +165,12 @@ export class ClipPage extends BasePage {
     const commentElements = this.page.locator('[data-testid="comment"], .comment');
     const count = await commentElements.count();
     const comments: string[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const comment = await commentElements.nth(i).textContent();
       if (comment) comments.push(comment.trim());
     }
-    
+
     return comments;
   }
 

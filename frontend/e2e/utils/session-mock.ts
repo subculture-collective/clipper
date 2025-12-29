@@ -2,21 +2,21 @@ import { Page, BrowserContext, Route } from '@playwright/test';
 
 /**
  * Session and Token Management Utilities
- * 
+ *
  * Provides utilities for testing session persistence, token refresh,
  * and token lifecycle management:
  * - Session cookies and storage
  * - Token expiry simulation
  * - Token refresh flows
  * - Multi-tab session management
- * 
+ *
  * @example
  * ```typescript
  * import { setSessionTokens, verifySessionPersistence } from '@utils/session-mock';
- * 
+ *
  * // Set session tokens
  * await setSessionTokens(page, { accessToken: 'token123' });
- * 
+ *
  * // Verify session persists
  * await verifySessionPersistence(page);
  * ```
@@ -37,9 +37,9 @@ export interface SessionData {
 
 /**
  * Set session tokens in storage
- * 
+ *
  * Stores tokens in localStorage, sessionStorage, and cookies
- * 
+ *
  * @param page - Playwright Page object
  * @param tokens - Session tokens to set
  * @param storage - Storage type ('local', 'session', 'cookie', 'all')
@@ -49,18 +49,36 @@ export async function setSessionTokens(
   tokens: SessionTokens,
   storage: 'local' | 'session' | 'cookie' | 'all' = 'all'
 ): Promise<void> {
+  // Ensure the page is on an origin where localStorage/sessionStorage are accessible
+  // Playwright pages start at about:blank; accessing storage there throws SecurityError
+  const url = page.url();
+  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+    try {
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+    } catch {
+      // If navigation fails, continue; cookie setting will still work with domain fallback
+    }
+  }
+
   const tokenData = JSON.stringify(tokens);
 
   if (storage === 'local' || storage === 'all') {
     await page.evaluate(
-      (data) => localStorage.setItem('auth_tokens', data),
+      (data) => {
+        localStorage.setItem('auth_tokens', data);
+        localStorage.setItem('auth_token', JSON.parse(data).accessToken || '');
+      },
       tokenData
     );
   }
 
   if (storage === 'session' || storage === 'all') {
     await page.evaluate(
-      (data) => sessionStorage.setItem('auth_tokens', data),
+      (data) => {
+        sessionStorage.setItem('auth_tokens', data);
+        sessionStorage.setItem('auth_token', JSON.parse(data).accessToken || '');
+      },
       tokenData
     );
   }
@@ -96,16 +114,30 @@ export async function setSessionTokens(
 
 /**
  * Get session tokens from storage
- * 
+ *
  * @param page - Playwright Page object
  * @returns Session tokens or null if not found
  */
 export async function getSessionTokens(page: Page): Promise<SessionTokens | null> {
   try {
+    // Ensure we have navigated to an origin before accessing storage
+    const url = page.url();
+    if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+      try {
+        await page.goto('/');
+        await page.waitForLoadState('domcontentloaded');
+      } catch {}
+    }
+
     // Try localStorage first
     const localTokens = await page.evaluate(() => {
       const data = localStorage.getItem('auth_tokens');
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      try {
+        return JSON.parse(data);
+      } catch {
+        return null;
+      }
     });
 
     if (localTokens) return localTokens;
@@ -113,7 +145,12 @@ export async function getSessionTokens(page: Page): Promise<SessionTokens | null
     // Try sessionStorage
     const sessionTokens = await page.evaluate(() => {
       const data = sessionStorage.getItem('auth_tokens');
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      try {
+        return JSON.parse(data);
+      } catch {
+        return null;
+      }
     });
 
     if (sessionTokens) return sessionTokens;
@@ -139,10 +176,19 @@ export async function getSessionTokens(page: Page): Promise<SessionTokens | null
 
 /**
  * Clear session tokens from all storage
- * 
+ *
  * @param page - Playwright Page object
  */
 export async function clearSessionTokens(page: Page): Promise<void> {
+  // Ensure we have navigated to a valid origin so storage APIs are available
+  const url = page.url();
+  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+    try {
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+    } catch {}
+  }
+
   await page.evaluate(() => {
     localStorage.removeItem('auth_tokens');
     sessionStorage.removeItem('auth_tokens');
@@ -155,7 +201,7 @@ export async function clearSessionTokens(page: Page): Promise<void> {
 
 /**
  * Verify session persists across page navigation
- * 
+ *
  * @param page - Playwright Page object
  * @param navigateTo - URL to navigate to
  * @returns true if session persisted
@@ -165,12 +211,12 @@ export async function verifySessionPersistence(
   navigateTo: string = '/'
 ): Promise<boolean> {
   const tokensBefore = await getSessionTokens(page);
-  
+
   await page.goto(navigateTo);
   await page.waitForLoadState('networkidle');
-  
+
   const tokensAfter = await getSessionTokens(page);
-  
+
   return (
     tokensBefore?.accessToken === tokensAfter?.accessToken &&
     tokensBefore?.refreshToken === tokensAfter?.refreshToken
@@ -179,18 +225,18 @@ export async function verifySessionPersistence(
 
 /**
  * Verify session persists across page reload
- * 
+ *
  * @param page - Playwright Page object
  * @returns true if session persisted
  */
 export async function verifySessionPersistsOnReload(page: Page): Promise<boolean> {
   const tokensBefore = await getSessionTokens(page);
-  
+
   await page.reload();
   await page.waitForLoadState('networkidle');
-  
+
   const tokensAfter = await getSessionTokens(page);
-  
+
   return (
     tokensBefore?.accessToken === tokensAfter?.accessToken &&
     tokensBefore?.refreshToken === tokensAfter?.refreshToken
@@ -199,7 +245,7 @@ export async function verifySessionPersistsOnReload(page: Page): Promise<boolean
 
 /**
  * Verify session persists across multiple tabs
- * 
+ *
  * @param context - Browser context
  * @param baseUrl - Base URL for pages
  * @returns true if session shared across tabs
@@ -211,34 +257,34 @@ export async function verifySessionAcrossTabs(
   // Create first page and set session
   const page1 = await context.newPage();
   await page1.goto(baseUrl);
-  
+
   const tokens: SessionTokens = {
     accessToken: `token_${Date.now()}`,
     refreshToken: `refresh_${Date.now()}`,
     expiresAt: Date.now() + 3600000,
   };
-  
+
   await setSessionTokens(page1, tokens);
-  
+
   // Create second page
   const page2 = await context.newPage();
   await page2.goto(baseUrl);
-  
+
   // Check if session is shared
   const tokens2 = await getSessionTokens(page2);
-  
+
   const sessionShared = tokens.accessToken === tokens2?.accessToken;
-  
+
   // Cleanup
   await page1.close();
   await page2.close();
-  
+
   return sessionShared;
 }
 
 /**
  * Mock token refresh endpoint
- * 
+ *
  * @param page - Playwright Page object
  * @param options - Refresh options
  */
@@ -284,13 +330,24 @@ export async function mockTokenRefresh(
       });
     }
   });
+
+  // When refresh fails, ensure subsequent auth checks reflect unauthenticated state
+  if (!shouldSucceed) {
+    await page.route('**/api/v1/auth/me', async (route: Route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: 'Unauthorized' }),
+      });
+    });
+  }
 }
 
 /**
  * Simulate token expiry
- * 
+ *
  * Sets token with past expiry time
- * 
+ *
  * @param page - Playwright Page object
  */
 export async function simulateTokenExpiry(page: Page): Promise<void> {
@@ -305,9 +362,9 @@ export async function simulateTokenExpiry(page: Page): Promise<void> {
 
 /**
  * Mock 401 unauthorized response
- * 
+ *
  * Simulates expired token API response
- * 
+ *
  * @param page - Playwright Page object
  * @param endpoint - API endpoint to mock
  */
@@ -330,9 +387,9 @@ export async function mock401Response(
 
 /**
  * Verify token refresh on 401
- * 
+ *
  * Sets up mock to return 401, then success after refresh
- * 
+ *
  * @param page - Playwright Page object
  */
 export async function mockTokenRefreshOn401(page: Page): Promise<void> {
@@ -371,7 +428,7 @@ export async function mockTokenRefreshOn401(page: Page): Promise<void> {
 
 /**
  * Mock logout endpoint
- * 
+ *
  * @param page - Playwright Page object
  * @param options - Logout options
  */
@@ -409,13 +466,22 @@ export async function mockLogout(
 
 /**
  * Verify logout clears all session data
- * 
+ *
  * @param page - Playwright Page object
  * @returns true if all session data cleared
  */
 export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
+  // Ensure origin before accessing storage
+  const url = page.url();
+  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+    try {
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+    } catch {}
+  }
+
   const tokens = await getSessionTokens(page);
-  
+
   if (tokens) {
     return false;
   }
@@ -443,9 +509,9 @@ export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
 
 /**
  * Simulate concurrent sessions
- * 
+ *
  * Creates multiple browser contexts with sessions
- * 
+ *
  * @param contexts - Array of browser contexts
  * @param baseUrl - Base URL
  * @returns Array of pages with sessions
@@ -475,7 +541,7 @@ export async function simulateConcurrentSessions(
 
 /**
  * Clear all session mocks
- * 
+ *
  * @param page - Playwright Page object
  */
 export async function clearSessionMocks(page: Page): Promise<void> {

@@ -394,11 +394,11 @@ type SearchHistoryItem struct {
 
 // SearchAnalyticsSummary represents overall search analytics
 type SearchAnalyticsSummary struct {
-	TotalSearches         int     `json:"total_searches"`
-	UniqueUsers           int     `json:"unique_users"`
-	FailedSearches        int     `json:"failed_searches"`
-	AvgResultsPerSearch   int     `json:"avg_results_per_search"`
-	SuccessRate           float64 `json:"success_rate"`
+	TotalSearches       int     `json:"total_searches"`
+	UniqueUsers         int     `json:"unique_users"`
+	FailedSearches      int     `json:"failed_searches"`
+	AvgResultsPerSearch int     `json:"avg_results_per_search"`
+	SuccessRate         float64 `json:"success_rate"`
 }
 
 // ClipSubmission represents a user-submitted clip pending moderation

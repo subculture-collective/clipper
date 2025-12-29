@@ -27,5 +27,18 @@ export default tseslint.config(
             'react-hooks/purity': 'warn',
             'react-hooks/set-state-in-effect': 'warn',
         },
+    },
+    {
+        files: ['e2e/**/*.{ts,tsx}'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.browser,
+            },
+        },
+        rules: {
+            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-unused-vars': 'off',
+        },
     }
 );

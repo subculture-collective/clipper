@@ -9,17 +9,17 @@ import (
 
 // WorkerPool manages concurrent execution of jobs for testing
 type WorkerPool struct {
-	numWorkers      int
-	jobQueue        chan Job
-	results         chan JobResult
-	wg              sync.WaitGroup
-	ctx             context.Context
-	cancel          context.CancelFunc
-	activeWorkers   int32
-	completedJobs   int64
-	failedJobs      int64
-	totalDuration   int64 // nanoseconds
-	stopped         int32 // atomic flag to prevent double close
+	numWorkers    int
+	jobQueue      chan Job
+	results       chan JobResult
+	wg            sync.WaitGroup
+	ctx           context.Context
+	cancel        context.CancelFunc
+	activeWorkers int32
+	completedJobs int64
+	failedJobs    int64
+	totalDuration int64 // nanoseconds
+	stopped       int32 // atomic flag to prevent double close
 }
 
 // Job represents a unit of work to be executed
@@ -63,7 +63,7 @@ func (wp *WorkerPool) worker() {
 	defer wp.wg.Done()
 	atomic.AddInt32(&wp.activeWorkers, 1)
 	defer atomic.AddInt32(&wp.activeWorkers, -1)
-	
+
 	for {
 		select {
 		case job, ok := <-wp.jobQueue:
@@ -82,7 +82,7 @@ func (wp *WorkerPool) executeJob(job Job) {
 	start := time.Now()
 	err := job.WorkFunc(wp.ctx)
 	duration := time.Since(start)
-	
+
 	result := JobResult{
 		JobID:    job.ID,
 		Success:  err == nil,
@@ -90,21 +90,19 @@ func (wp *WorkerPool) executeJob(job Job) {
 		Duration: duration,
 		Metadata: job.Metadata,
 	}
-	
+
 	atomic.AddInt64(&wp.totalDuration, int64(duration))
-	
+
 	if err == nil {
 		atomic.AddInt64(&wp.completedJobs, 1)
 	} else {
 		atomic.AddInt64(&wp.failedJobs, 1)
 	}
-	
-	// Non-blocking send to avoid deadlocks if results are not consumed
+
+	// Deliver results unless the pool has been cancelled
 	select {
 	case wp.results <- result:
 	case <-wp.ctx.Done():
-	default:
-		// Results channel full or no consumer, drop the result
 	}
 }
 
@@ -161,11 +159,11 @@ func (wp *WorkerPool) calculateAverageDuration() time.Duration {
 	completed := atomic.LoadInt64(&wp.completedJobs)
 	failed := atomic.LoadInt64(&wp.failedJobs)
 	total := completed + failed
-	
+
 	if total == 0 {
 		return 0
 	}
-	
+
 	totalDuration := atomic.LoadInt64(&wp.totalDuration)
 	return time.Duration(totalDuration / total)
 }
@@ -181,15 +179,15 @@ type WorkerPoolStats struct {
 
 // QueueMonitor monitors a job queue for testing
 type QueueMonitor struct {
-	mu              sync.RWMutex
-	queueLength     int
-	maxQueueLength  int
-	enqueuedCount   int64
-	dequeuedCount   int64
-	droppedCount    int64
-	samples         []QueueSample
-	sampleInterval  time.Duration
-	stopChan        chan struct{}
+	mu             sync.RWMutex
+	queueLength    int
+	maxQueueLength int
+	enqueuedCount  int64
+	dequeuedCount  int64
+	droppedCount   int64
+	samples        []QueueSample
+	sampleInterval time.Duration
+	stopChan       chan struct{}
 }
 
 // QueueSample represents a snapshot of queue state
@@ -214,10 +212,10 @@ func NewQueueMonitor(sampleInterval time.Duration) *QueueMonitor {
 func (qm *QueueMonitor) RecordEnqueue() {
 	qm.mu.Lock()
 	defer qm.mu.Unlock()
-	
+
 	qm.queueLength++
 	atomic.AddInt64(&qm.enqueuedCount, 1)
-	
+
 	if qm.queueLength > qm.maxQueueLength {
 		qm.maxQueueLength = qm.queueLength
 	}
@@ -227,7 +225,7 @@ func (qm *QueueMonitor) RecordEnqueue() {
 func (qm *QueueMonitor) RecordDequeue() {
 	qm.mu.Lock()
 	defer qm.mu.Unlock()
-	
+
 	// Only record a dequeue when the monitor's view of the queue
 	// indicates that an item is available. This keeps queueLength
 	// and dequeuedCount consistent even if RecordDequeue is called
@@ -235,7 +233,7 @@ func (qm *QueueMonitor) RecordDequeue() {
 	if qm.queueLength == 0 {
 		return
 	}
-	
+
 	qm.queueLength--
 	atomic.AddInt64(&qm.dequeuedCount, 1)
 }
@@ -249,7 +247,7 @@ func (qm *QueueMonitor) RecordDrop() {
 func (qm *QueueMonitor) StartSampling(ctx context.Context) {
 	ticker := time.NewTicker(qm.sampleInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -265,7 +263,7 @@ func (qm *QueueMonitor) StartSampling(ctx context.Context) {
 func (qm *QueueMonitor) takeSample() {
 	qm.mu.Lock()
 	defer qm.mu.Unlock()
-	
+
 	sample := QueueSample{
 		Timestamp:   time.Now(),
 		QueueLength: qm.queueLength,
@@ -273,7 +271,7 @@ func (qm *QueueMonitor) takeSample() {
 		Dequeued:    atomic.LoadInt64(&qm.dequeuedCount),
 		Dropped:     atomic.LoadInt64(&qm.droppedCount),
 	}
-	
+
 	qm.samples = append(qm.samples, sample)
 }
 
@@ -286,7 +284,7 @@ func (qm *QueueMonitor) Stop() {
 func (qm *QueueMonitor) GetSamples() []QueueSample {
 	qm.mu.RLock()
 	defer qm.mu.RUnlock()
-	
+
 	samplesCopy := make([]QueueSample, len(qm.samples))
 	copy(samplesCopy, qm.samples)
 	return samplesCopy
@@ -301,8 +299,8 @@ func (qm *QueueMonitor) GetMaxQueueLength() int {
 
 // ConcurrencyTester helps test concurrent behavior
 type ConcurrencyTester struct {
-	mu           sync.Mutex
-	operations   []Operation
+	mu            sync.Mutex
+	operations    []Operation
 	racesDetected int
 	deadlocks     int
 }
@@ -327,7 +325,7 @@ func NewConcurrencyTester() *ConcurrencyTester {
 func (ct *ConcurrencyTester) RecordOperation(name string, threadID int, success bool, err error) {
 	ct.mu.Lock()
 	defer ct.mu.Unlock()
-	
+
 	ct.operations = append(ct.operations, Operation{
 		Name:      name,
 		Timestamp: time.Now(),
@@ -341,7 +339,7 @@ func (ct *ConcurrencyTester) RecordOperation(name string, threadID int, success 
 func (ct *ConcurrencyTester) GetOperations() []Operation {
 	ct.mu.Lock()
 	defer ct.mu.Unlock()
-	
+
 	ops := make([]Operation, len(ct.operations))
 	copy(ops, ct.operations)
 	return ops
@@ -351,7 +349,7 @@ func (ct *ConcurrencyTester) GetOperations() []Operation {
 func (ct *ConcurrencyTester) ExecuteConcurrent(n int, fn func(threadID int) error) []error {
 	var wg sync.WaitGroup
 	errors := make([]error, n)
-	
+
 	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func(threadID int) {
@@ -361,7 +359,7 @@ func (ct *ConcurrencyTester) ExecuteConcurrent(n int, fn func(threadID int) erro
 			ct.RecordOperation("concurrent_exec", threadID, err == nil, err)
 		}(i)
 	}
-	
+
 	wg.Wait()
 	return errors
 }
@@ -370,17 +368,17 @@ func (ct *ConcurrencyTester) ExecuteConcurrent(n int, fn func(threadID int) erro
 func (ct *ConcurrencyTester) StressTest(duration time.Duration, numGoroutines int, fn func() error) *StressTestResult {
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
-	
+
 	var wg sync.WaitGroup
 	successCount := int64(0)
 	errorCount := int64(0)
 	totalOps := int64(0)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			for {
 				select {
 				case <-ctx.Done():
@@ -388,7 +386,7 @@ func (ct *ConcurrencyTester) StressTest(duration time.Duration, numGoroutines in
 				default:
 					err := fn()
 					atomic.AddInt64(&totalOps, 1)
-					
+
 					if err == nil {
 						atomic.AddInt64(&successCount, 1)
 					} else {
@@ -398,9 +396,9 @@ func (ct *ConcurrencyTester) StressTest(duration time.Duration, numGoroutines in
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	return &StressTestResult{
 		Duration:     duration,
 		Goroutines:   numGoroutines,

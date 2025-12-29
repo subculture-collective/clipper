@@ -647,23 +647,25 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
   // Reset form state when campaign prop changes (for editing different campaigns)
   useEffect(() => {
-    setFormData({
-      name: campaign?.name || '',
-      advertiser_name: campaign?.advertiser_name || '',
-      ad_type: campaign?.ad_type || 'banner',
-      content_url: campaign?.content_url || '',
-      click_url: campaign?.click_url || '',
-      alt_text: campaign?.alt_text || '',
-      width: campaign?.width,
-      height: campaign?.height,
-      priority: campaign?.priority || 1,
-      weight: campaign?.weight || 100,
-      daily_budget_cents: campaign?.daily_budget_cents,
-      total_budget_cents: campaign?.total_budget_cents,
-      cpm_cents: campaign?.cpm_cents || 100,
-      is_active: campaign?.is_active ?? true,
-      start_date: campaign?.start_date?.split('T')[0],
-      end_date: campaign?.end_date?.split('T')[0],
+    queueMicrotask(() => {
+      setFormData({
+        name: campaign?.name || '',
+        advertiser_name: campaign?.advertiser_name || '',
+        ad_type: campaign?.ad_type || 'banner',
+        content_url: campaign?.content_url || '',
+        click_url: campaign?.click_url || '',
+        alt_text: campaign?.alt_text || '',
+        width: campaign?.width,
+        height: campaign?.height,
+        priority: campaign?.priority || 1,
+        weight: campaign?.weight || 100,
+        daily_budget_cents: campaign?.daily_budget_cents,
+        total_budget_cents: campaign?.total_budget_cents,
+        cpm_cents: campaign?.cpm_cents || 100,
+        is_active: campaign?.is_active ?? true,
+        start_date: campaign?.start_date?.split('T')[0],
+        end_date: campaign?.end_date?.split('T')[0],
+      });
     });
   }, [campaign]);
 

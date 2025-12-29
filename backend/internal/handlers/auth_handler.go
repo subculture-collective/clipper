@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/config"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 )
 
@@ -170,6 +174,68 @@ func (h *AuthHandler) HandlePKCECallback(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Authentication successful",
+	})
+}
+
+// TestLogin provides a deterministic login flow for E2E/local environments without Twitch OAuth
+func (h *AuthHandler) TestLogin(c *gin.Context) {
+	// Guard: disable in production/release modes
+	if h.cfg.Server.GinMode == "release" || strings.EqualFold(h.cfg.Server.Environment, "production") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Test login is disabled in production"})
+		return
+	}
+
+	var body struct {
+		UserID   string `json:"user_id"`
+		Username string `json:"username"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil || (body.UserID == "" && body.Username == "") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Provide user_id or username"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// Resolve user by ID (if provided) otherwise by username
+	var userErr error
+	var user *models.User
+	if body.UserID != "" {
+		userID, err := uuid.Parse(body.UserID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+			return
+		}
+		user, userErr = h.authService.GetUserByID(ctx, userID)
+	} else {
+		user, userErr = h.authService.GetUserByUsername(ctx, body.Username)
+	}
+
+	if userErr != nil {
+		if errors.Is(userErr, repository.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to lookup user"})
+		return
+	}
+
+	accessToken, refreshToken, err := h.authService.GenerateTokensForUser(ctx, user)
+	if err != nil {
+		if errors.Is(err, services.ErrUserBanned) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "User is banned"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
+		return
+	}
+
+	h.setAuthCookies(c, accessToken, refreshToken)
+
+	c.JSON(http.StatusOK, gin.H{
+		"user":          user,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 	})
 }
 

@@ -158,8 +158,8 @@ func TestRefreshTokenFlow(t *testing.T) {
 		username := fmt.Sprintf("refreshuser%d", time.Now().Unix())
 		user := testutil.CreateTestUser(t, db, username)
 
-		// Generate tokens
-		_, refreshToken := testutil.GenerateTestTokens(t, jwtManager, user.ID, user.Role)
+		// Generate tokens and store refresh token in database
+		_, refreshToken := testutil.GenerateTestTokensWithStorage(t, jwtManager, user.ID, user.Role, db)
 
 		// Refresh token request
 		body := map[string]string{"refresh_token": refreshToken}

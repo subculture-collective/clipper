@@ -32,7 +32,7 @@ export function AdminDiscoveryListFormPage() {
   const [description, setDescription] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [clips, setClips] = useState<Clip[]>([]);
-  
+
   // Clip search state
   const [searchQuery, setSearchQuery] = useState('');
   const [showClipSearch, setShowClipSearch] = useState(false);
@@ -61,15 +61,19 @@ export function AdminDiscoveryListFormPage() {
   // Populate form with existing data
   useEffect(() => {
     if (existingList) {
-      setName(existingList.name);
-      setDescription(existingList.description || '');
-      setIsFeatured(existingList.is_featured);
+      queueMicrotask(() => {
+        setName(existingList.name);
+        setDescription(existingList.description || '');
+        setIsFeatured(existingList.is_featured);
+      });
     }
   }, [existingList]);
 
   useEffect(() => {
     if (listClipsData?.clips) {
-      setClips(listClipsData.clips);
+      queueMicrotask(() => {
+        setClips(listClipsData.clips);
+      });
     }
   }, [listClipsData]);
 

@@ -3,13 +3,13 @@ import { BasePage } from './BasePage';
 
 /**
  * HomePage - Page Object for the home/landing page
- * 
+ *
  * Handles interactions with:
  * - Clip feed
  * - Search functionality
  * - Navigation
  * - Sorting/filtering options
- * 
+ *
  * @example
  * ```typescript
  * const homePage = new HomePage(page);
@@ -26,7 +26,7 @@ export class HomePage extends BasePage {
 
   constructor(page: Page) {
     super(page, '/');
-    
+
     // Initialize locators
     this.searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
     this.clipCards = page.getByTestId('clip-card');
@@ -63,8 +63,19 @@ export class HomePage extends BasePage {
    * @param index - Zero-based index of the clip to click (default: 0 = first clip)
    */
   async clickClip(index: number = 0): Promise<void> {
-    await this.clipCards.nth(index).click();
-    await this.waitForNavigation();
+    const card = this.clipCards.nth(index);
+    const link = card.locator('a[href*="/clip/"]').first();
+
+    if (await link.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await link.click();
+    } else {
+      await card.click();
+    }
+
+    await this.page.waitForURL(/\/clip\//, { timeout: 5000 }).catch(async () => {
+      // Fallback to generic navigation wait to avoid hard failures if navigation is slow
+      await this.waitForNavigation();
+    });
   }
 
   /**
@@ -97,7 +108,7 @@ export class HomePage extends BasePage {
    */
   async sortBy(sortType: 'new' | 'hot' | 'top' | 'trending'): Promise<void> {
     const sortButton = this.page.locator('button', { hasText: new RegExp(sortType, 'i') });
-    
+
     if (await sortButton.isVisible()) {
       await sortButton.click();
       // Wait for network activity to settle after sort change
@@ -111,7 +122,7 @@ export class HomePage extends BasePage {
   async scrollToLoadMore(): Promise<void> {
     const previousCount = await this.clipCards.count();
     await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    
+
     // Wait for new clips to appear or timeout
     await this.page.waitForFunction(
       (expectedCount) => {
@@ -149,12 +160,12 @@ export class HomePage extends BasePage {
     const titleLocators = this.page.locator('[data-testid="clip-card"] h2, [data-testid="clip-card"] h3');
     const count = await titleLocators.count();
     const titles: string[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const title = await titleLocators.nth(i).textContent();
       if (title) titles.push(title);
     }
-    
+
     return titles;
   }
 

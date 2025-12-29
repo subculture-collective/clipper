@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChannelSidebar, ChatView, EmptyState } from '@/components/chat';
 import type { Channel } from '@/types/chat';
 import { Spinner } from '@/components/ui/Spinner';
@@ -23,11 +23,7 @@ export function ChatPage() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Fetch channels on mount
-  useEffect(() => {
-    fetchChannels();
-  }, []);
-
-  const fetchChannels = async () => {
+  const fetchChannels = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -95,7 +91,11 @@ export function ChatPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedChannel]);
+
+  useEffect(() => {
+    fetchChannels();
+  }, [fetchChannels]);
 
   const handleSelectChannel = (channelId: string) => {
     setSelectedChannel(channelId);

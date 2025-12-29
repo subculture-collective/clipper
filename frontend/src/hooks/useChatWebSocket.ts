@@ -102,7 +102,9 @@ export function useChatWebSocket({
   useEffect(() => {
     // Store connect in ref so it can be called recursively
     connectRef.current = connect;
-    connect();
+    queueMicrotask(() => {
+      connect();
+    });
 
     return () => {
       if (reconnectTimeoutRef.current) {

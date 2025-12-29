@@ -2,22 +2,22 @@ import { Page, Locator, expect } from '@playwright/test';
 
 /**
  * BasePage - Abstract base class for all Page Objects
- * 
+ *
  * Provides common functionality and utilities for Page Object Model pattern:
  * - Navigation helpers
  * - Wait utilities
  * - Element interaction methods
  * - Screenshot and debug helpers
- * 
+ *
  * All page objects should extend this class.
- * 
+ *
  * @example
  * ```typescript
  * export class LoginPage extends BasePage {
  *   constructor(page: Page) {
  *     super(page, '/login');
  *   }
- * 
+ *
  *   async login(username: string, password: string) {
  *     await this.goto();
  *     await this.fillInput('[name="username"]', username);

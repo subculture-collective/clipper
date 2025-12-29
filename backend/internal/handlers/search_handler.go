@@ -52,23 +52,22 @@ func NewSearchHandlerWithHybridSearch(searchRepo *repository.SearchRepository, h
 	}
 }
 
-
 // parseIntQueryParam safely parses an integer query parameter with default value and bounds
 func parseIntQueryParam(c *gin.Context, key string, defaultValue, min, max int) int {
 	valueStr := c.Query(key)
 	if valueStr == "" {
-	return defaultValue
+		return defaultValue
 	}
-	
+
 	var value int
 	if _, err := fmt.Sscanf(valueStr, "%d", &value); err != nil {
-	return defaultValue
+		return defaultValue
 	}
-	
+
 	if value < min || value > max {
-	return defaultValue
+		return defaultValue
 	}
-	
+
 	return value
 }
 
@@ -109,6 +108,8 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	}
 
 	if err != nil {
+		// Log the actual error for debugging
+		fmt.Printf("Search error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to perform search",
 		})
@@ -251,19 +252,19 @@ func (h *SearchHandler) GetTrendingSearches(c *gin.Context) {
 
 	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
-searches, err := h.searchRepo.GetTrendingSearches(c.Request.Context(), days, limit)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get trending searches",
-})
-return
-}
+	searches, err := h.searchRepo.GetTrendingSearches(c.Request.Context(), days, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get trending searches",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"trending_searches": searches,
-"days":              days,
-"limit":             limit,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"trending_searches": searches,
+		"days":              days,
+		"limit":             limit,
+	})
 }
 
 // GetFailedSearches returns searches that returned no results
@@ -273,89 +274,89 @@ func (h *SearchHandler) GetFailedSearches(c *gin.Context) {
 
 	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
-searches, err := h.searchRepo.GetFailedSearches(c.Request.Context(), days, limit)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get failed searches",
-})
-return
-}
+	searches, err := h.searchRepo.GetFailedSearches(c.Request.Context(), days, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get failed searches",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"failed_searches": searches,
-"days":            days,
-"limit":           limit,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"failed_searches": searches,
+		"days":            days,
+		"limit":           limit,
+	})
 }
 
 // GetSearchHistory returns a user's recent search queries
 // GET /api/v1/search/history
 func (h *SearchHandler) GetSearchHistory(c *gin.Context) {
-// Get user from context (requires authentication)
-userVal, exists := c.Get("user")
-if !exists {
-c.JSON(http.StatusUnauthorized, gin.H{
-"error": "Authentication required",
-})
-return
-}
+	// Get user from context (requires authentication)
+	userVal, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
 
-user, ok := userVal.(*models.User)
-if !ok {
-c.JSON(http.StatusUnauthorized, gin.H{
-"error": "Invalid user context",
-})
-return
-}
+	user, ok := userVal.(*models.User)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid user context",
+		})
+		return
+	}
 
 	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
-history, err := h.searchRepo.GetUserSearchHistory(c.Request.Context(), user.ID, limit)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get search history",
-})
-return
-}
+	history, err := h.searchRepo.GetUserSearchHistory(c.Request.Context(), user.ID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get search history",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"search_history": history,
-"limit":          limit,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"search_history": history,
+		"limit":          limit,
+	})
 }
 
 // GetSearchAnalytics returns overall search analytics (admin only)
 // GET /api/v1/search/analytics
 func (h *SearchHandler) GetSearchAnalytics(c *gin.Context) {
-// Check if user is admin (requires authentication and admin role)
-userVal, exists := c.Get("user")
-if !exists {
-c.JSON(http.StatusUnauthorized, gin.H{
-"error": "Authentication required",
-})
-return
-}
+	// Check if user is admin (requires authentication and admin role)
+	userVal, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
 
-user, ok := userVal.(*models.User)
-if !ok || user.Role != "admin" {
-c.JSON(http.StatusForbidden, gin.H{
-"error": "Admin access required",
-})
-return
-}
+	user, ok := userVal.(*models.User)
+	if !ok || user.Role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Admin access required",
+		})
+		return
+	}
 
 	days := parseIntQueryParam(c, "days", 7, 1, 365)
 
-summary, err := h.searchRepo.GetSearchAnalyticsSummary(c.Request.Context(), days)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get search analytics",
-})
-return
-}
+	summary, err := h.searchRepo.GetSearchAnalyticsSummary(c.Request.Context(), days)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get search analytics",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"analytics": summary,
-"days":      days,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"analytics": summary,
+		"days":      days,
+	})
 }

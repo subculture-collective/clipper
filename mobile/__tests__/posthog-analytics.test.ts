@@ -52,11 +52,12 @@ describe('PostHog Analytics Integration', () => {
   };
   let AsyncStorage: any;
 
-  beforeAll(() => {
-    // Import AsyncStorage once
-    AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  beforeEach(() => {
+    // Reset module state between tests to avoid stale env/config
+    jest.resetModules();
+    jest.clearAllMocks();
 
-    // Create mock PostHog instance
+    // Fresh mocks per test
     mockPostHogInstance = {
       identify: jest.fn(),
       capture: jest.fn(),
@@ -71,18 +72,25 @@ describe('PostHog Analytics Integration', () => {
       flush: jest.fn(),
     };
 
-    // Mock PostHog constructor
+    // Re-wire PostHog mock to new instance
     (PostHog as unknown as jest.Mock).mockImplementation(() => mockPostHogInstance);
 
-    // Setup environment variables
+    // Import AsyncStorage after module reset
+    AsyncStorage = require('@react-native-async-storage/async-storage').default;
+
+    // Default consent to granted unless overridden in a test
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+      JSON.stringify({ analytics: true })
+    );
+
+      // Debug: ensure env is set for analytics
+      // eslint-disable-next-line no-console
+      console.log('[Test Setup] analytics env', process.env.EXPO_PUBLIC_ENABLE_ANALYTICS, process.env.EXPO_PUBLIC_POSTHOG_API_KEY);
+
+    // Default env for happy-path tests
     process.env.EXPO_PUBLIC_ENABLE_ANALYTICS = 'true';
     process.env.EXPO_PUBLIC_POSTHOG_API_KEY = 'test-api-key';
     process.env.EXPO_PUBLIC_POSTHOG_HOST = 'https://test.posthog.com';
-  });
-
-  beforeEach(() => {
-    // Clear mocks before each test but don't reset modules
-    jest.clearAllMocks();
   });
 
   describe('Initialization', () => {
@@ -151,7 +159,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should identify user with properties', () => {
       const { identifyUser } = require('../lib/analytics');
-      
+
       identifyUser('user123', {
         username: 'testuser',
         role: 'user',
@@ -167,7 +175,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should filter out undefined properties', () => {
       const { identifyUser } = require('../lib/analytics');
-      
+
       identifyUser('user123', {
         username: 'testuser',
         email: undefined as any,
@@ -180,7 +188,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should reset user identity', () => {
       const { resetUser } = require('../lib/analytics');
-      
+
       resetUser();
 
       expect(mockPostHogInstance.reset).toHaveBeenCalled();
@@ -199,7 +207,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should track custom event with properties', () => {
       const { trackEvent } = require('../lib/analytics');
-      
+
       trackEvent('button_clicked', {
         button_name: 'submit',
         location: 'form',
@@ -217,7 +225,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should track screen view', () => {
       const { trackScreenView } = require('../lib/analytics');
-      
+
       trackScreenView('HomeScreen', {
         previous_screen: 'LoginScreen',
       });
@@ -235,7 +243,7 @@ describe('PostHog Analytics Integration', () => {
       const { trackError } = require('../lib/analytics');
       const error = new Error('Test error');
       error.stack = 'Error: Test error\n    at test.ts:1:1';
-      
+
       trackError(error, {
         errorType: 'NetworkError',
         errorCode: 'TIMEOUT',
@@ -254,7 +262,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should not track events when disabled', async () => {
       const { disableAnalytics, trackEvent } = require('../lib/analytics');
-      
+
       await disableAnalytics();
       trackEvent('test_event');
 
@@ -275,7 +283,7 @@ describe('PostHog Analytics Integration', () => {
     it('should get feature flag value', () => {
       mockPostHogInstance.getFeatureFlag.mockReturnValue('variant-a');
       const { getFeatureFlag } = require('../lib/analytics');
-      
+
       const value = getFeatureFlag('test-flag');
 
       expect(mockPostHogInstance.getFeatureFlag).toHaveBeenCalledWith('test-flag');
@@ -285,7 +293,7 @@ describe('PostHog Analytics Integration', () => {
     it('should return default value when flag not found', () => {
       mockPostHogInstance.getFeatureFlag.mockReturnValue(undefined);
       const { getFeatureFlag } = require('../lib/analytics');
-      
+
       const value = getFeatureFlag('test-flag', 'default');
 
       expect(value).toBe('default');
@@ -294,7 +302,7 @@ describe('PostHog Analytics Integration', () => {
     it('should check if feature flag is enabled', () => {
       mockPostHogInstance.isFeatureEnabled.mockReturnValue(true);
       const { isFeatureFlagEnabled } = require('../lib/analytics');
-      
+
       const enabled = isFeatureFlagEnabled('test-flag');
 
       expect(mockPostHogInstance.isFeatureEnabled).toHaveBeenCalledWith('test-flag');
@@ -305,7 +313,7 @@ describe('PostHog Analytics Integration', () => {
       const flags = { 'flag-1': true, 'flag-2': 'variant-b' };
       mockPostHogInstance.getFeatureFlags.mockReturnValue(flags);
       const { getAllFeatureFlags } = require('../lib/analytics');
-      
+
       const result = getAllFeatureFlags();
 
       expect(mockPostHogInstance.getFeatureFlags).toHaveBeenCalled();
@@ -315,7 +323,7 @@ describe('PostHog Analytics Integration', () => {
     it('should reload feature flags', async () => {
       mockPostHogInstance.reloadFeatureFlagsAsync.mockResolvedValue(undefined);
       const { reloadFeatureFlags } = require('../lib/analytics');
-      
+
       await reloadFeatureFlags();
 
       expect(mockPostHogInstance.reloadFeatureFlagsAsync).toHaveBeenCalled();
@@ -379,7 +387,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should identify group with properties', () => {
       const { groupIdentify } = require('../lib/analytics');
-      
+
       groupIdentify('company', 'acme-corp', {
         name: 'Acme Corp',
         plan: 'enterprise',
@@ -407,7 +415,7 @@ describe('PostHog Analytics Integration', () => {
 
     it('should get PostHog client instance', () => {
       const { getPostHogClient } = require('../lib/analytics');
-      
+
       const client = getPostHogClient();
 
       expect(client).not.toBeNull();
@@ -417,7 +425,7 @@ describe('PostHog Analytics Integration', () => {
     it('should flush pending events', async () => {
       mockPostHogInstance.flush.mockResolvedValue(undefined);
       const { flush } = require('../lib/analytics');
-      
+
       await flush();
 
       expect(mockPostHogInstance.flush).toHaveBeenCalled();

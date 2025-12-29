@@ -2,7 +2,7 @@ import { Page } from '@playwright/test';
 
 /**
  * Social Features Testing Utilities
- * 
+ *
  * Provides functions for testing social features:
  * - Comments (CRUD, moderation, voting)
  * - Voting (upvote/downvote with anti-abuse)
@@ -10,16 +10,64 @@ import { Page } from '@playwright/test';
  * - Playlist management (CRUD, sharing, permissions)
  * - User blocking and visibility
  * - Rate limiting behavior
- * 
+ *
  * @example
  * ```typescript
  * import { createComment, voteOnComment, followUser } from '@utils/social-features';
- * 
+ *
  * const comment = await createComment(page, { clipId: '123', content: 'Great clip!' });
  * await voteOnComment(page, comment.id, 1);
  * await followUser(page, 'targetUserId');
  * ```
  */
+
+// Use page-context fetch so page.route mocks apply to API calls
+// Falls back to page.request if page context isn't ready
+async function fetchJson(
+  page: Page,
+  url: string,
+  init?: { method?: string; headers?: Record<string, string>; body?: any }
+): Promise<{ ok: boolean; status: number; json: any }> {
+  try {
+    // Try page-context fetch first (allows route mocking)
+    return await page.evaluate(async ({ url, init }) => {
+      const res = await fetch(url, init);
+      const ok = res.ok;
+      const status = res.status;
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+      return { ok, status, json };
+    }, { url, init });
+  } catch (evalError) {
+    // Fallback to page.request if page-context fetch fails
+    // (e.g., page not navigated yet, CORS, etc.)
+    try {
+      const method = init?.method || 'GET';
+      const response = await page.request.fetch(url, {
+        method,
+        headers: init?.headers,
+        data: init?.body ? JSON.parse(init.body) : undefined,
+      });
+
+      const ok = response.ok();
+      const status = response.status();
+      let json: any = null;
+      try {
+        json = await response.json();
+      } catch {
+        json = null;
+      }
+      return { ok, status, json };
+    } catch (fallbackError) {
+      // Return a failed fetch response
+      return { ok: false, status: 0, json: null };
+    }
+  }
+}
 
 // Configuration constants
 const DEFAULT_RATE_LIMIT_ATTEMPTS = 20; // Number of rapid actions to trigger rate limit
@@ -63,11 +111,46 @@ function getApiBaseUrl(): string {
 
 /**
  * Extract authentication token from page context
+ * Safely handles malformed JSON or non-string values
  */
 async function getAuthToken(page: Page): Promise<string | null> {
   try {
     const token = await page.evaluate(() => {
-      return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const authTokensJson = localStorage.getItem('auth_tokens') || sessionStorage.getItem('auth_tokens');
+      if (authTokensJson) {
+        try {
+          const parsed = JSON.parse(authTokensJson);
+          if (parsed?.accessToken) return parsed.accessToken;
+          if (parsed?.access_token) return parsed.access_token;
+        } catch {
+          // fall through to other sources
+        }
+      }
+
+      const localToken = localStorage.getItem('auth_token');
+      const sessionToken = sessionStorage.getItem('auth_token');
+      const rawToken = localToken || sessionToken;
+
+      if (!rawToken) return null;
+
+      // Handle case where token might be a JSON string
+      if (rawToken.startsWith('{') || rawToken.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(rawToken);
+          // If it's an object with an access_token field
+          if (parsed && typeof parsed === 'object' && parsed.access_token) {
+            return parsed.access_token;
+          }
+          // Otherwise return null for malformed structure
+          return null;
+        } catch {
+          // If JSON parse fails, treat as plain token
+          return rawToken;
+        }
+      }
+
+      // Return plain token
+      return rawToken;
     });
     return token;
   } catch {
@@ -85,36 +168,36 @@ async function getAuthToken(page: Page): Promise<string | null> {
 export async function createComment(page: Page, commentData: CommentData): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/clips/${commentData.clipId}/comments`, {
-      data: {
-        content: commentData.content,
-        parent_comment_id: commentData.parentCommentId || null,
-      },
+    const { ok, json } = await fetchJson(page, `${apiUrl}/clips/${commentData.clipId}/comments`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify({
+        content: commentData.content,
+        parent_comment_id: commentData.parentCommentId || null,
+      }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to create comment via API, using mock data');
-      return { 
-        id: `mock-comment-${Date.now()}`, 
+      return {
+        id: `mock-comment-${Date.now()}`,
         ...commentData,
         vote_score: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available, using mock comment data:', error);
-    return { 
-      id: `mock-comment-${Date.now()}`, 
+    return {
+      id: `mock-comment-${Date.now()}`,
       ...commentData,
       vote_score: 0,
       created_at: new Date().toISOString(),
@@ -129,23 +212,23 @@ export async function createComment(page: Page, commentData: CommentData): Promi
 export async function editComment(page: Page, commentId: string, newContent: string): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.patch(`${apiUrl}/comments/${commentId}`, {
-      data: { content: newContent },
+    const { ok, json } = await fetchJson(page, `${apiUrl}/comments/${commentId}`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify({ content: newContent }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to edit comment via API');
       return { id: commentId, content: newContent, edited: true };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for comment edit:', error);
     return { id: commentId, content: newContent, edited: true };
@@ -158,13 +241,17 @@ export async function editComment(page: Page, commentId: string, newContent: str
 export async function deleteComment(page: Page, commentId: string): Promise<void> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    await page.request.delete(`${apiUrl}/comments/${commentId}`, {
+    const { ok } = await fetchJson(page, `${apiUrl}/comments/${commentId}`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
+    if (!ok) {
+      console.warn('Failed to delete comment via API');
+    }
   } catch (error) {
     console.warn('Failed to delete comment:', error);
   }
@@ -176,19 +263,18 @@ export async function deleteComment(page: Page, commentId: string): Promise<void
 export async function getComments(page: Page, clipId: string, options: { sort?: string; limit?: number } = {}): Promise<any[]> {
   const apiUrl = getApiBaseUrl();
   const params = new URLSearchParams({
-    ...(options.sort && { sort: options.sort }),
-    ...(options.limit && { limit: options.limit.toString() }),
+    ...(options.sort ? { sort: options.sort } : {}),
+    ...(options.limit ? { limit: options.limit.toString() } : {}),
   });
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/clips/${clipId}/comments?${params}`);
-    
-    if (!response.ok()) {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/clips/${clipId}/comments?${params}`);
+
+    if (!ok) {
       return [];
     }
-    
-    const result = await response.json();
-    return result.data?.comments || result.comments || [];
+
+    return json?.data?.comments || json?.comments || [];
   } catch (error) {
     console.warn('Failed to get comments:', error);
     return [];
@@ -201,23 +287,23 @@ export async function getComments(page: Page, clipId: string, options: { sort?: 
 export async function voteOnComment(page: Page, commentId: string, voteType: 1 | -1): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/comments/${commentId}/vote`, {
-      data: { vote_type: voteType },
+    const { ok, json } = await fetchJson(page, `${apiUrl}/comments/${commentId}/vote`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify({ vote_type: voteType }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to vote on comment');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for comment vote:', error);
     return { success: false };
@@ -230,13 +316,17 @@ export async function voteOnComment(page: Page, commentId: string, voteType: 1 |
 export async function removeCommentVote(page: Page, commentId: string): Promise<void> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    await page.request.delete(`${apiUrl}/comments/${commentId}/vote`, {
+    const { ok } = await fetchJson(page, `${apiUrl}/comments/${commentId}/vote`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
+    if (!ok) {
+      console.warn('Failed to remove comment vote via API');
+    }
   } catch (error) {
     console.warn('Failed to remove comment vote:', error);
   }
@@ -252,23 +342,23 @@ export async function removeCommentVote(page: Page, commentId: string): Promise<
 export async function voteOnClip(page: Page, clipId: string, voteType: 1 | -1): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/clips/${clipId}/vote`, {
-      data: { vote_type: voteType },
+    const { ok, json } = await fetchJson(page, `${apiUrl}/clips/${clipId}/vote`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify({ vote_type: voteType }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to vote on clip');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for clip vote:', error);
     return { success: false };
@@ -281,13 +371,17 @@ export async function voteOnClip(page: Page, clipId: string, voteType: 1 | -1): 
 export async function removeClipVote(page: Page, clipId: string): Promise<void> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    await page.request.delete(`${apiUrl}/clips/${clipId}/vote`, {
+    const { ok } = await fetchJson(page, `${apiUrl}/clips/${clipId}/vote`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
+    if (!ok) {
+      console.warn('Failed to remove clip vote via API');
+    }
   } catch (error) {
     console.warn('Failed to remove clip vote:', error);
   }
@@ -299,23 +393,22 @@ export async function removeClipVote(page: Page, clipId: string): Promise<void> 
 export async function getClipVoteStatus(page: Page, clipId: string): Promise<{ user_vote: number | null; vote_score: number }> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/clips/${clipId}`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/clips/${clipId}`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return { user_vote: null, vote_score: 0 };
     }
-    
-    const result = await response.json();
-    const clip = result.data || result;
+
+    const clip = json?.data || json || {};
     return {
-      user_vote: clip.user_vote || null,
-      vote_score: clip.vote_score || 0,
+      user_vote: clip.user_vote ?? null,
+      vote_score: clip.vote_score ?? 0,
     };
   } catch (error) {
     console.warn('Failed to get clip vote status:', error);
@@ -333,22 +426,22 @@ export async function getClipVoteStatus(page: Page, clipId: string): Promise<{ u
 export async function followUser(page: Page, targetUserId: string): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/users/${targetUserId}/follow`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/users/${targetUserId}/follow`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to follow user');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for following user:', error);
     return { success: false };
@@ -361,21 +454,21 @@ export async function followUser(page: Page, targetUserId: string): Promise<any>
 export async function unfollowUser(page: Page, targetUserId: string): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.delete(`${apiUrl}/users/${targetUserId}/follow`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/users/${targetUserId}/follow`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to unfollow user');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for unfollowing user:', error);
     return { success: false };
@@ -388,20 +481,19 @@ export async function unfollowUser(page: Page, targetUserId: string): Promise<an
 export async function getFollowingStatus(page: Page, targetUserId: string): Promise<boolean> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/users/${targetUserId}/follow-status`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/users/${targetUserId}/follow-status`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return false;
     }
-    
-    const result = await response.json();
-    return result.is_following || false;
+
+    return json?.is_following ?? false;
   } catch (error) {
     console.warn('Failed to get following status:', error);
     return false;
@@ -418,20 +510,19 @@ export async function getFollowingFeed(page: Page, options: { page?: number; lim
     page: (options.page || 1).toString(),
     limit: (options.limit || 20).toString(),
   });
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/feed/following?${params}`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/feed/following?${params}`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return [];
     }
-    
-    const result = await response.json();
-    return result.data?.clips || result.clips || [];
+
+    return json?.data?.clips || json?.clips || [];
   } catch (error) {
     console.warn('Failed to get following feed:', error);
     return [];
@@ -448,22 +539,23 @@ export async function getFollowingFeed(page: Page, options: { page?: number; lim
 export async function createPlaylist(page: Page, playlistData: PlaylistData): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/playlists`, {
-      data: {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/playlists`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
         title: playlistData.title,
         description: playlistData.description || '',
         visibility: playlistData.visibility || 'private',
         cover_url: playlistData.coverUrl,
-      },
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
+      }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to create playlist via API, using mock data');
       return {
         id: `mock-playlist-${Date.now()}`,
@@ -472,9 +564,8 @@ export async function createPlaylist(page: Page, playlistData: PlaylistData): Pr
         updated_at: new Date().toISOString(),
       };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available, using mock playlist data:', error);
     return {
@@ -492,23 +583,23 @@ export async function createPlaylist(page: Page, playlistData: PlaylistData): Pr
 export async function updatePlaylist(page: Page, playlistId: string, updates: Partial<PlaylistData>): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.patch(`${apiUrl}/playlists/${playlistId}`, {
-      data: updates,
+    const { ok, json } = await fetchJson(page, `${apiUrl}/playlists/${playlistId}`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify(updates),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to update playlist');
       return { id: playlistId, ...updates };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for playlist update:', error);
     return { id: playlistId, ...updates };
@@ -521,13 +612,17 @@ export async function updatePlaylist(page: Page, playlistId: string, updates: Pa
 export async function deletePlaylist(page: Page, playlistId: string): Promise<void> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    await page.request.delete(`${apiUrl}/playlists/${playlistId}`, {
+    const { ok } = await fetchJson(page, `${apiUrl}/playlists/${playlistId}`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
+    if (!ok) {
+      console.warn('Failed to delete playlist via API');
+    }
   } catch (error) {
     console.warn('Failed to delete playlist:', error);
   }
@@ -539,23 +634,23 @@ export async function deletePlaylist(page: Page, playlistId: string): Promise<vo
 export async function addClipsToPlaylist(page: Page, playlistId: string, clipIds: string[]): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/playlists/${playlistId}/clips`, {
-      data: { clip_ids: clipIds },
+    const { ok, json } = await fetchJson(page, `${apiUrl}/playlists/${playlistId}/clips`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify({ clip_ids: clipIds }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to add clips to playlist');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for adding clips:', error);
     return { success: false };
@@ -568,13 +663,17 @@ export async function addClipsToPlaylist(page: Page, playlistId: string, clipIds
 export async function removeClipFromPlaylist(page: Page, playlistId: string, clipId: string): Promise<void> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    await page.request.delete(`${apiUrl}/playlists/${playlistId}/clips/${clipId}`, {
+    const { ok } = await fetchJson(page, `${apiUrl}/playlists/${playlistId}/clips/${clipId}`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
+    if (!ok) {
+      console.warn('Failed to remove clip from playlist via API');
+    }
   } catch (error) {
     console.warn('Failed to remove clip from playlist:', error);
   }
@@ -586,20 +685,19 @@ export async function removeClipFromPlaylist(page: Page, playlistId: string, cli
 export async function getPlaylistShareLink(page: Page, playlistId: string): Promise<string | null> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/playlists/${playlistId}/share`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/playlists/${playlistId}/share`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return null;
     }
-    
-    const result = await response.json();
-    return result.share_url || result.data?.share_url || null;
+
+    return json?.share_url || json?.data?.share_url || null;
   } catch (error) {
     console.warn('Failed to get playlist share link:', error);
     return null;
@@ -619,20 +717,19 @@ export async function updatePlaylistVisibility(page: Page, playlistId: string, v
 export async function getPlaylist(page: Page, playlistId: string): Promise<any | null> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/playlists/${playlistId}`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/playlists/${playlistId}`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return null;
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('Failed to get playlist:', error);
     return null;
@@ -645,15 +742,15 @@ export async function getPlaylist(page: Page, playlistId: string): Promise<any |
 export async function validatePlaylistAccess(page: Page, playlistId: string, expectedStatus: number = 200): Promise<boolean> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/playlists/${playlistId}`, {
+    const { status } = await fetchJson(page, `${apiUrl}/playlists/${playlistId}`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    return response.status() === expectedStatus;
+
+    return status === expectedStatus;
   } catch (error) {
     console.warn('Failed to validate playlist access:', error);
     return false;
@@ -670,23 +767,23 @@ export async function validatePlaylistAccess(page: Page, playlistId: string, exp
 export async function blockUser(page: Page, targetUserId: string, reason?: string): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/users/${targetUserId}/block`, {
-      data: { reason },
+    const { ok, json } = await fetchJson(page, `${apiUrl}/users/${targetUserId}/block`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify({ reason }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to block user');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for blocking user:', error);
     return { success: false };
@@ -699,21 +796,21 @@ export async function blockUser(page: Page, targetUserId: string, reason?: strin
 export async function unblockUser(page: Page, targetUserId: string): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.delete(`${apiUrl}/users/${targetUserId}/block`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/users/${targetUserId}/block`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to unblock user');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for unblocking user:', error);
     return { success: false };
@@ -726,20 +823,19 @@ export async function unblockUser(page: Page, targetUserId: string): Promise<any
 export async function isUserBlocked(page: Page, targetUserId: string): Promise<boolean> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/users/${targetUserId}/block-status`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/users/${targetUserId}/block-status`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return false;
     }
-    
-    const result = await response.json();
-    return result.is_blocked || false;
+
+    return json?.is_blocked ?? false;
   } catch (error) {
     console.warn('Failed to get block status:', error);
     return false;
@@ -752,20 +848,19 @@ export async function isUserBlocked(page: Page, targetUserId: string): Promise<b
 export async function getBlockedUsers(page: Page): Promise<any[]> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/users/blocked`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/users/blocked`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return [];
     }
-    
-    const result = await response.json();
-    return result.data?.users || result.users || [];
+
+    return json?.data?.users || json?.users || [];
   } catch (error) {
     console.warn('Failed to get blocked users:', error);
     return [];
@@ -778,29 +873,29 @@ export async function getBlockedUsers(page: Page): Promise<any[]> {
 
 /**
  * Trigger rate limit by performing rapid actions
- * 
+ *
  * @param page - Playwright Page object
  * @param action - Type of action to perform ('comment' | 'vote' | 'follow')
  * @param targetId - ID of the target (clip or user)
  * @param attempts - Number of rapid attempts (default: 20, empirically determined to trigger most rate limits)
  * @returns Object indicating if rate limit was triggered and the response
- * 
+ *
  * Note: The default 20 attempts with 50ms delay between each is designed to trigger
  * typical rate limits while keeping test execution time reasonable (~1 second total).
  * Adjust these values based on your specific rate limit configuration.
- * 
+ *
  * Warning: This function creates test data (comments) that are not automatically cleaned up.
  * Consider using a dedicated test endpoint that doesn't persist data, or manually clean up
  * test comments after rate limit tests complete.
  */
 export async function triggerRateLimit(
-  page: Page, 
+  page: Page,
   action: 'comment' | 'vote' | 'follow',
   targetId: string,
   attempts: number = DEFAULT_RATE_LIMIT_ATTEMPTS
 ): Promise<{ triggered: boolean; response?: any }> {
   let lastResponse: any = null;
-  
+
   for (let i = 0; i < attempts; i++) {
     try {
       if (action === 'comment') {
@@ -813,14 +908,14 @@ export async function triggerRateLimit(
       } else if (action === 'follow') {
         lastResponse = await followUser(page, targetId);
       }
-      
+
       // Check if we got a rate limit response
-      if (lastResponse?.error?.includes('rate limit') || 
+      if (lastResponse?.error?.includes('rate limit') ||
           lastResponse?.message?.includes('rate limit') ||
           lastResponse?.status === 429) {
         return { triggered: true, response: lastResponse };
       }
-      
+
       // Small delay between attempts to prevent overwhelming the server
       // while still being fast enough to trigger rate limits
       await page.waitForTimeout(RATE_LIMIT_DELAY_MS);
@@ -831,7 +926,7 @@ export async function triggerRateLimit(
       }
     }
   }
-  
+
   return { triggered: false, response: lastResponse };
 }
 
@@ -847,7 +942,7 @@ export async function verifyRateLimitMessage(page: Page, expectedMessage?: strin
       '.rate-limit-error',
       '.error-toast',
     ];
-    
+
     for (const selector of rateLimitSelectors) {
       const element = page.locator(selector);
       if (await element.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -858,7 +953,7 @@ export async function verifyRateLimitMessage(page: Page, expectedMessage?: strin
         return true;
       }
     }
-    
+
     return false;
   } catch (error) {
     console.warn('Failed to verify rate limit message:', error);
@@ -868,13 +963,13 @@ export async function verifyRateLimitMessage(page: Page, expectedMessage?: strin
 
 /**
  * Wait for rate limit to clear using exponential backoff
- * 
+ *
  * @param page - Playwright Page object
  * @param maxWaitMs - Maximum time to wait in milliseconds (default: 60 seconds)
- * 
+ *
  * Uses exponential backoff starting at 1 second, doubling each attempt up to 10 seconds.
  * This pattern is recommended for handling rate limits gracefully while not overloading the server.
- * 
+ *
  * Note: This function uses the /health endpoint to check if rate limiting has cleared.
  * Health endpoints are typically exempt from rate limiting. In production, consider using
  * a lightweight endpoint that is subject to rate limiting, or accept that this function
@@ -883,29 +978,29 @@ export async function verifyRateLimitMessage(page: Page, expectedMessage?: strin
 export async function waitForRateLimitClear(page: Page, maxWaitMs: number = MAX_RATE_LIMIT_WAIT_MS): Promise<void> {
   const startTime = Date.now();
   let delay = RATE_LIMIT_BACKOFF_START_MS;
-  
+
   while (Date.now() - startTime < maxWaitMs) {
     await page.waitForTimeout(delay);
     delay = Math.min(delay * 2, RATE_LIMIT_BACKOFF_MAX_MS); // Exponential backoff with cap
-    
+
     // Check if rate limit has cleared by making a simple request
     try {
       const apiUrl = getApiBaseUrl();
       const token = await getAuthToken(page);
-      const response = await page.request.get(`${apiUrl}/health`, {
+      const { ok } = await fetchJson(page, `${apiUrl}/health`, {
         headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
       });
-      
-      if (response.ok()) {
+
+      if (ok) {
         return; // Rate limit cleared
       }
     } catch {
       // Continue waiting
     }
   }
-  
+
   console.warn('Rate limit did not clear within timeout period');
 }
 
@@ -953,29 +1048,29 @@ function createMockWatchParty(watchPartyData: WatchPartyData): any {
 export async function createWatchParty(page: Page, watchPartyData: WatchPartyData): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/watch-parties`, {
-      data: {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/watch-parties`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
         title: watchPartyData.title,
         playlist_id: watchPartyData.playlistId,
         visibility: watchPartyData.visibility || 'private',
         max_participants: watchPartyData.maxParticipants,
         password: watchPartyData.password,
-      },
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
+      }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to create watch party via API, using mock data');
       return createMockWatchParty(watchPartyData);
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available, using mock watch party data:', error);
     return createMockWatchParty(watchPartyData);
@@ -988,25 +1083,25 @@ export async function createWatchParty(page: Page, watchPartyData: WatchPartyDat
 export async function joinWatchParty(page: Page, partyIdOrCode: string, password?: string): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.post(`${apiUrl}/watch-parties/${partyIdOrCode}/join`, {
-      data: {
-        ...(password && { password }),
-      },
+    const { ok, json } = await fetchJson(page, `${apiUrl}/watch-parties/${partyIdOrCode}/join`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify({
+        ...(password ? { password } : {}),
+      }),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to join watch party');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for joining watch party:', error);
     return { success: false };
@@ -1019,13 +1114,17 @@ export async function joinWatchParty(page: Page, partyIdOrCode: string, password
 export async function leaveWatchParty(page: Page, partyId: string): Promise<void> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    await page.request.delete(`${apiUrl}/watch-parties/${partyId}/leave`, {
+    const { ok } = await fetchJson(page, `${apiUrl}/watch-parties/${partyId}/leave`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
+    if (!ok) {
+      console.warn('Failed to leave watch party via API');
+    }
   } catch (error) {
     console.warn('Failed to leave watch party:', error);
   }
@@ -1037,20 +1136,19 @@ export async function leaveWatchParty(page: Page, partyId: string): Promise<void
 export async function getWatchParty(page: Page, partyId: string): Promise<any | null> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/watch-parties/${partyId}`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/watch-parties/${partyId}`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return null;
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('Failed to get watch party:', error);
     return null;
@@ -1063,20 +1161,19 @@ export async function getWatchParty(page: Page, partyId: string): Promise<any | 
 export async function getWatchPartyParticipants(page: Page, partyId: string): Promise<WatchPartyParticipant[]> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.get(`${apiUrl}/watch-parties/${partyId}/participants`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/watch-parties/${partyId}/participants`, {
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       return [];
     }
-    
-    const result = await response.json();
-    return result.data?.participants || result.participants || [];
+
+    return json?.data?.participants || json?.participants || [];
   } catch (error) {
     console.warn('Failed to get watch party participants:', error);
     return [];
@@ -1089,23 +1186,23 @@ export async function getWatchPartyParticipants(page: Page, partyId: string): Pr
 export async function updateWatchPartySettings(page: Page, partyId: string, settings: Partial<WatchPartyData>): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.patch(`${apiUrl}/watch-parties/${partyId}/settings`, {
-      data: settings,
+    const { ok, json } = await fetchJson(page, `${apiUrl}/watch-parties/${partyId}/settings`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
+      body: JSON.stringify(settings),
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to update watch party settings');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for updating watch party settings:', error);
     return { success: false };
@@ -1118,21 +1215,21 @@ export async function updateWatchPartySettings(page: Page, partyId: string, sett
 export async function kickWatchPartyParticipant(page: Page, partyId: string, participantId: string): Promise<any> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    const response = await page.request.delete(`${apiUrl}/watch-parties/${partyId}/participants/${participantId}`, {
+    const { ok, json } = await fetchJson(page, `${apiUrl}/watch-parties/${partyId}/participants/${participantId}`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    
-    if (!response.ok()) {
+
+    if (!ok) {
       console.warn('Failed to kick participant');
       return { success: false };
     }
-    
-    const result = await response.json();
-    return result.data || result;
+
+    return json?.data || json;
   } catch (error) {
     console.warn('API not available for kicking participant:', error);
     return { success: false };
@@ -1145,13 +1242,17 @@ export async function kickWatchPartyParticipant(page: Page, partyId: string, par
 export async function deleteWatchParty(page: Page, partyId: string): Promise<void> {
   const apiUrl = getApiBaseUrl();
   const token = await getAuthToken(page);
-  
+
   try {
-    await page.request.delete(`${apiUrl}/watch-parties/${partyId}`, {
+    const { ok } = await fetchJson(page, `${apiUrl}/watch-parties/${partyId}`, {
+      method: 'DELETE',
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
+    if (!ok) {
+      console.warn('Failed to delete watch party via API');
+    }
   } catch (error) {
     console.warn('Failed to delete watch party:', error);
   }

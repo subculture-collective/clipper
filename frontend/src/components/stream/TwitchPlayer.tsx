@@ -52,7 +52,8 @@ export function TwitchPlayer({ channel, showChat = false }: TwitchPlayerProps) {
   // Load Twitch Embed SDK script with reference counting
   useEffect(() => {
     if (window.Twitch) {
-      setIsScriptLoaded(true);
+      // Use queueMicrotask to defer setState after render
+      queueMicrotask(() => setIsScriptLoaded(true));
       return;
     }
 
@@ -61,7 +62,7 @@ export function TwitchPlayer({ channel, showChat = false }: TwitchPlayerProps) {
     if (existingScript) {
       // Script exists, wait for it to load
       const handleLoad = () => {
-        setIsScriptLoaded(true);
+        queueMicrotask(() => setIsScriptLoaded(true));
         existingScript.removeEventListener('load', handleLoad);
       };
       existingScript.addEventListener('load', handleLoad);
@@ -72,7 +73,7 @@ export function TwitchPlayer({ channel, showChat = false }: TwitchPlayerProps) {
     const script = document.createElement('script');
     script.src = 'https://embed.twitch.tv/embed/v1.js';
     script.async = true;
-    script.onload = () => setIsScriptLoaded(true);
+    script.onload = () => queueMicrotask(() => setIsScriptLoaded(true));
     script.onerror = () => {
       console.error('Failed to load Twitch Embed SDK');
     };

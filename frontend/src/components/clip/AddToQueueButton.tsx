@@ -24,7 +24,7 @@ export function AddToQueueButton({
                 at_end: true,
             });
             toast.success('Added to queue');
-        } catch (error) {
+        } catch {
             toast.error('Failed to add to queue');
         }
     };
