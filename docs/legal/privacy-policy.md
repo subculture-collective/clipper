@@ -349,6 +349,7 @@ We share information with trusted third-party service providers who process data
   - Purpose: Authenticate users, access Twitch clips and channel data
   - Location: United States
   - Privacy Policy: <https://www.twitch.tv/p/legal/privacy-notice/>
+  - **Twitch Compliance:** We use ONLY official Twitch APIs and embeds. We do NOT re-host, download, or proxy Twitch video content. All clip playback occurs through official Twitch embeds. See our [Twitch Compliance Documentation](/docs/compliance/) for full details.
 
 **Error Tracking:**
 - **Sentry** (error monitoring, crash reporting)

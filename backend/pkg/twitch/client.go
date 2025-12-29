@@ -1,5 +1,19 @@
 package twitch
 
+// TWITCH COMPLIANCE:
+// This package implements Twitch API integration following Twitch's Developer Services Agreement.
+// See: https://legal.twitch.com/legal/developer-agreement/
+// See: https://dev.twitch.tv/docs/api/
+// See: docs/compliance/twitch-api-usage.md for full compliance documentation
+//
+// COMPLIANCE REQUIREMENTS:
+// - Uses ONLY official Twitch Helix API (no scraping, no unofficial endpoints)
+// - Respects 800 requests/minute rate limit via token bucket algorithm
+// - Implements proper caching to reduce API load
+// - Handles authentication via OAuth 2.0 (app access tokens + user access tokens)
+// - Never re-hosts or proxies video files (only metadata)
+// - Stores only public data or user-authorized data
+
 import (
 	"context"
 	"fmt"
@@ -14,7 +28,14 @@ import (
 )
 
 const (
-	baseURL         = "https://api.twitch.tv/helix"
+	// baseURL is the official Twitch Helix API endpoint
+	// COMPLIANCE: Must ONLY use official Twitch API endpoints
+	// See: https://dev.twitch.tv/docs/api/reference
+	baseURL = "https://api.twitch.tv/helix"
+
+	// rateLimitPerMin enforces Twitch's rate limit of 800 requests per minute
+	// COMPLIANCE: Twitch enforces 800 req/min limit, we must respect it
+	// See: https://dev.twitch.tv/docs/api/guide/#rate-limits
 	rateLimitPerMin = 800
 )
 
