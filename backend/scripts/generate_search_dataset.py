@@ -334,7 +334,7 @@ def generate_dataset():
     dataset = {
         "version": "2.0",
         "description": "Expanded labeled evaluation dataset with 500+ queries for semantic search quality metrics",
-        "created_at": "2024-10-28",
+        "created_at": datetime.now().strftime("%Y-%m-%d"),
         "last_updated": datetime.now().strftime("%Y-%m-%d"),
         "evaluation_queries": queries,
         "metric_targets": {
