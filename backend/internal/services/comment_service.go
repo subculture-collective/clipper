@@ -42,10 +42,11 @@ type CommentService struct {
 	markdown            goldmark.Markdown
 	sanitizer           *bluemonday.Policy
 	notificationService *NotificationService
+	toxicityClassifier  *ToxicityClassifier
 }
 
 // NewCommentService creates a new CommentService
-func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository, userRepo *repository.UserRepository, notificationService *NotificationService) *CommentService {
+func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository, userRepo *repository.UserRepository, notificationService *NotificationService, toxicityClassifier *ToxicityClassifier) *CommentService {
 	// Configure markdown processor
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -80,6 +81,7 @@ func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.
 		markdown:            md,
 		sanitizer:           sanitizer,
 		notificationService: notificationService,
+		toxicityClassifier:  toxicityClassifier,
 	}
 }
 
@@ -216,6 +218,33 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 			// Log error but don't fail the comment creation
 			fmt.Printf("Warning: failed to send reply notification: %v\n", err)
 		}
+	}
+
+	// Perform toxicity classification (async - don't block comment creation)
+	if s.toxicityClassifier != nil {
+		go func() {
+			// Create a new context with timeout for async processing
+			asyncCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			// Classify the comment content
+			score, err := s.toxicityClassifier.ClassifyComment(asyncCtx, comment.Content)
+			if err != nil {
+				// Log error but don't fail - this is a non-critical enhancement
+				fmt.Printf("Warning: failed to classify comment %s for toxicity: %v\n", comment.ID, err)
+				return
+			}
+
+			// Record the prediction for metrics
+			if err := s.toxicityClassifier.RecordPrediction(asyncCtx, comment.ID, score); err != nil {
+				fmt.Printf("Warning: failed to record toxicity prediction for comment %s: %v\n", comment.ID, err)
+				// Continue even if recording fails
+			}
+
+			// Note: The database trigger will automatically add high-confidence toxic comments
+			// to the moderation queue when RecordPrediction inserts into toxicity_predictions.
+			// No need to call AddToModerationQueue explicitly here.
+		}()
 	}
 
 	// Fetch the complete comment with author info and vote status

@@ -210,7 +210,17 @@ func main() {
 	}
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
-	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService)
+	
+	// Initialize toxicity classifier
+	toxicityClassifier := services.NewToxicityClassifier(
+		cfg.Toxicity.APIKey,
+		cfg.Toxicity.APIURL,
+		cfg.Toxicity.Enabled,
+		cfg.Toxicity.Threshold,
+		db.Pool,
+	)
+	
+	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService, toxicityClassifier)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
@@ -424,7 +434,7 @@ func main() {
 		abuseDetector := submissionService.GetAbuseDetector()
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, db.Pool)
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, db.Pool)
 		}
 	}
 
@@ -1558,6 +1568,9 @@ func main() {
 					// Audit logs and analytics
 					moderation.GET("/audit", moderationHandler.GetModerationAuditLogs)
 					moderation.GET("/analytics", moderationHandler.GetModerationAnalytics)
+					
+					// Toxicity classification metrics
+					moderation.GET("/toxicity/metrics", moderationHandler.GetToxicityMetrics)
 				}
 			}
 

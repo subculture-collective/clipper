@@ -22,14 +22,16 @@ const (
 type ModerationHandler struct {
 	moderationEventService *services.ModerationEventService
 	abuseDetector          *services.SubmissionAbuseDetector
+	toxicityClassifier     *services.ToxicityClassifier
 	db                     *pgxpool.Pool
 }
 
 // NewModerationHandler creates a new ModerationHandler
-func NewModerationHandler(moderationEventService *services.ModerationEventService, abuseDetector *services.SubmissionAbuseDetector, db *pgxpool.Pool) *ModerationHandler {
+func NewModerationHandler(moderationEventService *services.ModerationEventService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
 		moderationEventService: moderationEventService,
 		abuseDetector:          abuseDetector,
+		toxicityClassifier:     toxicityClassifier,
 		db:                     db,
 	}
 }
@@ -1350,3 +1352,65 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 		"data":    analytics,
 	})
 }
+
+// GetToxicityMetrics retrieves toxicity classification metrics
+// GET /admin/moderation/toxicity/metrics
+func (h *ModerationHandler) GetToxicityMetrics(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Parse query parameters for date range
+	startDateStr := c.Query("start_date")
+	endDateStr := c.Query("end_date")
+
+	// Default to last 30 days if not specified
+	var startDate, endDate time.Time
+	if startDateStr == "" {
+		startDate = time.Now().AddDate(0, 0, -30)
+	} else {
+		parsed, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid start_date format. Use YYYY-MM-DD",
+			})
+			return
+		}
+		startDate = parsed
+	}
+
+	if endDateStr == "" {
+		endDate = time.Now()
+	} else {
+		parsed, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid end_date format. Use YYYY-MM-DD",
+			})
+			return
+		}
+		endDate = parsed.Add(24 * time.Hour) // Include the end date
+	}
+
+	// Get metrics from toxicity classifier
+	if h.toxicityClassifier == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Toxicity classification service not available",
+		})
+		return
+	}
+
+	metrics, err := h.toxicityClassifier.GetMetrics(ctx, startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve toxicity metrics",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"data":       metrics,
+		"start_date": startDate.Format("2006-01-02"),
+		"end_date":   endDate.Format("2006-01-02"),
+	})
+}
+
