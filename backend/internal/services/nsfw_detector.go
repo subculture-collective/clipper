@@ -7,12 +7,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	nsfwMetricsOnce      sync.Once
+	nsfwDetectionCounter *prometheus.CounterVec
+	nsfwLatencyHistogram prometheus.Histogram
+	nsfwFlaggedCounter   *prometheus.CounterVec
+	nsfwErrorCounter     *prometheus.CounterVec
 )
 
 // NSFWDetector handles NSFW detection for images/thumbnails
@@ -26,12 +35,6 @@ type NSFWDetector struct {
 	autoFlag       bool
 	maxLatencyMs   int
 	db             *pgxpool.Pool
-	
-	// Metrics (may be nil in tests)
-	detectionCounter   *prometheus.CounterVec
-	latencyHistogram   prometheus.Histogram
-	flaggedCounter     *prometheus.CounterVec
-	errorCounter       *prometheus.CounterVec
 }
 
 // NSFWScore represents the result of NSFW detection
@@ -66,57 +69,47 @@ func NewNSFWDetector(
 		db:             db,
 	}
 	
-	// Initialize Prometheus metrics only in production
-	// (skip in tests to avoid duplicate registration)
+	// Initialize Prometheus metrics once
 	detector.initMetrics()
 	
 	return detector
 }
 
-// initMetrics initializes Prometheus metrics
+// initMetrics initializes Prometheus metrics using sync.Once
 func (nd *NSFWDetector) initMetrics() {
-	// Safely initialize metrics, catching panics from duplicate registration
-	defer func() {
-		if r := recover(); r != nil {
-			// Metrics already registered, skip
-			nd.detectionCounter = nil
-			nd.latencyHistogram = nil
-			nd.flaggedCounter = nil
-			nd.errorCounter = nil
-		}
-	}()
-	
-	nd.detectionCounter = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "nsfw_detection_total",
-			Help: "Total number of NSFW detections performed",
-		},
-		[]string{"result"},
-	)
-	
-	nd.latencyHistogram = promauto.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:    "nsfw_detection_latency_ms",
-			Help:    "Latency of NSFW detection in milliseconds",
-			Buckets: []float64{10, 25, 50, 100, 150, 200, 300, 500, 1000},
-		},
-	)
-	
-	nd.flaggedCounter = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "nsfw_content_flagged_total",
-			Help: "Total number of NSFW content flagged",
-		},
-		[]string{"content_type"},
-	)
-	
-	nd.errorCounter = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "nsfw_detection_errors_total",
-			Help: "Total number of NSFW detection errors",
-		},
-		[]string{"error_type"},
-	)
+	nsfwMetricsOnce.Do(func() {
+		nsfwDetectionCounter = promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "nsfw_detection_total",
+				Help: "Total number of NSFW detections performed",
+			},
+			[]string{"result"},
+		)
+		
+		nsfwLatencyHistogram = promauto.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:    "nsfw_detection_latency_ms",
+				Help:    "Latency of NSFW detection in milliseconds",
+				Buckets: []float64{10, 25, 50, 100, 150, 200, 300, 500, 1000},
+			},
+		)
+		
+		nsfwFlaggedCounter = promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "nsfw_content_flagged_total",
+				Help: "Total number of NSFW content flagged",
+			},
+			[]string{"content_type"},
+		)
+		
+		nsfwErrorCounter = promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "nsfw_detection_errors_total",
+				Help: "Total number of NSFW detection errors",
+			},
+			[]string{"error_type"},
+		)
+	})
 }
 
 // DetectImage analyzes an image for NSFW content
@@ -147,8 +140,8 @@ func (nd *NSFWDetector) DetectImage(ctx context.Context, imageURL string) (*NSFW
 	
 	// Record latency
 	latencyMs := time.Since(startTime).Milliseconds()
-	if nd.latencyHistogram != nil {
-		nd.latencyHistogram.Observe(float64(latencyMs))
+	if nsfwLatencyHistogram != nil {
+		nsfwLatencyHistogram.Observe(float64(latencyMs))
 	}
 	
 	if score != nil {
@@ -157,20 +150,20 @@ func (nd *NSFWDetector) DetectImage(ctx context.Context, imageURL string) (*NSFW
 	
 	// Record detection result
 	if err != nil {
-		if nd.errorCounter != nil {
-			nd.errorCounter.WithLabelValues("detection_error").Inc()
+		if nsfwErrorCounter != nil {
+			nsfwErrorCounter.WithLabelValues("detection_error").Inc()
 		}
-		if nd.detectionCounter != nil {
-			nd.detectionCounter.WithLabelValues("error").Inc()
+		if nsfwDetectionCounter != nil {
+			nsfwDetectionCounter.WithLabelValues("error").Inc()
 		}
 		return nil, err
 	}
 	
-	if nd.detectionCounter != nil {
+	if nsfwDetectionCounter != nil {
 		if score.NSFW {
-			nd.detectionCounter.WithLabelValues("nsfw").Inc()
+			nsfwDetectionCounter.WithLabelValues("nsfw").Inc()
 		} else {
-			nd.detectionCounter.WithLabelValues("safe").Inc()
+			nsfwDetectionCounter.WithLabelValues("safe").Inc()
 		}
 	}
 	
@@ -237,7 +230,7 @@ func (nd *NSFWDetector) detectWithAPI(ctx context.Context, imageURL string) (*NS
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 	
-	// Calculate overall score
+	// Calculate overall score using built-in max (available since Go 1.21)
 	maxScore := max(
 		apiResponse.Nudity.Raw,
 		apiResponse.Nudity.Sexual,
@@ -313,14 +306,14 @@ func (nd *NSFWDetector) FlagToModerationQueue(ctx context.Context, contentType s
 	
 	_, err := nd.db.Exec(ctx, query, contentType, contentID, reason, priority, true, score.ConfidenceScore)
 	if err != nil {
-		if nd.errorCounter != nil {
-			nd.errorCounter.WithLabelValues("queue_insert_error").Inc()
+		if nsfwErrorCounter != nil {
+			nsfwErrorCounter.WithLabelValues("queue_insert_error").Inc()
 		}
 		return fmt.Errorf("failed to flag to moderation queue: %w", err)
 	}
 	
-	if nd.flaggedCounter != nil {
-		nd.flaggedCounter.WithLabelValues(contentType).Inc()
+	if nsfwFlaggedCounter != nil {
+		nsfwFlaggedCounter.WithLabelValues(contentType).Inc()
 	}
 	
 	return nil
@@ -387,18 +380,4 @@ func (nd *NSFWDetector) GetMetrics(ctx context.Context, startDate, endDate time.
 	}
 	
 	return metrics, nil
-}
-
-// max returns the maximum of multiple float64 values
-func max(values ...float64) float64 {
-	if len(values) == 0 {
-		return 0
-	}
-	maxVal := values[0]
-	for _, v := range values[1:] {
-		if v > maxVal {
-			maxVal = v
-		}
-	}
-	return maxVal
 }

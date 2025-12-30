@@ -27,7 +27,7 @@ func NewNSFWHandler(nsfwDetector *services.NSFWDetector) *NSFWHandler {
 func (h *NSFWHandler) DetectImage(c *gin.Context) {
 	var req struct {
 		ImageURL    string     `json:"image_url" binding:"required,url"`
-		ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission"`
+		ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission user_avatar"`
 		ContentID   *uuid.UUID `json:"content_id,omitempty"`
 		AutoFlag    *bool      `json:"auto_flag,omitempty"`
 	}
@@ -84,7 +84,7 @@ func (h *NSFWHandler) BatchDetect(c *gin.Context) {
 	var req struct {
 		Images []struct {
 			ImageURL    string     `json:"image_url" binding:"required,url"`
-			ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission"`
+			ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission user_avatar"`
 			ContentID   *uuid.UUID `json:"content_id,omitempty"`
 		} `json:"images" binding:"required,min=1,max=50"`
 		AutoFlag *bool `json:"auto_flag,omitempty"`

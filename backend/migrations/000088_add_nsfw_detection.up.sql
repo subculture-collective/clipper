@@ -9,7 +9,7 @@ ADD COLUMN IF NOT EXISTS nsfw_detected_at TIMESTAMP;
 -- Create index for NSFW-related queries
 CREATE INDEX IF NOT EXISTS idx_modqueue_nsfw_reason 
 ON moderation_queue(reason) 
-WHERE reason LIKE 'nsfw_%';
+WHERE reason IN ('nsfw_detected', 'nsfw_nudity_explicit', 'nsfw_sexual_content', 'nsfw_offensive_content');
 
 -- NSFW Detection Metrics Table
 CREATE TABLE IF NOT EXISTS nsfw_detection_metrics (
