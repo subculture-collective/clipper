@@ -32,6 +32,7 @@ type Config struct {
 	CDN               CDNConfig
 	Mirror            MirrorConfig
 	Recommendations   RecommendationsConfig
+	Toxicity          ToxicityConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -257,6 +258,14 @@ type RecommendationsConfig struct {
 	CacheTTLHours       int     // Cache TTL in hours (default: 24)
 }
 
+// ToxicityConfig holds toxicity detection configuration
+type ToxicityConfig struct {
+	Enabled    bool    // Enable toxicity detection (default: false)
+	APIKey     string  // API key for toxicity detection service (e.g., Perspective API)
+	APIURL     string  // API URL for toxicity detection service
+	Threshold  float64 // Confidence threshold for flagging content (default: 0.85)
+}
+
 // getEnvBool gets a boolean environment variable with a fallback default value
 func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
@@ -475,6 +484,12 @@ func Load() (*Config, error) {
 			// General settings
 			EnableHybrid:  getEnvBool("REC_ENABLE_HYBRID", true),
 			CacheTTLHours: getEnvInt("REC_CACHE_TTL_HOURS", 24),
+		},
+		Toxicity: ToxicityConfig{
+			Enabled:   getEnvBool("TOXICITY_ENABLED", false),
+			APIKey:    getEnv("TOXICITY_API_KEY", ""),
+			APIURL:    getEnv("TOXICITY_API_URL", "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"),
+			Threshold: getEnvFloat("TOXICITY_THRESHOLD", 0.85),
 		},
 	}
 
