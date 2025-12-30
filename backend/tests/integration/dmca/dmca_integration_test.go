@@ -109,7 +109,7 @@ func setupDMCATestRouter(t *testing.T) (*gin.Engine, *services.DMCAService, *ser
 	// Admin DMCA routes
 	admin := r.Group("/api/admin/dmca")
 	admin.Use(middleware.AuthMiddleware(authService))
-	admin.Use(middleware.RoleMiddleware("admin", "moderator"))
+	admin.Use(middleware.RequireRole("admin", "moderator"))
 	{
 		admin.GET("/notices", dmcaHandler.ListDMCANotices)
 		admin.PATCH("/notices/:id/review", dmcaHandler.ReviewNotice)
@@ -126,14 +126,14 @@ func setupDMCATestRouter(t *testing.T) (*gin.Engine, *services.DMCAService, *ser
 // ==============================================================================
 
 func TestDMCATakedownNoticeSubmission(t *testing.T) {
-	router, dmcaService, _, db, redisClient, _ := setupDMCATestRouter(t)
+	router, _, _, db, redisClient, _ := setupDMCATestRouter(t)
 	defer db.Close()
 	defer redisClient.Close()
 
 	t.Run("SubmitValidTakedownNotice", func(t *testing.T) {
 		// Create a test clip first
 		user := testutil.CreateTestUser(t, db, fmt.Sprintf("clipowner%d", time.Now().UnixNano()))
-		clip := testutil.CreateTestClip(t, db, user.ID, "Test clip for DMCA")
+		clip := testutil.CreateTestClip(t, db, &user.ID)
 
 		// Create valid takedown notice request
 		req := models.SubmitDMCANoticeRequest{
@@ -169,9 +169,6 @@ func TestDMCATakedownNoticeSubmission(t *testing.T) {
 		// Verify notice was created in database
 		noticeID, _ := uuid.Parse(response["notice_id"].(string))
 		assert.NotEqual(t, uuid.Nil, noticeID)
-
-		// Clean up - dmcaService is used to verify but we're not calling GetUserStrikes here
-		_ = dmcaService
 	})
 
 	t.Run("RejectInvalidDomainURL", func(t *testing.T) {
@@ -244,7 +241,7 @@ func TestDMCAAdminReviewWorkflow(t *testing.T) {
 
 		// Create test clip and notice
 		user := testutil.CreateTestUser(t, db, fmt.Sprintf("user%d", time.Now().UnixNano()))
-		clip := testutil.CreateTestClip(t, db, user.ID, "Test clip")
+		clip := testutil.CreateTestClip(t, db, &user.ID)
 
 		// Submit a notice through service
 		noticeReq := &models.SubmitDMCANoticeRequest{
@@ -326,7 +323,7 @@ func TestDMCAStrikeIssuance(t *testing.T) {
 
 		// Create user and clip
 		user := testutil.CreateTestUser(t, db, fmt.Sprintf("user%d", time.Now().UnixNano()))
-		clip := testutil.CreateTestClip(t, db, user.ID, "Infringing content")
+		clip := testutil.CreateTestClip(t, db, &user.ID)
 
 		// Submit and validate notice
 		noticeReq := &models.SubmitDMCANoticeRequest{
@@ -439,7 +436,7 @@ func TestDMCACounterNotice(t *testing.T) {
 		require.NoError(t, err)
 
 		user := testutil.CreateTestUser(t, db, fmt.Sprintf("user%d", time.Now().UnixNano()))
-		clip := testutil.CreateTestClip(t, db, user.ID, "Disputed content")
+		clip := testutil.CreateTestClip(t, db, &user.ID)
 
 		// Submit and process takedown
 		noticeReq := &models.SubmitDMCANoticeRequest{
