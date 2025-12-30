@@ -57,7 +57,11 @@ type EvaluationResult struct {
 	NDCG10           float64           `json:"ndcg_at_10"`
 	MRR              float64           `json:"mrr"`
 	Precision5       float64           `json:"precision_at_5"`
+	Precision10      float64           `json:"precision_at_10"`
+	Precision20      float64           `json:"precision_at_20"`
+	Recall5          float64           `json:"recall_at_5"`
 	Recall10         float64           `json:"recall_at_10"`
+	Recall20         float64           `json:"recall_at_20"`
 	RetrievedResults int               `json:"retrieved_results"`
 	RelevantResults  int               `json:"relevant_results"`
 	QueryResults     []QueryResultItem `json:"query_results,omitempty"`
@@ -73,12 +77,16 @@ type QueryResultItem struct {
 
 // AggregateMetrics contains aggregated metrics across all queries
 type AggregateMetrics struct {
-	MeanNDCG5      float64 `json:"mean_ndcg_at_5"`
-	MeanNDCG10     float64 `json:"mean_ndcg_at_10"`
-	MeanMRR        float64 `json:"mean_mrr"`
-	MeanPrecision5 float64 `json:"mean_precision_at_5"`
-	MeanRecall10   float64 `json:"mean_recall_at_10"`
-	QueryCount     int     `json:"query_count"`
+	MeanNDCG5       float64 `json:"mean_ndcg_at_5"`
+	MeanNDCG10      float64 `json:"mean_ndcg_at_10"`
+	MeanMRR         float64 `json:"mean_mrr"`
+	MeanPrecision5  float64 `json:"mean_precision_at_5"`
+	MeanPrecision10 float64 `json:"mean_precision_at_10"`
+	MeanPrecision20 float64 `json:"mean_precision_at_20"`
+	MeanRecall5     float64 `json:"mean_recall_at_5"`
+	MeanRecall10    float64 `json:"mean_recall_at_10"`
+	MeanRecall20    float64 `json:"mean_recall_at_20"`
+	QueryCount      int     `json:"query_count"`
 }
 
 // EvaluationReport contains the full evaluation report
@@ -153,8 +161,15 @@ func calculateDCG(relevances []int, k int) float64 {
 	for i := 0; i < limit; i++ {
 		// Using the formula: (2^rel - 1) / log2(i + 2)
 		// This gives more weight to highly relevant documents
-		// Using bit shift for efficiency since relevances are small integers (0-4)
-		gain := float64(int(1<<uint(relevances[i])) - 1)
+		// Relevances are expected to be 0-4, but we clamp to prevent overflow
+		rel := relevances[i]
+		if rel > 4 {
+			rel = 4 // Clamp to max expected relevance
+		}
+		if rel < 0 {
+			rel = 0 // Clamp to min relevance
+		}
+		gain := float64(int(1<<uint(rel)) - 1)
 		discount := math.Log2(float64(i + 2))
 		dcg += gain / discount
 	}
@@ -260,7 +275,11 @@ func (s *SearchEvaluationService) EvaluateQuery(ctx context.Context, evalQuery E
 		NDCG10:           CalculateNDCG(relevances, 10),
 		MRR:              CalculateRR(relevances, 2), // Threshold of 2 for "relevant"
 		Precision5:       CalculatePrecision(relevances, 5, 2),
+		Precision10:      CalculatePrecision(relevances, 10, 2),
+		Precision20:      CalculatePrecision(relevances, 20, 2),
+		Recall5:          CalculateRecall(relevances, 5, totalRelevant, 2),
 		Recall10:         CalculateRecall(relevances, 10, totalRelevant, 2),
+		Recall20:         CalculateRecall(relevances, 20, totalRelevant, 2),
 		RetrievedResults: len(retrievedIDs),
 		RelevantResults:  relevantRetrieved,
 		QueryResults:     queryResults,
@@ -309,24 +328,32 @@ func (s *SearchEvaluationService) calculateAggregateMetrics(results []Evaluation
 		return AggregateMetrics{}
 	}
 
-	var sumNDCG5, sumNDCG10, sumMRR, sumPrec5, sumRecall10 float64
+	var sumNDCG5, sumNDCG10, sumMRR, sumPrec5, sumPrec10, sumPrec20, sumRecall5, sumRecall10, sumRecall20 float64
 
 	for _, r := range results {
 		sumNDCG5 += r.NDCG5
 		sumNDCG10 += r.NDCG10
 		sumMRR += r.MRR
 		sumPrec5 += r.Precision5
+		sumPrec10 += r.Precision10
+		sumPrec20 += r.Precision20
+		sumRecall5 += r.Recall5
 		sumRecall10 += r.Recall10
+		sumRecall20 += r.Recall20
 	}
 
 	n := float64(len(results))
 	return AggregateMetrics{
-		MeanNDCG5:      sumNDCG5 / n,
-		MeanNDCG10:     sumNDCG10 / n,
-		MeanMRR:        sumMRR / n,
-		MeanPrecision5: sumPrec5 / n,
-		MeanRecall10:   sumRecall10 / n,
-		QueryCount:     len(results),
+		MeanNDCG5:       sumNDCG5 / n,
+		MeanNDCG10:      sumNDCG10 / n,
+		MeanMRR:         sumMRR / n,
+		MeanPrecision5:  sumPrec5 / n,
+		MeanPrecision10: sumPrec10 / n,
+		MeanPrecision20: sumPrec20 / n,
+		MeanRecall5:     sumRecall5 / n,
+		MeanRecall10:    sumRecall10 / n,
+		MeanRecall20:    sumRecall20 / n,
+		QueryCount:      len(results),
 	}
 }
 
@@ -358,9 +385,29 @@ func (s *SearchEvaluationService) checkTargets(metrics AggregateMetrics) map[str
 		status["precision_at_5"] = evaluateMetric(metrics.MeanPrecision5, target)
 	}
 
+	// Check Precision@10
+	if target, ok := s.dataset.MetricTargets["precision_at_10"]; ok {
+		status["precision_at_10"] = evaluateMetric(metrics.MeanPrecision10, target)
+	}
+
+	// Check Precision@20
+	if target, ok := s.dataset.MetricTargets["precision_at_20"]; ok {
+		status["precision_at_20"] = evaluateMetric(metrics.MeanPrecision20, target)
+	}
+
+	// Check Recall@5
+	if target, ok := s.dataset.MetricTargets["recall_at_5"]; ok {
+		status["recall_at_5"] = evaluateMetric(metrics.MeanRecall5, target)
+	}
+
 	// Check Recall@10
 	if target, ok := s.dataset.MetricTargets["recall_at_10"]; ok {
 		status["recall_at_10"] = evaluateMetric(metrics.MeanRecall10, target)
+	}
+
+	// Check Recall@20
+	if target, ok := s.dataset.MetricTargets["recall_at_20"]; ok {
+		status["recall_at_20"] = evaluateMetric(metrics.MeanRecall20, target)
 	}
 
 	return status
