@@ -7,7 +7,7 @@ CREATE TABLE toxicity_predictions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     comment_id UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
     toxic BOOLEAN NOT NULL DEFAULT FALSE,
-    confidence_score DECIMAL(5,4) NOT NULL CHECK (confidence_score >= 0 AND confidence_score <= 1),
+    confidence_score DECIMAL(3,2) NOT NULL CHECK (confidence_score >= 0 AND confidence_score <= 1),
     categories JSONB, -- Detailed scores per category (e.g., {"TOXICITY": 0.85, "INSULT": 0.42})
     reason_codes TEXT[], -- Array of triggered categories (e.g., {"TOXICITY", "INSULT"})
     model_version VARCHAR(50) DEFAULT 'perspective-api-v1',
@@ -28,7 +28,7 @@ CREATE INDEX idx_toxicity_predictions_created_at ON toxicity_predictions(created
 CREATE TABLE toxicity_review_feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     prediction_id UUID NOT NULL REFERENCES toxicity_predictions(id) ON DELETE CASCADE,
-    reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+    reviewer_id UUID REFERENCES users(id) ON DELETE SET NULL,
     actual_toxic BOOLEAN NOT NULL,
     feedback_notes TEXT,
     created_at TIMESTAMP DEFAULT NOW(),
@@ -54,11 +54,16 @@ BEGIN
 END $$;
 
 -- Function to automatically create moderation queue entry for high-confidence toxic comments
+-- Note: The threshold (0.85) is intentionally hardcoded here to match the default TOXICITY_THRESHOLD.
+-- If you change the threshold in application config, you should also update this function
+-- by running: ALTER FUNCTION auto_flag_toxic_comment() ... or by creating a new migration.
 CREATE OR REPLACE FUNCTION auto_flag_toxic_comment()
 RETURNS TRIGGER AS $$
+DECLARE
+    threshold DECIMAL(3,2) := 0.85; -- Default threshold matching TOXICITY_THRESHOLD config
 BEGIN
-    -- Only auto-flag if confidence is above threshold (0.85) and marked as toxic
-    IF NEW.toxic = TRUE AND NEW.confidence_score >= 0.85 THEN
+    -- Only auto-flag if confidence is above threshold and marked as toxic
+    IF NEW.toxic = TRUE AND NEW.confidence_score >= threshold THEN
         -- Insert into moderation queue if not already there
         INSERT INTO moderation_queue (
             content_type,
@@ -137,7 +142,11 @@ SELECT
     -- False Positive Rate: FP / (FP + TN)
     ROUND(
         COUNT(*) FILTER (WHERE tp.toxic = true AND md.action = 'approve')::DECIMAL /
-        NULLIF(COUNT(*) FILTER (WHERE md.action IS NOT NULL), 0),
+        NULLIF(
+            COUNT(*) FILTER (WHERE tp.toxic = true AND md.action = 'approve') +
+            COUNT(*) FILTER (WHERE tp.toxic = false AND md.action = 'approve'),
+            0
+        ),
         4
     ) as false_positive_rate,
     COUNT(*) FILTER (WHERE tp.toxic = true AND md.action = 'reject') as true_positives,

@@ -121,13 +121,14 @@ func (tc *ToxicityClassifier) classifyWithPerspectiveAPI(ctx context.Context, co
 	}
 
 	// Make API request
-	url := fmt.Sprintf("%s?key=%s", tc.apiURL, tc.apiKey)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	// Note: API key is passed via header to avoid exposure in logs
+	req, err := http.NewRequestWithContext(ctx, "POST", tc.apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Goog-Api-Key", tc.apiKey)
 
 	resp, err := tc.httpClient.Do(req)
 	if err != nil {
@@ -315,17 +316,19 @@ func (tc *ToxicityClassifier) GetMetrics(ctx context.Context, startDate, endDate
 	// Get precision/recall if we have human review data
 	// This would require joining with moderation decisions
 	var tp, fp, fn int
+	var tn int
 	err = tc.db.QueryRow(ctx, `
 		SELECT 
 			COUNT(*) FILTER (WHERE tp.toxic = true AND md.action = 'reject') as true_positives,
 			COUNT(*) FILTER (WHERE tp.toxic = true AND md.action = 'approve') as false_positives,
-			COUNT(*) FILTER (WHERE tp.toxic = false AND md.action = 'reject') as false_negatives
+			COUNT(*) FILTER (WHERE tp.toxic = false AND md.action = 'reject') as false_negatives,
+			COUNT(*) FILTER (WHERE tp.toxic = false AND md.action = 'approve') as true_negatives
 		FROM toxicity_predictions tp
-		JOIN moderation_queue mq ON tp.comment_id = mq.content_id AND mq.content_type = 'comment'
+		LEFT JOIN moderation_queue mq ON tp.comment_id = mq.content_id AND mq.content_type = 'comment'
 		LEFT JOIN moderation_decisions md ON mq.id = md.queue_item_id
 		WHERE tp.created_at >= $1 AND tp.created_at <= $2
 			AND md.created_at IS NOT NULL
-	`, startDate, endDate).Scan(&tp, &fp, &fn)
+	`, startDate, endDate).Scan(&tp, &fp, &fn, &tn)
 	
 	if err == nil {
 		precision := 0.0
@@ -338,8 +341,9 @@ func (tc *ToxicityClassifier) GetMetrics(ctx context.Context, startDate, endDate
 		if tp+fn > 0 {
 			recall = float64(tp) / float64(tp+fn)
 		}
-		if fp+tp > 0 {
-			fpr = float64(fp) / float64(fp+tp)
+		// FPR = FP / (FP + TN)
+		if fp+tn > 0 {
+			fpr = float64(fp) / float64(fp+tn)
 		}
 
 		metrics["precision"] = precision
@@ -348,6 +352,7 @@ func (tc *ToxicityClassifier) GetMetrics(ctx context.Context, startDate, endDate
 		metrics["true_positives"] = tp
 		metrics["false_positives"] = fp
 		metrics["false_negatives"] = fn
+		metrics["true_negatives"] = tn
 	}
 
 	return metrics, nil

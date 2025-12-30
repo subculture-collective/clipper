@@ -241,12 +241,9 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 				// Continue even if recording fails
 			}
 
-			// If toxic and high confidence, add to moderation queue
-			if score.Toxic && score.ConfidenceScore >= 0.85 {
-				if err := s.toxicityClassifier.AddToModerationQueue(asyncCtx, comment.ID, score); err != nil {
-					fmt.Printf("Warning: failed to add comment %s to moderation queue: %v\n", comment.ID, err)
-				}
-			}
+			// Note: The database trigger will automatically add high-confidence toxic comments
+			// to the moderation queue when RecordPrediction inserts into toxicity_predictions.
+			// No need to call AddToModerationQueue explicitly here.
 		}()
 	}
 
