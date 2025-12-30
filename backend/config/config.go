@@ -34,6 +34,7 @@ type Config struct {
 	Mirror            MirrorConfig
 	Recommendations   RecommendationsConfig
 	Toxicity          ToxicityConfig
+	NSFW              NSFWConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -283,6 +284,18 @@ type ToxicityConfig struct {
 	Threshold  float64 // Confidence threshold for flagging content (default: 0.85)
 }
 
+// NSFWConfig holds NSFW image detection configuration
+type NSFWConfig struct {
+	Enabled            bool    // Enable NSFW detection (default: false)
+	APIKey             string  // API key for NSFW detection service
+	APIURL             string  // API URL for NSFW detection service (e.g., Sightengine, AWS Rekognition)
+	Threshold          float64 // Confidence threshold for flagging content (default: 0.80)
+	ScanThumbnails     bool    // Enable scanning of thumbnails at upload (default: true)
+	AutoFlag           bool    // Automatically flag content to moderation queue (default: true)
+	MaxLatencyMs       int     // Maximum acceptable latency in milliseconds (default: 200)
+	TimeoutSeconds     int     // Request timeout in seconds (default: 5)
+}
+
 // getEnvBool gets a boolean environment variable with a fallback default value
 func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
@@ -521,6 +534,16 @@ func Load() (*Config, error) {
 			APIKey:    getEnv("TOXICITY_API_KEY", ""),
 			APIURL:    getEnv("TOXICITY_API_URL", "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"),
 			Threshold: getEnvFloat("TOXICITY_THRESHOLD", 0.85),
+		},
+		NSFW: NSFWConfig{
+			Enabled:        getEnvBool("NSFW_ENABLED", false),
+			APIKey:         getEnv("NSFW_API_KEY", ""),
+			APIURL:         getEnv("NSFW_API_URL", ""),
+			Threshold:      getEnvFloat("NSFW_THRESHOLD", 0.80),
+			ScanThumbnails: getEnvBool("NSFW_SCAN_THUMBNAILS", true),
+			AutoFlag:       getEnvBool("NSFW_AUTO_FLAG", true),
+			MaxLatencyMs:   getEnvInt("NSFW_MAX_LATENCY_MS", 200),
+			TimeoutSeconds: getEnvInt("NSFW_TIMEOUT_SECONDS", 5),
 		},
 	}
 
