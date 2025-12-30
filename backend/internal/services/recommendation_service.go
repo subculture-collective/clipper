@@ -117,6 +117,7 @@ func (s *RecommendationService) GetRecommendations(
 	var recommendations []models.ClipRecommendation
 	isColdStart := !hasInteractions
 	diversityApplied := false
+	usedStrategy := algorithm
 
 	if isColdStart {
 		// Cold start: check if user has onboarding preferences
@@ -125,19 +126,36 @@ func (s *RecommendationService) GetRecommendations(
 			return nil, fmt.Errorf("failed to get user preferences: %w", err)
 		}
 
+		// Record preference source for metrics
+		if preferences.ColdStartSource != nil {
+			RecordPreferenceSource(*preferences.ColdStartSource)
+		}
+
 		// If user completed onboarding, use content-based on preferences
 		if preferences.OnboardingCompleted && (len(preferences.FavoriteGames) > 0 || len(preferences.FollowedStreamers) > 0) {
 			recommendations, err = s.getContentBasedRecommendations(ctx, userID, limit)
 			if err != nil {
 				return nil, err
 			}
+			usedStrategy = "onboarding"
 		} else {
 			// Fall back to trending clips
 			recommendations, err = s.getColdStartRecommendations(ctx, limit)
 			if err != nil {
 				return nil, err
 			}
+			usedStrategy = "trending"
 		}
+
+		// Record cold start metrics
+		avgScore := 0.0
+		if len(recommendations) > 0 {
+			for _, rec := range recommendations {
+				avgScore += rec.Score
+			}
+			avgScore /= float64(len(recommendations))
+		}
+		RecordColdStartRecommendation(usedStrategy, len(recommendations), time.Since(startTime).Milliseconds(), avgScore)
 	} else {
 		// Generate recommendations based on algorithm
 		switch algorithm {
@@ -242,6 +260,8 @@ func (s *RecommendationService) getColdStartRecommendations(
 
 	// If not enough trending clips, supplement with popular clips
 	if len(scores) < limit {
+		RecordColdStartFallback("trending", "popularity")
+		
 		popularScores, err := s.repo.GetPopularClips(
 			ctx,
 			nil,
@@ -563,6 +583,9 @@ func (s *RecommendationService) CompleteOnboarding(ctx context.Context, pref *mo
 	if err := s.repo.CompleteOnboarding(ctx, pref); err != nil {
 		return fmt.Errorf("failed to complete onboarding: %w", err)
 	}
+
+	// Record onboarding completion metric
+	RecordOnboardingCompleted()
 
 	// Invalidate cache for this user
 	pattern := fmt.Sprintf("recommendations:%s:*", pref.UserID.String())
