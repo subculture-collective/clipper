@@ -147,7 +147,6 @@ SELECT
 FROM toxicity_predictions tp
 LEFT JOIN moderation_queue mq ON tp.comment_id = mq.content_id AND mq.content_type = 'comment'
 LEFT JOIN moderation_decisions md ON mq.id = md.queue_item_id
-WHERE md.created_at IS NOT NULL OR md.created_at IS NULL
 GROUP BY DATE(tp.created_at)
 ORDER BY date DESC;
 

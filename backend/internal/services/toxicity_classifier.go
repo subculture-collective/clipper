@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lib/pq"
 )
 
 // ToxicityClassifier handles toxicity detection for comments
@@ -179,10 +180,14 @@ func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore,
 	score := 0.0
 	reasons := []string{}
 
-	// Check for common toxic patterns (very basic example)
-	// In production, you'd want a more comprehensive list
-	// This is intentionally minimal as a fallback when ML service is unavailable
-	_ = content // Acknowledge we're not using content in this basic implementation
+	// TODO: Implement basic rule-based detection with common toxic patterns
+	// For now, this is a safe fallback that doesn't flag content when the ML service is unavailable
+	// In production, consider adding:
+	// - Pattern matching for known toxic terms (with context awareness)
+	// - Regex-based detection for slurs and profanity
+	// - Length and formatting heuristics
+	// - Rate limiting and spam detection
+	_ = content // Acknowledge we're intentionally not using content in this minimal fallback
 
 	return &ToxicityScore{
 		Toxic:           score >= tc.threshold,
@@ -255,11 +260,6 @@ func (tc *ToxicityClassifier) RecordPrediction(ctx context.Context, commentID uu
 		return fmt.Errorf("failed to marshal categories: %w", err)
 	}
 
-	reasonCodesJSON, err := json.Marshal(score.ReasonCodes)
-	if err != nil {
-		return fmt.Errorf("failed to marshal reason codes: %w", err)
-	}
-
 	_, err = tc.db.Exec(ctx, `
 		INSERT INTO toxicity_predictions 
 		(comment_id, toxic, confidence_score, categories, reason_codes, created_at)
@@ -271,7 +271,7 @@ func (tc *ToxicityClassifier) RecordPrediction(ctx context.Context, commentID uu
 			categories = EXCLUDED.categories,
 			reason_codes = EXCLUDED.reason_codes,
 			updated_at = NOW()
-	`, commentID, score.Toxic, score.ConfidenceScore, categoriesJSON, reasonCodesJSON)
+	`, commentID, score.Toxic, score.ConfidenceScore, categoriesJSON, pq.Array(score.ReasonCodes))
 
 	return err
 }
