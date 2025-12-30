@@ -417,10 +417,36 @@ go build -o bin/scrape_clips ./scripts/scrape_clips.go
 6. ✅ ~~Integrate Twitch API for clip fetching~~
 7. ✅ ~~Implement clip sync service with scheduler~~
 8. ✅ ~~Create targeted clip scraping script~~
-9. Add more business logic in services layer
-10. Create HTTP handlers for remaining API endpoints
-11. Add comprehensive tests for all components
-12. Add monitoring and metrics
+9. ✅ ~~Add search evaluation framework~~
+10. ✅ ~~Add recommendation evaluation framework~~
+11. Add more business logic in services layer
+12. Create HTTP handlers for remaining API endpoints
+13. Add comprehensive tests for all components
+14. Add monitoring and metrics
+
+## Algorithm Evaluation
+
+The backend includes evaluation frameworks for assessing the quality of search and recommendation algorithms:
+
+### Search Evaluation
+- **Metrics**: nDCG, MRR, Precision@k, Recall@k
+- **Dataset**: `testdata/search_evaluation_dataset.yaml`
+- **CLI tool**: `cmd/evaluate-search`
+- **Makefile**: `make evaluate-search` or `make evaluate-search-json`
+
+### Recommendation Evaluation
+- **Metrics**: Precision@k, Recall@k, nDCG, Diversity, Serendipity, Cold-start performance
+- **Dataset**: `testdata/recommendation_evaluation_dataset.yaml`
+- **CLI tool**: `cmd/evaluate-recommendations`
+- **Makefile**: `make evaluate-recommendations` or `make evaluate-recommendations-json`
+- **Documentation**: `../docs/RECOMMENDATION-EVALUATION.md`
+- **CI**: Runs nightly via GitHub Actions (`.github/workflows/recommendation-evaluation.yml`)
+
+Both frameworks support:
+- Automated testing via CI/CD
+- Baseline measurement tracking
+- Target/threshold monitoring
+- JSON output for analysis and trend tracking
 
 ## Resources
 

@@ -1,0 +1,151 @@
+name: Recommendation Evaluation
+
+on:
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+  push:
+    paths:
+      - 'backend/internal/services/recommendation*.go'
+      - 'backend/testdata/recommendation_evaluation_dataset.yaml'
+      - '.github/workflows/recommendation-evaluation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate-recommendations:
+    name: Recommendation Algorithm Evaluation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build evaluation tool
+        run: |
+          cd backend
+          go build -o bin/evaluate-recommendations ./cmd/evaluate-recommendations
+
+      - name: Run recommendation evaluation
+        run: |
+          cd backend
+          ./bin/evaluate-recommendations -verbose -output recommendation-evaluation-results.json
+        continue-on-error: true
+
+      - name: Display results summary
+        if: always()
+        run: |
+          cd backend
+          if [ -f recommendation-evaluation-results.json ]; then
+            echo "Recommendation Evaluation Results:"
+            echo "=================================="
+            # Extract and display key metrics using jq
+            echo ""
+            echo "Aggregate Metrics:"
+            jq -r '.aggregate_metrics | 
+              "  Precision@5:     " + (.mean_precision_at_5 | tostring) + "\n" +
+              "  Precision@10:    " + (.mean_precision_at_10 | tostring) + "\n" +
+              "  Recall@5:        " + (.mean_recall_at_5 | tostring) + "\n" +
+              "  Recall@10:       " + (.mean_recall_at_10 | tostring) + "\n" +
+              "  nDCG@5:          " + (.mean_ndcg_at_5 | tostring) + "\n" +
+              "  nDCG@10:         " + (.mean_ndcg_at_10 | tostring) + "\n" +
+              "  Diversity@5:     " + (.mean_diversity_at_5 | tostring) + "\n" +
+              "  Diversity@10:    " + (.mean_diversity_at_10 | tostring) + "\n" +
+              "  Serendipity:     " + (.mean_serendipity | tostring) + "\n" +
+              "  Scenarios:       " + (.scenario_count | tostring)
+            ' recommendation-evaluation-results.json
+            echo ""
+            echo "Cold-Start Performance:"
+            jq -r '.aggregate_metrics | 
+              "  Precision@5:     " + (.cold_start_precision_at_5 | tostring) + "\n" +
+              "  Recall@5:        " + (.cold_start_recall_at_5 | tostring) + "\n" +
+              "  Cold-Start Count: " + (.cold_start_count | tostring)
+            ' recommendation-evaluation-results.json
+          else
+            echo "No results file found"
+          fi
+
+      - name: Upload evaluation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recommendation-evaluation-results-${{ github.run_number }}
+          path: backend/recommendation-evaluation-results.json
+          retention-days: 90
+
+      - name: Check for critical failures
+        run: |
+          cd backend
+          if [ -f recommendation-evaluation-results.json ]; then
+            # Check if any metrics are in critical status
+            critical_count=$(jq '[.status[] | select(. == "critical")] | length' recommendation-evaluation-results.json)
+            if [ "$critical_count" -gt 0 ]; then
+              echo "❌ $critical_count metrics failed critical thresholds"
+              jq -r '.status | to_entries[] | select(.value == "critical") | "  - " + .key + ": " + .value' recommendation-evaluation-results.json
+              exit 1
+            else
+              echo "✅ All metrics passed or are at warning level"
+            fi
+          fi
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('backend/recommendation-evaluation-results.json')) {
+              const results = JSON.parse(fs.readFileSync('backend/recommendation-evaluation-results.json', 'utf8'));
+              const metrics = results.aggregate_metrics;
+              const status = results.status || {};
+              
+              let statusEmoji = (s) => {
+                if (s === 'pass') return '✅';
+                if (s === 'warning') return '⚠️';
+                if (s === 'critical') return '❌';
+                return '❓';
+              };
+              
+              let comment = `## Recommendation Evaluation Results\n\n`;
+              comment += `### Aggregate Metrics\n\n`;
+              comment += `| Metric | Value | Status |\n`;
+              comment += `|--------|-------|--------|\n`;
+              comment += `| Precision@5 | ${metrics.mean_precision_at_5.toFixed(4)} | ${statusEmoji(status.precision_at_5)} |\n`;
+              comment += `| Precision@10 | ${metrics.mean_precision_at_10.toFixed(4)} | ${statusEmoji(status.precision_at_10)} |\n`;
+              comment += `| Recall@5 | ${metrics.mean_recall_at_5.toFixed(4)} | ${statusEmoji(status.recall_at_5)} |\n`;
+              comment += `| Recall@10 | ${metrics.mean_recall_at_10.toFixed(4)} | ${statusEmoji(status.recall_at_10)} |\n`;
+              comment += `| nDCG@5 | ${metrics.mean_ndcg_at_5.toFixed(4)} | ${statusEmoji(status.ndcg_at_5)} |\n`;
+              comment += `| nDCG@10 | ${metrics.mean_ndcg_at_10.toFixed(4)} | ${statusEmoji(status.ndcg_at_10)} |\n`;
+              comment += `| Diversity@5 | ${metrics.mean_diversity_at_5.toFixed(2)} | ${statusEmoji(status.diversity_at_5)} |\n`;
+              comment += `| Diversity@10 | ${metrics.mean_diversity_at_10.toFixed(2)} | ${statusEmoji(status.diversity_at_10)} |\n`;
+              comment += `| Serendipity | ${metrics.mean_serendipity.toFixed(4)} | ${statusEmoji(status.serendipity)} |\n`;
+              comment += `\n### Cold-Start Performance\n\n`;
+              comment += `| Metric | Value |\n`;
+              comment += `|--------|-------|\n`;
+              comment += `| Precision@5 | ${metrics.cold_start_precision_at_5.toFixed(4)} |\n`;
+              comment += `| Recall@5 | ${metrics.cold_start_recall_at_5.toFixed(4)} |\n`;
+              comment += `| Cold-Start Scenarios | ${metrics.cold_start_count} |\n`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
