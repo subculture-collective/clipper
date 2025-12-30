@@ -20,6 +20,8 @@ type RecommendationService struct {
 	contentWeight       float64
 	collaborativeWeight float64
 	trendingWeight      float64
+	enableHybrid        bool
+	cacheTTLHours       int
 }
 
 // NewRecommendationService creates a new recommendation service
@@ -33,6 +35,29 @@ func NewRecommendationService(
 		contentWeight:       0.5,
 		collaborativeWeight: 0.3,
 		trendingWeight:      0.2,
+		enableHybrid:        true,
+		cacheTTLHours:       24,
+	}
+}
+
+// NewRecommendationServiceWithConfig creates a new recommendation service with custom config
+func NewRecommendationServiceWithConfig(
+	repo *repository.RecommendationRepository,
+	redisClient *redis.Client,
+	contentWeight float64,
+	collaborativeWeight float64,
+	trendingWeight float64,
+	enableHybrid bool,
+	cacheTTLHours int,
+) *RecommendationService {
+	return &RecommendationService{
+		repo:                repo,
+		redisClient:         redisClient,
+		contentWeight:       contentWeight,
+		collaborativeWeight: collaborativeWeight,
+		trendingWeight:      trendingWeight,
+		enableHybrid:        enableHybrid,
+		cacheTTLHours:       cacheTTLHours,
 	}
 }
 
@@ -122,10 +147,11 @@ func (s *RecommendationService) GetRecommendations(
 		},
 	}
 
-	// Cache the response for 24 hours
+	// Cache the response
 	responseJSON, err := json.Marshal(response)
 	if err == nil {
-		s.redisClient.Set(ctx, cacheKey, responseJSON, 24*time.Hour)
+		cacheTTL := time.Duration(s.cacheTTLHours) * time.Hour
+		s.redisClient.Set(ctx, cacheKey, responseJSON, cacheTTL)
 	}
 
 	return response, nil

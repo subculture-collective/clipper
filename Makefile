@@ -660,3 +660,15 @@ evaluate-recommendations-json: ## Run recommendation evaluation and output JSON
 	@cd backend && go build -o bin/evaluate-recommendations ./cmd/evaluate-recommendations
 	@cd backend && ./bin/evaluate-recommendations -output recommendation-evaluation-results.json
 	@echo "✓ Results saved to backend/recommendation-evaluation-results.json"
+
+grid-search-recommendations: ## Run parameter grid search for recommendation tuning
+	@echo "Running recommendation parameter grid search..."
+	@cd backend && go build -o bin/grid-search-recommendations ./cmd/grid-search-recommendations
+	@cd backend && ./bin/grid-search-recommendations -quick -verbose
+	@echo "✓ Grid search complete"
+
+grid-search-recommendations-full: ## Run full parameter grid search (slower but more thorough)
+	@echo "Running full recommendation parameter grid search..."
+	@cd backend && go build -o bin/grid-search-recommendations ./cmd/grid-search-recommendations
+	@cd backend && ./bin/grid-search-recommendations -output grid-search-results.json
+	@echo "✓ Full grid search complete - results saved to backend/grid-search-results.json"
