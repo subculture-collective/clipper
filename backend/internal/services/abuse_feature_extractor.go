@@ -2,7 +2,10 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -162,7 +165,7 @@ func (e *AbuseFeatureExtractor) getVelocityCount(ctx context.Context, userID uui
 
 // getIPUserCount gets the number of unique users from this IP
 func (e *AbuseFeatureExtractor) getIPUserCount(ctx context.Context, ip string) int64 {
-	key := fmt.Sprintf("abuse:ip:%s", ip)
+	key := fmt.Sprintf("abuse:ip:%s", hashIP(ip))
 	count, err := e.redisClient.SetCard(ctx, key)
 	if err != nil {
 		return 0
@@ -273,12 +276,18 @@ func (e *AbuseFeatureExtractor) getVotePatternDiversity(ctx context.Context, use
 	downvotes, err2 := e.redisClient.Get(ctx, downvoteKey)
 	
 	if err1 != nil || err2 != nil {
-		return 0.5 // neutral diversity
+		return 0.5 // neutral diversity - no data available
 	}
 	
 	var upCount, downCount int64
-	fmt.Sscanf(upvotes, "%d", &upCount)
-	fmt.Sscanf(downvotes, "%d", &downCount)
+	_, err1 = fmt.Sscanf(upvotes, "%d", &upCount)
+	_, err2 = fmt.Sscanf(downvotes, "%d", &downCount)
+	
+	if err1 != nil || err2 != nil {
+		// Data corrupted or in unexpected format
+		log.Printf("Warning: failed to parse vote counts for user %s: up_err=%v down_err=%v", userID, err1, err2)
+		return 0.5 // neutral diversity - corrupted data
+	}
 	
 	total := upCount + downCount
 	if total == 0 {
@@ -337,9 +346,12 @@ func (e *AbuseFeatureExtractor) getTimingEntropy(ctx context.Context, userID uui
 	
 	// Normalize entropy score (higher std dev = higher entropy = more natural)
 	// Very low entropy (< 1 second std dev) is suspicious
-	entropy := variance / (mean * mean)
-	if entropy > 1.0 {
-		entropy = 1.0
+	entropy := 0.5 // default neutral entropy
+	if mean != 0 {
+		entropy = variance / (mean * mean)
+		if entropy > 1.0 {
+			entropy = 1.0
+		}
 	}
 	
 	return entropy
@@ -354,18 +366,18 @@ func (e *AbuseFeatureExtractor) trackVoteAction(ctx context.Context, userID uuid
 		e.redisClient.Expire(ctx, velocityKey, velocityWindow1Hour)
 	}
 	
-	// Track IP
-	ipKey := fmt.Sprintf("abuse:ip:%s", ip)
+	// Track IP (hashed for privacy)
+	ipKey := fmt.Sprintf("abuse:ip:%s", hashIP(ip))
 	e.redisClient.SetAdd(ctx, ipKey, userID.String())
 	e.redisClient.Expire(ctx, ipKey, ipTrackingWindow)
 	
-	// Track user's last IP
+	// Track user's last IP (hashed for privacy)
 	userIPKey := fmt.Sprintf("abuse:user:last_ip:%s", userID.String())
-	e.redisClient.Set(ctx, userIPKey, ip, ipTrackingWindow)
+	e.redisClient.Set(ctx, userIPKey, hashIP(ip), ipTrackingWindow)
 	
-	// Track IP history
+	// Track IP history (hashed for privacy)
 	ipHistoryKey := fmt.Sprintf("abuse:ip:history:%s", userID.String())
-	e.redisClient.SetAdd(ctx, ipHistoryKey, ip)
+	e.redisClient.SetAdd(ctx, ipHistoryKey, hashIP(ip))
 	e.redisClient.Expire(ctx, ipHistoryKey, ipTrackingWindow)
 	
 	// Track UA
@@ -396,18 +408,18 @@ func (e *AbuseFeatureExtractor) trackFollowAction(ctx context.Context, followerI
 		e.redisClient.Expire(ctx, velocityKey, velocityWindow1Hour)
 	}
 	
-	// Track IP
-	ipKey := fmt.Sprintf("abuse:ip:%s", ip)
+	// Track IP (hashed for privacy)
+	ipKey := fmt.Sprintf("abuse:ip:%s", hashIP(ip))
 	e.redisClient.SetAdd(ctx, ipKey, followerID.String())
 	e.redisClient.Expire(ctx, ipKey, ipTrackingWindow)
 	
-	// Track user's last IP
+	// Track user's last IP (hashed for privacy)
 	userIPKey := fmt.Sprintf("abuse:user:last_ip:%s", followerID.String())
-	e.redisClient.Set(ctx, userIPKey, ip, ipTrackingWindow)
+	e.redisClient.Set(ctx, userIPKey, hashIP(ip), ipTrackingWindow)
 	
-	// Track IP history
+	// Track IP history (hashed for privacy)
 	ipHistoryKey := fmt.Sprintf("abuse:ip:history:%s", followerID.String())
-	e.redisClient.SetAdd(ctx, ipHistoryKey, ip)
+	e.redisClient.SetAdd(ctx, ipHistoryKey, hashIP(ip))
 	e.redisClient.Expire(ctx, ipHistoryKey, ipTrackingWindow)
 	
 	// Track UA
@@ -438,18 +450,18 @@ func (e *AbuseFeatureExtractor) trackSubmissionAction(ctx context.Context, userI
 		e.redisClient.Expire(ctx, velocityKey, velocityWindow1Hour)
 	}
 	
-	// Track IP
-	ipKey := fmt.Sprintf("abuse:ip:%s", ip)
+	// Track IP (hashed for privacy)
+	ipKey := fmt.Sprintf("abuse:ip:%s", hashIP(ip))
 	e.redisClient.SetAdd(ctx, ipKey, userID.String())
 	e.redisClient.Expire(ctx, ipKey, ipTrackingWindow)
 	
-	// Track user's last IP
+	// Track user's last IP (hashed for privacy)
 	userIPKey := fmt.Sprintf("abuse:user:last_ip:%s", userID.String())
-	e.redisClient.Set(ctx, userIPKey, ip, ipTrackingWindow)
+	e.redisClient.Set(ctx, userIPKey, hashIP(ip), ipTrackingWindow)
 	
-	// Track IP history
+	// Track IP history (hashed for privacy)
 	ipHistoryKey := fmt.Sprintf("abuse:ip:history:%s", userID.String())
-	e.redisClient.SetAdd(ctx, ipHistoryKey, ip)
+	e.redisClient.SetAdd(ctx, ipHistoryKey, hashIP(ip))
 	e.redisClient.Expire(ctx, ipHistoryKey, ipTrackingWindow)
 	
 	// Track UA
@@ -466,19 +478,14 @@ func (e *AbuseFeatureExtractor) trackSubmissionAction(ctx context.Context, userI
 	e.redisClient.Expire(ctx, timingKey, velocityWindow24Hour)
 }
 
-// normalizeUserAgent normalizes a user agent string for comparison
+// normalizeUserAgent normalizes a user agent string for comparison by hashing
 func normalizeUserAgent(ua string) string {
-	// Take first 100 chars and remove version numbers for grouping
-	if len(ua) > 100 {
-		ua = ua[:100]
-	}
-	
 	// Convert to lowercase for case-insensitive comparison
 	ua = strings.ToLower(ua)
 	
-	// Hash or truncate to keep key sizes manageable
-	// In production, you'd want to hash this
-	return ua
+	// Hash the user agent to create a fixed-size key while preserving privacy
+	hash := sha256.Sum256([]byte(ua))
+	return hex.EncodeToString(hash[:16]) // Use first 16 bytes (32 hex chars)
 }
 
 // abs returns absolute value of float64
@@ -487,4 +494,10 @@ func abs(x float64) float64 {
 		return -x
 	}
 	return x
+}
+
+// hashIP hashes an IP address for privacy protection while maintaining uniqueness
+func hashIP(ip string) string {
+	hash := sha256.Sum256([]byte(ip))
+	return hex.EncodeToString(hash[:16]) // Use first 16 bytes (32 hex chars)
 }

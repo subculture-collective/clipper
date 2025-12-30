@@ -295,6 +295,14 @@ func (s *AnomalyScorer) ScoreSubmissionAction(ctx context.Context, userID uuid.U
 
 // scoreVelocity scores velocity features
 func (s *AnomalyScorer) scoreVelocity(shortTermCount int64, longTermCount int64, shortThreshold int64, longThreshold int64) float64 {
+	// Validate thresholds to prevent division by zero
+	if shortThreshold <= 0 {
+		shortThreshold = 1
+	}
+	if longThreshold <= 0 {
+		longThreshold = 1
+	}
+	
 	// Calculate score based on how much thresholds are exceeded
 	shortScore := 0.0
 	if shortTermCount > shortThreshold {

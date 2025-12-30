@@ -56,16 +56,16 @@ func (s *AbuseIntegrationService) CheckVoteAction(
 	query := `SELECT trust_score, created_at FROM users WHERE id = $1`
 	if err := s.db.QueryRowContext(ctx, query, userID).Scan(&trustScore, &accountCreatedAt); err != nil {
 		log.Printf("Warning: failed to get user info for anomaly detection: %v", err)
-		// Continue with defaults
-		trustScore = 50
-		accountCreatedAt = time.Now().Add(-30 * 24 * time.Hour)
+		// Use conservative defaults: lowest trust, zero account age for higher scrutiny
+		trustScore = 0
+		accountCreatedAt = time.Now()
 	}
 	
 	// Score the action
 	score, err := s.anomalyScorer.ScoreVoteAction(ctx, userID, clipID, voteType, ip, userAgent, trustScore, accountCreatedAt)
 	if err != nil {
-		log.Printf("Error scoring vote action: %v", err)
-		return nil // Don't block on scoring errors
+		log.Printf("Error scoring vote action (graceful degradation): %v", err)
+		return nil // Don't block user actions on scoring errors
 	}
 	
 	// Log if anomaly detected
@@ -76,8 +76,9 @@ func (s *AbuseIntegrationService) CheckVoteAction(
 	
 	// Auto-flag if needed
 	if score.ShouldAutoFlag {
-		voteID := uuid.New() // Generate a vote ID for reference
-		if err := s.autoFlagger.AutoFlagVote(ctx, voteID, userID, clipID, score); err != nil {
+		// Generate a synthetic vote identifier used only for moderation tracking (not a DB vote record ID)
+		syntheticVoteID := uuid.New()
+		if err := s.autoFlagger.AutoFlagVote(ctx, syntheticVoteID, userID, clipID, score); err != nil {
 			log.Printf("Error auto-flagging vote: %v", err)
 		}
 	}
@@ -100,15 +101,16 @@ func (s *AbuseIntegrationService) CheckFollowAction(
 	query := `SELECT trust_score, created_at FROM users WHERE id = $1`
 	if err := s.db.QueryRowContext(ctx, query, followerID).Scan(&trustScore, &accountCreatedAt); err != nil {
 		log.Printf("Warning: failed to get user info for anomaly detection: %v", err)
-		trustScore = 50
-		accountCreatedAt = time.Now().Add(-30 * 24 * time.Hour)
+		// Use conservative defaults: lowest trust, zero account age for higher scrutiny
+		trustScore = 0
+		accountCreatedAt = time.Now()
 	}
 	
 	// Score the action
 	score, err := s.anomalyScorer.ScoreFollowAction(ctx, followerID, followingID, ip, userAgent, trustScore, accountCreatedAt)
 	if err != nil {
-		log.Printf("Error scoring follow action: %v", err)
-		return nil // Don't block on scoring errors
+		log.Printf("Error scoring follow action (graceful degradation): %v", err)
+		return nil // Don't block user actions on scoring errors
 	}
 	
 	// Log if anomaly detected
@@ -142,15 +144,16 @@ func (s *AbuseIntegrationService) CheckSubmissionAction(
 	query := `SELECT trust_score, created_at FROM users WHERE id = $1`
 	if err := s.db.QueryRowContext(ctx, query, userID).Scan(&trustScore, &accountCreatedAt); err != nil {
 		log.Printf("Warning: failed to get user info for anomaly detection: %v", err)
-		trustScore = 50
-		accountCreatedAt = time.Now().Add(-30 * 24 * time.Hour)
+		// Use conservative defaults: lowest trust, zero account age for higher scrutiny
+		trustScore = 0
+		accountCreatedAt = time.Now()
 	}
 	
 	// Score the action
 	score, err := s.anomalyScorer.ScoreSubmissionAction(ctx, userID, ip, userAgent, trustScore, accountCreatedAt)
 	if err != nil {
-		log.Printf("Error scoring submission action: %v", err)
-		return nil // Don't block on scoring errors
+		log.Printf("Error scoring submission action (graceful degradation): %v", err)
+		return nil // Don't block user actions on scoring errors
 	}
 	
 	// Log if anomaly detected

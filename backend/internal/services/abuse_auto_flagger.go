@@ -271,8 +271,9 @@ func (f *AbuseAutoFlagger) formatReasonCodes(codes []string) string {
 	}
 	
 	result := strings.Join(descriptions, "; ")
-	if len(result) > 50 {
-		result = result[:47] + "..."
+	const maxReasonLength = 200
+	if len(result) > maxReasonLength {
+		result = result[:maxReasonLength-3] + "..."
 	}
 	
 	return result

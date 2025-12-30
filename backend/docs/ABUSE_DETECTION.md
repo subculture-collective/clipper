@@ -111,9 +111,9 @@ This conservative threshold helps maintain FPR < 2%.
 ### Confidence Calculation
 
 Confidence is based on data availability:
-- Each present feature adds 0.2 to confidence
-- Older accounts (>30 days) add 0.1 bonus
-- Maximum confidence: 1.0
+- Up to five tracked features are considered; each present feature adds 0.2 to confidence (maximum 1.0 from features)
+- Older accounts (>30 days) add a 0.1 bonus before capping
+- The final confidence score is capped at 1.0
 
 ## Integration Points
 
@@ -308,8 +308,8 @@ This prevents unbounded Redis memory growth.
 ### Caching
 
 Anomaly scores are cached in Redis for dashboard performance:
-- Hourly buckets for aggregation
-- 7-day retention for historical analysis
+- Hourly anomaly score buckets for aggregation
+- 7-day retention for anomaly score buckets (underlying velocity, IP/UA, timing, and other tracking keys expire according to their own windows: typically 1 hour to 24 hours, with graph patterns up to 7 days)
 
 ## False Positive Rate (FPR)
 
@@ -336,7 +336,7 @@ Where:
 
 ## Security Considerations
 
-1. **Privacy:** IP addresses and user agents are hashed for long-term storage
+1. **Privacy:** IP addresses and user agents are hashed (SHA-256) for all storage to protect user privacy while maintaining detection capability
 2. **Access Control:** Analytics endpoints require admin role
 3. **Rate Limiting:** Abuse checks don't create additional rate limit burden
 4. **Audit Trail:** All auto-flags are logged with full context

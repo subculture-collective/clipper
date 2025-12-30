@@ -29,8 +29,9 @@ func NewAbuseAnalyticsHandler(
 // GetAbuseMetrics returns real-time abuse detection metrics
 // GET /api/v1/admin/abuse/metrics
 func (h *AbuseAnalyticsHandler) GetAbuseMetrics(c *gin.Context) {
-	// This endpoint should be admin-only
-	// Authentication/authorization should be handled by middleware
+	// This endpoint is intended to be admin-only.
+	// Authentication/authorization MUST be enforced by middleware on the /api/v1/admin route group
+	// in the router configuration where this handler is registered.
 	
 	ctx := c.Request.Context()
 	
@@ -106,19 +107,29 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetricsHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// calculateFalsePositiveRate calculates the false positive rate from stats
+// calculateFalsePositiveRate calculates the false positive rate from stats.
+// In this context, all items in the stats are auto-flagged as potential abuse.
+// We define:
+//   - "approved": item was reviewed and approved as legitimate (not abuse).
+//   - "rejected": item was reviewed and confirmed as abuse.
+// The false positive rate is therefore: approved / (approved + rejected),
+// i.e., the fraction of reviewed auto-flagged items that turned out to be legitimate.
 func (h *AbuseAnalyticsHandler) calculateFalsePositiveRate(stats map[string]interface{}) float64 {
 	// Extract status counts if available
 	if byStatus, ok := stats["by_status"].(map[string]int); ok {
-		// False positives are items that were reviewed and approved (not actual abuse)
 		approved := byStatus["approved"]
-		total := 0
-		for _, count := range byStatus {
-			total += count
+
+		// Only include reviewed statuses in the denominator.
+		// Pending or other non-final statuses should not affect the false positive rate.
+		reviewedTotal := 0
+		for status, count := range byStatus {
+			if status == "approved" || status == "rejected" {
+				reviewedTotal += count
+			}
 		}
-		
-		if total > 0 {
-			return float64(approved) / float64(total)
+
+		if reviewedTotal > 0 {
+			return float64(approved) / float64(reviewedTotal)
 		}
 	}
 	
