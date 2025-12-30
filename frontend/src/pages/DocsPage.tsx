@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Container, Card, CardBody, SEO, DocHeader, DocTOC } from '../components';
-import { parseMarkdown, convertWikilinks, headingToId } from '../lib/markdown-utils';
+import { parseMarkdown, convertWikilinks, headingToId, extractTextFromChildren } from '../lib/markdown-utils';
 import type { ProcessedMarkdown } from '../lib/markdown-utils';
 import axios from 'axios';
 
@@ -224,7 +224,7 @@ export function DocsPage() {
         },
         // Style headings with IDs for TOC navigation
         h1: ({ children }: { children?: React.ReactNode }) => {
-            const text = typeof children === 'string' ? children : '';
+            const text = extractTextFromChildren(children);
             const id = headingToId(text);
             return (
                 <h1 id={id} className='text-4xl font-bold mb-4 mt-6'>
@@ -233,7 +233,7 @@ export function DocsPage() {
             );
         },
         h2: ({ children }: { children?: React.ReactNode }) => {
-            const text = typeof children === 'string' ? children : '';
+            const text = extractTextFromChildren(children);
             const id = headingToId(text);
             return (
                 <h2 id={id} className='text-3xl font-semibold mb-3 mt-5'>
@@ -242,7 +242,7 @@ export function DocsPage() {
             );
         },
         h3: ({ children }: { children?: React.ReactNode }) => {
-            const text = typeof children === 'string' ? children : '';
+            const text = extractTextFromChildren(children);
             const id = headingToId(text);
             return (
                 <h3 id={id} className='text-2xl font-semibold mb-2 mt-4'>
@@ -251,7 +251,7 @@ export function DocsPage() {
             );
         },
         h4: ({ children }: { children?: React.ReactNode }) => {
-            const text = typeof children === 'string' ? children : '';
+            const text = extractTextFromChildren(children);
             const id = headingToId(text);
             return (
                 <h4 id={id} className='text-xl font-semibold mb-2 mt-3'>
@@ -260,7 +260,7 @@ export function DocsPage() {
             );
         },
         h5: ({ children }: { children?: React.ReactNode }) => {
-            const text = typeof children === 'string' ? children : '';
+            const text = extractTextFromChildren(children);
             const id = headingToId(text);
             return (
                 <h5 id={id} className='text-lg font-semibold mb-2 mt-3'>
@@ -269,7 +269,7 @@ export function DocsPage() {
             );
         },
         h6: ({ children }: { children?: React.ReactNode }) => {
-            const text = typeof children === 'string' ? children : '';
+            const text = extractTextFromChildren(children);
             const id = headingToId(text);
             return (
                 <h6 id={id} className='text-base font-semibold mb-2 mt-3'>

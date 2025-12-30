@@ -74,6 +74,10 @@ export function removeDoctocBlocks(markdown: string): string {
     ).trim();
 }
 
+// Dataview callout constants
+const DATAVIEW_CALLOUT_TITLE = 'Obsidian Dataview Query';
+const DATAVIEW_CALLOUT_MESSAGE = 'This section uses Dataview queries that are only visible in Obsidian.';
+
 /**
  * Process Dataview blocks and convert them to "Obsidian-only" callouts
  * Dataview blocks are not executed, just rendered as informational callouts
@@ -83,7 +87,7 @@ export function processDataviewBlocks(markdown: string): string {
     return markdown.replace(
         /```dataview\n([\s\S]*?)```/g,
         (_, query) => {
-            return `> [!note] Obsidian Dataview Query\n> This section uses Dataview queries that are only visible in Obsidian.\n> \n> \`\`\`dataview\n> ${query.trim()}\n> \`\`\``;
+            return `> [!note] ${DATAVIEW_CALLOUT_TITLE}\n> ${DATAVIEW_CALLOUT_MESSAGE}\n> \n> \`\`\`dataview\n> ${query.trim()}\n> \`\`\``;
         }
     );
 }
@@ -122,6 +126,22 @@ export function headingToId(heading: string): string {
         .replace(/[^\w\s-]/g, '') // Remove special chars
         .replace(/\s+/g, '-')      // Replace spaces with hyphens
         .replace(/^-+|-+$/g, '');  // Trim hyphens
+}
+
+/**
+ * Extract text content from React children (handles strings and nested elements)
+ */
+export function extractTextFromChildren(children: React.ReactNode): string {
+    if (typeof children === 'string') {
+        return children;
+    }
+    if (Array.isArray(children)) {
+        return children.map(extractTextFromChildren).join('');
+    }
+    if (children && typeof children === 'object' && 'props' in children) {
+        return extractTextFromChildren((children as any).props.children);
+    }
+    return '';
 }
 
 /**

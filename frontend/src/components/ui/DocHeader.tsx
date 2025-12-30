@@ -20,8 +20,9 @@ export function DocHeader({ frontmatter }: DocHeaderProps) {
         last_reviewed,
     } = frontmatter;
 
-    // Don't render if no metadata
-    if (!title && !summary && tags.length === 0) {
+    // Don't render if no metadata at all
+    const hasMetadata = title || summary || tags.length > 0 || status || area || owner || last_reviewed;
+    if (!hasMetadata) {
         return null;
     }
 
