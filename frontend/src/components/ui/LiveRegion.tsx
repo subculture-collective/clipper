@@ -27,10 +27,17 @@ export const LiveRegion: React.FC<LiveRegionProps> = ({
     clearAfter = 1000,
 }) => {
     const [isCleared, setIsCleared] = useState(false);
+    const prevMessageRef = React.useRef(message);
 
     useEffect(() => {
-        // Reset the cleared state whenever the message changes so updates are immediate
-        setIsCleared(false);
+        // Only reset the cleared state if the message actually changed
+        if (prevMessageRef.current !== message) {
+            prevMessageRef.current = message;
+            // Defer the state update to avoid synchronous setState in effect
+            Promise.resolve().then(() => {
+                setIsCleared(false);
+            });
+        }
 
         if (message && clearAfter > 0) {
             const timer = setTimeout(() => {

@@ -163,7 +163,9 @@ export async function mockOAuthSuccess(
     await page.evaluate((url) => {
       try {
         window.location.assign(url);
-      } catch {}
+      } catch {
+        // Navigation errors are expected and can be safely ignored
+      }
     }, callbackUrl);
   });
 

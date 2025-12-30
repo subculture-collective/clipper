@@ -126,7 +126,9 @@ export async function getSessionTokens(page: Page): Promise<SessionTokens | null
       try {
         await page.goto('/');
         await page.waitForLoadState('domcontentloaded');
-      } catch {}
+      } catch {
+        // Navigation may fail in certain contexts, which is acceptable
+      }
     }
 
     // Try localStorage first
@@ -186,7 +188,9 @@ export async function clearSessionTokens(page: Page): Promise<void> {
     try {
       await page.goto('/');
       await page.waitForLoadState('domcontentloaded');
-    } catch {}
+    } catch {
+      // Navigation may fail in certain contexts, which is acceptable
+    }
   }
 
   await page.evaluate(() => {
@@ -477,7 +481,9 @@ export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
     try {
       await page.goto('/');
       await page.waitForLoadState('domcontentloaded');
-    } catch {}
+    } catch {
+      // Navigation may fail in certain contexts, which is acceptable
+    }
   }
 
   const tokens = await getSessionTokens(page);

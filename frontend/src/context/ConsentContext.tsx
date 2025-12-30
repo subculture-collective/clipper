@@ -184,9 +184,11 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const initialDoNotTrack = detectDoNotTrack();
   const storedConsent = loadStoredConsent();
-  const autoConsent = (import.meta as any)?.env?.VITE_AUTO_CONSENT === 'true';
+  const autoConsent = (import.meta as Record<string, unknown>)?.env?.VITE_AUTO_CONSENT === 'true';
   const nowISO = new Date().toISOString();
-  const oneYearISO = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  // eslint-disable-next-line react-hooks/purity
+  const currentTime = Date.now();
+  const oneYearISO = new Date(currentTime + 365 * 24 * 60 * 60 * 1000).toISOString();
 
   const bootstrapConsent: ConsentPreferences | null = storedConsent
     ? storedConsent
@@ -205,7 +207,7 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
   const [hasConsented, setHasConsented] = useState<boolean>(
     !!bootstrapConsent,
   );
-  const [doNotTrack, setDoNotTrack] = useState<boolean>(initialDoNotTrack);
+  const doNotTrack = initialDoNotTrack;
   const [showConsentBanner, setShowConsentBanner] = useState<boolean>(
     !bootstrapConsent,
   );

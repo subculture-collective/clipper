@@ -11,7 +11,11 @@ async function apiRequest(page: import('@playwright/test').Page, path: string, o
     });
     const text = await res.text();
     let json: any = undefined;
-    try { json = text ? JSON.parse(text) : undefined; } catch {}
+    try {
+      json = text ? JSON.parse(text) : undefined;
+    } catch {
+      // JSON parsing errors are safely ignored - json remains undefined
+    }
     return { ok: res.ok, status: res.status, json };
   }, { path, method, data });
 }
@@ -28,7 +32,11 @@ async function setupChannelApiMocks(page: import('@playwright/test').Page) {
     // POST /api/v1/chat/channels -> create channel
     if (method === 'POST' && path.endsWith('/api/v1/chat/channels')) {
       let body: any = {};
-      try { body = req.postDataJSON() || {}; } catch {}
+      try {
+        body = req.postDataJSON() || {};
+      } catch {
+        // postDataJSON parsing errors default to empty object
+      }
       const id = `chan_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const channel = {
         id,
