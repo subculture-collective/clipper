@@ -143,6 +143,48 @@ go test -v ./internal/handlers -run "TestSubmit.*|TestGetUserStrikes.*|TestRevie
 go test -v -tags=integration ./tests/integration/dmca/...
 ```
 
+### GDPR Account Deletion Lifecycle Tests
+
+The GDPR account deletion system has comprehensive test coverage including:
+
+**Integration Tests** (`backend/tests/integration/gdpr/gdpr_deletion_lifecycle_test.go`, `backend/tests/integration/gdpr/gdpr_hard_delete_test.go`):
+- Deletion request creation with 30-day grace period
+- Duplicate request prevention
+- Cancellation flow and account restoration
+- Grace period behavior (data remains accessible)
+- Hard delete execution and data removal
+- Removal of user-owned resources (favorites, votes, comments, submissions)
+- Authentication token deletion (CASCADE)
+- User settings deletion (CASCADE)
+- Export endpoint validation post-deletion
+- Scheduled deletion execution
+- Audit log entries for request, cancellation, and completion
+- Negative flows and error cases
+
+**Coverage:**
+- Full lifecycle: request → grace period → hard delete
+- Cancellation and restoration flows
+- Data erasure and anonymization
+- Authentication lockout verification
+- Auditability of all deletion lifecycle events
+
+**Running GDPR tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/gdpr/...
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
 ## Writing Tests
 
 ### Best Practices
