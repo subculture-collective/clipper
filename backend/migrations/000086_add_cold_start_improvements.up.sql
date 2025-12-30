@@ -7,9 +7,9 @@ ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP,
 ADD COLUMN IF NOT EXISTS cold_start_source VARCHAR(50); -- 'onboarding', 'inferred', 'default'
 
--- Create index for cold start queries
-CREATE INDEX IF NOT EXISTS idx_user_preferences_onboarding 
-ON user_preferences(onboarding_completed, cold_start_source);
+-- Create index for cold start queries (single column is more efficient for this access pattern)
+CREATE INDEX IF NOT EXISTS idx_user_preferences_onboarding_completed 
+ON user_preferences(onboarding_completed);
 
 -- Add comments for documentation
 COMMENT ON COLUMN user_preferences.onboarding_completed IS 'Whether user has completed the onboarding preference selection';
@@ -26,6 +26,14 @@ CREATE OR REPLACE FUNCTION complete_user_onboarding(
 )
 RETURNS VOID AS $$
 BEGIN
+    -- Validate that at least one preference array is non-empty
+    IF COALESCE(array_length(p_favorite_games, 1), 0) = 0 AND
+       COALESCE(array_length(p_followed_streamers, 1), 0) = 0 AND
+       COALESCE(array_length(p_preferred_categories, 1), 0) = 0 AND
+       COALESCE(array_length(p_preferred_tags, 1), 0) = 0 THEN
+        RAISE EXCEPTION 'At least one preference type must be provided';
+    END IF;
+
     INSERT INTO user_preferences (
         user_id, 
         favorite_games, 

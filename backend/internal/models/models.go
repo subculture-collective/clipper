@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -3270,11 +3271,21 @@ type UpdatePreferencesRequest struct {
 }
 
 // OnboardingPreferencesRequest represents initial onboarding preferences
+// At least one preference type (games, streamers, categories, or tags) must be provided
 type OnboardingPreferencesRequest struct {
-	FavoriteGames       []string    `json:"favorite_games" binding:"required,dive,required"`
-	FollowedStreamers   []string    `json:"followed_streamers,omitempty" binding:"omitempty,max=10"`
-	PreferredCategories []string    `json:"preferred_categories,omitempty" binding:"omitempty,max=5"`
+	FavoriteGames       []string    `json:"favorite_games,omitempty" binding:"omitempty,max=10,dive,required"`
+	FollowedStreamers   []string    `json:"followed_streamers,omitempty" binding:"omitempty,max=10,dive,required"`
+	PreferredCategories []string    `json:"preferred_categories,omitempty" binding:"omitempty,max=5,dive,required"`
 	PreferredTags       []uuid.UUID `json:"preferred_tags,omitempty" binding:"omitempty,max=10"`
+}
+
+// Validate ensures at least one preference type is provided
+func (r *OnboardingPreferencesRequest) Validate() error {
+	if len(r.FavoriteGames) == 0 && len(r.FollowedStreamers) == 0 && 
+	   len(r.PreferredCategories) == 0 && len(r.PreferredTags) == 0 {
+		return fmt.Errorf("at least one preference type must be provided")
+	}
+	return nil
 }
 
 // Interaction type constants

@@ -193,6 +193,14 @@ func (h *RecommendationHandler) CompleteOnboarding(c *gin.Context) {
 		return
 	}
 
+	// Validate that at least one preference type is provided
+	if err := req.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	// Create preferences object
 	preferences := &models.UserPreference{
 		UserID:              userID,

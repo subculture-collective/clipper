@@ -79,6 +79,8 @@ Request:
 }
 ```
 
+**Validation**: At least one preference array must be non-empty. The API enforces this at both the handler level (application) and database level (SQL function). All arrays are optional, but at least one must contain values.
+
 Response: Updated `UserPreference` object with `onboarding_completed: true`
 
 Rate limit: 5 requests per minute

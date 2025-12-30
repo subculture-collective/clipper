@@ -258,12 +258,14 @@ func (s *RecommendationService) getColdStartRecommendations(
 	ctx context.Context,
 	limit int,
 ) ([]models.ClipRecommendation, error) {
-	// Try trending clips first
-	scores, err := s.repo.GetTrendingClips(ctx, nil, limit)
+	// Try trending clips first with configurable parameters
+	scores, err := s.repo.GetTrendingClips(ctx, nil, s.trendingWindowDays, s.trendingMinScore, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trending clips: %w", err)
 	}
 
+	algorithm := "trending"
+	
 	// If not enough trending clips, supplement with popular clips
 	if len(scores) < limit {
 		RecordColdStartFallback("trending", "popularity")
@@ -277,10 +279,16 @@ func (s *RecommendationService) getColdStartRecommendations(
 		)
 		if err == nil && len(popularScores) > 0 {
 			scores = append(scores, popularScores...)
+			// Update algorithm to reflect mixed strategy
+			if len(popularScores) > len(scores)/2 {
+				algorithm = "popularity"
+			} else {
+				algorithm = "trending+popularity"
+			}
 		}
 	}
 
-	return s.buildRecommendations(ctx, scores, "trending", limit)
+	return s.buildRecommendations(ctx, scores, algorithm, limit)
 }
 
 // getHybridRecommendations generates hybrid recommendations combining multiple signals
@@ -326,7 +334,7 @@ func (s *RecommendationService) getScoresForHybrid(
 	case models.AlgorithmCollaborative:
 		return s.repo.GetCollaborativeRecommendations(ctx, userID, nil, limit)
 	case models.AlgorithmTrending:
-		return s.repo.GetTrendingClips(ctx, nil, limit)
+		return s.repo.GetTrendingClips(ctx, nil, s.trendingWindowDays, s.trendingMinScore, limit)
 	default:
 		return nil, fmt.Errorf("unknown algorithm: %s", algorithm)
 	}
@@ -548,16 +556,20 @@ func (s *RecommendationService) RecordInteraction(
 	}
 
 	// Invalidate cache for this user
-	pattern := fmt.Sprintf("recommendations:%s:*", interaction.UserID.String())
+	s.invalidateUserCache(ctx, interaction.UserID)
+
+	return nil
+}
+
+// invalidateUserCache invalidates all cached recommendations for a user
+func (s *RecommendationService) invalidateUserCache(ctx context.Context, userID uuid.UUID) {
+	pattern := fmt.Sprintf("recommendations:%s:*", userID.String())
 	iter := s.redisClient.Scan(ctx, 0, pattern, 100).Iterator()
 	for iter.Next(ctx) {
 		s.redisClient.Del(ctx, iter.Val())
 	}
-	if err := iter.Err(); err != nil {
-		return fmt.Errorf("failed to scan cache keys: %w", err)
-	}
-
-	return nil
+	// Ignore errors during cache invalidation as it's not critical
+	_ = iter.Err()
 }
 
 // GetUserPreferences retrieves user preferences
@@ -572,14 +584,7 @@ func (s *RecommendationService) UpdateUserPreferences(ctx context.Context, pref 
 	}
 
 	// Invalidate cache for this user
-	pattern := fmt.Sprintf("recommendations:%s:*", pref.UserID.String())
-	iter := s.redisClient.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		s.redisClient.Del(ctx, iter.Val())
-	}
-	if err := iter.Err(); err != nil {
-		return fmt.Errorf("failed to scan cache keys: %w", err)
-	}
+	s.invalidateUserCache(ctx, pref.UserID)
 
 	return nil
 }
@@ -594,14 +599,7 @@ func (s *RecommendationService) CompleteOnboarding(ctx context.Context, pref *mo
 	RecordOnboardingCompleted()
 
 	// Invalidate cache for this user
-	pattern := fmt.Sprintf("recommendations:%s:*", pref.UserID.String())
-	iter := s.redisClient.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		s.redisClient.Del(ctx, iter.Val())
-	}
-	if err := iter.Err(); err != nil {
-		return fmt.Errorf("failed to scan cache keys: %w", err)
-	}
+	s.invalidateUserCache(ctx, pref.UserID)
 
 	return nil
 }

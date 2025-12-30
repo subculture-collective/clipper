@@ -54,7 +54,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Drop index
-DROP INDEX IF EXISTS idx_user_preferences_onboarding;
+DROP INDEX IF EXISTS idx_user_preferences_onboarding_completed;
 
 -- Remove columns
 ALTER TABLE user_preferences 
