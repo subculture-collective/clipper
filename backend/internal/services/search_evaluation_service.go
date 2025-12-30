@@ -161,8 +161,15 @@ func calculateDCG(relevances []int, k int) float64 {
 	for i := 0; i < limit; i++ {
 		// Using the formula: (2^rel - 1) / log2(i + 2)
 		// This gives more weight to highly relevant documents
-		// Using bit shift for efficiency since relevances are small integers (0-4)
-		gain := float64(int(1<<uint(relevances[i])) - 1)
+		// Relevances are expected to be 0-4, but we clamp to prevent overflow
+		rel := relevances[i]
+		if rel > 4 {
+			rel = 4 // Clamp to max expected relevance
+		}
+		if rel < 0 {
+			rel = 0 // Clamp to min relevance
+		}
+		gain := float64(int(1<<uint(rel)) - 1)
 		discount := math.Log2(float64(i + 2))
 		dcg += gain / discount
 	}

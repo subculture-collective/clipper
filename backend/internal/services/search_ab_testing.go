@@ -18,6 +18,24 @@ type SearchWeightConfig struct {
 	RecencyBoost    float64 `json:"recency_boost" yaml:"recency_boost"`       // Boost factor for recency
 }
 
+// Validate checks if the configuration is valid
+// BM25Weight and VectorWeight should sum to 1.0 for proper normalization
+func (c SearchWeightConfig) Validate() error {
+	const tolerance = 0.01 // Allow small floating point errors
+	sum := c.BM25Weight + c.VectorWeight
+	if sum < 1.0-tolerance || sum > 1.0+tolerance {
+		return fmt.Errorf("BM25Weight (%.2f) + VectorWeight (%.2f) should sum to 1.0, got %.2f",
+			c.BM25Weight, c.VectorWeight, sum)
+	}
+	if c.BM25Weight < 0 || c.BM25Weight > 1 {
+		return fmt.Errorf("BM25Weight must be between 0 and 1, got %.2f", c.BM25Weight)
+	}
+	if c.VectorWeight < 0 || c.VectorWeight > 1 {
+		return fmt.Errorf("VectorWeight must be between 0 and 1, got %.2f", c.VectorWeight)
+	}
+	return nil
+}
+
 // ABTestResult represents the result of comparing two configurations
 type ABTestResult struct {
 	ConfigA        SearchWeightConfig `json:"config_a"`
@@ -139,6 +157,14 @@ func DefaultConfigs() []SearchWeightConfig {
 func (h *ABTestHarness) CompareConfigs(ctx context.Context, configA, configB SearchWeightConfig, resultsProvider func(config SearchWeightConfig, query string) ([]string, error)) (*ABTestResult, error) {
 	if h.evalService.dataset == nil {
 		return nil, fmt.Errorf("no evaluation dataset loaded")
+	}
+
+	// Validate configurations
+	if err := configA.Validate(); err != nil {
+		return nil, fmt.Errorf("config A is invalid: %w", err)
+	}
+	if err := configB.Validate(); err != nil {
+		return nil, fmt.Errorf("config B is invalid: %w", err)
 	}
 
 	// Run evaluation for config A

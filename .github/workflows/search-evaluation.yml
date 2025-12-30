@@ -58,7 +58,7 @@ jobs:
           if [ -f search-evaluation-results.json ]; then
             echo "Search Evaluation Results:"
             echo "=================================="
-            # Extract and display key metrics using jq
+            # Extract and display key metrics using jq (pre-installed on ubuntu-latest)
             echo ""
             echo "Aggregate Metrics:"
             jq -r '.aggregate_metrics | 
