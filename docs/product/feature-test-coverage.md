@@ -901,6 +901,6 @@ Addressing the **High Priority** gaps should be the immediate focus to ensure **
 
 **Recent Updates**:
 - 2025-12-30: Added comprehensive admin user management authorization tests
-  - 6 test suites covering all admin endpoints
+  - 5 test suites covering all admin endpoints
   - Authorization, role management, ban/unban, suspensions, audit logging
   - Moved admin user management from 🔴 missing to ✅ complete

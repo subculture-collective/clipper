@@ -685,7 +685,7 @@ func TestAdminUserManagement_OtherOperations(t *testing.T) {
 		token, _ := testutil.GenerateTestTokens(t, jwtManager, adminUser.ID, adminUser.Role)
 
 		// Update karma
-		reqBody := map[string]int{"karma_points": 500}
+		reqBody := map[string]int{"karma_points": 500} // Set to a specific positive value for verification
 		body, _ := json.Marshal(reqBody)
 
 		req, _ := http.NewRequest("PATCH", fmt.Sprintf("/api/v1/admin/users/%s/karma", targetUser.ID), bytes.NewBuffer(body))
