@@ -15,13 +15,17 @@ import (
 
 // RecommendationService handles recommendation logic
 type RecommendationService struct {
-	repo                *repository.RecommendationRepository
-	redisClient         *redis.Client
-	contentWeight       float64
-	collaborativeWeight float64
-	trendingWeight      float64
-	enableHybrid        bool
-	cacheTTLHours       int
+	repo                 *repository.RecommendationRepository
+	redisClient          *redis.Client
+	contentWeight        float64
+	collaborativeWeight  float64
+	trendingWeight       float64
+	enableHybrid         bool
+	cacheTTLHours        int
+	trendingWindowDays   int
+	trendingMinScore     float64
+	popularityWindowDays int
+	popularityMinViews   int
 }
 
 // NewRecommendationService creates a new recommendation service
@@ -30,13 +34,17 @@ func NewRecommendationService(
 	redisClient *redis.Client,
 ) *RecommendationService {
 	return &RecommendationService{
-		repo:                repo,
-		redisClient:         redisClient,
-		contentWeight:       0.5,
-		collaborativeWeight: 0.3,
-		trendingWeight:      0.2,
-		enableHybrid:        true,
-		cacheTTLHours:       24,
+		repo:                 repo,
+		redisClient:          redisClient,
+		contentWeight:        0.5,
+		collaborativeWeight:  0.3,
+		trendingWeight:       0.2,
+		enableHybrid:         true,
+		cacheTTLHours:        24,
+		trendingWindowDays:   7,
+		trendingMinScore:     0.0,
+		popularityWindowDays: 30,
+		popularityMinViews:   100,
 	}
 }
 
@@ -49,15 +57,23 @@ func NewRecommendationServiceWithConfig(
 	trendingWeight float64,
 	enableHybrid bool,
 	cacheTTLHours int,
+	trendingWindowDays int,
+	trendingMinScore float64,
+	popularityWindowDays int,
+	popularityMinViews int,
 ) *RecommendationService {
 	return &RecommendationService{
-		repo:                repo,
-		redisClient:         redisClient,
-		contentWeight:       contentWeight,
-		collaborativeWeight: collaborativeWeight,
-		trendingWeight:      trendingWeight,
-		enableHybrid:        enableHybrid,
-		cacheTTLHours:       cacheTTLHours,
+		repo:                 repo,
+		redisClient:          redisClient,
+		contentWeight:        contentWeight,
+		collaborativeWeight:  collaborativeWeight,
+		trendingWeight:       trendingWeight,
+		enableHybrid:         enableHybrid,
+		cacheTTLHours:        cacheTTLHours,
+		trendingWindowDays:   trendingWindowDays,
+		trendingMinScore:     trendingMinScore,
+		popularityWindowDays: popularityWindowDays,
+		popularityMinViews:   popularityMinViews,
 	}
 }
 
@@ -103,10 +119,24 @@ func (s *RecommendationService) GetRecommendations(
 	diversityApplied := false
 
 	if isColdStart {
-		// Cold start: return trending clips
-		recommendations, err = s.getColdStartRecommendations(ctx, limit)
+		// Cold start: check if user has onboarding preferences
+		preferences, err := s.repo.GetUserPreferences(ctx, userID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get user preferences: %w", err)
+		}
+
+		// If user completed onboarding, use content-based on preferences
+		if preferences.OnboardingCompleted && (len(preferences.FavoriteGames) > 0 || len(preferences.FollowedStreamers) > 0) {
+			recommendations, err = s.getContentBasedRecommendations(ctx, userID, limit)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Fall back to trending clips
+			recommendations, err = s.getColdStartRecommendations(ctx, limit)
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else {
 		// Generate recommendations based on algorithm
@@ -498,6 +528,25 @@ func (s *RecommendationService) GetUserPreferences(ctx context.Context, userID u
 func (s *RecommendationService) UpdateUserPreferences(ctx context.Context, pref *models.UserPreference) error {
 	if err := s.repo.UpdateUserPreferences(ctx, pref); err != nil {
 		return fmt.Errorf("failed to update user preferences: %w", err)
+	}
+
+	// Invalidate cache for this user
+	pattern := fmt.Sprintf("recommendations:%s:*", pref.UserID.String())
+	iter := s.redisClient.Scan(ctx, 0, pattern, 100).Iterator()
+	for iter.Next(ctx) {
+		s.redisClient.Del(ctx, iter.Val())
+	}
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("failed to scan cache keys: %w", err)
+	}
+
+	return nil
+}
+
+// CompleteOnboarding saves initial onboarding preferences for a user
+func (s *RecommendationService) CompleteOnboarding(ctx context.Context, pref *models.UserPreference) error {
+	if err := s.repo.CompleteOnboarding(ctx, pref); err != nil {
+		return fmt.Errorf("failed to complete onboarding: %w", err)
 	}
 
 	// Invalidate cache for this user

@@ -246,6 +246,12 @@ type RecommendationsConfig struct {
 	CFLearningRate      float64 // Learning rate for SGD (default: 0.01)
 	CFIterations        int     // Number of training iterations (default: 20)
 	
+	// Cold start and trending parameters
+	TrendingWindowDays  int     // Number of days to look back for trending clips (default: 7)
+	TrendingMinScore    float64 // Minimum trending score threshold (default: 0.0)
+	PopularityWindowDays int    // Number of days for popularity calculation (default: 30)
+	PopularityMinViews  int     // Minimum views for popularity ranking (default: 100)
+	
 	// General settings
 	EnableHybrid        bool    // Enable hybrid recommendations (default: true)
 	CacheTTLHours       int     // Cache TTL in hours (default: 24)
@@ -459,6 +465,12 @@ func Load() (*Config, error) {
 			CFRegularization: getEnvFloat("REC_CF_REGULARIZATION", 0.01),
 			CFLearningRate:   getEnvFloat("REC_CF_LEARNING_RATE", 0.01),
 			CFIterations:     getEnvInt("REC_CF_ITERATIONS", 20),
+			
+			// Cold start and trending parameters
+			TrendingWindowDays:   getEnvInt("REC_TRENDING_WINDOW_DAYS", 7),
+			TrendingMinScore:     getEnvFloat("REC_TRENDING_MIN_SCORE", 0.0),
+			PopularityWindowDays: getEnvInt("REC_POPULARITY_WINDOW_DAYS", 30),
+			PopularityMinViews:   getEnvInt("REC_POPULARITY_MIN_VIEWS", 100),
 			
 			// General settings
 			EnableHybrid:  getEnvBool("REC_ENABLE_HYBRID", true),

@@ -28,7 +28,8 @@ func NewRecommendationRepository(pool *pgxpool.Pool) *RecommendationRepository {
 func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userID uuid.UUID) (*models.UserPreference, error) {
 	query := `
 		SELECT user_id, favorite_games, followed_streamers, preferred_categories, 
-		       preferred_tags, updated_at, created_at
+		       preferred_tags, onboarding_completed, onboarding_completed_at, 
+		       cold_start_source, updated_at, created_at
 		FROM user_preferences
 		WHERE user_id = $1
 	`
@@ -43,6 +44,9 @@ func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userI
 		&followedStreamers,
 		&preferredCategories,
 		pq.Array(&preferredTags),
+		&pref.OnboardingCompleted,
+		&pref.OnboardingCompletedAt,
+		&pref.ColdStartSource,
 		&pref.UpdatedAt,
 		&pref.CreatedAt,
 	)
@@ -55,6 +59,7 @@ func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userI
 			FollowedStreamers:   []string{},
 			PreferredCategories: []string{},
 			PreferredTags:       []uuid.UUID{},
+			OnboardingCompleted: false,
 			UpdatedAt:           time.Now(),
 			CreatedAt:           time.Now(),
 		}, nil
@@ -112,6 +117,35 @@ func (r *RecommendationRepository) UpdateUserPreferences(ctx context.Context, pr
 
 	if err != nil {
 		return fmt.Errorf("failed to update user preferences: %w", err)
+	}
+
+	return nil
+}
+
+// CompleteOnboarding marks onboarding as completed and saves initial preferences
+func (r *RecommendationRepository) CompleteOnboarding(ctx context.Context, pref *models.UserPreference) error {
+	// Convert uuid.UUID to strings for tags
+	tagStrings := make([]string, len(pref.PreferredTags))
+	for i, tag := range pref.PreferredTags {
+		tagStrings[i] = tag.String()
+	}
+
+	query := `
+		SELECT complete_user_onboarding($1, $2, $3, $4, $5)
+	`
+
+	_, err := r.pool.Exec(
+		ctx,
+		query,
+		pref.UserID,
+		pq.Array(pref.FavoriteGames),
+		pq.Array(pref.FollowedStreamers),
+		pq.Array(pref.PreferredCategories),
+		pq.Array(tagStrings),
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to complete onboarding: %w", err)
 	}
 
 	return nil

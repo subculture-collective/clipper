@@ -243,7 +243,19 @@ func main() {
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
 
 	// Initialize recommendation service
-	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
+	recommendationService := services.NewRecommendationServiceWithConfig(
+		recommendationRepo,
+		redisClient.GetClient(),
+		cfg.Recommendations.ContentWeight,
+		cfg.Recommendations.CollaborativeWeight,
+		cfg.Recommendations.TrendingWeight,
+		cfg.Recommendations.EnableHybrid,
+		cfg.Recommendations.CacheTTLHours,
+		cfg.Recommendations.TrendingWindowDays,
+		cfg.Recommendations.TrendingMinScore,
+		cfg.Recommendations.PopularityWindowDays,
+		cfg.Recommendations.PopularityMinViews,
+	)
 
 	// Initialize playlist service
 	playlistService := services.NewPlaylistService(playlistRepo, clipRepo, cfg.Server.BaseURL)
@@ -1037,6 +1049,9 @@ func main() {
 
 			// Update user preferences
 			recommendations.PUT("/preferences", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), recommendationHandler.UpdatePreferences)
+
+			// Complete onboarding flow
+			recommendations.POST("/onboarding", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), recommendationHandler.CompleteOnboarding)
 
 			// Track view for recommendation engine
 			recommendations.POST("/track-view/:id", middleware.RateLimitMiddleware(redisClient, 200, time.Minute), recommendationHandler.TrackView)

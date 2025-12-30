@@ -3190,13 +3190,16 @@ type FilterCounts struct {
 
 // UserPreference represents a user's content preferences
 type UserPreference struct {
-	UserID              uuid.UUID   `json:"user_id" db:"user_id"`
-	FavoriteGames       []string    `json:"favorite_games" db:"favorite_games"`
-	FollowedStreamers   []string    `json:"followed_streamers" db:"followed_streamers"`
-	PreferredCategories []string    `json:"preferred_categories" db:"preferred_categories"`
-	PreferredTags       []uuid.UUID `json:"preferred_tags" db:"preferred_tags"`
-	UpdatedAt           time.Time   `json:"updated_at" db:"updated_at"`
-	CreatedAt           time.Time   `json:"created_at" db:"created_at"`
+	UserID                uuid.UUID   `json:"user_id" db:"user_id"`
+	FavoriteGames         []string    `json:"favorite_games" db:"favorite_games"`
+	FollowedStreamers     []string    `json:"followed_streamers" db:"followed_streamers"`
+	PreferredCategories   []string    `json:"preferred_categories" db:"preferred_categories"`
+	PreferredTags         []uuid.UUID `json:"preferred_tags" db:"preferred_tags"`
+	OnboardingCompleted   bool        `json:"onboarding_completed" db:"onboarding_completed"`
+	OnboardingCompletedAt *time.Time  `json:"onboarding_completed_at,omitempty" db:"onboarding_completed_at"`
+	ColdStartSource       *string     `json:"cold_start_source,omitempty" db:"cold_start_source"` // 'onboarding', 'inferred', 'default'
+	UpdatedAt             time.Time   `json:"updated_at" db:"updated_at"`
+	CreatedAt             time.Time   `json:"created_at" db:"created_at"`
 }
 
 // UserClipInteraction represents a user's interaction with a clip
@@ -3264,6 +3267,14 @@ type UpdatePreferencesRequest struct {
 	FollowedStreamers   *[]string    `json:"followed_streamers,omitempty"`
 	PreferredCategories *[]string    `json:"preferred_categories,omitempty"`
 	PreferredTags       *[]uuid.UUID `json:"preferred_tags,omitempty"`
+}
+
+// OnboardingPreferencesRequest represents initial onboarding preferences
+type OnboardingPreferencesRequest struct {
+	FavoriteGames       []string    `json:"favorite_games" binding:"required,min=1,max=10"`
+	FollowedStreamers   []string    `json:"followed_streamers,omitempty" binding:"max=10"`
+	PreferredCategories []string    `json:"preferred_categories,omitempty" binding:"max=5"`
+	PreferredTags       []uuid.UUID `json:"preferred_tags,omitempty" binding:"max=10"`
 }
 
 // Interaction type constants
