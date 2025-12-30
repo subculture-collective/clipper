@@ -28,9 +28,10 @@ type Config struct {
 	RateLimit    RateLimitConfig
 	Security     SecurityConfig
 	QueryLimits  QueryLimitsConfig
-	SearchLimits SearchLimitsConfig
-	CDN          CDNConfig
-	Mirror       MirrorConfig
+	SearchLimits      SearchLimitsConfig
+	CDN               CDNConfig
+	Mirror            MirrorConfig
+	Recommendations   RecommendationsConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -232,6 +233,24 @@ type MirrorConfig struct {
 	MinMirrorHitRate       float64  // Minimum mirror hit rate percentage (default: 60.0)
 }
 
+// RecommendationsConfig holds recommendation algorithm configuration
+type RecommendationsConfig struct {
+	// Hybrid algorithm weights (should sum to ~1.0)
+	ContentWeight       float64 // Weight for content-based filtering (default: 0.5)
+	CollaborativeWeight float64 // Weight for collaborative filtering (default: 0.3)
+	TrendingWeight      float64 // Weight for trending signal (default: 0.2)
+	
+	// Collaborative filtering parameters
+	CFFactors           int     // Number of latent factors for matrix factorization (default: 50)
+	CFRegularization    float64 // L2 regularization parameter (default: 0.01)
+	CFLearningRate      float64 // Learning rate for SGD (default: 0.01)
+	CFIterations        int     // Number of training iterations (default: 20)
+	
+	// General settings
+	EnableHybrid        bool    // Enable hybrid recommendations (default: true)
+	CacheTTLHours       int     // Cache TTL in hours (default: 24)
+}
+
 // getEnvBool gets a boolean environment variable with a fallback default value
 func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
@@ -428,6 +447,22 @@ func Load() (*Config, error) {
 			SyncIntervalMinutes:    getEnvInt("MIRROR_SYNC_INTERVAL_MINUTES", 60),
 			CleanupIntervalMinutes: getEnvInt("MIRROR_CLEANUP_INTERVAL_MINUTES", 1440),
 			MinMirrorHitRate:       getEnvFloat("MIRROR_MIN_HIT_RATE", 60.0),
+		},
+		Recommendations: RecommendationsConfig{
+			// Hybrid algorithm weights
+			ContentWeight:       getEnvFloat("REC_CONTENT_WEIGHT", 0.5),
+			CollaborativeWeight: getEnvFloat("REC_COLLABORATIVE_WEIGHT", 0.3),
+			TrendingWeight:      getEnvFloat("REC_TRENDING_WEIGHT", 0.2),
+			
+			// Collaborative filtering parameters
+			CFFactors:        getEnvInt("REC_CF_FACTORS", 50),
+			CFRegularization: getEnvFloat("REC_CF_REGULARIZATION", 0.01),
+			CFLearningRate:   getEnvFloat("REC_CF_LEARNING_RATE", 0.01),
+			CFIterations:     getEnvInt("REC_CF_ITERATIONS", 20),
+			
+			// General settings
+			EnableHybrid:  getEnvBool("REC_ENABLE_HYBRID", true),
+			CacheTTLHours: getEnvInt("REC_CACHE_TTL_HOURS", 24),
 		},
 	}
 
