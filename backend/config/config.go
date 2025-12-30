@@ -28,9 +28,12 @@ type Config struct {
 	RateLimit    RateLimitConfig
 	Security     SecurityConfig
 	QueryLimits  QueryLimitsConfig
-	SearchLimits SearchLimitsConfig
-	CDN          CDNConfig
-	Mirror       MirrorConfig
+	SearchLimits      SearchLimitsConfig
+	HybridSearch      HybridSearchConfig
+	CDN               CDNConfig
+	Mirror            MirrorConfig
+	Recommendations   RecommendationsConfig
+	Toxicity          ToxicityConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -232,6 +235,54 @@ type MirrorConfig struct {
 	MinMirrorHitRate       float64  // Minimum mirror hit rate percentage (default: 60.0)
 }
 
+// RecommendationsConfig holds recommendation algorithm configuration
+type RecommendationsConfig struct {
+	// Hybrid algorithm weights (should sum to ~1.0)
+	ContentWeight       float64 // Weight for content-based filtering (default: 0.5)
+	CollaborativeWeight float64 // Weight for collaborative filtering (default: 0.3)
+	TrendingWeight      float64 // Weight for trending signal (default: 0.2)
+	
+	// Collaborative filtering parameters
+	CFFactors           int     // Number of latent factors for matrix factorization (default: 50)
+	CFRegularization    float64 // L2 regularization parameter (default: 0.01)
+	CFLearningRate      float64 // Learning rate for SGD (default: 0.01)
+	CFIterations        int     // Number of training iterations (default: 20)
+	
+	// Cold start and trending parameters
+	TrendingWindowDays  int     // Number of days to look back for trending clips (default: 7)
+	TrendingMinScore    float64 // Minimum trending score threshold (default: 0.0)
+	PopularityWindowDays int    // Number of days for popularity calculation (default: 30)
+	PopularityMinViews  int     // Minimum views for popularity ranking (default: 100)
+	
+	// General settings
+	EnableHybrid        bool    // Enable hybrid recommendations (default: true)
+	CacheTTLHours       int     // Cache TTL in hours (default: 24)
+}
+
+// HybridSearchConfig holds hybrid search weight configuration
+type HybridSearchConfig struct {
+	// Ranking algorithm weights (should sum to 1.0)
+	BM25Weight   float64 // Weight for BM25 text matching (default: 0.7)
+	VectorWeight float64 // Weight for semantic vector search (default: 0.3)
+	
+	// Field boost parameters for BM25
+	TitleBoost   float64 // Field boost for title (default: 3.0)
+	CreatorBoost float64 // Field boost for creator name (default: 2.0)
+	GameBoost    float64 // Field boost for game name (default: 1.0)
+	
+	// Scoring boost parameters
+	EngagementBoost float64 // Boost factor for engagement score (default: 0.1)
+	RecencyBoost    float64 // Boost factor for recency (default: 0.5)
+}
+
+// ToxicityConfig holds toxicity detection configuration
+type ToxicityConfig struct {
+	Enabled    bool    // Enable toxicity detection (default: false)
+	APIKey     string  // API key for toxicity detection service (e.g., Perspective API)
+	APIURL     string  // API URL for toxicity detection service
+	Threshold  float64 // Confidence threshold for flagging content (default: 0.85)
+}
+
 // getEnvBool gets a boolean environment variable with a fallback default value
 func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
@@ -428,6 +479,48 @@ func Load() (*Config, error) {
 			SyncIntervalMinutes:    getEnvInt("MIRROR_SYNC_INTERVAL_MINUTES", 60),
 			CleanupIntervalMinutes: getEnvInt("MIRROR_CLEANUP_INTERVAL_MINUTES", 1440),
 			MinMirrorHitRate:       getEnvFloat("MIRROR_MIN_HIT_RATE", 60.0),
+		},
+		Recommendations: RecommendationsConfig{
+			// Hybrid algorithm weights
+			ContentWeight:       getEnvFloat("REC_CONTENT_WEIGHT", 0.5),
+			CollaborativeWeight: getEnvFloat("REC_COLLABORATIVE_WEIGHT", 0.3),
+			TrendingWeight:      getEnvFloat("REC_TRENDING_WEIGHT", 0.2),
+			
+			// Collaborative filtering parameters
+			CFFactors:        getEnvInt("REC_CF_FACTORS", 50),
+			CFRegularization: getEnvFloat("REC_CF_REGULARIZATION", 0.01),
+			CFLearningRate:   getEnvFloat("REC_CF_LEARNING_RATE", 0.01),
+			CFIterations:     getEnvInt("REC_CF_ITERATIONS", 20),
+			
+			// Cold start and trending parameters
+			TrendingWindowDays:   getEnvInt("REC_TRENDING_WINDOW_DAYS", 7),
+			TrendingMinScore:     getEnvFloat("REC_TRENDING_MIN_SCORE", 0.0),
+			PopularityWindowDays: getEnvInt("REC_POPULARITY_WINDOW_DAYS", 30),
+			PopularityMinViews:   getEnvInt("REC_POPULARITY_MIN_VIEWS", 100),
+			
+			// General settings
+			EnableHybrid:  getEnvBool("REC_ENABLE_HYBRID", true),
+			CacheTTLHours: getEnvInt("REC_CACHE_TTL_HOURS", 24),
+		},
+		HybridSearch: HybridSearchConfig{
+			// Ranking algorithm weights
+			BM25Weight:   getEnvFloat("HYBRID_SEARCH_BM25_WEIGHT", 0.7),
+			VectorWeight: getEnvFloat("HYBRID_SEARCH_VECTOR_WEIGHT", 0.3),
+			
+			// Field boost parameters
+			TitleBoost:   getEnvFloat("HYBRID_SEARCH_TITLE_BOOST", 3.0),
+			CreatorBoost: getEnvFloat("HYBRID_SEARCH_CREATOR_BOOST", 2.0),
+			GameBoost:    getEnvFloat("HYBRID_SEARCH_GAME_BOOST", 1.0),
+			
+			// Scoring boost parameters
+			EngagementBoost: getEnvFloat("HYBRID_SEARCH_ENGAGEMENT_BOOST", 0.1),
+			RecencyBoost:    getEnvFloat("HYBRID_SEARCH_RECENCY_BOOST", 0.5),
+		},
+		Toxicity: ToxicityConfig{
+			Enabled:   getEnvBool("TOXICITY_ENABLED", false),
+			APIKey:    getEnv("TOXICITY_API_KEY", ""),
+			APIURL:    getEnv("TOXICITY_API_URL", "https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze"),
+			Threshold: getEnvFloat("TOXICITY_THRESHOLD", 0.85),
 		},
 	}
 

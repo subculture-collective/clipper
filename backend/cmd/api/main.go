@@ -210,7 +210,17 @@ func main() {
 	}
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
-	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService)
+	
+	// Initialize toxicity classifier
+	toxicityClassifier := services.NewToxicityClassifier(
+		cfg.Toxicity.APIKey,
+		cfg.Toxicity.APIURL,
+		cfg.Toxicity.Enabled,
+		cfg.Toxicity.Threshold,
+		db.Pool,
+	)
+	
+	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService, toxicityClassifier)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
@@ -243,7 +253,19 @@ func main() {
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
 
 	// Initialize recommendation service
-	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
+	recommendationService := services.NewRecommendationServiceWithConfig(
+		recommendationRepo,
+		redisClient.GetClient(),
+		cfg.Recommendations.ContentWeight,
+		cfg.Recommendations.CollaborativeWeight,
+		cfg.Recommendations.TrendingWeight,
+		cfg.Recommendations.EnableHybrid,
+		cfg.Recommendations.CacheTTLHours,
+		cfg.Recommendations.TrendingWindowDays,
+		cfg.Recommendations.TrendingMinScore,
+		cfg.Recommendations.PopularityWindowDays,
+		cfg.Recommendations.PopularityMinViews,
+	)
 
 	// Initialize playlist service
 	playlistService := services.NewPlaylistService(playlistRepo, clipRepo, cfg.Server.BaseURL)
@@ -412,7 +434,7 @@ func main() {
 		abuseDetector := submissionService.GetAbuseDetector()
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, db.Pool)
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, db.Pool)
 		}
 	}
 
@@ -1038,6 +1060,9 @@ func main() {
 			// Update user preferences
 			recommendations.PUT("/preferences", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), recommendationHandler.UpdatePreferences)
 
+			// Complete onboarding flow
+			recommendations.POST("/onboarding", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), recommendationHandler.CompleteOnboarding)
+
 			// Track view for recommendation engine
 			recommendations.POST("/track-view/:id", middleware.RateLimitMiddleware(redisClient, 200, time.Minute), recommendationHandler.TrackView)
 		}
@@ -1543,6 +1568,9 @@ func main() {
 					// Audit logs and analytics
 					moderation.GET("/audit", moderationHandler.GetModerationAuditLogs)
 					moderation.GET("/analytics", moderationHandler.GetModerationAnalytics)
+					
+					// Toxicity classification metrics
+					moderation.GET("/toxicity/metrics", moderationHandler.GetToxicityMetrics)
 				}
 			}
 

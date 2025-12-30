@@ -325,6 +325,39 @@ See `.env.example` for all available configuration options:
 - **Server**: Port, Gin mode
 - **Database**: Host, port, credentials, database name
 - **Redis**: Host, port, password
+- **JWT**: Private/public keys for authentication
+- **Twitch**: OAuth credentials
+- **Stripe**: Payment integration
+- **Email**: SendGrid integration
+- **OpenSearch**: Search service connection
+- **Feature Flags**: Toggle features on/off
+- **Rate Limiting**: Request limits per tier
+- **Recommendations**: Algorithm tuning parameters (see below)
+
+### Recommendation Configuration
+
+Fine-tune the hybrid recommendation algorithm:
+
+```bash
+# Hybrid algorithm weights (should sum to ~1.0)
+REC_CONTENT_WEIGHT=0.5          # Content-based filtering weight (default: 0.5)
+REC_COLLABORATIVE_WEIGHT=0.3    # Collaborative filtering weight (default: 0.3)
+REC_TRENDING_WEIGHT=0.2         # Trending signal weight (default: 0.2)
+
+# Collaborative filtering parameters
+REC_CF_FACTORS=50               # Latent factors (default: 50)
+REC_CF_REGULARIZATION=0.01      # L2 regularization (default: 0.01)
+REC_CF_LEARNING_RATE=0.01       # SGD learning rate (default: 0.01)
+REC_CF_ITERATIONS=20            # Training iterations (default: 20)
+
+# General settings
+REC_ENABLE_HYBRID=true          # Enable hybrid recommendations (default: true)
+REC_CACHE_TTL_HOURS=24          # Cache TTL in hours (default: 24)
+```
+
+For optimization guidance, see `../docs/CF-OPTIMIZATION-RESULTS.md`.
+
+- **Redis**: Host, port, password
 - **JWT**: Secret key, token expiration
 - **Twitch API**: Client ID, secret, redirect URI
 - **CORS**: Allowed origins
@@ -437,10 +470,17 @@ The backend includes evaluation frameworks for assessing the quality of search a
 ### Recommendation Evaluation
 - **Metrics**: Precision@k, Recall@k, nDCG, Diversity, Serendipity, Cold-start performance
 - **Dataset**: `testdata/recommendation_evaluation_dataset.yaml`
-- **CLI tool**: `cmd/evaluate-recommendations`
-- **Makefile**: `make evaluate-recommendations` or `make evaluate-recommendations-json`
-- **Documentation**: `../docs/RECOMMENDATION-EVALUATION.md`
+- **CLI tools**: 
+  - `cmd/evaluate-recommendations` - Run evaluations
+  - `cmd/grid-search-recommendations` - Parameter optimization
+- **Makefile**: 
+  - `make evaluate-recommendations` or `make evaluate-recommendations-json`
+  - `make grid-search-recommendations` or `make grid-search-recommendations-full`
+- **Documentation**: 
+  - `../docs/RECOMMENDATION-EVALUATION.md` - Evaluation framework
+  - `../docs/CF-OPTIMIZATION-RESULTS.md` - Optimization results and A/B test plan
 - **CI**: Runs nightly via GitHub Actions (`.github/workflows/recommendation-evaluation.yml`)
+- **Configuration**: See environment variables section for tuning parameters
 
 Both frameworks support:
 - Automated testing via CI/CD

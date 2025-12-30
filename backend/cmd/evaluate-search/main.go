@@ -112,12 +112,16 @@ func printResults(report *services.EvaluationReport, verbose bool) {
 	// Aggregate metrics
 	fmt.Println("Aggregate Metrics:")
 	fmt.Println("-----------------------------------------")
-	fmt.Printf("  nDCG@5:      %.4f\n", report.Metrics.MeanNDCG5)
-	fmt.Printf("  nDCG@10:     %.4f\n", report.Metrics.MeanNDCG10)
-	fmt.Printf("  MRR:         %.4f\n", report.Metrics.MeanMRR)
-	fmt.Printf("  Precision@5: %.4f\n", report.Metrics.MeanPrecision5)
-	fmt.Printf("  Recall@10:   %.4f\n", report.Metrics.MeanRecall10)
-	fmt.Printf("  Query Count: %d\n", report.Metrics.QueryCount)
+	fmt.Printf("  nDCG@5:       %.4f\n", report.Metrics.MeanNDCG5)
+	fmt.Printf("  nDCG@10:      %.4f\n", report.Metrics.MeanNDCG10)
+	fmt.Printf("  MRR:          %.4f\n", report.Metrics.MeanMRR)
+	fmt.Printf("  Precision@5:  %.4f\n", report.Metrics.MeanPrecision5)
+	fmt.Printf("  Precision@10: %.4f\n", report.Metrics.MeanPrecision10)
+	fmt.Printf("  Precision@20: %.4f\n", report.Metrics.MeanPrecision20)
+	fmt.Printf("  Recall@5:     %.4f\n", report.Metrics.MeanRecall5)
+	fmt.Printf("  Recall@10:    %.4f\n", report.Metrics.MeanRecall10)
+	fmt.Printf("  Recall@20:    %.4f\n", report.Metrics.MeanRecall20)
+	fmt.Printf("  Query Count:  %d\n", report.Metrics.QueryCount)
 	fmt.Println()
 
 	if verbose {
@@ -127,8 +131,10 @@ func printResults(report *services.EvaluationReport, verbose bool) {
 			fmt.Printf("\n[%s] %s\n", qr.QueryID, qr.Query)
 			fmt.Printf("  nDCG@5:  %.4f | nDCG@10: %.4f | MRR: %.4f\n",
 				qr.NDCG5, qr.NDCG10, qr.MRR)
-			fmt.Printf("  Prec@5:  %.4f | Recall@10: %.4f\n",
-				qr.Precision5, qr.Recall10)
+			fmt.Printf("  Prec@5:  %.4f | Prec@10: %.4f | Prec@20: %.4f\n",
+				qr.Precision5, qr.Precision10, qr.Precision20)
+			fmt.Printf("  Recall@5: %.4f | Recall@10: %.4f | Recall@20: %.4f\n",
+				qr.Recall5, qr.Recall10, qr.Recall20)
 			fmt.Printf("  Retrieved: %d | Relevant Found: %d\n",
 				qr.RetrievedResults, qr.RelevantResults)
 		}
@@ -154,7 +160,11 @@ func printTargetStatus(report *services.EvaluationReport) {
 		{"nDCG@10", "ndcg_at_10", report.Metrics.MeanNDCG10, 0},
 		{"MRR", "mrr", report.Metrics.MeanMRR, 0},
 		{"Precision@5", "precision_at_5", report.Metrics.MeanPrecision5, 0},
+		{"Precision@10", "precision_at_10", report.Metrics.MeanPrecision10, 0},
+		{"Precision@20", "precision_at_20", report.Metrics.MeanPrecision20, 0},
+		{"Recall@5", "recall_at_5", report.Metrics.MeanRecall5, 0},
 		{"Recall@10", "recall_at_10", report.Metrics.MeanRecall10, 0},
+		{"Recall@20", "recall_at_20", report.Metrics.MeanRecall20, 0},
 	}
 
 	for i, m := range metrics {
@@ -170,7 +180,7 @@ func printTargetStatus(report *services.EvaluationReport) {
 		if m.target > 0 {
 			targetStr = fmt.Sprintf(" (target: %.2f)", m.target)
 		}
-		fmt.Printf("  %s %-12s %.4f%s\n", statusIcon, m.name+":", m.value, targetStr)
+		fmt.Printf("  %s %-14s %.4f%s\n", statusIcon, m.name+":", m.value, targetStr)
 	}
 	fmt.Println()
 }
