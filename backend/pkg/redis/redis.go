@@ -312,3 +312,13 @@ func (c *Client) TTL(ctx context.Context, key string) (int64, error) {
 	}
 	return int64(ttl.Seconds()), nil
 }
+
+// SetMembers returns all members of a Redis set (SMEMBERS operation)
+func (c *Client) SetMembers(ctx context.Context, key string) ([]string, error) {
+	return c.client.SMembers(ctx, key).Result()
+}
+
+// SetIsMember checks if a member exists in a Redis set (SISMEMBER operation)
+func (c *Client) SetIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
+	return c.client.SIsMember(ctx, key, member).Result()
+}

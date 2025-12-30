@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/subculture-collective/clipper/internal/repository"
 )
 
 // AbuseAutoFlagger automatically flags suspicious content to the moderation queue
