@@ -327,18 +327,30 @@ func printSummary(report GridSearchReport) {
 	}
 }
 
+// BaselineReport matches the structure from capture-baseline-search
+type BaselineReport struct {
+	Metrics services.AggregateMetrics `json:"metrics"`
+}
+
 func loadBaseline(path string) (*services.AggregateMetrics, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var report services.EvaluationReport
-	if err := json.Unmarshal(data, &report); err != nil {
-		return nil, err
+	// Try loading as BaselineReport first (from capture-baseline-search)
+	var baselineReport BaselineReport
+	if err := json.Unmarshal(data, &baselineReport); err == nil {
+		return &baselineReport.Metrics, nil
 	}
 
-	return &report.Metrics, nil
+	// Fall back to EvaluationReport format (from evaluate-search)
+	var evalReport services.EvaluationReport
+	if err := json.Unmarshal(data, &evalReport); err != nil {
+		return nil, fmt.Errorf("failed to parse baseline file: %w", err)
+	}
+
+	return &evalReport.Metrics, nil
 }
 
 func writeOutputFile(path string, report *GridSearchReport) error {
