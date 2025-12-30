@@ -195,12 +195,6 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 	excludeClipIDs []uuid.UUID,
 	limit int,
 ) ([]models.ClipScore, error) {
-	// Convert preferred tags to strings
-	tagStrings := make([]string, len(preferences.PreferredTags))
-	for i, tag := range preferences.PreferredTags {
-		tagStrings[i] = tag.String()
-	}
-
 	query := `
 		WITH user_excluded AS (
 			SELECT clip_id FROM user_clip_interactions
@@ -261,7 +255,7 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 		pq.StringArray(preferences.FavoriteGames),
 		pq.StringArray(preferences.FollowedStreamers),
 		pq.StringArray(preferences.PreferredCategories),
-		pq.Array(tagStrings),
+		pq.Array(preferences.PreferredTags), // Pass UUIDs directly
 		excludeClipIDs,
 		limit,
 	)

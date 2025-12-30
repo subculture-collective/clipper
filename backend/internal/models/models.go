@@ -3271,10 +3271,10 @@ type UpdatePreferencesRequest struct {
 
 // OnboardingPreferencesRequest represents initial onboarding preferences
 type OnboardingPreferencesRequest struct {
-	FavoriteGames       []string    `json:"favorite_games" binding:"required,min=1,max=10"`
-	FollowedStreamers   []string    `json:"followed_streamers,omitempty" binding:"max=10"`
-	PreferredCategories []string    `json:"preferred_categories,omitempty" binding:"max=5"`
-	PreferredTags       []uuid.UUID `json:"preferred_tags,omitempty" binding:"max=10"`
+	FavoriteGames       []string    `json:"favorite_games" binding:"required,dive,required"`
+	FollowedStreamers   []string    `json:"followed_streamers,omitempty" binding:"omitempty,max=10"`
+	PreferredCategories []string    `json:"preferred_categories,omitempty" binding:"omitempty,max=5"`
+	PreferredTags       []uuid.UUID `json:"preferred_tags,omitempty" binding:"omitempty,max=10"`
 }
 
 // Interaction type constants
