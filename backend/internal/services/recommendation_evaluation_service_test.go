@@ -430,3 +430,83 @@ func TestEvaluateScenario(t *testing.T) {
 	assert.Equal(t, 5, result.RetrievedCount)
 	assert.Equal(t, 3, result.RelevantCount)
 }
+
+// TestCalculateNDCGInRecommendationContext tests nDCG calculation for recommendation evaluation
+// This verifies the metric works correctly in recommendation scenarios with relevance scores
+func TestCalculateNDCGInRecommendationContext(t *testing.T) {
+	tests := []struct {
+		name       string
+		relevances []int
+		k          int
+		want       float64
+	}{
+		{
+			name:       "Perfect recommendation ranking",
+			relevances: []int{4, 3, 2, 1, 0},
+			k:          5,
+			want:       1.0, // Already in ideal order
+		},
+		{
+			name:       "Poor recommendation ranking",
+			relevances: []int{0, 1, 2, 3, 4},
+			k:          5,
+			want:       0.51, // Reversed order
+		},
+		{
+			name:       "Top 3 recommendations ideal",
+			relevances: []int{4, 3, 2, 1, 0},
+			k:          3,
+			want:       1.0, // Top 3 are in ideal order
+		},
+		{
+			name:       "Mixed recommendation quality",
+			relevances: []int{3, 4, 2, 1, 0},
+			k:          5,
+			want:       0.86, // Close to ideal but not perfect (4 and 3 are swapped)
+		},
+		{
+			name:       "All same relevance recommendations",
+			relevances: []int{2, 2, 2, 2, 2},
+			k:          5,
+			want:       1.0, // Any order is ideal when all have same relevance
+		},
+		{
+			name:       "All irrelevant recommendations",
+			relevances: []int{0, 0, 0, 0, 0},
+			k:          5,
+			want:       0.0, // No relevant items
+		},
+		{
+			name:       "Fewer recommendations than k",
+			relevances: []int{4, 3, 2},
+			k:          10,
+			want:       1.0, // All results in ideal order
+		},
+		{
+			name:       "Empty recommendations",
+			relevances: []int{},
+			k:          5,
+			want:       0.0,
+		},
+		{
+			name:       "Highly relevant items first",
+			relevances: []int{4, 4, 3, 2, 2, 1, 0},
+			k:          5,
+			want:       1.0, // Top items are in descending relevance order
+		},
+		{
+			name:       "Relevant but suboptimal order",
+			relevances: []int{2, 4, 3, 2, 1},
+			k:          5,
+			want:       0.78, // Relevant items present but not in ideal order
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CalculateNDCG(tt.relevances, tt.k)
+			assert.InDelta(t, tt.want, got, 0.05, "nDCG should match expected value within tolerance")
+		})
+	}
+}
+
