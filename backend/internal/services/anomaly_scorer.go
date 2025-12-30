@@ -235,8 +235,8 @@ func (s *AnomalyScorer) ScoreSubmissionAction(ctx context.Context, userID uuid.U
 	componentScores := make(map[string]float64)
 	reasonCodes := make([]string, 0)
 	
-	// Velocity scoring
-	velocityScore := s.scoreVelocity(features.SubmissionsLastHour, features.SubmissionsLastHour, 3, 8)
+	// Velocity scoring (submissions only tracked hourly, not in 5-min windows)
+	velocityScore := s.scoreVelocity(0, features.SubmissionsLastHour, 3, 8)
 	componentScores["velocity"] = velocityScore
 	if velocityScore > 0.7 {
 		reasonCodes = append(reasonCodes, "SUBMISSION_VELOCITY_HIGH")
@@ -430,7 +430,11 @@ func (s *AnomalyScorer) storeScoreMetrics(ctx context.Context, actionType string
 	
 	// Store overall score distribution
 	scoreKey := fmt.Sprintf("abuse:metrics:scores:%s:%d", actionType, timestamp/3600) // hourly buckets
-	scoreJSON, _ := json.Marshal(score)
+	scoreJSON, err := json.Marshal(score)
+	if err != nil {
+		log.Printf("Failed to marshal score for metrics: %v", err)
+		return
+	}
 	if err := s.redisClient.ListPush(ctx, scoreKey, string(scoreJSON)); err != nil {
 		log.Printf("Failed to store score metrics: %v", err)
 	}

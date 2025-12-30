@@ -84,7 +84,7 @@ func (f *AbuseAutoFlagger) AutoFlagSubmission(ctx context.Context, submissionID 
 		f.moderationEventSvc.EmitAbuseEvent(ctx,
 			ModerationEventSubmissionSuspicious,
 			userID,
-			"",
+			"", // IP address not available in this context
 			metadata,
 		)
 	}
