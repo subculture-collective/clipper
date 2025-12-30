@@ -195,6 +195,12 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 	excludeClipIDs []uuid.UUID,
 	limit int,
 ) ([]models.ClipScore, error) {
+	// Convert preferred tags to strings
+	tagStrings := make([]string, len(preferences.PreferredTags))
+	for i, tag := range preferences.PreferredTags {
+		tagStrings[i] = tag.String()
+	}
+
 	query := `
 		WITH user_excluded AS (
 			SELECT clip_id FROM user_clip_interactions
@@ -204,33 +210,58 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 			SELECT MAX(vote_score) AS max_vote_score
 			FROM clips
 			WHERE created_at > NOW() - INTERVAL '7 days'
+		),
+		clip_with_tags AS (
+			SELECT c.id, 
+			       ARRAY_AGG(DISTINCT ct.tag_id) FILTER (WHERE ct.tag_id IS NOT NULL) AS clip_tags
+			FROM clips c
+			LEFT JOIN clip_tags ct ON c.id = ct.clip_id
+			WHERE c.created_at > NOW() - INTERVAL '30 days'
+			  AND c.is_removed = false
+			  AND c.dmca_removed = false
+			  AND c.id NOT IN (SELECT clip_id FROM user_excluded)
+			  AND ($6::uuid[] IS NULL OR c.id != ALL($6::uuid[]))
+			GROUP BY c.id
 		)
 		SELECT 
 			c.id as clip_id,
 			(
-				CASE WHEN c.game_id = ANY($2::text[]) THEN 0.5 ELSE 0 END +
-				CASE WHEN c.broadcaster_id = ANY($3::text[]) THEN 0.3 ELSE 0 END +
-				(c.vote_score::float / NULLIF((SELECT max_vote_score FROM max_vote), 0)) * 0.2
+				CASE WHEN c.game_id = ANY($2::text[]) THEN 0.35 ELSE 0 END +
+				CASE WHEN c.broadcaster_id = ANY($3::text[]) THEN 0.25 ELSE 0 END +
+				CASE WHEN c.game_name = ANY($4::text[]) THEN 0.15 ELSE 0 END +
+				CASE 
+					WHEN $5::uuid[] IS NOT NULL AND cwt.clip_tags && $5::uuid[] THEN 0.15 
+					ELSE 0 
+				END +
+				(c.vote_score::float / NULLIF((SELECT max_vote_score FROM max_vote), 0)) * 0.1
 			) as similarity_score,
 			ROW_NUMBER() OVER (ORDER BY (
-				CASE WHEN c.game_id = ANY($2::text[]) THEN 0.5 ELSE 0 END +
-				CASE WHEN c.broadcaster_id = ANY($3::text[]) THEN 0.3 ELSE 0 END +
-				(c.vote_score::float / NULLIF((SELECT max_vote_score FROM max_vote), 0)) * 0.2
+				CASE WHEN c.game_id = ANY($2::text[]) THEN 0.35 ELSE 0 END +
+				CASE WHEN c.broadcaster_id = ANY($3::text[]) THEN 0.25 ELSE 0 END +
+				CASE WHEN c.game_name = ANY($4::text[]) THEN 0.15 ELSE 0 END +
+				CASE 
+					WHEN $5::uuid[] IS NOT NULL AND cwt.clip_tags && $5::uuid[] THEN 0.15 
+					ELSE 0 
+				END +
+				(c.vote_score::float / NULLIF((SELECT max_vote_score FROM max_vote), 0)) * 0.1
 			) DESC) as similarity_rank
 		FROM clips c
+		JOIN clip_with_tags cwt ON c.id = cwt.id
 		WHERE c.created_at > NOW() - INTERVAL '30 days'
 		  AND c.is_removed = false
 		  AND c.dmca_removed = false
 		  AND c.id NOT IN (SELECT clip_id FROM user_excluded)
-		  AND ($4::uuid[] IS NULL OR c.id != ALL($4::uuid[]))
+		  AND ($6::uuid[] IS NULL OR c.id != ALL($6::uuid[]))
 		ORDER BY similarity_score DESC
-		LIMIT $5
+		LIMIT $7
 	`
 
 	rows, err := r.pool.Query(ctx, query,
 		userID,
 		pq.StringArray(preferences.FavoriteGames),
 		pq.StringArray(preferences.FollowedStreamers),
+		pq.StringArray(preferences.PreferredCategories),
+		pq.Array(tagStrings),
 		excludeClipIDs,
 		limit,
 	)
@@ -339,6 +370,51 @@ func (r *RecommendationRepository) GetTrendingClips(
 	rows, err := r.pool.Query(ctx, query, excludeClipIDs, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trending clips: %w", err)
+	}
+	defer rows.Close()
+
+	var scores []models.ClipScore
+	for rows.Next() {
+		var score models.ClipScore
+		if err := rows.Scan(&score.ClipID, &score.SimilarityScore, &score.SimilarityRank); err != nil {
+			return nil, fmt.Errorf("failed to scan clip score: %w", err)
+		}
+		scores = append(scores, score)
+	}
+
+	return scores, nil
+}
+
+// GetPopularClips gets popular clips for cold start fallback (new clips with good engagement)
+func (r *RecommendationRepository) GetPopularClips(
+	ctx context.Context,
+	excludeClipIDs []uuid.UUID,
+	windowDays int,
+	minViews int,
+	limit int,
+) ([]models.ClipScore, error) {
+	query := `
+		SELECT 
+			id as clip_id,
+			(view_count::float / GREATEST(1, EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600)) * 
+			(1 + (vote_score::float / GREATEST(1, view_count::float))) as popularity_score,
+			ROW_NUMBER() OVER (ORDER BY 
+				(view_count::float / GREATEST(1, EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600)) * 
+				(1 + (vote_score::float / GREATEST(1, view_count::float)))
+			DESC) as similarity_rank
+		FROM clips
+		WHERE created_at > NOW() - INTERVAL '1 day' * $1
+		  AND is_removed = false
+		  AND dmca_removed = false
+		  AND view_count >= $2
+		  AND ($3::uuid[] IS NULL OR id != ALL($3::uuid[]))
+		ORDER BY popularity_score DESC
+		LIMIT $4
+	`
+
+	rows, err := r.pool.Query(ctx, query, windowDays, minViews, excludeClipIDs, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get popular clips: %w", err)
 	}
 	defer rows.Close()
 

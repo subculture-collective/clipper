@@ -234,9 +234,24 @@ func (s *RecommendationService) getColdStartRecommendations(
 	ctx context.Context,
 	limit int,
 ) ([]models.ClipRecommendation, error) {
+	// Try trending clips first
 	scores, err := s.repo.GetTrendingClips(ctx, nil, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trending clips: %w", err)
+	}
+
+	// If not enough trending clips, supplement with popular clips
+	if len(scores) < limit {
+		popularScores, err := s.repo.GetPopularClips(
+			ctx,
+			nil,
+			s.popularityWindowDays,
+			s.popularityMinViews,
+			limit-len(scores),
+		)
+		if err == nil && len(popularScores) > 0 {
+			scores = append(scores, popularScores...)
+		}
 	}
 
 	return s.buildRecommendations(ctx, scores, "trending", limit)
