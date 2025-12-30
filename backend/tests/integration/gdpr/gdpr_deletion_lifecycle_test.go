@@ -14,7 +14,9 @@ import (
 "github.com/subculture-collective/clipper/internal/models"
 "github.com/subculture-collective/clipper/internal/repository"
 "github.com/subculture-collective/clipper/internal/services"
-"github.com/subculture-collective/clipper/tests/integration/testutil"
+"github.com/subculture-collective/clipper/pkg/database"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
 // TestAccountDeletionRequest tests the initial deletion request with grace period
@@ -157,7 +159,7 @@ username := fmt.Sprintf("restoreuser_%d", time.Now().Unix())
 user := testutil.CreateTestUser(t, db, username)
 defer testutil.CleanupTestUser(t, db, user.ID)
 
-userRepo := repository.NewUserRepository(db.Pool)
+userRepo := repository.NewUserRepository(testConfig.DB.Pool)
 
 // Request deletion
 _, err := userSettingsService.RequestAccountDeletion(ctx, user.ID, nil)
@@ -187,7 +189,7 @@ username := fmt.Sprintf("graceuser_%d", time.Now().Unix())
 user := testutil.CreateTestUser(t, db, username)
 defer testutil.CleanupTestUser(t, db, user.ID)
 
-userRepo := repository.NewUserRepository(db.Pool)
+userRepo := repository.NewUserRepository(testConfig.DB.Pool)
 
 // Request deletion
 _, err := userSettingsService.RequestAccountDeletion(ctx, user.ID, nil)
@@ -233,21 +235,21 @@ assert.Nil(t, pending.CompletedAt)
 
 // Helper functions
 
-func setupGDPRTest(t *testing.T) (*testutil.TestDB, *testutil.TestRedis, *services.UserSettingsService, *repository.AuditLogRepository) {
-db, redisClient := testutil.SetupTestInfrastructure(t)
+func setupGDPRTest(t *testing.T) (*database.DB, *redispkg.Client, *services.UserSettingsService, *repository.AuditLogRepository) {
+testConfig := testutil.SetupTestEnvironment(t)
 
 // Initialize repositories
-userRepo := repository.NewUserRepository(db.Pool)
-userSettingsRepo := repository.NewUserSettingsRepository(db.Pool)
-accountDeletionRepo := repository.NewAccountDeletionRepository(db.Pool)
-clipRepo := repository.NewClipRepository(db.Pool)
-voteRepo := repository.NewVoteRepository(db.Pool)
-favoriteRepo := repository.NewFavoriteRepository(db.Pool)
-commentRepo := repository.NewCommentRepository(db.Pool)
-submissionRepo := repository.NewSubmissionRepository(db.Pool)
-subscriptionRepo := repository.NewSubscriptionRepository(db.Pool)
-consentRepo := repository.NewConsentRepository(db.Pool)
-auditLogRepo := repository.NewAuditLogRepository(db.Pool)
+userRepo := repository.NewUserRepository(testConfig.DB.Pool)
+userSettingsRepo := repository.NewUserSettingsRepository(testConfig.DB.Pool)
+accountDeletionRepo := repository.NewAccountDeletionRepository(testConfig.DB.Pool)
+clipRepo := repository.NewClipRepository(testConfig.DB.Pool)
+voteRepo := repository.NewVoteRepository(testConfig.DB.Pool)
+favoriteRepo := repository.NewFavoriteRepository(testConfig.DB.Pool)
+commentRepo := repository.NewCommentRepository(testConfig.DB.Pool)
+submissionRepo := repository.NewSubmissionRepository(testConfig.DB.Pool)
+subscriptionRepo := repository.NewSubscriptionRepository(testConfig.DB.Pool)
+consentRepo := repository.NewConsentRepository(testConfig.DB.Pool)
+auditLogRepo := repository.NewAuditLogRepository(testConfig.DB.Pool)
 
 // Initialize audit log service
 auditLogService := services.NewAuditLogService(auditLogRepo)
@@ -267,12 +269,12 @@ consentRepo,
 auditLogService,
 )
 
-return db, redisClient, userSettingsService, auditLogRepo
+return testConfig.DB, testConfig.RedisClient, userSettingsService, auditLogRepo
 }
 
 // hardDeleteUser performs a hard delete of a user and all their data
 // This is a helper function for testing - in production this would be in a service
-func hardDeleteUser(ctx context.Context, db *testutil.TestDB, userID uuid.UUID) error {
+func hardDeleteUser(ctx context.Context, db *database.DB, userID uuid.UUID) error {
 // In a real implementation, this would:
 // 1. Delete/anonymize user-owned resources
 // 2. Remove authentication tokens (CASCADE)
@@ -282,6 +284,6 @@ func hardDeleteUser(ctx context.Context, db *testutil.TestDB, userID uuid.UUID) 
 
 // For now, we rely on CASCADE deletes in the database schema
 // Most foreign keys are set with ON DELETE CASCADE
-_, err := db.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
+_, err := testConfig.DB.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
 return err
 }

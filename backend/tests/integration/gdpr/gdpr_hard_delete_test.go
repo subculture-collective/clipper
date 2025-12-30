@@ -13,7 +13,9 @@ import (
 "github.com/stretchr/testify/require"
 "github.com/subculture-collective/clipper/internal/models"
 "github.com/subculture-collective/clipper/internal/repository"
-"github.com/subculture-collective/clipper/tests/integration/testutil"
+"github.com/subculture-collective/clipper/pkg/database"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
 // TestHardDeleteDataRemoval tests that hard delete removes/anonymizes all personal data
@@ -24,7 +26,7 @@ defer redisClient.Close()
 
 t.Run("RemovesPersonalDataFromUser", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("harddelete_%d", time.Now().Unix())
+username := fmt.Sprintf("harddelete_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 
 userRepo := repository.NewUserRepository(db.Pool)
@@ -46,7 +48,7 @@ assert.Equal(t, repository.ErrUserNotFound, err)
 
 t.Run("RemovesUserOwnedResources", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("resources_%d", time.Now().Unix())
+username := fmt.Sprintf("resources_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 
 // Create user-owned resources
@@ -58,7 +60,7 @@ clipRepo := repository.NewClipRepository(db.Pool)
 // Create a test clip
 clip := &models.Clip{
 ID:              uuid.New(),
-TwitchClipID:    fmt.Sprintf("testclip_%d", time.Now().Unix()),
+TwitchClipID:    fmt.Sprintf("testclip_%d", time.Now().UnixNano()),
 TwitchClipURL:   "https://clips.twitch.tv/testclip",
 BroadcasterName: "testbroadcaster",
 CreatorName:     "testcreator",
@@ -122,13 +124,13 @@ assert.Equal(t, 0, commentCount)
 
 t.Run("RemovesAuthenticationTokens", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("tokens_%d", time.Now().Unix())
+username := fmt.Sprintf("tokens_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 
 refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
 
 // Create refresh token
-tokenHash := fmt.Sprintf("token_hash_%d", time.Now().Unix())
+tokenHash := fmt.Sprintf("token_hash_%d", time.Now().UnixNano())
 expiresAt := time.Now().Add(7 * 24 * time.Hour)
 err := refreshTokenRepo.Create(ctx, user.ID, tokenHash, expiresAt)
 require.NoError(t, err)
@@ -151,7 +153,7 @@ assert.Equal(t, 0, tokenCount)
 
 t.Run("RemovesUserSettings", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("settings_%d", time.Now().Unix())
+username := fmt.Sprintf("settings_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 
 // Verify settings exist (auto-created by trigger)
@@ -179,7 +181,7 @@ defer redisClient.Close()
 
 t.Run("ExportReturnsErrorAfterDeletion", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("exportuser_%d", time.Now().Unix())
+username := fmt.Sprintf("exportuser_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 
 // Create some user data
@@ -189,7 +191,7 @@ clipRepo := repository.NewClipRepository(db.Pool)
 // Create a test clip to favorite
 clip := &models.Clip{
 ID:              uuid.New(),
-TwitchClipID:    fmt.Sprintf("testclip_%d", time.Now().Unix()),
+TwitchClipID:    fmt.Sprintf("testclip_%d", time.Now().UnixNano()),
 TwitchClipURL:   "https://clips.twitch.tv/testclip",
 BroadcasterName: "testbroadcaster",
 CreatorName:     "testcreator",
@@ -232,7 +234,7 @@ defer redisClient.Close()
 
 t.Run("ExecutesScheduledDeletions", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("scheduled_%d", time.Now().Unix())
+username := fmt.Sprintf("scheduled_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 
 accountDeletionRepo := repository.NewAccountDeletionRepository(db.Pool)
@@ -284,7 +286,7 @@ assert.NotNil(t, completedAt)
 
 t.Run("DoesNotExecuteUnscheduledDeletions", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("unscheduled_%d", time.Now().Unix())
+username := fmt.Sprintf("unscheduled_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 defer testutil.CleanupTestUser(t, db, user.ID)
 
@@ -306,7 +308,7 @@ assert.NotEqual(t, user.ID, d.UserID, "Future deletion should not be in schedule
 
 t.Run("DoesNotExecuteCancelledDeletions", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("cancelled_%d", time.Now().Unix())
+username := fmt.Sprintf("cancelled_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 defer testutil.CleanupTestUser(t, db, user.ID)
 
@@ -351,7 +353,7 @@ assert.Error(t, err)
 
 t.Run("CancelNonExistentDeletion", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("nocancel_%d", time.Now().Unix())
+username := fmt.Sprintf("nocancel_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 defer testutil.CleanupTestUser(t, db, user.ID)
 
@@ -362,7 +364,7 @@ assert.Contains(t, err.Error(), "no pending")
 
 t.Run("ExportDataForDeletedUser", func(t *testing.T) {
 ctx := context.Background()
-username := fmt.Sprintf("exportdeleted_%d", time.Now().Unix())
+username := fmt.Sprintf("exportdeleted_%d", time.Now().UnixNano())
 user := testutil.CreateTestUser(t, db, username)
 
 // Delete user

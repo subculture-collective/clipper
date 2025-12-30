@@ -165,7 +165,6 @@ The GDPR account deletion system has comprehensive test coverage including:
 - Full lifecycle: request → grace period → hard delete
 - Cancellation and restoration flows
 - Data erasure and anonymization
-- Authentication lockout verification
 - Auditability of all deletion lifecycle events
 
 **Running GDPR tests:**
