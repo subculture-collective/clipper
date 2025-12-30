@@ -29,6 +29,7 @@ type Config struct {
 	Security     SecurityConfig
 	QueryLimits  QueryLimitsConfig
 	SearchLimits      SearchLimitsConfig
+	HybridSearch      HybridSearchConfig
 	CDN               CDNConfig
 	Mirror            MirrorConfig
 	Recommendations   RecommendationsConfig
@@ -258,6 +259,22 @@ type RecommendationsConfig struct {
 	CacheTTLHours       int     // Cache TTL in hours (default: 24)
 }
 
+// HybridSearchConfig holds hybrid search weight configuration
+type HybridSearchConfig struct {
+	// Ranking algorithm weights (should sum to 1.0)
+	BM25Weight   float64 // Weight for BM25 text matching (default: 0.7)
+	VectorWeight float64 // Weight for semantic vector search (default: 0.3)
+	
+	// Field boost parameters for BM25
+	TitleBoost   float64 // Field boost for title (default: 3.0)
+	CreatorBoost float64 // Field boost for creator name (default: 2.0)
+	GameBoost    float64 // Field boost for game name (default: 1.0)
+	
+	// Scoring boost parameters
+	EngagementBoost float64 // Boost factor for engagement score (default: 0.1)
+	RecencyBoost    float64 // Boost factor for recency (default: 0.5)
+}
+
 // ToxicityConfig holds toxicity detection configuration
 type ToxicityConfig struct {
 	Enabled    bool    // Enable toxicity detection (default: false)
@@ -484,6 +501,20 @@ func Load() (*Config, error) {
 			// General settings
 			EnableHybrid:  getEnvBool("REC_ENABLE_HYBRID", true),
 			CacheTTLHours: getEnvInt("REC_CACHE_TTL_HOURS", 24),
+		},
+		HybridSearch: HybridSearchConfig{
+			// Ranking algorithm weights
+			BM25Weight:   getEnvFloat("HYBRID_SEARCH_BM25_WEIGHT", 0.7),
+			VectorWeight: getEnvFloat("HYBRID_SEARCH_VECTOR_WEIGHT", 0.3),
+			
+			// Field boost parameters
+			TitleBoost:   getEnvFloat("HYBRID_SEARCH_TITLE_BOOST", 3.0),
+			CreatorBoost: getEnvFloat("HYBRID_SEARCH_CREATOR_BOOST", 2.0),
+			GameBoost:    getEnvFloat("HYBRID_SEARCH_GAME_BOOST", 1.0),
+			
+			// Scoring boost parameters
+			EngagementBoost: getEnvFloat("HYBRID_SEARCH_ENGAGEMENT_BOOST", 0.1),
+			RecencyBoost:    getEnvFloat("HYBRID_SEARCH_RECENCY_BOOST", 0.5),
 		},
 		Toxicity: ToxicityConfig{
 			Enabled:   getEnvBool("TOXICITY_ENABLED", false),
