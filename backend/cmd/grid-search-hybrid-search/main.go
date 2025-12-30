@@ -186,9 +186,23 @@ func evaluateConfiguration(
 	bm25Weight float64,
 	vectorWeight float64,
 ) (GridSearchResult, error) {
-	// For this simulated evaluation, we'll use the existing simulated results
-	// In a real implementation, this would configure the hybrid search service
-	// with the given weights and run actual searches
+	// TODO: For production use, integrate with actual HybridSearchService
+	// This requires:
+	// 1. Create HybridSearchService with the specified weights
+	// 2. Configure search weights: config.HybridSearch.BM25Weight = bm25Weight
+	// 3. Run actual searches for each evaluation query
+	// 4. Collect and return real metrics
+	//
+	// Example implementation:
+	//   searchConfig := services.SearchWeightConfig{
+	//       BM25Weight:   bm25Weight,
+	//       VectorWeight: vectorWeight,
+	//       // ... other parameters
+	//   }
+	//   report, err := evalService.EvaluateWithLiveSearch(ctx, searchConfig)
+	//
+	// For now, using simulated results to demonstrate the framework.
+	// All metrics will be identical until live search integration is complete.
 	
 	report, err := evalService.EvaluateWithSimulatedResults(ctx)
 	if err != nil {
