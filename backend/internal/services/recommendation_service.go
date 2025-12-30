@@ -265,6 +265,7 @@ func (s *RecommendationService) getColdStartRecommendations(
 	}
 
 	algorithm := "trending"
+	originalTrendingCount := len(scores)
 	
 	// If not enough trending clips, supplement with popular clips
 	if len(scores) < limit {
@@ -279,10 +280,10 @@ func (s *RecommendationService) getColdStartRecommendations(
 		)
 		if err == nil && len(popularScores) > 0 {
 			scores = append(scores, popularScores...)
-			// Update algorithm to reflect mixed strategy
-			if len(popularScores) > len(scores)/2 {
+			// Update algorithm to reflect mixed strategy based on composition
+			if originalTrendingCount == 0 {
 				algorithm = "popularity"
-			} else {
+			} else if len(popularScores) > originalTrendingCount {
 				algorithm = "trending+popularity"
 			}
 		}

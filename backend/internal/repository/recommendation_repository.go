@@ -141,7 +141,7 @@ func (r *RecommendationRepository) CompleteOnboarding(ctx context.Context, pref 
 		pq.StringArray(pref.FavoriteGames),
 		pq.StringArray(pref.FollowedStreamers),
 		pq.StringArray(pref.PreferredCategories),
-		pq.Array(tagStrings),
+		pq.StringArray(tagStrings),
 	)
 
 	if err != nil {
