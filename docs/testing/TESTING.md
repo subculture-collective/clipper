@@ -184,6 +184,45 @@ go test -v -tags=integration ./tests/integration/gdpr/...
 docker compose -f docker-compose.test.yml down
 ```
 
+### Admin User Management Authorization Tests
+
+The admin user management system has comprehensive test coverage including:
+
+**Integration Tests** (`backend/tests/integration/admin/admin_user_management_test.go`):
+- Authorization enforcement (403 for non-admin, success for admin/moderator)
+- Privilege escalation prevention (users cannot self-promote to admin)
+- Role management with database persistence verification
+- Ban/unban operations with state verification
+- Comment privilege suspension (temporary and permanent)
+- Audit log creation for all administrative actions
+- Karma adjustment operations
+- Comment review requirement toggling
+- User listing with pagination
+
+**Coverage:**
+- Full authorization testing across all admin endpoints
+- Role changes persist and apply immediately to permissions
+- All operations create appropriate audit log entries
+- Negative tests for unauthorized access and privilege escalation
+- Database state verification after each operation
+
+**Running Admin Tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/admin/...
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
 ## Writing Tests
 
 ### Best Practices
