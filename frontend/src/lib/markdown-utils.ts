@@ -69,7 +69,7 @@ export function parseMarkdown(markdown: string): ProcessedMarkdown {
  */
 export function removeDoctocBlocks(markdown: string): string {
     return markdown.replace(
-        /<!-- START doctoc.*?<!-- END doctoc -->/gs,
+        /<!-- START doctoc[\s\S]*?<!-- END doctoc[^\n]*-->/g,
         ''
     ).trim();
 }
