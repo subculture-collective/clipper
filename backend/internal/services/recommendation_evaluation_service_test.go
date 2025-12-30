@@ -416,6 +416,7 @@ func TestEvaluateScenario(t *testing.T) {
 	// Verify metrics
 	// 3 out of 5 clips are relevant (relevance >= 2)
 	assert.Equal(t, 0.6, result.Precision5, "3 out of 5 should be relevant (>=2)")
+	// Precision@10 = relevant in top 10 / 10 = 3/10 = 0.3 (even though only 5 results exist)
 	assert.InDelta(t, 0.3, result.Precision10, 0.01, "3 relevant out of 10 requested")
 	assert.Equal(t, 1.0, result.Recall5, "All 3 relevant items found in top 5")
 	assert.Equal(t, 5.0, result.Diversity5, "All 5 clips have different games")
