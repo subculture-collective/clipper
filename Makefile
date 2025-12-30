@@ -647,3 +647,16 @@ evaluate-search-json: ## Run search evaluation and output JSON
 	@cd backend && go build -o bin/evaluate-search ./cmd/evaluate-search
 	@cd backend && ./bin/evaluate-search -output evaluation-results.json
 	@echo "✓ Results saved to backend/evaluation-results.json"
+
+# Recommendation Evaluation
+evaluate-recommendations: ## Run recommendation quality evaluation
+	@echo "Running recommendation evaluation..."
+	@cd backend && go build -o bin/evaluate-recommendations ./cmd/evaluate-recommendations
+	@cd backend && ./bin/evaluate-recommendations -verbose
+	@echo "✓ Recommendation evaluation complete"
+
+evaluate-recommendations-json: ## Run recommendation evaluation and output JSON
+	@echo "Running recommendation evaluation..."
+	@cd backend && go build -o bin/evaluate-recommendations ./cmd/evaluate-recommendations
+	@cd backend && ./bin/evaluate-recommendations -output recommendation-evaluation-results.json
+	@echo "✓ Results saved to backend/recommendation-evaluation-results.json"
