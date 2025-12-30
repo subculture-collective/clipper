@@ -220,6 +220,19 @@ func main() {
 		db.Pool,
 	)
 
+	// Initialize NSFW detector
+	nsfwDetector := services.NewNSFWDetector(
+		cfg.NSFW.APIKey,
+		cfg.NSFW.APIURL,
+		cfg.NSFW.Enabled,
+		cfg.NSFW.Threshold,
+		cfg.NSFW.ScanThumbnails,
+		cfg.NSFW.AutoFlag,
+		cfg.NSFW.MaxLatencyMs,
+		cfg.NSFW.TimeoutSeconds,
+		db.Pool,
+	)
+
 	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService, toxicityClassifier)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
 	autoTagService := services.NewAutoTagService(tagRepo)
@@ -437,6 +450,9 @@ func main() {
 			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, db.Pool)
 		}
 	}
+
+	// Initialize NSFW handler
+	nsfwHandler := handlers.NewNSFWHandler(nsfwDetector)
 
 	// Initialize forum handlers
 	forumHandler := handlers.NewForumHandler(db.Pool)
@@ -1572,6 +1588,17 @@ func main() {
 					// Toxicity classification metrics
 					moderation.GET("/toxicity/metrics", moderationHandler.GetToxicityMetrics)
 				}
+			}
+
+			// NSFW detection routes (admin only)
+			nsfw := admin.Group("/nsfw")
+			{
+				nsfw.POST("/detect", nsfwHandler.DetectImage)
+				nsfw.POST("/batch-detect", nsfwHandler.BatchDetect)
+				nsfw.GET("/metrics", nsfwHandler.GetMetrics)
+				nsfw.GET("/health", nsfwHandler.GetHealthCheck)
+				nsfw.GET("/config", nsfwHandler.GetConfig)
+				nsfw.POST("/scan-clips", nsfwHandler.ScanClipThumbnails)
 			}
 
 			// Creator verification management (admin only)
