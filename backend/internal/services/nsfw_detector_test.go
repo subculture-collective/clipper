@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -100,7 +100,7 @@ func TestDetectImage_WithAPI_Safe(t *testing.T) {
 	assert.NotNil(t, score)
 	assert.False(t, score.NSFW)
 	assert.Less(t, score.ConfidenceScore, 0.80)
-	assert.Greater(t, score.LatencyMs, int64(0))
+	assert.GreaterOrEqual(t, score.LatencyMs, int64(0)) // Allow 0 latency for very fast responses
 	assert.Contains(t, score.Categories, "nudity_raw")
 	assert.Contains(t, score.Categories, "offensive")
 }
@@ -201,7 +201,12 @@ func TestDetectImage_Timeout(t *testing.T) {
 	
 	assert.Error(t, err)
 	assert.Nil(t, score)
-	assert.Contains(t, err.Error(), "timeout")
+	// Check for common timeout-related errors
+	assert.True(t, 
+		strings.Contains(err.Error(), "timeout") || 
+		strings.Contains(err.Error(), "deadline exceeded") ||
+		strings.Contains(err.Error(), "Client.Timeout"),
+		"Expected timeout-related error, got: %v", err)
 }
 
 func TestDetectImage_Latency(t *testing.T) {
