@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+// Floating point comparison tolerance
+const floatTolerance = 0.01
+
 // SearchWeightConfig represents a configuration of search ranking weights
 type SearchWeightConfig struct {
 	Name            string  `json:"name" yaml:"name"`
@@ -21,9 +24,8 @@ type SearchWeightConfig struct {
 // Validate checks if the configuration is valid
 // BM25Weight and VectorWeight should sum to 1.0 for proper normalization
 func (c SearchWeightConfig) Validate() error {
-	const tolerance = 0.01 // Allow small floating point errors
 	sum := c.BM25Weight + c.VectorWeight
-	if sum < 1.0-tolerance || sum > 1.0+tolerance {
+	if sum < 1.0-floatTolerance || sum > 1.0+floatTolerance {
 		return fmt.Errorf("BM25Weight (%.2f) + VectorWeight (%.2f) should sum to 1.0, got %.2f",
 			c.BM25Weight, c.VectorWeight, sum)
 	}
@@ -226,7 +228,12 @@ func calculatePercentChange(a, b float64) float64 {
 		if b == 0 {
 			return 0
 		}
-		return 100.0 // If A is 0 and B is not, it's a 100% improvement
+		// Special case: baseline is 0, can't calculate percentage
+		// Return a large positive value if B > 0, but cap for display
+		if b > 0 {
+			return 999.0 // Capped large improvement indicator
+		}
+		return -999.0 // Capped large degradation indicator
 	}
 	return ((b - a) / a) * 100.0
 }
