@@ -52,7 +52,7 @@ export async function initiateOAuth() {
   });
 
   // In E2E environments, trigger the OAuth endpoint without performing a full navigation
-  if (typeof window !== 'undefined' && (window as any).__E2E_MOCK_OAUTH__) {
+  if (typeof window !== 'undefined' && (window as Record<string, unknown>).__E2E_MOCK_OAUTH__) {
     try {
       await fetch(`${apiUrl}/auth/twitch?${params.toString()}`, { credentials: 'include', mode: 'no-cors' });
     } catch (err) {
