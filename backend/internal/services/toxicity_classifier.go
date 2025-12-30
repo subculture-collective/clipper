@@ -181,21 +181,8 @@ func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore,
 
 	// Check for common toxic patterns (very basic example)
 	// In production, you'd want a more comprehensive list
-	toxicPatterns := []string{
-		// Add common toxic terms here - keeping empty for basic implementation
-	}
-
-	contentLower := content
-	for _, pattern := range toxicPatterns {
-		if len(pattern) > 0 {
-			// Simple substring check (case-insensitive would be better)
-			score += 0.1
-			if score >= tc.threshold {
-				reasons = append(reasons, "RULE_BASED_DETECTION")
-				break
-			}
-		}
-	}
+	// This is intentionally minimal as a fallback when ML service is unavailable
+	_ = content // Acknowledge we're not using content in this basic implementation
 
 	return &ToxicityScore{
 		Toxic:           score >= tc.threshold,
