@@ -14,12 +14,12 @@ import (
 
 // BaselineReport contains baseline metrics and configuration
 type BaselineReport struct {
-	Timestamp     string                     `json:"timestamp"`
-	Configuration BaselineConfiguration      `json:"configuration"`
-	Metrics       services.AggregateMetrics  `json:"metrics"`
-	Status        map[string]string          `json:"status"`
-	QueryCount    int                        `json:"query_count"`
-	Notes         string                     `json:"notes"`
+	Timestamp     string                    `json:"timestamp"`
+	Configuration BaselineConfiguration     `json:"configuration"`
+	Metrics       services.AggregateMetrics `json:"metrics"`
+	Status        map[string]string         `json:"status"`
+	QueryCount    int                       `json:"query_count"`
+	Notes         string                    `json:"notes"`
 }
 
 // BaselineConfiguration captures the current search configuration
@@ -134,7 +134,7 @@ func printSummary(report *BaselineReport) {
 	fmt.Println("  Baseline Metrics Captured")
 	fmt.Println("========================================")
 	fmt.Println()
-	
+
 	fmt.Println("Configuration:")
 	fmt.Println("-----------------------------------------")
 	fmt.Printf("  BM25 Weight:      %.2f\n", report.Configuration.BM25Weight)
@@ -145,7 +145,7 @@ func printSummary(report *BaselineReport) {
 	fmt.Printf("  Engagement Boost: %.2f\n", report.Configuration.EngagementBoost)
 	fmt.Printf("  Recency Boost:    %.2f\n", report.Configuration.RecencyBoost)
 	fmt.Println()
-	
+
 	fmt.Println("Baseline Metrics:")
 	fmt.Println("-----------------------------------------")
 	fmt.Printf("  nDCG@5:       %.4f\n", report.Metrics.MeanNDCG5)
@@ -159,7 +159,7 @@ func printSummary(report *BaselineReport) {
 	fmt.Printf("  Recall@20:    %.4f\n", report.Metrics.MeanRecall20)
 	fmt.Printf("  Query Count:  %d\n", report.QueryCount)
 	fmt.Println()
-	
+
 	// Show target comparison
 	if len(report.Status) > 0 {
 		fmt.Println("Status vs Targets:")
@@ -174,7 +174,7 @@ func printSummary(report *BaselineReport) {
 			{"MRR", "mrr", report.Status["mrr"]},
 			{"Precision@10", "precision_at_10", report.Status["precision_at_10"]},
 		}
-		
+
 		for _, m := range metrics {
 			if m.status != "" {
 				icon := getStatusIcon(m.status)
@@ -183,12 +183,12 @@ func printSummary(report *BaselineReport) {
 		}
 		fmt.Println()
 	}
-	
+
 	fmt.Println("Notes:")
 	fmt.Println("-----------------------------------------")
 	fmt.Println("  " + report.Notes)
 	fmt.Println()
-	
+
 	// Improvement target reminder
 	fmt.Println("Target for Optimization:")
 	fmt.Println("-----------------------------------------")

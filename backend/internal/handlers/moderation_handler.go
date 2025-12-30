@@ -1413,4 +1413,3 @@ func (h *ModerationHandler) GetToxicityMetrics(c *gin.Context) {
 		"end_date":   endDate.Format("2006-01-02"),
 	})
 }
-

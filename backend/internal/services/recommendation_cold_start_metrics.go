@@ -71,7 +71,7 @@ func RecordColdStartRecommendation(strategy string, count int, processingTimeMs 
 	coldStartRecommendationsTotal.WithLabelValues(strategy).Inc()
 	coldStartProcessingTime.WithLabelValues(strategy).Observe(float64(processingTimeMs) / 1000.0)
 	coldStartRecommendationCount.WithLabelValues(strategy).Observe(float64(count))
-	
+
 	if avgScore > 0 {
 		coldStartRecommendationQuality.WithLabelValues(strategy).Observe(avgScore)
 	}

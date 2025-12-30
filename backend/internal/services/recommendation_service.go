@@ -133,11 +133,11 @@ func (s *RecommendationService) GetRecommendations(
 
 		// If user completed onboarding, use content-based on preferences
 		// Check for any preference type (games, streamers, categories, or tags)
-		hasPreferences := len(preferences.FavoriteGames) > 0 || 
-			len(preferences.FollowedStreamers) > 0 || 
-			len(preferences.PreferredCategories) > 0 || 
+		hasPreferences := len(preferences.FavoriteGames) > 0 ||
+			len(preferences.FollowedStreamers) > 0 ||
+			len(preferences.PreferredCategories) > 0 ||
 			len(preferences.PreferredTags) > 0
-		
+
 		if preferences.OnboardingCompleted && hasPreferences {
 			recommendations, err = s.getContentBasedRecommendations(ctx, userID, limit)
 			if err != nil {
@@ -266,11 +266,11 @@ func (s *RecommendationService) getColdStartRecommendations(
 
 	algorithm := "trending"
 	originalTrendingCount := len(scores)
-	
+
 	// If not enough trending clips, supplement with popular clips
 	if len(scores) < limit {
 		RecordColdStartFallback("trending", "popularity")
-		
+
 		popularScores, err := s.repo.GetPopularClips(
 			ctx,
 			nil,

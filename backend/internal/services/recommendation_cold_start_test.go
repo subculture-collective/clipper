@@ -12,7 +12,7 @@ import (
 func TestColdStartWithOnboarding(t *testing.T) {
 	// This is a placeholder test showing the expected behavior
 	// In a real implementation, this would need mock repositories
-	
+
 	t.Run("Uses onboarding preferences for cold start", func(t *testing.T) {
 		// Arrange
 		userID := uuid.New()
@@ -123,19 +123,19 @@ func TestPopularityFallback(t *testing.T) {
 	t.Run("Popularity score calculation is reasonable", func(t *testing.T) {
 		// Test the expected behavior of popularity scoring
 		// Popularity = (views/hour_age) * (1 + vote_score/views)
-		
+
 		// High engagement clip (1000 views, 100 votes in 10 hours)
 		views1 := 1000.0
 		votes1 := 100.0
 		hours1 := 10.0
 		popularityScore1 := (views1 / hours1) * (1 + (votes1 / views1))
-		
+
 		// Low engagement clip (100 views, 5 votes in 10 hours)
 		views2 := 100.0
 		votes2 := 5.0
 		hours2 := 10.0
 		popularityScore2 := (views2 / hours2) * (1 + (votes2 / views2))
-		
+
 		assert.Greater(t, popularityScore1, popularityScore2, "High engagement should score higher")
 	})
 }

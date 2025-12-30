@@ -24,22 +24,22 @@ type RecommendationEvaluationService struct {
 
 // RecommendationEvaluationDataset represents the loaded evaluation dataset
 type RecommendationEvaluationDataset struct {
-	Version              string                           `yaml:"version"`
-	Description          string                           `yaml:"description"`
-	EvaluationScenarios  []RecommendationScenario         `yaml:"evaluation_scenarios"`
-	MetricTargets        map[string]RecommendationTarget  `yaml:"metric_targets"`
-	EvaluationGuidelines []string                         `yaml:"evaluation_guidelines"`
+	Version              string                          `yaml:"version"`
+	Description          string                          `yaml:"description"`
+	EvaluationScenarios  []RecommendationScenario        `yaml:"evaluation_scenarios"`
+	MetricTargets        map[string]RecommendationTarget `yaml:"metric_targets"`
+	EvaluationGuidelines []string                        `yaml:"evaluation_guidelines"`
 }
 
 // RecommendationScenario represents a single evaluation scenario
 type RecommendationScenario struct {
-	ID               string                       `yaml:"id"`
-	UserID           string                       `yaml:"user_id"`
-	Description      string                       `yaml:"description"`
-	UserProfile      UserProfileData              `yaml:"user_profile"`
-	RelevantClips    []RelevantRecommendation     `yaml:"relevant_clips"`
-	Algorithm        string                       `yaml:"algorithm,omitempty"`
-	IsColdStart      bool                         `yaml:"is_cold_start"`
+	ID            string                   `yaml:"id"`
+	UserID        string                   `yaml:"user_id"`
+	Description   string                   `yaml:"description"`
+	UserProfile   UserProfileData          `yaml:"user_profile"`
+	RelevantClips []RelevantRecommendation `yaml:"relevant_clips"`
+	Algorithm     string                   `yaml:"algorithm,omitempty"`
+	IsColdStart   bool                     `yaml:"is_cold_start"`
 }
 
 // UserProfileData represents user preferences and history
@@ -68,24 +68,24 @@ type RecommendationTarget struct {
 
 // RecommendationEvaluationResult contains results for a single scenario
 type RecommendationEvaluationResult struct {
-	ScenarioID         string                       `json:"scenario_id"`
-	UserID             string                       `json:"user_id"`
-	Description        string                       `json:"description"`
-	Algorithm          string                       `json:"algorithm"`
-	IsColdStart        bool                         `json:"is_cold_start"`
-	Precision5         float64                      `json:"precision_at_5"`
-	Precision10        float64                      `json:"precision_at_10"`
-	Recall5            float64                      `json:"recall_at_5"`
-	Recall10           float64                      `json:"recall_at_10"`
-	NDCG5              float64                      `json:"ndcg_at_5"`
-	NDCG10             float64                      `json:"ndcg_at_10"`
-	Diversity5         float64                      `json:"diversity_at_5"`
-	Diversity10        float64                      `json:"diversity_at_10"`
-	SerendipityScore   float64                      `json:"serendipity_score"`
-	Coverage           float64                      `json:"coverage"`
-	RetrievedCount     int                          `json:"retrieved_count"`
-	RelevantCount      int                          `json:"relevant_count"`
-	RecommendedResults []RecommendedResultItem      `json:"recommended_results,omitempty"`
+	ScenarioID         string                  `json:"scenario_id"`
+	UserID             string                  `json:"user_id"`
+	Description        string                  `json:"description"`
+	Algorithm          string                  `json:"algorithm"`
+	IsColdStart        bool                    `json:"is_cold_start"`
+	Precision5         float64                 `json:"precision_at_5"`
+	Precision10        float64                 `json:"precision_at_10"`
+	Recall5            float64                 `json:"recall_at_5"`
+	Recall10           float64                 `json:"recall_at_10"`
+	NDCG5              float64                 `json:"ndcg_at_5"`
+	NDCG10             float64                 `json:"ndcg_at_10"`
+	Diversity5         float64                 `json:"diversity_at_5"`
+	Diversity10        float64                 `json:"diversity_at_10"`
+	SerendipityScore   float64                 `json:"serendipity_score"`
+	Coverage           float64                 `json:"coverage"`
+	RetrievedCount     int                     `json:"retrieved_count"`
+	RelevantCount      int                     `json:"relevant_count"`
+	RecommendedResults []RecommendedResultItem `json:"recommended_results,omitempty"`
 }
 
 // RecommendedResultItem represents a single recommendation with its relevance
@@ -99,25 +99,25 @@ type RecommendedResultItem struct {
 
 // RecommendationAggregateMetrics contains aggregated metrics across all scenarios
 type RecommendationAggregateMetrics struct {
-	MeanPrecision5        float64 `json:"mean_precision_at_5"`
-	MeanPrecision10       float64 `json:"mean_precision_at_10"`
-	MeanRecall5           float64 `json:"mean_recall_at_5"`
-	MeanRecall10          float64 `json:"mean_recall_at_10"`
-	MeanNDCG5             float64 `json:"mean_ndcg_at_5"`
-	MeanNDCG10            float64 `json:"mean_ndcg_at_10"`
-	MeanDiversity5        float64 `json:"mean_diversity_at_5"`
-	MeanDiversity10       float64 `json:"mean_diversity_at_10"`
-	MeanSerendipity       float64 `json:"mean_serendipity"`
-	MeanCoverage          float64 `json:"mean_coverage"`
-	ScenarioCount         int     `json:"scenario_count"`
-	ColdStartPrecision5   float64 `json:"cold_start_precision_at_5"`
-	ColdStartRecall5      float64 `json:"cold_start_recall_at_5"`
-	ColdStartCount        int     `json:"cold_start_count"`
+	MeanPrecision5      float64 `json:"mean_precision_at_5"`
+	MeanPrecision10     float64 `json:"mean_precision_at_10"`
+	MeanRecall5         float64 `json:"mean_recall_at_5"`
+	MeanRecall10        float64 `json:"mean_recall_at_10"`
+	MeanNDCG5           float64 `json:"mean_ndcg_at_5"`
+	MeanNDCG10          float64 `json:"mean_ndcg_at_10"`
+	MeanDiversity5      float64 `json:"mean_diversity_at_5"`
+	MeanDiversity10     float64 `json:"mean_diversity_at_10"`
+	MeanSerendipity     float64 `json:"mean_serendipity"`
+	MeanCoverage        float64 `json:"mean_coverage"`
+	ScenarioCount       int     `json:"scenario_count"`
+	ColdStartPrecision5 float64 `json:"cold_start_precision_at_5"`
+	ColdStartRecall5    float64 `json:"cold_start_recall_at_5"`
+	ColdStartCount      int     `json:"cold_start_count"`
 }
 
 // RecommendationEvaluationReport contains the full evaluation report
 type RecommendationEvaluationReport struct {
-	Metrics         RecommendationAggregateMetrics `json:"aggregate_metrics"`
+	Metrics         RecommendationAggregateMetrics   `json:"aggregate_metrics"`
 	ScenarioResults []RecommendationEvaluationResult `json:"scenario_results"`
 	Targets         map[string]RecommendationTarget  `json:"targets,omitempty"`
 	Status          map[string]string                `json:"status,omitempty"` // "pass", "warning", "critical"
@@ -267,7 +267,7 @@ func (s *RecommendationEvaluationService) EvaluateScenario(
 	relevanceMap := make(map[string]int)
 	gameIDMap := make(map[string]string)
 	totalRelevant := 0
-	
+
 	for _, clip := range scenario.RelevantClips {
 		relevanceMap[clip.ClipID] = clip.Relevance
 		gameIDMap[clip.ClipID] = clip.GameID
@@ -288,7 +288,7 @@ func (s *RecommendationEvaluationService) EvaluateScenario(
 			rel = r
 		}
 		relevances[i] = rel
-		
+
 		gameID := ""
 		if i < len(recommendedGameIDs) {
 			gameID = recommendedGameIDs[i]
@@ -296,14 +296,14 @@ func (s *RecommendationEvaluationService) EvaluateScenario(
 			gameID = gid
 		}
 		gameIDs[i] = gameID
-		
+
 		recommendedResults[i] = RecommendedResultItem{
 			ClipID:    id,
 			Rank:      i + 1,
 			Relevance: rel,
 			GameID:    gameID,
 		}
-		
+
 		if rel >= RelevanceThreshold {
 			relevantRetrieved++
 		}
@@ -311,15 +311,15 @@ func (s *RecommendationEvaluationService) EvaluateScenario(
 
 	// Calculate all metrics
 	result := RecommendationEvaluationResult{
-		ScenarioID:         scenario.ID,
-		UserID:             scenario.UserID,
-		Description:        scenario.Description,
-		Algorithm:          scenario.Algorithm,
-		IsColdStart:        scenario.IsColdStart,
-		Precision5:         CalculatePrecisionAtK(relevances, 5, RelevanceThreshold),
-		Precision10:        CalculatePrecisionAtK(relevances, 10, RelevanceThreshold),
-		Recall5:            CalculateRecallAtK(relevances, 5, totalRelevant, RelevanceThreshold),
-		Recall10:           CalculateRecallAtK(relevances, 10, totalRelevant, RelevanceThreshold),
+		ScenarioID:  scenario.ID,
+		UserID:      scenario.UserID,
+		Description: scenario.Description,
+		Algorithm:   scenario.Algorithm,
+		IsColdStart: scenario.IsColdStart,
+		Precision5:  CalculatePrecisionAtK(relevances, 5, RelevanceThreshold),
+		Precision10: CalculatePrecisionAtK(relevances, 10, RelevanceThreshold),
+		Recall5:     CalculateRecallAtK(relevances, 5, totalRelevant, RelevanceThreshold),
+		Recall10:    CalculateRecallAtK(relevances, 10, totalRelevant, RelevanceThreshold),
 		// Note: CalculateNDCG is implemented in search_evaluation_service.go (same package).
 		NDCG5:              CalculateNDCG(relevances, 5),
 		NDCG10:             CalculateNDCG(relevances, 10),
@@ -494,7 +494,7 @@ func (s *RecommendationEvaluationService) SimulateRecommendations(
 		ids[i] = clip.ClipID
 		gameIDs[i] = clip.GameID
 	}
-	
+
 	return ids, gameIDs
 }
 

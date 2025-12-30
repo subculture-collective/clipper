@@ -3281,8 +3281,8 @@ type OnboardingPreferencesRequest struct {
 
 // Validate ensures at least one preference type is provided
 func (r *OnboardingPreferencesRequest) Validate() error {
-	if len(r.FavoriteGames) == 0 && len(r.FollowedStreamers) == 0 && 
-	   len(r.PreferredCategories) == 0 && len(r.PreferredTags) == 0 {
+	if len(r.FavoriteGames) == 0 && len(r.FollowedStreamers) == 0 &&
+		len(r.PreferredCategories) == 0 && len(r.PreferredTags) == 0 {
 		return fmt.Errorf("at least one preference type must be provided")
 	}
 	return nil

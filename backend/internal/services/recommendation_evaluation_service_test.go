@@ -10,46 +10,46 @@ import (
 // TestCalculatePrecisionAtK tests precision calculation
 func TestCalculatePrecisionAtK(t *testing.T) {
 	tests := []struct {
-		name              string
-		relevances        []int
-		k                 int
+		name               string
+		relevances         []int
+		k                  int
 		relevanceThreshold int
-		want              float64
+		want               float64
 	}{
 		{
-			name:              "Perfect precision at k=5",
-			relevances:        []int{4, 3, 3, 2, 2, 1, 0},
-			k:                 5,
+			name:               "Perfect precision at k=5",
+			relevances:         []int{4, 3, 3, 2, 2, 1, 0},
+			k:                  5,
 			relevanceThreshold: 2,
-			want:              1.0, // All 5 are relevant
+			want:               1.0, // All 5 are relevant
 		},
 		{
-			name:              "Half precision at k=4",
-			relevances:        []int{4, 0, 3, 0, 2},
-			k:                 4,
+			name:               "Half precision at k=4",
+			relevances:         []int{4, 0, 3, 0, 2},
+			k:                  4,
 			relevanceThreshold: 2,
-			want:              0.5, // 2 out of 4
+			want:               0.5, // 2 out of 4
 		},
 		{
-			name:              "Zero precision",
-			relevances:        []int{0, 1, 1, 0, 0},
-			k:                 5,
+			name:               "Zero precision",
+			relevances:         []int{0, 1, 1, 0, 0},
+			k:                  5,
 			relevanceThreshold: 2,
-			want:              0.0,
+			want:               0.0,
 		},
 		{
-			name:              "k larger than results",
-			relevances:        []int{4, 3, 2},
-			k:                 10,
+			name:               "k larger than results",
+			relevances:         []int{4, 3, 2},
+			k:                  10,
 			relevanceThreshold: 2,
-			want:              0.3, // 3 out of 10
+			want:               0.3, // 3 out of 10
 		},
 		{
-			name:              "Empty relevances",
-			relevances:        []int{},
-			k:                 5,
+			name:               "Empty relevances",
+			relevances:         []int{},
+			k:                  5,
 			relevanceThreshold: 2,
-			want:              0.0,
+			want:               0.0,
 		},
 	}
 
@@ -64,44 +64,44 @@ func TestCalculatePrecisionAtK(t *testing.T) {
 // TestCalculateRecallAtK tests recall calculation
 func TestCalculateRecallAtK(t *testing.T) {
 	tests := []struct {
-		name              string
-		relevances        []int
-		k                 int
-		totalRelevant     int
+		name               string
+		relevances         []int
+		k                  int
+		totalRelevant      int
 		relevanceThreshold int
-		want              float64
+		want               float64
 	}{
 		{
-			name:              "Perfect recall",
-			relevances:        []int{4, 3, 2, 0, 0},
-			k:                 5,
-			totalRelevant:     3,
+			name:               "Perfect recall",
+			relevances:         []int{4, 3, 2, 0, 0},
+			k:                  5,
+			totalRelevant:      3,
 			relevanceThreshold: 2,
-			want:              1.0, // Found all 3 relevant items
+			want:               1.0, // Found all 3 relevant items
 		},
 		{
-			name:              "Partial recall",
-			relevances:        []int{4, 0, 3, 0, 0},
-			k:                 5,
-			totalRelevant:     4,
+			name:               "Partial recall",
+			relevances:         []int{4, 0, 3, 0, 0},
+			k:                  5,
+			totalRelevant:      4,
 			relevanceThreshold: 2,
-			want:              0.5, // Found 2 out of 4 relevant
+			want:               0.5, // Found 2 out of 4 relevant
 		},
 		{
-			name:              "Zero recall",
-			relevances:        []int{0, 1, 1, 0, 0},
-			k:                 5,
-			totalRelevant:     3,
+			name:               "Zero recall",
+			relevances:         []int{0, 1, 1, 0, 0},
+			k:                  5,
+			totalRelevant:      3,
 			relevanceThreshold: 2,
-			want:              0.0,
+			want:               0.0,
 		},
 		{
-			name:              "k too small to find all",
-			relevances:        []int{4, 3, 0, 0, 2, 2},
-			k:                 3,
-			totalRelevant:     4,
+			name:               "k too small to find all",
+			relevances:         []int{4, 3, 0, 0, 2, 2},
+			k:                  3,
+			totalRelevant:      4,
 			relevanceThreshold: 2,
-			want:              0.5, // Found 2 out of 4 in top 3
+			want:               0.5, // Found 2 out of 4 in top 3
 		},
 	}
 
@@ -170,44 +170,44 @@ func TestCalculateDiversity(t *testing.T) {
 // TestCalculateSerendipity tests serendipity calculation
 func TestCalculateSerendipity(t *testing.T) {
 	tests := []struct {
-		name              string
-		relevances        []int
-		gameIDs           []string
-		favoriteGames     []string
+		name               string
+		relevances         []int
+		gameIDs            []string
+		favoriteGames      []string
 		relevanceThreshold int
-		want              float64
+		want               float64
 	}{
 		{
-			name:              "All serendipitous",
-			relevances:        []int{4, 3, 2, 0, 0},
-			gameIDs:           []string{"gameA", "gameB", "gameC", "gameD", "gameE"},
-			favoriteGames:     []string{"gameX", "gameY"},
+			name:               "All serendipitous",
+			relevances:         []int{4, 3, 2, 0, 0},
+			gameIDs:            []string{"gameA", "gameB", "gameC", "gameD", "gameE"},
+			favoriteGames:      []string{"gameX", "gameY"},
 			relevanceThreshold: 2,
-			want:              1.0, // 3 relevant, all from non-favorite games
+			want:               1.0, // 3 relevant, all from non-favorite games
 		},
 		{
-			name:              "None serendipitous",
-			relevances:        []int{4, 3, 2, 0, 0},
-			gameIDs:           []string{"gameX", "gameY", "gameX", "gameZ", "gameW"},
-			favoriteGames:     []string{"gameX", "gameY"},
+			name:               "None serendipitous",
+			relevances:         []int{4, 3, 2, 0, 0},
+			gameIDs:            []string{"gameX", "gameY", "gameX", "gameZ", "gameW"},
+			favoriteGames:      []string{"gameX", "gameY"},
 			relevanceThreshold: 2,
-			want:              0.0, // All relevant are from favorites
+			want:               0.0, // All relevant are from favorites
 		},
 		{
-			name:              "Half serendipitous",
-			relevances:        []int{4, 3, 2, 2, 0},
-			gameIDs:           []string{"gameX", "gameA", "gameY", "gameB", "gameC"},
-			favoriteGames:     []string{"gameX", "gameY"},
+			name:               "Half serendipitous",
+			relevances:         []int{4, 3, 2, 2, 0},
+			gameIDs:            []string{"gameX", "gameA", "gameY", "gameB", "gameC"},
+			favoriteGames:      []string{"gameX", "gameY"},
 			relevanceThreshold: 2,
-			want:              0.5, // 2 out of 4 relevant are from non-favorites
+			want:               0.5, // 2 out of 4 relevant are from non-favorites
 		},
 		{
-			name:              "No relevant items",
-			relevances:        []int{0, 1, 1, 0, 0},
-			gameIDs:           []string{"gameA", "gameB", "gameC", "gameD", "gameE"},
-			favoriteGames:     []string{"gameX"},
+			name:               "No relevant items",
+			relevances:         []int{0, 1, 1, 0, 0},
+			gameIDs:            []string{"gameA", "gameB", "gameC", "gameD", "gameE"},
+			favoriteGames:      []string{"gameX"},
 			relevanceThreshold: 2,
-			want:              0.0,
+			want:               0.0,
 		},
 	}
 
@@ -420,7 +420,7 @@ func TestEvaluateScenario(t *testing.T) {
 	assert.InDelta(t, 0.3, result.Precision10, 0.01, "3 relevant out of 10 requested")
 	assert.Equal(t, 1.0, result.Recall5, "All 3 relevant items found in top 5")
 	assert.Equal(t, 5.0, result.Diversity5, "All 5 clips have different games")
-	
+
 	// Serendipity: clip3 is relevant and not from favorite games
 	// 1 serendipitous out of 3 relevant = 0.333...
 	assert.InDelta(t, 0.33, result.SerendipityScore, 0.01, "One relevant clip from non-favorite game")
@@ -511,4 +511,3 @@ func TestCalculateNDCGInRecommendationContext(t *testing.T) {
 		})
 	}
 }
-

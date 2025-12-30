@@ -55,7 +55,7 @@ func main() {
 
 	// Define parameter grid
 	gridConfig := GridSearchConfig{}
-	
+
 	if *quick {
 		// Quick mode - test key variations
 		gridConfig.ContentWeights = []float64{0.4, 0.5, 0.6}
@@ -83,7 +83,7 @@ func main() {
 	// Run grid search
 	ctx := context.Background()
 	results := []GridSearchResult{}
-	
+
 	for _, contentWeight := range gridConfig.ContentWeights {
 		for _, collaborativeWeight := range gridConfig.CollaborativeWeights {
 			for _, trendingWeight := range gridConfig.TrendingWeights {
@@ -168,7 +168,7 @@ func evaluateConfiguration(
 	// For this simulated evaluation, we'll use the existing simulated results
 	// In a real implementation, this would create a service with the given weights
 	// and run actual recommendations
-	
+
 	report, err := evalService.EvaluateWithSimulatedResults(ctx)
 	if err != nil {
 		return GridSearchResult{}, err
@@ -199,11 +199,11 @@ func findBestConfiguration(results []GridSearchResult) GridSearchResult {
 		// Scoring function: weighted combination of metrics
 		// Higher weight on metrics that need improvement
 		score := 0.0
-		score += result.Metrics.MeanPrecision10 * 3.0  // High weight - needs improvement
+		score += result.Metrics.MeanPrecision10 * 3.0 // High weight - needs improvement
 		score += result.Metrics.MeanPrecision5 * 1.0
 		score += result.Metrics.MeanRecall10 * 1.0
 		score += result.Metrics.MeanNDCG5 * 1.0
-		score += result.Metrics.MeanDiversity5 / 5.0  // Normalize
+		score += result.Metrics.MeanDiversity5 / 5.0 // Normalize
 		score += result.Metrics.MeanSerendipity * 1.0
 
 		if score > bestScore {
