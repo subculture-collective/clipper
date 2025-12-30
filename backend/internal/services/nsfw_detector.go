@@ -114,6 +114,11 @@ func (nd *NSFWDetector) initMetrics() {
 
 // DetectImage analyzes an image for NSFW content
 func (nd *NSFWDetector) DetectImage(ctx context.Context, imageURL string) (*NSFWScore, error) {
+	return nd.DetectImageWithID(ctx, imageURL, "", uuid.Nil)
+}
+
+// DetectImageWithID analyzes an image for NSFW content and optionally persists to database
+func (nd *NSFWDetector) DetectImageWithID(ctx context.Context, imageURL string, contentType string, contentID uuid.UUID) (*NSFWScore, error) {
 	startTime := time.Now()
 	
 	// If detector is disabled, return safe default
@@ -167,7 +172,51 @@ func (nd *NSFWDetector) DetectImage(ctx context.Context, imageURL string) (*NSFW
 		}
 	}
 	
+	// Persist detection to database if content info provided and database available
+	if nd.db != nil && contentType != "" && contentID != uuid.Nil {
+		if err := nd.persistDetection(ctx, imageURL, contentType, contentID, score); err != nil {
+			// Log error but don't fail the detection
+			if nsfwErrorCounter != nil {
+				nsfwErrorCounter.WithLabelValues("persist_error").Inc()
+			}
+		}
+	}
+	
 	return score, nil
+}
+
+// persistDetection saves detection results to the database
+func (nd *NSFWDetector) persistDetection(ctx context.Context, imageURL, contentType string, contentID uuid.UUID, score *NSFWScore) error {
+	reasonCodes := score.ReasonCodes
+	if reasonCodes == nil {
+		reasonCodes = []string{}
+	}
+	
+	categoriesJSON, err := json.Marshal(score.Categories)
+	if err != nil {
+		return fmt.Errorf("failed to marshal categories: %w", err)
+	}
+	
+	query := `
+		INSERT INTO nsfw_detection_metrics (
+			content_type, content_id, image_url, nsfw, confidence_score,
+			categories, reason_codes, latency_ms, detected_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+	`
+	
+	_, err = nd.db.Exec(ctx, query,
+		contentType,
+		contentID,
+		imageURL,
+		score.NSFW,
+		score.ConfidenceScore,
+		categoriesJSON,
+		reasonCodes,
+		score.LatencyMs,
+	)
+	
+	return err
 }
 
 // detectWithAPI uses an external API for NSFW detection
@@ -203,8 +252,13 @@ func (nd *NSFWDetector) detectWithAPI(ctx context.Context, imageURL string) (*NS
 	}
 	defer resp.Body.Close()
 	
+	// Read body once
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+	
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 	
@@ -219,11 +273,6 @@ func (nd *NSFWDetector) detectWithAPI(ctx context.Context, imageURL string) (*NS
 		Offensive struct {
 			Prob float64 `json:"prob"`
 		} `json:"offensive"`
-	}
-	
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 	
 	if err := json.Unmarshal(bodyBytes, &apiResponse); err != nil {
@@ -291,20 +340,43 @@ func (nd *NSFWDetector) FlagToModerationQueue(ctx context.Context, contentType s
 	// Calculate priority based on confidence score (higher confidence = higher priority)
 	priority := int(score.ConfidenceScore * 100)
 	
+	// Prepare NSFW metadata for moderation queue
+	nsfwCategoriesJSON, err := json.Marshal(score.Categories)
+	if err != nil {
+		if nsfwErrorCounter != nil {
+			nsfwErrorCounter.WithLabelValues("categories_marshal_error").Inc()
+		}
+		return fmt.Errorf("failed to marshal NSFW category scores: %w", err)
+	}
+	
+	detectedAt := time.Now()
+	
 	// Insert into moderation queue
 	query := `
 		INSERT INTO moderation_queue (
 			content_type, content_id, reason, priority, 
-			auto_flagged, confidence_score, status
+			auto_flagged, confidence_score, status,
+			nsfw_categories, nsfw_detected_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+		VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)
 		ON CONFLICT (content_type, content_id) WHERE status = 'pending'
 		DO UPDATE SET 
 			confidence_score = GREATEST(moderation_queue.confidence_score, EXCLUDED.confidence_score),
-			priority = GREATEST(moderation_queue.priority, EXCLUDED.priority)
+			priority = GREATEST(moderation_queue.priority, EXCLUDED.priority),
+			nsfw_categories = EXCLUDED.nsfw_categories,
+			nsfw_detected_at = EXCLUDED.nsfw_detected_at
 	`
 	
-	_, err := nd.db.Exec(ctx, query, contentType, contentID, reason, priority, true, score.ConfidenceScore)
+	_, err = nd.db.Exec(ctx, query,
+		contentType,
+		contentID,
+		reason,
+		priority,
+		true,
+		score.ConfidenceScore,
+		nsfwCategoriesJSON,
+		detectedAt,
+	)
 	if err != nil {
 		if nsfwErrorCounter != nil {
 			nsfwErrorCounter.WithLabelValues("queue_insert_error").Inc()
@@ -330,7 +402,7 @@ func (nd *NSFWDetector) GetMetrics(ctx context.Context, startDate, endDate time.
 			COUNT(*) as count,
 			AVG(confidence_score) as avg_confidence
 		FROM moderation_queue
-		WHERE reason LIKE 'nsfw_%'
+		WHERE reason IN ('nsfw_detected', 'nsfw_nudity_explicit', 'nsfw_sexual_content', 'nsfw_offensive_content')
 			AND created_at >= $1 
 			AND created_at < $2
 		GROUP BY reason
@@ -350,6 +422,10 @@ func (nd *NSFWDetector) GetMetrics(ctx context.Context, startDate, endDate time.
 		var avgConfidence float64
 		
 		if err := rows.Scan(&reason, &count, &avgConfidence); err != nil {
+			// Log error and continue to avoid partial data
+			if nsfwErrorCounter != nil {
+				nsfwErrorCounter.WithLabelValues("metrics_scan_error").Inc()
+			}
 			continue
 		}
 		
@@ -370,7 +446,7 @@ func (nd *NSFWDetector) GetMetrics(ctx context.Context, startDate, endDate time.
 	err = nd.db.QueryRow(ctx, `
 		SELECT AVG(EXTRACT(EPOCH FROM (reviewed_at - created_at)) / 60)
 		FROM moderation_queue
-		WHERE reason LIKE 'nsfw_%'
+		WHERE reason IN ('nsfw_detected', 'nsfw_nudity_explicit', 'nsfw_sexual_content', 'nsfw_offensive_content')
 			AND reviewed_at IS NOT NULL
 			AND created_at >= $1 
 			AND created_at < $2

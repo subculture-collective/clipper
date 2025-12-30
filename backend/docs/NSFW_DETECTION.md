@@ -64,7 +64,7 @@ Performs NSFW detection on a single image URL.
 #### Parameters
 
 - `image_url` (required, string): URL of the image to scan
-- `content_type` (required, enum): Type of content - `clip`, `thumbnail`, or `submission`
+- `content_type` (required, enum): Type of content - `clip`, `thumbnail`, `submission`, or `user`
 - `content_id` (optional, UUID): ID of the content being scanned
 - `auto_flag` (optional, boolean): Whether to auto-flag if NSFW (default: true)
 

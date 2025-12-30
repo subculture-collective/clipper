@@ -3,12 +3,46 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/services"
 )
+
+// validateImageURL checks if the URL is safe and uses allowed protocols
+func validateImageURL(imageURL string) error {
+	parsedURL, err := url.Parse(imageURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+	
+	// Only allow HTTPS and HTTP protocols
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return fmt.Errorf("only http and https protocols are allowed")
+	}
+	
+	// Block private IP ranges and localhost to prevent SSRF
+	host := strings.ToLower(parsedURL.Hostname())
+	if host == "localhost" || host == "127.0.0.1" || host == "0.0.0.0" ||
+		strings.HasPrefix(host, "192.168.") ||
+		strings.HasPrefix(host, "10.") ||
+		strings.HasPrefix(host, "172.16.") || strings.HasPrefix(host, "172.17.") ||
+		strings.HasPrefix(host, "172.18.") || strings.HasPrefix(host, "172.19.") ||
+		strings.HasPrefix(host, "172.20.") || strings.HasPrefix(host, "172.21.") ||
+		strings.HasPrefix(host, "172.22.") || strings.HasPrefix(host, "172.23.") ||
+		strings.HasPrefix(host, "172.24.") || strings.HasPrefix(host, "172.25.") ||
+		strings.HasPrefix(host, "172.26.") || strings.HasPrefix(host, "172.27.") ||
+		strings.HasPrefix(host, "172.28.") || strings.HasPrefix(host, "172.29.") ||
+		strings.HasPrefix(host, "172.30.") || strings.HasPrefix(host, "172.31.") ||
+		strings.HasPrefix(host, "169.254.") {
+		return fmt.Errorf("private IP addresses and localhost are not allowed")
+	}
+	
+	return nil
+}
 
 // NSFWHandler handles NSFW detection operations
 type NSFWHandler struct {
@@ -27,7 +61,7 @@ func NewNSFWHandler(nsfwDetector *services.NSFWDetector) *NSFWHandler {
 func (h *NSFWHandler) DetectImage(c *gin.Context) {
 	var req struct {
 		ImageURL    string     `json:"image_url" binding:"required,url"`
-		ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission user_avatar"`
+		ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission user"`
 		ContentID   *uuid.UUID `json:"content_id,omitempty"`
 		AutoFlag    *bool      `json:"auto_flag,omitempty"`
 	}
@@ -39,10 +73,26 @@ func (h *NSFWHandler) DetectImage(c *gin.Context) {
 		return
 	}
 	
+	// Validate image URL to prevent SSRF attacks
+	if err := validateImageURL(req.ImageURL); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid image URL: " + err.Error(),
+		})
+		return
+	}
+	
 	ctx := c.Request.Context()
 	
-	// Perform detection
-	score, err := h.nsfwDetector.DetectImage(ctx, req.ImageURL)
+	// Perform detection with content info for database persistence
+	var score *services.NSFWScore
+	var err error
+	
+	if req.ContentID != nil && req.ContentType != "" {
+		score, err = h.nsfwDetector.DetectImageWithID(ctx, req.ImageURL, req.ContentType, *req.ContentID)
+	} else {
+		score, err = h.nsfwDetector.DetectImage(ctx, req.ImageURL)
+	}
+	
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to detect NSFW content: " + err.Error(),
@@ -84,7 +134,7 @@ func (h *NSFWHandler) BatchDetect(c *gin.Context) {
 	var req struct {
 		Images []struct {
 			ImageURL    string     `json:"image_url" binding:"required,url"`
-			ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission user_avatar"`
+			ContentType string     `json:"content_type" binding:"required,oneof=clip thumbnail submission user"`
 			ContentID   *uuid.UUID `json:"content_id,omitempty"`
 		} `json:"images" binding:"required,min=1,max=50"`
 		AutoFlag *bool `json:"auto_flag,omitempty"`
@@ -95,6 +145,16 @@ func (h *NSFWHandler) BatchDetect(c *gin.Context) {
 			"error": "Invalid request: " + err.Error(),
 		})
 		return
+	}
+	
+	// Validate all image URLs to prevent SSRF attacks
+	for i, img := range req.Images {
+		if err := validateImageURL(img.ImageURL); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Invalid image URL at index %d: %s", i, err.Error()),
+			})
+			return
+		}
 	}
 	
 	ctx := c.Request.Context()
@@ -116,7 +176,15 @@ func (h *NSFWHandler) BatchDetect(c *gin.Context) {
 	nsfwCount := 0
 	
 	for _, img := range req.Images {
-		score, err := h.nsfwDetector.DetectImage(ctx, img.ImageURL)
+		var score *services.NSFWScore
+		var err error
+		
+		// Perform detection with content info for database persistence
+		if img.ContentID != nil && img.ContentType != "" {
+			score, err = h.nsfwDetector.DetectImageWithID(ctx, img.ImageURL, img.ContentType, *img.ContentID)
+		} else {
+			score, err = h.nsfwDetector.DetectImage(ctx, img.ImageURL)
+		}
 		
 		res := result{
 			ImageURL: img.ImageURL,
@@ -226,29 +294,25 @@ func (h *NSFWHandler) GetMetrics(c *gin.Context) {
 // GetHealthCheck returns the health status of the NSFW detector
 // GET /admin/nsfw/health
 func (h *NSFWHandler) GetHealthCheck(c *gin.Context) {
-	ctx := c.Request.Context()
-	
-	// Perform a test detection with a safe image URL to verify service is working
-	testImageURL := "https://via.placeholder.com/150"
-	
 	startTime := time.Now()
-	_, err := h.nsfwDetector.DetectImage(ctx, testImageURL)
+	
+	// Check internal service state without relying on external services
+	healthy := h.nsfwDetector != nil
 	latency := time.Since(startTime).Milliseconds()
 	
-	healthy := err == nil
 	status := "healthy"
 	if !healthy {
 		status = "unhealthy"
 	}
 	
 	response := gin.H{
-		"success": healthy,
-		"status":  status,
+		"success":    healthy,
+		"status":     status,
 		"latency_ms": latency,
 	}
 	
-	if err != nil {
-		response["error"] = err.Error()
+	if !healthy {
+		response["error"] = "NSFW detector is not initialized"
 		c.JSON(http.StatusServiceUnavailable, response)
 		return
 	}

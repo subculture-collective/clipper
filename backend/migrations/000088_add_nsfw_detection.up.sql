@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS nsfw_detection_metrics (
     flagged_to_queue BOOLEAN DEFAULT FALSE,
     detected_at TIMESTAMP DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT nsfw_metrics_valid_content_type CHECK (content_type IN ('clip', 'thumbnail', 'submission', 'user_avatar')),
+    CONSTRAINT nsfw_metrics_valid_content_type CHECK (content_type IN ('clip', 'thumbnail', 'submission', 'user')),
     CONSTRAINT nsfw_metrics_valid_confidence CHECK (confidence_score >= 0 AND confidence_score <= 1)
 );
 
