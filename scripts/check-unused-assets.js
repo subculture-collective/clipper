@@ -39,7 +39,8 @@ function collectMarkdownFiles(dir, files = []) {
     const fullPath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      if (!entry.name.startsWith('.')) {
+      // Skip hidden directories, vault (secrets), and archives
+      if (!entry.name.startsWith('.') && entry.name !== 'vault' && entry.name !== 'archive') {
         collectMarkdownFiles(fullPath, files);
       }
     } else if (entry.isFile() && entry.name.endsWith('.md')) {

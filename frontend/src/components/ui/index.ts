@@ -76,3 +76,7 @@ export type { OptimizedImageProps } from './OptimizedImage';
 
 export { MutedIcon } from './MutedIcon';
 export type { MutedIconProps } from './MutedIcon';
+
+export { DocHeader } from './DocHeader';
+
+export { DocTOC } from './DocTOC';
