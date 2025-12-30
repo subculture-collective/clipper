@@ -29,11 +29,11 @@ func (c SearchWeightConfig) Validate() error {
 		return fmt.Errorf("BM25Weight (%.2f) + VectorWeight (%.2f) should sum to 1.0, got %.2f",
 			c.BM25Weight, c.VectorWeight, sum)
 	}
-	if c.BM25Weight < 0 || c.BM25Weight > 1 {
-		return fmt.Errorf("BM25Weight must be between 0 and 1, got %.2f", c.BM25Weight)
+	if c.BM25Weight < 0 {
+		return fmt.Errorf("BM25Weight must be non-negative, got %.2f", c.BM25Weight)
 	}
-	if c.VectorWeight < 0 || c.VectorWeight > 1 {
-		return fmt.Errorf("VectorWeight must be between 0 and 1, got %.2f", c.VectorWeight)
+	if c.VectorWeight < 0 {
+		return fmt.Errorf("VectorWeight must be non-negative, got %.2f", c.VectorWeight)
 	}
 	return nil
 }
