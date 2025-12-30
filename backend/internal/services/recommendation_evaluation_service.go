@@ -10,6 +10,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	// RelevanceThreshold defines the minimum relevance score to consider an item as "relevant"
+	// Using a 0-4 relevance scale, items with score >= 2 are considered relevant
+	RelevanceThreshold = 2
+)
+
 // RecommendationEvaluationService evaluates recommendation quality using standard metrics
 type RecommendationEvaluationService struct {
 	recommendationService *RecommendationService
@@ -265,7 +271,7 @@ func (s *RecommendationEvaluationService) EvaluateScenario(
 	for _, clip := range scenario.RelevantClips {
 		relevanceMap[clip.ClipID] = clip.Relevance
 		gameIDMap[clip.ClipID] = clip.GameID
-		if clip.Relevance >= 2 { // Consider relevance >= 2 as "relevant"
+		if clip.Relevance >= RelevanceThreshold { // Consider relevance >= 2 as "relevant"
 			totalRelevant++
 		}
 	}
@@ -298,7 +304,7 @@ func (s *RecommendationEvaluationService) EvaluateScenario(
 			GameID:    gameID,
 		}
 		
-		if rel >= 2 {
+		if rel >= RelevanceThreshold {
 			relevantRetrieved++
 		}
 	}
@@ -310,15 +316,16 @@ func (s *RecommendationEvaluationService) EvaluateScenario(
 		Description:        scenario.Description,
 		Algorithm:          scenario.Algorithm,
 		IsColdStart:        scenario.IsColdStart,
-		Precision5:         CalculatePrecisionAtK(relevances, 5, 2),
-		Precision10:        CalculatePrecisionAtK(relevances, 10, 2),
-		Recall5:            CalculateRecallAtK(relevances, 5, totalRelevant, 2),
-		Recall10:           CalculateRecallAtK(relevances, 10, totalRelevant, 2),
+		Precision5:         CalculatePrecisionAtK(relevances, 5, RelevanceThreshold),
+		Precision10:        CalculatePrecisionAtK(relevances, 10, RelevanceThreshold),
+		Recall5:            CalculateRecallAtK(relevances, 5, totalRelevant, RelevanceThreshold),
+		Recall10:           CalculateRecallAtK(relevances, 10, totalRelevant, RelevanceThreshold),
+		// Note: CalculateNDCG is implemented in search_evaluation_service.go (same package).
 		NDCG5:              CalculateNDCG(relevances, 5),
 		NDCG10:             CalculateNDCG(relevances, 10),
 		Diversity5:         CalculateDiversity(gameIDs, 5),
 		Diversity10:        CalculateDiversity(gameIDs, 10),
-		SerendipityScore:   CalculateSerendipity(relevances, gameIDs, scenario.UserProfile.FavoriteGames, 2),
+		SerendipityScore:   CalculateSerendipity(relevances, gameIDs, scenario.UserProfile.FavoriteGames, RelevanceThreshold),
 		Coverage:           CalculateCoverage(recommendedIDs, len(scenario.RelevantClips)),
 		RetrievedCount:     len(recommendedIDs),
 		RelevantCount:      relevantRetrieved,
