@@ -44,9 +44,10 @@ func (m *mockCDNProvider) GenerateURL(clip *models.Clip) (string, error) {
 		time.Sleep(100 * time.Millisecond)
 		return "", context.DeadlineExceeded
 	}
-	// Normal success path - return origin URL as fallback
+	// Normal success path - return a mock CDN URL
+	// In real scenarios, the CDN provider generates a CDN URL, not the origin URL
 	if clip.VideoURL != nil {
-		return *clip.VideoURL, nil
+		return "https://mock.cdn.example.com/video/" + clip.ID, nil
 	}
 	return "", nil
 }
@@ -503,11 +504,14 @@ func TestCDNFailover_CacheHeaders(t *testing.T) {
 }
 
 // Helper function to create clip handler with failover support
-// NOTE: This is a simplified placeholder. The actual ClipHandler would need
-// to be modified to support CDN failover with retry/backoff logic.
+// NOTE: This is currently a placeholder that returns the standard ClipHandler.
+// The actual CDN failover logic needs to be implemented in the production code
+// by modifying ClipHandler to accept a CDN service interface with failover capabilities.
+// These tests serve as documentation of expected failover behavior and will need
+// infrastructure-level testing (with actual CDN unavailability) or ClipHandler
+// modifications to fully validate the failover functionality.
 func createFailoverClipHandler(clipRepo *repository.ClipRepository, mockCDN *mockCDNProvider, authService *services.AuthService) *handlers.ClipHandler {
-	// In a real scenario, we would need to modify ClipHandler to accept
-	// a CDN service interface that can be mocked and includes failover logic
-	// For now, this returns the standard handler as a placeholder
+	// Returns the standard handler. The mockCDN parameter is provided for future
+	// use when ClipHandler is extended to support CDN failover with retry/backoff.
 	return handlers.NewClipHandler(clipRepo, authService)
 }

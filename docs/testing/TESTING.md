@@ -697,7 +697,7 @@ Alert rules:
 
 **Diagnosing Failover Issues:**
 
-See [CDN Failover Runbook](../operations/CDN_FAILOVER_RUNBOOK.md) for:
+See [CDN Failover Runbook](../../operations/CDN_FAILOVER_RUNBOOK.md) for:
 - Investigation steps
 - Common causes and fixes
 - Resolution criteria

@@ -47,8 +47,12 @@ export const options = {
         'http_req_duration{endpoint:asset}': ['p(95)<1000', 'p(99)<2000'],
         'http_req_duration{endpoint:hls_playlist}': ['p(95)<1000', 'p(99)<2000'],
         'http_req_duration{endpoint:hls_segment}': ['p(95)<500', 'p(99)<1000'],
-        // In this failover test scenario, we EXPECT high fallback rates when CDN fails
-        'fallback_rate': ['rate>0.7'], // Most requests should fall back when CDN is down
+        // Fallback rate threshold depends on whether we're testing failover scenarios.
+        // When CDN_FAILOVER_MODE is true, we expect high fallback rates (>70%).
+        // In normal operation (CDN_FAILOVER_MODE=false), fallback should be rare (<10%).
+        'fallback_rate': [
+            __ENV.CDN_FAILOVER_MODE === 'true' ? 'rate>0.7' : 'rate<0.1',
+        ],
         'errors': ['rate<0.05'], // Error rate should be below 5% during failover
         'http_req_failed': ['rate<0.05'], // Overall failure rate < 5%
         'request_storm_rate': ['rate<0.01'], // Should not generate request storms (< 1%)

@@ -22,19 +22,20 @@ cdn-test.local:8081 {
     # This simulates various CDN failure modes for testing
     
     route {
-        # Simulate 50% CDN failures when failover mode is enabled
-        # In production, this would be a real CDN (Cloudflare, Bunny, etc.)
+        # CDN failure simulation endpoint
+        # This simulates various CDN failure modes for testing
         
-        # Random failure injection (50% of requests fail)
+        # Random failure injection based on request header
+        # To simulate failures, clients should send: X-Test-CDN-Fail: true
+        # In real testing, a middleware or proxy would inject this header randomly
         @fail_requests {
             header X-Test-CDN-Fail "true"
         }
         
-        # Simulate timeout (slow response)
+        # Simulate timeout (return 504 Gateway Timeout immediately)
+        # Note: Actual delays require custom middleware; this returns 504 instantly
         handle @fail_requests /timeout/* {
-            respond "CDN Timeout" 504 {
-                delay 5s
-            }
+            respond "CDN Timeout" 504
         }
         
         # Simulate 5xx error
@@ -124,36 +125,39 @@ localhost:8080 {
     
     # API routes with CDN failover
     handle /api/v1/clips/*/thumbnail {
-        # Try CDN first, fallback to origin on error
-        @cdn_fail expression {
-            {http.error.status_code} >= 500
+        # Primary CDN upstream with fallback to origin
+        reverse_proxy cdn-test.local:8081 {
+            # On CDN 5xx errors, fall back to origin
+            @cdn_error status 5xx
+            
+            handle_response @cdn_error {
+                # Add failover headers
+                header X-CDN-Failover "true"
+                header X-CDN-Failover-Reason "error"
+                header X-CDN-Failover-Service "origin"
+                
+                # Fallback to origin upstream
+                reverse_proxy origin-test.local:8082
+            }
         }
-        
-        try_files {
-            try cdn-test.local:8081{uri}
-            try origin-test.local:8082{uri}
-        }
-        
-        # Add failover headers
-        header @cdn_fail X-CDN-Failover "true"
-        header @cdn_fail X-CDN-Failover-Reason "error"
-        header @cdn_fail X-CDN-Failover-Service "origin"
     }
     
     handle /api/v1/video/* {
-        # HLS content with failover
-        @cdn_fail expression {
-            {http.error.status_code} >= 500
+        # HLS content with CDN failover
+        reverse_proxy cdn-test.local:8081 {
+            # On CDN 5xx errors, fall back to origin
+            @cdn_error status 5xx
+            
+            handle_response @cdn_error {
+                # Add failover headers
+                header X-CDN-Failover "true"
+                header X-CDN-Failover-Reason "error"
+                header X-CDN-Failover-Service "origin"
+                
+                # Fallback to origin upstream
+                reverse_proxy origin-test.local:8082
+            }
         }
-        
-        try_files {
-            try cdn-test.local:8081{uri}
-            try origin-test.local:8082{uri}
-        }
-        
-        header @cdn_fail X-CDN-Failover "true"
-        header @cdn_fail X-CDN-Failover-Reason "error"
-        header @cdn_fail X-CDN-Failover-Service "origin"
     }
     
     # Backend API

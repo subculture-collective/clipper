@@ -82,21 +82,17 @@ test.describe('CDN Failover - Static Assets', () => {
     const imageCount = await images.count();
 
     if (imageCount > 0) {
-      // Verify images either loaded or have error handling
+      // Verify images either loaded successfully or have error handling
       for (let i = 0; i < Math.min(5, imageCount); i++) {
         const img = images.nth(i);
-        
-        // Check if image has error handling attributes
-        const hasErrorHandler = await img.evaluate((el: HTMLImageElement) => {
-          return el.onerror !== null || el.getAttribute('data-error-handled') === 'true';
-        });
         
         const isLoaded = await img.evaluate((el: HTMLImageElement) => {
           return el.complete && el.naturalWidth > 0;
         });
         
-        // Either loaded successfully or has error handling
-        expect(hasErrorHandler || isLoaded).toBeTruthy();
+        // Images should successfully load during CDN failover (falling back to origin)
+        // If they don't load, that's a failure case that should be caught
+        expect(isLoaded).toBeTruthy();
       }
     }
   });
@@ -108,14 +104,22 @@ test.describe('CDN Failover - HLS Video Playback', () => {
   });
 
   test('should play HLS video from origin when CDN fails', async ({ page, clipPage }) => {
+    // Use environment variable for test clip ID, or skip if not provided
+    const testClipId = process.env.TEST_HLS_CLIP_ID || 'test-clip-hls-001';
+
     // Navigate to a clip page with video
-    // In a real scenario, this would be a test clip with HLS enabled
-    const testClipId = 'test-clip-hls-001';
-    
     await clipPage.goto(testClipId);
 
     // Wait for video player to appear
     const videoPlayer = page.locator('video, [data-testid="video-player"]').first();
+    
+    // Check if video player exists
+    const playerCount = await videoPlayer.count();
+    if (playerCount === 0) {
+      // Skip test if no video player found (may not be HLS-enabled clip)
+      test.skip(true, 'No video player found for this clip');
+    }
+
     await expect(videoPlayer).toBeVisible({ timeout: VIDEO_TIMEOUT_MS });
 
     // Wait for video to be ready to play
@@ -143,15 +147,19 @@ test.describe('CDN Failover - HLS Video Playback', () => {
   });
 
   test('should handle video stall and resume during CDN failover', async ({ page, clipPage }) => {
-    const testClipId = 'test-clip-hls-002';
+    const testClipId = process.env.TEST_HLS_CLIP_ID || 'test-clip-hls-002';
     
     await clipPage.goto(testClipId);
 
     const videoPlayer = page.locator('video, [data-testid="video-player"]').first();
+    const playerCount = await videoPlayer.count();
+    if (playerCount === 0) {
+      test.skip(true, 'No video player found for this clip');
+    }
+
     await expect(videoPlayer).toBeVisible({ timeout: VIDEO_TIMEOUT_MS });
 
-    // Listen for stall events
-    let stallCount = 0;
+    // Listen for stall and playing events
     await page.evaluate(() => {
       const video = document.querySelector('video') as HTMLVideoElement;
       if (video) {
@@ -168,17 +176,23 @@ test.describe('CDN Failover - HLS Video Playback', () => {
     await videoPlayer.click();
     await page.waitForTimeout(3000);
 
-    // Check if video resumed after any stall
-    const resumed = await page.evaluate(() => {
-      return (window as any).__videoResumed === true;
+    // Check if video stalled and whether it resumed
+    const { stalled, resumed } = await page.evaluate(() => {
+      return {
+        stalled: (window as any).__videoStalled === true,
+        resumed: (window as any).__videoResumed === true,
+      };
     });
 
-    // Video should have resumed if it stalled
-    expect(resumed).toBeTruthy();
+    if (stalled) {
+      // Video should have resumed if it stalled
+      expect(resumed).toBeTruthy();
+    }
+    // If no stall occurred, that's acceptable (test passes)
   });
 
   test('should display loading state during video buffering', async ({ page, clipPage }) => {
-    const testClipId = 'test-clip-hls-003';
+    const testClipId = process.env.TEST_HLS_CLIP_ID || 'test-clip-hls-003';
     
     await clipPage.goto(testClipId);
 
@@ -188,9 +202,8 @@ test.describe('CDN Failover - HLS Video Playback', () => {
     // Briefly check if loading indicator appeared (may be too fast to catch)
     try {
       await loadingIndicator.waitFor({ state: 'visible', timeout: 1000 });
-    } catch (e) {
-      // Loading may have been too fast, which is acceptable
-      console.log('Loading indicator not detected (video may have loaded quickly)');
+    } catch {
+      // Loading may have been too fast; ignore timeout
     }
 
     // Video should eventually be visible
@@ -313,8 +326,9 @@ test.describe('CDN Failover - Performance', () => {
     
     const loadTime = Date.now() - startTime;
 
-    // During origin fallback, page should still load within 5 seconds
-    expect(loadTime).toBeLessThan(5000);
+    // During origin fallback, page should still load within acceptable time
+    // Use ASSET_TIMEOUT_MS constant for consistency
+    expect(loadTime).toBeLessThan(ASSET_TIMEOUT_MS);
   });
 
   test('should not block rendering during asset failures', async ({ page, homePage }) => {

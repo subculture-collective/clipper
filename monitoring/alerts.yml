@@ -987,7 +987,7 @@ groups:
       - alert: CDNFailoverLatencyHigh
         expr: |
           histogram_quantile(0.95,
-            sum(rate(cdn_failover_duration_ms_bucket[5m])) by (le)
+            sum by (le) (rate(cdn_failover_duration_ms_bucket[5m]))
           ) > 500
         for: 10m
         labels:
