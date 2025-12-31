@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -843,10 +844,5 @@ func TestCrossChannelIsolation(t *testing.T) {
 
 // Helper function
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || s[0:len(s)] != s && s[1:len(s)-1] != s))
-}
-
-func init() {
-	// Ensure proper JSON encoding
-	_ = json.Marshal
+	return strings.Contains(s, substr)
 }
