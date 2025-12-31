@@ -357,6 +357,7 @@ go test -v -tags=integration ./tests/integration/live_status/...
 go test -v -tags=integration ./tests/integration/live_status/... -run TestLiveStatusPersistence
 go test -v -tags=integration ./tests/integration/live_status/... -run TestLiveStatusAPIEndpoints
 go test -v -tags=integration ./tests/integration/live_status/... -run TestSyncStatusAndLogging
+go test -v -tags=integration ./tests/integration/live_status/... -run TestCacheInvalidationViaTimestamp
 
 # Cleanup
 docker compose -f docker-compose.test.yml down

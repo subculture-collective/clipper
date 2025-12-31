@@ -76,6 +76,9 @@ liveStatusHandler := handlers.NewLiveStatusHandler(liveStatusService, authServic
 
 username := fmt.Sprintf("livestatususer%d", time.Now().Unix())
 user := testutil.CreateTestUser(t, db, username)
+t.Cleanup(func() {
+	testutil.CleanupTestUser(t, db, user.ID)
+})
 
 r := gin.New()
 r.Use(gin.Recovery())
@@ -311,7 +314,7 @@ assert.GreaterOrEqual(t, first["viewer_count"].(float64), second["viewer_count"]
 }
 })
 
-t.Run("GetFollowedLiveBroadcasters", func(t *testing.T) {
+t.Run("GetFollowedLiveBroadcasters_Authenticated", func(t *testing.T) {
 userToken, _ := testutil.GenerateTestTokens(t, jwtManager, userID, "user")
 
 req := httptest.NewRequest(http.MethodGet, "/api/v1/feed/live", nil)
@@ -333,6 +336,15 @@ assert.Equal(t, 1, len(data))
 first := data[0].(map[string]interface{})
 assert.Equal(t, broadcasterID1, first["broadcaster_id"])
 assert.True(t, first["is_live"].(bool))
+})
+
+t.Run("GetFollowedLiveBroadcasters_Unauthenticated", func(t *testing.T) {
+req := httptest.NewRequest(http.MethodGet, "/api/v1/feed/live", nil)
+w := httptest.NewRecorder()
+
+router.ServeHTTP(w, req)
+
+assert.Equal(t, http.StatusUnauthorized, w.Code)
 })
 }
 
