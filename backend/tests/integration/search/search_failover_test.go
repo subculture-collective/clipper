@@ -21,7 +21,6 @@ import (
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/database"
 	jwtpkg "github.com/subculture-collective/clipper/pkg/jwt"
-	"github.com/subculture-collective/clipper/pkg/opensearch"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )

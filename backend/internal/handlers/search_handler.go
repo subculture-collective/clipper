@@ -110,7 +110,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 			fmt.Printf("Hybrid search error: %v\n", err)
 			failoverReason = getFailoverReason(err)
 			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
-			
+
 			c.Header("Retry-After", "60") // Suggest retry after 60 seconds
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"error": "Search service temporarily unavailable",
@@ -126,7 +126,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 			failoverReason = getFailoverReason(err)
 			usedFallback = true
 			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
-			
+
 			results, err = h.searchRepo.Search(c.Request.Context(), &req)
 			if err != nil {
 				// PostgreSQL fallback also failed
@@ -178,24 +178,24 @@ func getFailoverReason(err error) string {
 	if err == nil {
 		return "unknown"
 	}
-	
+
 	errStr := err.Error()
-	
+
 	// Check for timeout errors
 	if errors.Is(err, context.DeadlineExceeded) || strings.Contains(errStr, "timeout") || strings.Contains(errStr, "deadline exceeded") {
 		return "timeout"
 	}
-	
+
 	// Check for 5xx errors
 	if strings.Contains(errStr, "503") || strings.Contains(errStr, "500") || strings.Contains(errStr, "502") || strings.Contains(errStr, "504") {
 		return "error"
 	}
-	
+
 	// Check for connection errors
 	if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "connection reset") || strings.Contains(errStr, "no such host") {
 		return "error"
 	}
-	
+
 	// Default to error for any other failures
 	return "error"
 }
@@ -250,7 +250,7 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 			failoverReason = getFailoverReason(err)
 			usedFallback = true
 			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
-			
+
 			suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
