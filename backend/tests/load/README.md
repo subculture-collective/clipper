@@ -291,6 +291,51 @@ make test-load-mixed
 k6 run backend/tests/load/scenarios/mixed_behavior.js
 ```
 
+### 8. Rate Limiting Accuracy (`scenarios/rate_limiting.js`)
+
+Tests rate limiting enforcement and accuracy across key endpoints. Validates that rate limits are correctly applied and that headers are accurate.
+
+**Endpoints Tested:**
+- Submission: 10/hour (basic), 50/hour (premium)
+- Metadata: 100/hour (basic), 500/hour (premium)
+- Watch party create: 10/hour
+- Watch party join: 30/hour
+- Search: Variable rate limiting
+
+**Load Pattern:**
+- 5 concurrent scenarios testing different endpoints
+- Each scenario runs for 2 minutes
+- Intentionally exceeds rate limits to validate enforcement
+
+**Thresholds:**
+- Submission p95: <250ms
+- Metadata p95: <150ms
+- Watch party create p95: <200ms
+- Watch party join p95: <150ms
+- Rate limit accuracy: 20-60% requests should be rate limited
+- Error rate: <1% (excluding expected 429s)
+
+**Validations:**
+- Allowed vs blocked request counts match expected ratios (±5%)
+- Rate limit headers present and accurate (X-RateLimit-Limit, X-RateLimit-Remaining, etc.)
+- Retry-After headers present on 429 responses
+- p95 latency remains acceptable even under rate limiting
+
+**Run:**
+```bash
+make test-load-rate-limiting
+# or
+k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/rate_limiting.js
+```
+
+**Expected Results:**
+
+Because the tests send multiple requests in a 2-minute window while rate limits are configured per hour:
+- Most requests beyond the allowed rate will be blocked (429 responses)
+- The first few requests within the hourly allowance will succeed
+- Rate limit headers should be accurate on all responses
+- Latency should remain acceptable even under rate limiting
+
 ## Environment Variables
 
 Configure tests using environment variables:
@@ -404,6 +449,7 @@ Load tests are fully integrated into CI/CD with a dedicated workflow:
 - `auth` - Authentication test
 - `submit` - Submission test
 - `mixed` - Mixed behavior test (recommended)
+- `rate-limiting` - Rate limiting accuracy and performance test
 - `stress-lite` - Stress test (5 min, suitable for CI)
 - `soak-short` - Soak test (1 hour version)
 

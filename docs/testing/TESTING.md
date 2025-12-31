@@ -547,6 +547,72 @@ All tests run automatically in CI/CD pipelines:
 - **Integration tests**: Run on pull requests
 - **E2E tests**: Run on staging deployments
 - **Load tests**: Run before production releases
+- **Rate limiting tests**: Run nightly to validate enforcement accuracy
+
+### Rate Limiting Load Tests
+
+Rate limiting load tests validate the accuracy and performance of rate limiting enforcement across key endpoints. These tests ensure that:
+
+- Rate limits are enforced correctly at configured thresholds
+- Allowed vs. blocked request ratios match expected values (±5% tolerance)
+- Rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After) are accurate
+- p95 latency remains acceptable even under rate limiting
+- Error rate stays below 1% (excluding expected 429 responses)
+
+**Endpoints tested:**
+- Submission endpoint: 10 requests/hour (basic users), 50/hour (premium)
+- Metadata endpoint: 100 requests/hour (basic users), 500/hour (premium)
+- Watch party create: 10 requests/hour
+- Watch party join: 30 requests/hour
+- Search endpoint: Variable rate limiting
+
+**Running rate limiting tests:**
+
+```bash
+# Requires authentication token
+export AUTH_TOKEN="your_jwt_token"
+make test-load-rate-limiting
+
+# Or run directly with k6
+k6 run -e AUTH_TOKEN=$AUTH_TOKEN backend/tests/load/scenarios/rate_limiting.js
+```
+
+**Test output includes:**
+- Submission attempts and blocked/allowed counts
+- Metadata request distribution
+- Watch party rate limit accuracy
+- Rate limit header validation
+- Latency metrics under rate limiting
+- HTML report with visualizations
+
+**CI Integration:**
+
+Rate limiting tests run automatically in CI:
+- Nightly scheduled runs at 2 AM UTC
+- Manual trigger via GitHub Actions workflow
+- Reports uploaded as artifacts
+
+**Interpreting results:**
+
+**Interpreting results:**
+
+The test scenarios send requests over short 2-minute windows to validate rate limiting behavior:
+
+- **Submission**: Sends 15 requests over 2 minutes. With a 10/hour limit, we'd expect the first ~0.33 requests to be allowed in the 2-minute window, then rate limiting kicks in for subsequent requests.
+- **Metadata**: Sends 120 requests over 2 minutes. With a 100/hour limit, we'd expect the first ~3.3 requests to be allowed in the 2-minute window, then rate limiting applies.
+- **Watch party create**: Sends 15 requests over 2 minutes. With a 10/hour limit, similar to submission above.
+- **Watch party join**: Sends 40 requests over 2 minutes. With a 30/hour limit, we'd expect the first request to be allowed in the 2-minute window, then rate limiting applies.
+
+**Note**: Because these tests run for only 2 minutes while rate limits are configured per hour, most requests will be rate limited. The key validation is:
+- Rate limiting activates when the per-hour limit is exceeded
+- Rate limit headers are present and accurate
+- Latency remains acceptable even when rate limited
+
+If blocked percentages deviate significantly from expected behavior, this indicates:
+- Rate limiting configuration drift
+- Middleware not properly applied to endpoints
+- Redis connection issues affecting distributed rate limiting
+- Premium user multipliers not working correctly
 
 ## Troubleshooting
 

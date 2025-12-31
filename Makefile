@@ -295,6 +295,9 @@ test-load-submit: ## Run submission load test (requires AUTH_TOKEN)
 test-load-auth: ## Run authentication load test
 	@k6 run backend/tests/load/scenarios/authentication.js
 
+test-load-rate-limiting: ## Run rate limiting accuracy and performance test (requires AUTH_TOKEN)
+	@k6 run backend/tests/load/scenarios/rate_limiting.js
+
 test-load-report: ## Generate comprehensive load test report
 	@if command -v k6 > /dev/null; then \
 		echo "Generating comprehensive load test report..."; \
