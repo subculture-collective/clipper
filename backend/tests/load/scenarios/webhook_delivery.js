@@ -73,7 +73,7 @@ function generateSignature(payload, secret) {
 
 // Generate webhook event payload
 function generateWebhookEvent(eventType) {
-    const eventID = crypto.randomBytes(16);
+    const eventID = crypto.md5(crypto.randomBytes(16), 'hex'); // Generate hex string UUID
     const timestamp = new Date().toISOString();
     
     let data = {};
@@ -81,9 +81,9 @@ function generateWebhookEvent(eventType) {
     switch (eventType) {
         case 'clip.submitted':
             data = {
-                submission_id: crypto.randomBytes(16),
-                clip_id: crypto.randomBytes(16),
-                user_id: crypto.randomBytes(16),
+                submission_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                clip_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                user_id: crypto.md5(crypto.randomBytes(16), 'hex'),
                 title: `Test Clip ${randomString(10)}`,
                 description: 'Load test webhook event',
                 game: randomItem(['Valorant', 'CS2', 'Dota 2', 'League of Legends']),
@@ -92,18 +92,18 @@ function generateWebhookEvent(eventType) {
             break;
         case 'clip.approved':
             data = {
-                clip_id: crypto.randomBytes(16),
-                user_id: crypto.randomBytes(16),
-                approved_by: crypto.randomBytes(16),
+                clip_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                user_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                approved_by: crypto.md5(crypto.randomBytes(16), 'hex'),
                 approved_at: timestamp,
             };
             break;
         case 'clip.rejected':
             data = {
-                submission_id: crypto.randomBytes(16),
-                clip_id: crypto.randomBytes(16),
-                user_id: crypto.randomBytes(16),
-                rejected_by: crypto.randomBytes(16),
+                submission_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                clip_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                user_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                rejected_by: crypto.md5(crypto.randomBytes(16), 'hex'),
                 rejected_at: timestamp,
                 reason: 'Does not meet content guidelines',
             };
@@ -121,7 +121,7 @@ function generateWebhookEvent(eventType) {
 // Simulate webhook delivery
 function deliverWebhook(eventType, simulateInvalidSignature = false) {
     const startTime = Date.now();
-    const deliveryID = crypto.randomBytes(16);
+    const deliveryID = crypto.md5(crypto.randomBytes(16), 'hex');
     
     // Generate event payload
     const event = generateWebhookEvent(eventType);

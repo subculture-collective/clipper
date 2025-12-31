@@ -54,8 +54,10 @@ func (g *WebhookGenerator) GenerateSignature(payload string) string {
 
 // GenerateInvalidSignature generates an invalid signature for testing
 func (g *WebhookGenerator) GenerateInvalidSignature() string {
-	// Return a valid-looking but incorrect signature
-	return hex.EncodeToString(make([]byte, 32))
+	// Generate random bytes to simulate an invalid but realistic-looking signature
+	randomBytes := make([]byte, 32)
+	g.rand.Read(randomBytes)
+	return hex.EncodeToString(randomBytes)
 }
 
 // GenerateClipSubmittedEvent generates a clip.submitted event

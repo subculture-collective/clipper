@@ -1,6 +1,7 @@
 package webhooks_test
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -294,9 +295,12 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 				},
 			}
 			
-			payloadBytes, _ := json.Marshal(payload)
+			payloadBytes, err := json.Marshal(payload)
+			if err != nil {
+				return
+			}
 			
-			req, err := http.NewRequest("POST", server.URL, nil)
+			req, err := http.NewRequest("POST", server.URL, bytes.NewBuffer(payloadBytes))
 			if err != nil {
 				return
 			}
@@ -308,8 +312,6 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 			if err == nil {
 				resp.Body.Close()
 			}
-			
-			_ = payloadBytes // use if needed
 		}(i)
 	}
 	

@@ -641,7 +641,7 @@ func (s *OutboundWebhookService) ReplayDeadLetterQueueItem(ctx context.Context, 
 		return fmt.Errorf("subscription is inactive")
 	}
 
-	log.Printf("[WEBHOOK_DLQ] Replaying DLQ item %s to %s", dlqID, subscription.URL)
+	log.Printf("[WEBHOOK_DLQ] Replaying DLQ item %s (event: %s)", dlqID, dlqItem.EventType)
 
 	// Generate signature
 	signature := s.generateSignature(dlqItem.Payload, subscription.Secret)
