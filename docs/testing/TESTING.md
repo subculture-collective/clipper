@@ -279,6 +279,45 @@ go test -v -tags=integration ./tests/integration/admin/...
 docker compose -f docker-compose.test.yml down
 ```
 
+### Discovery Lists Tests
+
+The Discovery Lists feature (Top/New/Discussed) has comprehensive test coverage:
+
+**Unit Tests** (`backend/internal/handlers/discovery_list_handler_test.go`):
+- Pagination parameter validation (limit, offset, boundary values)
+- Filter parameters (featured lists)
+- Authentication checks for follow/bookmark operations
+- Error handling for invalid inputs
+- Response structure verification
+
+**Integration Tests** (`backend/tests/integration/discovery/discovery_list_integration_test.go`):
+- Pagination with live database fixtures
+- Sorting correctness (hot, new, top, discussed)
+- Filter combinations (top10k_streamers, timeframe)
+- Ordering verification (hot score, vote count, comment count, creation time)
+- Database state verification after operations
+
+**Coverage:**
+- All major sort options tested (hot, new, top, discussed)
+- Pagination edge cases (empty results, boundary values, multi-page)
+- Filter parameters (timeframe, top10k_streamers)
+- Combined filter testing
+
+**Running Discovery Lists tests:**
+
+```bash
+# Unit tests only
+cd backend
+go test -v ./internal/handlers -run TestDiscoveryList
+go test -v ./internal/handlers -run TestListDiscoveryLists
+go test -v ./internal/handlers -run TestGetDiscoveryListClips
+
+# Integration tests (requires test database)
+docker compose -f docker-compose.test.yml up -d
+go test -v -tags=integration ./tests/integration/discovery/...
+docker compose -f docker-compose.test.yml down
+```
+
 ## Writing Tests
 
 ### Best Practices
