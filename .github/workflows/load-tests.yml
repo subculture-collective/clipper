@@ -17,6 +17,7 @@ on:
           - auth
           - submit
           - mixed
+          - rate-limiting
           - stress-lite
           - soak-short
           - benchmarks-all
@@ -203,6 +204,17 @@ jobs:
                 k6 run --out json=backend/tests/load/reports/results_mixed_${TIMESTAMP}.json \
                   backend/tests/load/scenarios/mixed_behavior.js \
                   | tee backend/tests/load/reports/output_mixed_${TIMESTAMP}.txt
+                ;;
+              rate-limiting)
+                # Generate test JWT token for rate limiting tests
+                AUTH_TOKEN=$(cd backend && go run cmd/api/main.go --generate-test-token 2>/dev/null || echo "")
+                if [ -z "$AUTH_TOKEN" ]; then
+                  echo "Warning: Could not generate test token. Rate limiting tests may be limited."
+                fi
+                k6 run --out json=backend/tests/load/reports/results_rate_limiting_${TIMESTAMP}.json \
+                  -e AUTH_TOKEN="$AUTH_TOKEN" \
+                  backend/tests/load/scenarios/rate_limiting.js \
+                  | tee backend/tests/load/reports/output_rate_limiting_${TIMESTAMP}.txt
                 ;;
               stress-lite)
                 k6 run --out json=backend/tests/load/reports/results_stress_${TIMESTAMP}.json \

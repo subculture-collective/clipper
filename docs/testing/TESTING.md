@@ -547,6 +547,64 @@ All tests run automatically in CI/CD pipelines:
 - **Integration tests**: Run on pull requests
 - **E2E tests**: Run on staging deployments
 - **Load tests**: Run before production releases
+- **Rate limiting tests**: Run nightly to validate enforcement accuracy
+
+### Rate Limiting Load Tests
+
+Rate limiting load tests validate the accuracy and performance of rate limiting enforcement across key endpoints. These tests ensure that:
+
+- Rate limits are enforced correctly at configured thresholds
+- Allowed vs. blocked request ratios match expected values (±5% tolerance)
+- Rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After) are accurate
+- p95 latency remains acceptable even under rate limiting
+- Error rate stays below 1% (excluding expected 429 responses)
+
+**Endpoints tested:**
+- Submission endpoint: 10 requests/hour (basic users), 50/hour (premium)
+- Metadata endpoint: 100 requests/hour (basic users), 500/hour (premium)
+- Watch party create: 10 requests/hour
+- Watch party join: 30 requests/hour
+- Search endpoint: Variable rate limiting
+
+**Running rate limiting tests:**
+
+```bash
+# Requires authentication token
+export AUTH_TOKEN="your_jwt_token"
+make test-load-rate-limiting
+
+# Or run directly with k6
+k6 run -e AUTH_TOKEN=$AUTH_TOKEN backend/tests/load/scenarios/rate_limiting.js
+```
+
+**Test output includes:**
+- Submission attempts and blocked/allowed counts
+- Metadata request distribution
+- Watch party rate limit accuracy
+- Rate limit header validation
+- Latency metrics under rate limiting
+- HTML report with visualizations
+
+**CI Integration:**
+
+Rate limiting tests run automatically in CI:
+- Nightly scheduled runs at 2 AM UTC
+- Manual trigger via GitHub Actions workflow
+- Reports uploaded as artifacts
+
+**Interpreting results:**
+
+The test scenarios intentionally exceed configured rate limits to validate enforcement:
+- Submission: Sends 15 req/hour (50% over limit) → expect ~33% blocked
+- Metadata: Sends 120 req/hour (20% over limit) → expect ~17% blocked  
+- Watch party create: Sends 15 req/hour (50% over limit) → expect ~33% blocked
+- Watch party join: Sends 40 req/hour (33% over limit) → expect ~25% blocked
+
+If blocked percentages deviate significantly from expected values, this indicates:
+- Rate limiting configuration drift
+- Middleware not properly applied to endpoints
+- Redis connection issues affecting distributed rate limiting
+- Premium user multipliers not working correctly
 
 ## Troubleshooting
 
