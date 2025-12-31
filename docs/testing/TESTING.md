@@ -363,6 +363,73 @@ go test -v -tags=integration ./tests/integration/live_status/... -run TestCacheI
 docker compose -f docker-compose.test.yml down
 ```
 
+### Moderation Workflow E2E Tests
+
+The Moderation Workflow has comprehensive end-to-end test coverage for admin/moderator operations:
+
+**E2E Tests** (`frontend/e2e/tests/moderation-workflow.spec.ts`):
+- **Access Control**: Admin-only access enforcement (non-admin blocked, admin/moderator allowed)
+- **Single Actions**: Approve/reject individual submissions with rejection reasons
+- **Bulk Actions**: Bulk approve/reject multiple submissions
+- **Audit Logging**: Verification that all moderation actions create audit log entries
+- **Rejection Reason Visibility**: Users can see rejection reasons for their submissions
+- **Performance Baseline**: p95 page load time measurement for moderation queue
+
+**Test Coverage:**
+- ✅ Non-admin users blocked from accessing moderation queue
+- ✅ Admin and moderator users can access moderation queue
+- ✅ Single submission approval with audit logging
+- ✅ Single submission rejection with reason display and audit logging
+- ✅ Bulk approve submissions workflow with audit logs
+- ✅ Bulk reject submissions workflow with reason and audit logs
+- ✅ Rejection reasons visible to submitting users
+- ✅ p95 page load time baseline measurement (< 3s for 50 submissions)
+- ✅ Audit log creation for all moderation actions
+- ✅ Audit log retrieval with filtering
+
+**Running Moderation Workflow tests:**
+
+```bash
+cd frontend
+
+# Run all moderation workflow tests
+npm run test:e2e -- moderation-workflow.spec.ts
+
+# Run specific test suites
+npm run test:e2e -- moderation-workflow.spec.ts -g "Access Control"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Single Submission Actions"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Bulk Actions"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Audit Logging"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Performance Baseline"
+
+# Run in headed mode to see browser
+npm run test:e2e -- moderation-workflow.spec.ts --headed
+
+# Run in UI mode for debugging
+npm run test:e2e:ui -- moderation-workflow.spec.ts
+```
+
+**API Endpoints Tested:**
+- `GET /api/admin/submissions` - List pending submissions (moderation queue)
+- `POST /api/admin/submissions/:id/approve` - Approve single submission
+- `POST /api/admin/submissions/:id/reject` - Reject single submission with reason
+- `POST /api/admin/submissions/bulk-approve` - Bulk approve submissions
+- `POST /api/admin/submissions/bulk-reject` - Bulk reject submissions with reason
+- `GET /api/submissions` - User's own submissions (includes rejection reasons)
+- `GET /api/admin/audit-logs` - Retrieve audit logs with filters
+
+**Performance Metrics:**
+- p95 page load time for moderation queue with 50 submissions (with mocked API responses): < 3 seconds (baseline)
+- Test runs 20 iterations locally (10 iterations in CI) to establish baseline under mocked backend conditions
+- Metrics logged: min, max, median, p95, mean load times
+
+**Notes:**
+- Tests use mocked API responses for consistent, isolated testing; real-world performance with actual backend latency may differ from these baselines
+- Bulk actions are tested via API calls as UI doesn't expose bulk selection yet; these are API integration tests rather than true E2E tests
+- Audit logging is verified for every moderation action
+- Access control tests verify both blocking (403) and allowing access
+- Performance baseline can be adjusted based on actual production requirements and production observability data
+
 ## Writing Tests
 
 ### Best Practices

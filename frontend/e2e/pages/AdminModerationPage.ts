@@ -181,4 +181,85 @@ export class AdminModerationPage extends BasePage {
   async waitForQueueLoad(): Promise<void> {
     await this.page.waitForLoadState('networkidle');
   }
+
+  /**
+   * Select multiple submissions by their IDs
+   */
+  async selectSubmissions(submissionIds: string[]): Promise<void> {
+    for (const submissionId of submissionIds) {
+      const checkbox = this.page.locator(`[data-testid="submission-${submissionId}"]`)
+        .locator('input[type="checkbox"]')
+        .or(this.page.locator(`input[type="checkbox"][value="${submissionId}"]`));
+      
+      const checkboxCount = await checkbox.count();
+      if (checkboxCount === 0) {
+        throw new Error(
+          `No checkbox found for submission ID "${submissionId}" using either data-testid or value selector.`
+        );
+      }
+      
+      await checkbox.check();
+    }
+  }
+
+  /**
+   * Bulk approve selected submissions
+   * Note: This method directly calls the API since the UI doesn't expose bulk actions yet.
+   * This is temporary until the bulk action UI is implemented.
+   * TODO: Update to use UI interactions once bulk action UI is available
+   */
+  async bulkApproveSubmissions(submissionIds: string[]): Promise<void> {
+    try {
+      const response = await this.page.request.post('/api/admin/submissions/bulk-approve', {
+        data: {
+          submission_ids: submissionIds,
+        },
+      });
+
+      if (!response.ok()) {
+        throw new Error(
+          `Failed to bulk approve submissions: ${response.status()} ${response.statusText()}`
+        );
+      }
+
+      await this.page.waitForLoadState('networkidle');
+    } catch (error) {
+      throw new Error(
+        `bulkApproveSubmissions request failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+
+  /**
+   * Bulk reject selected submissions with a reason
+   * Note: This method directly calls the API since the UI doesn't expose bulk actions yet.
+   * This is temporary until the bulk action UI is implemented.
+   * TODO: Update to use UI interactions once bulk action UI is available
+   */
+  async bulkRejectSubmissions(submissionIds: string[], reason: string): Promise<void> {
+    try {
+      const response = await this.page.request.post('/api/admin/submissions/bulk-reject', {
+        data: {
+          submission_ids: submissionIds,
+          reason,
+        },
+      });
+
+      if (!response.ok()) {
+        throw new Error(
+          `Failed to bulk reject submissions: ${response.status()} ${response.statusText()}`
+        );
+      }
+
+      await this.page.waitForLoadState('networkidle');
+    } catch (error) {
+      throw new Error(
+        `bulkRejectSubmissions request failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
 }
