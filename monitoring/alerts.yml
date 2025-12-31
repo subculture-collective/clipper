@@ -425,6 +425,42 @@ groups:
           description: "BM25 search P95 latency is {{ $value }}ms, target is < 50ms."
           runbook: "docs/operations/playbooks/search-incidents.md#bm25-search-slow"
 
+      # Search Failover Rate High
+      - alert: SearchFailoverRateHigh
+        expr: |
+          rate(search_fallback_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High search failover rate"
+          description: "Search is failing over at {{ $value }}/sec due to {{ $labels.reason }}. OpenSearch may be degraded."
+          runbook: "docs/operations/playbooks/search-incidents.md#search-failover"
+
+      # Search Failover Rate Critical
+      - alert: SearchFailoverRateCritical
+        expr: |
+          rate(search_fallback_total[5m]) > 20
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical search failover rate"
+          description: "Search is failing over at {{ $value }}/sec due to {{ $labels.reason }}. Immediate action required."
+          runbook: "docs/operations/playbooks/search-incidents.md#search-failover"
+
+      # Search Failover Latency High
+      - alert: SearchFailoverLatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum(rate(search_fallback_duration_ms_bucket[5m])) by (le)) > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High search fallback latency"
+          description: "P95 fallback path latency is {{ $value }}ms, may indicate PostgreSQL performance issues."
+          runbook: "docs/operations/playbooks/search-incidents.md#fallback-latency"
+
   - name: clipper_webhook_alerts
     interval: 30s
     rules:

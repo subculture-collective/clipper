@@ -105,6 +105,62 @@ We aim for the following coverage thresholds:
 
 ## Feature-Specific Testing
 
+### Input Validation Middleware Tests
+
+The validation middleware provides defense-in-depth security against injection attacks:
+
+**Unit Tests** (`backend/internal/middleware/validation_middleware_test.go` & `validation_middleware_security_test.go`):
+- Basic SQLi pattern detection (UNION, SELECT, INSERT, DROP, etc.)
+- XSS pattern detection (script tags, event handlers, javascript:)
+- Path traversal detection (../, ..\\)
+- Header validation (UTF-8, length limits)
+- Request body size limits
+- URL length validation
+- Cross-field validation for user inputs
+- SQLi/XSS edge cases (case variations, special characters)
+- Mixed attack vectors (combined SQLi + XSS)
+- Sanitization consistency and idempotency
+- Fuzzer smoke test (1000+ random malicious payloads)
+
+**Integration Tests** (`backend/tests/integration/validation/validation_integration_test.go`):
+- Validation applied on clip endpoints
+- Validation on user management endpoints
+- Validation on comment endpoints
+- Validation on search endpoints
+- Header validation across all endpoints
+
+**Coverage:**
+- Unit test coverage: ~95% of validation logic
+- Integration test coverage: All critical endpoints
+- Fuzzer test: 1000+ payloads with 0 panics, 0% failure rate
+
+**Running validation tests:**
+
+```bash
+cd backend
+
+# All validation tests (unit + sanitization)
+go test -v ./internal/middleware/ -run "TestInputValidation|TestSanitizeInput"
+
+# Edge case tests
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_SQLInjectionEdgeCases
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_XSSEdgeCases
+
+# Fuzzer smoke test (1000+ payloads)
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_FuzzerSmoke
+
+# Integration tests (requires test database)
+docker compose -f docker-compose.test.yml up -d
+go test -v -tags=integration ./tests/integration/validation/...
+docker compose -f docker-compose.test.yml down
+```
+
+**Security Note:** The validation middleware provides defense-in-depth but should not be the only security layer. Always use:
+- Parameterized queries/prepared statements for database access
+- Context-aware output encoding for HTML/JS/CSS
+- Content Security Policy (CSP) headers
+- HTTPS for all communications
+
 ### DMCA System Tests
 
 The DMCA system has comprehensive test coverage including:
@@ -223,6 +279,327 @@ go test -v -tags=integration ./tests/integration/admin/...
 docker compose -f docker-compose.test.yml down
 ```
 
+### Discovery Lists Tests
+
+The Discovery Lists feature (Top/New/Discussed) has comprehensive test coverage:
+
+**Unit Tests** (`backend/internal/handlers/discovery_list_handler_test.go`):
+- Pagination parameter validation (limit, offset, boundary values)
+- Filter parameters (featured lists)
+- Authentication checks for follow/bookmark operations
+- Error handling for invalid inputs
+- Response structure verification
+
+**Integration Tests** (`backend/tests/integration/discovery/discovery_list_integration_test.go`):
+- Pagination with live database fixtures
+- Sorting correctness (hot, new, top, discussed)
+- Filter combinations (top10k_streamers, timeframe)
+- Ordering verification (hot score, vote count, comment count, creation time)
+- Database state verification after operations
+
+**Coverage:**
+- All major sort options tested (hot, new, top, discussed)
+- Pagination edge cases (empty results, boundary values, multi-page)
+- Filter parameters (timeframe, top10k_streamers)
+- Combined filter testing
+
+**Running Discovery Lists tests:**
+
+```bash
+# Unit tests only
+cd backend
+go test -v ./internal/handlers -run TestDiscoveryList
+go test -v ./internal/handlers -run TestListDiscoveryLists
+go test -v ./internal/handlers -run TestGetDiscoveryListClips
+
+# Integration tests (requires test database)
+docker compose -f docker-compose.test.yml up -d
+go test -v -tags=integration ./tests/integration/discovery/...
+docker compose -f docker-compose.test.yml down
+```
+
+### Live Status Tracking Tests
+
+The Live Status Tracking system has comprehensive integration test coverage:
+
+**Integration Tests** (`backend/tests/integration/live_status/live_status_integration_test.go`):
+- Live status persistence and retrieval (UpsertLiveStatus, GetLiveStatus)
+- Status transitions (offline → online, online → offline)
+- API endpoint testing (GetBroadcasterLiveStatus, ListLiveBroadcasters, GetFollowedLiveBroadcasters)
+- Authentication and authorization for protected endpoints
+- Sync status tracking and logging
+- Error logging for upstream failures
+- Cache invalidation via timestamp updates
+- Database state verification after all operations
+
+**Coverage:**
+- Full CRUD operations on broadcaster live status
+- All HTTP API endpoints with proper authentication
+- Sync status and sync log creation
+- Error handling and logging
+- Pagination and ordering of live broadcasters
+- User-specific followed broadcaster filtering
+
+**Running Live Status tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/live_status/...
+
+# Run specific test suites
+go test -v -tags=integration ./tests/integration/live_status/... -run TestLiveStatusPersistence
+go test -v -tags=integration ./tests/integration/live_status/... -run TestLiveStatusAPIEndpoints
+go test -v -tags=integration ./tests/integration/live_status/... -run TestSyncStatusAndLogging
+go test -v -tags=integration ./tests/integration/live_status/... -run TestCacheInvalidationViaTimestamp
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
+### Chat/WebSocket Backend Reliability Tests
+
+The Chat/WebSocket system has comprehensive integration test coverage for reliability and real-time messaging:
+
+**Integration Tests** (`backend/tests/integration/chat/chat_reliability_test.go`):
+- Multi-client connection and disconnection lifecycle
+- Presence notifications (join/leave events)
+- Message fanout to all connected clients
+- Message ordering preservation within channels
+- Reconnection with message history delivery (last 50 messages)
+- Message deduplication using client-provided IDs
+- Rate limiting enforcement (20 messages per minute)
+- Slow client handling and backpressure (full send buffers)
+- Server stability under message overload
+- Cross-channel message isolation
+
+**Coverage:**
+- Connection lifecycle with proper cleanup
+- Real-time message broadcast to multiple clients
+- Message persistence and history retrieval
+- Rate limiting with error responses
+- Graceful handling of slow consumers
+- Channel isolation and security
+
+**Test Scenarios:**
+- `TestMultipleClientsConnectDisconnect` - Connection lifecycle and presence
+- `TestMessageFanout` - Broadcast to all channel members
+- `TestMessageOrdering` - Sequential message delivery
+- `TestReconnectionAndMessageHistory` - State recovery on reconnect
+- `TestMessageDeduplication` - Duplicate prevention
+- `TestRateLimiting` - Rate limit enforcement
+- `TestSlowClientHandling` - Backpressure handling
+- `TestCrossChannelIsolation` - Security and isolation
+
+**Running Chat/WebSocket tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/chat/...
+
+# Run specific test scenarios
+go test -v -tags=integration ./tests/integration/chat/... -run TestMultipleClientsConnectDisconnect
+go test -v -tags=integration ./tests/integration/chat/... -run TestMessageFanout
+go test -v -tags=integration ./tests/integration/chat/... -run TestMessageOrdering
+go test -v -tags=integration ./tests/integration/chat/... -run TestReconnectionAndMessageHistory
+go test -v -tags=integration ./tests/integration/chat/... -run TestMessageDeduplication
+go test -v -tags=integration ./tests/integration/chat/... -run TestRateLimiting
+go test -v -tags=integration ./tests/integration/chat/... -run TestSlowClientHandling
+go test -v -tags=integration ./tests/integration/chat/... -run TestCrossChannelIsolation
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
+**Note:** These tests require PostgreSQL (port 5437) and Redis (port 6380) to be running. Use `docker-compose.test.yml` to start test infrastructure.
+
+### Moderation Workflow E2E Tests
+
+The Moderation Workflow has comprehensive end-to-end test coverage for admin/moderator operations:
+
+**E2E Tests** (`frontend/e2e/tests/moderation-workflow.spec.ts`):
+- **Access Control**: Admin-only access enforcement (non-admin blocked, admin/moderator allowed)
+- **Single Actions**: Approve/reject individual submissions with rejection reasons
+- **Bulk Actions**: Bulk approve/reject multiple submissions
+- **Audit Logging**: Verification that all moderation actions create audit log entries
+- **Rejection Reason Visibility**: Users can see rejection reasons for their submissions
+- **Performance Baseline**: p95 page load time measurement for moderation queue
+
+**Test Coverage:**
+- ✅ Non-admin users blocked from accessing moderation queue
+- ✅ Admin and moderator users can access moderation queue
+- ✅ Single submission approval with audit logging
+- ✅ Single submission rejection with reason display and audit logging
+- ✅ Bulk approve submissions workflow with audit logs
+- ✅ Bulk reject submissions workflow with reason and audit logs
+- ✅ Rejection reasons visible to submitting users
+- ✅ p95 page load time baseline measurement (< 3s for 50 submissions)
+- ✅ Audit log creation for all moderation actions
+- ✅ Audit log retrieval with filtering
+
+**Running Moderation Workflow tests:**
+
+```bash
+cd frontend
+
+# Run all moderation workflow tests
+npm run test:e2e -- moderation-workflow.spec.ts
+
+# Run specific test suites
+npm run test:e2e -- moderation-workflow.spec.ts -g "Access Control"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Single Submission Actions"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Bulk Actions"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Audit Logging"
+npm run test:e2e -- moderation-workflow.spec.ts -g "Performance Baseline"
+
+# Run in headed mode to see browser
+npm run test:e2e -- moderation-workflow.spec.ts --headed
+
+# Run in UI mode for debugging
+npm run test:e2e:ui -- moderation-workflow.spec.ts
+```
+
+**API Endpoints Tested:**
+- `GET /api/admin/submissions` - List pending submissions (moderation queue)
+- `POST /api/admin/submissions/:id/approve` - Approve single submission
+- `POST /api/admin/submissions/:id/reject` - Reject single submission with reason
+- `POST /api/admin/submissions/bulk-approve` - Bulk approve submissions
+- `POST /api/admin/submissions/bulk-reject` - Bulk reject submissions with reason
+- `GET /api/submissions` - User's own submissions (includes rejection reasons)
+- `GET /api/admin/audit-logs` - Retrieve audit logs with filters
+
+**Performance Metrics:**
+- p95 page load time for moderation queue with 50 submissions (with mocked API responses): < 3 seconds (baseline)
+- Test runs 20 iterations locally (10 iterations in CI) to establish baseline under mocked backend conditions
+- Metrics logged: min, max, median, p95, mean load times
+
+**Notes:**
+- Tests use mocked API responses for consistent, isolated testing; real-world performance with actual backend latency may differ from these baselines
+- Bulk actions are tested via API calls as UI doesn't expose bulk selection yet; these are API integration tests rather than true E2E tests
+- Audit logging is verified for every moderation action
+- Access control tests verify both blocking (403) and allowing access
+- Performance baseline can be adjusted based on actual production requirements and production observability data
+
+### Search Failover Tests
+
+The Search Failover tests validate behavior when the primary search backend (OpenSearch) is degraded or unavailable. These tests ensure graceful fallback, correct HTTP semantics, observability, and alerting.
+
+**Test Coverage:**
+- OpenSearch timeout scenarios with fallback to PostgreSQL FTS
+- OpenSearch 5xx error scenarios with fallback
+- Response headers validation (`X-Search-Failover`, `X-Search-Failover-Reason`, `X-Search-Failover-Service`)
+- Hybrid search 503 responses when no fallback available
+- Suggestions endpoint failover behavior
+- Failover metrics (`search_fallback_total`, `search_fallback_duration_ms`)
+- Alert threshold validation
+
+**Backend Integration Tests** (`backend/tests/integration/search/search_failover_test.go`):
+- Simulates OpenSearch timeouts and errors using mock client
+- Validates fallback to PostgreSQL FTS
+- Verifies response headers during failover
+- Tests 503 responses for hybrid search (no fallback)
+- Validates suggestions endpoint failover
+
+**Running Search Failover Tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Run search failover integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/search/... -run TestSearchFailover
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
+**Load Tests (k6)** (`backend/tests/load/scenarios/search_failover.js`):
+- Tests system stability under sustained OpenSearch failures
+- Validates alert thresholds during failover
+- Monitors failover rate and latency metrics
+- Verifies graceful degradation
+
+```bash
+# Run search failover load test
+# Note: Requires OPENSEARCH_FAILOVER_MODE=true to inject failures
+export OPENSEARCH_FAILOVER_MODE=true
+k6 run backend/tests/load/scenarios/search_failover.js
+
+# With custom base URL
+k6 run -e BASE_URL=http://staging:8080 -e OPENSEARCH_FAILOVER_MODE=true \
+  backend/tests/load/scenarios/search_failover.js
+```
+
+**Frontend E2E Tests (Playwright)** (`frontend/e2e/tests/search-failover.spec.ts`):
+- Validates user-facing UX during failover
+- Tests empty state messaging
+- Verifies retry affordances
+- Tests pagination with fallback results
+- Validates loading states
+
+```bash
+cd frontend
+
+# Run search failover E2E tests
+npm run test:e2e -- search-failover.spec.ts
+
+# Run with failover mode enabled (requires backend configuration)
+E2E_FAILOVER_MODE=true npm run test:e2e -- search-failover.spec.ts
+
+# Run in headed mode to see browser
+npm run test:e2e -- search-failover.spec.ts --headed
+
+# Run in UI mode for debugging
+npm run test:e2e:ui -- search-failover.spec.ts
+```
+
+**Monitoring & Alerts:**
+
+The failover tests validate that appropriate Prometheus metrics are emitted:
+- `search_fallback_total{reason="timeout|error"}` - Counter of failover events
+- `search_fallback_duration_ms` - Histogram of fallback path latency
+
+Alert rules in `monitoring/alerts.yml`:
+- `SearchFailoverRateHigh` - Triggers when failover rate > 5/sec
+- `SearchFailoverRateCritical` - Triggers when failover rate > 20/sec  
+- `SearchFailoverLatencyHigh` - Triggers when P95 fallback latency > 500ms
+
+**Diagnosing Failover Issues:**
+
+See [Search Incidents Playbook](../operations/playbooks/search-incidents.md#search-failover) for:
+- Investigation steps
+- Common causes and fixes
+- Resolution criteria
+- Follow-up actions
+
+```bash
+# Check failover metrics in Prometheus
+curl 'http://prometheus:9090/api/v1/query?query=rate(search_fallback_total[5m])'
+
+# View failover by reason
+curl 'http://prometheus:9090/api/v1/query?query=sum by (reason) (rate(search_fallback_total[5m]))'
+
+# Check fallback latency
+curl 'http://prometheus:9090/api/v1/query?query=histogram_quantile(0.95, sum(rate(search_fallback_duration_ms_bucket[5m])) by (le))'
+```
+
 ## Writing Tests
 
 ### Best Practices
@@ -277,6 +654,72 @@ All tests run automatically in CI/CD pipelines:
 - **Integration tests**: Run on pull requests
 - **E2E tests**: Run on staging deployments
 - **Load tests**: Run before production releases
+- **Rate limiting tests**: Run nightly to validate enforcement accuracy
+
+### Rate Limiting Load Tests
+
+Rate limiting load tests validate the accuracy and performance of rate limiting enforcement across key endpoints. These tests ensure that:
+
+- Rate limits are enforced correctly at configured thresholds
+- Allowed vs. blocked request ratios match expected values (±5% tolerance)
+- Rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After) are accurate
+- p95 latency remains acceptable even under rate limiting
+- Error rate stays below 1% (excluding expected 429 responses)
+
+**Endpoints tested:**
+- Submission endpoint: 10 requests/hour (basic users), 50/hour (premium)
+- Metadata endpoint: 100 requests/hour (basic users), 500/hour (premium)
+- Watch party create: 10 requests/hour
+- Watch party join: 30 requests/hour
+- Search endpoint: Variable rate limiting
+
+**Running rate limiting tests:**
+
+```bash
+# Requires authentication token
+export AUTH_TOKEN="your_jwt_token"
+make test-load-rate-limiting
+
+# Or run directly with k6
+k6 run -e AUTH_TOKEN=$AUTH_TOKEN backend/tests/load/scenarios/rate_limiting.js
+```
+
+**Test output includes:**
+- Submission attempts and blocked/allowed counts
+- Metadata request distribution
+- Watch party rate limit accuracy
+- Rate limit header validation
+- Latency metrics under rate limiting
+- HTML report with visualizations
+
+**CI Integration:**
+
+Rate limiting tests run automatically in CI:
+- Nightly scheduled runs at 2 AM UTC
+- Manual trigger via GitHub Actions workflow
+- Reports uploaded as artifacts
+
+**Interpreting results:**
+
+**Interpreting results:**
+
+The test scenarios send requests over short 2-minute windows to validate rate limiting behavior:
+
+- **Submission**: Sends 15 requests over 2 minutes. With a 10/hour limit, we'd expect the first ~0.33 requests to be allowed in the 2-minute window, then rate limiting kicks in for subsequent requests.
+- **Metadata**: Sends 120 requests over 2 minutes. With a 100/hour limit, we'd expect the first ~3.3 requests to be allowed in the 2-minute window, then rate limiting applies.
+- **Watch party create**: Sends 15 requests over 2 minutes. With a 10/hour limit, similar to submission above.
+- **Watch party join**: Sends 40 requests over 2 minutes. With a 30/hour limit, we'd expect the first request to be allowed in the 2-minute window, then rate limiting applies.
+
+**Note**: Because these tests run for only 2 minutes while rate limits are configured per hour, most requests will be rate limited. The key validation is:
+- Rate limiting activates when the per-hour limit is exceeded
+- Rate limit headers are present and accurate
+- Latency remains acceptable even when rate limited
+
+If blocked percentages deviate significantly from expected behavior, this indicates:
+- Rate limiting configuration drift
+- Middleware not properly applied to endpoints
+- Redis connection issues affecting distributed rate limiting
+- Premium user multipliers not working correctly
 
 ## Troubleshooting
 

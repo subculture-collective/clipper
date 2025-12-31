@@ -17,13 +17,60 @@ go test -v ./tests/security/
 
 - [ ] All IDOR tests passing (31/31)
 - [ ] Authorization middleware tests passing
+- [ ] **Validation middleware tests passing (all SQLi/XSS tests)**
+- [ ] **Fuzzer smoke test passing (1000+ payloads)**
 - [ ] No new endpoints without authorization
+- [ ] **No new endpoints without input validation**
 - [ ] Security audit log reviewed
 - [ ] No high-severity vulnerabilities
 
 ## Test Suites
 
-### 1. IDOR Tests (`tests/security/idor_test.go`)
+### 1. Input Validation Middleware Tests (`internal/middleware/validation_middleware_test.go` & `validation_middleware_security_test.go`)
+
+**Purpose:** Prevent SQL injection, XSS, path traversal, and other injection attacks
+
+**Coverage:**
+- SQL injection patterns (UNION, SELECT, INSERT, UPDATE, DELETE, etc.)
+- XSS attempts (script tags, event handlers, javascript: protocol)
+- Path traversal attacks (../, ..\\)
+- Header injection and validation
+- Request body size limits
+- UTF-8 validation
+- Cross-field validation
+- Fuzzer testing (1000+ random payloads)
+
+**Run Tests:**
+```bash
+cd backend
+
+# Run all validation tests
+go test -v ./internal/middleware/ -run "TestInputValidation|TestSanitizeInput"
+
+# Run specific test suites
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_SQLInjectionEdgeCases
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_XSSEdgeCases
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_FuzzerSmoke
+
+# Run integration tests (requires test database)
+go test -v -tags=integration ./tests/integration/validation/
+```
+
+**Key Features:**
+- ✅ Detects common SQLi patterns (UNION SELECT, subqueries)
+- ✅ Blocks XSS vectors (script tags, event handlers, javascript: URLs)
+- ✅ Prevents path traversal (../ patterns)
+- ✅ Validates UTF-8 encoding
+- ✅ Limits URL and header lengths
+- ✅ Fuzzer smoke test with 1000+ random payloads
+- ⚠️ Some edge cases logged as limitations (see test output)
+
+**Known Limitations:**
+- Simple semicolon-based SQLi (e.g., `; UPDATE users SET`) not caught
+- Requires parameterized queries at database layer for complete protection
+- Boolean/time-based blind SQLi harder to detect via pattern matching
+
+### 2. IDOR Tests (`tests/security/idor_test.go`)
 
 **Purpose:** Prevent unauthorized access to user resources
 
@@ -49,7 +96,7 @@ go test -v ./tests/security/ -run TestIDORClip
 go test -v ./tests/security/ -run TestIDORSubscription
 ```
 
-### 2. Authorization Middleware Tests
+### 3. Authorization Middleware Tests
 
 **Purpose:** Verify authorization logic correctness
 
