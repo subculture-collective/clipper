@@ -581,7 +581,7 @@ test.describe('Moderation Workflow E2E', () => {
       const rejectionReason = 'Content violates community guidelines';
       
       // First, create and reject a submission
-      const submission = mocks.seedSubmission({
+      mocks.seedSubmission({
         user_id: userId,
         title: 'My Submission',
         status: 'rejected',
@@ -624,9 +624,9 @@ test.describe('Moderation Workflow E2E', () => {
       // Seed multiple submissions
       const submissions = mocks.seedSubmissions(3, { status: 'pending' });
       
-      // For this test, we'll need to add bulk action API support to the frontend
-      // Since the UI doesn't currently support bulk actions visually,
-      // we'll test the API directly via route interception
+      // Note: This is an API integration test, not a true E2E test
+      // The UI doesn't currently support bulk actions visually, so we test the API directly
+      // TODO: Add E2E test for bulk actions UI once it's implemented
       
       // Make API call for bulk approve
       const response = await page.request.post('/api/admin/submissions/bulk-approve', {
@@ -719,7 +719,7 @@ test.describe('Moderation Workflow E2E', () => {
       mocks.seedSubmissions(50, { status: 'pending' });
       
       // Measure page load times over multiple iterations
-      // Note: Reduced iterations for CI performance; increase locally for more accurate p95
+      // Note: Use fewer iterations in CI (10) for performance, and more iterations locally (20) for a more accurate p95
       const loadTimes: number[] = [];
       const iterations = process.env.CI ? 10 : 20;
       
@@ -751,7 +751,10 @@ test.describe('Moderation Workflow E2E', () => {
         mean: loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length,
       });
       
-      // Assert p95 is within acceptable range (under 3 seconds for mock data)
+      // Assert p95 is within acceptable range for mocked API responses.
+      // Note: This 3-second threshold is calibrated for mock data only; real backend
+      // performance may differ significantly and this limit should be re-evaluated
+      // against production-like environments.
       expect(p95LoadTime).toBeLessThan(3000);
     });
   });

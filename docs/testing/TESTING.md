@@ -419,16 +419,16 @@ npm run test:e2e:ui -- moderation-workflow.spec.ts
 - `GET /api/admin/audit-logs` - Retrieve audit logs with filters
 
 **Performance Metrics:**
-- p95 page load time for moderation queue with 50 submissions: < 3 seconds
-- Test runs 20 iterations to establish baseline
+- p95 page load time for moderation queue with 50 submissions (with mocked API responses): < 3 seconds (baseline)
+- Test runs 20 iterations locally (10 iterations in CI) to establish baseline under mocked backend conditions
 - Metrics logged: min, max, median, p95, mean load times
 
 **Notes:**
-- Tests use mocked API responses for consistent, isolated testing
-- Bulk actions are tested via API calls as UI doesn't expose bulk selection yet
+- Tests use mocked API responses for consistent, isolated testing; real-world performance with actual backend latency may differ from these baselines
+- Bulk actions are tested via API calls as UI doesn't expose bulk selection yet; these are API integration tests rather than true E2E tests
 - Audit logging is verified for every moderation action
 - Access control tests verify both blocking (403) and allowing access
-- Performance baseline can be adjusted based on actual production requirements
+- Performance baseline can be adjusted based on actual production requirements and production observability data
 
 ## Writing Tests
 
