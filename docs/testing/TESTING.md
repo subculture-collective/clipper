@@ -600,6 +600,132 @@ curl 'http://prometheus:9090/api/v1/query?query=sum by (reason) (rate(search_fal
 curl 'http://prometheus:9090/api/v1/query?query=histogram_quantile(0.95, sum(rate(search_fallback_duration_ms_bucket[5m])) by (le))'
 ```
 
+### CDN Failover Tests
+
+The CDN Failover tests validate behavior when the CDN is degraded or unavailable. These tests ensure graceful fallback to origin for static assets and HLS streaming.
+
+**Test Coverage:**
+- CDN timeout scenarios with fallback to origin
+- CDN 5xx error scenarios with fallback
+- Response headers validation (`X-CDN-Failover`, `X-CDN-Failover-Reason`, `X-CDN-Failover-Service`)
+- HLS master playlist failover behavior
+- HLS segment failover behavior
+- Retry/backoff behavior (exponential backoff, max 3 retries)
+- Cache header validation during failover
+- Failover metrics (`cdn_failover_total`, `cdn_failover_duration_ms`)
+- Alert threshold validation
+- UI functionality during CDN failure
+
+**Backend Integration Tests** (`backend/tests/integration/cdn/cdn_failover_test.go`):
+- Simulates CDN timeouts and errors using mock provider
+- Validates fallback to origin URLs
+- Verifies response headers during failover
+- Tests retry logic with exponential backoff
+- Validates cache headers during failover
+
+**Running CDN Failover Tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Run CDN failover integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/cdn/... -run TestCDNFailover
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
+**Load Tests (k6)** (`backend/tests/load/scenarios/cdn_failover.js`):
+- Tests system stability under sustained CDN failures
+- Validates alert thresholds during failover
+- Monitors failover rate and latency metrics
+- Verifies graceful degradation
+- Tests static assets (thumbnails, images, JS bundles)
+- Tests HLS playlists and media segments
+- Validates retry behavior and prevents request storms
+
+```bash
+# Run CDN failover load test
+# Note: Requires CDN_FAILOVER_MODE=true to inject failures
+export CDN_FAILOVER_MODE=true
+k6 run backend/tests/load/scenarios/cdn_failover.js
+
+# With custom base URL
+k6 run -e BASE_URL=http://staging:8080 -e CDN_FAILOVER_MODE=true \
+  backend/tests/load/scenarios/cdn_failover.js
+```
+
+**Frontend E2E Tests (Playwright)** (`frontend/e2e/tests/cdn-failover.spec.ts`):
+- Validates user-facing UX during failover
+- Tests static asset loading from origin
+- Tests HLS video playback during CDN failure
+- Verifies player resilience (stall and resume)
+- Tests UI responsiveness
+- Validates loading states
+
+```bash
+cd frontend
+
+# Run CDN failover E2E tests
+npm run test:e2e -- cdn-failover.spec.ts
+
+# Run with failover mode enabled (requires backend configuration)
+E2E_CDN_FAILOVER_MODE=true npm run test:e2e -- cdn-failover.spec.ts
+
+# Run in headed mode to see browser
+npm run test:e2e -- cdn-failover.spec.ts --headed
+
+# Run in UI mode for debugging
+npm run test:e2e:ui -- cdn-failover.spec.ts
+```
+
+**Monitoring & Alerts:**
+
+The failover tests validate that appropriate Prometheus metrics are emitted:
+- `cdn_failover_total{reason="timeout|error|dns_failure"}` - Counter of failover events
+- `cdn_failover_duration_ms` - Histogram of fallback path latency
+
+Alert rules:
+- `CDNFailoverRateHigh` - Triggers when failover rate > 5/sec
+- `CDNFailoverRateCritical` - Triggers when failover rate > 20/sec  
+- `CDNFailoverLatencyHigh` - Triggers when P95 fallback latency > 500ms
+
+**Diagnosing Failover Issues:**
+
+See [CDN Failover Runbook](../operations/CDN_FAILOVER_RUNBOOK.md) for:
+- Investigation steps
+- Common causes and fixes
+- Resolution criteria
+- Configuration options
+
+```bash
+# Check failover metrics in Prometheus
+curl 'http://prometheus:9090/api/v1/query?query=rate(cdn_failover_total[5m])'
+
+# View failover by reason
+curl 'http://prometheus:9090/api/v1/query?query=sum by (reason) (rate(cdn_failover_total[5m]))'
+
+# Check fallback latency
+curl 'http://prometheus:9090/api/v1/query?query=histogram_quantile(0.95, sum(rate(cdn_failover_duration_ms_bucket[5m])) by (le))'
+```
+
+**Test Configuration:**
+
+For local testing with Caddy simulating CDN failures:
+
+```bash
+# Start test environment with CDN failover simulation
+caddy run --config Caddyfile.cdn-test
+
+# In another terminal, run tests
+npm run test:e2e -- cdn-failover.spec.ts
+```
+
 ## Writing Tests
 
 ### Best Practices

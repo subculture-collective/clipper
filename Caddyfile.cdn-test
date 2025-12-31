@@ -1,0 +1,173 @@
+# Caddyfile for CDN Failover Testing
+# This configuration simulates CDN failures for testing purposes
+# Use this in CI/staging environments to test failover behavior
+#
+# Enable failover testing mode:
+#   export CDN_FAILOVER_MODE=true
+#   caddy run --config Caddyfile.cdn-test
+
+{
+    # Global options
+    admin localhost:2019
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# Test CDN endpoint that simulates failures
+cdn-test.local:8081 {
+    # CDN failure simulation endpoint
+    # This simulates various CDN failure modes for testing
+    
+    route {
+        # Simulate 50% CDN failures when failover mode is enabled
+        # In production, this would be a real CDN (Cloudflare, Bunny, etc.)
+        
+        # Random failure injection (50% of requests fail)
+        @fail_requests {
+            header X-Test-CDN-Fail "true"
+        }
+        
+        # Simulate timeout (slow response)
+        handle @fail_requests /timeout/* {
+            respond "CDN Timeout" 504 {
+                delay 5s
+            }
+        }
+        
+        # Simulate 5xx error
+        handle @fail_requests /error/* {
+            respond "CDN Service Unavailable" 503
+        }
+        
+        # Simulate DNS failure (connection refused)
+        handle @fail_requests /dns-fail/* {
+            respond "CDN DNS Failure" 502
+        }
+        
+        # Normal CDN response (simulate success)
+        handle {
+            header X-CDN-Cache "HIT"
+            header X-CDN-Provider "test-cdn"
+            reverse_proxy localhost:8082
+        }
+    }
+}
+
+# Origin server (fallback)
+origin-test.local:8082 {
+    # Origin server that serves content when CDN fails
+    
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+    
+    # Static assets
+    handle /assets/* {
+        root * /var/www/clipper/assets
+        file_server
+        
+        header X-Served-By "origin"
+        header X-Fallback "true"
+        header Cache-Control "public, max-age=300" # Shorter cache during failover
+    }
+    
+    # HLS playlists
+    handle /video/*.m3u8 {
+        root * /var/www/clipper/hls
+        file_server
+        
+        header Content-Type "application/vnd.apple.mpegurl"
+        header X-Served-By "origin"
+        header X-Fallback "true"
+        header Cache-Control "public, max-age=60" # Short cache for playlists
+    }
+    
+    # HLS segments
+    handle /video/*.ts {
+        root * /var/www/clipper/hls
+        file_server
+        
+        header Content-Type "video/MP2T"
+        header X-Served-By "origin"
+        header X-Fallback "true"
+        header Cache-Control "public, max-age=86400" # Long cache for segments
+    }
+    
+    # Thumbnails
+    handle /thumbnails/* {
+        root * /var/www/clipper/thumbnails
+        file_server
+        
+        header X-Served-By "origin"
+        header X-Fallback "true"
+        header Cache-Control "public, max-age=3600"
+    }
+    
+    # Health check
+    handle /health {
+        respond "OK" 200
+    }
+}
+
+# Main application server with CDN failover logic
+localhost:8080 {
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+    
+    # API routes with CDN failover
+    handle /api/v1/clips/*/thumbnail {
+        # Try CDN first, fallback to origin on error
+        @cdn_fail expression {
+            {http.error.status_code} >= 500
+        }
+        
+        try_files {
+            try cdn-test.local:8081{uri}
+            try origin-test.local:8082{uri}
+        }
+        
+        # Add failover headers
+        header @cdn_fail X-CDN-Failover "true"
+        header @cdn_fail X-CDN-Failover-Reason "error"
+        header @cdn_fail X-CDN-Failover-Service "origin"
+    }
+    
+    handle /api/v1/video/* {
+        # HLS content with failover
+        @cdn_fail expression {
+            {http.error.status_code} >= 500
+        }
+        
+        try_files {
+            try cdn-test.local:8081{uri}
+            try origin-test.local:8082{uri}
+        }
+        
+        header @cdn_fail X-CDN-Failover "true"
+        header @cdn_fail X-CDN-Failover-Reason "error"
+        header @cdn_fail X-CDN-Failover-Service "origin"
+    }
+    
+    # Backend API
+    handle /api/* {
+        reverse_proxy clipper-backend:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # Frontend
+    handle {
+        reverse_proxy clipper-frontend:80
+    }
+}
