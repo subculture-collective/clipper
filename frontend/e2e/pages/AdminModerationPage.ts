@@ -217,7 +217,7 @@ export class AdminModerationPage extends BasePage {
     await this.page.request.post('/api/admin/submissions/bulk-reject', {
       data: {
         submission_ids: submissionIds,
-        reason: reason,
+        reason,
       },
     });
     

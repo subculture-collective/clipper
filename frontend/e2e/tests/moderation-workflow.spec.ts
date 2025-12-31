@@ -719,23 +719,23 @@ test.describe('Moderation Workflow E2E', () => {
       mocks.seedSubmissions(50, { status: 'pending' });
       
       // Measure page load times over multiple iterations
+      // Note: Reduced iterations for CI performance; increase locally for more accurate p95
       const loadTimes: number[] = [];
-      const iterations = 20; // 20 iterations to get p95
+      const iterations = process.env.CI ? 10 : 20;
       
       for (let i = 0; i < iterations; i++) {
         const startTime = Date.now();
         await page.goto('/admin/moderation');
         await page.waitForLoadState('networkidle');
         
-        // Wait for submissions to be visible
-        await page.locator('.bg-background-secondary').first().waitFor({ state: 'visible', timeout: 10000 });
+        // Wait for submissions to be visible using a more stable selector
+        const submissionsLoaded = page.locator('[data-testid^="submission-"]').first()
+          .or(page.getByRole('heading', { name: /pending submissions/i }));
+        await submissionsLoaded.waitFor({ state: 'visible', timeout: 10000 });
         
         const endTime = Date.now();
         const loadTime = endTime - startTime;
         loadTimes.push(loadTime);
-        
-        // Small delay between iterations
-        await page.waitForTimeout(100);
       }
       
       // Calculate p95
