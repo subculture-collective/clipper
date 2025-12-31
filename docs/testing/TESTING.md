@@ -595,10 +595,10 @@ Rate limiting tests run automatically in CI:
 **Interpreting results:**
 
 The test scenarios intentionally exceed configured rate limits to validate enforcement:
-- Submission: Sends 15 req/hour (50% over limit) → expect ~33% blocked
-- Metadata: Sends 120 req/hour (20% over limit) → expect ~17% blocked  
-- Watch party create: Sends 15 req/hour (50% over limit) → expect ~33% blocked
-- Watch party join: Sends 40 req/hour (33% over limit) → expect ~25% blocked
+- Submission: Sends 15 req/hour (50% over limit) → expect ~33% blocked (5 out of 15 requests)
+- Metadata: Sends 120 req/hour (20% over limit) → expect ~17% blocked (20 out of 120 requests)
+- Watch party create: Sends 15 req/hour (50% over limit) → expect ~33% blocked (5 out of 15 requests)
+- Watch party join: Sends 40 req/hour (33% over limit) → expect ~25% blocked (10 out of 40 requests)
 
 If blocked percentages deviate significantly from expected values, this indicates:
 - Rate limiting configuration drift

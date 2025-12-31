@@ -23,7 +23,7 @@
 import { check, sleep, fail } from 'k6';
 import http from 'k6/http';
 import { Rate, Trend, Counter, Gauge } from 'k6/metrics';
-import { htmlReport } from '../config/html-reporter.js';
+import { simpleHtmlReport } from '../config/html-reporter.js';
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -178,8 +178,8 @@ export function testSubmissionRateLimit() {
         
         check(response, {
             'submission rate limit has retry-after header': (r) => r.headers['Retry-After'] !== undefined,
-            'submission rate limit has X-RateLimit-Limit header': (r) => r.headers['X-Ratelimit-Limit'] !== undefined,
-            'submission rate limit has X-RateLimit-Remaining header': (r) => r.headers['X-Ratelimit-Remaining'] !== undefined,
+            'submission rate limit has X-RateLimit-Limit header': (r) => r.headers['X-RateLimit-Limit'] !== undefined,
+            'submission rate limit has X-RateLimit-Remaining header': (r) => r.headers['X-RateLimit-Remaining'] !== undefined,
         });
     } else if (response.status === 201 || response.status === 400) {
         // Allowed (201 = created, 400 = duplicate/validation error)
@@ -188,10 +188,10 @@ export function testSubmissionRateLimit() {
         
         // Validate rate limit headers
         const success = check(response, {
-            'submission has X-RateLimit-Limit header': (r) => r.headers['X-Ratelimit-Limit'] !== undefined,
-            'submission has X-RateLimit-Remaining header': (r) => r.headers['X-Ratelimit-Remaining'] !== undefined,
+            'submission has X-RateLimit-Limit header': (r) => r.headers['X-RateLimit-Limit'] !== undefined,
+            'submission has X-RateLimit-Remaining header': (r) => r.headers['X-RateLimit-Remaining'] !== undefined,
             'submission X-RateLimit-Limit is correct': (r) => {
-                const limit = parseInt(r.headers['X-Ratelimit-Limit'] || '0');
+                const limit = parseInt(r.headers['X-RateLimit-Limit'] || '0');
                 // Should be 10 for basic users, could be higher for premium
                 return limit >= 10;
             },
@@ -247,11 +247,11 @@ export function testMetadataRateLimit() {
         
         const success = check(response, {
             'metadata has rate limit headers': (r) => {
-                return r.headers['X-Ratelimit-Limit'] !== undefined &&
-                       r.headers['X-Ratelimit-Remaining'] !== undefined;
+                return r.headers['X-RateLimit-Limit'] !== undefined &&
+                       r.headers['X-RateLimit-Remaining'] !== undefined;
             },
             'metadata X-RateLimit-Limit is correct': (r) => {
-                const limit = parseInt(r.headers['X-Ratelimit-Limit'] || '0');
+                const limit = parseInt(r.headers['X-RateLimit-Limit'] || '0');
                 return limit >= 100; // Should be at least 100 for basic users
             },
         });
@@ -311,10 +311,10 @@ export function testWatchPartyCreateRateLimit() {
         const success = check(response, {
             'watch party created successfully': (r) => r.status === 201,
             'watch party has rate limit headers': (r) => {
-                return r.headers['X-Ratelimit-Limit'] !== undefined;
+                return r.headers['X-RateLimit-Limit'] !== undefined;
             },
             'watch party create X-RateLimit-Limit is correct': (r) => {
-                const limit = parseInt(r.headers['X-Ratelimit-Limit'] || '0');
+                const limit = parseInt(r.headers['X-RateLimit-Limit'] || '0');
                 return limit >= 10;
             },
         });
@@ -370,10 +370,10 @@ export function testWatchPartyJoinRateLimit() {
         
         const success = check(response, {
             'watch party join has rate limit headers': (r) => {
-                return r.headers['X-Ratelimit-Limit'] !== undefined;
+                return r.headers['X-RateLimit-Limit'] !== undefined;
             },
             'watch party join X-RateLimit-Limit is correct': (r) => {
-                const limit = parseInt(r.headers['X-Ratelimit-Limit'] || '0');
+                const limit = parseInt(r.headers['X-RateLimit-Limit'] || '0');
                 return limit >= 30;
             },
         });
@@ -492,9 +492,5 @@ export function teardown(data) {
  * Handle summary - generate HTML report
  */
 export function handleSummary(data) {
-    return {
-        'stdout': JSON.stringify(data, null, 2),
-        '../reports/rate_limiting_summary.json': JSON.stringify(data),
-        '../reports/rate_limiting_report.html': htmlReport(data),
-    };
+    return simpleHtmlReport(data, 'rate_limiting');
 }
