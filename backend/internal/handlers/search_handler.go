@@ -1,13 +1,18 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // SearchHandler handles search-related requests
@@ -95,25 +100,71 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	// Perform search using hybrid search, OpenSearch, or PostgreSQL fallback
 	var results *models.SearchResponse
 	var err error
+	var usedFallback bool
+	var failoverReason string
+	var fallbackStartTime time.Time
 
 	if h.useHybridSearch && h.hybridSearchService != nil {
 		// Use hybrid BM25 + vector similarity search
+		// Note: Hybrid search does not have a fallback - it requires both OpenSearch and embeddings
 		results, err = h.hybridSearchService.Search(c.Request.Context(), &req)
+		if err != nil {
+			// Hybrid search failure - return 503 (no fallback available)
+			fmt.Printf("Hybrid search error: %v\n", err)
+			failoverReason = getFailoverReason(err)
+			// Track hybrid search unavailability separately (not a true failover since no fallback)
+			metrics.SearchQueriesTotal.WithLabelValues("hybrid", "unavailable").Inc()
+
+			c.Header("Retry-After", "60") // Suggest retry after 60 seconds
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "Search service is temporarily unavailable. Please try again in about 1 minute.",
+			})
+			return
+		}
 	} else if h.useOpenSearch && h.openSearchService != nil {
 		// Use OpenSearch BM25 only
 		results, err = h.openSearchService.Search(c.Request.Context(), &req)
+		if err != nil {
+			// Fall back to PostgreSQL FTS
+			fmt.Printf("OpenSearch error, falling back to PostgreSQL: %v\n", err)
+			failoverReason = getFailoverReason(err)
+			usedFallback = true
+			fallbackStartTime = time.Now()
+
+			// Track failover event
+			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
+
+			results, err = h.searchRepo.Search(c.Request.Context(), &req)
+			if err != nil {
+				// PostgreSQL fallback also failed
+				fmt.Printf("PostgreSQL fallback error: %v\n", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to perform search",
+				})
+				return
+			}
+
+			// Track fallback latency
+			fallbackDuration := time.Since(fallbackStartTime).Milliseconds()
+			metrics.SearchFallbackDuration.WithLabelValues(failoverReason).Observe(float64(fallbackDuration))
+		}
 	} else {
 		// Fall back to PostgreSQL FTS
 		results, err = h.searchRepo.Search(c.Request.Context(), &req)
+		if err != nil {
+			fmt.Printf("Search error: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to perform search",
+			})
+			return
+		}
 	}
 
-	if err != nil {
-		// Log the actual error for debugging
-		fmt.Printf("Search error: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to perform search",
-		})
-		return
+	// Add failover headers if fallback was used
+	if usedFallback {
+		c.Header("X-Search-Failover", "true")
+		c.Header("X-Search-Failover-Reason", failoverReason)
+		c.Header("X-Search-Failover-Service", "opensearch")
 	}
 
 	// Track search analytics (optional, get user ID if authenticated)
@@ -131,6 +182,33 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+// getFailoverReason determines the reason for search failover based on the error
+func getFailoverReason(err error) string {
+	if err == nil {
+		return "unknown"
+	}
+
+	errStr := err.Error()
+
+	// Check for timeout errors
+	if errors.Is(err, context.DeadlineExceeded) || strings.Contains(errStr, "timeout") || strings.Contains(errStr, "deadline exceeded") {
+		return "timeout"
+	}
+
+	// Check for 5xx errors
+	if strings.Contains(errStr, "503") || strings.Contains(errStr, "500") || strings.Contains(errStr, "502") || strings.Contains(errStr, "504") {
+		return "error"
+	}
+
+	// Check for connection errors
+	if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "connection reset") || strings.Contains(errStr, "no such host") {
+		return "error"
+	}
+
+	// Default to error for any other failures
+	return "error"
 }
 
 // validateAndSetDefaults validates search request parameters and sets defaults
@@ -171,19 +249,50 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 
 	var suggestions []models.SearchSuggestion
 	var err error
+	var usedFallback bool
+	var failoverReason string
+	var fallbackStartTime time.Time
 
 	// Use OpenSearch or PostgreSQL fallback
 	if h.useOpenSearch && h.openSearchService != nil {
 		suggestions, err = h.openSearchService.GetSuggestions(c.Request.Context(), query, limit)
+		if err != nil {
+			// Fall back to PostgreSQL
+			fmt.Printf("OpenSearch suggestions error, falling back to PostgreSQL: %v\n", err)
+			failoverReason = getFailoverReason(err)
+			usedFallback = true
+			fallbackStartTime = time.Now()
+
+			// Track failover event
+			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
+
+			suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to get suggestions",
+				})
+				return
+			}
+
+			// Track fallback latency
+			fallbackDuration := time.Since(fallbackStartTime).Milliseconds()
+			metrics.SearchFallbackDuration.WithLabelValues(failoverReason).Observe(float64(fallbackDuration))
+		}
 	} else {
 		suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to get suggestions",
+			})
+			return
+		}
 	}
 
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get suggestions",
-		})
-		return
+	// Add failover headers if fallback was used
+	if usedFallback {
+		c.Header("X-Search-Failover", "true")
+		c.Header("X-Search-Failover-Reason", failoverReason)
+		c.Header("X-Search-Failover-Service", "opensearch")
 	}
 
 	c.JSON(http.StatusOK, gin.H{
