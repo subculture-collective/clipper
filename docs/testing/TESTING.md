@@ -318,6 +318,51 @@ go test -v -tags=integration ./tests/integration/discovery/...
 docker compose -f docker-compose.test.yml down
 ```
 
+### Live Status Tracking Tests
+
+The Live Status Tracking system has comprehensive integration test coverage:
+
+**Integration Tests** (`backend/tests/integration/live_status/live_status_integration_test.go`):
+- Live status persistence and retrieval (UpsertLiveStatus, GetLiveStatus)
+- Status transitions (offline → online, online → offline)
+- API endpoint testing (GetBroadcasterLiveStatus, ListLiveBroadcasters, GetFollowedLiveBroadcasters)
+- Authentication and authorization for protected endpoints
+- Sync status tracking and logging
+- Error logging for upstream failures
+- Cache invalidation via timestamp updates
+- Database state verification after all operations
+
+**Coverage:**
+- Full CRUD operations on broadcaster live status
+- All HTTP API endpoints with proper authentication
+- Sync status and sync log creation
+- Error handling and logging
+- Pagination and ordering of live broadcasters
+- User-specific followed broadcaster filtering
+
+**Running Live Status tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/live_status/...
+
+# Run specific test suites
+go test -v -tags=integration ./tests/integration/live_status/... -run TestLiveStatusPersistence
+go test -v -tags=integration ./tests/integration/live_status/... -run TestLiveStatusAPIEndpoints
+go test -v -tags=integration ./tests/integration/live_status/... -run TestSyncStatusAndLogging
+go test -v -tags=integration ./tests/integration/live_status/... -run TestCacheInvalidationViaTimestamp
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
 ## Writing Tests
 
 ### Best Practices
