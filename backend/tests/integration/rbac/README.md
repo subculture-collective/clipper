@@ -28,9 +28,22 @@ The RBAC regression suite validates access matrices for different user roles (gu
 
 ## Covered Endpoints
 
+**Currently Tested:**
+
 ### Clip Management
 - `PUT /clips/:id` - Update clip (admin/moderator only)
 - `DELETE /clips/:id` - Delete clip (admin only)
+
+### Admin User Management
+- `GET /admin/users` - List users
+- `POST /admin/users/:id/ban` - Ban user
+- `POST /admin/users/:id/unban` - Unban user
+- `PATCH /admin/users/:id/role` - Update role
+- `PATCH /admin/users/:id/karma` - Update karma
+
+**Placeholder Tests (Routes Not Yet Registered):**
+
+The following test cases exist but currently return 404 because the routes are not registered in the test router. These serve as placeholders for future test coverage:
 
 ### Watch Party Admin Actions
 - `POST /watch-parties/:id/kick` - Kick participant (host only)
@@ -41,13 +54,6 @@ The RBAC regression suite validates access matrices for different user roles (gu
 - `POST /chat/channels/:id/mute` - Mute user (admin/moderator)
 - `POST /chat/channels/:id/timeout` - Timeout user (admin/moderator)
 - `DELETE /chat/channels/:id/ban/:user_id` - Unban user (admin/moderator)
-
-### Admin User Management
-- `GET /admin/users` - List users
-- `POST /admin/users/:id/ban` - Ban user
-- `POST /admin/users/:id/unban` - Unban user
-- `PATCH /admin/users/:id/role` - Update role
-- `PATCH /admin/users/:id/karma` - Update karma
 
 ### Webhook DLQ Admin
 - `GET /admin/webhooks/dlq` - Get dead letter queue

@@ -162,9 +162,13 @@ defer tc.CleanupData(t, ctx.DB, dataIDs)
 
 // Replace placeholders in path
 path := tc.Path
+if dataIDs != nil && len(dataIDs) > 0 {
+// Collect all placeholder values in order
+var args []interface{}
 for _, id := range dataIDs {
-path = fmt.Sprintf(path, id.String())
-break // For single placeholder
+args = append(args, id.String())
+}
+path = fmt.Sprintf(path, args...)
 }
 
 // Test 1: Guest (no authentication)
@@ -187,9 +191,8 @@ assert.Equal(t, tc.AccessMatrix.User, statusCode,
 
 // Test 3: Moderator
 t.Run("Moderator", func(t *testing.T) {
-moderator := testutil.CreateTestUserWithAccountType(t, ctx.DB, 
-fmt.Sprintf("mod_%d", time.Now().UnixNano()), models.AccountTypeModerator)
-moderator.Role = models.RoleModerator
+moderator := testutil.CreateTestUserWithRole(t, ctx.DB, 
+fmt.Sprintf("mod_%d", time.Now().UnixNano()), models.RoleModerator)
 defer testutil.CleanupTestUser(t, ctx.DB, moderator.ID)
 
 token, _ := testutil.GenerateTestTokens(t, ctx.JWTManager, moderator.ID, moderator.Role)
@@ -213,9 +216,8 @@ verifyAuditLog(t, ctx.DB, ctx.AuditLogRepo, tc.AuditAction, entityID, moderator.
 
 // Test 4: Admin
 t.Run("Admin", func(t *testing.T) {
-admin := testutil.CreateTestUserWithAccountType(t, ctx.DB, 
-fmt.Sprintf("admin_%d", time.Now().UnixNano()), models.AccountTypeAdmin)
-admin.Role = models.RoleAdmin
+admin := testutil.CreateTestUserWithRole(t, ctx.DB, 
+fmt.Sprintf("admin_%d", time.Now().UnixNano()), models.RoleAdmin)
 defer testutil.CleanupTestUser(t, ctx.DB, admin.ID)
 
 token, _ := testutil.GenerateTestTokens(t, ctx.JWTManager, admin.ID, admin.Role)

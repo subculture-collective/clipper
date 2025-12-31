@@ -447,19 +447,13 @@ docker compose -f docker-compose.test.yml down
 
 ### Test Coverage
 
-The RBAC test suite covers:
+The RBAC test suite currently covers:
+
+**Fully Tested (Routes Registered in Test Router):**
 
 **Clip Management**
 - ✅ Update clip (admin/moderator only)
 - ✅ Delete clip (admin only)
-
-**Watch Party Admin Actions**
-- ✅ Kick participant (host only)
-- ✅ End watch party (host only)
-
-**Chat Moderation**
-- ✅ Ban/unban user (admin/moderator)
-- ✅ Mute/timeout user (admin/moderator)
 
 **Admin User Management**
 - ✅ List users
@@ -467,23 +461,22 @@ The RBAC test suite covers:
 - ✅ Update user roles
 - ✅ Update karma
 
-**Webhook DLQ Admin**
-- ✅ Get dead letter queue
-- ✅ Replay failed webhooks
-- ✅ Delete DLQ items
-
-**Discovery Lists Admin**
-- ✅ Create/update/delete lists
-- ✅ Add/remove clips
-
-**Forum Moderation**
-- ✅ Lock/pin/delete threads
-- ✅ Ban users
-
 **Security Tests**
 - ✅ Privilege escalation prevention
 - ✅ Unauthorized access rejection
 - ✅ Invalid token rejection
+
+**Placeholder Tests (Routes Not Yet Registered):**
+
+The following test cases exist as placeholders but currently return 404 because the routes are not registered in the test router. These will be activated as additional endpoints are integrated:
+
+- Watch Party Admin Actions (kick, end)
+- Chat Moderation (ban, mute, timeout, unban)
+- Webhook DLQ Admin (get queue, replay, delete)
+- Discovery Lists Admin (create, update, delete, add/remove clips)
+- Forum Moderation (lock, pin, delete threads, ban users)
+
+> **Note**: The test framework is designed to be easily extensible. As new protected endpoints are added to the application, corresponding test cases can be activated by registering the routes in `setupRBACTestRouter()` and updating the expected status codes.
 
 ### Access Matrix Reference
 
