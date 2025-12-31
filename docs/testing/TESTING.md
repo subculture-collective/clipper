@@ -493,6 +493,113 @@ npm run test:e2e:ui -- moderation-workflow.spec.ts
 - Access control tests verify both blocking (403) and allowing access
 - Performance baseline can be adjusted based on actual production requirements and production observability data
 
+### Search Failover Tests
+
+The Search Failover tests validate behavior when the primary search backend (OpenSearch) is degraded or unavailable. These tests ensure graceful fallback, correct HTTP semantics, observability, and alerting.
+
+**Test Coverage:**
+- OpenSearch timeout scenarios with fallback to PostgreSQL FTS
+- OpenSearch 5xx error scenarios with fallback
+- Response headers validation (`X-Search-Failover`, `X-Search-Failover-Reason`, `X-Search-Failover-Service`)
+- Hybrid search 503 responses when no fallback available
+- Suggestions endpoint failover behavior
+- Failover metrics (`search_fallback_total`, `search_fallback_duration_ms`)
+- Alert threshold validation
+
+**Backend Integration Tests** (`backend/tests/integration/search/search_failover_test.go`):
+- Simulates OpenSearch timeouts and errors using mock client
+- Validates fallback to PostgreSQL FTS
+- Verifies response headers during failover
+- Tests 503 responses for hybrid search (no fallback)
+- Validates suggestions endpoint failover
+
+**Running Search Failover Tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Run search failover integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/search/... -run TestSearchFailover
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
+**Load Tests (k6)** (`backend/tests/load/scenarios/search_failover.js`):
+- Tests system stability under sustained OpenSearch failures
+- Validates alert thresholds during failover
+- Monitors failover rate and latency metrics
+- Verifies graceful degradation
+
+```bash
+# Run search failover load test
+# Note: Requires OPENSEARCH_FAILOVER_MODE=true to inject failures
+export OPENSEARCH_FAILOVER_MODE=true
+k6 run backend/tests/load/scenarios/search_failover.js
+
+# With custom base URL
+k6 run -e BASE_URL=http://staging:8080 -e OPENSEARCH_FAILOVER_MODE=true \
+  backend/tests/load/scenarios/search_failover.js
+```
+
+**Frontend E2E Tests (Playwright)** (`frontend/e2e/tests/search-failover.spec.ts`):
+- Validates user-facing UX during failover
+- Tests empty state messaging
+- Verifies retry affordances
+- Tests pagination with fallback results
+- Validates loading states
+
+```bash
+cd frontend
+
+# Run search failover E2E tests
+npm run test:e2e -- search-failover.spec.ts
+
+# Run with failover mode enabled (requires backend configuration)
+E2E_FAILOVER_MODE=true npm run test:e2e -- search-failover.spec.ts
+
+# Run in headed mode to see browser
+npm run test:e2e -- search-failover.spec.ts --headed
+
+# Run in UI mode for debugging
+npm run test:e2e:ui -- search-failover.spec.ts
+```
+
+**Monitoring & Alerts:**
+
+The failover tests validate that appropriate Prometheus metrics are emitted:
+- `search_fallback_total{reason="timeout|error"}` - Counter of failover events
+- `search_fallback_duration_ms` - Histogram of fallback path latency
+
+Alert rules in `monitoring/alerts.yml`:
+- `SearchFailoverRateHigh` - Triggers when failover rate > 5/sec
+- `SearchFailoverRateCritical` - Triggers when failover rate > 20/sec  
+- `SearchFailoverLatencyHigh` - Triggers when P95 fallback latency > 500ms
+
+**Diagnosing Failover Issues:**
+
+See [Search Incidents Playbook](../operations/playbooks/search-incidents.md#search-failover) for:
+- Investigation steps
+- Common causes and fixes
+- Resolution criteria
+- Follow-up actions
+
+```bash
+# Check failover metrics in Prometheus
+curl 'http://localhost:9090/api/v1/query?query=rate(search_fallback_total[5m])'
+
+# View failover by reason
+curl 'http://localhost:9090/api/v1/query?query=sum by (reason) (rate(search_fallback_total[5m]))'
+
+# Check fallback latency
+curl 'http://localhost:9090/api/v1/query?query=histogram_quantile(0.95, sum(rate(search_fallback_duration_ms_bucket[5m])) by (le))'
+```
+
 ## Writing Tests
 
 ### Best Practices
