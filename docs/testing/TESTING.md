@@ -363,6 +363,69 @@ go test -v -tags=integration ./tests/integration/live_status/... -run TestCacheI
 docker compose -f docker-compose.test.yml down
 ```
 
+### Chat/WebSocket Backend Reliability Tests
+
+The Chat/WebSocket system has comprehensive integration test coverage for reliability and real-time messaging:
+
+**Integration Tests** (`backend/tests/integration/chat/chat_reliability_test.go`):
+- Multi-client connection and disconnection lifecycle
+- Presence notifications (join/leave events)
+- Message fanout to all connected clients
+- Message ordering preservation within channels
+- Reconnection with message history delivery (last 50 messages)
+- Message deduplication using client-provided IDs
+- Rate limiting enforcement (20 messages per minute)
+- Slow client handling and backpressure (full send buffers)
+- Server stability under message overload
+- Cross-channel message isolation
+
+**Coverage:**
+- Connection lifecycle with proper cleanup
+- Real-time message broadcast to multiple clients
+- Message persistence and history retrieval
+- Rate limiting with error responses
+- Graceful handling of slow consumers
+- Channel isolation and security
+
+**Test Scenarios:**
+- `TestMultipleClientsConnectDisconnect` - Connection lifecycle and presence
+- `TestMessageFanout` - Broadcast to all channel members
+- `TestMessageOrdering` - Sequential message delivery
+- `TestReconnectionAndMessageHistory` - State recovery on reconnect
+- `TestMessageDeduplication` - Duplicate prevention
+- `TestRateLimiting` - Rate limit enforcement
+- `TestSlowClientHandling` - Backpressure handling
+- `TestCrossChannelIsolation` - Security and isolation
+
+**Running Chat/WebSocket tests:**
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Integration tests
+cd backend
+go test -v -tags=integration ./tests/integration/chat/...
+
+# Run specific test scenarios
+go test -v -tags=integration ./tests/integration/chat/... -run TestMultipleClientsConnectDisconnect
+go test -v -tags=integration ./tests/integration/chat/... -run TestMessageFanout
+go test -v -tags=integration ./tests/integration/chat/... -run TestMessageOrdering
+go test -v -tags=integration ./tests/integration/chat/... -run TestReconnectionAndMessageHistory
+go test -v -tags=integration ./tests/integration/chat/... -run TestMessageDeduplication
+go test -v -tags=integration ./tests/integration/chat/... -run TestRateLimiting
+go test -v -tags=integration ./tests/integration/chat/... -run TestSlowClientHandling
+go test -v -tags=integration ./tests/integration/chat/... -run TestCrossChannelIsolation
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
+**Note:** These tests require PostgreSQL (port 5437) and Redis (port 6380) to be running. Use `docker-compose.test.yml` to start test infrastructure.
+
 ### Moderation Workflow E2E Tests
 
 The Moderation Workflow has comprehensive end-to-end test coverage for admin/moderator operations:
