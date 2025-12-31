@@ -591,13 +591,13 @@ See [Search Incidents Playbook](../operations/playbooks/search-incidents.md#sear
 
 ```bash
 # Check failover metrics in Prometheus
-curl 'http://localhost:9090/api/v1/query?query=rate(search_fallback_total[5m])'
+curl 'http://prometheus:9090/api/v1/query?query=rate(search_fallback_total[5m])'
 
 # View failover by reason
-curl 'http://localhost:9090/api/v1/query?query=sum by (reason) (rate(search_fallback_total[5m]))'
+curl 'http://prometheus:9090/api/v1/query?query=sum by (reason) (rate(search_fallback_total[5m]))'
 
 # Check fallback latency
-curl 'http://localhost:9090/api/v1/query?query=histogram_quantile(0.95, sum(rate(search_fallback_duration_ms_bucket[5m])) by (le))'
+curl 'http://prometheus:9090/api/v1/query?query=histogram_quantile(0.95, sum(rate(search_fallback_duration_ms_bucket[5m])) by (le))'
 ```
 
 ## Writing Tests

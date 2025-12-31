@@ -428,7 +428,7 @@ groups:
       # Search Failover Rate High
       - alert: SearchFailoverRateHigh
         expr: |
-          rate(search_failover_total[5m]) > 5
+          rate(search_fallback_total[5m]) > 5
         for: 5m
         labels:
           severity: warning
@@ -440,7 +440,7 @@ groups:
       # Search Failover Rate Critical
       - alert: SearchFailoverRateCritical
         expr: |
-          rate(search_fallback_total[5m]) > 20
+          rate(search_failover_total[5m]) > 20
         for: 3m
         labels:
           severity: critical

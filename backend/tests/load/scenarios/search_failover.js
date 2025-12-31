@@ -16,7 +16,7 @@
 
 import { check, sleep } from 'k6';
 import http from 'k6/http';
-import { Rate, Trend, Counter, Gauge } from 'k6/metrics';
+import { Rate, Trend, Counter } from 'k6/metrics';
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -38,6 +38,9 @@ export const options = {
     thresholds: {
         // During failover, we expect higher latency but system should remain stable
         'http_req_duration{endpoint:search}': ['p(95)<500', 'p(99)<1000'], // Relaxed during failover
+        // In this failover test scenario, we EXPECT high fallback rates (>80%)
+        // This validates the system handles failbacks gracefully during OpenSearch degradation
+        // In production, fallback rate should ideally be near 0%
         'fallback_rate': ['rate>0.8'], // Most requests should successfully fall back
         'service_unavailable_rate': ['rate<0.05'], // Less than 5% 503 responses
         'errors': ['rate<0.1'], // Error rate should be below 10% during failover

@@ -9,10 +9,13 @@
  * - Pagination with fallback results
  * - Loading states and error handling
  *
- * @see Issue #XXX - Search Fallback Failover Scenarios (tracking issue to be created)
+ * Related to issue about search fallback failover scenarios testing
  */
 
 import { test, expect } from '../fixtures';
+
+// Timeout constant for consistency across tests
+const SEARCH_TIMEOUT_MS = 5000;
 
 test.describe('Search Failover - UX Behavior', () => {
   test.beforeEach(async ({ page }) => {
@@ -30,7 +33,7 @@ test.describe('Search Failover - UX Behavior', () => {
 
     // Wait for results to load
     await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"]', {
-      timeout: 5000,
+      timeout: SEARCH_TIMEOUT_MS,
     });
 
     // Verify results are displayed (either from fallback or empty state)
@@ -46,61 +49,13 @@ test.describe('Search Failover - UX Behavior', () => {
     }
   });
 
-  test('should show appropriate message when search is unavailable', async ({ page, searchPage }) => {
-    // This test requires backend to simulate complete failure (no fallback)
-    // Skip if not in failover test mode
-    const failoverMode = process.env.E2E_FAILOVER_MODE === 'true';
-    
-    if (!failoverMode) {
-      test.skip();
-      return;
-    }
-
-    await searchPage.goto();
-    await searchPage.search('test query');
-
-    // Wait for error message
-    await page.waitForSelector('[data-testid="error-message"], [data-testid="service-unavailable"]', {
-      timeout: 5000,
-    });
-
-    // Verify error message is user-friendly
-    const errorMessage = await page.locator('[data-testid="error-message"], [data-testid="service-unavailable"]').textContent();
-    expect(errorMessage).toMatch(/temporarily unavailable|try again|experiencing issues/i);
-  });
-
-  test('should display retry button when search fails', async ({ page, searchPage }) => {
-    const failoverMode = process.env.E2E_FAILOVER_MODE === 'true';
-    
-    if (!failoverMode) {
-      test.skip();
-      return;
-    }
-
-    await searchPage.goto();
-    await searchPage.search('test query');
-
-    // Look for retry button
-    const retryButton = page.locator('[data-testid="retry-search"], button:has-text("Try Again"), button:has-text("Retry")');
-    
-    // Wait for retry button to appear
-    try {
-      await retryButton.waitFor({ timeout: 5000 });
-      expect(await retryButton.count()).toBeGreaterThan(0);
-    } catch (e) {
-      // If no retry button, results should have loaded successfully
-      const hasResults = await page.locator('[data-testid="search-results"]').count() > 0;
-      expect(hasResults).toBeTruthy();
-    }
-  });
-
   test('should handle pagination with fallback results', async ({ page, searchPage }) => {
     await searchPage.goto();
     await searchPage.search('popular query');
 
     // Wait for results
     await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"]', {
-      timeout: 5000,
+      timeout: SEARCH_TIMEOUT_MS,
     });
 
     // Check if pagination is available
@@ -113,15 +68,12 @@ test.describe('Search Failover - UX Behavior', () => {
       if (await nextButton.count() > 0 && await nextButton.isEnabled()) {
         await nextButton.click();
         
-        // Wait for page to load
-        await page.waitForLoadState('networkidle', { timeout: 5000 });
-        
-        // Verify URL updated
-        expect(page.url()).toMatch(/page=2/);
+        // Wait for navigation to second page to complete
+        await page.waitForURL(/page=2/, { timeout: SEARCH_TIMEOUT_MS });
         
         // Verify new results loaded
         await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"]', {
-          timeout: 5000,
+          timeout: SEARCH_TIMEOUT_MS,
         });
       }
     }
@@ -157,7 +109,7 @@ test.describe('Search Failover - UX Behavior', () => {
 
     // Wait for results or error
     await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"], [data-testid="error-message"]', {
-      timeout: 5000,
+      timeout: SEARCH_TIMEOUT_MS,
     });
 
     // Verify query is still in input field
@@ -178,7 +130,7 @@ test.describe('Search Failover - UX Behavior', () => {
 
     // Wait for final search to complete
     await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"], [data-testid="error-message"]', {
-      timeout: 5000,
+      timeout: SEARCH_TIMEOUT_MS,
     });
 
     // Verify last query is displayed
@@ -194,12 +146,55 @@ test.describe('Search Failover - UX Behavior', () => {
 
     // Wait for empty state
     await page.waitForSelector('[data-testid="empty-state"], [data-testid="no-results"]', {
-      timeout: 5000,
+      timeout: SEARCH_TIMEOUT_MS,
     });
 
     // Verify helpful message
     const emptyStateText = await page.locator('[data-testid="empty-state"], [data-testid="no-results"]').textContent();
     expect(emptyStateText).toMatch(/no results|try different|not found/i);
+  });
+});
+
+// Tests that require failover mode enabled
+test.describe('Search Failover - Failover Mode Tests', () => {
+  const failoverMode = process.env.E2E_FAILOVER_MODE === 'true';
+
+  test.skip(!failoverMode, 'Requires E2E_FAILOVER_MODE=true for failover tests');
+
+  test('should show appropriate message when search is unavailable', async ({ page, searchPage }) => {
+    await searchPage.goto();
+    await searchPage.search('test query');
+
+    // Wait for error message
+    await page.waitForSelector('[data-testid="error-message"], [data-testid="service-unavailable"]', {
+      timeout: SEARCH_TIMEOUT_MS,
+    });
+
+    // Verify error message is user-friendly
+    const errorMessage = await page
+      .locator('[data-testid="error-message"], [data-testid="service-unavailable"]')
+      .textContent();
+    expect(errorMessage).toMatch(/temporarily unavailable|try again|experiencing issues/i);
+  });
+
+  test('should display retry button when search fails', async ({ page, searchPage }) => {
+    await searchPage.goto();
+    await searchPage.search('test query');
+
+    // Look for retry button
+    const retryButton = page.locator(
+      '[data-testid="retry-search"], button:has-text("Try Again"), button:has-text("Retry")',
+    );
+
+    // Wait for retry button to appear
+    try {
+      await retryButton.waitFor({ timeout: SEARCH_TIMEOUT_MS });
+      expect(await retryButton.count()).toBeGreaterThan(0);
+    } catch (e) {
+      // If no retry button, results should have loaded successfully
+      const hasResults = await page.locator('[data-testid="search-results"]').count() > 0;
+      expect(hasResults).toBeTruthy();
+    }
   });
 });
 
@@ -212,7 +207,7 @@ test.describe('Search Failover - Performance', () => {
     
     // Wait for results
     await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"], [data-testid="error-message"]', {
-      timeout: 5000,
+      timeout: SEARCH_TIMEOUT_MS,
     });
     
     const endTime = Date.now();
@@ -257,11 +252,8 @@ test.describe('Search Failover - Suggestions', () => {
         timeout: 1000,
       });
       
-      const suggestionsExist = await page.locator('[data-testid="suggestions"] li, [data-testid="autocomplete"] li, .suggestions li').count() > 0;
-      
       // Either suggestions loaded or none were available (both acceptable)
-      // We just verify no error occurred
-      expect(true).toBeTruthy();
+      // Reaching this point without an unhandled error is sufficient for this test
     } catch (e) {
       // No suggestions appeared, which is acceptable
       console.log('No suggestions displayed (may be too fast or no matches)');

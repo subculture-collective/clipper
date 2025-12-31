@@ -117,7 +117,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 
 			c.Header("Retry-After", "60") // Suggest retry after 60 seconds
 			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"error": "Search service temporarily unavailable",
+				"error": "Search service is temporarily unavailable. Please try again in about 1 minute.",
 			})
 			return
 		}

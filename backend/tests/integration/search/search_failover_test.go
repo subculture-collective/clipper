@@ -307,14 +307,20 @@ func TestSearchFailover_SuggestionsTimeout(t *testing.T) {
 }
 
 // Helper functions to create custom handlers with failover logic
+// NOTE: These are simplified placeholders. The actual SearchHandler initialization
+// doesn't support injecting a mock OpenSearch client directly. These tests serve as
+// documentation of expected failover behavior. For full integration testing of failover,
+// the OpenSearch service would need to be stopped or mocked at the infrastructure level.
 
 func createFailoverSearchHandler(searchRepo *repository.SearchRepository, mockOS *mockOpenSearchClient, authService *services.AuthService) *handlers.SearchHandler {
-	// This is a simplified version for testing
-	// In the real implementation, we would modify the actual SearchHandler to support failover
+	// In a real scenario, we would need to modify SearchHandler to accept
+	// an OpenSearch service interface that can be mocked
+	// For now, this returns the standard handler as a placeholder
 	return handlers.NewSearchHandler(searchRepo, authService)
 }
 
 func createHybridSearchHandlerNoFallback(searchRepo *repository.SearchRepository, authService *services.AuthService) *handlers.SearchHandler {
-	// This simulates a hybrid search handler that cannot fall back to PostgreSQL
+	// In a real scenario with hybrid search enabled, we would need
+	// infrastructure-level testing where OpenSearch is actually unavailable
 	return handlers.NewSearchHandler(searchRepo, authService)
 }

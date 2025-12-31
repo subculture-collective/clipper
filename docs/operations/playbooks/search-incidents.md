@@ -115,14 +115,14 @@ curl -s "http://opensearch:9200/_cluster/health" | jq
 1. **Check OpenSearch health**:
    ```bash
    # Check if OpenSearch is responding
-   curl -X GET "https://opensearch:9200/_cluster/health?pretty" -u admin:password
+   curl -X GET "https://opensearch:9200/_cluster/health?pretty" -u "$OPENSEARCH_USER:$OPENSEARCH_PASSWORD"
    
    # Check OpenSearch service status
    docker ps | grep opensearch
    docker logs --tail=100 opensearch-container
    
    # Check OpenSearch metrics
-   curl "https://opensearch:9200/_nodes/stats?pretty" -u admin:password | jq '.nodes[].os, .nodes[].jvm'
+   curl "https://opensearch:9200/_nodes/stats?pretty" -u "$OPENSEARCH_USER:$OPENSEARCH_PASSWORD" | jq '.nodes[].os, .nodes[].jvm'
    ```
 
 2. **Review failover metrics**:
@@ -186,11 +186,7 @@ docker exec backend-container nslookup opensearch
 
 **If critical and OpenSearch cannot be recovered quickly**:
 ```bash
-# Temporarily disable OpenSearch to reduce backend errors
-# Set environment variable
-docker-compose exec backend sh -c 'export USE_OPENSEARCH=false'
-
-# Or update docker-compose.yml and restart:
+# Update docker-compose.yml to set the environment variable, then restart:
 # environment:
 #   - USE_OPENSEARCH=false
 docker-compose restart backend
