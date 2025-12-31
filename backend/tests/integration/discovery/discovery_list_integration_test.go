@@ -203,12 +203,17 @@ func TestDiscoveryListPagination(t *testing.T) {
 	})
 
 	t.Run("Pagination_LimitAndPage", func(t *testing.T) {
-		// Create 5 test clips
+		// Create 5 test clips with explicit timestamps for deterministic ordering
 		var clipIDs []uuid.UUID
+		baseTime := time.Now().Add(-1 * time.Hour)
 		for i := 0; i < 5; i++ {
 			clip := testutil.CreateTestClip(t, db, &userID)
 			clipIDs = append(clipIDs, clip.ID)
-			time.Sleep(10 * time.Millisecond)
+			
+			// Set explicit creation time for deterministic ordering
+			createdAt := baseTime.Add(time.Duration(i) * time.Second)
+			_, err := db.Pool.Exec(ctx, "UPDATE clips SET created_at = $1 WHERE id = $2", createdAt, clip.ID)
+			require.NoError(t, err)
 		}
 
 		defer func() {
@@ -222,8 +227,8 @@ func TestDiscoveryListPagination(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var firstPage map[string]interface{}
-		err2 := json.Unmarshal(w.Body.Bytes(), &firstPage)
-		require.NoError(t, err2)
+		err := json.Unmarshal(w.Body.Bytes(), &firstPage)
+		require.NoError(t, err)
 		firstPageData := firstPage["data"].([]interface{})
 		assert.Equal(t, 2, len(firstPageData))
 
@@ -234,8 +239,8 @@ func TestDiscoveryListPagination(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var secondPage map[string]interface{}
-		err3 := json.Unmarshal(w.Body.Bytes(), &secondPage)
-		require.NoError(t, err3)
+		err = json.Unmarshal(w.Body.Bytes(), &secondPage)
+		require.NoError(t, err)
 		secondPageData := secondPage["data"].([]interface{})
 		assert.Equal(t, 2, len(secondPageData))
 

@@ -83,12 +83,12 @@ func TestListDiscoveryLists_WithCustomPagination(t *testing.T) {
 		{
 			name:   "Limit exceeds max",
 			url:    "/api/v1/discovery-lists?limit=200",
-			status: http.StatusOK, // Should be clamped to 20
+			status: http.StatusOK, // Should be clamped to maximum allowed limit (100)
 		},
 		{
 			name:   "Zero limit",
 			url:    "/api/v1/discovery-lists?limit=0",
-			status: http.StatusOK, // Should default to 20
+			status: http.StatusOK, // Should use default limit (20)
 		},
 		{
 			name:   "Negative offset",

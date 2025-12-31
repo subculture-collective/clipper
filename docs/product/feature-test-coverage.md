@@ -444,7 +444,7 @@ This document represents a **comprehensive audit** of test coverage across the e
 
 **Coverage Gaps**:
 - 🟡 E2E tests for Discovery page UI navigation
-- 🟡 Caching behavior testing (if implemented)
+- 🟡 Cache observability and performance testing (metrics, hit/miss behavior)
 - 🟡 Performance testing under load
 
 **Recommended Tests**:
