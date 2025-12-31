@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -263,7 +262,8 @@ func TestInputValidationMiddleware_RequestBodyValidation(t *testing.T) {
 		})
 
 		normalData := map[string]string{"key": "value"}
-		jsonData, _ := json.Marshal(normalData)
+		jsonData, err := json.Marshal(normalData)
+		assert.NoError(t, err)
 		req, _ := http.NewRequest("POST", "/test", bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
 		c.Request = req
@@ -319,9 +319,6 @@ func TestInputValidationMiddleware_FuzzerSmoke(t *testing.T) {
 	}
 
 	gin.SetMode(gin.TestMode)
-
-	// Seed for reproducibility
-	rand.Seed(time.Now().UnixNano())
 
 	// Character sets for fuzzing
 	specialChars := []string{"'", "\"", "<", ">", ";", "&", "|", "`", "\n", "\r", "\t", "\\", "/"}
@@ -510,21 +507,21 @@ func TestSanitizeInput_SanitizationConsistency(t *testing.T) {
 	assert.Contains(t, result1, "Hello World")
 }
 func TestMinimalValidation(t *testing.T) {
-gin.SetMode(gin.TestMode)
+	gin.SetMode(gin.TestMode)
 
-w := httptest.NewRecorder()
-c, r := gin.CreateTestContext(w)
+	w := httptest.NewRecorder()
+	c, r := gin.CreateTestContext(w)
 
-r.Use(InputValidationMiddleware())
-r.GET("/test", func(c *gin.Context) {
-c.JSON(http.StatusOK, gin.H{"message": "ok"})
-})
+	r.Use(InputValidationMiddleware())
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	})
 
-req, _ := http.NewRequest("GET", "/test?q=hello", nil)
-c.Request = req
-r.ServeHTTP(w, req)
+	req, _ := http.NewRequest("GET", "/test?q=hello", nil)
+	c.Request = req
+	r.ServeHTTP(w, req)
 
-if w.Code != http.StatusOK {
-t.Errorf("Expected status 200, got %d", w.Code)
-}
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
 }

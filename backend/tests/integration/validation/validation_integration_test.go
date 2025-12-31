@@ -92,7 +92,8 @@ func TestValidationMiddleware_OnClipEndpoints(t *testing.T) {
 			var err error
 
 			if tt.body != nil {
-				jsonBody, _ := json.Marshal(tt.body)
+				jsonBody, err := json.Marshal(tt.body)
+				require.NoError(t, err)
 				req, err = http.NewRequest(tt.method, tt.path+tt.queryParams, bytes.NewBuffer(jsonBody))
 				req.Header.Set("Content-Type", "application/json")
 			} else {
@@ -221,7 +222,8 @@ func TestValidationMiddleware_OnCommentEndpoints(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jsonBody, _ := json.Marshal(tt.body)
+			jsonBody, err := json.Marshal(tt.body)
+			require.NoError(t, err)
 			req, err := http.NewRequest(tt.method, tt.path, bytes.NewBuffer(jsonBody))
 			require.NoError(t, err)
 
