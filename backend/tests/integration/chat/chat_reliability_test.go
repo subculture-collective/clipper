@@ -4,7 +4,6 @@ package chat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -632,9 +631,12 @@ func TestMessageDeduplication(t *testing.T) {
 			if msg.Type == ws.MessageTypeMessage && msg.Content != nil && *msg.Content == content {
 				receivedCount++
 				if receivedCount == 1 {
-					// First message received, continue checking
+					// First matching message received, keep listening to ensure no duplicates
 					continue
 				}
+				// Duplicate matching message received; fail the test immediately
+				assert.Fail(t, "received duplicate chat message with same content and ID")
+				return
 			}
 		case <-timeout:
 			// Timeout reached, check final count
@@ -687,6 +689,7 @@ func TestRateLimiting(t *testing.T) {
 
 	// Check responses
 	timeout := time.After(3 * time.Second)
+checkLoop:
 	for successCount < 1 || errorCount < 2 {
 		select {
 		case msg := <-client.Received:
@@ -699,7 +702,7 @@ func TestRateLimiting(t *testing.T) {
 			}
 		case <-timeout:
 			t.Logf("Timeout: success=%d, errors=%d", successCount, errorCount)
-			break
+			break checkLoop
 		}
 	}
 
@@ -754,6 +757,7 @@ func TestSlowClientHandling(t *testing.T) {
 	receivedCount := 0
 	timeout := time.After(10 * time.Second)
 	
+receiveLoop:
 	for receivedCount < messageCount {
 		select {
 		case msg := <-fastClient.Received:
@@ -762,7 +766,7 @@ func TestSlowClientHandling(t *testing.T) {
 			}
 		case <-timeout:
 			t.Logf("Fast client received %d of %d messages", receivedCount, messageCount)
-			break
+			break receiveLoop
 		}
 	}
 
