@@ -199,7 +199,7 @@ async function setupModerationMocks(page: Page) {
     if (rejectMatch && method === 'POST') {
       const submissionId = rejectMatch[1];
       const submission = submissions.get(submissionId);
-      const body = request.postDataJSON?.() as { reason?: string };
+      const body = (request.postDataJSON?.() || {}) as { reason?: string };
       
       if (!submission) {
         return respond(route, 404, { error: 'Submission not found' });
@@ -234,7 +234,7 @@ async function setupModerationMocks(page: Page) {
 
     // Bulk approve submissions
     if (pathname === '/admin/submissions/bulk-approve' && method === 'POST') {
-      const body = request.postDataJSON?.() as { submission_ids?: string[] };
+      const body = (request.postDataJSON?.() || {}) as { submission_ids?: string[] };
       
       if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'moderator')) {
         return respond(route, 403, { error: 'Forbidden: Admin or moderator access required' });
@@ -272,7 +272,7 @@ async function setupModerationMocks(page: Page) {
 
     // Bulk reject submissions
     if (pathname === '/admin/submissions/bulk-reject' && method === 'POST') {
-      const body = request.postDataJSON?.() as { submission_ids?: string[]; reason?: string };
+      const body = (request.postDataJSON?.() || {}) as { submission_ids?: string[]; reason?: string };
       
       if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'moderator')) {
         return respond(route, 403, { error: 'Forbidden: Admin or moderator access required' });
