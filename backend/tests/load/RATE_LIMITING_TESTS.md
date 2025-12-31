@@ -10,13 +10,13 @@ Validate that rate limiting is enforced correctly across all key endpoints with 
 
 ## Endpoints Tested
 
-| Endpoint | Rate Limit (Basic) | Rate Limit (Premium) | Test Rate | Expected Blocked |
-|----------|-------------------|---------------------|-----------|------------------|
-| Submission | 10/hour | 50/hour (5x) | 15/hour | ~33% |
-| Metadata | 100/hour | 500/hour (5x) | 120/hour | ~17% |
-| Watch Party Create | 10/hour | N/A | 15/hour | ~33% |
-| Watch Party Join | 30/hour | N/A | 40/hour | ~25% |
-| Search | Variable | Variable | Variable | Variable |
+| Endpoint | Rate Limit (Basic) | Rate Limit (Premium) | Test Pattern | Notes |
+|----------|-------------------|---------------------|--------------|-------|
+| Submission | 10/hour | 50/hour (5x) | 15 requests over 2 min | Most requests will be rate limited |
+| Metadata | 100/hour | 500/hour (5x) | 120 requests over 2 min | Most requests will be rate limited |
+| Watch Party Create | 10/hour | N/A | 15 requests over 2 min | Most requests will be rate limited |
+| Watch Party Join | 30/hour | N/A | 40 requests over 2 min | Most requests will be rate limited |
+| Search | Variable | Variable | Variable | Tests basic rate limiting |
 
 ## Running the Tests
 
@@ -47,23 +47,23 @@ The test runs 5 concurrent scenarios, each for 2 minutes:
 
 1. **Submission Rate Limit** (0-2 min)
    - Tests: `/api/v1/submissions` POST
-   - Rate: 15 requests/hour
-   - Expected: ~5 blocked, ~10 allowed
+   - Pattern: 15 requests over 2 minutes
+   - Expected: Most requests rate limited after exceeding 10/hour limit
 
 2. **Metadata Rate Limit** (2-4 min)
    - Tests: `/api/v1/submissions/metadata` GET
-   - Rate: 120 requests/hour
-   - Expected: ~20 blocked, ~100 allowed
+   - Pattern: 120 requests over 2 minutes
+   - Expected: Most requests rate limited after exceeding 100/hour limit
 
 3. **Watch Party Create Rate Limit** (4-6 min)
    - Tests: `/api/v1/watch-parties` POST
-   - Rate: 15 requests/hour
-   - Expected: ~5 blocked, ~10 allowed
+   - Pattern: 15 requests over 2 minutes
+   - Expected: Most requests rate limited after exceeding 10/hour limit
 
 4. **Watch Party Join Rate Limit** (6-8 min)
    - Tests: `/api/v1/watch-parties/:id/join` POST
-   - Rate: 40 requests/hour
-   - Expected: ~10 blocked, ~30 allowed
+   - Pattern: 40 requests over 2 minutes
+   - Expected: Most requests rate limited after exceeding 30/hour limit
 
 5. **Search Rate Limit** (8-10 min)
    - Tests: `/api/v1/search` GET
@@ -73,9 +73,10 @@ The test runs 5 concurrent scenarios, each for 2 minutes:
 ## Success Criteria
 
 ### Rate Limiting Accuracy
-- ✅ Blocked request percentage matches expected within ±5%
-- ✅ Allowed request percentage matches expected within ±5%
-- ✅ Total requests = allowed + blocked
+- ✅ Rate limiting activates when hourly limit is exceeded
+- ✅ Requests within limit are allowed
+- ✅ Requests over limit receive 429 responses
+- ✅ Rate limiting enforcement is consistent
 
 ### Headers Validation
 - ✅ `X-RateLimit-Limit` header present and correct
@@ -125,8 +126,8 @@ Custom Metrics:
 - watch_party_join_attempts: Total join attempts
 - watch_party_join_allowed: Successfully joined
 - watch_party_join_blocked: Rate limited (429)
-- rate_limit_hits: Overall rate limit hit rate (20-60%)
-- errors: Errors excluding 429s (< 1%)
+- rate_limit_hits: Overall rate limit hit rate
+- errors: Functional errors excluding 429s (< 1%)
 
 Latency Metrics:
 - submission_latency: Submission endpoint latency
@@ -140,18 +141,18 @@ Latency Metrics:
 
 ### Good Results ✅
 ```
-submission_attempts: 30
-submission_allowed: 20 (67%)
-submission_blocked: 10 (33%)
-rate_limit_hits: 33%
-errors: 0.5%
+submission_attempts: 15
+submission_allowed: 1-2 (within 10/hour limit for 2-min window)
+submission_blocked: 13-14 (exceeding hourly limit)
+rate_limit_hits: high percentage
+errors: 0.5% (functional errors only, not 429s)
 http_req_duration{endpoint:submission} p(95): 180ms
 ```
 
 ### Warning Signs ⚠️
-- Blocked percentage significantly different from expected (>±5%)
+- No requests blocked when rate should be exceeded
 - Missing rate limit headers
-- High error rate (>1% excluding 429s)
+- High functional error rate (>1% excluding 429s)
 - p95 latency exceeding thresholds
 - Rate limit headers showing incorrect values
 

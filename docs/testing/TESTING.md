@@ -594,13 +594,21 @@ Rate limiting tests run automatically in CI:
 
 **Interpreting results:**
 
-The test scenarios intentionally exceed configured rate limits to validate enforcement:
-- Submission: Sends 15 req/hour (50% over limit) → expect ~33% blocked (5 out of 15 requests)
-- Metadata: Sends 120 req/hour (20% over limit) → expect ~17% blocked (20 out of 120 requests)
-- Watch party create: Sends 15 req/hour (50% over limit) → expect ~33% blocked (5 out of 15 requests)
-- Watch party join: Sends 40 req/hour (33% over limit) → expect ~25% blocked (10 out of 40 requests)
+**Interpreting results:**
 
-If blocked percentages deviate significantly from expected values, this indicates:
+The test scenarios send requests over short 2-minute windows to validate rate limiting behavior:
+
+- **Submission**: Sends 15 requests over 2 minutes. With a 10/hour limit, we'd expect the first ~0.33 requests to be allowed in the 2-minute window, then rate limiting kicks in for subsequent requests.
+- **Metadata**: Sends 120 requests over 2 minutes. With a 100/hour limit, we'd expect the first ~3.3 requests to be allowed in the 2-minute window, then rate limiting applies.
+- **Watch party create**: Sends 15 requests over 2 minutes. With a 10/hour limit, similar to submission above.
+- **Watch party join**: Sends 40 requests over 2 minutes. With a 30/hour limit, we'd expect the first request to be allowed in the 2-minute window, then rate limiting applies.
+
+**Note**: Because these tests run for only 2 minutes while rate limits are configured per hour, most requests will be rate limited. The key validation is:
+- Rate limiting activates when the per-hour limit is exceeded
+- Rate limit headers are present and accurate
+- Latency remains acceptable even when rate limited
+
+If blocked percentages deviate significantly from expected behavior, this indicates:
 - Rate limiting configuration drift
 - Middleware not properly applied to endpoints
 - Redis connection issues affecting distributed rate limiting

@@ -329,12 +329,12 @@ k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/rate_limiting.j
 ```
 
 **Expected Results:**
-- ~33% of submissions blocked (15 req/hour vs 10/hour limit)
-- ~17% of metadata requests blocked (120 req/hour vs 100/hour limit)
-- ~33% of watch party creates blocked (15 req/hour vs 10/hour limit)
-- ~25% of watch party joins blocked (40 req/hour vs 30/hour limit)
-- All rate limit headers accurate
-- No increase in latency due to rate limiting
+
+Because the tests send multiple requests in a 2-minute window while rate limits are configured per hour:
+- Most requests beyond the allowed rate will be blocked (429 responses)
+- The first few requests within the hourly allowance will succeed
+- Rate limit headers should be accurate on all responses
+- Latency should remain acceptable even under rate limiting
 
 ## Environment Variables
 
