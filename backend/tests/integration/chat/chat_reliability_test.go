@@ -41,6 +41,19 @@ type TestClient struct {
 	t         *testing.T
 }
 
+// Test constants
+const (
+	// clientSendBufferSize matches the buffer size used in the WebSocket client implementation
+	// This is defined in internal/websocket/client.go
+	clientSendBufferSize = 256
+	
+	// slowClientMessageThreshold is the acceptable percentage of messages a fast client
+	// should receive when a slow client is present. Set to 80% to account for potential
+	// message loss in the slow client's buffer while ensuring the fast client remains unaffected.
+	slowClientMessageThreshold = 0.8
+)
+
+
 // setupChatTestEnvironment creates test database, services, and HTTP server
 func setupChatTestEnvironment(t *testing.T) (*gin.Engine, *jwtpkg.Manager, *database.DB, *redispkg.Client, *ws.Server, func()) {
 	gin.SetMode(gin.TestMode)
@@ -191,20 +204,32 @@ func (c *TestClient) SendMessageWithID(channelID uuid.UUID, content string, mess
 }
 
 // WaitForMessage waits for a message matching the condition
+// Note: This implementation drains non-matching messages to avoid blocking.
+// In a real-world scenario with high message volume, consider using a ring buffer
+// or other data structure to prevent message loss.
 func (c *TestClient) WaitForMessage(timeout time.Duration, condition func(*ws.ServerMessage) bool) (*ws.ServerMessage, error) {
 	deadline := time.After(timeout)
+	unmatchedBuffer := make([]*ws.ServerMessage, 0, 10)
+	
+	defer func() {
+		// Re-queue unmatched messages (best-effort)
+		for _, msg := range unmatchedBuffer {
+			select {
+			case c.Received <- msg:
+			default:
+				// Channel full, message lost - acceptable for test scenarios
+			}
+		}
+	}()
+	
 	for {
 		select {
 		case msg := <-c.Received:
 			if condition(msg) {
 				return msg, nil
 			}
-			// Put it back if it doesn't match
-			select {
-			case c.Received <- msg:
-			default:
-				// Channel full, skip
-			}
+			// Buffer unmatched messages for re-queueing
+			unmatchedBuffer = append(unmatchedBuffer, msg)
 		case <-deadline:
 			return nil, fmt.Errorf("timeout waiting for message")
 		}
@@ -716,8 +741,9 @@ func TestSlowClientHandling(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	fastClient.DrainMessages()
 
-	// Fast client sends many messages
-	messageCount := 300 // Exceed buffer size of 256
+	// Fast client sends many messages (exceed buffer size)
+	// Using 300 messages to exceed the clientSendBufferSize of 256
+	messageCount := 300
 	for i := 0; i < messageCount; i++ {
 		err := fastClient.SendMessage(channelID, fmt.Sprintf("Message %d", i))
 		require.NoError(t, err)
@@ -740,9 +766,12 @@ func TestSlowClientHandling(t *testing.T) {
 		}
 	}
 
-	// Fast client should receive most or all messages
-	assert.GreaterOrEqual(t, receivedCount, int(float64(messageCount)*0.8), 
-		"Fast client should receive at least 80%% of messages")
+	// Fast client should receive most or all messages despite slow client
+	// The threshold is defined as slowClientMessageThreshold (80%) to account for
+	// potential message drops in the slow client's buffer while ensuring the fast
+	// client is not significantly impacted by the slow consumer.
+	assert.GreaterOrEqual(t, receivedCount, int(float64(messageCount)*slowClientMessageThreshold), 
+		"Fast client should receive at least %.0f%% of messages", slowClientMessageThreshold*100)
 
 	// Slow client may not receive all messages (buffer full scenario)
 	// This is acceptable - server should remain stable
