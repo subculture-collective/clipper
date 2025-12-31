@@ -26,6 +26,12 @@ import (
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
+// NOTE: The Discovery Lists feature (Top/New/Discussed) is implemented via the
+// /api/v1/clips endpoint with sort parameters (hot, new, top, discussed).
+// This is documented in docs/product/discovery-lists.md
+// These integration tests verify the pagination, filtering, and ordering of
+// those discovery lists through the clips endpoint.
+
 // setupDiscoveryTestRouter creates a test router with discovery and clip routes
 func setupDiscoveryTestRouter(t *testing.T) (*gin.Engine, *jwtpkg.Manager, *database.DB, *redispkg.Client, uuid.UUID, uuid.UUID, *repository.ClipRepository) {
 	gin.SetMode(gin.TestMode)
