@@ -39,6 +39,7 @@ type TestClient struct {
 	mu          sync.Mutex
 	connected   bool
 	t           *testing.T
+	unmatched   []*models.WatchPartySyncEvent // Buffer for unmatched events
 }
 
 // setupWatchPartyTestEnvironment creates test database, services, and HTTP server
@@ -177,13 +178,26 @@ func (c *TestClient) readMessages() {
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
-			c.Errors <- err
+			select {
+			case c.Errors <- err:
+			default:
+				if c.t != nil {
+					c.t.Logf("readMessages: error channel full, dropping read error: %v", err)
+				}
+			}
 			return
 		}
 
 		var event models.WatchPartySyncEvent
 		if err := json.Unmarshal(message, &event); err != nil {
-			c.Errors <- fmt.Errorf("failed to unmarshal event: %w", err)
+			wrappedErr := fmt.Errorf("failed to unmarshal event: %w", err)
+			select {
+			case c.Errors <- wrappedErr:
+			default:
+				if c.t != nil {
+					c.t.Logf("readMessages: error channel full, dropping unmarshal error: %v", wrappedErr)
+				}
+			}
 			continue
 		}
 
@@ -208,8 +222,22 @@ func (c *TestClient) SendCommand(cmd *models.WatchPartyCommand) error {
 	return c.Conn.WriteMessage(websocket.TextMessage, data)
 }
 
-// WaitForEvent waits for an event of specified type with timeout
+// WaitForEvent waits for an event of specified type with timeout.
+// Events that don't match the expected type are buffered and checked in subsequent calls.
+// This prevents important events like "participant-joined" from being lost.
 func (c *TestClient) WaitForEvent(eventType string, timeout time.Duration) (*models.WatchPartySyncEvent, error) {
+	c.mu.Lock()
+	// Check buffered unmatched events first
+	for i, event := range c.unmatched {
+		if event.Type == eventType {
+			// Remove from buffer and return
+			c.unmatched = append(c.unmatched[:i], c.unmatched[i+1:]...)
+			c.mu.Unlock()
+			return event, nil
+		}
+	}
+	c.mu.Unlock()
+
 	deadline := time.After(timeout)
 	for {
 		select {
@@ -217,6 +245,13 @@ func (c *TestClient) WaitForEvent(eventType string, timeout time.Duration) (*mod
 			if event.Type == eventType {
 				return event, nil
 			}
+			// Buffer unmatched events for future WaitForEvent calls
+			c.mu.Lock()
+			c.unmatched = append(c.unmatched, event)
+			if c.t != nil && len(c.unmatched) > 20 {
+				c.t.Logf("WaitForEvent: unmatched event buffer growing large (%d events), expected %s", len(c.unmatched), eventType)
+			}
+			c.mu.Unlock()
 		case err := <-c.Errors:
 			return nil, err
 		case <-deadline:
@@ -260,6 +295,9 @@ func TestMultiClientSync(t *testing.T) {
 	partyID := createTestPartyWithParticipants(t, ctx, watchPartyRepo, host.ID, "Sync Test Party")
 	defer func() {
 		hubManager.RemoveHub(partyID)
+		// Use direct SQL for test cleanup to ensure all test data is removed regardless of
+		// repository-level business logic. This is intentionally limited to tests.
+		// Foreign key relationships are handled explicitly here.
 		_, _ = db.Pool.Exec(ctx, "DELETE FROM watch_party_participants WHERE party_id = $1", partyID)
 		_, _ = db.Pool.Exec(ctx, "DELETE FROM watch_parties WHERE id = $1", partyID)
 	}()
@@ -298,8 +336,12 @@ func TestMultiClientSync(t *testing.T) {
 	viewer2Client := connectTestClient(t, server, partyID, viewer2.ID, viewer2Token, "viewer")
 	defer viewer2Client.Close()
 
-	// Wait for initial connections (participant-joined events)
-	time.Sleep(500 * time.Millisecond)
+	// Wait for WebSocket connections to be fully established and initial events to be processed
+	// Using a short sleep here is more practical than waiting for specific events because:
+	// 1. Clients may join at slightly different times
+	// 2. participant-joined events are broadcast, causing race conditions in event order
+	// 3. Tests focus on command synchronization, not connection handshake timing
+	time.Sleep(300 * time.Millisecond)
 
 	t.Run("Sync within 2s tolerance on play command", func(t *testing.T) {
 		// Host sends play command
@@ -327,13 +369,14 @@ func TestMultiClientSync(t *testing.T) {
 		assert.True(t, viewer1Event.IsPlaying)
 		assert.True(t, viewer2Event.IsPlaying)
 
-		// Verify server timestamps are within 2s (sync tolerance)
-		// In reality, they should be nearly identical since broadcast is immediate
+		// Verify server timestamps are within 2s (broadcast consistency check)
+		// Note: This verifies that all clients receive events with consistent server timestamps,
+		// not client-side drift. True sync drift would measure client video position vs server position.
 		timeDiff := hostEvent.ServerTimestamp - viewer1Event.ServerTimestamp
-		assert.LessOrEqual(t, abs(timeDiff), int64(2), "Sync drift exceeds ±2s tolerance")
+		assert.LessOrEqual(t, abs(timeDiff), int64(2), "Broadcast timestamp drift exceeds ±2s tolerance")
 		
 		timeDiff = hostEvent.ServerTimestamp - viewer2Event.ServerTimestamp
-		assert.LessOrEqual(t, abs(timeDiff), int64(2), "Sync drift exceeds ±2s tolerance")
+		assert.LessOrEqual(t, abs(timeDiff), int64(2), "Broadcast timestamp drift exceeds ±2s tolerance")
 	})
 
 	t.Run("Sync on seek command", func(t *testing.T) {
@@ -445,7 +488,9 @@ func TestCommandPropagation(t *testing.T) {
 	viewerClient := connectTestClient(t, server, partyID, viewer.ID, viewerToken, "viewer")
 	defer viewerClient.Close()
 
-	time.Sleep(300 * time.Millisecond)
+	// Wait for WebSocket connections to be fully established
+	// Short sleep is acceptable here for connection establishment
+	time.Sleep(200 * time.Millisecond)
 
 	tests := []struct {
 		name      string
@@ -565,7 +610,9 @@ func TestReconnectionRecovery(t *testing.T) {
 	
 	viewerClient := connectTestClient(t, server, partyID, viewer.ID, viewerToken, "viewer")
 
-	time.Sleep(300 * time.Millisecond)
+	// Wait for WebSocket connections to be fully established
+	// Short sleep is acceptable here for connection establishment
+	time.Sleep(200 * time.Millisecond)
 
 	t.Run("Recover state after reconnection", func(t *testing.T) {
 		// Host changes state while viewer is connected
@@ -585,6 +632,9 @@ func TestReconnectionRecovery(t *testing.T) {
 
 		// Viewer disconnects
 		viewerClient.Close()
+
+		// Give the server time to process the disconnection
+		// This is necessary because WebSocket close is async
 		time.Sleep(200 * time.Millisecond)
 
 		// Host changes state while viewer is disconnected
@@ -604,6 +654,11 @@ func TestReconnectionRecovery(t *testing.T) {
 		viewerClient = connectTestClient(t, server, partyID, viewer.ID, viewerToken, "viewer")
 		defer viewerClient.Close()
 
+		// Wait for viewer to be fully connected
+		// We use a short sleep here instead of waiting for participant-joined event because:
+		// 1. The hub may have already broadcast the event before client is ready to receive
+		// 2. The sync-request will work once the connection is established
+		// 3. This is testing reconnection resilience, not event ordering
 		time.Sleep(200 * time.Millisecond)
 
 		// Viewer sends sync-request to get current state
@@ -690,7 +745,9 @@ func TestRolePermissionsEnforcement(t *testing.T) {
 	viewerClient := connectTestClient(t, server, partyID, viewer.ID, viewerToken, "viewer")
 	defer viewerClient.Close()
 
-	time.Sleep(500 * time.Millisecond)
+	// Wait for WebSocket connections to be fully established
+	// Short sleep is acceptable here for connection establishment with multiple clients
+	time.Sleep(300 * time.Millisecond)
 
 	t.Run("Host can control playback", func(t *testing.T) {
 		playCmd := &models.WatchPartyCommand{

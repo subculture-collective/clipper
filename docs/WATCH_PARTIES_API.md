@@ -149,7 +149,9 @@ The system is designed with a **±2 second sync tolerance** for video playback s
 
 **Endpoint**: `GET /api/v1/watch-parties/:id/ws`
 
-**Authentication**: Required via JWT token in query parameter `?token=<jwt>`
+**Authentication**: Required via JWT in the `Authorization` header (e.g., `Authorization: Bearer <jwt>`). 
+
+**Security Note**: Do not send JWT tokens in URL query parameters as they will be logged by proxies, browsers, and servers, creating a security risk.
 
 **Upgrade Headers**:
 ```
@@ -250,10 +252,12 @@ Connection: Upgrade
   "type": "seek",
   "party_id": "party-uuid",
   "position": 150,
-  "is_playing": true,
+  "is_playing": false,
   "server_timestamp": 1735660800
 }
 ```
+
+**Note**: Seek commands automatically pause playback (`is_playing: false`) to ensure all clients are synchronized at the new position.
 
 **Skip Event**:
 ```json
@@ -318,17 +322,10 @@ The server enforces role permissions before processing commands:
 
 1. Command received from client
 2. Server validates user role
-3. If role lacks permission: Return error, no state change, no broadcast
+3. If role lacks permission: Command is silently ignored (no error response, no state change, no broadcast)
 4. If role has permission: Process command, update state, broadcast to all
 
-**Unauthorized Command Response**:
-```json
-{
-  "type": "error",
-  "message": "Unauthorized: Only host or co-host can control playback",
-  "code": "UNAUTHORIZED_COMMAND"
-}
-```
+**Note**: Unauthorized playback commands are silently rejected without sending an error response to the client.
 
 ## Synchronization Behavior
 
@@ -459,10 +456,14 @@ The system handles various network conditions:
 ### Connection Setup
 
 ```javascript
-const token = localStorage.getItem('jwt_token');
 const partyId = 'party-uuid';
-const wsUrl = `wss://api.clipper.com/api/v1/watch-parties/${partyId}/ws?token=${token}`;
+// Authentication is handled via Authorization header during WebSocket upgrade
+// The server checks for a valid JWT in the Authorization header
+const wsUrl = `wss://api.clipper.com/api/v1/watch-parties/${partyId}/ws`;
 
+// Note: WebSocket API doesn't directly support custom headers in browser environments
+// For browser clients, use an existing authenticated session (HttpOnly cookies)
+// or implement a token exchange mechanism on the server side
 const ws = new WebSocket(wsUrl);
 
 ws.onopen = () => {
