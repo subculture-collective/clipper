@@ -101,3 +101,44 @@ export async function rejectSubmission(
     reason,
   });
 }
+
+/**
+ * Response from bulk operations
+ */
+export interface BulkOperationResponse {
+  success: boolean;
+  message: string;
+  count: number;
+}
+
+/**
+ * Bulk approve submissions (admin/moderator only)
+ */
+export async function bulkApproveSubmissions(
+  submissionIds: string[]
+): Promise<BulkOperationResponse> {
+  const response = await apiClient.post<BulkOperationResponse>(
+    '/admin/submissions/bulk-approve',
+    {
+      submission_ids: submissionIds,
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Bulk reject submissions (admin/moderator only)
+ */
+export async function bulkRejectSubmissions(
+  submissionIds: string[],
+  reason: string
+): Promise<BulkOperationResponse> {
+  const response = await apiClient.post<BulkOperationResponse>(
+    '/admin/submissions/bulk-reject',
+    {
+      submission_ids: submissionIds,
+      reason,
+    }
+  );
+  return response.data;
+}

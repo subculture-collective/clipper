@@ -181,4 +181,46 @@ export class AdminModerationPage extends BasePage {
   async waitForQueueLoad(): Promise<void> {
     await this.page.waitForLoadState('networkidle');
   }
+
+  /**
+   * Select multiple submissions by their IDs
+   */
+  async selectSubmissions(submissionIds: string[]): Promise<void> {
+    for (const submissionId of submissionIds) {
+      const checkbox = this.page.locator(`[data-testid="submission-${submissionId}"]`)
+        .locator('input[type="checkbox"]')
+        .or(this.page.locator(`input[type="checkbox"][value="${submissionId}"]`));
+      
+      await checkbox.check();
+    }
+  }
+
+  /**
+   * Bulk approve selected submissions
+   */
+  async bulkApproveSubmissions(submissionIds: string[]): Promise<void> {
+    // For tests, we can directly make the API call since the UI doesn't expose bulk actions yet
+    await this.page.request.post('/api/admin/submissions/bulk-approve', {
+      data: {
+        submission_ids: submissionIds,
+      },
+    });
+    
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Bulk reject selected submissions with a reason
+   */
+  async bulkRejectSubmissions(submissionIds: string[], reason: string): Promise<void> {
+    // For tests, we can directly make the API call since the UI doesn't expose bulk actions yet
+    await this.page.request.post('/api/admin/submissions/bulk-reject', {
+      data: {
+        submission_ids: submissionIds,
+        reason: reason,
+      },
+    });
+    
+    await this.page.waitForLoadState('networkidle');
+  }
 }
