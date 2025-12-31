@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -101,15 +102,18 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	var err error
 	var usedFallback bool
 	var failoverReason string
+	var fallbackStartTime time.Time
 
 	if h.useHybridSearch && h.hybridSearchService != nil {
 		// Use hybrid BM25 + vector similarity search
+		// Note: Hybrid search does not have a fallback - it requires both OpenSearch and embeddings
 		results, err = h.hybridSearchService.Search(c.Request.Context(), &req)
 		if err != nil {
-			// Hybrid search has no fallback - return 503
+			// Hybrid search failure - return 503 (no fallback available)
 			fmt.Printf("Hybrid search error: %v\n", err)
 			failoverReason = getFailoverReason(err)
-			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
+			// Track hybrid search unavailability separately (not a true failover since no fallback)
+			metrics.SearchQueriesTotal.WithLabelValues("hybrid", "unavailable").Inc()
 
 			c.Header("Retry-After", "60") // Suggest retry after 60 seconds
 			c.JSON(http.StatusServiceUnavailable, gin.H{
@@ -125,6 +129,9 @@ func (h *SearchHandler) Search(c *gin.Context) {
 			fmt.Printf("OpenSearch error, falling back to PostgreSQL: %v\n", err)
 			failoverReason = getFailoverReason(err)
 			usedFallback = true
+			fallbackStartTime = time.Now()
+
+			// Track failover event
 			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
 
 			results, err = h.searchRepo.Search(c.Request.Context(), &req)
@@ -136,6 +143,10 @@ func (h *SearchHandler) Search(c *gin.Context) {
 				})
 				return
 			}
+
+			// Track fallback latency
+			fallbackDuration := time.Since(fallbackStartTime).Milliseconds()
+			metrics.SearchFallbackDuration.WithLabelValues(failoverReason).Observe(float64(fallbackDuration))
 		}
 	} else {
 		// Fall back to PostgreSQL FTS
@@ -240,6 +251,7 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 	var err error
 	var usedFallback bool
 	var failoverReason string
+	var fallbackStartTime time.Time
 
 	// Use OpenSearch or PostgreSQL fallback
 	if h.useOpenSearch && h.openSearchService != nil {
@@ -249,6 +261,9 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 			fmt.Printf("OpenSearch suggestions error, falling back to PostgreSQL: %v\n", err)
 			failoverReason = getFailoverReason(err)
 			usedFallback = true
+			fallbackStartTime = time.Now()
+
+			// Track failover event
 			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
 
 			suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
@@ -258,6 +273,10 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 				})
 				return
 			}
+
+			// Track fallback latency
+			fallbackDuration := time.Since(fallbackStartTime).Milliseconds()
+			metrics.SearchFallbackDuration.WithLabelValues(failoverReason).Observe(float64(fallbackDuration))
 		}
 	} else {
 		suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)

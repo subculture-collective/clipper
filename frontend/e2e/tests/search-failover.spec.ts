@@ -9,7 +9,7 @@
  * - Pagination with fallback results
  * - Loading states and error handling
  *
- * @see Issue #XXX - Search Fallback Failover Scenarios
+ * @see Issue #XXX - Search Fallback Failover Scenarios (tracking issue to be created)
  */
 
 import { test, expect } from '../fixtures';
