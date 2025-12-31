@@ -413,12 +413,134 @@ This authorization framework helps meet compliance requirements:
 - **HIPAA**: Protected health information (if applicable) is access-controlled
 - **PCI DSS**: Payment information is protected from unauthorized access
 
+## RBAC Regression Testing
+
+### Test Suite Overview
+
+A comprehensive RBAC regression suite is available at `backend/tests/integration/rbac/` that validates:
+- Access matrices (guest/user/moderator/admin) for all protected endpoints
+- Privilege escalation prevention
+- Audit logging for admin/moderation actions
+- Consistent error responses (401/403)
+
+### Running RBAC Tests
+
+```bash
+# Setup test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# Run migrations
+migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up
+
+# Run all RBAC tests
+cd backend
+go test -v -tags=integration ./tests/integration/rbac/...
+
+# Run specific test suites
+go test -v -tags=integration ./tests/integration/rbac -run TestRBACRegressionSuite
+go test -v -tags=integration ./tests/integration/rbac -run TestPrivilegeEscalation
+go test -v -tags=integration ./tests/integration/rbac -run TestNegativeCases
+
+# Cleanup
+docker compose -f docker-compose.test.yml down
+```
+
+### Test Coverage
+
+The RBAC test suite currently covers:
+
+**Fully Tested (Routes Registered in Test Router):**
+
+**Clip Management**
+- ✅ Update clip (admin/moderator only)
+- ✅ Delete clip (admin only)
+
+**Admin User Management**
+- ✅ List users
+- ✅ Ban/unban users
+- ✅ Update user roles
+- ✅ Update karma
+
+**Security Tests**
+- ✅ Privilege escalation prevention
+- ✅ Unauthorized access rejection
+- ✅ Invalid token rejection
+
+**Placeholder Tests (Routes Not Yet Registered):**
+
+The following test cases exist as placeholders but currently return 404 because the routes are not registered in the test router. These will be activated as additional endpoints are integrated:
+
+- Watch Party Admin Actions (kick, end)
+- Chat Moderation (ban, mute, timeout, unban)
+- Webhook DLQ Admin (get queue, replay, delete)
+- Discovery Lists Admin (create, update, delete, add/remove clips)
+- Forum Moderation (lock, pin, delete threads, ban users)
+
+> **Note**: The test framework is designed to be easily extensible. As new protected endpoints are added to the application, corresponding test cases can be activated by registering the routes in `setupRBACTestRouter()` and updating the expected status codes.
+
+### Access Matrix Reference
+
+| Endpoint Type | Guest | User | Moderator | Admin |
+|--------------|-------|------|-----------|-------|
+| Public Read | ✅ 200 | ✅ 200 | ✅ 200 | ✅ 200 |
+| User Actions | ❌ 401 | ✅ 200 | ✅ 200 | ✅ 200 |
+| Moderation | ❌ 401 | ❌ 403 | ✅ 200 | ✅ 200 |
+| Admin Only | ❌ 401 | ❌ 403 | ❌ 403 | ✅ 200 |
+
+### Adding New Protected Endpoints
+
+When adding a new protected endpoint:
+
+1. **Define the endpoint** with appropriate middleware:
+   ```go
+   admin.POST("/new-endpoint", 
+       middleware.AuthMiddleware(authService),
+       middleware.RequirePermission(models.PermissionManageSystem),
+       handler.NewEndpoint,
+   )
+   ```
+
+2. **Add test case** to `backend/tests/integration/rbac/rbac_endpoints_test.go`:
+   ```go
+   {
+       Name:   "POST /admin/new-endpoint",
+       Method: "POST",
+       Path:   "/api/v1/admin/new-endpoint",
+       Body:   map[string]interface{}{"field": "value"},
+       AccessMatrix: AccessMatrix{
+           Guest:     http.StatusUnauthorized,
+           User:      http.StatusForbidden,
+           Moderator: http.StatusOK,
+           Admin:     http.StatusOK,
+       },
+       RequiresAudit: true,
+       AuditAction:   "action_name",
+   },
+   ```
+
+3. **Run tests** to verify:
+   ```bash
+   go test -v -tags=integration ./tests/integration/rbac/...
+   ```
+
+4. **Update documentation** with the new endpoint coverage
+
+### CI Integration
+
+RBAC tests run automatically on:
+- Every pull request
+- Merges to main branch
+- Release builds
+
+Failed tests will block merges, ensuring authorization regressions are caught early.
+
 ## Future Enhancements
 
 Planned improvements:
+- [x] RBAC regression test suite - **COMPLETED (2025-12-30)**
+- [x] Automated testing in CI/CD - **COMPLETED (2025-12-30)**
 - [ ] Integration with audit log service
 - [ ] Real-time security monitoring dashboard
-- [ ] Automated security scanning in CI/CD
 - [ ] Permission caching layer
 - [ ] Fine-grained permission system (beyond owner/role)
 - [ ] Resource-level access control lists (ACLs)
@@ -427,8 +549,11 @@ Planned improvements:
 
 - [OWASP IDOR Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html)
 - [OWASP Authorization Testing Guide](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/README)
+- [RBAC Test Suite README](../../backend/tests/integration/rbac/README.md)
+- [Testing Guide](../testing/TESTING.md)
+- [Integration Test README](../../backend/tests/integration/README.md)
+- [Feature Test Coverage](../product/feature-test-coverage.md)
 - Threat Model: `docs/product/threat-model.md`
-- Testing Guide: `docs/TESTING.md`
 
 ## Support
 
