@@ -61,12 +61,16 @@ require.NoError(t, err)
 userRepo := repository.NewUserRepository(db.Pool)
 refreshTokenRepo := repository.NewRefreshTokenRepository(db.Pool)
 broadcasterRepo := repository.NewBroadcasterRepository(db.Pool)
-_ = repository.NewStreamFollowRepository(db.Pool)
+streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
 
 authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
-// Create a minimal live status service for handler testing
-// We'll test with direct repository access to avoid Twitch client dependency
-liveStatusService := &services.LiveStatusService{}
+// Create a live status service with nil Twitch client for testing
+// Handler tests will use repository data without needing Twitch API calls
+liveStatusService := services.NewLiveStatusService(
+	broadcasterRepo,
+	streamFollowRepo,
+	nil, // Twitch client not needed for handler tests that only read from DB
+)
 
 liveStatusHandler := handlers.NewLiveStatusHandler(liveStatusService, authService)
 
