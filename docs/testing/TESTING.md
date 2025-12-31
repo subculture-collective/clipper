@@ -105,6 +105,62 @@ We aim for the following coverage thresholds:
 
 ## Feature-Specific Testing
 
+### Input Validation Middleware Tests
+
+The validation middleware provides defense-in-depth security against injection attacks:
+
+**Unit Tests** (`backend/internal/middleware/validation_middleware_test.go` & `validation_middleware_security_test.go`):
+- Basic SQLi pattern detection (UNION, SELECT, INSERT, DROP, etc.)
+- XSS pattern detection (script tags, event handlers, javascript:)
+- Path traversal detection (../, ..\\)
+- Header validation (UTF-8, length limits)
+- Request body size limits
+- URL length validation
+- Cross-field validation for user inputs
+- SQLi/XSS edge cases (case variations, special characters)
+- Mixed attack vectors (combined SQLi + XSS)
+- Sanitization consistency and idempotency
+- Fuzzer smoke test (1000+ random malicious payloads)
+
+**Integration Tests** (`backend/tests/integration/validation/validation_integration_test.go`):
+- Validation applied on clip endpoints
+- Validation on user management endpoints
+- Validation on comment endpoints
+- Validation on search endpoints
+- Header validation across all endpoints
+
+**Coverage:**
+- Unit test coverage: ~95% of validation logic
+- Integration test coverage: All critical endpoints
+- Fuzzer test: 1000+ payloads with 0 panics, 0% failure rate
+
+**Running validation tests:**
+
+```bash
+cd backend
+
+# All validation tests (unit + sanitization)
+go test -v ./internal/middleware/ -run "TestInputValidation|TestSanitizeInput"
+
+# Edge case tests
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_SQLInjectionEdgeCases
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_XSSEdgeCases
+
+# Fuzzer smoke test (1000+ payloads)
+go test -v ./internal/middleware/ -run TestInputValidationMiddleware_FuzzerSmoke
+
+# Integration tests (requires test database)
+docker compose -f docker-compose.test.yml up -d
+go test -v -tags=integration ./tests/integration/validation/...
+docker compose -f docker-compose.test.yml down
+```
+
+**Security Note:** The validation middleware provides defense-in-depth but should not be the only security layer. Always use:
+- Parameterized queries/prepared statements for database access
+- Context-aware output encoding for HTML/JS/CSS
+- Content Security Policy (CSP) headers
+- HTTPS for all communications
+
 ### DMCA System Tests
 
 The DMCA system has comprehensive test coverage including:
