@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
@@ -79,30 +80,32 @@ func setupWatchPartyTestEnvironment(t *testing.T) (*gin.Engine, *jwtpkg.Manager,
 
 	// Create services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
+	analyticsRepo := repository.NewAnalyticsRepository(db.Pool)
 	
-	// Create simple rate limiters for testing (high limits to not interfere with tests)
-	chatLimiter := services.NewSimpleRateLimiter(1000, time.Minute)
-	reactLimiter := services.NewSimpleRateLimiter(1000, time.Minute)
+	// Create rate limiters for testing (high limits to not interfere with tests)
+	chatLimiter := services.NewInMemoryRateLimiterAdapter(1000, time.Minute)
+	reactLimiter := services.NewInMemoryRateLimiterAdapter(1000, time.Minute)
 	
 	hubManager := services.NewWatchPartyHubManager(watchPartyRepo, chatLimiter, reactLimiter)
 	watchPartyService := services.NewWatchPartyService(watchPartyRepo, playlistRepo, clipRepo, "http://localhost:8080")
 
 	// Create handlers
-	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, hubManager, authService)
+	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, hubManager, watchPartyRepo, analyticsRepo, cfg)
 
-	// Setup routes
+	// Setup routes - using a simpler structure for testing
 	r := gin.New()
 	r.Use(gin.Recovery())
 
 	api := r.Group("/api/v1")
+	watchParties := api.Group("/watch-parties")
 	{
-		api.POST("/watch-parties", middleware.AuthMiddleware(authService), watchPartyHandler.CreateWatchParty)
-		api.POST("/watch-parties/:code/join", middleware.AuthMiddleware(authService), watchPartyHandler.JoinWatchParty)
-		api.GET("/watch-parties/:id", middleware.AuthMiddleware(authService), watchPartyHandler.GetWatchParty)
-		api.GET("/watch-parties/:id/participants", middleware.AuthMiddleware(authService), watchPartyHandler.GetParticipants)
-		api.DELETE("/watch-parties/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)
-		api.POST("/watch-parties/:id/end", middleware.AuthMiddleware(authService), watchPartyHandler.EndWatchParty)
-		api.GET("/watch-parties/:id/ws", watchPartyHandler.HandleWebSocket)
+		watchParties.POST("", middleware.AuthMiddleware(authService), watchPartyHandler.CreateWatchParty)
+		watchParties.POST("/:id/join", middleware.AuthMiddleware(authService), watchPartyHandler.JoinWatchParty)
+		watchParties.GET("/:id", middleware.AuthMiddleware(authService), watchPartyHandler.GetWatchParty)
+		watchParties.GET("/:id/participants", middleware.AuthMiddleware(authService), watchPartyHandler.GetParticipants)
+		watchParties.DELETE("/:id/leave", middleware.AuthMiddleware(authService), watchPartyHandler.LeaveWatchParty)
+		watchParties.POST("/:id/end", middleware.AuthMiddleware(authService), watchPartyHandler.EndWatchParty)
+		watchParties.GET("/:id/ws", middleware.AuthMiddleware(authService), watchPartyHandler.WatchPartyWebSocket)
 	}
 
 	return r, jwtManager, db, redisClient, watchPartyRepo, hubManager
@@ -137,11 +140,14 @@ func createTestPartyWithParticipants(t *testing.T, ctx context.Context, repo *re
 
 // connectTestClient establishes a WebSocket connection for testing
 func connectTestClient(t *testing.T, server *httptest.Server, partyID uuid.UUID, userID uuid.UUID, token string, role string) *TestClient {
-	wsURL := fmt.Sprintf("ws%s/api/v1/watch-parties/%s/ws?token=%s", 
-		server.URL[4:], partyID.String(), token)
+	wsURL := fmt.Sprintf("ws%s/api/v1/watch-parties/%s/ws", 
+		server.URL[4:], partyID.String())
 
 	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial(wsURL, nil)
+	headers := http.Header{}
+	headers.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	
+	conn, _, err := dialer.Dial(wsURL, headers)
 	require.NoError(t, err, "Failed to connect WebSocket client")
 
 	client := &TestClient{
@@ -275,11 +281,11 @@ func TestMultiClientSync(t *testing.T) {
 	defer server.Close()
 
 	// Generate tokens
-	hostToken, err := jwtManager.GenerateToken(host.ID, host.Role)
+	hostToken, err := jwtManager.GenerateAccessToken(host.ID, host.Role)
 	require.NoError(t, err)
-	viewer1Token, err := jwtManager.GenerateToken(viewer1.ID, viewer1.Role)
+	viewer1Token, err := jwtManager.GenerateAccessToken(viewer1.ID, viewer1.Role)
 	require.NoError(t, err)
-	viewer2Token, err := jwtManager.GenerateToken(viewer2.ID, viewer2.Role)
+	viewer2Token, err := jwtManager.GenerateAccessToken(viewer2.ID, viewer2.Role)
 	require.NoError(t, err)
 
 	// Connect clients
@@ -428,9 +434,9 @@ func TestCommandPropagation(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	hostToken, err := jwtManager.GenerateToken(host.ID, host.Role)
+	hostToken, err := jwtManager.GenerateAccessToken(host.ID, host.Role)
 	require.NoError(t, err)
-	viewerToken, err := jwtManager.GenerateToken(viewer.ID, viewer.Role)
+	viewerToken, err := jwtManager.GenerateAccessToken(viewer.ID, viewer.Role)
 	require.NoError(t, err)
 
 	hostClient := connectTestClient(t, server, partyID, host.ID, hostToken, "host")
@@ -549,9 +555,9 @@ func TestReconnectionRecovery(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	hostToken, err := jwtManager.GenerateToken(host.ID, host.Role)
+	hostToken, err := jwtManager.GenerateAccessToken(host.ID, host.Role)
 	require.NoError(t, err)
-	viewerToken, err := jwtManager.GenerateToken(viewer.ID, viewer.Role)
+	viewerToken, err := jwtManager.GenerateAccessToken(viewer.ID, viewer.Role)
 	require.NoError(t, err)
 
 	hostClient := connectTestClient(t, server, partyID, host.ID, hostToken, "host")
@@ -668,11 +674,11 @@ func TestRolePermissionsEnforcement(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	hostToken, err := jwtManager.GenerateToken(host.ID, host.Role)
+	hostToken, err := jwtManager.GenerateAccessToken(host.ID, host.Role)
 	require.NoError(t, err)
-	cohostToken, err := jwtManager.GenerateToken(cohost.ID, cohost.Role)
+	cohostToken, err := jwtManager.GenerateAccessToken(cohost.ID, cohost.Role)
 	require.NoError(t, err)
-	viewerToken, err := jwtManager.GenerateToken(viewer.ID, viewer.Role)
+	viewerToken, err := jwtManager.GenerateAccessToken(viewer.ID, viewer.Role)
 	require.NoError(t, err)
 
 	hostClient := connectTestClient(t, server, partyID, host.ID, hostToken, "host")
