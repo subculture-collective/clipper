@@ -55,6 +55,8 @@ resources:
 autoscaling:
   enabled: true
   minReplicas: 2
+  # maxReplicas set to 8 (reduced from 10) per Roadmap 5.0 Phase 5.2 requirements
+  # Frontend typically requires fewer replicas than backend due to static content serving
   maxReplicas: 8
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80

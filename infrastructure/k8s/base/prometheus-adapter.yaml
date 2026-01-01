@@ -197,8 +197,6 @@ spec:
     metadata:
       labels:
         app: prometheus-adapter
-      annotations:
-        checksum/config: "{{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
     spec:
       serviceAccountName: prometheus-adapter
       containers:
@@ -207,6 +205,7 @@ spec:
           args:
             - --cert-dir=/var/run/serving-cert
             - --config=/etc/adapter/config.yaml
+            # NOTE: Update this URL if Prometheus is in a different namespace or has a different service name
             - --prometheus-url=http://prometheus.clipper-monitoring.svc:9090
             - --metrics-relist-interval=1m
             - --v=4

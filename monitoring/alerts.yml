@@ -1099,13 +1099,15 @@ groups:
       # HPA Frequent Scaling
       - alert: HPAFrequentScaling
         expr: |
-          rate(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[10m]) > 0.1
+          abs(
+            delta(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[10m])
+          ) > 4
         for: 30m
         labels:
           severity: info
         annotations:
           summary: "HPA {{ $labels.horizontalpodautoscaler }} scaling frequently"
-          description: "HPA {{ $labels.horizontalpodautoscaler }} is changing desired replicas frequently. This may indicate oscillating load or improper thresholds."
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has changed desired replicas by more than 4 in the last 10 minutes. This may indicate oscillating load or improper thresholds."
           runbook: "docs/operations/runbooks/hpa-scaling.md#frequent-scaling"
 
       # HPA Desired Replicas Mismatch
@@ -1120,7 +1122,7 @@ groups:
           severity: warning
         annotations:
           summary: "HPA {{ $labels.horizontalpodautoscaler }} replica mismatch"
-          description: "HPA {{ $labels.horizontalpodautoscaler }} desired replicas ({{ $labels.desired }}) doesn't match current replicas for 15m. Check pod scheduling and resource availability."
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has a mismatch between desired and current replicas for 15m. Difference: {{ $value }}. Check pod scheduling and resource availability."
           runbook: "docs/operations/runbooks/hpa-scaling.md#replica-mismatch"
 
       # Custom Metrics Not Available
@@ -1150,13 +1152,13 @@ groups:
       # High Scale-Up Events
       - alert: HPAHighScaleUpRate
         expr: |
-          sum(rate(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[5m])) by (horizontalpodautoscaler) > 0.5
+          increase(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[5m]) > 3
         for: 10m
         labels:
           severity: info
         annotations:
           summary: "High scale-up rate for {{ $labels.horizontalpodautoscaler }}"
-          description: "HPA {{ $labels.horizontalpodautoscaler }} is scaling up frequently. This may indicate sustained high load."
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has scaled up by more than 3 replicas in 5m. This may indicate sustained high load."
           runbook: "docs/operations/runbooks/hpa-scaling.md#high-scale-up-rate"
 
       # Backend at High Utilization Before Scaling
