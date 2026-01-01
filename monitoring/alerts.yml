@@ -1140,9 +1140,9 @@ groups:
       # Metrics Server Down
       - alert: MetricsServerDown
         expr: |
-          absent(up{job="kube-state-metrics"})
-          or
-          (up{job="kube-state-metrics"} == 1 and absent(kube_pod_info))
+          kube_horizontalpodautoscaler_status_condition{condition="ScalingActive",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+          and
+          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
         for: 3m
         labels:
           severity: critical
