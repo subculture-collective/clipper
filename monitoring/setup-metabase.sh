@@ -28,11 +28,46 @@ if [ -f .env ]; then
     set +a
     echo "✓ Loaded environment variables from .env"
 else
-    echo "WARNING: No .env file found. Using default values."
-    echo "Create .env from .env.example and update the passwords."
-    METABASE_DB_NAME=${METABASE_DB_NAME:-metabase}
-    METABASE_DB_USER=${METABASE_DB_USER:-metabase}
-    METABASE_DB_PASSWORD=${METABASE_DB_PASSWORD:-changeme}
+    echo "ERROR: No .env file found."
+    echo "Create .env from .env.example and set strong values for:"
+    echo "  - METABASE_DB_NAME"
+    echo "  - METABASE_DB_USER"
+    echo "  - METABASE_DB_PASSWORD"
+    echo ""
+    echo "Generate a strong password with: openssl rand -base64 32"
+    exit 1
+fi
+
+# Validate required variables are set
+if [ -z "${METABASE_DB_NAME:-}" ]; then
+    echo "ERROR: METABASE_DB_NAME is not set in .env file"
+    exit 1
+fi
+
+if [ -z "${METABASE_DB_USER:-}" ]; then
+    echo "ERROR: METABASE_DB_USER is not set in .env file"
+    exit 1
+fi
+
+if [ -z "${METABASE_DB_PASSWORD:-}" ]; then
+    echo "ERROR: METABASE_DB_PASSWORD is not set in .env file"
+    echo "Generate a strong password with: openssl rand -base64 32"
+    exit 1
+fi
+
+# Validate password strength
+if [ "${METABASE_DB_PASSWORD}" = "changeme" ]; then
+    echo "ERROR: METABASE_DB_PASSWORD is set to a weak default value ('changeme')."
+    echo "Please choose a strong password and update METABASE_DB_PASSWORD in your .env file."
+    echo "Generate a strong password with: openssl rand -base64 32"
+    exit 1
+fi
+
+if [ "${#METABASE_DB_PASSWORD}" -lt 12 ]; then
+    echo "ERROR: METABASE_DB_PASSWORD is too short (minimum 12 characters required)."
+    echo "Please choose a stronger password and update METABASE_DB_PASSWORD in your .env file."
+    echo "Generate a strong password with: openssl rand -base64 32"
+    exit 1
 fi
 
 echo ""
@@ -41,34 +76,41 @@ echo "Database: $METABASE_DB_NAME"
 echo "User: $METABASE_DB_USER"
 echo ""
 
-# Create Metabase database and user
-docker exec -i clipper-postgres psql -U clipper -d clipper_db <<EOF
+# Create Metabase database and user using psql variables for safety
+docker exec -i clipper-postgres psql -U clipper -d clipper_db \
+    -v db_name="$METABASE_DB_NAME" \
+    -v db_user="$METABASE_DB_USER" \
+    -v db_password="$METABASE_DB_PASSWORD" <<'EOF'
 -- Check if database exists
-DO \$\$
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '$METABASE_DB_NAME') THEN
-        CREATE DATABASE $METABASE_DB_NAME;
-        RAISE NOTICE 'Created database: $METABASE_DB_NAME';
+    IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db_name') THEN
+        EXECUTE format('CREATE DATABASE %I', :'db_name');
+        RAISE NOTICE 'Created database: %', :'db_name';
     ELSE
-        RAISE NOTICE 'Database $METABASE_DB_NAME already exists';
+        RAISE NOTICE 'Database % already exists', :'db_name';
     END IF;
 END
-\$\$;
+$$;
 
 -- Check if user exists
-DO \$\$
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_user WHERE usename = '$METABASE_DB_USER') THEN
-        CREATE USER $METABASE_DB_USER WITH ENCRYPTED PASSWORD '$METABASE_DB_PASSWORD';
-        RAISE NOTICE 'Created user: $METABASE_DB_USER';
+    IF NOT EXISTS (SELECT 1 FROM pg_user WHERE usename = :'db_user') THEN
+        EXECUTE format('CREATE USER %I WITH ENCRYPTED PASSWORD %L', :'db_user', :'db_password');
+        RAISE NOTICE 'Created user: %', :'db_user';
     ELSE
-        RAISE NOTICE 'User $METABASE_DB_USER already exists';
+        RAISE NOTICE 'User % already exists', :'db_user';
     END IF;
 END
-\$\$;
+$$;
 
 -- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE $METABASE_DB_NAME TO $METABASE_DB_USER;
+DO $$
+BEGIN
+    EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE %I TO %I', :'db_name', :'db_user');
+END
+$$;
 EOF
 
 if [ $? -eq 0 ]; then

@@ -33,6 +33,9 @@ Before starting Metabase, create its metadata database:
 docker exec -it clipper-postgres psql -U clipper -d clipper_db
 
 # Create metabase database and user
+# IMPORTANT: Replace 'your_secure_password_here' with the same password you set
+# for METABASE_DB_PASSWORD in your .env file. Generate a strong password with:
+# openssl rand -base64 32
 CREATE DATABASE metabase;
 CREATE USER metabase WITH ENCRYPTED PASSWORD 'your_secure_password_here';
 GRANT ALL PRIVILEGES ON DATABASE metabase TO metabase;

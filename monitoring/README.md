@@ -109,6 +109,14 @@ You can also import community dashboards:
 
 ### Quick Start with Metabase
 
+**Automated Setup (Recommended):**
+```bash
+cd monitoring
+./setup-metabase.sh
+```
+
+**Manual Setup:**
+
 1. **Create Metabase Database**:
    ```bash
    docker exec -it clipper-postgres psql -U clipper -d clipper_db

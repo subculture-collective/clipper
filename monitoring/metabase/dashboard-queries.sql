@@ -10,8 +10,8 @@
 -- ============================================================================
 -- Multiple queries use hardcoded price mappings for MRR calculation.
 -- Before using these queries in production, you MUST:
--- 1. Update the CASE statements in MRR queries (lines ~90-110 and ~115-135)
---    with your actual Stripe price IDs and amounts
+-- 1. Update the CASE statements in the MRR queries below ("Monthly Recurring 
+--    Revenue (MRR)" and "Current MRR") with your actual Stripe price IDs and amounts
 -- 2. OR better yet: Create a dedicated price_tiers table and reference it
 -- 3. Keep price mappings in sync across all queries that use them
 --
@@ -102,22 +102,27 @@ WHERE status IN ('active', 'trialing')
 -- Description: Calculate MRR from active subscriptions
 -- Dashboard: Executive
 -- Visualization: Number or line chart
--- Note: Assumes stripe_price_id contains pricing info; adjust based on your pricing structure
+-- WARNING: This query uses placeholder price values that will produce incorrect results
+-- in production. You MUST update the CASE statement below with your actual Stripe price IDs
+-- and amounts, or create a price_tiers table and JOIN against it instead.
 WITH price_mapping AS (
     SELECT 
         stripe_price_id,
         CASE 
-            -- Add your actual Stripe price IDs and amounts here
+            -- PLACEHOLDER VALUES - UPDATE WITH YOUR ACTUAL STRIPE PRICE IDs
+            -- Example: WHEN stripe_price_id = 'price_1234567890' THEN 9.99
             WHEN stripe_price_id LIKE '%_monthly%' THEN 9.99
             WHEN stripe_price_id LIKE '%_annual%' THEN 99.99 / 12  -- Convert annual to monthly
-            ELSE 0
+            ELSE NULL  -- Changed from 0 to NULL to make missing mappings obvious
         END as monthly_amount
     FROM subscriptions
     WHERE status = 'active'
 )
 SELECT 
     date_trunc('month', s.current_period_start) as month,
-    SUM(pm.monthly_amount) as mrr
+    SUM(pm.monthly_amount) as mrr,
+    -- Count subscriptions with unmapped prices for debugging
+    COUNT(*) FILTER (WHERE pm.monthly_amount IS NULL) as unmapped_price_count
 FROM subscriptions s
 JOIN price_mapping pm ON s.stripe_price_id = pm.stripe_price_id
 WHERE s.status = 'active'
@@ -129,18 +134,22 @@ ORDER BY month DESC;
 -- Description: Current month's MRR
 -- Dashboard: Executive
 -- Visualization: Number
+-- WARNING: This query uses placeholder price values. Update with actual Stripe price IDs.
 WITH price_mapping AS (
     SELECT 
         stripe_price_id,
         CASE 
+            -- PLACEHOLDER VALUES - UPDATE WITH YOUR ACTUAL STRIPE PRICE IDs
             WHEN stripe_price_id LIKE '%_monthly%' THEN 9.99
             WHEN stripe_price_id LIKE '%_annual%' THEN 99.99 / 12
-            ELSE 0
+            ELSE NULL  -- Changed from 0 to NULL to make missing mappings obvious
         END as monthly_amount
     FROM subscriptions
     WHERE status = 'active'
 )
-SELECT SUM(pm.monthly_amount) as current_mrr
+SELECT 
+    SUM(pm.monthly_amount) as current_mrr,
+    COUNT(*) FILTER (WHERE pm.monthly_amount IS NULL) as unmapped_price_count
 FROM subscriptions s
 JOIN price_mapping pm ON s.stripe_price_id = pm.stripe_price_id
 WHERE s.status = 'active';
@@ -411,19 +420,23 @@ SELECT
     cohort_month,
     revenue_month,
     revenue,
-    EXTRACT(MONTH FROM AGE(revenue_month, cohort_month)) as months_since_signup
+    (
+        (EXTRACT(YEAR FROM revenue_month) - EXTRACT(YEAR FROM cohort_month)) * 12
+        + (EXTRACT(MONTH FROM revenue_month) - EXTRACT(MONTH FROM cohort_month))
+    ) AS months_since_signup
 FROM cohort_revenue
 ORDER BY cohort_month DESC, revenue_month DESC;
 
 -- Query: Subscription Conversion Rate
--- Description: Trial to paid conversion rate
+-- Description: Trial to paid conversion rate (includes currently active and previously converted)
 -- Dashboard: Revenue
 -- Visualization: Number or line chart
 WITH trial_conversions AS (
     SELECT 
         date_trunc('month', trial_start) as trial_month,
         COUNT(*) as trials_started,
-        COUNT(*) FILTER (WHERE status = 'active' AND trial_end IS NOT NULL AND current_period_start > trial_end) as conversions
+        -- Count all conversions (both currently active and those that later churned)
+        COUNT(*) FILTER (WHERE trial_end IS NOT NULL AND current_period_start > trial_end) as conversions
     FROM subscriptions
     WHERE trial_start IS NOT NULL
         AND trial_start >= CURRENT_DATE - INTERVAL '12 months'
@@ -457,7 +470,7 @@ WITH monthly_revenue AS (
 monthly_users AS (
     SELECT 
         date_trunc('month', created_at) as month,
-        COUNT(*) as active_users
+        COUNT(DISTINCT user_id) as active_users
     FROM analytics_events
     WHERE user_id IS NOT NULL
         AND created_at >= CURRENT_DATE - INTERVAL '12 months'
@@ -498,6 +511,13 @@ WITH user_cohorts AS (
     FROM users
     WHERE created_at >= CURRENT_DATE - INTERVAL '12 months'
 ),
+cohort_sizes AS (
+    SELECT 
+        cohort_month,
+        COUNT(DISTINCT user_id) as cohort_size
+    FROM user_cohorts
+    GROUP BY cohort_month
+),
 user_activity AS (
     SELECT DISTINCT
         user_id,
@@ -508,11 +528,12 @@ user_activity AS (
 )
 SELECT 
     uc.cohort_month,
-    COUNT(DISTINCT uc.user_id) as cohort_size,
+    cs.cohort_size,
     ua.activity_month,
     COUNT(DISTINCT ua.user_id) as active_users,
-    ROUND((COUNT(DISTINCT ua.user_id)::NUMERIC / COUNT(DISTINCT uc.user_id)::NUMERIC) * 100, 2) as retention_percent
+    ROUND((COUNT(DISTINCT ua.user_id)::NUMERIC / cs.cohort_size::NUMERIC) * 100, 2) as retention_percent
 FROM user_cohorts uc
+CROSS JOIN cohort_sizes cs ON uc.cohort_month = cs.cohort_month
 LEFT JOIN user_activity ua ON uc.user_id = ua.user_id
-GROUP BY uc.cohort_month, ua.activity_month
+GROUP BY uc.cohort_month, cs.cohort_size, ua.activity_month
 ORDER BY uc.cohort_month DESC, ua.activity_month DESC;

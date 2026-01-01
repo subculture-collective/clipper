@@ -240,11 +240,8 @@ services:
             - metabase_data:/metabase-data
         ports:
             - '13000:3000'
-        depends_on:
-            - postgres-exporter
         networks:
             - clipper-network
-            - monitoring
             - web
 
 volumes:
