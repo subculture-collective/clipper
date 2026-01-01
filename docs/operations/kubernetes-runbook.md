@@ -14,6 +14,21 @@ aliases: ["k8s-runbook", "kubernetes runbook", "cluster operations"]
 
 Complete operational procedures for managing Clipper's Kubernetes infrastructure.
 
+## Monitoring Dashboards
+
+Monitor cluster health and workloads through Grafana dashboards:
+
+- **[Kubernetes Cluster Overview](../../monitoring/dashboards/kubernetes.json)** - Pod, node, deployment status, HPA, network I/O
+- **[Resource Quotas & Limits](../../monitoring/dashboards/resource-quotas.json)** - Namespace quotas, OOM events, CPU throttling
+- **[System Health](../../monitoring/dashboards/system-health.json)** - Node CPU, memory, disk usage
+- **[Application Overview](../../monitoring/dashboards/app-overview.json)** - Service-level SLO compliance
+
+See [Dashboard README](../../monitoring/dashboards/README.md) for detailed panel descriptions and [Alerts Configuration](../../monitoring/alerts.yml) for related alerts.
+
+**Related Issues:**
+- [#805 - Observability Roadmap](https://github.com/subculture-collective/clipper/issues/805)
+- [#857 - Resource Quotas & Limits](https://github.com/subculture-collective/clipper/issues/857)
+
 ## Table of Contents
 
 - [Cluster Provisioning](#cluster-provisioning)

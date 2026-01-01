@@ -1,0 +1,448 @@
+{
+  "dashboard": {
+    "title": "Kubernetes Cluster Overview",
+    "tags": ["clipper", "kubernetes", "k8s", "cluster"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "label": "Namespace",
+          "type": "query",
+          "query": "label_values(kube_pod_info, namespace)",
+          "datasource": "Prometheus",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Cluster Nodes",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "count(kube_node_info)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "yellow"},
+                {"value": 3, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Total Pods",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "count(kube_pod_info{namespace=~\"$namespace\"})",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Running Pods",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "count(kube_pod_status_phase{namespace=~\"$namespace\", phase=\"Running\"})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Failed Pods",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "count(kube_pod_status_phase{namespace=~\"$namespace\", phase=\"Failed\"})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Cluster CPU Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"$namespace\", container!=\"\", container!=\"POD\"}[5m])) by (namespace)",
+            "legendFormat": "{{ namespace }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "CPU Cores"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Cluster Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "sum(container_memory_working_set_bytes{namespace=~\"$namespace\", container!=\"\", container!=\"POD\"}) by (namespace)",
+            "legendFormat": "{{ namespace }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "bytes", "label": "Memory"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Pod Status by Namespace",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "count(kube_pod_status_phase{namespace=~\"$namespace\", phase=\"Running\"}) by (namespace)",
+            "legendFormat": "{{ namespace }} - Running",
+            "refId": "A"
+          },
+          {
+            "expr": "count(kube_pod_status_phase{namespace=~\"$namespace\", phase=\"Pending\"}) by (namespace)",
+            "legendFormat": "{{ namespace }} - Pending",
+            "refId": "B"
+          },
+          {
+            "expr": "count(kube_pod_status_phase{namespace=~\"$namespace\", phase=\"Failed\"}) by (namespace)",
+            "legendFormat": "{{ namespace }} - Failed",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Pods"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Pod Restarts",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "sum(rate(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[5m])) by (namespace, pod)",
+            "legendFormat": "{{ namespace }}/{{ pod }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Restarts/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Node CPU Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance)) * 100",
+            "legendFormat": "{{ instance }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100, "label": "CPU %"},
+          {"format": "short"}
+        ],
+        "thresholds": [
+          {"value": 70, "colorMode": "custom", "op": "gt", "fill": false, "line": true, "lineColor": "rgb(237, 129, 40)"},
+          {"value": 85, "colorMode": "critical", "op": "gt", "fill": false, "line": true}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Node Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+            "legendFormat": "{{ instance }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100, "label": "Memory %"},
+          {"format": "short"}
+        ],
+        "thresholds": [
+          {"value": 80, "colorMode": "custom", "op": "gt", "fill": false, "line": true, "lineColor": "rgb(237, 129, 40)"},
+          {"value": 90, "colorMode": "critical", "op": "gt", "fill": false, "line": true}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Disk Usage by Node",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+            "legendFormat": "{{ instance }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100, "label": "Disk %"},
+          {"format": "short"}
+        ],
+        "thresholds": [
+          {"value": 80, "colorMode": "custom", "op": "gt", "fill": false, "line": true, "lineColor": "rgb(237, 129, 40)"},
+          {"value": 90, "colorMode": "critical", "op": "gt", "fill": false, "line": true}
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Network I/O",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "targets": [
+          {
+            "expr": "sum(rate(container_network_receive_bytes_total{namespace=~\"$namespace\"}[5m])) by (namespace)",
+            "legendFormat": "{{ namespace }} - Receive",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(container_network_transmit_bytes_total{namespace=~\"$namespace\"}[5m])) by (namespace)",
+            "legendFormat": "{{ namespace }} - Transmit",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "Bps", "label": "Bytes/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Deployment Status",
+        "type": "table",
+        "gridPos": {"h": 10, "w": 12, "x": 0, "y": 36},
+        "targets": [
+          {
+            "expr": "kube_deployment_status_replicas{namespace=~\"$namespace\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          },
+          {
+            "expr": "kube_deployment_status_replicas_available{namespace=~\"$namespace\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "B"
+          },
+          {
+            "expr": "kube_deployment_status_replicas_unavailable{namespace=~\"$namespace\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "C"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "StatefulSet Status",
+        "type": "table",
+        "gridPos": {"h": 10, "w": 12, "x": 12, "y": 36},
+        "targets": [
+          {
+            "expr": "kube_statefulset_replicas{namespace=~\"$namespace\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          },
+          {
+            "expr": "kube_statefulset_status_replicas_ready{namespace=~\"$namespace\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "B"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Container CPU Throttling",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 46},
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_cfs_throttled_seconds_total{namespace=~\"$namespace\", container!=\"\", container!=\"POD\"}[5m])) by (namespace, pod, container)",
+            "legendFormat": "{{ namespace }}/{{ pod }}/{{ container }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Throttled Seconds/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 16,
+        "title": "PersistentVolume Status",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 46},
+        "targets": [
+          {
+            "expr": "kube_persistentvolume_status_phase",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Node Conditions",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 54},
+        "targets": [
+          {
+            "expr": "kube_node_status_condition{condition=~\"Ready|MemoryPressure|DiskPressure|PIDPressure\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Ingress Status",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 62},
+        "targets": [
+          {
+            "expr": "kube_ingress_info{namespace=~\"$namespace\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Service Status",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 62},
+        "targets": [
+          {
+            "expr": "kube_service_info{namespace=~\"$namespace\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "HPA Status",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 70},
+        "targets": [
+          {
+            "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=~\"$namespace\"}",
+            "legendFormat": "{{ namespace }}/{{ horizontalpodautoscaler }} - Current",
+            "refId": "A"
+          },
+          {
+            "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=~\"$namespace\"}",
+            "legendFormat": "{{ namespace }}/{{ horizontalpodautoscaler }} - Desired",
+            "refId": "B"
+          },
+          {
+            "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=~\"$namespace\"}",
+            "legendFormat": "{{ namespace }}/{{ horizontalpodautoscaler }} - Max",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Replicas"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 21,
+        "title": "Pending Pods Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 70},
+        "targets": [
+          {
+            "expr": "(time() - kube_pod_created{namespace=~\"$namespace\"}) * on(namespace, pod) group_left() (kube_pod_status_phase{namespace=~\"$namespace\", phase=\"Pending\"} > 0) > 300",
+            "legendFormat": "{{ namespace }}/{{ pod }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Pending Duration"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}
