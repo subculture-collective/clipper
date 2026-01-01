@@ -13,7 +13,7 @@ data:
     # Connection settings
     listen_addr = 0.0.0.0
     listen_port = 6432
-    auth_type = md5
+    auth_type = scram-sha-256
     auth_file = /etc/pgbouncer/userlist.txt
 
     # Pool configuration - Transaction mode for optimal connection reuse
@@ -34,8 +34,8 @@ data:
     server_connect_timeout = 15
     query_timeout = 0
     query_wait_timeout = 120
-    client_idle_timeout = 0
-    idle_transaction_timeout = 0
+    client_idle_timeout = 900
+    idle_transaction_timeout = 600
 
     # Logging
     log_connections = 1

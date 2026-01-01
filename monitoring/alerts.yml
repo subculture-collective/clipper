@@ -1256,6 +1256,8 @@ groups:
           runbook: "Review PgBouncer logs, verify postgres connectivity, check authentication."
 
       # PgBouncer pool utilization
+      # NOTE: This alert uses hardcoded max pool size of 50 in the calculation
+      # If you change max_db_connections in pgbouncer-config, update the divisor here
       - alert: PgBouncerHighUtilization
         expr: (pgbouncer_pools_sv_active{database="clipper_db"} / 50) * 100 > 80
         for: 10m

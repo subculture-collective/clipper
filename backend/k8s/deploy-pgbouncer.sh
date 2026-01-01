@@ -84,6 +84,15 @@ if ! kubectl get statefulset postgres -n "$NAMESPACE" &> /dev/null; then
     print_error "PostgreSQL StatefulSet not found in namespace $NAMESPACE"
     exit 1
 fi
+
+# Check if postgres-secret exists (required for pgbouncer-exporter)
+if ! kubectl get secret postgres-secret -n "$NAMESPACE" &> /dev/null; then
+    print_warning "postgres-secret not found - required for PgBouncer metrics exporter"
+    echo "The pgbouncer-exporter container needs POSTGRES_PASSWORD from postgres-secret"
+    echo "Please create postgres-secret before deploying PgBouncer"
+    exit 1
+fi
+
 print_success "Prerequisites met"
 
 # Check if secret exists
@@ -91,7 +100,7 @@ print_step "Checking PgBouncer secret..."
 if ! kubectl get secret pgbouncer-secret -n "$NAMESPACE" &> /dev/null; then
     print_warning "PgBouncer secret not found"
     echo ""
-    echo "You need to create the pgbouncer-secret with proper authentication."
+    echo "You need to create the pgbouncer-secret with proper SCRAM-SHA-256 authentication."
     echo "See PGBOUNCER_QUICKSTART.md for instructions."
     echo ""
     read -p "Create a placeholder secret for testing? (y/N) " -n 1 -r
@@ -109,14 +118,21 @@ metadata:
 type: Opaque
 stringData:
   userlist.txt: |
-    "clipper" "md5placeholder"
+    "clipper" "REPLACE_WITH_ACTUAL_PASSWORD"
 EOF
-        print_warning "Placeholder secret created - UPDATE THIS IN PRODUCTION!"
+        print_warning "Placeholder secret created - REPLACE PASSWORD BEFORE PRODUCTION USE!"
+        print_warning "Update ConfigMap auth_type to 'scram-sha-256' for production"
     else
         exit 1
     fi
 else
     print_success "PgBouncer secret exists"
+    
+    # Validate secret has proper content
+    SECRET_CONTENT=$(kubectl get secret pgbouncer-secret -n "$NAMESPACE" -o jsonpath='{.data.userlist\.txt}' | base64 -d)
+    if echo "$SECRET_CONTENT" | grep -q "REPLACE_WITH_ACTUAL_PASSWORD\|CHANGEME\|md5placeholder"; then
+        print_warning "Secret contains placeholder password - update before production use!"
+    fi
 fi
 
 # Deploy ConfigMap
@@ -157,7 +173,7 @@ echo ""
 # Test connection
 print_step "Testing PgBouncer connectivity..."
 if kubectl run test-pgbouncer-conn --rm -i --restart=Never --image=postgres:17 -n "$NAMESPACE" -- \
-    psql -h pgbouncer -p 6432 -U clipper -d clipper_db -c "SELECT 1;" &> /dev/null; then
+    psql -h pgbouncer -p 6432 -U clipper -d clipper_db -c "SELECT 1;" 2>&1 | grep -q "1 row"; then
     print_success "PgBouncer connection test passed"
 else
     print_warning "PgBouncer connection test failed - check authentication"

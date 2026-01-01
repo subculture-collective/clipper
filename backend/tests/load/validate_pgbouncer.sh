@@ -48,9 +48,28 @@ get_pgbouncer_metrics() {
     local metric=$1
     kubectl port-forward -n "$NAMESPACE" svc/"$PGBOUNCER_SERVICE" "$PGBOUNCER_METRICS_PORT":"$PGBOUNCER_METRICS_PORT" &> /dev/null &
     local PF_PID=$!
-    sleep 2
     
-    local value=$(curl -s "http://localhost:${PGBOUNCER_METRICS_PORT}/metrics" | grep "^${metric}" | grep 'database="clipper_db"' | awk '{print $2}' | head -1)
+    # Wait for port-forward to be ready (up to 10 seconds)
+    local max_retries=10
+    local attempt=0
+    local port_ready=0
+    while [ "$attempt" -lt "$max_retries" ]; do
+        if curl -s "http://localhost:${PGBOUNCER_METRICS_PORT}/metrics" -o /dev/null 2>&1; then
+            port_ready=1
+            break
+        fi
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+
+    if [ "$port_ready" -ne 1 ]; then
+        kill $PF_PID 2>/dev/null || true
+        wait $PF_PID 2>/dev/null || true
+        echo "0"
+        return
+    fi
+    
+    local value=$(curl -s "http://localhost:${PGBOUNCER_METRICS_PORT}/metrics" | grep -E -m1 "^${metric}\{[^}]*database=\"clipper_db\"[^}]*\}" | awk '{print $NF}')
     
     kill $PF_PID 2>/dev/null || true
     wait $PF_PID 2>/dev/null || true
@@ -114,6 +133,15 @@ fi
 echo "Starting k6 load test..."
 k6 run --vus 100 --duration "${TEST_DURATION}s" scenarios/mixed_behavior.js > /tmp/k6_output.log 2>&1 &
 K6_PID=$!
+
+# Verify k6 started successfully before monitoring
+sleep 2
+if ! kill -0 "$K6_PID" 2>/dev/null; then
+    echo -e "${RED}ERROR: k6 failed to start or exited prematurely${NC}"
+    echo "k6 output (last 20 lines):"
+    tail -n 20 /tmp/k6_output.log || true
+    exit 1
+fi
 
 # Monitor metrics during test
 echo -e "${YELLOW}Monitoring PgBouncer metrics during test...${NC}"

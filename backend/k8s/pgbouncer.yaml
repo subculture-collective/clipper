@@ -6,11 +6,12 @@ metadata:
     app: pgbouncer
 type: Opaque
 stringData:
-  # This should be populated from Vault in production
-  # Format: "username" "md5<md5 of password+username>"
-  # For now, this is a placeholder that should be replaced
+  # IMPORTANT: This secret should be populated from Vault in production
+  # For SCRAM-SHA-256 auth (recommended), format: "username" "password"
+  # Ensure PostgreSQL is configured with password_encryption = 'scram-sha-256'
+  # Replace REPLACE_WITH_ACTUAL_PASSWORD with the actual PostgreSQL password
   userlist.txt: |
-    "clipper" "CHANGEME"
+    "clipper" "REPLACE_WITH_ACTUAL_PASSWORD"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,7 +42,7 @@ spec:
               protocol: TCP
           env:
             - name: PGBOUNCER_AUTH_TYPE
-              value: "md5"
+              value: "scram-sha-256"
             - name: PGBOUNCER_AUTH_FILE
               value: "/etc/pgbouncer/userlist.txt"
           volumeMounts:

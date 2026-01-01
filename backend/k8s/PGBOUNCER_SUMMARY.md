@@ -196,7 +196,7 @@ Breakdown:
 ## Security Considerations
 
 - ✅ Secrets managed via Vault integration
-- ✅ MD5 authentication for database connections
+- ✅ SCRAM-SHA-256 authentication for database connections (MD5 not recommended for production)
 - ✅ Network policies restrict access to backend pods only
 - ✅ Non-root containers with dropped capabilities
 - ✅ Read-only root filesystem where possible

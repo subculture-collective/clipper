@@ -6,20 +6,27 @@ This guide provides step-by-step instructions to deploy PgBouncer connection poo
 
 - Kubernetes cluster with PostgreSQL deployed
 - kubectl configured and authenticated
+- `postgres-secret` with POSTGRES_PASSWORD key (required for PgBouncer metrics exporter)
 - Prometheus and Grafana for monitoring (optional but recommended)
 
 ## Deployment Steps
 
 ### 1. Prepare Secrets (Production)
 
+**Note:** The PgBouncer metrics exporter requires the `postgres-secret` to exist with a `POSTGRES_PASSWORD` key. Ensure this secret is created before deploying PgBouncer.
+
 In production, the PgBouncer secret should be managed via Vault or external secrets operator. For manual setup:
 
 ```bash
-# Generate MD5 hash for the password
-# Format: md5(password + username)
-echo -n "your-password-hereclipper" | md5sum
+# IMPORTANT: Use SCRAM-SHA-256 authentication (not MD5) for production security
+# Ensure PostgreSQL is configured with password_encryption = 'scram-sha-256'
 
-# Create the secret with proper format
+# First, ensure the database user exists in PostgreSQL with SCRAM-SHA-256 password
+kubectl exec postgres-0 -- psql -U postgres -c \
+  "CREATE ROLE clipper WITH LOGIN PASSWORD 'your-strong-password';"
+
+# Create the secret with proper format for SCRAM-SHA-256
+# Format: "username" "password" (PgBouncer handles SCRAM exchange)
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
@@ -30,8 +37,12 @@ metadata:
 type: Opaque
 stringData:
   userlist.txt: |
-    "clipper" "md5<hash-from-above>"
+    "clipper" "your-strong-password"
 EOF
+
+# Note: Update the ConfigMap to use scram-sha-256 auth_type instead of md5
+# Edit backend/k8s/pgbouncer-configmap.yaml and change:
+#   auth_type = scram-sha-256
 ```
 
 ### 2. Deploy PgBouncer

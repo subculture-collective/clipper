@@ -105,6 +105,12 @@ Comprehensive PgBouncer connection pooling metrics for monitoring database conne
 - [PgBouncer Configuration Guide](../../backend/k8s/PGBOUNCER.md)
 - [Load Test Validation](../../backend/tests/load/validate_pgbouncer.sh)
 
+**Configuration Note:**
+
+⚠️ The dashboard uses a hardcoded value of 50 for the max pool size in the "Pool Utilization %" panel calculation. If you change `max_db_connections` in the PgBouncer ConfigMap, you must also update:
+- Dashboard JSON line 284: `(pgbouncer_pools_sv_active{database="clipper_db"} / 50) * 100`
+- Update the divisor (50) to match your new max_db_connections value
+
 ### 4. User Experience Dashboard (`user-experience.json`) 🆕
 
 Frontend and user-facing metrics for monitoring end-user experience.

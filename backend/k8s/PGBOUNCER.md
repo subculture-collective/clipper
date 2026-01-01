@@ -43,18 +43,32 @@ The pool sizing is based on:
 ### Prerequisites
 
 1. Kubernetes cluster with PostgreSQL deployed
-2. Prometheus for metrics collection
-3. Grafana for dashboard visualization
+2. `postgres-secret` with POSTGRES_PASSWORD key (required for PgBouncer metrics exporter)
+3. Prometheus for metrics collection
+4. Grafana for dashboard visualization
 
 ### Installation Steps
 
 1. **Create PgBouncer Secret (Production)**:
    ```bash
-   # Generate MD5 hash for password
-   echo -n "passwordusername" | md5sum
+   # IMPORTANT: Use SCRAM-SHA-256 authentication (not MD5) for production
+   # Ensure PostgreSQL is configured with password_encryption = 'scram-sha-256'
+   # and the user is created with a SCRAM-SHA-256 password in PostgreSQL
    
-   # Update secret with format: "username" "md5<hash>"
-   kubectl edit secret pgbouncer-secret
+   # Create the user in PostgreSQL first if not exists:
+   # kubectl exec postgres-0 -- psql -U postgres -c \
+   #   "CREATE ROLE clipper WITH LOGIN PASSWORD 'your-strong-password';"
+   
+   # For PgBouncer with SCRAM-SHA-256, use auth_query or auth_file with plaintext
+   # (PgBouncer will handle the SCRAM exchange with PostgreSQL)
+   # Note: The userlist.txt format for SCRAM is: "username" "password"
+   
+   kubectl create secret generic pgbouncer-secret \
+     --from-literal=userlist.txt='\"clipper\" \"your-strong-password\"'
+   
+   # Update ConfigMap to use scram-sha-256 auth_type
+   kubectl patch configmap pgbouncer-config \
+     -p '{"data":{"auth_type":"scram-sha-256"}}'
    ```
 
 2. **Deploy PgBouncer**:
@@ -261,7 +275,12 @@ kubectl edit configmap pgbouncer-config
 # 2. Restart PgBouncer pods (picks up new config)
 kubectl rollout restart deployment/pgbouncer
 
-# 3. Monitor metrics for 15-30 minutes
+# 3. Update hardcoded values in monitoring (if you changed max_db_connections)
+# - Update monitoring/dashboards/pgbouncer-pool.json line 284 (pool utilization calculation)
+# - Update monitoring/alerts.yml line 1260 (PgBouncerHighUtilization alert)
+# Both use hardcoded value of 50 for max pool size
+
+# 4. Monitor metrics for 15-30 minutes
 kubectl port-forward svc/pgbouncer 9127:9127
 # Watch metrics in Grafana dashboard
 
@@ -284,7 +303,7 @@ kubectl describe svc pgbouncer
 
 # Test connectivity
 kubectl run -it --rm test-pgbouncer --image=postgres:17 -- \
-  psql -h pgbouncer -p 6432 -U clipper -d clipper_db -c "SHOW DATABASES;"
+  psql -h pgbouncer -p 6432 -U clipper -d clipper_db -c "SELECT 1;"
 ```
 
 ### Authentication Errors
@@ -308,8 +327,8 @@ curl -s http://localhost:9127/metrics | grep -E 'cl_waiting|sv_active|sv_idle'
 
 # Check PostgreSQL for slow queries
 kubectl exec postgres-0 -- psql -U clipper -d clipper_db -c \
-  "SELECT pid, usename, query, state, wait_event 
-   FROM pg_stat_activity 
+  "SELECT pid, usename, query, state, wait_event
+   FROM pg_stat_activity
    WHERE datname = 'clipper_db' AND state != 'idle';"
 
 # Increase pool size if needed
