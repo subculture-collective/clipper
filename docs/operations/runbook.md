@@ -14,6 +14,22 @@ aliases: ["runbook", "ops procedures"]
 
 Operational procedures and commands for managing Clipper in production.
 
+## Monitoring Dashboards
+
+Access comprehensive monitoring through Grafana dashboards (default: <http://localhost:3000>):
+
+- **[System Health](../../monitoring/dashboards/system-health.json)** - CPU, memory, disk, network metrics
+- **[API Performance](../../monitoring/dashboards/api-performance.json)** - Request rates, latency, errors
+- **[Database](../../monitoring/dashboards/database.json)** - PostgreSQL performance and connections
+- **[Redis Cache](../../monitoring/dashboards/redis.json)** - Cache hit rates, memory usage
+- **[Kubernetes Cluster](../../monitoring/dashboards/kubernetes.json)** - Pod, node, and workload health
+- **[Resource Quotas](../../monitoring/dashboards/resource-quotas.json)** - Namespace quotas and limits
+- **[Application Overview](../../monitoring/dashboards/app-overview.json)** - High-level SLO compliance
+- **[Background Jobs](../../monitoring/dashboards/background-jobs.json)** - Job execution and queue health
+- **[Webhook Monitoring](../../monitoring/dashboards/webhook-monitoring.json)** - Webhook delivery status
+
+See [Dashboard README](../../monitoring/dashboards/README.md) for full documentation.
+
 ## Common Tasks
 
 ### Check Service Health

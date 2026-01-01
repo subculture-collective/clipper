@@ -2,6 +2,15 @@
 
 This directory contains Grafana dashboard configurations for monitoring Clipper.
 
+**Part of:** [Roadmap 5.0 Phase 5.3 - Observability](https://github.com/subculture-collective/clipper/issues/805)
+
+All dashboards are:
+- ✅ Version-controlled as JSON in this repository
+- ✅ Parameterized with template variables for filtering
+- ✅ Aligned with Prometheus metrics from [prometheus.yml](../prometheus.yml)
+- ✅ Integrated with alerting rules in [alerts.yml](../alerts.yml)
+- ✅ Linked from operational runbooks
+
 ## Available Dashboards
 
 ### 1. System Health Dashboard (`system-health.json`) 🆕
@@ -352,6 +361,124 @@ Add template variables for dynamic filtering:
 3. **Set Appropriate Refresh Rates**: 30s for operational dashboards, 5m for overview
 4. **Use Alert States**: Link dashboard panels to alert rules
 5. **Document Queries**: Add panel descriptions explaining what metrics mean
+
+### 9. Redis Cache Monitoring Dashboard (`redis.json`) 🆕
+
+Comprehensive Redis cache performance monitoring for cache health and efficiency tracking.
+
+**Summary Panels:**
+
+- Redis Uptime - Current uptime of Redis instance
+- Connected Clients - Current client connections
+- Memory Usage - Percentage of allocated memory used (gauge)
+- Cache Hit Rate - Percentage of successful cache hits (gauge)
+
+**Performance Panels:**
+
+- Commands per Second - Redis command throughput
+- Memory Usage Over Time - Memory consumption trends with max limit
+- Cache Hit Rate Over Time - Cache effectiveness over time
+- Keyspace Operations - Hit and miss rates
+
+**Connection & Operations Panels:**
+
+- Connected Clients Over Time - Client connection trends
+- Blocked Clients - Clients waiting on blocking operations
+- Evicted Keys - Key eviction rate due to memory pressure
+- Expired Keys - Natural key expiration rate
+- Total Keys in Keyspace - Key count by database
+
+**Network & Advanced Metrics:**
+
+- Network I/O - Incoming and outgoing bytes per second
+- Commands by Type - Top 10 most used Redis commands
+- Slowlog Entries - Number of slow commands logged
+- RDB Last Save Time - Time since last persistence snapshot
+- Instantaneous Ops/sec - Current operational rate
+
+**Use Cases:**
+
+- Monitor cache performance and hit rates
+- Identify memory pressure and eviction issues
+- Track connection patterns and client behavior
+- Optimize cache configuration
+- Detect slow operations and bottlenecks
+
+**Alert Integration:**
+
+- High eviction rate alert (>0.5/sec)
+- Aligned with Redis alerts in `monitoring/alerts.yml`
+
+**Related Documentation:**
+
+- [Prometheus Configuration](../prometheus.yml) - Redis exporter setup
+- [Alerts](../alerts.yml) - Redis alerting rules
+
+### 10. Kubernetes Cluster Overview Dashboard (`kubernetes.json`) 🆕
+
+Comprehensive Kubernetes cluster health monitoring for pods, nodes, resources, and workloads.
+
+**Cluster Summary Panels:**
+
+- Cluster Nodes - Total number of nodes in cluster
+- Total Pods - Pod count across selected namespaces
+- Running Pods - Healthy running pod count
+- Failed Pods - Pods in failed state
+
+**Resource Usage Panels:**
+
+- Cluster CPU Usage - CPU usage by namespace over time
+- Cluster Memory Usage - Memory consumption by namespace
+- Node CPU Usage - Per-node CPU utilization with thresholds
+- Node Memory Usage - Per-node memory utilization
+- Disk Usage by Node - Node filesystem usage
+
+**Pod & Workload Health:**
+
+- Pod Status by Namespace - Running, pending, and failed pods
+- Pod Restarts - Container restart rate by namespace and pod
+- Container CPU Throttling - CPU throttling events indicating limit constraints
+- Pending Pods Duration - Long-running pending pods (>5 minutes)
+
+**Deployment & StatefulSet Status:**
+
+- Deployment Status - Replica counts (desired vs available vs unavailable)
+- StatefulSet Status - StatefulSet replica readiness
+- HPA Status - HorizontalPodAutoscaler current, desired, and max replicas
+
+**Network & Storage:**
+
+- Network I/O - Network throughput by namespace
+- PersistentVolume Status - PV phase and availability
+- Ingress Status - Ingress resource information
+- Service Status - Service configuration details
+
+**Node Health:**
+
+- Node Conditions - Node status (Ready, MemoryPressure, DiskPressure, PIDPressure)
+
+**Use Cases:**
+
+- Monitor overall cluster health and capacity
+- Track pod and deployment status
+- Identify resource exhaustion and scheduling issues
+- Detect node problems and pressure conditions
+- Monitor HPA scaling behavior
+- Track network and storage resource usage
+
+**Alert Integration:**
+
+- Container OOM kills
+- High CPU throttling
+- Pod restart rates
+- Node condition alerts
+- Aligned with K8s alerts in `monitoring/alerts.yml`
+
+**Related Documentation:**
+
+- [Kubernetes Runbook](../../docs/operations/kubernetes-runbook.md)
+- [Resource Quotas Dashboard](./resource-quotas.json) - For quota-specific monitoring
+- [Alerts](../alerts.yml) - HPA and K8s alerting rules
 
 ### 11. Resource Quotas & Limits Dashboard (`resource-quotas.json`) 🆕
 
