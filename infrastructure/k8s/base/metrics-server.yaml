@@ -1,6 +1,7 @@
 # Metrics Server
 # Provides resource metrics (CPU, memory) for Horizontal Pod Autoscaler
 # https://github.com/kubernetes-sigs/metrics-server
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:

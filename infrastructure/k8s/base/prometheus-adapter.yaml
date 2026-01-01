@@ -149,7 +149,7 @@ data:
           matches: "^(.*)_total$"
           as: "${1}_per_second"
         metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
-      
+
       # Custom metric: http_requests_per_second for backend/frontend
       - seriesQuery: 'http_requests_total{job=~"clipper-backend|clipper-frontend",namespace!="",pod!=""}'
         resources:

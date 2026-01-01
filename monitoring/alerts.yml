@@ -1192,4 +1192,3 @@ groups:
           summary: "Frontend pods at high RPS before scaling"
           description: "Frontend pods are handling >900 RPS (target: 1000) but HPA hasn't scaled yet. Check HPA responsiveness."
           runbook: "docs/operations/runbooks/hpa-scaling.md#slow-scale-up"
-
