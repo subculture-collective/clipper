@@ -169,7 +169,7 @@ install_prometheus_adapter() {
     kubectl rollout status deployment/prometheus-adapter -n custom-metrics --timeout=300s || log_warn "Prometheus Adapter deployment timeout"
     
     log_info "Prometheus Adapter installed"
-    log_info "Note: Prometheus Adapter requires Prometheus to be installed and accessible at http://prometheus.clipper-monitoring.svc:9090"
+    log_info "Note: Prometheus Adapter requires Prometheus to be installed and accessible at http://clipper-monitoring-prometheus-server.clipper-monitoring.svc:9090"
 }
 
 verify_installation() {

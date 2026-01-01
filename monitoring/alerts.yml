@@ -1128,19 +1128,21 @@ groups:
       # Custom Metrics Not Available
       - alert: HPACustomMetricsNotAvailable
         expr: |
-          up{job="prometheus-adapter"} == 0
+          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "Prometheus Adapter is down"
-          description: "Prometheus Adapter providing custom metrics for HPA is unavailable. HPA will fall back to CPU/memory only."
+          summary: "Custom metrics unavailable for {{ $labels.horizontalpodautoscaler }}"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} is unable to scale, possibly due to missing custom metrics. Check prometheus-adapter status."
           runbook: "docs/operations/runbooks/hpa-scaling.md#custom-metrics-unavailable"
 
       # Metrics Server Down
       - alert: MetricsServerDown
         expr: |
-          up{job="metrics-server"} == 0
+          kube_horizontalpodautoscaler_status_condition{condition="ScalingActive",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+          and
+          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
         for: 3m
         labels:
           severity: critical
@@ -1152,7 +1154,7 @@ groups:
       # High Scale-Up Events
       - alert: HPAHighScaleUpRate
         expr: |
-          increase(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[5m]) > 3
+          delta(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[5m]) > 3
         for: 10m
         labels:
           severity: info
@@ -1165,8 +1167,8 @@ groups:
       - alert: BackendHighUtilizationBeforeScaling
         expr: |
           (
-            sum(rate(http_requests_total{job="clipper-backend"}[2m])) by (pod)
-            / on(pod) group_left() kube_pod_info{pod=~"clipper-backend.*"}
+            sum(rate(http_requests_total{job="clipper-backend"}[2m]))
+            / count(kube_pod_info{pod=~"clipper-backend.*"})
           ) > 900
           and kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="clipper-backend"}
           < kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="clipper-backend"}
@@ -1182,8 +1184,8 @@ groups:
       - alert: FrontendHighUtilizationBeforeScaling
         expr: |
           (
-            sum(rate(http_requests_total{job="clipper-frontend"}[2m])) by (pod)
-            / on(pod) group_left() kube_pod_info{pod=~"clipper-frontend.*"}
+            sum(rate(http_requests_total{job="clipper-frontend"}[2m]))
+            / count(kube_pod_info{pod=~"clipper-frontend.*"})
           ) > 900
           and kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="clipper-frontend"}
           < kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="clipper-frontend"}
