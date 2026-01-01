@@ -97,9 +97,9 @@ echo "This will execute the mixed behavior test scenario"
 echo ""
 
 cd "$(dirname "$0")" || exit 1
-if [ ! -f "scenarios/benchmarks/mixed_behavior.js" ]; then
+if [ ! -f "scenarios/mixed_behavior.js" ]; then
     echo -e "${RED}ERROR: Load test script not found${NC}"
-    echo "Expected: scenarios/benchmarks/mixed_behavior.js"
+    echo "Expected: scenarios/mixed_behavior.js"
     exit 1
 fi
 
@@ -112,7 +112,7 @@ fi
 
 # Run k6 test in background
 echo "Starting k6 load test..."
-k6 run --vus 100 --duration "${TEST_DURATION}s" scenarios/benchmarks/mixed_behavior.js > /tmp/k6_output.log 2>&1 &
+k6 run --vus 100 --duration "${TEST_DURATION}s" scenarios/mixed_behavior.js > /tmp/k6_output.log 2>&1 &
 K6_PID=$!
 
 # Monitor metrics during test
