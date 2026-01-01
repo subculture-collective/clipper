@@ -181,7 +181,7 @@ kubectl get pods -n kube-system -l k8s-app=metrics-server
 2. **Prometheus Adapter Issues**:
 ```bash
 # Check Prometheus connectivity
-kubectl exec -it -n custom-metrics deployment/prometheus-adapter -- wget -O- http://prometheus.clipper-monitoring.svc:9090/-/healthy
+kubectl exec -it -n custom-metrics deployment/prometheus-adapter -- wget -O- http://clipper-monitoring-prometheus-server.clipper-monitoring.svc:9090/-/healthy
 
 # Restart prometheus-adapter
 kubectl rollout restart deployment/prometheus-adapter -n custom-metrics
@@ -277,7 +277,7 @@ kubectl get pods -n custom-metrics
 kubectl logs -n custom-metrics deployment/prometheus-adapter
 
 # Verify Prometheus connectivity
-kubectl port-forward -n clipper-monitoring svc/prometheus 9090:9090
+kubectl port-forward -n clipper-monitoring svc/clipper-monitoring-prometheus-server 9090:9090
 # Then visit http://localhost:9090 and check targets
 
 # Test custom metrics API

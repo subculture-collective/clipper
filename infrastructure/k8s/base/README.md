@@ -151,10 +151,10 @@ kubectl logs -n custom-metrics deployment/prometheus-adapter
 
 # Test Prometheus connectivity
 kubectl exec -it -n custom-metrics deployment/prometheus-adapter -- \
-  wget -O- http://prometheus.clipper-monitoring.svc:9090/-/healthy
+  wget -O- http://clipper-monitoring-prometheus-server.clipper-monitoring.svc:9090/-/healthy
 
 # Check if Prometheus has the metrics
-kubectl port-forward -n clipper-monitoring svc/prometheus 9090:9090
+kubectl port-forward -n clipper-monitoring svc/clipper-monitoring-prometheus-server 9090:9090
 # Visit http://localhost:9090 and query: rate(http_requests_total[2m])
 ```
 
@@ -218,5 +218,5 @@ See `helm/charts/backend/values.yaml` and `helm/charts/frontend/values.yaml` for
 - [Metrics Server GitHub](https://github.com/kubernetes-sigs/metrics-server)
 - [Prometheus Adapter GitHub](https://github.com/kubernetes-sigs/prometheus-adapter)
 - [Kubernetes HPA Documentation](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
-- [HPA Operations Runbook](../../docs/operations/runbooks/hpa-scaling.md)
-- [Infrastructure README](./README.md)
+- [HPA Operations Runbook](../../../docs/operations/runbooks/hpa-scaling.md)
+- [Infrastructure README](../README.md)

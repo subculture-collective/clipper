@@ -120,7 +120,7 @@ echo "   kubectl get --raw '/apis/custom.metrics.k8s.io/v1beta1/namespaces/clipp
 echo ""
 echo "4. View documentation:"
 echo "   cat $(dirname "$0")/README.md"
-echo "   cat ../../docs/operations/runbooks/hpa-scaling.md"
+echo "   cat ../../../docs/operations/runbooks/hpa-scaling.md"
 echo ""
 
 print_info "Setup complete! 🎉"
