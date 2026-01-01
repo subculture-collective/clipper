@@ -6,6 +6,7 @@ This directory contains configuration for the optional monitoring stack using Pr
 
 - **Prometheus**: Metrics collection and alerting
 - **Grafana**: Visualization and dashboards
+- **Metabase**: Business Intelligence and analytics dashboards
 - **Alertmanager**: Alert routing and management with SLO breach escalation
 - **Node Exporter**: System metrics (CPU, memory, disk)
 - **cAdvisor**: Container metrics
@@ -50,6 +51,11 @@ GRAFANA_PASSWORD=your_secure_password
 POSTGRES_USER=clipper
 POSTGRES_PASSWORD=your_db_password
 POSTGRES_DB=clipper
+
+# For Metabase (optional - only if using BI dashboards)
+METABASE_DB_NAME=metabase
+METABASE_DB_USER=metabase
+METABASE_DB_PASSWORD=your_secure_metabase_password
 ```
 
 ### 2. Start Monitoring Stack
@@ -68,6 +74,7 @@ docker-compose -f docker-compose.monitoring.yml ps
 - **Prometheus**: <http://localhost:9090>
 - **Alertmanager**: <http://localhost:9093>
 - **cAdvisor**: <http://localhost:8081>
+- **Metabase**: <http://localhost:13000> (BI dashboards - see [Metabase Setup](./metabase/README.md))
 
 ### 4. Configure Grafana
 
@@ -95,6 +102,72 @@ You can also import community dashboards:
 - Import ID: 9628 (PostgreSQL)
 - Import ID: 11835 (Redis)
 - Import ID: 12708 (Docker Containers)
+
+## Business Intelligence with Metabase
+
+**Metabase** provides executive, product, and revenue dashboards for business analytics.
+
+### Quick Start with Metabase
+
+**Automated Setup (Recommended):**
+```bash
+cd monitoring
+./setup-metabase.sh
+```
+
+**Manual Setup:**
+
+1. **Create Metabase Database**:
+   ```bash
+   docker exec -it clipper-postgres psql -U clipper -d clipper_db
+   CREATE DATABASE metabase;
+   CREATE USER metabase WITH ENCRYPTED PASSWORD 'your_secure_password';
+   GRANT ALL PRIVILEGES ON DATABASE metabase TO metabase;
+   \q
+   ```
+
+2. **Start Metabase**:
+   ```bash
+   docker-compose -f docker-compose.monitoring.yml up -d metabase
+   ```
+
+3. **Access Metabase**: <http://localhost:13000>
+
+### Available Dashboards
+
+Metabase provides three main dashboards:
+
+**Executive Dashboard:**
+- DAU/WAU/MAU (Daily/Weekly/Monthly Active Users)
+- Total users trend
+- Premium subscribers trend
+- MRR (Monthly Recurring Revenue)
+- Churn rate
+
+**Product Dashboard:**
+- Submissions per day
+- Search queries per day
+- Engagement rate
+- Feature adoption (favorites, comments, voting)
+- Top creators and content by game
+
+**Revenue Dashboard:**
+- New subscriptions
+- Cancellations
+- Revenue by payment status
+- Customer Lifetime Value (LTV)
+- Revenue by cohort
+- Conversion rates (trial to paid)
+- ARPU (Average Revenue Per User)
+
+### Full Documentation
+
+See [Metabase Setup Guide](./metabase/README.md) for:
+- Detailed setup instructions
+- Pre-built SQL queries for all dashboards
+- Dashboard building guide
+- Performance optimization tips
+- Sharing and collaboration features
 
 ## Centralized Logging
 
