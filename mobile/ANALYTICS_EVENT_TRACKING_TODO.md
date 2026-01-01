@@ -371,7 +371,7 @@ Once manual event tracking is implemented:
 
 ---
 
-**Next Steps**:
+**Next Steps**
 1. Create tracking implementation tickets for each screen/flow
 2. Add tracking to critical user journeys first (auth, submit, play)
 3. Test tracking in development environment

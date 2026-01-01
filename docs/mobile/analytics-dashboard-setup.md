@@ -3,6 +3,22 @@
 **Time Required**: 4-6 hours  
 **Prerequisites**: PostHog project with mobile SDK integration complete
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Before You Start](#before-you-start)
+- [Setup Order](#setup-order)
+- [Dashboard 1: Mobile DAU/MAU](#dashboard-1-mobile-daumau-30-min)
+- [Dashboard 2: Mobile Screen Views](#dashboard-2-mobile-screen-views-45-min)
+- [Dashboard 3: Mobile User Funnels](#dashboard-3-mobile-user-funnels-60-min)
+- [Dashboard 4: Mobile Retention Analysis](#dashboard-4-mobile-retention-analysis-90-min)
+- [Dashboard 5: Mobile Stability](#dashboard-5-mobile-stability-60-min)
+- [Post-Setup Tasks](#post-setup-tasks)
+- [Validation Checklist](#validation-checklist)
+- [Troubleshooting](#troubleshooting)
+- [Next Steps](#next-steps)
+- [Support](#support)
+
 ## Overview
 
 This guide provides step-by-step instructions to set up the five core mobile analytics dashboards in PostHog.
