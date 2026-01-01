@@ -30,7 +30,7 @@ export function usePiPTelemetry(config: PiPTelemetryConfig) {
                 video_id: videoId,
                 video_title: videoTitle || 'unknown',
                 was_playing: isPlaying || false,
-                timestamp: new Date().toISOString(),
+                timestamp: Date.now(),
             });
         }
     }, [videoId, videoTitle, isPlaying]);
@@ -46,7 +46,7 @@ export function usePiPTelemetry(config: PiPTelemetryConfig) {
                 video_id: videoId,
                 video_title: videoTitle || 'unknown',
                 pip_duration_ms: pipDuration,
-                timestamp: new Date().toISOString(),
+                timestamp: Date.now(),
             });
         }
     }, [videoId, videoTitle]);

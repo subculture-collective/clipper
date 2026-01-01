@@ -86,6 +86,7 @@ export default function VideoClipCard({
                                 videoId={id}
                                 videoTitle={title}
                                 allowsPictureInPicture={true}
+                                allowsBackgroundPlayback={false}
                                 contentFit='cover'
                                 loop={true}
                                 autoPlay={isPlaying}
