@@ -25,7 +25,7 @@ This section covers the Clipper mobile apps built with React Native 0.76 and Exp
 - [[analytics-dashboards|Analytics Dashboards]] - PostHog dashboard setup and configuration
 - [[posthog-dashboard-queries|Dashboard Queries]] - Quick reference for PostHog queries
 - [[analytics-dashboard-setup|Quick Setup Guide]] - Step-by-step dashboard implementation
-- [[DASHBOARD_IMPLEMENTATION_SUMMARY|Dashboard Summary]] - Implementation status and overview
+- [[dashboard-implementation-summary|Dashboard Summary]] - Implementation status and overview
 
 ## Documentation Index
 

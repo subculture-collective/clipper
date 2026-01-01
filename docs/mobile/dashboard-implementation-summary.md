@@ -307,7 +307,7 @@ Dashboards built on top of existing PostHog SDK integration:
 - `docs/mobile/analytics-dashboards.md` - Master setup guide
 - `docs/mobile/posthog-dashboard-queries.md` - Query reference
 - `docs/mobile/analytics-dashboard-setup.md` - Quick setup guide
-- `docs/mobile/DASHBOARD_IMPLEMENTATION_SUMMARY.md` - This file
+- `docs/mobile/dashboard-implementation-summary.md` - This file
 
 ### Updates
 - `mobile/POSTHOG_ANALYTICS.md` - Added dashboard section
