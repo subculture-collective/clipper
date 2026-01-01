@@ -260,6 +260,23 @@ The charts expect these secret keys:
 - PostgreSQL: `POSTGRES_PASSWORD`
 - Redis: `REDIS_PASSWORD`
 
+**IMPORTANT**: Always create secrets before deploying the charts. The charts will fail if the referenced secrets don't exist.
+
+### Grafana Admin Password
+
+The monitoring chart includes a default password for Grafana. **YOU MUST OVERRIDE THIS IN PRODUCTION**:
+
+```bash
+# Option 1: Set password during install
+helm install clipper ./clipper \
+  --set grafana.adminPassword='secure-random-password'
+
+# Option 2: Use external secret
+helm install clipper ./clipper \
+  --set grafana.adminPassword='' \
+  --set grafana.admin.existingSecret='grafana-admin-secret'
+```
+
 ## Monitoring
 
 ### Prometheus Metrics
