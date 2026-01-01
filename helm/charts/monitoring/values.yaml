@@ -1,0 +1,157 @@
+# Default values for clipper-monitoring
+# This chart uses upstream charts with custom configurations
+
+# Enable/disable components
+prometheus:
+  enabled: true
+
+grafana:
+  enabled: true
+
+loki:
+  enabled: true
+
+# Prometheus configuration
+prometheus:
+  server:
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+    
+    retention: "30d"
+    
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'clipper-production'
+        environment: 'production'
+    
+    # Scrape configs for Clipper services
+    extraScrapeConfigs: |
+      - job_name: 'clipper-backend'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - clipper-production
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: clipper-backend
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: 8080
+        metrics_path: '/debug/metrics'
+      
+      - job_name: 'postgres'
+        static_configs:
+          - targets: ['postgres-exporter:9187']
+      
+      - job_name: 'redis'
+        static_configs:
+          - targets: ['redis-exporter:9121']
+
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+
+# Grafana configuration
+grafana:
+  adminPassword: changeme
+  
+  persistence:
+    enabled: true
+    size: 10Gi
+  
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-server
+          access: proxy
+          isDefault: true
+        - name: Loki
+          type: loki
+          url: http://loki:3100
+          access: proxy
+  
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+  
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - grafana.clpr.tv
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.clpr.tv
+
+# Loki configuration
+loki:
+  persistence:
+    enabled: true
+    size: 50Gi
+  
+  config:
+    auth_enabled: false
+    
+    server:
+      http_listen_port: 3100
+    
+    ingester:
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+      chunk_idle_period: 5m
+      chunk_retain_period: 30s
+    
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/cache
+        shared_store: filesystem
+      filesystem:
+        directory: /loki/chunks
+    
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+    
+    chunk_store_config:
+      max_look_back_period: 0s
+    
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 168h
