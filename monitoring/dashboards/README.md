@@ -535,8 +535,30 @@ Kubernetes resource quota and limit monitoring for capacity management and OOM p
 - Verify rate intervals: Use appropriate interval for rate()
 - Check data source: Confirm using correct Prometheus instance
 
+## Performance Optimization
+
+For frequently queried metrics that appear in multiple dashboards, consider defining Prometheus recording rules:
+
+**Example Redis cache hit rate recording rule:**
+
+```yaml
+# Add to prometheus.yml or a separate rules file
+groups:
+  - name: redis_recording_rules
+    interval: 30s
+    rules:
+      - record: redis:cache_hit_rate
+        expr: |
+          rate(redis_keyspace_hits_total[5m]) 
+          / 
+          (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))
+```
+
+This pre-computes the cache hit rate, improving dashboard load times when the metric is used in multiple panels.
+
 ## References
 
 - [Grafana Documentation](https://grafana.com/docs/)
 - [Prometheus Query Basics](https://prometheus.io/docs/prometheus/latest/querying/basics/)
 - [Dashboard Best Practices](https://grafana.com/docs/grafana/latest/best-practices/)
+- [Prometheus Recording Rules](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/)
