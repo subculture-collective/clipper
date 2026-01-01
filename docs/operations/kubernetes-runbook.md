@@ -762,15 +762,28 @@ az aks nodepool add \
 
 ## Related Documentation
 
-- [Infrastructure Overview](../deployment/infra.md)
-- [Monitoring & Observability](./monitoring.md)
-- [Secrets Management](./secrets-management.md)
-- [CI/CD Integration](./cicd.md)
+### Kubernetes Operations
+- [[kubernetes-scaling|Kubernetes Scaling Guide]] - HPA, cluster autoscaling, and resource management
+- [[kubernetes-troubleshooting|Kubernetes Troubleshooting Guide]] - Common issues and debugging
+- [[kubernetes-disaster-recovery|Kubernetes Disaster Recovery]] - Backup, restore, and failover procedures
+- [[kubernetes-cost-optimization|Kubernetes Cost Optimization]] - Cost reduction strategies
+
+### Infrastructure & Deployment
+- [Infrastructure Overview](../deployment/infra.md) - Cloud architecture
+- [Helm Charts README](../../helm/README.md) - Application deployment with Helm
+- [Helm Installation Guide](../../helm/INSTALLATION.md) - Installation and upgrade procedures
+
+### Operations & Security
+- [Monitoring & Observability](./monitoring.md) - Metrics and alerting
+- [Secrets Management](./secrets-management.md) - Secure credential handling
+- [CI/CD Integration](./cicd.md) - Continuous deployment
 
 ## Related Issues
 
 - [#805 - Roadmap 5.0 Master Tracker](https://github.com/subculture-collective/clipper/issues/805)
 - [#852 - Kubernetes Cluster Setup](https://github.com/subculture-collective/clipper/issues/852)
+- [#853 - Application Helm Charts](https://github.com/subculture-collective/clipper/issues/853)
+- [#854 - Kubernetes Documentation](https://github.com/subculture-collective/clipper/issues/854)
 - [#836 - Infrastructure Modernization RFC](https://github.com/subculture-collective/clipper/issues/836)
 
 ---
