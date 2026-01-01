@@ -1128,7 +1128,7 @@ groups:
       # Custom Metrics Not Available
       - alert: HPACustomMetricsNotAvailable
         expr: |
-          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"} == 1
+          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"} != 0
         for: 5m
         labels:
           severity: critical
@@ -1140,9 +1140,9 @@ groups:
       # Metrics Server Down
       - alert: MetricsServerDown
         expr: |
-          absent(up{job="kube-state-metrics"}) == 1
+          absent(up{job="kube-state-metrics"})
           or
-          (up{job="kube-state-metrics"} == 1 and absent(kube_pod_info) == 1)
+          (up{job="kube-state-metrics"} == 1 and absent(kube_pod_info))
         for: 3m
         labels:
           severity: critical
