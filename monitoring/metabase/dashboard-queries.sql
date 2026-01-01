@@ -533,7 +533,7 @@ SELECT
     COUNT(DISTINCT ua.user_id) as active_users,
     ROUND((COUNT(DISTINCT ua.user_id)::NUMERIC / cs.cohort_size::NUMERIC) * 100, 2) as retention_percent
 FROM user_cohorts uc
-CROSS JOIN cohort_sizes cs ON uc.cohort_month = cs.cohort_month
+INNER JOIN cohort_sizes cs ON uc.cohort_month = cs.cohort_month
 LEFT JOIN user_activity ua ON uc.user_id = ua.user_id
 GROUP BY uc.cohort_month, cs.cohort_size, ua.activity_month
 ORDER BY uc.cohort_month DESC, ua.activity_month DESC;
