@@ -254,11 +254,91 @@ kubectl get certificate -n clipper-production
 
 ### Horizontal Pod Autoscaling (HPA)
 
-HPA is configured for backend pods (see `backend/k8s/hpa-backend.yaml`):
-- Min replicas: 2 (staging: 2, production: 3)
-- Max replicas: 10
-- Target CPU utilization: 70%
-- Target memory utilization: 80%
+HPA automatically scales backend and frontend pods based on resource utilization and custom metrics:
+
+#### Backend Service
+- **Min replicas**: 2 (staging), 3 (production)
+- **Max replicas**: 10 (staging: 5, production: 20)
+- **Metrics**:
+  - CPU utilization: 70% target
+  - Memory utilization: 80% target
+  - Custom: ~1000 requests/second per pod
+- **Scale-down stabilization**: 300 seconds (5 minutes)
+- **Configuration**: `helm/charts/backend/templates/hpa.yaml`
+
+#### Frontend Service
+- **Min replicas**: 2 (staging), 3 (production)
+- **Max replicas**: 8 (staging: 5, production: 8)
+- **Metrics**:
+  - CPU utilization: 70% target
+  - Memory utilization: 80% target
+  - Custom: ~1000 requests/second per pod
+- **Scale-down stabilization**: 300 seconds (5 minutes)
+- **Configuration**: `helm/charts/frontend/templates/hpa.yaml`
+
+#### Metrics Server
+
+Metrics Server provides resource metrics (CPU/memory) for HPA:
+
+```bash
+# Install Metrics Server
+kubectl apply -f infrastructure/k8s/base/metrics-server.yaml
+
+# Verify installation
+kubectl get deployment metrics-server -n kube-system
+kubectl top nodes
+kubectl top pods -n clipper-production
+```
+
+#### Custom Metrics with Prometheus Adapter
+
+Prometheus Adapter exposes custom metrics from Prometheus for HPA:
+
+```bash
+# Install Prometheus Adapter
+kubectl apply -f infrastructure/k8s/base/prometheus-adapter.yaml
+
+# Verify installation
+kubectl get deployment prometheus-adapter -n custom-metrics
+
+# Check custom metrics API
+kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1" | jq .
+
+# View HTTP request rate metric
+kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/clipper-production/pods/*/http_requests_per_second" | jq .
+```
+
+**Configuration**: Custom metrics are defined in `prometheus-adapter-config` ConfigMap. Update the ConfigMap to add new metrics:
+
+```bash
+kubectl edit configmap prometheus-adapter-config -n custom-metrics
+kubectl rollout restart deployment/prometheus-adapter -n custom-metrics
+```
+
+#### Monitoring HPA
+
+HPA scaling events are logged and monitored via Prometheus alerts:
+
+- **HPAMaxedOut**: HPA at maximum replicas for 15+ minutes
+- **HPAUnableToScale**: HPA cannot scale due to constraints
+- **HPAMetricsUnavailable**: Metrics unavailable for HPA
+- **HPAFrequentScaling**: HPA changing replicas too frequently
+- **MetricsServerDown**: Metrics Server unavailable
+- **HPACustomMetricsNotAvailable**: Prometheus Adapter unavailable
+
+View HPA status:
+```bash
+# List all HPAs
+kubectl get hpa -n clipper-production
+
+# Watch HPA in real-time
+kubectl get hpa -n clipper-production -w
+
+# Detailed HPA information
+kubectl describe hpa clipper-backend -n clipper-production
+```
+
+**Runbook**: See [HPA Scaling Operations](../../docs/operations/runbooks/hpa-scaling.md) for detailed troubleshooting.
 
 ### Cluster Autoscaling
 

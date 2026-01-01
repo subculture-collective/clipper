@@ -66,6 +66,8 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
+  # Target ~1000 requests per second per pod
+  targetRequestsPerSecond: "1000"
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300
