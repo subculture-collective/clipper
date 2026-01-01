@@ -124,6 +124,24 @@ export const SettingsEvents = {
   ACCOUNT_DELETED: 'account_deleted',
 } as const;
 
+export const VideoPlaybackEvents = {
+  VIDEO_LOAD_STARTED: 'video_load_started',
+  VIDEO_PLAYBACK_STARTED: 'video_playback_started',
+  VIDEO_PAUSED: 'video_paused',
+  VIDEO_RESUMED: 'video_resumed',
+  VIDEO_SEEKED: 'video_seeked',
+  VIDEO_BUFFERING_EVENT: 'video_buffering_event',
+  VIDEO_QUALITY_CHANGED: 'video_quality_changed',
+  VIDEO_PROGRESS_25: 'video_progress_25',
+  VIDEO_PROGRESS_50: 'video_progress_50',
+  VIDEO_PROGRESS_75: 'video_progress_75',
+  VIDEO_PLAYBACK_COMPLETED: 'video_playback_completed',
+  VIDEO_SESSION_ENDED: 'video_session_ended',
+  VIDEO_PLAYBACK_ERROR: 'video_playback_error',
+  VIDEO_PIP_ENTERED: 'video_pip_entered',
+  VIDEO_PIP_EXITED: 'video_pip_exited',
+} as const;
+
 export const ErrorEvents = {
   ERROR_OCCURRED: 'error_occurred',
   API_ERROR: 'api_error',

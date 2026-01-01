@@ -11,10 +11,9 @@ import {
     Pressable,
     Dimensions,
 } from 'react-native';
-import { useEvent } from 'expo';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import EnhancedVideoPlayer from './EnhancedVideoPlayer';
 
 interface VideoClipCardProps {
     id: string;
@@ -40,55 +39,59 @@ export default function VideoClipCard({
     thumbnailUrl,
     onPress,
 }: VideoClipCardProps) {
-    const player = useVideoPlayer(videoUrl ?? '', player => {
-        // Configure player
-        player.loop = true;
-        // Do not autoplay; user taps to play
-    });
-    const { isPlaying } = useEvent(player, 'playingChange', {
-        isPlaying: player.playing,
-    });
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [showThumbnail, setShowThumbnail] = useState(true);
 
-    const [showControls] = useState(true);
-
-    const togglePlayback = () => {
-        if (player.playing) {
-            player.pause();
-        } else {
-            player.play();
-        }
+    const handlePlayPress = () => {
+        setShowThumbnail(false);
+        setIsPlaying(true);
     };
 
     return (
         <View className='bg-white mb-3 shadow-sm'>
             {/* Video Player */}
-            <Pressable
-                onPress={togglePlayback}
+            <View
                 className='relative'
                 style={{ height: VIDEO_HEIGHT }}
             >
                 {videoUrl ?
                     <>
                         {/* Show thumbnail when not playing */}
-                        {!isPlaying && thumbnailUrl && (
-                            <Image
-                                source={{ uri: thumbnailUrl }}
-                                style={{ width: '100%', height: '100%', position: 'absolute' }}
-                                contentFit='cover'
-                                cachePolicy='memory-disk'
-                                priority='high'
-                                transition={200}
-                            />
-                        )}
-                        {/* Only render VideoView when playing or when no thumbnail available */}
-                        {(isPlaying || !thumbnailUrl) && (
-                            <VideoView
-                                player={player}
+                        {showThumbnail && thumbnailUrl ?
+                            <Pressable
+                                onPress={handlePlayPress}
                                 style={{ width: '100%', height: '100%' }}
+                            >
+                                <Image
+                                    source={{ uri: thumbnailUrl }}
+                                    style={{ width: '100%', height: '100%' }}
+                                    contentFit='cover'
+                                    cachePolicy='memory-disk'
+                                    priority='high'
+                                    transition={200}
+                                />
+                                {/* Play Button Overlay */}
+                                <View className='absolute inset-0 items-center justify-center bg-black/20'>
+                                    <View className='bg-black/60 rounded-full p-4'>
+                                        <Ionicons
+                                            name='play'
+                                            size={40}
+                                            color='white'
+                                        />
+                                    </View>
+                                </View>
+                            </Pressable>
+                        :   <EnhancedVideoPlayer
+                                videoUrl={videoUrl}
+                                videoId={id}
+                                videoTitle={title}
+                                allowsPictureInPicture={true}
                                 contentFit='cover'
-                                allowsPictureInPicture
+                                loop={true}
+                                autoPlay={isPlaying}
+                                style={{ width: '100%', height: '100%' }}
                             />
-                        )}
+                        }
                     </>
                 :   thumbnailUrl ?
                     <Image
@@ -108,19 +111,6 @@ export default function VideoClipCard({
                     </View>
                 }
 
-                {/* Play/Pause Overlay */}
-                {showControls && videoUrl && (
-                    <View className='absolute inset-0 items-center justify-center bg-black/20'>
-                        <View className='bg-black/60 rounded-full p-4'>
-                            <Ionicons
-                                name={isPlaying ? 'pause' : 'play'}
-                                size={40}
-                                color='white'
-                            />
-                        </View>
-                    </View>
-                )}
-
                 {/* View Count Badge */}
                 <View className='absolute top-3 right-3 bg-black/70 px-2 py-1 rounded flex-row items-center gap-1'>
                     <Ionicons name='eye-outline' size={14} color='white' />
@@ -130,7 +120,7 @@ export default function VideoClipCard({
                         :   viewCount}
                     </Text>
                 </View>
-            </Pressable>
+            </View>
 
             {/* Metadata Section */}
             <TouchableOpacity
