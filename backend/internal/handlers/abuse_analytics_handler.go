@@ -32,9 +32,9 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetrics(c *gin.Context) {
 	// This endpoint is intended to be admin-only.
 	// Authentication/authorization MUST be enforced by middleware on the /api/v1/admin route group
 	// in the router configuration where this handler is registered.
-	
+
 	ctx := c.Request.Context()
-	
+
 	// Get anomaly scorer metrics
 	scorerMetrics, err := h.anomalyScorer.GetMetrics(ctx)
 	if err != nil {
@@ -43,7 +43,7 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetrics(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Get auto-flagger stats (last 24 hours)
 	since := time.Now().Add(-24 * time.Hour)
 	flaggerStats, err := h.autoFlagger.GetAutoFlagStats(ctx, since)
@@ -53,7 +53,7 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetrics(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Combine metrics
 	response := gin.H{
 		"anomaly_detection": scorerMetrics,
@@ -61,7 +61,7 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetrics(c *gin.Context) {
 		"timestamp":         time.Now().UTC(),
 		"time_range":        "24h",
 	}
-	
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -74,15 +74,15 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetricsHistory(c *gin.Context) {
 	if _, err := fmt.Sscanf(hoursStr, "%d", &hours); err != nil || hours <= 0 {
 		hours = 24
 	}
-	
+
 	// Cap at 7 days
 	if hours > 168 {
 		hours = 168
 	}
-	
+
 	ctx := c.Request.Context()
 	since := time.Now().Add(-time.Duration(hours) * time.Hour)
-	
+
 	// Get auto-flagger stats for the time range
 	flaggerStats, err := h.autoFlagger.GetAutoFlagStats(ctx, since)
 	if err != nil {
@@ -91,19 +91,19 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetricsHistory(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Calculate false positive rate if we have review data
 	fpr := h.calculateFalsePositiveRate(flaggerStats)
-	
+
 	response := gin.H{
-		"stats":                  flaggerStats,
-		"false_positive_rate":    fpr,
-		"time_range_hours":       hours,
-		"timestamp":              time.Now().UTC(),
-		"fpr_target":             0.02, // 2% target
-		"fpr_meets_requirement":  fpr <= 0.02,
+		"stats":                 flaggerStats,
+		"false_positive_rate":   fpr,
+		"time_range_hours":      hours,
+		"timestamp":             time.Now().UTC(),
+		"fpr_target":            0.02, // 2% target
+		"fpr_meets_requirement": fpr <= 0.02,
 	}
-	
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -112,6 +112,7 @@ func (h *AbuseAnalyticsHandler) GetAbuseMetricsHistory(c *gin.Context) {
 // We define:
 //   - "approved": item was reviewed and approved as legitimate (not abuse).
 //   - "rejected": item was reviewed and confirmed as abuse.
+//
 // The false positive rate is therefore: approved / (approved + rejected),
 // i.e., the fraction of reviewed auto-flagged items that turned out to be legitimate.
 func (h *AbuseAnalyticsHandler) calculateFalsePositiveRate(stats map[string]interface{}) float64 {
@@ -132,7 +133,7 @@ func (h *AbuseAnalyticsHandler) calculateFalsePositiveRate(stats map[string]inte
 			return float64(approved) / float64(reviewedTotal)
 		}
 	}
-	
+
 	// Return 0 if we can't calculate (not enough data)
 	return 0.0
 }
@@ -141,7 +142,7 @@ func (h *AbuseAnalyticsHandler) calculateFalsePositiveRate(stats map[string]inte
 // GET /api/v1/admin/abuse/health
 func (h *AbuseAnalyticsHandler) GetAbuseDetectionHealth(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// Get recent metrics
 	scorerMetrics, err := h.anomalyScorer.GetMetrics(ctx)
 	if err != nil {
@@ -151,7 +152,7 @@ func (h *AbuseAnalyticsHandler) GetAbuseDetectionHealth(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Check if system is processing
 	isProcessing := false
 	if scorerMetrics != nil {
@@ -166,17 +167,17 @@ func (h *AbuseAnalyticsHandler) GetAbuseDetectionHealth(c *gin.Context) {
 			isProcessing = true
 		}
 	}
-	
+
 	// Get FPR
 	since := time.Now().Add(-24 * time.Hour)
 	flaggerStats, _ := h.autoFlagger.GetAutoFlagStats(ctx, since)
 	fpr := h.calculateFalsePositiveRate(flaggerStats)
-	
+
 	status := "healthy"
 	if fpr > 0.02 {
 		status = "degraded" // FPR exceeds target
 	}
-	
+
 	response := gin.H{
 		"status":                status,
 		"processing":            isProcessing,
@@ -185,6 +186,6 @@ func (h *AbuseAnalyticsHandler) GetAbuseDetectionHealth(c *gin.Context) {
 		"fpr_meets_requirement": fpr <= 0.02,
 		"timestamp":             time.Now().UTC(),
 	}
-	
+
 	c.JSON(http.StatusOK, response)
 }

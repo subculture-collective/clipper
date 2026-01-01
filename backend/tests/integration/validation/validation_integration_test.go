@@ -398,12 +398,13 @@ func setupTestRouter(t *testing.T, cfg *config.Config, db *database.DB, redisCli
 
 	// Create test user
 	ctx := context.Background()
+	testEmail := "test@example.com"
 	testUser := &models.User{
 		ID:          uuid.New(),
 		TwitchID:    fmt.Sprintf("test_%d", time.Now().Unix()),
 		Username:    "testuser",
 		DisplayName: "Test User",
-		Email:       "test@example.com",
+		Email:       &testEmail,
 		Role:        models.RoleUser,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
@@ -412,14 +413,15 @@ func setupTestRouter(t *testing.T, cfg *config.Config, db *database.DB, redisCli
 	require.NoError(t, err)
 
 	// Generate auth token
-	authToken, err := jwtManager.GenerateToken(testUser.ID.String(), testUser.Role)
+	authToken, err := jwtManager.GenerateAccessToken(testUser.ID, testUser.Role)
 	require.NoError(t, err)
 
 	// Initialize services
 	authService := services.NewAuthService(cfg, userRepo, refreshTokenRepo, redisClient, jwtManager)
 
-	// Initialize handlers (minimal setup for testing)
-	clipHandler := handlers.NewClipHandler(clipRepo, nil, nil, nil, nil, authService, nil, nil, nil)
+	// Initialize clip service and handler
+	clipService := services.NewClipService(clipRepo, nil, nil, nil, redisClient, nil, nil)
+	clipHandler := handlers.NewClipHandler(clipService, authService)
 
 	// Setup router with validation middleware
 	r := gin.New()

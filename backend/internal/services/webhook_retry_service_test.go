@@ -45,7 +45,7 @@ func TestCalculateNextRetry(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			nextRetry := service.calculateNextRetry(tt.retryCount)
-			delay := nextRetry.Sub(time.Now())
+			delay := time.Until(nextRetry)
 
 			assert.True(t, delay >= tt.minDelay,
 				"Expected delay >= %v, got %v", tt.minDelay, delay)

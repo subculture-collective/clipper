@@ -11,30 +11,30 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server       ServerConfig
-	Database     DatabaseConfig
-	Redis        RedisConfig
-	JWT          JWTConfig
-	Twitch       TwitchConfig
-	CORS         CORSConfig
-	OpenSearch   OpenSearchConfig
-	Stripe       StripeConfig
-	Sentry       SentryConfig
-	Email        EmailConfig
-	Embedding    EmbeddingConfig
-	FeatureFlags FeatureFlagsConfig
-	Karma        KarmaConfig
-	Jobs         JobsConfig
-	RateLimit    RateLimitConfig
-	Security     SecurityConfig
-	QueryLimits  QueryLimitsConfig
-	SearchLimits      SearchLimitsConfig
-	HybridSearch      HybridSearchConfig
-	CDN               CDNConfig
-	Mirror            MirrorConfig
-	Recommendations   RecommendationsConfig
-	Toxicity          ToxicityConfig
-	NSFW              NSFWConfig
+	Server          ServerConfig
+	Database        DatabaseConfig
+	Redis           RedisConfig
+	JWT             JWTConfig
+	Twitch          TwitchConfig
+	CORS            CORSConfig
+	OpenSearch      OpenSearchConfig
+	Stripe          StripeConfig
+	Sentry          SentryConfig
+	Email           EmailConfig
+	Embedding       EmbeddingConfig
+	FeatureFlags    FeatureFlagsConfig
+	Karma           KarmaConfig
+	Jobs            JobsConfig
+	RateLimit       RateLimitConfig
+	Security        SecurityConfig
+	QueryLimits     QueryLimitsConfig
+	SearchLimits    SearchLimitsConfig
+	HybridSearch    HybridSearchConfig
+	CDN             CDNConfig
+	Mirror          MirrorConfig
+	Recommendations RecommendationsConfig
+	Toxicity        ToxicityConfig
+	NSFW            NSFWConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -278,22 +278,22 @@ type HybridSearchConfig struct {
 
 // ToxicityConfig holds toxicity detection configuration
 type ToxicityConfig struct {
-	Enabled    bool    // Enable toxicity detection (default: false)
-	APIKey     string  // API key for toxicity detection service (e.g., Perspective API)
-	APIURL     string  // API URL for toxicity detection service
-	Threshold  float64 // Confidence threshold for flagging content (default: 0.85)
+	Enabled   bool    // Enable toxicity detection (default: false)
+	APIKey    string  // API key for toxicity detection service (e.g., Perspective API)
+	APIURL    string  // API URL for toxicity detection service
+	Threshold float64 // Confidence threshold for flagging content (default: 0.85)
 }
 
 // NSFWConfig holds NSFW image detection configuration
 type NSFWConfig struct {
-	Enabled            bool    // Enable NSFW detection (default: false)
-	APIKey             string  // API key for NSFW detection service
-	APIURL             string  // API URL for NSFW detection service (e.g., Sightengine, AWS Rekognition)
-	Threshold          float64 // Confidence threshold for flagging content (default: 0.80)
-	ScanThumbnails     bool    // Enable scanning of thumbnails at upload (default: true)
-	AutoFlag           bool    // Automatically flag content to moderation queue (default: true)
-	MaxLatencyMs       int     // Maximum acceptable latency in milliseconds (default: 200)
-	TimeoutSeconds     int     // Request timeout in seconds (default: 5)
+	Enabled        bool    // Enable NSFW detection (default: false)
+	APIKey         string  // API key for NSFW detection service
+	APIURL         string  // API URL for NSFW detection service (e.g., Sightengine, AWS Rekognition)
+	Threshold      float64 // Confidence threshold for flagging content (default: 0.80)
+	ScanThumbnails bool    // Enable scanning of thumbnails at upload (default: true)
+	AutoFlag       bool    // Automatically flag content to moderation queue (default: true)
+	MaxLatencyMs   int     // Maximum acceptable latency in milliseconds (default: 200)
+	TimeoutSeconds int     // Request timeout in seconds (default: 5)
 }
 
 // getEnvBool gets a boolean environment variable with a fallback default value

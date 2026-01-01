@@ -67,7 +67,11 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 		$(MAKE) test-setup; \
 	fi
 	@echo "Running backend unit tests..."
-	cd backend && go test ./...
+	@if [ "$(INTEGRATION)" = "1" ] || [ "$(E2E)" = "1" ]; then \
+		cd backend && go test -tags=integration ./...; \
+	else \
+		cd backend && go test ./...; \
+	fi
 	@if [ "$(E2E)" = "1" ]; then \
 		echo "Starting backend API for E2E..."; \
 		mkdir -p .tmp; \

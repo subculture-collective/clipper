@@ -449,7 +449,7 @@ func TestReviewNotice_InvalidStatus(t *testing.T) {
 // ==============================================================================
 
 func dmcaContains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || 
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
 		(len(s) > 0 && len(substr) > 0 && dmcaFindSubstring(s, substr)))
 }
 

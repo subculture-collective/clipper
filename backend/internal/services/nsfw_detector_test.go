@@ -26,7 +26,7 @@ func TestNewNSFWDetector(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	assert.NotNil(t, detector)
 	assert.True(t, detector.enabled)
 	assert.Equal(t, 0.80, detector.threshold)
@@ -47,10 +47,10 @@ func TestDetectImage_Disabled(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score, err := detector.DetectImage(ctx, "https://example.com/image.jpg")
-	
+
 	require.NoError(t, err)
 	assert.NotNil(t, score)
 	assert.False(t, score.NSFW)
@@ -63,7 +63,7 @@ func TestDetectImage_WithAPI_Safe(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Contains(t, r.Header.Get("Authorization"), "Bearer test-api-key")
-		
+
 		response := map[string]interface{}{
 			"nudity": map[string]float64{
 				"raw":     0.05,
@@ -75,12 +75,12 @@ func TestDetectImage_WithAPI_Safe(t *testing.T) {
 				"prob": 0.03,
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
-	
+
 	detector := NewNSFWDetector(
 		"test-api-key",
 		server.URL,
@@ -92,10 +92,10 @@ func TestDetectImage_WithAPI_Safe(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score, err := detector.DetectImage(ctx, "https://example.com/safe-image.jpg")
-	
+
 	require.NoError(t, err)
 	assert.NotNil(t, score)
 	assert.False(t, score.NSFW)
@@ -119,12 +119,12 @@ func TestDetectImage_WithAPI_NSFW(t *testing.T) {
 				"prob": 0.15,
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
-	
+
 	detector := NewNSFWDetector(
 		"test-api-key",
 		server.URL,
@@ -136,10 +136,10 @@ func TestDetectImage_WithAPI_NSFW(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score, err := detector.DetectImage(ctx, "https://example.com/nsfw-image.jpg")
-	
+
 	require.NoError(t, err)
 	assert.NotNil(t, score)
 	assert.True(t, score.NSFW)
@@ -155,7 +155,7 @@ func TestDetectImage_WithAPI_Error(t *testing.T) {
 		w.Write([]byte("Internal server error"))
 	}))
 	defer server.Close()
-	
+
 	detector := NewNSFWDetector(
 		"test-api-key",
 		server.URL,
@@ -167,10 +167,10 @@ func TestDetectImage_WithAPI_Error(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score, err := detector.DetectImage(ctx, "https://example.com/image.jpg")
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, score)
 	assert.Contains(t, err.Error(), "500")
@@ -183,7 +183,7 @@ func TestDetectImage_Timeout(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	detector := NewNSFWDetector(
 		"test-api-key",
 		server.URL,
@@ -195,17 +195,17 @@ func TestDetectImage_Timeout(t *testing.T) {
 		1, // 1 second timeout
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score, err := detector.DetectImage(ctx, "https://example.com/image.jpg")
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, score)
 	// Check for common timeout-related errors
-	assert.True(t, 
-		strings.Contains(err.Error(), "timeout") || 
-		strings.Contains(err.Error(), "deadline exceeded") ||
-		strings.Contains(err.Error(), "Client.Timeout"),
+	assert.True(t,
+		strings.Contains(err.Error(), "timeout") ||
+			strings.Contains(err.Error(), "deadline exceeded") ||
+			strings.Contains(err.Error(), "Client.Timeout"),
 		"Expected timeout-related error, got: %v", err)
 }
 
@@ -214,7 +214,7 @@ func TestDetectImage_Latency(t *testing.T) {
 	delay := 50 * time.Millisecond
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(delay)
-		
+
 		response := map[string]interface{}{
 			"nudity": map[string]float64{
 				"raw":     0.05,
@@ -226,12 +226,12 @@ func TestDetectImage_Latency(t *testing.T) {
 				"prob": 0.03,
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
-	
+
 	detector := NewNSFWDetector(
 		"test-api-key",
 		server.URL,
@@ -243,10 +243,10 @@ func TestDetectImage_Latency(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score, err := detector.DetectImage(ctx, "https://example.com/image.jpg")
-	
+
 	require.NoError(t, err)
 	assert.NotNil(t, score)
 	assert.GreaterOrEqual(t, score.LatencyMs, int64(delay.Milliseconds()))
@@ -265,10 +265,10 @@ func TestDetectWithRules(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score, err := detector.DetectImage(ctx, "https://example.com/image.jpg")
-	
+
 	require.NoError(t, err)
 	assert.NotNil(t, score)
 	assert.False(t, score.NSFW) // Rule-based fallback returns safe
@@ -277,12 +277,12 @@ func TestDetectWithRules(t *testing.T) {
 
 func TestReasonCodes(t *testing.T) {
 	tests := []struct {
-		name           string
-		nudityRaw      float64
-		nuditySexual   float64
-		offensiveProb  float64
-		threshold      float64
-		expectedCodes  []string
+		name          string
+		nudityRaw     float64
+		nuditySexual  float64
+		offensiveProb float64
+		threshold     float64
+		expectedCodes []string
 	}{
 		{
 			name:          "explicit nudity",
@@ -317,7 +317,7 @@ func TestReasonCodes(t *testing.T) {
 			expectedCodes: []string{"nudity_explicit", "sexual_content", "offensive_content"},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -332,12 +332,12 @@ func TestReasonCodes(t *testing.T) {
 						"prob": tt.offensiveProb,
 					},
 				}
-				
+
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			}))
 			defer server.Close()
-			
+
 			detector := NewNSFWDetector(
 				"test-api-key",
 				server.URL,
@@ -349,13 +349,13 @@ func TestReasonCodes(t *testing.T) {
 				5,
 				nil,
 			)
-			
+
 			ctx := context.Background()
 			score, err := detector.DetectImage(ctx, "https://example.com/image.jpg")
-			
+
 			require.NoError(t, err)
 			assert.NotNil(t, score)
-			
+
 			for _, expectedCode := range tt.expectedCodes {
 				assert.Contains(t, score.ReasonCodes, expectedCode)
 			}
@@ -377,14 +377,14 @@ func TestFlagToModerationQueue_NoAutoFlag(t *testing.T) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
 	score := &NSFWScore{
 		NSFW:            true,
 		ConfidenceScore: 0.95,
 		ReasonCodes:     []string{"nudity_explicit"},
 	}
-	
+
 	err := detector.FlagToModerationQueue(ctx, "clip", uuid.New(), score)
 	assert.NoError(t, err) // Should not error, just skip
 }
@@ -403,12 +403,12 @@ func BenchmarkDetectImage(b *testing.B) {
 				"prob": 0.03,
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
-	
+
 	detector := NewNSFWDetector(
 		"test-api-key",
 		server.URL,
@@ -420,9 +420,9 @@ func BenchmarkDetectImage(b *testing.B) {
 		5,
 		nil,
 	)
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = detector.DetectImage(ctx, "https://example.com/image.jpg")

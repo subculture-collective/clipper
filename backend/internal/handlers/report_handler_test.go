@@ -279,8 +279,3 @@ func TestAdminReportsEndpoints(t *testing.T) {
 		}
 	})
 }
-
-// Helper function to create string pointer
-func strPtr(s string) *string {
-	return &s
-}

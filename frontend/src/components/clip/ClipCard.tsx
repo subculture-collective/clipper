@@ -111,7 +111,7 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                     <span
                         className={cn(
-                            'text-sm font-bold min-w-[2rem] text-center',
+                            'text-sm font-bold min-w-8 text-center',
                             voteColor
                         )}
                     >
