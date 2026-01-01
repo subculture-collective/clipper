@@ -1053,3 +1053,143 @@ groups:
           summary: "High error rate for HLS playlist delivery"
           description: "HLS playlists failing at {{ $value | humanizePercentage }} (threshold: 5%). Video playback initiation is failing."
           runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
+
+  # HPA Scaling Alerts
+  # Monitors Horizontal Pod Autoscaler behavior and scaling events
+  - name: hpa_scaling_alerts
+    interval: 30s
+    rules:
+      # HPA at Maximum Replicas
+      - alert: HPAMaxedOut
+        expr: |
+          kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+          >= kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} at maximum replicas"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has been at max replicas ({{ $value }}) for 15 minutes. Consider increasing max replicas or investigating load."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#hpa-maxed-out"
+
+      # HPA Unable to Scale
+      - alert: HPAUnableToScale
+        expr: |
+          kube_horizontalpodautoscaler_status_condition{condition="ScalingLimited",status="true",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"} == 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} unable to scale"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} is unable to scale due to limits. Check resource constraints and pod quotas."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#unable-to-scale"
+
+      # HPA Metrics Unavailable
+      - alert: HPAMetricsUnavailable
+        expr: |
+          kube_horizontalpodautoscaler_status_condition{condition="ScalingActive",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"} == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} metrics unavailable"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} cannot obtain metrics. Check metrics-server and Prometheus adapter health."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#metrics-unavailable"
+
+      # HPA Frequent Scaling
+      - alert: HPAFrequentScaling
+        expr: |
+          rate(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[10m]) > 0.1
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} scaling frequently"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} is changing desired replicas frequently. This may indicate oscillating load or improper thresholds."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#frequent-scaling"
+
+      # HPA Desired Replicas Mismatch
+      - alert: HPADesiredReplicasMismatch
+        expr: |
+          abs(
+            kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+            - kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+          ) > 2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} replica mismatch"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} desired replicas ({{ $labels.desired }}) doesn't match current replicas for 15m. Check pod scheduling and resource availability."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#replica-mismatch"
+
+      # Custom Metrics Not Available
+      - alert: HPACustomMetricsNotAvailable
+        expr: |
+          up{job="prometheus-adapter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus Adapter is down"
+          description: "Prometheus Adapter providing custom metrics for HPA is unavailable. HPA will fall back to CPU/memory only."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#custom-metrics-unavailable"
+
+      # Metrics Server Down
+      - alert: MetricsServerDown
+        expr: |
+          up{job="metrics-server"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Metrics Server is down"
+          description: "Metrics Server is unavailable. HPA cannot function without resource metrics."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#metrics-server-down"
+
+      # High Scale-Up Events
+      - alert: HPAHighScaleUpRate
+        expr: |
+          sum(rate(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[5m])) by (horizontalpodautoscaler) > 0.5
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "High scale-up rate for {{ $labels.horizontalpodautoscaler }}"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} is scaling up frequently. This may indicate sustained high load."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#high-scale-up-rate"
+
+      # Backend at High Utilization Before Scaling
+      - alert: BackendHighUtilizationBeforeScaling
+        expr: |
+          (
+            sum(rate(http_requests_total{job="clipper-backend"}[2m])) by (pod)
+            / on(pod) group_left() kube_pod_info{pod=~"clipper-backend.*"}
+          ) > 900
+          and kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="clipper-backend"}
+          < kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="clipper-backend"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend pods at high RPS before scaling"
+          description: "Backend pods are handling >900 RPS (target: 1000) but HPA hasn't scaled yet. Check HPA responsiveness."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#slow-scale-up"
+
+      # Frontend at High Utilization Before Scaling
+      - alert: FrontendHighUtilizationBeforeScaling
+        expr: |
+          (
+            sum(rate(http_requests_total{job="clipper-frontend"}[2m])) by (pod)
+            / on(pod) group_left() kube_pod_info{pod=~"clipper-frontend.*"}
+          ) > 900
+          and kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="clipper-frontend"}
+          < kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="clipper-frontend"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Frontend pods at high RPS before scaling"
+          description: "Frontend pods are handling >900 RPS (target: 1000) but HPA hasn't scaled yet. Check HPA responsiveness."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#slow-scale-up"
+

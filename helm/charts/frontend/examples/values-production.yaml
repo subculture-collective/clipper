@@ -1,25 +1,25 @@
-# Production values for clipper-backend
+# Production values for clipper-frontend
 # Override default values for production deployment
 
 replicaCount: 3
 
 image:
-  repository: ghcr.io/subculture-collective/clipper-backend
+  repository: ghcr.io/subculture-collective/clipper-frontend
   pullPolicy: IfNotPresent
   tag: "latest"
 
 resources:
   limits:
-    cpu: 1000m
-    memory: 1Gi
-  requests:
-    cpu: 250m
+    cpu: 400m
     memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
 autoscaling:
   enabled: true
   minReplicas: 3
-  maxReplicas: 20
+  maxReplicas: 8
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
   # Target ~1000 requests per second per pod
@@ -30,23 +30,14 @@ ingress:
   className: "nginx"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "200"
   hosts:
     - host: clpr.tv
       paths:
-        - path: /api
+        - path: /
           pathType: Prefix
   tls:
     - secretName: clipper-tls
       hosts:
         - clpr.tv
-
-config:
-  ENVIRONMENT: "production"
-  GIN_MODE: "release"
-  LOG_LEVEL: "info"
-  SENTRY_ENABLED: "true"
-  SENTRY_ENVIRONMENT: "production"
-  SENTRY_TRACES_SAMPLE_RATE: "0.1"
-  FEATURE_ANALYTICS: "true"
-  FEATURE_MODERATION: "true"

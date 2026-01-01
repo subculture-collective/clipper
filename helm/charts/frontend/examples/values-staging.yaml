@@ -1,19 +1,19 @@
-# Staging values for clipper-backend
+# Staging values for clipper-frontend
 
 replicaCount: 2
 
 image:
-  repository: ghcr.io/subculture-collective/clipper-backend
+  repository: ghcr.io/subculture-collective/clipper-frontend
   pullPolicy: Always
   tag: "develop"
 
 resources:
   limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 100m
+    cpu: 200m
     memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
 
 autoscaling:
   enabled: true
@@ -29,21 +29,13 @@ ingress:
   className: "nginx"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
     - host: staging.clpr.tv
       paths:
-        - path: /api
+        - path: /
           pathType: Prefix
   tls:
     - secretName: clipper-staging-tls
       hosts:
         - staging.clpr.tv
-
-config:
-  ENVIRONMENT: "staging"
-  GIN_MODE: "release"
-  LOG_LEVEL: "debug"
-  BASE_URL: "https://staging.clpr.tv"
-  SENTRY_ENABLED: "true"
-  SENTRY_ENVIRONMENT: "staging"
-  SENTRY_TRACES_SAMPLE_RATE: "1.0"
