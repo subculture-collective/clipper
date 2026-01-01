@@ -36,9 +36,14 @@ test_query() {
     
     echo -n "Testing: $query_name... "
     
-    result=$(docker exec -i clipper-postgres psql -U clipper -d clipper_db -t -c "$query" 2>&1)
+    # Use here-document to safely pass query to psql
+    result=$(docker exec -i clipper-postgres psql -U clipper -d clipper_db -t <<EOF
+$query
+EOF
+    )
+    exit_code=$?
     
-    if [ $? -eq 0 ]; then
+    if [ $exit_code -eq 0 ]; then
         row_count=$(echo "$result" | grep -v '^$' | wc -l)
         echo "✓ (returned $row_count rows)"
         return 0

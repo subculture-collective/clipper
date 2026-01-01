@@ -22,7 +22,10 @@ echo ""
 
 # Load environment variables
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    # Safely load environment variables
+    set -a
+    source .env
+    set +a
     echo "✓ Loaded environment variables from .env"
 else
     echo "WARNING: No .env file found. Using default values."

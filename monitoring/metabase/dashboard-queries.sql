@@ -5,6 +5,19 @@
 -- These queries leverage the existing analytics and subscription tables
 --
 -- Usage: Copy these queries into Metabase as needed for each dashboard
+--
+-- IMPORTANT: Price Mapping Configuration
+-- ============================================================================
+-- Multiple queries use hardcoded price mappings for MRR calculation.
+-- Before using these queries in production, you MUST:
+-- 1. Update the CASE statements in MRR queries (lines ~90-110 and ~115-135)
+--    with your actual Stripe price IDs and amounts
+-- 2. OR better yet: Create a dedicated price_tiers table and reference it
+-- 3. Keep price mappings in sync across all queries that use them
+--
+-- Example:
+--   WHEN stripe_price_id = 'price_1234567890' THEN 9.99
+--   WHEN stripe_price_id = 'price_0987654321' THEN 99.99 / 12
 -- ============================================================================
 
 -- ============================================================================
@@ -133,10 +146,11 @@ JOIN price_mapping pm ON s.stripe_price_id = pm.stripe_price_id
 WHERE s.status = 'active';
 
 -- Query: Churn Rate
--- Description: Monthly subscription churn rate
+-- Description: Monthly subscription churn rate (churned customers / active customers at month start)
 -- Dashboard: Executive
 -- Visualization: Number or line chart
-WITH monthly_stats AS (
+-- Note: This calculates churn as customers who canceled in a month divided by active at start of month
+WITH monthly_churns AS (
     SELECT 
         date_trunc('month', canceled_at) as month,
         COUNT(*) as churned_customers
@@ -145,26 +159,36 @@ WITH monthly_stats AS (
         AND canceled_at >= CURRENT_DATE - INTERVAL '12 months'
     GROUP BY date_trunc('month', canceled_at)
 ),
-active_at_start AS (
+active_by_month AS (
+    -- Count active subscriptions at the start of each month
     SELECT 
-        date_trunc('month', canceled_at) as month,
-        COUNT(*) as active_customers
-    FROM subscriptions
-    WHERE status = 'active'
-    GROUP BY date_trunc('month', canceled_at)
+        date_trunc('month', d.month_start) as month,
+        COUNT(*) as active_at_start
+    FROM (
+        SELECT generate_series(
+            date_trunc('month', CURRENT_DATE - INTERVAL '12 months'),
+            date_trunc('month', CURRENT_DATE),
+            INTERVAL '1 month'
+        ) as month_start
+    ) d
+    CROSS JOIN subscriptions s
+    WHERE s.created_at < d.month_start
+        AND (s.canceled_at IS NULL OR s.canceled_at >= d.month_start)
+        AND s.tier != 'free'
+    GROUP BY date_trunc('month', d.month_start)
 )
 SELECT 
-    ms.month,
-    ms.churned_customers,
-    COALESCE(aas.active_customers, 0) as active_customers,
+    COALESCE(mc.month, am.month) as month,
+    COALESCE(mc.churned_customers, 0) as churned_customers,
+    am.active_at_start,
     CASE 
-        WHEN COALESCE(aas.active_customers, 0) > 0 
-        THEN ROUND((ms.churned_customers::NUMERIC / aas.active_customers::NUMERIC) * 100, 2)
+        WHEN am.active_at_start > 0 
+        THEN ROUND((COALESCE(mc.churned_customers, 0)::NUMERIC / am.active_at_start::NUMERIC) * 100, 2)
         ELSE 0 
     END as churn_rate_percent
-FROM monthly_stats ms
-LEFT JOIN active_at_start aas ON ms.month = aas.month
-ORDER BY ms.month DESC;
+FROM active_by_month am
+LEFT JOIN monthly_churns mc ON am.month = mc.month
+ORDER BY COALESCE(mc.month, am.month) DESC;
 
 -- ============================================================================
 -- PRODUCT DASHBOARD QUERIES
