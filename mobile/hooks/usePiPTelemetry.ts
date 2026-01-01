@@ -54,20 +54,16 @@ export function usePiPTelemetry(config: PiPTelemetryConfig) {
     // Monitor app state changes for PiP detection
     useEffect(() => {
         const subscription = AppState.addEventListener('change', (nextAppState) => {
+            const wasActive = appStateRef.current === 'active';
+            const isActive = nextAppState === 'active';
+            const isInactive = nextAppState === 'inactive' || nextAppState === 'background';
+            
             // When app goes to background and video is playing, likely entering PiP
-            if (
-                appStateRef.current.match(/active/) &&
-                nextAppState.match(/inactive|background/) &&
-                isPlaying
-            ) {
+            if (wasActive && isInactive && isPlaying) {
                 trackPiPEntered();
             }
             // When app comes back to foreground, likely exiting PiP
-            else if (
-                appStateRef.current.match(/inactive|background/) &&
-                nextAppState === 'active' &&
-                wasPipActiveRef.current
-            ) {
+            else if (!wasActive && isActive && wasPipActiveRef.current) {
                 trackPiPExited();
             }
 

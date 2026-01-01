@@ -43,15 +43,23 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
     const lastBufferingStartRef = useRef<number | null>(null);
     const hasCompletedRef = useRef(false);
     const lastPositionRef = useRef(0);
+    
+    // Milestone tracking flags
+    const milestonesRef = useRef({
+        twentyFive: false,
+        fifty: false,
+        seventyFive: false,
+    });
 
     // Track video load started
     useEffect(() => {
+        const loadStartTime = Date.now();
         trackEvent('video_load_started', {
             video_id: config.videoId,
             video_title: config.videoTitle || 'unknown',
             video_duration: config.videoDuration || 0,
             initial_quality: config.initialQuality || 'auto',
-            timestamp: new Date().toISOString(),
+            timestamp: loadStartTime,
         });
 
         return () => {
@@ -79,7 +87,7 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
             video_title: config.videoTitle || 'unknown',
             load_time_ms: loadTimeMs,
             quality,
-            timestamp: new Date().toISOString(),
+            timestamp: Date.now(),
         });
     }, [config.videoId, config.videoTitle]);
 
@@ -133,7 +141,7 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
             error_type: errorType,
             error_message: errorMessage,
             error_count: metricsRef.current.playbackErrors,
-            timestamp: new Date().toISOString(),
+            timestamp: Date.now(),
         });
     }, [config.videoId, config.videoTitle]);
 
@@ -143,22 +151,25 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
         lastPositionRef.current = currentTime;
         metricsRef.current.completionRate = progress;
 
-        // Track milestone events (25%, 50%, 75%, 100%)
-        if (progress >= 25 && progress < 50) {
+        // Track milestone events (25%, 50%, 75%) - only once per milestone
+        if (progress >= 25 && progress < 50 && !milestonesRef.current.twentyFive) {
+            milestonesRef.current.twentyFive = true;
             trackEvent('video_progress_25', {
                 video_id: config.videoId,
                 video_title: config.videoTitle || 'unknown',
                 quality,
                 timestamp: currentTime,
             });
-        } else if (progress >= 50 && progress < 75) {
+        } else if (progress >= 50 && progress < 75 && !milestonesRef.current.fifty) {
+            milestonesRef.current.fifty = true;
             trackEvent('video_progress_50', {
                 video_id: config.videoId,
                 video_title: config.videoTitle || 'unknown',
                 quality,
                 timestamp: currentTime,
             });
-        } else if (progress >= 75 && progress < 100) {
+        } else if (progress >= 75 && progress < 100 && !milestonesRef.current.seventyFive) {
+            milestonesRef.current.seventyFive = true;
             trackEvent('video_progress_75', {
                 video_id: config.videoId,
                 video_title: config.videoTitle || 'unknown',
