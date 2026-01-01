@@ -148,15 +148,28 @@ install_external_secrets() {
 install_metrics_server() {
     log_info "Installing metrics-server for HPA support..."
     
-    # Check if metrics-server is already installed
-    if kubectl get deployment metrics-server -n kube-system &> /dev/null; then
-        log_info "metrics-server already installed"
-        return
-    fi
+    # Apply local manifest for version control and customization
+    kubectl apply -f ../base/metrics-server.yaml
     
-    # Pin to a specific version for reproducibility and security
-    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.7.2/components.yaml
+    # Wait for deployment
+    log_info "Waiting for metrics-server to be ready..."
+    kubectl rollout status deployment/metrics-server -n kube-system --timeout=300s || log_warn "Metrics server deployment timeout"
+    
     log_info "metrics-server installed"
+}
+
+install_prometheus_adapter() {
+    log_info "Installing Prometheus Adapter for custom HPA metrics..."
+    
+    # Apply local manifest
+    kubectl apply -f ../base/prometheus-adapter.yaml
+    
+    # Wait for deployment
+    log_info "Waiting for Prometheus Adapter to be ready..."
+    kubectl rollout status deployment/prometheus-adapter -n custom-metrics --timeout=300s || log_warn "Prometheus Adapter deployment timeout"
+    
+    log_info "Prometheus Adapter installed"
+    log_info "Note: Prometheus Adapter requires Prometheus to be installed and accessible at http://prometheus.clipper-monitoring.svc:9090"
 }
 
 verify_installation() {
@@ -176,6 +189,9 @@ verify_installation() {
     
     log_info "Checking metrics-server..."
     kubectl get deployment metrics-server -n kube-system || log_warn "metrics-server not found"
+    
+    log_info "Checking Prometheus Adapter..."
+    kubectl get deployment prometheus-adapter -n custom-metrics || log_warn "Prometheus Adapter not found"
     
     log_info "Verification complete"
 }
@@ -224,6 +240,7 @@ main() {
     install_cert_manager
     install_external_secrets
     install_metrics_server
+    install_prometheus_adapter
     verify_installation
     print_next_steps
 }
