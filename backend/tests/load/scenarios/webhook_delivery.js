@@ -68,7 +68,8 @@ function generateWebhookEvent(eventType) {
     // Generate a simple UUID-like string for testing (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
     const generateUUID = () => {
         const hex = crypto.md5(crypto.randomBytes(16), 'hex');
-        return `${hex.substr(0,8)}-${hex.substr(8,4)}-${hex.substr(12,4)}-${hex.substr(16,4)}-${hex.substr(20,12)}`;
+        // MD5 produces 32 hex chars, format as UUID: 8-4-4-4-12 = 32 chars
+        return `${hex.substring(0,8)}-${hex.substring(8,12)}-${hex.substring(12,16)}-${hex.substring(16,20)}-${hex.substring(20,32)}`;
     };
     
     const eventID = generateUUID();
@@ -121,7 +122,7 @@ function deliverWebhook(eventType, simulateInvalidSignature = false) {
     const startTime = Date.now();
     // Generate UUID-like delivery ID
     const hex = crypto.md5(crypto.randomBytes(16), 'hex');
-    const deliveryID = `${hex.substr(0,8)}-${hex.substr(8,4)}-${hex.substr(12,4)}-${hex.substr(16,4)}-${hex.substr(20,12)}`;
+    const deliveryID = `${hex.substring(0,8)}-${hex.substring(8,12)}-${hex.substring(12,16)}-${hex.substring(16,20)}-${hex.substring(20,32)}`;
     
     // Generate event payload
     const event = generateWebhookEvent(eventType);
