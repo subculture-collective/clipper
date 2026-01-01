@@ -93,7 +93,7 @@ metadata:
 spec:
   containers:
   - name: memory-hog
-    image: polinux/stress
+    image: polinux/stress:1.0.4
     resources:
       limits:
         memory: "128Mi"
@@ -187,22 +187,26 @@ test_pod_resources() {
     
     echo ""
     echo "=== Pod Resource Requests/Limits ==="
-    kubectl get pods -n "$NAMESPACE" -o json | jq -r '
-        .items[] | 
-        {
-            pod: .metadata.name,
-            containers: [
-                .spec.containers[] | 
-                {
-                    name: .name,
-                    requests: .resources.requests,
-                    limits: .resources.limits
-                }
-            ]
-        }
-    ' 2>/dev/null || {
+    # Check if jq is available
+    if command -v jq &>/dev/null; then
+        kubectl get pods -n "$NAMESPACE" -o json | jq -r '
+            .items[] |
+            {
+                pod: .metadata.name,
+                containers: [
+                    .spec.containers[] |
+                    {
+                        name: .name,
+                        requests: .resources.requests,
+                        limits: .resources.limits
+                    }
+                ]
+            }
+        ' 2>/dev/null
+    else
+        # Fallback if jq is not available
         kubectl get pods -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{range .spec.containers[*]}  {.name}: requests={.resources.requests} limits={.resources.limits}{"\n"}{end}{end}'
-    }
+    fi
     echo ""
     
     success "Pod resource check completed"

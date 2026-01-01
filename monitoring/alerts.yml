@@ -1286,7 +1286,7 @@ groups:
           severity: warning
         annotations:
           summary: "Namespace {{ $labels.namespace }} CPU quota near limit"
-          description: "CPU quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          description: "CPU quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}."
           runbook: "Review pod resource requests, consider scaling down or increasing quota. Related to subculture-collective/clipper#853."
 
       # ResourceQuota Memory Usage
@@ -1301,7 +1301,7 @@ groups:
           severity: warning
         annotations:
           summary: "Namespace {{ $labels.namespace }} memory quota near limit"
-          description: "Memory quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          description: "Memory quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}."
           runbook: "Review pod resource requests, consider scaling down or increasing quota. Related to subculture-collective/clipper#853."
 
       # ResourceQuota Pod Count
@@ -1316,7 +1316,7 @@ groups:
           severity: warning
         annotations:
           summary: "Namespace {{ $labels.namespace }} pod count near limit"
-          description: "Pod count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          description: "Pod count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}."
           runbook: "Review pod deployments, check for stuck pods, consider increasing quota."
 
       # Container OOM Events
@@ -1363,16 +1363,18 @@ groups:
           runbook: "Review CPU usage patterns, adjust CPU requests/limits. High throttling may impact performance."
 
       # LimitRange Violations (pod events)
-      - alert: LimitRangeViolation
+      # Note: This alert may have false positives as CreateContainerConfigError
+      # can occur for various reasons. Check pod events for specific error details.
+      - alert: LimitRangeViolationSuspected
         expr: |
           increase(kube_pod_container_status_waiting_reason{reason="CreateContainerConfigError"}[5m]) > 0
         for: 5m
         labels:
-          severity: warning
+          severity: info
         annotations:
-          summary: "Pod {{ $labels.pod }} may violate LimitRange constraints"
-          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is waiting due to configuration error, possibly LimitRange violation."
-          runbook: "Check pod resource specifications against LimitRange constraints. Verify requests and limits are within allowed ranges."
+          summary: "Pod {{ $labels.pod }} has container configuration error"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is waiting due to CreateContainerConfigError. This may indicate LimitRange violation or other configuration issues."
+          runbook: "Check pod events with 'kubectl describe pod' and verify: 1) Resource specs against LimitRange 2) Secrets/ConfigMaps exist 3) Image pull configuration."
 
       # Storage Quota Near Limit
       - alert: StorageQuotaNearLimit
@@ -1386,7 +1388,7 @@ groups:
           severity: warning
         annotations:
           summary: "Namespace {{ $labels.namespace }} storage quota near limit"
-          description: "Storage quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          description: "Storage quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}."
           runbook: "Review PVC usage, clean up unused volumes, consider increasing storage quota."
 
       # PVC Count Near Limit
@@ -1401,5 +1403,5 @@ groups:
           severity: warning
         annotations:
           summary: "Namespace {{ $labels.namespace }} PVC count near limit"
-          description: "PVC count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          description: "PVC count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}."
           runbook: "Review PersistentVolumeClaims, delete unused volumes, consider increasing quota."
