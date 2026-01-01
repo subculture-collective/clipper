@@ -22,6 +22,7 @@ Production operations, monitoring, security, and maintenance procedures.
 - [[kubernetes-troubleshooting|Kubernetes Troubleshooting]] - Common issues and debugging
 - [[kubernetes-disaster-recovery|Kubernetes Disaster Recovery]] - Backup, restore, failover
 - [[kubernetes-cost-optimization|Kubernetes Cost Optimization]] - Cost reduction strategies
+- [[resource-quotas|Resource Quotas & Limits]] - Quota enforcement and OOM prevention
 
 ### Platform Operations
 - [[monitoring|Monitoring]] - Metrics, logs, and alerting
