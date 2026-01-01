@@ -1,4 +1,4 @@
-.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor
+.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -675,3 +675,48 @@ grid-search-recommendations-full: ## Run full parameter grid search (slower but 
 	@cd backend && go build -o bin/grid-search-recommendations ./cmd/grid-search-recommendations
 	@cd backend && ./bin/grid-search-recommendations -output grid-search-results.json
 	@echo "✓ Full grid search complete - results saved to backend/grid-search-results.json"
+
+# Kubernetes targets
+k8s-provision: ## Provision a new Kubernetes cluster (set CLOUD_PROVIDER, CLUSTER_NAME, REGION, etc.)
+	@echo "Provisioning Kubernetes cluster..."
+	@./infrastructure/k8s/bootstrap/provision-cluster.sh
+	@echo "✓ Cluster provisioned"
+
+k8s-setup: ## Set up cluster with required operators and configuration
+	@echo "Setting up cluster components..."
+	@./infrastructure/k8s/bootstrap/setup-cluster.sh
+	@echo "✓ Cluster setup complete"
+
+k8s-verify: ## Verify cluster health and configuration
+	@echo "Verifying cluster health..."
+	@./infrastructure/k8s/bootstrap/verify-cluster.sh
+
+k8s-deploy-prod: ## Deploy applications to production namespace
+	@echo "Deploying to production..."
+	@kubectl apply -k infrastructure/k8s/overlays/production/
+	@kubectl rollout status deployment/clipper-backend -n clipper-production
+	@echo "✓ Production deployment complete"
+
+k8s-deploy-staging: ## Deploy applications to staging namespace
+	@echo "Deploying to staging..."
+	@kubectl apply -k infrastructure/k8s/overlays/staging/
+	@kubectl rollout status deployment/clipper-backend -n clipper-staging
+	@echo "✓ Staging deployment complete"
+
+k8s-logs-prod: ## View backend logs in production
+	@kubectl logs -f -l app=clipper-backend -n clipper-production
+
+k8s-logs-staging: ## View backend logs in staging
+	@kubectl logs -f -l app=clipper-backend -n clipper-staging
+
+k8s-status-prod: ## Show status of production deployment
+	@echo "=== Production Status ==="
+	@kubectl get pods -n clipper-production
+	@kubectl get ingress -n clipper-production
+	@kubectl get certificate -n clipper-production
+
+k8s-status-staging: ## Show status of staging deployment
+	@echo "=== Staging Status ==="
+	@kubectl get pods -n clipper-staging
+	@kubectl get ingress -n clipper-staging
+	@kubectl get certificate -n clipper-staging
