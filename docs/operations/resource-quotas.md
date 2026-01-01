@@ -225,7 +225,7 @@ metadata:
 spec:
   containers:
   - name: memory-hog
-    image: polinux/stress
+    image: polinux/stress:1.0.4
     resources:
       limits:
         memory: "128Mi"
