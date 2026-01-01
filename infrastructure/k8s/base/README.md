@@ -1,6 +1,6 @@
-# HPA Metrics Infrastructure
+# Kubernetes Base Infrastructure
 
-This directory contains the infrastructure components required for Horizontal Pod Autoscaler (HPA) to function with both resource metrics (CPU/memory) and custom metrics (requests per second).
+This directory contains the core infrastructure components for the Clipper Kubernetes cluster, including HPA metrics, resource quotas, and namespace configurations.
 
 ## Components
 
@@ -23,11 +23,82 @@ kubectl top nodes
 kubectl top pods -n clipper-production
 ```
 
-**Features:**
+### Features:**
 - Collects resource metrics from kubelet
 - 15-second metric resolution
 - Required for HPA resource-based scaling (CPU/memory)
 - Runs in `kube-system` namespace
+
+### 3. Resource Quotas (`resource-quotas.yaml`)
+
+Enforces hard limits on aggregate resource consumption per namespace to prevent resource exhaustion.
+
+**Installation:**
+```bash
+kubectl apply -f resource-quotas.yaml
+```
+
+**Verification:**
+```bash
+# Check quota status
+kubectl describe resourcequota -n clipper-production
+kubectl describe resourcequota -n clipper-staging
+kubectl describe resourcequota -n clipper-monitoring
+
+# View quota usage across all namespaces
+kubectl get resourcequota -A
+```
+
+**Features:**
+- CPU and memory quotas per namespace
+- Storage and PVC count limits
+- Pod and service count limits
+- Production: 20 CPU / 40Gi memory requests
+- Staging: 10 CPU / 20Gi memory requests
+- Monitoring: 8 CPU / 16Gi memory requests
+
+### 4. Limit Ranges (`limit-ranges.yaml`)
+
+Sets default, minimum, and maximum resource constraints for individual pods and containers.
+
+**Installation:**
+```bash
+kubectl apply -f limit-ranges.yaml
+```
+
+**Verification:**
+```bash
+# Check limit ranges
+kubectl describe limitrange -n clipper-production
+kubectl describe limitrange -n clipper-staging
+kubectl describe limitrange -n clipper-monitoring
+```
+
+**Features:**
+- Default resource requests and limits for containers
+- Enforces minimum and maximum resource constraints
+- Prevents resource over-allocation
+- Automatically applied to pods without explicit resources
+- Different limits per environment (production/staging/monitoring)
+
+**Related Documentation:**
+- [Resource Quotas & Limits Guide](../../../docs/operations/resource-quotas.md)
+- [Grafana Dashboard](../../../monitoring/dashboards/resource-quotas.json)
+- Related Issues: [#853](https://github.com/subculture-collective/clipper/issues/853), [#805](https://github.com/subculture-collective/clipper/issues/805)
+
+### 5. Namespaces (`namespaces.yaml`)
+
+Creates and configures the Clipper namespaces.
+
+**Installation:**
+```bash
+kubectl apply -f namespaces.yaml
+```
+
+**Namespaces:**
+- `clipper-production` - Production workloads
+- `clipper-staging` - Staging/testing workloads
+- `clipper-monitoring` - Monitoring infrastructure
 
 ### 2. Prometheus Adapter (`prometheus-adapter.yaml`)
 

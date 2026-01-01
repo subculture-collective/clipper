@@ -1,0 +1,134 @@
+---
+# LimitRange for clipper-production namespace
+# Sets default and maximum resource limits for pods and containers
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: clipper-production-limits
+  namespace: clipper-production
+spec:
+  limits:
+    # Container limits
+    - type: Container
+      default:
+        # Default limits if not specified in pod spec
+        cpu: "1000m"
+        memory: "1Gi"
+      defaultRequest:
+        # Default requests if not specified in pod spec
+        cpu: "100m"
+        memory: "256Mi"
+      max:
+        # Maximum limits a container can request
+        cpu: "4000m"
+        memory: "8Gi"
+      min:
+        # Minimum limits a container must request
+        cpu: "10m"
+        memory: "32Mi"
+      maxLimitRequestRatio:
+        # Maximum ratio between limit and request
+        cpu: "10"      # Limit can be at most 10x the request
+        memory: "8"    # Limit can be at most 8x the request
+    
+    # Pod limits (aggregate of all containers)
+    - type: Pod
+      max:
+        cpu: "8000m"
+        memory: "16Gi"
+      min:
+        cpu: "10m"
+        memory: "32Mi"
+    
+    # PersistentVolumeClaim limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: "100Gi"
+      min:
+        storage: "1Gi"
+---
+# LimitRange for clipper-staging namespace
+# More restrictive limits for staging environment
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: clipper-staging-limits
+  namespace: clipper-staging
+spec:
+  limits:
+    # Container limits
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "50m"
+        memory: "128Mi"
+      max:
+        cpu: "2000m"
+        memory: "4Gi"
+      min:
+        cpu: "10m"
+        memory: "32Mi"
+      maxLimitRequestRatio:
+        cpu: "10"
+        memory: "8"
+    
+    # Pod limits
+    - type: Pod
+      max:
+        cpu: "4000m"
+        memory: "8Gi"
+      min:
+        cpu: "10m"
+        memory: "32Mi"
+    
+    # PersistentVolumeClaim limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: "50Gi"
+      min:
+        storage: "1Gi"
+---
+# LimitRange for clipper-monitoring namespace
+# Allows higher resource usage for monitoring services
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: clipper-monitoring-limits
+  namespace: clipper-monitoring
+spec:
+  limits:
+    # Container limits
+    - type: Container
+      default:
+        cpu: "1000m"
+        memory: "2Gi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "512Mi"
+      max:
+        cpu: "4000m"
+        memory: "16Gi"
+      min:
+        cpu: "10m"
+        memory: "64Mi"
+      maxLimitRequestRatio:
+        cpu: "8"
+        memory: "6"
+    
+    # Pod limits
+    - type: Pod
+      max:
+        cpu: "8000m"
+        memory: "32Gi"
+      min:
+        cpu: "10m"
+        memory: "64Mi"
+    
+    # PersistentVolumeClaim limits (monitoring needs large volumes)
+    - type: PersistentVolumeClaim
+      max:
+        storage: "200Gi"
+      min:
+        storage: "5Gi"

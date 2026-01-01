@@ -1267,3 +1267,139 @@ groups:
           summary: "PgBouncer pool utilization high"
           description: "Pool utilization is {{ $value }}% (threshold: 80%). Consider scaling pool size."
           runbook: "Monitor connection patterns, verify pool configuration matches load."
+
+  # Resource Quota and Limit Alerts
+  # Related to Roadmap 5.0 Phase 5.2
+  # See: subculture-collective/clipper#853, subculture-collective/clipper#805
+  - name: clipper_quota_alerts
+    interval: 30s
+    rules:
+      # ResourceQuota CPU Usage
+      - alert: ResourceQuotaCPUNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="requests.cpu", type="used"}
+            / kube_resourcequota{resource="requests.cpu", type="hard"}
+          ) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} CPU quota near limit"
+          description: "CPU quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          runbook: "Review pod resource requests, consider scaling down or increasing quota. Related to subculture-collective/clipper#853."
+
+      # ResourceQuota Memory Usage
+      - alert: ResourceQuotaMemoryNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="requests.memory", type="used"}
+            / kube_resourcequota{resource="requests.memory", type="hard"}
+          ) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} memory quota near limit"
+          description: "Memory quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          runbook: "Review pod resource requests, consider scaling down or increasing quota. Related to subculture-collective/clipper#853."
+
+      # ResourceQuota Pod Count
+      - alert: ResourceQuotaPodCountNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="pods", type="used"}
+            / kube_resourcequota{resource="pods", type="hard"}
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} pod count near limit"
+          description: "Pod count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          runbook: "Review pod deployments, check for stuck pods, consider increasing quota."
+
+      # Container OOM Events
+      - alert: ContainerOOMKilled
+        expr: |
+          increase(kube_pod_container_status_restarts_total[5m]) > 0
+          and on(namespace, pod, container)
+          kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.container }} in pod {{ $labels.pod }} killed due to OOM"
+          description: "Container {{ $labels.container }} in namespace {{ $labels.namespace }} was terminated due to out-of-memory. Consider increasing memory limits."
+          runbook: "Review container memory usage patterns, increase memory limits or optimize application memory usage. Related to subculture-collective/clipper#853."
+
+      # Pod Memory Approaching Limit
+      - alert: PodMemoryNearLimit
+        expr: |
+          (
+            container_memory_working_set_bytes{container!="", container!="POD"}
+            / container_spec_memory_limit_bytes{container!="", container!="POD"}
+          ) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} container {{ $labels.container }} memory usage near limit"
+          description: "Container {{ $labels.container }} is using {{ $value | humanize }}% of its memory limit in namespace {{ $labels.namespace }}."
+          runbook: "Monitor for OOM kills, consider increasing memory limits. Related to subculture-collective/clipper#853."
+
+      # Pod CPU Throttling
+      - alert: PodCPUThrottling
+        expr: |
+          sum by (namespace, pod, container) (
+            rate(container_cpu_cfs_throttled_seconds_total{container!="", container!="POD"}[5m])
+          ) > 0.25
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} container {{ $labels.container }} experiencing CPU throttling"
+          description: "Container {{ $labels.container }} is being throttled {{ $value }} seconds per second in namespace {{ $labels.namespace }}. Consider increasing CPU limits."
+          runbook: "Review CPU usage patterns, adjust CPU requests/limits. High throttling may impact performance."
+
+      # LimitRange Violations (pod events)
+      - alert: LimitRangeViolation
+        expr: |
+          increase(kube_pod_container_status_waiting_reason{reason="CreateContainerConfigError"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} may violate LimitRange constraints"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is waiting due to configuration error, possibly LimitRange violation."
+          runbook: "Check pod resource specifications against LimitRange constraints. Verify requests and limits are within allowed ranges."
+
+      # Storage Quota Near Limit
+      - alert: StorageQuotaNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="requests.storage", type="used"}
+            / kube_resourcequota{resource="requests.storage", type="hard"}
+          ) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} storage quota near limit"
+          description: "Storage quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          runbook: "Review PVC usage, clean up unused volumes, consider increasing storage quota."
+
+      # PVC Count Near Limit
+      - alert: PVCQuotaNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="persistentvolumeclaims", type="used"}
+            / kube_resourcequota{resource="persistentvolumeclaims", type="hard"}
+          ) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} PVC count near limit"
+          description: "PVC count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}. Current: {{ $labels.used }}, Limit: {{ $labels.hard }}."
+          runbook: "Review PersistentVolumeClaims, delete unused volumes, consider increasing quota."
