@@ -140,6 +140,11 @@ export const VideoPlaybackEvents = {
   VIDEO_PLAYBACK_ERROR: 'video_playback_error',
   VIDEO_PIP_ENTERED: 'video_pip_entered',
   VIDEO_PIP_EXITED: 'video_pip_exited',
+  AUDIO_SESSION_CONFIGURED: 'audio_session_configured',
+  AUDIO_SESSION_BACKGROUNDED: 'audio_session_backgrounded',
+  AUDIO_SESSION_RESUMED: 'audio_session_resumed',
+  AUDIO_SESSION_PAUSED: 'audio_session_paused',
+  AUDIO_SESSION_ENDED: 'audio_session_ended',
 } as const;
 
 export const ErrorEvents = {

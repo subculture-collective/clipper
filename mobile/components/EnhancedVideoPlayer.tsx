@@ -4,7 +4,7 @@
  * Features:
  * - Quality selection UI (auto/240p/480p/720p/1080p)
  * - Picture-in-Picture support with telemetry
- * - Background playback support
+ * - Background playback support with audio session management
  * - QoE metrics tracking (rebuffering, start time, frame drops)
  * - 60fps responsive controls
  * - Memory-efficient playback
@@ -25,6 +25,7 @@ import { useEvent } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import { trackEvent } from '../lib/analytics';
 import { usePiPTelemetry } from '../hooks/usePiPTelemetry';
+import { useAudioSession } from '../lib/audioSession';
 
 export type VideoQuality = 'auto' | '240p' | '480p' | '720p' | '1080p';
 
@@ -120,6 +121,13 @@ export default function EnhancedVideoPlayer({
         videoId: videoId || 'unknown',
         videoTitle: videoTitle || 'unknown',
         isPlaying,
+    });
+
+    // Initialize audio session management
+    useAudioSession({
+        allowsBackgroundPlayback: allowsBackgroundPlayback || false,
+        videoId: videoId || 'unknown',
+        videoTitle: videoTitle || 'unknown',
     });
 
     // Track video start time

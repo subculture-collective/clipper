@@ -26,7 +26,10 @@ A comprehensive video player component built on top of `expo-video` with the fol
 3. **Background Playback**
    - Optional background audio playback support
    - Configurable via `allowsBackgroundPlayback` prop
+   - Automatic audio session management via `useAudioSession` hook
    - Respects platform audio session policies
+   - Tracks background playback events for analytics
+   - Works in conjunction with PiP for seamless experience
 
 4. **Buffering Indication**
    - Visual loading indicator during buffering
@@ -128,7 +131,19 @@ A custom hook for tracking comprehensive video playback metrics.
 
 11. **video_pip_entered / video_pip_exited**
     - Fired on PiP state changes
-    - Properties: `video_id`, `video_title`
+    - Properties: `video_id`, `video_title`, `was_playing`, `pip_duration_ms`
+
+12. **audio_session_configured**
+    - Fired when audio session is configured
+    - Properties: `video_id`, `background_playback`, `platform`
+
+13. **audio_session_backgrounded / audio_session_resumed**
+    - Fired when app enters/exits background
+    - Properties: `video_id`, `platform`
+
+14. **audio_session_ended**
+    - Fired when audio session ends (component unmount)
+    - Properties: `video_id`, `background_playback`, `platform`
 
 #### Usage
 
@@ -183,7 +198,14 @@ function VideoPlayer({ videoId, videoTitle, videoDuration }) {
 
 #### iOS Background Audio
 
-For background audio playback on iOS, the app is configured with the appropriate audio session category. The `expo-video` player's `allowsExternalPlayback` property is set based on the `allowsBackgroundPlayback` prop.
+Background audio playback on iOS is configured automatically by the `expo-video` player when `allowsExternalPlayback` is set to true. The `useAudioSession` hook monitors and tracks background playback state changes for analytics.
+
+**Key Points:**
+- Audio continues when app is backgrounded
+- Works seamlessly with PiP
+- Respects system audio interruptions
+- Automatically pauses for phone calls and Siri
+- Background Modes capability not required for PiP (handled by expo-video plugin)
 
 ### Android Configuration (app.json)
 
@@ -205,9 +227,16 @@ For background audio playback on iOS, the app is configured with the appropriate
 }
 ```
 
-#### Android PiP Mode
+#### Android Background Audio and PiP
 
-Android PiP is automatically handled by the `expo-video` plugin. The app enters PiP mode when the user navigates away while video is playing.
+Android background audio and PiP are automatically handled by the `expo-video` plugin. The app enters PiP mode when the user navigates away while video is playing.
+
+**Key Points:**
+- Audio continues in PiP mode
+- PiP overlay includes basic playback controls
+- System audio focus is automatically managed
+- Works with Android Auto and media notifications
+- Minimum Android version: 8.0 (API 26) for PiP
 
 ## Performance
 
