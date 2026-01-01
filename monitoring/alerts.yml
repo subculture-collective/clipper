@@ -955,3 +955,101 @@ groups:
           summary: "High item failure rate for job {{ $labels.job_name }}"
           description: "Job {{ $labels.job_name }} has {{ $value | humanizePercentage }} item failure rate (threshold: 20%)."
           runbook: "docs/operations/runbooks/background-jobs.md#high-item-failure-rate"
+
+  # CDN Failover Alerts
+  # Monitors CDN health and failover to origin
+  - name: cdn_failover_alerts
+    interval: 30s
+    rules:
+      # CDN Failover Rate High
+      - alert: CDNFailoverRateHigh
+        expr: rate(cdn_failover_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CDN failover rate is high"
+          description: "CDN is experiencing {{ $value | humanize }} failovers/sec for 5 minutes. Assets are being served from origin."
+          runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
+
+      # CDN Failover Rate Critical
+      - alert: CDNFailoverRateCritical
+        expr: rate(cdn_failover_total[5m]) > 20
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CDN failover rate is critical"
+          description: "CDN is experiencing {{ $value | humanize }} failovers/sec - immediate action required. Origin server may be overloaded."
+          runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
+
+      # CDN Failover Latency High
+      - alert: CDNFailoverLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(cdn_failover_duration_ms_bucket[5m]))
+          ) > 500
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CDN failover latency is high"
+          description: "P95 failover latency is {{ $value | humanize }}ms (threshold: 500ms). Users may experience slow asset loading."
+          runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
+
+      # CDN Timeout Errors
+      - alert: CDNTimeoutErrors
+        expr: rate(cdn_failover_total{reason="timeout"}[5m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of CDN timeout errors"
+          description: "CDN is timing out at {{ $value | humanize }} req/sec. May indicate CDN network issues."
+          runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
+
+      # Origin Server High Load (due to CDN failure)
+      - alert: OriginServerHighLoad
+        expr: |
+          (
+            rate(http_requests_total{source="origin"}[5m])
+            / (rate(http_requests_total{source="cdn"}[5m]) + rate(http_requests_total{source="origin"}[5m]))
+          ) > 0.5
+          and rate(cdn_failover_total[5m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Origin server handling high traffic due to CDN failure"
+          description: "Origin is serving {{ $value | humanizePercentage }} of traffic (threshold: 50%). Consider scaling if sustained."
+          runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#if-origin-server-overloaded"
+
+      # HLS Segment Delivery Failing
+      - alert: HLSSegmentDeliveryFailing
+        expr: |
+          (
+            rate(http_requests_total{path=~".*\\.ts",status=~"5.."}[5m])
+            / rate(http_requests_total{path=~".*\\.ts"}[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate for HLS segment delivery"
+          description: "HLS segments failing at {{ $value | humanizePercentage }} (threshold: 5%). Video playback is degraded."
+          runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
+
+      # HLS Playlist Delivery Failing
+      - alert: HLSPlaylistDeliveryFailing
+        expr: |
+          (
+            rate(http_requests_total{path=~".*\\.m3u8",status=~"5.."}[5m])
+            / rate(http_requests_total{path=~".*\\.m3u8"}[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate for HLS playlist delivery"
+          description: "HLS playlists failing at {{ $value | humanizePercentage }} (threshold: 5%). Video playback initiation is failing."
+          runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"

@@ -112,6 +112,34 @@ var (
 		},
 		[]string{"subscription_id", "status"}, // status: success, failed
 	)
+
+	// WebhookDLQReplaySuccess tracks successful DLQ replays
+	webhookDLQReplaySuccess = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "webhook_dlq_replay_success_total",
+			Help: "Total number of successful DLQ replay attempts",
+		},
+		[]string{"event_type"},
+	)
+
+	// WebhookDLQReplayFailure tracks failed DLQ replays
+	webhookDLQReplayFailure = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "webhook_dlq_replay_failure_total",
+			Help: "Total number of failed DLQ replay attempts",
+		},
+		[]string{"event_type", "reason"},
+	)
+
+	// WebhookDLQReplayDuration tracks DLQ replay duration
+	webhookDLQReplayDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "webhook_dlq_replay_duration_seconds",
+			Help:    "Duration of DLQ replay attempts in seconds",
+			Buckets: []float64{.1, .5, 1, 2, 5, 10, 30},
+		},
+		[]string{"event_type", "status"},
+	)
 )
 
 func init() {
@@ -128,4 +156,7 @@ func init() {
 	prometheus.MustRegister(webhookDLQMovements)
 	prometheus.MustRegister(webhookRetryRate)
 	prometheus.MustRegister(webhookSubscriptionHealth)
+	prometheus.MustRegister(webhookDLQReplaySuccess)
+	prometheus.MustRegister(webhookDLQReplayFailure)
+	prometheus.MustRegister(webhookDLQReplayDuration)
 }
