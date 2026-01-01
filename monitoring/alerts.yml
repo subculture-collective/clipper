@@ -1128,7 +1128,7 @@ groups:
       # Custom Metrics Not Available
       - alert: HPACustomMetricsNotAvailable
         expr: |
-          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"} != 0
+          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
         for: 5m
         labels:
           severity: critical
