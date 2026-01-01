@@ -1,0 +1,50 @@
+# Production values for clipper-backend
+# Override default values for production deployment
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/subculture-collective/clipper-backend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: clpr.tv
+      paths:
+        - path: /api
+          pathType: Prefix
+  tls:
+    - secretName: clipper-tls
+      hosts:
+        - clpr.tv
+
+config:
+  ENVIRONMENT: "production"
+  GIN_MODE: "release"
+  LOG_LEVEL: "info"
+  SENTRY_ENABLED: "true"
+  SENTRY_ENVIRONMENT: "production"
+  SENTRY_TRACES_SAMPLE_RATE: "0.1"
+  FEATURE_ANALYTICS: "true"
+  FEATURE_MODERATION: "true"

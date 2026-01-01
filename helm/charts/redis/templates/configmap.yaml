@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "clipper-redis.fullname" . }}-config
+  labels:
+    {{- include "clipper-redis.labels" . | nindent 4 }}
+data:
+  redis.conf: |
+{{ .Values.redisConfig | indent 4 }}
