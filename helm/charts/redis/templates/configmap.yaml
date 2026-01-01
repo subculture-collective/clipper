@@ -6,4 +6,4 @@ metadata:
     {{- include "clipper-redis.labels" . | nindent 4 }}
 data:
   redis.conf: |
-{{ .Values.redisConfig | indent 4 }}
+{{- .Values.redisConfig | nindent 4 }}

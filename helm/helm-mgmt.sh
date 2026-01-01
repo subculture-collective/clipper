@@ -48,7 +48,7 @@ lint_charts() {
     print_info "Linting all charts..."
     
     local failed=0
-    for chart in backend frontend postgres redis clipper; do
+    for chart in backend frontend postgres redis monitoring clipper; do
         print_info "Linting $chart..."
         if helm lint "$CHARTS_DIR/$chart"; then
             print_info "✓ $chart passed"
@@ -72,9 +72,9 @@ test_templates() {
     print_info "Testing template rendering..."
     
     local failed=0
-    for chart in backend frontend postgres redis; do
+    for chart in backend frontend postgres redis monitoring; do
         print_info "Testing $chart templates..."
-        if helm template test "$CHARTS_DIR/$chart" --dry-run > /dev/null 2>&1; then
+        if helm template test "$CHARTS_DIR/$chart" > /dev/null 2>&1; then
             print_info "✓ $chart templates rendered successfully"
         else
             print_error "✗ $chart template rendering failed"
@@ -98,7 +98,7 @@ package_charts() {
     local output_dir="${1:-$SCRIPT_DIR/packages}"
     mkdir -p "$output_dir"
     
-    for chart in backend frontend postgres redis clipper; do
+    for chart in backend frontend postgres redis monitoring clipper; do
         print_info "Packaging $chart..."
         helm package "$CHARTS_DIR/$chart" -d "$output_dir"
     done
@@ -110,7 +110,7 @@ package_charts() {
 show_versions() {
     print_info "Chart versions:"
     
-    for chart in backend frontend postgres redis clipper; do
+    for chart in backend frontend postgres redis monitoring clipper; do
         version=$(grep "^version:" "$CHARTS_DIR/$chart/Chart.yaml" | awk '{print $2}')
         app_version=$(grep "^appVersion:" "$CHARTS_DIR/$chart/Chart.yaml" | awk '{print $2}' | tr -d '"')
         echo "  $chart: $version (app: $app_version)"
@@ -178,7 +178,7 @@ uninstall() {
     local namespace="${1:-clipper-production}"
     
     print_warn "This will uninstall Clipper from namespace: $namespace"
-    read -p "Are you sure? (yes/no): " confirm
+    read -rp "Are you sure? (yes/no): " confirm
     
     if [ "$confirm" = "yes" ]; then
         print_info "Uninstalling..."
