@@ -23,6 +23,8 @@ Production runs on Kubernetes with:
 - Redis 8 Cluster (3+ nodes)
 - OpenSearch 2.11 (3-node cluster)
 
+See [Kubernetes Infrastructure](../../infrastructure/k8s/README.md) for cluster setup.
+
 ## Cloud Providers
 
 Supports:
@@ -57,8 +59,10 @@ See [[../backend/database|Database]].
 ## Secrets Management
 
 - Kubernetes Secrets for credentials
-- External: Vault, AWS Secrets Manager, GCP Secret Manager
+- External Secrets Operator syncs from cloud providers (AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, Vault)
 - Rotate JWT_SECRET, API keys quarterly
+
+See [External Secrets Configuration](../../infrastructure/k8s/external-secrets/README.md) for setup.
 
 ## Monitoring & Alerting
 
@@ -78,6 +82,6 @@ Plan:
 
 ---
 
-Related: [[docker|Docker Deployment]] · [[ci_cd|CI/CD]] · [[../operations/monitoring|Monitoring]] · [[../operations/migration|Migrations]]
+Related: [[docker|Docker Deployment]] · [[ci_cd|CI/CD]] · [[../operations/monitoring|Monitoring]] · [[../operations/migration|Migrations]] · [[../operations/kubernetes-runbook|Kubernetes Runbook]]
 
 [[index|← Back to Deployment]]
