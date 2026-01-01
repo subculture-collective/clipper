@@ -359,8 +359,11 @@ Add template variables for dynamic filtering:
 1. **Use Consistent Time Ranges**: Align dashboard time range with SLO measurement periods
 2. **Add Annotations**: Mark deployments and incidents on graphs
 3. **Set Appropriate Refresh Rates**: 30s for operational dashboards, 5m for overview
-4. **Use Alert States**: Link dashboard panels to alert rules
-5. **Document Queries**: Add panel descriptions explaining what metrics mean
+4. **Configure Alerts in alerts.yml**: Define all alerts in `monitoring/alerts.yml` rather than embedding them in dashboard JSON. Grafana dashboard alerts are deprecated in favor of unified alerting.
+5. **Use Recording Rules for Complex Queries**: For frequently used complex calculations (like cache hit rates), define recording rules in Prometheus to improve dashboard performance
+6. **Document Queries**: Add panel descriptions explaining what metrics mean
+7. **Template Variables**: Use template variables for filtering by instance, namespace, environment, etc.
+8. **Align with Prometheus Metrics**: Ensure dashboard queries match metrics exposed by exporters in `prometheus.yml`
 
 ### 9. Redis Cache Monitoring Dashboard (`redis.json`) 🆕
 
@@ -406,13 +409,13 @@ Comprehensive Redis cache performance monitoring for cache health and efficiency
 
 **Alert Integration:**
 
-- High eviction rate alert (>0.5/sec)
-- Aligned with Redis alerts in `monitoring/alerts.yml`
+- Thresholds aligned with Redis alerts in `monitoring/alerts.yml`
+- RedisDown, HighRedisMemoryUsage, LowCacheHitRate alerts configured
 
 **Related Documentation:**
 
 - [Prometheus Configuration](../prometheus.yml) - Redis exporter setup
-- [Alerts](../alerts.yml) - Redis alerting rules
+- [Alerts](../alerts.yml) - Redis alerting rules (clipper_redis_alerts group)
 
 ### 10. Kubernetes Cluster Overview Dashboard (`kubernetes.json`) 🆕
 
@@ -468,17 +471,15 @@ Comprehensive Kubernetes cluster health monitoring for pods, nodes, resources, a
 
 **Alert Integration:**
 
-- Container OOM kills
-- High CPU throttling
-- Pod restart rates
-- Node condition alerts
-- Aligned with K8s alerts in `monitoring/alerts.yml`
+- Thresholds aligned with K8s alerts in `monitoring/alerts.yml`
+- PodCPUThrottling, ContainerOOMKilled, HPA scaling, and node condition alerts configured
+- See clipper_quota_alerts and hpa_scaling_alerts groups in alerts.yml
 
 **Related Documentation:**
 
 - [Kubernetes Runbook](../../docs/operations/kubernetes-runbook.md)
 - [Resource Quotas Dashboard](./resource-quotas.json) - For quota-specific monitoring
-- [Alerts](../alerts.yml) - HPA and K8s alerting rules
+- [Alerts](../alerts.yml) - HPA and K8s alerting rules (hpa_scaling_alerts, clipper_quota_alerts groups)
 
 ### 11. Resource Quotas & Limits Dashboard (`resource-quotas.json`) 🆕
 

@@ -257,23 +257,7 @@
         "yaxes": [
           {"format": "ops", "label": "Evictions/sec"},
           {"format": "short"}
-        ],
-        "alert": {
-          "conditions": [
-            {
-              "evaluator": {
-                "params": [0.5],
-                "type": "gt"
-              },
-              "query": {
-                "params": ["A", "5m", "now"]
-              },
-              "type": "query"
-            }
-          ],
-          "name": "High Redis Eviction Rate",
-          "message": "Redis is evicting keys frequently, indicating memory pressure"
-        }
+        ]
       },
       {
         "id": 12,

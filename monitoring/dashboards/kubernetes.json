@@ -340,23 +340,7 @@
         "yaxes": [
           {"format": "s", "label": "Throttled Seconds/sec"},
           {"format": "short"}
-        ],
-        "alert": {
-          "conditions": [
-            {
-              "evaluator": {
-                "params": [0.25],
-                "type": "gt"
-              },
-              "query": {
-                "params": ["A", "5m", "now"]
-              },
-              "type": "query"
-            }
-          ],
-          "name": "High CPU Throttling",
-          "message": "Container experiencing significant CPU throttling"
-        }
+        ]
       },
       {
         "id": 16,
@@ -448,7 +432,7 @@
         "gridPos": {"h": 8, "w": 12, "x": 12, "y": 70},
         "targets": [
           {
-            "expr": "(time() - kube_pod_start_time{namespace=~\"$namespace\", phase=\"Pending\"}) > 300",
+            "expr": "(time() - kube_pod_created{namespace=~\"$namespace\"}) * on(namespace, pod) group_left() (kube_pod_status_phase{namespace=~\"$namespace\", phase=\"Pending\"} > 0) > 300",
             "legendFormat": "{{ namespace }}/{{ pod }}",
             "refId": "A"
           }
