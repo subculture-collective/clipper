@@ -221,6 +221,32 @@ services:
             - monitoring
             - clipper-network
 
+    # Metabase - Business Intelligence and Analytics Dashboards
+    metabase:
+        image: metabase/metabase:latest
+        container_name: clipper-metabase
+        restart: unless-stopped
+        environment:
+            - MB_DB_TYPE=postgres
+            - MB_DB_DBNAME=${METABASE_DB_NAME:-metabase}
+            - MB_DB_PORT=5432
+            - MB_DB_USER=${METABASE_DB_USER:-metabase}
+            - MB_DB_PASS=${METABASE_DB_PASSWORD:-changeme}
+            - MB_DB_HOST=postgres
+            - MB_JETTY_HOST=0.0.0.0
+            - MB_JETTY_PORT=3000
+            - JAVA_TIMEZONE=UTC
+        volumes:
+            - metabase_data:/metabase-data
+        ports:
+            - '13000:3000'
+        depends_on:
+            - postgres-exporter
+        networks:
+            - clipper-network
+            - monitoring
+            - web
+
 volumes:
     prometheus_data:
         driver: local
@@ -231,6 +257,8 @@ volumes:
     loki_data:
         driver: local
     vault_agent_data:
+        driver: local
+    metabase_data:
         driver: local
 
 networks:
