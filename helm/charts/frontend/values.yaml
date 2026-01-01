@@ -1,0 +1,82 @@
+# Default values for clipper-frontend
+
+replicaCount: 2
+
+image:
+  repository: clipper-frontend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "clipper-frontend"
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: clpr.tv
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: clipper-tls
+      hosts:
+        - clpr.tv
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+terminationGracePeriodSeconds: 10
+
+livenessProbe:
+  httpGet:
+    path: /health.html
+    port: 80
+  initialDelaySeconds: 15
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /health.html
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 15

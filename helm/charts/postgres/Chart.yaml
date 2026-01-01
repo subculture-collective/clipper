@@ -1,0 +1,15 @@
+apiVersion: v2
+name: clipper-postgres
+description: PostgreSQL database with pgvector extension for Clipper
+type: application
+version: 1.0.0
+appVersion: "17"
+keywords:
+  - postgres
+  - postgresql
+  - database
+  - pgvector
+maintainers:
+  - name: Clipper Team
+    url: https://github.com/subculture-collective/clipper
+home: https://github.com/subculture-collective/clipper
