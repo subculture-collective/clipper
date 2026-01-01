@@ -71,6 +71,40 @@ PostgreSQL database performance monitoring with query and connection metrics.
 
 **Note:** Some advanced metrics require the `pg_stat_statements` extension to be enabled in PostgreSQL. The dashboard will gracefully handle missing metrics.
 
+### 3A. PgBouncer Connection Pool Dashboard (`pgbouncer-pool.json`) 🆕
+
+Comprehensive PgBouncer connection pooling metrics for monitoring database connection efficiency.
+
+**Panels:**
+
+- Active Client Connections - Client connections to PgBouncer
+- Server Connections to PostgreSQL - Active, idle, and used server connections
+- Pool Size vs Limits - Current pool size against configured limits
+- Query Rate - Queries per second and pooled query rate
+- Average Query Duration - Query execution time monitoring
+- Connection Wait Time - Time clients wait for available connections
+- Total Client Connections (stat) - Current total clients
+- Pool Utilization % (stat) - Percentage of pool capacity used
+- Waiting Clients Queue (stat) - Number of clients waiting
+- Connection Errors (stat) - Error rate per second
+
+**Alerts:**
+
+- Client connections approaching limit (>45)
+- High connection wait time (>50ms)
+
+**Use Cases:**
+
+- Monitor connection pool health and efficiency
+- Detect connection exhaustion before it impacts performance
+- Optimize pool size configuration
+- Track connection reuse and pooling effectiveness
+
+**Related Documentation:**
+
+- [PgBouncer Configuration Guide](../../backend/k8s/PGBOUNCER.md)
+- [Load Test Validation](../../backend/tests/load/validate_pgbouncer.sh)
+
 ### 4. User Experience Dashboard (`user-experience.json`) 🆕
 
 Frontend and user-facing metrics for monitoring end-user experience.

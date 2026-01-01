@@ -1196,3 +1196,72 @@ groups:
           summary: "Frontend pods at high RPS before scaling"
           description: "Frontend pods are handling >900 RPS (target: 1000) but HPA hasn't scaled yet. Check HPA responsiveness."
           runbook: "docs/operations/runbooks/hpa-scaling.md#slow-scale-up"
+
+  - name: pgbouncer_alerts
+    interval: 30s
+    rules:
+      # PgBouncer connection pool exhaustion
+      - alert: PgBouncerPoolExhaustion
+        expr: pgbouncer_pools_sv_active{database="clipper_db"} >= 48
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PgBouncer connection pool near exhaustion"
+          description: "PgBouncer has {{ $value }} active server connections (limit: 50). Risk of connection exhaustion."
+          runbook: "Check database load, verify pool configuration, consider increasing max_db_connections."
+
+      # PgBouncer high client wait time
+      - alert: PgBouncerHighWaitTime
+        expr: rate(pgbouncer_stats_waiting_duration_microseconds{database="clipper_db"}[5m]) / 1000 > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer clients experiencing high wait times"
+          description: "Average client wait time is {{ $value }}ms (threshold: 50ms). Connection pool may be undersized."
+          runbook: "Check pool utilization, verify query performance, consider increasing pool size."
+
+      # PgBouncer waiting clients queue
+      - alert: PgBouncerWaitingClients
+        expr: pgbouncer_pools_cl_waiting{database="clipper_db"} > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer has waiting clients in queue"
+          description: "{{ $value }} clients are waiting for database connections. Pool may be undersized."
+          runbook: "Check current pool size, verify database performance, consider scaling."
+
+      # PgBouncer service down
+      - alert: PgBouncerDown
+        expr: up{job="pgbouncer"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PgBouncer service is down"
+          description: "PgBouncer connection pooler is not responding. Database connections may fail."
+          runbook: "Check PgBouncer pod status, verify configuration, review logs."
+
+      # PgBouncer high connection errors
+      - alert: PgBouncerHighErrors
+        expr: rate(pgbouncer_errors_count{database="clipper_db"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer experiencing high connection errors"
+          description: "{{ $value }} connection errors per second. Check database connectivity and configuration."
+          runbook: "Review PgBouncer logs, verify postgres connectivity, check authentication."
+
+      # PgBouncer pool utilization
+      - alert: PgBouncerHighUtilization
+        expr: (pgbouncer_pools_sv_active{database="clipper_db"} / 50) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer pool utilization high"
+          description: "Pool utilization is {{ $value }}% (threshold: 80%). Consider scaling pool size."
+          runbook: "Monitor connection patterns, verify pool configuration matches load."

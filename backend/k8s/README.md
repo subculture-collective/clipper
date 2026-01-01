@@ -11,6 +11,7 @@
 
 ### Database Layer
 - **Postgres**: StatefulSet with 20Gi persistent storage
+- **PgBouncer**: Connection pooler (2 replicas, transaction mode, min 10 / max 50 connections)
 - **Redis**: StatefulSet with 5Gi persistent storage
 - **OpenSearch**: StatefulSet with 10Gi persistent storage
 
@@ -145,10 +146,22 @@ kubectl delete -f backend/k8s/
 - [ ] Configure DNS A record: clpr.tv → VPS IP
 - [ ] Verify TLS certificate issued: `kubectl get certificate`
 - [ ] Run database migrations
+- [ ] Deploy PgBouncer connection pooler (see [PGBOUNCER.md](PGBOUNCER.md))
+- [ ] Update backend ConfigMap to use PgBouncer (DB_HOST: pgbouncer, DB_PORT: 6432)
 - [ ] Test health endpoint: `curl https://clpr.tv/health/ready`
+- [ ] Verify PgBouncer metrics in Grafana dashboard
 - [ ] Set up backup solution for PVCs
 - [ ] Configure monitoring (Prometheus/Grafana)
 - [ ] Set up log aggregation (Loki/ELK)
+
+## Database Connection Pooling
+
+The application uses PgBouncer for efficient database connection pooling. See [PGBOUNCER.md](PGBOUNCER.md) for:
+- Deployment instructions
+- Configuration details and tuning
+- Monitoring and alerting
+- Rollback procedures
+- Troubleshooting guide
 
 ## Maintenance
 
