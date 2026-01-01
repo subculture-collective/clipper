@@ -134,7 +134,7 @@
         "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
         "targets": [
           {
-            "expr": "(container_memory_working_set_bytes{container!=\"\", container!=\"POD\"} / container_spec_memory_limit_bytes{container!=\"\", container!=\"POD\"}) * 100",
+            "expr": "(container_memory_working_set_bytes{container!=\"\", container!=\"POD\"} / (container_spec_memory_limit_bytes{container!=\"\", container!=\"POD\"} > 0)) * 100",
             "legendFormat": "{{ namespace }}/{{ pod }}/{{ container }}",
             "refId": "A"
           }

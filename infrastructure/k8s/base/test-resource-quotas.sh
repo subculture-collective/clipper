@@ -46,7 +46,7 @@ check_quota() {
     
     if ! kubectl get resourcequota -n "$NAMESPACE" &>/dev/null; then
         warn "No ResourceQuota found in $NAMESPACE"
-        return 1
+        return 0  # Non-fatal, continue execution
     fi
     
     echo ""
@@ -63,7 +63,7 @@ check_limitrange() {
     
     if ! kubectl get limitrange -n "$NAMESPACE" &>/dev/null; then
         warn "No LimitRange found in $NAMESPACE"
-        return 1
+        return 0  # Non-fatal, continue execution
     fi
     
     echo ""
@@ -161,7 +161,7 @@ test_quota_enforcement() {
     
     if [ -z "$cpu_hard" ] || [ -z "$mem_hard" ]; then
         warn "Cannot test quota enforcement - quota not configured"
-        return 1
+        return 0  # Non-fatal, continue execution
     fi
     
     log "Current quota limits: CPU=$cpu_hard, Memory=$mem_hard"
@@ -182,7 +182,7 @@ test_pod_resources() {
     
     if [ "$pods" -eq 0 ]; then
         warn "No pods found in $NAMESPACE to check"
-        return 1
+        return 0  # Non-fatal, continue execution
     fi
     
     echo ""

@@ -1340,6 +1340,8 @@ groups:
             container_memory_working_set_bytes{container!="", container!="POD"}
             / container_spec_memory_limit_bytes{container!="", container!="POD"}
           ) * 100 > 90
+          and on (namespace, pod, container)
+          container_spec_memory_limit_bytes{container!="", container!="POD"} > 0
         for: 10m
         labels:
           severity: warning

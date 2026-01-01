@@ -23,7 +23,7 @@ kubectl top nodes
 kubectl top pods -n clipper-production
 ```
 
-### Features:**
+**Features:**
 - Collects resource metrics from kubelet
 - 15-second metric resolution
 - Required for HPA resource-based scaling (CPU/memory)
@@ -86,20 +86,6 @@ kubectl describe limitrange -n clipper-monitoring
 - [Grafana Dashboard](../../../monitoring/dashboards/resource-quotas.json)
 - Related Issues: [#853](https://github.com/subculture-collective/clipper/issues/853), [#805](https://github.com/subculture-collective/clipper/issues/805)
 
-### 5. Namespaces (`namespaces.yaml`)
-
-Creates and configures the Clipper namespaces.
-
-**Installation:**
-```bash
-kubectl apply -f namespaces.yaml
-```
-
-**Namespaces:**
-- `clipper-production` - Production workloads
-- `clipper-staging` - Staging/testing workloads
-- `clipper-monitoring` - Monitoring infrastructure
-
 ### 2. Prometheus Adapter (`prometheus-adapter.yaml`)
 
 Exposes custom metrics from Prometheus for HPA, enabling scaling based on application-specific metrics like requests per second.
@@ -143,6 +129,20 @@ kubectl rollout restart deployment/prometheus-adapter -n custom-metrics
 - 1-minute metrics relist interval
 - 2-minute rate window for request calculations
 - Runs in `custom-metrics` namespace
+
+### 5. Namespaces (`namespaces.yaml`)
+
+Creates and configures the Clipper namespaces.
+
+**Installation:**
+```bash
+kubectl apply -f namespaces.yaml
+```
+
+**Namespaces:**
+- `clipper-production` - Production workloads
+- `clipper-staging` - Staging/testing workloads
+- `clipper-monitoring` - Monitoring infrastructure
 
 ## HPA Configuration
 
