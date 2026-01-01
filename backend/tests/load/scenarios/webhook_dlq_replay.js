@@ -16,7 +16,7 @@
 
 import { check, sleep } from 'k6';
 import http from 'k6/http';
-import { Rate, Trend, Counter, Gauge } from 'k6/metrics';
+import { Trend, Counter, Gauge } from 'k6/metrics';
 
 // Custom metrics
 const dlqReplaySuccess = new Counter('webhook_dlq_replay_success');
@@ -75,7 +75,6 @@ export const options = {
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN || '';
-const DLQ_SIZE = parseInt(__ENV.DLQ_SIZE || '1000');
 
 // Track replayed DLQ items to avoid duplicates
 const replayedItems = new Set();
@@ -163,8 +162,9 @@ export function replayDLQItem() {
     dlqReplayDuration.add(duration);
     
     // Check response
-    const success = check(response, {
-        'status is 200 or 404': (r) => r.status === 200 || r.status === 404, // 404 = already replayed
+    check(response, {
+        'status is 200 (replayed)': (r) => r.status === 200,
+        'status is 404 (already replayed)': (r) => r.status === 404,
         'status is 429 (rate limited)': (r) => r.status === 429,
         'has success message': (r) => r.status === 200 && r.json('message') !== undefined,
         'response time < 5000ms': (r) => r.timings.duration < 5000,
@@ -228,7 +228,10 @@ export function bulkReplay() {
 }
 
 // Helper: Generate mock DLQ item ID
-// In real scenario, would fetch actual DLQ item IDs from the API
+// NOTE: In a real test scenario, this should fetch actual DLQ item IDs from the API
+// using the /api/v1/admin/webhooks/dlq endpoint. This mock implementation is for
+// load testing the replay endpoint itself, not end-to-end DLQ workflow testing.
+// For integration tests, seed the DLQ with known items first, then fetch their IDs.
 function generateMockDLQItemID() {
     const chars = '0123456789abcdef';
     let id = '';

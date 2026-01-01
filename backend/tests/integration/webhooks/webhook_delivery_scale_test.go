@@ -82,9 +82,8 @@ func TestWebhookSignatureVerificationEnforced(t *testing.T) {
 		
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		// Server should accept in our mock (doesn't do full verification), but in production would reject
-		// The point is to verify the signature header is present and formatted correctly
-		assert.True(t, resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusUnauthorized)
+		// Invalid signatures must be rejected with 401 Unauthorized
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
 
 	t.Run("missing signature rejected", func(t *testing.T) {

@@ -151,7 +151,7 @@ curl -X POST \
 1. ✅ Verify subscriber endpoint is healthy
 2. ✅ Confirm subscription is active
 3. ✅ Identify specific DLQ items to replay (by subscription, event type, or time range)
-4. ✅ Plan for rate limiting (max 20 replays/sec recommended)
+4. ✅ Plan for rate limiting (normal max 20 replays/sec; emergency rate of 50 replays/sec requires active monitoring)
 
 **Procedure:**
 
@@ -238,8 +238,8 @@ curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
 
 **Recommended Rates:**
 - **Single endpoint:** 5-10 replays/sec
-- **Multiple endpoints:** 20 replays/sec total
-- **Emergency recovery:** 50 replays/sec (with monitoring)
+- **Multiple endpoints:** 20 replays/sec total (normal maximum)
+- **Emergency recovery:** 50 replays/sec (requires active monitoring, use only in critical situations)
 
 **Backoff Strategy:**
 If rate limited (HTTP 429):
@@ -400,17 +400,22 @@ curl -H "Authorization: Bearer $AUTH_TOKEN" \
 If replay causes system issues:
 
 ```bash
-# Emergency: Disable all webhook deliveries temporarily
-# (Requires database access)
+# DANGER: Emergency procedure to disable all webhook deliveries
+# This bypasses application logic and should be used ONLY in critical system overload situations
+# IMPORTANT: Document which subscriptions are disabled for later re-enablement
+# IMPORTANT: Ensure you have a database backup before running this command
+# Example (requires database access):
 # UPDATE outbound_webhook_subscriptions SET is_active = false WHERE is_active = true;
 ```
 
 **Recovery steps:**
-1. Stop all replay operations
-2. Investigate system bottleneck
-3. Scale resources if needed
-4. Re-enable subscriptions gradually
-5. Resume replay at reduced rate
+1. Stop all replay operations immediately
+2. Create database backup
+3. Document currently active subscriptions before disabling
+4. Investigate system bottleneck (CPU, memory, database connections)
+5. Scale resources if needed
+6. Re-enable subscriptions gradually, starting with critical ones
+7. Resume replay at reduced rate
 
 ## Best Practices
 
@@ -425,10 +430,10 @@ If replay causes system issues:
 
 ## Related Documentation
 
-- [Webhook Signature Verification](./webhook-signature-verification.md)
-- [Webhook Subscription Management](./webhook-subscription-management.md)
-- [Webhook Retry Policy](./webhook-retry.md)
-- [Webhook Monitoring](../../operations/webhook-monitoring.md)
+- [Webhook Signature Verification](../backend/webhook-signature-verification.md)
+- [Webhook Subscription Management](../backend/webhook-subscription-management.md)
+- [Webhook Retry Policy](../backend/webhook-retry.md)
+- [Webhook Monitoring](./webhook-monitoring.md)
 
 ## Support
 

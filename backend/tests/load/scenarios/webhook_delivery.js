@@ -57,14 +57,6 @@ export const options = {
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const WEBHOOK_SECRET = __ENV.WEBHOOK_SECRET || 'test-webhook-secret-12345';
-const TARGET_EVENTS = parseInt(__ENV.TARGET_EVENTS || '10000');
-
-// Event types
-const EVENT_TYPES = [
-    'clip.submitted',
-    'clip.approved',
-    'clip.rejected',
-];
 
 // Generate HMAC-SHA256 signature
 function generateSignature(payload, secret) {
@@ -73,7 +65,13 @@ function generateSignature(payload, secret) {
 
 // Generate webhook event payload
 function generateWebhookEvent(eventType) {
-    const eventID = crypto.md5(crypto.randomBytes(16), 'hex'); // Generate hex string UUID
+    // Generate a simple UUID-like string for testing (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    const generateUUID = () => {
+        const hex = crypto.md5(crypto.randomBytes(16), 'hex');
+        return `${hex.substr(0,8)}-${hex.substr(8,4)}-${hex.substr(12,4)}-${hex.substr(16,4)}-${hex.substr(20,12)}`;
+    };
+    
+    const eventID = generateUUID();
     const timestamp = new Date().toISOString();
     
     let data = {};
@@ -81,9 +79,9 @@ function generateWebhookEvent(eventType) {
     switch (eventType) {
         case 'clip.submitted':
             data = {
-                submission_id: crypto.md5(crypto.randomBytes(16), 'hex'),
-                clip_id: crypto.md5(crypto.randomBytes(16), 'hex'),
-                user_id: crypto.md5(crypto.randomBytes(16), 'hex'),
+                submission_id: generateUUID(),
+                clip_id: generateUUID(),
+                user_id: generateUUID(),
                 title: `Test Clip ${randomString(10)}`,
                 description: 'Load test webhook event',
                 game: randomItem(['Valorant', 'CS2', 'Dota 2', 'League of Legends']),
@@ -92,18 +90,18 @@ function generateWebhookEvent(eventType) {
             break;
         case 'clip.approved':
             data = {
-                clip_id: crypto.md5(crypto.randomBytes(16), 'hex'),
-                user_id: crypto.md5(crypto.randomBytes(16), 'hex'),
-                approved_by: crypto.md5(crypto.randomBytes(16), 'hex'),
+                clip_id: generateUUID(),
+                user_id: generateUUID(),
+                approved_by: generateUUID(),
                 approved_at: timestamp,
             };
             break;
         case 'clip.rejected':
             data = {
-                submission_id: crypto.md5(crypto.randomBytes(16), 'hex'),
-                clip_id: crypto.md5(crypto.randomBytes(16), 'hex'),
-                user_id: crypto.md5(crypto.randomBytes(16), 'hex'),
-                rejected_by: crypto.md5(crypto.randomBytes(16), 'hex'),
+                submission_id: generateUUID(),
+                clip_id: generateUUID(),
+                user_id: generateUUID(),
+                rejected_by: generateUUID(),
                 rejected_at: timestamp,
                 reason: 'Does not meet content guidelines',
             };
@@ -121,7 +119,9 @@ function generateWebhookEvent(eventType) {
 // Simulate webhook delivery
 function deliverWebhook(eventType, simulateInvalidSignature = false) {
     const startTime = Date.now();
-    const deliveryID = crypto.md5(crypto.randomBytes(16), 'hex');
+    // Generate UUID-like delivery ID
+    const hex = crypto.md5(crypto.randomBytes(16), 'hex');
+    const deliveryID = `${hex.substr(0,8)}-${hex.substr(8,4)}-${hex.substr(12,4)}-${hex.substr(16,4)}-${hex.substr(20,12)}`;
     
     // Generate event payload
     const event = generateWebhookEvent(eventType);
@@ -220,7 +220,6 @@ export function handleSummary(data) {
 // Text summary helper
 function textSummary(data, options) {
     const indent = options?.indent || '';
-    const enableColors = options?.enableColors || false;
     
     let summary = '\n' + indent + '=== Webhook Delivery Load Test Summary ===\n\n';
     

@@ -41,7 +41,9 @@ type WebhookGenerator struct {
 func NewWebhookGenerator(secret string) *WebhookGenerator {
 	return &WebhookGenerator{
 		secret: secret,
-		rand:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		// NOTE: This RNG is used only for generating test data and invalid signatures in load tests.
+		// It is not cryptographically secure and must not be used for production or security-sensitive code.
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -203,19 +205,6 @@ func (g *WebhookGenerator) randomGame() string {
 		"Rainbow Six Siege",
 	}
 	return games[g.rand.Intn(len(games))]
-}
-
-// SaveTestCasesToFile saves test cases to a JSON file
-func SaveTestCasesToFile(testCases []*WebhookTestCase, filename string) error {
-	data, err := json.MarshalIndent(testCases, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal test cases: %w", err)
-	}
-
-	// Note: In actual implementation, would write to file
-	// For now, just print summary
-	fmt.Printf("Generated %d test cases (total size: %d bytes)\n", len(testCases), len(data))
-	return nil
 }
 
 // PrintTestCasesSummary prints a summary of test cases

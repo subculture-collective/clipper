@@ -23,6 +23,10 @@ Tests webhook delivery at scale with mixed outcomes.
 - Throughput and latency under load
 - Event type distribution (60% clip.submitted, 25% clip.approved, 15% clip.rejected)
 
+**Prerequisites:**
+- A webhook receiver endpoint must be configured at `/webhook/test` or set `BASE_URL` to point to a test webhook receiver
+- For testing with actual webhook processing, deploy the example webhook receivers from `examples/webhooks/`
+
 **Run:**
 ```bash
 # Basic run with defaults
@@ -66,6 +70,14 @@ Tests dead-letter queue replay operations with rate limiting.
 - Bulk replay operations (50 items/batch)
 - Rate limit enforcement (429 responses)
 - Replay success/failure tracking
+
+**Prerequisites:**
+- Admin authentication token with DLQ access
+- For realistic testing, seed the DLQ with failed deliveries first
+- **Note:** The test uses mock DLQ item IDs by default. For end-to-end testing:
+  1. Seed DLQ with known failed deliveries
+  2. Modify the test to fetch actual DLQ item IDs from `/api/v1/admin/webhooks/dlq`
+  3. Use those IDs for replay operations
 
 **Run:**
 ```bash
@@ -299,9 +311,9 @@ For very large tests (>100k events):
 
 ## Related Documentation
 
-- [DLQ Replay Runbook](../../docs/operations/webhook-dlq-replay-runbook.md)
-- [Webhook Signature Verification](../../docs/backend/webhook-signature-verification.md)
-- [Webhook Subscription Management](../../docs/backend/webhook-subscription-management.md)
+- [DLQ Replay Runbook](../../../docs/operations/webhook-dlq-replay-runbook.md)
+- [Webhook Signature Verification](../../../docs/backend/webhook-signature-verification.md)
+- [Webhook Subscription Management](../../../docs/backend/webhook-subscription-management.md)
 - [Load Testing Guide](./README.md)
 
 ## Support
