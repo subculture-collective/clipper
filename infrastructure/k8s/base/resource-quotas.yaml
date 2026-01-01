@@ -13,17 +13,17 @@ spec:
     requests.memory: "40Gi"       # Total memory requests across all pods
     limits.cpu: "40"              # Total CPU limits across all pods
     limits.memory: "80Gi"         # Total memory limits across all pods
-    
+
     # Storage resources
     requests.storage: "200Gi"     # Total storage requests
     persistentvolumeclaims: "20"  # Maximum number of PVCs
-    
+
     # Object counts
     pods: "100"                   # Maximum number of pods
     services: "30"                # Maximum number of services
     configmaps: "50"              # Maximum number of ConfigMaps
     secrets: "50"                 # Maximum number of Secrets
-    
+
     # Load balancing
     services.loadbalancers: "5"   # Maximum number of LoadBalancer services
     services.nodeports: "5"       # Maximum number of NodePort services
@@ -42,17 +42,17 @@ spec:
     requests.memory: "20Gi"       # Total memory requests across all pods
     limits.cpu: "20"              # Total CPU limits across all pods
     limits.memory: "40Gi"         # Total memory limits across all pods
-    
+
     # Storage resources
     requests.storage: "100Gi"     # Total storage requests
     persistentvolumeclaims: "15"  # Maximum number of PVCs
-    
+
     # Object counts
     pods: "50"                    # Maximum number of pods
     services: "20"                # Maximum number of services
     configmaps: "30"              # Maximum number of ConfigMaps
     secrets: "30"                 # Maximum number of Secrets
-    
+
     # Load balancing
     services.loadbalancers: "3"   # Maximum number of LoadBalancer services
     services.nodeports: "3"       # Maximum number of NodePort services
@@ -71,17 +71,17 @@ spec:
     requests.memory: "16Gi"       # Total memory requests across all pods
     limits.cpu: "16"              # Total CPU limits across all pods
     limits.memory: "32Gi"         # Total memory limits across all pods
-    
+
     # Storage resources (monitoring needs more storage)
     requests.storage: "200Gi"     # Total storage requests for metrics/logs
     persistentvolumeclaims: "10"  # Maximum number of PVCs
-    
+
     # Object counts
     pods: "30"                    # Maximum number of pods
     services: "15"                # Maximum number of services
     configmaps: "30"              # Maximum number of ConfigMaps
     secrets: "20"                 # Maximum number of Secrets
-    
+
     # Load balancing
     services.loadbalancers: "2"   # Maximum number of LoadBalancer services
     services.nodeports: "2"       # Maximum number of NodePort services

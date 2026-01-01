@@ -353,6 +353,37 @@ Add template variables for dynamic filtering:
 4. **Use Alert States**: Link dashboard panels to alert rules
 5. **Document Queries**: Add panel descriptions explaining what metrics mean
 
+### 11. Resource Quotas & Limits Dashboard (`resource-quotas.json`) 🆕
+
+Kubernetes resource quota and limit monitoring for capacity management and OOM prevention.
+
+**Panels:**
+
+- CPU Quota Usage by Namespace - Percentage of quota used
+- Memory Quota Usage by Namespace - Percentage of quota used
+- Pod Count vs Quota - Current pods vs limits
+- Storage Quota Usage - PVC storage utilization
+- Container Memory Usage vs Limits - Individual container memory usage
+- Container CPU Throttling Rate - Throttled seconds per second
+- OOM Killed Containers - Count of OOM kills in last hour
+- Quota Violations - Alert count in last hour
+- PVC Count vs Quota - PersistentVolumeClaim usage
+- CPU Throttling Events - Top 10 throttled containers
+- Resource Quota Details by Namespace - Detailed quota table
+- LimitRange Constraints - Container resource constraints
+
+**Use Cases:**
+- Monitor namespace resource usage against quotas
+- Prevent resource exhaustion
+- Identify containers at risk of OOM
+- Track CPU throttling issues
+- Capacity planning and optimization
+
+**Related:**
+- Documentation: `docs/operations/resource-quotas.md`
+- Issues: [#853](https://github.com/subculture-collective/clipper/issues/853), [#805](https://github.com/subculture-collective/clipper/issues/805)
+- Alerts: `monitoring/alerts.yml` (clipper_quota_alerts group)
+
 ## Troubleshooting
 
 ### No Data Displayed
