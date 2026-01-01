@@ -15,7 +15,7 @@
           "iconColor": "red",
           "name": "Resource Alerts",
           "tagKeys": "alertname,severity",
-          "textFormat": "{{ alertname }}: {{ $labels.description }}",
+          "textFormat": "{{ alertname }}",
           "titleFormat": "Alert"
         }
       ]
