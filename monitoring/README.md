@@ -87,14 +87,22 @@ docker-compose -f docker-compose.monitoring.yml ps
 - **Background Jobs Monitoring** ⭐ - Job execution status, duration, queue sizes, failure rates
 - **System Health Dashboard** - CPU, memory, disk, network metrics
 - **API Performance Dashboard** - Request rate, latency, throughput, errors
-- **Database Dashboard** - Connections, query time, slow queries, cache hits
+- **Database Dashboard** - PostgreSQL connections, query time, slow queries, cache hits
+- **Redis Cache Dashboard** ⭐ - Cache hit rates, memory usage, evictions, operations
+- **Kubernetes Cluster Dashboard** ⭐ - Pod/node status, deployments, HPA, resource usage
+- **Resource Quotas Dashboard** - Namespace quotas, OOM events, CPU throttling
+- **PgBouncer Pool Dashboard** - Connection pool utilization, wait times, query rates
 - **User Experience Dashboard** - Page load times, error rates, active users
 - **Application Overview** - High-level SLO metrics and health
-- **Search Quality Metrics** - Semantic search performance
-- **Engagement Metrics** - User engagement and retention
+- **Search Quality Metrics** - Semantic search performance and quality tracking
+- **Engagement Metrics** - User engagement, retention, platform health
 - **Logging Dashboard** - Centralized logging and security events
 - **Semantic Search Observability** - Search service monitoring
 - **Webhook Monitoring** - Webhook delivery and health tracking
+- **Load Test Trends** - Performance testing results and trends
+- **Abuse Detection** - Content moderation and abuse patterns
+
+For complete dashboard documentation, see [dashboards/README.md](./dashboards/README.md).
 
 You can also import community dashboards:
 - Go to Dashboards > Import
