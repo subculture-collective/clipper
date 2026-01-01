@@ -51,7 +51,7 @@ roleRef:
 ---
 # Note: For production, install External Secrets Operator using Helm chart
 # This provides complete CRD installation and controller deployment
-# 
+#
 # Installation command:
 # helm repo add external-secrets https://charts.external-secrets.io
 # helm install external-secrets \
