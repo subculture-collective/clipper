@@ -1,18 +1,9 @@
 # Default values for clipper-monitoring
 # This chart uses upstream charts with custom configurations
 
-# Enable/disable components
-prometheus:
-  enabled: true
-
-grafana:
-  enabled: true
-
-loki:
-  enabled: true
-
 # Prometheus configuration
 prometheus:
+  enabled: true
   server:
     persistentVolume:
       enabled: true
@@ -60,7 +51,10 @@ prometheus:
 
 # Grafana configuration
 grafana:
-  adminPassword: changeme
+  enabled: true
+  # SECURITY: Override adminPassword in production using --set grafana.adminPassword=<secure-password>
+  # or use existingSecret to reference a Kubernetes secret
+  adminPassword: changeme  # CHANGE THIS IN PRODUCTION
   
   persistence:
     enabled: true
@@ -107,6 +101,7 @@ grafana:
 
 # Loki configuration
 loki:
+  enabled: true
   persistence:
     enabled: true
     size: 50Gi
