@@ -27,7 +27,7 @@ See [Dashboard README](../../monitoring/dashboards/README.md) for detailed panel
 
 **Related Issues:**
 - [#805 - Observability Roadmap](https://github.com/subculture-collective/clipper/issues/805)
-- [#853 - Resource Quotas & Limits](https://github.com/subculture-collective/clipper/issues/853)
+- [#857 - Resource Quotas & Limits](https://github.com/subculture-collective/clipper/issues/857)
 
 ## Table of Contents
 

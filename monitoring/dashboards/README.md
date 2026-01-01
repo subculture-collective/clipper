@@ -475,6 +475,26 @@ Comprehensive Kubernetes cluster health monitoring for pods, nodes, resources, a
 - PodCPUThrottling, ContainerOOMKilled, HPA scaling, and node condition alerts configured
 - See clipper_quota_alerts and hpa_scaling_alerts groups in alerts.yml
 
+**Prerequisites:**
+
+This dashboard requires the following components to be deployed and configured:
+
+1. **kube-state-metrics**: Provides Kubernetes object metrics (pods, nodes, deployments, HPA, etc.)
+   - Deploy via Helm or kubectl in the kube-system namespace
+   - Prometheus must scrape kube-state-metrics endpoint (typically port 8080)
+   - Metrics include: `kube_pod_info`, `kube_node_info`, `kube_horizontalpodautoscaler_status_current_replicas`
+
+2. **Prometheus scrape configuration**: Add to `prometheus.yml`:
+   ```yaml
+   - job_name: 'kube-state-metrics'
+     static_configs:
+       - targets: ['kube-state-metrics:8080']
+   ```
+
+3. **Container metrics**: cAdvisor or equivalent for container-level metrics
+   - Provides `container_cpu_usage_seconds_total`, `container_memory_working_set_bytes`, `container_network_*`
+   - Usually bundled with kubelet (available via `/metrics/cadvisor` endpoint)
+
 **Related Documentation:**
 
 - [Kubernetes Runbook](../../docs/operations/kubernetes-runbook.md)
