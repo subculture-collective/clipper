@@ -17,6 +17,7 @@ Production operations, monitoring, security, and maintenance procedures.
 ## Quick Links
 
 - [[monitoring|Monitoring]] - Metrics, logs, and alerting
+- [[kubernetes-runbook|Kubernetes Runbook]] - K8s cluster operations and troubleshooting
 - [[preflight|Preflight Checklist]] - Pre-deployment validation
 - [[migration|Database Migrations]] - Migration procedures
 - [[secrets-management|Secrets Management]] - Secure credential handling
