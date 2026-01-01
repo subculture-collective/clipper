@@ -84,8 +84,13 @@ kubectl describe pod <pod-name> -n clipper-production
 
 1. **Verify image exists**:
    ```bash
-   # Check if image exists in registry
+   # Option 1: Using Docker CLI (requires Docker installed and logged in to ghcr.io)
    docker manifest inspect ghcr.io/subculture-collective/clipper-backend:v1.2.3
+   
+   # Option 2: Using GHCR HTTP API (no Docker required)
+   # Requires a GHCR token with read access to the image
+   curl -H "Authorization: Bearer <GHCR_TOKEN>" \
+     https://ghcr.io/v2/subculture-collective/clipper-backend/manifests/v1.2.3
    ```
 
 2. **Check image pull secret**:
@@ -598,6 +603,8 @@ kubectl get events -n clipper-production --sort-by='.lastTimestamp' | grep Evict
 
 ```bash
 # Clean up unused images
+# Note: kubectl node-shell requires the kubectl-node_shell plugin
+# Install from: https://github.com/kvaps/kubectl-node-shell
 kubectl get nodes -o json | \
   jq -r '.items[].metadata.name' | \
   xargs -I {} kubectl node-shell {} -- docker system prune -af

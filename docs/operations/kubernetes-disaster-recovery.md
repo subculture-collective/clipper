@@ -304,7 +304,7 @@ spec:
           serviceAccountName: snapshot-creator
           containers:
           - name: snapshot
-            image: bitnami/kubectl:latest
+            image: bitnami/kubectl:1.31.1
             command:
             - /bin/sh
             - -c
@@ -347,8 +347,18 @@ spec:
 EOF
 
 # Update StatefulSet to use new PVC
-kubectl patch statefulset postgres -n clipper-production -p \
-  '{"spec":{"volumeClaimTemplates":[{"metadata":{"name":"postgres-data"},"spec":{"dataSource":{"name":"postgres-snapshot-20260101","kind":"VolumeSnapshot","apiGroup":"snapshot.storage.k8s.io"}}}]}}'
+# Note: StatefulSet volumeClaimTemplates are immutable after creation.
+# You must delete and recreate the StatefulSet to use the restored PVC.
+
+# Option 1: Delete StatefulSet but keep pods/PVCs (cascade=orphan)
+kubectl delete statefulset postgres -n clipper-production --cascade=orphan
+
+# Then update your StatefulSet manifest to reference postgres-data-restored
+# and apply it:
+# kubectl apply -f postgres-statefulset-restored.yaml
+
+# Option 2: If you have a new StatefulSet manifest ready:
+# kubectl apply -f postgres-statefulset-restored.yaml
 ```
 
 ---
@@ -407,7 +417,7 @@ spec:
           serviceAccountName: cluster-backup-sa
           containers:
           - name: backup
-            image: bitnami/kubectl:latest
+            image: bitnami/kubectl:1.31.1
             command:
             - /bin/sh
             - /scripts/backup-cluster.sh

@@ -329,8 +329,7 @@ Automate cleanup of old snapshots:
 ```bash
 # Delete snapshots older than 14 days
 kubectl get volumesnapshot -n clipper-production -o json | \
-  jq -r '.items[] | select(.metadata.creationTimestamp | 
-  fromdateiso8601 < (now - 14*86400)) | .metadata.name' | \
+  jq -r '.items[] | select(.metadata.creationTimestamp | fromdateiso8601 < (now - 14*86400)) | .metadata.name' | \
   xargs -I {} kubectl delete volumesnapshot {} -n clipper-production
 ```
 
@@ -691,7 +690,7 @@ spec:
         spec:
           containers:
           - name: scaler
-            image: bitnami/kubectl:latest
+            image: bitnami/kubectl:1.31.1
             command:
             - /bin/sh
             - -c
@@ -714,7 +713,7 @@ spec:
         spec:
           containers:
           - name: scaler
-            image: bitnami/kubectl:latest
+            image: bitnami/kubectl:1.31.1
             command:
             - /bin/sh
             - -c
@@ -756,10 +755,7 @@ kubectl exec -n kubecost deployment/kubecost-cost-analyzer -- \
 echo -e "\nUnused PVCs:"
 kubectl get pvc --all-namespaces \
   --field-selector=status.phase=Bound \
-  -o json | jq -r '.items[] | 
-  select(.spec.volumeName != null and 
-  (.metadata.annotations."pv.kubernetes.io/bind-completed" // "false") == "yes") | 
-  "\(.metadata.namespace)/\(.metadata.name)"'
+  -o json | jq -r '.items[] | select(.spec.volumeName != null and (.metadata.annotations."pv.kubernetes.io/bind-completed" // "false") == "yes") | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
 ---

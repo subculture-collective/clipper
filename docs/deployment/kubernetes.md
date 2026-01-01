@@ -427,19 +427,22 @@ kubectl exec -it deployment/clipper-backend -n clipper-production -- \
 #### Get LoadBalancer IP
 
 ```bash
-# Get ingress LoadBalancer IP
+# Get ingress LoadBalancer IP or hostname
 kubectl get svc ingress-nginx-controller -n ingress-nginx \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}'
 
-# Example output: 35.123.45.67
+# Example output (GCP/Azure): 35.123.45.67
+# Example output (AWS): abc123-1234567890.us-east-1.elb.amazonaws.com
 ```
 
 #### Update DNS Records
 
-Create A records pointing to the LoadBalancer IP:
-- `clpr.tv` → `35.123.45.67`
-- `api.clpr.tv` → `35.123.45.67`
+Create DNS records pointing to the LoadBalancer IP or hostname:
+- `clpr.tv` → `35.123.45.67` (or AWS hostname like `abc123...elb.amazonaws.com`)
+- `api.clpr.tv` → `35.123.45.67` (or AWS hostname)
 - `staging.clpr.tv` → `35.123.45.67` (if staging deployed)
+
+**Note**: Use A records for IP addresses (GCP, Azure) or CNAME records for hostnames (AWS ELB).
 
 **DNS propagation time**: 5-60 minutes
 
