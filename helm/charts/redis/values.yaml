@@ -1,0 +1,71 @@
+# Default values for clipper-redis
+
+image:
+  repository: redis
+  pullPolicy: IfNotPresent
+  tag: "7-alpine"
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 6379
+
+persistence:
+  enabled: true
+  storageClassName: "local-path"
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
+# Redis configuration
+redisConfig: |
+  appendonly yes
+  maxmemory 256mb
+  maxmemory-policy allkeys-lru
+  save 900 1
+  save 300 10
+  save 60 10000
+
+# Secrets should be injected via external secrets operator
+secrets:
+  existingSecret: "redis-secret"
