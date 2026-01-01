@@ -125,20 +125,43 @@ This installs:
 #### AWS Secrets Manager
 
 ```bash
-# Create IAM role with IRSA
-eksctl create iamserviceaccount \
-  --name clipper-backend \
-  --namespace clipper-production \
-  --cluster clipper-prod \
-  --region us-east-1 \
-  --attach-policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite \
-  --approve
-
 # Create secrets in AWS Secrets Manager
 aws secretsmanager create-secret \
   --name clipper/production/database \
   --description "Database credentials for production" \
   --secret-string '{"password":"your-secure-password"}'
+
+# Create a least-privilege IAM policy (replace <ACCOUNT_ID> and <REGION>)
+cat > clipper-secrets-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:clipper/production/*"
+      ]
+    }
+  ]
+}
+EOF
+
+aws iam create-policy \
+  --policy-name ClipperBackendSecretsReadOnly \
+  --policy-document file://clipper-secrets-policy.json
+
+# Create IAM role with IRSA using scoped read-only policy
+eksctl create iamserviceaccount \
+  --name clipper-backend \
+  --namespace clipper-production \
+  --cluster clipper-prod \
+  --region us-east-1 \
+  --attach-policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/ClipperBackendSecretsReadOnly \
+  --approve
 
 # Apply SecretStore
 kubectl apply -f infrastructure/k8s/external-secrets/secret-stores.yaml
@@ -304,25 +327,31 @@ kubectl create clusterrolebinding ops-admin \
 
 ### Generate Service Account Token (CI/CD)
 
+**SECURITY RECOMMENDATION**: Use workload identity (OIDC) or short-lived tokens with automated rotation for CI/CD instead of long-lived credentials.
+
 ```bash
-# Create token for deployer service account
+# RECOMMENDED: Use workload identity for CI/CD (GitHub Actions OIDC, GCP/AWS workload identity)
+# This provides short-lived, automatically rotating credentials without storing tokens
+
+# For temporary/emergency manual operations only (1 hour expiry):
 kubectl create token clipper-deployer \
   -n clipper-production \
-  --duration=87600h  # 10 years
+  --duration=1h
 
-# Or create a long-lived secret (deprecated but still works in older clusters)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: clipper-deployer-token
-  namespace: clipper-production
-  annotations:
-    kubernetes.io/service-account.name: clipper-deployer
-type: kubernetes.io/service-account-token
-EOF
-
-kubectl get secret clipper-deployer-token -n clipper-production -o jsonpath='{.data.token}' | base64 -d
+# DEPRECATED: Long-lived tokens (use only if workload identity is not available)
+# Create a long-lived secret (deprecated in Kubernetes 1.24+)
+# kubectl apply -f - <<EOF
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: clipper-deployer-token
+#   namespace: clipper-production
+#   annotations:
+#     kubernetes.io/service-account.name: clipper-deployer
+# type: kubernetes.io/service-account-token
+# EOF
+# 
+# kubectl get secret clipper-deployer-token -n clipper-production -o jsonpath='{.data.token}' | base64 -d
 ```
 
 ---
@@ -575,19 +604,21 @@ az aks upgrade \
 ### Update Operators
 
 ```bash
-# Update ingress-nginx
+# Update ingress-nginx (pin to specific version)
 helm repo update
 helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
-  -n ingress-nginx
+  -n ingress-nginx \
+  --version 4.11.3
 
-# Update cert-manager
+# Update cert-manager (already pinned)
 helm upgrade cert-manager jetstack/cert-manager \
   -n cert-manager \
   --version v1.16.2
 
-# Update External Secrets Operator
+# Update External Secrets Operator (pin to specific version)
 helm upgrade external-secrets external-secrets/external-secrets \
-  -n external-secrets-system
+  -n external-secrets-system \
+  --version 0.11.0
 ```
 
 ### Rotate Secrets

@@ -163,7 +163,8 @@ addons:
   - name: coredns
   - name: kube-proxy
   - name: aws-ebs-csi-driver
-    serviceAccountRoleARN: arn:aws:iam::ACCOUNT_ID:role/AmazonEKS_EBS_CSI_DriverRole
+    serviceAccountRoleARN: arn:aws:iam::\${AWS_ACCOUNT_ID}:role/AmazonEKS_EBS_CSI_DriverRole
+    # Note: Set AWS_ACCOUNT_ID environment variable or create the IAM role manually
 EOF
     
     eksctl create cluster -f "/tmp/eksctl-$CLUSTER_NAME.yaml"

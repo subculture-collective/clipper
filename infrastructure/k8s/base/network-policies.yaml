@@ -163,17 +163,17 @@ spec:
         - protocol: TCP
           port: 9200
     # Allow external HTTPS (for Twitch, Stripe, SendGrid, OpenAI APIs)
+    # Uses ipBlock with 0.0.0.0/0 to allow external traffic only, not internal cluster IPs
     - to:
-        - namespaceSelector: {}
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8      # Exclude RFC1918 private networks
+              - 172.16.0.0/12
+              - 192.168.0.0/16
       ports:
         - protocol: TCP
           port: 443
-    # Allow external HTTP
-    - to:
-        - namespaceSelector: {}
-      ports:
-        - protocol: TCP
-          port: 80
 ---
 # Allow backend to access databases in staging
 apiVersion: networking.k8s.io/v1
@@ -216,16 +216,18 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow external HTTPS (for Twitch, Stripe, SendGrid, OpenAI APIs)
+    # Uses ipBlock with 0.0.0.0/0 to allow external traffic only, not internal cluster IPs
     - to:
-        - namespaceSelector: {}
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8      # Exclude RFC1918 private networks
+              - 172.16.0.0/12
+              - 192.168.0.0/16
       ports:
         - protocol: TCP
           port: 443
-    - to:
-        - namespaceSelector: {}
-      ports:
-        - protocol: TCP
-          port: 80
 ---
 # Allow monitoring namespace to scrape metrics from all namespaces
 apiVersion: networking.k8s.io/v1

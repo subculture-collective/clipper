@@ -17,12 +17,13 @@ The External Secrets Operator provides a secure way to manage secrets without st
 ### Install External Secrets Operator
 
 ```bash
-# Using Helm (recommended)
+# Using Helm (recommended) - pin to specific version
 helm repo add external-secrets https://charts.external-secrets.io
 helm repo update
 helm install external-secrets external-secrets/external-secrets \
   --namespace external-secrets-system \
   --create-namespace \
+  --version 0.11.0 \
   --set installCRDs=true
 ```
 
@@ -33,13 +34,36 @@ Choose the appropriate method for your cloud provider:
 #### AWS Secrets Manager (IAM Roles for Service Accounts)
 
 ```bash
-# Create IAM role with IRSA
+# Create a least-privilege IAM policy (replace <ACCOUNT_ID> and <REGION>)
+cat > clipper-secrets-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:clipper/production/*"
+      ]
+    }
+  ]
+}
+EOF
+
+aws iam create-policy \
+  --policy-name ClipperBackendSecretsReadOnly \
+  --policy-document file://clipper-secrets-policy.json
+
+# Create IAM role with IRSA using scoped policy
 eksctl create iamserviceaccount \
   --name clipper-backend \
   --namespace clipper-production \
   --cluster clipper-prod \
   --region us-east-1 \
-  --attach-policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite \
+  --attach-policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/ClipperBackendSecretsReadOnly \
   --approve
 ```
 

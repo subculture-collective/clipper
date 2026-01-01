@@ -27,7 +27,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: admin@clpr.tv  # Update with your email
+    email: admin@clpr.tv  # TODO: Replace with your monitored email for Let's Encrypt notifications
     privateKeySecretRef:
       name: letsencrypt-prod-key
     solvers:
@@ -43,7 +43,7 @@ metadata:
 spec:
   acme:
     server: https://acme-staging-v02.api.letsencrypt.org/directory
-    email: admin@clpr.tv  # Update with your email
+    email: admin@clpr.tv  # TODO: Replace with your monitored email for Let's Encrypt notifications
     privateKeySecretRef:
       name: letsencrypt-staging-key
     solvers:
@@ -100,7 +100,7 @@ spec:
     solvers:
       - dns01:
           azureDNS:
-            subscriptionID: "00000000-0000-0000-0000-000000000000"  # Update
+            subscriptionID: "00000000-0000-0000-0000-000000000000"  # TODO: Replace with your Azure subscription ID
             resourceGroupName: "clipper-dns-rg"  # Update
             hostedZoneName: "clpr.tv"  # Update
             # Use managed identity or service principal

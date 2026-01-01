@@ -67,10 +67,11 @@ install_ingress_nginx() {
     helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
     helm repo update
     
-    # Install ingress-nginx
+    # Install ingress-nginx with pinned version
     helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
         --namespace ingress-nginx \
         --create-namespace \
+        --version 4.11.3 \
         --set controller.service.type=LoadBalancer \
         --set controller.metrics.enabled=true \
         --set controller.podAnnotations."prometheus\.io/scrape"=true \
@@ -130,10 +131,11 @@ install_external_secrets() {
     helm repo add external-secrets https://charts.external-secrets.io
     helm repo update
     
-    # Install External Secrets Operator
+    # Install External Secrets Operator with pinned version
     helm upgrade --install external-secrets external-secrets/external-secrets \
         --namespace external-secrets-system \
         --create-namespace \
+        --version 0.11.0 \
         --set installCRDs=true \
         --wait
     
@@ -152,7 +154,8 @@ install_metrics_server() {
         return
     fi
     
-    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+    # Pin to a specific version for reproducibility and security
+    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.7.2/components.yaml
     log_info "metrics-server installed"
 }
 

@@ -75,12 +75,36 @@ AZURE_RESOURCE_GROUP=clipper-rg \
 #### For AWS (using IAM Roles for Service Accounts)
 
 ```bash
-# Create IAM role for External Secrets Operator
+# Create a least-privilege IAM policy for clipper-backend
+# Replace <ACCOUNT_ID> and <REGION> with your values
+cat > clipper-secrets-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:clipper/production/*"
+      ]
+    }
+  ]
+}
+EOF
+
+aws iam create-policy \
+  --policy-name ClipperBackendSecretsReadOnly \
+  --policy-document file://clipper-secrets-policy.json
+
+# Create IAM role for External Secrets Operator with scoped policy
 eksctl create iamserviceaccount \
   --name clipper-backend \
   --namespace clipper-production \
   --cluster clipper-prod \
-  --attach-policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite \
+  --attach-policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/ClipperBackendSecretsReadOnly \
   --approve
 
 # Apply SecretStore configuration
