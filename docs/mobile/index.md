@@ -22,6 +22,8 @@ This section covers the Clipper mobile apps built with React Native 0.76 and Exp
 - [[oauth-pkce|OAuth PKCE]] - Secure authentication flow
 - [[offline-caching|Offline Caching]] - Offline-first architecture
 - [[i18n|Internationalization]] - Multi-language support
+- [[analytics-dashboards|Analytics Dashboards]] - PostHog dashboard setup and configuration
+- [[posthog-dashboard-queries|Dashboard Queries]] - Quick reference for PostHog queries
 
 ## Documentation Index
 
