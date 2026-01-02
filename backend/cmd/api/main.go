@@ -27,6 +27,7 @@ import (
 	opensearchpkg "github.com/subculture-collective/clipper/pkg/opensearch"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	sentrypkg "github.com/subculture-collective/clipper/pkg/sentry"
+	telemetrypkg "github.com/subculture-collective/clipper/pkg/telemetry"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -54,6 +55,27 @@ func main() {
 		defer sentrypkg.Close()
 	}
 
+	// Initialize OpenTelemetry
+	if initErr := telemetrypkg.Init(&telemetrypkg.Config{
+		Enabled:          cfg.Telemetry.Enabled,
+		ServiceName:      cfg.Telemetry.ServiceName,
+		ServiceVersion:   cfg.Telemetry.ServiceVersion,
+		OTLPEndpoint:     cfg.Telemetry.OTLPEndpoint,
+		Insecure:         cfg.Telemetry.Insecure,
+		TracesSampleRate: cfg.Telemetry.TracesSampleRate,
+		Environment:      cfg.Telemetry.Environment,
+	}); initErr != nil {
+		log.Printf("WARNING: Failed to initialize telemetry: %v", initErr)
+	} else if cfg.Telemetry.Enabled {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := telemetrypkg.Shutdown(ctx); err != nil {
+				log.Printf("WARNING: Failed to shutdown telemetry: %v", err)
+			}
+		}()
+	}
+
 	// Set Gin mode
 	gin.SetMode(cfg.Server.GinMode)
 
@@ -74,14 +96,14 @@ func main() {
 	}
 
 	// Initialize database connection pool
-	db, dbErr := database.NewDB(&cfg.Database)
+	db, dbErr := database.NewDBWithTracing(&cfg.Database, cfg.Telemetry.Enabled)
 	if dbErr != nil {
 		log.Fatalf("Failed to connect to database: %v", dbErr)
 	}
 	defer db.Close()
 
 	// Initialize Redis client
-	redisClient, redisErr := redispkg.NewClient(&cfg.Redis)
+	redisClient, redisErr := redispkg.NewClientWithTracing(&cfg.Redis, cfg.Telemetry.Enabled)
 	if redisErr != nil {
 		log.Fatalf("Failed to connect to Redis: %v", redisErr)
 	}
@@ -471,6 +493,11 @@ func main() {
 	// Add custom middleware
 	// Request ID must come first to be available in other middleware
 	r.Use(requestid.New())
+
+	// Add OpenTelemetry middleware (if enabled)
+	if cfg.Telemetry.Enabled {
+		r.Use(middleware.TracingMiddleware(cfg.Telemetry.ServiceName))
+	}
 
 	// Add Sentry middleware for error tracking (if enabled)
 	if cfg.Sentry.Enabled {
