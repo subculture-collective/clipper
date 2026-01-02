@@ -1,0 +1,213 @@
+# Production Caddyfile with WAF Protection (OWASP CRS-inspired)
+# Based on OWASP Core Rule Set principles adapted for Caddy
+# Implements edge-level security controls for SQLi, XSS protection
+# 
+# NOTE: This configuration uses Caddy's native request filtering capabilities.
+# For advanced rate limiting, consider using the caddy-ratelimit plugin:
+# https://github.com/mholt/caddy-ratelimit
+# Backend still provides rate limiting as defense-in-depth
+
+{
+    # Global options
+    admin localhost:2019
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# Main production site with WAF protection
+clpr.tv {
+    # SSL/TLS (automatic with Let's Encrypt)
+    tls ops@clipper.app
+    
+    # Enhanced security headers (OWASP best practices)
+    header {
+        # HSTS with preload
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # Clickjacking protection
+        X-Frame-Options "DENY"
+        # XSS protection (deprecated but still useful for older browsers)
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Content Security Policy (adjust as needed)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://clpr.tv; frame-ancestors 'none';"
+        # Permissions policy
+        Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+        # Remove server identification
+        -Server
+        # Add WAF identification header (for monitoring)
+        X-WAF-Protection "enabled"
+    }
+    
+    # Request size limits (DoS protection)
+    request_body {
+        max_size 10MB
+    }
+    
+    # NOTE: Rate limiting at edge is handled by backend middleware (Redis-backed)
+    # Caddy rate limiting requires external plugin: https://github.com/mholt/caddy-ratelimit
+    # Current setup: Defense-in-depth with backend rate limiting + WAF pattern blocking
+    
+    # Enhanced access logging with security fields
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 10
+        }
+        format json {
+            time_format "iso8601"
+            message_key "msg"
+        }
+        # Log security-relevant fields
+        level INFO
+    }
+    
+    # Security log for blocked requests
+    log security {
+        output file /var/log/caddy/security.log {
+            roll_size 50mb
+            roll_keep 20
+        }
+        format json
+        include http.request.header.User-Agent http.request.header.Referer http.request.method http.request.uri
+    }
+    
+    # Block known malicious patterns (OWASP CRS inspired)
+    @sqli_attempt {
+        # SQL injection patterns
+        query_regexp "(?i)(union.*select|select.*from|insert.*into|delete.*from|drop.*table|update.*set|exec.*\\(|script.*>|javascript:|onerror=|onload=)"
+        path_regexp "(?i)(union.*select|select.*from|insert.*into|delete.*from|drop.*table)"
+    }
+    
+    @xss_attempt {
+        # XSS patterns
+        query_regexp "(?i)(<script|<iframe|<object|<embed|javascript:|onerror=|onload=|eval\\(|expression\\()"
+        path_regexp "(?i)(<script|<iframe|javascript:)"
+    }
+    
+    @path_traversal {
+        # Path traversal patterns
+        path_regexp "(?i)(\\.\\./|\\.\\.\\/|/etc/passwd|/etc/shadow|c:\\\\|\\.\\.\\\\)"
+    }
+    
+    @suspicious_user_agent {
+        # Block known scanners and bots
+        header_regexp User-Agent "(?i)(nikto|sqlmap|nmap|masscan|acunetix|netsparker|burp|metasploit|havij|w3af|hydra|dirbuster|gobuster|wfuzz|skipfish|httrack|winhttp|python-requests/|Go-http-client|curl/|wget/|zgrab)"
+    }
+    
+    @unusual_method {
+        # Only allow standard HTTP methods
+        not method GET POST PUT PATCH DELETE HEAD OPTIONS
+    }
+    
+    # Block requests matching attack patterns
+    handle @sqli_attempt {
+        header X-WAF-Block-Reason "SQL Injection Pattern Detected"
+        log security
+        respond "Request blocked by WAF" 403
+    }
+    
+    handle @xss_attempt {
+        header X-WAF-Block-Reason "XSS Pattern Detected"
+        log security
+        respond "Request blocked by WAF" 403
+    }
+    
+    handle @path_traversal {
+        header X-WAF-Block-Reason "Path Traversal Attempt Detected"
+        log security
+        respond "Request blocked by WAF" 403
+    }
+    
+    handle @suspicious_user_agent {
+        header X-WAF-Block-Reason "Suspicious User Agent Detected"
+        log security
+        respond "Request blocked by WAF" 403
+    }
+    
+    handle @unusual_method {
+        header X-WAF-Block-Reason "Unsupported HTTP Method"
+        log security
+        respond "Method not allowed" 405
+    }
+    
+    # API routes -> backend with WAF checks
+    handle /api/* {
+        # Additional validation for API endpoints
+        @api_too_large {
+            header Content-Length >5242880  # 5MB for API requests
+        }
+        
+        handle @api_too_large {
+            header X-WAF-Block-Reason "Request Body Too Large"
+            log security
+            respond "Request entity too large" 413
+        }
+        
+        reverse_proxy clipper-backend:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-WAF-Checked "true"
+            
+            # Health checks
+            health_uri /api/v1/health
+            health_interval 30s
+            health_timeout 10s
+            health_status 200
+            
+            # Timeouts
+            transport http {
+                dial_timeout 10s
+                read_timeout 30s
+                write_timeout 30s
+            }
+        }
+    }
+    
+    # Health check endpoint (bypasses rate limiting)
+    handle /health {
+        reverse_proxy clipper-backend:8080
+    }
+    
+    # WebSocket support with WAF protection
+    handle /ws/* {
+        reverse_proxy clipper-backend:8080 {
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # Static content with caching headers
+    handle /assets/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy clipper-frontend:80
+    }
+    
+    # Frontend (SPA) - default handler
+    handle /* {
+        reverse_proxy clipper-frontend:80 {
+            health_uri /health.html
+            health_interval 30s
+            health_timeout 10s
+        }
+    }
+    
+    # Compression for performance
+    encode gzip zstd
+}
+
+# HTTP to HTTPS redirect
+http://clpr.tv {
+    redir https://{host}{uri} permanent
+}

@@ -30,6 +30,8 @@ Production operations, monitoring, security, and maintenance procedures.
 - [[migration|Database Migrations]] - Migration procedures
 - [[secrets-management|Secrets Management]] - Secure credential handling
 - [[security-scanning|Security Scanning]] - Automated security checks
+- [[waf-protection|WAF Protection]] - Web Application Firewall with OWASP CRS
+- [[waf-quick-reference|WAF Quick Reference]] - Quick WAF operations guide
 - [[observability|Observability]] - Distributed tracing
 
 ## Deployment
