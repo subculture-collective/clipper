@@ -2,13 +2,15 @@
 # Test Alert Rules and Routing
 # This script validates alert rule syntax and tests alert firing in staging
 #
-# Usage:
-#   ./test-alerts.sh [validate|test-critical|test-warning|test-security|test-all]
-#
-# Prerequisites:
+# Requirements:
 #   - Prometheus running and accessible
 #   - Alertmanager running and accessible
 #   - curl and jq installed
+#   - GNU coreutils (for date command with UTC timezone support)
+#
+# Usage:
+#   ./test-alerts.sh [validate|test-critical|test-warning|test-security|test-all]
+#
 
 set -e
 
@@ -376,7 +378,7 @@ check_coverage() {
             log_success "✓ $alert"
         else
             log_error "✗ $alert (MISSING)"
-            ((missing++))
+            missing=$((missing + 1))
         fi
     done
     

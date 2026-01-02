@@ -7,9 +7,9 @@
 # - Error Rate: < 0.5%
 #
 # Related Issues (Roadmap 5.0 - Phase 5.3):
-# - subculture-collective/clipper#860 - Alerting Configuration
-# - subculture-collective/clipper#858 - Grafana Dashboards (metrics alignment)
-# - subculture-collective/clipper#805 - Observability Infrastructure
+# - #860 - Alerting Configuration
+# - #858 - Grafana Dashboards (metrics alignment)
+# - #805 - Observability Infrastructure
 
 groups:
   - name: clipper_slo_alerts

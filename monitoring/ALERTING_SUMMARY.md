@@ -1,10 +1,10 @@
 # Alerting Configuration - Implementation Summary
 
-**Issue:** [#860 - Alerting Configuration (Roadmap 5.0 Phase 5.3)](https://github.com/subculture-collective/clipper/issues/860)
+**Issue:** #860 - Alerting Configuration (Roadmap 5.0 Phase 5.3)
 
 **Related Issues:**
-- [#858 - Grafana Dashboards](https://github.com/subculture-collective/clipper/issues/858)
-- [#805 - Observability Infrastructure](https://github.com/subculture-collective/clipper/issues/805)
+- #858 - Grafana Dashboards
+- #805 - Observability Infrastructure
 
 ## Status: COMPLETE ✅
 
