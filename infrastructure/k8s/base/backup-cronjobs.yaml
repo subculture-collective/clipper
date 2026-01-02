@@ -118,17 +118,17 @@ data:
     # Report metrics
     echo "Backup completed successfully at $(date)"
     echo "Sending metrics to Prometheus pushgateway..."
-    cat <<EOF | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_backup
-# TYPE postgres_backup_success gauge
-# HELP postgres_backup_success Whether the last backup succeeded (1 = success, 0 = failure)
-postgres_backup_success 1
-# TYPE postgres_backup_timestamp gauge
-# HELP postgres_backup_timestamp Unix timestamp of the last successful backup
-postgres_backup_timestamp $(date +%s)
-# TYPE postgres_backup_size_bytes gauge
-# HELP postgres_backup_size_bytes Size of the backup file in bytes
-postgres_backup_size_bytes $(stat -f%z "${BACKUP_PATH}" 2>/dev/null || stat -c%s "${BACKUP_PATH}" 2>/dev/null || echo 0)
-EOF
+    cat <<'METRICS' | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_backup
+    # TYPE postgres_backup_success gauge
+    # HELP postgres_backup_success Whether the last backup succeeded (1 = success, 0 = failure)
+    postgres_backup_success 1
+    # TYPE postgres_backup_timestamp gauge
+    # HELP postgres_backup_timestamp Unix timestamp of the last successful backup
+    postgres_backup_timestamp $(date +%s)
+    # TYPE postgres_backup_size_bytes gauge
+    # HELP postgres_backup_size_bytes Size of the backup file in bytes
+    postgres_backup_size_bytes $(stat -f%z "${BACKUP_PATH}" 2>/dev/null || stat -c%s "${BACKUP_PATH}" 2>/dev/null || echo 0)
+    METRICS
     
     echo "=== PostgreSQL Backup Completed ==="
 
@@ -250,23 +250,23 @@ EOF
     
     # Report metrics
     echo "Sending restore test metrics..."
-    cat <<EOF | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_restore_test
-# TYPE postgres_restore_test_success gauge
-# HELP postgres_restore_test_success Whether the last restore test succeeded (1 = success, 0 = failure)
-postgres_restore_test_success ${SUCCESS}
-# TYPE postgres_restore_test_timestamp gauge
-# HELP postgres_restore_test_timestamp Unix timestamp of the last restore test
-postgres_restore_test_timestamp $(date +%s)
-# TYPE postgres_restore_test_duration_seconds gauge
-# HELP postgres_restore_test_duration_seconds Duration of the restore test in seconds
-postgres_restore_test_duration_seconds ${RESTORE_DURATION}
-# TYPE postgres_restore_test_clip_count gauge
-# HELP postgres_restore_test_clip_count Number of clips in restored database
-postgres_restore_test_clip_count ${CLIP_COUNT}
-# TYPE postgres_restore_test_user_count gauge
-# HELP postgres_restore_test_user_count Number of users in restored database
-postgres_restore_test_user_count ${USER_COUNT}
-EOF
+    cat <<'METRICS' | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_restore_test
+    # TYPE postgres_restore_test_success gauge
+    # HELP postgres_restore_test_success Whether the last restore test succeeded (1 = success, 0 = failure)
+    postgres_restore_test_success ${SUCCESS}
+    # TYPE postgres_restore_test_timestamp gauge
+    # HELP postgres_restore_test_timestamp Unix timestamp of the last restore test
+    postgres_restore_test_timestamp $(date +%s)
+    # TYPE postgres_restore_test_duration_seconds gauge
+    # HELP postgres_restore_test_duration_seconds Duration of the restore test in seconds
+    postgres_restore_test_duration_seconds ${RESTORE_DURATION}
+    # TYPE postgres_restore_test_clip_count gauge
+    # HELP postgres_restore_test_clip_count Number of clips in restored database
+    postgres_restore_test_clip_count ${CLIP_COUNT}
+    # TYPE postgres_restore_test_user_count gauge
+    # HELP postgres_restore_test_user_count Number of users in restored database
+    postgres_restore_test_user_count ${USER_COUNT}
+    METRICS
     
     echo "=== Monthly Restore Test Completed ==="
 
