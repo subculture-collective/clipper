@@ -35,6 +35,7 @@ type Config struct {
 	Recommendations   RecommendationsConfig
 	Toxicity          ToxicityConfig
 	NSFW              NSFWConfig
+	Telemetry         TelemetryConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -296,6 +297,17 @@ type NSFWConfig struct {
 	TimeoutSeconds     int     // Request timeout in seconds (default: 5)
 }
 
+// TelemetryConfig holds distributed tracing configuration
+type TelemetryConfig struct {
+	Enabled           bool    // Enable OpenTelemetry tracing (default: false)
+	ServiceName       string  // Service name for traces (default: "clipper-backend")
+	ServiceVersion    string  // Service version for traces
+	OTLPEndpoint      string  // OTLP endpoint for trace export (default: "localhost:4317")
+	Insecure          bool    // Use insecure connection to OTLP endpoint (default: true for development)
+	TracesSampleRate  float64 // Sampling rate for traces (0.0 to 1.0, default: 0.1 for 10%)
+	Environment       string  // Environment name (development, staging, production)
+}
+
 // getEnvBool gets a boolean environment variable with a fallback default value
 func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
@@ -544,6 +556,15 @@ func Load() (*Config, error) {
 			AutoFlag:       getEnvBool("NSFW_AUTO_FLAG", true),
 			MaxLatencyMs:   getEnvInt("NSFW_MAX_LATENCY_MS", 200),
 			TimeoutSeconds: getEnvInt("NSFW_TIMEOUT_SECONDS", 5),
+		},
+		Telemetry: TelemetryConfig{
+			Enabled:          getEnvBool("TELEMETRY_ENABLED", false),
+			ServiceName:      getEnv("TELEMETRY_SERVICE_NAME", "clipper-backend"),
+			ServiceVersion:   getEnv("TELEMETRY_SERVICE_VERSION", ""),
+			OTLPEndpoint:     getEnv("TELEMETRY_OTLP_ENDPOINT", "localhost:4317"),
+			Insecure:         getEnvBool("TELEMETRY_INSECURE", true),
+			TracesSampleRate: getEnvFloat("TELEMETRY_TRACES_SAMPLE_RATE", 0.1),
+			Environment:      getEnv("TELEMETRY_ENVIRONMENT", getEnv("ENVIRONMENT", "development")),
 		},
 	}
 
