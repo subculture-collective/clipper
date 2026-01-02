@@ -2,6 +2,11 @@
 
 This guide explains how to configure alert routing and escalation in Alertmanager for the Clipper monitoring stack.
 
+**Related Issues (Roadmap 5.0 - Phase 5.3):**
+- [#860 - Alerting Configuration](https://github.com/subculture-collective/clipper/issues/860)
+- [#858 - Grafana Dashboards](https://github.com/subculture-collective/clipper/issues/858)
+- [#805 - Observability Infrastructure](https://github.com/subculture-collective/clipper/issues/805)
+
 ## Overview
 
 Alertmanager handles alerts sent by Prometheus and routes them to the appropriate notification channels (PagerDuty, Slack, email, etc.) based on severity and type.
