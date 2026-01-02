@@ -105,7 +105,7 @@ func main() {
 	defer db.Close()
 
 	// Initialize Redis client
-	redisClient, redisErr := redispkg.NewClient(&cfg.Redis)
+	redisClient, redisErr := redispkg.NewClientWithTracing(&cfg.Redis, cfg.Telemetry.Enabled)
 	if redisErr != nil {
 		log.Fatalf("Failed to connect to Redis: %v", redisErr)
 	}
