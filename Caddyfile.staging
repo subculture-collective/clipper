@@ -1,5 +1,6 @@
-# Staging Environment Caddyfile
+# Staging Environment Caddyfile with WAF Protection
 # Configure for staging.clpr.tv or your staging domain
+# WAF rules enabled for testing (more lenient than production)
 
 {
     # Global options
@@ -17,16 +18,24 @@ staging.clpr.tv {
     # Email for Let's Encrypt notifications
     tls ops@clipper.app
     
-    # Security headers (same as production)
+    # Enhanced security headers (WAF enabled)
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         X-XSS-Protection "1; mode=block"
         Referrer-Policy "strict-origin-when-cross-origin"
+        # CSP for staging (more relaxed for testing)
+        Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https:; connect-src 'self' https://staging.clpr.tv wss://staging.clpr.tv;"
         # Add staging identifier
         X-Environment "staging"
+        X-WAF-Protection "enabled-staging"
         -Server
+    }
+    
+    # Request size limits (same as production)
+    request_body {
+        max_size 10MB
     }
     
     # Access log with more details for staging
@@ -38,13 +47,89 @@ staging.clpr.tv {
         format json
     }
     
-    # API routes -> backend
+    # Security log for WAF blocks (staging)
+    log security {
+        output file /var/log/caddy/staging-security.log {
+            roll_size 25mb
+            roll_keep 10
+        }
+        format json
+        include http.request.header.User-Agent http.request.header.Referer http.request.method http.request.uri
+    }
+    
+    # WAF Protection Rules (same as production, for testing)
+    @sqli_attempt {
+        query_regexp "(?i)(union.*select|select.*from|insert.*into|delete.*from|drop.*table|update.*set|exec.*\\()"
+        path_regexp "(?i)(union.*select|select.*from|insert.*into|delete.*from|drop.*table)"
+    }
+    
+    @xss_attempt {
+        query_regexp "(?i)(<script|<iframe|<object|<embed|javascript:|onerror=|onload=|eval\\()"
+        path_regexp "(?i)(<script|<iframe|javascript:)"
+    }
+    
+    @path_traversal {
+        path_regexp "(?i)(\\.\\./|\\.\\.\\/|/etc/passwd|/etc/shadow|c:\\\\|\\.\\.\\\\)"
+    }
+    
+    @suspicious_user_agent {
+        header_regexp User-Agent "(?i)(nikto|sqlmap|nmap|masscan|acunetix|burp|metasploit|havij|w3af)"
+    }
+    
+    @unusual_method {
+        not method GET POST PUT PATCH DELETE HEAD OPTIONS
+    }
+    
+    # Block requests matching attack patterns
+    handle @sqli_attempt {
+        header X-WAF-Block-Reason "SQL Injection Pattern Detected"
+        log security
+        respond "Request blocked by WAF (staging)" 403
+    }
+    
+    handle @xss_attempt {
+        header X-WAF-Block-Reason "XSS Pattern Detected"
+        log security
+        respond "Request blocked by WAF (staging)" 403
+    }
+    
+    handle @path_traversal {
+        header X-WAF-Block-Reason "Path Traversal Attempt Detected"
+        log security
+        respond "Request blocked by WAF (staging)" 403
+    }
+    
+    handle @suspicious_user_agent {
+        header X-WAF-Block-Reason "Suspicious User Agent Detected"
+        log security
+        respond "Request blocked by WAF (staging)" 403
+    }
+    
+    handle @unusual_method {
+        header X-WAF-Block-Reason "Unsupported HTTP Method"
+        log security
+        respond "Method not allowed" 405
+    }
+    
+    # API routes -> backend with WAF checks
     handle /api/* {
+        # Additional validation for API endpoints
+        @api_too_large {
+            header Content-Length >5242880  # 5MB for API requests
+        }
+        
+        handle @api_too_large {
+            header X-WAF-Block-Reason "Request Body Too Large"
+            log security
+            respond "Request entity too large" 413
+        }
+        
         reverse_proxy clipper-staging-backend:8080 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
+            header_up X-WAF-Checked "true"
             
             # Health checks
             health_uri /api/v1/health
@@ -90,15 +175,10 @@ staging.clpr.tv {
     # Compression
     encode gzip zstd
     
-    # Rate limiting for staging (more lenient than production)
-    # Uncomment if needed
-    # rate_limit {
-    #     zone staging {
-    #         key {remote_host}
-    #         window 1m
-    #         events 120
-    #     }
-    # }
+    # NOTE: Rate limiting at edge requires caddy-ratelimit plugin
+    # Backend middleware handles rate limiting (Redis-backed)
+    # For staging testing with edge rate limiting, build custom Caddy:
+    # xcaddy build --with github.com/mholt/caddy-ratelimit
 }
 
 # Alternative staging domains (if using multiple)
