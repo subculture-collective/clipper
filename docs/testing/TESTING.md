@@ -717,8 +717,8 @@ The scheduler system orchestrates background jobs for periodic tasks. All schedu
     - Delivery tracking and metrics
 
 **Test Coverage:**
-- Unit tests: 85%+ coverage across all schedulers
-- Integration tests: Verify scheduling intervals, job execution, error handling
+- Unit tests: 85%+ coverage for core schedulers with dedicated `*_test.go` files (currently schedulers 1–5)
+- Integration tests: Verify scheduling intervals, job execution, error handling (including schedulers 6–12)
 - Load tests: Validate scheduler performance under sustained load
 
 **Running Scheduler Tests:**
