@@ -303,7 +303,7 @@ Monitor backups in Grafana:
    ```bash
    kubectl exec -it statefulset/postgres -n clipper-production -- bash
    
-   # Inside pod:
+   # Inside pod - Note: PGPASSWORD is exposed in process list, use with caution
    export PGPASSWORD=<password>
    pg_restore -U clipper -d clipper_db -c -F c /tmp/backup.sql.gz
    
@@ -312,6 +312,7 @@ Monitor backups in Grafana:
    psql -U clipper -d clipper_db -c "SELECT COUNT(*) FROM users;"
    
    # Cleanup
+   unset PGPASSWORD
    rm /tmp/backup.sql.gz
    exit
    ```
@@ -369,11 +370,15 @@ Monitor backups in Grafana:
    ```bash
    kubectl exec -it statefulset/postgres -n clipper-production -- bash
    
-   cat > /var/lib/postgresql/data/recovery.conf <<EOF
+   # For PostgreSQL 12+ (including PostgreSQL 17), use postgresql.auto.conf and recovery.signal
+   cat >> /var/lib/postgresql/data/postgresql.auto.conf <<EOF
    restore_command = '/var/lib/postgresql/restore-command.sh %f %p'
    recovery_target_time = '${TARGET_TIME}'
    recovery_target_action = 'promote'
    EOF
+   
+   # Trigger recovery mode in PostgreSQL 12+
+   touch /var/lib/postgresql/data/recovery.signal
    ```
 
 6. **Restore Base Backup** (see Full Database Restore steps 2-4)
@@ -557,7 +562,7 @@ kubectl logs -f statefulset/postgres -n clipper-production | grep -i archive
 ```bash
 # Manually trigger WAL archive
 kubectl exec -it statefulset/postgres -n clipper-production -- \
-  psql -U postgres -c "SELECT pg_switch_wal();"
+  psql -U clipper -c "SELECT pg_switch_wal();"
 
 # Check archive directory
 kubectl exec -it statefulset/postgres -n clipper-production -- \

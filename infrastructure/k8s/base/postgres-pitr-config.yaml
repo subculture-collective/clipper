@@ -27,6 +27,7 @@ data:
     # WAL Configuration for PITR
     wal_level = replica
     archive_mode = on
+    archive_command = '/var/lib/postgresql/archive-command.sh %f %p'
     archive_timeout = 300  # Archive WAL every 5 minutes
     
     # WAL retention
@@ -164,8 +165,16 @@ spec:
         - |
           set -e
           
-          # Copy configuration files
-          cp /config/postgresql.conf /var/lib/postgresql/data/postgresql.conf
+          # Merge PITR configuration into existing PostgreSQL configuration
+          if [ -f /var/lib/postgresql/data/postgresql.conf ]; then
+            echo "Appending PITR configuration to existing postgresql.conf"
+            cat /config/postgresql.conf >> /var/lib/postgresql/data/postgresql.conf
+          else
+            echo "Creating new postgresql.conf with PITR configuration"
+            cp /config/postgresql.conf /var/lib/postgresql/data/postgresql.conf
+          fi
+          
+          # Copy supporting scripts
           cp /config/archive-command.sh /var/lib/postgresql/archive-command.sh
           cp /config/restore-command.sh /var/lib/postgresql/restore-command.sh
           chmod +x /var/lib/postgresql/archive-command.sh
@@ -185,9 +194,6 @@ spec:
           mountPath: /archive
       containers:
       - name: postgres
-        env:
-        - name: ARCHIVE_COMMAND
-          value: "/var/lib/postgresql/archive-command.sh %f %p"
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data

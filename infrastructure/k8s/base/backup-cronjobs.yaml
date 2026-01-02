@@ -60,10 +60,17 @@ data:
       gsutil ls "gs://${BACKUP_BUCKET}/database/postgres-backup-*.sql.gz" | \
         while read file; do
           file_date=$(echo "$file" | grep -oP '\d{8}')
-          days_old=$(( ($(date +%s) - $(date -d "$file_date" +%s)) / 86400 ))
-          if [ $days_old -gt $RETENTION_DAYS ]; then
-            echo "Deleting old backup: $file"
-            gsutil rm "$file"
+          if [ -n "$file_date" ]; then
+            # Format date as YYYY-MM-DD for date command
+            normalized_date="${file_date:0:4}-${file_date:4:2}-${file_date:6:2}"
+            file_ts=$(date -d "$normalized_date" +%s 2>/dev/null || echo "")
+            if [ -n "$file_ts" ]; then
+              days_old=$(( ($(date +%s) - file_ts) / 86400 ))
+              if [ $days_old -gt $RETENTION_DAYS ]; then
+                echo "Deleting old backup: $file"
+                gsutil rm "$file"
+              fi
+            fi
           fi
         done
     elif [ "${CLOUD_PROVIDER}" = "aws" ]; then
@@ -79,11 +86,14 @@ data:
         grep "postgres-backup-" | \
         while read -r line; do
           file_datetime=$(echo "$line" | awk '{print $1" "$2}')
-          days_old=$(( ($(date +%s) - $(date -d "$file_datetime" +%s 2>/dev/null || echo 0)) / 86400 ))
+          file_ts=$(date -d "$file_datetime" +%s 2>/dev/null || echo "")
           file_name=$(echo "$line" | awk '{print $4}')
-          if [ $days_old -gt $RETENTION_DAYS ] && [ -n "$file_name" ]; then
-            echo "Deleting old backup: $file_name"
-            aws s3 rm "s3://${BACKUP_BUCKET}/database/${file_name}"
+          if [ -n "$file_ts" ] && [ -n "$file_name" ]; then
+            days_old=$(( ($(date +%s) - file_ts) / 86400 ))
+            if [ $days_old -gt $RETENTION_DAYS ]; then
+              echo "Deleting old backup: $file_name"
+              aws s3 rm "s3://${BACKUP_BUCKET}/database/${file_name}"
+            fi
           fi
         done
     elif [ "${CLOUD_PROVIDER}" = "azure" ]; then
@@ -121,7 +131,7 @@ data:
     # Report metrics
     echo "Backup completed successfully at $(date)"
     echo "Sending metrics to Prometheus pushgateway..."
-    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_backup
+    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_backup || echo "Warning: Failed to push metrics to Prometheus"
     # TYPE postgres_backup_success gauge
     # HELP postgres_backup_success Whether the last backup succeeded (1 = success, 0 = failure)
     postgres_backup_success 1
@@ -199,13 +209,16 @@ data:
     
     # Restore backup
     echo "Restoring backup to test database..."
+    # By default, ignore ownership and ACLs during restore tests to avoid permission issues.
+    # To more closely mimic production restores (including owners/ACLs), override PG_RESTORE_FLAGS.
+    : "${PG_RESTORE_FLAGS:=--no-owner --no-acl}"
+    
     PGPASSWORD="${POSTGRES_PASSWORD}" pg_restore \
       -h "${POSTGRES_HOST}" \
       -U "${POSTGRES_USER}" \
       -d "${TEST_DB}" \
       -F c \
-      --no-owner \
-      --no-acl \
+      ${PG_RESTORE_FLAGS} \
       "${BACKUP_FILE}"
     
     RESTORE_END=$(date +%s)
@@ -217,13 +230,25 @@ data:
       -h "${POSTGRES_HOST}" \
       -U "${POSTGRES_USER}" \
       -d "${TEST_DB}" \
-      -t -c "SELECT COUNT(*) FROM clips;" 2>/dev/null || echo "0")
+      -t -c "SELECT COUNT(*) FROM clips;" 2>&1)
+    
+    # Check if query failed (table doesn't exist or other errors)
+    if [ $? -ne 0 ] || [ -z "$CLIP_COUNT" ]; then
+      echo "ERROR: Failed to query clips table. Restore likely failed."
+      exit 1
+    fi
     
     USER_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql \
       -h "${POSTGRES_HOST}" \
       -U "${POSTGRES_USER}" \
       -d "${TEST_DB}" \
-      -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+      -t -c "SELECT COUNT(*) FROM users;" 2>&1)
+    
+    # Check if query failed
+    if [ $? -ne 0 ] || [ -z "$USER_COUNT" ]; then
+      echo "ERROR: Failed to query users table. Restore likely failed."
+      exit 1
+    fi
     
     echo "Validation complete:"
     echo "  - Clips: ${CLIP_COUNT}"
@@ -235,7 +260,7 @@ data:
     SUCCESS=1
     
     if [ $RESTORE_DURATION -gt $RTO_TARGET ]; then
-      echo "WARNING: RTO target exceeded (${RESTORE_DURATION}s > ${RTO_TARGET}s)"
+      echo "ERROR: RTO target exceeded (${RESTORE_DURATION}s > ${RTO_TARGET}s)"
       SUCCESS=0
     else
       echo "SUCCESS: RTO target met (${RESTORE_DURATION}s < ${RTO_TARGET}s)"
@@ -253,7 +278,7 @@ data:
     
     # Report metrics
     echo "Sending restore test metrics..."
-    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_restore_test
+    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_restore_test || echo "Warning: Failed to push metrics to Prometheus"
     # TYPE postgres_restore_test_success gauge
     # HELP postgres_restore_test_success Whether the last restore test succeeded (1 = success, 0 = failure)
     postgres_restore_test_success ${SUCCESS}
@@ -270,6 +295,12 @@ data:
     # HELP postgres_restore_test_user_count Number of users in restored database
     postgres_restore_test_user_count ${USER_COUNT}
     METRICS
+    
+    # Exit with appropriate status code
+    if [ $SUCCESS -eq 0 ]; then
+      echo "=== Monthly Restore Test FAILED ==="
+      exit 1
+    fi
     
     echo "=== Monthly Restore Test Completed ==="
 
@@ -440,7 +471,7 @@ spec:
               
               # Cleanup old snapshots (keep 14 days)
               echo "Cleaning up old snapshots (retention: 14 days)..."
-              CUTOFF_DATE=$(date -u -d "14 days ago" +%Y%m%d || date -u -v-14d +%Y%m%d)
+              CUTOFF_DATE=$(date -u -d "14 days ago" +%Y%m%d 2>/dev/null || date -u -v-14d +%Y%m%d)
               kubectl get volumesnapshot -n clipper-production \
                 -l backup-type=automated \
                 -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.metadata.labels.backup-timestamp}{"\n"}{end}' | \

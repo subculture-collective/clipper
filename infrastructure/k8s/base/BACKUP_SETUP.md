@@ -79,10 +79,47 @@ aws s3api put-bucket-lifecycle-configuration \
   --bucket clipper-backups-prod \
   --lifecycle-configuration file://lifecycle.json
 
-# Grant IAM role access (if using IRSA)
+# Grant least-privilege IAM role access (if using IRSA)
+# Create a custom policy that only allows access to the backup bucket
+cat > backup-operator-s3-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListAndGetBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": "arn:aws:s3:::clipper-backups-prod"
+    },
+    {
+      "Sid": "ManageBackupObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucketMultipartUploads",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
+      ],
+      "Resource": "arn:aws:s3:::clipper-backups-prod/*"
+    }
+  ]
+}
+EOF
+
+# Create the IAM policy (replace YOUR_ACCOUNT_ID as appropriate)
+aws iam create-policy \
+  --policy-name backup-operator-s3-policy \
+  --policy-document file://backup-operator-s3-policy.json
+
+# Attach the custom policy to the backup-operator-role (update ARN with your account ID)
 aws iam attach-role-policy \
   --role-name backup-operator-role \
-  --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
+  --policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/backup-operator-s3-policy
 ```
 
 #### Azure (Blob Storage)
