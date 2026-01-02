@@ -23,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Web Application Firewall (WAF)** - Edge-level security protection with OWASP CRS-inspired rules:
+  - SQL injection (SQLi) protection with pattern-based blocking
+  - Cross-Site Scripting (XSS) attack prevention
+  - Path traversal attack detection and blocking
+  - Bot and security scanner detection (sqlmap, nikto, nmap, etc.)
+  - HTTP method filtering (only standard methods allowed)
+  - Request size limits (10MB general, 5MB API)
+  - Enhanced security headers (CSP, Permissions-Policy, HSTS, etc.)
+  - JSON-formatted security event logging
+  - Defense-in-depth with backend rate limiting
+  - Comprehensive WAF documentation and deployment runbooks
+  - Security test suite for validation
 - **Reddit-Style Nested Comment Threading** - Complete nested comment system with:
   - Up to 10 levels of nesting for in-depth conversations
   - Collapse/expand functionality at all depths
