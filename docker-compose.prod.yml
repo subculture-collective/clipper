@@ -97,14 +97,32 @@ services:
             dockerfile: Dockerfile.postgres
         container_name: clipper-postgres
         restart: unless-stopped
-        environment:
-            - POSTGRES_DB=${POSTGRES_DB:-clipper_db}
-            - POSTGRES_USER=${POSTGRES_USER:-clipper}
-            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        depends_on:
+            vault-agent:
+                condition: service_started
+        entrypoint:
+            - /bin/sh
+            - -c
+            - |
+                set -e
+                until [ -s /vault-agent/rendered/postgres.env ]; do
+                  echo "[clipper-postgres] waiting for Vault secrets..."
+                  sleep 1
+                done
+                echo "[clipper-postgres] Sourcing secrets..."
+                set -a
+                . /vault-agent/rendered/postgres.env
+                set +a
+                export POSTGRES_DB=${POSTGRES_DB:-clipper_db}
+                export POSTGRES_USER=${POSTGRES_USER:-clipper}
+                echo "[clipper-postgres] Starting PostgreSQL..."
+                exec docker-entrypoint.sh postgres
         ports:
             - '5436:5432' # Expose Postgres externally on 5436; internal port remains 5432
         volumes:
             - postgres_data:/var/lib/postgresql/data
+        volumes_from:
+            - vault-agent # Share tmpfs mounts from vault-agent container
         healthcheck:
             test:
                 [
@@ -151,7 +169,7 @@ services:
                 # Run vault agent as user 1000 (who owns the secrets)
                 exec su-exec 1000:1000 vault agent -config=/vault-agent/config.hcl
         environment:
-            VAULT_ADDR: https://vault.subcult.tv
+            VAULT_ADDR: http://vault:8200
             SKIP_SETCAP: 'true' # Skip setcap since we're using cap_add
         volumes:
             - ./vault/config/clipper-backend-agent.hcl:/vault-agent/config.hcl:ro
@@ -161,6 +179,7 @@ services:
             - clipper_backend_role_id
             - clipper_backend_secret_id
         networks:
+            - clipper-network
             - web
 
 volumes:

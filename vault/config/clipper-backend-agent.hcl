@@ -17,7 +17,7 @@ auto_auth {
 }
 
 vault {
-  address               = "https://vault.subcult.tv"
+  address               = "http://vault:8200"
   unwrap_token          = true
   retry {
     num_retries = 5
@@ -27,6 +27,14 @@ vault {
 template {
   source      = "/vault-agent/templates/backend.env.ctmpl"
   destination = "/vault-agent/rendered/backend.env"
+  perms       = "0640"
+  left_delimiter  = "{{"
+  right_delimiter = "}}"
+}
+
+template {
+  source      = "/vault-agent/templates/postgres.env.ctmpl"
+  destination = "/vault-agent/rendered/postgres.env"
   perms       = "0640"
   left_delimiter  = "{{"
   right_delimiter = "}}"

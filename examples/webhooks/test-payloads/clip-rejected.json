@@ -1,1 +1,0 @@
-{"event":"clip.rejected","timestamp":"2024-01-15T11:00:00Z","data":{"submission_id":"123e4567-e89b-12d3-a456-426614174000","clip_id":"987fcdeb-51a2-43e7-9876-123456789abc","user_id":"456e7890-e12f-34g5-h678-901234567def","rejected_by":"moderator-uuid","rejected_at":"2024-01-15T11:00:00Z","reason":"Does not meet content guidelines"}}
