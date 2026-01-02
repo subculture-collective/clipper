@@ -1059,6 +1059,142 @@ groups:
           description: "HLS playlists failing at {{ $value | humanizePercentage }} (threshold: 5%). Video playback initiation is failing."
           runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
 
+  # Backup & Recovery Alerts
+  # Related to Roadmap 5.0 Phase 5.4 - Automated Backup & Recovery
+  # Issue: subculture-collective/clipper#863
+  - name: clipper_backup_alerts
+    interval: 60s
+    rules:
+      # Backup Job Failed
+      - alert: BackupJobFailed
+        expr: |
+          (time() - postgres_backup_timestamp) > 86400
+        for: 1h
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "PostgreSQL backup has not succeeded in 24 hours"
+          description: "Last successful backup was {{ $value | humanizeDuration }} ago. Daily backups are failing."
+          runbook: "docs/operations/backup-recovery-runbook.md#backup-failures"
+      
+      # Backup Job Missing
+      - alert: BackupJobNotRunning
+        expr: |
+          absent(postgres_backup_timestamp)
+        for: 2h
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "PostgreSQL backup job has never run"
+          description: "No backup metrics found. Backup CronJob may not be configured or running."
+          runbook: "docs/operations/backup-recovery-runbook.md#backup-not-running"
+      
+      # WAL Archiving Lag
+      - alert: WALArchivingLag
+        expr: |
+          pg_stat_archiver_last_archived_time < (time() - 900)
+        for: 15m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "PostgreSQL WAL archiving is lagging"
+          description: "Last WAL archive was {{ $value | humanizeDuration }} ago. PITR may be affected."
+          runbook: "docs/operations/backup-recovery-runbook.md#wal-archiving-lag"
+      
+      # WAL Archiving Failed
+      - alert: WALArchivingFailed
+        expr: |
+          rate(pg_stat_archiver_failed_count[5m]) > 0
+        for: 10m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "PostgreSQL WAL archiving is failing"
+          description: "WAL archiving has {{ $value }} failures in the last 5 minutes. PITR is at risk."
+          runbook: "docs/operations/backup-recovery-runbook.md#wal-archiving-failures"
+      
+      # Restore Test Failed
+      - alert: RestoreTestFailed
+        expr: |
+          postgres_restore_test_success == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "Monthly restore test failed"
+          description: "The last restore test did not complete successfully. Backup integrity may be compromised."
+          runbook: "docs/operations/backup-recovery-runbook.md#restore-test-failures"
+      
+      # Restore Test Not Run
+      - alert: RestoreTestNotRun
+        expr: |
+          (time() - postgres_restore_test_timestamp) > 2678400
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Restore test has not run in 31 days"
+          description: "Last restore test was {{ $value | humanizeDuration }} ago. Monthly testing is required."
+          runbook: "docs/operations/backup-recovery-runbook.md#restore-test-overdue"
+      
+      # RTO Target Exceeded
+      - alert: RestoreRTOExceeded
+        expr: |
+          postgres_restore_test_duration_seconds > 3600
+        for: 5m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Restore test exceeded RTO target"
+          description: "Last restore took {{ $value | humanizeDuration }} (target: < 1 hour). RTO SLA may not be achievable."
+          runbook: "docs/operations/backup-recovery-runbook.md#rto-exceeded"
+      
+      # Backup Storage Low
+      - alert: BackupStorageLow
+        expr: |
+          (backup_storage_used_bytes / backup_storage_total_bytes) > 0.85
+        for: 30m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Backup storage capacity low"
+          description: "Backup storage is {{ $value | humanizePercentage }} full. Increase capacity or adjust retention."
+          runbook: "docs/operations/backup-recovery-runbook.md#storage-capacity"
+      
+      # Volume Snapshot Failed
+      - alert: VolumeSnapshotFailed
+        expr: |
+          kube_volumesnapshot_status_condition{condition="Ready",status="False"} == 1
+        for: 15m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Volume snapshot {{ $labels.volumesnapshot }} is not ready"
+          description: "Volume snapshot {{ $labels.volumesnapshot }} failed to become ready."
+          runbook: "docs/operations/backup-recovery-runbook.md#snapshot-failures"
+      
+      # No Recent Snapshots
+      - alert: NoRecentVolumeSnapshot
+        expr: |
+          (time() - max(kube_volumesnapshot_created_timestamp{namespace="clipper-production"})) > 172800
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "No volume snapshots created in 48 hours"
+          description: "Last volume snapshot was {{ $value | humanizeDuration }} ago. Daily snapshots may not be running."
+          runbook: "docs/operations/backup-recovery-runbook.md#snapshot-not-running"
+
   # HPA Scaling Alerts
   # Monitors Horizontal Pod Autoscaler behavior and scaling events
   - name: hpa_scaling_alerts
