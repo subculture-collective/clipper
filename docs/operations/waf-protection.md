@@ -140,13 +140,17 @@ header {
     X-XSS-Protection "1; mode=block"
     Referrer-Policy "strict-origin-when-cross-origin"
     # Content-Security-Policy should be customized for your application
-    Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'"
+    # WARNING: 'unsafe-inline' weakens XSS protection - use nonces/hashes in production
+    Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'"
     Permissions-Policy "geolocation=(), microphone=(), camera=()"
     -Server
 }
 ```
 
-**Note**: The Content-Security-Policy example above is a starting point and should be customized based on your application's specific requirements (e.g., CDN domains, analytics scripts, etc.).
+**Note**: The Content-Security-Policy example above is a starting point. For production:
+- Remove 'unsafe-inline' and use nonces or hashes for inline scripts/styles
+- Customize based on your application's requirements (CDN domains, analytics, etc.)
+- Test thoroughly to avoid breaking functionality
 
 #### 2. Request Size Limits
 
@@ -156,16 +160,27 @@ request_body {
 }
 ```
 
-#### 3. Pattern-Based Blocking (Optional)
+#### 3. Pattern-Based Blocking (Optional - Not Recommended)
 
-For additional edge protection, consider adding matchers. **Note**: These patterns are examples and should be enhanced with more comprehensive rules. For production use, consider:
-- OWASP Core Rule Set patterns
-- Multiple pattern variations (case-insensitive, encoded, with comments)
-- Regular expression testing and validation
+**Note**: Edge-level pattern matching is **optional and potentially redundant** since the backend already implements comprehensive input validation with parameterized queries. Consider the following before implementing:
 
+**Why Backend Validation is Sufficient**:
+- Backend uses parameterized queries (prevents SQLi)
+- Application-level XSS sanitization already implemented
+- Path validation prevents traversal attacks
+- CSRF tokens prevent cross-site attacks
+
+**If You Still Want Edge Patterns**:
+- Use OWASP Core Rule Set for comprehensive coverage
+- Be aware of high false positive rates with simple patterns
+- Test extensively to avoid blocking legitimate traffic
+- Understand that this is **defense in depth**, not primary defense
+
+**Basic Example (Testing Only)**:
 ```caddyfile
 @sqli_attempt {
-    # Example patterns - enhance with OWASP CRS for production
+    # WARNING: Simplistic patterns - high false positive rate
+    # Backend validation is the primary defense
     query_regexp "(?i)(union.*select|insert.*into|delete.*from)"
 }
 
@@ -174,7 +189,7 @@ handle @sqli_attempt {
 }
 ```
 
-**Important**: Backend input validation (already implemented) is the primary defense. Edge patterns are supplementary.
+**Recommendation**: Rely on backend validation (already implemented) rather than edge patterns.
 
 #### 4. Edge Rate Limiting (Optional Plugin)
 
