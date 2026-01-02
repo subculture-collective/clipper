@@ -139,11 +139,14 @@ header {
     X-Frame-Options "DENY"
     X-XSS-Protection "1; mode=block"
     Referrer-Policy "strict-origin-when-cross-origin"
-    Content-Security-Policy "default-src 'self'; ..."
+    # Content-Security-Policy should be customized for your application
+    Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'"
     Permissions-Policy "geolocation=(), microphone=(), camera=()"
     -Server
 }
 ```
+
+**Note**: The Content-Security-Policy example above is a starting point and should be customized based on your application's specific requirements (e.g., CDN domains, analytics scripts, etc.).
 
 #### 2. Request Size Limits
 
@@ -155,10 +158,14 @@ request_body {
 
 #### 3. Pattern-Based Blocking (Optional)
 
-For additional edge protection, consider adding matchers:
+For additional edge protection, consider adding matchers. **Note**: These patterns are examples and should be enhanced with more comprehensive rules. For production use, consider:
+- OWASP Core Rule Set patterns
+- Multiple pattern variations (case-insensitive, encoded, with comments)
+- Regular expression testing and validation
 
 ```caddyfile
 @sqli_attempt {
+    # Example patterns - enhance with OWASP CRS for production
     query_regexp "(?i)(union.*select|insert.*into|delete.*from)"
 }
 
@@ -166,6 +173,8 @@ handle @sqli_attempt {
     respond "Blocked" 403
 }
 ```
+
+**Important**: Backend input validation (already implemented) is the primary defense. Edge patterns are supplementary.
 
 #### 4. Edge Rate Limiting (Optional Plugin)
 
