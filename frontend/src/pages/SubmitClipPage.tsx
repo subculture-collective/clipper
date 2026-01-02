@@ -15,6 +15,7 @@ import {
     checkClipStatus,
     getUserSubmissions,
     submitClip,
+    getClipMetadata,
 } from '../lib/submission-api';
 import { getPublicConfig } from '../lib/config-api';
 import { trackEvent, SubmissionEvents } from '../lib/telemetry';
@@ -55,6 +56,19 @@ export function SubmitClipPage() {
         (!karmaRequirementEnabled || user.karma_points >= karmaRequired);
     const karmaNeeded =
         user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
+
+    // Helper function to convert text to slug format
+    const slugify = useMemo(
+        () => (value: string) =>
+            value
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, ''),
+        []
+    );
 
     // Pre-fill from navigation state (e.g., when claiming a scraped clip)
     useEffect(() => {
@@ -147,17 +161,43 @@ export function SubmitClipPage() {
         };
     }, [formData.clip_url]);
 
-    const slugify = useMemo(
-        () => (value: string) =>
-            value
-                .toLowerCase()
-                .trim()
-                .replace(/[^a-z0-9\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-')
-                .replace(/^-|-$/g, ''),
-        []
-    );
+    // Auto-fill title and tags when clip URL is pasted
+    useEffect(() => {
+        if (!formData.clip_url) return;
+
+        let isActive = true;
+        getClipMetadata(formData.clip_url)
+            .then(metadata => {
+                if (!isActive) return;
+
+                // Auto-fill custom title if not already filled
+                if (!formData.custom_title) {
+                    setFormData(prev => ({
+                        ...prev,
+                        custom_title: metadata.title,
+                    }));
+                }
+
+                // Auto-add game tag if not already added
+                if (metadata.game_name && selectedTags.length === 0) {
+                    const gameTag: Tag = {
+                        id: `temp-${slugify(metadata.game_name)}`,
+                        name: metadata.game_name,
+                        slug: slugify(metadata.game_name),
+                        usage_count: 0,
+                        created_at: new Date().toISOString(),
+                    };
+                    setSelectedTags([gameTag]);
+                }
+            })
+            .catch(() => {
+                // ignore; optional helper
+            });
+
+        return () => {
+            isActive = false;
+        };
+    }, [formData.clip_url, formData.custom_title, selectedTags.length, slugify]);
 
     const handleCreateTag = async (name: string): Promise<Tag | null> => {
         const slug = slugify(name);

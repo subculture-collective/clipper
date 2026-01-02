@@ -21,10 +21,10 @@ const (
 
 var (
 	// Common injection patterns to detect
-	sqlInjectionPattern     = regexp.MustCompile(`(?i)(union[\s(]+select|select[\s(]+\*[\s(]+from|insert[\s(]+into|delete[\s(]+from|drop[\s(]+table|alter[\s(]+table|update[\s(]+\w+[\s(]+set|;[\s]*(drop|insert|delete|update)[\s(]+)`)
-	tauteologyPattern       = regexp.MustCompile(`(?i)(\bor\b\s*1=1|\bor\b\s*'1'='1)`)
-	xssPattern              = regexp.MustCompile(`(?i)(<script|javascript:|onerror=|onload=|<iframe|<object|<embed)`)
-	pathTraversalPattern    = regexp.MustCompile(`\.\.[/\\]`)
+	sqlInjectionPattern  = regexp.MustCompile(`(?i)(union[\s(]+select|select[\s(]+\*[\s(]+from|insert[\s(]+into|delete[\s(]+from|drop[\s(]+table|alter[\s(]+table|update[\s(]+\w+[\s(]+set|;[\s]*(drop|insert|delete|update)[\s(]+)`)
+	tauteologyPattern    = regexp.MustCompile(`(?i)(\bor\b\s*1=1|\bor\b\s*'1'='1)`)
+	xssPattern           = regexp.MustCompile(`(?i)(<script|javascript:|onerror=|onload=|<iframe|<object|<embed)`)
+	pathTraversalPattern = regexp.MustCompile(`\.\.[/\\]`)
 	// Detect shell command injection attempts (e.g., "; cat /etc/passwd" or "&& rm -rf /")
 	commandInjectionPattern = regexp.MustCompile(`(?i)(;|&&|\|\|)\s*[a-z]{2,}`)
 

@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { Container, Spinner, CommentSection, SEO, VideoPlayer } from '../components';
-import { useClipById, useUser, useClipVote, useClipFavorite, useIsAuthenticated, useToast } from '../hooks';
+import { useClipById, useUser, useClipVote, useClipFavorite, useIsAuthenticated, useToast, useShare } from '../hooks';
 import { cn } from '@/lib/utils';
 
 export function ClipDetailPage() {
@@ -11,6 +11,15 @@ export function ClipDetailPage() {
   const voteMutation = useClipVote();
   const favoriteMutation = useClipFavorite();
   const toast = useToast();
+  const { share } = useShare();
+
+  const handleShare = async () => {
+    await share({
+      title: clip?.title || 'Check out this clip',
+      text: `${clip?.title} - Clipped from ${clip?.broadcaster_name}'s stream`,
+      url: window.location.href,
+    });
+  };
 
   const handleVote = (voteType: 1 | -1) => {
     if (!isAuthenticated) {
@@ -204,7 +213,7 @@ export function ClipDetailPage() {
               Comment ({clip.comment_count})
             </button>
             <button
-              onClick={handleFavorite}
+              onClick={() => handleFavorite()}
               disabled={!isAuthenticated}
               className={cn(
                 "px-4 py-3 rounded-md transition-colors touch-target",
@@ -226,6 +235,14 @@ export function ClipDetailPage() {
               {clip.is_favorited ? '❤️ ' : ''}Favorite ({clip.favorite_count})
             </button>
           </div>
+
+          <button
+            onClick={handleShare}
+            className="w-full xs:w-auto px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors text-sm xs:text-base"
+            aria-label="Share this clip"
+          >
+            📤 Share
+          </button>
 
           {clip.game_name && (
             <div className="mb-4">
