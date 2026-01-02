@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clipper-backend
+  namespace: clipper-staging
+spec:
+  replicas: 2
+  template:
+    spec:
+      serviceAccountName: clipper-backend
+      containers:
+        - name: backend
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clipper-frontend
+  namespace: clipper-staging
+spec:
+  replicas: 1

@@ -16,11 +16,21 @@ Production operations, monitoring, security, and maintenance procedures.
 
 ## Quick Links
 
+### Kubernetes Operations
+- [[kubernetes-runbook|Kubernetes Runbook]] - Complete K8s operations guide
+- [[kubernetes-scaling|Kubernetes Scaling]] - HPA, cluster autoscaling, resource management
+- [[kubernetes-troubleshooting|Kubernetes Troubleshooting]] - Common issues and debugging
+- [[kubernetes-disaster-recovery|Kubernetes Disaster Recovery]] - Backup, restore, failover
+- [[kubernetes-cost-optimization|Kubernetes Cost Optimization]] - Cost reduction strategies
+- [[resource-quotas|Resource Quotas & Limits]] - Quota enforcement and OOM prevention
+
+### Platform Operations
 - [[monitoring|Monitoring]] - Metrics, logs, and alerting
 - [[preflight|Preflight Checklist]] - Pre-deployment validation
 - [[migration|Database Migrations]] - Migration procedures
 - [[secrets-management|Secrets Management]] - Secure credential handling
 - [[security-scanning|Security Scanning]] - Automated security checks
+- [[waf-protection|WAF Protection]] - Application-level WAF and rate limiting
 - [[observability|Observability]] - Distributed tracing
 
 ## Deployment

@@ -5,6 +5,11 @@
 # - Availability: 99.5% uptime
 # - Latency: P95 < 100ms (list), P95 < 50ms (detail)
 # - Error Rate: < 0.5%
+#
+# Related Issues (Roadmap 5.0 - Phase 5.3):
+# - #860 - Alerting Configuration
+# - #858 - Grafana Dashboards (metrics alignment)
+# - #805 - Observability Infrastructure
 
 groups:
   - name: clipper_slo_alerts
@@ -1053,3 +1058,357 @@ groups:
           summary: "High error rate for HLS playlist delivery"
           description: "HLS playlists failing at {{ $value | humanizePercentage }} (threshold: 5%). Video playback initiation is failing."
           runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
+
+  # HPA Scaling Alerts
+  # Monitors Horizontal Pod Autoscaler behavior and scaling events
+  - name: hpa_scaling_alerts
+    interval: 30s
+    rules:
+      # HPA at Maximum Replicas
+      - alert: HPAMaxedOut
+        expr: |
+          kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+          >= kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} at maximum replicas"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has been at max replicas ({{ $value }}) for 15 minutes. Consider increasing max replicas or investigating load."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#hpa-maxed-out"
+
+      # HPA Unable to Scale
+      - alert: HPAUnableToScale
+        expr: |
+          kube_horizontalpodautoscaler_status_condition{condition="ScalingLimited",status="true",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"} == 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} unable to scale"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} is unable to scale due to limits. Check resource constraints and pod quotas."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#unable-to-scale"
+
+      # HPA Metrics Unavailable
+      - alert: HPAMetricsUnavailable
+        expr: |
+          kube_horizontalpodautoscaler_status_condition{condition="ScalingActive",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"} == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} metrics unavailable"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} cannot obtain metrics. Check metrics-server and Prometheus adapter health."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#metrics-unavailable"
+
+      # HPA Frequent Scaling
+      - alert: HPAFrequentScaling
+        expr: |
+          abs(
+            delta(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[10m])
+          ) > 4
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} scaling frequently"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has changed desired replicas by more than 4 in the last 10 minutes. This may indicate oscillating load or improper thresholds."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#frequent-scaling"
+
+      # HPA Desired Replicas Mismatch
+      - alert: HPADesiredReplicasMismatch
+        expr: |
+          abs(
+            kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+            - kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+          ) > 2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA {{ $labels.horizontalpodautoscaler }} replica mismatch"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has a mismatch between desired and current replicas for 15m. Difference: {{ $value }}. Check pod scheduling and resource availability."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#replica-mismatch"
+
+      # Custom Metrics Not Available
+      - alert: HPACustomMetricsNotAvailable
+        expr: |
+          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Custom metrics unavailable for {{ $labels.horizontalpodautoscaler }}"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} is unable to scale, possibly due to missing custom metrics. Check prometheus-adapter status."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#custom-metrics-unavailable"
+
+      # Metrics Server Down
+      - alert: MetricsServerDown
+        expr: |
+          kube_horizontalpodautoscaler_status_condition{condition="ScalingActive",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+          and
+          kube_horizontalpodautoscaler_status_condition{condition="AbleToScale",status="false",horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Metrics Server is down"
+          description: "Metrics Server is unavailable. HPA cannot function without resource metrics."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#metrics-server-down"
+
+      # High Scale-Up Events
+      - alert: HPAHighScaleUpRate
+        expr: |
+          delta(kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler=~"clipper-backend|clipper-frontend"}[5m]) > 3
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "High scale-up rate for {{ $labels.horizontalpodautoscaler }}"
+          description: "HPA {{ $labels.horizontalpodautoscaler }} has scaled up by more than 3 replicas in 5m. This may indicate sustained high load."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#high-scale-up-rate"
+
+      # Backend at High Utilization Before Scaling
+      - alert: BackendHighUtilizationBeforeScaling
+        expr: |
+          (
+            sum(rate(http_requests_total{job="clipper-backend"}[2m]))
+            / count(kube_pod_info{pod=~"clipper-backend.*"})
+          ) > 900
+          and kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="clipper-backend"}
+          < kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="clipper-backend"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend pods at high RPS before scaling"
+          description: "Backend pods are handling >900 RPS (target: 1000) but HPA hasn't scaled yet. Check HPA responsiveness."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#slow-scale-up"
+
+      # Frontend at High Utilization Before Scaling
+      - alert: FrontendHighUtilizationBeforeScaling
+        expr: |
+          (
+            sum(rate(http_requests_total{job="clipper-frontend"}[2m]))
+            / count(kube_pod_info{pod=~"clipper-frontend.*"})
+          ) > 900
+          and kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="clipper-frontend"}
+          < kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="clipper-frontend"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Frontend pods at high RPS before scaling"
+          description: "Frontend pods are handling >900 RPS (target: 1000) but HPA hasn't scaled yet. Check HPA responsiveness."
+          runbook: "docs/operations/runbooks/hpa-scaling.md#slow-scale-up"
+
+  - name: pgbouncer_alerts
+    interval: 30s
+    rules:
+      # PgBouncer connection pool exhaustion
+      - alert: PgBouncerPoolExhaustion
+        expr: pgbouncer_pools_sv_active{database="clipper_db"} >= 48
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PgBouncer connection pool near exhaustion"
+          description: "PgBouncer has {{ $value }} active server connections (limit: 50). Risk of connection exhaustion."
+          runbook: "Check database load, verify pool configuration, consider increasing max_db_connections."
+
+      # PgBouncer high client wait time
+      - alert: PgBouncerHighWaitTime
+        expr: rate(pgbouncer_stats_waiting_duration_microseconds{database="clipper_db"}[5m]) / 1000 > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer clients experiencing high wait times"
+          description: "Average client wait time is {{ $value }}ms (threshold: 50ms). Connection pool may be undersized."
+          runbook: "Check pool utilization, verify query performance, consider increasing pool size."
+
+      # PgBouncer waiting clients queue
+      - alert: PgBouncerWaitingClients
+        expr: pgbouncer_pools_cl_waiting{database="clipper_db"} > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer has waiting clients in queue"
+          description: "{{ $value }} clients are waiting for database connections. Pool may be undersized."
+          runbook: "Check current pool size, verify database performance, consider scaling."
+
+      # PgBouncer service down
+      - alert: PgBouncerDown
+        expr: up{job="pgbouncer"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PgBouncer service is down"
+          description: "PgBouncer connection pooler is not responding. Database connections may fail."
+          runbook: "Check PgBouncer pod status, verify configuration, review logs."
+
+      # PgBouncer high connection errors
+      - alert: PgBouncerHighErrors
+        expr: rate(pgbouncer_errors_count{database="clipper_db"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer experiencing high connection errors"
+          description: "{{ $value }} connection errors per second. Check database connectivity and configuration."
+          runbook: "Review PgBouncer logs, verify postgres connectivity, check authentication."
+
+      # PgBouncer pool utilization
+      # NOTE: This alert uses hardcoded max pool size of 50 in the calculation
+      # If you change max_db_connections in pgbouncer-config, update the divisor here
+      - alert: PgBouncerHighUtilization
+        expr: (pgbouncer_pools_sv_active{database="clipper_db"} / 50) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PgBouncer pool utilization high"
+          description: "Pool utilization is {{ $value }}% (threshold: 80%). Consider scaling pool size."
+          runbook: "Monitor connection patterns, verify pool configuration matches load."
+
+  # Resource Quota and Limit Alerts
+  # Related to Roadmap 5.0 Phase 5.2
+  # See: subculture-collective/clipper#853, subculture-collective/clipper#805
+  - name: clipper_quota_alerts
+    interval: 30s
+    rules:
+      # ResourceQuota CPU Usage
+      - alert: ResourceQuotaCPUNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="requests.cpu", type="used"}
+            / kube_resourcequota{resource="requests.cpu", type="hard"}
+          ) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} CPU quota near limit"
+          description: "CPU quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}."
+          runbook: "Review pod resource requests, consider scaling down or increasing quota. Related to subculture-collective/clipper#853."
+
+      # ResourceQuota Memory Usage
+      - alert: ResourceQuotaMemoryNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="requests.memory", type="used"}
+            / kube_resourcequota{resource="requests.memory", type="hard"}
+          ) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} memory quota near limit"
+          description: "Memory quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}."
+          runbook: "Review pod resource requests, consider scaling down or increasing quota. Related to subculture-collective/clipper#853."
+
+      # ResourceQuota Pod Count
+      - alert: ResourceQuotaPodCountNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="pods", type="used"}
+            / kube_resourcequota{resource="pods", type="hard"}
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} pod count near limit"
+          description: "Pod count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}."
+          runbook: "Review pod deployments, check for stuck pods, consider increasing quota."
+
+      # Container OOM Events
+      - alert: ContainerOOMKilled
+        expr: |
+          increase(kube_pod_container_status_restarts_total[5m]) > 0
+          and on(namespace, pod, container)
+          kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.container }} in pod {{ $labels.pod }} killed due to OOM"
+          description: "Container {{ $labels.container }} in namespace {{ $labels.namespace }} was terminated due to out-of-memory. Consider increasing memory limits."
+          runbook: "Review container memory usage patterns, increase memory limits or optimize application memory usage. Related to subculture-collective/clipper#853."
+
+      # Pod Memory Approaching Limit
+      - alert: PodMemoryNearLimit
+        expr: |
+          (
+            container_memory_working_set_bytes{container!="", container!="POD"}
+            / container_spec_memory_limit_bytes{container!="", container!="POD"}
+          ) * 100 > 90
+          and on (namespace, pod, container)
+          container_spec_memory_limit_bytes{container!="", container!="POD"} > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} container {{ $labels.container }} memory usage near limit"
+          description: "Container {{ $labels.container }} is using {{ $value | humanize }}% of its memory limit in namespace {{ $labels.namespace }}."
+          runbook: "Monitor for OOM kills, consider increasing memory limits. Related to subculture-collective/clipper#853."
+
+      # Pod CPU Throttling
+      - alert: PodCPUThrottling
+        expr: |
+          sum by (namespace, pod, container) (
+            rate(container_cpu_cfs_throttled_seconds_total{container!="", container!="POD"}[5m])
+          ) > 0.25
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} container {{ $labels.container }} experiencing CPU throttling"
+          description: "Container {{ $labels.container }} is being throttled {{ $value }} seconds per second in namespace {{ $labels.namespace }}. Consider increasing CPU limits."
+          runbook: "Review CPU usage patterns, adjust CPU requests/limits. High throttling may impact performance."
+
+      # LimitRange Violations (pod events)
+      # Note: This alert may have false positives as CreateContainerConfigError
+      # can occur for various reasons. Check pod events for specific error details.
+      - alert: LimitRangeViolationSuspected
+        expr: |
+          increase(kube_pod_container_status_waiting_reason{reason="CreateContainerConfigError"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Pod {{ $labels.pod }} has container configuration error"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is waiting due to CreateContainerConfigError. This may indicate LimitRange violation or other configuration issues."
+          runbook: "Check pod events with 'kubectl describe pod' and verify: 1) Resource specs against LimitRange 2) Secrets/ConfigMaps exist 3) Image pull configuration."
+
+      # Storage Quota Near Limit
+      - alert: StorageQuotaNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="requests.storage", type="used"}
+            / kube_resourcequota{resource="requests.storage", type="hard"}
+          ) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} storage quota near limit"
+          description: "Storage quota usage is {{ $value | humanize }}% in namespace {{ $labels.namespace }}."
+          runbook: "Review PVC usage, clean up unused volumes, consider increasing storage quota."
+
+      # PVC Count Near Limit
+      - alert: PVCQuotaNearLimit
+        expr: |
+          (
+            kube_resourcequota{resource="persistentvolumeclaims", type="used"}
+            / kube_resourcequota{resource="persistentvolumeclaims", type="hard"}
+          ) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Namespace {{ $labels.namespace }} PVC count near limit"
+          description: "PVC count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}."
+          runbook: "Review PersistentVolumeClaims, delete unused volumes, consider increasing quota."

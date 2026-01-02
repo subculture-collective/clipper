@@ -414,12 +414,43 @@ The existing analytics.ts stub implementation has been replaced with full PostHo
 3. Check user is properly identified
 4. Verify API key has feature flags permission
 
+## Analytics Dashboards
+
+Comprehensive PostHog dashboards have been configured to visualize mobile app metrics. See the complete dashboard setup guide:
+
+- **[Analytics Dashboards Guide](../docs/mobile/analytics-dashboards.md)** - Detailed setup instructions for all mobile dashboards
+- **[Dashboard Queries Reference](../docs/mobile/posthog-dashboard-queries.md)** - Quick reference for PostHog query configurations
+
+### Available Dashboards
+
+1. **Mobile User Funnels** - User journey conversion analysis (signup → engagement)
+2. **Mobile Retention Analysis** - Weekly/monthly cohort retention tracking
+3. **Mobile Screen Views** - Navigation patterns and screen engagement metrics
+4. **Mobile Stability** - Crash-free session rates and error tracking (with Sentry integration)
+5. **Mobile DAU/MAU** - Daily and monthly active users with growth trends
+
+### Key Metrics Tracked
+
+- **Funnels**: Signup/login → first clip play → follow/submit
+- **Retention**: Day 1, Day 7, Day 30, Month 3 retention rates
+- **Screen Views**: Top screens, time on screen, navigation flows
+- **Stability**: Crash-free sessions (>99.5% target), error rates by type
+- **DAU/MAU**: Daily/monthly actives, stickiness ratio (DAU/MAU), growth rate
+
+### Quick Access
+
+All dashboards use standardized event names and properties from this analytics module. Dashboard setup takes approximately 4-6 hours for the complete suite.
+
+For dashboard implementation details, ownership, and maintenance procedures, refer to the [Analytics Dashboards Guide](../docs/mobile/analytics-dashboards.md).
+
 ## Resources
 
 - [PostHog Documentation](https://posthog.com/docs)
 - [PostHog React Native SDK](https://posthog.com/docs/libraries/react-native)
 - [Feature Flags Guide](https://posthog.com/docs/feature-flags)
 - [Privacy & GDPR](https://posthog.com/docs/privacy)
+- [Mobile Analytics Dashboards](../docs/mobile/analytics-dashboards.md)
+- [PostHog Dashboard Queries](../docs/mobile/posthog-dashboard-queries.md)
 
 ## Support
 

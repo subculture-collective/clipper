@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/subculture-collective/clipper/config"
 )
@@ -19,6 +20,11 @@ type Client struct {
 
 // NewClient creates a new Redis client
 func NewClient(cfg *config.RedisConfig) (*Client, error) {
+	return NewClientWithTracing(cfg, false)
+}
+
+// NewClientWithTracing creates a new Redis client with optional tracing
+func NewClientWithTracing(cfg *config.RedisConfig, enableTracing bool) (*Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
 		Password:     cfg.Password,
@@ -29,6 +35,14 @@ func NewClient(cfg *config.RedisConfig) (*Client, error) {
 		PoolSize:     10,
 		MinIdleConns: 2,
 	})
+
+	// Add tracing if enabled
+	if enableTracing {
+		if err := redisotel.InstrumentTracing(rdb); err != nil {
+			return nil, fmt.Errorf("failed to instrument Redis tracing: %w", err)
+		}
+		log.Println("Redis tracing enabled")
+	}
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

@@ -295,29 +295,78 @@ scrape_configs:
 
 ### Available Dashboards
 
-1. **Application Overview** (`monitoring/dashboards/app-overview.json`)
-   - Request rate
-   - Error rate
-   - Response time (P50, P95, P99)
-   - Active users
+Comprehensive monitoring dashboards for all aspects of the Clipper platform. See [Dashboard README](../../monitoring/dashboards/README.md) for detailed documentation.
 
-2. **Database Performance** (`monitoring/dashboards/database.json`)
+**Core Infrastructure:**
+
+1. **System Health** (`monitoring/dashboards/system-health.json`)
+   - CPU, memory, disk usage per instance
+   - Network traffic and I/O
+   - System load averages
+
+2. **Kubernetes Cluster** (`monitoring/dashboards/kubernetes.json`)
+   - Pod and node status
+   - Deployment and StatefulSet health
+   - HPA scaling behavior
+   - Resource usage by namespace
+
+3. **Resource Quotas** (`monitoring/dashboards/resource-quotas.json`)
+   - Namespace quota utilization
+   - Container OOM events
+   - CPU throttling metrics
+
+**Application & Data:**
+
+4. **Application Overview** (`monitoring/dashboards/app-overview.json`)
+   - Request rate and SLO compliance
+   - Error rate tracking
+   - Response time percentiles (P50, P95, P99)
+
+5. **API Performance** (`monitoring/dashboards/api-performance.json`)
+   - Endpoint throughput
+   - Status code distribution
+   - Request/response sizes
+
+6. **Database Performance** (`monitoring/dashboards/database.json`)
    - Connection pool status
-   - Query performance
-   - Slow queries
-   - Table sizes
+   - Query performance metrics
+   - Slow queries tracking
+   - Transaction rates
 
-3. **Redis Performance** (`monitoring/dashboards/redis.json`)
+7. **Redis Cache** (`monitoring/dashboards/redis.json`)
    - Cache hit rate
-   - Memory usage
+   - Memory usage and evictions
    - Command latency
-   - Eviction rate
+   - Keyspace operations
 
-4. **System Resources** (`monitoring/dashboards/system.json`)
-   - CPU usage
-   - Memory usage
-   - Disk I/O
-   - Network traffic
+8. **PgBouncer Pool** (`monitoring/dashboards/pgbouncer-pool.json`)
+   - Connection pool utilization
+   - Client wait times
+   - Query rates
+
+**Business & Operations:**
+
+9. **Engagement Metrics** (`monitoring/dashboards/engagement-metrics.json`)
+   - DAU/WAU/MAU tracking
+   - Platform stickiness
+   - Retention rates
+
+10. **Background Jobs** (`monitoring/dashboards/background-jobs.json`)
+    - Job execution status
+    - Queue sizes
+    - Processing durations
+
+11. **Webhook Monitoring** (`monitoring/dashboards/webhook-monitoring.json`)
+    - Delivery success rates
+    - Retry queue health
+    - Per-subscription metrics
+
+12. **Search Quality** (`monitoring/dashboards/search-quality.json`)
+    - nDCG and MRR metrics
+    - Search latency
+    - Zero result rates
+
+For complete dashboard list and panel descriptions, see [monitoring/dashboards/README.md](../../monitoring/dashboards/README.md).
 
 ## Alerting
 

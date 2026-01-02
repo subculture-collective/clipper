@@ -1,0 +1,17 @@
+apiVersion: v2
+name: clipper-frontend
+description: Clipper Frontend Web Application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - clipper
+  - frontend
+  - react
+  - nextjs
+maintainers:
+  - name: Clipper Team
+    url: https://github.com/subculture-collective/clipper
+home: https://github.com/subculture-collective/clipper
+sources:
+  - https://github.com/subculture-collective/clipper
