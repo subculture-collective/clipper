@@ -256,12 +256,10 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 		EndTime:           &req.EndTime,
 	}
 
-	// Add stream metadata if available
-	if stream != nil {
-		clip.GameName = &stream.GameName
-		clip.GameID = &stream.GameID
-		clip.Language = &stream.Language
-	}
+	// Add stream metadata (stream is guaranteed non-nil from earlier checks)
+	clip.GameName = &stream.GameName
+	clip.GameID = &stream.GameID
+	clip.Language = &stream.Language
 
 	// Insert clip into database using repository method
 	err = h.clipRepo.CreateStreamClip(ctx, clip)

@@ -24,30 +24,30 @@ func TestWebhookSignatureVerificationEnforced(t *testing.T) {
 	// Setup mock server that tracks signature validation
 	validSignature := ""
 	invalidSignature := "invalid_signature_12345"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		signature := r.Header.Get("X-Webhook-Signature")
-		
+
 		// Verify signature is present
 		if signature == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte(`{"error": "missing signature"}`))
 			return
 		}
-		
+
 		// Verify signature format (64 hex characters for SHA256)
 		if len(signature) != 64 {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte(`{"error": "invalid signature format"}`))
 			return
 		}
-		
+
 		// Accept if signature matches expected (in real scenario, would verify HMAC)
 		if signature != validSignature && signature != invalidSignature {
 			// Store valid signature for comparison
 			validSignature = signature
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "ok"}`))
 	}))
@@ -56,7 +56,7 @@ func TestWebhookSignatureVerificationEnforced(t *testing.T) {
 	// Generate test payload and signature
 	secret := "test-secret-key"
 	payload := `{"event":"clip.submitted","timestamp":"2024-01-01T00:00:00Z","data":{"submission_id":"test-123"}}`
-	
+
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(payload))
 	validSignature = hex.EncodeToString(h.Sum(nil))
@@ -67,7 +67,7 @@ func TestWebhookSignatureVerificationEnforced(t *testing.T) {
 		req.Header.Set("X-Webhook-Signature", validSignature)
 		req.Header.Set("X-Webhook-Event", "clip.submitted")
 		req.Header.Set("X-Webhook-Delivery-ID", uuid.New().String())
-		
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -79,7 +79,7 @@ func TestWebhookSignatureVerificationEnforced(t *testing.T) {
 		req.Header.Set("X-Webhook-Signature", invalidSignature)
 		req.Header.Set("X-Webhook-Event", "clip.submitted")
 		req.Header.Set("X-Webhook-Delivery-ID", uuid.New().String())
-		
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		// Invalid signatures must be rejected with 401 Unauthorized
@@ -91,7 +91,7 @@ func TestWebhookSignatureVerificationEnforced(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("X-Webhook-Event", "clip.submitted")
 		req.Header.Set("X-Webhook-Delivery-ID", uuid.New().String())
-		
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
@@ -103,15 +103,15 @@ func TestWebhookIdempotency(t *testing.T) {
 	// Track deliveries by event ID
 	mu := sync.Mutex{}
 	deliveryCount := make(map[string]int)
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		eventID := r.Header.Get("X-Webhook-Delivery-ID")
-		
+
 		mu.Lock()
 		deliveryCount[eventID]++
 		count := deliveryCount[eventID]
 		mu.Unlock()
-		
+
 		// First delivery succeeds, subsequent should be idempotent
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(`{"status": "ok", "count": %d}`, count)))
@@ -120,13 +120,13 @@ func TestWebhookIdempotency(t *testing.T) {
 
 	// Simulate the same event being delivered multiple times
 	eventID := uuid.New().String()
-	
+
 	for i := 0; i < 3; i++ {
 		req, err := http.NewRequest("POST", server.URL, nil)
 		require.NoError(t, err)
 		req.Header.Set("X-Webhook-Delivery-ID", eventID)
 		req.Header.Set("X-Webhook-Event", "clip.submitted")
-		
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -136,7 +136,7 @@ func TestWebhookIdempotency(t *testing.T) {
 	mu.Lock()
 	count := deliveryCount[eventID]
 	mu.Unlock()
-	
+
 	// Server received all 3 attempts (idempotency should be handled by client)
 	assert.Equal(t, 3, count, "server should receive all delivery attempts")
 }
@@ -176,10 +176,10 @@ func TestWebhookExponentialBackoff(t *testing.T) {
 			// With jitter, allow +/- 10%
 			minExpected := tc.baseDelay - (tc.baseDelay / 10)
 			maxExpected := tc.baseDelay + (tc.baseDelay / 10)
-			
+
 			// Log expected range for verification
 			t.Logf("Expected delay range: %v to %v (base: %v)", minExpected, maxExpected, tc.baseDelay)
-			
+
 			// Verify formula makes sense (values are reasonable)
 			assert.Greater(t, tc.baseDelay, time.Duration(0), "base delay should be positive")
 			assert.LessOrEqual(t, tc.baseDelay, time.Hour, "base delay should be at most 1 hour")
@@ -234,21 +234,21 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 	}
 
 	var (
-		receivedCount    int32
-		duplicateCount   int32
-		deliveryIDs      sync.Map
-		eventIDsSeen     sync.Map
+		receivedCount  int32
+		duplicateCount int32
+		deliveryIDs    sync.Map
+		eventIDsSeen   sync.Map
 	)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		deliveryID := r.Header.Get("X-Webhook-Delivery-ID")
 		eventType := r.Header.Get("X-Webhook-Event")
-		
+
 		// Track delivery ID to detect duplicates at HTTP level
 		if _, loaded := deliveryIDs.LoadOrStore(deliveryID, true); loaded {
 			atomic.AddInt32(&duplicateCount, 1)
 		}
-		
+
 		// Parse event_id from payload
 		var payload map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&payload); err == nil {
@@ -256,12 +256,12 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 				eventIDsSeen.Store(eventID, true)
 			}
 		}
-		
+
 		atomic.AddInt32(&receivedCount, 1)
-		
+
 		// Simulate mixed response times
 		time.Sleep(time.Duration(1+atomic.LoadInt32(&receivedCount)%5) * time.Millisecond)
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(`{"status": "ok", "event": "%s"}`, eventType)))
 	}))
@@ -269,20 +269,20 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 
 	// Generate and send test events
 	const totalEvents = 1000 // Use 1k for faster test, scale up to 10k in full test
-	
+
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 50) // Limit concurrency
-	
+
 	startTime := time.Now()
-	
+
 	for i := 0; i < totalEvents; i++ {
 		wg.Add(1)
 		semaphore <- struct{}{}
-		
+
 		go func(idx int) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
-			
+
 			eventID := uuid.New().String()
 			payload := map[string]interface{}{
 				"event":     "clip.submitted",
@@ -293,12 +293,12 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 					"clip_id":       uuid.New().String(),
 				},
 			}
-			
+
 			payloadBytes, err := json.Marshal(payload)
 			if err != nil {
 				return
 			}
-			
+
 			req, err := http.NewRequest("POST", server.URL, bytes.NewBuffer(payloadBytes))
 			if err != nil {
 				return
@@ -306,28 +306,28 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 			req.Header.Set("X-Webhook-Delivery-ID", uuid.New().String())
 			req.Header.Set("X-Webhook-Event", "clip.submitted")
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			resp, err := http.DefaultClient.Do(req)
 			if err == nil {
 				resp.Body.Close()
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
 	duration := time.Since(startTime)
-	
+
 	// Verify results
 	finalReceivedCount := atomic.LoadInt32(&receivedCount)
 	finalDuplicateCount := atomic.LoadInt32(&duplicateCount)
-	
-	t.Logf("Processed %d events in %v (%.0f events/sec)", 
+
+	t.Logf("Processed %d events in %v (%.0f events/sec)",
 		finalReceivedCount, duration, float64(totalEvents)/duration.Seconds())
 	t.Logf("Duplicates detected at HTTP level: %d", finalDuplicateCount)
-	
+
 	assert.Equal(t, int32(totalEvents), finalReceivedCount, "all events should be received")
 	assert.Equal(t, int32(0), finalDuplicateCount, "no duplicate deliveries should occur")
-	
+
 	// Verify throughput is reasonable (at least 100 events/sec for this simple test)
 	throughput := float64(totalEvents) / duration.Seconds()
 	assert.Greater(t, throughput, 100.0, "throughput should be at least 100 events/sec")
@@ -337,14 +337,14 @@ func TestWebhookDeliveryAtScale(t *testing.T) {
 func TestWebhookCorrelationIDs(t *testing.T) {
 	correlationIDs := make(map[string]bool)
 	mu := sync.Mutex{}
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		deliveryID := r.Header.Get("X-Webhook-Delivery-ID")
-		
+
 		mu.Lock()
 		correlationIDs[deliveryID] = true
 		mu.Unlock()
-		
+
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -355,7 +355,7 @@ func TestWebhookCorrelationIDs(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("X-Webhook-Delivery-ID", uuid.New().String())
 		req.Header.Set("X-Webhook-Event", "clip.submitted")
-		
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -365,6 +365,6 @@ func TestWebhookCorrelationIDs(t *testing.T) {
 	mu.Lock()
 	uniqueCount := len(correlationIDs)
 	mu.Unlock()
-	
+
 	assert.Equal(t, 10, uniqueCount, "each delivery should have unique correlation ID")
 }

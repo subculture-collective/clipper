@@ -218,6 +218,21 @@ export abstract class BasePage {
   }
 
   /**
+   * Verify element has a class matching the pattern
+   * @param selector - CSS selector or Locator
+   * @param classPattern - Class name or regex pattern to match
+   */
+  async verifyElementHasClass(selector: string | Locator, classPattern: string | RegExp): Promise<void> {
+    const locator = typeof selector === 'string' ? this.page.locator(selector) : selector;
+    const classAttr = await locator.getAttribute('class');
+    if (typeof classPattern === 'string') {
+      expect(classAttr || '').toContain(classPattern);
+    } else {
+      expect(classAttr || '').toMatch(classPattern);
+    }
+  }
+
+  /**
    * Wait for navigation to complete
    */
   async waitForNavigation(): Promise<void> {

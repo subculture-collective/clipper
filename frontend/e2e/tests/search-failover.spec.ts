@@ -64,13 +64,13 @@ test.describe('Search Failover - UX Behavior', () => {
     if (paginationExists) {
       // Try navigating to next page
       const nextButton = page.locator('[data-testid="next-page"], button:has-text("Next"), .pagination button:last-child');
-      
+
       if (await nextButton.count() > 0 && await nextButton.isEnabled()) {
         await nextButton.click();
-        
+
         // Wait for navigation to second page to complete
         await page.waitForURL(/page=2/, { timeout: SEARCH_TIMEOUT_MS });
-        
+
         // Verify new results loaded
         await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"]', {
           timeout: SEARCH_TIMEOUT_MS,
@@ -90,7 +90,7 @@ test.describe('Search Failover - UX Behavior', () => {
       await page.waitForSelector('[data-testid="loading"], [data-testid="search-loading"], .loading', {
         timeout: 1000,
       });
-      
+
       const loadingElement = await page.locator('[data-testid="loading"], [data-testid="search-loading"], .loading').first();
       expect(await loadingElement.isVisible()).toBeTruthy();
     } catch (e) {
@@ -122,7 +122,7 @@ test.describe('Search Failover - UX Behavior', () => {
 
     // Perform multiple searches quickly
     const queries = ['query1', 'query2', 'query3'];
-    
+
     for (const query of queries) {
       await searchPage.search(query);
       // Don't wait for results, immediately do next search
@@ -140,7 +140,7 @@ test.describe('Search Failover - UX Behavior', () => {
 
   test('should provide helpful empty state message', async ({ page, searchPage }) => {
     await searchPage.goto();
-    
+
     // Search for something that won't return results
     await searchPage.search('xyzabc123nonexistent');
 
@@ -149,8 +149,8 @@ test.describe('Search Failover - UX Behavior', () => {
       timeout: SEARCH_TIMEOUT_MS,
     });
 
-    // Verify helpful message
-    const emptyStateText = await page.locator('[data-testid="empty-state"], [data-testid="no-results"]').textContent();
+    // Verify helpful message (use .first() since there may be multiple empty states)
+    const emptyStateText = await page.locator('[data-testid="empty-state"], [data-testid="no-results"]').first().textContent();
     expect(emptyStateText).toMatch(/no results|try different|not found/i);
   });
 });
@@ -204,12 +204,12 @@ test.describe('Search Failover - Performance', () => {
 
     const startTime = Date.now();
     await searchPage.search('test query');
-    
+
     // Wait for results
     await page.waitForSelector('[data-testid="search-results"], [data-testid="empty-state"], [data-testid="error-message"]', {
       timeout: SEARCH_TIMEOUT_MS,
     });
-    
+
     const endTime = Date.now();
     const duration = endTime - startTime;
 
@@ -251,7 +251,7 @@ test.describe('Search Failover - Suggestions', () => {
       await page.waitForSelector('[data-testid="suggestions"], [data-testid="autocomplete"], .suggestions', {
         timeout: 1000,
       });
-      
+
       // Either suggestions loaded or none were available (both acceptable)
       // Reaching this point without an unhandled error is sufficient for this test
     } catch (e) {

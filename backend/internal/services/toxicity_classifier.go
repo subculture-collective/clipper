@@ -26,17 +26,17 @@ type ToxicityClassifier struct {
 
 // ToxicityScore represents the result of toxicity classification
 type ToxicityScore struct {
-	Toxic            bool             `json:"toxic"`
-	ConfidenceScore  float64          `json:"confidence_score"`
-	Categories       map[string]float64 `json:"categories"`
-	ReasonCodes      []string         `json:"reason_codes"`
+	Toxic           bool               `json:"toxic"`
+	ConfidenceScore float64            `json:"confidence_score"`
+	Categories      map[string]float64 `json:"categories"`
+	ReasonCodes     []string           `json:"reason_codes"`
 }
 
 // PerspectiveAPIRequest represents a request to the Perspective API
 type PerspectiveAPIRequest struct {
-	Comment          CommentText `json:"comment"`
+	Comment             CommentText            `json:"comment"`
 	RequestedAttributes map[string]interface{} `json:"requestedAttributes"`
-	Languages        []string    `json:"languages"`
+	Languages           []string               `json:"languages"`
 }
 
 // CommentText represents the comment text for Perspective API
@@ -104,13 +104,13 @@ func (tc *ToxicityClassifier) classifyWithPerspectiveAPI(ctx context.Context, co
 			Text: content,
 		},
 		RequestedAttributes: map[string]interface{}{
-			"TOXICITY":           struct{}{},
-			"SEVERE_TOXICITY":    struct{}{},
-			"IDENTITY_ATTACK":    struct{}{},
-			"INSULT":             struct{}{},
-			"PROFANITY":          struct{}{},
-			"THREAT":             struct{}{},
-			"SEXUALLY_EXPLICIT":  struct{}{},
+			"TOXICITY":          struct{}{},
+			"SEVERE_TOXICITY":   struct{}{},
+			"IDENTITY_ATTACK":   struct{}{},
+			"INSULT":            struct{}{},
+			"PROFANITY":         struct{}{},
+			"THREAT":            struct{}{},
+			"SEXUALLY_EXPLICIT": struct{}{},
 		},
 		Languages: []string{"en"},
 	}
@@ -155,11 +155,11 @@ func (tc *ToxicityClassifier) classifyWithPerspectiveAPI(ctx context.Context, co
 	for attr, score := range apiResp.AttributeScores {
 		value := score.SummaryScore.Value
 		categories[attr] = value
-		
+
 		if value > maxScore {
 			maxScore = value
 		}
-		
+
 		// Add to reason codes if above threshold
 		if value >= tc.threshold {
 			reasonCodes = append(reasonCodes, attr)
@@ -219,7 +219,7 @@ func (tc *ToxicityClassifier) AddToModerationQueue(ctx context.Context, commentI
 			"THREAT":            "harassment",
 			"SEXUALLY_EXPLICIT": "inappropriate",
 		}
-		
+
 		if mappedReason, ok := categoryMap[score.ReasonCodes[0]]; ok {
 			reason = mappedReason
 		}
@@ -329,7 +329,7 @@ func (tc *ToxicityClassifier) GetMetrics(ctx context.Context, startDate, endDate
 		WHERE tp.created_at >= $1 AND tp.created_at <= $2
 			AND md.created_at IS NOT NULL
 	`, startDate, endDate).Scan(&tp, &fp, &fn, &tn)
-	
+
 	if err == nil {
 		precision := 0.0
 		recall := 0.0

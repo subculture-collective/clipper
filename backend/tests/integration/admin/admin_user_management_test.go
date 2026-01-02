@@ -99,7 +99,7 @@ func setupAdminTestRouter(t *testing.T) (*gin.Engine, *services.AuthService, *da
 // verifyAuditLog checks that an audit log entry was created with expected values
 func verifyAuditLog(t *testing.T, db *database.DB, auditLogRepo *repository.AuditLogRepository, action string, entityID uuid.UUID, moderatorID uuid.UUID) {
 	ctx := context.Background()
-	
+
 	// Query audit logs for this specific action and entity
 	var logs []*models.ModerationAuditLog
 	query := `
@@ -121,14 +121,14 @@ func verifyAuditLog(t *testing.T, db *database.DB, auditLogRepo *repository.Audi
 	}
 
 	require.NotEmpty(t, logs, "Expected audit log entry not found for action: %s", action)
-	
+
 	log := logs[0]
 	assert.Equal(t, action, log.Action, "Audit log action mismatch")
 	assert.Equal(t, "user", log.EntityType, "Audit log entity type should be 'user'")
 	assert.Equal(t, entityID, log.EntityID, "Audit log entity ID mismatch")
 	assert.Equal(t, moderatorID, log.ModeratorID, "Audit log moderator ID mismatch")
 	assert.NotNil(t, log.Reason, "Audit log reason should not be nil")
-	assert.WithinDuration(t, time.Now(), log.CreatedAt, 5*time.Second, "Audit log should be recent")
+	assert.WithinDuration(t, time.Now().UTC(), log.CreatedAt.UTC(), 5*time.Second, "Audit log should be recent")
 }
 
 // ==============================================================================
@@ -155,7 +155,7 @@ func TestAdminUserManagement_Authorization(t *testing.T) {
 		// Try to ban a user (should fail with 403)
 		reqBody := map[string]string{"reason": "Test ban"}
 		body, _ := json.Marshal(reqBody)
-		
+
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/api/v1/admin/users/%s/ban", targetUser.ID), bytes.NewBuffer(body))
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		req.Header.Set("Content-Type", "application/json")
@@ -164,7 +164,7 @@ func TestAdminUserManagement_Authorization(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusForbidden, w.Code, "Regular user should receive 403 Forbidden")
-		
+
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
@@ -191,7 +191,7 @@ func TestAdminUserManagement_Authorization(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code, "Admin should be able to list users")
-		
+
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
@@ -658,7 +658,7 @@ func TestAdminUserManagement_CommentSuspension(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, response, "history")
 		assert.Contains(t, response, "count")
-		
+
 		count := int(response["count"].(float64))
 		assert.GreaterOrEqual(t, count, 1, "Should have at least one suspension record")
 	})

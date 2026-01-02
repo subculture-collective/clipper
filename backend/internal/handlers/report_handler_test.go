@@ -33,10 +33,10 @@ func TestAdminReportsEndpoints(t *testing.T) {
 	// Setup database connection
 	dbConfig := &config.DatabaseConfig{
 		Host:     getEnvOrDefault("DB_HOST", "localhost"),
-		Port:     getEnvOrDefault("DB_PORT", "5436"),
+		Port:     getEnvOrDefault("DB_PORT", "5437"),
 		User:     getEnvOrDefault("DB_USER", "clipper"),
 		Password: getEnvOrDefault("DB_PASSWORD", "clipper_password"),
-		Name:     getEnvOrDefault("DB_NAME", "clipper_db"),
+		Name:     getEnvOrDefault("DB_NAME", "clipper_test"),
 		SSLMode:  "disable",
 	}
 
@@ -278,9 +278,4 @@ func TestAdminReportsEndpoints(t *testing.T) {
 			t.Errorf("Expected limit 10, got %v", meta["limit"])
 		}
 	})
-}
-
-// Helper function to create string pointer
-func strPtr(s string) *string {
-	return &s
 }

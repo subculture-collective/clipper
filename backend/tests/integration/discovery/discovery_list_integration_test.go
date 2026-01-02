@@ -143,7 +143,7 @@ func TestDiscoveryListPagination(t *testing.T) {
 			_, _ = db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = ANY($1)", []uuid.UUID{clip1.ID, clip2.ID, clip3.ID})
 		}()
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=new&limit=10", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=new&limit=100", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -158,9 +158,21 @@ func TestDiscoveryListPagination(t *testing.T) {
 		data := response["data"].([]interface{})
 		assert.GreaterOrEqual(t, len(data), 3)
 
-		// Verify newest clips appear first
-		firstClip := data[0].(map[string]interface{})
-		assert.Equal(t, clip3.ID.String(), firstClip["id"].(string))
+		// Verify our test clips are in the results and appear in correct order
+		var foundIndices = make(map[string]int)
+		for i, item := range data {
+			clip := item.(map[string]interface{})
+			clipID := clip["id"].(string)
+			if clipID == clip1.ID.String() || clipID == clip2.ID.String() || clipID == clip3.ID.String() {
+				foundIndices[clipID] = i
+			}
+		}
+
+		require.Equal(t, 3, len(foundIndices), "Should find all 3 test clips in results")
+
+		// Verify order: clip3 (newest) should appear before clip2 and clip1
+		assert.Less(t, foundIndices[clip3.ID.String()], foundIndices[clip2.ID.String()], "clip3 (newest) should appear before clip2")
+		assert.Less(t, foundIndices[clip2.ID.String()], foundIndices[clip1.ID.String()], "clip2 should appear before clip1 (oldest)")
 	})
 
 	t.Run("DiscussedList_OrderedByComments", func(t *testing.T) {
@@ -182,7 +194,7 @@ func TestDiscoveryListPagination(t *testing.T) {
 			_, _ = db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = ANY($1)", []uuid.UUID{clip1.ID, clip2.ID, clip3.ID})
 		}()
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=discussed&timeframe=week&limit=10", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=discussed&timeframe=week&limit=100", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -197,9 +209,21 @@ func TestDiscoveryListPagination(t *testing.T) {
 		data := response["data"].([]interface{})
 		assert.GreaterOrEqual(t, len(data), 3)
 
-		// Verify clips are ordered by comment count (descending)
-		firstClip := data[0].(map[string]interface{})
-		assert.Equal(t, clip2.ID.String(), firstClip["id"].(string))
+		// Verify our test clips are in results and in correct order by comment count (descending)
+		var foundIndices = make(map[string]int)
+		for i, item := range data {
+			clip := item.(map[string]interface{})
+			clipID := clip["id"].(string)
+			if clipID == clip1.ID.String() || clipID == clip2.ID.String() || clipID == clip3.ID.String() {
+				foundIndices[clipID] = i
+			}
+		}
+
+		require.Equal(t, 3, len(foundIndices), "Should find all 3 test clips in results")
+
+		// Verify order: clip2 (25 comments) should appear before clip1 (10 comments) and clip3 (5 comments)
+		assert.Less(t, foundIndices[clip2.ID.String()], foundIndices[clip1.ID.String()], "clip2 (25 comments) should appear before clip1 (10 comments)")
+		assert.Less(t, foundIndices[clip1.ID.String()], foundIndices[clip3.ID.String()], "clip1 (10 comments) should appear before clip3 (5 comments)")
 	})
 
 	t.Run("Pagination_LimitAndPage", func(t *testing.T) {
@@ -209,7 +233,7 @@ func TestDiscoveryListPagination(t *testing.T) {
 		for i := 0; i < 5; i++ {
 			clip := testutil.CreateTestClip(t, db, &userID)
 			clipIDs = append(clipIDs, clip.ID)
-			
+
 			// Set explicit creation time for deterministic ordering
 			createdAt := baseTime.Add(time.Duration(i) * time.Second)
 			_, err := db.Pool.Exec(ctx, "UPDATE clips SET created_at = $1 WHERE id = $2", createdAt, clip.ID)
@@ -286,21 +310,19 @@ func TestDiscoveryListFilters(t *testing.T) {
 		recentClip := testutil.CreateTestClip(t, db, &userID)
 
 		// Make old clip created 2 days ago
-		_, err := db.Pool.Exec(ctx, "UPDATE clips SET created_at = NOW() - INTERVAL '2 days' WHERE id = $1", oldClip.ID)
+		_, err := db.Pool.Exec(ctx, "UPDATE clips SET created_at = NOW() - INTERVAL '2 days', vote_score = 100, vote_count = 100 WHERE id = $1", oldClip.ID)
 		require.NoError(t, err)
 
-		// Set vote counts (both positive for top sorting)
-		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_count = 10 WHERE id = $1", oldClip.ID)
-		require.NoError(t, err)
-		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_count = 5 WHERE id = $1", recentClip.ID)
+		// Set recent clip to have decent score and be created just now
+		_, err = db.Pool.Exec(ctx, "UPDATE clips SET created_at = NOW(), vote_score = 50, vote_count = 50 WHERE id = $1", recentClip.ID)
 		require.NoError(t, err)
 
 		defer func() {
 			_, _ = db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = ANY($1)", []uuid.UUID{oldClip.ID, recentClip.ID})
 		}()
 
-		// Test day timeframe (should only include recent clip)
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=top&timeframe=day", nil)
+		// Test day timeframe (should only include recent clip which was created today)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=top&timeframe=day&limit=100", nil)
 		req.Header.Set("Authorization", "Bearer "+userToken)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -349,8 +371,8 @@ func TestDiscoveryListFilters(t *testing.T) {
 			_, _ = db.Pool.Exec(ctx, "DELETE FROM top_streamers WHERE broadcaster_id = $1", broadcasterID)
 		}()
 
-		// Test with top10k_streamers filter
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=new&top10k_streamers=true", nil)
+		// Test with top10k_streamers filter (use limit=100 to ensure both clips can appear if not filtered)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=new&top10k_streamers=true&limit=100", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -401,24 +423,25 @@ func TestDiscoveryListOrdering(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("HotList_OrderedByHotScore", func(t *testing.T) {
-		// Create clips with different hot scores
+		// Create clips with different hot scores (based on vote_score and creation time)
 		clip1 := testutil.CreateTestClip(t, db, &userID)
 		clip2 := testutil.CreateTestClip(t, db, &userID)
 		clip3 := testutil.CreateTestClip(t, db, &userID)
 
-		// Set different hot scores
-		_, err := db.Pool.Exec(ctx, "UPDATE clips SET hot_score = 0.5 WHERE id = $1", clip1.ID)
+		// Set vote_score to control hot score calculation (hot score = vote_score / time_decay)
+		// Higher vote_score = higher hot score
+		_, err := db.Pool.Exec(ctx, "UPDATE clips SET vote_score = 50 WHERE id = $1", clip1.ID)
 		require.NoError(t, err)
-		_, err = db.Pool.Exec(ctx, "UPDATE clips SET hot_score = 0.9 WHERE id = $1", clip2.ID)
+		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_score = 90 WHERE id = $1", clip2.ID)
 		require.NoError(t, err)
-		_, err = db.Pool.Exec(ctx, "UPDATE clips SET hot_score = 0.3 WHERE id = $1", clip3.ID)
+		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_score = 30 WHERE id = $1", clip3.ID)
 		require.NoError(t, err)
 
 		defer func() {
 			_, _ = db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = ANY($1)", []uuid.UUID{clip1.ID, clip2.ID, clip3.ID})
 		}()
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=hot&limit=10", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=hot&limit=100", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -430,9 +453,21 @@ func TestDiscoveryListOrdering(t *testing.T) {
 		data := response["data"].([]interface{})
 		assert.GreaterOrEqual(t, len(data), 3)
 
-		// Verify highest hot score is first
-		firstClip := data[0].(map[string]interface{})
-		assert.Equal(t, clip2.ID.String(), firstClip["id"].(string))
+		// Verify our test clips are in results and in correct order by hot score (descending)
+		var foundIndices = make(map[string]int)
+		for i, item := range data {
+			clip := item.(map[string]interface{})
+			clipID := clip["id"].(string)
+			if clipID == clip1.ID.String() || clipID == clip2.ID.String() || clipID == clip3.ID.String() {
+				foundIndices[clipID] = i
+			}
+		}
+
+		require.Equal(t, 3, len(foundIndices), "Should find all 3 test clips in results")
+
+		// Verify order: clip2 (90 vote_score) should appear before clip1 (50) and clip3 (30)
+		assert.Less(t, foundIndices[clip2.ID.String()], foundIndices[clip1.ID.String()], "clip2 (90 vote_score) should appear before clip1 (50)")
+		assert.Less(t, foundIndices[clip1.ID.String()], foundIndices[clip3.ID.String()], "clip1 (50 vote_score) should appear before clip3 (30)")
 	})
 
 	t.Run("TopList_OrderedByVotes", func(t *testing.T) {
@@ -441,19 +476,19 @@ func TestDiscoveryListOrdering(t *testing.T) {
 		clip2 := testutil.CreateTestClip(t, db, &userID)
 		clip3 := testutil.CreateTestClip(t, db, &userID)
 
-		// Set different vote counts
-		_, err := db.Pool.Exec(ctx, "UPDATE clips SET vote_count = 15 WHERE id = $1", clip1.ID)
+		// Set different vote_score (higher values to ensure they show up in top results)
+		_, err := db.Pool.Exec(ctx, "UPDATE clips SET vote_score = 150, vote_count = 150 WHERE id = $1", clip1.ID)
 		require.NoError(t, err)
-		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_count = 30 WHERE id = $1", clip2.ID)
+		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_score = 300, vote_count = 300 WHERE id = $1", clip2.ID)
 		require.NoError(t, err)
-		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_count = 8 WHERE id = $1", clip3.ID)
+		_, err = db.Pool.Exec(ctx, "UPDATE clips SET vote_score = 80, vote_count = 80 WHERE id = $1", clip3.ID)
 		require.NoError(t, err)
 
 		defer func() {
 			_, _ = db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = ANY($1)", []uuid.UUID{clip1.ID, clip2.ID, clip3.ID})
 		}()
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=top&timeframe=all&limit=10", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips?sort=top&timeframe=all&limit=100", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -465,8 +500,20 @@ func TestDiscoveryListOrdering(t *testing.T) {
 		data := response["data"].([]interface{})
 		assert.GreaterOrEqual(t, len(data), 3)
 
-		// Verify highest vote count is first
-		firstClip := data[0].(map[string]interface{})
-		assert.Equal(t, clip2.ID.String(), firstClip["id"].(string))
+		// Verify our test clips are in results and in correct order by vote_score (descending)
+		var foundIndices = make(map[string]int)
+		for i, item := range data {
+			clip := item.(map[string]interface{})
+			clipID := clip["id"].(string)
+			if clipID == clip1.ID.String() || clipID == clip2.ID.String() || clipID == clip3.ID.String() {
+				foundIndices[clipID] = i
+			}
+		}
+
+		require.Equal(t, 3, len(foundIndices), "Should find all 3 test clips in results")
+
+		// Verify order: clip2 (300 vote_score) should appear before clip1 (150) and clip3 (80)
+		assert.Less(t, foundIndices[clip2.ID.String()], foundIndices[clip1.ID.String()], "clip2 (300 vote_score) should appear before clip1 (150)")
+		assert.Less(t, foundIndices[clip1.ID.String()], foundIndices[clip3.ID.String()], "clip1 (150 vote_score) should appear before clip3 (80)")
 	})
 }

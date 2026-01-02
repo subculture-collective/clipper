@@ -151,10 +151,10 @@ func printResults(result *services.ABTestResult) {
 	fmt.Println("-----------------------------------------")
 
 	metrics := []struct {
-		name  string
-		key   string
-		valA  float64
-		valB  float64
+		name string
+		key  string
+		valA float64
+		valB float64
 	}{
 		{"nDCG@5", "ndcg_at_5", result.MetricsA.MeanNDCG5, result.MetricsB.MeanNDCG5},
 		{"nDCG@10", "ndcg_at_10", result.MetricsA.MeanNDCG10, result.MetricsB.MeanNDCG10},

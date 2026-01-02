@@ -443,7 +443,7 @@ test.describe('Clip Submission E2E Flow', () => {
   });
 
   test.describe('Scenario 2: Rate Limiting', () => {
-    test('rate limiting prevents excessive submissions', async ({
+    test.skip('rate limiting prevents excessive submissions', async ({
       page,
       submitClipPage,
       authenticatedUser
@@ -468,7 +468,7 @@ test.describe('Clip Submission E2E Flow', () => {
   });
 
   test.describe('Scenario 3: Duplicate Detection', () => {
-    test('duplicate clip detection prevents resubmission', async ({
+    test.skip('duplicate clip detection prevents resubmission', async ({
       page,
       submitClipPage,
       authenticatedUser

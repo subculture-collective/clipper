@@ -78,9 +78,16 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 	bio := "Test user bio"
 	lastLoginAt := time.Now()
 
+	suffix := uuid.New().String()[:8]
+	maxUsernameLen := 50 - (len("test_") + len(suffix) + 1) // prefix + suffix + underscore
+	trimmedUsername := username
+	if len(trimmedUsername) > maxUsernameLen {
+		trimmedUsername = trimmedUsername[:maxUsernameLen]
+	}
+
 	user := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_%s_%s", username, uuid.New().String()[:16]), // Use 16 chars of UUID for uniqueness within 50 char limit
+		TwitchID:    fmt.Sprintf("test_%s_%s", trimmedUsername, suffix),
 		Username:    username,
 		DisplayName: fmt.Sprintf("Test User %s", username),
 		AvatarURL:   &avatarURL,
@@ -359,6 +366,20 @@ func CreateTestUserWithRole(t *testing.T, db *database.DB, username string, role
 	userRepo := repository.NewUserRepository(db.Pool)
 	err := userRepo.UpdateUserRole(ctx, user.ID, role)
 	require.NoError(t, err, "Failed to update user role")
+
+	// Align account type with role so permission checks behave as expected
+	accountType := models.AccountTypeMember
+	switch role {
+	case models.RoleModerator:
+		accountType = models.AccountTypeModerator
+	case models.RoleAdmin:
+		accountType = models.AccountTypeAdmin
+	}
+	if accountType != models.AccountTypeMember {
+		_, err = db.Pool.Exec(ctx, "UPDATE users SET account_type = $1 WHERE id = $2", accountType, user.ID)
+		require.NoError(t, err, "Failed to update user account type")
+		user.AccountType = accountType
+	}
 
 	// Refetch user to get updated role
 	updatedUser, err := userRepo.GetByID(ctx, user.ID)

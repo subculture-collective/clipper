@@ -25,16 +25,16 @@ type GridSearchResult struct {
 		VectorWeight float64 `json:"vector_weight"`
 	} `json:"parameters"`
 	Metrics services.AggregateMetrics `json:"metrics"`
-	Status  map[string]string          `json:"status"`
+	Status  map[string]string         `json:"status"`
 }
 
 // GridSearchReport contains all grid search results
 type GridSearchReport struct {
-	Timestamp      string             `json:"timestamp"`
+	Timestamp       string                     `json:"timestamp"`
 	BaselineMetrics *services.AggregateMetrics `json:"baseline_metrics,omitempty"`
-	Results        []GridSearchResult `json:"results"`
-	BestConfig     GridSearchResult   `json:"best_config"`
-	Improvement    map[string]float64 `json:"improvement_vs_baseline,omitempty"` // Percentage improvement vs baseline
+	Results         []GridSearchResult         `json:"results"`
+	BestConfig      GridSearchResult           `json:"best_config"`
+	Improvement     map[string]float64         `json:"improvement_vs_baseline,omitempty"` // Percentage improvement vs baseline
 }
 
 func main() {
@@ -68,7 +68,7 @@ func main() {
 
 	// Define parameter grid
 	gridConfig := GridSearchConfig{}
-	
+
 	if *quick {
 		// Quick mode - test key variations around baseline (0.7/0.3)
 		gridConfig.BM25Weights = []float64{0.5, 0.6, 0.7, 0.8}
@@ -94,7 +94,7 @@ func main() {
 	// Run grid search
 	ctx := context.Background()
 	results := []GridSearchResult{}
-	
+
 	for _, bm25Weight := range gridConfig.BM25Weights {
 		for _, vectorWeight := range gridConfig.VectorWeights {
 			// Weights should sum to 1.0
@@ -203,7 +203,7 @@ func evaluateConfiguration(
 	//
 	// For now, using simulated results to demonstrate the framework.
 	// All metrics will be identical until live search integration is complete.
-	
+
 	report, err := evalService.EvaluateWithSimulatedResults(ctx)
 	if err != nil {
 		return GridSearchResult{}, err
@@ -233,9 +233,9 @@ func findBestConfiguration(results []GridSearchResult) GridSearchResult {
 		// Scoring function: weighted combination of metrics
 		// Primary focus on nDCG@10 (weight: 4.0)
 		score := 0.0
-		score += result.Metrics.MeanNDCG10 * 4.0     // Primary metric
-		score += result.Metrics.MeanNDCG5 * 2.0      // Secondary
-		score += result.Metrics.MeanMRR * 2.0        // Secondary
+		score += result.Metrics.MeanNDCG10 * 4.0 // Primary metric
+		score += result.Metrics.MeanNDCG5 * 2.0  // Secondary
+		score += result.Metrics.MeanMRR * 2.0    // Secondary
 		score += result.Metrics.MeanPrecision10 * 1.0
 		score += result.Metrics.MeanRecall10 * 1.0
 
@@ -250,7 +250,7 @@ func findBestConfiguration(results []GridSearchResult) GridSearchResult {
 
 func calculateImprovement(baseline, current services.AggregateMetrics) map[string]float64 {
 	improvements := make(map[string]float64)
-	
+
 	improvements["ndcg_at_5"] = calculatePercentChange(baseline.MeanNDCG5, current.MeanNDCG5)
 	improvements["ndcg_at_10"] = calculatePercentChange(baseline.MeanNDCG10, current.MeanNDCG10)
 	improvements["mrr"] = calculatePercentChange(baseline.MeanMRR, current.MeanMRR)
@@ -260,7 +260,7 @@ func calculateImprovement(baseline, current services.AggregateMetrics) map[strin
 	improvements["recall_at_5"] = calculatePercentChange(baseline.MeanRecall5, current.MeanRecall5)
 	improvements["recall_at_10"] = calculatePercentChange(baseline.MeanRecall10, current.MeanRecall10)
 	improvements["recall_at_20"] = calculatePercentChange(baseline.MeanRecall20, current.MeanRecall20)
-	
+
 	return improvements
 }
 
@@ -290,7 +290,7 @@ func printSummary(report GridSearchReport) {
 	fmt.Println()
 	fmt.Printf("Tested %d parameter combinations\n", len(report.Results))
 	fmt.Println()
-	
+
 	// Show baseline if available
 	if report.BaselineMetrics != nil {
 		fmt.Println("Baseline Configuration:")
@@ -301,7 +301,7 @@ func printSummary(report GridSearchReport) {
 		fmt.Printf("  Precision@10: %.4f\n", report.BaselineMetrics.MeanPrecision10)
 		fmt.Println()
 	}
-	
+
 	fmt.Println("Best Configuration:")
 	fmt.Println("-----------------------------------------")
 	fmt.Printf("  BM25 Weight:   %.2f\n", report.BestConfig.Parameters.BM25Weight)
@@ -319,7 +319,7 @@ func printSummary(report GridSearchReport) {
 	fmt.Printf("  Recall@10:    %.4f\n", report.BestConfig.Metrics.MeanRecall10)
 	fmt.Printf("  Recall@20:    %.4f\n", report.BestConfig.Metrics.MeanRecall20)
 	fmt.Println()
-	
+
 	// Show improvement if baseline available
 	if report.Improvement != nil {
 		fmt.Println("Improvement vs Baseline:")
@@ -329,7 +329,7 @@ func printSummary(report GridSearchReport) {
 		fmt.Printf("  MRR:          %+.2f%%\n", report.Improvement["mrr"])
 		fmt.Printf("  Precision@10: %+.2f%%\n", report.Improvement["precision_at_10"])
 		fmt.Println()
-		
+
 		// Check if nDCG@10 improvement meets target (≥10%)
 		ndcg10Improvement := report.Improvement["ndcg_at_10"]
 		if ndcg10Improvement >= 10.0 {

@@ -63,6 +63,17 @@ func (m *mockOpenSearchClient) GetSuggestions(ctx context.Context, query string,
 	return []models.SearchSuggestion{}, nil
 }
 
+// mockHybridSearchService simulates hybrid search failures
+type mockHybridSearchService struct{}
+
+func (m *mockHybridSearchService) Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error) {
+	return nil, errors.New("hybrid search unavailable")
+}
+
+func (m *mockHybridSearchService) SearchWithScores(ctx context.Context, req *models.SearchRequest) (*models.SearchResponseWithScores, error) {
+	return nil, errors.New("hybrid search unavailable")
+}
+
 // TestSearchFailover_OpenSearchTimeout tests search behavior when OpenSearch times out
 func TestSearchFailover_OpenSearchTimeout(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -106,7 +117,7 @@ func TestSearchFailover_OpenSearchTimeout(t *testing.T) {
 	t.Run("Fallback_to_PostgreSQL_on_timeout", func(t *testing.T) {
 		// Create mock OpenSearch service that simulates timeout
 		mockOS := &mockOpenSearchClient{shouldTimeout: true}
-		
+
 		// Create a custom search service wrapper that falls back to PostgreSQL
 		searchHandler := createFailoverSearchHandler(searchRepo, mockOS, authService)
 
@@ -127,11 +138,11 @@ func TestSearchFailover_OpenSearchTimeout(t *testing.T) {
 
 		// Should return 200 with fallback results
 		assert.Equal(t, http.StatusOK, w.Code, "Expected 200 OK with PostgreSQL fallback")
-		
+
 		// Verify X-Search-Failover header is set
 		failoverHeader := w.Header().Get("X-Search-Failover")
 		assert.Equal(t, "true", failoverHeader, "Expected X-Search-Failover header to be true")
-		
+
 		// Verify X-Search-Failover-Reason header
 		reasonHeader := w.Header().Get("X-Search-Failover-Reason")
 		assert.Equal(t, "timeout", reasonHeader, "Expected failover reason to be timeout")
@@ -140,7 +151,7 @@ func TestSearchFailover_OpenSearchTimeout(t *testing.T) {
 	t.Run("Fallback_to_PostgreSQL_on_error", func(t *testing.T) {
 		// Create mock OpenSearch service that simulates error
 		mockOS := &mockOpenSearchClient{shouldError: true, errorCode: 500}
-		
+
 		searchHandler := createFailoverSearchHandler(searchRepo, mockOS, authService)
 
 		// Setup router
@@ -159,11 +170,11 @@ func TestSearchFailover_OpenSearchTimeout(t *testing.T) {
 
 		// Should return 200 with fallback results
 		assert.Equal(t, http.StatusOK, w.Code, "Expected 200 OK with PostgreSQL fallback")
-		
+
 		// Verify X-Search-Failover header is set
 		failoverHeader := w.Header().Get("X-Search-Failover")
 		assert.Equal(t, "true", failoverHeader, "Expected X-Search-Failover header to be true")
-		
+
 		// Verify X-Search-Failover-Reason header
 		reasonHeader := w.Header().Get("X-Search-Failover-Reason")
 		assert.Equal(t, "error", reasonHeader, "Expected failover reason to be error")
@@ -230,7 +241,7 @@ func TestSearchFailover_HybridSearchNoFallback(t *testing.T) {
 
 		// Should return 503 Service Unavailable
 		assert.Equal(t, http.StatusServiceUnavailable, w.Code, "Expected 503 when hybrid search fails")
-		
+
 		// Verify Retry-After header is set
 		retryAfter := w.Header().Get("Retry-After")
 		assert.NotEmpty(t, retryAfter, "Expected Retry-After header to be set")
@@ -280,7 +291,7 @@ func TestSearchFailover_SuggestionsTimeout(t *testing.T) {
 	t.Run("Suggestions_fallback_to_PostgreSQL", func(t *testing.T) {
 		// Create mock OpenSearch service that simulates timeout
 		mockOS := &mockOpenSearchClient{shouldTimeout: true}
-		
+
 		searchHandler := createFailoverSearchHandler(searchRepo, mockOS, authService)
 
 		// Setup router
@@ -299,7 +310,7 @@ func TestSearchFailover_SuggestionsTimeout(t *testing.T) {
 
 		// Should return 200 with fallback results
 		assert.Equal(t, http.StatusOK, w.Code, "Expected 200 OK with PostgreSQL fallback")
-		
+
 		// Verify X-Search-Failover header is set
 		failoverHeader := w.Header().Get("X-Search-Failover")
 		assert.Equal(t, "true", failoverHeader, "Expected X-Search-Failover header to be true")
@@ -313,14 +324,10 @@ func TestSearchFailover_SuggestionsTimeout(t *testing.T) {
 // the OpenSearch service would need to be stopped or mocked at the infrastructure level.
 
 func createFailoverSearchHandler(searchRepo *repository.SearchRepository, mockOS *mockOpenSearchClient, authService *services.AuthService) *handlers.SearchHandler {
-	// In a real scenario, we would need to modify SearchHandler to accept
-	// an OpenSearch service interface that can be mocked
-	// For now, this returns the standard handler as a placeholder
-	return handlers.NewSearchHandler(searchRepo, authService)
+	return handlers.NewSearchHandlerWithOpenSearchProvider(searchRepo, mockOS, authService)
 }
 
 func createHybridSearchHandlerNoFallback(searchRepo *repository.SearchRepository, authService *services.AuthService) *handlers.SearchHandler {
-	// In a real scenario with hybrid search enabled, we would need
-	// infrastructure-level testing where OpenSearch is actually unavailable
-	return handlers.NewSearchHandler(searchRepo, authService)
+	// Use a mock hybrid search provider that returns an error to trigger 503 path
+	return handlers.NewSearchHandlerWithHybridProvider(searchRepo, &mockHybridSearchService{}, authService)
 }

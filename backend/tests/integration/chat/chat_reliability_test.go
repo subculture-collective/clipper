@@ -45,13 +45,12 @@ const (
 	// clientSendBufferSize matches the buffer size used in the WebSocket client implementation
 	// This is defined in internal/websocket/client.go
 	clientSendBufferSize = 256
-	
+
 	// slowClientMessageThreshold is the acceptable percentage of messages a fast client
 	// should receive when a slow client is present. Set to 80% to account for potential
 	// message loss in the slow client's buffer while ensuring the fast client remains unaffected.
 	slowClientMessageThreshold = 0.8
 )
-
 
 // setupChatTestEnvironment creates test database, services, and HTTP server
 func setupChatTestEnvironment(t *testing.T) (*gin.Engine, *jwtpkg.Manager, *database.DB, *redispkg.Client, *ws.Server, func()) {
@@ -140,7 +139,9 @@ func connectTestClient(t *testing.T, server *httptest.Server, channelID uuid.UUI
 		server.URL[4:], channelID.String(), user.ID.String(), user.Username)
 
 	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial(wsURL, nil)
+	header := http.Header{}
+	header.Set("Origin", "http://localhost:3000")
+	conn, _, err := dialer.Dial(wsURL, header)
 	require.NoError(t, err, "Failed to connect WebSocket")
 
 	client := &TestClient{
@@ -209,7 +210,7 @@ func (c *TestClient) SendMessageWithID(channelID uuid.UUID, content string, mess
 func (c *TestClient) WaitForMessage(timeout time.Duration, condition func(*ws.ServerMessage) bool) (*ws.ServerMessage, error) {
 	deadline := time.After(timeout)
 	unmatchedBuffer := make([]*ws.ServerMessage, 0, 10)
-	
+
 	defer func() {
 		// Re-queue unmatched messages (best-effort)
 		for _, msg := range unmatchedBuffer {
@@ -220,7 +221,7 @@ func (c *TestClient) WaitForMessage(timeout time.Duration, condition func(*ws.Se
 			}
 		}
 	}()
-	
+
 	for {
 		select {
 		case msg := <-c.Received:
@@ -258,6 +259,19 @@ func (c *TestClient) DrainMessages() []*ws.ServerMessage {
 	}
 }
 
+func insertChatChannel(t *testing.T, db *database.DB, channelID uuid.UUID, name string, creatorID uuid.UUID) {
+	t.Helper()
+	_, err := db.Pool.Exec(context.Background(), `INSERT INTO chat_channels (id, name, creator_id, created_at) VALUES ($1, $2, $3, $4)`,
+		channelID, name, creatorID, time.Now())
+	require.NoError(t, err)
+}
+
+func cleanupChatChannel(t *testing.T, db *database.DB, channelID uuid.UUID) {
+	t.Helper()
+	_, err := db.Pool.Exec(context.Background(), `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	require.NoError(t, err)
+}
+
 // TestMultipleClientsConnectDisconnect tests multiple clients connecting and disconnecting
 func TestMultipleClientsConnectDisconnect(t *testing.T) {
 	router, _, db, _, wsServer, cleanup := setupChatTestEnvironment(t)
@@ -266,7 +280,6 @@ func TestMultipleClientsConnectDisconnect(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	ctx := context.Background()
 	channelID := uuid.New()
 
 	// Create test users
@@ -278,10 +291,8 @@ func TestMultipleClientsConnectDisconnect(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, user3.ID)
 
 	// Create channel in database
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channelID, "Test Channel", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	insertChatChannel(t, db, channelID, "Test Channel", user1.ID)
+	defer cleanupChatChannel(t, db, channelID)
 
 	// Connect first client
 	client1 := connectTestClient(t, server, channelID, user1)
@@ -305,8 +316,8 @@ func TestMultipleClientsConnectDisconnect(t *testing.T) {
 	// Both clients should receive join presence for user2
 	for _, client := range []*TestClient{client1, client2} {
 		msg, err := client.WaitForMessage(2*time.Second, func(m *ws.ServerMessage) bool {
-			return m.Type == ws.MessageTypePresence && 
-				*m.PresenceType == ws.PresenceTypeJoined && 
+			return m.Type == ws.MessageTypePresence &&
+				*m.PresenceType == ws.PresenceTypeJoined &&
 				*m.Username == user2.Username
 		})
 		require.NoError(t, err)
@@ -323,8 +334,8 @@ func TestMultipleClientsConnectDisconnect(t *testing.T) {
 	// All clients should receive join presence for user3
 	for _, client := range []*TestClient{client1, client2, client3} {
 		msg, err := client.WaitForMessage(2*time.Second, func(m *ws.ServerMessage) bool {
-			return m.Type == ws.MessageTypePresence && 
-				*m.PresenceType == ws.PresenceTypeJoined && 
+			return m.Type == ws.MessageTypePresence &&
+				*m.PresenceType == ws.PresenceTypeJoined &&
 				*m.Username == user3.Username
 		})
 		require.NoError(t, err)
@@ -342,8 +353,8 @@ func TestMultipleClientsConnectDisconnect(t *testing.T) {
 	// Remaining clients should receive leave presence
 	for _, client := range []*TestClient{client1, client3} {
 		msg, err := client.WaitForMessage(2*time.Second, func(m *ws.ServerMessage) bool {
-			return m.Type == ws.MessageTypePresence && 
-				*m.PresenceType == ws.PresenceTypeLeft && 
+			return m.Type == ws.MessageTypePresence &&
+				*m.PresenceType == ws.PresenceTypeLeft &&
 				*m.Username == user2.Username
 		})
 		require.NoError(t, err)
@@ -357,7 +368,7 @@ func TestMultipleClientsConnectDisconnect(t *testing.T) {
 	// Disconnect remaining clients
 	client3.Close()
 	time.Sleep(500 * time.Millisecond)
-	
+
 	// Verify stats updated
 	stats = wsServer.GetStats()
 	assert.Equal(t, 1, stats["total_connections"])
@@ -371,7 +382,6 @@ func TestMessageFanout(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	ctx := context.Background()
 	channelID := uuid.New()
 
 	// Create test users
@@ -383,10 +393,8 @@ func TestMessageFanout(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, user3.ID)
 
 	// Create channel
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channelID, "Test Channel", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	insertChatChannel(t, db, channelID, "Test Channel", user1.ID)
+	defer cleanupChatChannel(t, db, channelID)
 
 	// Connect all clients
 	client1 := connectTestClient(t, server, channelID, user1)
@@ -404,7 +412,7 @@ func TestMessageFanout(t *testing.T) {
 
 	// Client1 sends a message
 	testMessage := "Hello everyone!"
-	err = client1.SendMessage(channelID, testMessage)
+	err := client1.SendMessage(channelID, testMessage)
 	require.NoError(t, err)
 
 	// All clients should receive the message
@@ -428,7 +436,6 @@ func TestMessageOrdering(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	ctx := context.Background()
 	channelID := uuid.New()
 
 	// Create test users
@@ -438,10 +445,8 @@ func TestMessageOrdering(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, receiver.ID)
 
 	// Create channel
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channelID, "Test Channel", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	insertChatChannel(t, db, channelID, "Test Channel", sender.ID)
+	defer cleanupChatChannel(t, db, channelID)
 
 	// Connect clients
 	senderClient := connectTestClient(t, server, channelID, sender)
@@ -505,10 +510,8 @@ func TestReconnectionAndMessageHistory(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, user2.ID)
 
 	// Create channel
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channelID, "Test Channel", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	insertChatChannel(t, db, channelID, "Test Channel", user1.ID)
+	defer cleanupChatChannel(t, db, channelID)
 	defer db.Pool.Exec(ctx, `DELETE FROM chat_messages WHERE channel_id = $1`, channelID)
 
 	// Connect both clients
@@ -541,7 +544,7 @@ func TestReconnectionAndMessageHistory(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// Client1 sends more messages while client2 is offline
-	err = client1.SendMessage(channelID, "Message while offline")
+	err := client1.SendMessage(channelID, "Message while offline")
 	require.NoError(t, err)
 	time.Sleep(500 * time.Millisecond)
 
@@ -552,7 +555,7 @@ func TestReconnectionAndMessageHistory(t *testing.T) {
 	// Client2 should receive message history (last 50 messages)
 	receivedHistory := make(map[string]bool)
 	timeout := time.After(5 * time.Second)
-	
+
 	for len(receivedHistory) < len(historicalMessages) {
 		select {
 		case msg := <-client2New.Received:
@@ -591,10 +594,8 @@ func TestMessageDeduplication(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, receiver.ID)
 
 	// Create channel
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channelID, "Test Channel", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	insertChatChannel(t, db, channelID, "Test Channel", sender.ID)
+	defer cleanupChatChannel(t, db, channelID)
 	defer db.Pool.Exec(ctx, `DELETE FROM chat_messages WHERE channel_id = $1`, channelID)
 
 	// Connect clients
@@ -612,7 +613,7 @@ func TestMessageDeduplication(t *testing.T) {
 	messageID := uuid.New()
 	content := "Duplicate message test"
 
-	err = senderClient.SendMessageWithID(channelID, content, messageID)
+	err := senderClient.SendMessageWithID(channelID, content, messageID)
 	require.NoError(t, err)
 	time.Sleep(200 * time.Millisecond)
 
@@ -624,7 +625,7 @@ func TestMessageDeduplication(t *testing.T) {
 	// Receiver should only get one message (due to ON CONFLICT DO NOTHING)
 	receivedCount := 0
 	timeout := time.After(2 * time.Second)
-	
+
 	for {
 		select {
 		case msg := <-receiverClient.Received:
@@ -648,6 +649,10 @@ func TestMessageDeduplication(t *testing.T) {
 
 // TestRateLimiting tests rate limiting enforcement
 func TestRateLimiting(t *testing.T) {
+	// Configure rate limiting for this test only
+	t.Setenv("CHAT_RATE_LIMIT_PER_MINUTE", "20")
+	t.Setenv("CHAT_RATE_LIMIT_BURST", "1")
+
 	router, _, db, _, _, cleanup := setupChatTestEnvironment(t)
 	defer cleanup()
 
@@ -662,10 +667,8 @@ func TestRateLimiting(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, user.ID)
 
 	// Create channel
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channelID, "Test Channel", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	insertChatChannel(t, db, channelID, "Test Channel", user.ID)
+	defer cleanupChatChannel(t, db, channelID)
 	defer db.Pool.Exec(ctx, `DELETE FROM chat_messages WHERE channel_id = $1`, channelID)
 
 	// Connect client
@@ -717,8 +720,6 @@ func TestSlowClientHandling(t *testing.T) {
 
 	server := httptest.NewServer(router)
 	defer server.Close()
-
-	ctx := context.Background()
 	channelID := uuid.New()
 
 	// Create test users
@@ -728,18 +729,16 @@ func TestSlowClientHandling(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, slowUser.ID)
 
 	// Create channel
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channelID, "Test Channel", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channelID)
+	insertChatChannel(t, db, channelID, "Test Channel", fastUser.ID)
+	defer cleanupChatChannel(t, db, channelID)
 
 	// Connect clients
 	fastClient := connectTestClient(t, server, channelID, fastUser)
 	defer fastClient.Close()
-	
+
 	slowClient := connectTestClient(t, server, channelID, slowUser)
 	// Don't read from slowClient to simulate slow consumer
-	
+
 	// Wait for join presences
 	time.Sleep(1 * time.Second)
 	fastClient.DrainMessages()
@@ -756,7 +755,7 @@ func TestSlowClientHandling(t *testing.T) {
 	// Fast client should be able to receive all messages
 	receivedCount := 0
 	timeout := time.After(10 * time.Second)
-	
+
 receiveLoop:
 	for receivedCount < messageCount {
 		select {
@@ -774,14 +773,14 @@ receiveLoop:
 	// The threshold is defined as slowClientMessageThreshold (80%) to account for
 	// potential message drops in the slow client's buffer while ensuring the fast
 	// client is not significantly impacted by the slow consumer.
-	assert.GreaterOrEqual(t, receivedCount, int(float64(messageCount)*slowClientMessageThreshold), 
+	assert.GreaterOrEqual(t, receivedCount, int(float64(messageCount)*slowClientMessageThreshold),
 		"Fast client should receive at least %.0f%% of messages", slowClientMessageThreshold*100)
 
 	// Slow client may not receive all messages (buffer full scenario)
 	// This is acceptable - server should remain stable
 	// Just verify server didn't crash by checking stats
 	time.Sleep(1 * time.Second)
-	
+
 	// Cleanup slow client
 	slowClient.Close()
 }
@@ -793,8 +792,6 @@ func TestCrossChannelIsolation(t *testing.T) {
 
 	server := httptest.NewServer(router)
 	defer server.Close()
-
-	ctx := context.Background()
 	channel1ID := uuid.New()
 	channel2ID := uuid.New()
 
@@ -805,15 +802,11 @@ func TestCrossChannelIsolation(t *testing.T) {
 	defer testutil.CleanupTestUser(t, db, user2.ID)
 
 	// Create channels
-	_, err := db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channel1ID, "Channel 1", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channel1ID)
+	insertChatChannel(t, db, channel1ID, "Channel 1", user1.ID)
+	defer cleanupChatChannel(t, db, channel1ID)
 
-	_, err = db.Pool.Exec(ctx, `INSERT INTO chat_channels (id, name, created_at) VALUES ($1, $2, $3)`,
-		channel2ID, "Channel 2", time.Now())
-	require.NoError(t, err)
-	defer db.Pool.Exec(ctx, `DELETE FROM chat_channels WHERE id = $1`, channel2ID)
+	insertChatChannel(t, db, channel2ID, "Channel 2", user2.ID)
+	defer cleanupChatChannel(t, db, channel2ID)
 
 	// User1 connects to channel1
 	client1 := connectTestClient(t, server, channel1ID, user1)
@@ -830,7 +823,7 @@ func TestCrossChannelIsolation(t *testing.T) {
 
 	// User1 sends message to channel1
 	msg1 := "Message for channel 1"
-	err = client1.SendMessage(channel1ID, msg1)
+	err := client1.SendMessage(channel1ID, msg1)
 	require.NoError(t, err)
 
 	// User2 sends message to channel2

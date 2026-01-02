@@ -19,10 +19,10 @@ func TestInputValidationMiddleware_SQLInjectionEdgeCases(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
-		name          string
-		query         string
-		shouldReject  bool
-		description   string
+		name         string
+		query        string
+		shouldReject bool
+		description  string
 	}{
 		{
 			name:         "union with spaces",
@@ -51,7 +51,7 @@ func TestInputValidationMiddleware_SQLInjectionEdgeCases(t *testing.T) {
 		{
 			name:         "alter table",
 			query:        "?name=test'; ALTER TABLE users ADD COLUMN backdoor VARCHAR(255)--",
-			shouldReject: false, // Pattern doesn't catch ALTER statements  
+			shouldReject: false, // Pattern doesn't catch ALTER statements
 			description:  "ALTER TABLE statement (limitation: not caught by current patterns)",
 		},
 		{
@@ -375,7 +375,7 @@ func TestInputValidationMiddleware_FuzzerSmoke(t *testing.T) {
 
 	// Assert no panics occurred
 	assert.Equal(t, 0, panics, "Fuzzer should not cause any panics")
-	
+
 	// Failures should be less than 1% (excluding panics)
 	maxFailures := totalTests / 100
 	assert.LessOrEqual(t, failures, maxFailures,

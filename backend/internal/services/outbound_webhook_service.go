@@ -622,7 +622,7 @@ func (s *OutboundWebhookService) GetDeadLetterQueueItems(ctx context.Context, pa
 // ReplayDeadLetterQueueItem attempts to replay a failed webhook delivery
 func (s *OutboundWebhookService) ReplayDeadLetterQueueItem(ctx context.Context, dlqID uuid.UUID) error {
 	startTime := time.Now()
-	
+
 	// Get the DLQ item
 	dlqItem, err := s.webhookRepo.GetDeadLetterQueueItemByID(ctx, dlqID)
 	if err != nil {
@@ -682,21 +682,21 @@ func (s *OutboundWebhookService) ReplayDeadLetterQueueItem(ctx context.Context, 
 			log.Printf("[WEBHOOK_DLQ] Failed to update DLQ replay status: %v", err)
 			return fmt.Errorf("replay succeeded but failed to update DLQ replay status: %w", err)
 		}
-		
+
 		// Track success metrics
 		webhookDLQReplaySuccess.WithLabelValues(dlqItem.EventType).Inc()
 		webhookDLQReplayDuration.WithLabelValues(dlqItem.EventType, "success").Observe(time.Since(startTime).Seconds())
-		
+
 		return nil
 	}
 
 	// Failed replay
 	_ = s.webhookRepo.UpdateDLQItemReplayStatus(ctx, dlqID, false)
-	
+
 	// Track failure metrics
 	webhookDLQReplayFailure.WithLabelValues(dlqItem.EventType, fmt.Sprintf("http_%d", resp.StatusCode)).Inc()
 	webhookDLQReplayDuration.WithLabelValues(dlqItem.EventType, "failed").Observe(time.Since(startTime).Seconds())
-	
+
 	return fmt.Errorf("replay failed with HTTP %d: %s", resp.StatusCode, string(responseBody))
 }
 

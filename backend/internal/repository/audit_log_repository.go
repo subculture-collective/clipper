@@ -24,6 +24,20 @@ func NewAuditLogRepository(db *pgxpool.Pool) *AuditLogRepository {
 
 // Create creates a new audit log entry
 func (r *AuditLogRepository) Create(ctx context.Context, log *models.ModerationAuditLog) error {
+	if log.ID == uuid.Nil {
+		log.ID = uuid.New()
+	}
+
+	if log.CreatedAt.IsZero() {
+		log.CreatedAt = time.Now()
+	}
+
+	// If no moderator is provided, skip creating the audit log to avoid invalid foreign keys.
+	// System-generated events should either supply a system moderator user or opt-out explicitly.
+	if log.ModeratorID == uuid.Nil {
+		return nil
+	}
+
 	// Convert metadata to JSON
 	var metadataJSON []byte
 	var err error
@@ -41,6 +55,9 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *models.ModerationA
 			$1, $2, $3, $4, $5, $6, $7, $8
 		)`
 
+	// Ensure timestamp is in UTC to avoid timezone offset issues
+	utcTime := log.CreatedAt.UTC()
+
 	_, err = r.db.Exec(ctx, query,
 		log.ID,
 		log.Action,
@@ -49,7 +66,7 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *models.ModerationA
 		log.ModeratorID,
 		log.Reason,
 		metadataJSON,
-		log.CreatedAt,
+		utcTime,
 	)
 
 	return err
@@ -274,6 +291,64 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 		}
 
 		log.Moderator = &user
+		logs = append(logs, &log)
+	}
+
+	return logs, rows.Err()
+}
+
+// GetByEntityID returns audit logs for a specific entity with optional type filter
+func (r *AuditLogRepository) GetByEntityID(ctx context.Context, entityID uuid.UUID, entityType string, limit, offset int) ([]*models.ModerationAuditLog, error) {
+	whereClause := "WHERE entity_id = $1"
+	args := []interface{}{entityID}
+	placeholderIndex := 2
+
+	if entityType != "" {
+		whereClause += fmt.Sprintf(" AND entity_type = %s", utils.SQLPlaceholder(placeholderIndex))
+		args = append(args, entityType)
+		placeholderIndex++
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, action, entity_type, entity_id, moderator_id, reason, metadata, created_at
+		FROM moderation_audit_logs
+		%s
+		ORDER BY created_at DESC
+		LIMIT %s OFFSET %s`, whereClause, utils.SQLPlaceholder(placeholderIndex), utils.SQLPlaceholder(placeholderIndex+1))
+
+	args = append(args, limit, offset)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []*models.ModerationAuditLog
+	for rows.Next() {
+		var log models.ModerationAuditLog
+		var metadataJSON []byte
+
+		err := rows.Scan(
+			&log.ID,
+			&log.Action,
+			&log.EntityType,
+			&log.EntityID,
+			&log.ModeratorID,
+			&log.Reason,
+			&metadataJSON,
+			&log.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if metadataJSON != nil {
+			if err := json.Unmarshal(metadataJSON, &log.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+			}
+		}
+
 		logs = append(logs, &log)
 	}
 

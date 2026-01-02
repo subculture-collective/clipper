@@ -232,7 +232,7 @@ func main() {
 	}
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
-	
+
 	// Initialize toxicity classifier
 	toxicityClassifier := services.NewToxicityClassifier(
 		cfg.Toxicity.APIKey,
@@ -241,7 +241,7 @@ func main() {
 		cfg.Toxicity.Threshold,
 		db.Pool,
 	)
-	
+
 	// Initialize NSFW detector
 	nsfwDetector := services.NewNSFWDetector(
 		cfg.NSFW.APIKey,
@@ -254,7 +254,7 @@ func main() {
 		cfg.NSFW.TimeoutSeconds,
 		db.Pool,
 	)
-	
+
 	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService, toxicityClassifier)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
 	autoTagService := services.NewAutoTagService(tagRepo)
@@ -472,7 +472,7 @@ func main() {
 			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, db.Pool)
 		}
 	}
-	
+
 	// Initialize NSFW handler
 	nsfwHandler := handlers.NewNSFWHandler(nsfwDetector)
 
@@ -1611,12 +1611,12 @@ func main() {
 					// Audit logs and analytics
 					moderation.GET("/audit", moderationHandler.GetModerationAuditLogs)
 					moderation.GET("/analytics", moderationHandler.GetModerationAnalytics)
-					
+
 					// Toxicity classification metrics
 					moderation.GET("/toxicity/metrics", moderationHandler.GetToxicityMetrics)
 				}
 			}
-			
+
 			// NSFW detection routes (admin only)
 			nsfw := admin.Group("/nsfw")
 			{

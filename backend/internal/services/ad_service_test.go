@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -865,7 +866,7 @@ func TestAdService_ValidateCreative(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.ValidateCreative(nil, tt.contentURL, tt.adType, tt.width, tt.height)
+			err := s.ValidateCreative(context.TODO(), tt.contentURL, tt.adType, tt.width, tt.height)
 			if tt.expectErr {
 				assert.Error(t, err)
 				if tt.errMsg != "" {

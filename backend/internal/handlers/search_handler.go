@@ -18,11 +18,23 @@ import (
 // SearchHandler handles search-related requests
 type SearchHandler struct {
 	searchRepo          *repository.SearchRepository
-	openSearchService   *services.OpenSearchService
-	hybridSearchService *services.HybridSearchService
+	openSearchService   openSearchProvider
+	hybridSearchService hybridSearchProvider
 	authService         *services.AuthService
 	useOpenSearch       bool
 	useHybridSearch     bool
+}
+
+// openSearchProvider defines the subset of methods needed from the OpenSearch service.
+type openSearchProvider interface {
+	Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error)
+	GetSuggestions(ctx context.Context, query string, limit int) ([]models.SearchSuggestion, error)
+}
+
+// hybridSearchProvider defines the interface required for hybrid search operations.
+type hybridSearchProvider interface {
+	Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error)
+	SearchWithScores(ctx context.Context, req *models.SearchRequest) (*models.SearchResponseWithScores, error)
 }
 
 // NewSearchHandler creates a new SearchHandler with PostgreSQL FTS
@@ -46,6 +58,17 @@ func NewSearchHandlerWithOpenSearch(searchRepo *repository.SearchRepository, ope
 	}
 }
 
+// NewSearchHandlerWithOpenSearchProvider allows injecting a custom OpenSearch provider (useful for testing)
+func NewSearchHandlerWithOpenSearchProvider(searchRepo *repository.SearchRepository, provider openSearchProvider, authService *services.AuthService) *SearchHandler {
+	return &SearchHandler{
+		searchRepo:        searchRepo,
+		openSearchService: provider,
+		authService:       authService,
+		useOpenSearch:     provider != nil,
+		useHybridSearch:   false,
+	}
+}
+
 // NewSearchHandlerWithHybridSearch creates a new SearchHandler with hybrid BM25 + vector search
 func NewSearchHandlerWithHybridSearch(searchRepo *repository.SearchRepository, hybridSearchService *services.HybridSearchService, authService *services.AuthService) *SearchHandler {
 	return &SearchHandler{
@@ -54,6 +77,17 @@ func NewSearchHandlerWithHybridSearch(searchRepo *repository.SearchRepository, h
 		authService:         authService,
 		useOpenSearch:       false,
 		useHybridSearch:     true,
+	}
+}
+
+// NewSearchHandlerWithHybridProvider allows injecting a custom hybrid search provider (useful for testing)
+func NewSearchHandlerWithHybridProvider(searchRepo *repository.SearchRepository, hybridProvider hybridSearchProvider, authService *services.AuthService) *SearchHandler {
+	return &SearchHandler{
+		searchRepo:          searchRepo,
+		hybridSearchService: hybridProvider,
+		authService:         authService,
+		useOpenSearch:       false,
+		useHybridSearch:     hybridProvider != nil,
 	}
 }
 

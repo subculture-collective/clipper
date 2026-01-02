@@ -46,16 +46,16 @@ export interface TOCEntry {
 export function parseMarkdown(markdown: string): ProcessedMarkdown {
     // Parse frontmatter
     const { data, content } = matter(markdown);
-    
+
     // Remove doctoc blocks
     const contentWithoutDoctoc = removeDoctocBlocks(content);
-    
+
     // Process Dataview blocks
     const processedContent = processDataviewBlocks(contentWithoutDoctoc);
-    
+
     // Generate TOC from headings
     const toc = generateTOC(processedContent);
-    
+
     return {
         content: processedContent,
         frontmatter: data as DocFrontmatter,
@@ -103,10 +103,10 @@ export function generateTOC(markdown: string): TOCEntry[] {
     while ((match = headingRegex.exec(markdown)) !== null) {
         const level = match[1].length;
         const text = match[2].trim();
-        
+
         // Generate ID from heading text (GitHub-style)
         const id = headingToId(text);
-        
+
         headings.push({
             level,
             text,
@@ -139,7 +139,7 @@ export function extractTextFromChildren(children: React.ReactNode): string {
         return children.map(extractTextFromChildren).join('');
     }
     if (children && typeof children === 'object' && 'props' in children) {
-        return extractTextFromChildren((children as any).props.children);
+        return extractTextFromChildren((children as { props: { children: React.ReactNode } }).props.children);
     }
     return '';
 }
@@ -149,16 +149,16 @@ export function extractTextFromChildren(children: React.ReactNode): string {
  */
 function buildTOCTree(headings: TOCEntry[]): TOCEntry[] {
     if (headings.length === 0) return [];
-    
+
     const root: TOCEntry[] = [];
     const stack: TOCEntry[] = [];
-    
+
     for (const heading of headings) {
         // Find the appropriate parent
         while (stack.length > 0 && stack[stack.length - 1].level >= heading.level) {
             stack.pop();
         }
-        
+
         if (stack.length === 0) {
             // Top-level heading
             root.push(heading);
@@ -170,10 +170,10 @@ function buildTOCTree(headings: TOCEntry[]): TOCEntry[] {
             }
             parent.children.push(heading);
         }
-        
+
         stack.push(heading);
     }
-    
+
     return root;
 }
 

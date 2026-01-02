@@ -328,8 +328,11 @@ async function enableSearchMocks(page: Page) {
     const pageParam = parseInt(url.searchParams.get('page') || '1', 10) || 1;
     const limit = parseInt(url.searchParams.get('limit') || '20', 10) || 20;
 
+    // Return empty results for non-existent queries
+    const isNonExistentQuery = q && /xyzabc123nonexistent|very.*rare.*query|gibberish/i.test(q);
+
     // Generate deterministic mock clips
-    const totalItems = 45; // ensure multiple pages
+    const totalItems = isNonExistentQuery ? 0 : 45; // ensure multiple pages
     const totalPages = Math.ceil(totalItems / limit);
     const start = (pageParam - 1) * limit;
     const end = Math.min(start + limit, totalItems);
@@ -507,10 +510,28 @@ async function enableSocialMocks(page: Page) {
     // Submissions
     if (pathname.endsWith('/submissions') && method === 'POST') {
       const body = request.postDataJSON?.() || {};
+      const submission = {
+        id: `mock-submission-${Date.now()}`,
+        user_id: 'mock-user',
+        twitch_clip_id: `mock-clip-${Date.now()}`,
+        twitch_clip_url: body.clip_url || body.clipUrl || 'https://clips.twitch.tv/test',
+        title: body.title || 'Test Submission',
+        custom_title: body.custom_title,
+        tags: body.tags || [],
+        is_nsfw: Boolean(body.is_nsfw),
+        submission_reason: body.submission_reason,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ id: `mock-submission-${Date.now()}`, ...body }),
+        body: JSON.stringify({
+          success: true,
+          message: 'Submission created',
+          submission,
+        }),
       });
     }
 
@@ -769,6 +790,14 @@ async function enableSocialMocks(page: Page) {
     const playlistShareMatch = pathname.match(/\/playlists\/([^/]+)\/share$/);
     if (playlistShareMatch && method === 'GET') {
       const playlistId = playlistShareMatch[1];
+      // Return 404 for non-existent playlists
+      if (!playlists.has(playlistId)) {
+        return route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Playlist not found' }),
+        });
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -778,12 +807,15 @@ async function enableSocialMocks(page: Page) {
 
     if (playlistMatch && method === 'GET') {
       const playlistId = playlistMatch[1];
-      const playlist = playlists.get(playlistId) || {
-        id: playlistId,
-        title: `Playlist ${playlistId}`,
-        visibility: 'private',
-      };
-      playlists.set(playlistId, playlist);
+      const playlist = playlists.get(playlistId);
+      // Return 404 for invalid/non-existent playlist IDs
+      if (!playlist) {
+        return route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Playlist not found' }),
+        });
+      }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(playlist) });
     }
 
