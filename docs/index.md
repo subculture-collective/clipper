@@ -70,7 +70,7 @@ In-depth documentation for major platform features:
 - **[[backend/caching-strategy|Caching Strategy]]** - Redis caching patterns
 - **[[backend/rbac|RBAC]]** - Role-based access control and permissions
 - **[[backend/security|Security]]** - Security best practices and threat mitigation
-- **[[backend/testing|Testing]]** - Testing strategy, tools, and best practices
+- **[[testing/TESTING|Testing Strategy]]** - Comprehensive testing strategy for Roadmap 5.0 (unit, integration, E2E, load, scheduler, observability)
 
 #### Frontend (React + TypeScript)
 
