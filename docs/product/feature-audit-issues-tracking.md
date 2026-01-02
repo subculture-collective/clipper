@@ -44,10 +44,10 @@ The original 25 feature categories have been expanded into 59 comprehensive issu
 | Premium & Subscriptions | #810 (Premium E2E), #815 (Subscription Integration) | ✅ Created |
 | Social Features | #811 (Social Features E2E) | ✅ Created |
 | Load & Performance | #819-821 (k6, Benchmarks, Stress Testing) | ✅ Created |
-| **Mobile Feature Parity** | #822-831 (10 issues) | ✅ Created |
+| **Mobile Feature Parity** | #822-833 (12 issues) | ✅ Created |
 | Mobile MFA Implementation | #822-823 (MFA Enrollment & Challenge UI) | ✅ Created |
 | Mobile Telemetry | #824-826 (PostHog, Sentry, Analytics Dashboard) | ✅ Created |
-| Mobile E2E Testing | #827-828 (Detox Framework, Critical Flows) | ✅ Created |
+| Mobile E2E Testing | #827-828, #832-833 (Detox Framework, Critical Flows) | ✅ Created |
 | Mobile Performance | #829-831 (Feed Performance, Video Playback, Deprecation) | ✅ Created |
 | **Analytics & ML** | #837-844 (8 issues) | ✅ Created |
 | Search & Recommendations | #837-841 (Search Evaluation, Weight Optimization, Rec Engine) | ✅ Created |
@@ -76,13 +76,13 @@ The 59 issues are distributed across priorities based on criticality:
   - Testing infrastructure setup, scheduler test fixes, critical infrastructure
   - Examples: #806 (Playwright E2E Setup), #816 (Fix Failing Scheduler Tests), #859 (Alerting Configuration)
   
-- **P1 (High Priority)**: 29 issues  
+- **P1 (High Priority)**: 31 issues  
   - E2E tests, integration tests, mobile parity, documentation, infrastructure
-  - Examples: #807-810 (E2E flows), #822-823 (Mobile MFA), #850 (OpenAPI Spec), #852 (K8s Cluster)
+  - Examples: #807-810 (E2E flows), #822-823 (Mobile MFA), #827-828, #832-833 (Mobile E2E), #850 (OpenAPI Spec), #852 (K8s Cluster)
 
-- **P2 (Medium Priority)**: 13 issues
+- **P2 (Medium Priority)**: 12 issues
   - ML/Analytics optimization, additional observability, resource management
-  - Examples: #839-844 (ML/Analytics), #857 (Resource Quotas), #860 (Distributed Tracing)
+  - Examples: #839-844 (ML/Analytics), #826, #830 (Mobile telemetry/performance), #857 (Resource Quotas), #860 (Distributed Tracing)
 
 - **P3 (Low Priority)**: 1 issue
   - Nice-to-have improvements
@@ -93,8 +93,8 @@ The 59 issues are distributed across priorities based on criticality:
 1. **Testing Infrastructure** (Week 1-8): #806-821
    - Blockers: #806 (Playwright), #812 (API Integration Framework), #816 (Scheduler Fixes)
    
-2. **Mobile Feature Parity** (Week 9-14): #822-831
-   - Blockers: #822-823 (MFA UI), #827 (Detox E2E Framework)
+2. **Mobile Feature Parity** (Week 9-14): #822-833
+   - Blockers: #822-823 (MFA UI), #827, #833 (Detox E2E Framework)
 
 3. **Documentation Excellence** (Week 15-20): #845-851
    - Blockers: #845 (Docs Structure), #850 (OpenAPI Spec)

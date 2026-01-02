@@ -35,7 +35,7 @@ All gaps identified in [docs/product/feature-inventory.md](feature-inventory.md)
 | Gap Category | Issues Created | Examples |
 |--------------|----------------|----------|
 | **Testing Gaps** | 16 issues | E2E tests (#806-811), Integration (#812-815), Scheduler (#816-818), Load (#819-821) |
-| **Mobile Gaps** | 10 issues | MFA UI (#822-823), Telemetry (#824-826), E2E (#827-828), Performance (#829-831) |
+| **Mobile Gaps** | 12 issues | MFA UI (#822-823), Telemetry (#824-826), E2E (#827-828, #832-833), Performance (#829-831) |
 | **Search/ML Gaps** | 8 issues | Search ranking (#837-838), Recommendations (#839-841), ML moderation (#842-844) |
 | **Documentation Gaps** | 7 issues | Obsidian vault (#845-849), API docs (#850-851) |
 | **Infrastructure Gaps** | 12 issues | K8s (#852-854), Auto-scaling (#855-857), Observability (#858-860), Security (#861-863) |
@@ -127,7 +127,7 @@ Comprehensive index comment added to [#805](https://github.com/subculture-collec
 - #820: API Endpoint Performance Benchmarks (P1)
 - #821: Stress & Soak Testing (P2)
 
-### 4. Phase 2 Issues (Mobile - 10 issues)
+### 4. Phase 2 Issues (Mobile - 12 issues)
 
 **Epic 2.1: Mobile MFA** (2 issues)
 - #822: Mobile MFA Enrollment UI (P0)
@@ -138,9 +138,11 @@ Comprehensive index comment added to [#805](https://github.com/subculture-collec
 - #825: Sentry Crash Reporting (P1)
 - #826: Mobile Analytics Dashboard (P2)
 
-**Epic 2.3: Mobile E2E Testing** (2 issues)
+**Epic 2.3: Mobile E2E Testing** (4 issues)
 - #827: Detox E2E Framework Setup (P1)
 - #828: Mobile Critical Flow E2E Tests (P1)
+- #832: [Mobile] Critical Flow E2E Tests (P1)
+- #833: [Mobile] Detox E2E Testing Framework Setup (P1)
 
 **Epic 2.4: Mobile Performance** (3 issues)
 - #829: Feed Performance Optimization (P1)
@@ -204,16 +206,16 @@ Comprehensive index comment added to [#805](https://github.com/subculture-collec
 
 | Priority | Count | Percentage | Description |
 |----------|-------|------------|-------------|
-| **P0** | 15 | 25% | Critical/Blocking - Testing setup, scheduler fixes, infrastructure |
-| **P1** | 29 | 49% | High - E2E tests, mobile parity, documentation, infrastructure |
-| **P2** | 13 | 22% | Medium - ML/Analytics optimization, observability enhancements |
-| **P3** | 1 | 2% | Low - Nice-to-have improvements |
+| **P0** | 15 | 25.4% | Critical/Blocking - Testing setup, scheduler fixes, infrastructure |
+| **P1** | 31 | 52.5% | High - E2E tests, mobile parity, documentation, infrastructure |
+| **P2** | 12 | 20.3% | Medium - ML/Analytics optimization, observability enhancements |
+| **P3** | 1 | 1.7% | Low - Nice-to-have improvements |
 
 ---
 
 ## Timeline & Effort Estimate
 
-**Total Effort**: 724-1048 hours across all 59 issues
+**Total Effort**: 740-1088 hours across all 59 issues
 
 **Timeline**: Q1-Q2 2026 (28 weeks)
 
@@ -221,7 +223,7 @@ Comprehensive index comment added to [#805](https://github.com/subculture-collec
 |-------|----------|--------|----------------|
 | Phase 0: Foundation | Week 1 | 4 | 24-32 |
 | Phase 1: Testing | Weeks 2-8 | 16 | 156-224 |
-| Phase 2: Mobile | Weeks 9-14 | 10 | 112-160 |
+| Phase 2: Mobile | Weeks 9-14 | 12 | 128-176 |
 | Phase 3: Analytics/ML | Weeks 15-22 | 8 | 132-192 |
 | Phase 4: Documentation | Weeks 15-20 | 7 | 120-180 |
 | Phase 5: Infrastructure | Weeks 21-28 | 12 | 180-260 |
