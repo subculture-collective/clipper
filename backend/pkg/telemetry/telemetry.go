@@ -13,7 +13,6 @@ import (
 sdktrace "go.opentelemetry.io/otel/sdk/trace"
 semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 "go.opentelemetry.io/otel/trace"
-"google.golang.org/grpc"
 "google.golang.org/grpc/credentials/insecure"
 )
 
@@ -57,7 +56,6 @@ opts = append(opts, otlptracegrpc.WithEndpoint(cfg.OTLPEndpoint))
 
 if cfg.Insecure {
 opts = append(opts, otlptracegrpc.WithTLSCredentials(insecure.NewCredentials()))
-opts = append(opts, otlptracegrpc.WithDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
 }
 
 exporter, err := otlptracegrpc.New(ctx, opts...)
