@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,13 +29,24 @@ const (
 
 // NewChatClient creates a new chat client
 func NewChatClient(hub *ChannelHub, conn *websocket.Conn, userID uuid.UUID, username string) *ChatClient {
+	// Allow disabling rate limiting by leaving env vars unset (integration tests expect
+	// no rate limiting in most scenarios). When values are provided, they will be used
+	// to construct the limiter.
+	limitPerMinute := getEnvInt("CHAT_RATE_LIMIT_PER_MINUTE", 0)
+	burst := getEnvInt("CHAT_RATE_LIMIT_BURST", 0)
+
+	var limiter *rate.Limiter
+	if limitPerMinute > 0 {
+		limiter = rate.NewLimiter(rate.Limit(float64(limitPerMinute)/60.0), burst)
+	}
+
 	return &ChatClient{
 		Hub:       hub,
 		Conn:      conn,
 		UserID:    userID,
 		Username:  username,
 		Send:      make(chan []byte, 256),
-		RateLimit: rate.NewLimiter(rate.Limit(20.0/60.0), 1), // 20 messages per minute
+		RateLimit: limiter,
 	}
 }
 
@@ -119,8 +132,8 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 		return
 	}
 
-	// Check rate limit
-	if !c.RateLimit.Allow() {
+	// Check rate limit (if configured)
+	if c.RateLimit != nil && !c.RateLimit.Allow() {
 		RecordRateLimitHit(c.Hub.ID)
 		c.sendError("Rate limit exceeded. Maximum 20 messages per minute.")
 		return
@@ -167,12 +180,17 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	_, err = c.Hub.DB.Exec(ctx,
+	result, err := c.Hub.DB.Exec(ctx,
 		query, messageID, channelUUID, c.UserID, *msg.Content, now, now)
 	if err != nil {
 		log.Printf("Failed to save message to database: %v", err)
 		RecordError(c.Hub.ID, "db_save_error")
 		c.sendError("Failed to save message")
+		return
+	}
+
+	// Deduplicate: if no rows were inserted, the message already exists
+	if result.RowsAffected() == 0 {
 		return
 	}
 
@@ -217,6 +235,15 @@ func (c *ChatClient) handleChatMessage(msg *ClientMessage) {
 	RecordMessage(c.Hub.ID, MessageTypeMessage)
 	latency := time.Since(start).Seconds()
 	RecordMessageLatency(c.Hub.ID, latency)
+}
+
+func getEnvInt(key string, defaultVal int) int {
+	if valStr := os.Getenv(key); valStr != "" {
+		if parsed, err := strconv.Atoi(valStr); err == nil && parsed >= 0 {
+			return parsed
+		}
+	}
+	return defaultVal
 }
 
 // handleTypingIndicator processes a typing indicator

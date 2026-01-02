@@ -227,16 +227,16 @@ func TestGetAccountTypePermissions(t *testing.T) {
 		{
 			name:          "moderator permissions",
 			accountType:   AccountTypeModerator,
-			expectedCount: 9,
+			expectedCount: 10,
 			mustHavePerms: []string{
 				PermissionCreateSubmission,
 				PermissionViewBroadcasterAnalytics,
 				PermissionModerateContent,
 				PermissionModerateUsers,
 				PermissionCreateDiscoveryLists,
+				PermissionManageUsers,
 			},
 			mustNotHavePerms: []string{
-				PermissionManageUsers,
 				PermissionManageSystem,
 			},
 		},

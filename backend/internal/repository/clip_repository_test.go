@@ -4,6 +4,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -20,14 +21,18 @@ func TestClipRepository_ListWithFilters_Discussed(t *testing.T) {
 
 	pool := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, pool)
+	// Ensure a clean slate to avoid unique constraint collisions from prior runs
+	testutil.TruncateTables(t, pool, "clips", "top_streamers", "clip_tags", "favorites", "comments", "votes", "comment_votes")
 
 	repo := NewClipRepository(pool)
 	ctx := context.Background()
 
+	makeID := func(base string) string { return fmt.Sprintf("%s-%s", base, uuid.NewString()) }
+
 	// Create test clips with different comment counts
 	clip1 := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "test-clip-1",
+		TwitchClipID:    makeID("test-clip-1"),
 		TwitchClipURL:   "https://clips.twitch.tv/test1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=test1",
 		Title:           "Test Clip 1 - Most Discussed",
@@ -41,7 +46,7 @@ func TestClipRepository_ListWithFilters_Discussed(t *testing.T) {
 
 	clip2 := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "test-clip-2",
+		TwitchClipID:    makeID("test-clip-2"),
 		TwitchClipURL:   "https://clips.twitch.tv/test2",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=test2",
 		Title:           "Test Clip 2 - Less Discussed",
@@ -55,7 +60,7 @@ func TestClipRepository_ListWithFilters_Discussed(t *testing.T) {
 
 	clip3 := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "test-clip-3",
+		TwitchClipID:    makeID("test-clip-3"),
 		TwitchClipURL:   "https://clips.twitch.tv/test3",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=test3",
 		Title:           "Test Clip 3 - No Discussion",
@@ -115,6 +120,8 @@ func TestClipRepository_TopStreamers(t *testing.T) {
 
 	pool := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, pool)
+	// Clean related tables before inserting fixtures
+	testutil.TruncateTables(t, pool, "clips", "top_streamers", "clip_tags")
 
 	repo := NewClipRepository(pool)
 	ctx := context.Background()
@@ -175,6 +182,8 @@ func TestClipRepository_ListWithFilters_Top10kStreamers(t *testing.T) {
 
 	pool := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, pool)
+	// Clean related tables before inserting fixtures
+	testutil.TruncateTables(t, pool, "clips", "top_streamers", "clip_tags")
 
 	repo := NewClipRepository(pool)
 	ctx := context.Background()
@@ -188,7 +197,7 @@ func TestClipRepository_ListWithFilters_Top10kStreamers(t *testing.T) {
 	// Create clips - one from top streamer, one from regular streamer
 	topClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "top-clip-1",
+		TwitchClipID:    fmt.Sprintf("top-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/top1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=top1",
 		Title:           "Clip from Top Streamer",
@@ -201,7 +210,7 @@ func TestClipRepository_ListWithFilters_Top10kStreamers(t *testing.T) {
 
 	regularClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "regular-clip-1",
+		TwitchClipID:    fmt.Sprintf("regular-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/regular1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=regular1",
 		Title:           "Clip from Regular Streamer",
@@ -266,7 +275,7 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 	// Create test clips with different languages
 	englishClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "en-clip-1",
+		TwitchClipID:    fmt.Sprintf("en-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/en1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=en1",
 		Title:           "English Clip",
@@ -280,7 +289,7 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 
 	spanishClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "es-clip-1",
+		TwitchClipID:    fmt.Sprintf("es-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/es1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=es1",
 		Title:           "Spanish Clip",
@@ -294,7 +303,7 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 
 	frenchClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "fr-clip-1",
+		TwitchClipID:    fmt.Sprintf("fr-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/fr1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=fr1",
 		Title:           "French Clip",

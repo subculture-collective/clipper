@@ -357,13 +357,13 @@ func (nd *NSFWDetector) FlagToModerationQueue(ctx context.Context, contentType s
 	// Insert into moderation queue
 	query := `
 		INSERT INTO moderation_queue (
-			content_type, content_id, reason, priority, 
+			content_type, content_id, reason, priority,
 			auto_flagged, confidence_score, status,
 			nsfw_categories, nsfw_detected_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)
 		ON CONFLICT (content_type, content_id) WHERE status = 'pending'
-		DO UPDATE SET 
+		DO UPDATE SET
 			confidence_score = GREATEST(moderation_queue.confidence_score, EXCLUDED.confidence_score),
 			priority = GREATEST(moderation_queue.priority, EXCLUDED.priority),
 			nsfw_categories = EXCLUDED.nsfw_categories,
@@ -404,13 +404,13 @@ func (nd *NSFWDetector) GetMetrics(ctx context.Context, startDate, endDate time.
 
 	// Get detection counts by result
 	rows, err := nd.db.Query(ctx, `
-		SELECT 
+		SELECT
 			reason,
 			COUNT(*) as count,
 			AVG(confidence_score) as avg_confidence
 		FROM moderation_queue
 		WHERE reason IN ('nsfw_detected', 'nsfw_nudity_explicit', 'nsfw_sexual_content', 'nsfw_offensive_content')
-			AND created_at >= $1 
+			AND created_at >= $1
 			AND created_at < $2
 		GROUP BY reason
 		ORDER BY count DESC
@@ -455,7 +455,7 @@ func (nd *NSFWDetector) GetMetrics(ctx context.Context, startDate, endDate time.
 		FROM moderation_queue
 		WHERE reason IN ('nsfw_detected', 'nsfw_nudity_explicit', 'nsfw_sexual_content', 'nsfw_offensive_content')
 			AND reviewed_at IS NOT NULL
-			AND created_at >= $1 
+			AND created_at >= $1
 			AND created_at < $2
 	`, startDate, endDate).Scan(&avgReviewMinutes)
 	if err == nil && avgReviewMinutes != nil {

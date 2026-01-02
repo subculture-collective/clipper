@@ -22,9 +22,11 @@ const (
 var (
 	// Common injection patterns to detect
 	sqlInjectionPattern     = regexp.MustCompile(`(?i)(union[\s(]+select|select[\s(]+\*[\s(]+from|insert[\s(]+into|delete[\s(]+from|drop[\s(]+table|alter[\s(]+table|update[\s(]+\w+[\s(]+set|;[\s]*(drop|insert|delete|update)[\s(]+)`)
+	tauteologyPattern       = regexp.MustCompile(`(?i)(\bor\b\s*1=1|\bor\b\s*'1'='1)`)
 	xssPattern              = regexp.MustCompile(`(?i)(<script|javascript:|onerror=|onload=|<iframe|<object|<embed)`)
 	pathTraversalPattern    = regexp.MustCompile(`\.\.[/\\]`)
-	commandInjectionPattern = regexp.MustCompile(`[;&|><$\x60\n]`)
+	// Detect shell command injection attempts (e.g., "; cat /etc/passwd" or "&& rm -rf /")
+	commandInjectionPattern = regexp.MustCompile(`(?i)(;|&&|\|\|)\s*[a-z]{2,}`)
 
 	// Strict sanitizer for user-generated content
 	strictPolicy = bluemonday.StrictPolicy()
@@ -61,6 +63,17 @@ func InputValidationMiddleware() gin.HandlerFunc {
 			})
 			c.Abort()
 			return
+		}
+
+		// Quick raw query scan for obvious command injection separators before parsing parameters
+		if raw := c.Request.URL.RawQuery; raw != "" {
+			if commandInjectionPattern.MatchString(raw) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Potentially malicious input detected",
+				})
+				c.Abort()
+				return
+			}
 		}
 
 		// Validate query parameters
@@ -205,7 +218,7 @@ func containsSuspiciousPatterns(input string) bool {
 	}
 
 	// Check for SQL injection patterns
-	if sqlInjectionPattern.MatchString(input) {
+	if sqlInjectionPattern.MatchString(input) || tauteologyPattern.MatchString(input) {
 		return true
 	}
 
@@ -214,12 +227,9 @@ func containsSuspiciousPatterns(input string) bool {
 		return true
 	}
 
-	// Check for command injection patterns in suspicious contexts
-	// Be lenient for normal text, strict for path-like inputs
-	if strings.Contains(input, "/") || strings.Contains(input, "\\") {
-		if commandInjectionPattern.MatchString(input) {
-			return true
-		}
+	// Check for command injection patterns (e.g., shell metacharacters)
+	if commandInjectionPattern.MatchString(input) {
+		return true
 	}
 
 	return false

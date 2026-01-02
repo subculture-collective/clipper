@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -165,13 +167,32 @@ func (h *ClipSyncHandler) RequestClip(c *gin.Context) {
 type ClipHandler struct {
 	clipService *services.ClipService
 	authService *services.AuthService
+	cdnProvider services.CDNProvider
 }
 
 // NewClipHandler creates a new ClipHandler
-func NewClipHandler(clipService *services.ClipService, authService *services.AuthService) *ClipHandler {
-	return &ClipHandler{
+func NewClipHandler(clipService *services.ClipService, authService *services.AuthService, opts ...ClipHandlerOption) *ClipHandler {
+	handler := &ClipHandler{
 		clipService: clipService,
 		authService: authService,
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(handler)
+		}
+	}
+
+	return handler
+}
+
+// ClipHandlerOption configures optional ClipHandler behavior.
+type ClipHandlerOption func(*ClipHandler)
+
+// WithCDNProvider enables CDN-aware responses with retry/backoff and failover headers.
+func WithCDNProvider(provider services.CDNProvider) ClipHandlerOption {
+	return func(h *ClipHandler) {
+		h.cdnProvider = provider
 	}
 }
 
@@ -411,10 +432,139 @@ func (h *ClipHandler) GetClip(c *gin.Context) {
 		return
 	}
 
+	// Attempt to generate CDN URL with retry/backoff and fall back to origin on failure
+	if h.cdnProvider != nil {
+		cdnURL, cdnErr := h.getCDNURLWithRetry(&clip.Clip)
+		if cdnErr != nil {
+			h.applyFailoverHeaders(c, cdnErr)
+			h.applyOriginFallbackCacheHeaders(c)
+			if clip.VideoURL != nil {
+				clip.PrimaryCDNURL = clip.VideoURL
+			}
+		} else if cdnURL != "" {
+			clip.PrimaryCDNURL = &cdnURL
+			h.applyCDNCacheHeaders(c)
+		}
+	}
+
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
 		Data:    clip,
 	})
+}
+
+// GetHLSMasterPlaylist handles GET /video/:clipId/master.m3u8
+func (h *ClipHandler) GetHLSMasterPlaylist(c *gin.Context) {
+	clipIDParam := c.Param("clipId")
+
+	var clip *services.ClipWithUserData
+	var err error
+
+	if clipID, parseErr := uuid.Parse(clipIDParam); parseErr == nil {
+		clip, err = h.clipService.GetClip(c.Request.Context(), clipID, nil)
+	} else {
+		clip, err = h.clipService.GetClipByTwitchID(c.Request.Context(), clipIDParam, nil)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error:   &ErrorInfo{Code: "CLIP_NOT_FOUND", Message: "Clip not found or has been removed"},
+		})
+		return
+	}
+
+	var playlistURL string
+	if h.cdnProvider != nil {
+		cdnURL, cdnErr := h.getCDNURLWithRetry(&clip.Clip)
+		if cdnErr != nil {
+			h.applyFailoverHeaders(c, cdnErr)
+			h.applyOriginFallbackCacheHeaders(c)
+		} else if cdnURL != "" {
+			playlistURL = cdnURL
+			h.applyCDNCacheHeaders(c)
+		}
+	}
+
+	if playlistURL == "" && clip.VideoURL != nil {
+		playlistURL = *clip.VideoURL
+	}
+
+	if playlistURL == "" {
+		if clip.TwitchClipURL != "" {
+			playlistURL = clip.TwitchClipURL
+		} else if clip.EmbedURL != "" {
+			playlistURL = clip.EmbedURL
+		}
+	}
+
+	if playlistURL == "" {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error:   &ErrorInfo{Code: "CLIP_NOT_FOUND", Message: "Clip not found or has been removed"},
+		})
+		return
+	}
+
+	c.Header("Content-Type", "application/vnd.apple.mpegurl; charset=utf-8")
+	c.String(http.StatusOK, "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1500000\n%s\n", playlistURL)
+}
+
+// getCDNURLWithRetry attempts to generate a CDN URL with simple exponential backoff.
+func (h *ClipHandler) getCDNURLWithRetry(clip *models.Clip) (string, error) {
+	if h.cdnProvider == nil {
+		return "", nil
+	}
+
+	backoff := 50 * time.Millisecond
+	var lastErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		cdnURL, err := h.cdnProvider.GenerateURL(clip)
+		if err == nil && cdnURL != "" {
+			return cdnURL, nil
+		}
+
+		lastErr = err
+		if attempt < 3 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
+	}
+
+	if lastErr == nil {
+		lastErr = errors.New("failed to generate CDN URL")
+	}
+
+	return "", lastErr
+}
+
+// applyFailoverHeaders annotates the response with CDN failover metadata.
+func (h *ClipHandler) applyFailoverHeaders(c *gin.Context, err error) {
+	reason := "error"
+	if errors.Is(err, context.DeadlineExceeded) {
+		reason = "timeout"
+	}
+
+	c.Header("X-CDN-Failover", "true")
+	c.Header("X-CDN-Failover-Reason", reason)
+	c.Header("X-CDN-Failover-Service", "origin")
+}
+
+// applyOriginFallbackCacheHeaders sets conservative cache headers for origin fallback responses.
+func (h *ClipHandler) applyOriginFallbackCacheHeaders(c *gin.Context) {
+	c.Header("Cache-Control", "public, max-age=120, stale-while-revalidate=60")
+	c.Header("X-CDN-Failover-Service", "origin")
+}
+
+// applyCDNCacheHeaders uses provider-specific cache headers when available.
+func (h *ClipHandler) applyCDNCacheHeaders(c *gin.Context) {
+	if h.cdnProvider == nil {
+		return
+	}
+
+	for key, val := range h.cdnProvider.GetCacheHeaders() {
+		c.Header(key, val)
+	}
 }
 
 // BatchGetClipMedia handles POST /clips/batch-media
@@ -722,6 +872,14 @@ func (h *ClipHandler) GetRelatedClips(c *gin.Context) {
 
 // UpdateClip handles PUT /clips/:id (admin only)
 func (h *ClipHandler) UpdateClip(c *gin.Context) {
+	if h.clipService == nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error:   &ErrorInfo{Code: "NOT_FOUND", Message: "Clip not found"},
+		})
+		return
+	}
+
 	clipID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, StandardResponse{
@@ -747,9 +905,17 @@ func (h *ClipHandler) UpdateClip(c *gin.Context) {
 		return
 	}
 
+	// Ensure the clip exists before attempting an update
+	if _, err := h.clipService.GetClip(c.Request.Context(), clipID, nil); err != nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error:   &ErrorInfo{Code: "NOT_FOUND", Message: "Clip not found"},
+		})
+		return
+	}
+
 	// Update clip
-	err = h.clipService.UpdateClip(c.Request.Context(), clipID, req)
-	if err != nil {
+	if err := h.clipService.UpdateClip(c.Request.Context(), clipID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, StandardResponse{
 			Success: false,
 			Error: &ErrorInfo{
@@ -780,6 +946,14 @@ func (h *ClipHandler) UpdateClip(c *gin.Context) {
 
 // DeleteClip handles DELETE /clips/:id (admin only)
 func (h *ClipHandler) DeleteClip(c *gin.Context) {
+	if h.clipService == nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
+			Success: false,
+			Error:   &ErrorInfo{Code: "NOT_FOUND", Message: "Clip not found"},
+		})
+		return
+	}
+
 	clipID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, StandardResponse{
@@ -794,23 +968,26 @@ func (h *ClipHandler) DeleteClip(c *gin.Context) {
 
 	// Parse request body for reason
 	var req struct {
-		Reason string `json:"reason" binding:"required"`
+		Reason string `json:"reason"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, StandardResponse{
+	// Body is optional for administrative deletes; use a default reason if not provided
+	_ = c.ShouldBindJSON(&req)
+	if req.Reason == "" {
+		req.Reason = "Removed by admin"
+	}
+
+	// Ensure clip exists before attempting delete
+	if _, err := h.clipService.GetClip(c.Request.Context(), clipID, nil); err != nil {
+		c.JSON(http.StatusNotFound, StandardResponse{
 			Success: false,
-			Error: &ErrorInfo{
-				Code:    "INVALID_REQUEST",
-				Message: "Removal reason is required",
-			},
+			Error:   &ErrorInfo{Code: "NOT_FOUND", Message: "Clip not found"},
 		})
 		return
 	}
 
 	// Delete clip
-	err = h.clipService.DeleteClip(c.Request.Context(), clipID, req.Reason)
-	if err != nil {
+	if err := h.clipService.DeleteClip(c.Request.Context(), clipID, req.Reason); err != nil {
 		c.JSON(http.StatusInternalServerError, StandardResponse{
 			Success: false,
 			Error: &ErrorInfo{

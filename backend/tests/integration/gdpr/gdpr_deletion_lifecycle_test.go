@@ -3,18 +3,17 @@
 package gdpr
 
 import (
-"context"
-"fmt"
-"testing"
-"time"
+	"context"
+	"fmt"
+	"testing"
+	"time"
 
-"github.com/google/uuid"
-"github.com/stretchr/testify/assert"
-"github.com/stretchr/testify/require"
-"github.com/subculture-collective/clipper/internal/models"
-"github.com/subculture-collective/clipper/internal/repository"
-"github.com/subculture-collective/clipper/internal/services"
-"github.com/subculture-collective/clipper/pkg/database"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/database"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
@@ -159,7 +158,7 @@ username := fmt.Sprintf("restoreuser_%d", time.Now().Unix())
 user := testutil.CreateTestUser(t, db, username)
 defer testutil.CleanupTestUser(t, db, user.ID)
 
-userRepo := repository.NewUserRepository(testConfig.DB.Pool)
+userRepo := repository.NewUserRepository(db.Pool)
 
 // Request deletion
 _, err := userSettingsService.RequestAccountDeletion(ctx, user.ID, nil)
@@ -189,7 +188,7 @@ username := fmt.Sprintf("graceuser_%d", time.Now().Unix())
 user := testutil.CreateTestUser(t, db, username)
 defer testutil.CleanupTestUser(t, db, user.ID)
 
-userRepo := repository.NewUserRepository(testConfig.DB.Pool)
+userRepo := repository.NewUserRepository(db.Pool)
 
 // Request deletion
 _, err := userSettingsService.RequestAccountDeletion(ctx, user.ID, nil)
@@ -284,6 +283,6 @@ func hardDeleteUser(ctx context.Context, db *database.DB, userID uuid.UUID) erro
 
 // For now, we rely on CASCADE deletes in the database schema
 // Most foreign keys are set with ON DELETE CASCADE
-_, err := testConfig.DB.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
+_, err := db.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
 return err
 }

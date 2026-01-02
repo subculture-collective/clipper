@@ -42,9 +42,12 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
-			view_count, created_at, imported_at
+			view_count, created_at, imported_at, vote_score, comment_count, favorite_count,
+			is_featured, is_nsfw, is_removed, is_hidden,
+			submitted_by_user_id, submitted_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+			$18, $19, $20, $21, $22, $23, $24, $25, $26
 		)
 	`
 
@@ -53,7 +56,9 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 		clip.Title, clip.CreatorName, clip.CreatorID, clip.BroadcasterName,
 		clip.BroadcasterID, clip.GameID, clip.GameName, clip.Language,
 		clip.ThumbnailURL, clip.Duration, clip.ViewCount, clip.CreatedAt,
-		clip.ImportedAt,
+		clip.ImportedAt, clip.VoteScore, clip.CommentCount, clip.FavoriteCount,
+		clip.IsFeatured, clip.IsNSFW, clip.IsRemoved, clip.IsHidden,
+		clip.SubmittedByUserID, clip.SubmittedAt,
 	)
 
 	if err != nil {
@@ -483,7 +488,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 
 	if filters.Language != nil && *filters.Language != "" {
 		placeholder := utils.SQLPlaceholder(argIndex)
-		whereClauses = append(whereClauses, fmt.Sprintf("(c.language = %s OR c.language = split_part(%s, '-', 1) OR c.language IS NULL OR c.language = '')", placeholder, placeholder))
+		whereClauses = append(whereClauses, fmt.Sprintf("(c.language = %s OR c.language = split_part(%s, '-', 1))", placeholder, placeholder))
 		args = append(args, *filters.Language)
 		argIndex++
 	}
@@ -865,6 +870,30 @@ func (r *ClipRepository) SoftDelete(ctx context.Context, clipID uuid.UUID, reaso
 	_, err := r.pool.Exec(ctx, query, clipID, reason)
 	if err != nil {
 		return fmt.Errorf("failed to soft delete clip: %w", err)
+	}
+
+	return nil
+}
+
+// Delete removes a clip record permanently. Accepts either uuid.UUID or string identifiers.
+func (r *ClipRepository) Delete(ctx context.Context, clipID interface{}) error {
+	var id uuid.UUID
+
+	switch v := clipID.(type) {
+	case uuid.UUID:
+		id = v
+	case string:
+		parsed, err := uuid.Parse(v)
+		if err != nil {
+			return fmt.Errorf("invalid clip id: %w", err)
+		}
+		id = parsed
+	default:
+		return fmt.Errorf("unsupported clip id type %T", v)
+	}
+
+	if _, err := r.pool.Exec(ctx, "DELETE FROM clips WHERE id = $1", id); err != nil {
+		return fmt.Errorf("failed to delete clip: %w", err)
 	}
 
 	return nil
@@ -1341,7 +1370,7 @@ AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 func (r *ClipRepository) UpdateTrendingScores(ctx context.Context) (int64, error) {
 	query := `
 UPDATE clips
-SET 
+SET
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
 trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
 hot_score = trending_score,
@@ -1362,12 +1391,12 @@ WHERE is_removed = false AND is_hidden = false
 func (r *ClipRepository) UpdateTrendingScoresForTimeWindow(ctx context.Context, hours int) (int64, error) {
 	query := `
 UPDATE clips
-SET 
+SET
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
 trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
 hot_score = trending_score,
 popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
-WHERE is_removed = false 
+WHERE is_removed = false
 AND is_hidden = false
 AND created_at > NOW() - INTERVAL '1 hour' * $1
 `
@@ -1387,7 +1416,7 @@ func (r *ClipRepository) GetClipsByIDs(ctx context.Context, clipIDs []uuid.UUID)
 	}
 
 	query := `
-SELECT 
+SELECT
 id, twitch_clip_id, twitch_clip_url, embed_url, title,
 creator_name, creator_id, broadcaster_name, broadcaster_id,
 game_id, game_name, language, thumbnail_url, duration,

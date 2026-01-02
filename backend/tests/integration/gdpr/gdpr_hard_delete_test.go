@@ -3,18 +3,16 @@
 package gdpr
 
 import (
-"context"
-"fmt"
-"testing"
-"time"
+	"context"
+	"fmt"
+	"testing"
+	"time"
 
-"github.com/google/uuid"
-"github.com/stretchr/testify/assert"
-"github.com/stretchr/testify/require"
-"github.com/subculture-collective/clipper/internal/models"
-"github.com/subculture-collective/clipper/internal/repository"
-"github.com/subculture-collective/clipper/pkg/database"
-	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
@@ -71,32 +69,26 @@ err := clipRepo.Create(ctx, clip)
 require.NoError(t, err)
 
 // Add favorite
-favorite := &models.Favorite{
-ID:        uuid.New(),
-UserID:    user.ID,
-ClipID:    clip.ID,
-CreatedAt: time.Now(),
-}
-err = favoriteRepo.Add(ctx, favorite)
+err = favoriteRepo.Create(ctx, user.ID, clip.ID)
 require.NoError(t, err)
 
 // Add vote
-err = voteRepo.AddVote(ctx, user.ID, clip.ID, 1)
+err = voteRepo.UpsertVote(ctx, user.ID, clip.ID, 1)
 require.NoError(t, err)
 
 // Add comment
 comment := &models.Comment{
-ID:        uuid.New(),
-UserID:    user.ID,
-ClipID:    clip.ID,
-Content:   "Test comment",
-CreatedAt: time.Now(),
+	ID:        uuid.New(),
+	UserID:    user.ID,
+	ClipID:    clip.ID,
+	Content:   "Test comment",
+	CreatedAt: time.Now(),
 }
 err = commentRepo.Create(ctx, comment)
 require.NoError(t, err)
 
 // Verify resources exist
-favorites, err := favoriteRepo.GetByUserID(ctx, user.ID, 1, 10)
+favorites, err := favoriteRepo.GetByUserID(ctx, user.ID, 10, 0)
 require.NoError(t, err)
 assert.Len(t, favorites, 1)
 
@@ -105,7 +97,7 @@ err = hardDeleteUser(ctx, db, user.ID)
 require.NoError(t, err)
 
 // Verify favorites are deleted (CASCADE)
-favorites, err = favoriteRepo.GetByUserID(ctx, user.ID, 1, 10)
+favorites, err = favoriteRepo.GetByUserID(ctx, user.ID, 10, 0)
 require.NoError(t, err)
 assert.Empty(t, favorites)
 
@@ -202,13 +194,7 @@ err := clipRepo.Create(ctx, clip)
 require.NoError(t, err)
 
 // Add favorite
-favorite := &models.Favorite{
-ID:        uuid.New(),
-UserID:    user.ID,
-ClipID:    clip.ID,
-CreatedAt: time.Now(),
-}
-err = favoriteRepo.Add(ctx, favorite)
+err = favoriteRepo.Create(ctx, user.ID, clip.ID)
 require.NoError(t, err)
 
 // Export before deletion should succeed
@@ -264,24 +250,23 @@ break
 }
 require.NotNil(t, ourDeletion)
 
-// Execute hard delete
-err = hardDeleteUser(ctx, db, user.ID)
+// Mark deletion as completed before hard delete to retain audit trail
+err = accountDeletionRepo.MarkCompleted(ctx, deletion.ID)
 require.NoError(t, err)
 
-// Mark deletion as completed
-err = accountDeletionRepo.MarkCompleted(ctx, deletion.ID)
+var completedAt *time.Time
+err = db.Pool.QueryRow(ctx, "SELECT completed_at FROM account_deletions WHERE id = $1", deletion.ID).Scan(&completedAt)
+require.NoError(t, err)
+assert.NotNil(t, completedAt)
+
+// Execute hard delete
+err = hardDeleteUser(ctx, db, user.ID)
 require.NoError(t, err)
 
 // Verify user is deleted
 _, err = userRepo.GetByID(ctx, user.ID)
 assert.Error(t, err)
 assert.Equal(t, repository.ErrUserNotFound, err)
-
-// Verify deletion is marked as completed
-var completedAt *time.Time
-err = db.Pool.QueryRow(ctx, "SELECT completed_at FROM account_deletions WHERE id = $1", deletion.ID).Scan(&completedAt)
-require.NoError(t, err)
-assert.NotNil(t, completedAt)
 })
 
 t.Run("DoesNotExecuteUnscheduledDeletions", func(t *testing.T) {

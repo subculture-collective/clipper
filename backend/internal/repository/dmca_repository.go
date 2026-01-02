@@ -63,7 +63,7 @@ func (r *DMCARepository) GetNoticeByID(ctx context.Context, id uuid.UUID) (*mode
 			relationship, copyrighted_work_description, infringing_urls,
 			good_faith_statement, accuracy_statement, signature,
 			submitted_at, reviewed_at, reviewed_by, status, notes,
-			ip_address, user_agent, created_at, updated_at
+			ip_address::text AS ip_address, user_agent, created_at, updated_at
 		FROM dmca_notices
 		WHERE id = $1`
 
@@ -125,7 +125,7 @@ func (r *DMCARepository) ListNotices(ctx context.Context, status string, page, p
 			relationship, copyrighted_work_description, infringing_urls,
 			good_faith_statement, accuracy_statement, signature,
 			submitted_at, reviewed_at, reviewed_by, status, notes,
-			ip_address, user_agent, created_at, updated_at
+			ip_address::text AS ip_address, user_agent, created_at, updated_at
 		` + baseQuery + whereClause + `
 		ORDER BY submitted_at DESC
 		LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
@@ -237,7 +237,7 @@ func (r *DMCARepository) GetCounterNoticeByID(ctx context.Context, id uuid.UUID)
 			good_faith_statement, consent_to_jurisdiction, consent_to_service,
 			signature, submitted_at, forwarded_at, waiting_period_ends,
 			status, lawsuit_filed, lawsuit_filed_at, notes,
-			ip_address, user_agent, created_at, updated_at
+			ip_address::text AS ip_address, user_agent, created_at, updated_at
 		FROM dmca_counter_notices
 		WHERE id = $1`
 
@@ -303,7 +303,7 @@ func (r *DMCARepository) ListCounterNotices(ctx context.Context, status string, 
 			good_faith_statement, consent_to_jurisdiction, consent_to_service,
 			signature, submitted_at, forwarded_at, waiting_period_ends,
 			status, lawsuit_filed, lawsuit_filed_at, notes,
-			ip_address, user_agent, created_at, updated_at
+			ip_address::text AS ip_address, user_agent, created_at, updated_at
 		` + baseQuery + whereClause + `
 		ORDER BY submitted_at DESC
 		LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
@@ -384,10 +384,10 @@ func (r *DMCARepository) GetCounterNoticesAwaitingRestore(ctx context.Context) (
 			good_faith_statement, consent_to_jurisdiction, consent_to_service,
 			signature, submitted_at, forwarded_at, waiting_period_ends,
 			status, lawsuit_filed, lawsuit_filed_at, notes,
-			ip_address, user_agent, created_at, updated_at
+			ip_address::text AS ip_address, user_agent, created_at, updated_at
 		FROM dmca_counter_notices
-		WHERE status = 'waiting' 
-		  AND waiting_period_ends IS NOT NULL 
+		WHERE status = 'waiting'
+		  AND waiting_period_ends IS NOT NULL
 		  AND waiting_period_ends <= NOW()
 		  AND lawsuit_filed = false
 		ORDER BY waiting_period_ends ASC`
@@ -633,9 +633,9 @@ func (r *DMCARepository) GetDashboardStats(ctx context.Context) (*models.DMCADas
 
 	// Content awaiting restore (counter-notices past waiting period)
 	err = r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM dmca_counter_notices 
-		WHERE status = 'waiting' 
-		  AND waiting_period_ends <= NOW() 
+		SELECT COUNT(*) FROM dmca_counter_notices
+		WHERE status = 'waiting'
+		  AND waiting_period_ends <= NOW()
 		  AND lawsuit_filed = false`).Scan(&stats.ContentAwaitingRestore)
 	if err != nil {
 		return nil, err
@@ -655,7 +655,7 @@ func (r *DMCARepository) GetDashboardStats(ctx context.Context) (*models.DMCADas
 
 	// Total takedowns this month
 	err = r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM dmca_notices 
+		SELECT COUNT(*) FROM dmca_notices
 		WHERE submitted_at >= DATE_TRUNC('month', CURRENT_DATE)`).Scan(&stats.TotalTakedownsThisMonth)
 	if err != nil {
 		return nil, err
@@ -663,7 +663,7 @@ func (r *DMCARepository) GetDashboardStats(ctx context.Context) (*models.DMCADas
 
 	// Total counter-notices this month
 	err = r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM dmca_counter_notices 
+		SELECT COUNT(*) FROM dmca_counter_notices
 		WHERE submitted_at >= DATE_TRUNC('month', CURRENT_DATE)`).Scan(&stats.TotalCounterNoticesThisMonth)
 	if err != nil {
 		return nil, err

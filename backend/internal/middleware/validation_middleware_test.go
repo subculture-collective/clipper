@@ -128,6 +128,22 @@ func TestInputValidationMiddleware_XSSAttempt(t *testing.T) {
 	}
 }
 
+func TestContainsSuspiciousPatterns_CommandInjection(t *testing.T) {
+	if !containsSuspiciousPatterns("test; cat /etc/passwd") {
+		t.Fatalf("expected command injection pattern to be detected")
+	}
+}
+
+func TestContainsSuspiciousPatterns_AllowsNoSQLAndLDAP(t *testing.T) {
+	if containsSuspiciousPatterns("*)(uid=*))(|(uid=*)") {
+		t.Fatalf("expected LDAP-style pattern to be allowed")
+	}
+
+	if containsSuspiciousPatterns("{\"$ne\": null}") {
+		t.Fatalf("expected NoSQL-style pattern to be allowed")
+	}
+}
+
 func TestInputValidationMiddleware_InvalidUTF8(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

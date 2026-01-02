@@ -69,6 +69,8 @@ var accountTypePermissions = map[string][]string{
 		PermissionModerateContent,
 		PermissionModerateUsers,
 		PermissionCreateDiscoveryLists,
+		// User management permissions
+		PermissionManageUsers,
 	},
 	AccountTypeAdmin: {
 		// All moderator permissions

@@ -1,0 +1,8 @@
+-- Rollback: restore moderation audit logs foreign key constraint to NO ACTION
+
+ALTER TABLE moderation_audit_logs
+DROP CONSTRAINT moderation_audit_logs_moderator_id_fkey;
+
+ALTER TABLE moderation_audit_logs
+ADD CONSTRAINT moderation_audit_logs_moderator_id_fkey
+FOREIGN KEY (moderator_id) REFERENCES users(id) ON DELETE NO ACTION;

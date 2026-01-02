@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/subculture-collective/clipper/config"
@@ -47,7 +48,7 @@ func (m *mockCDNProvider) GenerateURL(clip *models.Clip) (string, error) {
 	// Normal success path - return a mock CDN URL
 	// In real scenarios, the CDN provider generates a CDN URL, not the origin URL
 	if clip.VideoURL != nil {
-		return "https://mock.cdn.example.com/video/" + clip.ID, nil
+		return "https://mock.cdn.example.com/video/" + clip.ID.String(), nil
 	}
 	return "", nil
 }
@@ -124,7 +125,7 @@ func TestCDNFailover_StaticAssets(t *testing.T) {
 		mockCDN := &mockCDNProvider{shouldTimeout: true}
 
 		// Create handler with CDN failover capability
-		clipHandler := createFailoverClipHandler(clipRepo, mockCDN, authService)
+		clipHandler := createFailoverClipHandler(db, clipRepo, redisClient, mockCDN, authService)
 
 		// Setup router
 		r := gin.New()
@@ -132,29 +133,38 @@ func TestCDNFailover_StaticAssets(t *testing.T) {
 		r.GET("/api/v1/clips/:id", clipHandler.GetClip)
 
 		// Create test clip with origin URL
-		testClipID := "test-clip-timeout-123"
+		testClipID := uuid.New()
 		originURL := "https://origin.example.com/clip.mp4"
+		thumbURL := "https://origin.example.com/thumb.jpg"
+		language := "en"
+		clipDuration := 30.0
+		embedURL := "https://clips.twitch.tv/embed/test"
 		testClip := &models.Clip{
-			ID:             testClipID,
-			TwitchClipID:   "twitch-clip-123",
-			TwitchClipURL:  "https://clips.twitch.tv/test",
-			Title:          "Test Clip",
-			CreatorName:    "TestCreator",
-			VideoURL:       &originURL,
-			ThumbnailURL:   "https://origin.example.com/thumb.jpg",
-			Duration:       30,
-			ViewCount:      100,
-			Language:       "en",
-			CreatedAt:      time.Now(),
+			ID:              testClipID,
+			TwitchClipID:    "twitch-clip-123",
+			TwitchClipURL:   "https://clips.twitch.tv/test",
+			EmbedURL:        embedURL,
+			Title:           "Test Clip",
+			CreatorName:     "TestCreator",
+			BroadcasterName: "TestBroadcaster",
+			VideoURL:        &originURL,
+			ThumbnailURL:    &thumbURL,
+			Duration:        &clipDuration,
+			ViewCount:       100,
+			Language:        &language,
+			CreatedAt:       time.Now().UTC(),
+			ImportedAt:      time.Now().UTC(),
 		}
 
 		ctx := context.Background()
 		err := clipRepo.Create(ctx, testClip)
 		require.NoError(t, err)
-		defer clipRepo.Delete(ctx, testClipID)
+		defer func() {
+			_, _ = db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = $1", testClipID)
+		}()
 
 		// Make request
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID, nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID.String(), nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -175,7 +185,7 @@ func TestCDNFailover_StaticAssets(t *testing.T) {
 		// Create mock CDN that simulates 5xx error
 		mockCDN := &mockCDNProvider{shouldError: true, errorCode: 503}
 
-		clipHandler := createFailoverClipHandler(clipRepo, mockCDN, authService)
+		clipHandler := createFailoverClipHandler(db, clipRepo, redisClient, mockCDN, authService)
 
 		// Setup router
 		r := gin.New()
@@ -183,29 +193,38 @@ func TestCDNFailover_StaticAssets(t *testing.T) {
 		r.GET("/api/v1/clips/:id", clipHandler.GetClip)
 
 		// Create test clip
-		testClipID := "test-clip-error-456"
+		testClipID := uuid.New()
 		originURL := "https://origin.example.com/clip2.mp4"
+		thumbURL := "https://origin.example.com/thumb2.jpg"
+		language := "en"
+		duration := 45.0
+		embedURL := "https://clips.twitch.tv/embed/test2"
 		testClip := &models.Clip{
-			ID:             testClipID,
-			TwitchClipID:   "twitch-clip-456",
-			TwitchClipURL:  "https://clips.twitch.tv/test2",
-			Title:          "Test Clip 2",
-			CreatorName:    "TestCreator",
-			VideoURL:       &originURL,
-			ThumbnailURL:   "https://origin.example.com/thumb2.jpg",
-			Duration:       45,
-			ViewCount:      200,
-			Language:       "en",
-			CreatedAt:      time.Now(),
+			ID:              testClipID,
+			TwitchClipID:    "twitch-clip-456",
+			TwitchClipURL:   "https://clips.twitch.tv/test2",
+			EmbedURL:        embedURL,
+			Title:           "Test Clip 2",
+			CreatorName:     "TestCreator",
+			BroadcasterName: "TestBroadcaster",
+			VideoURL:        &originURL,
+			ThumbnailURL:    &thumbURL,
+			Duration:        &duration,
+			ViewCount:       200,
+			Language:        &language,
+			CreatedAt:       time.Now().UTC(),
+			ImportedAt:      time.Now().UTC(),
 		}
 
 		ctx := context.Background()
 		err := clipRepo.Create(ctx, testClip)
 		require.NoError(t, err)
-		defer clipRepo.Delete(ctx, testClipID)
+		defer func() {
+			_, _ = db.Pool.Exec(ctx, "DELETE FROM clips WHERE id = $1", testClipID)
+		}()
 
 		// Make request
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID, nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID.String(), nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -268,7 +287,7 @@ func TestCDNFailover_HLSPlaylist(t *testing.T) {
 		mockCDN := &mockCDNProvider{shouldError: true}
 
 		// Simulate HLS handler with failover
-		clipHandler := createFailoverClipHandler(clipRepo, mockCDN, authService)
+		clipHandler := createFailoverClipHandler(db, clipRepo, redisClient, mockCDN, authService)
 
 		// Setup router
 		r := gin.New()
@@ -276,19 +295,23 @@ func TestCDNFailover_HLSPlaylist(t *testing.T) {
 		r.GET("/api/v1/video/:clipId/master.m3u8", clipHandler.GetHLSMasterPlaylist)
 
 		// Create test clip with HLS enabled
-		testClipID := "test-clip-hls-789"
+		testClipID := uuid.New()
 		originURL := "https://origin.example.com/hls/master.m3u8"
+		clipDuration := 60.0
+		language := "en"
+		now := time.Now().UTC()
 		testClip := &models.Clip{
-			ID:             testClipID,
-			TwitchClipID:   "twitch-clip-789",
-			TwitchClipURL:  "https://clips.twitch.tv/test3",
-			Title:          "Test HLS Clip",
-			CreatorName:    "TestCreator",
-			VideoURL:       &originURL,
-			Duration:       60,
-			ViewCount:      300,
-			Language:       "en",
-			CreatedAt:      time.Now(),
+			ID:            testClipID,
+			TwitchClipID:  "twitch-clip-789",
+			TwitchClipURL: "https://clips.twitch.tv/test3",
+			Title:         "Test HLS Clip",
+			CreatorName:   "TestCreator",
+			VideoURL:      &originURL,
+			Duration:      &clipDuration,
+			ViewCount:     300,
+			Language:      &language,
+			CreatedAt:     now,
+			ImportedAt:    now,
 		}
 
 		ctx := context.Background()
@@ -297,7 +320,7 @@ func TestCDNFailover_HLSPlaylist(t *testing.T) {
 		defer clipRepo.Delete(ctx, testClipID)
 
 		// Make request for HLS master playlist
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/video/"+testClipID+"/master.m3u8", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/video/"+testClipID.String()+"/master.m3u8", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -359,7 +382,7 @@ func TestCDNFailover_RetryBackoff(t *testing.T) {
 		// Create mock CDN that fails initially then succeeds
 		mockCDN := &mockCDNProvider{shouldError: true, failCount: 2}
 
-		clipHandler := createFailoverClipHandler(clipRepo, mockCDN, authService)
+		clipHandler := createFailoverClipHandler(db, clipRepo, redisClient, mockCDN, authService)
 
 		// Setup router
 		r := gin.New()
@@ -367,19 +390,23 @@ func TestCDNFailover_RetryBackoff(t *testing.T) {
 		r.GET("/api/v1/clips/:id", clipHandler.GetClip)
 
 		// Create test clip
-		testClipID := "test-clip-retry-321"
+		testClipID := uuid.New()
 		originURL := "https://origin.example.com/clip-retry.mp4"
+		duration := 30.0
+		language := "en"
+		now := time.Now().UTC()
 		testClip := &models.Clip{
-			ID:             testClipID,
-			TwitchClipID:   "twitch-clip-321",
-			TwitchClipURL:  "https://clips.twitch.tv/test-retry",
-			Title:          "Test Retry Clip",
-			CreatorName:    "TestCreator",
-			VideoURL:       &originURL,
-			Duration:       30,
-			ViewCount:      100,
-			Language:       "en",
-			CreatedAt:      time.Now(),
+			ID:            testClipID,
+			TwitchClipID:  "twitch-clip-321",
+			TwitchClipURL: "https://clips.twitch.tv/test-retry",
+			Title:         "Test Retry Clip",
+			CreatorName:   "TestCreator",
+			VideoURL:      &originURL,
+			Duration:      &duration,
+			ViewCount:     100,
+			Language:      &language,
+			CreatedAt:     now,
+			ImportedAt:    now,
 		}
 
 		ctx := context.Background()
@@ -390,18 +417,18 @@ func TestCDNFailover_RetryBackoff(t *testing.T) {
 		startTime := time.Now()
 
 		// Make request - should retry and eventually succeed
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID, nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID.String(), nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
-		duration := time.Since(startTime)
+		elapsed := time.Since(startTime)
 
 		// Should eventually succeed after retries
 		assert.Equal(t, http.StatusOK, w.Code, "Expected 200 OK after retries")
 
 		// Verify some delay occurred due to backoff (but not testing exact timing)
-		assert.Greater(t, duration, time.Duration(0), "Expected some delay from retries")
+		assert.Greater(t, elapsed, time.Duration(0), "Expected some delay from retries")
 
 		// Verify Retry-After header is not set (only for 503)
 		retryAfter := w.Header().Get("Retry-After")
@@ -453,7 +480,7 @@ func TestCDNFailover_CacheHeaders(t *testing.T) {
 		// Create mock CDN
 		mockCDN := &mockCDNProvider{shouldError: true}
 
-		clipHandler := createFailoverClipHandler(clipRepo, mockCDN, authService)
+		clipHandler := createFailoverClipHandler(db, clipRepo, redisClient, mockCDN, authService)
 
 		// Setup router
 		r := gin.New()
@@ -461,19 +488,23 @@ func TestCDNFailover_CacheHeaders(t *testing.T) {
 		r.GET("/api/v1/clips/:id", clipHandler.GetClip)
 
 		// Create test clip
-		testClipID := "test-clip-cache-654"
+		testClipID := uuid.New()
 		originURL := "https://origin.example.com/clip-cache.mp4"
+		duration := 30.0
+		language := "en"
+		now := time.Now().UTC()
 		testClip := &models.Clip{
-			ID:             testClipID,
-			TwitchClipID:   "twitch-clip-654",
-			TwitchClipURL:  "https://clips.twitch.tv/test-cache",
-			Title:          "Test Cache Clip",
-			CreatorName:    "TestCreator",
-			VideoURL:       &originURL,
-			Duration:       30,
-			ViewCount:      100,
-			Language:       "en",
-			CreatedAt:      time.Now(),
+			ID:            testClipID,
+			TwitchClipID:  "twitch-clip-654",
+			TwitchClipURL: "https://clips.twitch.tv/test-cache",
+			Title:         "Test Cache Clip",
+			CreatorName:   "TestCreator",
+			VideoURL:      &originURL,
+			Duration:      &duration,
+			ViewCount:     100,
+			Language:      &language,
+			CreatedAt:     now,
+			ImportedAt:    now,
 		}
 
 		ctx := context.Background()
@@ -482,7 +513,7 @@ func TestCDNFailover_CacheHeaders(t *testing.T) {
 		defer clipRepo.Delete(ctx, testClipID)
 
 		// Make request
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID, nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/clips/"+testClipID.String(), nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -510,8 +541,21 @@ func TestCDNFailover_CacheHeaders(t *testing.T) {
 // These tests serve as documentation of expected failover behavior and will need
 // infrastructure-level testing (with actual CDN unavailability) or ClipHandler
 // modifications to fully validate the failover functionality.
-func createFailoverClipHandler(clipRepo *repository.ClipRepository, mockCDN *mockCDNProvider, authService *services.AuthService) *handlers.ClipHandler {
-	// Returns the standard handler. The mockCDN parameter is provided for future
-	// use when ClipHandler is extended to support CDN failover with retry/backoff.
-	return handlers.NewClipHandler(clipRepo, authService)
+func createFailoverClipHandler(db *database.DB, clipRepo *repository.ClipRepository, redisClient *redispkg.Client, mockCDN services.CDNProvider, authService *services.AuthService) *handlers.ClipHandler {
+	voteRepo := repository.NewVoteRepository(db.Pool)
+	favoriteRepo := repository.NewFavoriteRepository(db.Pool)
+	userRepo := repository.NewUserRepository(db.Pool)
+	auditLogRepo := repository.NewAuditLogRepository(db.Pool)
+
+	clipService := services.NewClipService(
+		clipRepo,
+		voteRepo,
+		favoriteRepo,
+		userRepo,
+		redisClient,
+		auditLogRepo,
+		nil, // notification service not required for these tests
+	)
+
+	return handlers.NewClipHandler(clipService, authService, handlers.WithCDNProvider(mockCDN))
 }

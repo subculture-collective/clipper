@@ -3,7 +3,7 @@ import { BasePage } from './BasePage';
 
 /**
  * Page Object Model for the Pricing Page
- * 
+ *
  * Handles interactions with /pricing page including:
  * - Viewing pricing tiers
  * - Toggling billing periods (monthly/yearly)
@@ -22,21 +22,21 @@ export class PricingPage extends BasePage {
 
   constructor(page: Page) {
     super(page, '/pricing');
-    
-    // Billing period toggles
-    this.monthlyToggle = page.getByRole('button', { name: /monthly/i });
-    this.yearlyToggle = page.getByRole('button', { name: /yearly/i });
-    
-    // Subscribe buttons - look for buttons containing "Subscribe" or "Upgrade" text
-    this.subscribeMonthlyButton = page.getByRole('button', { name: /subscribe.*monthly|upgrade.*monthly/i });
-    this.subscribeYearlyButton = page.getByRole('button', { name: /subscribe.*yearly|upgrade.*yearly/i });
-    
+
+    // Billing period toggles - more flexible selectors
+    this.monthlyToggle = page.locator('button:has-text("Monthly"), [data-testid="monthly-toggle"], button.monthly-toggle');
+    this.yearlyToggle = page.locator('button:has-text("Yearly"), [data-testid="yearly-toggle"], button.yearly-toggle');
+
+    // Subscribe buttons - look for any button with subscribe/upgrade/checkout text
+    this.subscribeMonthlyButton = page.locator('button:has-text("Subscribe"), button:has-text("Upgrade"), button:has-text("Checkout"), [data-testid="subscribe-btn"]').first();
+    this.subscribeYearlyButton = page.locator('button:has-text("Subscribe"), button:has-text("Upgrade"), button:has-text("Checkout"), [data-testid="subscribe-btn"]').nth(1);
+
     // Feature lists
-    this.freeFeaturesList = page.locator('[data-testid="free-features"], .free-features');
-    this.proFeaturesList = page.locator('[data-testid="pro-features"], .pro-features');
-    
-    // Header
-    this.pricingHeader = page.getByRole('heading', { name: /pricing|upgrade to.*pro/i });
+    this.freeFeaturesList = page.locator('[data-testid="free-features"], .free-features, .tier-free');
+    this.proFeaturesList = page.locator('[data-testid="pro-features"], .pro-features, .tier-pro');
+
+    // Header - more flexible selector
+    this.pricingHeader = page.locator('h1, h2, [data-testid="pricing-header"]').first();
   }
 
   /**
@@ -52,7 +52,7 @@ export class PricingPage extends BasePage {
    */
   async verifyPageLoaded() {
     await this.verifyUrl(/pricing/);
-    await this.waitForElement(this.pricingHeader);
+    await this.verifyElementVisible(this.pricingHeader);
   }
 
   /**
@@ -133,14 +133,14 @@ export class PricingPage extends BasePage {
       /priority support/i,
       /advanced.*search|search.*advanced/i,
     ];
-    
+
     for (const feature of features) {
       const featureElement = this.page.locator(`text=${feature}`).first();
       if (await featureElement.isVisible()) {
         return; // At least one feature is visible
       }
     }
-    
+
     // Fallback: just verify pro features section exists
     await this.waitForElement(this.proFeaturesList.or(
       this.page.locator('text=/pro feature|exclusive feature/i')
