@@ -80,6 +80,7 @@ export function DocsPage() {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchDocsList();
     }, [fetchDocsList]);
 
@@ -87,6 +88,7 @@ export function DocsPage() {
         // Check for doc parameter in URL
         const docParam = searchParams.get('doc');
         if (docParam) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             fetchDoc(docParam);
         }
     }, [searchParams, fetchDoc]);

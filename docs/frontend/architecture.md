@@ -185,12 +185,12 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState<User | null>(null);
-  
+
   useEffect(() => {
     // Fetch current user on mount
     api.getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
-  
+
   return (
     <AuthContext.Provider value={{ user, setUser }}>
       {children}

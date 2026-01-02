@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Container, Spinner, CommentSection, SEO, VideoPlayer } from '../components';
 import { useClipById, useUser, useClipVote, useClipFavorite, useIsAuthenticated, useToast, useShare } from '../hooks';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 export function ClipDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -12,13 +13,45 @@ export function ClipDetailPage() {
   const favoriteMutation = useClipFavorite();
   const toast = useToast();
   const { share } = useShare();
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const isVoting = voteMutation.isPending;
 
-  const handleShare = async () => {
+  const clipUrl = clip ? `${window.location.origin}/clip/${clip.id}` : '';
+  const shareTitle = clip ? clip.title : 'Check out this clip';
+  const shareText = clip ? `${clip.title} - Clipped from ${clip.broadcaster_name}'s stream` : '';
+
+  const handleNativeShare = async () => {
+    const clipUrl = `${window.location.origin}/clip/${clip?.id}`;
     await share({
       title: clip?.title || 'Check out this clip',
       text: `${clip?.title} - Clipped from ${clip?.broadcaster_name}'s stream`,
-      url: window.location.href,
+      url: clipUrl,
     });
+    setShowShareMenu(false);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(clipUrl);
+      toast.success('Link copied to clipboard!');
+      setShowShareMenu(false);
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const handleShareToTwitter = () => {
+    const text = encodeURIComponent(shareText);
+    const url = encodeURIComponent(clipUrl);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'noopener,noreferrer');
+    setShowShareMenu(false);
+  };
+
+  const handleShareToReddit = () => {
+    const title = encodeURIComponent(shareTitle);
+    const url = encodeURIComponent(clipUrl);
+    window.open(`https://reddit.com/submit?title=${title}&url=${url}`, '_blank', 'noopener,noreferrer');
+    setShowShareMenu(false);
   };
 
   const handleVote = (voteType: 1 | -1) => {
@@ -26,7 +59,8 @@ export function ClipDetailPage() {
       toast.info('Please log in to vote on clips');
       return;
     }
-    if (!clip) return;
+    if (!clip || isVoting) return;
+    if (clip.user_vote === voteType) return;
     voteMutation.mutate({ clip_id: clip.id, vote_type: voteType });
   };
 
@@ -145,17 +179,27 @@ export function ClipDetailPage() {
           <div className="mb-4 xs:mb-6">
             <h1 className="text-2xl xs:text-3xl font-bold mb-2">{clip.title}</h1>
             <div className="flex flex-wrap gap-2 xs:gap-4 text-xs xs:text-sm text-muted-foreground">
-              <span>
-                Clipped by{' '}
-                <a
-                  href={clip.twitch_clip_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              <span className="font-medium">
+                <Link
+                  to={`/broadcaster/${clip.broadcaster_id || clip.broadcaster_name}`}
                   className="hover:text-foreground transition-colors"
                 >
-                  {clip.creator_name}
-                </a>
+                  {clip.broadcaster_name}
+                </Link>
               </span>
+              {clip.game_name && (
+                <>
+                  <span className="hidden xs:inline">•</span>
+                  <span>
+                    <Link
+                      to={`/game/${clip.game_id}`}
+                      className="hover:text-foreground transition-colors"
+                    >
+                      {clip.game_name}
+                    </Link>
+                  </span>
+                </>
+              )}
               {clip.submitted_by && (
                 <>
                   <span className="hidden xs:inline">•</span>
@@ -166,6 +210,20 @@ export function ClipDetailPage() {
                       className="hover:text-foreground transition-colors"
                     >
                       {clip.submitted_by.display_name}
+                    </Link>
+                  </span>
+                </>
+              )}
+              {clip.creator_id && clip.creator_id.trim() !== '' && clip.creator_name && (
+                <>
+                  <span className="hidden xs:inline">•</span>
+                  <span>
+                    Clipped by{' '}
+                    <Link
+                      to={`/user/${clip.creator_id}`}
+                      className="hover:text-foreground transition-colors"
+                    >
+                      {clip.creator_name}
                     </Link>
                   </span>
                 </>
@@ -182,23 +240,22 @@ export function ClipDetailPage() {
               clipId={clip.id}
               title={clip.title}
               embedUrl={clip.embed_url}
-              twitchClipUrl={clip.twitch_clip_url}
             />
           </div>
 
           <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 xs:gap-4 mb-4 xs:mb-6">
             <button
               onClick={() => handleVote(1)}
-              disabled={!isAuthenticated}
+              disabled={!isAuthenticated || isVoting}
               className={cn(
                 "px-4 py-3 rounded-md transition-colors touch-target",
                 clip.user_vote === 1
                   ? "bg-green-600 text-white hover:bg-green-700"
                   : "bg-primary-500 text-white hover:bg-primary-600",
-                !isAuthenticated && "opacity-50 cursor-not-allowed hover:bg-primary-500"
+                (!isAuthenticated || isVoting) && "opacity-50 cursor-not-allowed hover:bg-primary-500"
               )}
               aria-label={isAuthenticated ? `Upvote, ${clip.vote_score} votes` : 'Log in to upvote'}
-              aria-disabled={!isAuthenticated}
+              aria-disabled={!isAuthenticated || isVoting}
               title={isAuthenticated ? undefined : 'Log in to vote'}
             >
               Upvote ({clip.vote_score})
@@ -237,12 +294,43 @@ export function ClipDetailPage() {
           </div>
 
           <button
-            onClick={handleShare}
+            onClick={() => setShowShareMenu(!showShareMenu)}
             className="w-full xs:w-auto px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors text-sm xs:text-base"
             aria-label="Share this clip"
           >
             📤 Share
           </button>
+
+          {showShareMenu && (
+            <div className="mt-2 p-3 border border-border rounded-md bg-card space-y-2">
+              <button
+                onClick={handleCopyLink}
+                className="w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm"
+              >
+                📋 Copy Link
+              </button>
+              {navigator.share && (
+                <button
+                  onClick={handleNativeShare}
+                  className="w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm"
+                >
+                  📤 Share via...
+                </button>
+              )}
+              <button
+                onClick={handleShareToTwitter}
+                className="w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm"
+              >
+                🐦 Share on Twitter/X
+              </button>
+              <button
+                onClick={handleShareToReddit}
+                className="w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm"
+              >
+                🔴 Share on Reddit
+              </button>
+            </div>
+          )}
 
           {clip.game_name && (
             <div className="mb-4">

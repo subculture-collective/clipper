@@ -1,6 +1,7 @@
 export interface ClipSubmission {
   id: string;
   user_id: string;
+  clip_id?: string; // Set when submission is approved
   twitch_clip_id: string;
   twitch_clip_url: string;
   title?: string;

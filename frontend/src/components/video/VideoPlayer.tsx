@@ -7,13 +7,11 @@ export interface VideoPlayerProps {
   clipId: string;
   title: string;
   embedUrl: string;
-  twitchClipUrl: string;
 }
 
 export function VideoPlayer({
   title,
   embedUrl,
-  twitchClipUrl,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const [showMutedIndicator, setShowMutedIndicator] = useState(true);

@@ -188,15 +188,41 @@ const config: Config = {
     },
   },
   safelist: [
-    // Button variant colors
-    { pattern: /^bg-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
-    { pattern: /^text-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
-    { pattern: /^hover:bg-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
-    { pattern: /^active:bg-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
-    { pattern: /^dark:bg-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
-    { pattern: /^dark:hover:bg-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
-    { pattern: /^dark:text-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
-    { pattern: /^border-(primary|secondary|error|success|warning|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)$/ },
+    // Primary button colors
+    'bg-primary-500',
+    'bg-primary-600',
+    'bg-primary-700',
+    'hover:bg-primary-600',
+    'hover:bg-primary-700',
+    'active:bg-primary-700',
+    'dark:bg-primary-600',
+    'dark:hover:bg-primary-700',
+    // Secondary button colors
+    'bg-secondary-500',
+    'bg-secondary-600',
+    'bg-secondary-700',
+    'hover:bg-secondary-600',
+    'hover:bg-secondary-700',
+    'active:bg-secondary-700',
+    // Error/danger colors
+    'bg-error-500',
+    'bg-error-600',
+    'bg-error-700',
+    'hover:bg-error-600',
+    'hover:bg-error-700',
+    'active:bg-error-700',
+    // Neutral colors for ghost variant
+    'hover:bg-neutral-800',
+    'active:bg-neutral-700',
+    'dark:hover:bg-neutral-800',
+    'dark:active:bg-neutral-700',
+    // Text colors
+    'text-white',
+    'text-primary-500',
+    'text-foreground',
+    // Border colors
+    'border-primary-500',
+    'border-2',
   ],
   plugins: [],
 };

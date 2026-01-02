@@ -30,6 +30,7 @@ type SubmissionService struct {
 	abuseDetector       *SubmissionAbuseDetector
 	moderationEvents    *ModerationEventService
 	webhookService      *OutboundWebhookService
+	cacheService        *CacheService
 	cfg                 *config.Config
 
 	// Test fixture controls
@@ -49,6 +50,7 @@ func NewSubmissionService(
 	notificationService *NotificationService,
 	redisClient *redispkg.Client,
 	webhookService *OutboundWebhookService,
+	cacheService *CacheService,
 	cfg *config.Config,
 ) *SubmissionService {
 	var abuseDetector *SubmissionAbuseDetector
@@ -74,6 +76,7 @@ func NewSubmissionService(
 		abuseDetector:            abuseDetector,
 		moderationEvents:         moderationEvents,
 		webhookService:           webhookService,
+		cacheService:             cacheService,
 		cfg:                      cfg,
 		testFixturesEnabled:      testFixturesEnabled,
 		bypassRateLimits:         bypassRateLimits,
@@ -482,9 +485,13 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		submission.ReviewedAt = &submission.CreatedAt
 
 		// Create clip immediately
-		if err := s.createClipFromSubmission(ctx, submission); err != nil {
+		clipID, err := s.createClipFromSubmission(ctx, submission)
+		if err != nil {
 			return nil, fmt.Errorf("failed to create clip: %w", err)
 		}
+
+		// Store clip ID
+		submission.ClipID = &clipID
 
 		// Award karma
 		if err := s.awardKarma(ctx, userID, 10); err != nil {
@@ -1058,7 +1065,7 @@ func (s *SubmissionService) shouldAutoApprove(user *models.User) bool {
 }
 
 // createClipFromSubmission creates a clip in the main clips table
-func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submission *models.ClipSubmission) error {
+func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submission *models.ClipSubmission) (uuid.UUID, error) {
 	emptyStr := ""
 	title := utils.StringOrDefault(submission.CustomTitle, submission.Title)
 	creatorName := utils.StringOrDefault(submission.CreatorName, &emptyStr)
@@ -1091,7 +1098,7 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 
 	// Create the clip
 	if err := s.clipRepo.Create(ctx, clip); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 
 	// Auto-upvote: Create an upvote from the submitter
@@ -1103,7 +1110,15 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 		}
 	}
 
-	return nil
+	// Invalidate feed caches so the new clip appears immediately
+	if s.cacheService != nil {
+		if err := s.cacheService.InvalidateOnNewClip(ctx, clip); err != nil {
+			// Log error but don't fail the clip creation
+			fmt.Printf("Warning: failed to invalidate feed caches for clip %s: %v\n", clip.ID, err)
+		}
+	}
+
+	return clip.ID, nil
 }
 
 // awardKarma awards karma points to a user
@@ -1140,13 +1155,19 @@ func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID,
 	}
 
 	// Create clip
-	if err := s.createClipFromSubmission(ctx, submission); err != nil {
+	clipID, err := s.createClipFromSubmission(ctx, submission)
+	if err != nil {
 		return fmt.Errorf("failed to create clip: %w", err)
 	}
 
-	// Update submission status
+	// Update submission status and clip ID
 	if err := s.submissionRepo.UpdateStatus(ctx, submissionID, "approved", reviewerID, nil); err != nil {
 		return fmt.Errorf("failed to update submission status: %w", err)
+	}
+
+	// Update submission with clip ID
+	if err := s.submissionRepo.UpdateClipID(ctx, submissionID, clipID); err != nil {
+		return fmt.Errorf("failed to update submission clip ID: %w", err)
 	}
 
 	// Create audit log
@@ -1290,7 +1311,7 @@ func (s *SubmissionService) BulkApproveSubmissions(ctx context.Context, submissi
 
 	// Create clips for all submissions
 	for _, submission := range submissions {
-		if err := s.createClipFromSubmission(ctx, submission); err != nil {
+		if _, err := s.createClipFromSubmission(ctx, submission); err != nil {
 			return fmt.Errorf("failed to create clip for submission %s: %w", submission.ID, err)
 		}
 	}

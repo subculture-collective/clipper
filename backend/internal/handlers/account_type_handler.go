@@ -115,7 +115,7 @@ func (h *AccountTypeHandler) ConvertToBroadcaster(c *gin.Context) {
 
 	// Convert to broadcaster
 	// In production, you might want to verify the user has a Twitch broadcaster profile
-	twitchVerified := user.TwitchID != ""
+	twitchVerified := user.TwitchID != nil && *user.TwitchID != ""
 	err := h.accountTypeService.ConvertToBroadcaster(c.Request.Context(), user.ID, req.Reason, twitchVerified)
 	if err != nil {
 		if err == services.ErrCannotDowngradeAccountType {

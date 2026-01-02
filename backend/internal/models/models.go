@@ -10,7 +10,7 @@ import (
 // User represents a user in the system
 type User struct {
 	ID                   uuid.UUID  `json:"id" db:"id"`
-	TwitchID             string     `json:"twitch_id" db:"twitch_id"`
+	TwitchID             *string    `json:"twitch_id,omitempty" db:"twitch_id"`
 	Username             string     `json:"username" db:"username"`
 	DisplayName          string     `json:"display_name" db:"display_name"`
 	Email                *string    `json:"email,omitempty" db:"email"`
@@ -23,6 +23,7 @@ type User struct {
 	Role                 string     `json:"role" db:"role"`
 	AccountType          string     `json:"account_type" db:"account_type"`
 	AccountTypeUpdatedAt *time.Time `json:"account_type_updated_at,omitempty" db:"account_type_updated_at"`
+	AccountStatus        string     `json:"account_status" db:"account_status"` // active, unclaimed, pending
 	IsBanned             bool       `json:"is_banned" db:"is_banned"`
 	DeviceToken          *string    `json:"device_token,omitempty" db:"device_token"`
 	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
@@ -406,6 +407,7 @@ type SearchAnalyticsSummary struct {
 type ClipSubmission struct {
 	ID                      uuid.UUID  `json:"id" db:"id"`
 	UserID                  uuid.UUID  `json:"user_id" db:"user_id"`
+	ClipID                  *uuid.UUID `json:"clip_id,omitempty" db:"clip_id"` // Set when submission is approved
 	TwitchClipID            string     `json:"twitch_clip_id" db:"twitch_clip_id"`
 	TwitchClipURL           string     `json:"twitch_clip_url" db:"twitch_clip_url"`
 	Title                   *string    `json:"title,omitempty" db:"title"`

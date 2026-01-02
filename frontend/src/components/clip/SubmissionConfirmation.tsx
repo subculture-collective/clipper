@@ -23,7 +23,7 @@ export function SubmissionConfirmation({
 }: SubmissionConfirmationProps) {
     const statusVariant = submission.status === 'approved' ? 'success' : 'warning';
     const isAutoApproved = submission.status === 'approved';
-    
+
     // Format date for display
     const submittedDate = new Date(submission.created_at).toLocaleString('en-US', {
         month: 'short',
@@ -149,7 +149,7 @@ export function SubmissionConfirmation({
                                 Your clip has been automatically approved and is now live on the platform.
                             </p>
                             <Link
-                                to={`/clip/${submission.twitch_clip_id}`}
+                                to={submission.clip_id ? `/clip/${submission.clip_id}` : `/clip/${submission.twitch_clip_id}`}
                                 className="text-sm font-medium text-success-700 dark:text-success-300 hover:text-success-800 dark:hover:text-success-200 underline cursor-pointer"
                             >
                                 View your clip →

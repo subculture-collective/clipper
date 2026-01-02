@@ -11,9 +11,6 @@ import { ConsentBanner } from './components/consent';
 
 // Lazy load page components for code splitting
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
-const NewFeedPage = lazy(() => import('./pages/NewFeedPage').then(m => ({ default: m.NewFeedPage })));
-const TopFeedPage = lazy(() => import('./pages/TopFeedPage').then(m => ({ default: m.TopFeedPage })));
-const RisingFeedPage = lazy(() => import('./pages/RisingFeedPage').then(m => ({ default: m.RisingFeedPage })));
 const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
 const DiscoveryListsPage = lazy(() => import('./pages/DiscoveryListsPage').then(m => ({ default: m.DiscoveryListsPage })));
 const DiscoveryListDetailPage = lazy(() => import('./pages/DiscoveryListDetailPage').then(m => ({ default: m.DiscoveryListDetailPage })));
@@ -117,9 +114,6 @@ function App() {
                     <Route path="/discover/lists/:id" element={<DiscoveryListDetailPage />} />
                     <Route path="/discover/scraped" element={<ScrapedClipsPage />} />
                     <Route path="/discover/live" element={<ProtectedRoute><LiveFeedPage /></ProtectedRoute>} />
-                    <Route path="/new" element={<NewFeedPage />} />
-                    <Route path="/top" element={<TopFeedPage />} />
-                    <Route path="/rising" element={<RisingFeedPage />} />
                     <Route path="/clip/:id" element={<ClipDetailPage />} />
                     <Route path="/game/:gameId" element={<GamePage />} />
                     <Route path="/category/:categorySlug" element={<CategoryPage />} />

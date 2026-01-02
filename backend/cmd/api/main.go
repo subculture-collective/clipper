@@ -275,8 +275,11 @@ func main() {
 	// Initialize email monitoring and metrics service
 	emailMetricsService := services.NewEmailMetricsService(emailLogRepo)
 
+	// Initialize cache service
+	cacheService := services.NewCacheService(redisClient)
+
 	// Initialize feed service
-	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
+	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo, voteRepo, favoriteRepo)
 
 	// Initialize filter preset service
 	filterPresetService := services.NewFilterPresetService(filterPresetRepo)
@@ -383,8 +386,8 @@ func main() {
 	var liveStatusService *services.LiveStatusService
 	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
-		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, redisClient)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
+		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, userRepo, redisClient)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cacheService, cfg)
 		liveStatusService = services.NewLiveStatusService(broadcasterRepo, streamFollowRepo, twitchClient)
 		// Set notification service for live status notifications
 		liveStatusService.SetNotificationService(notificationService)
@@ -434,7 +437,7 @@ func main() {
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
-	feedHandler := handlers.NewFeedHandler(feedService, authService)
+	feedHandler := handlers.NewFeedHandler(feedService, authService, voteRepo, favoriteRepo, userRepo)
 	filterPresetHandler := handlers.NewFilterPresetHandler(filterPresetService)
 	communityHandler := handlers.NewCommunityHandler(communityService, authService)
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
@@ -848,6 +851,9 @@ func main() {
 			// Public user profile
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
 			users.GET("/:id", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserProfile)
+
+			// Account claiming for unclaimed profiles
+			users.POST("/claim-account", middleware.AuthMiddleware(authService), userHandler.ClaimAccount)
 
 			// Public reputation endpoints
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)

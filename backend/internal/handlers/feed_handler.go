@@ -33,14 +33,26 @@ func validateDateFilter(dateStr string) (string, error) {
 }
 
 type FeedHandler struct {
-	feedService *services.FeedService
-	authService *services.AuthService
+	feedService  *services.FeedService
+	authService  *services.AuthService
+	voteRepo     *repository.VoteRepository
+	favoriteRepo *repository.FavoriteRepository
+	userRepo     *repository.UserRepository
 }
 
-func NewFeedHandler(feedService *services.FeedService, authService *services.AuthService) *FeedHandler {
+func NewFeedHandler(
+	feedService *services.FeedService,
+	authService *services.AuthService,
+	voteRepo *repository.VoteRepository,
+	favoriteRepo *repository.FavoriteRepository,
+	userRepo *repository.UserRepository,
+) *FeedHandler {
 	return &FeedHandler{
-		feedService: feedService,
-		authService: authService,
+		feedService:  feedService,
+		authService:  authService,
+		voteRepo:     voteRepo,
+		favoriteRepo: favoriteRepo,
+		userRepo:     userRepo,
 	}
 }
 
@@ -522,9 +534,16 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		filters.DateTo = &validatedDateTo
 	}
 
-	// Fetch clips using feed service (fetch limit+1 to check if there are more)
+	// Get authenticated user ID if present
+	var userID *uuid.UUID
+	if id, exists := c.Get("user_id"); exists {
+		uid := id.(uuid.UUID)
+		userID = &uid
+	}
+
+	// Fetch clips using feed service with user data enrichment (fetch limit+1 to check if there are more)
 	fetchLimit := limit + 1
-	clips, total, err := h.feedService.GetFilteredClips(c.Request.Context(), filters, fetchLimit, offset)
+	clips, total, err := h.feedService.GetFilteredClipsWithUserData(c.Request.Context(), filters, fetchLimit, offset, userID)
 	if err != nil {
 		log.Printf("Error fetching filtered clips: %v", err)
 		// Check if error is cursor-related (client error)
@@ -535,6 +554,7 @@ func (h *FeedHandler) GetFilteredClips(c *gin.Context) {
 		}
 		return
 	}
+	// This will be implemented in a follow-up change
 
 	// Determine if there are more results
 	hasMore := len(clips) > limit
