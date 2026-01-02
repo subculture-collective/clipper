@@ -1,0 +1,617 @@
+---
+# Automated Database Backup CronJobs
+# Related to Roadmap 5.0 Phase 5.4 - Automated Backup & Recovery
+# Issue: subculture-collective/clipper#863
+#
+# This file contains CronJobs for:
+# 1. Daily PostgreSQL backups with encryption
+# 2. Daily volume snapshots
+# 3. Monthly restore tests
+#
+# Prerequisites:
+# - ServiceAccount with backup permissions (defined in rbac.yaml)
+# - Cloud storage bucket configured (GCS/S3)
+# - PostgreSQL WAL archiving enabled (see backup-config ConfigMap)
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts
+  namespace: clipper-production
+data:
+  backup-postgres.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Configuration
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    BACKUP_FILE="postgres-backup-${TIMESTAMP}.sql.gz"
+    BACKUP_PATH="/tmp/${BACKUP_FILE}"
+    RETENTION_DAYS=${RETENTION_DAYS:-30}
+    
+    echo "=== PostgreSQL Backup Started at $(date) ==="
+    echo "Backup file: ${BACKUP_FILE}"
+    
+    # Create backup using pg_dump
+    echo "Creating database backup..."
+    PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
+      -h "${POSTGRES_HOST}" \
+      -U "${POSTGRES_USER}" \
+      -d "${POSTGRES_DB}" \
+      -F c \
+      -Z 9 \
+      -f "${BACKUP_PATH}" \
+      --verbose
+    
+    # Get backup size
+    BACKUP_SIZE=$(du -h "${BACKUP_PATH}" | cut -f1)
+    echo "Backup created successfully (${BACKUP_SIZE})"
+    
+    # Upload to cloud storage based on provider
+    echo "Uploading to cloud storage..."
+    if [ "${CLOUD_PROVIDER}" = "gcp" ]; then
+      # Upload to GCS with encryption
+      gsutil -o "GSUtil:encryption_key=${ENCRYPTION_KEY}" \
+        cp "${BACKUP_PATH}" "gs://${BACKUP_BUCKET}/database/"
+      
+      # Set lifecycle policy for retention
+      echo "Cleaning up old backups (retention: ${RETENTION_DAYS} days)..."
+      gsutil ls "gs://${BACKUP_BUCKET}/database/postgres-backup-*.sql.gz" | \
+        while read file; do
+          file_date=$(echo "$file" | grep -oP '\d{8}')
+          if [ -n "$file_date" ]; then
+            # Format date as YYYY-MM-DD for date command
+            normalized_date="${file_date:0:4}-${file_date:4:2}-${file_date:6:2}"
+            file_ts=$(date -d "$normalized_date" +%s 2>/dev/null || echo "")
+            if [ -n "$file_ts" ]; then
+              days_old=$(( ($(date +%s) - file_ts) / 86400 ))
+              if [ $days_old -gt $RETENTION_DAYS ]; then
+                echo "Deleting old backup: $file"
+                gsutil rm "$file"
+              fi
+            else
+              echo "Warning: Failed to parse date for $file, skipping cleanup"
+            fi
+          fi
+        done
+    elif [ "${CLOUD_PROVIDER}" = "aws" ]; then
+      # Upload to S3 with server-side encryption
+      aws s3 cp "${BACKUP_PATH}" \
+        "s3://${BACKUP_BUCKET}/database/${BACKUP_FILE}" \
+        --server-side-encryption AES256 \
+        --storage-class STANDARD_IA
+      
+      # Cleanup old backups
+      echo "Cleaning up old backups (retention: ${RETENTION_DAYS} days)..."
+      aws s3 ls "s3://${BACKUP_BUCKET}/database/" | \
+        grep "postgres-backup-" | \
+        while read -r line; do
+          file_datetime=$(echo "$line" | awk '{print $1" "$2}')
+          file_ts=$(date -d "$file_datetime" +%s 2>/dev/null || echo "")
+          file_name=$(echo "$line" | awk '{print $4}')
+          if [ -n "$file_ts" ] && [ -n "$file_name" ]; then
+            days_old=$(( ($(date +%s) - file_ts) / 86400 ))
+            if [ $days_old -gt $RETENTION_DAYS ]; then
+              echo "Deleting old backup: $file_name"
+              aws s3 rm "s3://${BACKUP_BUCKET}/database/${file_name}"
+            fi
+          fi
+        done
+    elif [ "${CLOUD_PROVIDER}" = "azure" ]; then
+      # Upload to Azure Blob Storage with encryption
+      az storage blob upload \
+        --account-name "${AZURE_STORAGE_ACCOUNT}" \
+        --container-name "${BACKUP_BUCKET}" \
+        --name "database/${BACKUP_FILE}" \
+        --file "${BACKUP_PATH}" \
+        --encryption-scope default
+      
+      # Cleanup old backups
+      echo "Cleaning up old backups (retention: ${RETENTION_DAYS} days)..."
+      az storage blob list \
+        --account-name "${AZURE_STORAGE_ACCOUNT}" \
+        --container-name "${BACKUP_BUCKET}" \
+        --prefix "database/postgres-backup-" \
+        --query "[?properties.creationTime < '$(date -u -d "-${RETENTION_DAYS} days" +%Y-%m-%dT%H:%M:%SZ)'].name" \
+        -o tsv | \
+        while read file; do
+          echo "Deleting old backup: $file"
+          az storage blob delete \
+            --account-name "${AZURE_STORAGE_ACCOUNT}" \
+            --container-name "${BACKUP_BUCKET}" \
+            --name "$file"
+        done
+    fi
+    
+    # Get backup size before cleanup
+    BACKUP_SIZE=$(stat -f%z "${BACKUP_PATH}" 2>/dev/null || stat -c%s "${BACKUP_PATH}" 2>/dev/null || echo 0)
+    
+    # Cleanup local backup
+    rm -f "${BACKUP_PATH}"
+    
+    # Report metrics
+    echo "Backup completed successfully at $(date)"
+    echo "Sending metrics to Prometheus pushgateway..."
+    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_backup || echo "Warning: Failed to push metrics to Prometheus"
+    # TYPE postgres_backup_success gauge
+    # HELP postgres_backup_success Whether the last backup succeeded (1 = success, 0 = failure)
+    postgres_backup_success 1
+    # TYPE postgres_backup_timestamp gauge
+    # HELP postgres_backup_timestamp Unix timestamp of the last successful backup
+    postgres_backup_timestamp $(date +%s)
+    # TYPE postgres_backup_size_bytes gauge
+    # HELP postgres_backup_size_bytes Size of the backup file in bytes
+    postgres_backup_size_bytes ${BACKUP_SIZE}
+    METRICS
+    
+    echo "=== PostgreSQL Backup Completed ==="
+
+  restore-test.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    echo "=== Monthly Restore Test Started at $(date) ==="
+    
+    # Configuration
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    TEST_NAMESPACE="backup-restore-test"
+    TEST_DB="clipper_restore_test"
+    
+    # Find latest backup
+    echo "Finding latest backup..."
+    if [ "${CLOUD_PROVIDER}" = "gcp" ]; then
+      LATEST_BACKUP=$(gsutil ls -l "gs://${BACKUP_BUCKET}/database/postgres-backup-*.sql.gz" | \
+        grep -v TOTAL | sort -k2 -r | head -1 | awk '{print $3}')
+    elif [ "${CLOUD_PROVIDER}" = "aws" ]; then
+      LATEST_BACKUP=$(aws s3 ls "s3://${BACKUP_BUCKET}/database/" | \
+        grep "postgres-backup-" | sort -r | head -1 | awk '{print $4}')
+      LATEST_BACKUP="s3://${BACKUP_BUCKET}/database/${LATEST_BACKUP}"
+    elif [ "${CLOUD_PROVIDER}" = "azure" ]; then
+      LATEST_BACKUP=$(az storage blob list \
+        --account-name "${AZURE_STORAGE_ACCOUNT}" \
+        --container-name "${BACKUP_BUCKET}" \
+        --prefix "database/postgres-backup-" \
+        --query "sort_by([].{name:name, modified:properties.lastModified}, &modified)[-1].name" \
+        -o tsv)
+    fi
+    
+    echo "Latest backup: ${LATEST_BACKUP}"
+    
+    # Download backup
+    echo "Downloading backup..."
+    BACKUP_FILE="/tmp/restore-test-${TIMESTAMP}.sql.gz"
+    if [ "${CLOUD_PROVIDER}" = "gcp" ]; then
+      gsutil cp "${LATEST_BACKUP}" "${BACKUP_FILE}"
+    elif [ "${CLOUD_PROVIDER}" = "aws" ]; then
+      aws s3 cp "${LATEST_BACKUP}" "${BACKUP_FILE}"
+    elif [ "${CLOUD_PROVIDER}" = "azure" ]; then
+      az storage blob download \
+        --account-name "${AZURE_STORAGE_ACCOUNT}" \
+        --container-name "${BACKUP_BUCKET}" \
+        --name "${LATEST_BACKUP}" \
+        --file "${BACKUP_FILE}"
+    fi
+    
+    # Create temporary test database
+    echo "Creating test database..."
+    RESTORE_START=$(date +%s)
+    
+    PGPASSWORD="${POSTGRES_PASSWORD}" psql \
+      -h "${POSTGRES_HOST}" \
+      -U "${POSTGRES_USER}" \
+      -d postgres \
+      -c "DROP DATABASE IF EXISTS ${TEST_DB};"
+    
+    PGPASSWORD="${POSTGRES_PASSWORD}" psql \
+      -h "${POSTGRES_HOST}" \
+      -U "${POSTGRES_USER}" \
+      -d postgres \
+      -c "CREATE DATABASE ${TEST_DB};"
+    
+    # Restore backup
+    echo "Restoring backup to test database..."
+    # By default, ignore ownership and ACLs during restore tests to avoid permission issues.
+    # To more closely mimic production restores (including owners/ACLs), override PG_RESTORE_FLAGS.
+    : "${PG_RESTORE_FLAGS:=--no-owner --no-acl}"
+    
+    PGPASSWORD="${POSTGRES_PASSWORD}" pg_restore \
+      -h "${POSTGRES_HOST}" \
+      -U "${POSTGRES_USER}" \
+      -d "${TEST_DB}" \
+      -F c \
+      ${PG_RESTORE_FLAGS} \
+      "${BACKUP_FILE}"
+    
+    RESTORE_END=$(date +%s)
+    RESTORE_DURATION=$((RESTORE_END - RESTORE_START))
+    
+    # Validate restore
+    echo "Validating restored data..."
+    
+    # Query clips table and capture exit code
+    CLIP_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql \
+      -h "${POSTGRES_HOST}" \
+      -U "${POSTGRES_USER}" \
+      -d "${TEST_DB}" \
+      -t -c "SELECT COUNT(*) FROM clips;" 2>&1)
+    CLIP_QUERY_EXIT=$?
+    
+    # Check if query failed (table doesn't exist or other errors)
+    if [ $CLIP_QUERY_EXIT -ne 0 ] || [ -z "$CLIP_COUNT" ]; then
+      echo "ERROR: Failed to query clips table. Restore likely failed."
+      exit 1
+    fi
+    
+    # Query users table and capture exit code
+    USER_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql \
+      -h "${POSTGRES_HOST}" \
+      -U "${POSTGRES_USER}" \
+      -d "${TEST_DB}" \
+      -t -c "SELECT COUNT(*) FROM users;" 2>&1)
+    USER_QUERY_EXIT=$?
+    
+    # Check if query failed
+    if [ $USER_QUERY_EXIT -ne 0 ] || [ -z "$USER_COUNT" ]; then
+      echo "ERROR: Failed to query users table. Restore likely failed."
+      exit 1
+    fi
+    
+    echo "Validation complete:"
+    echo "  - Clips: ${CLIP_COUNT}"
+    echo "  - Users: ${USER_COUNT}"
+    echo "  - Restore duration: ${RESTORE_DURATION} seconds"
+    
+    # Check RTO/RPO targets
+    RTO_TARGET=3600  # 1 hour in seconds
+    SUCCESS=1
+    
+    if [ $RESTORE_DURATION -gt $RTO_TARGET ]; then
+      echo "ERROR: RTO target exceeded (${RESTORE_DURATION}s > ${RTO_TARGET}s)"
+      SUCCESS=0
+    else
+      echo "SUCCESS: RTO target met (${RESTORE_DURATION}s < ${RTO_TARGET}s)"
+    fi
+    
+    # Cleanup
+    echo "Cleaning up test database..."
+    PGPASSWORD="${POSTGRES_PASSWORD}" psql \
+      -h "${POSTGRES_HOST}" \
+      -U "${POSTGRES_USER}" \
+      -d postgres \
+      -c "DROP DATABASE IF EXISTS ${TEST_DB};"
+    
+    rm -f "${BACKUP_FILE}"
+    
+    # Report metrics
+    echo "Sending restore test metrics..."
+    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_restore_test || echo "Warning: Failed to push metrics to Prometheus"
+    # TYPE postgres_restore_test_success gauge
+    # HELP postgres_restore_test_success Whether the last restore test succeeded (1 = success, 0 = failure)
+    postgres_restore_test_success ${SUCCESS}
+    # TYPE postgres_restore_test_timestamp gauge
+    # HELP postgres_restore_test_timestamp Unix timestamp of the last restore test
+    postgres_restore_test_timestamp $(date +%s)
+    # TYPE postgres_restore_test_duration_seconds gauge
+    # HELP postgres_restore_test_duration_seconds Duration of the restore test in seconds
+    postgres_restore_test_duration_seconds ${RESTORE_DURATION}
+    # TYPE postgres_restore_test_clip_count gauge
+    # HELP postgres_restore_test_clip_count Number of clips in restored database
+    postgres_restore_test_clip_count ${CLIP_COUNT}
+    # TYPE postgres_restore_test_user_count gauge
+    # HELP postgres_restore_test_user_count Number of users in restored database
+    postgres_restore_test_user_count ${USER_COUNT}
+    METRICS
+    
+    # Exit with appropriate status code
+    if [ $SUCCESS -eq 0 ]; then
+      echo "=== Monthly Restore Test FAILED ==="
+      exit 1
+    fi
+    
+    echo "=== Monthly Restore Test Completed ==="
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: clipper-production
+  labels:
+    app: postgres-backup
+    component: backup
+spec:
+  # Daily at 2 AM UTC
+  schedule: "0 2 * * *"
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600  # 1 hour timeout
+      template:
+        metadata:
+          labels:
+            app: postgres-backup
+            component: backup
+        spec:
+          serviceAccountName: backup-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: postgres:17-alpine
+            command:
+            - /bin/sh
+            - /scripts/backup-postgres.sh
+            env:
+            - name: POSTGRES_HOST
+              value: "postgres"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: "clipper_db"
+            - name: BACKUP_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: BACKUP_BUCKET
+            - name: CLOUD_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: CLOUD_PROVIDER
+            - name: RETENTION_DAYS
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: RETENTION_DAYS
+                  optional: true
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+                  optional: true
+            - name: AZURE_STORAGE_ACCOUNT
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: AZURE_STORAGE_ACCOUNT
+                  optional: true
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: volume-snapshot
+  namespace: clipper-production
+  labels:
+    app: volume-snapshot
+    component: backup
+spec:
+  # Daily at 3 AM UTC
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800  # 30 minutes timeout
+      template:
+        metadata:
+          labels:
+            app: volume-snapshot
+            component: backup
+        spec:
+          serviceAccountName: backup-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: snapshot
+            image: bitnami/kubectl:1.31.1
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -euo pipefail
+              
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+              SNAPSHOT_NAME="postgres-snapshot-${TIMESTAMP}"
+              
+              echo "=== Volume Snapshot Started at $(date) ==="
+              echo "Creating snapshot: ${SNAPSHOT_NAME}"
+              
+              # Create VolumeSnapshot
+              kubectl apply -f - <<EOF
+              apiVersion: snapshot.storage.k8s.io/v1
+              kind: VolumeSnapshot
+              metadata:
+                name: ${SNAPSHOT_NAME}
+                namespace: clipper-production
+                labels:
+                  backup-timestamp: "${TIMESTAMP}"
+                  backup-type: "automated"
+              spec:
+                volumeSnapshotClassName: ${VOLUME_SNAPSHOT_CLASS}
+                source:
+                  persistentVolumeClaimName: postgres-data-postgres-0
+              EOF
+              
+              # Wait for snapshot to be ready
+              echo "Waiting for snapshot to be ready..."
+              for i in {1..60}; do
+                STATUS=$(kubectl get volumesnapshot ${SNAPSHOT_NAME} -n clipper-production -o jsonpath='{.status.readyToUse}' 2>/dev/null || echo "false")
+                if [ "$STATUS" = "true" ]; then
+                  echo "Snapshot ready!"
+                  break
+                fi
+                if [ $i -eq 60 ]; then
+                  echo "ERROR: Snapshot not ready after 5 minutes"
+                  exit 1
+                fi
+                sleep 5
+              done
+              
+              # Cleanup old snapshots (keep 14 days)
+              echo "Cleaning up old snapshots (retention: 14 days)..."
+              CUTOFF_DATE=$(date -u -d "14 days ago" +%Y%m%d 2>/dev/null || date -u -v-14d +%Y%m%d)
+              kubectl get volumesnapshot -n clipper-production \
+                -l backup-type=automated \
+                -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.metadata.labels.backup-timestamp}{"\n"}{end}' | \
+                while read name timestamp; do
+                  snapshot_date=$(echo "$timestamp" | cut -d'-' -f1)
+                  if [ "$snapshot_date" -lt "$CUTOFF_DATE" ]; then
+                    echo "Deleting old snapshot: $name"
+                    kubectl delete volumesnapshot "$name" -n clipper-production
+                  fi
+                done
+              
+              echo "=== Volume Snapshot Completed ==="
+            env:
+            - name: VOLUME_SNAPSHOT_CLASS
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: VOLUME_SNAPSHOT_CLASS
+                  optional: true
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restore-test
+  namespace: clipper-production
+  labels:
+    app: restore-test
+    component: backup
+spec:
+  # Monthly on the 1st at 4 AM UTC
+  schedule: "0 4 1 * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 7200  # 2 hours timeout
+      template:
+        metadata:
+          labels:
+            app: restore-test
+            component: backup
+        spec:
+          serviceAccountName: backup-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: restore-test
+            image: postgres:17-alpine
+            command:
+            - /bin/sh
+            - /scripts/restore-test.sh
+            env:
+            - name: POSTGRES_HOST
+              value: "postgres"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: "clipper_db"
+            - name: BACKUP_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: BACKUP_BUCKET
+            - name: CLOUD_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: CLOUD_PROVIDER
+            - name: AZURE_STORAGE_ACCOUNT
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: AZURE_STORAGE_ACCOUNT
+                  optional: true
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                cpu: 1000m
+                memory: 1Gi
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+
+---
+# Example backup configuration
+# Copy this to your environment-specific configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: clipper-production
+data:
+  # Cloud provider: gcp, aws, or azure
+  CLOUD_PROVIDER: "gcp"
+  
+  # Backup bucket name (must be created in advance)
+  # GCP: gs://clipper-backups-prod
+  # AWS: clipper-backups-prod
+  # Azure: clipper-backups-prod
+  BACKUP_BUCKET: "clipper-backups-prod"
+  
+  # Backup retention in days (default: 30)
+  RETENTION_DAYS: "30"
+  
+  # Volume snapshot class (cloud provider specific)
+  # GCP: csi-gce-pd
+  # AWS: csi-aws-vsc
+  # Azure: csi-azuredisk-vsc
+  VOLUME_SNAPSHOT_CLASS: "csi-gce-pd"
+  
+  # Azure-specific (only needed for Azure)
+  # AZURE_STORAGE_ACCOUNT: "clipperbackupsprod"

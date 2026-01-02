@@ -7,6 +7,7 @@ status: "stable"
 owner: "team-core"
 version: "1.0"
 last_reviewed: 2026-01-02
+related_issues: ["#861", "#862", "#805"]
 ---
 
 # Web Application Firewall (WAF) Protection
@@ -20,6 +21,11 @@ last_reviewed: 2026-01-02
 This document describes the Web Application Firewall (WAF) capabilities in Clipper, which provide protection against common web application attacks including SQL injection (SQLi), Cross-Site Scripting (XSS), and rate limiting abuse.
 
 **Important Note**: Caddy runs in a separate container managed outside this repository. This document focuses on the application-level WAF protections already implemented in the backend and provides guidance for configuring edge-level protections in the external Caddy container.
+
+**Related Documentation**:
+- **[DDoS Protection](./ddos-protection.md)** - Comprehensive DDoS mitigation with edge rate limiting and traffic analytics (Roadmap 5.0 Phase 5.4 - #862)
+- [Security Scanning](./security-scanning.md) - Security vulnerability scanning
+- [Secrets Management](./secrets-management.md) - Secure secrets handling
 
 ## Architecture
 

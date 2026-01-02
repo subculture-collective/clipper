@@ -1059,6 +1059,142 @@ groups:
           description: "HLS playlists failing at {{ $value | humanizePercentage }} (threshold: 5%). Video playback initiation is failing."
           runbook: "docs/operations/CDN_FAILOVER_RUNBOOK.md#cdn-outage-detected"
 
+  # Backup & Recovery Alerts
+  # Related to Roadmap 5.0 Phase 5.4 - Automated Backup & Recovery
+  # Issue: subculture-collective/clipper#863
+  - name: clipper_backup_alerts
+    interval: 60s
+    rules:
+      # Backup Job Failed
+      - alert: BackupJobFailed
+        expr: |
+          (time() - postgres_backup_timestamp) > 86400
+        for: 1h
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "PostgreSQL backup has not succeeded in 24 hours"
+          description: "Last successful backup was {{ $value | humanizeDuration }} ago. Daily backups are failing."
+          runbook: "docs/operations/backup-recovery-runbook.md#backup-failures"
+      
+      # Backup Job Missing
+      - alert: BackupJobNotRunning
+        expr: |
+          absent(postgres_backup_timestamp)
+        for: 2h
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "PostgreSQL backup job has never run"
+          description: "No backup metrics found. Backup CronJob may not be configured or running."
+          runbook: "docs/operations/backup-recovery-runbook.md#backup-not-running"
+      
+      # WAL Archiving Lag
+      - alert: WALArchivingLag
+        expr: |
+          pg_stat_archiver_last_archived_time < (time() - 900)
+        for: 15m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "PostgreSQL WAL archiving is lagging"
+          description: "Last WAL archive was {{ $value | humanizeDuration }} ago. PITR may be affected."
+          runbook: "docs/operations/backup-recovery-runbook.md#wal-archiving-lag"
+      
+      # WAL Archiving Failed
+      - alert: WALArchivingFailed
+        expr: |
+          rate(pg_stat_archiver_failed_count[5m]) > 0
+        for: 10m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "PostgreSQL WAL archiving is failing"
+          description: "WAL archiving has {{ $value }} failures in the last 5 minutes. PITR is at risk."
+          runbook: "docs/operations/backup-recovery-runbook.md#wal-archiving-failures"
+      
+      # Restore Test Failed
+      - alert: RestoreTestFailed
+        expr: |
+          postgres_restore_test_success == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "Monthly restore test failed"
+          description: "The last restore test did not complete successfully. Backup integrity may be compromised."
+          runbook: "docs/operations/backup-recovery-runbook.md#restore-test-failures"
+      
+      # Restore Test Not Run
+      - alert: RestoreTestNotRun
+        expr: |
+          (time() - postgres_restore_test_timestamp) > 2678400
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Restore test has not run in 31 days"
+          description: "Last restore test was {{ $value | humanizeDuration }} ago. Monthly testing is required."
+          runbook: "docs/operations/backup-recovery-runbook.md#restore-test-overdue"
+      
+      # RTO Target Exceeded
+      - alert: RestoreRTOExceeded
+        expr: |
+          postgres_restore_test_duration_seconds > 3600
+        for: 5m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Restore test exceeded RTO target"
+          description: "Last restore took {{ $value | humanizeDuration }} (target: < 1 hour). RTO SLA may not be achievable."
+          runbook: "docs/operations/backup-recovery-runbook.md#rto-exceeded"
+      
+      # Backup Storage Low
+      - alert: BackupStorageLow
+        expr: |
+          (backup_storage_used_bytes / backup_storage_total_bytes) > 0.85
+        for: 30m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Backup storage capacity low"
+          description: "Backup storage is {{ $value | humanizePercentage }} full. Increase capacity or adjust retention."
+          runbook: "docs/operations/backup-recovery-runbook.md#storage-capacity"
+      
+      # Volume Snapshot Failed
+      - alert: VolumeSnapshotFailed
+        expr: |
+          kube_volumesnapshot_status_condition{condition="Ready",status="False"} == 1
+        for: 15m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Volume snapshot {{ $labels.volumesnapshot }} is not ready"
+          description: "Volume snapshot {{ $labels.volumesnapshot }} failed to become ready."
+          runbook: "docs/operations/backup-recovery-runbook.md#snapshot-failures"
+      
+      # No Recent Snapshots
+      - alert: NoRecentVolumeSnapshot
+        expr: |
+          (time() - max(kube_volumesnapshot_created_timestamp{namespace="clipper-production"})) > 172800
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "No volume snapshots created in 48 hours"
+          description: "Last volume snapshot was {{ $value | humanizeDuration }} ago. Daily snapshots may not be running."
+          runbook: "docs/operations/backup-recovery-runbook.md#snapshot-not-running"
+
   # HPA Scaling Alerts
   # Monitors Horizontal Pod Autoscaler behavior and scaling events
   - name: hpa_scaling_alerts
@@ -1412,3 +1548,148 @@ groups:
           summary: "Namespace {{ $labels.namespace }} PVC count near limit"
           description: "PVC count is {{ $value | humanize }}% of quota in namespace {{ $labels.namespace }}."
           runbook: "Review PersistentVolumeClaims, delete unused volumes, consider increasing quota."
+
+  # DDoS Protection & Traffic Alerts
+  # Related Issues (Roadmap 5.0 - Phase 5.4):
+  # - #862 - DDoS Protection
+  # - #861 - WAF Protection (related)
+  # - #805 - Infrastructure Security
+  - name: clipper_ddos_alerts
+    interval: 30s
+    rules:
+      # High traffic volume (potential DDoS)
+      - alert: SuspiciouslyHighTrafficVolume
+        expr: |
+          sum(rate(nginx_ingress_controller_requests[1m])) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          category: ddos
+        annotations:
+          summary: "Unusually high traffic volume detected"
+          description: "Request rate is {{ $value | humanize }} req/s, which is significantly above normal baseline."
+          runbook: "Check traffic analytics dashboard at /d/ddos-traffic-analytics. Review top IPs. See docs/operations/ddos-protection.md for mitigation procedures."
+      
+      # Critical: Very high traffic (likely DDoS)
+      - alert: DDoSAttackSuspected
+        expr: |
+          sum(rate(nginx_ingress_controller_requests[1m])) > 5000
+        for: 1m
+        labels:
+          severity: critical
+          category: ddos
+        annotations:
+          summary: "Potential DDoS attack in progress"
+          description: "Request rate is {{ $value | humanize }} req/s, far exceeding normal capacity."
+          runbook: "URGENT: Follow DDoS mitigation runbook at docs/operations/ddos-protection.md. Enable aggressive rate limiting, contact cloud provider support, review incident response plan."
+      
+      # Rate limit frequently triggered
+      - alert: HighRateLimitHitRate
+        expr: |
+          sum(rate(nginx_ingress_controller_requests{status="429"}[5m])) > 50
+        for: 5m
+        labels:
+          severity: warning
+          category: ddos
+        annotations:
+          summary: "High rate of rate limit hits"
+          description: "{{ $value | humanize }} rate limit hits per second. May indicate DDoS attempt or misconfigured client."
+          runbook: "Review rate-limited IPs in dashboard, check if legitimate traffic, adjust rate limits if needed. See docs/operations/waf-protection.md."
+      
+      # Multiple IPs banned (coordinated attack)
+      - alert: MultipleIPsBanned
+        expr: |
+          sum(rate(abuse_detection_ip_bans_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: critical
+          category: ddos
+        annotations:
+          summary: "Multiple IPs banned for abuse"
+          description: "{{ $value | humanize }} IPs banned in last 5 minutes. Likely coordinated DDoS attack."
+          runbook: "Review banned IP list in Redis. Identify attack patterns. Enable additional edge protection. See docs/operations/ddos-protection.md#incident-response-flow."
+      
+      # High error rate (resource exhaustion)
+      - alert: HighErrorRateDDoS
+        expr: |
+          (
+            sum(rate(nginx_ingress_controller_requests{status=~"5.."}[5m]))
+            / sum(rate(nginx_ingress_controller_requests[5m]))
+          ) > 0.1
+        for: 3m
+        labels:
+          severity: critical
+          category: ddos
+        annotations:
+          summary: "High server error rate (potential resource exhaustion)"
+          description: "{{ $value | humanizePercentage }} of requests returning 5xx errors. May indicate DDoS-induced resource exhaustion."
+          runbook: "Check application health and resource utilization. Scale up if needed. Review if DDoS causing resource exhaustion."
+      
+      # Connection limit saturation
+      - alert: ConnectionLimitSaturation
+        expr: |
+          nginx_ingress_controller_nginx_process_connections{state="active"} > 50000
+        for: 2m
+        labels:
+          severity: warning
+          category: ddos
+        annotations:
+          summary: "High number of active connections"
+          description: "{{ $value | humanize }} active connections. May be approaching ingress controller limits."
+          runbook: "Review connection sources in dashboard. Scale ingress controller if needed. Check for connection leak or slowloris attack."
+      
+      # Single IP excessive traffic
+      - alert: SingleIPExcessiveTraffic
+        expr: |
+          topk(1, sum(rate(nginx_ingress_controller_requests[5m])) by (client_ip)) > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: ddos
+        annotations:
+          summary: "Single IP generating excessive traffic"
+          description: "IP {{ $labels.client_ip }} generating {{ $value | humanize }} req/s."
+          runbook: "Investigate IP {{ $labels.client_ip }}. Check if legitimate (monitoring, load testing). Consider manual IP block if malicious."
+      
+      # Traffic spike anomaly (>5x baseline)
+      - alert: TrafficSpikeAnomaly
+        expr: |
+          sum(rate(nginx_ingress_controller_requests[5m])) > 
+          5 * avg_over_time(sum(rate(nginx_ingress_controller_requests[5m]))[1h:5m])
+        for: 3m
+        labels:
+          severity: warning
+          category: ddos
+        annotations:
+          summary: "Traffic spike detected (>5x baseline)"
+          description: "Current request rate is >5x the 1-hour baseline. May indicate traffic surge or DDoS attack."
+          runbook: "Check traffic analytics dashboard. Verify if legitimate traffic spike (launch, promotion). Apply rate limiting if attack."
+      
+      # Ingress controller CPU saturation
+      - alert: IngressControllerCPUSaturation
+        expr: |
+          rate(container_cpu_usage_seconds_total{namespace="ingress-nginx",container="controller"}[5m]) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          category: ddos
+        annotations:
+          summary: "Ingress controller CPU saturated"
+          description: "Ingress controller CPU usage at {{ $value | humanizePercentage }}. May indicate DDoS attack overwhelming edge layer."
+          runbook: "Scale ingress controller replicas immediately. Review traffic patterns. Apply aggressive rate limiting."
+      
+      # Ingress controller memory pressure
+      - alert: IngressControllerMemoryPressure
+        expr: |
+          (
+            container_memory_working_set_bytes{namespace="ingress-nginx",container="controller"}
+            / container_spec_memory_limit_bytes{namespace="ingress-nginx",container="controller"}
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: ddos
+        annotations:
+          summary: "Ingress controller memory pressure"
+          description: "Ingress controller memory usage at {{ $value | humanizePercentage }}. May be exhausted by connection tracking."
+          runbook: "Monitor for OOM kills. Scale ingress controller if persistent. Check for memory leak or excessive connections."

@@ -21,6 +21,7 @@ Production operations, monitoring, security, and maintenance procedures.
 - [[kubernetes-scaling|Kubernetes Scaling]] - HPA, cluster autoscaling, resource management
 - [[kubernetes-troubleshooting|Kubernetes Troubleshooting]] - Common issues and debugging
 - [[kubernetes-disaster-recovery|Kubernetes Disaster Recovery]] - Backup, restore, failover
+- [[backup-recovery-runbook|Backup & Recovery Runbook]] - Automated backups, PITR, restore testing
 - [[kubernetes-cost-optimization|Kubernetes Cost Optimization]] - Cost reduction strategies
 - [[resource-quotas|Resource Quotas & Limits]] - Quota enforcement and OOM prevention
 
@@ -31,6 +32,7 @@ Production operations, monitoring, security, and maintenance procedures.
 - [[secrets-management|Secrets Management]] - Secure credential handling
 - [[security-scanning|Security Scanning]] - Automated security checks
 - [[waf-protection|WAF Protection]] - Application-level WAF and rate limiting
+- [[ddos-protection|DDoS Protection]] - DDoS mitigation and traffic analytics
 - [[observability|Observability]] - Distributed tracing
 
 ## Deployment
