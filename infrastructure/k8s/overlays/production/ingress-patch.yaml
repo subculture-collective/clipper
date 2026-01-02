@@ -13,7 +13,6 @@ metadata:
     nginx.ingress.kubernetes.io/limit-rps: "100"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "2"
     nginx.ingress.kubernetes.io/limit-connections: "20"
-    nginx.ingress.kubernetes.io/limit-rpm: "6000"
     
     # Connection Timeouts
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"

@@ -569,7 +569,7 @@ groups:
     interval: 30s
     rules:
       # High traffic volume (potential DDoS)
-      - alert: SuspiciouslyhighTrafficVolume
+      - alert: SuspiciouslyHighTrafficVolume
         expr: |
           sum(rate(nginx_ingress_controller_requests[1m])) > 1000
         for: 2m
