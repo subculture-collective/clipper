@@ -576,6 +576,52 @@ groups:
 
 This pre-computes the cache hit rate, improving dashboard load times when the metric is used in multiple panels.
 
+### 14. DDoS Protection & Traffic Analytics Dashboard (`ddos-traffic-analytics.json`) 🆕
+
+**Part of:** [Roadmap 5.0 Phase 5.4 - DDoS Protection](https://github.com/subculture-collective/clipper/issues/862)
+
+Real-time traffic monitoring and DDoS attack detection with comprehensive analytics.
+
+**Panels:**
+
+**DDoS Overview:**
+- Request Rate Overview - Total, 2xx, 4xx, 5xx requests per second
+- Requests by Status Code - Distribution pie chart
+
+**Rate Limiting & DDoS Protection:**
+- Rate Limit Hits (429 Responses) - Total and by endpoint
+- Top Rate-Limited IPs - 20 IPs with highest rate limit violations
+- IP Ban Activity - Abuse detection triggered bans
+- Connection Metrics - Active, reading, writing, waiting connections
+
+**Traffic Analysis:**
+- Top 50 IPs by Request Volume - Identifying traffic sources with gradient thresholds
+- Top Endpoints by Request Volume - Traffic distribution by path
+- Requests by HTTP Method - GET, POST, PUT, DELETE distribution
+- Traffic by Country - Geographic distribution (requires GeoIP)
+
+**Anomaly Detection:**
+- Traffic Spike Detection - Current rate vs 1h baseline vs 5x threshold
+- Error Rate Percentage - 4xx and 5xx error rates over time
+- High-Traffic IPs (>100 req/s) - Identifying potential attackers
+- Response Time Percentiles - P50, P95, P99 latency monitoring
+
+**Use Cases:**
+- Real-time DDoS attack detection
+- Traffic pattern analysis and anomaly identification
+- Rate limiting effectiveness monitoring
+- Geographic traffic distribution analysis
+- Incident response and investigation
+- Capacity planning and scaling decisions
+
+**Alert Integration:**
+- Integrated with `clipper_ddos_alerts` group in [alerts.yml](../alerts.yml)
+- Alerts fire for traffic spikes, high error rates, multiple IP bans, connection saturation
+
+**Related Documentation:**
+- [DDoS Protection Runbook](../../docs/operations/ddos-protection.md)
+- [WAF Protection](../../docs/operations/waf-protection.md)
+
 ## References
 
 - [Grafana Documentation](https://grafana.com/docs/)
