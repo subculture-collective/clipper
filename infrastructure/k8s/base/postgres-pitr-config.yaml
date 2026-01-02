@@ -166,6 +166,8 @@ spec:
           set -e
           
           # Merge PITR configuration into existing PostgreSQL configuration
+          # Note: This appends configuration settings. Ensure postgresql.conf from ConfigMap
+          # contains non-overlapping settings or settings that should override defaults.
           if [ -f /var/lib/postgresql/data/postgresql.conf ]; then
             echo "Appending PITR configuration to existing postgresql.conf"
             cat /config/postgresql.conf >> /var/lib/postgresql/data/postgresql.conf

@@ -304,6 +304,7 @@ Monitor backups in Grafana:
    kubectl exec -it statefulset/postgres -n clipper-production -- bash
    
    # Inside pod - Note: PGPASSWORD is exposed in process list, use with caution
+   # For more secure alternatives, consider using .pgpass file or connection service files
    export PGPASSWORD=<password>
    pg_restore -U clipper -d clipper_db -c -F c /tmp/backup.sql.gz
    

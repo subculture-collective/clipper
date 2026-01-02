@@ -70,6 +70,8 @@ data:
                 echo "Deleting old backup: $file"
                 gsutil rm "$file"
               fi
+            else
+              echo "Warning: Failed to parse date for $file, skipping cleanup"
             fi
           fi
         done
@@ -226,26 +228,31 @@ data:
     
     # Validate restore
     echo "Validating restored data..."
+    
+    # Query clips table and capture exit code
     CLIP_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql \
       -h "${POSTGRES_HOST}" \
       -U "${POSTGRES_USER}" \
       -d "${TEST_DB}" \
       -t -c "SELECT COUNT(*) FROM clips;" 2>&1)
+    CLIP_QUERY_EXIT=$?
     
     # Check if query failed (table doesn't exist or other errors)
-    if [ $? -ne 0 ] || [ -z "$CLIP_COUNT" ]; then
+    if [ $CLIP_QUERY_EXIT -ne 0 ] || [ -z "$CLIP_COUNT" ]; then
       echo "ERROR: Failed to query clips table. Restore likely failed."
       exit 1
     fi
     
+    # Query users table and capture exit code
     USER_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql \
       -h "${POSTGRES_HOST}" \
       -U "${POSTGRES_USER}" \
       -d "${TEST_DB}" \
       -t -c "SELECT COUNT(*) FROM users;" 2>&1)
+    USER_QUERY_EXIT=$?
     
     # Check if query failed
-    if [ $? -ne 0 ] || [ -z "$USER_COUNT" ]; then
+    if [ $USER_QUERY_EXIT -ne 0 ] || [ -z "$USER_COUNT" ]; then
       echo "ERROR: Failed to query users table. Restore likely failed."
       exit 1
     fi
