@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
-import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ConsentProvider } from './context/ConsentContext';
@@ -104,12 +103,11 @@ function App() {
   console.log('[App] Rendering...')
   return (
     <HelmetProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <ConsentProvider>
-            <ToastProvider>
-              <BrowserRouter>
-                <Suspense fallback={<LoadingFallback />}>
+      <AuthProvider>
+        <ConsentProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <Suspense fallback={<LoadingFallback />}>
                   <Routes>
                   <Route element={<AppLayout />}>
                     {/* Public Routes */}
@@ -504,7 +502,6 @@ function App() {
             </ToastProvider>
           </ConsentProvider>
         </AuthProvider>
-      </ThemeProvider>
     </HelmetProvider>
   );
 }

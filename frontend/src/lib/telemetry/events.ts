@@ -172,7 +172,6 @@ export const SettingsEvents = {
   
   // Preferences
   SETTINGS_VIEWED: 'settings_viewed',
-  THEME_CHANGED: 'theme_changed',
   LANGUAGE_CHANGED: 'language_changed',
   NOTIFICATION_PREFERENCES_CHANGED: 'notification_preferences_changed',
   

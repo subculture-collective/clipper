@@ -12,6 +12,9 @@ import { registerServiceWorker } from './lib/sw-register'
 // Polyfill Buffer for gray-matter
 globalThis.Buffer = Buffer;
 
+// Force dark mode - add 'dark' class to root element
+document.documentElement.classList.add('dark');
+
 // Add global error handler to catch any module errors
 window.addEventListener('error', (event) => {
   console.error('Global error caught:', {
