@@ -5,6 +5,11 @@
 # - Availability: 99.5% uptime
 # - Latency: P95 < 100ms (list), P95 < 50ms (detail)
 # - Error Rate: < 0.5%
+#
+# Related Issues (Roadmap 5.0 - Phase 5.3):
+# - #860 - Alerting Configuration
+# - #858 - Grafana Dashboards (metrics alignment)
+# - #805 - Observability Infrastructure
 
 groups:
   - name: clipper_slo_alerts

@@ -2,6 +2,11 @@
 
 This directory contains configuration for the optional monitoring stack using Prometheus, Grafana, and various exporters.
 
+**Related Issues (Roadmap 5.0 - Phase 5.3):**
+- [#860 - Alerting Configuration](https://github.com/subculture-collective/clipper/issues/860)
+- [#858 - Grafana Dashboards](https://github.com/subculture-collective/clipper/issues/858)
+- [#805 - Observability Infrastructure](https://github.com/subculture-collective/clipper/issues/805)
+
 ## Components
 
 - **Prometheus**: Metrics collection and alerting
@@ -36,6 +41,10 @@ Clipper has defined SLOs for reliability and performance. See [SLO Documentation
 4. Escalation to engineering leadership if not resolved within 30 minutes
 
 See [Alertmanager Setup Guide](./ALERTMANAGER_SETUP.md) for configuration details.
+
+**Testing Alerts:**
+- [Alert Testing in Staging](../docs/operations/alert-testing-staging.md) - Procedures for testing alerts before production
+- Test script: `./test-alerts.sh` - Automated testing tool for alert validation and routing tests
 
 ## Quick Start
 
@@ -509,6 +518,45 @@ curl -X POST http://localhost:9090/-/reload
 docker-compose -f docker-compose.monitoring.yml exec grafana \
   tar czf /var/lib/grafana/backup.tar.gz /var/lib/grafana/grafana.db
 ```
+
+## On-Call Rotation
+
+Clipper uses a structured on-call rotation to ensure 24/7 incident response coverage.
+
+**Key Resources:**
+- **On-Call Rotation Guide:** [docs/operations/on-call-rotation.md](../docs/operations/on-call-rotation.md)
+- **Quick Reference Card:** [docs/operations/on-call-quick-reference.md](../docs/operations/on-call-quick-reference.md)
+- **Alert Testing Procedures:** [docs/operations/alert-testing-staging.md](../docs/operations/alert-testing-staging.md)
+
+**On-Call Schedule:**
+- Rotation period: 1 week
+- Response times:
+  - P1 Critical: < 15 minutes
+  - P2 Warning: < 1 hour
+  - P3 Info: < 4 hours
+- Escalation: Auto-escalate per severity level
+- PagerDuty: Manages schedule and escalation policies
+
+**Before Your Shift:**
+- [ ] Review on-call rotation guide
+- [ ] Test PagerDuty notifications
+- [ ] Review recent incidents
+- [ ] Verify dashboard access
+- [ ] Read runbooks for common alerts
+
+**During Your Shift:**
+- Acknowledge alerts per SLA
+- Follow alert-specific runbooks
+- Update #incidents channel regularly
+- Escalate when needed
+- Document all actions
+
+**After Your Shift:**
+- Handoff to next on-call
+- File incident reports
+- Update runbooks with learnings
+
+See [On-Call Rotation Guide](../docs/operations/on-call-rotation.md) for complete procedures and responsibilities.
 
 ## Background Job Monitoring
 
