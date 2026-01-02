@@ -194,7 +194,7 @@ services:
 
     # Jaeger - Distributed Tracing
     jaeger:
-        image: jaegertracing/all-in-one:latest
+        image: jaegertracing/all-in-one:1.62
         container_name: clipper-jaeger
         restart: unless-stopped
         environment:
@@ -203,6 +203,7 @@ services:
             - BADGER_EPHEMERAL=false
             - BADGER_DIRECTORY_VALUE=/badger/data
             - BADGER_DIRECTORY_KEY=/badger/key
+            - BADGER_TTL=720h
         volumes:
             - jaeger_data:/badger
         ports:

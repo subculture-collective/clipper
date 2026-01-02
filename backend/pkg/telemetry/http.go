@@ -12,9 +12,15 @@ if client == nil {
 client = http.DefaultClient
 }
 
+// Determine the base transport, falling back to the default if nil
+transport := client.Transport
+if transport == nil {
+transport = http.DefaultTransport
+}
+
 // Create a new client with the same config but wrapped transport
 return &http.Client{
-Transport:     otelhttp.NewTransport(client.Transport),
+Transport:     otelhttp.NewTransport(transport),
 CheckRedirect: client.CheckRedirect,
 Jar:           client.Jar,
 Timeout:       client.Timeout,

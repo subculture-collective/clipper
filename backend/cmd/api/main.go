@@ -67,8 +67,6 @@ func main() {
 	}); initErr != nil {
 		log.Printf("WARNING: Failed to initialize telemetry: %v", initErr)
 	} else if cfg.Telemetry.Enabled {
-		log.Printf("Telemetry initialized: service=%s, endpoint=%s, sample_rate=%.2f",
-			cfg.Telemetry.ServiceName, cfg.Telemetry.OTLPEndpoint, cfg.Telemetry.TracesSampleRate)
 		defer func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()

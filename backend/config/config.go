@@ -563,7 +563,7 @@ func Load() (*Config, error) {
 			ServiceVersion:   getEnv("TELEMETRY_SERVICE_VERSION", ""),
 			OTLPEndpoint:     getEnv("TELEMETRY_OTLP_ENDPOINT", "localhost:4317"),
 			Insecure:         getEnvBool("TELEMETRY_INSECURE", true),
-			TracesSampleRate: getEnvFloat("TELEMETRY_TRACES_SAMPLE_RATE", 0.1),
+			TracesSampleRate: clampFloat(getEnvFloat("TELEMETRY_TRACES_SAMPLE_RATE", 0.1), 0.0, 1.0),
 			Environment:      getEnv("TELEMETRY_ENVIRONMENT", getEnv("ENVIRONMENT", "development")),
 		},
 	}
@@ -610,6 +610,17 @@ func getEnvInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+// clampFloat clamps a float64 value between min and max
+func clampFloat(value, min, max float64) float64 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
 }
 
 // collectStripeWebhookSecrets gathers the configured Stripe webhook secrets, supporting

@@ -4,6 +4,7 @@ import (
 "context"
 "fmt"
 "log"
+"sync"
 "time"
 
 "go.opentelemetry.io/otel"
@@ -27,13 +28,19 @@ TracesSampleRate float64
 Environment      string
 }
 
-var tracerProvider *sdktrace.TracerProvider
+var (
+tracerProvider *sdktrace.TracerProvider
+initOnce       sync.Once
+initError      error
+)
 
 // Init initializes OpenTelemetry with Jaeger exporter
+// This function is thread-safe and will only initialize once
 func Init(cfg *Config) error {
+initOnce.Do(func() {
 if !cfg.Enabled {
 log.Println("Telemetry disabled")
-return nil
+return
 }
 
 ctx := context.Background()
@@ -47,7 +54,8 @@ semconv.DeploymentEnvironmentKey.String(cfg.Environment),
 ),
 )
 if err != nil {
-return fmt.Errorf("failed to create resource: %w", err)
+initError = fmt.Errorf("failed to create resource: %w", err)
+return
 }
 
 // Set up OTLP trace exporter
@@ -60,7 +68,8 @@ opts = append(opts, otlptracegrpc.WithTLSCredentials(insecure.NewCredentials()))
 
 exporter, err := otlptracegrpc.New(ctx, opts...)
 if err != nil {
-return fmt.Errorf("failed to create trace exporter: %w", err)
+initError = fmt.Errorf("failed to create trace exporter: %w", err)
+return
 }
 
 // Create trace provider with batch processor and sampling
@@ -83,8 +92,9 @@ tracerProvider = tp
 
 log.Printf("Telemetry initialized: service=%s, endpoint=%s, sample_rate=%.2f", 
 cfg.ServiceName, cfg.OTLPEndpoint, cfg.TracesSampleRate)
+})
 
-return nil
+return initError
 }
 
 // Shutdown gracefully shuts down the tracer provider
@@ -93,9 +103,12 @@ if tracerProvider == nil {
 return nil
 }
 
-// Set a timeout for shutdown
-ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+// Set a timeout for shutdown only if the context has no deadline
+if _, ok := ctx.Deadline(); !ok {
+var cancel context.CancelFunc
+ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
 defer cancel()
+}
 
 if err := tracerProvider.Shutdown(ctx); err != nil {
 return fmt.Errorf("failed to shutdown tracer provider: %w", err)
