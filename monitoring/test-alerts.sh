@@ -91,7 +91,7 @@ validate_rules() {
     log_info "Checking alert labels..."
     required_labels=("severity")
     for label in "${required_labels[@]}"; do
-        if ! grep -q "severity:" alerts.yml; then
+        if ! grep -q "${label}:" alerts.yml; then
             log_error "Missing required label: $label"
             exit 1
         fi

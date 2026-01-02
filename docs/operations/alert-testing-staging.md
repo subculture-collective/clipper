@@ -2,10 +2,10 @@
 
 This document describes procedures for testing alert rules in the staging environment to ensure they fire correctly before deploying to production.
 
-**Related Issues:**
-- [#858 - Grafana Dashboards (Roadmap 5.0 Phase 5.3)](https://github.com/subculture-collective/clipper/issues/858)
+**Related Issues (Roadmap 5.0 - Phase 5.3):**
 - [#805 - Observability Infrastructure](https://github.com/subculture-collective/clipper/issues/805)
-- [#860 - Alerting Configuration (this issue)](https://github.com/subculture-collective/clipper/issues/860)
+- [#858 - Grafana Dashboards](https://github.com/subculture-collective/clipper/issues/858)
+- [#860 - Alerting Configuration](https://github.com/subculture-collective/clipper/issues/860)
 
 ## Overview
 
