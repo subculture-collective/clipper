@@ -148,7 +148,7 @@ header {
 ```
 
 **Note**: The Content-Security-Policy example above is a starting point. For production:
-- Remove 'unsafe-inline' and use nonces or hashes for inline scripts/styles
+- Ensure 'unsafe-inline' is not used; use nonces or hashes for inline scripts/styles if needed
 - Customize based on your application's requirements (CDN domains, analytics, etc.)
 - Test thoroughly to avoid breaking functionality
 
