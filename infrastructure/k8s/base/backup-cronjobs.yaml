@@ -112,13 +112,16 @@ data:
         done
     fi
     
+    # Get backup size before cleanup
+    BACKUP_SIZE=$(stat -f%z "${BACKUP_PATH}" 2>/dev/null || stat -c%s "${BACKUP_PATH}" 2>/dev/null || echo 0)
+    
     # Cleanup local backup
     rm -f "${BACKUP_PATH}"
     
     # Report metrics
     echo "Backup completed successfully at $(date)"
     echo "Sending metrics to Prometheus pushgateway..."
-    cat <<'METRICS' | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_backup
+    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_backup
     # TYPE postgres_backup_success gauge
     # HELP postgres_backup_success Whether the last backup succeeded (1 = success, 0 = failure)
     postgres_backup_success 1
@@ -127,7 +130,7 @@ data:
     postgres_backup_timestamp $(date +%s)
     # TYPE postgres_backup_size_bytes gauge
     # HELP postgres_backup_size_bytes Size of the backup file in bytes
-    postgres_backup_size_bytes $(stat -f%z "${BACKUP_PATH}" 2>/dev/null || stat -c%s "${BACKUP_PATH}" 2>/dev/null || echo 0)
+    postgres_backup_size_bytes ${BACKUP_SIZE}
     METRICS
     
     echo "=== PostgreSQL Backup Completed ==="
@@ -250,7 +253,7 @@ data:
     
     # Report metrics
     echo "Sending restore test metrics..."
-    cat <<'METRICS' | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_restore_test
+    cat <<METRICS | curl --data-binary @- http://prometheus-pushgateway.clipper-monitoring:9091/metrics/job/postgres_restore_test
     # TYPE postgres_restore_test_success gauge
     # HELP postgres_restore_test_success Whether the last restore test succeeded (1 = success, 0 = failure)
     postgres_restore_test_success ${SUCCESS}
