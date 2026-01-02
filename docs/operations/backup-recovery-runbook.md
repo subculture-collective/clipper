@@ -6,7 +6,7 @@ area: "operations"
 status: "stable"
 owner: "team-ops"
 version: "1.0"
-last_reviewed: 2026-01-02
+last_reviewed: 2025-01-02
 aliases: ["backup runbook", "recovery runbook", "pitr runbook"]
 related_issues:
   - "subculture-collective/clipper#863"
@@ -815,7 +815,7 @@ kubectl exec -it statefulset/postgres -n clipper-production -- \
 
 ---
 
-**Last Updated**: 2026-01-02  
+**Last Updated**: 2025-01-02  
 **Owner**: Operations Team  
 **Review Cycle**: Quarterly
 

@@ -78,10 +78,10 @@ data:
       aws s3 ls "s3://${BACKUP_BUCKET}/database/" | \
         grep "postgres-backup-" | \
         while read -r line; do
-          file_date=$(echo "$line" | awk '{print $1}')
-          days_old=$(( ($(date +%s) - $(date -d "$file_date" +%s)) / 86400 ))
+          file_datetime=$(echo "$line" | awk '{print $1" "$2}')
+          days_old=$(( ($(date +%s) - $(date -d "$file_datetime" +%s 2>/dev/null || echo 0)) / 86400 ))
           file_name=$(echo "$line" | awk '{print $4}')
-          if [ $days_old -gt $RETENTION_DAYS ]; then
+          if [ $days_old -gt $RETENTION_DAYS ] && [ -n "$file_name" ]; then
             echo "Deleting old backup: $file_name"
             aws s3 rm "s3://${BACKUP_BUCKET}/database/${file_name}"
           fi
