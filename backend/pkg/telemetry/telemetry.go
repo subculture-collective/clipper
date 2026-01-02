@@ -37,6 +37,10 @@ initError      error
 // Init initializes OpenTelemetry with Jaeger exporter
 // This function is thread-safe and will only initialize once
 func Init(cfg *Config) error {
+if cfg == nil {
+return fmt.Errorf("config cannot be nil")
+}
+
 initOnce.Do(func() {
 if !cfg.Enabled {
 log.Println("Telemetry disabled")
