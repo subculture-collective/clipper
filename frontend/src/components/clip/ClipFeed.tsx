@@ -151,12 +151,12 @@ export function ClipFeed({
 
     const sortLabelMap: Record<SortOption, string> = {
         trending: 'Trending',
-        hot: 'Hot',
         popular: 'Most Popular',
-        new: 'New',
-        top: 'Top',
+        new: 'Newest',
+        top: 'Top Rated',
         rising: 'Rising',
-        discussed: 'Discussed',
+        discussed: 'Most Discussed',
+        hot: 'Hot',
         views: 'Views',
     };
 

@@ -82,30 +82,6 @@ function MyComponent() {
 }
 ```
 
-### Theme System
-
-```tsx
-import { ThemeProvider, useTheme } from '@/context/ThemeContext';
-
-function App() {
-  return (
-    <ThemeProvider>
-      <YourApp />
-    </ThemeProvider>
-  );
-}
-
-function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  
-  return (
-    <Button onClick={() => setTheme('dark')}>
-      Toggle Dark Mode
-    </Button>
-  );
-}
-```
-
 ## 🎨 Design System
 
 ### Color Palette
@@ -134,13 +110,7 @@ function ThemeToggle() {
 
 ### Dark Mode
 
-The theme system supports three modes:
-
-- **Light**: Bright, high-contrast interface
-- **Dark**: Reduced eye strain in low-light
-- **System**: Matches OS preference
-
-Theme preference is persisted in localStorage.
+The application uses dark mode exclusively for a modern, comfortable viewing experience that reduces eye strain.
 
 ## 🔧 Component Props
 

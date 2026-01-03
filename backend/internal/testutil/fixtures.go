@@ -21,10 +21,11 @@ func TestUser() *models.User {
 	email := "test@example.com"
 	avatarURL := "https://example.com/avatar.png"
 	bio := "Test user bio"
+	twitchID := "test_twitch_123"
 
 	return &models.User{
 		ID:          uuid.New(),
-		TwitchID:    "test_twitch_123",
+		TwitchID:    &twitchID,
 		Username:    "testuser",
 		DisplayName: "Test User",
 		Email:       &email,
@@ -39,7 +40,8 @@ func TestUser() *models.User {
 // TestAdminUser creates a test admin user
 func TestAdminUser() *models.User {
 	user := TestUser()
-	user.TwitchID = "admin_twitch_456"
+	adminTwitchID := "admin_twitch_456"
+	user.TwitchID = &adminTwitchID
 	user.Username = "adminuser"
 	user.DisplayName = "Admin User"
 	email := "admin@example.com"

@@ -15,6 +15,7 @@ export function TopFeedPage() {
           description="Top rated clips"
           defaultSort="top"
           defaultTimeframe="day"
+          showSearch
         />
       </Container>
     </>

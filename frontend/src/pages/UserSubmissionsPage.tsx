@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Container, Spinner } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { getSubmissionStats, getUserSubmissions } from '../lib/submission-api';
@@ -149,29 +149,31 @@ export function UserSubmissionsPage() {
                         </div>
                     ) : (
                         <div className='space-y-4'>
-                            {submissions.map((submission) => (
-                                <div
-                                    key={submission.id}
-                                    className='md:flex-row bg-background-secondary hover:bg-background-tertiary flex flex-col gap-4 p-4 transition-colors rounded-lg'
-                                >
-                                    {/* Thumbnail */}
-                                    {submission.thumbnail_url && (
-                                        <div className='shrink-0'>
-                                            <img
-                                                src={submission.thumbnail_url}
-                                                alt={
-                                                    submission.title ||
-                                                    'Clip thumbnail'
-                                                }
-                                                className='md:w-48 object-cover w-full h-32 rounded'
-                                            />
-                                        </div>
-                                    )}
+                            {submissions.map((submission) => {
+                                // Only approved submissions can link to a clip page
+                                const isApproved = submission.status === 'approved' && submission.clip_id;
+                                const clipUrl = isApproved ? `/clip/${submission.clip_id}` : null;
+
+                                const cardContent = (
+                                    <>
+                                        {/* Thumbnail */}
+                                        {submission.thumbnail_url && (
+                                            <div className='shrink-0'>
+                                                <img
+                                                    src={submission.thumbnail_url}
+                                                    alt={
+                                                        submission.title ||
+                                                        'Clip thumbnail'
+                                                    }
+                                                    className='md:w-48 object-cover w-full h-32 rounded'
+                                                />
+                                            </div>
+                                        )}
 
                                     {/* Content */}
                                     <div className='flex-1 min-w-0'>
                                         <div className='flex items-start justify-between gap-2 mb-2'>
-                                            <h3 className='text-lg font-semibold truncate'>
+                                            <h3 className='text-lg font-semibold truncate hover:underline'>
                                                 {submission.custom_title ||
                                                     submission.title ||
                                                     'Untitled'}
@@ -247,8 +249,26 @@ export function UserSubmissionsPage() {
                                                 </div>
                                             )}
                                     </div>
-                                </div>
-                            ))}
+                                    </>
+                                );
+
+                                return clipUrl ? (
+                                    <Link
+                                        key={submission.id}
+                                        to={clipUrl}
+                                        className='md:flex-row bg-background-secondary hover:bg-background-tertiary flex flex-col gap-4 p-4 transition-colors rounded-lg'
+                                    >
+                                        {cardContent}
+                                    </Link>
+                                ) : (
+                                    <div
+                                        key={submission.id}
+                                        className='md:flex-row bg-background-secondary flex flex-col gap-4 p-4 rounded-lg'
+                                    >
+                                        {cardContent}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 

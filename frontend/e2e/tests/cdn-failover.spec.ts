@@ -275,9 +275,7 @@ test.describe('CDN Failover - UI Functionality', () => {
 
 // Tests that require failover mode enabled
 test.describe('CDN Failover - Failover Mode Tests', () => {
-  const failoverMode = process.env.E2E_CDN_FAILOVER_MODE === 'true';
-
-  test.skip(!failoverMode, 'Requires E2E_CDN_FAILOVER_MODE=true for failover tests');
+  // Enabled: CDN failover tests now use environment fixtures (E2E_CDN_FAILOVER_MODE will be set to true automatically)
 
   test('should display CDN status indicator when failing over', async ({ page, homePage }) => {
     await homePage.goto();

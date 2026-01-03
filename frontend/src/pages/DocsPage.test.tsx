@@ -12,6 +12,8 @@ vi.mock('../components', () => ({
   Card: ({ children, id, className }: { children: React.ReactNode; id?: string; className?: string }) => <div id={id} className={className}>{children}</div>,
   CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SEO: ({ title }: { title: string }) => <div data-testid="seo">{title}</div>,
+  DocHeader: ({ frontmatter }: { frontmatter: any }) => <div data-testid="doc-header">{frontmatter?.title}</div>,
+  DocTOC: ({ toc }: { toc: any[] }) => <div data-testid="doc-toc">{toc.length} items</div>,
 }));
 
 vi.mock('axios');
@@ -50,6 +52,10 @@ const mockDocsResponse = {
 const mockDocContent = {
   path: 'getting-started/user-guide.md',
   content: '# Getting Started\nSome content',
+  frontmatter: {
+    title: 'Getting Started',
+  },
+  toc: [],
   github_url: 'https://github.com/subculture-collective/clipper/blob/main/docs/getting-started.md',
 };
 
@@ -101,7 +107,7 @@ describe('DocsPage', () => {
     await user.click(docButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/getting started/i)).toBeInTheDocument();
+      expect(screen.getByTestId('doc-header')).toBeInTheDocument();
     });
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/docs/getting-started/user-guide.md');
   });

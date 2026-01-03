@@ -166,13 +166,6 @@ export function useAnalytics() {
   }, []);
 
   // Settings tracking
-  const trackThemeChange = useCallback((newTheme: string) => {
-    trackEvent(SettingsEvents.THEME_CHANGED, {
-      setting_name: 'theme',
-      new_value: newTheme,
-    });
-  }, []);
-
   const trackConsentUpdate = useCallback((consentType: string, value: boolean) => {
     trackEvent(SettingsEvents.CONSENT_UPDATED, {
       consent_type: consentType as 'essential' | 'functional' | 'analytics' | 'advertising',
@@ -213,7 +206,6 @@ export function useAnalytics() {
     trackNavLinkClick,
 
     // Settings
-    trackThemeChange,
     trackConsentUpdate,
 
     // Generic

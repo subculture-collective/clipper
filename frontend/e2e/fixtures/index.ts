@@ -15,6 +15,19 @@ import {
   deleteClip,
   deleteSubmission
 } from '../utils/db-seed';
+import {
+  createMultiUserContexts,
+  closeMultiUserContexts,
+  MultiUserContext,
+} from './multi-user-context';
+import {
+  apiRequest,
+  apiRequestJson,
+  createTestUser as apiCreateTestUser,
+  createTestClip as apiCreateTestClip,
+  createTestChannel as apiCreateTestChannel,
+  getApiUrl,
+} from './api-utils';
 
 /**
  * Custom Test Fixtures
@@ -54,6 +67,19 @@ type CustomFixtures = {
   authenticatedPage: Page;
   authenticatedUser: any;
   adminUser: any;
+
+  // Multi-user fixtures for testing permissions
+  multiUserContexts: Record<string, MultiUserContext>;
+
+  // API utilities
+  apiUrl: string;
+  apiUtils: {
+    request: (endpoint: string, options?: any) => Promise<Response>;
+    requestJson: (endpoint: string, options?: any) => Promise<any>;
+    createUser: (data?: any) => Promise<any>;
+    createClip: (data?: any) => Promise<any>;
+    createChannel: (data?: any) => Promise<any>;
+  };
 
   // Test data
   testUser: any;
@@ -274,6 +300,49 @@ export const test = base.extend<CustomFixtures>({
         console.warn('Could not delete test submission:', error);
       }
     }
+  },
+
+  /**
+   * Multi-user contexts fixture
+   * Creates isolated browser contexts for different test users
+   * Useful for testing role-based permissions and multi-user scenarios
+   */
+  multiUserContexts: async ({ browser }, use) => {
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+    const contexts = await createMultiUserContexts(browser, baseUrl, [
+      'admin',
+      'moderator',
+      'member',
+      'regular',
+      'secondary',
+    ]);
+
+    await use(contexts);
+
+    await closeMultiUserContexts(contexts);
+  },
+
+  /**
+   * API utilities fixture
+   * Provides helper functions for API requests in tests
+   */
+  apiUtils: async ({ page }, use) => {
+    await use({
+      request: (endpoint: string, options?: any) => apiRequest(page, endpoint, options),
+      requestJson: (endpoint: string, options?: any) => apiRequestJson(page, endpoint, options),
+      createUser: (data?: any) => apiCreateTestUser(page, data),
+      createClip: (data?: any) => apiCreateTestClip(page, data),
+      createChannel: (data?: any) => apiCreateTestChannel(page, data),
+    });
+  },
+
+  /**
+   * API URL fixture
+   * Provides the base API URL for the test environment
+   */
+  apiUrl: async ({ page }, use) => {
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+    await use(getApiUrl(baseUrl));
   },
 });
 

@@ -9,6 +9,7 @@ import { defineConfig, devices } from '@playwright/test';
  * - Retry logic (2 on CI, 0 locally)
  * - Parallel workers (4 on CI)
  * - Screenshot, video, and trace capture on failures
+ * - Global setup/teardown for test data management
  *
  * @see https://playwright.dev/docs/test-configuration
  */

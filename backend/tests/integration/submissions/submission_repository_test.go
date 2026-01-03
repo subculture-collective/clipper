@@ -79,9 +79,10 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 
 	// Create a test user using the correct Create method
 	email := testutil.RandomEmail()
+	twitchID := fmt.Sprintf("test_%d", time.Now().UnixNano())
 	testUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_%d", time.Now().UnixNano()),
+		TwitchID:    &twitchID,
 		Username:    fmt.Sprintf("testuser_%d", time.Now().UnixNano()),
 		DisplayName: "Test User for Submissions",
 		Email:       &email,
@@ -161,9 +162,10 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 
 		// Create a reviewer user
 		reviewerEmail := testutil.RandomEmail()
+		reviewerTwitchID := fmt.Sprintf("reviewer_%d", time.Now().UnixNano())
 		reviewer := &models.User{
 			ID:          uuid.New(),
-			TwitchID:    fmt.Sprintf("reviewer_%d", time.Now().UnixNano()),
+			TwitchID:    &reviewerTwitchID,
 			Username:    fmt.Sprintf("reviewer_%d", time.Now().UnixNano()),
 			DisplayName: "Reviewer",
 			Email:       &reviewerEmail,
@@ -204,9 +206,10 @@ func TestSubmissionRepositoryBasics(t *testing.T) {
 
 		// Create a reviewer user
 		reviewerEmail := testutil.RandomEmail()
+		reviewer2TwitchID := fmt.Sprintf("reviewer2_%d", time.Now().UnixNano())
 		reviewer := &models.User{
 			ID:          uuid.New(),
-			TwitchID:    fmt.Sprintf("reviewer2_%d", time.Now().UnixNano()),
+			TwitchID:    &reviewer2TwitchID,
 			Username:    fmt.Sprintf("reviewer2_%d", time.Now().UnixNano()),
 			DisplayName: "Reviewer 2",
 			Email:       &reviewerEmail,
@@ -247,9 +250,10 @@ func TestNSFWFlagPersistence(t *testing.T) {
 
 	// Create test user
 	email := testutil.RandomEmail()
+	nsfwTwitchID := fmt.Sprintf("test_nsfw_%d", time.Now().UnixNano())
 	testUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_nsfw_%d", time.Now().UnixNano()),
+		TwitchID:    &nsfwTwitchID,
 		Username:    fmt.Sprintf("nsfwuser_%d", time.Now().UnixNano()),
 		DisplayName: "NSFW Test User",
 		Email:       &email,
@@ -308,9 +312,10 @@ func TestCustomTitlesAndTagsStorage(t *testing.T) {
 
 	// Create test user
 	email := testutil.RandomEmail()
+	customTwitchID := fmt.Sprintf("test_custom_%d", time.Now().UnixNano())
 	testUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_custom_%d", time.Now().UnixNano()),
+		TwitchID:    &customTwitchID,
 		Username:    fmt.Sprintf("customuser_%d", time.Now().UnixNano()),
 		DisplayName: "Custom Metadata Test User",
 		Email:       &email,

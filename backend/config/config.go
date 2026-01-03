@@ -11,31 +11,31 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server       ServerConfig
-	Database     DatabaseConfig
-	Redis        RedisConfig
-	JWT          JWTConfig
-	Twitch       TwitchConfig
-	CORS         CORSConfig
-	OpenSearch   OpenSearchConfig
-	Stripe       StripeConfig
-	Sentry       SentryConfig
-	Email        EmailConfig
-	Embedding    EmbeddingConfig
-	FeatureFlags FeatureFlagsConfig
-	Karma        KarmaConfig
-	Jobs         JobsConfig
-	RateLimit    RateLimitConfig
-	Security     SecurityConfig
-	QueryLimits  QueryLimitsConfig
-	SearchLimits      SearchLimitsConfig
-	HybridSearch      HybridSearchConfig
-	CDN               CDNConfig
-	Mirror            MirrorConfig
-	Recommendations   RecommendationsConfig
-	Toxicity          ToxicityConfig
-	NSFW              NSFWConfig
-	Telemetry         TelemetryConfig
+	Server          ServerConfig
+	Database        DatabaseConfig
+	Redis           RedisConfig
+	JWT             JWTConfig
+	Twitch          TwitchConfig
+	CORS            CORSConfig
+	OpenSearch      OpenSearchConfig
+	Stripe          StripeConfig
+	Sentry          SentryConfig
+	Email           EmailConfig
+	Embedding       EmbeddingConfig
+	FeatureFlags    FeatureFlagsConfig
+	Karma           KarmaConfig
+	Jobs            JobsConfig
+	RateLimit       RateLimitConfig
+	Security        SecurityConfig
+	QueryLimits     QueryLimitsConfig
+	SearchLimits    SearchLimitsConfig
+	HybridSearch    HybridSearchConfig
+	CDN             CDNConfig
+	Mirror          MirrorConfig
+	Recommendations RecommendationsConfig
+	Toxicity        ToxicityConfig
+	NSFW            NSFWConfig
+	Telemetry       TelemetryConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -299,13 +299,13 @@ type NSFWConfig struct {
 
 // TelemetryConfig holds distributed tracing configuration
 type TelemetryConfig struct {
-	Enabled           bool    // Enable OpenTelemetry tracing (default: false)
-	ServiceName       string  // Service name for traces (default: "clipper-backend")
-	ServiceVersion    string  // Service version for traces
-	OTLPEndpoint      string  // OTLP endpoint for trace export (default: "localhost:4317")
-	Insecure          bool    // Use insecure connection to OTLP endpoint (default: true for development)
-	TracesSampleRate  float64 // Sampling rate for traces (0.0 to 1.0, default: 0.1 for 10%)
-	Environment       string  // Environment name (development, staging, production)
+	Enabled          bool    // Enable OpenTelemetry tracing (default: false)
+	ServiceName      string  // Service name for traces (default: "clipper-backend")
+	ServiceVersion   string  // Service version for traces
+	OTLPEndpoint     string  // OTLP endpoint for trace export (default: "localhost:4317")
+	Insecure         bool    // Use insecure connection to OTLP endpoint (default: true for development)
+	TracesSampleRate float64 // Sampling rate for traces (0.0 to 1.0, default: 0.1 for 10%)
+	Environment      string  // Environment name (development, staging, production)
 }
 
 // getEnvBool gets a boolean environment variable with a fallback default value
