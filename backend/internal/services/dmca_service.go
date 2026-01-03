@@ -586,40 +586,220 @@ func (s *DMCAService) terminateUser(ctx context.Context, userID uuid.UUID) error
 	return nil
 }
 
-// Helper methods for email sending (to be implemented with templates)
+// Helper methods for email sending
 func (s *DMCAService) sendTakedownNoticeConfirmation(ctx context.Context, notice *models.DMCANotice) error {
-	// TODO: Implement with email template
-	return nil
+	subject := fmt.Sprintf("DMCA Takedown Notice Received - Notice #%s", notice.ID.String()[:8])
+	
+	data := map[string]interface{}{
+		"NoticeID":        notice.ID.String()[:8],
+		"ComplainantName": notice.ComplainantName,
+		"SubmittedAt":     notice.SubmittedAt.Format("January 2, 2006 at 3:04 PM MST"),
+		"URLCount":        len(notice.InfringingURLs),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCATakedownConfirmationEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{notice.ComplainantEmail},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "takedown-notice", "confirmation"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) notifyDMCAAgent(ctx context.Context, notice *models.DMCANotice) error {
-	// TODO: Implement notification to DMCA agent
-	return nil
+	subject := fmt.Sprintf("🚨 New DMCA Notice #%s - Review Required", notice.ID.String()[:8])
+	
+	data := map[string]interface{}{
+		"NoticeID":         notice.ID.String()[:8],
+		"ComplainantName":  notice.ComplainantName,
+		"ComplainantEmail": notice.ComplainantEmail,
+		"SubmittedAt":      notice.SubmittedAt.Format("January 2, 2006 at 3:04 PM MST"),
+		"URLCount":         len(notice.InfringingURLs),
+		"ReviewURL":        fmt.Sprintf("%s/admin/dmca/notices/%s", s.baseURL, notice.ID),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCAAgentNotificationEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{s.dmcaAgentEmail},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "agent-notification", "admin"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendNoticeIncompleteEmail(ctx context.Context, notice *models.DMCANotice) error {
-	// TODO: Implement with email template
-	return nil
+	subject := fmt.Sprintf("DMCA Notice Incomplete - Notice #%s", notice.ID.String()[:8])
+	
+	notes := "Your notice did not meet the requirements for a valid DMCA takedown request."
+	if notice.Notes != nil && *notice.Notes != "" {
+		notes = *notice.Notes
+	}
+	
+	data := map[string]interface{}{
+		"NoticeID":        notice.ID.String()[:8],
+		"ComplainantName": notice.ComplainantName,
+		"Notes":           notes,
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCANoticeIncompleteEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{notice.ComplainantEmail},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "notice-incomplete"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendTakedownProcessedEmail(ctx context.Context, notice *models.DMCANotice, clipIDs []uuid.UUID) error {
-	// TODO: Implement with email template
-	return nil
+	subject := fmt.Sprintf("DMCA Takedown Processed - Notice #%s", notice.ID.String()[:8])
+	
+	data := map[string]interface{}{
+		"NoticeID":        notice.ID.String()[:8],
+		"ComplainantName": notice.ComplainantName,
+		"ClipsRemoved":    len(clipIDs),
+		"ProcessedAt":     time.Now().Format("January 2, 2006 at 3:04 PM MST"),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCATakedownProcessedEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{notice.ComplainantEmail},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "takedown-processed"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendStrike1WarningEmail(ctx context.Context, userID uuid.UUID, strike *models.DMCAStrike) error {
-	// TODO: Implement with email template
-	return nil
+	// Get user information
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	
+	if user.Email == nil {
+		return nil // User has no email
+	}
+	
+	subject := "⚠️ Copyright Strike Warning - Strike 1 of 3"
+	
+	data := map[string]interface{}{
+		"UserName":         user.Username,
+		"StrikeID":         strike.ID.String()[:8],
+		"NoticeID":         strike.DMCANoticeID.String()[:8],
+		"IssuedAt":         strike.IssuedAt.Format("January 2, 2006 at 3:04 PM MST"),
+		"ExpiresAt":        strike.ExpiresAt.Format("January 2, 2006"),
+		"CounterNoticeURL": fmt.Sprintf("%s/dmca/counter-notice/%s", s.baseURL, strike.DMCANoticeID),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCAStrike1Email(data)
+	
+	req := EmailRequest{
+		To:      []string{*user.Email},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "strike-1", "warning"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendStrike2SuspensionEmail(ctx context.Context, userID uuid.UUID, strike *models.DMCAStrike, suspendUntil time.Time) error {
-	// TODO: Implement with email template
-	return nil
+	// Get user information
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	
+	if user.Email == nil {
+		return nil // User has no email
+	}
+	
+	subject := "🚫 Account Suspended - Copyright Strike 2 of 3"
+	
+	data := map[string]interface{}{
+		"UserName":         user.Username,
+		"StrikeID":         strike.ID.String()[:8],
+		"NoticeID":         strike.DMCANoticeID.String()[:8],
+		"IssuedAt":         strike.IssuedAt.Format("January 2, 2006 at 3:04 PM MST"),
+		"SuspendUntil":     suspendUntil.Format("January 2, 2006 at 3:04 PM MST"),
+		"CounterNoticeURL": fmt.Sprintf("%s/dmca/counter-notice/%s", s.baseURL, strike.DMCANoticeID),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCAStrike2Email(data)
+	
+	req := EmailRequest{
+		To:      []string{*user.Email},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "strike-2", "suspension"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendStrike3TerminationEmail(ctx context.Context, userID uuid.UUID, strike *models.DMCAStrike) error {
-	// TODO: Implement with email template
-	return nil
+	// Get user information
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	
+	if user.Email == nil {
+		return nil // User has no email
+	}
+	
+	subject := "❌ Account Terminated - Copyright Strike 3 of 3"
+	
+	data := map[string]interface{}{
+		"UserName": user.Username,
+		"StrikeID": strike.ID.String()[:8],
+		"NoticeID": strike.DMCANoticeID.String()[:8],
+		"IssuedAt": strike.IssuedAt.Format("January 2, 2006 at 3:04 PM MST"),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCAStrike3Email(data)
+	
+	req := EmailRequest{
+		To:      []string{*user.Email},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "strike-3", "termination"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 // ==============================================================================
@@ -961,21 +1141,124 @@ func (s *DMCAService) GetUserStrikes(ctx context.Context, userID uuid.UUID) ([]m
 // ==============================================================================
 
 func (s *DMCAService) sendCounterNoticeConfirmationEmail(ctx context.Context, cn *models.DMCACounterNotice) error {
-	// TODO: Implement with email template
-	return nil
+	subject := fmt.Sprintf("DMCA Counter-Notice Received - #%s", cn.ID.String()[:8])
+	
+	data := map[string]interface{}{
+		"UserName":        cn.UserName,
+		"CounterNoticeID": cn.ID.String()[:8],
+		"NoticeID":        cn.DMCANoticeID.String()[:8],
+		"SubmittedAt":     cn.SubmittedAt.Format("January 2, 2006 at 3:04 PM MST"),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCACounterNoticeConfirmationEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{cn.UserEmail},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "counter-notice", "confirmation"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendCounterNoticeToComplainantEmail(ctx context.Context, cn *models.DMCACounterNotice, notice *models.DMCANotice) error {
-	// TODO: Implement with email template
-	return nil
+	subject := fmt.Sprintf("DMCA Counter-Notice Filed - Notice #%s", notice.ID.String()[:8])
+	
+	waitingPeriodEnds := time.Now().AddDate(0, 0, 14) // 14 days from now
+	if cn.WaitingPeriodEnds != nil {
+		waitingPeriodEnds = *cn.WaitingPeriodEnds
+	}
+	
+	data := map[string]interface{}{
+		"ComplainantName":   notice.ComplainantName,
+		"NoticeID":          notice.ID.String()[:8],
+		"CounterNoticeID":   cn.ID.String()[:8],
+		"UserName":          cn.UserName,
+		"UserAddress":       cn.UserAddress,
+		"ForwardedAt":       time.Now().Format("January 2, 2006 at 3:04 PM MST"),
+		"WaitingPeriodEnds": waitingPeriodEnds.Format("January 2, 2006"),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCACounterNoticeToComplainantEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{notice.ComplainantEmail},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "counter-notice", "complainant"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendContentReinstatedEmail(ctx context.Context, userID uuid.UUID, cn *models.DMCACounterNotice) error {
-	// TODO: Implement with email template
-	return nil
+	// Get user information
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	
+	if user.Email == nil {
+		return nil // User has no email
+	}
+	
+	subject := "✅ Content Reinstated - Counter-Notice Successful"
+	
+	contentURL := fmt.Sprintf("%s/content/%s", s.baseURL, cn.RemovedMaterialURL)
+	if strings.Contains(cn.RemovedMaterialURL, "://") {
+		contentURL = cn.RemovedMaterialURL
+	}
+	
+	data := map[string]interface{}{
+		"UserName":        user.Username,
+		"CounterNoticeID": cn.ID.String()[:8],
+		"ReinstatedAt":    time.Now().Format("January 2, 2006 at 3:04 PM MST"),
+		"ContentURL":      contentURL,
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCAContentReinstatedEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{*user.Email},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "content-reinstated", "user"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
 
 func (s *DMCAService) sendComplainantReinstatedEmail(ctx context.Context, notice *models.DMCANotice, cn *models.DMCACounterNotice) error {
-	// TODO: Implement with email template
-	return nil
+	subject := fmt.Sprintf("Content Reinstated - Notice #%s", notice.ID.String()[:8])
+	
+	data := map[string]interface{}{
+		"ComplainantName": notice.ComplainantName,
+		"NoticeID":        notice.ID.String()[:8],
+		"CounterNoticeID": cn.ID.String()[:8],
+		"ReinstatedAt":    time.Now().Format("January 2, 2006 at 3:04 PM MST"),
+	}
+	
+	htmlBody, textBody := s.emailService.prepareDMCAComplainantReinstatedEmail(data)
+	
+	req := EmailRequest{
+		To:      []string{notice.ComplainantEmail},
+		Subject: subject,
+		Data: map[string]interface{}{
+			"HTML": htmlBody,
+			"Text": textBody,
+		},
+		Tags: []string{"dmca", "content-reinstated", "complainant"},
+	}
+	
+	return s.emailService.SendEmail(ctx, req)
 }
