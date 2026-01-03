@@ -851,3 +851,422 @@ func TestPrepareEmailContentWithNewTemplates(t *testing.T) {
 		})
 	}
 }
+
+// ==============================================================================
+// DMCA Email Template Tests
+// ==============================================================================
+
+// TestPrepareDMCATakedownConfirmationEmail tests DMCA takedown confirmation email
+func TestPrepareDMCATakedownConfirmationEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"NoticeID":        "12345678",
+		"ComplainantName": "John Doe",
+		"SubmittedAt":     "January 1, 2024 at 12:00 PM MST",
+		"URLCount":        3,
+	}
+
+	htmlBody, textBody := service.prepareDMCATakedownConfirmationEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "DMCA Notice Received")
+	assert.Contains(t, htmlBody, "John Doe")
+	assert.Contains(t, htmlBody, "12345678")
+	assert.Contains(t, htmlBody, "January 1, 2024 at 12:00 PM MST")
+	assert.Contains(t, htmlBody, "3")
+	assert.Contains(t, htmlBody, "What happens next")
+	assert.Contains(t, htmlBody, "dmca@example.com")
+
+	// Check text content
+	assert.Contains(t, textBody, "DMCA Takedown Notice Received")
+	assert.Contains(t, textBody, "John Doe")
+	assert.Contains(t, textBody, "12345678")
+	assert.Contains(t, textBody, "3")
+}
+
+// TestPrepareDMCAAgentNotificationEmail tests DMCA agent notification email
+func TestPrepareDMCAAgentNotificationEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"NoticeID":         "12345678",
+		"ComplainantName":  "John Doe",
+		"ComplainantEmail": "john@example.com",
+		"SubmittedAt":      "January 1, 2024 at 12:00 PM MST",
+		"URLCount":         5,
+		"ReviewURL":        "http://localhost:5173/admin/dmca/notices/123",
+	}
+
+	htmlBody, textBody := service.prepareDMCAAgentNotificationEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "New DMCA Notice")
+	assert.Contains(t, htmlBody, "John Doe")
+	assert.Contains(t, htmlBody, "john@example.com")
+	assert.Contains(t, htmlBody, "12345678")
+	assert.Contains(t, htmlBody, "Review Notice")
+	assert.Contains(t, htmlBody, "http://localhost:5173/admin/dmca/notices/123")
+
+	// Check text content
+	assert.Contains(t, textBody, "New DMCA Notice")
+	assert.Contains(t, textBody, "john@example.com")
+	assert.Contains(t, textBody, "Review Notice")
+}
+
+// TestPrepareDMCAStrike1Email tests strike 1 warning email
+func TestPrepareDMCAStrike1Email(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"UserName":         "testuser",
+		"StrikeID":         "87654321",
+		"NoticeID":         "12345678",
+		"IssuedAt":         "January 1, 2024 at 12:00 PM MST",
+		"ExpiresAt":        "January 1, 2025",
+		"CounterNoticeURL": "http://localhost:5173/dmca/counter-notice/123",
+	}
+
+	htmlBody, textBody := service.prepareDMCAStrike1Email(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Copyright Strike")
+	assert.Contains(t, htmlBody, "Strike 1 of 3")
+	assert.Contains(t, htmlBody, "testuser")
+	assert.Contains(t, htmlBody, "87654321")
+	assert.Contains(t, htmlBody, "This is a warning")
+	assert.Contains(t, htmlBody, "File Counter-Notice")
+	assert.Contains(t, htmlBody, "http://localhost:5173/dmca/counter-notice/123")
+
+	// Check text content
+	assert.Contains(t, textBody, "Copyright Strike")
+	assert.Contains(t, textBody, "Strike 1 of 3")
+	assert.Contains(t, textBody, "testuser")
+	assert.Contains(t, textBody, "This is a warning")
+}
+
+// TestPrepareDMCAStrike2Email tests strike 2 suspension email
+func TestPrepareDMCAStrike2Email(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"UserName":         "testuser",
+		"StrikeID":         "87654321",
+		"NoticeID":         "12345678",
+		"IssuedAt":         "January 1, 2024 at 12:00 PM MST",
+		"SuspendUntil":     "January 8, 2024 at 12:00 PM MST",
+		"CounterNoticeURL": "http://localhost:5173/dmca/counter-notice/123",
+	}
+
+	htmlBody, textBody := service.prepareDMCAStrike2Email(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Account Suspended")
+	assert.Contains(t, htmlBody, "Strike 2 of 3")
+	assert.Contains(t, htmlBody, "testuser")
+	assert.Contains(t, htmlBody, "Final Warning")
+	assert.Contains(t, htmlBody, "January 8, 2024")
+	assert.Contains(t, htmlBody, "File Counter-Notice")
+
+	// Check text content
+	assert.Contains(t, textBody, "Account Suspended")
+	assert.Contains(t, textBody, "Strike 2 of 3")
+	assert.Contains(t, textBody, "FINAL WARNING")
+}
+
+// TestPrepareDMCAStrike3Email tests strike 3 termination email
+func TestPrepareDMCAStrike3Email(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"UserName": "testuser",
+		"StrikeID": "87654321",
+		"NoticeID": "12345678",
+		"IssuedAt": "January 1, 2024 at 12:00 PM MST",
+	}
+
+	htmlBody, textBody := service.prepareDMCAStrike3Email(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Account Terminated")
+	assert.Contains(t, htmlBody, "Strike 3 of 3")
+	assert.Contains(t, htmlBody, "testuser")
+	assert.Contains(t, htmlBody, "permanently terminated")
+	assert.Contains(t, htmlBody, "Account Access Revoked")
+
+	// Check text content
+	assert.Contains(t, textBody, "Account Terminated")
+	assert.Contains(t, textBody, "Strike 3 of 3")
+	assert.Contains(t, textBody, "permanently terminated")
+}
+
+// TestPrepareDMCACounterNoticeConfirmationEmail tests counter-notice confirmation email
+func TestPrepareDMCACounterNoticeConfirmationEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"UserName":        "testuser",
+		"CounterNoticeID": "abcd1234",
+		"NoticeID":        "12345678",
+		"SubmittedAt":     "January 1, 2024 at 12:00 PM MST",
+	}
+
+	htmlBody, textBody := service.prepareDMCACounterNoticeConfirmationEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Counter-Notice Received")
+	assert.Contains(t, htmlBody, "testuser")
+	assert.Contains(t, htmlBody, "abcd1234")
+	assert.Contains(t, htmlBody, "12345678")
+	assert.Contains(t, htmlBody, "What happens next")
+	assert.Contains(t, htmlBody, "consented to jurisdiction")
+
+	// Check text content
+	assert.Contains(t, textBody, "Counter-Notice Received")
+	assert.Contains(t, textBody, "testuser")
+	assert.Contains(t, textBody, "abcd1234")
+}
+
+// TestPrepareDMCACounterNoticeToComplainantEmail tests counter-notice to complainant email
+func TestPrepareDMCACounterNoticeToComplainantEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"ComplainantName":   "John Doe",
+		"NoticeID":          "12345678",
+		"CounterNoticeID":   "abcd1234",
+		"UserName":          "testuser",
+		"UserAddress":       "123 Main St, City, State 12345",
+		"ForwardedAt":       "January 1, 2024 at 12:00 PM MST",
+		"WaitingPeriodEnds": "January 15, 2024",
+	}
+
+	htmlBody, textBody := service.prepareDMCACounterNoticeToComplainantEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Counter-Notice Filed")
+	assert.Contains(t, htmlBody, "John Doe")
+	assert.Contains(t, htmlBody, "testuser")
+	assert.Contains(t, htmlBody, "123 Main St")
+	assert.Contains(t, htmlBody, "January 15, 2024")
+	assert.Contains(t, htmlBody, "file a lawsuit")
+
+	// Check text content
+	assert.Contains(t, textBody, "Counter-Notice Filed")
+	assert.Contains(t, textBody, "John Doe")
+	assert.Contains(t, textBody, "file a lawsuit")
+}
+
+// TestPrepareDMCAContentReinstatedEmail tests content reinstated email for user
+func TestPrepareDMCAContentReinstatedEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"UserName":        "testuser",
+		"CounterNoticeID": "abcd1234",
+		"ReinstatedAt":    "January 15, 2024 at 12:00 PM MST",
+		"ContentURL":      "http://localhost:5173/clips/123",
+	}
+
+	htmlBody, textBody := service.prepareDMCAContentReinstatedEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Content Reinstated")
+	assert.Contains(t, htmlBody, "testuser")
+	assert.Contains(t, htmlBody, "abcd1234")
+	assert.Contains(t, htmlBody, "Good news")
+	assert.Contains(t, htmlBody, "View Content")
+	assert.Contains(t, htmlBody, "strike associated with this content has been removed")
+
+	// Check text content
+	assert.Contains(t, textBody, "Content Reinstated")
+	assert.Contains(t, textBody, "testuser")
+	assert.Contains(t, textBody, "Good news")
+}
+
+// TestPrepareDMCAComplainantReinstatedEmail tests reinstatement notification to complainant
+func TestPrepareDMCAComplainantReinstatedEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"ComplainantName": "John Doe",
+		"NoticeID":        "12345678",
+		"CounterNoticeID": "abcd1234",
+		"ReinstatedAt":    "January 15, 2024 at 12:00 PM MST",
+	}
+
+	htmlBody, textBody := service.prepareDMCAComplainantReinstatedEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Content Reinstated")
+	assert.Contains(t, htmlBody, "John Doe")
+	assert.Contains(t, htmlBody, "12345678")
+	assert.Contains(t, htmlBody, "abcd1234")
+	assert.Contains(t, htmlBody, "Your Rights")
+	assert.Contains(t, htmlBody, "DMCA safe harbor")
+
+	// Check text content
+	assert.Contains(t, textBody, "Content Reinstated")
+	assert.Contains(t, textBody, "John Doe")
+	assert.Contains(t, textBody, "Your Rights")
+}
+
+// TestPrepareDMCATakedownProcessedEmail tests takedown processed email
+func TestPrepareDMCATakedownProcessedEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"NoticeID":        "12345678",
+		"ComplainantName": "John Doe",
+		"ClipsRemoved":    5,
+		"ProcessedAt":     "January 1, 2024 at 12:00 PM MST",
+	}
+
+	htmlBody, textBody := service.prepareDMCATakedownProcessedEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "DMCA Takedown Processed")
+	assert.Contains(t, htmlBody, "John Doe")
+	assert.Contains(t, htmlBody, "12345678")
+	assert.Contains(t, htmlBody, "5 clips")
+	assert.Contains(t, htmlBody, "content has been removed")
+
+	// Check text content
+	assert.Contains(t, textBody, "DMCA Takedown Processed")
+	assert.Contains(t, textBody, "5 clips")
+	assert.Contains(t, textBody, "content has been removed")
+}
+
+// TestPrepareDMCANoticeIncompleteEmail tests incomplete notice email
+func TestPrepareDMCANoticeIncompleteEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "dmca@example.com",
+		FromName:         "DMCA Agent",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"NoticeID":        "12345678",
+		"ComplainantName": "John Doe",
+		"Notes":           "Missing required signature",
+	}
+
+	htmlBody, textBody := service.prepareDMCANoticeIncompleteEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "DMCA Notice Incomplete")
+	assert.Contains(t, htmlBody, "John Doe")
+	assert.Contains(t, htmlBody, "12345678")
+	assert.Contains(t, htmlBody, "Missing required signature")
+	assert.Contains(t, htmlBody, "DMCA Guidelines")
+
+	// Check text content
+	assert.Contains(t, textBody, "DMCA Notice Incomplete")
+	assert.Contains(t, textBody, "Missing required signature")
+}

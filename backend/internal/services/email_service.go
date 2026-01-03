@@ -2064,3 +2064,970 @@ If you have any questions or concerns, please contact our support team. We're he
 
 	return s.SendEmail(ctx, req)
 }
+
+// ==============================================================================
+// DMCA Email Templates
+// ==============================================================================
+
+// prepareDMCATakedownConfirmationEmail prepares the takedown notice confirmation email
+func (s *EmailService) prepareDMCATakedownConfirmationEmail(data map[string]interface{}) (html, text string) {
+	noticeID := data["NoticeID"]
+	complainantName := data["ComplainantName"]
+	submittedAt := data["SubmittedAt"]
+	urlCount := data["URLCount"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Takedown Notice Received</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">⚖️ DMCA Notice Received</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Dear <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            We have received your DMCA takedown notice and it is being reviewed by our team.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #667eea;">
+            <h3 style="margin-top: 0; color: #667eea;">Notice Details</h3>
+            <p style="margin: 5px 0;"><strong>Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Submitted:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>URLs Reported:</strong> %v</p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>What happens next:</strong>
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;">Our team will review your notice within 24-48 hours</li>
+            <li style="margin-bottom: 10px;">If valid, the reported content will be removed</li>
+            <li style="margin-bottom: 10px;">You will be notified when action is taken</li>
+            <li style="margin-bottom: 10px;">The content owner may file a counter-notice</li>
+        </ul>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>Important:</strong> Submitting false or fraudulent DMCA notices may result in legal consequences under penalty of perjury (17 USC § 512(f)).
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            If you have questions, please contact our DMCA agent at <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, complainantName, noticeID, submittedAt, urlCount, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Takedown Notice Received
+
+Dear %s,
+
+We have received your DMCA takedown notice and it is being reviewed by our team.
+
+Notice Details:
+- Notice ID: %s
+- Submitted: %s
+- URLs Reported: %v
+
+What happens next:
+- Our team will review your notice within 24-48 hours
+- If valid, the reported content will be removed
+- You will be notified when action is taken
+- The content owner may file a counter-notice
+
+IMPORTANT: Submitting false or fraudulent DMCA notices may result in legal consequences under penalty of perjury (17 USC § 512(f)).
+
+If you have questions, please contact our DMCA agent at %s
+`, complainantName, noticeID, submittedAt, urlCount, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCAAgentNotificationEmail prepares the DMCA agent notification email
+func (s *EmailService) prepareDMCAAgentNotificationEmail(data map[string]interface{}) (html, text string) {
+	noticeID := data["NoticeID"]
+	complainantName := data["ComplainantName"]
+	complainantEmail := data["ComplainantEmail"]
+	submittedAt := data["SubmittedAt"]
+	urlCount := data["URLCount"]
+	reviewURL := data["ReviewURL"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New DMCA Notice - Action Required</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #f5576c 0%%, #f093fb 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">🚨 New DMCA Notice</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>Action Required:</strong> A new DMCA takedown notice has been submitted and requires review.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #f5576c;">
+            <h3 style="margin-top: 0; color: #f5576c;">Notice Information</h3>
+            <p style="margin: 5px 0;"><strong>Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Submitted:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Complainant:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Contact:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>URLs Reported:</strong> %v</p>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s" style="display: inline-block; background: #f5576c; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Review Notice</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            This is an automated notification. Please review and take action within 24-48 hours.
+        </p>
+    </div>
+</body>
+</html>
+`, noticeID, submittedAt, complainantName, complainantEmail, urlCount, reviewURL)
+
+	text = fmt.Sprintf(`New DMCA Notice - Action Required
+
+A new DMCA takedown notice has been submitted and requires review.
+
+Notice Information:
+- Notice ID: %s
+- Submitted: %s
+- Complainant: %s
+- Contact: %s
+- URLs Reported: %v
+
+Review Notice: %s
+
+This is an automated notification. Please review and take action within 24-48 hours.
+`, noticeID, submittedAt, complainantName, complainantEmail, urlCount, reviewURL)
+
+	return html, text
+}
+
+// prepareDMCANoticeIncompleteEmail prepares the incomplete notice email
+func (s *EmailService) prepareDMCANoticeIncompleteEmail(data map[string]interface{}) (html, text string) {
+	noticeID := data["NoticeID"]
+	complainantName := data["ComplainantName"]
+	notes := data["Notes"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Notice Incomplete</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #ffc107 0%%, #ff9800 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">⚠️ DMCA Notice Incomplete</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Dear <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            We have reviewed your DMCA takedown notice (ID: <strong>%s</strong>) and found it to be incomplete or invalid.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #ffc107;">
+            <h3 style="margin-top: 0; color: #ffc107;">Reason</h3>
+            <p style="margin: 0;">%s</p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>Next Steps:</strong>
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;">Review the requirements for a valid DMCA notice</li>
+            <li style="margin-bottom: 10px;">Ensure all required information is provided</li>
+            <li style="margin-bottom: 10px;">Submit a new notice if applicable</li>
+        </ul>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s/legal/dmca" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">DMCA Guidelines</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            If you have questions, please contact our DMCA agent at <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, complainantName, noticeID, notes, s.baseURL, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Notice Incomplete
+
+Dear %s,
+
+We have reviewed your DMCA takedown notice (ID: %s) and found it to be incomplete or invalid.
+
+Reason:
+%s
+
+Next Steps:
+- Review the requirements for a valid DMCA notice
+- Ensure all required information is provided
+- Submit a new notice if applicable
+
+DMCA Guidelines: %s/legal/dmca
+
+If you have questions, please contact our DMCA agent at %s
+`, complainantName, noticeID, notes, s.baseURL, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCATakedownProcessedEmail prepares the takedown processed confirmation email
+func (s *EmailService) prepareDMCATakedownProcessedEmail(data map[string]interface{}) (html, text string) {
+	noticeID := data["NoticeID"]
+	complainantName := data["ComplainantName"]
+	clipsRemoved := data["ClipsRemoved"]
+	processedAt := data["ProcessedAt"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Takedown Processed</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #28a745 0%%, #20c997 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">✅ DMCA Takedown Processed</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Dear <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Your DMCA takedown notice has been processed and the infringing content has been removed.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745;">
+            <h3 style="margin-top: 0; color: #28a745;">Action Taken</h3>
+            <p style="margin: 5px 0;"><strong>Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Processed:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Content Removed:</strong> %v clips</p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>What happens next:</strong>
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;">The content owner has been notified</li>
+            <li style="margin-bottom: 10px;">The content owner may file a counter-notice within 10-14 business days</li>
+            <li style="margin-bottom: 10px;">If a counter-notice is filed, you will be notified and may pursue legal action</li>
+            <li style="margin-bottom: 10px;">If no counter-notice is filed, the content will remain removed</li>
+        </ul>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                <strong>Note:</strong> This action was taken in accordance with the Digital Millennium Copyright Act (17 USC § 512).
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            If you have questions, please contact our DMCA agent at <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, complainantName, noticeID, processedAt, clipsRemoved, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Takedown Processed
+
+Dear %s,
+
+Your DMCA takedown notice has been processed and the infringing content has been removed.
+
+Action Taken:
+- Notice ID: %s
+- Processed: %s
+- Content Removed: %v clips
+
+What happens next:
+- The content owner has been notified
+- The content owner may file a counter-notice within 10-14 business days
+- If a counter-notice is filed, you will be notified and may pursue legal action
+- If no counter-notice is filed, the content will remain removed
+
+Note: This action was taken in accordance with the Digital Millennium Copyright Act (17 USC § 512).
+
+If you have questions, please contact our DMCA agent at %s
+`, complainantName, noticeID, processedAt, clipsRemoved, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCAStrike1Email prepares the first strike warning email
+func (s *EmailService) prepareDMCAStrike1Email(data map[string]interface{}) (html, text string) {
+	userName := data["UserName"]
+	strikeID := data["StrikeID"]
+	noticeID := data["NoticeID"]
+	issuedAt := data["IssuedAt"]
+	expiresAt := data["ExpiresAt"]
+	counterNoticeURL := data["CounterNoticeURL"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Copyright Strike - Warning</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #ffc107 0%%, #ff9800 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">⚠️ Copyright Strike Warning</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hello <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            You have received a copyright strike due to a valid DMCA takedown notice filed against your content.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #ffc107;">
+            <h3 style="margin-top: 0; color: #ffc107;">Strike 1 of 3</h3>
+            <p style="margin: 5px 0;"><strong>Strike ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Issued:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Expires:</strong> %s</p>
+        </div>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #856404;">
+                <strong>This is a warning.</strong> Your account remains in good standing, but repeated violations will result in:
+            </p>
+            <ul style="margin: 10px 0 0 20px; color: #856404;">
+                <li><strong>Strike 2:</strong> 7-day account suspension</li>
+                <li><strong>Strike 3:</strong> Permanent account termination</li>
+            </ul>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>Believe this is a mistake?</strong>
+        </p>
+        <p style="font-size: 14px; margin-bottom: 20px;">
+            If you believe your content was removed in error or you have permission to use the copyrighted material, you may file a counter-notice within 10 business days.
+        </p>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">File Counter-Notice</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Learn more: <a href="%s/legal/dmca" style="color: #667eea;">DMCA Policy</a><br>
+            Questions? Contact our DMCA agent: <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, userName, strikeID, noticeID, issuedAt, expiresAt, counterNoticeURL, s.baseURL, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Copyright Strike - Warning
+
+Hello %s,
+
+You have received a copyright strike due to a valid DMCA takedown notice filed against your content.
+
+Strike 1 of 3:
+- Strike ID: %s
+- Notice ID: %s
+- Issued: %s
+- Expires: %s
+
+This is a warning. Your account remains in good standing, but repeated violations will result in:
+- Strike 2: 7-day account suspension
+- Strike 3: Permanent account termination
+
+Believe this is a mistake?
+
+If you believe your content was removed in error or you have permission to use the copyrighted material, you may file a counter-notice within 10 business days.
+
+File Counter-Notice: %s
+
+Learn more: %s/legal/dmca
+Questions? Contact our DMCA agent: %s
+`, userName, strikeID, noticeID, issuedAt, expiresAt, counterNoticeURL, s.baseURL, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCAStrike2Email prepares the second strike suspension email
+func (s *EmailService) prepareDMCAStrike2Email(data map[string]interface{}) (html, text string) {
+	userName := data["UserName"]
+	strikeID := data["StrikeID"]
+	noticeID := data["NoticeID"]
+	issuedAt := data["IssuedAt"]
+	suspendUntil := data["SuspendUntil"]
+	counterNoticeURL := data["CounterNoticeURL"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Copyright Strike - Account Suspended</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #f5576c 0%%, #f093fb 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">🚫 Account Suspended</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hello <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            You have received a second copyright strike and your account has been suspended for 7 days.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #f5576c;">
+            <h3 style="margin-top: 0; color: #f5576c;">Strike 2 of 3</h3>
+            <p style="margin: 5px 0;"><strong>Strike ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Issued:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Suspension Ends:</strong> %s</p>
+        </div>
+        
+        <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #721c24;">
+                <strong>⚠️ Final Warning:</strong> One more copyright strike will result in <strong>permanent account termination</strong>.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            During the suspension:
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;">You cannot submit new content</li>
+            <li style="margin-bottom: 10px;">You cannot comment or vote</li>
+            <li style="margin-bottom: 10px;">Your existing content remains visible</li>
+        </ul>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>Believe this is a mistake?</strong>
+        </p>
+        <p style="font-size: 14px; margin-bottom: 20px;">
+            You may file a counter-notice if you believe your content was removed in error.
+        </p>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">File Counter-Notice</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Learn more: <a href="%s/legal/dmca" style="color: #667eea;">DMCA Policy</a><br>
+            Questions? Contact our DMCA agent: <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, userName, strikeID, noticeID, issuedAt, suspendUntil, counterNoticeURL, s.baseURL, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Copyright Strike - Account Suspended
+
+Hello %s,
+
+You have received a second copyright strike and your account has been suspended for 7 days.
+
+Strike 2 of 3:
+- Strike ID: %s
+- Notice ID: %s
+- Issued: %s
+- Suspension Ends: %s
+
+⚠️ FINAL WARNING: One more copyright strike will result in permanent account termination.
+
+During the suspension:
+- You cannot submit new content
+- You cannot comment or vote
+- Your existing content remains visible
+
+Believe this is a mistake?
+
+You may file a counter-notice if you believe your content was removed in error.
+
+File Counter-Notice: %s
+
+Learn more: %s/legal/dmca
+Questions? Contact our DMCA agent: %s
+`, userName, strikeID, noticeID, issuedAt, suspendUntil, counterNoticeURL, s.baseURL, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCAStrike3Email prepares the third strike termination email
+func (s *EmailService) prepareDMCAStrike3Email(data map[string]interface{}) (html, text string) {
+	userName := data["UserName"]
+	strikeID := data["StrikeID"]
+	noticeID := data["NoticeID"]
+	issuedAt := data["IssuedAt"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Copyright Strike - Account Terminated</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #dc3545 0%%, #c82333 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">❌ Account Terminated</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hello <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Your account has been permanently terminated due to repeated copyright violations.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545;">
+            <h3 style="margin-top: 0; color: #dc3545;">Strike 3 of 3</h3>
+            <p style="margin: 5px 0;"><strong>Strike ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Issued:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Status:</strong> Permanently Terminated</p>
+        </div>
+        
+        <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #721c24;">
+                <strong>Account Access Revoked</strong><br>
+                Your account has been permanently disabled. All content has been removed and you can no longer access our platform.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            This action was taken in accordance with our Terms of Service and the Digital Millennium Copyright Act after three validated copyright infringement claims.
+        </p>
+        
+        <p style="font-size: 14px; margin-bottom: 20px;">
+            If you believe this action was taken in error, you may contact our legal team for appeal consideration.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Learn more: <a href="%s/legal/dmca" style="color: #667eea;">DMCA Policy</a><br>
+            Appeal: <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, userName, strikeID, noticeID, issuedAt, s.baseURL, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Copyright Strike - Account Terminated
+
+Hello %s,
+
+Your account has been permanently terminated due to repeated copyright violations.
+
+Strike 3 of 3:
+- Strike ID: %s
+- Notice ID: %s
+- Issued: %s
+- Status: Permanently Terminated
+
+Account Access Revoked:
+Your account has been permanently disabled. All content has been removed and you can no longer access our platform.
+
+This action was taken in accordance with our Terms of Service and the Digital Millennium Copyright Act after three validated copyright infringement claims.
+
+If you believe this action was taken in error, you may contact our legal team for appeal consideration.
+
+Learn more: %s/legal/dmca
+Appeal: %s
+`, userName, strikeID, noticeID, issuedAt, s.baseURL, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCACounterNoticeConfirmationEmail prepares counter-notice confirmation email
+func (s *EmailService) prepareDMCACounterNoticeConfirmationEmail(data map[string]interface{}) (html, text string) {
+	userName := data["UserName"]
+	counterNoticeID := data["CounterNoticeID"]
+	noticeID := data["NoticeID"]
+	submittedAt := data["SubmittedAt"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Counter-Notice Received</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">📝 Counter-Notice Received</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hello <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            We have received your DMCA counter-notice and it is being processed.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #667eea;">
+            <h3 style="margin-top: 0; color: #667eea;">Counter-Notice Details</h3>
+            <p style="margin: 5px 0;"><strong>Counter-Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Original Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Submitted:</strong> %s</p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>What happens next:</strong>
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;">We will forward your counter-notice to the original complainant</li>
+            <li style="margin-bottom: 10px;">The complainant has 10-14 business days to file a lawsuit</li>
+            <li style="margin-bottom: 10px;">If no lawsuit is filed, your content will be restored</li>
+            <li style="margin-bottom: 10px;">If a lawsuit is filed, your content will remain removed pending resolution</li>
+        </ul>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                <strong>Important:</strong> By submitting this counter-notice, you have consented to jurisdiction in federal court and to service of process from the complainant.
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Questions? Contact our DMCA agent: <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, userName, counterNoticeID, noticeID, submittedAt, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Counter-Notice Received
+
+Hello %s,
+
+We have received your DMCA counter-notice and it is being processed.
+
+Counter-Notice Details:
+- Counter-Notice ID: %s
+- Original Notice ID: %s
+- Submitted: %s
+
+What happens next:
+- We will forward your counter-notice to the original complainant
+- The complainant has 10-14 business days to file a lawsuit
+- If no lawsuit is filed, your content will be restored
+- If a lawsuit is filed, your content will remain removed pending resolution
+
+Important: By submitting this counter-notice, you have consented to jurisdiction in federal court and to service of process from the complainant.
+
+Questions? Contact our DMCA agent: %s
+`, userName, counterNoticeID, noticeID, submittedAt, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCACounterNoticeToComplainantEmail prepares notification to complainant about counter-notice
+func (s *EmailService) prepareDMCACounterNoticeToComplainantEmail(data map[string]interface{}) (html, text string) {
+	complainantName := data["ComplainantName"]
+	noticeID := data["NoticeID"]
+	counterNoticeID := data["CounterNoticeID"]
+	userName := data["UserName"]
+	userAddress := data["UserAddress"]
+	forwardedAt := data["ForwardedAt"]
+	waitingPeriodEnds := data["WaitingPeriodEnds"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMCA Counter-Notice Filed</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #ffc107 0%%, #ff9800 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">⚖️ Counter-Notice Filed</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Dear <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            A DMCA counter-notice has been filed in response to your takedown notice.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #ffc107;">
+            <h3 style="margin-top: 0; color: #ffc107;">Counter-Notice Information</h3>
+            <p style="margin: 5px 0;"><strong>Your Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Counter-Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Filed By:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Address:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Forwarded:</strong> %s</p>
+        </div>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #856404;">
+                <strong>Action Required by %s:</strong><br>
+                You must file a lawsuit against the content owner if you wish to keep the content removed. If we do not receive notice of legal action by this date, the content will be restored.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>Your Options:</strong>
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;"><strong>File a lawsuit</strong> against the content owner and notify us</li>
+            <li style="margin-bottom: 10px;"><strong>Take no action</strong> and the content will be restored after the waiting period</li>
+        </ul>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                <strong>Legal Notice:</strong> This counter-notice was submitted under penalty of perjury (17 USC § 512(g)). We recommend consulting with legal counsel regarding your options.
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Questions? Contact our DMCA agent: <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, complainantName, noticeID, counterNoticeID, userName, userAddress, forwardedAt, waitingPeriodEnds, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`DMCA Counter-Notice Filed
+
+Dear %s,
+
+A DMCA counter-notice has been filed in response to your takedown notice.
+
+Counter-Notice Information:
+- Your Notice ID: %s
+- Counter-Notice ID: %s
+- Filed By: %s
+- Address: %s
+- Forwarded: %s
+
+Action Required by %s:
+You must file a lawsuit against the content owner if you wish to keep the content removed. If we do not receive notice of legal action by this date, the content will be restored.
+
+Your Options:
+- File a lawsuit against the content owner and notify us
+- Take no action and the content will be restored after the waiting period
+
+Legal Notice: This counter-notice was submitted under penalty of perjury (17 USC § 512(g)). We recommend consulting with legal counsel regarding your options.
+
+Questions? Contact our DMCA agent: %s
+`, complainantName, noticeID, counterNoticeID, userName, userAddress, forwardedAt, waitingPeriodEnds, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCAContentReinstatedEmail prepares content reinstated notification for user
+func (s *EmailService) prepareDMCAContentReinstatedEmail(data map[string]interface{}) (html, text string) {
+	userName := data["UserName"]
+	counterNoticeID := data["CounterNoticeID"]
+	reinstatedAt := data["ReinstatedAt"]
+	contentURL := data["ContentURL"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Reinstated</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #28a745 0%%, #20c997 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">✅ Content Reinstated</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hello <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Good news! Your content has been reinstated following the DMCA counter-notice process.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745;">
+            <h3 style="margin-top: 0; color: #28a745;">Reinstatement Details</h3>
+            <p style="margin: 5px 0;"><strong>Counter-Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Reinstated:</strong> %s</p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            The complainant did not file a lawsuit within the required timeframe, and your content is now live again.
+        </p>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s" style="display: inline-block; background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Content</a>
+        </p>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                <strong>Note:</strong> The copyright strike associated with this content has been removed from your account.
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Questions? Contact our DMCA agent: <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, userName, counterNoticeID, reinstatedAt, contentURL, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`Content Reinstated
+
+Hello %s,
+
+Good news! Your content has been reinstated following the DMCA counter-notice process.
+
+Reinstatement Details:
+- Counter-Notice ID: %s
+- Reinstated: %s
+
+The complainant did not file a lawsuit within the required timeframe, and your content is now live again.
+
+View Content: %s
+
+Note: The copyright strike associated with this content has been removed from your account.
+
+Questions? Contact our DMCA agent: %s
+`, userName, counterNoticeID, reinstatedAt, contentURL, s.fromEmail)
+
+	return html, text
+}
+
+// prepareDMCAComplainantReinstatedEmail prepares notification to complainant about content reinstatement
+func (s *EmailService) prepareDMCAComplainantReinstatedEmail(data map[string]interface{}) (html, text string) {
+	complainantName := data["ComplainantName"]
+	noticeID := data["NoticeID"]
+	counterNoticeID := data["CounterNoticeID"]
+	reinstatedAt := data["ReinstatedAt"]
+
+	html = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Reinstated - No Legal Action Filed</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">ℹ️ Content Reinstated</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Dear <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            The content removed under your DMCA notice has been reinstated.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #667eea;">
+            <h3 style="margin-top: 0; color: #667eea;">Reinstatement Details</h3>
+            <p style="margin: 5px 0;"><strong>Original Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Counter-Notice ID:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Reinstated:</strong> %s</p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            As we did not receive notice of legal action filed against the content owner within the required timeframe, we have reinstated the content in accordance with the DMCA safe harbor provisions (17 USC § 512(g)(2)(C)).
+        </p>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                <strong>Your Rights:</strong> You may still pursue legal action against the content owner if you believe your copyright has been infringed. Platform actions are separate from your legal remedies.
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            Questions? Contact our DMCA agent: <a href="mailto:%s" style="color: #667eea;">%s</a>
+        </p>
+    </div>
+</body>
+</html>
+`, complainantName, noticeID, counterNoticeID, reinstatedAt, s.fromEmail, s.fromEmail)
+
+	text = fmt.Sprintf(`Content Reinstated - No Legal Action Filed
+
+Dear %s,
+
+The content removed under your DMCA notice has been reinstated.
+
+Reinstatement Details:
+- Original Notice ID: %s
+- Counter-Notice ID: %s
+- Reinstated: %s
+
+As we did not receive notice of legal action filed against the content owner within the required timeframe, we have reinstated the content in accordance with the DMCA safe harbor provisions (17 USC § 512(g)(2)(C)).
+
+Your Rights: You may still pursue legal action against the content owner if you believe your copyright has been infringed. Platform actions are separate from your legal remedies.
+
+Questions? Contact our DMCA agent: %s
+`, complainantName, noticeID, counterNoticeID, reinstatedAt, s.fromEmail)
+
+	return html, text
+}
