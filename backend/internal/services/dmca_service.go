@@ -1287,14 +1287,19 @@ func (s *DMCAService) buildContentURL(materialURL string) string {
 	// Parse the URL to validate it
 	parsedURL, err := url.Parse(materialURL)
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
-		// If invalid or relative URL, construct from base URL
-		return fmt.Sprintf("%s/content/%s", s.baseURL, materialURL)
+		// If invalid or relative URL, sanitize and construct from base URL
+		// Remove any path traversal attempts and special characters
+		safePath := strings.ReplaceAll(materialURL, "..", "")
+		safePath = strings.TrimPrefix(safePath, "/")
+		return fmt.Sprintf("%s/content/%s", s.baseURL, safePath)
 	}
 	
 	// Ensure the URL uses a safe scheme (http or https)
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		// Invalid scheme, construct safe URL from base
-		return fmt.Sprintf("%s/content/%s", s.baseURL, materialURL)
+		// Invalid scheme, sanitize and construct safe URL from base
+		safePath := strings.ReplaceAll(materialURL, "..", "")
+		safePath = strings.TrimPrefix(safePath, "/")
+		return fmt.Sprintf("%s/content/%s", s.baseURL, safePath)
 	}
 	
 	return materialURL
