@@ -66,9 +66,10 @@ func TestAdminReportsEndpoints(t *testing.T) {
 
 	// Create test admin user
 	adminEmail := "admin@test.com"
+	adminTwitchID := "test_admin_" + uuid.New().String()
 	adminUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    "test_admin_" + uuid.New().String(),
+		TwitchID:    &adminTwitchID,
 		Username:    "testadmin",
 		DisplayName: "Test Admin",
 		Email:       &adminEmail,
@@ -82,9 +83,10 @@ func TestAdminReportsEndpoints(t *testing.T) {
 
 	// Create test regular user (for reporter)
 	userEmail := "user@test.com"
+	userTwitchID := "test_user_" + uuid.New().String()
 	regularUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    "test_user_" + uuid.New().String(),
+		TwitchID:    &userTwitchID,
 		Username:    "testuser",
 		DisplayName: "Test User",
 		Email:       &userEmail,

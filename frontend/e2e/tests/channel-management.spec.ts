@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 // Helper: perform fetch from page context so route mocks can intercept
 async function apiRequest(page: import('@playwright/test').Page, path: string, options: { method?: string; data?: any } = {}) {
@@ -305,23 +305,73 @@ test.describe('Channel Management', () => {
     expect(getResponse.status).toBe(404);
   });
 
-  test('non-owner should not be able to delete channel', async ({ page }) => {
-    // This test would require creating a second user context
-    // Skipping for now as it requires more complex setup
-    test.skip();
+  test.skip('non-owner should not be able to delete channel', async ({ page, multiUserContexts }) => {
+    // TODO: Requires backend API for channel management
+    // Now using fixture-based multi-user setup
+    const primaryPage = page;
+    const secondaryContext = multiUserContexts.moderator;
+    const secondaryPage = secondaryContext.page;
+
+    // Create a channel as the primary user
+    const channel = await apiRequest(primaryPage, '/api/v1/chat/channels', {
+      method: 'POST',
+      data: { name: `test-channel-${Date.now()}`, description: 'Test channel' },
+    }).then((res) => res.json());
+
+    const channelId = channel.id;
+
+    // Try to delete as non-owner
+    const deleteResponse = await apiRequest(secondaryPage, `/api/v1/chat/channels/${channelId}`, {
+      method: 'DELETE',
+    });
+
+    // Should get 403 Forbidden
+    expect(deleteResponse.status).toBe(403);
+
+    // Verify channel still exists
+    const getResponse = await apiRequest(primaryPage, `/api/v1/chat/channels/${channelId}`);
+    expect(getResponse.ok).toBeTruthy();
   });
 
-  test('admin should be able to remove members but not owner', async ({ page }) => {
-    // This test would require:
-    // 1. Creating a channel as user A (owner)
-    // 2. Adding user B as admin
-    // 3. Adding user C as member
-    // 4. Logging in as user B
-    // 5. Trying to remove user C (should succeed)
-    // 6. Trying to remove user A (owner) (should fail)
+  test.skip('admin should be able to remove members but not owner', async ({ page, multiUserContexts }) => {
+    // TODO: Requires backend API for channel management
+    // Now using fixture-based multi-user setup
+    const ownerPage = page;
+    const adminContext = multiUserContexts.moderator;
+    const memberContext = multiUserContexts.regular;
+    const adminPage = adminContext.page;
+    const memberPage = memberContext.page;
 
-    // Skipping for now as it requires multi-user setup
-    test.skip();
+    // Create channel as owner
+    const channel = await apiRequest(ownerPage, '/api/v1/chat/channels', {
+      method: 'POST',
+      data: { name: `admin-test-${Date.now()}`, description: 'Test' },
+    }).then((res) => res.json());
+    const channelId = channel.id;
+
+    // Add admin user
+    await apiRequest(ownerPage, `/api/v1/chat/channels/${channelId}/members`, {
+      method: 'POST',
+      data: { userId: adminContext.user.id, role: 'admin' },
+    });
+
+    // Add member user
+    await apiRequest(ownerPage, `/api/v1/chat/channels/${channelId}/members`, {
+      method: 'POST',
+      data: { userId: memberContext.user.id, role: 'member' },
+    });
+
+    // Admin removes member (should succeed)
+    const removeResponse = await apiRequest(adminPage, `/api/v1/chat/channels/${channelId}/members/${memberContext.user.id}`, {
+      method: 'DELETE',
+    });
+    expect(removeResponse.ok).toBeTruthy();
+
+    // Admin tries to remove owner (should fail)
+    const removeOwnerResponse = await apiRequest(adminPage, `/api/v1/chat/channels/${channelId}/members/${ownerPage.user?.id || 'owner-id'}`, {
+      method: 'DELETE',
+    });
+    expect(removeOwnerResponse.status).toBe(403);
   });
 
   test.afterEach(async ({ page }) => {
@@ -339,18 +389,91 @@ test.describe('Channel Management', () => {
 });
 
 test.describe('Channel Member Permissions', () => {
-  test('member should not see admin controls', async ({ page }) => {
-    // This would require multi-user setup
-    test.skip();
+  test.skip('member should not see admin controls', async ({ page, multiUserContexts }) => {
+    // TODO: Requires backend API and UI implementation
+    // Now using fixture-based multi-user setup
+    const ownerPage = page;
+    const memberContext = multiUserContexts.regular;
+    const memberPage = memberContext.page;
+
+    // Create channel and add member
+    const channel = await apiRequest(ownerPage, '/api/v1/chat/channels', {
+      method: 'POST',
+      data: { name: `member-perm-${Date.now()}`, description: 'Test' },
+    }).then((res) => res.json());
+
+    await apiRequest(ownerPage, `/api/v1/chat/channels/${channel.id}/members`, {
+      method: 'POST',
+      data: { userId: memberContext.user.id, role: 'member' },
+    });
+
+    // Navigate to channel as member
+    await memberPage.goto(`/channels/${channel.id}`);
+
+    // Verify admin controls are not visible
+    const adminControls = memberPage.locator('[data-testid="admin-controls"], .admin-panel');
+    await expect(adminControls).toHaveCount(0);
   });
 
-  test('moderator should not be able to update roles', async ({ page }) => {
-    // This would require multi-user setup
-    test.skip();
+  test.skip('moderator should not be able to update roles', async ({ page, multiUserContexts }) => {
+    // TODO: Requires backend API for channel management
+    // Now using fixture-based multi-user setup
+    const ownerPage = page;
+    const modContext = multiUserContexts.moderator;
+    const targetContext = multiUserContexts.regular;
+    const modPage = modContext.page;
+
+    // Create channel
+    const channel = await apiRequest(ownerPage, '/api/v1/chat/channels', {
+      method: 'POST',
+      data: { name: `mod-perm-${Date.now()}`, description: 'Test' },
+    }).then((res) => res.json());
+
+    // Add mod
+    await apiRequest(ownerPage, `/api/v1/chat/channels/${channel.id}/members`, {
+      method: 'POST',
+      data: { userId: modContext.user.id, role: 'moderator' },
+    });
+
+    // Add target member
+    await apiRequest(ownerPage, `/api/v1/chat/channels/${channel.id}/members`, {
+      method: 'POST',
+      data: { userId: targetContext.user.id, role: 'member' },
+    });
+
+    // Mod tries to update target role (should fail)
+    const updateResponse = await apiRequest(modPage, `/api/v1/chat/channels/${channel.id}/members/${targetContext.user.id}`, {
+      method: 'PATCH',
+      data: { role: 'moderator' },
+    });
+    expect(updateResponse.status).toBe(403);
   });
 
-  test('only owner and admin can add members', async ({ page }) => {
-    // This would require multi-user setup
-    test.skip();
+  test.skip('only owner and admin can add members', async ({ page, multiUserContexts }) => {
+    // TODO: Requires backend API for channel management
+    // Now using fixture-based multi-user setup
+    const ownerPage = page;
+    const memberContext = multiUserContexts.regular;
+    const newUserContext = multiUserContexts.secondary;
+    const memberPage = memberContext.page;
+
+    // Create channel
+    const channel = await apiRequest(ownerPage, '/api/v1/chat/channels', {
+      method: 'POST',
+      data: { name: `add-member-${Date.now()}`, description: 'Test' },
+    }).then((res) => res.json());
+
+    // Add regular member
+    await apiRequest(ownerPage, `/api/v1/chat/channels/${channel.id}/members`, {
+      method: 'POST',
+      data: { userId: memberContext.user.id, role: 'member' },
+    });
+
+    // Member tries to add new member (should fail)
+    const addResponse = await apiRequest(memberPage, `/api/v1/chat/channels/${channel.id}/members`, {
+      method: 'POST',
+      data: { userId: newUserContext.user.id, role: 'member' },
+    });
+    expect(addResponse.status).toBe(403);
   });
 });

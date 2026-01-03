@@ -85,9 +85,10 @@ func CreateTestUser(t *testing.T, db *database.DB, username string) *models.User
 		trimmedUsername = trimmedUsername[:maxUsernameLen]
 	}
 
+	twitchID := fmt.Sprintf("test_%s_%s", trimmedUsername, suffix)
 	user := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_%s_%s", trimmedUsername, suffix),
+		TwitchID:    &twitchID,
 		Username:    username,
 		DisplayName: fmt.Sprintf("Test User %s", username),
 		AvatarURL:   &avatarURL,

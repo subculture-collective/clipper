@@ -1,10 +1,13 @@
-.PHONY: help install dev build test clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging
+.PHONY: help install dev build test test-help test-setup test-teardown test-unit test-integration clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+test-help: ## Show quick test commands reference
+	@cd backend && bash test-commands.sh
 
 install: ## Install all dependencies
 	@echo "Installing backend dependencies..."
@@ -24,7 +27,9 @@ build: ## Build backend, frontend, and mobile
 	cd mobile && npm run ios -- --configuration Release || echo "⚠ Mobile iOS build skipped (requires macOS)"
 	@echo "✓ Build complete"
 
-test-setup: ## Set up test environment (containers + migrations)
+test-setup: ## Set up test environment (containers + migrations + env)
+	@echo "Setting up test environment configuration..."
+	@cd backend && bash setup-test-env.sh
 	@echo "Starting test containers (Postgres + Redis + OpenSearch)..."
 	docker compose -f docker-compose.test.yml up -d
 	@echo "Waiting for test Postgres on localhost:5437..."
@@ -56,6 +61,7 @@ test-setup: ## Set up test environment (containers + migrations)
 	else \
 		echo "Warning: test-seed-e2e.sh not found"; \
 	fi
+	@echo "✓ Test environment ready"
 
 test-teardown: ## Tear down test environment (containers)
 	@echo "Stopping test containers..."
@@ -66,17 +72,14 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 	@if [ "$(INTEGRATION)" = "1" ] || [ "$(E2E)" = "1" ]; then \
 		$(MAKE) test-setup; \
 	fi
-	@echo "Running backend unit tests..."
-	@if [ "$(INTEGRATION)" = "1" ] || [ "$(E2E)" = "1" ]; then \
-		cd backend && go test -tags=integration ./...; \
-	else \
-		cd backend && go test ./...; \
-	fi
+	@echo "Running backend tests with verbose output..."
+	@cd backend && INTEGRATION=$(INTEGRATION) E2E=$(E2E) bash run-tests-verbose.sh
 	@if [ "$(E2E)" = "1" ]; then \
-		echo "Starting backend API for E2E..."; \
+		echo "Starting backend API for frontend E2E..."; \
 		mkdir -p .tmp; \
 		(\
 			cd backend && \
+			set -a && source .env.test && set +a && \
 			PORT=8080 \
 			GIN_MODE=release \
 			BASE_URL=http://localhost:5173 \
@@ -100,7 +103,7 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 		echo "Stopping backend API..."; \
 		if [ -f .tmp/backend-e2e.pid ]; then kill $$(cat .tmp/backend-e2e.pid) || true; rm -f .tmp/backend-e2e.pid; fi; \
 	else \
-		echo "Skipping E2E tests (set E2E=1 to enable)"; \
+		echo "Skipping frontend E2E tests (set E2E=1 to enable)"; \
 	fi
 	@if [ "$(INTEGRATION)" != "1" ] && [ "$(E2E)" != "1" ]; then \
 		echo "Running mobile tests..."; \
@@ -113,16 +116,19 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 	fi
 	@echo "✓ Tests complete"
 
-test-unit: ## Run unit tests only
+test-unit: ## Run unit tests only (fast, verbose)
 	@echo "Running backend unit tests..."
-	cd backend && go test -short ./...
+	cd backend && bash run-tests-verbose.sh
 	@echo "Running frontend unit tests..."
 	cd frontend && npm run test -- run
 	@echo "✓ Unit tests complete"
 
-test-integration: ## Run integration tests (requires Docker)
-	@echo "Starting test database..."
-	docker compose -f docker-compose.test.yml up -d
+test-integration: ## Run integration tests (requires Docker, verbose)
+	@$(MAKE) test-setup
+	@echo "Running backend integration tests..."
+	cd backend && INTEGRATION=1 bash run-tests-verbose.sh
+	@$(MAKE) test-teardown
+	@echo "✓ Integration tests complete"
 	@echo "Waiting for database to be ready..."
 	@sleep 5
 	@echo "Running database migrations..."
@@ -260,6 +266,61 @@ test-e2e: ## Run frontend E2E tests
 	@echo "Running frontend E2E tests..."
 	cd frontend && npm run test:e2e
 	@echo "✓ E2E tests complete"
+
+test-frontend: ## Run frontend unit tests only (verbose)
+	@echo "Running frontend unit tests..."
+	cd frontend && npm run test -- run
+	@echo "✓ Frontend unit tests complete"
+
+test-frontend-headed: ## Run frontend unit tests in headed mode (UI visible)
+	@echo "Running frontend unit tests in headed mode..."
+	cd frontend && npm run test
+	@echo "✓ Frontend unit tests complete"
+
+test-frontend-ui: ## Run frontend tests with Vitest UI
+	@echo "Opening Vitest UI dashboard..."
+	cd frontend && npm run test:ui
+	@echo "✓ Vitest UI dashboard opened"
+
+test-frontend-e2e: ## Run frontend Playwright E2E tests (verbose)
+	@echo "Checking backend API availability..."
+	@if curl -s http://localhost:8080/health > /dev/null 2>&1; then \
+		echo "✓ Backend API is running"; \
+	else \
+		echo "⚠ Backend API not found at http://localhost:8080"; \
+		echo "  Note: Backend E2E tests require the API to be running."; \
+		echo "  Start with: make docker-dev-build && make docker-dev"; \
+	fi
+	@echo "Running Playwright E2E tests..."
+	cd frontend && bash run-playwright-tests.sh
+	@echo "✓ Frontend E2E tests complete"
+
+test-frontend-e2e-ui: ## Run frontend Playwright E2E tests with UI (interactive)
+	@echo "Opening Playwright UI..."
+	cd frontend && npm run test:e2e:ui
+	@echo "✓ Playwright UI closed"
+
+test-frontend-e2e-report: ## View the last Playwright E2E test report
+	@echo "Opening Playwright test report..."
+	cd frontend && npx playwright show-report
+	@echo "✓ Report viewer closed"
+
+test-frontend-coverage: ## Run frontend unit tests with coverage report
+	@echo "Running frontend tests with coverage..."
+	cd frontend && npm run test:coverage
+	@echo "✓ Frontend coverage tests complete"
+
+test-frontend-all: ## Run all frontend tests (unit + E2E)
+	@echo "Running all frontend tests..."
+	@$(MAKE) test-frontend
+	@$(MAKE) test-frontend-e2e
+	@echo "✓ All frontend tests complete"
+
+test-e2e-setup: ## Set up E2E test configurations (CDN failover, Stripe, etc.)
+	@cd frontend && bash setup-e2e-tests.sh
+
+test-frontend-help: ## Show frontend test command options
+	@bash frontend/test-commands.sh
 
 test-coverage: ## Run tests with coverage report
 	@echo "Running backend tests with coverage..."

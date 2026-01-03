@@ -16,7 +16,7 @@ describe('FeedFilters', () => {
         it('renders all sort options', () => {
             render(
                 <FeedFilters
-                    sort='hot'
+                    sort='trending'
                     onSortChange={mockOnSortChange}
                     onTimeframeChange={mockOnTimeframeChange}
                 />
@@ -26,33 +26,36 @@ describe('FeedFilters', () => {
             expect(select).toBeInTheDocument();
 
             expect(
-                screen.getByRole('option', { name: 'Hot' })
+                screen.getByRole('option', { name: 'Trending 🔥' })
             ).toBeInTheDocument();
             expect(
-                screen.getByRole('option', { name: 'New' })
+                screen.getByRole('option', { name: 'Most Popular ⭐' })
             ).toBeInTheDocument();
             expect(
-                screen.getByRole('option', { name: 'Top' })
+                screen.getByRole('option', { name: 'Top Rated 👑' })
             ).toBeInTheDocument();
             expect(
-                screen.getByRole('option', { name: 'Rising' })
+                screen.getByRole('option', { name: 'Rising 📈' })
             ).toBeInTheDocument();
             expect(
-                screen.getByRole('option', { name: 'Discussed' })
+                screen.getByRole('option', { name: 'Newest 🆕' })
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('option', { name: 'Most Discussed 💬' })
             ).toBeInTheDocument();
         });
 
         it('shows selected sort value', () => {
             render(
                 <FeedFilters
-                    sort='hot'
+                    sort='trending'
                     onSortChange={mockOnSortChange}
                     onTimeframeChange={mockOnTimeframeChange}
                 />
             );
 
             const select = screen.getByRole('combobox', { name: 'Sort by' });
-            expect(select).toHaveValue('hot');
+            expect(select).toHaveValue('trending');
         });
 
         it('shows different selected sort', () => {
@@ -74,7 +77,7 @@ describe('FeedFilters', () => {
             const user = userEvent.setup();
             render(
                 <FeedFilters
-                    sort='hot'
+                    sort='trending'
                     onSortChange={mockOnSortChange}
                     onTimeframeChange={mockOnTimeframeChange}
                 />
@@ -91,17 +94,18 @@ describe('FeedFilters', () => {
             const user = userEvent.setup();
             render(
                 <FeedFilters
-                    sort='hot'
+                    sort='trending'
                     onSortChange={mockOnSortChange}
                     onTimeframeChange={mockOnTimeframeChange}
                 />
             );
 
             const sortOptions: SortOption[] = [
-                'hot',
-                'new',
+                'trending',
+                'popular',
                 'top',
                 'rising',
+                'new',
                 'discussed',
             ];
             const select = screen.getByRole('combobox', { name: 'Sort by' });
@@ -110,7 +114,7 @@ describe('FeedFilters', () => {
                 await user.selectOptions(select, option);
             }
 
-            expect(mockOnSortChange).toHaveBeenCalledTimes(5);
+            expect(mockOnSortChange).toHaveBeenCalledTimes(6);
             sortOptions.forEach((option, index) => {
                 expect(mockOnSortChange).toHaveBeenNthCalledWith(
                     index + 1,
@@ -121,10 +125,10 @@ describe('FeedFilters', () => {
     });
 
     describe('Timeframe selector', () => {
-        it('does not show timeframe selector when sort is not "top"', () => {
+        it('does not show timeframe selector when sort is not "top" or "trending"', () => {
             render(
                 <FeedFilters
-                    sort='hot'
+                    sort='new'
                     onSortChange={mockOnSortChange}
                     onTimeframeChange={mockOnTimeframeChange}
                 />

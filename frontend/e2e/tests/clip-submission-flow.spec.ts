@@ -448,6 +448,7 @@ test.describe('Clip Submission E2E Flow', () => {
       submitClipPage,
       authenticatedUser
     }) => {
+      // TODO: Requires UI implementation of rate limit error messages
       // Given: user has already submitted 10 clips
       mockApi.setCurrentUser(withKarma(authenticatedUser));
       await mockApi.seedSubmissions(authenticatedUser.id, 10);
@@ -473,6 +474,7 @@ test.describe('Clip Submission E2E Flow', () => {
       submitClipPage,
       authenticatedUser
     }) => {
+      // TODO: Requires UI implementation of duplicate error messages
       // Given: clip already exists in database
       mockApi.setCurrentUser(withKarma(authenticatedUser));
       await mockApi.seedSubmissions(authenticatedUser.id, 1, {

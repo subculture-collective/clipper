@@ -575,7 +575,7 @@ test.describe('Moderation Workflow E2E', () => {
       expect(rejectLog?.details?.rejection_reason).toBe(rejectionReason);
     });
 
-    test.skip('should display rejection reason to submitting user', async ({ page }) => {
+    test('should display rejection reason to submitting user', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       const userId = 'user-submitter';
