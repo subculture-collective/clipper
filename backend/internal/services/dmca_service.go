@@ -588,10 +588,10 @@ func (s *DMCAService) terminateUser(ctx context.Context, userID uuid.UUID) error
 
 // Helper methods for email sending
 func (s *DMCAService) sendTakedownNoticeConfirmation(ctx context.Context, notice *models.DMCANotice) error {
-	subject := fmt.Sprintf("DMCA Takedown Notice Received - Notice #%s", notice.ID.String()[:8])
+	subject := fmt.Sprintf("DMCA Takedown Notice Received - Notice #%s", s.formatNoticeID(notice.ID))
 	
 	data := map[string]interface{}{
-		"NoticeID":        notice.ID.String()[:8],
+		"NoticeID":        s.formatNoticeID(notice.ID),
 		"ComplainantName": notice.ComplainantName,
 		"SubmittedAt":     notice.SubmittedAt.Format("January 2, 2006 at 3:04 PM MST"),
 		"URLCount":        len(notice.InfringingURLs),
@@ -612,11 +612,16 @@ func (s *DMCAService) sendTakedownNoticeConfirmation(ctx context.Context, notice
 	return s.emailService.SendEmail(ctx, req)
 }
 
+// formatNoticeID formats a UUID for display (first 8 characters)
+func (s *DMCAService) formatNoticeID(id uuid.UUID) string {
+	return id.String()[:8]
+}
+
 func (s *DMCAService) notifyDMCAAgent(ctx context.Context, notice *models.DMCANotice) error {
-	subject := fmt.Sprintf("🚨 New DMCA Notice #%s - Review Required", notice.ID.String()[:8])
+	subject := fmt.Sprintf("🚨 New DMCA Notice #%s - Review Required", s.formatNoticeID(notice.ID))
 	
 	data := map[string]interface{}{
-		"NoticeID":         notice.ID.String()[:8],
+		"NoticeID":         s.formatNoticeID(notice.ID),
 		"ComplainantName":  notice.ComplainantName,
 		"ComplainantEmail": notice.ComplainantEmail,
 		"SubmittedAt":      notice.SubmittedAt.Format("January 2, 2006 at 3:04 PM MST"),
@@ -640,7 +645,7 @@ func (s *DMCAService) notifyDMCAAgent(ctx context.Context, notice *models.DMCANo
 }
 
 func (s *DMCAService) sendNoticeIncompleteEmail(ctx context.Context, notice *models.DMCANotice) error {
-	subject := fmt.Sprintf("DMCA Notice Incomplete - Notice #%s", notice.ID.String()[:8])
+	subject := fmt.Sprintf("DMCA Notice Incomplete - Notice #%s", s.formatNoticeID(notice.ID))
 	
 	notes := "Your notice did not meet the requirements for a valid DMCA takedown request."
 	if notice.Notes != nil && *notice.Notes != "" {
@@ -648,7 +653,7 @@ func (s *DMCAService) sendNoticeIncompleteEmail(ctx context.Context, notice *mod
 	}
 	
 	data := map[string]interface{}{
-		"NoticeID":        notice.ID.String()[:8],
+		"NoticeID":        s.formatNoticeID(notice.ID),
 		"ComplainantName": notice.ComplainantName,
 		"Notes":           notes,
 	}
@@ -669,10 +674,10 @@ func (s *DMCAService) sendNoticeIncompleteEmail(ctx context.Context, notice *mod
 }
 
 func (s *DMCAService) sendTakedownProcessedEmail(ctx context.Context, notice *models.DMCANotice, clipIDs []uuid.UUID) error {
-	subject := fmt.Sprintf("DMCA Takedown Processed - Notice #%s", notice.ID.String()[:8])
+	subject := fmt.Sprintf("DMCA Takedown Processed - Notice #%s", s.formatNoticeID(notice.ID))
 	
 	data := map[string]interface{}{
-		"NoticeID":        notice.ID.String()[:8],
+		"NoticeID":        s.formatNoticeID(notice.ID),
 		"ComplainantName": notice.ComplainantName,
 		"ClipsRemoved":    len(clipIDs),
 		"ProcessedAt":     time.Now().Format("January 2, 2006 at 3:04 PM MST"),
@@ -701,15 +706,19 @@ func (s *DMCAService) sendStrike1WarningEmail(ctx context.Context, userID uuid.U
 	}
 	
 	if user.Email == nil {
-		return nil // User has no email
+		s.logger.Warn("Cannot send strike 1 email - user has no email address", map[string]interface{}{
+			"user_id":  userID.String(),
+			"strike_id": strike.ID.String(),
+		})
+		return nil
 	}
 	
 	subject := "⚠️ Copyright Strike Warning - Strike 1 of 3"
 	
 	data := map[string]interface{}{
 		"UserName":         user.Username,
-		"StrikeID":         strike.ID.String()[:8],
-		"NoticeID":         strike.DMCANoticeID.String()[:8],
+		"StrikeID":         s.formatNoticeID(strike.ID),
+		"NoticeID":         s.formatNoticeID(strike.DMCANoticeID),
 		"IssuedAt":         strike.IssuedAt.Format("January 2, 2006 at 3:04 PM MST"),
 		"ExpiresAt":        strike.ExpiresAt.Format("January 2, 2006"),
 		"CounterNoticeURL": fmt.Sprintf("%s/dmca/counter-notice/%s", s.baseURL, strike.DMCANoticeID),
@@ -738,15 +747,19 @@ func (s *DMCAService) sendStrike2SuspensionEmail(ctx context.Context, userID uui
 	}
 	
 	if user.Email == nil {
-		return nil // User has no email
+		s.logger.Warn("Cannot send strike 2 email - user has no email address", map[string]interface{}{
+			"user_id":  userID.String(),
+			"strike_id": strike.ID.String(),
+		})
+		return nil
 	}
 	
 	subject := "🚫 Account Suspended - Copyright Strike 2 of 3"
 	
 	data := map[string]interface{}{
 		"UserName":         user.Username,
-		"StrikeID":         strike.ID.String()[:8],
-		"NoticeID":         strike.DMCANoticeID.String()[:8],
+		"StrikeID":         s.formatNoticeID(strike.ID),
+		"NoticeID":         s.formatNoticeID(strike.DMCANoticeID),
 		"IssuedAt":         strike.IssuedAt.Format("January 2, 2006 at 3:04 PM MST"),
 		"SuspendUntil":     suspendUntil.Format("January 2, 2006 at 3:04 PM MST"),
 		"CounterNoticeURL": fmt.Sprintf("%s/dmca/counter-notice/%s", s.baseURL, strike.DMCANoticeID),
@@ -775,15 +788,19 @@ func (s *DMCAService) sendStrike3TerminationEmail(ctx context.Context, userID uu
 	}
 	
 	if user.Email == nil {
-		return nil // User has no email
+		s.logger.Warn("Cannot send strike 3 email - user has no email address", map[string]interface{}{
+			"user_id":  userID.String(),
+			"strike_id": strike.ID.String(),
+		})
+		return nil
 	}
 	
 	subject := "❌ Account Terminated - Copyright Strike 3 of 3"
 	
 	data := map[string]interface{}{
 		"UserName": user.Username,
-		"StrikeID": strike.ID.String()[:8],
-		"NoticeID": strike.DMCANoticeID.String()[:8],
+		"StrikeID": s.formatNoticeID(strike.ID),
+		"NoticeID": s.formatNoticeID(strike.DMCANoticeID),
 		"IssuedAt": strike.IssuedAt.Format("January 2, 2006 at 3:04 PM MST"),
 	}
 	
@@ -1141,12 +1158,12 @@ func (s *DMCAService) GetUserStrikes(ctx context.Context, userID uuid.UUID) ([]m
 // ==============================================================================
 
 func (s *DMCAService) sendCounterNoticeConfirmationEmail(ctx context.Context, cn *models.DMCACounterNotice) error {
-	subject := fmt.Sprintf("DMCA Counter-Notice Received - #%s", cn.ID.String()[:8])
+	subject := fmt.Sprintf("DMCA Counter-Notice Received - #%s", s.formatNoticeID(cn.ID))
 	
 	data := map[string]interface{}{
 		"UserName":        cn.UserName,
-		"CounterNoticeID": cn.ID.String()[:8],
-		"NoticeID":        cn.DMCANoticeID.String()[:8],
+		"CounterNoticeID": s.formatNoticeID(cn.ID),
+		"NoticeID":        s.formatNoticeID(cn.DMCANoticeID),
 		"SubmittedAt":     cn.SubmittedAt.Format("January 2, 2006 at 3:04 PM MST"),
 	}
 	
@@ -1166,7 +1183,7 @@ func (s *DMCAService) sendCounterNoticeConfirmationEmail(ctx context.Context, cn
 }
 
 func (s *DMCAService) sendCounterNoticeToComplainantEmail(ctx context.Context, cn *models.DMCACounterNotice, notice *models.DMCANotice) error {
-	subject := fmt.Sprintf("DMCA Counter-Notice Filed - Notice #%s", notice.ID.String()[:8])
+	subject := fmt.Sprintf("DMCA Counter-Notice Filed - Notice #%s", s.formatNoticeID(notice.ID))
 	
 	waitingPeriodEnds := time.Now().AddDate(0, 0, 14) // 14 days from now
 	if cn.WaitingPeriodEnds != nil {
@@ -1175,8 +1192,8 @@ func (s *DMCAService) sendCounterNoticeToComplainantEmail(ctx context.Context, c
 	
 	data := map[string]interface{}{
 		"ComplainantName":   notice.ComplainantName,
-		"NoticeID":          notice.ID.String()[:8],
-		"CounterNoticeID":   cn.ID.String()[:8],
+		"NoticeID":          s.formatNoticeID(notice.ID),
+		"CounterNoticeID":   s.formatNoticeID(cn.ID),
 		"UserName":          cn.UserName,
 		"UserAddress":       cn.UserAddress,
 		"ForwardedAt":       time.Now().Format("January 2, 2006 at 3:04 PM MST"),
@@ -1206,19 +1223,21 @@ func (s *DMCAService) sendContentReinstatedEmail(ctx context.Context, userID uui
 	}
 	
 	if user.Email == nil {
-		return nil // User has no email
+		s.logger.Warn("Cannot send content reinstated email - user has no email address", map[string]interface{}{
+			"user_id":          userID.String(),
+			"counter_notice_id": cn.ID.String(),
+		})
+		return nil
 	}
 	
 	subject := "✅ Content Reinstated - Counter-Notice Successful"
 	
-	contentURL := fmt.Sprintf("%s/content/%s", s.baseURL, cn.RemovedMaterialURL)
-	if strings.Contains(cn.RemovedMaterialURL, "://") {
-		contentURL = cn.RemovedMaterialURL
-	}
+	// Parse and validate the URL
+	contentURL := s.buildContentURL(cn.RemovedMaterialURL)
 	
 	data := map[string]interface{}{
 		"UserName":        user.Username,
-		"CounterNoticeID": cn.ID.String()[:8],
+		"CounterNoticeID": s.formatNoticeID(cn.ID),
 		"ReinstatedAt":    time.Now().Format("January 2, 2006 at 3:04 PM MST"),
 		"ContentURL":      contentURL,
 	}
@@ -1239,12 +1258,12 @@ func (s *DMCAService) sendContentReinstatedEmail(ctx context.Context, userID uui
 }
 
 func (s *DMCAService) sendComplainantReinstatedEmail(ctx context.Context, notice *models.DMCANotice, cn *models.DMCACounterNotice) error {
-	subject := fmt.Sprintf("Content Reinstated - Notice #%s", notice.ID.String()[:8])
+	subject := fmt.Sprintf("Content Reinstated - Notice #%s", s.formatNoticeID(notice.ID))
 	
 	data := map[string]interface{}{
 		"ComplainantName": notice.ComplainantName,
-		"NoticeID":        notice.ID.String()[:8],
-		"CounterNoticeID": cn.ID.String()[:8],
+		"NoticeID":        s.formatNoticeID(notice.ID),
+		"CounterNoticeID": s.formatNoticeID(cn.ID),
 		"ReinstatedAt":    time.Now().Format("January 2, 2006 at 3:04 PM MST"),
 	}
 	
@@ -1261,4 +1280,22 @@ func (s *DMCAService) sendComplainantReinstatedEmail(ctx context.Context, notice
 	}
 	
 	return s.emailService.SendEmail(ctx, req)
+}
+
+// buildContentURL safely constructs a content URL from the provided URL string
+func (s *DMCAService) buildContentURL(materialURL string) string {
+	// Parse the URL to validate it
+	parsedURL, err := url.Parse(materialURL)
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		// If invalid or relative URL, construct from base URL
+		return fmt.Sprintf("%s/content/%s", s.baseURL, materialURL)
+	}
+	
+	// Ensure the URL uses a safe scheme (http or https)
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		// Invalid scheme, construct safe URL from base
+		return fmt.Sprintf("%s/content/%s", s.baseURL, materialURL)
+	}
+	
+	return materialURL
 }
