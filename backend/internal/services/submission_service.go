@@ -15,6 +15,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/utils"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
+	pkgutils "github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // SubmissionService handles clip submission business logic
@@ -1114,7 +1115,11 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	if s.cacheService != nil {
 		if err := s.cacheService.InvalidateOnNewClip(ctx, clip); err != nil {
 			// Log error but don't fail the clip creation
-			fmt.Printf("Warning: failed to invalidate feed caches for clip %s: %v\n", clip.ID, err)
+			logger := pkgutils.GetLogger()
+			logger.Warn("Failed to invalidate feed caches for clip", map[string]interface{}{
+				"clip_id": clip.ID,
+				"error":   err.Error(),
+			})
 		}
 	}
 
