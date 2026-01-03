@@ -33,6 +33,7 @@ type SubmissionService struct {
 	webhookService      *OutboundWebhookService
 	cacheService        *CacheService
 	cfg                 *config.Config
+	logger              *pkgutils.StructuredLogger
 
 	// Test fixture controls
 	testFixturesEnabled      bool
@@ -79,6 +80,7 @@ func NewSubmissionService(
 		webhookService:           webhookService,
 		cacheService:             cacheService,
 		cfg:                      cfg,
+		logger:                   pkgutils.GetLogger(),
 		testFixturesEnabled:      testFixturesEnabled,
 		bypassRateLimits:         bypassRateLimits,
 		allowDuplicateSubmission: allowDuplicateSubmission,
@@ -1107,7 +1109,11 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	if s.voteRepo != nil {
 		if err := s.voteRepo.UpsertVote(ctx, submission.UserID, clip.ID, 1); err != nil {
 			// Log error but don't fail the clip creation
-			fmt.Printf("Warning: failed to auto-upvote clip for user %s: %v\n", submission.UserID, err)
+			s.logger.Warn("Failed to auto-upvote clip for user", map[string]interface{}{
+				"user_id": submission.UserID,
+				"clip_id": clip.ID,
+				"error":   err.Error(),
+			})
 		}
 	}
 
@@ -1115,8 +1121,7 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	if s.cacheService != nil {
 		if err := s.cacheService.InvalidateOnNewClip(ctx, clip); err != nil {
 			// Log error but don't fail the clip creation
-			logger := pkgutils.GetLogger()
-			logger.Warn("Failed to invalidate feed caches for clip", map[string]interface{}{
+			s.logger.Warn("Failed to invalidate feed caches for clip", map[string]interface{}{
 				"clip_id": clip.ID,
 				"error":   err.Error(),
 			})
