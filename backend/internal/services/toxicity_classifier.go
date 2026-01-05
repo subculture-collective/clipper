@@ -456,7 +456,7 @@ func (tc *ToxicityClassifier) normalizeText(text string) string {
 // isWhitelisted checks if content contains only whitelisted terms
 func (tc *ToxicityClassifier) isWhitelisted(content string) bool {
 	words := strings.Fields(strings.ToLower(content))
-	
+
 	if len(words) == 0 {
 		return false
 	}
