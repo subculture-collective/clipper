@@ -181,13 +181,13 @@ func TestToxicityClassifier_Obfuscation(t *testing.T) {
 			expectToxic: true,
 		},
 		{
-			name:        "At symbol replacement",
-			text:        "ass",
+			name:        "At symbol in compound profanity",
+			text:        "@sshole",
 			expectToxic: true,
 		},
 		{
-			name:        "Dollar sign replacement",
-			text:        "a$$",
+			name:        "Dollar sign in compound profanity",
+			text:        "a$$hole",
 			expectToxic: true,
 		},
 		{

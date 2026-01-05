@@ -53,10 +53,8 @@ type Rule struct {
 
 // RulesConfig represents the toxicity rules configuration
 type RulesConfig struct {
-	Rules            []Rule             `yaml:"rules"`
-	Whitelist        []string           `yaml:"whitelist"`
-	SeverityWeights  map[Severity]float64 `yaml:"severity_weights"`
-	Thresholds       map[string]float64 `yaml:"thresholds"`
+	Rules     []Rule   `yaml:"rules"`
+	Whitelist []string `yaml:"whitelist"`
 }
 
 // ToxicityClassifier handles toxicity detection for comments
@@ -239,7 +237,7 @@ func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore,
 		return &ToxicityScore{
 			Toxic:           false,
 			ConfidenceScore: 0.0,
-			Categories:      map[string]float64{"RULE_BASED": 0.0},
+			Categories:      map[string]float64{},
 			ReasonCodes:     []string{},
 		}, nil
 	}
@@ -249,7 +247,7 @@ func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore,
 		return &ToxicityScore{
 			Toxic:           false,
 			ConfidenceScore: 0.0,
-			Categories:      map[string]float64{"WHITELISTED": 0.0},
+			Categories:      map[string]float64{},
 			ReasonCodes:     []string{},
 		}, nil
 	}
@@ -262,7 +260,6 @@ func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore,
 
 	// Track scores by category
 	categoryScores := make(map[Category]float64)
-	matchedRules := make(map[Category]bool)
 
 	// Apply all rules
 	for _, rule := range tc.rulesConfig.Rules {
@@ -274,7 +271,6 @@ func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore,
 		if rule.compiled.MatchString(normalizedContent) {
 			// Add weighted score for this category
 			categoryScores[rule.Category] += rule.Weight
-			matchedRules[rule.Category] = true
 		}
 	}
 
@@ -317,13 +313,19 @@ func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore,
 
 // loadRulesConfig loads the toxicity rules configuration
 func (tc *ToxicityClassifier) loadRulesConfig() error {
-	// Try different paths based on where the code is running from
-	possiblePaths := []string{
-		"config/toxicity_rules.yaml",                                         // From backend directory
-		"backend/config/toxicity_rules.yaml",                                 // From repository root
-		"../../config/toxicity_rules.yaml",                                   // From test files in internal/services
-		"/home/runner/work/clipper/clipper/backend/config/toxicity_rules.yaml", // Absolute path (fallback)
+	// First, allow an explicit override via environment variable
+	envPath := os.Getenv("TOXICITY_RULES_CONFIG_PATH")
+
+	var possiblePaths []string
+	if envPath != "" {
+		possiblePaths = append(possiblePaths, envPath)
 	}
+
+	possiblePaths = append(possiblePaths,
+		"config/toxicity_rules.yaml",         // From backend directory
+		"backend/config/toxicity_rules.yaml", // From repository root
+		"../../config/toxicity_rules.yaml",   // From test files in internal/services
+	)
 
 	var configPath string
 	var found bool
@@ -454,19 +456,31 @@ func (tc *ToxicityClassifier) normalizeText(text string) string {
 // isWhitelisted checks if content contains only whitelisted terms
 func (tc *ToxicityClassifier) isWhitelisted(content string) bool {
 	words := strings.Fields(strings.ToLower(content))
+	
+	if len(words) == 0 {
+		return false
+	}
 
+	// Check if ALL words are whitelisted (not just any one word)
 	for _, word := range words {
 		// Clean the word of punctuation
 		cleaned := strings.TrimFunc(word, func(r rune) bool {
 			return !unicode.IsLetter(r) && !unicode.IsNumber(r)
 		})
 
-		if tc.whitelistMap[cleaned] {
-			return true
+		// Skip empty tokens
+		if cleaned == "" {
+			continue
+		}
+
+		// If any word is NOT whitelisted, content is not fully whitelisted
+		if !tc.whitelistMap[cleaned] {
+			return false
 		}
 	}
 
-	return false
+	// All non-empty words are whitelisted
+	return true
 }
 
 // calculateContextMultiplier determines a multiplier based on context

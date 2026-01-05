@@ -109,29 +109,11 @@ whitelist:
 ```
 
 ### Whitelist Behavior
-- Whitelist checking happens BEFORE pattern matching
-- If any word in the text is whitelisted, the entire text is marked as non-toxic
-- Use sparingly to avoid creating loopholes
-
-## Severity Weights
-
-Configure default weights for each severity level:
-```yaml
-severity_weights:
-  low: 0.2
-  medium: 0.5
-  high: 0.9
-```
-
-## Scoring Thresholds
-
-Set thresholds for classification:
-```yaml
-thresholds:
-  clean: 0.0      # Score < 0.3: Clean
-  suspicious: 0.3 # Score 0.3-0.7: Suspicious
-  toxic: 0.7      # Score >= 0.7: Toxic
-```
+- Whitelist checking happens during pattern matching
+- Only content where ALL tokens exactly match whitelisted words are exempt from toxicity rules
+- If all tokens in the text are whitelisted, the text is treated as non-toxic
+- Otherwise, non-whitelisted tokens are still fully evaluated
+- Use sparingly to avoid over-whitelisting and missing toxic content
 
 ## Text Normalization
 

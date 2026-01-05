@@ -11,7 +11,7 @@ rules:
     description: "Racial, ethnic, and identity-based slurs"
 
   # Profanity - Medium to High Severity
-  - pattern: '\b(f[u*@]ck|sh[i1!]t|b[i1!]tch|c[u*]nt|[a@]ss|p[i1!]ss|d[a@]mn)\b'
+  - pattern: '\b(f[u*@]ck|sh[i1!]t|b[i1!]tch|c[u*]nt|p[i1!]ss|d[a@]mn)\b'
     category: profanity
     severity: medium
     weight: 0.5
@@ -24,7 +24,7 @@ rules:
     description: "Aggressive profanity"
 
   # Harassment - High Severity
-  - pattern: '\b(k[i1!]ll\s+(your)?self|d[i1!][e3]|hurt\s+you|beat\s+you|threatening|attack)\b'
+  - pattern: '\b(k[i1!]ll\s+(your)?self|(?:go\s+d[i1!][e3]|you\s+should\s+d[i1!][e3])|hurt\s+you|beat\s+you|threatening|attack)\b'
     category: harassment
     severity: high
     weight: 0.9
@@ -37,7 +37,7 @@ rules:
     description: "Personal attacks and insults"
 
   # Sexual Content - Medium to High Severity  
-  - pattern: '\b(p[o0]rn|xxx|s[e3]x|cock|d[i1!]ck|pussy|v[a@]g[i1!]n[a@]|t[i1!]ts|b[o0][o0]bs)\b'
+  - pattern: '\b(p[o0]rn|xxx|cock|d[i1!]ck|pussy|v[a@]g[i1!]n[a@]|t[i1!]ts|b[o0][o0]bs)\b'
     category: sexual_content
     severity: medium
     weight: 0.5
@@ -57,7 +57,7 @@ rules:
     description: "Violent and graphic content"
 
   # Spam - Low to Medium Severity
-  - pattern: '(https?://|www\.)[^\s]{10,}|(buy\s+now|click\s+here|limited\s+time|act\s+now)'
+  - pattern: '(buy\s+now|click\s+here|limited\s+time|act\s+now)'
     category: spam
     severity: low
     weight: 0.3
@@ -86,15 +86,3 @@ whitelist:
   - "dickens"        # Author name
   - "cockerel"       # Valid word (rooster)
   - "sussex"         # Place name
-
-# Severity levels and base scores
-severity_weights:
-  low: 0.2
-  medium: 0.5
-  high: 0.9
-
-# Thresholds for classification
-thresholds:
-  clean: 0.0      # Score < 0.3: Clean
-  suspicious: 0.3 # Score 0.3-0.7: Suspicious  
-  toxic: 0.7      # Score >= 0.7: Toxic
