@@ -400,9 +400,10 @@ func setupTestRouter(t *testing.T, cfg *config.Config, db *database.DB, redisCli
 	ctx := context.Background()
 	testEmail := fmt.Sprintf("test_%s@example.com", uuid.NewString())
 	uniq := uuid.NewString()
+	validationTwitchID := fmt.Sprintf("test_%s", uniq)
 	testUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    fmt.Sprintf("test_%s", uniq),
+		TwitchID:    &validationTwitchID,
 		Username:    fmt.Sprintf("testuser_%s", uniq[:8]),
 		DisplayName: "Test User",
 		Email:       &testEmail,

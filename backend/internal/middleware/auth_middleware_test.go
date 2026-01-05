@@ -144,9 +144,10 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 
 	// Create a test user with email as pointer
 	email := "test@example.com"
+	twitchID := "12345"
 	testUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    "12345",
+		TwitchID:    &twitchID,
 		Username:    "testuser",
 		DisplayName: "Test User",
 		Email:       &email,
@@ -237,9 +238,10 @@ func TestAuthMiddleware_TokenFromCookie(t *testing.T) {
 
 	// Create a test user
 	email := "test@example.com"
+	twitchID := "12345"
 	testUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    "12345",
+		TwitchID:    &twitchID,
 		Username:    "testuser",
 		DisplayName: "Test User",
 		Email:       &email,

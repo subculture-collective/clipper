@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => ({
     optimizeDeps: {
         include: ['lucide-react', '@tanstack/react-query', 'react-router-dom'],
     },
+    define: {
+        // Polyfill for gray-matter which uses Buffer
+        global: 'globalThis',
+    },
     plugins: [
         react(),
         // Upload source maps to Sentry on production builds
@@ -41,11 +45,18 @@ export default defineConfig(({ mode }) => ({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
+            buffer: 'buffer/',
         },
     },
     server: {
         port: 5173,
         strictPort: true,
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
+        },
     },
     build: {
         // Generate source maps for production

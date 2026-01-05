@@ -831,3 +831,89 @@ func (h *UserHandler) GetFollowedBroadcasters(c *gin.Context) {
 		},
 	})
 }
+
+// ClaimAccountRequest represents the request to claim an unclaimed account
+type ClaimAccountRequest struct {
+	TwitchID string `json:"twitch_id" binding:"required"`
+}
+
+// ClaimAccount allows a user to claim an unclaimed profile
+// POST /api/v1/users/claim-account
+func (h *UserHandler) ClaimAccount(c *gin.Context) {
+	// Get authenticated user
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	authenticatedUserID := userIDValue.(uuid.UUID)
+
+	// Parse request
+	var req ClaimAccountRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	// Get authenticated user
+	authenticatedUser, err := h.userRepo.GetByID(c.Request.Context(), authenticatedUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user"})
+		return
+	}
+
+	// Verify the authenticated user's Twitch ID matches the claim request
+	if authenticatedUser.TwitchID == nil || *authenticatedUser.TwitchID != req.TwitchID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you can only claim accounts matching your Twitch ID"})
+		return
+	}
+
+	// Find the unclaimed account
+	unclaimedUser, err := h.userRepo.GetByTwitchID(c.Request.Context(), req.TwitchID)
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "no unclaimed account found for this Twitch ID"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find unclaimed account"})
+		return
+	}
+
+	// Verify the account is unclaimed
+	if unclaimedUser.AccountStatus != "unclaimed" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "this account is not unclaimed"})
+		return
+	}
+
+	// Prevent claiming if the authenticated user already has an active account
+	if authenticatedUser.AccountStatus == "active" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "you already have an active account"})
+		return
+	}
+
+	// Transfer data from unclaimed account to authenticated user
+	// Update the authenticated user with data from the unclaimed account
+	if err := h.userRepo.UpdateDisplayName(c.Request.Context(), authenticatedUserID, unclaimedUser.DisplayName); err != nil {
+		log.Printf("Warning: failed to update display name during claim: %v", err)
+	}
+
+	// Update account status to active
+	if err := h.userRepo.UpdateAccountStatus(c.Request.Context(), authenticatedUserID, "active"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to activate account"})
+		return
+	}
+
+	// TODO: Transfer clips, votes, favorites, etc. from unclaimed account to authenticated account
+	// This would require additional repository methods
+
+	// Delete the unclaimed account (or mark it as merged)
+	// For now, we'll just update its status to prevent reuse
+	if err := h.userRepo.UpdateAccountStatus(c.Request.Context(), unclaimedUser.ID, "pending"); err != nil {
+		log.Printf("Warning: failed to mark unclaimed account as pending: %v", err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "account claimed successfully",
+	})
+}

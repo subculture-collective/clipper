@@ -233,7 +233,7 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 		EmbedURL:          fmt.Sprintf("/clips/%s/embed", clipID.String()),
 		Title:             req.Title,
 		CreatorName:       authenticatedUser.Username,
-		CreatorID:         &authenticatedUser.TwitchID,
+		CreatorID:         authenticatedUser.TwitchID,
 		BroadcasterName:   user.Login,
 		BroadcasterID:     &user.ID,
 		Duration:          &duration,

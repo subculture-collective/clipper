@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useToast } from '@/context/ToastContext';
 
 export interface ShareData {
@@ -9,10 +9,18 @@ export interface ShareData {
 
 export function useShare() {
   const toast = useToast();
+  const isShareInProgressRef = useRef(false);
 
   const share = useCallback(
     async (data: ShareData) => {
+      // Prevent concurrent share operations
+      if (isShareInProgressRef.current) {
+        return { success: false, error: new Error('Share operation already in progress') };
+      }
+
       try {
+        isShareInProgressRef.current = true;
+
         // Check if Web Share API is available and can share this data
         if (navigator.share && typeof navigator.canShare === 'function' && navigator.canShare(data)) {
           await navigator.share(data);
@@ -29,10 +37,12 @@ export function useShare() {
           // User cancelled, don't show error
           return { success: false, cancelled: true };
         }
-        
+
         console.error('Error sharing:', err);
         toast.error('Failed to share');
         return { success: false, error: err };
+      } finally {
+        isShareInProgressRef.current = false;
       }
     },
     [toast]

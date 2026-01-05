@@ -825,6 +825,24 @@ func (r *ClipRepository) IncrementViewCount(ctx context.Context, clipID uuid.UUI
 	return newViewCount, nil
 }
 
+// UpdateVoteScore increments the vote_score by the provided delta and returns the new score
+func (r *ClipRepository) UpdateVoteScore(ctx context.Context, clipID uuid.UUID, delta int64) (int64, error) {
+	query := `
+		UPDATE clips
+		SET vote_score = vote_score + $2
+		WHERE id = $1
+		RETURNING vote_score
+	`
+
+	var newScore int64
+	err := r.pool.QueryRow(ctx, query, clipID, delta).Scan(&newScore)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update vote score: %w", err)
+	}
+
+	return newScore, nil
+}
+
 // Update updates a clip (for admin operations)
 func (r *ClipRepository) Update(ctx context.Context, clipID uuid.UUID, updates map[string]interface{}) error {
 	if len(updates) == 0 {

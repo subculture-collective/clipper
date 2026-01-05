@@ -39,18 +39,23 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 		user.AccountType = models.AccountTypeMember
 	}
 
+	// Set default account_status if not specified
+	if user.AccountStatus == "" {
+		user.AccountStatus = "active"
+	}
+
 	query := `
 		INSERT INTO users (
 			id, twitch_id, username, display_name, email,
-			avatar_url, bio, role, account_type, last_login_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			avatar_url, bio, role, account_type, account_status, last_login_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING created_at, updated_at
 	`
 
 	err := r.db.QueryRow(
 		ctx, query,
 		user.ID, user.TwitchID, user.Username, user.DisplayName, user.Email,
-		user.AvatarURL, user.Bio, user.Role, user.AccountType, user.LastLoginAt,
+		user.AvatarURL, user.Bio, user.Role, user.AccountType, user.AccountStatus, user.LastLoginAt,
 	).Scan(&user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
@@ -238,6 +243,46 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID) 
 
 	_, err := r.db.Exec(ctx, query, userID)
 	return err
+}
+
+// UpdateAccountStatus updates a user's account status
+func (r *UserRepository) UpdateAccountStatus(ctx context.Context, userID uuid.UUID, status string) error {
+	query := `
+		UPDATE users
+		SET account_status = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, status)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// UpdateDisplayName updates a user's display name
+func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID, displayName string) error {
+	query := `
+		UPDATE users
+		SET display_name = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, displayName)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
 }
 
 // UpdateKarma updates a user's karma points

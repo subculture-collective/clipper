@@ -19,6 +19,21 @@ export interface ClipStatusResponse {
 }
 
 /**
+ * Response from fetching clip metadata from Twitch
+ */
+export interface ClipMetadata {
+  clip_id: string;
+  title: string;
+  streamer_name: string;
+  game_name: string;
+  view_count: number;
+  created_at: string;
+  thumbnail_url: string;
+  duration: number;
+  url: string;
+}
+
+/**
  * Submit a clip for moderation
  */
 export async function submitClip(
@@ -39,6 +54,19 @@ export async function checkClipStatus(clipId: string): Promise<ClipStatusRespons
     `/submissions/check/${clipId}`
   );
   return response.data;
+}
+
+/**
+ * Get clip metadata from Twitch
+ */
+export async function getClipMetadata(clipUrl: string): Promise<ClipMetadata> {
+  const response = await apiClient.get<{ success: boolean; data: ClipMetadata }>(
+    '/submissions/metadata',
+    {
+      params: { url: clipUrl },
+    }
+  );
+  return response.data.data;
 }
 
 /**

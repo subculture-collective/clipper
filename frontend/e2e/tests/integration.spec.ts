@@ -1,4 +1,4 @@
-import { expect, test, Page } from '@playwright/test';
+import { expect, test, Page } from '../fixtures';
 
 // Deterministic mock data shared across integration tests
 const demoClip = {
@@ -319,9 +319,10 @@ test.describe('Submission Workflows', () => {
         }
     });
 
-    test('should display submission form for authenticated users', async ({ page }) => {
-        // This test would require authentication setup
-        test.skip(true, 'Requires authenticated session');
+    test.skip('should display submission form for authenticated users', async ({ authenticatedPage }) => {
+        // TODO: Requires UI implementation of submission form
+        // Now using fixture-based authentication
+        const page = authenticatedPage;
 
         await page.goto('/submit');
 
@@ -330,8 +331,10 @@ test.describe('Submission Workflows', () => {
         await expect(urlInput).toBeVisible();
     });
 
-    test('should validate Twitch clip URL format', async ({ page }) => {
-        test.skip(true, 'Requires authenticated session and submission form');
+    test.skip('should validate Twitch clip URL format', async ({ authenticatedPage }) => {
+        // TODO: Requires UI implementation of submission form
+        // Now using fixture-based authentication and form data
+        const page = authenticatedPage;
 
         await page.goto('/submit');
 
@@ -470,8 +473,10 @@ test.describe('Engagement Features', () => {
         }
     });
 
-    test('should show comment form for authenticated users', async ({ page }) => {
-        test.skip(true, 'Requires authenticated session');
+    test.skip('should show comment form for authenticated users', async ({ authenticatedPage }) => {
+        // TODO: Requires UI implementation of comment form
+        // Now using fixture-based authentication
+        const page = authenticatedPage;
 
         await page.goto('/');
         await page.waitForSelector('[data-testid="clip-card"]');
@@ -549,8 +554,10 @@ test.describe('Premium Features', () => {
         }
     });
 
-    test('should handle subscription checkout flow', async ({ page }) => {
-        test.skip(true, 'Requires authenticated session and Stripe test mode');
+    test.skip('should handle subscription checkout flow', async ({ authenticatedPage }) => {
+        // TODO: Requires Stripe integration and checkout UI
+        // Now using fixture-based authentication and Stripe test mode
+        const page = authenticatedPage;
 
         await page.goto('/premium');
 

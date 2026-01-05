@@ -417,17 +417,19 @@ func (s *AuthService) createOrUpdateUser(ctx context.Context, twitchUser *Twitch
 
 	// Create new user
 	now := time.Now()
+	twitchID := twitchUser.ID
 	user := &models.User{
-		ID:          uuid.New(),
-		TwitchID:    twitchUser.ID,
-		Username:    twitchUser.Login,
-		DisplayName: twitchUser.DisplayName,
-		Email:       &twitchUser.Email,
-		AvatarURL:   &twitchUser.ProfileImageURL,
-		Role:        "user",
-		KarmaPoints: s.cfg.Karma.InitialKarmaPoints,
-		IsBanned:    false,
-		LastLoginAt: &now,
+		ID:            uuid.New(),
+		TwitchID:      &twitchID,
+		Username:      twitchUser.Login,
+		DisplayName:   twitchUser.DisplayName,
+		Email:         &twitchUser.Email,
+		AvatarURL:     &twitchUser.ProfileImageURL,
+		Role:          "user",
+		AccountStatus: "active",
+		KarmaPoints:   s.cfg.Karma.InitialKarmaPoints,
+		IsBanned:      false,
+		LastLoginAt:   &now,
 	}
 
 	if twitchUser.Description != "" {

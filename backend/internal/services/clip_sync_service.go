@@ -68,13 +68,14 @@ type ClipSyncService struct {
 	twitchClient *twitch.Client
 	clipRepo     *repository.ClipRepository
 	tagRepo      *repository.TagRepository
+	userRepo     *repository.UserRepository
 	stateStore   TrendingStateStore
 	maxPages     int
 	defaultLang  string
 }
 
 // NewClipSyncService creates a new ClipSyncService
-func NewClipSyncService(twitchClient *twitch.Client, clipRepo *repository.ClipRepository, tagRepo *repository.TagRepository, redisClient *redispkg.Client) *ClipSyncService {
+func NewClipSyncService(twitchClient *twitch.Client, clipRepo *repository.ClipRepository, tagRepo *repository.TagRepository, userRepo *repository.UserRepository, redisClient *redispkg.Client) *ClipSyncService {
 	var stateStore TrendingStateStore
 	if redisClient != nil {
 		stateStore = NewRedisTrendingStateStore(redisClient)
@@ -84,6 +85,7 @@ func NewClipSyncService(twitchClient *twitch.Client, clipRepo *repository.ClipRe
 		twitchClient: twitchClient,
 		clipRepo:     clipRepo,
 		tagRepo:      tagRepo,
+		userRepo:     userRepo,
 		stateStore:   stateStore,
 		maxPages:     defaultTrendingMaxPages,
 		defaultLang:  normalizeLanguageFilter("en"),
@@ -568,6 +570,14 @@ func (s *ClipSyncService) processClip(ctx context.Context, twitchClip *twitch.Cl
 	// Transform Twitch clip to our model
 	clip := transformTwitchClip(twitchClip)
 
+	// Ensure unclaimed users exist for creator and broadcaster
+	if err := s.ensureUnclaimedUser(ctx, twitchClip.CreatorID, twitchClip.CreatorName); err != nil {
+		log.Printf("Warning: failed to ensure unclaimed user for creator %s: %v", twitchClip.CreatorName, err)
+	}
+	if err := s.ensureUnclaimedUser(ctx, twitchClip.BroadcasterID, twitchClip.BroadcasterName); err != nil {
+		log.Printf("Warning: failed to ensure unclaimed user for broadcaster %s: %v", twitchClip.BroadcasterName, err)
+	}
+
 	// Save to database
 	if err := s.clipRepo.Create(ctx, clip); err != nil {
 		return fmt.Errorf("failed to create clip: %w", err)
@@ -611,6 +621,71 @@ func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 		IsRemoved:       false,
 		RemovedReason:   nil,
 	}
+}
+
+// ensureUnclaimedUser creates an unclaimed user account if one doesn't exist for the given Twitch ID
+func (s *ClipSyncService) ensureUnclaimedUser(ctx context.Context, twitchID, displayName string) error {
+	if s.userRepo == nil || twitchID == "" {
+		return nil
+	}
+
+	// Check if user already exists with this Twitch ID
+	_, err := s.userRepo.GetByTwitchID(ctx, twitchID)
+	if err == nil {
+		// User already exists, nothing to do
+		return nil
+	}
+
+	// If error is not "not found", return it
+	if err != repository.ErrUserNotFound {
+		return fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	// Create unclaimed user account
+	username := generateUnclaimedUsername(displayName, twitchID)
+	unclaimedUser := &models.User{
+		ID:            uuid.New(),
+		TwitchID:      &twitchID,
+		Username:      username,
+		DisplayName:   displayName,
+		Role:          "user",
+		AccountType:   models.AccountTypeMember,
+		AccountStatus: "unclaimed",
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	if err := s.userRepo.Create(ctx, unclaimedUser); err != nil {
+		// Ignore duplicate errors (race condition)
+		if err == repository.ErrUserAlreadyExists {
+			return nil
+		}
+		return fmt.Errorf("failed to create unclaimed user: %w", err)
+	}
+
+	log.Printf("Created unclaimed user account for %s (Twitch ID: %s)", displayName, twitchID)
+	return nil
+}
+
+// generateUnclaimedUsername creates a username for unclaimed accounts
+func generateUnclaimedUsername(displayName, twitchID string) string {
+	// Normalize the display name to create a username
+	username := strings.ToLower(displayName)
+	username = regexp.MustCompile(`[^a-z0-9_]`).ReplaceAllString(username, "_")
+	username = regexp.MustCompile(`_+`).ReplaceAllString(username, "_")
+	username = strings.Trim(username, "_")
+
+	// If username is empty or too short, use a prefix
+	if len(username) < 3 {
+		username = "user_" + twitchID[:8]
+	}
+
+	// Truncate if too long (max 50 chars from schema)
+	if len(username) > 50 {
+		username = username[:50]
+	}
+
+	return username
 }
 
 func (s *ClipSyncService) fetchChannelTags(ctx context.Context, broadcasterIDs []string) map[string][]string {
