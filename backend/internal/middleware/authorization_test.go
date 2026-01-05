@@ -395,6 +395,15 @@ func TestLogAuthorizationDecision(t *testing.T) {
 			shouldPass: true,
 		},
 		{
+			name:       "Log error decision",
+			decision:   "error",
+			reason:     "authorization_check_failed",
+			ipAddress:  "192.168.1.3",
+			userAgent:  "Firefox/90.0",
+			metadata:   map[string]interface{}{"error": "database connection failed"},
+			shouldPass: true,
+		},
+		{
 			name:       "Log with empty metadata",
 			decision:   "allowed",
 			reason:     "no_restrictions",
@@ -504,5 +513,5 @@ func TestCanAccessResource_WithMetadata(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, result.Allowed)
 	assert.NotNil(t, result.Metadata)
-	assert.Contains(t, result.Reason, "role_based_access")
+	assert.Equal(t, "role_based_access_admin", result.Reason)
 }

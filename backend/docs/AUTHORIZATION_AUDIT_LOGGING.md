@@ -21,12 +21,12 @@ The authorization middleware implements comprehensive audit logging for all auth
 {
   "timestamp": "2026-01-05T12:34:56Z",
   "level": "info",
-  "message": "Authorization allowed: user=550e8400-e29b-41d4-a716-446655440000 resource=clip:123e4567-e89b-12d3-a456-426614174000 action=delete reason=user_is_owner",
+  "message": "Authorization allowed: user=550e8400-e29b-41d4-a716-446655440000 resource=comment:123e4567-e89b-12d3-a456-426614174000 action=delete reason=user_is_owner",
   "service": "clipper-backend",
   "fields": {
     "audit_type": "authorization",
     "user_id": "550e8400-e29b-41d4-a716-446655440000",
-    "resource": "clip",
+    "resource": "comment",
     "resource_id": "123e4567-e89b-12d3-a456-426614174000",
     "action": "delete",
     "decision": "allowed",

@@ -402,7 +402,7 @@ type AuthorizationAuditLog struct {
 	Resource   string                 `json:"resource"`
 	ResourceID string                 `json:"resource_id"`
 	Action     string                 `json:"action"`
-	Decision   string                 `json:"decision"` // "allowed" or "denied"
+	Decision   string                 `json:"decision"` // "allowed", "denied", or "error"
 	Reason     string                 `json:"reason"`
 	IPAddress  string                 `json:"ip_address,omitempty"`
 	UserAgent  string                 `json:"user_agent,omitempty"`
@@ -448,6 +448,8 @@ func LogAuthorizationDecision(userID uuid.UUID, resourceType ResourceType, resou
 
 	if decision == "denied" {
 		logger.Warn(message, fields)
+	} else if decision == "error" {
+		logger.Error(message, nil, fields)
 	} else {
 		logger.Info(message, fields)
 	}
