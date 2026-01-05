@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -9,17 +10,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
-	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+// ApplicationLogRepositoryInterface defines the interface for application log repository operations
+type ApplicationLogRepositoryInterface interface {
+	Create(ctx context.Context, log *models.ApplicationLog) error
+	GetLogStats(ctx context.Context) (map[string]interface{}, error)
+}
 
 // ApplicationLogHandler handles application log operations
 type ApplicationLogHandler struct {
-	logRepo *repository.ApplicationLogRepository
+	logRepo ApplicationLogRepositoryInterface
 }
 
 // NewApplicationLogHandler creates a new ApplicationLogHandler
-func NewApplicationLogHandler(logRepo *repository.ApplicationLogRepository) *ApplicationLogHandler {
+func NewApplicationLogHandler(logRepo ApplicationLogRepositoryInterface) *ApplicationLogHandler {
 	return &ApplicationLogHandler{
 		logRepo: logRepo,
 	}
@@ -87,9 +92,8 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 	if req.Context != nil {
 		contextBytes, err := json.Marshal(req.Context)
 		if err != nil {
-			utils.GetLogger().Error("Failed to marshal log context", err, map[string]interface{}{
-				"error": err.Error(),
-			})
+			// Silently skip context if marshaling fails
+			// This shouldn't happen in normal operation
 		} else {
 			contextJSON = contextBytes
 		}
@@ -117,10 +121,6 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 
 	// Store in database
 	if err := h.logRepo.Create(c.Request.Context(), log); err != nil {
-		utils.GetLogger().Error("Failed to store application log", err, map[string]interface{}{
-			"level":   req.Level,
-			"service": service,
-		})
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to store log",
 		})
@@ -128,7 +128,7 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 	}
 
 	// Return 204 No Content on success
-	c.Status(http.StatusNoContent)
+	c.Writer.WriteHeader(http.StatusNoContent)
 }
 
 // filterSensitiveData removes sensitive information from log strings
