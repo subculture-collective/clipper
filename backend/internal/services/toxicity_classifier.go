@@ -352,7 +352,7 @@ func (tc *ToxicityClassifier) loadRulesConfig() error {
 		return fmt.Errorf("failed to parse rules config: %w", err)
 	}
 
-	//  Validate that we got some rules
+	// Validate that we got some rules
 	if len(config.Rules) == 0 {
 		return fmt.Errorf("no rules found in config file")
 	}
@@ -382,7 +382,7 @@ func (tc *ToxicityClassifier) GetRulesCount() int {
 	tc.configLoadOnce.Do(func() {
 		tc.configLoadErr = tc.loadRulesConfig()
 	})
-	
+
 	if tc.rulesConfig == nil {
 		return 0
 	}
@@ -395,7 +395,7 @@ func (tc *ToxicityClassifier) GetConfigLoadError() error {
 	tc.configLoadOnce.Do(func() {
 		tc.configLoadErr = tc.loadRulesConfig()
 	})
-	
+
 	return tc.configLoadErr
 }
 
@@ -454,18 +454,18 @@ func (tc *ToxicityClassifier) normalizeText(text string) string {
 // isWhitelisted checks if content contains only whitelisted terms
 func (tc *ToxicityClassifier) isWhitelisted(content string) bool {
 	words := strings.Fields(strings.ToLower(content))
-	
+
 	for _, word := range words {
 		// Clean the word of punctuation
 		cleaned := strings.TrimFunc(word, func(r rune) bool {
 			return !unicode.IsLetter(r) && !unicode.IsNumber(r)
 		})
-		
+
 		if tc.whitelistMap[cleaned] {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
