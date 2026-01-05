@@ -196,7 +196,8 @@ class StructuredLogger {
         context: entry.fields,
       };
 
-      await fetch('/api/v1/logs', {
+      // Send without awaiting to avoid blocking
+      void fetch('/api/v1/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(logPayload),
