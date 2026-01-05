@@ -2070,13 +2070,14 @@ If you have any questions or concerns, please contact our support team. We're he
 // ==============================================================================
 
 // prepareDMCATakedownConfirmationEmail prepares the takedown notice confirmation email
-func (s *EmailService) prepareDMCATakedownConfirmationEmail(data map[string]interface{}) (html, text string) {
+// prepareDMCATakedownConfirmationEmail prepares the takedown notice confirmation email
+func (s *EmailService) prepareDMCATakedownConfirmationEmail(data map[string]interface{}) (htmlContent, text string) {
 	noticeID := data["NoticeID"]
-	complainantName := data["ComplainantName"]
-	submittedAt := data["SubmittedAt"]
+	complainantName := html.EscapeString(fmt.Sprintf("%v", data["ComplainantName"]))
+	submittedAt := html.EscapeString(fmt.Sprintf("%v", data["SubmittedAt"]))
 	urlCount := data["URLCount"]
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2102,7 +2103,7 @@ func (s *EmailService) prepareDMCATakedownConfirmationEmail(data map[string]inte
             <h3 style="margin-top: 0; color: #667eea;">Notice Details</h3>
             <p style="margin: 5px 0;"><strong>Notice ID:</strong> %s</p>
             <p style="margin: 5px 0;"><strong>Submitted:</strong> %s</p>
-            <p style="margin: 5px 0;"><strong>URLs Reported:</strong> %v</p>
+            <p style="margin: 5px 0;"><strong>URLs Reported:</strong> %d</p>
         </div>
         
         <p style="font-size: 16px; margin-bottom: 20px;">
@@ -2151,21 +2152,21 @@ What happens next:
 IMPORTANT: Submitting false or fraudulent DMCA notices may result in legal consequences under penalty of perjury (17 USC § 512(f)).
 
 If you have questions, please contact our DMCA agent at %s
-`, complainantName, noticeID, submittedAt, urlCount, s.fromEmail)
+`, fmt.Sprintf("%v", data["ComplainantName"]), noticeID, fmt.Sprintf("%v", data["SubmittedAt"]), urlCount, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCAAgentNotificationEmail prepares the DMCA agent notification email
-func (s *EmailService) prepareDMCAAgentNotificationEmail(data map[string]interface{}) (html, text string) {
+func (s *EmailService) prepareDMCAAgentNotificationEmail(data map[string]interface{}) (htmlContent, text string) {
 	noticeID := data["NoticeID"]
-	complainantName := data["ComplainantName"]
-	complainantEmail := data["ComplainantEmail"]
-	submittedAt := data["SubmittedAt"]
+	complainantName := html.EscapeString(fmt.Sprintf("%v", data["ComplainantName"]))
+	complainantEmail := html.EscapeString(fmt.Sprintf("%v", data["ComplainantEmail"]))
+	submittedAt := html.EscapeString(fmt.Sprintf("%v", data["SubmittedAt"]))
 	urlCount := data["URLCount"]
-	reviewURL := data["ReviewURL"]
+	reviewURL := html.EscapeString(fmt.Sprintf("%v", data["ReviewURL"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2220,18 +2221,18 @@ Notice Information:
 Review Notice: %s
 
 This is an automated notification. Please review and take action within 24-48 hours.
-`, noticeID, submittedAt, complainantName, complainantEmail, urlCount, reviewURL)
+`, noticeID, fmt.Sprintf("%v", data["SubmittedAt"]), fmt.Sprintf("%v", data["ComplainantName"]), fmt.Sprintf("%v", data["ComplainantEmail"]), urlCount, fmt.Sprintf("%v", data["ReviewURL"]))
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCANoticeIncompleteEmail prepares the incomplete notice email
-func (s *EmailService) prepareDMCANoticeIncompleteEmail(data map[string]interface{}) (html, text string) {
+func (s *EmailService) prepareDMCANoticeIncompleteEmail(data map[string]interface{}) (htmlContent, text string) {
 	noticeID := data["NoticeID"]
-	complainantName := data["ComplainantName"]
-	notes := data["Notes"]
+	complainantName := html.EscapeString(fmt.Sprintf("%v", data["ComplainantName"]))
+	notes := html.EscapeString(fmt.Sprintf("%v", data["Notes"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2298,19 +2299,19 @@ Next Steps:
 DMCA Guidelines: %s/legal/dmca
 
 If you have questions, please contact our DMCA agent at %s
-`, complainantName, noticeID, notes, s.baseURL, s.fromEmail)
+`, fmt.Sprintf("%v", data["ComplainantName"]), noticeID, fmt.Sprintf("%v", data["Notes"]), s.baseURL, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCATakedownProcessedEmail prepares the takedown processed confirmation email
-func (s *EmailService) prepareDMCATakedownProcessedEmail(data map[string]interface{}) (html, text string) {
+func (s *EmailService) prepareDMCATakedownProcessedEmail(data map[string]interface{}) (htmlContent, text string) {
 	noticeID := data["NoticeID"]
-	complainantName := data["ComplainantName"]
+	complainantName := html.EscapeString(fmt.Sprintf("%v", data["ComplainantName"]))
 	clipsRemoved := data["ClipsRemoved"]
-	processedAt := data["ProcessedAt"]
+	processedAt := html.EscapeString(fmt.Sprintf("%v", data["ProcessedAt"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2385,21 +2386,21 @@ What happens next:
 Note: This action was taken in accordance with the Digital Millennium Copyright Act (17 USC § 512).
 
 If you have questions, please contact our DMCA agent at %s
-`, complainantName, noticeID, processedAt, clipsRemoved, s.fromEmail)
+`, fmt.Sprintf("%v", data["ComplainantName"]), noticeID, fmt.Sprintf("%v", data["ProcessedAt"]), clipsRemoved, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCAStrike1Email prepares the first strike warning email
-func (s *EmailService) prepareDMCAStrike1Email(data map[string]interface{}) (html, text string) {
-	userName := data["UserName"]
+func (s *EmailService) prepareDMCAStrike1Email(data map[string]interface{}) (htmlContent, text string) {
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
 	strikeID := data["StrikeID"]
 	noticeID := data["NoticeID"]
-	issuedAt := data["IssuedAt"]
-	expiresAt := data["ExpiresAt"]
-	counterNoticeURL := data["CounterNoticeURL"]
+	issuedAt := html.EscapeString(fmt.Sprintf("%v", data["IssuedAt"]))
+	expiresAt := html.EscapeString(fmt.Sprintf("%v", data["ExpiresAt"]))
+	counterNoticeURL := html.EscapeString(fmt.Sprintf("%v", data["CounterNoticeURL"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2485,21 +2486,21 @@ File Counter-Notice: %s
 
 Learn more: %s/legal/dmca
 Questions? Contact our DMCA agent: %s
-`, userName, strikeID, noticeID, issuedAt, expiresAt, counterNoticeURL, s.baseURL, s.fromEmail)
+`, fmt.Sprintf("%v", data["UserName"]), strikeID, noticeID, fmt.Sprintf("%v", data["IssuedAt"]), fmt.Sprintf("%v", data["ExpiresAt"]), fmt.Sprintf("%v", data["CounterNoticeURL"]), s.baseURL, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCAStrike2Email prepares the second strike suspension email
-func (s *EmailService) prepareDMCAStrike2Email(data map[string]interface{}) (html, text string) {
-	userName := data["UserName"]
+func (s *EmailService) prepareDMCAStrike2Email(data map[string]interface{}) (htmlContent, text string) {
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
 	strikeID := data["StrikeID"]
 	noticeID := data["NoticeID"]
-	issuedAt := data["IssuedAt"]
-	suspendUntil := data["SuspendUntil"]
-	counterNoticeURL := data["CounterNoticeURL"]
+	issuedAt := html.EscapeString(fmt.Sprintf("%v", data["IssuedAt"]))
+	suspendUntil := html.EscapeString(fmt.Sprintf("%v", data["SuspendUntil"]))
+	counterNoticeURL := html.EscapeString(fmt.Sprintf("%v", data["CounterNoticeURL"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2595,17 +2596,17 @@ Learn more: %s/legal/dmca
 Questions? Contact our DMCA agent: %s
 `, userName, strikeID, noticeID, issuedAt, suspendUntil, counterNoticeURL, s.baseURL, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCAStrike3Email prepares the third strike termination email
-func (s *EmailService) prepareDMCAStrike3Email(data map[string]interface{}) (html, text string) {
-	userName := data["UserName"]
+func (s *EmailService) prepareDMCAStrike3Email(data map[string]interface{}) (htmlContent, text string) {
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
 	strikeID := data["StrikeID"]
 	noticeID := data["NoticeID"]
-	issuedAt := data["IssuedAt"]
+	issuedAt := html.EscapeString(fmt.Sprintf("%v", data["IssuedAt"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2684,17 +2685,17 @@ Learn more: %s/legal/dmca
 Appeal: %s
 `, userName, strikeID, noticeID, issuedAt, s.baseURL, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCACounterNoticeConfirmationEmail prepares counter-notice confirmation email
-func (s *EmailService) prepareDMCACounterNoticeConfirmationEmail(data map[string]interface{}) (html, text string) {
-	userName := data["UserName"]
+func (s *EmailService) prepareDMCACounterNoticeConfirmationEmail(data map[string]interface{}) (htmlContent, text string) {
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
 	counterNoticeID := data["CounterNoticeID"]
 	noticeID := data["NoticeID"]
-	submittedAt := data["SubmittedAt"]
+	submittedAt := html.EscapeString(fmt.Sprintf("%v", data["SubmittedAt"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2771,20 +2772,20 @@ Important: By submitting this counter-notice, you have consented to jurisdiction
 Questions? Contact our DMCA agent: %s
 `, userName, counterNoticeID, noticeID, submittedAt, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCACounterNoticeToComplainantEmail prepares notification to complainant about counter-notice
-func (s *EmailService) prepareDMCACounterNoticeToComplainantEmail(data map[string]interface{}) (html, text string) {
-	complainantName := data["ComplainantName"]
+func (s *EmailService) prepareDMCACounterNoticeToComplainantEmail(data map[string]interface{}) (htmlContent, text string) {
+	complainantName := html.EscapeString(fmt.Sprintf("%v", data["ComplainantName"]))
 	noticeID := data["NoticeID"]
 	counterNoticeID := data["CounterNoticeID"]
-	userName := data["UserName"]
-	userAddress := data["UserAddress"]
-	forwardedAt := data["ForwardedAt"]
-	waitingPeriodEnds := data["WaitingPeriodEnds"]
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
+	userAddress := html.EscapeString(fmt.Sprintf("%v", data["UserAddress"]))
+	forwardedAt := html.EscapeString(fmt.Sprintf("%v", data["ForwardedAt"]))
+	waitingPeriodEnds := html.EscapeString(fmt.Sprintf("%v", data["WaitingPeriodEnds"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2871,17 +2872,17 @@ Legal Notice: This counter-notice was submitted under penalty of perjury (17 USC
 Questions? Contact our DMCA agent: %s
 `, complainantName, noticeID, counterNoticeID, userName, userAddress, forwardedAt, waitingPeriodEnds, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCAContentReinstatedEmail prepares content reinstated notification for user
-func (s *EmailService) prepareDMCAContentReinstatedEmail(data map[string]interface{}) (html, text string) {
-	userName := data["UserName"]
+func (s *EmailService) prepareDMCAContentReinstatedEmail(data map[string]interface{}) (htmlContent, text string) {
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
 	counterNoticeID := data["CounterNoticeID"]
-	reinstatedAt := data["ReinstatedAt"]
-	contentURL := data["ContentURL"]
+	reinstatedAt := html.EscapeString(fmt.Sprintf("%v", data["ReinstatedAt"]))
+	contentURL := html.EscapeString(fmt.Sprintf("%v", data["ContentURL"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -2952,17 +2953,17 @@ Note: The copyright strike associated with this content has been removed from yo
 Questions? Contact our DMCA agent: %s
 `, userName, counterNoticeID, reinstatedAt, contentURL, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }
 
 // prepareDMCAComplainantReinstatedEmail prepares notification to complainant about content reinstatement
-func (s *EmailService) prepareDMCAComplainantReinstatedEmail(data map[string]interface{}) (html, text string) {
-	complainantName := data["ComplainantName"]
+func (s *EmailService) prepareDMCAComplainantReinstatedEmail(data map[string]interface{}) (htmlContent, text string) {
+	complainantName := html.EscapeString(fmt.Sprintf("%v", data["ComplainantName"]))
 	noticeID := data["NoticeID"]
 	counterNoticeID := data["CounterNoticeID"]
-	reinstatedAt := data["ReinstatedAt"]
+	reinstatedAt := html.EscapeString(fmt.Sprintf("%v", data["ReinstatedAt"]))
 
-	html = fmt.Sprintf(`
+	htmlContent = fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -3029,5 +3030,5 @@ Your Rights: You may still pursue legal action against the content owner if you 
 Questions? Contact our DMCA agent: %s
 `, complainantName, noticeID, counterNoticeID, reinstatedAt, s.fromEmail)
 
-	return html, text
+	return htmlContent, text
 }

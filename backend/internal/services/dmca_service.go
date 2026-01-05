@@ -614,7 +614,11 @@ func (s *DMCAService) sendTakedownNoticeConfirmation(ctx context.Context, notice
 
 // formatNoticeID formats a UUID for display (first 8 characters)
 func (s *DMCAService) formatNoticeID(id uuid.UUID) string {
-	return id.String()[:8]
+	str := id.String()
+	if len(str) < 8 {
+		return str
+	}
+	return str[:8]
 }
 
 func (s *DMCAService) notifyDMCAAgent(ctx context.Context, notice *models.DMCANotice) error {
@@ -1287,19 +1291,32 @@ func (s *DMCAService) buildContentURL(materialURL string) string {
 	// Parse the URL to validate it
 	parsedURL, err := url.Parse(materialURL)
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
-		// If invalid or relative URL, sanitize and construct from base URL
-		// Remove any path traversal attempts and special characters
-		safePath := strings.ReplaceAll(materialURL, "..", "")
-		safePath = strings.TrimPrefix(safePath, "/")
-		return fmt.Sprintf("%s/content/%s", s.baseURL, safePath)
+		// If invalid or relative URL, treat the input as a single path segment.
+		// Trim leading slashes and whitespace, then URL-escape it so it cannot
+		// affect the path structure (prevents traversal and segment injection).
+		segment := strings.TrimSpace(materialURL)
+		segment = strings.TrimPrefix(segment, "/")
+		safeSegment := url.PathEscape(segment)
+		return fmt.Sprintf("%s/content/%s", s.baseURL, safeSegment)
 	}
 	
 	// Ensure the URL uses a safe scheme (http or https)
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		// Invalid scheme, sanitize and construct safe URL from base
-		safePath := strings.ReplaceAll(materialURL, "..", "")
-		safePath = strings.TrimPrefix(safePath, "/")
-		return fmt.Sprintf("%s/content/%s", s.baseURL, safePath)
+		// Invalid scheme, sanitize and construct safe URL from base as above
+		segment := strings.TrimSpace(materialURL)
+		segment = strings.TrimPrefix(segment, "/")
+		safeSegment := url.PathEscape(segment)
+		return fmt.Sprintf("%s/content/%s", s.baseURL, safeSegment)
+	}
+	
+	// Validate that the URL belongs to a trusted domain (our baseURL)
+	baseURL, err := url.Parse(s.baseURL)
+	if err == nil && parsedURL.Host != baseURL.Host {
+		// External URL detected - treat as untrusted and construct safe URL
+		segment := strings.TrimSpace(materialURL)
+		segment = strings.TrimPrefix(segment, "/")
+		safeSegment := url.PathEscape(segment)
+		return fmt.Sprintf("%s/content/%s", s.baseURL, safeSegment)
 	}
 	
 	return materialURL
