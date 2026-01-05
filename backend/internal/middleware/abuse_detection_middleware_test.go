@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/config"
