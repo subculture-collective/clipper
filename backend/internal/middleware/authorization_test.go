@@ -29,6 +29,7 @@ func TestCanAccessResource_OwnershipRequired(t *testing.T) {
 		user           *models.User
 		isOwner        bool
 		expectedAccess bool
+		expectedReason string
 	}{
 		{
 			name: "Owner has access",
@@ -39,6 +40,7 @@ func TestCanAccessResource_OwnershipRequired(t *testing.T) {
 			},
 			isOwner:        true,
 			expectedAccess: true,
+			expectedReason: "user_is_owner",
 		},
 		{
 			name: "Non-owner regular user denied",
@@ -49,6 +51,7 @@ func TestCanAccessResource_OwnershipRequired(t *testing.T) {
 			},
 			isOwner:        false,
 			expectedAccess: false,
+			expectedReason: "not_owner_insufficient_role",
 		},
 		{
 			name: "Non-owner admin has access",
@@ -59,6 +62,7 @@ func TestCanAccessResource_OwnershipRequired(t *testing.T) {
 			},
 			isOwner:        false,
 			expectedAccess: true,
+			expectedReason: "elevated_role_admin",
 		},
 	}
 
@@ -74,9 +78,10 @@ func TestCanAccessResource_OwnershipRequired(t *testing.T) {
 				ResourceType: ResourceTypeComment,
 			}
 
-			hasAccess, err := CanAccessResource(authCtx, checker)
+			result, err := CanAccessResource(authCtx, checker)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedAccess, hasAccess)
+			assert.Equal(t, tt.expectedAccess, result.Allowed)
+			assert.Equal(t, tt.expectedReason, result.Reason)
 		})
 	}
 }
@@ -135,9 +140,9 @@ func TestCanAccessResource_RoleBasedAccess(t *testing.T) {
 				ResourceType: ResourceTypeClip,
 			}
 
-			hasAccess, err := CanAccessResource(authCtx, checker)
+			result, err := CanAccessResource(authCtx, checker)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedAccess, hasAccess)
+			assert.Equal(t, tt.expectedAccess, result.Allowed)
 		})
 	}
 }
@@ -163,9 +168,10 @@ func TestCanAccessResource_PublicAccess(t *testing.T) {
 		ResourceType: ResourceTypeClip,
 	}
 
-	hasAccess, err := CanAccessResource(authCtx, checker)
+	result, err := CanAccessResource(authCtx, checker)
 	require.NoError(t, err)
-	assert.True(t, hasAccess, "Anyone should be able to read public clips")
+	assert.True(t, result.Allowed, "Anyone should be able to read public clips")
+	assert.Equal(t, "no_restrictions", result.Reason)
 }
 
 func TestCanAccessResource_AccountTypePermissions(t *testing.T) {
@@ -220,9 +226,9 @@ func TestCanAccessResource_AccountTypePermissions(t *testing.T) {
 				ResourceType: tt.resourceType,
 			}
 
-			hasAccess, err := CanAccessResource(authCtx, checker)
+			result, err := CanAccessResource(authCtx, checker)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedAccess, hasAccess)
+			assert.Equal(t, tt.expectedAccess, result.Allowed)
 		})
 	}
 }
@@ -350,8 +356,153 @@ func TestCanAccessResource_NoRuleFound(t *testing.T) {
 		ResourceType: ResourceType("nonexistent"),
 	}
 
-	hasAccess, err := CanAccessResource(authCtx, checker)
+	result, err := CanAccessResource(authCtx, checker)
 	assert.Error(t, err, "Should return error for non-existent rule")
-	assert.False(t, hasAccess)
+	assert.False(t, result.Allowed)
 	assert.Contains(t, err.Error(), "no permission rule found")
+	assert.Equal(t, "no_permission_rule", result.Reason)
+}
+
+func TestLogAuthorizationDecision(t *testing.T) {
+	userID := uuid.New()
+	resourceID := uuid.New()
+
+	tests := []struct {
+		name       string
+		decision   string
+		reason     string
+		ipAddress  string
+		userAgent  string
+		metadata   map[string]interface{}
+		shouldPass bool
+	}{
+		{
+			name:       "Log allowed decision",
+			decision:   "allowed",
+			reason:     "user_is_owner",
+			ipAddress:  "192.168.1.1",
+			userAgent:  "Mozilla/5.0",
+			metadata:   map[string]interface{}{"key": "value"},
+			shouldPass: true,
+		},
+		{
+			name:       "Log denied decision",
+			decision:   "denied",
+			reason:     "insufficient_role",
+			ipAddress:  "192.168.1.2",
+			userAgent:  "Chrome/91.0",
+			metadata:   map[string]interface{}{"user_role": "user"},
+			shouldPass: true,
+		},
+		{
+			name:       "Log with empty metadata",
+			decision:   "allowed",
+			reason:     "no_restrictions",
+			ipAddress:  "10.0.0.1",
+			userAgent:  "Safari/14.0",
+			metadata:   nil,
+			shouldPass: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// This test verifies that LogAuthorizationDecision doesn't panic
+			// The actual log output is tested through integration tests
+			assert.NotPanics(t, func() {
+				LogAuthorizationDecision(
+					userID,
+					ResourceTypeClip,
+					resourceID,
+					ActionRead,
+					tt.decision,
+					tt.reason,
+					tt.ipAddress,
+					tt.userAgent,
+					tt.metadata,
+				)
+			})
+		})
+	}
+}
+
+func TestAuthorizationResult(t *testing.T) {
+	tests := []struct {
+		name     string
+		result   *AuthorizationResult
+		expected bool
+	}{
+		{
+			name: "Allowed result",
+			result: &AuthorizationResult{
+				Allowed:  true,
+				Reason:   "user_is_owner",
+				Metadata: map[string]interface{}{"test": "data"},
+			},
+			expected: true,
+		},
+		{
+			name: "Denied result",
+			result: &AuthorizationResult{
+				Allowed:  false,
+				Reason:   "insufficient_role",
+				Metadata: map[string]interface{}{"user_role": "user"},
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.result.Allowed)
+			assert.NotEmpty(t, tt.result.Reason)
+			assert.NotNil(t, tt.result.Metadata)
+		})
+	}
+}
+
+func TestAuthorizationContext_WithIPAndUserAgent(t *testing.T) {
+	userID := uuid.New()
+	resourceID := uuid.New()
+
+	ctx := &AuthorizationContext{
+		UserID:       userID,
+		User:         &models.User{ID: userID},
+		ResourceID:   resourceID,
+		Action:       ActionRead,
+		ResourceType: ResourceTypeClip,
+		IPAddress:    "192.168.1.1",
+		UserAgent:    "Mozilla/5.0",
+	}
+
+	assert.Equal(t, "192.168.1.1", ctx.IPAddress)
+	assert.Equal(t, "Mozilla/5.0", ctx.UserAgent)
+}
+
+func TestCanAccessResource_WithMetadata(t *testing.T) {
+	userID := uuid.New()
+	resourceID := uuid.New()
+
+	// Test that metadata is populated in result
+	user := &models.User{
+		ID:          userID,
+		Role:        models.RoleAdmin,
+		AccountType: models.AccountTypeAdmin,
+	}
+
+	checker := &MockChecker{isOwner: false}
+
+	authCtx := &AuthorizationContext{
+		UserID:       userID,
+		User:         user,
+		ResourceID:   resourceID,
+		Action:       ActionDelete,
+		ResourceType: ResourceTypeClip,
+	}
+
+	result, err := CanAccessResource(authCtx, checker)
+	require.NoError(t, err)
+	assert.True(t, result.Allowed)
+	assert.NotNil(t, result.Metadata)
+	assert.Contains(t, result.Reason, "role_based_access")
 }

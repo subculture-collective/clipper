@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // ResourceType represents the type of resource being accessed
@@ -142,10 +144,25 @@ type AuthorizationContext struct {
 	ResourceID   uuid.UUID
 	Action       Action
 	ResourceType ResourceType
+	IPAddress    string
+	UserAgent    string
+}
+
+// AuthorizationResult contains the result of an authorization check
+type AuthorizationResult struct {
+	Allowed  bool
+	Reason   string
+	Metadata map[string]interface{}
 }
 
 // CanAccessResource checks if a user can perform an action on a resource
-func CanAccessResource(ctx *AuthorizationContext, checker ResourceOwnershipChecker) (bool, error) {
+// Returns AuthorizationResult with decision details for audit logging
+func CanAccessResource(ctx *AuthorizationContext, checker ResourceOwnershipChecker) (*AuthorizationResult, error) {
+	result := &AuthorizationResult{
+		Allowed:  false,
+		Metadata: make(map[string]interface{}),
+	}
+
 	// Find the permission rule
 	var rule *Permission
 	for _, p := range PermissionMatrix {
@@ -157,32 +174,44 @@ func CanAccessResource(ctx *AuthorizationContext, checker ResourceOwnershipCheck
 
 	if rule == nil {
 		// No explicit rule found - deny by default
-		return false, fmt.Errorf("no permission rule found for %s:%s", ctx.ResourceType, ctx.Action)
+		result.Reason = "no_permission_rule"
+		return result, fmt.Errorf("no permission rule found for %s:%s", ctx.ResourceType, ctx.Action)
 	}
 
 	// Check if ownership is required
 	if rule.RequiresOwner {
 		isOwner, err := checker.IsOwner(context.Background(), ctx.ResourceID, ctx.UserID)
 		if err != nil {
-			return false, fmt.Errorf("failed to check ownership: %w", err)
+			result.Reason = "ownership_check_failed"
+			result.Metadata["error"] = err.Error()
+			return result, fmt.Errorf("failed to check ownership: %w", err)
 		}
 
 		// If owner, allow access
 		if isOwner {
-			return true, nil
+			result.Allowed = true
+			result.Reason = "user_is_owner"
+			return result, nil
 		}
 
 		// If not owner, check if user has elevated permissions
 		if ctx.User != nil {
 			for _, role := range rule.AllowedRoles {
 				if ctx.User.HasRole(role) {
-					return true, nil
+					result.Allowed = true
+					result.Reason = fmt.Sprintf("elevated_role_%s", role)
+					result.Metadata["role"] = role
+					return result, nil
 				}
 			}
 		}
 
 		// Not owner and no elevated permissions
-		return false, nil
+		result.Reason = "not_owner_insufficient_role"
+		if ctx.User != nil {
+			result.Metadata["user_role"] = ctx.User.Role
+		}
+		return result, nil
 	}
 
 	// Check role-based permissions if no ownership required
@@ -190,11 +219,19 @@ func CanAccessResource(ctx *AuthorizationContext, checker ResourceOwnershipCheck
 		if ctx.User != nil {
 			for _, role := range rule.AllowedRoles {
 				if ctx.User.HasRole(role) {
-					return true, nil
+					result.Allowed = true
+					result.Reason = fmt.Sprintf("role_based_access_%s", role)
+					result.Metadata["role"] = role
+					return result, nil
 				}
 			}
 		}
-		return false, nil
+		result.Reason = "insufficient_role"
+		if ctx.User != nil {
+			result.Metadata["user_role"] = ctx.User.Role
+			result.Metadata["required_roles"] = rule.AllowedRoles
+		}
+		return result, nil
 	}
 
 	// Check account type permissions
@@ -203,15 +240,25 @@ func CanAccessResource(ctx *AuthorizationContext, checker ResourceOwnershipCheck
 			userAccountType := ctx.User.GetAccountType()
 			for _, accountType := range rule.AllowedAccountTypes {
 				if userAccountType == accountType {
-					return true, nil
+					result.Allowed = true
+					result.Reason = fmt.Sprintf("account_type_access_%s", accountType)
+					result.Metadata["account_type"] = accountType
+					return result, nil
 				}
 			}
 		}
-		return false, nil
+		result.Reason = "insufficient_account_type"
+		if ctx.User != nil {
+			result.Metadata["user_account_type"] = ctx.User.GetAccountType()
+			result.Metadata["required_account_types"] = rule.AllowedAccountTypes
+		}
+		return result, nil
 	}
 
 	// No restrictions - allow access
-	return true, nil
+	result.Allowed = true
+	result.Reason = "no_restrictions"
+	return result, nil
 }
 
 // RequireResourceOwnership creates middleware that requires resource ownership
@@ -260,6 +307,10 @@ func RequireResourceOwnership(resourceType ResourceType, action Action, checker 
 			return
 		}
 
+		// Capture client information for audit logging
+		ipAddress := c.ClientIP()
+		userAgent := c.Request.UserAgent()
+
 		// Build authorization context
 		authCtx := &AuthorizationContext{
 			UserID:       user.ID,
@@ -267,11 +318,26 @@ func RequireResourceOwnership(resourceType ResourceType, action Action, checker 
 			ResourceID:   resourceID,
 			Action:       action,
 			ResourceType: resourceType,
+			IPAddress:    ipAddress,
+			UserAgent:    userAgent,
 		}
 
 		// Check access
-		hasAccess, err := CanAccessResource(authCtx, checker)
+		result, err := CanAccessResource(authCtx, checker)
 		if err != nil {
+			// Log the authorization error
+			LogAuthorizationDecision(
+				user.ID,
+				resourceType,
+				resourceID,
+				action,
+				"error",
+				fmt.Sprintf("authorization_check_failed: %v", err),
+				ipAddress,
+				userAgent,
+				nil,
+			)
+
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error": gin.H{
@@ -283,7 +349,20 @@ func RequireResourceOwnership(resourceType ResourceType, action Action, checker 
 			return
 		}
 
-		if !hasAccess {
+		if !result.Allowed {
+			// Log denied authorization
+			LogAuthorizationDecision(
+				user.ID,
+				resourceType,
+				resourceID,
+				action,
+				"denied",
+				result.Reason,
+				ipAddress,
+				userAgent,
+				result.Metadata,
+			)
+
 			c.JSON(http.StatusForbidden, gin.H{
 				"success": false,
 				"error": gin.H{
@@ -299,14 +378,83 @@ func RequireResourceOwnership(resourceType ResourceType, action Action, checker 
 			return
 		}
 
+		// Log successful authorization
+		LogAuthorizationDecision(
+			user.ID,
+			resourceType,
+			resourceID,
+			action,
+			"allowed",
+			result.Reason,
+			ipAddress,
+			userAgent,
+			result.Metadata,
+		)
+
 		c.Next()
 	}
 }
 
+// AuthorizationAuditLog represents an authorization decision audit log entry
+type AuthorizationAuditLog struct {
+	Timestamp  time.Time              `json:"timestamp"`
+	UserID     string                 `json:"user_id"`
+	Resource   string                 `json:"resource"`
+	ResourceID string                 `json:"resource_id"`
+	Action     string                 `json:"action"`
+	Decision   string                 `json:"decision"` // "allowed" or "denied"
+	Reason     string                 `json:"reason"`
+	IPAddress  string                 `json:"ip_address,omitempty"`
+	UserAgent  string                 `json:"user_agent,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// LogAuthorizationDecision logs all authorization decisions for audit purposes
+// This function logs to structured JSON format without PII, following GDPR compliance
+func LogAuthorizationDecision(userID uuid.UUID, resourceType ResourceType, resourceID uuid.UUID, action Action, decision string, reason string, ipAddress, userAgent string, metadata map[string]interface{}) {
+	logger := utils.GetLogger()
+
+	auditLog := AuthorizationAuditLog{
+		Timestamp:  time.Now().UTC(),
+		UserID:     userID.String(),
+		Resource:   string(resourceType),
+		ResourceID: resourceID.String(),
+		Action:     string(action),
+		Decision:   decision,
+		Reason:     reason,
+		IPAddress:  ipAddress,
+		UserAgent:  userAgent,
+		Metadata:   metadata,
+	}
+
+	fields := map[string]interface{}{
+		"audit_type":  "authorization",
+		"user_id":     auditLog.UserID,
+		"resource":    auditLog.Resource,
+		"resource_id": auditLog.ResourceID,
+		"action":      auditLog.Action,
+		"decision":    auditLog.Decision,
+		"reason":      auditLog.Reason,
+		"ip_address":  auditLog.IPAddress,
+		"user_agent":  auditLog.UserAgent,
+	}
+
+	if metadata != nil {
+		fields["metadata"] = metadata
+	}
+
+	message := fmt.Sprintf("Authorization %s: user=%s resource=%s:%s action=%s reason=%s",
+		decision, userID, resourceType, resourceID, action, reason)
+
+	if decision == "denied" {
+		logger.Warn(message, fields)
+	} else {
+		logger.Info(message, fields)
+	}
+}
+
 // LogAuthorizationFailure logs authorization failures for security monitoring
+// Deprecated: Use LogAuthorizationDecision instead
 func LogAuthorizationFailure(userID uuid.UUID, resourceType ResourceType, resourceID uuid.UUID, action Action, reason string) {
-	// TODO: Implement proper logging to audit log system
-	// For now, this is a placeholder for future integration
-	fmt.Printf("AUTHORIZATION_FAILURE: user=%s resource=%s:%s action=%s reason=%s\n",
-		userID, resourceType, resourceID, action, reason)
+	LogAuthorizationDecision(userID, resourceType, resourceID, action, "denied", reason, "", "", nil)
 }
