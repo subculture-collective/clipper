@@ -141,7 +141,7 @@ All acceptance criteria for issue #836 (Infrastructure Modernization RFC) have b
 
 **Production**:
 - 3+ nodes (autoscaling 2-10)
-- 3-20 backend replicas, 3-8 frontend replicas
+- 3-20 backend replicas, 2-8 frontend replicas
 - Domain: clpr.tv
 - 7-day backup retention + PITR
 

@@ -235,6 +235,44 @@ spec:
       stabilizationWindowSeconds: 300  # 5 min cooldown
 ```
 
+**Staging Environment (Backend):**
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: clipper-backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: clipper-backend
+  minReplicas: 2  # staging
+  maxReplicas: 5  # staging
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "1000"  # ~1000 req/s per pod
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 min cooldown
+```
+
 **Frontend Service:**
 ```yaml
 apiVersion: autoscaling/v2
@@ -346,7 +384,7 @@ spec:
 **Configuration:**
 - **Cluster Size**: 3+ nodes with autoscaling (2-10 nodes)
 - **Backend**: 3-20 replicas (HPA)
-- **Frontend**: 3-8 replicas (HPA)
+- **Frontend**: 2-8 replicas (HPA)
 - **Database**: Primary + 1 read replica
 - **Redis**: 3-node cluster (high availability)
 - **OpenSearch**: 3-node cluster
