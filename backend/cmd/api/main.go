@@ -202,6 +202,7 @@ func main() {
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
 	watchPartyRepo := repository.NewWatchPartyRepository(db.Pool)
 	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
+	applicationLogRepo := repository.NewApplicationLogRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -446,6 +447,7 @@ func main() {
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
+	applicationLogHandler := handlers.NewApplicationLogHandler(applicationLogRepo)
 
 	// Initialize WebSocket server
 	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient())
@@ -660,6 +662,24 @@ func main() {
 
 		// Public config endpoint
 		v1.GET("/config", configHandler.GetPublicConfig)
+
+		// Application logs endpoint (with rate limiting)
+		// Per-user: 100 logs/minute, Per-IP: 500 logs/minute
+		logs := v1.Group("/logs")
+		{
+			// Public log submission endpoint with rate limiting
+			// Uses OptionalAuthMiddleware to allow both authenticated and anonymous logs
+			logs.POST("", 
+				middleware.OptionalAuthMiddleware(authService), 
+				middleware.RateLimitMiddleware(redisClient, 100, time.Minute),
+				applicationLogHandler.CreateLog)
+			
+			// Admin-only log stats endpoint
+			logs.GET("/stats", 
+				middleware.AuthMiddleware(authService), 
+				middleware.RequireRole("admin"), 
+				applicationLogHandler.GetLogStats)
+		}
 
 		// Auth routes
 		auth := v1.Group("/auth")
