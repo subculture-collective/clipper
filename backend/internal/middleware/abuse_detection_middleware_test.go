@@ -6,11 +6,19 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/config"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 )
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 func TestAbuseDetectionMiddleware_NormalUsage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -43,8 +51,8 @@ func TestAbuseDetectionMiddleware_Integration(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       0,
 	}
@@ -125,8 +133,8 @@ func TestUnbanIP(t *testing.T) {
 	}
 
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       0,
 	}
@@ -191,8 +199,8 @@ func TestGetBannedIPs(t *testing.T) {
 	}
 
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       0,
 	}
@@ -257,12 +265,11 @@ func TestGetAbuseStats(t *testing.T) {
 	}
 
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       0,
 	}
-
 	mockRedis, err := redispkg.NewClient(cfg)
 	if err != nil {
 		t.Skip("Redis not available, skipping integration test")

@@ -32,6 +32,8 @@ test-setup: ## Set up test environment (containers + migrations + env)
 	@cd backend && bash setup-test-env.sh
 	@echo "Starting test containers (Postgres + Redis + OpenSearch)..."
 	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for Redis on localhost:6380..."
+	@bash -c 'for i in {1..60}; do if docker compose -f docker-compose.test.yml exec -T redis-test redis-cli ping >/dev/null 2>&1; then echo "Redis is ready"; exit 0; fi; sleep 1; done; echo "Redis failed to become ready"; exit 1'
 	@echo "Waiting for test Postgres on localhost:5437..."
 	@bash -c 'until pg_isready -h localhost -p 5437 -U clipper -d clipper_test >/dev/null 2>&1; do sleep 1; done'
 	@echo "Postgres is ready. Running test migrations..."

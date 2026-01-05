@@ -150,7 +150,10 @@ export async function apiRequestAsUser(
  * Test fixture that provides multi-user contexts
  * Use in your tests like: test('something', async ({ multiUserContexts }) => { ... })
  */
-export const multiUserContextFixture = async ({ browser }, use) => {
+export const multiUserContextFixture = async (
+  { browser }: { browser: Browser },
+  provide: (contexts: Record<string, MultiUserContext>) => Promise<void>
+) => {
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
   
   const contexts = await createMultiUserContexts(browser, baseUrl, [
@@ -161,7 +164,7 @@ export const multiUserContextFixture = async ({ browser }, use) => {
     'secondary',
   ]);
 
-  await use(contexts);
+  await provide(contexts);
 
   await closeMultiUserContexts(contexts);
 };

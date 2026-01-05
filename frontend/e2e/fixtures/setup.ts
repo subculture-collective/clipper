@@ -74,13 +74,13 @@ export const test = baseTest.extend<{
   testClips: typeof testClips;
   testChannels: typeof testChannels;
 }>({
-  seedData: async ({ page }, use) => {
+  seedData: async ({ page }, provide) => {
     const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
 
     // Seed test data before each test
     await seedTestData(page, baseUrl);
 
-    await use(async () => {
+    await provide(async () => {
       // Can be called again if needed during test
       await seedTestData(page, baseUrl);
     });
@@ -89,16 +89,16 @@ export const test = baseTest.extend<{
     await cleanupTestData(baseUrl);
   },
 
-  testUsers: async ({}, use) => {
-    await use(testUsers);
+  testUsers: async (_context, provide) => {
+    await provide(testUsers);
   },
 
-  testClips: async ({}, use) => {
-    await use(testClips);
+  testClips: async (_context, provide) => {
+    await provide(testClips);
   },
 
-  testChannels: async ({}, use) => {
-    await use(testChannels);
+  testChannels: async (_context, provide) => {
+    await provide(testChannels);
   },
 });
 
