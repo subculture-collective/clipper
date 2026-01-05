@@ -200,8 +200,8 @@ class StructuredLogger {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(logPayload),
-        // Don't include credentials to allow anonymous error logging
-        credentials: 'include',
+        // Use 'omit' to allow anonymous error logging
+        credentials: 'omit',
       });
     } catch (e) {
       // Don't log to backend (avoid infinite loop)

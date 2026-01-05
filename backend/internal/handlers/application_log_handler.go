@@ -92,8 +92,9 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 	if req.Context != nil {
 		contextBytes, err := json.Marshal(req.Context)
 		if err != nil {
-			// Silently skip context if marshaling fails
-			// This shouldn't happen in normal operation
+			// Context marshaling failed - continue without context
+			// This shouldn't happen in normal operation as we validate input
+			contextJSON = nil
 		} else {
 			contextJSON = contextBytes
 		}

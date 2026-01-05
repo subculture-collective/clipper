@@ -32,7 +32,6 @@ func (r *ApplicationLogRepository) Create(ctx context.Context, log *models.Appli
 
 	// Convert context to JSONB if present
 	var contextJSON []byte
-	var err error
 	if len(log.Context) > 0 {
 		contextJSON = log.Context
 	}
@@ -51,7 +50,7 @@ func (r *ApplicationLogRepository) Create(ctx context.Context, log *models.Appli
 	timestampUTC := log.Timestamp.UTC()
 	createdAtUTC := log.CreatedAt.UTC()
 
-	_, err = r.db.Exec(ctx, query,
+	_, err := r.db.Exec(ctx, query,
 		log.ID,
 		log.Level,
 		log.Message,

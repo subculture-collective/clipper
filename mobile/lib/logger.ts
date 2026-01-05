@@ -193,8 +193,9 @@ class StructuredLogger {
       // In production, log to console as JSON
       console.log(JSON.stringify(entry));
       
-      // Send to backend log collection endpoint
-      await this.sendToBackend(entry);
+      // Send to backend log collection endpoint (non-blocking)
+      // Use void to explicitly ignore the promise to avoid blocking
+      void this.sendToBackend(entry);
     }
   }
 
