@@ -696,11 +696,8 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 		argIndex++
 	}
 
-	if filters.SubmittedByUserID != nil {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.submitted_by_user_id = %s", utils.SQLPlaceholder(argIndex)))
-		args = append(args, *filters.SubmittedByUserID)
-		argIndex++
-	}
+	// Note: SubmittedByUserID filter is intentionally not applied here since this method
+	// retrieves only scraped clips (submitted_by_user_id IS NULL). Use ListWithFilters instead.
 
 	if filters.Tag != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
