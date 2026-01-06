@@ -5,6 +5,8 @@ package services
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -19,12 +21,40 @@ import (
 
 // setupTestDB creates a test database connection
 func setupTestDB(t *testing.T) *database.DB {
+	// Use environment variables for test database configuration
+	host := os.Getenv("TEST_DATABASE_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+	
+	port := os.Getenv("TEST_DATABASE_PORT")
+	if port == "" {
+		port = "5437" // Default test database port
+	}
+	portInt, err := strconv.Atoi(port)
+	require.NoError(t, err, "Invalid TEST_DATABASE_PORT")
+	
+	user := os.Getenv("TEST_DATABASE_USER")
+	if user == "" {
+		user = "clipper"
+	}
+	
+	password := os.Getenv("TEST_DATABASE_PASSWORD")
+	if password == "" {
+		password = "clipper_password"
+	}
+	
+	dbName := os.Getenv("TEST_DATABASE_NAME")
+	if dbName == "" {
+		dbName = "clipper_test"
+	}
+	
 	cfg := &config.DatabaseConfig{
-		Host:     "localhost",
-		Port:     5437, // Test database port
-		User:     "clipper",
-		Password: "clipper_password",
-		Database: "clipper_test",
+		Host:     host,
+		Port:     portInt,
+		User:     user,
+		Password: password,
+		Database: dbName,
 		SSLMode:  "disable",
 	}
 
