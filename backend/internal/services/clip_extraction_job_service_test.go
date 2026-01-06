@@ -181,7 +181,7 @@ func TestClipExtractionJobService_Integration(t *testing.T) {
 		// Check that TTL is set (should be 7 days in seconds)
 		ttl, err := redisClient.TTL(ctx, "clip_extraction_job:test-clip-ttl")
 		require.NoError(t, err)
-		
+
 		// TTL should be approximately 7 days (604800 seconds), allow some margin
 		assert.Greater(t, ttl, int64(604700), "TTL should be around 7 days")
 		assert.Less(t, ttl, int64(604900), "TTL should be around 7 days")

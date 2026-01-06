@@ -87,7 +87,10 @@ func setupChatTestEnvironment(t *testing.T) (*gin.Engine, *jwtpkg.Manager, *data
 	if redisClient != nil {
 		redisClientPtr = redisClient.GetClient()
 	}
-	wsServer := ws.NewServer(db.Pool, redisClientPtr)
+	wsConfig := &config.WebSocketConfig{
+		AllowedOrigins: []string{"http://localhost:3000"},
+	}
+	wsServer := ws.NewServer(db.Pool, redisClientPtr, wsConfig)
 
 	// Create WebSocket handler (not chat handler)
 	wsHandler := handlers.NewWebSocketHandler(db.Pool, wsServer)

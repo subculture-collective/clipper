@@ -286,8 +286,11 @@ test.describe('Clip Detail', () => {
             .first();
         await firstClipLink.click();
 
-        // Wait for navigation
-        await page.waitForLoadState('networkidle');
+        // Wait for navigation - use domcontentloaded instead of networkidle for more reliability
+        await page.waitForLoadState('domcontentloaded');
+
+        // Give a bit more time for the page to settle
+        await page.waitForTimeout(500);
 
         // Check if we're on clip detail page
         const url = new URL(page.url());
@@ -296,15 +299,24 @@ test.describe('Clip Detail', () => {
 });
 
 test.describe('User Authentication', () => {
+    test.beforeEach(async ({ page }) => {
+        // Force unauthenticated state even when auto-login is enabled for E2E
+        await page.route('**/api/v1/auth/test-login', route =>
+            route.fulfill({
+                status: 401,
+                contentType: 'application/json',
+                body: JSON.stringify({ message: 'unauthorized' }),
+            })
+        );
+    });
+
     test('should show login button for unauthenticated users', async ({
         page,
     }) => {
         await page.goto('/');
 
         // Look for login/sign in button
-        const loginButton = page.locator('button', {
-            hasText: /login|sign in/i,
-        });
+        const loginButton = page.getByTestId('login-button');
         await expect(loginButton).toBeVisible();
     });
 
@@ -314,9 +326,7 @@ test.describe('User Authentication', () => {
         await page.goto('/');
 
         // Find and click login button
-        const loginButton = page
-            .locator('button', { hasText: /login|sign in/i })
-            .first();
+        const loginButton = page.getByTestId('login-button').first();
 
         if (await loginButton.isVisible()) {
             // Listen for navigation

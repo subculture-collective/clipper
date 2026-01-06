@@ -233,4 +233,3 @@ func TestGetLogStats_Success(t *testing.T) {
 		t.Errorf("expected total_logs to be 100, got %v", stats["total_logs"])
 	}
 }
-

@@ -419,9 +419,9 @@ func (tc *ToxicityClassifier) normalizeText(text string) string {
 		{"5", "s"},
 		{"7", "t"},
 		{"+", "t"},
-		{"*", "u"},  // Asterisk often used to censor 'u' (f*ck -> fuck)
-		{"_", ""},   // Remove underscores
-		{"-", ""},   // Remove dashes
+		{"*", "u"}, // Asterisk often used to censor 'u' (f*ck -> fuck)
+		{"_", ""},  // Remove underscores
+		{"-", ""},  // Remove dashes
 		{"..", ""}, // Remove double dots
 	}
 

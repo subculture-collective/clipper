@@ -14,11 +14,11 @@ import (
 
 // UserHandler handles user-related HTTP requests
 type UserHandler struct {
-	clipRepo          *repository.ClipRepository
-	voteRepo          *repository.VoteRepository
-	commentRepo       *repository.CommentRepository
-	userRepo          *repository.UserRepository
-	broadcasterRepo   *repository.BroadcasterRepository
+	clipRepo            *repository.ClipRepository
+	voteRepo            *repository.VoteRepository
+	commentRepo         *repository.CommentRepository
+	userRepo            *repository.UserRepository
+	broadcasterRepo     *repository.BroadcasterRepository
 	accountMergeService *services.AccountMergeService
 }
 
@@ -32,11 +32,11 @@ func NewUserHandler(
 	accountMergeService *services.AccountMergeService,
 ) *UserHandler {
 	return &UserHandler{
-		clipRepo:          clipRepo,
-		voteRepo:          voteRepo,
-		commentRepo:       commentRepo,
-		userRepo:          userRepo,
-		broadcasterRepo:   broadcasterRepo,
+		clipRepo:            clipRepo,
+		voteRepo:            voteRepo,
+		commentRepo:         commentRepo,
+		userRepo:            userRepo,
+		broadcasterRepo:     broadcasterRepo,
 		accountMergeService: accountMergeService,
 	}
 }

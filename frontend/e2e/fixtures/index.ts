@@ -362,7 +362,7 @@ async function enableSearchMocks(page: Page) {
   // Suggestions
   await page.route((url) => {
     const { pathname } = new URL(url);
-    return pathname.endsWith('/search/suggestions');
+    return /\/api\/v\d+\/search\/suggestions\/?$/.test(pathname);
   }, async (route: Route, request: Request) => {
     const url = new URL(request.url());
     const q = url.searchParams.get('q') || '';
@@ -384,7 +384,7 @@ async function enableSearchMocks(page: Page) {
   // Universal search
   await page.route((url) => {
     const { pathname } = new URL(url);
-    return pathname.endsWith('/search');
+    return /\/api\/v\d+\/search\/?$/.test(pathname);
   }, async (route: Route, request: Request) => {
     // Do not intercept document navigations to /search (only mock XHR/fetch)
     const type = request.resourceType();

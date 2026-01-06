@@ -168,7 +168,7 @@ func TestToxicityClassifier_RuleBasedDetection(t *testing.T) {
 
 // TestToxicityClassifier_Obfuscation tests various obfuscation techniques
 func TestToxicityClassifier_Obfuscation(t *testing.T) {
-	classifier := NewToxicityClassifier("", "", true, 0.4, nil)  // Lower threshold for these tests
+	classifier := NewToxicityClassifier("", "", true, 0.4, nil) // Lower threshold for these tests
 
 	tests := []struct {
 		name        string

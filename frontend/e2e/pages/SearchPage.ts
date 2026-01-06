@@ -326,14 +326,37 @@ export class SearchPage extends BasePage {
   async getResultCount(): Promise<number> {
     await this.waitForResults();
 
-    const countText = await this.resultsCount.textContent();
-    const match = countText?.match(/Found\s+(\d+)/i);
-    if (match) {
-      return parseInt(match[1], 10);
+    const parseCount = async (): Promise<number | null> => {
+      const countText = await this.resultsCount.textContent();
+      const match = countText?.match(/Found\s+(\d+)/i);
+      return match ? parseInt(match[1], 10) : null;
+    };
+
+    // First attempt: use UI result count if available
+    const initialCount = await parseCount();
+    if (initialCount !== null) {
+      return initialCount;
+    }
+
+    // Fallback: wait for visible cards and count them
+    try {
+      await this.resultCards.first().waitFor({ state: 'visible', timeout: 5000 });
+      const cardCount = await this.resultCards.count();
+      if (cardCount > 0) return cardCount;
+    } catch {
+      // ignore and retry
+    }
+
+    // Second attempt after brief delay to reduce flakiness
+    await this.page.waitForTimeout(1000);
+
+    const retryCount = await parseCount();
+    if (retryCount !== null) {
+      return retryCount;
     }
 
     try {
-      await this.resultCards.first().waitFor({ state: 'visible', timeout: 5000 });
+      await this.resultCards.first().waitFor({ state: 'visible', timeout: 3000 });
       return await this.resultCards.count();
     } catch {
       return 0;
