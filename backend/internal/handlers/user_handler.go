@@ -378,10 +378,10 @@ func (h *UserHandler) GetUserClips(c *gin.Context) {
 		}
 	}
 
-	// TODO: Add filter for submitted_by_user_id to ClipFilters
-	// For now, return all clips (this endpoint needs proper implementation)
+	// Build filters with submitted_by_user_id
 	filters := repository.ClipFilters{
-		ShowHidden: currentUserID != nil, // Show hidden clips if authenticated
+		SubmittedByUserID: &userIDStr,
+		ShowHidden:        currentUserID != nil, // Show hidden clips if authenticated
 	}
 
 	clips, total, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
