@@ -263,6 +263,18 @@ func main() {
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	engagementService := services.NewEngagementService(analyticsRepo, userRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
+	
+	// Initialize account merge service
+	accountMergeService := services.NewAccountMergeService(
+		db.Pool,
+		userRepo,
+		auditLogRepo,
+		voteRepo,
+		favoriteRepo,
+		commentRepo,
+		clipRepo,
+		watchHistoryRepo,
+	)
 
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
@@ -422,7 +434,7 @@ func main() {
 	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
-	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo, accountMergeService)
 	adminUserHandler := handlers.NewAdminUserHandler(userRepo, auditLogRepo, authService)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	consentHandler := handlers.NewConsentHandler(consentRepo)
