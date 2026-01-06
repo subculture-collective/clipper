@@ -230,6 +230,7 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	tag := c.Query("tag")
 	search := c.Query("search")
 	language := c.Query("language")
+	submittedByUserID := c.Query("submitted_by_user_id")
 	top10kStreamers := c.Query("top10k_streamers") == "true"
 	// By default, only show user-submitted clips. Set show_all_clips=true to include scraped clips (for discovery)
 	showAllClips := c.Query("show_all_clips") == "true"
@@ -268,6 +269,9 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	}
 	if timeframe != "" {
 		filters.Timeframe = &timeframe
+	}
+	if submittedByUserID != "" {
+		filters.SubmittedByUserID = &submittedByUserID
 	}
 
 	// Get user ID if authenticated

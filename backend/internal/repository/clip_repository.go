@@ -369,6 +369,7 @@ type ClipFilters struct {
 	Top10kStreamers   bool    // Filter clips to only top 10k streamers
 	ShowHidden        bool    // If true, include hidden clips (for owners/admins)
 	CreatorID         *string // Filter by creator ID (for creator dashboard)
+	SubmittedByUserID *string // Filter by submitted_by_user_id (for user profile submissions)
 	UserSubmittedOnly bool    // If true, only show clips with submitted_by_user_id IS NOT NULL
 	Cursor            *string // Cursor for cursor-based pagination (base64 encoded)
 }
@@ -467,6 +468,12 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	if filters.CreatorID != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf("c.creator_id = %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.CreatorID)
+		argIndex++
+	}
+
+	if filters.SubmittedByUserID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.submitted_by_user_id = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.SubmittedByUserID)
 		argIndex++
 	}
 
@@ -686,6 +693,12 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 	if filters.CreatorID != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf("c.creator_id = %s", utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.CreatorID)
+		argIndex++
+	}
+
+	if filters.SubmittedByUserID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.submitted_by_user_id = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.SubmittedByUserID)
 		argIndex++
 	}
 
