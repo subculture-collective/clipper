@@ -245,6 +245,20 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 		limit = 25
 	}
 
+	// Validate submitted_by_user_id as UUID if provided
+	if submittedByUserID != "" {
+		if _, err := uuid.Parse(submittedByUserID); err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_UUID",
+					Message: "Invalid submitted_by_user_id: must be a valid UUID",
+				},
+			})
+			return
+		}
+	}
+
 	// Build filters
 	filters := repository.ClipFilters{
 		Sort:              sort,
