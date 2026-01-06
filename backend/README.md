@@ -37,6 +37,7 @@ backend/
 │   └── README.md    # Migration documentation
 ├── docs/            # Documentation
 │   ├── authentication.md      # Auth documentation
+│   ├── FFMPEG_JOB_QUEUE.md    # FFmpeg job queue system
 │   └── TWITCH_INTEGRATION.md  # Twitch API docs
 ├── go.mod           # Go module dependencies
 └── go.sum           # Dependency checksums
@@ -498,4 +499,5 @@ Both frameworks support:
 - [Database Schema Documentation](../docs/DATABASE-SCHEMA.md)
 - [Authentication Documentation](docs/authentication.md)
 - [Twitch API Integration Documentation](docs/TWITCH_INTEGRATION.md)
+- [FFmpeg Job Queue Documentation](docs/FFMPEG_JOB_QUEUE.md)
 - [Twitch API Reference](https://dev.twitch.tv/docs/api/)
