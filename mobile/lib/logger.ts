@@ -193,8 +193,47 @@ class StructuredLogger {
       // In production, log to console as JSON
       console.log(JSON.stringify(entry));
       
-      // TODO: Send to backend log collection endpoint
-      // this.sendToBackend(entry);
+      // Send to backend log collection endpoint (non-blocking)
+      // Use void to explicitly ignore the promise to avoid blocking
+      void this.sendToBackend(entry);
+    }
+  }
+
+  private async sendToBackend(entry: LogEntry): Promise<void> {
+    try {
+      // Get API base URL from environment or use default
+      const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.clipper.video';
+      
+      // Map LogEntry to backend API format
+      const logPayload = {
+        level: entry.level,
+        message: entry.message,
+        timestamp: entry.timestamp,
+        service: entry.service,
+        platform: entry.platform,
+        user_id: entry.user_id,
+        session_id: entry.session_id,
+        trace_id: entry.trace_id,
+        device_id: entry.device_id,
+        app_version: entry.app_version,
+        error: entry.error,
+        stack: entry.stack,
+        context: entry.fields,
+      };
+
+      // Send without awaiting response to avoid blocking
+      fetch(`${apiBaseUrl}/api/v1/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logPayload),
+      }).catch((e) => {
+        // Don't log to backend (avoid infinite loop)
+        // Only log to console in case of failure
+        console.error('Failed to send log to backend', e);
+      });
+    } catch (e) {
+      // Handle synchronous errors like JSON.stringify failures
+      console.error('Failed to prepare log payload for backend', e);
     }
   }
 

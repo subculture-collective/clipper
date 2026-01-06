@@ -32,9 +32,9 @@ var (
 
 // SubscriptionService handles subscription business logic
 type SubscriptionService struct {
-	repo           *repository.SubscriptionRepository
-	userRepo       *repository.UserRepository
-	webhookRepo    *repository.WebhookRepository
+	repo           repository.SubscriptionRepositoryInterface
+	userRepo       repository.UserRepositoryInterface
+	webhookRepo    repository.WebhookRepositoryInterface
 	cfg            *config.Config
 	auditLogSvc    *AuditLogService
 	dunningService *DunningService
@@ -43,16 +43,18 @@ type SubscriptionService struct {
 
 // NewSubscriptionService creates a new subscription service
 func NewSubscriptionService(
-	repo *repository.SubscriptionRepository,
-	userRepo *repository.UserRepository,
-	webhookRepo *repository.WebhookRepository,
+	repo repository.SubscriptionRepositoryInterface,
+	userRepo repository.UserRepositoryInterface,
+	webhookRepo repository.WebhookRepositoryInterface,
 	cfg *config.Config,
 	auditLogSvc *AuditLogService,
 	dunningService *DunningService,
 	emailService *EmailService,
 ) *SubscriptionService {
 	// Initialize Stripe with secret key
-	stripe.Key = cfg.Stripe.SecretKey
+	if cfg != nil && cfg.Stripe.SecretKey != "" {
+		stripe.Key = cfg.Stripe.SecretKey
+	}
 
 	return &SubscriptionService{
 		repo:           repo,
@@ -1030,12 +1032,4 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 // timePtr returns a pointer to a time.Time
 func timePtr(t time.Time) *time.Time {
 	return &t
-}
-
-// GetRepository exposes the subscription repository for testing purposes only.
-// This method should not be used outside of test code as it breaks encapsulation.
-// Production code should interact with the service's public methods instead.
-// TODO: Consider refactoring tests to use service methods or dependency injection for better encapsulation.
-func (s *SubscriptionService) GetRepository() *repository.SubscriptionRepository {
-	return s.repo
 }
