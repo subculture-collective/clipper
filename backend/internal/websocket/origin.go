@@ -38,7 +38,6 @@ func matchesPattern(origin, pattern string) bool {
 		// Extract the domain from the origin (remove protocol)
 		originDomain := strings.TrimPrefix(origin, "http://")
 		originDomain = strings.TrimPrefix(originDomain, "https://")
-		
 		// Remove port if present
 		if idx := strings.Index(originDomain, ":"); idx != -1 {
 			originDomain = originDomain[:idx]
