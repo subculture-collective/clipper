@@ -302,26 +302,25 @@ func (s *AccountMergeService) transferComments(ctx context.Context, tx pgx.Tx, f
 func (s *AccountMergeService) transferFollows(ctx context.Context, tx pgx.Tx, fromUserID, toUserID uuid.UUID) (int, error) {
 	totalTransferred := 0
 	
-	// Tables to transfer: broadcaster_follows, stream_follows, game_follows, user_follows
-	tables := []string{
-		"broadcaster_follows",
-		"stream_follows",
-		"game_follows",
-		"user_follows",
+	// Whitelist of allowed follow tables (protects against SQL injection)
+	allowedTables := map[string]bool{
+		"broadcaster_follows": true,
+		"stream_follows":      true,
+		"game_follows":        true,
+		"user_follows":        true,
 	}
 	
-	for _, table := range tables {
-		// Check if table exists (some may not exist in all deployments)
-		checkQuery := fmt.Sprintf(`
-			SELECT EXISTS (
-				SELECT FROM information_schema.tables 
-				WHERE table_name = '%s'
-			)
-		`, table)
-		
+	for tableName := range allowedTables {
+		// Check if table exists
 		var exists bool
-		if err := tx.QueryRow(ctx, checkQuery).Scan(&exists); err != nil {
-			log.Printf("Warning: failed to check if table %s exists: %v", table, err)
+		err := tx.QueryRow(ctx,
+			`SELECT EXISTS (
+				SELECT FROM information_schema.tables 
+				WHERE table_schema = 'public' AND table_name = $1
+			)`, tableName).Scan(&exists)
+		
+		if err != nil {
+			log.Printf("Warning: failed to check if table %s exists: %v", tableName, err)
 			continue
 		}
 		
@@ -329,30 +328,30 @@ func (s *AccountMergeService) transferFollows(ctx context.Context, tx pgx.Tx, fr
 			continue
 		}
 		
-		// Delete duplicates
+		// Build safe queries using whitelisted table name
+		// Note: Table names cannot be parameterized in PostgreSQL, but we've validated them against a whitelist
 		deleteQuery := fmt.Sprintf(`
-			DELETE FROM %s
-			WHERE user_id = $1
+			DELETE FROM %s AS t1
+			WHERE t1.user_id = $1
 			AND EXISTS (
 				SELECT 1 FROM %s AS t2 
 				WHERE t2.user_id = $2
 			)
-		`, table, table)
+		`, tableName, tableName)
 		
-		// Transfer remaining follows
 		updateQuery := fmt.Sprintf(`
 			UPDATE %s
 			SET user_id = $1
 			WHERE user_id = $2
-		`, table)
+		`, tableName)
 		
 		if _, err := tx.Exec(ctx, deleteQuery, fromUserID, toUserID); err != nil {
-			log.Printf("Warning: failed to delete duplicate follows from %s: %v", table, err)
+			log.Printf("Warning: failed to delete duplicate follows from %s: %v", tableName, err)
 		}
 		
 		cmdTag, err := tx.Exec(ctx, updateQuery, toUserID, fromUserID)
 		if err != nil {
-			log.Printf("Warning: failed to transfer follows from %s: %v", table, err)
+			log.Printf("Warning: failed to transfer follows from %s: %v", tableName, err)
 			continue
 		}
 		

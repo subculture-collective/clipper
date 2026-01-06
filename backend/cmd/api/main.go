@@ -263,6 +263,18 @@ func main() {
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	engagementService := services.NewEngagementService(analyticsRepo, userRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
+	
+	// Initialize account merge service
+	accountMergeService := services.NewAccountMergeService(
+		db.Pool,
+		userRepo,
+		auditLogRepo,
+		voteRepo,
+		favoriteRepo,
+		commentRepo,
+		clipRepo,
+		watchHistoryRepo,
+	)
 
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
