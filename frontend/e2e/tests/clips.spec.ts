@@ -286,8 +286,11 @@ test.describe('Clip Detail', () => {
             .first();
         await firstClipLink.click();
 
-        // Wait for navigation
-        await page.waitForLoadState('networkidle');
+        // Wait for navigation - use domcontentloaded instead of networkidle for more reliability
+        await page.waitForLoadState('domcontentloaded');
+
+        // Give a bit more time for the page to settle
+        await page.waitForTimeout(500);
 
         // Check if we're on clip detail page
         const url = new URL(page.url());

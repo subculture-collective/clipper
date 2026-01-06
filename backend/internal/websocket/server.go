@@ -14,12 +14,12 @@ import (
 
 // Server represents the WebSocket server
 type Server struct {
-	DB            *pgxpool.Pool
-	Redis         *redis.Client
-	Upgrader      websocket.Upgrader
-	Hubs          map[string]*ChannelHub
-	HubsMux       sync.RWMutex
-	shutdownOnce  sync.Once
+	DB             *pgxpool.Pool
+	Redis          *redis.Client
+	Upgrader       websocket.Upgrader
+	Hubs           map[string]*ChannelHub
+	HubsMux        sync.RWMutex
+	shutdownOnce   sync.Once
 	allowedOrigins []string
 }
 

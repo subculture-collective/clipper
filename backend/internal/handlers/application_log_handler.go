@@ -61,7 +61,7 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 	timestamp := time.Now()
 	if req.Timestamp != nil {
 		timestamp = *req.Timestamp
-		
+
 		// Validate that the provided timestamp is within an acceptable range
 		maxFuture := time.Now().Add(5 * time.Minute)
 		minPast := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -183,10 +183,10 @@ func (h *ApplicationLogHandler) filterSensitiveData(text string) string {
 // filterSensitiveContext removes sensitive keys from context map
 func (h *ApplicationLogHandler) filterSensitiveContext(context map[string]interface{}) map[string]interface{} {
 	filtered := make(map[string]interface{})
-	
+
 	for key, value := range context {
 		lowerKey := strings.ToLower(key)
-		
+
 		// Skip sensitive keys
 		if strings.Contains(lowerKey, "password") ||
 			strings.Contains(lowerKey, "secret") ||
