@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DocsPage } from './DocsPage';
 import axios from 'axios';
+import type { DocFrontmatter, TOCEntry } from '../lib/markdown-utils';
 
 // Mock the components
 vi.mock('../components', () => ({
@@ -12,8 +13,8 @@ vi.mock('../components', () => ({
   Card: ({ children, id, className }: { children: React.ReactNode; id?: string; className?: string }) => <div id={id} className={className}>{children}</div>,
   CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SEO: ({ title }: { title: string }) => <div data-testid="seo">{title}</div>,
-  DocHeader: ({ frontmatter }: { frontmatter: any }) => <div data-testid="doc-header">{frontmatter?.title}</div>,
-  DocTOC: ({ toc }: { toc: any[] }) => <div data-testid="doc-toc">{toc.length} items</div>,
+  DocHeader: ({ frontmatter }: { frontmatter: DocFrontmatter }) => <div data-testid="doc-header">{frontmatter?.title}</div>,
+  DocTOC: ({ toc }: { toc: TOCEntry[] }) => <div data-testid="doc-toc">{toc.length} items</div>,
 }));
 
 vi.mock('axios');

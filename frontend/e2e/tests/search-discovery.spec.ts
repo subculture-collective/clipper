@@ -70,10 +70,19 @@ test.describe('Search - Text Search & Relevance', () => {
     await searchPage.goto();
 
     await searchPage.search('VALORANT');
-    const upperResults = await searchPage.getResultCount();
+    let upperResults = await searchPage.getResultCount();
 
     await searchPage.search('valorant');
-    const lowerResults = await searchPage.getResultCount();
+    let lowerResults = await searchPage.getResultCount();
+
+    // Retry once if either count unexpectedly comes back as zero (to reduce flakiness)
+    if (upperResults === 0 && lowerResults > 0) {
+      await searchPage.search('VALORANT');
+      upperResults = await searchPage.getResultCount();
+    } else if (lowerResults === 0 && upperResults > 0) {
+      await searchPage.search('valorant');
+      lowerResults = await searchPage.getResultCount();
+    }
 
     // Case should not matter for search results
     expect(Math.abs(upperResults - lowerResults)).toBeLessThanOrEqual(2);

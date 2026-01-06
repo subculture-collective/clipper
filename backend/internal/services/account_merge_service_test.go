@@ -12,10 +12,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/pkg/database"
-	"github.com/subculture-collective/clipper/config"
 )
 
 // setupTestDB creates a test database connection
@@ -25,27 +25,27 @@ func setupTestDB(t *testing.T) *database.DB {
 	if host == "" {
 		host = "localhost"
 	}
-	
+
 	port := os.Getenv("TEST_DATABASE_PORT")
 	if port == "" {
 		port = "5437" // Default test database port
 	}
-	
+
 	user := os.Getenv("TEST_DATABASE_USER")
 	if user == "" {
 		user = "clipper"
 	}
-	
+
 	password := os.Getenv("TEST_DATABASE_PASSWORD")
 	if password == "" {
 		password = "clipper_password_test_only" // Obviously test-only default
 	}
-	
+
 	dbName := os.Getenv("TEST_DATABASE_NAME")
 	if dbName == "" {
 		dbName = "clipper_test"
 	}
-	
+
 	cfg := &config.DatabaseConfig{
 		Host:     host,
 		Port:     port,
@@ -413,7 +413,7 @@ func TestAccountMergeService_CompleteMerge(t *testing.T) {
 		// Force an error by using invalid UUID (this should cause rollback)
 		invalidUserID := uuid.Nil
 		_, err := service.MergeAccounts(ctx, unclaimedUser.ID, invalidUserID)
-		
+
 		// Should get an error
 		require.Error(t, err, "Merge should fail with invalid user ID")
 
@@ -800,12 +800,12 @@ func TestAccountMergeService_UserPreferencesTransfer(t *testing.T) {
 			"SELECT favorite_games, followed_streamers FROM user_preferences WHERE user_id = $1",
 			authUser.ID).Scan(&games, &streamers)
 		require.NoError(t, err)
-		
+
 		// Should have union of games (game1, game2, game3)
 		assert.Contains(t, games, "game1")
 		assert.Contains(t, games, "game2")
 		assert.Contains(t, games, "game3")
-		
+
 		// Should have union of streamers (streamer1, streamer2, streamer3)
 		assert.Contains(t, streamers, "streamer1")
 		assert.Contains(t, streamers, "streamer2")

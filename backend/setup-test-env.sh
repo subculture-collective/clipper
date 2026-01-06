@@ -33,7 +33,7 @@ export STRIPE_WEBHOOK_SECRET="${TEST_STRIPE_WEBHOOK_SECRET}"
 
 # OpenSearch/Elasticsearch configuration for semantic search
 if [ -z "$OPENSEARCH_URL" ]; then
-    export OPENSEARCH_URL="http://localhost:9200"
+    export OPENSEARCH_URL="http://localhost:9201"
     echo -e "${GREEN}✓ Set OPENSEARCH_URL=${OPENSEARCH_URL}${NC}"
 fi
 

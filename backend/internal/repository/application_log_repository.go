@@ -106,14 +106,14 @@ func (r *ApplicationLogRepository) GetLogStats(ctx context.Context) (map[string]
 		FROM application_logs`
 
 	var stats struct {
-		TotalLogs     int `db:"total_logs"`
-		UniqueUsers   int `db:"unique_users"`
-		ErrorCount    int `db:"error_count"`
-		WarnCount     int `db:"warn_count"`
-		InfoCount     int `db:"info_count"`
-		DebugCount    int `db:"debug_count"`
-		LogsLastHour  int `db:"logs_last_hour"`
-		LogsLast24h   int `db:"logs_last_24h"`
+		TotalLogs    int `db:"total_logs"`
+		UniqueUsers  int `db:"unique_users"`
+		ErrorCount   int `db:"error_count"`
+		WarnCount    int `db:"warn_count"`
+		InfoCount    int `db:"info_count"`
+		DebugCount   int `db:"debug_count"`
+		LogsLastHour int `db:"logs_last_hour"`
+		LogsLast24h  int `db:"logs_last_24h"`
 	}
 
 	err := r.db.QueryRow(ctx, query).Scan(
@@ -132,14 +132,14 @@ func (r *ApplicationLogRepository) GetLogStats(ctx context.Context) (map[string]
 
 	// Convert to map for JSON response
 	statsMap := map[string]interface{}{
-		"total_logs":      stats.TotalLogs,
-		"unique_users":    stats.UniqueUsers,
-		"error_count":     stats.ErrorCount,
-		"warn_count":      stats.WarnCount,
-		"info_count":      stats.InfoCount,
-		"debug_count":     stats.DebugCount,
-		"logs_last_hour":  stats.LogsLastHour,
-		"logs_last_24h":   stats.LogsLast24h,
+		"total_logs":     stats.TotalLogs,
+		"unique_users":   stats.UniqueUsers,
+		"error_count":    stats.ErrorCount,
+		"warn_count":     stats.WarnCount,
+		"info_count":     stats.InfoCount,
+		"debug_count":    stats.DebugCount,
+		"logs_last_hour": stats.LogsLastHour,
+		"logs_last_24h":  stats.LogsLast24h,
 	}
 
 	return statsMap, nil

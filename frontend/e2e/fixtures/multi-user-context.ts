@@ -18,14 +18,14 @@ export interface MultiUserContext {
 /**
  * Creates isolated browser contexts for multiple test users
  * Each context maintains separate authentication state
- * 
+ *
  * @example
  * const { admin, moderator, regular } = await createMultiUserContexts(
  *   browser,
  *   baseUrl,
  *   ['admin', 'moderator', 'regular']
  * );
- * 
+ *
  * // Now you can use admin.page to navigate as admin
  * // Use moderator.page to navigate as moderator
  * // Each maintains separate cookies/storage
@@ -65,9 +65,9 @@ export async function createMultiUserContexts(
         if (authToken) {
           await context.addInitScript(({ token }) => {
             localStorage.setItem('auth_token', token);
-            localStorage.setItem('user', JSON.stringify({ 
-              id: token.split('.')[0], 
-              role: 'user' 
+            localStorage.setItem('user', JSON.stringify({
+              id: token.split('.')[0],
+              role: 'user'
             }));
           }, { token: authToken });
         }
@@ -150,9 +150,12 @@ export async function apiRequestAsUser(
  * Test fixture that provides multi-user contexts
  * Use in your tests like: test('something', async ({ multiUserContexts }) => { ... })
  */
-export const multiUserContextFixture = async ({ browser }, use) => {
+export const multiUserContextFixture = async (
+  { browser }: { browser: Browser },
+  provide: (contexts: Record<string, MultiUserContext>) => Promise<void>
+) => {
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
-  
+
   const contexts = await createMultiUserContexts(browser, baseUrl, [
     'admin',
     'moderator',
@@ -161,7 +164,7 @@ export const multiUserContextFixture = async ({ browser }, use) => {
     'secondary',
   ]);
 
-  await use(contexts);
+  await provide(contexts);
 
   await closeMultiUserContexts(contexts);
 };

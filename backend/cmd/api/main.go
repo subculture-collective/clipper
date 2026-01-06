@@ -263,7 +263,7 @@ func main() {
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	engagementService := services.NewEngagementService(analyticsRepo, userRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
-	
+
 	// Initialize account merge service
 	accountMergeService := services.NewAccountMergeService(
 		db.Pool,
@@ -685,15 +685,15 @@ func main() {
 		{
 			// Public log submission endpoint with rate limiting
 			// Uses OptionalAuthMiddleware to allow both authenticated and anonymous logs
-			logs.POST("", 
-				middleware.OptionalAuthMiddleware(authService), 
+			logs.POST("",
+				middleware.OptionalAuthMiddleware(authService),
 				middleware.RateLimitMiddleware(redisClient, 100, time.Minute),
 				applicationLogHandler.CreateLog)
-			
+
 			// Admin-only log stats endpoint
-			logs.GET("/stats", 
-				middleware.AuthMiddleware(authService), 
-				middleware.RequireRole("admin"), 
+			logs.GET("/stats",
+				middleware.AuthMiddleware(authService),
+				middleware.RequireRole("admin"),
 				applicationLogHandler.GetLogStats)
 		}
 

@@ -32,6 +32,8 @@ test-setup: ## Set up test environment (containers + migrations + env)
 	@cd backend && bash setup-test-env.sh
 	@echo "Starting test containers (Postgres + Redis + OpenSearch)..."
 	docker compose -f docker-compose.test.yml up -d
+	@echo "Waiting for Redis on localhost:6380..."
+	@bash -c 'for i in {1..60}; do if docker compose -f docker-compose.test.yml exec -T redis-test redis-cli ping >/dev/null 2>&1; then echo "Redis is ready"; exit 0; fi; sleep 1; done; echo "Redis failed to become ready"; exit 1'
 	@echo "Waiting for test Postgres on localhost:5437..."
 	@bash -c 'until pg_isready -h localhost -p 5437 -U clipper -d clipper_test >/dev/null 2>&1; do sleep 1; done'
 	@echo "Postgres is ready. Running test migrations..."
@@ -41,11 +43,11 @@ test-setup: ## Set up test environment (containers + migrations + env)
 		echo "Warning: golang-migrate not installed. Skipping migrations."; \
 		echo "Install with: go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest"; \
 	fi
-	@echo "Waiting for OpenSearch on localhost:9200..."
-	@bash -c 'for i in {1..60}; do if curl -f -s http://localhost:9200/_cluster/health >/dev/null 2>&1; then echo "OpenSearch is ready"; exit 0; fi; sleep 1; done; echo "OpenSearch failed to become ready"; exit 1'
+	@echo "Waiting for OpenSearch on localhost:9201..."
+	@bash -c 'for i in {1..60}; do if curl -f -s http://localhost:9201/_cluster/health >/dev/null 2>&1; then echo "OpenSearch is ready"; exit 0; fi; sleep 1; done; echo "OpenSearch failed to become ready"; exit 1'
 	@echo "Seeding OpenSearch with test indices..."
 	@if [ -f scripts/test-seed-opensearch.sh ]; then \
-		OPENSEARCH_URL=http://localhost:9200 bash scripts/test-seed-opensearch.sh; \
+		OPENSEARCH_URL=http://localhost:9201 bash scripts/test-seed-opensearch.sh; \
 	else \
 		echo "Warning: test-seed-opensearch.sh not found"; \
 	fi
@@ -56,7 +58,7 @@ test-setup: ## Set up test environment (containers + migrations + env)
 		TEST_DATABASE_USER=clipper \
 		TEST_DATABASE_PASSWORD=clipper_password \
 		TEST_DATABASE_NAME=clipper_test \
-		OPENSEARCH_URL=http://localhost:9200 \
+		OPENSEARCH_URL=http://localhost:9201 \
 		bash scripts/test-seed-e2e.sh; \
 	else \
 		echo "Warning: test-seed-e2e.sh not found"; \
@@ -90,7 +92,7 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 			DB_NAME=clipper_test \
 			REDIS_HOST=localhost \
 			REDIS_PORT=6380 \
-			OPENSEARCH_URL=http://localhost:9200 \
+			OPENSEARCH_URL=http://localhost:9201 \
 			CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 			RATE_LIMIT_WHITELIST_IPS=127.0.0.1 \
 			FEATURE_ANALYTICS=false \
