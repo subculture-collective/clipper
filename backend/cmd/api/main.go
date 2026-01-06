@@ -422,7 +422,7 @@ func main() {
 	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
-	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo, accountMergeService)
 	adminUserHandler := handlers.NewAdminUserHandler(userRepo, auditLogRepo, authService)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	consentHandler := handlers.NewConsentHandler(consentRepo)

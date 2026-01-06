@@ -9,15 +9,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/services"
 )
 
 // UserHandler handles user-related HTTP requests
 type UserHandler struct {
-	clipRepo        *repository.ClipRepository
-	voteRepo        *repository.VoteRepository
-	commentRepo     *repository.CommentRepository
-	userRepo        *repository.UserRepository
-	broadcasterRepo *repository.BroadcasterRepository
+	clipRepo          *repository.ClipRepository
+	voteRepo          *repository.VoteRepository
+	commentRepo       *repository.CommentRepository
+	userRepo          *repository.UserRepository
+	broadcasterRepo   *repository.BroadcasterRepository
+	accountMergeService *services.AccountMergeService
 }
 
 // NewUserHandler creates a new user handler
@@ -27,13 +29,15 @@ func NewUserHandler(
 	commentRepo *repository.CommentRepository,
 	userRepo *repository.UserRepository,
 	broadcasterRepo *repository.BroadcasterRepository,
+	accountMergeService *services.AccountMergeService,
 ) *UserHandler {
 	return &UserHandler{
-		clipRepo:        clipRepo,
-		voteRepo:        voteRepo,
-		commentRepo:     commentRepo,
-		userRepo:        userRepo,
-		broadcasterRepo: broadcasterRepo,
+		clipRepo:          clipRepo,
+		voteRepo:          voteRepo,
+		commentRepo:       commentRepo,
+		userRepo:          userRepo,
+		broadcasterRepo:   broadcasterRepo,
+		accountMergeService: accountMergeService,
 	}
 }
 
@@ -903,11 +907,43 @@ func (h *UserHandler) ClaimAccount(c *gin.Context) {
 		return
 	}
 
-	// TODO: Transfer clips, votes, favorites, etc. from unclaimed account to authenticated account
-	// This would require additional repository methods
+	// Perform account merge: transfer all data from unclaimed to authenticated account
+	if h.accountMergeService != nil {
+		mergeResult, err := h.accountMergeService.MergeAccounts(c.Request.Context(), unclaimedUser.ID, authenticatedUserID)
+		if err != nil {
+			log.Printf("Error: account merge failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to merge account data"})
+			return
+		}
 
-	// Delete the unclaimed account (or mark it as merged)
-	// For now, we'll just update its status to prevent reuse
+		log.Printf("Account merge completed: clips=%d, votes=%d, favorites=%d, comments=%d, follows=%d, watch_history=%d, duplicates_skipped=%d",
+			mergeResult.ClipsMerged,
+			mergeResult.VotesMerged,
+			mergeResult.FavoritesMerged,
+			mergeResult.CommentsMerged,
+			mergeResult.FollowsMerged,
+			mergeResult.WatchHistoryMerged,
+			mergeResult.DuplicatesSkipped,
+		)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "account claimed successfully",
+			"merge_stats": gin.H{
+				"clips_merged":         mergeResult.ClipsMerged,
+				"votes_merged":         mergeResult.VotesMerged,
+				"favorites_merged":     mergeResult.FavoritesMerged,
+				"comments_merged":      mergeResult.CommentsMerged,
+				"follows_merged":       mergeResult.FollowsMerged,
+				"watch_history_merged": mergeResult.WatchHistoryMerged,
+				"duplicates_skipped":   mergeResult.DuplicatesSkipped,
+			},
+		})
+		return
+	}
+
+	// Fallback if merge service is not available
+	// Just mark the unclaimed account status as pending to prevent reuse
 	if err := h.userRepo.UpdateAccountStatus(c.Request.Context(), unclaimedUser.ID, "pending"); err != nil {
 		log.Printf("Warning: failed to mark unclaimed account as pending: %v", err)
 	}
