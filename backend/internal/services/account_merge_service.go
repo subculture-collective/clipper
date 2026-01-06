@@ -710,12 +710,13 @@ func (s *AccountMergeService) createMergeAuditLog(ctx context.Context, tx pgx.Tx
 		)
 	`
 	
-	// PostgreSQL can handle map[string]interface{} directly as JSONB
+	// Note: moderator_id is set to toUserID because the user themselves initiated this merge
+	// by claiming their account. This represents a self-service action.
 	_, err := tx.Exec(ctx, query,
 		"account_merged",
 		"user",
 		toUserID,
-		toUserID,
+		toUserID, // User performed their own account merge
 		metadata,
 	)
 	

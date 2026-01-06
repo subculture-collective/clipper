@@ -41,7 +41,7 @@ func setupTestDB(t *testing.T) *database.DB {
 	
 	password := os.Getenv("TEST_DATABASE_PASSWORD")
 	if password == "" {
-		password = "clipper_password"
+		password = "clipper_password_test_only" // Obviously test-only default
 	}
 	
 	dbName := os.Getenv("TEST_DATABASE_NAME")
