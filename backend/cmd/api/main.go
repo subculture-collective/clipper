@@ -324,6 +324,9 @@ func main() {
 	// Initialize queue service
 	queueService := services.NewQueueService(queueRepo, clipRepo)
 
+	// Initialize clip extraction job service for FFmpeg processing
+	clipExtractionJobService := services.NewClipExtractionJobService(redisClient)
+
 	// Initialize watch party service and hub manager
 	watchPartyService := services.NewWatchPartyService(watchPartyRepo, playlistRepo, clipRepo, cfg.Server.BaseURL)
 
@@ -500,7 +503,7 @@ func main() {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 	if twitchClient != nil {
-		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo)
+		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
 	}
 

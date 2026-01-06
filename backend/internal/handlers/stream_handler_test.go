@@ -14,7 +14,7 @@ import (
 func TestGetStreamStatus_MissingStreamer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewStreamHandler(nil, nil, nil, nil)
+	handler := NewStreamHandler(nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -60,7 +60,7 @@ func TestStreamInfoStructure(t *testing.T) {
 
 // TestStreamHandler_Initialization tests that handler initializes correctly
 func TestStreamHandler_Initialization(t *testing.T) {
-	handler := NewStreamHandler(nil, nil, nil, nil)
+	handler := NewStreamHandler(nil, nil, nil, nil, nil)
 
 	if handler == nil {
 		t.Error("Expected handler to be created")
@@ -81,13 +81,17 @@ func TestStreamHandler_Initialization(t *testing.T) {
 	if handler.streamFollowRepo != nil {
 		t.Error("Expected streamFollowRepo to be nil in test setup")
 	}
+
+	if handler.jobService != nil {
+		t.Error("Expected jobService to be nil in test setup")
+	}
 }
 
 // TestFollowStreamer_MissingStreamer tests follow request with missing streamer parameter
 func TestFollowStreamer_MissingStreamer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewStreamHandler(nil, nil, nil, nil)
+	handler := NewStreamHandler(nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -129,7 +133,7 @@ func TestFollowStreamer_InvalidUsername(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := NewStreamHandler(nil, nil, nil, nil)
+			handler := NewStreamHandler(nil, nil, nil, nil, nil)
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
