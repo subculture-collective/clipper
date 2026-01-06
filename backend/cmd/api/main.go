@@ -664,7 +664,8 @@ func main() {
 		v1.GET("/config", configHandler.GetPublicConfig)
 
 		// Application logs endpoint (with rate limiting)
-		// Per-user: 100 logs/minute, Per-IP: 500 logs/minute
+		// Rate limit: 100 requests/minute per endpoint per IP address
+		// Authenticated and anonymous users behind the same IP share this limit
 		logs := v1.Group("/logs")
 		{
 			// Public log submission endpoint with rate limiting

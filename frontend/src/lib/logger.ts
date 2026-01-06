@@ -196,18 +196,21 @@ class StructuredLogger {
         context: entry.fields,
       };
 
-      // Send without awaiting to avoid blocking
-      void fetch('/api/v1/logs', {
+      // Send without awaiting to avoid blocking, but handle errors
+      fetch('/api/v1/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(logPayload),
-        // Use 'omit' to allow anonymous error logging
-        credentials: 'omit',
+        // Use 'same-origin' so authenticated users are associated with their logs
+        credentials: 'same-origin',
+      }).catch((e) => {
+        // Don't log to backend (avoid infinite loop)
+        // Only log to console in case of failure
+        console.error('Failed to send log to backend', e);
       });
     } catch (e) {
-      // Don't log to backend (avoid infinite loop)
-      // Only log to console in case of failure
-      console.error('Failed to send log to backend', e);
+      // Handle synchronous errors like JSON.stringify failures
+      console.error('Failed to prepare log payload for backend', e);
     }
   }
 

@@ -221,20 +221,19 @@ class StructuredLogger {
         context: entry.fields,
       };
 
-      const response = await fetch(`${apiBaseUrl}/api/v1/logs`, {
+      // Send without awaiting response to avoid blocking
+      fetch(`${apiBaseUrl}/api/v1/logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(logPayload),
+      }).catch((e) => {
+        // Don't log to backend (avoid infinite loop)
+        // Only log to console in case of failure
+        console.error('Failed to send log to backend', e);
       });
-
-      // Don't throw on error to avoid disrupting app flow
-      if (!response.ok) {
-        console.error('Failed to send log to backend:', response.status);
-      }
     } catch (e) {
-      // Don't log to backend (avoid infinite loop)
-      // Only log to console in case of failure
-      console.error('Failed to send log to backend', e);
+      // Handle synchronous errors like JSON.stringify failures
+      console.error('Failed to prepare log payload for backend', e);
     }
   }
 

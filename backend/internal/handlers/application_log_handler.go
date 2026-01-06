@@ -42,10 +42,17 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 		return
 	}
 
-	// Validate message size (max 100KB total payload)
-	if len(req.Message) > 100000 {
+	// Validate total payload size (max 100KB)
+	payload, err := json.Marshal(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Failed to process log payload",
+		})
+		return
+	}
+	if len(payload) > 100000 {
 		c.JSON(http.StatusRequestEntityTooLarge, gin.H{
-			"error": "Log message exceeds maximum size of 100KB",
+			"error": "Log payload exceeds maximum size of 100KB",
 		})
 		return
 	}
@@ -54,14 +61,27 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 	timestamp := time.Now()
 	if req.Timestamp != nil {
 		timestamp = *req.Timestamp
+		
+		// Validate that the provided timestamp is within an acceptable range
+		maxFuture := time.Now().Add(5 * time.Minute)
+		minPast := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+		if timestamp.After(maxFuture) || timestamp.Before(minPast) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Timestamp is out of acceptable range",
+			})
+			return
+		}
 	}
 
 	// Determine service from platform or use provided service
 	service := "clipper-frontend"
 	if req.Service != "" {
 		service = req.Service
-	} else if req.Platform == "ios" || req.Platform == "android" {
-		service = "clipper-mobile"
+	} else {
+		// Auto-detect service from platform only if not provided
+		if req.Platform == "ios" || req.Platform == "android" {
+			service = "clipper-mobile"
+		}
 	}
 
 	// Get user ID from context if authenticated (optional)
@@ -101,12 +121,17 @@ func (h *ApplicationLogHandler) CreateLog(c *gin.Context) {
 	}
 
 	// Create application log entry
+	var platformPtr *string
+	if req.Platform != "" {
+		platformPtr = &req.Platform
+	}
+
 	log := &models.ApplicationLog{
 		Level:      req.Level,
 		Message:    req.Message,
 		Timestamp:  timestamp,
 		Service:    service,
-		Platform:   &req.Platform,
+		Platform:   platformPtr,
 		UserID:     userID,
 		SessionID:  req.SessionID,
 		TraceID:    req.TraceID,

@@ -14,8 +14,8 @@ Accepts log entries from frontend (web) and mobile (iOS/Android) clients.
 - User ID is automatically captured if authenticated
 
 #### Rate Limiting
-- **Per-user**: 100 requests/minute
-- **Per-IP**: 500 requests/minute (fallback for unauthenticated requests)
+- **100 requests/minute per endpoint per IP address**
+- Authenticated and anonymous users behind the same IP share this limit
 - Returns `429 Too Many Requests` when limit exceeded
 
 #### Request Format
@@ -126,17 +126,35 @@ CREATE TABLE application_logs (
 ## Log Retention
 
 ### Retention Policy
+Logs should be retained based on their level:
 - **Debug logs**: 30 days
 - **Info/Warn logs**: 30 days
 - **Error logs**: 90 days
 
 ### Cleanup
-The `DeleteOldLogs` repository method can be called periodically by a cleanup job:
+The `DeleteOldLogs` repository method deletes logs older than a specified retention period. To implement level-based retention, call this method separately for each level with different retention values:
 
 ```go
-// Delete logs older than 30 days
+// Delete debug logs older than 30 days
+deletedCount, err := logRepo.DeleteOldLogsByLevel(ctx, "debug", 30)
+
+// Delete info logs older than 30 days
+deletedCount, err := logRepo.DeleteOldLogsByLevel(ctx, "info", 30)
+
+// Delete warn logs older than 30 days
+deletedCount, err := logRepo.DeleteOldLogsByLevel(ctx, "warn", 30)
+
+// Delete error logs older than 90 days
+deletedCount, err := logRepo.DeleteOldLogsByLevel(ctx, "error", 90)
+```
+
+Alternatively, for uniform retention across all levels:
+```go
+// Delete all logs older than 30 days
 deletedCount, err := logRepo.DeleteOldLogs(ctx, 30)
 ```
+
+**Note**: The current `DeleteOldLogs` implementation applies uniform retention across all log levels. To implement the level-based retention policy described above, you would need to add a `DeleteOldLogsByLevel` method to the repository or use separate cleanup jobs for each level.
 
 ## Client Integration
 
