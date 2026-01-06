@@ -324,15 +324,15 @@ func getEnvBool(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
-// parseRegions parses a comma-separated list of regions
-func parseRegions(value string) []string {
+// parseCommaSeparatedList parses a comma-separated string into a slice of trimmed strings
+func parseCommaSeparatedList(value string) []string {
 	if value == "" {
 		return []string{}
 	}
-	regions := strings.Split(value, ",")
-	result := make([]string, 0, len(regions))
-	for _, region := range regions {
-		trimmed := strings.TrimSpace(region)
+	items := strings.Split(value, ",")
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		trimmed := strings.TrimSpace(item)
 		if trimmed != "" {
 			result = append(result, trimmed)
 		}
@@ -386,7 +386,7 @@ func Load() (*Config, error) {
 			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000"),
 		},
 		WebSocket: WebSocketConfig{
-			AllowedOrigins: parseRegions(getEnv("WEBSOCKET_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")),
+			AllowedOrigins: parseCommaSeparatedList(getEnv("WEBSOCKET_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")),
 		},
 		OpenSearch: OpenSearchConfig{
 			URL:                getEnv("OPENSEARCH_URL", "http://localhost:9200"),
@@ -506,7 +506,7 @@ func Load() (*Config, error) {
 		},
 		Mirror: MirrorConfig{
 			Enabled:                getEnvBool("MIRROR_ENABLED", false),
-			Regions:                parseRegions(getEnv("MIRROR_REGIONS", "us-east-1,eu-west-1,ap-southeast-1")),
+			Regions:                parseCommaSeparatedList(getEnv("MIRROR_REGIONS", "us-east-1,eu-west-1,ap-southeast-1")),
 			ReplicationThreshold:   getEnvInt("MIRROR_REPLICATION_THRESHOLD", 1000),
 			TTLDays:                getEnvInt("MIRROR_TTL_DAYS", 7),
 			MaxMirrorsPerClip:      getEnvInt("MIRROR_MAX_PER_CLIP", 3),
