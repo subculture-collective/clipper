@@ -888,6 +888,9 @@ func main() {
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
 			users.GET("/:id", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserProfile)
 
+			// User autocomplete for mentions/suggestions
+			users.GET("/autocomplete", userHandler.SearchUsersAutocomplete)
+
 			// Account claiming for unclaimed profiles
 			users.POST("/claim-account", middleware.AuthMiddleware(authService), userHandler.ClaimAccount)
 

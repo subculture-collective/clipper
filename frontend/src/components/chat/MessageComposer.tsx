@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmojiPicker } from './EmojiPicker';
+import { searchUsersAutocomplete, type UserSuggestion } from '@/lib/user-api';
 
 interface MessageComposerProps {
   onSend: (content: string) => void;
@@ -9,18 +10,6 @@ interface MessageComposerProps {
   placeholder?: string;
   disabled?: boolean;
 }
-
-interface MentionSuggestion {
-  username: string;
-  display_name?: string;
-}
-
-// Mock suggestions for development - TODO: Replace with API call
-const DEV_MENTION_SUGGESTIONS: MentionSuggestion[] = [
-  { username: 'user1', display_name: 'User One' },
-  { username: 'user2', display_name: 'User Two' },
-  { username: 'admin', display_name: 'Administrator' },
-];
 
 // Note: Username pattern uses \w (alphanumeric and underscore only)
 // Platforms supporting hyphens/periods in usernames should extend this pattern
@@ -37,7 +26,7 @@ export function MessageComposer({
 }: MessageComposerProps) {
   const [inputValue, setInputValue] = useState('');
   const [showMentions, setShowMentions] = useState(false);
-  const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([]);
+  const [mentionSuggestions, setMentionSuggestions] = useState<UserSuggestion[]>([]);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -72,19 +61,14 @@ export function MessageComposer({
     if (mentionMatch) {
       setShowMentions(true);
       setSelectedMentionIndex(0);
-      // TODO: Fetch user suggestions from API
-      // For development, show mock suggestions filtered by query
-      if (import.meta.env.DEV) {
-        setMentionSuggestions(
-          DEV_MENTION_SUGGESTIONS.filter(u => 
-            u.username.toLowerCase().includes(mentionMatch[1].toLowerCase())
-          )
-        );
-      } else {
-        // In production, fetch from API
-        // fetchUserSuggestions(mentionMatch[1]).then(setMentionSuggestions);
-        setMentionSuggestions([]);
-      }
+      // Fetch user suggestions from API
+      const query = mentionMatch[1];
+      searchUsersAutocomplete(query, 10)
+        .then(setMentionSuggestions)
+        .catch((error) => {
+          console.error('Failed to fetch user suggestions:', error);
+          setMentionSuggestions([]);
+        });
     } else {
       setShowMentions(false);
     }

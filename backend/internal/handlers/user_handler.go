@@ -100,6 +100,51 @@ func (h *UserHandler) GetUserByUsername(c *gin.Context) {
 	})
 }
 
+// SearchUsersAutocomplete searches users by username for autocomplete/mention suggestions
+// GET /api/v1/users/autocomplete?q=username_prefix
+func (h *UserHandler) SearchUsersAutocomplete(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    []gin.H{},
+		})
+		return
+	}
+
+	// Parse limit with default of 10 and max of 20
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if limit < 1 {
+		limit = 10
+	} else if limit > 20 {
+		limit = 20
+	}
+
+	users, err := h.userRepo.SearchUsersForAutocomplete(c.Request.Context(), query, limit)
+	if err != nil {
+		log.Printf("Failed to search users for autocomplete: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to search users"})
+		return
+	}
+
+	// Format response with only necessary fields for autocomplete
+	suggestions := make([]gin.H, 0, len(users))
+	for _, user := range users {
+		suggestions = append(suggestions, gin.H{
+			"id":           user.ID,
+			"username":     user.Username,
+			"display_name": user.DisplayName,
+			"avatar_url":   user.AvatarURL,
+			"is_verified":  user.IsVerified,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    suggestions,
+	})
+}
+
 // GetUserComments retrieves comments by a user
 // GET /api/v1/users/:id/comments
 func (h *UserHandler) GetUserComments(c *gin.Context) {
