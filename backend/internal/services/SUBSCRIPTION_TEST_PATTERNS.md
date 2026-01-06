@@ -70,6 +70,28 @@ Contains all mock implementations for testing.
 
 ## Writing New Tests
 
+### Helper Function
+
+To reduce boilerplate, use the `newTestSubscriptionService` helper function:
+
+```go
+// Helper creates service with default nil values for optional dependencies
+service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
+```
+
+This is equivalent to:
+```go
+service := NewSubscriptionService(
+    mockSubRepo,
+    mockUserRepo,
+    mockWebhookRepo,
+    cfg,
+    nil, // auditLogSvc - can be mocked if needed
+    nil, // dunningService - can be mocked if needed  
+    nil, // emailService - can be mocked if needed
+)
+```
+
 ### Basic Pattern
 
 ```go

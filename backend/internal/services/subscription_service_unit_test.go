@@ -12,6 +12,24 @@ import (
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
+// newTestSubscriptionService creates a subscription service with mock dependencies for testing
+func newTestSubscriptionService(
+	subRepo *MockSubscriptionRepository,
+	userRepo *MockUserRepository,
+	webhookRepo *MockWebhookRepository,
+	cfg *config.Config,
+) *SubscriptionService {
+	return NewSubscriptionService(
+		subRepo,
+		userRepo,
+		webhookRepo,
+		cfg,
+		nil, // auditLogSvc - can be mocked if needed
+		nil, // dunningService - can be mocked if needed
+		nil, // emailService - can be mocked if needed
+	)
+}
+
 // TestNewSubscriptionService tests service creation with dependency injection
 func TestNewSubscriptionService(t *testing.T) {
 	t.Run("creates service with all dependencies", func(t *testing.T) {
@@ -24,15 +42,7 @@ func TestNewSubscriptionService(t *testing.T) {
 			},
 		}
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			cfg,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		assert.NotNil(t, service)
 	})
@@ -42,15 +52,7 @@ func TestNewSubscriptionService(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockWebhookRepo := new(MockWebhookRepository)
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			nil,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, nil)
 
 		assert.NotNil(t, service)
 	})
@@ -89,15 +91,7 @@ func TestGetOrCreateCustomer(t *testing.T) {
 
 		mockSubRepo.On("GetByUserID", ctx, userID).Return(existingSub, nil)
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			cfg,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		customerID, err := service.GetOrCreateCustomer(ctx, user)
 
@@ -118,15 +112,7 @@ func TestGetOrCreateCustomer(t *testing.T) {
 
 		mockSubRepo.On("GetByUserID", ctx, userID).Return(nil, errors.New("not found"))
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			cfg,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		// This will attempt to create a Stripe customer, which will fail without real Stripe API
 		// In a real test, we'd mock the Stripe client as well
@@ -159,15 +145,7 @@ func TestGetSubscriptionByUserID(t *testing.T) {
 
 		mockSubRepo.On("GetByUserID", ctx, userID).Return(expectedSub, nil)
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			cfg,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		result, err := service.GetSubscriptionByUserID(ctx, userID)
 
@@ -185,15 +163,7 @@ func TestGetSubscriptionByUserID(t *testing.T) {
 		expectedError := errors.New("subscription not found")
 		mockSubRepo.On("GetByUserID", ctx, userID).Return(nil, expectedError)
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			cfg,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		result, err := service.GetSubscriptionByUserID(ctx, userID)
 
