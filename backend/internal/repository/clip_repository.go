@@ -360,6 +360,7 @@ type ClipFilters struct {
 	GameID            *string
 	BroadcasterID     *string
 	Tag               *string
+	ExcludeTags       []string // Exclude clips with any of these tag slugs
 	Search            *string
 	Language          *string // Language code (e.g., en, es, fr)
 	Timeframe         *string // hour, day, week, month, year, all
@@ -484,6 +485,17 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 
@@ -706,6 +718,17 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 
