@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -299,6 +300,9 @@ func (s *AccountMergeService) transferComments(ctx context.Context, tx pgx.Tx, f
 }
 
 // transferFollows transfers all follow relationships (broadcaster, stream, game, user)
+// Note: Individual follow table transfers are logged as warnings on failure but don't fail the transaction.
+// This is intentional because some follow tables may not exist in all deployments (e.g., optional features).
+// The transaction will still commit successfully even if some follow tables fail to transfer.
 func (s *AccountMergeService) transferFollows(ctx context.Context, tx pgx.Tx, fromUserID, toUserID uuid.UUID) (int, error) {
 	totalTransferred := 0
 	
@@ -343,8 +347,12 @@ func (s *AccountMergeService) transferBroadcasterFollows(ctx context.Context, tx
 			WHERE table_schema = 'public' AND table_name = 'broadcaster_follows'
 		)`).Scan(&exists)
 	
-	if err != nil || !exists {
+	if err != nil {
 		return 0, err
+	}
+	
+	if !exists {
+		return 0, nil
 	}
 	
 	// Delete duplicates (same user_id and broadcaster_id)
@@ -384,8 +392,12 @@ func (s *AccountMergeService) transferStreamFollows(ctx context.Context, tx pgx.
 			WHERE table_schema = 'public' AND table_name = 'stream_follows'
 		)`).Scan(&exists)
 	
-	if err != nil || !exists {
+	if err != nil {
 		return 0, err
+	}
+	
+	if !exists {
+		return 0, nil
 	}
 	
 	// Delete duplicates (same user_id and streamer_username)
@@ -425,8 +437,12 @@ func (s *AccountMergeService) transferGameFollows(ctx context.Context, tx pgx.Tx
 			WHERE table_schema = 'public' AND table_name = 'game_follows'
 		)`).Scan(&exists)
 	
-	if err != nil || !exists {
+	if err != nil {
 		return 0, err
+	}
+	
+	if !exists {
+		return 0, nil
 	}
 	
 	// Delete duplicates (same user_id and game_id)
@@ -466,10 +482,17 @@ func (s *AccountMergeService) transferUserFollows(ctx context.Context, tx pgx.Tx
 			WHERE table_schema = 'public' AND table_name = 'user_follows'
 		)`).Scan(&exists)
 	
-	if err != nil || !exists {
+	if err != nil {
 		return 0, err
 	}
 	
+	if !exists {
+		return 0, nil
+	}
+	
+	totalTransferred := 0
+	
+	// Part 1: Transfer follows where unclaimed user is the follower
 	// Delete duplicates (same follower_id and following_id)
 	_, err = tx.Exec(ctx, `
 		DELETE FROM user_follows
@@ -494,10 +517,39 @@ func (s *AccountMergeService) transferUserFollows(ctx context.Context, tx pgx.Tx
 		return 0, err
 	}
 	
-	return int(cmdTag.RowsAffected()), nil
+	totalTransferred += int(cmdTag.RowsAffected())
+	
+	// Part 2: Transfer follows where unclaimed user is being followed
+	// Delete duplicates (same follower_id and following_id)
+	_, err = tx.Exec(ctx, `
+		DELETE FROM user_follows
+		WHERE following_id = $1
+		AND follower_id IN (
+			SELECT follower_id FROM user_follows WHERE following_id = $2
+		)
+	`, fromUserID, toUserID)
+	
+	if err != nil {
+		return 0, err
+	}
+	
+	// Transfer remaining follows (update following_id)
+	cmdTag, err = tx.Exec(ctx, `
+		UPDATE user_follows
+		SET following_id = $1
+		WHERE following_id = $2
+	`, toUserID, fromUserID)
+	
+	if err != nil {
+		return 0, err
+	}
+	
+	totalTransferred += int(cmdTag.RowsAffected())
+	
+	return totalTransferred, nil
 }
 
-// transferWatchHistory transfers watch history, keeping most recent per clip
+// transferWatchHistory transfers watch history, keeping authenticated user's version for conflicting clips
 func (s *AccountMergeService) transferWatchHistory(ctx context.Context, tx pgx.Tx, fromUserID, toUserID uuid.UUID) (int, error) {
 	// For clips where authenticated user already has watch history, keep the authenticated user's version
 	// Delete unclaimed user's watch history for those clips
@@ -530,11 +582,11 @@ func (s *AccountMergeService) transferWatchHistory(ctx context.Context, tx pgx.T
 
 // mergeUserPreferences merges user preferences (union of arrays)
 func (s *AccountMergeService) mergeUserPreferences(ctx context.Context, tx pgx.Tx, fromUserID, toUserID uuid.UUID) (bool, error) {
-	// Check if user_preferences table exists
+	// Check if user_preferences table exists in the public schema
 	checkQuery := `
 		SELECT EXISTS (
 			SELECT FROM information_schema.tables 
-			WHERE table_name = 'user_preferences'
+			WHERE table_schema = 'public' AND table_name = 'user_preferences'
 		)
 	`
 	
@@ -605,11 +657,11 @@ func (s *AccountMergeService) mergeUserPreferences(ctx context.Context, tx pgx.T
 
 // transferSubscription transfers subscription data if it exists
 func (s *AccountMergeService) transferSubscription(ctx context.Context, tx pgx.Tx, fromUserID, toUserID uuid.UUID) (bool, error) {
-	// Check if subscriptions table exists
+	// Check if subscriptions table exists in the public schema
 	checkQuery := `
 		SELECT EXISTS (
 			SELECT FROM information_schema.tables 
-			WHERE table_name = 'subscriptions'
+			WHERE table_schema = 'public' AND table_name = 'subscriptions'
 		)
 	`
 	
@@ -658,11 +710,12 @@ func (s *AccountMergeService) transferSubscription(ctx context.Context, tx pgx.T
 		return false, nil
 	}
 	
-	// Transfer subscription
+	// Transfer active/trialing subscription only
 	updateQuery := `
 		UPDATE subscriptions
 		SET user_id = $1
 		WHERE user_id = $2
+		AND status IN ('active', 'trialing')
 	`
 	
 	if _, err := tx.Exec(ctx, updateQuery, toUserID, fromUserID); err != nil {
@@ -702,22 +755,29 @@ func (s *AccountMergeService) createMergeAuditLog(ctx context.Context, tx pgx.Tx
 		"timestamp":           time.Now().UTC().Format(time.RFC3339),
 	}
 	
+	// Marshal metadata to JSON for proper storage
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal audit log metadata: %w", err)
+	}
+	
 	query := `
 		INSERT INTO moderation_audit_logs (
 			id, action, entity_type, entity_id, moderator_id, metadata, created_at
 		) VALUES (
-			gen_random_uuid(), $1, $2, $3, $4, $5::jsonb, NOW()
+			$1, $2, $3, $4, $5, $6, NOW()
 		)
 	`
 	
 	// Note: moderator_id is set to toUserID because the user themselves initiated this merge
 	// by claiming their account. This represents a self-service action.
-	_, err := tx.Exec(ctx, query,
+	_, err = tx.Exec(ctx, query,
+		uuid.New(),
 		"account_merged",
 		"user",
 		toUserID,
 		toUserID, // User performed their own account merge
-		metadata,
+		metadataJSON,
 	)
 	
 	return err
