@@ -5,20 +5,28 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/subculture-collective/clipper/config"
 )
 
 func TestNewServer(t *testing.T) {
-	server := NewServer(nil, nil)
+	cfg := &config.WebSocketConfig{
+		AllowedOrigins: []string{"http://localhost:5173"},
+	}
+	server := NewServer(nil, nil, cfg)
 
 	assert.NotNil(t, server)
 	assert.NotNil(t, server.Hubs)
 	assert.NotNil(t, server.Upgrader)
 	assert.Equal(t, 1024, server.Upgrader.ReadBufferSize)
 	assert.Equal(t, 1024, server.Upgrader.WriteBufferSize)
+	assert.Equal(t, []string{"http://localhost:5173"}, server.allowedOrigins)
 }
 
 func TestServer_GetOrCreateHub(t *testing.T) {
-	server := NewServer(nil, nil)
+	cfg := &config.WebSocketConfig{
+		AllowedOrigins: []string{"http://localhost:5173"},
+	}
+	server := NewServer(nil, nil, cfg)
 	channelID := uuid.New().String()
 
 	// Manually create a hub without starting goroutine
@@ -47,7 +55,10 @@ func TestServer_GetOrCreateHub(t *testing.T) {
 }
 
 func TestServer_GetStats(t *testing.T) {
-	server := NewServer(nil, nil)
+	cfg := &config.WebSocketConfig{
+		AllowedOrigins: []string{"http://localhost:5173"},
+	}
+	server := NewServer(nil, nil, cfg)
 
 	// Initially no connections
 	stats := server.GetStats()
@@ -83,7 +94,10 @@ func TestServer_GetStats(t *testing.T) {
 }
 
 func TestServer_GetStats_MultipleChannels(t *testing.T) {
-	server := NewServer(nil, nil)
+	cfg := &config.WebSocketConfig{
+		AllowedOrigins: []string{"http://localhost:5173"},
+	}
+	server := NewServer(nil, nil, cfg)
 
 	// Create multiple hubs
 	channel1 := uuid.New().String()
@@ -126,7 +140,10 @@ func TestServer_GetStats_MultipleChannels(t *testing.T) {
 }
 
 func TestServer_Shutdown(t *testing.T) {
-	server := NewServer(nil, nil)
+	cfg := &config.WebSocketConfig{
+		AllowedOrigins: []string{"http://localhost:5173"},
+	}
+	server := NewServer(nil, nil, cfg)
 
 	// Manually create some hubs without starting goroutines
 	channel1 := uuid.New().String()

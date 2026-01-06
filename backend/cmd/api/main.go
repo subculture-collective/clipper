@@ -450,7 +450,7 @@ func main() {
 	applicationLogHandler := handlers.NewApplicationLogHandler(applicationLogRepo)
 
 	// Initialize WebSocket server
-	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient())
+	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient(), &cfg.WebSocket)
 	websocketHandler := handlers.NewWebSocketHandler(db.Pool, wsServer)
 
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
