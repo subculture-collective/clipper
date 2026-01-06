@@ -307,6 +307,12 @@ func (c *Client) ListTrim(ctx context.Context, key string, start, stop int64) er
 	return c.client.LTrim(ctx, key, start, stop).Err()
 }
 
+// ListPop removes and returns the first element from a Redis list (LPOP operation)
+// Returns an empty string and redis.Nil error if the list is empty
+func (c *Client) ListPop(ctx context.Context, key string) (string, error) {
+	return c.client.LPop(ctx, key).Result()
+}
+
 // SetAdd adds one or more members to a Redis set (SADD operation)
 func (c *Client) SetAdd(ctx context.Context, key string, members ...interface{}) error {
 	return c.client.SAdd(ctx, key, members...).Err()
