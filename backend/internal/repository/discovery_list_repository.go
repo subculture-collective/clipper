@@ -342,6 +342,7 @@ func (r *DiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
 		}
+		clip.UserVote = userVote
 		clips = append(clips, clip)
 	}
 
