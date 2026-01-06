@@ -280,7 +280,7 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 	if h.jobService != nil {
 		// Construct placeholder VOD URL (in production, this would be the actual stream VOD URL)
 		// TODO: Replace with actual Twitch VOD API call to get the real VOD URL
-		vodURL := fmt.Sprintf("https://vod.twitch.tv/stream/%s/%s", user.ID, stream.ID)
+		vodURL := fmt.Sprintf("placeholder://vod/%s/%s", user.ID, stream.ID)
 
 		job := &models.ClipExtractionJob{
 			ClipID:    clipID.String(),

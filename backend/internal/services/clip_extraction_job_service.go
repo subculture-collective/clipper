@@ -11,6 +11,17 @@ import (
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
+// Cache key constants for clip extraction jobs
+const (
+	KeyJobQueue    = "clip_extraction_jobs"
+	KeyJobMetadata = "clip_extraction_job:%s" // clipId
+)
+
+// Cache TTL constants for clip extraction jobs
+const (
+	TTLJobMetadata = 7 * 24 * time.Hour // 7 days
+)
+
 // ClipExtractionJobService handles enqueueing and managing clip extraction jobs
 type ClipExtractionJobService struct {
 	redis *redis.Client
@@ -35,14 +46,9 @@ func (s *ClipExtractionJobService) EnqueueJob(ctx context.Context, job *models.C
 		return fmt.Errorf("failed to marshal job: %w", err)
 	}
 
-	// Push job to Redis list (queue)
-	queueKey := "clip_extraction_jobs"
-	if err := s.redis.ListPush(ctx, queueKey, jobData); err != nil {
-		return fmt.Errorf("failed to enqueue job: %w", err)
-	}
-
-	// Store job metadata with expiration (7 days)
-	jobKey := fmt.Sprintf("clip_extraction_job:%s", job.ClipID)
+	// Store job metadata first to avoid race condition
+	// If metadata storage fails, we don't enqueue the job
+	jobKey := fmt.Sprintf(KeyJobMetadata, job.ClipID)
 	jobMetadata := map[string]interface{}{
 		"status":     "queued",
 		"queued_at":  time.Now().Unix(),
@@ -58,8 +64,15 @@ func (s *ClipExtractionJobService) EnqueueJob(ctx context.Context, job *models.C
 		return fmt.Errorf("failed to marshal job metadata: %w", err)
 	}
 
-	if err := s.redis.Set(ctx, jobKey, string(metadataJSON), 7*24*time.Hour); err != nil {
+	if err := s.redis.Set(ctx, jobKey, string(metadataJSON), TTLJobMetadata); err != nil {
 		return fmt.Errorf("failed to store job metadata: %w", err)
+	}
+
+	// Now push job to Redis list (queue)
+	if err := s.redis.ListPush(ctx, KeyJobQueue, jobData); err != nil {
+		// Cleanup metadata if queue push fails
+		_ = s.redis.Delete(ctx, jobKey)
+		return fmt.Errorf("failed to enqueue job: %w", err)
 	}
 
 	utils.GetLogger().Info("Clip extraction job enqueued", map[string]interface{}{
@@ -79,7 +92,7 @@ func (s *ClipExtractionJobService) GetJobStatus(ctx context.Context, clipID stri
 		return nil, fmt.Errorf("redis client not available")
 	}
 
-	jobKey := fmt.Sprintf("clip_extraction_job:%s", clipID)
+	jobKey := fmt.Sprintf(KeyJobMetadata, clipID)
 	data, err := s.redis.Get(ctx, jobKey)
 	if err != nil {
 		return nil, fmt.Errorf("job not found: %w", err)
@@ -99,6 +112,5 @@ func (s *ClipExtractionJobService) GetPendingJobsCount(ctx context.Context) (int
 		return 0, fmt.Errorf("redis client not available")
 	}
 
-	queueKey := "clip_extraction_jobs"
-	return s.redis.ListLen(ctx, queueKey)
+	return s.redis.ListLen(ctx, KeyJobQueue)
 }

@@ -69,8 +69,22 @@ The actual FFmpeg video processing is **not yet implemented**. A worker service 
 
 1. **Poll the Redis queue** for pending jobs
    ```go
-   // Pseudo-code
-   job := redis.LPop("clip_extraction_jobs")
+   // Dequeue job from Redis
+   jobJSON, err := redisClient.ListPop(ctx, "clip_extraction_jobs")
+   if err == redis.Nil {
+       // No jobs in queue
+       return
+   }
+   if err != nil {
+       // Handle error
+       return
+   }
+   
+   var job models.ClipExtractionJob
+   if err := json.Unmarshal([]byte(jobJSON), &job); err != nil {
+       // Handle unmarshaling error
+       return
+   }
    ```
 
 2. **Download the VOD** from Twitch
