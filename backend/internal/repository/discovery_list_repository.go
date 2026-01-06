@@ -342,7 +342,6 @@ func (r *DiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
 		}
-		clip.UserVote = userVote
 		clips = append(clips, clip)
 	}
 
@@ -591,33 +590,56 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 		return nil, fmt.Errorf("error iterating followed lists: %w", err)
 	}
 
-	// Get preview clips for each list
-	for i := range lists {
-		previewQuery := `
-			SELECT 
-				c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
-				c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
-				c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
-				c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
-				c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
-				c.submitted_by_user_id, c.submitted_at
-			FROM discovery_list_clips dlc
-			INNER JOIN clips c ON dlc.clip_id = c.id
-			WHERE dlc.list_id = $1 AND c.is_removed = false
-			ORDER BY dlc.display_order ASC, dlc.added_at DESC
-			LIMIT 4
-		`
-
-		previewRows, err := r.db.Query(ctx, previewQuery, lists[i].ID)
-		if err != nil {
-			// Continue on error - preview clips are optional
-			continue
+	// Batch fetch preview clips for all lists using a single query
+	if len(lists) > 0 {
+		listIDs := make([]uuid.UUID, len(lists))
+		for i, list := range lists {
+			listIDs[i] = list.ID
 		}
 
-		var previewClips []models.Clip
+		// Fetch preview clips for all lists in a single query using window function
+		previewQuery := `
+			WITH ranked_clips AS (
+				SELECT 
+					c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
+					c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
+					c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
+					c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
+					c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
+					c.submitted_by_user_id, c.submitted_at,
+					dlc.list_id,
+					ROW_NUMBER() OVER (PARTITION BY dlc.list_id ORDER BY dlc.display_order ASC, dlc.added_at DESC) as rn
+				FROM discovery_list_clips dlc
+				INNER JOIN clips c ON dlc.clip_id = c.id
+				WHERE dlc.list_id = ANY($1) AND c.is_removed = false
+			)
+			SELECT 
+				list_id,
+				id, twitch_clip_id, twitch_clip_url, embed_url, title,
+				creator_name, creator_id, broadcaster_name, broadcaster_id,
+				game_id, game_name, language, thumbnail_url, duration,
+				view_count, created_at, imported_at, vote_score, comment_count,
+				favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+				submitted_by_user_id, submitted_at
+			FROM ranked_clips 
+			WHERE rn <= 4 
+			ORDER BY list_id, rn
+		`
+
+		previewRows, err := r.db.Query(ctx, previewQuery, listIDs)
+		if err != nil {
+			// Don't fail the whole request if preview clips can't be fetched
+			return lists, nil
+		}
+		defer previewRows.Close()
+
+		// Group clips by list ID
+		clipsByList := make(map[uuid.UUID][]models.Clip)
 		for previewRows.Next() {
+			var listID uuid.UUID
 			var clip models.Clip
 			err := previewRows.Scan(
+				&listID,
 				&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
 				&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
 				&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
@@ -627,14 +649,18 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 				&clip.SubmittedByUserID, &clip.SubmittedAt,
 			)
 			if err != nil {
-				// Continue on scan error
-				break
+				// Don't fail the whole request if scanning preview clips fails
+				return lists, nil
 			}
-			previewClips = append(previewClips, clip)
+			clipsByList[listID] = append(clipsByList[listID], clip)
 		}
-		previewRows.Close()
 
-		lists[i].PreviewClips = previewClips
+		// Assign preview clips to lists
+		for i := range lists {
+			if clips, ok := clipsByList[lists[i].ID]; ok {
+				lists[i].PreviewClips = clips
+			}
+		}
 	}
 
 	return lists, nil
@@ -663,27 +689,37 @@ func (r *DiscoveryListRepository) CreateList(ctx context.Context, name, slug, de
 
 // UpdateList updates an existing discovery list
 func (r *DiscoveryListRepository) UpdateList(ctx context.Context, listID uuid.UUID, name, description *string, isFeatured *bool) (*models.DiscoveryList, error) {
-	// Build dynamic update query
-	query := "UPDATE discovery_lists SET updated_at = NOW()"
+	// Check if at least one field is being updated
+	if name == nil && description == nil && isFeatured == nil {
+		return nil, fmt.Errorf("at least one field must be provided for update")
+	}
+
+	// Build dynamic update query using a safer approach
+	setClauses := []string{"updated_at = NOW()"}
 	args := []interface{}{listID}
 	argIdx := 2
 
 	if name != nil {
-		query += fmt.Sprintf(", name = $%d", argIdx)
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
 		args = append(args, *name)
 		argIdx++
 	}
 	if description != nil {
-		query += fmt.Sprintf(", description = $%d", argIdx)
+		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argIdx))
 		args = append(args, *description)
 		argIdx++
 	}
 	if isFeatured != nil {
-		query += fmt.Sprintf(", is_featured = $%d", argIdx)
+		setClauses = append(setClauses, fmt.Sprintf("is_featured = $%d", argIdx))
 		args = append(args, *isFeatured)
 		argIdx++
 	}
 
+	// Join all SET clauses
+	query := "UPDATE discovery_lists SET " + setClauses[0]
+	for i := 1; i < len(setClauses); i++ {
+		query += ", " + setClauses[i]
+	}
 	query += " WHERE id = $1 RETURNING id, name, slug, description, is_featured, is_active, display_order, created_by, created_at, updated_at"
 
 	var list models.DiscoveryList

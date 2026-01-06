@@ -148,6 +148,12 @@ func TestDiscoveryListRepository_UpdateList(t *testing.T) {
 	if err != ErrDiscoveryListNotFound {
 		t.Errorf("Expected ErrDiscoveryListNotFound, got %v", err)
 	}
+
+	// Test updating with no fields (should return error)
+	_, err = repo.UpdateList(ctx, list.ID, nil, nil, nil)
+	if err == nil {
+		t.Error("Expected error when updating with no fields, got nil")
+	}
 }
 
 func TestDiscoveryListRepository_DeleteList(t *testing.T) {
