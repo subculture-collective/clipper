@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
@@ -82,14 +83,6 @@ func (m *MockUserRepository) GetByUsername(ctx context.Context, username string)
 	return args.Get(0).(*models.User), args.Error(1)
 }
 
-func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	args := m.Called(ctx, email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.User), args.Error(1)
-}
-
 func (m *MockUserRepository) Create(ctx context.Context, user *models.User) error {
 	args := m.Called(ctx, user)
 	return args.Error(0)
@@ -105,12 +98,12 @@ type MockWebhookRepository struct {
 	mock.Mock
 }
 
-func (m *MockWebhookRepository) AddToRetryQueue(ctx context.Context, eventID string, eventType string, event stripe.Event, maxRetries int) error {
-	args := m.Called(ctx, eventID, eventType, event, maxRetries)
+func (m *MockWebhookRepository) AddToRetryQueue(ctx context.Context, stripeEventID string, eventType string, payload interface{}, maxRetries int) error {
+	args := m.Called(ctx, stripeEventID, eventType, payload, maxRetries)
 	return args.Error(0)
 }
 
-func (m *MockWebhookRepository) GetFromRetryQueue(ctx context.Context, limit int) ([]*models.WebhookRetryQueue, error) {
+func (m *MockWebhookRepository) GetPendingRetries(ctx context.Context, limit int) ([]*models.WebhookRetryQueue, error) {
 	args := m.Called(ctx, limit)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -118,13 +111,13 @@ func (m *MockWebhookRepository) GetFromRetryQueue(ctx context.Context, limit int
 	return args.Get(0).([]*models.WebhookRetryQueue), args.Error(1)
 }
 
-func (m *MockWebhookRepository) UpdateRetryStatus(ctx context.Context, id uuid.UUID, status string, attempts int, lastError *string) error {
-	args := m.Called(ctx, id, status, attempts, lastError)
+func (m *MockWebhookRepository) UpdateRetryQueueItem(ctx context.Context, id uuid.UUID, retryCount int, nextRetryAt *time.Time, lastError string) error {
+	args := m.Called(ctx, id, retryCount, nextRetryAt, lastError)
 	return args.Error(0)
 }
 
-func (m *MockWebhookRepository) DeleteFromRetryQueue(ctx context.Context, id uuid.UUID) error {
-	args := m.Called(ctx, id)
+func (m *MockWebhookRepository) RemoveFromRetryQueue(ctx context.Context, stripeEventID string) error {
+	args := m.Called(ctx, stripeEventID)
 	return args.Error(0)
 }
 

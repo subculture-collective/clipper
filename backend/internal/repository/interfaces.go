@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/stripe/stripe-go/v81"
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
@@ -23,15 +23,14 @@ type SubscriptionRepositoryInterface interface {
 type UserRepositoryInterface interface {
 	GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
-	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	Create(ctx context.Context, user *models.User) error
 	Update(ctx context.Context, user *models.User) error
 }
 
 // WebhookRepositoryInterface defines the interface for webhook repository operations
 type WebhookRepositoryInterface interface {
-	AddToRetryQueue(ctx context.Context, eventID string, eventType string, event stripe.Event, maxRetries int) error
-	GetFromRetryQueue(ctx context.Context, limit int) ([]*models.WebhookRetryQueue, error)
-	UpdateRetryStatus(ctx context.Context, id uuid.UUID, status string, attempts int, lastError *string) error
-	DeleteFromRetryQueue(ctx context.Context, id uuid.UUID) error
+	AddToRetryQueue(ctx context.Context, stripeEventID string, eventType string, payload interface{}, maxRetries int) error
+	GetPendingRetries(ctx context.Context, limit int) ([]*models.WebhookRetryQueue, error)
+	UpdateRetryQueueItem(ctx context.Context, id uuid.UUID, retryCount int, nextRetryAt *time.Time, lastError string) error
+	RemoveFromRetryQueue(ctx context.Context, stripeEventID string) error
 }

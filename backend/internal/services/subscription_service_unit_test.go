@@ -47,12 +47,13 @@ func TestNewSubscriptionService(t *testing.T) {
 		assert.NotNil(t, service)
 	})
 
-	t.Run("handles nil config gracefully", func(t *testing.T) {
+	t.Run("creates service with empty config", func(t *testing.T) {
 		mockSubRepo := new(MockSubscriptionRepository)
 		mockUserRepo := new(MockUserRepository)
 		mockWebhookRepo := new(MockWebhookRepository)
+		cfg := &config.Config{}
 
-		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, nil)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		assert.NotNil(t, service)
 	})
@@ -194,15 +195,7 @@ func TestHasActiveSubscription(t *testing.T) {
 
 		mockSubRepo.On("GetByUserID", ctx, userID).Return(sub, nil)
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			cfg,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		result := service.HasActiveSubscription(ctx, userID)
 
@@ -383,15 +376,7 @@ func TestIsProUser(t *testing.T) {
 
 		mockSubRepo.On("GetByUserID", ctx, userID).Return(sub, nil)
 
-		service := NewSubscriptionService(
-			mockSubRepo,
-			mockUserRepo,
-			mockWebhookRepo,
-			cfg,
-			nil,
-			nil,
-			nil,
-		)
+		service := newTestSubscriptionService(mockSubRepo, mockUserRepo, mockWebhookRepo, cfg)
 
 		result := service.IsProUser(ctx, userID)
 

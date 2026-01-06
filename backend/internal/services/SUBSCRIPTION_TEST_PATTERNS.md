@@ -43,7 +43,7 @@ Repository interfaces are defined in `repository/interfaces.go`:
 - `UserRepositoryInterface`
 - `WebhookRepositoryInterface`
 
-The concrete repository types automatically implement these interfaces.
+The concrete repository types implement these interfaces by providing the methods specified in the interface definitions. The interfaces are kept minimal, containing only the methods actually used by the subscription service.
 
 ## Test File Organization
 
