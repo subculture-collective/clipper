@@ -17,6 +17,7 @@ type Config struct {
 	JWT             JWTConfig
 	Twitch          TwitchConfig
 	CORS            CORSConfig
+	WebSocket       WebSocketConfig
 	OpenSearch      OpenSearchConfig
 	Stripe          StripeConfig
 	Sentry          SentryConfig
@@ -82,6 +83,11 @@ type TwitchConfig struct {
 // CORSConfig holds CORS configuration
 type CORSConfig struct {
 	AllowedOrigins string
+}
+
+// WebSocketConfig holds WebSocket server configuration
+type WebSocketConfig struct {
+	AllowedOrigins []string
 }
 
 // OpenSearchConfig holds OpenSearch configuration
@@ -378,6 +384,9 @@ func Load() (*Config, error) {
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000"),
+		},
+		WebSocket: WebSocketConfig{
+			AllowedOrigins: parseRegions(getEnv("WEBSOCKET_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")),
 		},
 		OpenSearch: OpenSearchConfig{
 			URL:                getEnv("OPENSEARCH_URL", "http://localhost:9200"),
