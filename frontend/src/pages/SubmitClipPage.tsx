@@ -30,6 +30,56 @@ import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';
 import type { Tag } from '../types/tag';
 
+/**
+ * Helper to check if an error message indicates a duplicate clip
+ * Note: Currently uses string matching. For better reliability,
+ * consider updating backend to return error.code or error.type field
+ * (e.g., { error: "...", code: "DUPLICATE_CLIP" })
+ */
+function isDuplicateError(message: string): boolean {
+    const lowerMsg = message.toLowerCase();
+    return (
+        lowerMsg.includes('already') ||
+        lowerMsg.includes('duplicate') ||
+        lowerMsg.includes('cannot be submitted again')
+    );
+}
+
+/**
+ * Helper to extract clip information from error response
+ * Looks for clip_id, clip_slug at top level or nested in clip object
+ */
+function extractClipInfo(responseData: unknown): { clipId?: string; clipSlug?: string } {
+    if (!responseData || typeof responseData !== 'object') {
+        return {};
+    }
+
+    const data = responseData as Record<string, unknown>;
+    let clipId: string | undefined;
+    let clipSlug: string | undefined;
+
+    // Check for clip_id and clip_slug at top level
+    if ('clip_id' in data && typeof data.clip_id === 'string') {
+        clipId = data.clip_id;
+    }
+    if ('clip_slug' in data && typeof data.clip_slug === 'string') {
+        clipSlug = data.clip_slug;
+    }
+
+    // Check for nested clip object
+    if ('clip' in data && data.clip && typeof data.clip === 'object') {
+        const clip = data.clip as Record<string, unknown>;
+        if ('id' in clip && typeof clip.id === 'string') {
+            clipId = clip.id;
+        }
+        if ('slug' in clip && typeof clip.slug === 'string') {
+            clipSlug = clip.slug;
+        }
+    }
+
+    return { clipId, clipSlug };
+}
+
 export function SubmitClipPage() {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
@@ -374,51 +424,6 @@ export function SubmitClipPage() {
                 typeof data.error === 'string'
             ) {
                 errorMessage = data.error;
-                
-                // Helper to check if error is duplicate-related
-                // Note: Currently uses string matching. For better reliability,
-                // consider updating backend to return error.code or error.type field
-                // (e.g., { error: "...", code: "DUPLICATE_CLIP" })
-                const isDuplicateError = (msg: string): boolean => {
-                    const lowerMsg = msg.toLowerCase();
-                    return (
-                        lowerMsg.includes('already') ||
-                        lowerMsg.includes('duplicate') ||
-                        lowerMsg.includes('cannot be submitted again')
-                    );
-                };
-
-                // Helper to extract clip info from error response
-                const extractClipInfo = (responseData: unknown): { clipId?: string; clipSlug?: string } => {
-                    if (!responseData || typeof responseData !== 'object') {
-                        return {};
-                    }
-
-                    const data = responseData as Record<string, unknown>;
-                    let clipId: string | undefined;
-                    let clipSlug: string | undefined;
-
-                    // Check for clip_id and clip_slug at top level
-                    if ('clip_id' in data && typeof data.clip_id === 'string') {
-                        clipId = data.clip_id;
-                    }
-                    if ('clip_slug' in data && typeof data.clip_slug === 'string') {
-                        clipSlug = data.clip_slug;
-                    }
-
-                    // Check for nested clip object
-                    if ('clip' in data && data.clip && typeof data.clip === 'object') {
-                        const clip = data.clip as Record<string, unknown>;
-                        if ('id' in clip && typeof clip.id === 'string') {
-                            clipId = clip.id;
-                        }
-                        if ('slug' in clip && typeof clip.slug === 'string') {
-                            clipSlug = clip.slug;
-                        }
-                    }
-
-                    return { clipId, clipSlug };
-                };
                 
                 if (isDuplicateError(errorMessage)) {
                     const { clipId, clipSlug } = extractClipInfo(data);
