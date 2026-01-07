@@ -443,12 +443,11 @@ test.describe('Clip Submission E2E Flow', () => {
   });
 
   test.describe('Scenario 2: Rate Limiting', () => {
-    test.skip('rate limiting prevents excessive submissions', async ({
+    test('rate limiting prevents excessive submissions', async ({
       page,
       submitClipPage,
       authenticatedUser
     }) => {
-      // TODO: Requires UI implementation of rate limit error messages
       // Given: user has already submitted 10 clips
       mockApi.setCurrentUser(withKarma(authenticatedUser));
       await mockApi.seedSubmissions(authenticatedUser.id, 10);
@@ -465,6 +464,12 @@ test.describe('Clip Submission E2E Flow', () => {
 
       // Then: rate limit error shown
       await submitClipPage.expectRateLimitError();
+      
+      // And: countdown timer is visible
+      await submitClipPage.expectRateLimitCountdown();
+      
+      // And: submit button is disabled
+      await expect(await submitClipPage.isSubmitButtonDisabled()).toBeTruthy();
     });
   });
 
