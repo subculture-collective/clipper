@@ -319,8 +319,7 @@ test.describe('Submission Workflows', () => {
         }
     });
 
-    test.skip('should display submission form for authenticated users', async ({ authenticatedPage }) => {
-        // TODO: Requires UI implementation of submission form
+    test('should display submission form for authenticated users', async ({ authenticatedPage }) => {
         // Now using fixture-based authentication
         const page = authenticatedPage;
 
@@ -331,8 +330,7 @@ test.describe('Submission Workflows', () => {
         await expect(urlInput).toBeVisible();
     });
 
-    test.skip('should validate Twitch clip URL format', async ({ authenticatedPage }) => {
-        // TODO: Requires UI implementation of submission form
+    test('should validate Twitch clip URL format', async ({ authenticatedPage }) => {
         // Now using fixture-based authentication and form data
         const page = authenticatedPage;
 
@@ -473,8 +471,7 @@ test.describe('Engagement Features', () => {
         }
     });
 
-    test.skip('should show comment form for authenticated users', async ({ authenticatedPage }) => {
-        // TODO: Requires UI implementation of comment form
+    test('should show comment form for authenticated users', async ({ authenticatedPage }) => {
         // Now using fixture-based authentication
         const page = authenticatedPage;
 

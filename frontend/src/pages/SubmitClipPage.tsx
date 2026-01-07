@@ -11,6 +11,7 @@ import {
     TextArea,
 } from '../components';
 import { RateLimitError } from '../components/clip/RateLimitError';
+import { DuplicateClipError } from '../components/clip/DuplicateClipError';
 import { useAuth } from '../context/AuthContext';
 import {
     checkClipStatus,
@@ -29,6 +30,70 @@ import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';
 import type { Tag } from '../types/tag';
 
+/**
+ * Clip-specific duplicate error patterns to avoid false positives
+ * from unrelated errors like "Email already taken" or "Username already exists"
+ */
+const CLIP_DUPLICATE_PATTERNS = [
+    /clip.*already/,
+    /already.*posted/,
+    /already.*submitted/,
+    /already.*added.*database/,
+    /already.*approved/,
+    /already.*pending/,
+    /duplicate.*clip/,
+    /cannot be submitted again/
+];
+
+/**
+ * Helper to check if an error message indicates a duplicate clip
+ * Note: Currently uses string matching. For better reliability,
+ * consider updating backend to return error.code or error.type field
+ * (e.g., { error: "...", code: "DUPLICATE_CLIP" })
+ * 
+ * Uses specific clip-related patterns to avoid false positives from
+ * unrelated errors like "Email already taken" or "Username already exists"
+ */
+function isDuplicateError(message: string): boolean {
+    const lowerMsg = message.toLowerCase();
+    return CLIP_DUPLICATE_PATTERNS.some(pattern => pattern.test(lowerMsg));
+}
+
+/**
+ * Helper to extract clip information from error response
+ * Looks for clip_id, clip_slug at top level or nested in clip object
+ */
+function extractClipInfo(responseData: unknown): { clipId?: string; clipSlug?: string } {
+    if (!responseData || typeof responseData !== 'object') {
+        return {};
+    }
+
+    const data = responseData as Record<string, unknown>;
+    let clipId: string | undefined;
+    let clipSlug: string | undefined;
+
+    // Check for clip_id and clip_slug at top level
+    if ('clip_id' in data && typeof data.clip_id === 'string') {
+        clipId = data.clip_id;
+    }
+    if ('clip_slug' in data && typeof data.clip_slug === 'string') {
+        clipSlug = data.clip_slug;
+    }
+
+    // Check for nested clip object (only use if top-level values not found)
+    if ('clip' in data && data.clip && typeof data.clip === 'object') {
+        const clip = data.clip as Record<string, unknown>;
+        if (!clipId && 'id' in clip && typeof clip.id === 'string') {
+            clipId = clip.id;
+        }
+        if (!clipSlug && 'slug' in clip && typeof clip.slug === 'string') {
+            clipSlug = clip.slug;
+        }
+    }
+
+    return { clipId, clipSlug };
+}
+
 export function SubmitClipPage() {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
@@ -46,6 +111,11 @@ export function SubmitClipPage() {
     const [error, setError] = useState<string | null>(null);
     const [rateLimitError, setRateLimitError] =
         useState<RateLimitErrorResponse | null>(null);
+    const [duplicateError, setDuplicateError] = useState<{
+        message: string;
+        clipId?: string;
+        clipSlug?: string;
+    } | null>(null);
     const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(
         null
     );
@@ -272,6 +342,8 @@ export function SubmitClipPage() {
 
         setError(null);
         setSubmittedClip(null);
+        setDuplicateError(null);
+        setRateLimitError(null);
         setIsSubmitting(true);
 
         try {
@@ -367,8 +439,23 @@ export function SubmitClipPage() {
                 typeof data.error === 'string'
             ) {
                 errorMessage = data.error;
+                
+                if (isDuplicateError(errorMessage)) {
+                    const { clipId, clipSlug } = extractClipInfo(data);
+                    setDuplicateError({
+                        message: errorMessage,
+                        clipId,
+                        clipSlug,
+                    });
+                    setError(null);
+                } else {
+                    setError(errorMessage);
+                    setDuplicateError(null);
+                }
+            } else {
+                setError(errorMessage);
+                setDuplicateError(null);
             }
-            setError(errorMessage);
 
             // Track failed submission
             trackEvent(SubmissionEvents.SUBMISSION_CREATE_FAILED, {
@@ -423,6 +510,7 @@ export function SubmitClipPage() {
     const handleSubmitAnother = () => {
         setSubmittedClip(null);
         setError(null);
+        setDuplicateError(null);
     };
 
     if (!isAuthenticated) {
@@ -473,6 +561,17 @@ export function SubmitClipPage() {
                             window={rateLimitError.window}
                             onExpire={handleRateLimitExpire}
                             onDismiss={handleRateLimitDismiss}
+                        />
+                    </div>
+                )}
+
+                {duplicateError && (
+                    <div className='mb-4 xs:mb-6'>
+                        <DuplicateClipError
+                            message={duplicateError.message}
+                            clipId={duplicateError.clipId}
+                            clipSlug={duplicateError.clipSlug}
+                            onDismiss={() => setDuplicateError(null)}
                         />
                     </div>
                 )}
