@@ -119,7 +119,24 @@ export class SubmitClipPage extends BasePage {
    */
   async expectRateLimitError(): Promise<void> {
     await expect(this.errorAlert()).toBeVisible();
-    await expect(this.errorAlert()).toContainText(/rate limit exceeded|10 submissions per hour/i);
+    await expect(this.errorAlert()).toContainText(/rate limit|submission rate limit reached/i);
+  }
+
+  /**
+   * Verify that rate limit countdown is shown
+   */
+  async expectRateLimitCountdown(): Promise<void> {
+    await expect(this.errorAlert()).toBeVisible();
+    // Look for time units in the countdown
+    await expect(this.errorAlert()).toContainText(/(second|minute|hour)s?/i);
+  }
+
+  /**
+   * Verify that rate limit has expired message is shown
+   */
+  async expectRateLimitExpired(): Promise<void> {
+    await expect(this.errorAlert()).toBeVisible();
+    await expect(this.errorAlert()).toContainText(/you can submit again now/i);
   }
 
   /**

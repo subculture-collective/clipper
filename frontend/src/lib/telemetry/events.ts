@@ -63,6 +63,10 @@ export const SubmissionEvents = {
   SUBMISSION_PLAY_STARTED: 'submission_play_started',
   SUBMISSION_PLAY_COMPLETED: 'submission_play_completed',
   SUBMISSION_PLAY_PAUSED: 'submission_play_paused',
+
+  // Rate Limiting
+  SUBMISSION_RATE_LIMIT_HIT: 'submission_rate_limit_hit',
+  SUBMISSION_RATE_LIMIT_EXPIRED: 'submission_rate_limit_expired',
 } as const;
 
 /**

@@ -10,6 +10,7 @@ import {
     SubmissionConfirmation,
     TextArea,
 } from '../components';
+import { RateLimitError } from '../components/clip/RateLimitError';
 import { useAuth } from '../context/AuthContext';
 import {
     checkClipStatus,
@@ -19,7 +20,11 @@ import {
 } from '../lib/submission-api';
 import { getPublicConfig } from '../lib/config-api';
 import { trackEvent, SubmissionEvents } from '../lib/telemetry';
-import type { ClipSubmission, SubmitClipRequest } from '../types/submission';
+import type {
+    ClipSubmission,
+    SubmitClipRequest,
+    RateLimitErrorResponse,
+} from '../types/submission';
 import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';
 import type { Tag } from '../types/tag';
@@ -39,6 +44,8 @@ export function SubmitClipPage() {
     const [tagQueryLoading, setTagQueryLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [rateLimitError, setRateLimitError] =
+        useState<RateLimitErrorResponse | null>(null);
     const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(
         null
     );
@@ -53,7 +60,8 @@ export function SubmitClipPage() {
     const canSubmit =
         isAuthenticated &&
         user &&
-        (!karmaRequirementEnabled || user.karma_points >= karmaRequired);
+        (!karmaRequirementEnabled || user.karma_points >= karmaRequired) &&
+        !rateLimitError;
     const karmaNeeded =
         user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
 
@@ -80,6 +88,28 @@ export function SubmitClipPage() {
             }));
         }
     }, [location.state]);
+
+    // Load rate limit from localStorage on mount
+    useEffect(() => {
+        const storedRateLimit = localStorage.getItem('submission_rate_limit');
+        if (storedRateLimit) {
+            try {
+                const rateLimitData: RateLimitErrorResponse =
+                    JSON.parse(storedRateLimit);
+                const now = Math.floor(Date.now() / 1000);
+                // Only restore if still active
+                if (rateLimitData.retry_after > now) {
+                    setRateLimitError(rateLimitData);
+                } else {
+                    // Clear expired rate limit
+                    localStorage.removeItem('submission_rate_limit');
+                }
+            } catch (err) {
+                console.error('Failed to parse stored rate limit:', err);
+                localStorage.removeItem('submission_rate_limit');
+            }
+        }
+    }, []);
 
     // Load karma configuration
     useEffect(() => {
@@ -275,9 +305,42 @@ export function SubmitClipPage() {
             });
             setSelectedTags([]);
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
+            const error = err as {
+                response?: {
+                    status?: number;
+                    data?: RateLimitErrorResponse | { error?: string };
+                };
+            };
+
+            // Check for rate limit error (429)
+            if (error.response?.status === 429) {
+                const rateLimitData = error.response
+                    .data as RateLimitErrorResponse;
+                if (
+                    rateLimitData.error === 'rate_limit_exceeded' &&
+                    rateLimitData.retry_after
+                ) {
+                    setRateLimitError(rateLimitData);
+                    setError(null);
+                    // Store in localStorage for persistence
+                    localStorage.setItem(
+                        'submission_rate_limit',
+                        JSON.stringify(rateLimitData)
+                    );
+                    // Track rate limit hit
+                    trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_HIT, {
+                        limit: rateLimitData.limit,
+                        window: rateLimitData.window,
+                        retry_after: rateLimitData.retry_after,
+                    });
+                    return;
+                }
+            }
+
+            // Handle other errors
+            const errorData = error.response?.data as { error?: string };
             const errorMessage =
-                error.response?.data?.error || 'Failed to submit clip';
+                errorData?.error || 'Failed to submit clip';
             setError(errorMessage);
 
             // Track failed submission
@@ -287,6 +350,18 @@ export function SubmitClipPage() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleRateLimitExpire = () => {
+        setRateLimitError(null);
+        localStorage.removeItem('submission_rate_limit');
+        // Track rate limit expiration
+        trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_EXPIRED, {});
+    };
+
+    const handleRateLimitDismiss = () => {
+        setRateLimitError(null);
+        localStorage.removeItem('submission_rate_limit');
     };
 
     const handleSubmitAnother = () => {
@@ -334,7 +409,19 @@ export function SubmitClipPage() {
                     </p>
                 </div>
 
-                {!canSubmit && (
+                {rateLimitError && (
+                    <div className='mb-4 xs:mb-6'>
+                        <RateLimitError
+                            retryAfter={rateLimitError.retry_after}
+                            limit={rateLimitError.limit}
+                            window={rateLimitError.window}
+                            onExpire={handleRateLimitExpire}
+                            onDismiss={handleRateLimitDismiss}
+                        />
+                    </div>
+                )}
+
+                {!canSubmit && !rateLimitError && (
                     <Alert variant='warning' className='mb-4 xs:mb-6'>
                         You need {karmaNeeded} more karma points to submit
                         clips. Earn karma by commenting, voting, and
