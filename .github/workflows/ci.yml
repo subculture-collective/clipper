@@ -442,3 +442,40 @@ jobs:
           name: frontend-build
           path: frontend/dist
           retention-days: 7
+
+  hardening-validation:
+    name: Production Hardening Validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run hardening validation
+        run: |
+          chmod +x scripts/validate-hardening.sh
+          ./scripts/validate-hardening.sh
+
+      - name: Validate environment examples
+        run: |
+          # Ensure all .env.example files have CHANGEME placeholders for secrets
+          echo "Checking for CHANGEME placeholders in environment examples..."
+          for env_file in .env.*.example; do
+            if [ -f "$env_file" ]; then
+              echo "Checking $env_file..."
+              if ! grep -q "CHANGEME" "$env_file"; then
+                echo "WARNING: $env_file may be missing CHANGEME placeholders"
+              fi
+            fi
+          done
+
+      - name: Check for TODO comments in deployment scripts
+        run: |
+          echo "Checking for remaining TODO comments in deployment automation..."
+          if grep -r "TODO" scripts/blue-green-deploy.sh scripts/validate-hardening.sh backend/tests/load/run_all_benchmarks.sh 2>/dev/null; then
+            echo "ERROR: Found TODO comments in deployment automation scripts"
+            echo "Please complete all TODOs before deployment"
+            exit 1
+          else
+            echo "✓ No TODO comments found in deployment automation"
+          fi

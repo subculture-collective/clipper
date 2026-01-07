@@ -47,15 +47,73 @@ echo ""
 # ============================================================================
 echo -e "${BLUE}[1/7] Checking Secrets Management${NC}"
 
+# Function to validate secure placeholders in env files
+validate_env_placeholders() {
+    local env_file=$1
+    local is_actual_env=${2:-false}
+    
+    if [ ! -f "$env_file" ]; then
+        return
+    fi
+    
+    # For example files, ensure CHANGEME placeholders are present
+    if [[ "$env_file" == *.example ]]; then
+        if grep -q "CHANGEME" "$env_file"; then
+            print_test "PASS" "Contains secure password placeholders in $(basename $env_file)"
+        else
+            print_test "WARN" "Missing CHANGEME placeholders in $(basename $env_file) - ensure users know to change defaults"
+        fi
+        
+        # Verify critical secrets have CHANGEME markers
+        local critical_vars=("PASSWORD" "SECRET" "KEY" "TOKEN")
+        for pattern in "${critical_vars[@]}"; do
+            while IFS= read -r line; do
+                # Extract variable name and value
+                if [[ $line =~ ^([A-Z_]+)=(.+)$ ]]; then
+                    local var_name="${BASH_REMATCH[1]}"
+                    local var_value="${BASH_REMATCH[2]}"
+                    
+                    # Check if this is a sensitive variable
+                    if [[ $var_name == *"$pattern"* ]]; then
+                        # Value should contain CHANGEME or be empty/commented
+                        if [[ $var_value == *"CHANGEME"* ]] || [[ -z "$var_value" ]] || [[ $var_value == '""' ]]; then
+                            # Good - has placeholder or is empty
+                            :
+                        else
+                            # Check if it's a known safe default (like localhost, test values)
+                            if [[ $var_value =~ (localhost|127\.0\.0\.1|test|example|sample) ]]; then
+                                # Acceptable for examples
+                                :
+                            else
+                                print_test "WARN" "Potential hardcoded secret in $(basename $env_file): $var_name (should use CHANGEME placeholder)"
+                            fi
+                        fi
+                    fi
+                fi
+            done < <(grep -E "^[A-Z_]+=.+" "$env_file")
+        done
+    fi
+    
+    # For actual production env files (if checking deployment), ensure no CHANGEME remains
+    if [ "$is_actual_env" = true ]; then
+        if grep -q "CHANGEME" "$env_file"; then
+            print_test "FAIL" "Production env file $(basename $env_file) still contains CHANGEME placeholders!"
+            print_test "FAIL" "Update the following variables before deploying:"
+            grep "CHANGEME" "$env_file" | sed 's/=.*//' | while read -r var; do
+                print_test "FAIL" "  - $var"
+            done
+            return 1
+        else
+            print_test "PASS" "No CHANGEME placeholders in $(basename $env_file)"
+        fi
+    fi
+}
+
 if [ -f ".env.production.example" ]; then
     print_test "PASS" "Production environment example exists"
     
-    # Check for secure password placeholders
-    if grep -q "CHANGEME" ".env.production.example"; then
-        print_test "PASS" "Contains secure password placeholders"
-    else
-        print_test "WARN" "Missing CHANGEME placeholders - ensure users know to change defaults"
-    fi
+    # Validate placeholders in example file
+    validate_env_placeholders ".env.production.example" false
     
     # Check for required security variables
     for var in "REDIS_PASSWORD" "JWT_PRIVATE_KEY" "TWITCH_CLIENT_SECRET"; do
@@ -67,6 +125,21 @@ if [ -f ".env.production.example" ]; then
     done
 else
     print_test "FAIL" "Production environment example not found"
+fi
+
+# Also validate staging environment example
+if [ -f ".env.staging.example" ]; then
+    print_test "PASS" "Staging environment example exists"
+    validate_env_placeholders ".env.staging.example" false
+fi
+
+# Check actual production env file if it exists (for deployment validation)
+if [ -f ".env.production" ]; then
+    print_test "INFO" "Validating actual production environment file"
+    validate_env_placeholders ".env.production" true
+elif [ -f ".env" ] && [ "${ENVIRONMENT:-}" = "production" ]; then
+    print_test "INFO" "Validating actual environment file"
+    validate_env_placeholders ".env" true
 fi
 
 if [ -f "docs/SECRETS_MANAGEMENT.md" ]; then

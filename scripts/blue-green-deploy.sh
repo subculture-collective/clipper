@@ -178,24 +178,47 @@ run_migrations() {
     if [ -d "$DEPLOY_DIR/backend/migrations" ]; then
         log_info "Migrations directory found"
         
-        # TODO: Implement migration execution
-        # The migration tool needs to be available in the backend container
-        # Options:
-        # 1. Use golang-migrate: docker exec clipper-backend-blue migrate -path /migrations -database "$DB_URL" up
-        # 2. Use custom migration script in container
-        # 3. Run migrations as separate job before deployment
+        # Pre-flight validation: Check database connectivity
+        log_info "Validating database connectivity..."
+        if ! docker exec clipper-postgres pg_isready -U "${POSTGRES_USER:-clipper}" -d "${POSTGRES_DB:-clipper_db}" > /dev/null 2>&1; then
+            log_error "Database is not ready for migrations"
+            return 1
+        fi
+        log_success "Database connectivity verified"
         
-        log_warn "Migration execution not yet implemented"
-        log_info "To enable migrations, update this function with your migration command"
-        log_info "Example: docker exec clipper-backend-blue /app/migrate up"
+        # Construct database URL for migrations
+        DB_URL="postgresql://${POSTGRES_USER:-clipper}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipper_db}?sslmode=disable"
         
-        # Uncomment and modify when migration tool is available:
-        # if docker exec clipper-backend-blue migrate -path /app/migrations -database "$DB_URL" up; then
-        #     log_success "Migrations executed successfully"
-        # else
-        #     log_error "Migration failed"
-        #     return 1
-        # fi
+        # Run migrations using golang-migrate in a temporary container
+        log_info "Executing database migrations..."
+        if docker run --rm \
+            --network clipper-network \
+            -v "$DEPLOY_DIR/backend/migrations:/migrations:ro" \
+            migrate/migrate:v4.17.0 \
+            -path /migrations \
+            -database "$DB_URL" \
+            up; then
+            log_success "Migrations executed successfully"
+        else
+            log_error "Migration execution failed"
+            log_error "Rolling back is recommended. Check migration status manually if needed."
+            return 1
+        fi
+        
+        # Verify migrations were applied
+        log_info "Verifying migration status..."
+        MIGRATION_VERSION=$(docker run --rm \
+            --network clipper-network \
+            migrate/migrate:v4.17.0 \
+            -path /migrations \
+            -database "$DB_URL" \
+            version 2>&1 | tail -1)
+        
+        if [ $? -eq 0 ]; then
+            log_success "Current migration version: $MIGRATION_VERSION"
+        else
+            log_warn "Could not verify migration version, but migrations may have succeeded"
+        fi
     else
         log_warn "No migrations directory found at $DEPLOY_DIR/backend/migrations"
     fi
