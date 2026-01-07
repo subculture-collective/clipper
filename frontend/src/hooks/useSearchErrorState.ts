@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { AxiosError } from 'axios';
+import { trackEvent } from '@/lib/telemetry';
 
 export type SearchErrorType = 'failover' | 'error' | 'none';
 
@@ -53,6 +54,15 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
   });
 
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   /**
    * Analyze error to determine if it's a failover or complete failure
@@ -123,16 +133,11 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     
     setErrorState(prev => {
       // Track analytics event with current retry count
-      if (typeof window !== 'undefined') {
-        const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
-        if (analytics) {
-          analytics.track('search_error', {
-            error_type: type,
-            retry_count: prev.retryCount,
-            message,
-          });
-        }
-      }
+      trackEvent('search_error', {
+        error_type: type,
+        retry_count: prev.retryCount,
+        message,
+      });
 
       return {
         type,
@@ -165,34 +170,38 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
    * Retry search with exponential backoff
    */
   const retry = useCallback(async (searchFn: () => Promise<void>) => {
-    const currentRetryCount = errorState.retryCount;
+    // Use functional update to get current retry count
+    let currentRetryCount = 0;
     
-    // Check if max retries exceeded
-    if (currentRetryCount >= MAX_RETRY_ATTEMPTS) {
-      setErrorState(prev => ({
-        ...prev,
-        type: 'error',
-        message: 'Maximum retry attempts reached. Please try again later.',
-        isRetrying: false,
-      }));
-      return;
-    }
-
-    // Set retrying state
-    setErrorState(prev => ({
-      ...prev,
-      isRetrying: true,
-      retryCount: prev.retryCount + 1,
-    }));
-
-    // Track analytics event
-    if (typeof window !== 'undefined') {
-      const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
-      if (analytics) {
-        analytics.track('search_retry', {
-          retry_count: currentRetryCount + 1,
-        });
+    setErrorState(prev => {
+      currentRetryCount = prev.retryCount;
+      
+      // Check if max retries exceeded
+      if (currentRetryCount >= MAX_RETRY_ATTEMPTS) {
+        return {
+          ...prev,
+          type: 'error',
+          message: 'Maximum retry attempts reached. Please try again later.',
+          isRetrying: false,
+        };
       }
+
+      // Track analytics event
+      trackEvent('search_retry', {
+        retry_count: currentRetryCount + 1,
+      });
+
+      // Set retrying state
+      return {
+        ...prev,
+        isRetrying: true,
+        retryCount: currentRetryCount + 1,
+      };
+    });
+
+    // Stop if max retries reached
+    if (currentRetryCount >= MAX_RETRY_ATTEMPTS) {
+      return;
     }
 
     // Apply exponential backoff delay
@@ -209,7 +218,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     } catch (error) {
       handleSearchError(error);
     }
-  }, [errorState.retryCount, handleSearchError, handleSearchSuccess]);
+  }, [handleSearchError, handleSearchSuccess]);
 
   /**
    * Manually dismiss the error
@@ -217,15 +226,10 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
   const dismissError = useCallback(() => {
     setErrorState(prev => {
       // Track analytics event with current state before dismissing
-      if (typeof window !== 'undefined') {
-        const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
-        if (analytics) {
-          analytics.track('search_error_dismissed', {
-            error_type: prev.type,
-            retry_count: prev.retryCount,
-          });
-        }
-      }
+      trackEvent('search_error_dismissed', {
+        error_type: prev.type,
+        retry_count: prev.retryCount,
+      });
 
       return {
         ...prev,

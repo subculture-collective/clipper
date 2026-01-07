@@ -116,6 +116,10 @@ export function SearchPage() {
                     minVotes: filters.minVotes,
                     tags: filters.tags,
                 });
+                
+                // Check for failover indicators even on successful responses
+                // Note: This requires the API client to expose response headers
+                // For now, we'll just clear the error on success
                 handleSearchSuccess();
                 return result;
             } catch (err) {
@@ -178,10 +182,8 @@ export function SearchPage() {
     };
 
     // Handle retry from error alert
-    const handleRetry = async () => {
-        await retry(async () => {
-            await refetch();
-        });
+    const handleRetry = () => {
+        retry(() => refetch());
     };
 
     // Handle filters change
@@ -403,7 +405,7 @@ export function SearchPage() {
                         <SearchResultSkeleton />
                     )}
 
-                    {/* Error State - Only show fallback error UI if not handled by SearchErrorAlert */}
+                    {/* Error State - Only show fallback error UI if SearchErrorAlert is not displaying an error */}
                     {error && errorState.type === 'none' && (
                         <EmptyStateWithAction
                             icon={

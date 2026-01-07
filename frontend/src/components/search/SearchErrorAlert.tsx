@@ -57,13 +57,6 @@ export function SearchErrorAlert({
   autoDismissMs = 10000,
 }: SearchErrorAlertProps) {
   const [isDismissed, setIsDismissed] = useState(false);
-  const [lastType, setLastType] = useState(type);
-
-  // Reset dismissed state when error type changes
-  if (type !== lastType && type !== 'none') {
-    setIsDismissed(false);
-    setLastType(type);
-  }
 
   // Auto-dismiss failover warnings
   useEffect(() => {
@@ -76,6 +69,14 @@ export function SearchErrorAlert({
       return () => clearTimeout(timer);
     }
   }, [type, autoDismissMs, onDismiss]);
+
+  // Reset dismissed when type changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    if (type !== 'none') {
+      setIsDismissed(false);
+    }
+  }, [type]);
 
   if (type === 'none' || isDismissed) {
     return null;
