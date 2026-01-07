@@ -111,6 +111,15 @@ func (h *UserHandler) SearchUsersAutocomplete(c *gin.Context) {
 		})
 		return
 	}
+	
+	// Validate query length to prevent performance issues
+	if len(query) > 50 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "query parameter must be 50 characters or less",
+		})
+		return
+	}
 
 	// Parse limit with default of 10 and max of 20
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))

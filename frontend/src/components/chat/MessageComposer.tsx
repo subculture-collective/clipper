@@ -31,6 +31,7 @@ export function MessageComposer({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isTypingSentRef = useRef(false);
+  const autocompleteTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Handle input change and detect mentions
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -61,16 +62,28 @@ export function MessageComposer({
     if (mentionMatch) {
       setShowMentions(true);
       setSelectedMentionIndex(0);
-      // Fetch user suggestions from API
+      
+      // Clear existing autocomplete timeout
+      if (autocompleteTimeoutRef.current) {
+        clearTimeout(autocompleteTimeoutRef.current);
+      }
+      
+      // Debounce autocomplete API calls by 300ms
       const query = mentionMatch[1];
-      searchUsersAutocomplete(query, 10)
-        .then(setMentionSuggestions)
-        .catch((error) => {
-          console.error('Failed to fetch user suggestions:', error);
-          setMentionSuggestions([]);
-        });
+      autocompleteTimeoutRef.current = setTimeout(() => {
+        searchUsersAutocomplete(query, 10)
+          .then(setMentionSuggestions)
+          .catch((error) => {
+            console.error('Failed to fetch user suggestions:', error);
+            setMentionSuggestions([]);
+          });
+      }, 300);
     } else {
       setShowMentions(false);
+      // Clear timeout if user stops typing @mention
+      if (autocompleteTimeoutRef.current) {
+        clearTimeout(autocompleteTimeoutRef.current);
+      }
     }
 
     // Auto-resize textarea

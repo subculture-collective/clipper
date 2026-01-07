@@ -1188,6 +1188,11 @@ func (r *UserRepository) SearchUsersForAutocomplete(ctx context.Context, query s
 		return []*models.User{}, nil
 	}
 
+	// Note: This query uses LOWER() which prevents index usage on standard btree indexes.
+	// For better performance with large user tables, consider:
+	// 1. Creating a functional index: CREATE INDEX idx_users_username_lower ON users(LOWER(username))
+	// 2. Using PostgreSQL's citext extension for case-insensitive username column
+	// 3. Using pg_trgm extension with GIN index for fuzzy matching
 	searchQuery := `
 		SELECT
 			id, username, display_name, avatar_url, is_verified
