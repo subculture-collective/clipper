@@ -187,6 +187,9 @@ run_migrations() {
         log_success "Database connectivity verified"
         
         # Construct database URL for migrations
+        # Note: SSL is disabled because migrations run within the Docker network (not over internet)
+        # The connection is network-isolated and doesn't traverse untrusted networks
+        # For external database connections, enable SSL by changing sslmode=require
         DB_URL="postgresql://${POSTGRES_USER:-clipper}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipper_db}?sslmode=disable"
         
         # Run migrations using golang-migrate in a temporary container

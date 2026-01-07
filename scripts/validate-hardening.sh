@@ -88,9 +88,11 @@ validate_env_placeholders() {
                             # Good - has placeholder or is empty
                             :
                         else
-                            # Check if it's a known safe default (like localhost, test values, numeric values)
+                            # Check if it's a known safe default
+                            # Note: This only applies to .example files, not actual production
+                            # Values like 'test' and 'localhost' are acceptable in examples to show format
                             if [[ $var_value =~ ^[0-9]+$ ]] || [[ $var_value =~ (localhost|127\.0\.0\.1|test|example|sample|true|false) ]]; then
-                                # Acceptable for examples
+                                # Acceptable for example files only
                                 :
                             else
                                 print_test "WARN" "Potential hardcoded secret in $(basename $env_file): $var_name (should use CHANGEME placeholder)"

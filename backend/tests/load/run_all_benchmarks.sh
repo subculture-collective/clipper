@@ -113,7 +113,9 @@ extract_k6_metrics() {
     fi
     
     # Extract summary metrics from k6 JSON output
-    # k6 outputs newline-delimited JSON, so we need to get the last summary entry
+    # k6 outputs newline-delimited JSON (NDJSON), one metric per line
+    # We grep for Point type metrics and take the last 1000 to get recent data
+    # This is sufficient for a typical k6 run summary (usually < 100 lines)
     local summary=$(grep '"type":"Point"' "$json_file" 2>/dev/null | tail -1000)
     
     if [ -z "$summary" ]; then
