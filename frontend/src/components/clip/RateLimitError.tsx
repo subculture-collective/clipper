@@ -46,12 +46,9 @@ function formatTimeRemaining(seconds: number): string {
     parts.push(`${secs} ${secs === 1 ? 'second' : 'seconds'}`);
   }
 
-  // Join with "and" for better readability, but only show first 2 parts
+  // Join with space for better readability, only show first 2 parts
   const displayParts = parts.slice(0, 2);
-  if (displayParts.length === 2) {
-    return displayParts.join(' ');
-  }
-  return displayParts[0] || '0 seconds';
+  return displayParts.join(' ') || '0 seconds';
 }
 
 /**
@@ -90,10 +87,15 @@ export function RateLimitError({
     return () => clearInterval(interval);
   }, [retryAfter, onExpire]);
 
-  // Format window time for display
-  const windowHours = Math.floor(window / 3600);
-  const windowDisplay =
-    windowHours >= 1 ? `${windowHours} hour${windowHours > 1 ? 's' : ''}` : `${Math.floor(window / 60)} minutes`;
+  // Helper function to format window display time
+  const formatWindowDisplay = (windowSeconds: number): string => {
+    const hours = Math.floor(windowSeconds / 3600);
+    return hours >= 1 ? 
+      `${hours} hour${hours > 1 ? 's' : ''}` : 
+      `${Math.floor(windowSeconds / 60)} minutes`;
+  };
+
+  const windowDisplay = formatWindowDisplay(window);
 
   return (
     <Alert
@@ -131,6 +133,7 @@ export function RateLimitError({
             className="underline hover:opacity-70 transition-opacity"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Learn about rate limits (opens in new window)"
           >
             Learn about rate limits
           </a>

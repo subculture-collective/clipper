@@ -308,18 +308,33 @@ export function SubmitClipPage() {
             const error = err as {
                 response?: {
                     status?: number;
-                    data?: RateLimitErrorResponse | { error?: string };
+                    data?: unknown;
                 };
             };
 
             // Check for rate limit error (429)
             if (error.response?.status === 429) {
-                const rateLimitData = error.response
-                    .data as RateLimitErrorResponse;
+                const data = error.response.data;
+                // Type guard to verify rate limit error structure
                 if (
-                    rateLimitData.error === 'rate_limit_exceeded' &&
-                    rateLimitData.retry_after
+                    data &&
+                    typeof data === 'object' &&
+                    'error' in data &&
+                    data.error === 'rate_limit_exceeded' &&
+                    'retry_after' in data &&
+                    typeof data.retry_after === 'number' &&
+                    'limit' in data &&
+                    typeof data.limit === 'number' &&
+                    'window' in data &&
+                    typeof data.window === 'number'
                 ) {
+                    const rateLimitData: RateLimitErrorResponse = {
+                        error: data.error,
+                        limit: data.limit,
+                        window: data.window,
+                        retry_after: data.retry_after,
+                    };
+                    
                     setRateLimitError(rateLimitData);
                     setError(null);
                     // Store in localStorage for persistence
@@ -338,9 +353,16 @@ export function SubmitClipPage() {
             }
 
             // Handle other errors
-            const errorData = error.response?.data as { error?: string };
-            const errorMessage =
-                errorData?.error || 'Failed to submit clip';
+            const data = error.response?.data;
+            let errorMessage = 'Failed to submit clip';
+            if (
+                data &&
+                typeof data === 'object' &&
+                'error' in data &&
+                typeof data.error === 'string'
+            ) {
+                errorMessage = data.error;
+            }
             setError(errorMessage);
 
             // Track failed submission
