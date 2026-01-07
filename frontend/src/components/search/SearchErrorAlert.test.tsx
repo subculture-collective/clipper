@@ -1,0 +1,161 @@
+import { render, screen, waitFor } from '@/test/test-utils';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { SearchErrorAlert } from './SearchErrorAlert';
+
+describe('SearchErrorAlert', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should not render when type is "none"', () => {
+    const { container } = render(<SearchErrorAlert type="none" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('should render failover warning with correct styling', () => {
+    render(<SearchErrorAlert type="failover" />);
+    
+    const alert = screen.getByTestId('search-failover-warning');
+    expect(alert).toBeInTheDocument();
+    expect(screen.getByText('Using Backup Search')).toBeInTheDocument();
+    expect(screen.getByText(/experiencing issues with our primary search/i)).toBeInTheDocument();
+  });
+
+  it('should render error alert with retry button', () => {
+    const onRetry = vi.fn();
+    render(<SearchErrorAlert type="error" onRetry={onRetry} />);
+    
+    const alert = screen.getByTestId('search-error-alert');
+    expect(alert).toBeInTheDocument();
+    expect(screen.getByText('Search Temporarily Unavailable')).toBeInTheDocument();
+    
+    const retryButton = screen.getByTestId('retry-search');
+    expect(retryButton).toBeInTheDocument();
+  });
+
+  it('should call onRetry when retry button is clicked', () => {
+    const onRetry = vi.fn();
+    render(<SearchErrorAlert type="error" onRetry={onRetry} />);
+    
+    const retryButton = screen.getByTestId('retry-search');
+    retryButton.click();
+    
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('should disable retry button when isRetrying is true', () => {
+    render(<SearchErrorAlert type="error" onRetry={vi.fn()} isRetrying={true} />);
+    
+    const retryButton = screen.getByTestId('retry-search');
+    expect(retryButton).toBeDisabled();
+    expect(screen.getByText('Retrying...')).toBeInTheDocument();
+  });
+
+  it('should show spinner when retrying', () => {
+    render(<SearchErrorAlert type="error" onRetry={vi.fn()} isRetrying={true} />);
+    
+    // Check for spinner SVG
+    const spinner = screen.getByRole('button', { name: /retrying/i });
+    expect(spinner).toBeInTheDocument();
+  });
+
+  it('should auto-dismiss failover warning after default duration', async () => {
+    const onDismiss = vi.fn();
+    render(<SearchErrorAlert type="failover" onDismiss={onDismiss} />);
+    
+    expect(screen.getByTestId('search-failover-warning')).toBeInTheDocument();
+    
+    // Fast-forward 10 seconds
+    vi.advanceTimersByTime(10000);
+    
+    await waitFor(() => {
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should auto-dismiss failover warning after custom duration', async () => {
+    const onDismiss = vi.fn();
+    render(<SearchErrorAlert type="failover" onDismiss={onDismiss} autoDismissMs={5000} />);
+    
+    expect(screen.getByTestId('search-failover-warning')).toBeInTheDocument();
+    
+    // Fast-forward 5 seconds
+    vi.advanceTimersByTime(5000);
+    
+    await waitFor(() => {
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should not auto-dismiss error alerts', async () => {
+    const onDismiss = vi.fn();
+    render(<SearchErrorAlert type="error" onDismiss={onDismiss} />);
+    
+    // Fast-forward 10 seconds
+    vi.advanceTimersByTime(10000);
+    
+    // Error should still be visible
+    expect(screen.getByTestId('search-error-alert')).toBeInTheDocument();
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it('should allow manual dismissal of failover warning', () => {
+    const onDismiss = vi.fn();
+    render(<SearchErrorAlert type="failover" onDismiss={onDismiss} />);
+    
+    // Find and click dismiss button (X button in Alert component)
+    const dismissButton = screen.getByRole('button', { name: /dismiss/i });
+    dismissButton.click();
+    
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('should display custom error message when provided', () => {
+    const customMessage = 'Custom error message for testing';
+    render(<SearchErrorAlert type="error" message={customMessage} />);
+    
+    expect(screen.getByText(customMessage)).toBeInTheDocument();
+  });
+
+  it('should have correct ARIA attributes for accessibility', () => {
+    render(<SearchErrorAlert type="error" />);
+    
+    const alert = screen.getByTestId('search-error-alert');
+    expect(alert).toHaveAttribute('role', 'alert');
+    expect(alert).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('should reset dismissed state when error type changes', () => {
+    const { rerender } = render(<SearchErrorAlert type="failover" />);
+    
+    // Manually dismiss
+    const dismissButton = screen.getByRole('button', { name: /dismiss/i });
+    dismissButton.click();
+    
+    // Alert should be gone
+    expect(screen.queryByTestId('search-failover-warning')).not.toBeInTheDocument();
+    
+    // Change error type - should show new error
+    rerender(<SearchErrorAlert type="error" />);
+    expect(screen.getByTestId('search-error-alert')).toBeInTheDocument();
+  });
+
+  it('should not show retry button for failover warnings', () => {
+    render(<SearchErrorAlert type="failover" onRetry={vi.fn()} />);
+    
+    // Failover warnings should not have retry button
+    expect(screen.queryByTestId('retry-search')).not.toBeInTheDocument();
+  });
+
+  it('should handle missing onRetry callback gracefully', () => {
+    // Should render without crashing even if onRetry is not provided
+    render(<SearchErrorAlert type="error" />);
+    
+    // Retry button should not be present
+    expect(screen.queryByTestId('retry-search')).not.toBeInTheDocument();
+  });
+});
