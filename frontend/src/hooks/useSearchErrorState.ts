@@ -121,25 +121,27 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
   const handleSearchError = useCallback((error: unknown) => {
     const { type, message } = analyzeError(error);
     
-    setErrorState(prev => ({
-      type,
-      message,
-      retryCount: prev.retryCount,
-      isRetrying: false,
-    }));
-
-    // Track analytics event
-    if (typeof window !== 'undefined') {
-      const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
-      if (analytics) {
-        analytics.track('search_error', {
-          error_type: type,
-          retry_count: errorState.retryCount,
-          message,
-        });
+    setErrorState(prev => {
+      // Track analytics event with current retry count
+      if (typeof window !== 'undefined') {
+        const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
+        if (analytics) {
+          analytics.track('search_error', {
+            error_type: type,
+            retry_count: prev.retryCount,
+            message,
+          });
+        }
       }
-    }
-  }, [analyzeError, errorState.retryCount]);
+
+      return {
+        type,
+        message,
+        retryCount: prev.retryCount,
+        isRetrying: false,
+      };
+    });
+  }, [analyzeError]);
 
   /**
    * Handle successful search and clear error state
@@ -213,23 +215,25 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
    * Manually dismiss the error
    */
   const dismissError = useCallback(() => {
-    setErrorState(prev => ({
-      ...prev,
-      type: 'none',
-      isRetrying: false,
-    }));
-
-    // Track analytics event
-    if (typeof window !== 'undefined') {
-      const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
-      if (analytics) {
-        analytics.track('search_error_dismissed', {
-          error_type: errorState.type,
-          retry_count: errorState.retryCount,
-        });
+    setErrorState(prev => {
+      // Track analytics event with current state before dismissing
+      if (typeof window !== 'undefined') {
+        const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
+        if (analytics) {
+          analytics.track('search_error_dismissed', {
+            error_type: prev.type,
+            retry_count: prev.retryCount,
+          });
+        }
       }
-    }
-  }, [errorState.type, errorState.retryCount]);
+
+      return {
+        ...prev,
+        type: 'none',
+        isRetrying: false,
+      };
+    });
+  }, []);
 
   return {
     errorState,
