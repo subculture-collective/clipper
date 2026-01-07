@@ -474,12 +474,11 @@ test.describe('Clip Submission E2E Flow', () => {
   });
 
   test.describe('Scenario 3: Duplicate Detection', () => {
-    test.skip('duplicate clip detection prevents resubmission', async ({
+    test('duplicate clip detection prevents resubmission', async ({
       page,
       submitClipPage,
       authenticatedUser
     }) => {
-      // TODO: Requires UI implementation of duplicate error messages
       // Given: clip already exists in database
       mockApi.setCurrentUser(withKarma(authenticatedUser));
       await mockApi.seedSubmissions(authenticatedUser.id, 1, {

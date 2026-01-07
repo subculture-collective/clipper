@@ -11,6 +11,7 @@ import {
     TextArea,
 } from '../components';
 import { RateLimitError } from '../components/clip/RateLimitError';
+import { DuplicateClipError } from '../components/clip/DuplicateClipError';
 import { useAuth } from '../context/AuthContext';
 import {
     checkClipStatus,
@@ -46,6 +47,11 @@ export function SubmitClipPage() {
     const [error, setError] = useState<string | null>(null);
     const [rateLimitError, setRateLimitError] =
         useState<RateLimitErrorResponse | null>(null);
+    const [duplicateError, setDuplicateError] = useState<{
+        message: string;
+        clipId?: string;
+        clipSlug?: string;
+    } | null>(null);
     const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(
         null
     );
@@ -272,6 +278,7 @@ export function SubmitClipPage() {
 
         setError(null);
         setSubmittedClip(null);
+        setDuplicateError(null);
         setIsSubmitting(true);
 
         try {
@@ -367,8 +374,50 @@ export function SubmitClipPage() {
                 typeof data.error === 'string'
             ) {
                 errorMessage = data.error;
+                
+                // Check if this is a duplicate error
+                const isDuplicate = errorMessage.toLowerCase().includes('already') ||
+                                  errorMessage.toLowerCase().includes('duplicate') ||
+                                  errorMessage.toLowerCase().includes('cannot be submitted again');
+                
+                if (isDuplicate) {
+                    // Try to extract clip info if available
+                    let clipId: string | undefined;
+                    let clipSlug: string | undefined;
+                    
+                    // Check if backend returned clip info in the error response
+                    if (data && typeof data === 'object') {
+                        if ('clip_id' in data && typeof data.clip_id === 'string') {
+                            clipId = data.clip_id;
+                        }
+                        if ('clip_slug' in data && typeof data.clip_slug === 'string') {
+                            clipSlug = data.clip_slug;
+                        }
+                        if ('clip' in data && typeof data.clip === 'object' && data.clip) {
+                            const clip = data.clip as Record<string, unknown>;
+                            if ('id' in clip && typeof clip.id === 'string') {
+                                clipId = clip.id;
+                            }
+                            if ('slug' in clip && typeof clip.slug === 'string') {
+                                clipSlug = clip.slug;
+                            }
+                        }
+                    }
+                    
+                    setDuplicateError({
+                        message: errorMessage,
+                        clipId,
+                        clipSlug,
+                    });
+                    setError(null);
+                } else {
+                    setError(errorMessage);
+                    setDuplicateError(null);
+                }
+            } else {
+                setError(errorMessage);
+                setDuplicateError(null);
             }
-            setError(errorMessage);
 
             // Track failed submission
             trackEvent(SubmissionEvents.SUBMISSION_CREATE_FAILED, {
@@ -423,6 +472,7 @@ export function SubmitClipPage() {
     const handleSubmitAnother = () => {
         setSubmittedClip(null);
         setError(null);
+        setDuplicateError(null);
     };
 
     if (!isAuthenticated) {
@@ -473,6 +523,17 @@ export function SubmitClipPage() {
                             window={rateLimitError.window}
                             onExpire={handleRateLimitExpire}
                             onDismiss={handleRateLimitDismiss}
+                        />
+                    </div>
+                )}
+
+                {duplicateError && (
+                    <div className='mb-4 xs:mb-6'>
+                        <DuplicateClipError
+                            message={duplicateError.message}
+                            clipId={duplicateError.clipId}
+                            clipSlug={duplicateError.clipSlug}
+                            onDismiss={() => setDuplicateError(null)}
                         />
                     </div>
                 )}
