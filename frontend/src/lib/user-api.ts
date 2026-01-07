@@ -299,3 +299,37 @@ export async function updateSocialLinks(socialLinks: {
 }): Promise<void> {
     await apiClient.put('/users/me/social-links', socialLinks);
 }
+
+/**
+ * User suggestion for autocomplete/mentions
+ */
+export interface UserSuggestion {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url?: string;
+    is_verified: boolean;
+}
+
+/**
+ * Search users for autocomplete (e.g., chat mentions)
+ * @param query - Username prefix to search for
+ * @param limit - Maximum number of results (default: 10, max: 20)
+ */
+export async function searchUsersAutocomplete(
+    query: string,
+    limit: number = 10
+): Promise<UserSuggestion[]> {
+    if (!query || query.trim() === '') {
+        return [];
+    }
+
+    const response = await apiClient.get<{
+        success: boolean;
+        data: UserSuggestion[];
+    }>('/users/autocomplete', {
+        params: { q: query, limit },
+    });
+
+    return response.data.data;
+}

@@ -1173,6 +1173,69 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 	return users, total, nil
 }
 
+// SearchUsersForAutocomplete searches users by username prefix for chat mentions and autocomplete
+// Returns up to 'limit' users whose username starts with the query string
+func (r *UserRepository) SearchUsersForAutocomplete(ctx context.Context, query string, limit int) ([]*models.User, error) {
+	// Ensure limit is within a safe range
+	if limit < 1 {
+		limit = 10
+	} else if limit > 20 {
+		limit = 20
+	}
+
+	// Only search if query is non-empty
+	if query == "" {
+		return []*models.User{}, nil
+	}
+
+	// Note: This query uses LOWER() which prevents index usage on standard btree indexes.
+	// For better performance with large user tables, consider:
+	// 1. Creating a functional index: CREATE INDEX idx_users_username_lower ON users(LOWER(username))
+	// 2. Using PostgreSQL's citext extension for case-insensitive username column
+	// 3. Using pg_trgm extension with GIN index for fuzzy matching
+	searchQuery := `
+		SELECT
+			id, username, display_name, avatar_url, is_verified
+		FROM users
+		WHERE LOWER(username) LIKE LOWER($1)
+			AND is_banned = false
+			AND account_status = 'active'
+		ORDER BY
+			CASE WHEN is_verified THEN 0 ELSE 1 END,
+			LENGTH(username),
+			username
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, searchQuery, query+"%", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.DisplayName,
+			&user.AvatarURL,
+			&user.IsVerified,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 // UpdateUserRole updates a user's role (user, moderator, admin)
 func (r *UserRepository) UpdateUserRole(ctx context.Context, userID uuid.UUID, role string) error {
 	// Validate role before updating
