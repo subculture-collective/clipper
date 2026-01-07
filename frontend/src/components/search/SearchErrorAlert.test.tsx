@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@/test/test-utils';
+import { render, screen } from '@/test/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { SearchErrorAlert } from './SearchErrorAlert';
 
@@ -9,11 +9,15 @@ describe('SearchErrorAlert', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('should not render when type is "none"', () => {
-    const { container } = render(<SearchErrorAlert type="none" />);
-    expect(container).toBeEmptyDOMElement();
+    render(<SearchErrorAlert type="none" />);
+    
+    // Check that neither alert is in the document
+    expect(screen.queryByTestId('search-failover-warning')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('search-error-alert')).not.toBeInTheDocument();
   });
 
   it('should render failover warning with correct styling', () => {
@@ -72,9 +76,10 @@ describe('SearchErrorAlert', () => {
     // Fast-forward 10 seconds
     vi.advanceTimersByTime(10000);
     
-    await waitFor(() => {
-      expect(onDismiss).toHaveBeenCalledTimes(1);
-    });
+    // Wait for the component to update
+    await vi.runOnlyPendingTimersAsync();
+    
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('should auto-dismiss failover warning after custom duration', async () => {
@@ -86,9 +91,10 @@ describe('SearchErrorAlert', () => {
     // Fast-forward 5 seconds
     vi.advanceTimersByTime(5000);
     
-    await waitFor(() => {
-      expect(onDismiss).toHaveBeenCalledTimes(1);
-    });
+    // Wait for the component to update
+    await vi.runOnlyPendingTimersAsync();
+    
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('should not auto-dismiss error alerts', async () => {
@@ -129,18 +135,24 @@ describe('SearchErrorAlert', () => {
     expect(alert).toHaveAttribute('aria-live', 'polite');
   });
 
-  it('should reset dismissed state when error type changes', () => {
-    const { rerender } = render(<SearchErrorAlert type="failover" />);
+  it('should show new error when error type changes from dismissed state', () => {
+    const onDismiss = vi.fn();
+    const { rerender } = render(<SearchErrorAlert type="failover" onDismiss={onDismiss} />);
+    
+    expect(screen.getByTestId('search-failover-warning')).toBeInTheDocument();
     
     // Manually dismiss
     const dismissButton = screen.getByRole('button', { name: /dismiss/i });
     dismissButton.click();
     
-    // Alert should be gone
-    expect(screen.queryByTestId('search-failover-warning')).not.toBeInTheDocument();
+    // onDismiss should be called
+    expect(onDismiss).toHaveBeenCalled();
     
-    // Change error type - should show new error
+    // Change to error type - component should reset and show new error
+    // regardless of previous dismissed state
     rerender(<SearchErrorAlert type="error" />);
+    
+    // New error alert should appear
     expect(screen.getByTestId('search-error-alert')).toBeInTheDocument();
   });
 

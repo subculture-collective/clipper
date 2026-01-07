@@ -129,12 +129,15 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     }));
 
     // Track analytics event
-    if (typeof window !== 'undefined' && (window as any).analytics) {
-      (window as any).analytics.track('search_error', {
-        error_type: type,
-        retry_count: errorState.retryCount,
-        message,
-      });
+    if (typeof window !== 'undefined') {
+      const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
+      if (analytics) {
+        analytics.track('search_error', {
+          error_type: type,
+          retry_count: errorState.retryCount,
+          message,
+        });
+      }
     }
   }, [analyzeError, errorState.retryCount]);
 
@@ -181,10 +184,13 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     }));
 
     // Track analytics event
-    if (typeof window !== 'undefined' && (window as any).analytics) {
-      (window as any).analytics.track('search_retry', {
-        retry_count: currentRetryCount + 1,
-      });
+    if (typeof window !== 'undefined') {
+      const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
+      if (analytics) {
+        analytics.track('search_retry', {
+          retry_count: currentRetryCount + 1,
+        });
+      }
     }
 
     // Apply exponential backoff delay
@@ -214,11 +220,14 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     }));
 
     // Track analytics event
-    if (typeof window !== 'undefined' && (window as any).analytics) {
-      (window as any).analytics.track('search_error_dismissed', {
-        error_type: errorState.type,
-        retry_count: errorState.retryCount,
-      });
+    if (typeof window !== 'undefined') {
+      const analytics = (window as Window & { analytics?: { track: (event: string, properties: Record<string, unknown>) => void } }).analytics;
+      if (analytics) {
+        analytics.track('search_error_dismissed', {
+          error_type: errorState.type,
+          retry_count: errorState.retryCount,
+        });
+      }
     }
   }, [errorState.type, errorState.retryCount]);
 

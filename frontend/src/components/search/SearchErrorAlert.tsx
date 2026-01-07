@@ -72,7 +72,10 @@ export function SearchErrorAlert({
 
   // Reset dismissed state when error type changes
   useEffect(() => {
+    // Only reset when moving to a non-none type
+    // This is intentional - we need to reset state when the error type changes
     if (type !== 'none') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsDismissed(false);
     }
   }, [type]);
