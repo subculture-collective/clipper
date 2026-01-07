@@ -65,6 +65,9 @@ validate_env_placeholders() {
         fi
         
         # Verify critical secrets have CHANGEME markers
+        # Exclude non-secret variables that contain these words
+        local exclude_patterns="EXPIRY|EXPIRES|TTL|TIMEOUT|DURATION|INTERVAL|MAX|MIN|LIMIT|PORT|HOST|URL|ENABLE|DISABLE"
+        
         local critical_vars=("PASSWORD" "SECRET" "KEY" "TOKEN")
         for pattern in "${critical_vars[@]}"; do
             while IFS= read -r line; do
@@ -73,6 +76,11 @@ validate_env_placeholders() {
                     local var_name="${BASH_REMATCH[1]}"
                     local var_value="${BASH_REMATCH[2]}"
                     
+                    # Skip non-secret configuration variables
+                    if [[ $var_name =~ $exclude_patterns ]]; then
+                        continue
+                    fi
+                    
                     # Check if this is a sensitive variable
                     if [[ $var_name == *"$pattern"* ]]; then
                         # Value should contain CHANGEME or be empty/commented
@@ -80,8 +88,8 @@ validate_env_placeholders() {
                             # Good - has placeholder or is empty
                             :
                         else
-                            # Check if it's a known safe default (like localhost, test values)
-                            if [[ $var_value =~ (localhost|127\.0\.0\.1|test|example|sample) ]]; then
+                            # Check if it's a known safe default (like localhost, test values, numeric values)
+                            if [[ $var_value =~ ^[0-9]+$ ]] || [[ $var_value =~ (localhost|127\.0\.0\.1|test|example|sample|true|false) ]]; then
                                 # Acceptable for examples
                                 :
                             else
