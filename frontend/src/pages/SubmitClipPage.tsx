@@ -31,6 +31,21 @@ import { tagApi } from '../lib/tag-api';
 import type { Tag } from '../types/tag';
 
 /**
+ * Clip-specific duplicate error patterns to avoid false positives
+ * from unrelated errors like "Email already taken" or "Username already exists"
+ */
+const CLIP_DUPLICATE_PATTERNS = [
+    /clip.*already/,
+    /already.*posted/,
+    /already.*submitted/,
+    /already.*added.*database/,
+    /already.*approved/,
+    /already.*pending/,
+    /duplicate.*clip/,
+    /cannot be submitted again/
+];
+
+/**
  * Helper to check if an error message indicates a duplicate clip
  * Note: Currently uses string matching. For better reliability,
  * consider updating backend to return error.code or error.type field
@@ -41,21 +56,7 @@ import type { Tag } from '../types/tag';
  */
 function isDuplicateError(message: string): boolean {
     const lowerMsg = message.toLowerCase();
-    // Check for clip-specific duplicate patterns
-    const clipDuplicatePatterns = [
-        'clip.*already',
-        'already.*posted',
-        'already.*submitted',
-        'already.*added.*database',
-        'already.*approved',
-        'already.*pending',
-        'duplicate.*clip',
-        'cannot be submitted again'
-    ];
-    
-    return clipDuplicatePatterns.some(pattern => 
-        new RegExp(pattern).test(lowerMsg)
-    );
+    return CLIP_DUPLICATE_PATTERNS.some(pattern => pattern.test(lowerMsg));
 }
 
 /**
