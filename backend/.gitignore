@@ -30,6 +30,10 @@ go.work.sum
 .env
 .env.local
 .env.*.local
+.env.test
+
+# Test output
+test-output.log
 
 # IDE
 .idea/

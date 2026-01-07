@@ -7,21 +7,68 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"regexp"
+	"strings"
+	"sync"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lib/pq"
+	"gopkg.in/yaml.v3"
 )
+
+// Category represents a toxicity category
+type Category string
+
+const (
+	CategoryHateSpeech    Category = "hate_speech"
+	CategoryProfanity     Category = "profanity"
+	CategoryHarassment    Category = "harassment"
+	CategorySexualContent Category = "sexual_content"
+	CategoryViolence      Category = "violence"
+	CategorySpam          Category = "spam"
+)
+
+// Severity represents the severity level of a rule
+type Severity string
+
+const (
+	SeverityLow    Severity = "low"
+	SeverityMedium Severity = "medium"
+	SeverityHigh   Severity = "high"
+)
+
+// Rule represents a toxicity detection rule
+type Rule struct {
+	Pattern     string   `yaml:"pattern"`
+	Category    Category `yaml:"category"`
+	Severity    Severity `yaml:"severity"`
+	Weight      float64  `yaml:"weight"`
+	Description string   `yaml:"description"`
+	compiled    *regexp.Regexp
+}
+
+// RulesConfig represents the toxicity rules configuration
+type RulesConfig struct {
+	Rules     []Rule   `yaml:"rules"`
+	Whitelist []string `yaml:"whitelist"`
+}
 
 // ToxicityClassifier handles toxicity detection for comments
 type ToxicityClassifier struct {
-	httpClient *http.Client
-	apiKey     string
-	apiURL     string
-	enabled    bool
-	threshold  float64
-	db         *pgxpool.Pool
+	httpClient     *http.Client
+	apiKey         string
+	apiURL         string
+	enabled        bool
+	threshold      float64
+	db             *pgxpool.Pool
+	rulesConfig    *RulesConfig
+	whitelistMap   map[string]bool
+	configLoadOnce sync.Once
+	configLoadErr  error // Stores any error from loading config
 }
 
 // ToxicityScore represents the result of toxicity classification
@@ -63,16 +110,19 @@ type SummaryScore struct {
 
 // NewToxicityClassifier creates a new ToxicityClassifier
 func NewToxicityClassifier(apiKey, apiURL string, enabled bool, threshold float64, db *pgxpool.Pool) *ToxicityClassifier {
-	return &ToxicityClassifier{
+	tc := &ToxicityClassifier{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		apiKey:    apiKey,
-		apiURL:    apiURL,
-		enabled:   enabled,
-		threshold: threshold,
-		db:        db,
+		apiKey:       apiKey,
+		apiURL:       apiURL,
+		enabled:      enabled,
+		threshold:    threshold,
+		db:           db,
+		whitelistMap: make(map[string]bool),
 	}
+	// Load rules config on first use
+	return tc
 }
 
 // ClassifyComment analyzes a comment for toxicity
@@ -174,30 +224,299 @@ func (tc *ToxicityClassifier) classifyWithPerspectiveAPI(ctx context.Context, co
 	}, nil
 }
 
-// classifyWithRules uses simple rule-based classification as fallback
+// classifyWithRules uses rule-based classification as fallback
 func (tc *ToxicityClassifier) classifyWithRules(content string) (*ToxicityScore, error) {
-	// Simple rule-based detection (placeholder - would need more sophisticated rules)
-	// This is a basic fallback and should be enhanced with a proper rule set
-	score := 0.0
-	reasons := []string{}
+	// Load rules config on first use
+	tc.configLoadOnce.Do(func() {
+		tc.configLoadErr = tc.loadRulesConfig()
+	})
 
-	// TODO: Implement basic rule-based detection with common toxic patterns
-	// For now, this is a safe fallback that doesn't flag content when the ML service is unavailable
-	// In production, consider adding:
-	// - Pattern matching for known toxic terms (with context awareness)
-	// - Regex-based detection for slurs and profanity
-	// - Length and formatting heuristics
-	// - Rate limiting and spam detection
-	_ = content // Acknowledge we're intentionally not using content in this minimal fallback
+	// If no rules loaded, return safe default
+	if tc.rulesConfig == nil {
+		// For testing/debugging - rules config failed to load but we continue safely
+		return &ToxicityScore{
+			Toxic:           false,
+			ConfidenceScore: 0.0,
+			Categories:      map[string]float64{},
+			ReasonCodes:     []string{},
+		}, nil
+	}
+
+	// Check whitelist first
+	if tc.isWhitelisted(content) {
+		return &ToxicityScore{
+			Toxic:           false,
+			ConfidenceScore: 0.0,
+			Categories:      map[string]float64{},
+			ReasonCodes:     []string{},
+		}, nil
+	}
+
+	// Normalize text for better pattern matching
+	normalizedContent := tc.normalizeText(content)
+
+	// Apply context awareness - reduce scoring for quoted text, URLs, etc.
+	contextMultiplier := tc.calculateContextMultiplier(content)
+
+	// Track scores by category
+	categoryScores := make(map[Category]float64)
+
+	// Apply all rules
+	for _, rule := range tc.rulesConfig.Rules {
+		if rule.compiled == nil {
+			continue
+		}
+
+		// Check if pattern matches
+		if rule.compiled.MatchString(normalizedContent) {
+			// Add weighted score for this category
+			categoryScores[rule.Category] += rule.Weight
+		}
+	}
+
+	// Apply context multiplier to all category scores
+	for category := range categoryScores {
+		categoryScores[category] *= contextMultiplier
+	}
+
+	// Calculate overall toxicity score (max category score)
+	maxScore := 0.0
+	reasonCodes := []string{}
+	categories := make(map[string]float64)
+
+	for category, score := range categoryScores {
+		// Normalize category score to 0-1 range
+		normalizedScore := score
+		if normalizedScore > 1.0 {
+			normalizedScore = 1.0
+		}
+
+		categories[string(category)] = normalizedScore
+
+		if normalizedScore > maxScore {
+			maxScore = normalizedScore
+		}
+
+		// Add to reason codes if above threshold
+		if normalizedScore >= tc.threshold {
+			reasonCodes = append(reasonCodes, string(category))
+		}
+	}
 
 	return &ToxicityScore{
-		Toxic:           score >= tc.threshold,
-		ConfidenceScore: score,
-		Categories: map[string]float64{
-			"RULE_BASED": score,
-		},
-		ReasonCodes: reasons,
+		Toxic:           maxScore >= tc.threshold,
+		ConfidenceScore: maxScore,
+		Categories:      categories,
+		ReasonCodes:     reasonCodes,
 	}, nil
+}
+
+// loadRulesConfig loads the toxicity rules configuration
+func (tc *ToxicityClassifier) loadRulesConfig() error {
+	// First, allow an explicit override via environment variable
+	envPath := os.Getenv("TOXICITY_RULES_CONFIG_PATH")
+
+	var possiblePaths []string
+	if envPath != "" {
+		possiblePaths = append(possiblePaths, envPath)
+	}
+
+	possiblePaths = append(possiblePaths,
+		"config/toxicity_rules.yaml",         // From backend directory
+		"backend/config/toxicity_rules.yaml", // From repository root
+		"../../config/toxicity_rules.yaml",   // From test files in internal/services
+	)
+
+	var configPath string
+	var found bool
+	for _, path := range possiblePaths {
+		if _, err := os.Stat(path); err == nil {
+			configPath = path
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		// Config file not found - continue with empty rules
+		// This is not a fatal error - allows classifier to work without rules
+		// In production, rules should be loaded from a database or external service
+		return fmt.Errorf("failed to find rules config in any expected location")
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to load rules config from %s: %w", configPath, err)
+	}
+
+	var config RulesConfig
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("failed to parse rules config: %w", err)
+	}
+
+	// Validate that we got some rules
+	if len(config.Rules) == 0 {
+		return fmt.Errorf("no rules found in config file")
+	}
+
+	// Compile regex patterns
+	for i := range config.Rules {
+		pattern, err := regexp.Compile("(?i)" + config.Rules[i].Pattern)
+		if err != nil {
+			return fmt.Errorf("failed to compile pattern '%s': %w", config.Rules[i].Pattern, err)
+		}
+		config.Rules[i].compiled = pattern
+	}
+
+	// Build whitelist map
+	tc.whitelistMap = make(map[string]bool)
+	for _, word := range config.Whitelist {
+		tc.whitelistMap[strings.ToLower(word)] = true
+	}
+
+	tc.rulesConfig = &config
+	return nil
+}
+
+// GetRulesCount returns the number of loaded rules (for testing)
+func (tc *ToxicityClassifier) GetRulesCount() int {
+	// Force config loading
+	tc.configLoadOnce.Do(func() {
+		tc.configLoadErr = tc.loadRulesConfig()
+	})
+
+	if tc.rulesConfig == nil {
+		return 0
+	}
+	return len(tc.rulesConfig.Rules)
+}
+
+// GetConfigLoadError returns any error from loading the config (for testing)
+func (tc *ToxicityClassifier) GetConfigLoadError() error {
+	// Force config loading
+	tc.configLoadOnce.Do(func() {
+		tc.configLoadErr = tc.loadRulesConfig()
+	})
+
+	return tc.configLoadErr
+}
+
+// normalizeText normalizes text for better pattern matching
+// Handles l33tspeak, obfuscation, and common substitutions
+func (tc *ToxicityClassifier) normalizeText(text string) string {
+	text = strings.ToLower(text)
+
+	// Common l33tspeak and obfuscation substitutions
+	// Order matters - do letter replacements before removing symbols
+	replacements := []struct{ old, new string }{
+		{"@", "a"},
+		{"4", "a"},
+		{"3", "e"},
+		{"1", "i"},
+		{"!", "i"},
+		{"0", "o"},
+		{"$", "s"},
+		{"5", "s"},
+		{"7", "t"},
+		{"+", "t"},
+		{"*", "u"}, // Asterisk often used to censor 'u' (f*ck -> fuck)
+		{"_", ""},  // Remove underscores
+		{"-", ""},  // Remove dashes
+		{"..", ""}, // Remove double dots
+	}
+
+	result := text
+	for _, r := range replacements {
+		result = strings.ReplaceAll(result, r.old, r.new)
+	}
+
+	// Normalize repeated characters (e.g., "asssss" -> "ass")
+	normalized := ""
+	lastChar := rune(0)
+	repeatCount := 0
+
+	for _, char := range result {
+		if char == lastChar {
+			repeatCount++
+			// Allow up to 2 repetitions
+			if repeatCount < 3 {
+				normalized += string(char)
+			}
+		} else {
+			normalized += string(char)
+			lastChar = char
+			repeatCount = 1
+		}
+	}
+
+	// Remove extra whitespace
+	return strings.Join(strings.Fields(normalized), " ")
+}
+
+// isWhitelisted checks if content contains only whitelisted terms
+func (tc *ToxicityClassifier) isWhitelisted(content string) bool {
+	words := strings.Fields(strings.ToLower(content))
+
+	if len(words) == 0 {
+		return false
+	}
+
+	// Check if ALL words are whitelisted (not just any one word)
+	for _, word := range words {
+		// Clean the word of punctuation
+		cleaned := strings.TrimFunc(word, func(r rune) bool {
+			return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+		})
+
+		// Skip empty tokens
+		if cleaned == "" {
+			continue
+		}
+
+		// If any word is NOT whitelisted, content is not fully whitelisted
+		if !tc.whitelistMap[cleaned] {
+			return false
+		}
+	}
+
+	// All non-empty words are whitelisted
+	return true
+}
+
+// calculateContextMultiplier determines a multiplier based on context
+// Reduces false positives by detecting quoted text, URLs, code, etc.
+func (tc *ToxicityClassifier) calculateContextMultiplier(content string) float64 {
+	multiplier := 1.0
+
+	// Check if content is very short (might be part of a larger context)
+	if len(strings.TrimSpace(content)) < 10 {
+		multiplier *= 0.8
+	}
+
+	// Reduce score if content appears to be quoted (surrounded by quotes)
+	if (strings.HasPrefix(content, "\"") && strings.HasSuffix(content, "\"")) ||
+		(strings.HasPrefix(content, "'") && strings.HasSuffix(content, "'")) {
+		multiplier *= 0.5
+	}
+
+	// Reduce score if content contains code-like patterns
+	if strings.Contains(content, "```") || strings.Contains(content, "function") ||
+		strings.Contains(content, "class ") || strings.Contains(content, "def ") {
+		multiplier *= 0.6
+	}
+
+	// Reduce score if content contains URLs (might be sharing links)
+	if strings.Contains(content, "http://") || strings.Contains(content, "https://") ||
+		strings.Contains(content, "www.") {
+		multiplier *= 0.7
+	}
+
+	// Reduce score if content contains @mentions (might be quoting someone)
+	if strings.Contains(content, "@") && strings.Contains(content, " ") {
+		multiplier *= 0.8
+	}
+
+	return multiplier
 }
 
 // AddToModerationQueue adds a toxic comment to the moderation queue

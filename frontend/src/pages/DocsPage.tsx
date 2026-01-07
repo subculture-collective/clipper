@@ -46,7 +46,8 @@ export function DocsPage() {
     const fetchDocsList = useCallback(async () => {
         try {
             const response = await axios.get('/api/v1/docs');
-            setDocs(response.data.docs);
+            console.log('[DocsPage] API response:', response.data);
+            setDocs(response.data.docs || []);
             setLoading(false);
         } catch (err) {
             console.error('Failed to load documentation', err);
@@ -60,13 +61,13 @@ export function DocsPage() {
             setLoading(true);
             const response = await axios.get(`/api/v1/docs/${path}`);
             setSelectedDoc(response.data);
-            
+
             // Process markdown: parse frontmatter, remove doctoc, handle Dataview, generate TOC
             const processed = parseMarkdown(response.data.content);
-            
+
             // Convert wikilinks to regular links
             processed.content = convertWikilinks(processed.content);
-            
+
             setProcessedDoc(processed);
             setViewingDoc(true);
             setLoading(false);
@@ -79,16 +80,18 @@ export function DocsPage() {
     }, []);
 
     useEffect(() => {
-        queueMicrotask(() => {
-            fetchDocsList();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchDocsList();
+    }, [fetchDocsList]);
 
-            // Check for doc parameter in URL
-            const docParam = searchParams.get('doc');
-            if (docParam) {
-                fetchDoc(docParam);
-            }
-        });
-    }, [fetchDoc, fetchDocsList, searchParams]);
+    useEffect(() => {
+        // Check for doc parameter in URL
+        const docParam = searchParams.get('doc');
+        if (docParam) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            fetchDoc(docParam);
+        }
+    }, [searchParams, fetchDoc]);
 
     const handleBackToIndex = () => {
         setViewingDoc(false);
@@ -120,6 +123,10 @@ export function DocsPage() {
     };
 
     const renderDocTree = (nodes: DocNode[], level = 0) => {
+        if (!nodes || !Array.isArray(nodes)) {
+            return null;
+        }
+
         return (
             <div className={level > 0 ? 'ml-4' : ''}>
                 {nodes.map(node => (
@@ -353,12 +360,12 @@ export function DocsPage() {
                             <CardBody className='prose prose-invert max-w-none'>
                                 {/* Render frontmatter as DocHeader */}
                                 <DocHeader frontmatter={processedDoc.frontmatter} />
-                                
+
                                 {/* Render TOC if available */}
                                 {processedDoc.toc.length > 0 && (
                                     <DocTOC toc={processedDoc.toc} />
                                 )}
-                                
+
                                 {/* Render processed markdown content */}
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}

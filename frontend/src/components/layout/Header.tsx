@@ -58,17 +58,17 @@ export function Header() {
                                 {t('nav.hot')}
                             </Button>
                         </Link>
-                        <Link to='/new'>
+                        <Link to='/?sort=new'>
                             <Button variant='ghost' size='sm'>
                                 {t('nav.new')}
                             </Button>
                         </Link>
-                        <Link to='/top'>
+                        <Link to='/?sort=top'>
                             <Button variant='ghost' size='sm'>
                                 {t('nav.top')}
                             </Button>
                         </Link>
-                        <Link to='/rising'>
+                        <Link to='/?sort=rising'>
                             <Button variant='ghost' size='sm'>
                                 {t('nav.rising')}
                             </Button>
@@ -218,7 +218,7 @@ export function Header() {
                                 </Button>
                             </Link>
                             <Link
-                                to='/new'
+                                to='/?sort=new'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 <Button
@@ -230,7 +230,7 @@ export function Header() {
                                 </Button>
                             </Link>
                             <Link
-                                to='/top'
+                                to='/?sort=top'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 <Button
@@ -242,7 +242,7 @@ export function Header() {
                                 </Button>
                             </Link>
                             <Link
-                                to='/rising'
+                                to='/?sort=rising'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 <Button

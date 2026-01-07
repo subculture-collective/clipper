@@ -38,8 +38,11 @@ export const mockUser = {
     username: 'testuser',
     display_name: 'Test User',
     email: 'test@example.com',
-    profile_image_url: 'https://example.com/avatar.png',
+    avatar_url: 'https://example.com/avatar.png',
     role: 'user',
+    is_premium: false,
+    is_verified: false,
+    created_at: '2024-01-01T00:00:00Z',
 };
 
 // Mock comments data
@@ -125,7 +128,7 @@ export const handlers = [
 
     // GET /api/auth/me - Get current user
     http.get(`${API_BASE_URL}/auth/me`, () => {
-        return HttpResponse.json({ user: mockUser });
+        return HttpResponse.json(mockUser);
     }),
 
     // POST /api/auth/logout - Logout

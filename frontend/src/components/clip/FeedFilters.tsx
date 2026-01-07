@@ -17,12 +17,11 @@ export function FeedFilters({
 }: FeedFiltersProps) {
     const sortOptions: { value: SortOption; label: string }[] = [
         { value: 'trending', label: 'Trending 🔥' },
-        { value: 'hot', label: 'Hot' },
         { value: 'popular', label: 'Most Popular ⭐' },
-        { value: 'new', label: 'New' },
-        { value: 'top', label: 'Top' },
-        { value: 'rising', label: 'Rising' },
-        { value: 'discussed', label: 'Discussed' },
+        { value: 'top', label: 'Top Rated 👑' },
+        { value: 'rising', label: 'Rising 📈' },
+        { value: 'new', label: 'Newest 🆕' },
+        { value: 'discussed', label: 'Most Discussed 💬' },
     ];
 
     const timeframeOptions: { value: TimeFrame; label: string }[] = [

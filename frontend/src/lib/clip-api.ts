@@ -48,8 +48,7 @@ function buildClipParams(
             params.broadcaster_id = filters.streamers[0];
         }
         if (filters.exclude_tags && filters.exclude_tags.length > 0) {
-            // TODO: Implement exclude_tags support in backend
-            // params.exclude_tags = filters.exclude_tags.join(',');
+            params.exclude_tags = filters.exclude_tags.join(',');
         }
         if (filters.date_from) params.date_from = filters.date_from;
         if (filters.date_to) params.date_to = filters.date_to;

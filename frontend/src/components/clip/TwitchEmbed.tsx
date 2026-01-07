@@ -12,7 +12,7 @@
 // - No stripping of Twitch branding or attribution
 // - Respects creator's right to delete clips (graceful error handling)
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useVolumePreference } from '@/hooks';
 import { MutedIcon } from '@/components/ui';
 
@@ -24,30 +24,44 @@ interface TwitchEmbedProps {
   title?: string;
 }
 
-export function TwitchEmbed({ 
-  clipId, 
-  autoplay = false, 
+export function TwitchEmbed({
+  clipId,
+  autoplay = false,
   muted = true,
   thumbnailUrl,
   title = 'Twitch Clip'
 }: TwitchEmbedProps) {
   const [isLoaded, setIsLoaded] = useState(autoplay);
   const [hasError, setHasError] = useState(false);
+  const [showMutedIndicator, setShowMutedIndicator] = useState(true);
   const { embedMuted: volumePreferredMuted, hasSetPreference, setUnmutedPreference } = useVolumePreference();
-
-  // COMPLIANCE: Get the actual parent domain for Twitch embed
-  // Twitch requires the 'parent' parameter to match the actual domain hosting the embed
-  // This is a security measure to prevent unauthorized embedding
-  // See: https://dev.twitch.tv/docs/embed/video-and-clips/#embedded-experiences
-  const parentDomain = typeof window !== 'undefined' 
-    ? window.location.hostname 
-    : 'localhost';
 
   // Determine mute state for embed:
   // - Before loaded (thumbnail shown): use the prop default (typically muted=true)
   // - After loaded (iframe shown): use user's volume preference from localStorage
   // This ensures the iframe URL is generated with the correct mute parameter
   const embedMuted = isLoaded ? volumePreferredMuted : muted;
+
+  // COMPLIANCE: Get the actual parent domain for Twitch embed
+  // Twitch requires the 'parent' parameter to match the actual domain hosting the embed
+  // This is a security measure to prevent unauthorized embedding
+  // See: https://dev.twitch.tv/docs/embed/video-and-clips/#embedded-experiences
+  const parentDomain = typeof window !== 'undefined'
+    ? window.location.hostname
+    : 'localhost';
+
+  // Auto-hide muted indicator after 3 seconds
+  useEffect(() => {
+    if (!embedMuted || hasSetPreference) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowMutedIndicator(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [embedMuted, hasSetPreference]);
 
   // COMPLIANCE: Official Twitch embed URL only
   // MUST use https://clips.twitch.tv/embed (no custom players, no video re-hosting)
@@ -74,7 +88,7 @@ export function TwitchEmbed({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-sm text-center">This clip is no longer available</p>
-          <a 
+          <a
             href={`https://clips.twitch.tv/${clipId}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -89,7 +103,7 @@ export function TwitchEmbed({
 
   if (!isLoaded) {
     return (
-      <div 
+      <div
         className="relative w-full pt-[56.25%] bg-black rounded-lg cursor-pointer group overflow-hidden"
         onClick={handleLoadClick}
         role="button"
@@ -104,8 +118,8 @@ export function TwitchEmbed({
       >
         {/* Thumbnail */}
         {thumbnailUrl && (
-          <img 
-            src={thumbnailUrl} 
+          <img
+            src={thumbnailUrl}
             alt={title}
             loading="lazy"
             decoding="async"
@@ -114,7 +128,7 @@ export function TwitchEmbed({
             height="1080"
           />
         )}
-        
+
         {/* Overlay */}
         <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-60 transition-all flex items-center justify-center">
           {/* Play button */}
@@ -143,11 +157,11 @@ export function TwitchEmbed({
         onError={handleError}
         allow="autoplay; fullscreen"
       />
-      
+
       {/* Muted indicator - shown when video is muted and user hasn't set a preference yet */}
-      {embedMuted && !hasSetPreference && (
-        <div 
-          className="absolute top-3 left-3 bg-black/70 hover:bg-black/90 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors z-10"
+      {embedMuted && !hasSetPreference && showMutedIndicator && (
+        <div
+          className="absolute top-3 left-3 bg-black/70 hover:bg-black/90 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 cursor-pointer transition-opacity duration-500 pointer-events-auto"
           onClick={setUnmutedPreference}
           role="button"
           tabIndex={0}

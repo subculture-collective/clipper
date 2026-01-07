@@ -14,6 +14,7 @@ export function NewFeedPage() {
           title="New Clips"
           description="Latest clips from the community"
           defaultSort="new"
+          showSearch
         />
       </Container>
     </>

@@ -12,6 +12,7 @@ vi.mock('../lib/submission-api', () => ({
     submitClip: vi.fn(),
     getUserSubmissions: vi.fn(),
     checkClipStatus: vi.fn(),
+    getClipMetadata: vi.fn(),
 }));
 
 // Mock the config API
@@ -70,6 +71,7 @@ describe('SubmitClipPage', () => {
     const mockSubmitClip = vi.mocked(submissionApi.submitClip);
     const mockGetUserSubmissions = vi.mocked(submissionApi.getUserSubmissions);
     const mockCheckClipStatus = vi.mocked(submissionApi.checkClipStatus);
+    const mockGetClipMetadata = vi.mocked(submissionApi.getClipMetadata);
     const mockGetPublicConfig = vi.mocked(configApi.getPublicConfig);
     const mockUseAuth = vi.mocked(useAuth);
     const mockSearchTags = vi.mocked(tagApi.searchTags);
@@ -98,6 +100,12 @@ describe('SubmitClipPage', () => {
             success: true,
             exists: false,
             can_be_claimed: true,
+        });
+        mockGetClipMetadata.mockResolvedValue({
+            title: 'Test Clip Title',
+            broadcaster_name: 'TestStreamer',
+            game: 'Test Game',
+            duration: 30,
         });
     });
 
@@ -281,8 +289,7 @@ describe('SubmitClipPage', () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const customTitleInput = screen.getByLabelText(/Custom Title/);
-            await user.type(customTitleInput, 'My Custom Title');
+            const customTitleInput = screen.getByLabelText(/Custom Title/);            await user.clear(customTitleInput);            await user.type(customTitleInput, 'My Custom Title');
 
             expect(customTitleInput).toHaveValue('My Custom Title');
         });
@@ -481,7 +488,7 @@ describe('SubmitClipPage', () => {
                 const submission = mockSubmitClip.mock.calls[0][0];
                 expect(submission).toMatchObject({
                     clip_url: 'https://clips.twitch.tv/TestClip123',
-                    custom_title: '',
+                    custom_title: 'Test Clip Title', // Auto-filled from metadata
                     tags: [],
                     is_nsfw: false,
                     submission_reason: '',
@@ -521,8 +528,14 @@ describe('SubmitClipPage', () => {
                 'https://clips.twitch.tv/TestClip123'
             );
 
+            // Wait for metadata to load and populate the custom title field
             const customTitleInput = screen.getByLabelText(/Custom Title/);
-            await user.type(customTitleInput, 'Custom Title');
+            await waitFor(() => {
+                expect(customTitleInput).toHaveValue('Test Clip Title');
+            });
+            // Select all and replace with new text
+            await user.tripleClick(customTitleInput);
+            await user.keyboard('Custom Title');
 
             const tagInput = screen.getByPlaceholderText(
                 'Search or add tags...'

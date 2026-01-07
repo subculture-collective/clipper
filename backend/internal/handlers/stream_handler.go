@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -20,15 +21,17 @@ type StreamHandler struct {
 	streamRepo       *repository.StreamRepository
 	clipRepo         *repository.ClipRepository
 	streamFollowRepo *repository.StreamFollowRepository
+	jobService       *services.ClipExtractionJobService
 }
 
 // NewStreamHandler creates a new stream handler
-func NewStreamHandler(twitchClient *twitch.Client, streamRepo *repository.StreamRepository, clipRepo *repository.ClipRepository, streamFollowRepo *repository.StreamFollowRepository) *StreamHandler {
+func NewStreamHandler(twitchClient *twitch.Client, streamRepo *repository.StreamRepository, clipRepo *repository.ClipRepository, streamFollowRepo *repository.StreamFollowRepository, jobService *services.ClipExtractionJobService) *StreamHandler {
 	return &StreamHandler{
 		twitchClient:     twitchClient,
 		streamRepo:       streamRepo,
 		clipRepo:         clipRepo,
 		streamFollowRepo: streamFollowRepo,
+		jobService:       jobService,
 	}
 }
 
@@ -233,7 +236,7 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 		EmbedURL:          fmt.Sprintf("/clips/%s/embed", clipID.String()),
 		Title:             req.Title,
 		CreatorName:       authenticatedUser.Username,
-		CreatorID:         &authenticatedUser.TwitchID,
+		CreatorID:         authenticatedUser.TwitchID,
 		BroadcasterName:   user.Login,
 		BroadcasterID:     &user.ID,
 		Duration:          &duration,
@@ -273,9 +276,35 @@ func (h *StreamHandler) CreateClipFromStream(c *gin.Context) {
 		return
 	}
 
-	// TODO: In production, enqueue a job to extract the video using FFmpeg
-	// For now, we'll simulate by marking it as ready after a delay
-	// This would be handled by a background worker in a real implementation
+	// Enqueue FFmpeg extraction job for background processing
+	if h.jobService != nil {
+		// Construct placeholder VOD URL (in production, this would be the actual stream VOD URL)
+		// TODO: Replace with actual Twitch VOD API call to get the real VOD URL
+		vodURL := fmt.Sprintf("placeholder://vod/%s/%s", user.ID, stream.ID)
+
+		job := &models.ClipExtractionJob{
+			ClipID:    clipID.String(),
+			VODURL:    vodURL,
+			StartTime: req.StartTime,
+			EndTime:   req.EndTime,
+			Quality:   req.Quality,
+		}
+
+		if err := h.jobService.EnqueueJob(ctx, job); err != nil {
+			// Log error but don't fail the request - clip is already created
+			utils.GetLogger().Error("Failed to enqueue clip extraction job", err, map[string]interface{}{
+				"clip_id":  clipID.String(),
+				"streamer": streamer,
+				"user_id":  userID.String(),
+			})
+		}
+	} else {
+		// Log warning if job service is not configured
+		utils.GetLogger().Warn("Clip extraction job service not configured - clip will remain in processing state", map[string]interface{}{
+			"clip_id":  clipID.String(),
+			"streamer": streamer,
+		})
+	}
 
 	utils.GetLogger().Info("Clip from stream created", map[string]interface{}{
 		"clip_id":  clipID.String(),

@@ -9,23 +9,29 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/subculture-collective/clipper/config"
 )
 
 // Server represents the WebSocket server
 type Server struct {
-	DB           *pgxpool.Pool
-	Redis        *redis.Client
-	Upgrader     websocket.Upgrader
-	Hubs         map[string]*ChannelHub
-	HubsMux      sync.RWMutex
-	shutdownOnce sync.Once
+	DB             *pgxpool.Pool
+	Redis          *redis.Client
+	Upgrader       websocket.Upgrader
+	Hubs           map[string]*ChannelHub
+	HubsMux        sync.RWMutex
+	shutdownOnce   sync.Once
+	allowedOrigins []string
 }
 
 // NewServer creates a new WebSocket server
-func NewServer(db *pgxpool.Pool, redisClient *redis.Client) *Server {
-	return &Server{
-		DB:    db,
-		Redis: redisClient,
+func NewServer(db *pgxpool.Pool, redisClient *redis.Client, cfg *config.WebSocketConfig) *Server {
+	// Validate allowed origins configuration
+	validateAllowedOrigins(cfg.AllowedOrigins)
+
+	server := &Server{
+		DB:             db,
+		Redis:          redisClient,
+		allowedOrigins: cfg.AllowedOrigins,
 		Upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -34,29 +40,23 @@ func NewServer(db *pgxpool.Pool, redisClient *redis.Client) *Server {
 				origin := r.Header.Get("Origin")
 				if origin == "" {
 					// No origin header, reject for security
+					log.Printf("WebSocket connection rejected: no Origin header")
 					return false
 				}
 
-				// TODO: Load allowed origins from configuration
-				// For now, allow localhost and production domains
-				allowedOrigins := []string{
-					"http://localhost:3000",
-					"http://localhost:5173",
-					"https://clipper.subculture.gg",
+				// Check if origin is allowed
+				allowed := isOriginAllowed(origin, cfg.AllowedOrigins)
+				if !allowed {
+					// Log rejected origins for debugging
+					log.Printf("WebSocket connection rejected: origin %s not in allowed list", origin)
 				}
-
-				for _, allowed := range allowedOrigins {
-					if origin == allowed {
-						return true
-					}
-				}
-
-				// Reject all other origins
-				return false
+				return allowed
 			},
 		},
 		Hubs: make(map[string]*ChannelHub),
 	}
+
+	return server
 }
 
 // GetOrCreateHub gets an existing hub or creates a new one

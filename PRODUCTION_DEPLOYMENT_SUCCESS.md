@@ -1,16 +1,17 @@
 # Production Deployment - Vault-Based Secrets ✅
 
-**Date:** 2026-01-02  
-**Status:** All services healthy - Secrets sourced from Vault  
+**Date:** 2026-01-02
+**Status:** All services healthy - Secrets sourced from Vault
 **Environment:** clpr.tv Production
 
 ## 🔐 Security Architecture
 
 ### Vault-Based Secret Management
+
 All secrets are now stored **exclusively in Vault** at `kv/clipper/backend`:
 
 - ✅ Database password
-- ✅ RSA 2048-bit JWT keys (PKCS8 format)  
+- ✅ RSA 2048-bit JWT keys (PKCS8 format)
 - ✅ MFA encryption key (32 bytes, base64-encoded)
 - ✅ Twitch API credentials
 - ✅ All environment configuration
@@ -45,6 +46,7 @@ clipper-vault-agent   Up                        Renders secrets from Vault
 ## 🔧 Configuration
 
 ### No Environment Variables Required
+
 Services start with **zero environment variables** - everything comes from Vault:
 
 ```bash
@@ -53,6 +55,7 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### Vault Secrets Location
+
 - **Path:** `kv/clipper/backend`
 - **Version:** 53
 - **Auth Method:** AppRole
@@ -60,22 +63,25 @@ docker compose -f docker-compose.prod.yml up -d
 - **Secret ID:** Stored in `./vault/approle/secret_id`
 
 ### Templates
+
 1. **backend.env.ctmpl** → Renders ~60 environment variables for backend
 2. **postgres.env.ctmpl** → Renders POSTGRES_PASSWORD for database initialization
 
 ## 📊 Current State
 
 ### Database
+
 - **Password:** Retrieved from Vault on startup
 - **Connection:** Backend connecting successfully
 - **Migrations:** All 90 migrations applied
 - **Syncing:** Active Twitch clip synchronization
 
 ### Backend Activity
+
 - **Clips Synced:** 25+ clips per sync cycle
 - **Errors:** None
-- **Health:** http://localhost:8080/api/v1/health (200 OK)
-- **Metrics:** http://localhost:8080/debug/metrics
+- **Health:** <http://localhost:8080/api/v1/health> (200 OK)
+- **Metrics:** <http://localhost:8080/debug/metrics>
 
 ## 🎯 Security Benefits
 
@@ -125,16 +131,20 @@ docker compose -f docker-compose.prod.yml restart postgres backend
 ## 📝 Vault Configuration Files
 
 ### Agent Config
+
 `/vault/config/clipper-backend-agent.hcl`:
+
 - Defines AppRole authentication
 - Configures template rendering
 - Sets file permissions
 
 ### Templates
+
 - `/vault/templates/backend.env.ctmpl` - Backend environment variables
 - `/vault/templates/postgres.env.ctmpl` - PostgreSQL password
 
 ### Rendered Secrets (Runtime)
+
 - `/vault-agent/rendered/backend.env` - Backend secrets (in container)
 - `/vault-agent/rendered/postgres.env` - PostgreSQL password (in container)
 - `/vault-agent/rendered/token` - Vault token (for agent)
@@ -142,16 +152,19 @@ docker compose -f docker-compose.prod.yml restart postgres backend
 ## ✅ Verification
 
 Check vault-agent is rendering secrets:
+
 ```bash
 docker exec clipper-vault-agent ls -la /vault-agent/rendered/
 ```
 
 Check postgres is sourcing from Vault:
+
 ```bash
 docker logs clipper-postgres | grep "Sourcing secrets"
 ```
 
 Check backend health:
+
 ```bash
 curl http://localhost:8080/api/v1/health
 ```
@@ -159,6 +172,7 @@ curl http://localhost:8080/api/v1/health
 ## 🚀 Production Ready
 
 The Clipper production environment is now:
+
 - ✅ **Secure:** All secrets in Vault, zero environment variables
 - ✅ **Functional:** All services healthy, backend syncing data
 - ✅ **Automated:** Secrets auto-rendered on container start

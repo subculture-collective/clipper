@@ -202,6 +202,7 @@ func main() {
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
 	watchPartyRepo := repository.NewWatchPartyRepository(db.Pool)
 	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
+	applicationLogRepo := repository.NewApplicationLogRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -263,6 +264,18 @@ func main() {
 	engagementService := services.NewEngagementService(analyticsRepo, userRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 
+	// Initialize account merge service
+	accountMergeService := services.NewAccountMergeService(
+		db.Pool,
+		userRepo,
+		auditLogRepo,
+		voteRepo,
+		favoriteRepo,
+		commentRepo,
+		clipRepo,
+		watchHistoryRepo,
+	)
+
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
 
@@ -275,8 +288,11 @@ func main() {
 	// Initialize email monitoring and metrics service
 	emailMetricsService := services.NewEmailMetricsService(emailLogRepo)
 
+	// Initialize cache service
+	cacheService := services.NewCacheService(redisClient)
+
 	// Initialize feed service
-	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
+	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo, voteRepo, favoriteRepo)
 
 	// Initialize filter preset service
 	filterPresetService := services.NewFilterPresetService(filterPresetRepo)
@@ -307,6 +323,9 @@ func main() {
 
 	// Initialize queue service
 	queueService := services.NewQueueService(queueRepo, clipRepo)
+
+	// Initialize clip extraction job service for FFmpeg processing
+	clipExtractionJobService := services.NewClipExtractionJobService(redisClient)
 
 	// Initialize watch party service and hub manager
 	watchPartyService := services.NewWatchPartyService(watchPartyRepo, playlistRepo, clipRepo, cfg.Server.BaseURL)
@@ -383,8 +402,8 @@ func main() {
 	var liveStatusService *services.LiveStatusService
 	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
-		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, redisClient)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
+		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, userRepo, redisClient)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cacheService, cfg)
 		liveStatusService = services.NewLiveStatusService(broadcasterRepo, streamFollowRepo, twitchClient)
 		// Set notification service for live status notifications
 		liveStatusService.SetNotificationService(notificationService)
@@ -418,7 +437,7 @@ func main() {
 	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
-	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo, accountMergeService)
 	adminUserHandler := handlers.NewAdminUserHandler(userRepo, auditLogRepo, authService)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	consentHandler := handlers.NewConsentHandler(consentRepo)
@@ -434,7 +453,7 @@ func main() {
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
-	feedHandler := handlers.NewFeedHandler(feedService, authService)
+	feedHandler := handlers.NewFeedHandler(feedService, authService, voteRepo, favoriteRepo, userRepo)
 	filterPresetHandler := handlers.NewFilterPresetHandler(filterPresetService)
 	communityHandler := handlers.NewCommunityHandler(communityService, authService)
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
@@ -443,9 +462,10 @@ func main() {
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
+	applicationLogHandler := handlers.NewApplicationLogHandler(applicationLogRepo)
 
 	// Initialize WebSocket server
-	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient())
+	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient(), &cfg.WebSocket)
 	websocketHandler := handlers.NewWebSocketHandler(db.Pool, wsServer)
 
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
@@ -483,7 +503,7 @@ func main() {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 	if twitchClient != nil {
-		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo)
+		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
 	}
 
@@ -657,6 +677,25 @@ func main() {
 
 		// Public config endpoint
 		v1.GET("/config", configHandler.GetPublicConfig)
+
+		// Application logs endpoint (with rate limiting)
+		// Rate limit: 100 requests/minute per endpoint per IP address
+		// Authenticated and anonymous users behind the same IP share this limit
+		logs := v1.Group("/logs")
+		{
+			// Public log submission endpoint with rate limiting
+			// Uses OptionalAuthMiddleware to allow both authenticated and anonymous logs
+			logs.POST("",
+				middleware.OptionalAuthMiddleware(authService),
+				middleware.RateLimitMiddleware(redisClient, 100, time.Minute),
+				applicationLogHandler.CreateLog)
+
+			// Admin-only log stats endpoint
+			logs.GET("/stats",
+				middleware.AuthMiddleware(authService),
+				middleware.RequireRole("admin"),
+				applicationLogHandler.GetLogStats)
+		}
 
 		// Auth routes
 		auth := v1.Group("/auth")
@@ -847,7 +886,14 @@ func main() {
 		{
 			// Public user profile
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
+			
+			// User autocomplete for mentions/suggestions - must be before /:id to avoid route conflicts
+			users.GET("/autocomplete", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), userHandler.SearchUsersAutocomplete)
+			
 			users.GET("/:id", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserProfile)
+
+			// Account claiming for unclaimed profiles
+			users.POST("/claim-account", middleware.AuthMiddleware(authService), userHandler.ClaimAccount)
 
 			// Public reputation endpoints
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)

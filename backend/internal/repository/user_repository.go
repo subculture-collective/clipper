@@ -39,18 +39,23 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 		user.AccountType = models.AccountTypeMember
 	}
 
+	// Set default account_status if not specified
+	if user.AccountStatus == "" {
+		user.AccountStatus = "active"
+	}
+
 	query := `
 		INSERT INTO users (
 			id, twitch_id, username, display_name, email,
-			avatar_url, bio, role, account_type, last_login_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			avatar_url, bio, role, account_type, account_status, last_login_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING created_at, updated_at
 	`
 
 	err := r.db.QueryRow(
 		ctx, query,
 		user.ID, user.TwitchID, user.Username, user.DisplayName, user.Email,
-		user.AvatarURL, user.Bio, user.Role, user.AccountType, user.LastLoginAt,
+		user.AvatarURL, user.Bio, user.Role, user.AccountType, user.AccountStatus, user.LastLoginAt,
 	).Scan(&user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
@@ -238,6 +243,46 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID) 
 
 	_, err := r.db.Exec(ctx, query, userID)
 	return err
+}
+
+// UpdateAccountStatus updates a user's account status
+func (r *UserRepository) UpdateAccountStatus(ctx context.Context, userID uuid.UUID, status string) error {
+	query := `
+		UPDATE users
+		SET account_status = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, status)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// UpdateDisplayName updates a user's display name
+func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID, displayName string) error {
+	query := `
+		UPDATE users
+		SET display_name = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, displayName)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
 }
 
 // UpdateKarma updates a user's karma points
@@ -1126,6 +1171,69 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 	}
 
 	return users, total, nil
+}
+
+// SearchUsersForAutocomplete searches users by username prefix for chat mentions and autocomplete
+// Returns up to 'limit' users whose username starts with the query string
+func (r *UserRepository) SearchUsersForAutocomplete(ctx context.Context, query string, limit int) ([]*models.User, error) {
+	// Ensure limit is within a safe range
+	if limit < 1 {
+		limit = 10
+	} else if limit > 20 {
+		limit = 20
+	}
+
+	// Only search if query is non-empty
+	if query == "" {
+		return []*models.User{}, nil
+	}
+
+	// Note: This query uses LOWER() which prevents index usage on standard btree indexes.
+	// For better performance with large user tables, consider:
+	// 1. Creating a functional index: CREATE INDEX idx_users_username_lower ON users(LOWER(username))
+	// 2. Using PostgreSQL's citext extension for case-insensitive username column
+	// 3. Using pg_trgm extension with GIN index for fuzzy matching
+	searchQuery := `
+		SELECT
+			id, username, display_name, avatar_url, is_verified
+		FROM users
+		WHERE LOWER(username) LIKE LOWER($1)
+			AND is_banned = false
+			AND account_status = 'active'
+		ORDER BY
+			CASE WHEN is_verified THEN 0 ELSE 1 END,
+			LENGTH(username),
+			username
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, searchQuery, query+"%", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.DisplayName,
+			&user.AvatarURL,
+			&user.IsVerified,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 // UpdateUserRole updates a user's role (user, moderator, admin)

@@ -32,15 +32,19 @@ export interface ButtonProps
     children?: React.ReactNode;
 }
 
+// Keep class strings separate so Tailwind can scan them properly
+const primaryVariant = 'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-700 dark:text-white shadow-sm cursor-pointer';
+const secondaryVariant = 'bg-secondary-500 text-white hover:bg-secondary-600 active:bg-secondary-700 cursor-pointer';
+const ghostVariant = 'bg-transparent hover:bg-neutral-100 active:bg-neutral-200 dark:hover:bg-neutral-800 dark:active:bg-neutral-700 text-foreground cursor-pointer';
+const dangerVariant = 'bg-error-500 text-white hover:bg-error-600 active:bg-error-700 cursor-pointer';
+const outlineVariant = 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950 cursor-pointer';
+
 const variantClasses = {
-    primary:
-        'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-700 dark:text-white shadow-sm cursor-pointer',
-    secondary:
-        'bg-secondary-500 text-white hover:bg-secondary-600 active:bg-secondary-700 cursor-pointer',
-    ghost: 'bg-transparent hover:bg-neutral-100 active:bg-neutral-200 dark:hover:bg-neutral-800 dark:active:bg-neutral-700 text-foreground cursor-pointer',
-    danger: 'bg-error-500 text-white hover:bg-error-600 active:bg-error-700 cursor-pointer',
-    outline:
-        'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950 cursor-pointer',
+    primary: primaryVariant,
+    secondary: secondaryVariant,
+    ghost: ghostVariant,
+    danger: dangerVariant,
+    outline: outlineVariant,
 };
 
 const sizeClasses = {
