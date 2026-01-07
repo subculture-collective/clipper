@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Alert } from '../ui/Alert';
 
 export interface DuplicateClipErrorProps {
@@ -45,15 +46,13 @@ export function DuplicateClipError({
         <p>{message}</p>
         {existingClipUrl && (
           <p className="text-sm">
-            <a
-              href={existingClipUrl}
+            <Link
+              to={existingClipUrl}
               className="underline hover:opacity-70 transition-opacity font-medium"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View existing clip (opens in new window)"
+              aria-label="View existing clip"
             >
               View the existing clip →
-            </a>
+            </Link>
           </p>
         )}
         <p className="text-xs opacity-80">

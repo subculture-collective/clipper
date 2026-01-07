@@ -35,13 +35,26 @@ import type { Tag } from '../types/tag';
  * Note: Currently uses string matching. For better reliability,
  * consider updating backend to return error.code or error.type field
  * (e.g., { error: "...", code: "DUPLICATE_CLIP" })
+ * 
+ * Uses specific clip-related patterns to avoid false positives from
+ * unrelated errors like "Email already taken" or "Username already exists"
  */
 function isDuplicateError(message: string): boolean {
     const lowerMsg = message.toLowerCase();
-    return (
-        lowerMsg.includes('already') ||
-        lowerMsg.includes('duplicate') ||
-        lowerMsg.includes('cannot be submitted again')
+    // Check for clip-specific duplicate patterns
+    const clipDuplicatePatterns = [
+        'clip.*already',
+        'already.*posted',
+        'already.*submitted',
+        'already.*added.*database',
+        'already.*approved',
+        'already.*pending',
+        'duplicate.*clip',
+        'cannot be submitted again'
+    ];
+    
+    return clipDuplicatePatterns.some(pattern => 
+        new RegExp(pattern).test(lowerMsg)
     );
 }
 
@@ -66,13 +79,13 @@ function extractClipInfo(responseData: unknown): { clipId?: string; clipSlug?: s
         clipSlug = data.clip_slug;
     }
 
-    // Check for nested clip object
+    // Check for nested clip object (only use if top-level values not found)
     if ('clip' in data && data.clip && typeof data.clip === 'object') {
         const clip = data.clip as Record<string, unknown>;
-        if ('id' in clip && typeof clip.id === 'string') {
+        if (!clipId && 'id' in clip && typeof clip.id === 'string') {
             clipId = clip.id;
         }
-        if ('slug' in clip && typeof clip.slug === 'string') {
+        if (!clipSlug && 'slug' in clip && typeof clip.slug === 'string') {
             clipSlug = clip.slug;
         }
     }
@@ -329,6 +342,7 @@ export function SubmitClipPage() {
         setError(null);
         setSubmittedClip(null);
         setDuplicateError(null);
+        setRateLimitError(null);
         setIsSubmitting(true);
 
         try {
