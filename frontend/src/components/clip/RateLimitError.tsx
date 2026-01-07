@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Alert } from '../ui/Alert';
 
 export interface RateLimitErrorProps {
@@ -42,13 +42,14 @@ function formatTimeRemaining(seconds: number): string {
   if (minutes > 0) {
     parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
   }
-  if (secs > 0 || parts.length === 0) {
+  // Only add seconds if we have fewer than 2 parts already, or if there are no other parts
+  // This ensures we show only the first 2 most significant time units
+  if (parts.length < 2 && (secs > 0 || parts.length === 0)) {
     parts.push(`${secs} ${secs === 1 ? 'second' : 'seconds'}`);
   }
 
-  // Join with space for better readability, only show first 2 parts
-  const displayParts = parts.slice(0, 2);
-  return displayParts.join(' ') || '0 seconds';
+  // Join with space for better readability
+  return parts.join(' ') || '0 seconds';
 }
 
 /**
@@ -70,29 +71,41 @@ export function RateLimitError({
     return Math.max(0, retryAfter - now);
   });
 
+  // Store onExpire in a ref to avoid recreating interval on every render
+  const onExpireRef = useRef(onExpire);
   useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
+
+  useEffect(() => {
+    // Track if interval has already called onExpire to avoid double-calling
+    let hasExpired = false;
+    
     // Update countdown every second
     const interval = setInterval(() => {
       const now = Math.floor(Date.now() / 1000);
       const remaining = Math.max(0, retryAfter - now);
       setTimeRemaining(remaining);
 
-      // Call onExpire when timer reaches 0
-      if (remaining === 0) {
-        clearInterval(interval);
-        onExpire?.();
+      // Call onExpire when timer reaches 0 (only once)
+      if (remaining === 0 && !hasExpired) {
+        hasExpired = true;
+        onExpireRef.current?.();
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [retryAfter, onExpire]);
+  }, [retryAfter]);
 
   // Helper function to format window display time
   const formatWindowDisplay = (windowSeconds: number): string => {
     const hours = Math.floor(windowSeconds / 3600);
-    return hours >= 1 ? 
-      `${hours} hour${hours > 1 ? 's' : ''}` : 
-      `${Math.floor(windowSeconds / 60)} minutes`;
+    if (hours >= 1) {
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    }
+    
+    const minutes = Math.floor(windowSeconds / 60);
+    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
   };
 
   const windowDisplay = formatWindowDisplay(window);
@@ -103,9 +116,6 @@ export function RateLimitError({
       title="Submission Rate Limit Reached"
       dismissible={timeRemaining === 0}
       onDismiss={onDismiss}
-      role="alert"
-      aria-live="polite"
-      aria-atomic="true"
     >
       <div className="space-y-2">
         <p>

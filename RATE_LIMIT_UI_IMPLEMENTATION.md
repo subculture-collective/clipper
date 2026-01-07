@@ -1,7 +1,7 @@
 # Rate Limit Error UI Implementation - Complete
 
 ## Overview
-Successfully implemented a comprehensive rate limit error UI for clip submissions as specified in issue #1014. The implementation includes:
+Successfully implemented a comprehensive rate limit error UI for clip submissions as specified in the E2E test infrastructure requirements. The implementation includes:
 
 - User-friendly error messages when rate limits are exceeded
 - Real-time countdown timer showing time until next submission

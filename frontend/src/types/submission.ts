@@ -100,7 +100,7 @@ export interface RejectionRequest {
 }
 
 export interface RateLimitErrorResponse {
-  error: string;
+  error: 'rate_limit_exceeded';
   limit: number;
   window: number;
   retry_after: number;

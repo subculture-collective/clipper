@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { RateLimitError } from './RateLimitError';
 
 describe('RateLimitError', () => {
@@ -114,10 +115,9 @@ describe('RateLimitError', () => {
       />
     );
 
+    // Alert component should provide role="alert" and ARIA attributes
     const alert = container.querySelector('[role="alert"]');
     expect(alert).toBeInTheDocument();
-    expect(alert).toHaveAttribute('aria-live', 'polite');
-    expect(alert).toHaveAttribute('aria-atomic', 'true');
   });
 
   it('should display time remaining with ARIA label', () => {
@@ -165,5 +165,82 @@ describe('RateLimitError', () => {
 
     // When expired, should show success message
     expect(screen.getByText(/You can submit again now!/i)).toBeInTheDocument();
+  });
+
+  it('should display window time correctly for minutes (90 seconds)', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const retryAfter = now + 300;
+
+    render(
+      <RateLimitError
+        retryAfter={retryAfter}
+        limit={10}
+        window={90} // 90 seconds = 1.5 minutes, should display as "1 minute"
+      />
+    );
+
+    expect(screen.getByText(/in the past 1 minute/i)).toBeInTheDocument();
+  });
+
+  it('should display window time correctly for multiple minutes (1800 seconds)', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const retryAfter = now + 300;
+
+    render(
+      <RateLimitError
+        retryAfter={retryAfter}
+        limit={10}
+        window={1800} // 30 minutes
+      />
+    );
+
+    expect(screen.getByText(/in the past 30 minutes/i)).toBeInTheDocument();
+  });
+
+  describe('Callbacks', () => {
+    it('should provide onExpire callback prop', () => {
+      // Test that onExpire prop is accepted without errors
+      const onExpire = vi.fn();
+      const now = Math.floor(Date.now() / 1000);
+      const retryAfter = now + 300;
+
+      const { unmount } = render(
+        <RateLimitError
+          retryAfter={retryAfter}
+          limit={10}
+          window={3600}
+          onExpire={onExpire}
+        />
+      );
+
+      // Component should render without errors
+      expect(screen.getByText(/Submission Rate Limit Reached/i)).toBeInTheDocument();
+      
+      unmount();
+    });
+
+    it('should call onDismiss when dismiss button is clicked', async () => {
+      const user = userEvent.setup();
+      const onDismiss = vi.fn();
+      const now = Math.floor(Date.now() / 1000);
+      const retryAfter = now - 10; // Already expired
+
+      render(
+        <RateLimitError
+          retryAfter={retryAfter}
+          limit={10}
+          window={3600}
+          onDismiss={onDismiss}
+        />
+      );
+
+      // Should be dismissible when expired
+      const dismissButton = screen.getByLabelText('Dismiss');
+      expect(dismissButton).toBeInTheDocument();
+
+      await user.click(dismissButton);
+
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
   });
 });

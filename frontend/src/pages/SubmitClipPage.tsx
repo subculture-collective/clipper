@@ -338,10 +338,15 @@ export function SubmitClipPage() {
                     setRateLimitError(rateLimitData);
                     setError(null);
                     // Store in localStorage for persistence
-                    localStorage.setItem(
-                        'submission_rate_limit',
-                        JSON.stringify(rateLimitData)
-                    );
+                    try {
+                        localStorage.setItem(
+                            'submission_rate_limit',
+                            JSON.stringify(rateLimitData)
+                        );
+                    } catch (storageError) {
+                        // Ignore localStorage errors - rate limit will still work for current session
+                        console.warn('Failed to persist rate limit to localStorage:', storageError);
+                    }
                     // Track rate limit hit
                     trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_HIT, {
                         limit: rateLimitData.limit,
@@ -376,14 +381,43 @@ export function SubmitClipPage() {
 
     const handleRateLimitExpire = () => {
         setRateLimitError(null);
-        localStorage.removeItem('submission_rate_limit');
-        // Track rate limit expiration
-        trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_EXPIRED, {});
+        
+        // Read stored rate limit metadata before clearing
+        let metadata: Record<string, unknown> = {};
+        try {
+            const storedRateLimit = localStorage.getItem('submission_rate_limit');
+            if (storedRateLimit) {
+                const parsed = JSON.parse(storedRateLimit) as RateLimitErrorResponse;
+                metadata = {
+                    limit: parsed.limit,
+                    window: parsed.window,
+                };
+            }
+        } catch (error) {
+            // Ignore parsing errors
+            console.warn('Failed to read rate limit metadata for analytics:', error);
+        }
+        
+        // Clear from localStorage
+        try {
+            localStorage.removeItem('submission_rate_limit');
+        } catch (error) {
+            // Ignore localStorage errors
+            console.warn('Failed to remove rate limit from localStorage:', error);
+        }
+        
+        // Track rate limit expiration with metadata
+        trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_EXPIRED, metadata);
     };
 
     const handleRateLimitDismiss = () => {
         setRateLimitError(null);
-        localStorage.removeItem('submission_rate_limit');
+        try {
+            localStorage.removeItem('submission_rate_limit');
+        } catch (error) {
+            // Ignore localStorage errors
+            console.warn('Failed to remove rate limit from localStorage:', error);
+        }
     };
 
     const handleSubmitAnother = () => {
