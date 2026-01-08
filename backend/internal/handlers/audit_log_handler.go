@@ -22,7 +22,7 @@ func NewAuditLogHandler(auditLogService *services.AuditLogService) *AuditLogHand
 
 // ListAuditLogs retrieves audit logs with filters
 // GET /admin/audit-logs
-// Supports filters: moderator_id, action, entity_type, start_date (RFC3339), end_date (RFC3339)
+// Supports filters: moderator_id, action, entity_type, entity_id, channel_id, start_date (RFC3339), end_date (RFC3339)
 func (h *AuditLogHandler) ListAuditLogs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
@@ -39,6 +39,8 @@ func (h *AuditLogHandler) ListAuditLogs(c *gin.Context) {
 		c.Query("moderator_id"),
 		c.Query("action"),
 		c.Query("entity_type"),
+		c.Query("entity_id"),
+		c.Query("channel_id"),
 		c.Query("start_date"),
 		c.Query("end_date"),
 	)
@@ -80,6 +82,8 @@ func (h *AuditLogHandler) ExportAuditLogs(c *gin.Context) {
 		c.Query("moderator_id"),
 		c.Query("action"),
 		c.Query("entity_type"),
+		c.Query("entity_id"),
+		c.Query("channel_id"),
 		c.Query("start_date"),
 		c.Query("end_date"),
 	)
