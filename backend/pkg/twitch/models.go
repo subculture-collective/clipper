@@ -179,7 +179,7 @@ type BannedUser struct {
 	UserID      string    `json:"user_id"`
 	UserLogin   string    `json:"user_login"`
 	UserName    string    `json:"user_name"`
-	ExpiresAt   time.Time `json:"expires_at"`
+	ExpiresAt   time.Time `json:"expires_at"` // Zero time for permanent bans
 	CreatedAt   time.Time `json:"created_at"`
 	Reason      string    `json:"reason"`
 	ModeratorID string    `json:"moderator_id"`

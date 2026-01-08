@@ -574,7 +574,7 @@ func (c *Client) GetBannedUsers(ctx context.Context, broadcasterID string, userA
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+userAccessToken) // #nosec G101 (value is an OAuth token, not hardcoded secret)
+	req.Header.Set("Authorization", "Bearer "+userAccessToken)
 	req.Header.Set("Client-Id", c.clientID)
 
 	logger := utils.GetLogger()

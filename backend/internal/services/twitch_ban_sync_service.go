@@ -249,7 +249,8 @@ func (s *TwitchBanSyncService) retryWithBackoff(ctx context.Context, fn func() e
 		lastErr = err
 
 		// Check if it's a rate limit error
-		if rateLimitErr, ok := err.(*twitch.RateLimitError); ok {
+		var rateLimitErr *twitch.RateLimitError
+		if errors.As(err, &rateLimitErr) {
 			delay := time.Duration(rateLimitErr.RetryAfter) * time.Second
 			if delay == 0 {
 				delay = baseDelay * time.Duration(1<<uint(attempt))
@@ -343,13 +344,10 @@ func (s *TwitchBanSyncService) getOrCreateUserByTwitchID(ctx context.Context, tw
 
 		err = s.userRepo.Create(ctx, newUser)
 		if err != nil {
-			// Check if it's a duplicate error (race condition)
-			if errors.Is(err, repository.ErrUserAlreadyExists) {
-				// Try to get the user again
-				user, getErr := s.userRepo.GetByTwitchID(ctx, twitchID)
-				if getErr == nil && user != nil {
-					return user.ID, nil
-				}
+			// Try to get the user in case it was created in a race condition
+			user, getErr := s.userRepo.GetByTwitchID(ctx, twitchID)
+			if getErr == nil && user != nil {
+				return user.ID, nil
 			}
 			return uuid.Nil, fmt.Errorf("failed to create unclaimed user: %w", err)
 		}
