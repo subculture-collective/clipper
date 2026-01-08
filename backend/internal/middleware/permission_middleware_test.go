@@ -272,3 +272,179 @@ func TestRequireAccountType_DefaultsToMember(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 }
+
+// TestRequirePermission_CommunityModAccessOwnChannel tests that community moderators can access their own channels
+func TestRequirePermission_CommunityModAccessOwnChannel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	channelID := uuid.New()
+
+	// Middleware to set community moderator user
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "community_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeCommunityModerator,
+			ModeratorScope:     models.ModeratorScopeCommunity,
+			ModerationChannels: []uuid.UUID{channelID},
+		}
+		c.Set("user", user)
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionCommunityModerate))
+	router.GET("/test/:channel_id", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	req, _ := http.NewRequest("GET", "/test/"+channelID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// TestRequirePermission_CommunityModDeniedOtherChannel tests that community moderators are denied access to channels they don't moderate
+func TestRequirePermission_CommunityModDeniedOtherChannel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	ownChannelID := uuid.New()
+	otherChannelID := uuid.New()
+
+	// Middleware to set community moderator user
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "community_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeCommunityModerator,
+			ModeratorScope:     models.ModeratorScopeCommunity,
+			ModerationChannels: []uuid.UUID{ownChannelID}, // Only has access to ownChannelID
+		}
+		c.Set("user", user)
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionCommunityModerate))
+	router.GET("/test/:channel_id", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// Try to access a different channel
+	req, _ := http.NewRequest("GET", "/test/"+otherChannelID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d", w.Code)
+	}
+}
+
+// TestRequirePermission_SiteModeratorAccessAnyChannel tests that site moderators can access any channel
+func TestRequirePermission_SiteModeratorAccessAnyChannel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	channelID := uuid.New()
+
+	// Middleware to set site moderator user
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "site_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeModerator,
+			ModeratorScope:     models.ModeratorScopeSite,
+			ModerationChannels: []uuid.UUID{}, // Site mods have no channel restrictions
+		}
+		c.Set("user", user)
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionModerateContent))
+	router.GET("/test/:channel_id", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	req, _ := http.NewRequest("GET", "/test/"+channelID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// TestRequirePermission_AdminAccessAnyChannel tests that admins can access any channel
+func TestRequirePermission_AdminAccessAnyChannel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	channelID := uuid.New()
+
+	// Middleware to set admin user
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:          uuid.New(),
+			Username:    "admin",
+			Role:        models.RoleAdmin,
+			AccountType: models.AccountTypeAdmin,
+		}
+		c.Set("user", user)
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionManageSystem))
+	router.GET("/test/:channel_id", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	req, _ := http.NewRequest("GET", "/test/"+channelID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// TestRequirePermission_CommunityModNoChannelInRequest tests that community moderators can access endpoints without channel_id
+func TestRequirePermission_CommunityModNoChannelInRequest(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	channelID := uuid.New()
+
+	// Middleware to set community moderator user
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "community_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeCommunityModerator,
+			ModeratorScope:     models.ModeratorScopeCommunity,
+			ModerationChannels: []uuid.UUID{channelID},
+		}
+		c.Set("user", user)
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionCommunityModerate))
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// Request without channel_id - should pass (no scope check needed)
+	req, _ := http.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
