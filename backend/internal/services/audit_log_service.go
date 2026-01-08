@@ -29,6 +29,24 @@ func (s *AuditLogService) GetAuditLogs(ctx context.Context, filters repository.A
 	return s.auditLogRepo.List(ctx, filters, page, limit)
 }
 
+// LogAction logs a moderation action with comprehensive context
+// This is a generic method for logging any moderation action with full audit trail support
+func (s *AuditLogService) LogAction(ctx context.Context, action string, actor uuid.UUID, target uuid.UUID, entityType string, channel *uuid.UUID, reason *string, metadata map[string]interface{}, ipAddress *string, userAgent *string) error {
+	log := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  entityType,
+		EntityID:    target,
+		ModeratorID: actor,
+		Reason:      reason,
+		Metadata:    metadata,
+		IPAddress:   ipAddress,
+		UserAgent:   userAgent,
+		ChannelID:   channel,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}
+
 // ExportAuditLogsCSV exports audit logs to CSV format
 func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters repository.AuditLogFilters, writer io.Writer) error {
 	// Get all logs matching filters
@@ -95,7 +113,7 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 }
 
 // ParseFiltersFromQuery parses audit log filters from query parameters
-func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate string) (repository.AuditLogFilters, error) {
+func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, startDate, endDate string) (repository.AuditLogFilters, error) {
 	filters := repository.AuditLogFilters{}
 
 	if moderatorID != "" {
@@ -112,6 +130,22 @@ func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate st
 
 	if entityType != "" {
 		filters.EntityType = entityType
+	}
+
+	if entityID != "" {
+		id, err := uuid.Parse(entityID)
+		if err != nil {
+			return filters, fmt.Errorf("invalid entity_id: %w", err)
+		}
+		filters.EntityID = &id
+	}
+
+	if channelID != "" {
+		id, err := uuid.Parse(channelID)
+		if err != nil {
+			return filters, fmt.Errorf("invalid channel_id: %w", err)
+		}
+		filters.ChannelID = &id
 	}
 
 	if startDate != "" {

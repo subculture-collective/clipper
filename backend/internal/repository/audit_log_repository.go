@@ -50,9 +50,10 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *models.ModerationA
 
 	query := `
 		INSERT INTO moderation_audit_logs (
-			id, action, entity_type, entity_id, moderator_id, reason, metadata, created_at
+			id, action, entity_type, entity_id, moderator_id, reason, metadata, 
+			ip_address, user_agent, channel_id, created_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 		)`
 
 	// Ensure timestamp is in UTC to avoid timezone offset issues
@@ -66,6 +67,9 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *models.ModerationA
 		log.ModeratorID,
 		log.Reason,
 		metadataJSON,
+		log.IPAddress,
+		log.UserAgent,
+		log.ChannelID,
 		utcTime,
 	)
 
@@ -99,6 +103,18 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 		placeholderIndex++
 	}
 
+	if filters.EntityID != nil {
+		whereClause += fmt.Sprintf(" AND mal.entity_id = %s", utils.SQLPlaceholder(placeholderIndex))
+		args = append(args, *filters.EntityID)
+		placeholderIndex++
+	}
+
+	if filters.ChannelID != nil {
+		whereClause += fmt.Sprintf(" AND mal.channel_id = %s", utils.SQLPlaceholder(placeholderIndex))
+		args = append(args, *filters.ChannelID)
+		placeholderIndex++
+	}
+
 	if filters.StartDate != nil {
 		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.StartDate)
@@ -122,7 +138,7 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 	query := fmt.Sprintf(`
 		SELECT
 			mal.id, mal.action, mal.entity_type, mal.entity_id, mal.moderator_id,
-			mal.reason, mal.metadata, mal.created_at,
+			mal.reason, mal.metadata, mal.ip_address, mal.user_agent, mal.channel_id, mal.created_at,
 			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
 			u.bio, u.karma_points, u.role, u.is_banned, u.created_at, u.updated_at, u.last_login_at
 		FROM moderation_audit_logs mal
@@ -153,6 +169,9 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 			&log.ModeratorID,
 			&log.Reason,
 			&metadataJSON,
+			&log.IPAddress,
+			&log.UserAgent,
+			&log.ChannelID,
 			&log.CreatedAt,
 			&user.ID,
 			&user.TwitchID,
@@ -191,6 +210,8 @@ type AuditLogFilters struct {
 	ModeratorID *uuid.UUID
 	Action      string
 	EntityType  string
+	EntityID    *uuid.UUID
+	ChannelID   *uuid.UUID
 	StartDate   *time.Time
 	EndDate     *time.Time
 }
@@ -220,6 +241,18 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 		placeholderIndex++
 	}
 
+	if filters.EntityID != nil {
+		whereClause += fmt.Sprintf(" AND mal.entity_id = %s", utils.SQLPlaceholder(placeholderIndex))
+		args = append(args, *filters.EntityID)
+		placeholderIndex++
+	}
+
+	if filters.ChannelID != nil {
+		whereClause += fmt.Sprintf(" AND mal.channel_id = %s", utils.SQLPlaceholder(placeholderIndex))
+		args = append(args, *filters.ChannelID)
+		placeholderIndex++
+	}
+
 	if filters.StartDate != nil {
 		whereClause += fmt.Sprintf(" AND mal.created_at >= %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.StartDate)
@@ -236,7 +269,7 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 	query := fmt.Sprintf(`
 		SELECT
 			mal.id, mal.action, mal.entity_type, mal.entity_id, mal.moderator_id,
-			mal.reason, mal.metadata, mal.created_at,
+			mal.reason, mal.metadata, mal.ip_address, mal.user_agent, mal.channel_id, mal.created_at,
 			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
 			u.bio, u.karma_points, u.role, u.is_banned, u.created_at, u.updated_at, u.last_login_at
 		FROM moderation_audit_logs mal
@@ -264,6 +297,9 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 			&log.ModeratorID,
 			&log.Reason,
 			&metadataJSON,
+			&log.IPAddress,
+			&log.UserAgent,
+			&log.ChannelID,
 			&log.CreatedAt,
 			&user.ID,
 			&user.TwitchID,
@@ -310,7 +346,8 @@ func (r *AuditLogRepository) GetByEntityID(ctx context.Context, entityID uuid.UU
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, action, entity_type, entity_id, moderator_id, reason, metadata, created_at
+		SELECT id, action, entity_type, entity_id, moderator_id, reason, metadata, 
+		       ip_address, user_agent, channel_id, created_at
 		FROM moderation_audit_logs
 		%s
 		ORDER BY created_at DESC
@@ -337,6 +374,9 @@ func (r *AuditLogRepository) GetByEntityID(ctx context.Context, entityID uuid.UU
 			&log.ModeratorID,
 			&log.Reason,
 			&metadataJSON,
+			&log.IPAddress,
+			&log.UserAgent,
+			&log.ChannelID,
 			&log.CreatedAt,
 		)
 		if err != nil {

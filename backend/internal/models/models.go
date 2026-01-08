@@ -458,11 +458,14 @@ type SubmissionStats struct {
 type ModerationAuditLog struct {
 	ID          uuid.UUID              `json:"id" db:"id"`
 	Action      string                 `json:"action" db:"action"`           // approve, reject, bulk_approve, bulk_reject
-	EntityType  string                 `json:"entity_type" db:"entity_type"` // clip_submission, clip, comment, user
+	EntityType  string                 `json:"entity_type" db:"entity_type"` // clip_submission, clip, comment, user, channel
 	EntityID    uuid.UUID              `json:"entity_id" db:"entity_id"`
 	ModeratorID uuid.UUID              `json:"moderator_id" db:"moderator_id"`
 	Reason      *string                `json:"reason,omitempty" db:"reason"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	IPAddress   *string                `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent   *string                `json:"user_agent,omitempty" db:"user_agent"`
+	ChannelID   *uuid.UUID             `json:"channel_id,omitempty" db:"channel_id"`
 	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
 }
 
