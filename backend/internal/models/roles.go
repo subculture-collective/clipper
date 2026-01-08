@@ -75,8 +75,9 @@ var accountTypePermissions = map[string][]string{
 	},
 	// Community Moderator: Channel-scoped moderator with limited permissions
 	// Inherits broadcaster permissions + basic moderation capabilities
-	// NOTE: Future issues will add channel-scoping logic to limit these permissions
-	// to only the channels where the user is assigned as a community moderator
+	// NOTE: Currently permissions are global. Future issues will add channel-scoping
+	// logic to limit these permissions to only the channels where the user is assigned
+	// as a community moderator
 	AccountTypeCommunityModerator: {
 		// All broadcaster permissions
 		PermissionCreateSubmission,
