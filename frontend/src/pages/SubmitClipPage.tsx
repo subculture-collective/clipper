@@ -10,6 +10,8 @@ import {
     SubmissionConfirmation,
     TextArea,
 } from '../components';
+import { RateLimitError } from '../components/clip/RateLimitError';
+import { DuplicateClipError } from '../components/clip/DuplicateClipError';
 import { useAuth } from '../context/AuthContext';
 import {
     checkClipStatus,
@@ -19,10 +21,78 @@ import {
 } from '../lib/submission-api';
 import { getPublicConfig } from '../lib/config-api';
 import { trackEvent, SubmissionEvents } from '../lib/telemetry';
-import type { ClipSubmission, SubmitClipRequest } from '../types/submission';
+import type {
+    ClipSubmission,
+    SubmitClipRequest,
+    RateLimitErrorResponse,
+} from '../types/submission';
 import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';
 import type { Tag } from '../types/tag';
+
+/**
+ * Clip-specific duplicate error patterns to avoid false positives
+ * from unrelated errors like "Email already taken" or "Username already exists"
+ */
+const CLIP_DUPLICATE_PATTERNS = [
+    /clip.*already/,
+    /already.*posted/,
+    /already.*submitted/,
+    /already.*added.*database/,
+    /already.*approved/,
+    /already.*pending/,
+    /duplicate.*clip/,
+    /cannot be submitted again/
+];
+
+/**
+ * Helper to check if an error message indicates a duplicate clip
+ * Note: Currently uses string matching. For better reliability,
+ * consider updating backend to return error.code or error.type field
+ * (e.g., { error: "...", code: "DUPLICATE_CLIP" })
+ * 
+ * Uses specific clip-related patterns to avoid false positives from
+ * unrelated errors like "Email already taken" or "Username already exists"
+ */
+function isDuplicateError(message: string): boolean {
+    const lowerMsg = message.toLowerCase();
+    return CLIP_DUPLICATE_PATTERNS.some(pattern => pattern.test(lowerMsg));
+}
+
+/**
+ * Helper to extract clip information from error response
+ * Looks for clip_id, clip_slug at top level or nested in clip object
+ */
+function extractClipInfo(responseData: unknown): { clipId?: string; clipSlug?: string } {
+    if (!responseData || typeof responseData !== 'object') {
+        return {};
+    }
+
+    const data = responseData as Record<string, unknown>;
+    let clipId: string | undefined;
+    let clipSlug: string | undefined;
+
+    // Check for clip_id and clip_slug at top level
+    if ('clip_id' in data && typeof data.clip_id === 'string') {
+        clipId = data.clip_id;
+    }
+    if ('clip_slug' in data && typeof data.clip_slug === 'string') {
+        clipSlug = data.clip_slug;
+    }
+
+    // Check for nested clip object (only use if top-level values not found)
+    if ('clip' in data && data.clip && typeof data.clip === 'object') {
+        const clip = data.clip as Record<string, unknown>;
+        if (!clipId && 'id' in clip && typeof clip.id === 'string') {
+            clipId = clip.id;
+        }
+        if (!clipSlug && 'slug' in clip && typeof clip.slug === 'string') {
+            clipSlug = clip.slug;
+        }
+    }
+
+    return { clipId, clipSlug };
+}
 
 export function SubmitClipPage() {
     const { user, isAuthenticated } = useAuth();
@@ -39,6 +109,13 @@ export function SubmitClipPage() {
     const [tagQueryLoading, setTagQueryLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [rateLimitError, setRateLimitError] =
+        useState<RateLimitErrorResponse | null>(null);
+    const [duplicateError, setDuplicateError] = useState<{
+        message: string;
+        clipId?: string;
+        clipSlug?: string;
+    } | null>(null);
     const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(
         null
     );
@@ -53,7 +130,8 @@ export function SubmitClipPage() {
     const canSubmit =
         isAuthenticated &&
         user &&
-        (!karmaRequirementEnabled || user.karma_points >= karmaRequired);
+        (!karmaRequirementEnabled || user.karma_points >= karmaRequired) &&
+        !rateLimitError;
     const karmaNeeded =
         user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
 
@@ -80,6 +158,28 @@ export function SubmitClipPage() {
             }));
         }
     }, [location.state]);
+
+    // Load rate limit from localStorage on mount
+    useEffect(() => {
+        const storedRateLimit = localStorage.getItem('submission_rate_limit');
+        if (storedRateLimit) {
+            try {
+                const rateLimitData: RateLimitErrorResponse =
+                    JSON.parse(storedRateLimit);
+                const now = Math.floor(Date.now() / 1000);
+                // Only restore if still active
+                if (rateLimitData.retry_after > now) {
+                    setRateLimitError(rateLimitData);
+                } else {
+                    // Clear expired rate limit
+                    localStorage.removeItem('submission_rate_limit');
+                }
+            } catch (err) {
+                console.error('Failed to parse stored rate limit:', err);
+                localStorage.removeItem('submission_rate_limit');
+            }
+        }
+    }, []);
 
     // Load karma configuration
     useEffect(() => {
@@ -242,6 +342,8 @@ export function SubmitClipPage() {
 
         setError(null);
         setSubmittedClip(null);
+        setDuplicateError(null);
+        setRateLimitError(null);
         setIsSubmitting(true);
 
         try {
@@ -275,10 +377,85 @@ export function SubmitClipPage() {
             });
             setSelectedTags([]);
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } } };
-            const errorMessage =
-                error.response?.data?.error || 'Failed to submit clip';
-            setError(errorMessage);
+            const error = err as {
+                response?: {
+                    status?: number;
+                    data?: unknown;
+                };
+            };
+
+            // Check for rate limit error (429)
+            if (error.response?.status === 429) {
+                const data = error.response.data;
+                // Type guard to verify rate limit error structure
+                if (
+                    data &&
+                    typeof data === 'object' &&
+                    'error' in data &&
+                    data.error === 'rate_limit_exceeded' &&
+                    'retry_after' in data &&
+                    typeof data.retry_after === 'number' &&
+                    'limit' in data &&
+                    typeof data.limit === 'number' &&
+                    'window' in data &&
+                    typeof data.window === 'number'
+                ) {
+                    const rateLimitData: RateLimitErrorResponse = {
+                        error: data.error,
+                        limit: data.limit,
+                        window: data.window,
+                        retry_after: data.retry_after,
+                    };
+                    
+                    setRateLimitError(rateLimitData);
+                    setError(null);
+                    // Store in localStorage for persistence
+                    try {
+                        localStorage.setItem(
+                            'submission_rate_limit',
+                            JSON.stringify(rateLimitData)
+                        );
+                    } catch (storageError) {
+                        // Ignore localStorage errors - rate limit will still work for current session
+                        console.warn('Failed to persist rate limit to localStorage:', storageError);
+                    }
+                    // Track rate limit hit
+                    trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_HIT, {
+                        limit: rateLimitData.limit,
+                        window: rateLimitData.window,
+                        retry_after: rateLimitData.retry_after,
+                    });
+                    return;
+                }
+            }
+
+            // Handle other errors
+            const data = error.response?.data;
+            let errorMessage = 'Failed to submit clip';
+            if (
+                data &&
+                typeof data === 'object' &&
+                'error' in data &&
+                typeof data.error === 'string'
+            ) {
+                errorMessage = data.error;
+                
+                if (isDuplicateError(errorMessage)) {
+                    const { clipId, clipSlug } = extractClipInfo(data);
+                    setDuplicateError({
+                        message: errorMessage,
+                        clipId,
+                        clipSlug,
+                    });
+                    setError(null);
+                } else {
+                    setError(errorMessage);
+                    setDuplicateError(null);
+                }
+            } else {
+                setError(errorMessage);
+                setDuplicateError(null);
+            }
 
             // Track failed submission
             trackEvent(SubmissionEvents.SUBMISSION_CREATE_FAILED, {
@@ -289,9 +466,51 @@ export function SubmitClipPage() {
         }
     };
 
+    const handleRateLimitExpire = () => {
+        setRateLimitError(null);
+        
+        // Read stored rate limit metadata before clearing
+        let metadata: Record<string, unknown> = {};
+        try {
+            const storedRateLimit = localStorage.getItem('submission_rate_limit');
+            if (storedRateLimit) {
+                const parsed = JSON.parse(storedRateLimit) as RateLimitErrorResponse;
+                metadata = {
+                    limit: parsed.limit,
+                    window: parsed.window,
+                };
+            }
+        } catch (error) {
+            // Ignore parsing errors
+            console.warn('Failed to read rate limit metadata for analytics:', error);
+        }
+        
+        // Clear from localStorage
+        try {
+            localStorage.removeItem('submission_rate_limit');
+        } catch (error) {
+            // Ignore localStorage errors
+            console.warn('Failed to remove rate limit from localStorage:', error);
+        }
+        
+        // Track rate limit expiration with metadata
+        trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_EXPIRED, metadata);
+    };
+
+    const handleRateLimitDismiss = () => {
+        setRateLimitError(null);
+        try {
+            localStorage.removeItem('submission_rate_limit');
+        } catch (error) {
+            // Ignore localStorage errors
+            console.warn('Failed to remove rate limit from localStorage:', error);
+        }
+    };
+
     const handleSubmitAnother = () => {
         setSubmittedClip(null);
         setError(null);
+        setDuplicateError(null);
     };
 
     if (!isAuthenticated) {
@@ -334,7 +553,30 @@ export function SubmitClipPage() {
                     </p>
                 </div>
 
-                {!canSubmit && (
+                {rateLimitError && (
+                    <div className='mb-4 xs:mb-6'>
+                        <RateLimitError
+                            retryAfter={rateLimitError.retry_after}
+                            limit={rateLimitError.limit}
+                            window={rateLimitError.window}
+                            onExpire={handleRateLimitExpire}
+                            onDismiss={handleRateLimitDismiss}
+                        />
+                    </div>
+                )}
+
+                {duplicateError && (
+                    <div className='mb-4 xs:mb-6'>
+                        <DuplicateClipError
+                            message={duplicateError.message}
+                            clipId={duplicateError.clipId}
+                            clipSlug={duplicateError.clipSlug}
+                            onDismiss={() => setDuplicateError(null)}
+                        />
+                    </div>
+                )}
+
+                {!canSubmit && !rateLimitError && (
                     <Alert variant='warning' className='mb-4 xs:mb-6'>
                         You need {karmaNeeded} more karma points to submit
                         clips. Earn karma by commenting, voting, and

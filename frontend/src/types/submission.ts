@@ -98,3 +98,10 @@ export interface RejectionRequest {
   id: string;
   reason: string;
 }
+
+export interface RateLimitErrorResponse {
+  error: 'rate_limit_exceeded';
+  limit: number;
+  window: number;
+  retry_after: number;
+}

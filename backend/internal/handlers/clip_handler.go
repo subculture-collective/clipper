@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -228,8 +229,10 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	gameID := c.Query("game_id")
 	broadcasterID := c.Query("broadcaster_id")
 	tag := c.Query("tag")
+	excludeTagsParam := c.Query("exclude_tags")
 	search := c.Query("search")
 	language := c.Query("language")
+	submittedByUserID := c.Query("submitted_by_user_id")
 	top10kStreamers := c.Query("top10k_streamers") == "true"
 	// By default, only show user-submitted clips. Set show_all_clips=true to include scraped clips (for discovery)
 	showAllClips := c.Query("show_all_clips") == "true"
@@ -242,6 +245,20 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	}
 	if limit < 1 || limit > 100 {
 		limit = 25
+	}
+
+	// Validate submitted_by_user_id as UUID if provided
+	if submittedByUserID != "" {
+		if _, err := uuid.Parse(submittedByUserID); err != nil {
+			c.JSON(http.StatusBadRequest, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "INVALID_UUID",
+					Message: "Invalid submitted_by_user_id: must be a valid UUID",
+				},
+			})
+			return
+		}
 	}
 
 	// Build filters
@@ -260,6 +277,23 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	if tag != "" {
 		filters.Tag = &tag
 	}
+	// Parse exclude_tags as comma-separated list with max limit of 10
+	if excludeTagsParam != "" {
+		excludeTags := []string{}
+		for _, t := range strings.Split(excludeTagsParam, ",") {
+			trimmed := strings.TrimSpace(t)
+			if trimmed != "" {
+				excludeTags = append(excludeTags, trimmed)
+			}
+			// Limit to prevent abuse
+			if len(excludeTags) >= 10 {
+				break
+			}
+		}
+		if len(excludeTags) > 0 {
+			filters.ExcludeTags = excludeTags
+		}
+	}
 	if search != "" {
 		filters.Search = &search
 	}
@@ -268,6 +302,9 @@ func (h *ClipHandler) ListClips(c *gin.Context) {
 	}
 	if timeframe != "" {
 		filters.Timeframe = &timeframe
+	}
+	if submittedByUserID != "" {
+		filters.SubmittedByUserID = &submittedByUserID
 	}
 
 	// Get user ID if authenticated
@@ -318,6 +355,7 @@ func (h *ClipHandler) ListScrapedClips(c *gin.Context) {
 	gameID := c.Query("game_id")
 	broadcasterID := c.Query("broadcaster_id")
 	tag := c.Query("tag")
+	excludeTagsParam := c.Query("exclude_tags")
 	search := c.Query("search")
 	language := c.Query("language")
 	top10kStreamers := c.Query("top10k_streamers") == "true"
@@ -346,6 +384,23 @@ func (h *ClipHandler) ListScrapedClips(c *gin.Context) {
 	}
 	if tag != "" {
 		filters.Tag = &tag
+	}
+	// Parse exclude_tags as comma-separated list with max limit of 10
+	if excludeTagsParam != "" {
+		excludeTags := []string{}
+		for _, t := range strings.Split(excludeTagsParam, ",") {
+			trimmed := strings.TrimSpace(t)
+			if trimmed != "" {
+				excludeTags = append(excludeTags, trimmed)
+			}
+			// Limit to prevent abuse
+			if len(excludeTags) >= 10 {
+				break
+			}
+		}
+		if len(excludeTags) > 0 {
+			filters.ExcludeTags = excludeTags
+		}
 	}
 	if search != "" {
 		filters.Search = &search

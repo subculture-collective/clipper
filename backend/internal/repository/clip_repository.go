@@ -360,6 +360,7 @@ type ClipFilters struct {
 	GameID            *string
 	BroadcasterID     *string
 	Tag               *string
+	ExcludeTags       []string // Exclude clips with any of these tag slugs
 	Search            *string
 	Language          *string // Language code (e.g., en, es, fr)
 	Timeframe         *string // hour, day, week, month, year, all
@@ -369,6 +370,7 @@ type ClipFilters struct {
 	Top10kStreamers   bool    // Filter clips to only top 10k streamers
 	ShowHidden        bool    // If true, include hidden clips (for owners/admins)
 	CreatorID         *string // Filter by creator ID (for creator dashboard)
+	SubmittedByUserID *string // Filter by submitted_by_user_id (for user profile submissions)
 	UserSubmittedOnly bool    // If true, only show clips with submitted_by_user_id IS NOT NULL
 	Cursor            *string // Cursor for cursor-based pagination (base64 encoded)
 }
@@ -470,6 +472,12 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		argIndex++
 	}
 
+	if filters.SubmittedByUserID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.submitted_by_user_id = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.SubmittedByUserID)
+		argIndex++
+	}
+
 	if filters.Tag != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
 			SELECT 1 FROM clip_tags ct
@@ -477,6 +485,17 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 
@@ -689,6 +708,9 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 		argIndex++
 	}
 
+	// Note: SubmittedByUserID filter is intentionally not applied here since this method
+	// retrieves only scraped clips (submitted_by_user_id IS NULL). Use ListWithFilters instead.
+
 	if filters.Tag != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
 			SELECT 1 FROM clip_tags ct
@@ -696,6 +718,17 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 

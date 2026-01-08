@@ -16,6 +16,10 @@ func Float64Ptr(f float64) *float64 {
 	return &f
 }
 
+func TimePtr(t time.Time) *time.Time {
+	return &t
+}
+
 // TestUser creates a test user with default values
 func TestUser() *models.User {
 	email := "test@example.com"

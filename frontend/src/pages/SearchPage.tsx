@@ -4,8 +4,10 @@ import { useSearchParams } from 'react-router-dom';
 import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
 import { SearchBar, SearchFilters } from '../components/search';
+import { SearchErrorAlert } from '../components/search/SearchErrorAlert';
 import { SearchResultSkeleton, EmptyStateWithAction } from '../components/ui';
 import { searchApi } from '../lib/search-api';
+import { useSearchErrorState } from '../hooks/useSearchErrorState';
 import type { SearchRequest, SearchResponse, SearchFilters as SearchFiltersType } from '../types/search';
 
 export function SearchPage() {
@@ -93,24 +95,40 @@ export function SearchPage() {
         return () => window.removeEventListener('keydown', handler);
     }, []);
 
+    // Search error state management
+    const { errorState, handleSearchError, handleSearchSuccess, retry, dismissError } = useSearchErrorState();
+
     // Fetch search results
-    const { data, isLoading, error } = useQuery<SearchResponse>({
+    const { data, isLoading, error, refetch } = useQuery<SearchResponse>({
         queryKey: ['search', query, activeTab, sortParam, pageParam, filters],
-        queryFn: () =>
-            searchApi.search({
-                query,
-                type: activeTab,
-                sort: sortParam as SortType,
-                page: pageParam,
-                limit: 20,
-                language: filters.language,
-                gameId: filters.gameId,
-                dateFrom: filters.dateFrom,
-                dateTo: filters.dateTo,
-                minVotes: filters.minVotes,
-                tags: filters.tags,
-            }),
+        queryFn: async () => {
+            try {
+                const result = await searchApi.search({
+                    query,
+                    type: activeTab,
+                    sort: sortParam as SortType,
+                    page: pageParam,
+                    limit: 20,
+                    language: filters.language,
+                    gameId: filters.gameId,
+                    dateFrom: filters.dateFrom,
+                    dateTo: filters.dateTo,
+                    minVotes: filters.minVotes,
+                    tags: filters.tags,
+                });
+                
+                // Check for failover indicators even on successful responses
+                // Note: This requires the API client to expose response headers
+                // For now, we'll just clear the error on success
+                handleSearchSuccess();
+                return result;
+            } catch (err) {
+                handleSearchError(err);
+                throw err;
+            }
+        },
         enabled: query.length > 0,
+        retry: false, // We handle retries manually
     });
 
     // Update tab when type param changes
@@ -161,6 +179,11 @@ export function SearchPage() {
         newParams.set('sort', 'relevance');
         newParams.set('page', '1');
         setSearchParams(newParams);
+    };
+
+    // Handle retry from error alert
+    const handleRetry = () => {
+        retry(() => refetch());
     };
 
     // Handle filters change
@@ -368,13 +391,22 @@ export function SearchPage() {
                         />
                     )}
 
+                    {/* Search Error/Failover Alert */}
+                    <SearchErrorAlert
+                        type={errorState.type}
+                        message={errorState.message}
+                        onRetry={handleRetry}
+                        isRetrying={errorState.isRetrying}
+                        onDismiss={dismissError}
+                    />
+
                     {/* Loading State */}
                     {isLoading && (
                         <SearchResultSkeleton />
                     )}
 
-                    {/* Error State */}
-                    {error && (
+                    {/* Error State - Only show fallback error UI if SearchErrorAlert is not displaying an error */}
+                    {error && errorState.type === 'none' && (
                         <EmptyStateWithAction
                             icon={
                                 <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -886,6 +886,10 @@ func main() {
 		{
 			// Public user profile
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
+			
+			// User autocomplete for mentions/suggestions - must be before /:id to avoid route conflicts
+			users.GET("/autocomplete", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), userHandler.SearchUsersAutocomplete)
+			
 			users.GET("/:id", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserProfile)
 
 			// Account claiming for unclaimed profiles

@@ -157,21 +157,20 @@ test.describe('Search Failover - UX Behavior', () => {
 
 // Tests that require failover mode enabled
 test.describe('Search Failover - Failover Mode Tests', () => {
-  // TODO: Requires UI implementation of failover error messages
   // Failover tests now use environment fixtures (E2E_FAILOVER_MODE will be set to true automatically)
 
-  test.skip('should show appropriate message when search is unavailable', async ({ page, searchPage }) => {
+  test('should show appropriate message when search is unavailable', async ({ page, searchPage }) => {
     await searchPage.goto();
     await searchPage.search('test query');
 
     // Wait for error message
-    await page.waitForSelector('[data-testid="error-message"], [data-testid="service-unavailable"]', {
+    await page.waitForSelector('[data-testid="search-error-alert"], [data-testid="service-unavailable"]', {
       timeout: SEARCH_TIMEOUT_MS,
     });
 
     // Verify error message is user-friendly
     const errorMessage = await page
-      .locator('[data-testid="error-message"], [data-testid="service-unavailable"]')
+      .locator('[data-testid="search-error-alert"], [data-testid="service-unavailable"]')
       .textContent();
     expect(errorMessage).toMatch(/temporarily unavailable|try again|experiencing issues/i);
   });
