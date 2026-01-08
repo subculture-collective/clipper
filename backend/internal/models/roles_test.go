@@ -561,3 +561,92 @@ func TestAccountTypeConstants(t *testing.T) {
 		t.Errorf("AccountTypeAdmin = %q, want %q", AccountTypeAdmin, "admin")
 	}
 }
+
+func TestModeratorScopeConstants(t *testing.T) {
+	// Ensure moderator scope constants have expected values
+	if ModeratorScopeSite != "site" {
+		t.Errorf("ModeratorScopeSite = %q, want %q", ModeratorScopeSite, "site")
+	}
+	if ModeratorScopeCommunity != "community" {
+		t.Errorf("ModeratorScopeCommunity = %q, want %q", ModeratorScopeCommunity, "community")
+	}
+}
+
+func TestUserIsValidModerator(t *testing.T) {
+	tests := []struct {
+		name               string
+		moderatorScope     string
+		moderationChannels []uuid.UUID
+		expected           bool
+	}{
+		{
+			name:               "not a moderator - empty scope",
+			moderatorScope:     "",
+			moderationChannels: nil,
+			expected:           true,
+		},
+		{
+			name:               "site moderator with empty channel list",
+			moderatorScope:     ModeratorScopeSite,
+			moderationChannels: []uuid.UUID{},
+			expected:           true,
+		},
+		{
+			name:               "site moderator with nil channel list",
+			moderatorScope:     ModeratorScopeSite,
+			moderationChannels: nil,
+			expected:           true,
+		},
+		{
+			name:               "site moderator with channels - invalid",
+			moderatorScope:     ModeratorScopeSite,
+			moderationChannels: []uuid.UUID{uuid.New()},
+			expected:           false,
+		},
+		{
+			name:               "community moderator with one channel",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: []uuid.UUID{uuid.New()},
+			expected:           true,
+		},
+		{
+			name:               "community moderator with multiple channels",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: []uuid.UUID{uuid.New(), uuid.New()},
+			expected:           true,
+		},
+		{
+			name:               "community moderator without channels - invalid",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: []uuid.UUID{},
+			expected:           false,
+		},
+		{
+			name:               "community moderator with nil channels - invalid",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: nil,
+			expected:           false,
+		},
+		{
+			name:               "invalid scope",
+			moderatorScope:     "invalid",
+			moderationChannels: []uuid.UUID{},
+			expected:           false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			user := &User{
+				ID:                 uuid.New(),
+				Username:           "testuser",
+				ModeratorScope:     tt.moderatorScope,
+				ModerationChannels: tt.moderationChannels,
+			}
+
+			if got := user.IsValidModerator(); got != tt.expected {
+				t.Errorf("IsValidModerator() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}

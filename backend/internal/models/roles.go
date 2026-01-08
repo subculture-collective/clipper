@@ -16,6 +16,12 @@ const (
 	AccountTypeAdmin              = "admin"
 )
 
+// Moderator scope constants
+const (
+	ModeratorScopeSite      = "site"
+	ModeratorScopeCommunity = "community"
+)
+
 // Permission constants
 const (
 	// Member permissions
@@ -210,4 +216,29 @@ func (u *User) GetAccountType() string {
 func (u *User) GetPermissions() []string {
 	accountType := u.GetAccountType()
 	return GetAccountTypePermissions(accountType)
+}
+
+// IsValidModerator checks if the user has valid moderator configuration
+func (u *User) IsValidModerator() bool {
+	// If ModeratorScope is not set, user is not a moderator
+	if u.ModeratorScope == "" {
+		return true // Not a moderator is valid
+	}
+
+	// Validate scope value
+	if u.ModeratorScope != ModeratorScopeSite && u.ModeratorScope != ModeratorScopeCommunity {
+		return false
+	}
+
+	// Site moderators should have empty channel list
+	if u.ModeratorScope == ModeratorScopeSite && len(u.ModerationChannels) > 0 {
+		return false
+	}
+
+	// Community moderators must have at least one channel
+	if u.ModeratorScope == ModeratorScopeCommunity && len(u.ModerationChannels) == 0 {
+		return false
+	}
+
+	return true
 }
