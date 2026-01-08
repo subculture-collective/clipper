@@ -86,6 +86,8 @@ Cache Hit Rate: 73.21% (target: >70%) ✓
 EOFLOG
 
 # Extract the function and test it
+# Set error handling to match the parent script behavior
+set -euo pipefail
 source <(sed -n '/^extract_k6_metrics/,/^}/p' backend/tests/load/run_all_benchmarks.sh)
 result=$(extract_k6_metrics "/tmp/k6-test-deployment/nonexistent.json" "/tmp/k6-test-deployment/test.log")
 

@@ -152,23 +152,39 @@ extract_k6_metrics() {
     fi
     
     # Parse k6 JSON metrics using jq
-    # Aggregate http_req_duration metrics for percentiles
+    # Note: k6 outputs aggregate metrics, we try to use built-in percentiles first
+    # Fallback to Point data if aggregate metrics unavailable
     local p50=$(echo "$summary" | jq -s '
-        [.[] | select(.metric=="http_req_duration" and .type=="Point")] |
-        map(.data.value) | sort | 
-        if length > 0 then (.[length * 0.5 | floor]) else 0 end
+        [.[] | select(.metric=="http_req_duration" and .type=="Metric")] |
+        if length > 0 then 
+            (.[0].data.thresholds."p(50)" // 0)
+        else 
+            ([.[] | select(.metric=="http_req_duration" and .type=="Point")] |
+             map(.data.value) | sort | 
+             if length > 0 then (.[length * 0.5 | floor]) else 0 end)
+        end
     ' 2>/dev/null | xargs printf "%.2f")
     
     local p95=$(echo "$summary" | jq -s '
-        [.[] | select(.metric=="http_req_duration" and .type=="Point")] |
-        map(.data.value) | sort | 
-        if length > 0 then (.[length * 0.95 | floor]) else 0 end
+        [.[] | select(.metric=="http_req_duration" and .type=="Metric")] |
+        if length > 0 then 
+            (.[0].data.thresholds."p(95)" // 0)
+        else 
+            ([.[] | select(.metric=="http_req_duration" and .type=="Point")] |
+             map(.data.value) | sort | 
+             if length > 0 then (.[length * 0.95 | floor]) else 0 end)
+        end
     ' 2>/dev/null | xargs printf "%.2f")
     
     local p99=$(echo "$summary" | jq -s '
-        [.[] | select(.metric=="http_req_duration" and .type=="Point")] |
-        map(.data.value) | sort | 
-        if length > 0 then (.[length * 0.99 | floor]) else 0 end
+        [.[] | select(.metric=="http_req_duration" and .type=="Metric")] |
+        if length > 0 then 
+            (.[0].data.thresholds."p(99)" // 0)
+        else 
+            ([.[] | select(.metric=="http_req_duration" and .type=="Point")] |
+             map(.data.value) | sort | 
+             if length > 0 then (.[length * 0.99 | floor]) else 0 end)
+        end
     ' 2>/dev/null | xargs printf "%.2f")
     
     # Calculate error rate
@@ -179,10 +195,10 @@ extract_k6_metrics() {
         else 0 end
     ' 2>/dev/null | xargs printf "%.2f")
     
-    # Calculate RPS (requests per second)
+    # Calculate RPS (requests per second) using k6's http_reqs Rate metric
     local rps=$(echo "$summary" | jq -s '
-        [.[] | select(.metric=="http_reqs" and .type=="Point")] |
-        if length > 0 then (length / 60.0) else 0 end
+        [.[] | select(.metric=="http_reqs" and .type=="Rate")] |
+        if length > 0 then (map(.data.value) | add / length) else 0 end
     ' 2>/dev/null | xargs printf "%.2f")
     
     # Calculate cache hit rate

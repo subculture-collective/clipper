@@ -72,7 +72,7 @@ validate_env_placeholders() {
         for pattern in "${critical_vars[@]}"; do
             while IFS= read -r line; do
                 # Extract variable name and value
-                if [[ $line =~ ^([A-Z_]+)=(.+)$ ]]; then
+                if [[ $line =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.+)$ ]]; then
                     local var_name="${BASH_REMATCH[1]}"
                     local var_value="${BASH_REMATCH[2]}"
                     
@@ -81,8 +81,8 @@ validate_env_placeholders() {
                         continue
                     fi
                     
-                    # Check if this is a sensitive variable
-                    if [[ $var_name == *"$pattern"* ]]; then
+                    # Check if this is a sensitive variable (case-insensitive check)
+                    if [[ ${var_name^^} == *"$pattern"* ]]; then
                         # Value should contain CHANGEME or be empty/commented
                         if [[ $var_value == *"CHANGEME"* ]] || [[ -z "$var_value" ]] || [[ $var_value == '""' ]]; then
                             # Good - has placeholder or is empty
@@ -100,16 +100,16 @@ validate_env_placeholders() {
                         fi
                     fi
                 fi
-            done < <(grep -E "^[A-Z_]+=.+" "$env_file")
+            done < <(grep -v '^[[:space:]]*#' "$env_file" | grep -E "^[A-Za-z_][A-Za-z0-9_]*=.+")
         done
     fi
     
     # For actual production env files (if checking deployment), ensure no CHANGEME remains
     if [ "$is_actual_env" = true ]; then
-        if grep -q "CHANGEME" "$env_file"; then
+        if grep -v '^[[:space:]]*#' "$env_file" | grep -q "CHANGEME"; then
             print_test "FAIL" "Production env file $(basename $env_file) still contains CHANGEME placeholders!"
             print_test "FAIL" "Update the following variables before deploying:"
-            grep "CHANGEME" "$env_file" | sed 's/=.*//' | while read -r var; do
+            grep -v '^[[:space:]]*#' "$env_file" | grep "CHANGEME" | sed 's/=.*//' | while read -r var; do
                 print_test "FAIL" "  - $var"
             done
             return 1

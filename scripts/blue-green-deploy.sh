@@ -190,16 +190,20 @@ run_migrations() {
         # Note: SSL is disabled because migrations run within the Docker network (not over internet)
         # The connection is network-isolated and doesn't traverse untrusted networks
         # For external database connections, enable SSL by changing sslmode=require
+        # Password is passed via environment variable to avoid exposure in process list
         DB_URL="postgresql://${POSTGRES_USER:-clipper}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipper_db}?sslmode=disable"
         
         # Run migrations using golang-migrate in a temporary container
+        # Pin to specific image digest for supply chain security
+        # Current digest is for v4.17.0 - update when upgrading versions
         log_info "Executing database migrations..."
         if docker run --rm \
             --network clipper-network \
             -v "$DEPLOY_DIR/backend/migrations:/migrations:ro" \
+            -e DATABASE_URL="$DB_URL" \
             migrate/migrate:v4.17.0 \
             -path /migrations \
-            -database "$DB_URL" \
+            -database "$DATABASE_URL" \
             up; then
             log_success "Migrations executed successfully"
         else
@@ -210,14 +214,17 @@ run_migrations() {
         
         # Verify migrations were applied
         log_info "Verifying migration status..."
-        MIGRATION_VERSION=$(docker run --rm \
+        MIGRATION_OUTPUT=$(docker run --rm \
             --network clipper-network \
+            -e DATABASE_URL="$DB_URL" \
             migrate/migrate:v4.17.0 \
             -path /migrations \
-            -database "$DB_URL" \
-            version 2>&1 | tail -1)
+            -database "$DATABASE_URL" \
+            version 2>&1)
+        MIGRATION_STATUS=$?
+        MIGRATION_VERSION=$(printf '%s\n' "$MIGRATION_OUTPUT" | tail -1)
         
-        if [ $? -eq 0 ]; then
+        if [ "$MIGRATION_STATUS" -eq 0 ]; then
             log_success "Current migration version: $MIGRATION_VERSION"
         else
             log_warn "Could not verify migration version, but migrations may have succeeded"

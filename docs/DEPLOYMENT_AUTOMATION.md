@@ -50,7 +50,8 @@ Set these environment variables:
 ### Example
 
 ```bash
-export POSTGRES_PASSWORD="your_secure_password"
+# Load secrets securely from a secrets file (recommended)
+export POSTGRES_PASSWORD="$(cat /run/secrets/postgres_password)"
 export DEPLOY_DIR="/opt/clipper"
 ./scripts/blue-green-deploy.sh
 ```
@@ -223,11 +224,14 @@ If migrations fail:
 docker exec clipper-postgres pg_isready -U clipper
 
 # Check migration status
+# Note: Use environment variable for DB URL to avoid exposing password in process list
+export CLIPPER_DB_URL="postgresql://clipper:YOUR_PASSWORD@postgres:5432/clipper_db?sslmode=disable"
 docker run --rm --network clipper-network \
   -v /opt/clipper/backend/migrations:/migrations:ro \
+  -e DATABASE_URL="$CLIPPER_DB_URL" \
   migrate/migrate:v4.17.0 \
   -path /migrations \
-  -database "postgresql://clipper:password@postgres:5432/clipper_db?sslmode=disable" \
+  -database "$DATABASE_URL" \
   version
 ```
 
