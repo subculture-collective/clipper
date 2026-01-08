@@ -338,6 +338,23 @@ func (r *CommunityRepository) BanMember(ctx context.Context, ban *models.Communi
 	).Scan(&ban.ID, &ban.BannedAt)
 }
 
+// GetBanByID retrieves a ban record by its ID
+func (r *CommunityRepository) GetBanByID(ctx context.Context, banID uuid.UUID) (*models.CommunityBan, error) {
+	query := `
+		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
+		FROM community_bans
+		WHERE id = $1
+	`
+	ban := &models.CommunityBan{}
+	err := r.pool.QueryRow(ctx, query, banID).Scan(
+		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
+	)
+	if err == pgx.ErrNoRows {
+		return nil, fmt.Errorf("ban not found")
+	}
+	return ban, err
+}
+
 // UnbanMember unbans a user from a community
 func (r *CommunityRepository) UnbanMember(ctx context.Context, communityID, userID uuid.UUID) error {
 	query := `DELETE FROM community_bans WHERE community_id = $1 AND banned_user_id = $2`
