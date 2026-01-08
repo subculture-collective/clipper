@@ -21,13 +21,17 @@ func runMigration(direction string, steps int) error {
 	dbPassword := testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password")
 	dbName := testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test")
 
+	// Build connection URL (password will be sanitized in error messages)
 	dbURL := fmt.Sprintf(
 		"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbPort, dbName,
 	)
 
+	// Get migrations path from env or use default
+	migrationsPath := testutil.GetEnv("TEST_MIGRATIONS_PATH", "../../migrations")
+
 	args := []string{
-		"-path", "../../migrations",
+		"-path", migrationsPath,
 		"-database", dbURL,
 		direction,
 	}
@@ -39,7 +43,12 @@ func runMigration(direction string, steps int) error {
 	cmd := exec.Command("migrate", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("migration failed: %v, output: %s", err, string(output))
+		// Sanitize password from error message
+		sanitizedURL := fmt.Sprintf(
+			"postgresql://%s:***@%s:%s/%s?sslmode=disable",
+			dbUser, dbHost, dbPort, dbName,
+		)
+		return fmt.Errorf("migration failed (db: %s): %v, output: %s", sanitizedURL, err, string(output))
 	}
 	return nil
 }
@@ -107,18 +116,46 @@ func TestMigrationRollback000049(t *testing.T) {
 	})
 
 	t.Run("RollbackRemovesTriggers", func(t *testing.T) {
-		// Verify trigger exists
+		// Verify trigger exists before rollback
 		exists, err := mh.triggerExists(ctx, "moderation_queue", "trg_moderation_queue_reviewed")
 		require.NoError(t, err)
 		require.True(t, exists, "Trigger should exist before rollback")
 
-		// Verify function exists
+		// Verify function exists before rollback
 		exists, err = mh.functionExists(ctx, "update_moderation_queue_reviewed")
 		require.NoError(t, err)
 		require.True(t, exists, "Function should exist before rollback")
 
-		// Note: We've already tested the rollback in previous test
-		// This is just verifying the state is correct
+		// Roll back the moderation queue migration
+		err = runMigration("down", 1)
+		if err != nil {
+			t.Skipf("Migration rollback skipped: %v", err)
+			return
+		}
+
+		// Verify trigger is removed after rollback
+		exists, err = mh.triggerExists(ctx, "moderation_queue", "trg_moderation_queue_reviewed")
+		require.NoError(t, err)
+		assert.False(t, exists, "Trigger should not exist after rollback")
+
+		// Verify function is removed after rollback
+		exists, err = mh.functionExists(ctx, "update_moderation_queue_reviewed")
+		require.NoError(t, err)
+		assert.False(t, exists, "Function should not exist after rollback")
+
+		// Re-apply the moderation queue migration
+		err = runMigration("up", 1)
+		require.NoError(t, err, "Re-applying migration should succeed")
+
+		// Verify trigger exists again after re-applying
+		exists, err = mh.triggerExists(ctx, "moderation_queue", "trg_moderation_queue_reviewed")
+		require.NoError(t, err)
+		assert.True(t, exists, "Trigger should exist after re-applying migration")
+
+		// Verify function exists again after re-applying
+		exists, err = mh.functionExists(ctx, "update_moderation_queue_reviewed")
+		require.NoError(t, err)
+		assert.True(t, exists, "Function should exist after re-applying migration")
 	})
 }
 
@@ -335,19 +372,3 @@ func TestMigrationIdempotency(t *testing.T) {
 	})
 }
 
-// TestDataPreservedThroughRollback tests that data can be preserved across rollback/re-apply
-func TestDataPreservedThroughRollback(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping data preservation test in short mode")
-	}
-
-	t.Run("DataSurvivesRollbackReapply", func(t *testing.T) {
-		// This is a conceptual test - in practice, rollback would drop tables
-		// and lose data. The purpose is to verify that the schema can be
-		// cleanly rolled back and re-applied without corruption.
-
-		// The actual test is that we can go down and back up successfully
-		// which is covered in TestMigrationRollback000049
-		t.Log("Data preservation through rollback is verified by successful rollback and re-apply")
-	})
-}

@@ -204,8 +204,6 @@ func assertIndexesExist(t *testing.T, mh *migrationHelper, ctx context.Context, 
 // TestModerationQueueMigration000049 tests the moderation queue system migration
 func TestModerationQueueMigration000049(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("TablesCreated", func(t *testing.T) {
@@ -292,8 +290,6 @@ func TestModerationQueueMigration000049(t *testing.T) {
 // TestModerationAppealsMigration000050 tests the moderation appeals migration
 func TestModerationAppealsMigration000050(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("TableCreated", func(t *testing.T) {
@@ -345,8 +341,6 @@ func TestModerationAppealsMigration000050(t *testing.T) {
 // TestModerationAuditLogsMigration000011 tests the moderation audit logs migration
 func TestModerationAuditLogsMigration000011(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("TableCreated", func(t *testing.T) {
@@ -377,8 +371,6 @@ func TestModerationAuditLogsMigration000011(t *testing.T) {
 // TestForumModerationMigration000069 tests the forum moderation migration
 func TestForumModerationMigration000069(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("TablesCreated", func(t *testing.T) {
@@ -439,8 +431,6 @@ func TestForumModerationMigration000069(t *testing.T) {
 // TestModerationAuditLogsUpdateMigration000097 tests the updated audit logs migration
 func TestModerationAuditLogsUpdateMigration000097(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("NewColumnsAdded", func(t *testing.T) {
@@ -492,8 +482,6 @@ func TestModerationAuditLogsUpdateMigration000097(t *testing.T) {
 // TestConstraintEnforcement tests that constraints are properly enforced
 func TestConstraintEnforcement(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	// Create a test user first (needed for foreign keys)
@@ -577,6 +565,119 @@ func TestConstraintEnforcement(t *testing.T) {
 		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_queue WHERE id = $1", queueID1)
 	})
 
+	t.Run("ContentTypeConstraint", func(t *testing.T) {
+		// Valid content_type should succeed
+		queueID := uuid.New()
+		_, err := mh.pool.Exec(ctx, `
+			INSERT INTO moderation_queue (id, content_type, content_id, reason, status)
+			VALUES ($1, 'comment', $2, 'spam', 'pending')
+		`, queueID, uuid.New())
+		require.NoError(t, err)
+
+		// Invalid content_type should fail
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_queue (id, content_type, content_id, reason, status)
+			VALUES ($1, 'invalid_type', $2, 'spam', 'pending')
+		`, uuid.New(), uuid.New())
+		assert.Error(t, err, "Invalid content_type should fail constraint check")
+
+		// Cleanup
+		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_queue WHERE id = $1", queueID)
+	})
+
+	t.Run("ConfidenceScoreConstraint", func(t *testing.T) {
+		// Valid confidence_score should succeed
+		queueID := uuid.New()
+		_, err := mh.pool.Exec(ctx, `
+			INSERT INTO moderation_queue (id, content_type, content_id, reason, confidence_score)
+			VALUES ($1, 'comment', $2, 'spam', 0.75)
+		`, queueID, uuid.New())
+		require.NoError(t, err)
+
+		// confidence_score > 1 should fail
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_queue (id, content_type, content_id, reason, confidence_score)
+			VALUES ($1, 'comment', $2, 'spam', 1.5)
+		`, uuid.New(), uuid.New())
+		assert.Error(t, err, "confidence_score > 1 should fail constraint check")
+
+		// confidence_score < 0 should fail
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_queue (id, content_type, content_id, reason, confidence_score)
+			VALUES ($1, 'comment', $2, 'spam', -0.5)
+		`, uuid.New(), uuid.New())
+		assert.Error(t, err, "confidence_score < 0 should fail constraint check")
+
+		// Cleanup
+		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_queue WHERE id = $1", queueID)
+	})
+
+	t.Run("ModerationDecisionActionConstraint", func(t *testing.T) {
+		// Create queue item first
+		queueID := uuid.New()
+		_, err := mh.pool.Exec(ctx, `
+			INSERT INTO moderation_queue (id, content_type, content_id, reason, status, reviewed_by)
+			VALUES ($1, 'comment', $2, 'spam', 'approved', $3)
+		`, queueID, uuid.New(), userID)
+		require.NoError(t, err)
+
+		// Valid action should succeed
+		decisionID := uuid.New()
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_decisions (id, queue_item_id, moderator_id, action)
+			VALUES ($1, $2, $3, 'approve')
+		`, decisionID, queueID, userID)
+		require.NoError(t, err)
+
+		// Invalid action should fail
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_decisions (id, queue_item_id, moderator_id, action)
+			VALUES ($1, $2, $3, 'invalid_action')
+		`, uuid.New(), queueID, userID)
+		assert.Error(t, err, "Invalid action should fail constraint check")
+
+		// Cleanup
+		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_decisions WHERE id = $1", decisionID)
+		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_queue WHERE id = $1", queueID)
+	})
+
+	t.Run("AppealStatusConstraint", func(t *testing.T) {
+		// Create queue and decision first
+		queueID := uuid.New()
+		_, err := mh.pool.Exec(ctx, `
+			INSERT INTO moderation_queue (id, content_type, content_id, reason, status, reviewed_by)
+			VALUES ($1, 'comment', $2, 'spam', 'approved', $3)
+		`, queueID, uuid.New(), userID)
+		require.NoError(t, err)
+
+		decisionID := uuid.New()
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_decisions (id, queue_item_id, moderator_id, action)
+			VALUES ($1, $2, $3, 'approve')
+		`, decisionID, queueID, userID)
+		require.NoError(t, err)
+
+		// Valid status should succeed
+		appealID := uuid.New()
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_appeals (id, user_id, moderation_action_id, reason, status)
+			VALUES ($1, $2, $3, 'Test reason', 'pending')
+		`, appealID, userID, decisionID)
+		require.NoError(t, err)
+
+		// Invalid status should fail
+		_, err = mh.pool.Exec(ctx, `
+			INSERT INTO moderation_appeals (id, user_id, moderation_action_id, reason, status)
+			VALUES ($1, $2, $3, 'Test reason', 'invalid_status')
+		`, uuid.New(), userID, decisionID)
+		assert.Error(t, err, "Invalid status should fail constraint check")
+
+		// Cleanup
+		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_appeals WHERE id = $1", appealID)
+		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_decisions WHERE id = $1", decisionID)
+		_, _ = mh.pool.Exec(ctx, "DELETE FROM moderation_queue WHERE id = $1", queueID)
+	})
+
 	t.Run("ForeignKeyConstraints", func(t *testing.T) {
 		// Create queue item first
 		queueID := uuid.New()
@@ -610,8 +711,6 @@ func TestConstraintEnforcement(t *testing.T) {
 // TestTriggerBehavior tests that triggers work correctly
 func TestTriggerBehavior(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	// Create test user
@@ -728,8 +827,6 @@ func TestTriggerBehavior(t *testing.T) {
 // TestDataIntegrity tests that data is preserved through migration cycles
 func TestDataIntegrity(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("QueueDataPreserved", func(t *testing.T) {
@@ -829,8 +926,6 @@ func TestIndexUsage(t *testing.T) {
 	}
 
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("StatusPriorityIndexUsed", func(t *testing.T) {
@@ -881,8 +976,6 @@ func TestIndexUsage(t *testing.T) {
 // TestColumnTypes tests that columns have correct data types
 func TestColumnTypes(t *testing.T) {
 	mh := setupMigrationTest(t)
-	
-
 	ctx := context.Background()
 
 	t.Run("ModerationQueueTypes", func(t *testing.T) {
