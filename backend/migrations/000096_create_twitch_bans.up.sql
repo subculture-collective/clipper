@@ -18,12 +18,12 @@ CREATE TABLE IF NOT EXISTS twitch_bans (
 -- Indexes for performance queries
 CREATE INDEX idx_twitch_bans_channel ON twitch_bans(channel_id);
 CREATE INDEX idx_twitch_bans_user ON twitch_bans(banned_user_id);
-CREATE INDEX idx_twitch_bans_active ON twitch_bans(expires_at) WHERE expires_at IS NULL;
+CREATE INDEX idx_twitch_bans_permanent ON twitch_bans(expires_at) WHERE expires_at IS NULL;
 
--- Partial unique index for active bans (prevents duplicate active bans for same channel/user combination)
--- Note: We only enforce uniqueness for permanent bans (expires_at IS NULL) in the index
--- Expired bans are handled at the application level
-CREATE UNIQUE INDEX idx_twitch_bans_active_unique ON twitch_bans(channel_id, banned_user_id) WHERE expires_at IS NULL;
+-- Partial unique index for permanent bans only
+-- Note: We only enforce uniqueness for permanent bans (expires_at IS NULL) in the database.
+-- Temporary bans can overlap and are managed at the application level.
+CREATE UNIQUE INDEX idx_twitch_bans_permanent_unique ON twitch_bans(channel_id, banned_user_id) WHERE expires_at IS NULL;
 
 -- Add comments for documentation
 COMMENT ON TABLE twitch_bans IS 'Stores synced ban data from Twitch API. Tracks which users are banned from which channels.';
