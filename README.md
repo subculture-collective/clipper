@@ -1,638 +1,196 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/golang-migrate/migrate/ci.yaml?branch=master)](https://github.com/golang-migrate/migrate/actions/workflows/ci.yaml?query=branch%3Amaster)
+[![GoDoc](https://pkg.go.dev/badge/github.com/golang-migrate/migrate)](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)
+[![Coverage Status](https://img.shields.io/coveralls/github/golang-migrate/migrate/master.svg)](https://coveralls.io/github/golang-migrate/migrate?branch=master)
+[![packagecloud.io](https://img.shields.io/badge/deb-packagecloud.io-844fec.svg)](https://packagecloud.io/golang-migrate/migrate?filter=debs)
+[![Docker Pulls](https://img.shields.io/docker/pulls/migrate/migrate.svg)](https://hub.docker.com/r/migrate/migrate/)
+![Supported Go Versions](https://img.shields.io/badge/Go-1.20%2C%201.21-lightgrey.svg)
+[![GitHub Release](https://img.shields.io/github/release/golang-migrate/migrate.svg)](https://github.com/golang-migrate/migrate/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/golang-migrate/migrate/v4)](https://goreportcard.com/report/github.com/golang-migrate/migrate/v4)
 
-- [Clipper 🎬](#clipper-)
-  - [✨ Key Features](#-key-features)
-  - [📚 Documentation](#-documentation)
-    - [Quick Links](#quick-links)
-  - [🚦 Project Status](#-project-status)
-  - [🏗️ Architecture](#-architecture)
-    - [Tech Stack](#tech-stack)
-  - [🚀 Quick Start](#-quick-start)
-    - [Prerequisites](#prerequisites)
-    - [Setup](#setup)
-  - [🛠️ Development](#-development)
-    - [Available Commands](#available-commands)
-    - [Backend Development](#backend-development)
-    - [Frontend Development](#frontend-development)
-  - [📝 API Documentation](#-api-documentation)
-  - [🧪 Testing](#-testing)
-    - [Quick Start](#quick-start)
-    - [Backend Tests](#backend-tests)
-    - [Frontend Tests](#frontend-tests)
-    - [Coverage Status](#coverage-status)
-    - [Performance Targets](#performance-targets)
-  - [📦 Building for Production](#-building-for-production)
-  - [🐳 Docker](#-docker)
-  - [🚢 Deployment](#-deployment)
-    - [CI/CD Pipeline](#cicd-pipeline)
-    - [Docker Images](#docker-images)
-    - [Deployment Environments](#deployment-environments)
-    - [Required Secrets](#required-secrets)
-    - [Manual Deployment](#manual-deployment)
-    - [Deployment Scripts](#deployment-scripts)
-  - [🤝 Contributing](#-contributing)
-  - [📄 License](#-license)
-  - [🔗 Resources](#-resources)
-  - [📧 Support](#-support)
+# migrate
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+__Database migrations written in Go. Use as [CLI](#cli-usage) or import as [library](#use-in-your-go-project).__
 
-# Clipper 🎬
+* Migrate reads migrations from [sources](#migration-sources)
+   and applies them in correct order to a [database](#databases).
+* Drivers are "dumb", migrate glues everything together and makes sure the logic is bulletproof.
+   (Keeps the drivers lightweight, too.)
+* Database drivers don't assume things or try to correct user input. When in doubt, fail.
 
-[![CI](https://github.com/subculture-collective/clipper/actions/workflows/ci.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/ci.yml)
-[![Docker](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/docker.yml)
-[![CodeQL](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/codeql.yml)
-[![Lighthouse CI](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/subculture-collective/clipper/actions/workflows/lighthouse.yml)
+Forked from [mattes/migrate](https://github.com/mattes/migrate)
 
-A modern, community-driven Twitch clip curation platform that allows users to discover, organize, vote on, and share their favorite Twitch clips with the community.
+## Databases
 
-## ✨ Key Features
+Database drivers run migrations. [Add a new database?](database/driver.go)
 
-- 🎮 **Browse & Discover**: Explore trending Twitch clips from across the platform
-- 🔍 **Smart Search**: Powered by OpenSearch with typo tolerance, fuzzy matching, and advanced filtering
-- ⬆️ **Community Voting**: Upvote and downvote clips to curate the best content
-- 💬 **Discussions**: Comment on clips with markdown support
-- ⭐ **Favorites**: Save and organize your favorite clips
-- 🏆 **Karma System**: Build reputation through quality contributions
-- 🔐 **Twitch OAuth**: Seamless authentication with your Twitch account
-- 🔔 **Webhook Notifications**: Real-time notifications for clip submissions, approvals, and rejections
-- 📱 **Responsive Design**: Works beautifully on desktop and mobile
+* [PostgreSQL](database/postgres)
+* [PGX v4](database/pgx)
+* [PGX v5](database/pgx/v5)
+* [Redshift](database/redshift)
+* [Ql](database/ql)
+* [Cassandra / ScyllaDB](database/cassandra)
+* [SQLite](database/sqlite)
+* [SQLite3](database/sqlite3) ([todo #165](https://github.com/mattes/migrate/issues/165))
+* [SQLCipher](database/sqlcipher)
+* [MySQL / MariaDB](database/mysql)
+* [Neo4j](database/neo4j)
+* [MongoDB](database/mongodb)
+* [CrateDB](database/crate) ([todo #170](https://github.com/mattes/migrate/issues/170))
+* [Shell](database/shell) ([todo #171](https://github.com/mattes/migrate/issues/171))
+* [Google Cloud Spanner](database/spanner)
+* [CockroachDB](database/cockroachdb)
+* [YugabyteDB](database/yugabytedb)
+* [ClickHouse](database/clickhouse)
+* [Firebird](database/firebird)
+* [MS SQL Server](database/sqlserver)
+* [RQLite](database/rqlite)
 
-## 📚 Documentation
+### Database URLs
 
-**[📖 Browse Full Documentation](docs/index.md)** - Complete documentation hub with all guides, references, and resources.
+Database connection strings are specified via URLs. The URL format is driver dependent but generally has the form: `dbdriver://username:password@host:port/dbname?param1=true&param2=false`
 
-### Quick Links
+Any [reserved URL characters](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters) need to be escaped. Note, the `%` character also [needs to be escaped](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_the_percent_character)
 
-**For Users:**
+Explicitly, the following characters need to be escaped:
+`!`, `#`, `$`, `%`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `/`, `:`, `;`, `=`, `?`, `@`, `[`, `]`
 
-- [User Guide](docs/users/user-guide.md) - How to use Clipper
-- [FAQ](docs/users/faq.md) - Frequently asked questions
-- [Community Guidelines](docs/users/community-guidelines.md) - Rules and best practices
-
-**For Developers:**
-
-- [Development Setup](docs/setup/development.md) - Get started with development
-- [Backend Architecture](docs/backend/architecture.md) - System design and architecture
-- [Frontend Architecture](docs/frontend/architecture.md) - React frontend patterns
-- [Mobile Architecture](docs/mobile/architecture.md) - React Native app architecture
-- [API Reference](docs/backend/api.md) - Complete REST API documentation
-- [Clip Submission API Guide](docs/backend/clip-submission-api-guide.md) - Submit clips with TypeScript/cURL examples
-- [Webhook Subscription Management](docs/WEBHOOK_SUBSCRIPTION_MANAGEMENT.md) - Manage webhook subscriptions
-- [Webhook Signature Verification](docs/WEBHOOK_SIGNATURE_VERIFICATION.md) - **NEW!** Complete guide with examples in 7+ languages
-- [Webhook Examples](examples/webhooks/) - **NEW!** Working test servers and sample code
-- [Webhook Integration Guide](docs/backend/webhooks.md) - Integrate with outbound webhooks
-- [Webhook Retry & DLQ System](docs/backend/webhook-retry.md) - Webhook reliability architecture
-- [OpenAPI Specifications](docs/openapi/) - Machine-readable API specs
-- [Database Guide](docs/backend/database.md) - Schema, migrations, and queries
-- [Testing Guide](docs/backend/testing.md) - Testing strategy and tools
-
-**Premium & Subscriptions:**
-
-- [Premium Overview](docs/premium/overview.md) - Features and benefits
-- [Premium Tiers](docs/premium/tiers.md) - Pricing and tier comparison
-- [Stripe Integration](docs/premium/stripe.md) - Payment processing
-
-**Operations:**
-
-- [Staging Environment](docs/operations/staging-environment.md) - Staging setup and management
-- [Deployment Guide](docs/operations/deployment.md) - Production deployment
-- [Infrastructure](docs/operations/infra.md) - Architecture and scaling
-- [CI/CD Pipeline](docs/operations/cicd.md) - Continuous integration
-- [Monitoring](docs/operations/monitoring.md) - Metrics and alerting
-- [Runbook](docs/operations/runbook.md) - Operational procedures
-
-**Contributing:**
-
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute
-- [Code of Conduct](CODE_OF_CONDUCT.md) - Community standards
-- [Changelog](docs/changelog.md) - Version history
-
-## 🚦 Project Status
-
-**Current Version**: v0.x (Pre-release)  
-**Status**: Active Development  
-**Target**: MVP Release Q2 2025
-
-This project is currently in active development. Core features are being implemented and tested. We welcome contributions and feedback!
-
-## 🏗️ Architecture
-
-```text
-clipper/
-├── frontend/          # React + TypeScript + Vite
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   └── utils/
-│   └── ...
-├── mobile/            # React Native + Expo (iOS & Android)
-│   ├── app/           # Expo Router screens
-│   ├── src/           # Components, hooks, services
-│   └── assets/        # Images, fonts, icons
-├── shared/            # Shared TypeScript code
-│   └── src/
-│       ├── types/     # Shared type definitions
-│       ├── constants/ # Shared constants
-│       └── utils/     # Shared utilities
-├── backend/           # Go + Gin
-│   ├── cmd/api/       # Application entry point
-│   ├── internal/      # Private application code
-│   │   ├── handlers/  # HTTP handlers
-│   │   ├── models/    # Data models
-│   │   ├── repository/# Database layer
-│   │   ├── services/  # Business logic
-│   │   └── middleware/# Auth, CORS, logging
-│   ├── pkg/utils/     # Public utilities
-│   └── config/        # Configuration
-└── docs/             # Documentation
-```
-
-### Tech Stack
-
-**Frontend (Web):**
-
-- React 19 with TypeScript
-- Vite for build tooling
-- TailwindCSS for styling
-- React Router for navigation
-- TanStack Query for API state management
-- Zustand for global state
-- Axios for API calls
-
-**Mobile (iOS & Android):**
-
-- React Native 0.76 with Expo 52
-- Expo Router for navigation
-- NativeWind (TailwindCSS) for styling
-- TanStack Query for API state management
-- Zustand for global state
-- Shared TypeScript types with web
-
-**Shared:**
-
-- TypeScript types and interfaces
-- API client configuration
-- Shared constants and utilities
-
-**Backend:**
-
-- Go 1.24+
-- Gin web framework
-- PostgreSQL (via pgx)
-- Redis for caching
-- OpenSearch for search
-- JWT for authentication
-- Twitch API integration
-
-**Infrastructure:**
-
-- Docker & Docker Compose for local development
-- PostgreSQL 17
-- Redis 8
-- OpenSearch 2.11
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Go 1.24 or higher
-- Node.js 20 or higher
-- Docker and Docker Compose
-- Make (optional, but recommended)
-
-### Setup
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/subculture-collective/clipper.git
-   cd clipper
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   make install
-   ```
-
-3. **Set up environment variables**
-
-   ```bash
-   # Backend
-   cp backend/.env.example backend/.env
-   # Edit backend/.env with your configuration
-   
-   # Frontend
-   cp frontend/.env.example frontend/.env
-   # Edit frontend/.env with your configuration
-   ```
-
-4. **Start Docker services**
-
-   ```bash
-   make docker-up
-   ```
-
-5. **Start development servers**
-
-   Option A: Start everything at once
-
-   ```bash
-   make dev
-   ```
-
-   Option B: Start services individually
-
-   ```bash
-   # Terminal 1 - Backend
-   make backend-dev
-   
-   # Terminal 2 - Frontend
-   make frontend-dev
-   ```
-
-6. **Access the application**
-   - Frontend: <http://localhost:5173>
-   - Backend API: <http://localhost:8080>
-   - API Health: <http://localhost:8080/health>
-
-## 🛠️ Development
-
-### Available Commands
-
-Run `make help` to see all available commands:
+It's easiest to always run the URL parts of your DB connection URL (e.g. username, password, etc) through an URL encoder. See the example Python snippets below:
 
 ```bash
-make install        # Install all dependencies
-make dev           # Start all services in development mode
-make build         # Build both frontend and backend
-make test          # Run all tests
-make clean         # Clean build artifacts
-make docker-up     # Start Docker services (PostgreSQL + Redis)
-make docker-down   # Stop Docker services
-make backend-dev   # Run backend in development mode
-make frontend-dev  # Run frontend in development mode
-make lint          # Run linters
+$ python3 -c 'import urllib.parse; print(urllib.parse.quote(input("String to encode: "), ""))'
+String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
+FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
+$ python2 -c 'import urllib; print urllib.quote(raw_input("String to encode: "), "")'
+String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
+FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
+$
 ```
 
-### Backend Development
+## Migration Sources
+
+Source drivers read migrations from local or remote sources. [Add a new source?](source/driver.go)
+
+* [Filesystem](source/file) - read from filesystem
+* [io/fs](source/iofs) - read from a Go [io/fs](https://pkg.go.dev/io/fs#FS)
+* [Go-Bindata](source/go_bindata) - read from embedded binary data ([jteeuwen/go-bindata](https://github.com/jteeuwen/go-bindata))
+* [pkger](source/pkger) - read from embedded binary data ([markbates/pkger](https://github.com/markbates/pkger))
+* [GitHub](source/github) - read from remote GitHub repositories
+* [GitHub Enterprise](source/github_ee) - read from remote GitHub Enterprise repositories
+* [Bitbucket](source/bitbucket) - read from remote Bitbucket repositories
+* [Gitlab](source/gitlab) - read from remote Gitlab repositories
+* [AWS S3](source/aws_s3) - read from Amazon Web Services S3
+* [Google Cloud Storage](source/google_cloud_storage) - read from Google Cloud Platform Storage
+
+## CLI usage
+
+* Simple wrapper around this library.
+* Handles ctrl+c (SIGINT) gracefully.
+* No config search paths, no config files, no magic ENV var injections.
+
+__[CLI Documentation](cmd/migrate)__
+
+### Basic usage
 
 ```bash
-cd backend
-
-# Run the server
-go run cmd/api/main.go
-
-# Build the binary
-go build -o bin/api ./cmd/api
-
-# Run tests
-go test ./...
-
-# Format code
-go fmt ./...
+$ migrate -source file://path/to/migrations -database postgres://localhost:5432/database up 2
 ```
 
-### Frontend Development
+### Docker usage
 
 ```bash
-cd frontend
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Run linter
-npm run lint
-
-# Preview production build
-npm run preview
+$ docker run -v {{ migration dir }}:/migrations --network host migrate/migrate
+    -path=/migrations/ -database postgres://localhost:5432/database up 2
 ```
 
-## 📝 API Documentation
+## Use in your Go project
 
-The API is organized under `/api/v1` prefix:
+* API is stable and frozen for this release (v3 & v4).
+* Uses [Go modules](https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more) to manage dependencies.
+* To help prevent database corruptions, it supports graceful stops via `GracefulStop chan bool`.
+* Bring your own logger.
+* Uses `io.Reader` streams internally for low memory overhead.
+* Thread-safe and no goroutine leaks.
 
-- `GET /health` - Health check endpoint
-- `GET /api/v1/ping` - API ping endpoint
+__[Go Documentation](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)__
 
-More endpoints will be documented as they are implemented.
+```go
+import (
+    "github.com/golang-migrate/migrate/v4"
+    _ "github.com/golang-migrate/migrate/v4/database/postgres"
+    _ "github.com/golang-migrate/migrate/v4/source/github"
+)
 
-## 🧪 Testing
+func main() {
+    m, err := migrate.New(
+        "github://mattes:personal-access-token@mattes/migrate_test",
+        "postgres://localhost:5432/database?sslmode=enable")
+    m.Steps(2)
+}
+```
 
-We have a comprehensive testing strategy covering unit, integration, E2E, and load tests. See [Testing Guide](docs/TESTING.md) for detailed documentation.
+Want to use an existing database client?
 
-### Quick Start
+```go
+import (
+    "database/sql"
+    _ "github.com/lib/pq"
+    "github.com/golang-migrate/migrate/v4"
+    "github.com/golang-migrate/migrate/v4/database/postgres"
+    _ "github.com/golang-migrate/migrate/v4/source/file"
+)
+
+func main() {
+    db, err := sql.Open("postgres", "postgres://localhost:5432/database?sslmode=enable")
+    driver, err := postgres.WithInstance(db, &postgres.Config{})
+    m, err := migrate.NewWithDatabaseInstance(
+        "file:///migrations",
+        "postgres", driver)
+    m.Up() // or m.Step(2) if you want to explicitly set the number of migrations to run
+}
+```
+
+## Getting started
+
+Go to [getting started](GETTING_STARTED.md)
+
+## Tutorials
+
+* [CockroachDB](database/cockroachdb/TUTORIAL.md)
+* [PostgreSQL](database/postgres/TUTORIAL.md)
+
+(more tutorials to come)
+
+## Migration files
+
+Each migration has an up and down migration. [Why?](FAQ.md#why-two-separate-files-up-and-down-for-a-migration)
 
 ```bash
-# Run all tests
-make test
-
-# Run unit tests only
-make test-unit
-
-# Run integration tests (requires Docker)
-make test-integration
-
-# Run tests with coverage
-make test-coverage
-
-# Run load tests (requires k6)
-make migrate-seed-load-test  # Seed test data first
-make test-load               # Run all scenarios
-make test-load-mixed         # Run mixed user behavior (recommended)
+1481574547_create_users_table.up.sql
+1481574547_create_users_table.down.sql
 ```
 
-### Backend Tests
+[Best practices: How to write migrations.](MIGRATIONS.md)
 
-```bash
-cd backend
+## Coming from another db migration tool?
 
-# Unit tests
-go test ./...
+Check out [migradaptor](https://github.com/musinit/migradaptor/).
+*Note: migradaptor is not affliated or supported by this project*
 
-# With coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
+## Versions
 
-# With race detection
-go test -race ./...
-```
+Version | Supported? | Import | Notes
+--------|------------|--------|------
+**master** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | New features and bug fixes arrive here first |
+**v4** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | Used for stable releases |
+**v3** | :x: | `import "github.com/golang-migrate/migrate"` (with package manager) or `import "gopkg.in/golang-migrate/migrate.v3"` (not recommended) | **DO NOT USE** - No longer supported |
 
-### Frontend Tests
+## Development and Contributing
 
-```bash
-cd frontend
+Yes, please! [`Makefile`](Makefile) is your friend,
+read the [development guide](CONTRIBUTING.md).
 
-# Unit/integration tests
-npm test
-
-# With UI
-npm run test:ui
-
-# With coverage
-npm run test:coverage
-
-# E2E tests
-npm run test:e2e
-
-# E2E with UI
-npm run test:e2e:ui
-```
-
-### Coverage Status
-
-- **Backend**: ~15% (Target: >80%)
-  - JWT: 80% ✓
-  - Scheduler: 81.8% ✓
-  - Utils: 100% ✓
-  - Handlers: 0% (in progress)
-  - Services: 4.3% (in progress)
-  
-- **Frontend**: Infrastructure ready, tests in development
-
-### Performance Targets
-
-- Feed endpoint: <100ms (p95)
-- API responses: <50ms (p95)
-- Concurrent users: 1000+
-- Requests/second: 100+
-
-## 📦 Building for Production
-
-```bash
-# Build everything
-make build
-
-# Or build individually
-make backend-build
-make frontend-build
-```
-
-## 🐳 Docker
-
-The project includes a `docker-compose.yml` for local development with PostgreSQL and Redis:
-
-```bash
-# Start services
-docker compose up -d
-
-# Stop services
-docker compose down
-
-# View logs
-docker compose logs -f
-
-# Reset database
-docker compose down -v
-docker compose up -d
-```
-
-## 🚢 Deployment
-
-### CI/CD Pipeline
-
-The project uses GitHub Actions for continuous integration and deployment:
-
-- **CI Workflow**: Runs on every push and PR to `main` and `develop` branches
-  - Lints and formats code (backend and frontend)
-  - Runs tests with coverage reporting
-  - Builds binaries and bundles
-  - Matrix testing across Go 1.21/1.22 and Node 18/20
-
-- **Docker Workflow**: Builds and pushes Docker images
-  - Multi-stage builds for optimized image sizes
-  - Pushes to GitHub Container Registry (ghcr.io)
-  - Tags with version, branch, and commit SHA
-  - Scans images for vulnerabilities with Trivy
-
-- **Security Scanning**:
-  - CodeQL analysis for Go and TypeScript
-  - Weekly scheduled security scans
-  - Automated dependency updates via Dependabot
-
-### Docker Images
-
-Build images locally:
-
-```bash
-# Backend
-cd backend
-docker build -t clipper-backend .
-
-# Frontend
-cd frontend
-docker build -t clipper-frontend .
-```
-
-Pull from GitHub Container Registry:
-
-```bash
-docker pull ghcr.io/subculture-collective/clipper/backend:latest
-docker pull ghcr.io/subculture-collective/clipper/frontend:latest
-```
-
-### Deployment Environments
-
-#### Staging
-
-The staging environment mirrors production for safe deployment testing and validation.
-
-**Setup:**
-```bash
-# Automated setup (recommended)
-sudo ./scripts/setup-staging.sh
-
-# Manual setup - see docs/operations/staging-environment.md
-```
-
-**Features:**
-- Deploys automatically on push to `develop` branch
-- Complete infrastructure: PostgreSQL, Redis, OpenSearch, Caddy
-- Automated SSL certificates via Let's Encrypt
-- Test data seeding and smoke tests
-- Blue/green deployment testing
-
-**Configuration:**
-
-Add these secrets to your GitHub repository:
-- `STAGING_HOST`: Hostname of staging server (e.g., staging.clpr.tv)
-- `DEPLOY_SSH_KEY`: SSH private key for deployment user
-
-**Documentation:** See [Staging Environment Guide](docs/operations/staging-environment.md) for complete setup and management instructions.
-
-#### Production
-
-- Deploys on push to `main` or version tags (`v*`)
-- Requires manual approval via GitHub Environments
-- Runs E2E tests before deployment
-- Automatic rollback on health check failure
-
-To configure production deployment, add these secrets:
-
-- `PRODUCTION_HOST`: Hostname of production server
-- `DEPLOY_SSH_KEY`: SSH private key for deployment
-
-For complete details on setting up CI/CD secrets, see [CI/CD Secrets Setup Guide](docs/CI_CD_SECRETS.md).
-
-### Required Secrets
-
-Configure the following secrets in your GitHub repository settings:
-
-| Secret | Description | Required For |
-|--------|-------------|--------------|
-| `CODECOV_TOKEN` | Codecov upload token | Coverage reporting |
-| `STAGING_HOST` | Staging server hostname | Staging deployment |
-| `PRODUCTION_HOST` | Production server hostname | Production deployment |
-| `DEPLOY_SSH_KEY` | SSH key for deployment | Both deployments |
-
-See [CI/CD Secrets Setup Guide](docs/CI_CD_SECRETS.md) for detailed instructions on generating and configuring these secrets.
-
-### Manual Deployment
-
-To deploy manually, use workflow dispatch:
-
-```bash
-# Via GitHub UI
-Actions > Deploy to Staging/Production > Run workflow
-
-# Via GitHub CLI
-gh workflow run deploy-staging.yml
-gh workflow run deploy-production.yml
-```
-
-### Deployment Scripts
-
-The repository includes several deployment automation scripts in the `scripts/` directory:
-
-```bash
-# Deploy application with automated backup and health checks
-./scripts/deploy.sh
-
-# Rollback to a previous version
-./scripts/rollback.sh [backup-tag]
-
-# Run health checks on all services
-./scripts/health-check.sh
-
-# Backup database and configuration
-./scripts/backup.sh
-
-# Set up SSL/TLS certificates (requires sudo)
-sudo ./scripts/setup-ssl.sh
-```
-
-### Blue/Green Deployment (Zero-Downtime)
-
-**NEW**: Clipper supports blue/green deployment for zero-downtime production releases:
-
-```bash
-# Zero-downtime deployment
-./scripts/blue-green-deploy.sh
-
-# Deploy specific version
-IMAGE_TAG=v1.2.3 ./scripts/blue-green-deploy.sh
-
-# Quick rollback if issues occur
-./scripts/rollback-blue-green.sh
-
-# Test deployment in staging
-./scripts/test-blue-green-deployment.sh
-
-# Check migration compatibility
-./scripts/check-migration-compatibility.sh
-```
-
-**Benefits**:
-- ✓ Zero downtime - Instant traffic switching
-- ✓ Instant rollback - Revert in seconds
-- ✓ Safe testing - Verify before switching traffic
-- ✓ Automatic rollback on health check failure
-
-**Documentation**:
-- [Blue/Green Deployment Guide](docs/operations/BLUE_GREEN_DEPLOYMENT.md) - Complete setup and usage
-- [Rollback Procedures](docs/operations/BLUE_GREEN_ROLLBACK.md) - Emergency rollback steps
-- [Quick Reference](docs/operations/BLUE_GREEN_QUICK_REFERENCE.md) - Command cheat sheet
-
-See [RUNBOOK.md](./docs/RUNBOOK.md) for detailed operational procedures.
-
-## 🤝 Contributing
-
-We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
-
-Please read our [Contributing Guide](CONTRIBUTING.md) for:
-
-- Development workflow
-- Code standards and style
-- Testing requirements
-- Pull request process
-
-Also review our [Code of Conduct](CODE_OF_CONDUCT.md) to understand our community standards.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🔗 Resources
-
-- **[Issue Tracker](https://github.com/subculture-collective/clipper/issues)** - Report bugs or request features
-- **[Discussions](https://github.com/subculture-collective/clipper/discussions)** - Ask questions and share ideas
-- **[Twitch API Documentation](https://dev.twitch.tv/docs/api/)** - Official Twitch API docs
-- **[Changelog](CHANGELOG.md)** - See what's new
-
-## 📧 Support
-
-- **For Users**: Check the [FAQ](docs/faq.md) or [User Guide](docs/user-guide.md)
-- **For Developers**: See [Development Setup](docs/development.md) or open an issue
-- **For Bugs**: Open an issue with the `bug` label
-- **For Features**: Open an issue with the `enhancement` label
+Also have a look at the [FAQ](FAQ.md).
 
 ---
 
-**Made with ❤️ by the Subculture Collective community**
+Looking for alternatives? [https://awesome-go.com/#database](https://awesome-go.com/#database).
