@@ -27,7 +27,7 @@ CREATE UNIQUE INDEX idx_twitch_bans_active_unique ON twitch_bans(channel_id, ban
 
 -- Add comments for documentation
 COMMENT ON TABLE twitch_bans IS 'Stores synced ban data from Twitch API. Tracks which users are banned from which channels.';
-COMMENT ON COLUMN twitch_bans.channel_id IS 'Channel or community where the ban applies';
+COMMENT ON COLUMN twitch_bans.channel_id IS 'Twitch channel ID where the ban applies (stored as UUID for consistency)';
 COMMENT ON COLUMN twitch_bans.banned_user_id IS 'User who has been banned';
 COMMENT ON COLUMN twitch_bans.reason IS 'Reason for the ban (optional)';
 COMMENT ON COLUMN twitch_bans.banned_at IS 'Timestamp when the ban was issued';
