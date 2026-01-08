@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -167,6 +168,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 	// Transform Twitch bans to database records
 	now := time.Now()
 	dbBans := make([]*repository.TwitchBan, 0, len(allBans))
+	failedUserCreations := 0
 	
 	for _, twitchBan := range allBans {
 		// Get or create user for banned user
@@ -176,6 +178,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 				"twitch_user_id": twitchBan.UserID,
 				"username":       twitchBan.UserLogin,
 			})
+			failedUserCreations++
 			// Continue with other bans instead of failing completely
 			continue
 		}
@@ -221,10 +224,11 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 	}
 
 	logger.Info("Ban sync completed successfully", map[string]interface{}{
-		"user_id":     userID,
-		"channel_id":  channelID,
-		"bans_synced": len(dbBans),
-		"pages":       pageCount,
+		"user_id":                userID,
+		"channel_id":             channelID,
+		"bans_synced":            len(dbBans),
+		"pages":                  pageCount,
+		"failed_user_creations":  failedUserCreations,
 	})
 
 	return nil
@@ -340,7 +344,7 @@ func (s *TwitchBanSyncService) getOrCreateUserByTwitchID(ctx context.Context, tw
 		err = s.userRepo.Create(ctx, newUser)
 		if err != nil {
 			// Check if it's a duplicate error (race condition)
-			if err == repository.ErrUserAlreadyExists {
+			if errors.Is(err, repository.ErrUserAlreadyExists) {
 				// Try to get the user again
 				user, getErr := s.userRepo.GetByTwitchID(ctx, twitchID)
 				if getErr == nil && user != nil {

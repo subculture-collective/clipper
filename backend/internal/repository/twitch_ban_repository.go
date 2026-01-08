@@ -35,23 +35,54 @@ func NewTwitchBanRepository(pool *pgxpool.Pool) *TwitchBanRepository {
 }
 
 // UpsertBan inserts or updates a ban record
+// For permanent bans (expires_at IS NULL), uses the partial unique index on (channel_id, banned_user_id)
+// For temporary bans, uses twitch_ban_id for uniqueness since multiple temporary bans can exist
 func (r *TwitchBanRepository) UpsertBan(ctx context.Context, ban *TwitchBan) error {
+	// For permanent bans, use the partial unique index
+	if ban.ExpiresAt == nil {
+		query := `
+			INSERT INTO twitch_bans (
+				channel_id, banned_user_id, reason, banned_at, expires_at,
+				synced_from_twitch, twitch_ban_id, last_synced_at
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			ON CONFLICT (channel_id, banned_user_id)
+			WHERE expires_at IS NULL
+			DO UPDATE SET
+				reason = EXCLUDED.reason,
+				banned_at = EXCLUDED.banned_at,
+				synced_from_twitch = EXCLUDED.synced_from_twitch,
+				twitch_ban_id = EXCLUDED.twitch_ban_id,
+				last_synced_at = EXCLUDED.last_synced_at,
+				updated_at = NOW()
+			RETURNING id, created_at, updated_at
+		`
+
+		err := r.pool.QueryRow(
+			ctx,
+			query,
+			ban.ChannelID,
+			ban.BannedUserID,
+			ban.Reason,
+			ban.BannedAt,
+			ban.ExpiresAt,
+			ban.SyncedFromTwitch,
+			ban.TwitchBanID,
+			ban.LastSyncedAt,
+		).Scan(&ban.ID, &ban.CreatedAt, &ban.UpdatedAt)
+
+		return err
+	}
+
+	// For temporary bans, just insert (they can overlap)
+	// If we have the same twitch_ban_id, we could update it, but typically
+	// temporary bans from Twitch are unique by their creation time
 	query := `
 		INSERT INTO twitch_bans (
 			channel_id, banned_user_id, reason, banned_at, expires_at,
 			synced_from_twitch, twitch_ban_id, last_synced_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		ON CONFLICT (channel_id, banned_user_id)
-		WHERE expires_at IS NULL
-		DO UPDATE SET
-			reason = EXCLUDED.reason,
-			banned_at = EXCLUDED.banned_at,
-			expires_at = EXCLUDED.expires_at,
-			synced_from_twitch = EXCLUDED.synced_from_twitch,
-			twitch_ban_id = EXCLUDED.twitch_ban_id,
-			last_synced_at = EXCLUDED.last_synced_at,
-			updated_at = NOW()
 		RETURNING id, created_at, updated_at
 	`
 
@@ -84,7 +115,8 @@ func (r *TwitchBanRepository) BatchUpsertBans(ctx context.Context, bans []*Twitc
 	}
 	defer tx.Rollback(ctx) // nolint:errcheck
 
-	query := `
+	// Prepare queries for both permanent and temporary bans
+	permanentBanQuery := `
 		INSERT INTO twitch_bans (
 			channel_id, banned_user_id, reason, banned_at, expires_at,
 			synced_from_twitch, twitch_ban_id, last_synced_at
@@ -95,7 +127,6 @@ func (r *TwitchBanRepository) BatchUpsertBans(ctx context.Context, bans []*Twitc
 		DO UPDATE SET
 			reason = EXCLUDED.reason,
 			banned_at = EXCLUDED.banned_at,
-			expires_at = EXCLUDED.expires_at,
 			synced_from_twitch = EXCLUDED.synced_from_twitch,
 			twitch_ban_id = EXCLUDED.twitch_ban_id,
 			last_synced_at = EXCLUDED.last_synced_at,
@@ -103,7 +134,23 @@ func (r *TwitchBanRepository) BatchUpsertBans(ctx context.Context, bans []*Twitc
 		RETURNING id, created_at, updated_at
 	`
 
+	temporaryBanQuery := `
+		INSERT INTO twitch_bans (
+			channel_id, banned_user_id, reason, banned_at, expires_at,
+			synced_from_twitch, twitch_ban_id, last_synced_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, created_at, updated_at
+	`
+
 	for _, ban := range bans {
+		var query string
+		if ban.ExpiresAt == nil {
+			query = permanentBanQuery
+		} else {
+			query = temporaryBanQuery
+		}
+
 		err := tx.QueryRow(
 			ctx,
 			query,
