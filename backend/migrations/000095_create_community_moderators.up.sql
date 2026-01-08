@@ -6,18 +6,19 @@ CREATE TABLE IF NOT EXISTS community_moderators (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     channel_id UUID NOT NULL,
     granted_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    granted_at TIMESTAMP NOT NULL DEFAULT now(),
-    revoked_at TIMESTAMP,
+    granted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revoked_at TIMESTAMPTZ,
     reason TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP NOT NULL DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(user_id, channel_id)
 );
 
 -- Indexes for performance queries
 CREATE INDEX idx_community_moderators_user ON community_moderators(user_id);
 CREATE INDEX idx_community_moderators_channel ON community_moderators(channel_id);
-CREATE INDEX idx_community_moderators_active ON community_moderators(revoked_at) WHERE revoked_at IS NULL;
+CREATE INDEX idx_community_moderators_user_active ON community_moderators(user_id) WHERE revoked_at IS NULL;
+CREATE INDEX idx_community_moderators_channel_active ON community_moderators(channel_id) WHERE revoked_at IS NULL;
 
 -- Add comments for documentation
 COMMENT ON TABLE community_moderators IS 'Tracks community moderator assignments and their channel roles';
