@@ -69,6 +69,9 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 		"Moderator Username",
 		"Reason",
 		"Metadata",
+		"IP Address",
+		"User Agent",
+		"Channel ID",
 		"Created At",
 	}
 	if err := csvWriter.Write(header); err != nil {
@@ -92,6 +95,21 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 			metadata = fmt.Sprintf("%v", log.Metadata)
 		}
 
+		ipAddress := ""
+		if log.IPAddress != nil {
+			ipAddress = *log.IPAddress
+		}
+
+		userAgent := ""
+		if log.UserAgent != nil {
+			userAgent = *log.UserAgent
+		}
+
+		channelID := ""
+		if log.ChannelID != nil {
+			channelID = log.ChannelID.String()
+		}
+
 		row := []string{
 			log.ID.String(),
 			log.Action,
@@ -101,6 +119,9 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 			moderatorUsername,
 			reason,
 			metadata,
+			ipAddress,
+			userAgent,
+			channelID,
 			log.CreatedAt.Format(time.RFC3339),
 		}
 
