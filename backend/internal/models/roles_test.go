@@ -173,6 +173,7 @@ func TestIsValidAccountType(t *testing.T) {
 		{AccountTypeMember, true},
 		{AccountTypeBroadcaster, true},
 		{AccountTypeModerator, true},
+		{AccountTypeCommunityModerator, true},
 		{AccountTypeAdmin, true},
 		{"invalid", false},
 		{"", false},
@@ -237,6 +238,26 @@ func TestGetAccountTypePermissions(t *testing.T) {
 				PermissionManageUsers,
 			},
 			mustNotHavePerms: []string{
+				PermissionManageSystem,
+			},
+		},
+		{
+			name:          "community moderator permissions",
+			accountType:   AccountTypeCommunityModerator,
+			expectedCount: 8,
+			mustHavePerms: []string{
+				PermissionCreateSubmission,
+				PermissionCreateComment,
+				PermissionCreateVote,
+				PermissionCreateFollow,
+				PermissionViewBroadcasterAnalytics,
+				PermissionClaimBroadcasterProfile,
+				PermissionModerateContent,
+				PermissionModerateUsers,
+			},
+			mustNotHavePerms: []string{
+				PermissionCreateDiscoveryLists,
+				PermissionManageUsers,
 				PermissionManageSystem,
 			},
 		},
@@ -343,6 +364,35 @@ func TestUserCan(t *testing.T) {
 			permission:  PermissionManageSystem,
 			expected:    false,
 		},
+		// Community Moderator tests
+		{
+			name:        "community moderator can moderate content",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionModerateContent,
+			expected:    true,
+		},
+		{
+			name:        "community moderator can moderate users",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionModerateUsers,
+			expected:    true,
+		},
+		{
+			name:        "community moderator cannot create discovery lists",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionCreateDiscoveryLists,
+			expected:    false,
+		},
+		{
+			name:        "community moderator cannot manage users",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionManageUsers,
+			expected:    false,
+		},
 		// Admin tests
 		{
 			name:        "admin can do everything - by role",
@@ -444,6 +494,9 @@ func TestAccountTypeConstants(t *testing.T) {
 	}
 	if AccountTypeModerator != "moderator" {
 		t.Errorf("AccountTypeModerator = %q, want %q", AccountTypeModerator, "moderator")
+	}
+	if AccountTypeCommunityModerator != "community_moderator" {
+		t.Errorf("AccountTypeCommunityModerator = %q, want %q", AccountTypeCommunityModerator, "community_moderator")
 	}
 	if AccountTypeAdmin != "admin" {
 		t.Errorf("AccountTypeAdmin = %q, want %q", AccountTypeAdmin, "admin")

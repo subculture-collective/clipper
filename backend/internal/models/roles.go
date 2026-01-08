@@ -9,10 +9,11 @@ const (
 
 // Account type constants
 const (
-	AccountTypeMember      = "member"
-	AccountTypeBroadcaster = "broadcaster"
-	AccountTypeModerator   = "moderator"
-	AccountTypeAdmin       = "admin"
+	AccountTypeMember             = "member"
+	AccountTypeBroadcaster        = "broadcaster"
+	AccountTypeModerator          = "moderator"
+	AccountTypeCommunityModerator = "community_moderator"
+	AccountTypeAdmin              = "admin"
 )
 
 // Permission constants
@@ -72,6 +73,23 @@ var accountTypePermissions = map[string][]string{
 		// User management permissions
 		PermissionManageUsers,
 	},
+	// Community Moderator: Channel-scoped moderator with limited permissions
+	// Inherits broadcaster permissions + basic moderation capabilities
+	// NOTE: Currently permissions are global. Future issues will add channel-scoping
+	// logic to limit these permissions to only the channels where the user is assigned
+	// as a community moderator
+	AccountTypeCommunityModerator: {
+		// All broadcaster permissions
+		PermissionCreateSubmission,
+		PermissionCreateComment,
+		PermissionCreateVote,
+		PermissionCreateFollow,
+		PermissionViewBroadcasterAnalytics,
+		PermissionClaimBroadcasterProfile,
+		// Limited moderation permissions (channel-scoped)
+		PermissionModerateContent,
+		PermissionModerateUsers,
+	},
 	AccountTypeAdmin: {
 		// All moderator permissions
 		PermissionCreateSubmission,
@@ -104,7 +122,7 @@ func IsValidRole(role string) bool {
 // IsValidAccountType checks if an account type string is valid
 func IsValidAccountType(accountType string) bool {
 	switch accountType {
-	case AccountTypeMember, AccountTypeBroadcaster, AccountTypeModerator, AccountTypeAdmin:
+	case AccountTypeMember, AccountTypeBroadcaster, AccountTypeModerator, AccountTypeCommunityModerator, AccountTypeAdmin:
 		return true
 	default:
 		return false
