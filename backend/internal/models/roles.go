@@ -33,6 +33,11 @@ const (
 	PermissionModerateUsers        = "moderate:users"
 	PermissionCreateDiscoveryLists = "create:discovery_lists"
 
+	// Community Moderator permissions (channel-scoped moderation)
+	PermissionCommunityModerate    = "community:moderate"
+	PermissionViewChannelAnalytics = "view:channel_analytics"
+	PermissionManageModerators     = "manage:moderators"
+
 	// Admin permissions (includes all permissions)
 	PermissionManageUsers            = "manage:users"
 	PermissionManageSystem           = "manage:system"
@@ -74,21 +79,19 @@ var accountTypePermissions = map[string][]string{
 		PermissionManageUsers,
 	},
 	// Community Moderator: Channel-scoped moderator with limited permissions
-	// Inherits broadcaster permissions + basic moderation capabilities
-	// NOTE: Currently permissions are global. Future issues will add channel-scoping
+	// Has exactly 4 permissions for managing their assigned channel(s):
+	// 1. community:moderate - Core community moderation capability
+	// 2. moderate:users - Ability to moderate user actions within their scope
+	// 3. view:channel_analytics - Access to channel-specific analytics
+	// 4. manage:moderators - Ability to manage other moderators in their channel
+	// NOTE: Permissions are currently global. Future issues will add channel-scoping
 	// logic to limit these permissions to only the channels where the user is assigned
 	// as a community moderator
 	AccountTypeCommunityModerator: {
-		// All broadcaster permissions
-		PermissionCreateSubmission,
-		PermissionCreateComment,
-		PermissionCreateVote,
-		PermissionCreateFollow,
-		PermissionViewBroadcasterAnalytics,
-		PermissionClaimBroadcasterProfile,
-		// Limited moderation permissions (channel-scoped)
-		PermissionModerateContent,
+		PermissionCommunityModerate,
 		PermissionModerateUsers,
+		PermissionViewChannelAnalytics,
+		PermissionManageModerators,
 	},
 	AccountTypeAdmin: {
 		// All moderator permissions
@@ -101,6 +104,10 @@ var accountTypePermissions = map[string][]string{
 		PermissionModerateContent,
 		PermissionModerateUsers,
 		PermissionCreateDiscoveryLists,
+		// Community moderator permissions
+		PermissionCommunityModerate,
+		PermissionViewChannelAnalytics,
+		PermissionManageModerators,
 		// Admin-specific permissions
 		PermissionManageUsers,
 		PermissionManageSystem,

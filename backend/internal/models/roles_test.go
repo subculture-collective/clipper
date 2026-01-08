@@ -244,18 +244,18 @@ func TestGetAccountTypePermissions(t *testing.T) {
 		{
 			name:          "community moderator permissions",
 			accountType:   AccountTypeCommunityModerator,
-			expectedCount: 8,
+			expectedCount: 4,
 			mustHavePerms: []string{
-				PermissionCreateSubmission,
-				PermissionCreateComment,
-				PermissionCreateVote,
-				PermissionCreateFollow,
-				PermissionViewBroadcasterAnalytics,
-				PermissionClaimBroadcasterProfile,
-				PermissionModerateContent,
+				PermissionCommunityModerate,
 				PermissionModerateUsers,
+				PermissionViewChannelAnalytics,
+				PermissionManageModerators,
 			},
 			mustNotHavePerms: []string{
+				PermissionCreateSubmission,
+				PermissionCreateComment,
+				PermissionViewBroadcasterAnalytics,
+				PermissionModerateContent,
 				PermissionCreateDiscoveryLists,
 				PermissionManageUsers,
 				PermissionManageSystem,
@@ -264,13 +264,16 @@ func TestGetAccountTypePermissions(t *testing.T) {
 		{
 			name:          "admin permissions",
 			accountType:   AccountTypeAdmin,
-			expectedCount: 13,
+			expectedCount: 16,
 			mustHavePerms: []string{
 				PermissionCreateSubmission,
 				PermissionModerateContent,
 				PermissionManageUsers,
 				PermissionManageSystem,
 				PermissionViewAnalyticsDashboard,
+				PermissionCommunityModerate,
+				PermissionViewChannelAnalytics,
+				PermissionManageModerators,
 			},
 		},
 		{
@@ -334,6 +337,13 @@ func TestUserCan(t *testing.T) {
 			permission:  PermissionViewBroadcasterAnalytics,
 			expected:    false,
 		},
+		{
+			name:        "member cannot access community:moderate permission",
+			accountType: AccountTypeMember,
+			role:        RoleUser,
+			permission:  PermissionCommunityModerate,
+			expected:    false,
+		},
 		// Broadcaster tests
 		{
 			name:        "broadcaster can view analytics",
@@ -366,10 +376,10 @@ func TestUserCan(t *testing.T) {
 		},
 		// Community Moderator tests
 		{
-			name:        "community moderator can moderate content",
+			name:        "community moderator can use community:moderate permission",
 			accountType: AccountTypeCommunityModerator,
 			role:        RoleUser,
-			permission:  PermissionModerateContent,
+			permission:  PermissionCommunityModerate,
 			expected:    true,
 		},
 		{
@@ -378,6 +388,34 @@ func TestUserCan(t *testing.T) {
 			role:        RoleUser,
 			permission:  PermissionModerateUsers,
 			expected:    true,
+		},
+		{
+			name:        "community moderator can view channel analytics",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionViewChannelAnalytics,
+			expected:    true,
+		},
+		{
+			name:        "community moderator can manage moderators",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionManageModerators,
+			expected:    true,
+		},
+		{
+			name:        "community moderator cannot create submissions",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionCreateSubmission,
+			expected:    false,
+		},
+		{
+			name:        "community moderator cannot moderate content",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionModerateContent,
+			expected:    false,
 		},
 		{
 			name:        "community moderator cannot create discovery lists",
@@ -406,6 +444,27 @@ func TestUserCan(t *testing.T) {
 			accountType: AccountTypeAdmin,
 			role:        RoleUser,
 			permission:  PermissionManageSystem,
+			expected:    true,
+		},
+		{
+			name:        "admin has community:moderate permission",
+			accountType: AccountTypeAdmin,
+			role:        RoleAdmin,
+			permission:  PermissionCommunityModerate,
+			expected:    true,
+		},
+		{
+			name:        "admin has view:channel_analytics permission",
+			accountType: AccountTypeAdmin,
+			role:        RoleAdmin,
+			permission:  PermissionViewChannelAnalytics,
+			expected:    true,
+		},
+		{
+			name:        "admin has manage:moderators permission",
+			accountType: AccountTypeAdmin,
+			role:        RoleAdmin,
+			permission:  PermissionManageModerators,
 			expected:    true,
 		},
 	}
