@@ -23,7 +23,11 @@ type User struct {
 	Role                 string     `json:"role" db:"role"`
 	AccountType          string     `json:"account_type" db:"account_type"`
 	AccountTypeUpdatedAt *time.Time `json:"account_type_updated_at,omitempty" db:"account_type_updated_at"`
-	AccountStatus        string     `json:"account_status" db:"account_status"` // active, unclaimed, pending
+	// Moderator metadata fields
+	ModeratorScope      string       `json:"moderator_scope,omitempty" db:"moderator_scope"`
+	ModerationChannels  []uuid.UUID  `json:"moderation_channels,omitempty" db:"moderation_channels"`
+	ModerationStartedAt *time.Time   `json:"moderation_started_at,omitempty" db:"moderation_started_at"`
+	AccountStatus       string       `json:"account_status" db:"account_status"` // active, unclaimed, pending
 	IsBanned             bool       `json:"is_banned" db:"is_banned"`
 	DeviceToken          *string    `json:"device_token,omitempty" db:"device_token"`
 	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
