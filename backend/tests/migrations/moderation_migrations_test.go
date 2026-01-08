@@ -171,6 +171,26 @@ func (mh *migrationHelper) isColumnNullable(ctx context.Context, tableName, colu
 	return isNullable == "YES", nil
 }
 
+// assertColumnsExist is a helper to verify multiple columns exist in a table
+func assertColumnsExist(t *testing.T, mh *migrationHelper, ctx context.Context, tableName string, columns []string) {
+	t.Helper()
+	for _, col := range columns {
+		exists, err := mh.columnExists(ctx, tableName, col)
+		require.NoError(t, err)
+		assert.True(t, exists, fmt.Sprintf("Column %s should exist in table %s", col, tableName))
+	}
+}
+
+// assertIndexesExist is a helper to verify multiple indexes exist
+func assertIndexesExist(t *testing.T, mh *migrationHelper, ctx context.Context, indexes []string) {
+	t.Helper()
+	for _, index := range indexes {
+		exists, err := mh.indexExists(ctx, index)
+		require.NoError(t, err)
+		assert.True(t, exists, fmt.Sprintf("Index %s should exist", index))
+	}
+}
+
 // TestModerationQueueMigration000049 tests the moderation queue system migration
 func TestModerationQueueMigration000049(t *testing.T) {
 	mh := setupMigrationTest(t)
@@ -197,12 +217,7 @@ func TestModerationQueueMigration000049(t *testing.T) {
 			"auto_flagged", "confidence_score", "created_at", "reviewed_at",
 			"reviewed_by",
 		}
-
-		for _, col := range columns {
-			exists, err := mh.columnExists(ctx, "moderation_queue", col)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Column %s should exist", col))
-		}
+		assertColumnsExist(t, mh, ctx, "moderation_queue", columns)
 	})
 
 	t.Run("ModerationQueueConstraints", func(t *testing.T) {
@@ -230,12 +245,7 @@ func TestModerationQueueMigration000049(t *testing.T) {
 			"idx_modqueue_created_at",
 			"uq_modqueue_content_pending",
 		}
-
-		for _, index := range indexes {
-			exists, err := mh.indexExists(ctx, index)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Index %s should exist", index))
-		}
+		assertIndexesExist(t, mh, ctx, indexes)
 	})
 
 	t.Run("ModerationDecisionsColumns", func(t *testing.T) {
@@ -243,12 +253,7 @@ func TestModerationQueueMigration000049(t *testing.T) {
 			"id", "queue_item_id", "moderator_id", "action",
 			"reason", "metadata", "created_at",
 		}
-
-		for _, col := range columns {
-			exists, err := mh.columnExists(ctx, "moderation_decisions", col)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Column %s should exist", col))
-		}
+		assertColumnsExist(t, mh, ctx, "moderation_decisions", columns)
 	})
 
 	t.Run("ModerationDecisionsIndexes", func(t *testing.T) {
@@ -258,12 +263,7 @@ func TestModerationQueueMigration000049(t *testing.T) {
 			"idx_moddecisions_created_at",
 			"idx_moddecisions_action",
 		}
-
-		for _, index := range indexes {
-			exists, err := mh.indexExists(ctx, index)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Index %s should exist", index))
-		}
+		assertIndexesExist(t, mh, ctx, indexes)
 	})
 
 	t.Run("TriggersAndFunctions", func(t *testing.T) {
@@ -298,12 +298,7 @@ func TestModerationAppealsMigration000050(t *testing.T) {
 			"status", "resolved_by", "resolution", "created_at",
 			"resolved_at",
 		}
-
-		for _, col := range columns {
-			exists, err := mh.columnExists(ctx, "moderation_appeals", col)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Column %s should exist", col))
-		}
+		assertColumnsExist(t, mh, ctx, "moderation_appeals", columns)
 	})
 
 	t.Run("Constraints", func(t *testing.T) {
@@ -321,12 +316,7 @@ func TestModerationAppealsMigration000050(t *testing.T) {
 			"idx_appeals_resolved_by",
 			"uq_appeals_action_pending",
 		}
-
-		for _, index := range indexes {
-			exists, err := mh.indexExists(ctx, index)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Index %s should exist", index))
-		}
+		assertIndexesExist(t, mh, ctx, indexes)
 	})
 
 	t.Run("TriggersAndFunctions", func(t *testing.T) {

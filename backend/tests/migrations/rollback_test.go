@@ -10,12 +10,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
 // runMigration runs migrate command
 func runMigration(direction string, steps int) error {
+	dbHost := testutil.GetEnv("TEST_DATABASE_HOST", "localhost")
+	dbPort := testutil.GetEnv("TEST_DATABASE_PORT", "5437")
+	dbUser := testutil.GetEnv("TEST_DATABASE_USER", "clipper")
+	dbPassword := testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password")
+	dbName := testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test")
+
 	dbURL := fmt.Sprintf(
-		"postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable",
+		"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
+		dbUser, dbPassword, dbHost, dbPort, dbName,
 	)
 
 	args := []string{
@@ -74,7 +82,8 @@ func TestMigrationRollback000049(t *testing.T) {
 		// Run down migration for 000049
 		err = runMigration("down", 1)
 		if err != nil {
-			t.Logf("Note: Migration rollback may have already been tested. Error: %v", err)
+			// Log and skip if migration tool is not available or already rolled back
+			t.Skipf("Migration rollback skipped: %v", err)
 			return
 		}
 
