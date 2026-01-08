@@ -179,7 +179,7 @@ type BannedUser struct {
 	UserID      string    `json:"user_id"`
 	UserLogin   string    `json:"user_login"`
 	UserName    string    `json:"user_name"`
-	ExpiresAt   time.Time `json:"expires_at"` // Zero time for permanent bans
+	ExpiresAt   time.Time `json:"expires_at"` // Empty/zero time for permanent bans (Twitch API returns empty string)
 	CreatedAt   time.Time `json:"created_at"`
 	Reason      string    `json:"reason"`
 	ModeratorID string    `json:"moderator_id"`
