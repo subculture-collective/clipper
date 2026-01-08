@@ -171,6 +171,16 @@ func (mh *migrationHelper) isColumnNullable(ctx context.Context, tableName, colu
 	return isNullable == "YES", nil
 }
 
+// assertTablesExist is a helper to verify multiple tables exist
+func assertTablesExist(t *testing.T, mh *migrationHelper, ctx context.Context, tables []string) {
+	t.Helper()
+	for _, table := range tables {
+		exists, err := mh.tableExists(ctx, table)
+		require.NoError(t, err)
+		assert.True(t, exists, fmt.Sprintf("Table %s should exist", table))
+	}
+}
+
 // assertColumnsExist is a helper to verify multiple columns exist in a table
 func assertColumnsExist(t *testing.T, mh *migrationHelper, ctx context.Context, tableName string, columns []string) {
 	t.Helper()
@@ -350,12 +360,7 @@ func TestModerationAuditLogsMigration000011(t *testing.T) {
 			"id", "action", "entity_type", "entity_id",
 			"moderator_id", "reason", "metadata", "created_at",
 		}
-
-		for _, col := range columns {
-			exists, err := mh.columnExists(ctx, "moderation_audit_logs", col)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Column %s should exist", col))
-		}
+		assertColumnsExist(t, mh, ctx, "moderation_audit_logs", columns)
 	})
 
 	t.Run("Indexes", func(t *testing.T) {
@@ -365,12 +370,7 @@ func TestModerationAuditLogsMigration000011(t *testing.T) {
 			"idx_audit_logs_created",
 			"idx_audit_logs_action",
 		}
-
-		for _, index := range indexes {
-			exists, err := mh.indexExists(ctx, index)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Index %s should exist", index))
-		}
+		assertIndexesExist(t, mh, ctx, indexes)
 	})
 }
 
@@ -389,12 +389,7 @@ func TestForumModerationMigration000069(t *testing.T) {
 			"user_bans",
 			"content_flags",
 		}
-
-		for _, table := range tables {
-			exists, err := mh.tableExists(ctx, table)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Table %s should exist", table))
-		}
+		assertTablesExist(t, mh, ctx, tables)
 	})
 
 	t.Run("ForumThreadsColumns", func(t *testing.T) {
@@ -403,12 +398,7 @@ func TestForumModerationMigration000069(t *testing.T) {
 			"pinned", "flag_count", "reply_count", "view_count",
 			"is_deleted", "created_at", "updated_at",
 		}
-
-		for _, col := range columns {
-			exists, err := mh.columnExists(ctx, "forum_threads", col)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Column %s should exist", col))
-		}
+		assertColumnsExist(t, mh, ctx, "forum_threads", columns)
 	})
 
 	t.Run("ModerationActionsColumns", func(t *testing.T) {
@@ -416,12 +406,7 @@ func TestForumModerationMigration000069(t *testing.T) {
 			"id", "moderator_id", "action_type", "target_type",
 			"target_id", "reason", "metadata", "created_at",
 		}
-
-		for _, col := range columns {
-			exists, err := mh.columnExists(ctx, "moderation_actions", col)
-			require.NoError(t, err)
-			assert.True(t, exists, fmt.Sprintf("Column %s should exist", col))
-		}
+		assertColumnsExist(t, mh, ctx, "moderation_actions", columns)
 	})
 
 	t.Run("TriggersAndFunctions", func(t *testing.T) {
