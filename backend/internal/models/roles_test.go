@@ -376,7 +376,7 @@ func TestUserCan(t *testing.T) {
 		},
 		// Community Moderator tests
 		{
-			name:        "community moderator can moderate content",
+			name:        "community moderator can use community:moderate permission",
 			accountType: AccountTypeCommunityModerator,
 			role:        RoleUser,
 			permission:  PermissionCommunityModerate,
