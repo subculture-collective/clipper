@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS channel_moderators (
     channel_id UUID NOT NULL REFERENCES chat_channels(id) ON DELETE CASCADE,
     moderator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Unique constraint: prevent duplicate active moderator assignments
