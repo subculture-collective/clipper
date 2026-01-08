@@ -350,7 +350,7 @@ func (r *CommunityRepository) GetBanByID(ctx context.Context, banID uuid.UUID) (
 		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
 	)
 	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("ban not found")
+		return nil, fmt.Errorf("ban not found: %s", banID.String())
 	}
 	return ban, err
 }

@@ -27,11 +27,7 @@ func (m *MockRedisClient) SetJSON(ctx context.Context, key string, value interfa
 	return args.Error(0)
 }
 
-func (m *MockRedisClient) Del(ctx context.Context, key string) error {
-	args := m.Called(ctx, key)
-	return args.Error(0)
-}
-
+// Delete is the preferred method name for cache deletion
 func (m *MockRedisClient) Delete(ctx context.Context, key string) error {
 	args := m.Called(ctx, key)
 	return args.Error(0)

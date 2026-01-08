@@ -158,20 +158,16 @@ func (s *PermissionCheckService) CanModerate(ctx context.Context, actor *models.
 		return nil
 	}
 
+	var permissionGranted bool
+
 	// Site moderators can moderate anywhere
 	if actor.AccountType == models.AccountTypeModerator && actor.ModeratorScope == models.ModeratorScopeSite {
-		s.cache.SetJSON(ctx, cacheKey, true, TTLPermissionCheck)
-		return nil
-	}
-
-	// Admins can moderate anywhere
-	if actor.AccountType == models.AccountTypeAdmin || actor.Role == models.RoleAdmin {
-		s.cache.SetJSON(ctx, cacheKey, true, TTLPermissionCheck)
-		return nil
-	}
-
-	// Community moderators need to be a mod or admin in the specific community
-	if actor.AccountType == models.AccountTypeCommunityModerator {
+		permissionGranted = true
+	} else if actor.AccountType == models.AccountTypeAdmin || actor.Role == models.RoleAdmin {
+		// Admins can moderate anywhere
+		permissionGranted = true
+	} else if actor.AccountType == models.AccountTypeCommunityModerator {
+		// Community moderators need to be a mod or admin in the specific community
 		member, err := s.communityRepo.GetMember(ctx, channelID, actor.ID)
 		if err != nil {
 			return NewPermissionDenied(
@@ -204,20 +200,26 @@ func (s *PermissionCheckService) CanModerate(ctx context.Context, actor *models.
 				},
 			)
 		}
-		s.cache.SetJSON(ctx, cacheKey, true, TTLPermissionCheck)
-		return nil
+		permissionGranted = true
+	} else {
+		// Regular users cannot moderate
+		return NewPermissionDenied(
+			"NO_MODERATION_PRIVILEGES",
+			"user does not have moderation privileges",
+			map[string]interface{}{
+				"channel_id":   channelID.String(),
+				"user_id":      actor.ID.String(),
+				"account_type": actor.AccountType,
+			},
+		)
 	}
 
-	// Regular users cannot moderate
-	return NewPermissionDenied(
-		"NO_MODERATION_PRIVILEGES",
-		"user does not have moderation privileges",
-		map[string]interface{}{
-			"channel_id":   channelID.String(),
-			"user_id":      actor.ID.String(),
-			"account_type": actor.AccountType,
-		},
-	)
+	// Cache the result if permission was granted
+	if permissionGranted {
+		s.cache.SetJSON(ctx, cacheKey, true, TTLPermissionCheck)
+	}
+
+	return nil
 }
 
 // ValidateModeratorScope validates that a moderator has access to the specified channels
