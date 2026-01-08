@@ -56,10 +56,15 @@ action := "ban"
 actor := userID                    // UUID of moderator
 target := bannedUserID             // UUID of banned user
 entityType := "user"
-channelID := chatChannelID         // Optional: UUID or nil
+channelID := chatChannelID         // Optional: UUID
+
+// In a Gin handler, extract IP and user agent from request:
+// ipAddress := c.ClientIP()
+// userAgent := c.Request.UserAgent()
+ipAddress := c.ClientIP()          // Extracted from request context (e.g., Gin *gin.Context)
+userAgent := c.Request.UserAgent() // Extracted from request headers
+
 reason := "Repeated spam violations"
-ipAddress := "192.168.1.1"        // From request context
-userAgent := "Mozilla/5.0..."      // From request headers
 metadata := map[string]interface{}{
     "duration": "7d",
     "severity": "high",
@@ -68,7 +73,13 @@ metadata := map[string]interface{}{
 
 err := auditLogService.LogAction(
     ctx, action, actor, target, entityType,
-    &channelID, &reason, metadata, &ipAddress, &userAgent,
+    services.AuditLogOptions{
+        Channel:   &channelID,
+        Reason:    &reason,
+        Metadata:  metadata,
+        IPAddress: &ipAddress,
+        UserAgent: &userAgent,
+    },
 )
 ```
 
@@ -225,20 +236,23 @@ go test ./internal/services -run TestParse -v
 
 ## Migration
 
-The database migration `000100_add_audit_log_context_fields` adds:
+The database schema changes for audit log context fields were added in migration `000097_update_moderation_audit_logs`:
 - `ip_address` (INET)
 - `user_agent` (TEXT)
 - `channel_id` (UUID)
-- Indexes for performance
-- Column comments for documentation
+- `actor_id` (UUID) - new name for moderator
+- `target_user_id` (UUID) - for user-focused actions
+- Indexes for performance on all filterable fields
 
 ## Security Considerations
 
-1. **IP Address Storage**: IP addresses are stored for security auditing and compliance
+1. **IP Address Storage**: IP addresses are stored for security auditing and compliance. **Important**: IP addresses are considered personal data / Personally Identifiable Information (PII) under GDPR and many similar privacy regulations and MUST be handled accordingly.
 2. **User Agent Tracking**: Helps identify automated vs. manual actions
 3. **No PII in Metadata**: Avoid storing sensitive personal information in the metadata field
 4. **Access Control**: Only authorized administrators should access audit logs
-5. **Retention**: Consider implementing data retention policies for compliance
+5. **Retention Policies**: Implement clear data retention and deletion policies for audit log entries (including IP addresses and user agents), ensuring that data is not kept longer than necessary for the stated purpose and that retention is based on a documented legal basis.
+6. **Anonymization / Pseudonymization**: Where full IP addresses are not strictly required, consider applying anonymization or pseudonymization techniques (e.g., IP truncation, hashing, or tokenization) to reduce privacy risk while preserving the utility of audit data.
+7. **Regulatory Compliance**: Ensure that the collection and processing of audit log data complies with all applicable privacy and data protection laws (e.g., GDPR, CCPA), including providing appropriate notices, honoring user rights where applicable, and conducting legal/security reviews as needed.
 
 ## Performance Considerations
 

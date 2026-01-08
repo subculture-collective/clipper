@@ -29,19 +29,28 @@ func (s *AuditLogService) GetAuditLogs(ctx context.Context, filters repository.A
 	return s.auditLogRepo.List(ctx, filters, page, limit)
 }
 
+// AuditLogOptions contains optional fields for logging moderation actions
+type AuditLogOptions struct {
+	Channel   *uuid.UUID
+	Reason    *string
+	Metadata  map[string]interface{}
+	IPAddress *string
+	UserAgent *string
+}
+
 // LogAction logs a moderation action with comprehensive context
 // This is a generic method for logging any moderation action with full audit trail support
-func (s *AuditLogService) LogAction(ctx context.Context, action string, actor uuid.UUID, target uuid.UUID, entityType string, channel *uuid.UUID, reason *string, metadata map[string]interface{}, ipAddress *string, userAgent *string) error {
+func (s *AuditLogService) LogAction(ctx context.Context, action string, actor uuid.UUID, target uuid.UUID, entityType string, opts AuditLogOptions) error {
 	log := &models.ModerationAuditLog{
 		Action:      action,
 		EntityType:  entityType,
 		EntityID:    target,
 		ModeratorID: actor,
-		Reason:      reason,
-		Metadata:    metadata,
-		IPAddress:   ipAddress,
-		UserAgent:   userAgent,
-		ChannelID:   channel,
+		Reason:      opts.Reason,
+		Metadata:    opts.Metadata,
+		IPAddress:   opts.IPAddress,
+		UserAgent:   opts.UserAgent,
+		ChannelID:   opts.Channel,
 	}
 
 	return s.auditLogRepo.Create(ctx, log)
