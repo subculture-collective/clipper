@@ -59,8 +59,6 @@ entityType := "user"
 channelID := chatChannelID         // Optional: UUID
 
 // In a Gin handler, extract IP and user agent from request:
-// ipAddress := c.ClientIP()
-// userAgent := c.Request.UserAgent()
 ipAddress := c.ClientIP()          // Extracted from request context (e.g., Gin *gin.Context)
 userAgent := c.Request.UserAgent() // Extracted from request headers
 
