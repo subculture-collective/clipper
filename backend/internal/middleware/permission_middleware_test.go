@@ -448,3 +448,151 @@ func TestRequirePermission_CommunityModNoChannelInRequest(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 }
+
+// TestRequirePermission_CommunityModAccessOwnChannelViaQuery tests channel_id extraction from query parameter
+func TestRequirePermission_CommunityModAccessOwnChannelViaQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	channelID := uuid.New()
+
+	// Middleware to set community moderator user
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "community_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeCommunityModerator,
+			ModeratorScope:     models.ModeratorScopeCommunity,
+			ModerationChannels: []uuid.UUID{channelID},
+		}
+		c.Set("user", user)
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionCommunityModerate))
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// Request with channel_id as query parameter - should pass
+	req, _ := http.NewRequest("GET", "/test?channel_id="+channelID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// TestRequirePermission_CommunityModDeniedOtherChannelViaQuery tests channel_id extraction from query parameter
+func TestRequirePermission_CommunityModDeniedOtherChannelViaQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	ownChannelID := uuid.New()
+	otherChannelID := uuid.New()
+
+	// Middleware to set community moderator user
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "community_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeCommunityModerator,
+			ModeratorScope:     models.ModeratorScopeCommunity,
+			ModerationChannels: []uuid.UUID{ownChannelID},
+		}
+		c.Set("user", user)
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionCommunityModerate))
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// Request with different channel_id as query parameter - should be denied
+	req, _ := http.NewRequest("GET", "/test?channel_id="+otherChannelID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d", w.Code)
+	}
+}
+
+// TestRequirePermission_CommunityModAccessOwnChannelViaContext tests channel_id extraction from context
+func TestRequirePermission_CommunityModAccessOwnChannelViaContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	channelID := uuid.New()
+
+	// Middleware to set community moderator user and channel_id in context
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "community_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeCommunityModerator,
+			ModeratorScope:     models.ModeratorScopeCommunity,
+			ModerationChannels: []uuid.UUID{channelID},
+		}
+		c.Set("user", user)
+		c.Set("channel_id", channelID) // Set channel_id in context
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionCommunityModerate))
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// Request without channel_id in path/query - should use context and pass
+	req, _ := http.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// TestRequirePermission_CommunityModDeniedOtherChannelViaContext tests channel_id extraction from context
+func TestRequirePermission_CommunityModDeniedOtherChannelViaContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	ownChannelID := uuid.New()
+	otherChannelID := uuid.New()
+
+	// Middleware to set community moderator user and different channel_id in context
+	router.Use(func(c *gin.Context) {
+		user := &models.User{
+			ID:                 uuid.New(),
+			Username:           "community_mod",
+			Role:               models.RoleUser,
+			AccountType:        models.AccountTypeCommunityModerator,
+			ModeratorScope:     models.ModeratorScopeCommunity,
+			ModerationChannels: []uuid.UUID{ownChannelID},
+		}
+		c.Set("user", user)
+		c.Set("channel_id", otherChannelID) // Set different channel_id in context
+		c.Next()
+	})
+
+	router.Use(RequirePermission(models.PermissionCommunityModerate))
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// Request without channel_id in path/query - should use context and be denied
+	req, _ := http.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d", w.Code)
+	}
+}

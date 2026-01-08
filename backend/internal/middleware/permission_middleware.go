@@ -201,6 +201,45 @@ func RequireAnyPermission(permissions ...string) gin.HandlerFunc {
 		// Check if user has any of the required permissions
 		for _, permission := range permissions {
 			if user.Can(permission) {
+				// For community moderators, validate channel scope
+				if user.ModeratorScope == models.ModeratorScopeCommunity && len(user.ModerationChannels) > 0 {
+					channelID := getChannelIDFromRequest(c)
+					if channelID != uuid.Nil {
+						// Validate that the moderator has access to this channel
+						hasAccess := false
+						for _, moderatedChannel := range user.ModerationChannels {
+							if moderatedChannel == channelID {
+								hasAccess = true
+								break
+							}
+						}
+
+						if !hasAccess {
+							logger.Warn("Channel scope violation", map[string]interface{}{
+								"user_id":     user.ID.String(),
+								"username":    user.Username,
+								"permissions": permissions,
+								"channel_id":  channelID.String(),
+								"path":        c.Request.URL.Path,
+							})
+							c.JSON(http.StatusForbidden, gin.H{
+								"success": false,
+								"error": gin.H{
+									"code":    "FORBIDDEN",
+									"message": "Access denied: channel not in moderation scope",
+									"details": gin.H{
+										"required_permissions": permissions,
+										"account_type":         user.GetAccountType(),
+										"channel_id":           channelID,
+									},
+								},
+							})
+							c.Abort()
+							return
+						}
+					}
+				}
+
 				logger.Info("Permission granted", map[string]interface{}{
 					"user_id":      user.ID.String(),
 					"account_type": user.GetAccountType(),
@@ -215,6 +254,7 @@ func RequireAnyPermission(permissions ...string) gin.HandlerFunc {
 
 		logger.Warn("Permission denied: lacks all required permissions", map[string]interface{}{
 			"user_id":      user.ID.String(),
+			"username":     user.Username,
 			"account_type": user.GetAccountType(),
 			"permissions":  permissions,
 			"path":         c.Request.URL.Path,
