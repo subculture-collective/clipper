@@ -173,3 +173,20 @@ type FollowersResponse struct {
 	Total      int        `json:"total"`
 	Pagination Pagination `json:"pagination"`
 }
+
+// BannedUser represents a banned user from the moderation/banned endpoint
+type BannedUser struct {
+	UserID      string    `json:"user_id"`
+	UserLogin   string    `json:"user_login"`
+	UserName    string    `json:"user_name"`
+	ExpiresAt   time.Time `json:"expires_at"` // Empty/zero time for permanent bans (Twitch API returns empty string)
+	CreatedAt   time.Time `json:"created_at"`
+	Reason      string    `json:"reason"`
+	ModeratorID string    `json:"moderator_id"`
+}
+
+// BannedUsersResponse represents the response from the moderation/banned endpoint
+type BannedUsersResponse struct {
+	Data       []BannedUser `json:"data"`
+	Pagination Pagination   `json:"pagination"`
+}

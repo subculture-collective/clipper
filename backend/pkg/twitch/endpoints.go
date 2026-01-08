@@ -533,3 +533,78 @@ func (c *Client) GetStreamStatusByUsername(ctx context.Context, username string)
 
 	return stream, user, nil
 }
+
+// GetBannedUsers fetches banned users for a specific broadcaster channel with user token
+// Requires user access token with moderator:read:banned_users scope
+func (c *Client) GetBannedUsers(ctx context.Context, broadcasterID string, userAccessToken string, first int, after string) (*BannedUsersResponse, error) {
+	if broadcasterID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "broadcaster_id is required",
+		}
+	}
+	if userAccessToken == "" {
+		return nil, &AuthError{
+			Message: "user access token is required for moderation endpoints",
+		}
+	}
+
+	params := url.Values{}
+	params.Set("broadcaster_id", broadcasterID)
+
+	if first > 0 {
+		if first > 100 {
+			first = 100
+		}
+		params.Set("first", fmt.Sprintf("%d", first))
+	}
+	if after != "" {
+		params.Set("after", after)
+	}
+
+	// Build URL
+	reqURL := baseURL + "/moderation/banned"
+	if len(params) > 0 {
+		reqURL += "?" + params.Encode()
+	}
+
+	// For user-authenticated endpoints, we need to use the user's token
+	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+userAccessToken)
+	req.Header.Set("Client-Id", c.clientID)
+
+	logger := utils.GetLogger()
+	logger.Debug("Twitch API request (user token)", map[string]interface{}{
+		"method":   "GET",
+		"endpoint": "/moderation/banned",
+	})
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch banned users: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("banned users request failed: %s", string(body)),
+		}
+	}
+
+	var bannedUsersResp BannedUsersResponse
+	if err := json.NewDecoder(resp.Body).Decode(&bannedUsersResp); err != nil {
+		return nil, fmt.Errorf("failed to decode banned users response: %w", err)
+	}
+
+	logger.Debug("Fetched banned users", map[string]interface{}{
+		"count":          len(bannedUsersResp.Data),
+		"broadcaster_id": broadcasterID,
+	})
+	return &bannedUsersResp, nil
+}
