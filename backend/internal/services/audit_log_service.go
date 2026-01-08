@@ -29,6 +29,33 @@ func (s *AuditLogService) GetAuditLogs(ctx context.Context, filters repository.A
 	return s.auditLogRepo.List(ctx, filters, page, limit)
 }
 
+// AuditLogOptions contains optional fields for logging moderation actions
+type AuditLogOptions struct {
+	Channel   *uuid.UUID
+	Reason    *string
+	Metadata  map[string]interface{}
+	IPAddress *string
+	UserAgent *string
+}
+
+// LogAction logs a moderation action with comprehensive context
+// This is a generic method for logging any moderation action with full audit trail support
+func (s *AuditLogService) LogAction(ctx context.Context, action string, actor uuid.UUID, target uuid.UUID, entityType string, opts AuditLogOptions) error {
+	log := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  entityType,
+		EntityID:    target,
+		ModeratorID: actor,
+		Reason:      opts.Reason,
+		Metadata:    opts.Metadata,
+		IPAddress:   opts.IPAddress,
+		UserAgent:   opts.UserAgent,
+		ChannelID:   opts.Channel,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
+}
+
 // ExportAuditLogsCSV exports audit logs to CSV format
 func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters repository.AuditLogFilters, writer io.Writer) error {
 	// Get all logs matching filters
@@ -51,6 +78,9 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 		"Moderator Username",
 		"Reason",
 		"Metadata",
+		"IP Address",
+		"User Agent",
+		"Channel ID",
 		"Created At",
 	}
 	if err := csvWriter.Write(header); err != nil {
@@ -74,6 +104,21 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 			metadata = fmt.Sprintf("%v", log.Metadata)
 		}
 
+		ipAddress := ""
+		if log.IPAddress != nil {
+			ipAddress = *log.IPAddress
+		}
+
+		userAgent := ""
+		if log.UserAgent != nil {
+			userAgent = *log.UserAgent
+		}
+
+		channelID := ""
+		if log.ChannelID != nil {
+			channelID = log.ChannelID.String()
+		}
+
 		row := []string{
 			log.ID.String(),
 			log.Action,
@@ -83,6 +128,9 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 			moderatorUsername,
 			reason,
 			metadata,
+			ipAddress,
+			userAgent,
+			channelID,
 			log.CreatedAt.Format(time.RFC3339),
 		}
 
@@ -95,7 +143,7 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 }
 
 // ParseFiltersFromQuery parses audit log filters from query parameters
-func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate string) (repository.AuditLogFilters, error) {
+func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, startDate, endDate string) (repository.AuditLogFilters, error) {
 	filters := repository.AuditLogFilters{}
 
 	if moderatorID != "" {
@@ -112,6 +160,22 @@ func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate st
 
 	if entityType != "" {
 		filters.EntityType = entityType
+	}
+
+	if entityID != "" {
+		id, err := uuid.Parse(entityID)
+		if err != nil {
+			return filters, fmt.Errorf("invalid entity_id: %w", err)
+		}
+		filters.EntityID = &id
+	}
+
+	if channelID != "" {
+		id, err := uuid.Parse(channelID)
+		if err != nil {
+			return filters, fmt.Errorf("invalid channel_id: %w", err)
+		}
+		filters.ChannelID = &id
 	}
 
 	if startDate != "" {
