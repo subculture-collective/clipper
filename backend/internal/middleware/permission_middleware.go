@@ -161,9 +161,15 @@ func getChannelIDFromRequest(c *gin.Context) uuid.UUID {
 // RequireAnyPermission creates middleware that requires any of the specified permissions
 func RequireAnyPermission(permissions ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		logger := utils.GetLogger()
+
 		// Get user from context (set by AuthMiddleware)
 		userInterface, exists := c.Get("user")
 		if !exists {
+			logger.Warn("Permission check failed: user not authenticated", map[string]interface{}{
+				"path":        c.Request.URL.Path,
+				"permissions": permissions,
+			})
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error": gin.H{
@@ -177,6 +183,10 @@ func RequireAnyPermission(permissions ...string) gin.HandlerFunc {
 
 		user, ok := userInterface.(*models.User)
 		if !ok {
+			logger.Error("Permission check failed: invalid user format", nil, map[string]interface{}{
+				"path":        c.Request.URL.Path,
+				"permissions": permissions,
+			})
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error": gin.H{
@@ -191,11 +201,24 @@ func RequireAnyPermission(permissions ...string) gin.HandlerFunc {
 		// Check if user has any of the required permissions
 		for _, permission := range permissions {
 			if user.Can(permission) {
+				logger.Info("Permission granted", map[string]interface{}{
+					"user_id":      user.ID.String(),
+					"account_type": user.GetAccountType(),
+					"permission":   permission,
+					"permissions":  permissions,
+					"path":         c.Request.URL.Path,
+				})
 				c.Next()
 				return
 			}
 		}
 
+		logger.Warn("Permission denied: lacks all required permissions", map[string]interface{}{
+			"user_id":      user.ID.String(),
+			"account_type": user.GetAccountType(),
+			"permissions":  permissions,
+			"path":         c.Request.URL.Path,
+		})
 		c.JSON(http.StatusForbidden, gin.H{
 			"success": false,
 			"error": gin.H{
