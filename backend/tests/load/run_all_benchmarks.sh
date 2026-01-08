@@ -101,18 +101,155 @@ cat >> "${REPORT_FILE}" << EOF
 |----------|--------|-----|-----|-----|------------|-----|-------------|
 EOF
 
+# Function to extract metrics from k6 JSON output
+extract_k6_metrics() {
+    local json_file=$1
+    local log_file=$2
+    
+    # Check if jq is available
+    if ! command -v jq > /dev/null; then
+        echo "See ${log_file##*/} | - | - | - | - | -"
+        return
+    fi
+    
+    # Extract summary metrics from k6 JSON output
+    # k6 outputs newline-delimited JSON (NDJSON), one metric per line
+    # We grep for Point type metrics and take the last 1000 to get recent data
+    # This is sufficient for a typical k6 run summary (usually < 100 lines)
+    local summary=$(grep '"type":"Point"' "$json_file" 2>/dev/null | tail -1000)
+    
+    if [ -z "$summary" ]; then
+        # Fallback: try to parse end-of-test summary from log
+        if [ -f "$log_file" ]; then
+            # Extract metrics from console summary in log file
+            local p50=$(grep -oP "p50:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            local p95=$(grep -oP "p95:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            local p99=$(grep -oP "p99:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            local error_rate=$(grep -oP "Error Rate:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            local rps=$(grep -oP "Throughput:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            local cache_hit=$(grep -oP "Cache Hit Rate:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            
+            # Format with defaults
+            p50=${p50:-N/A}
+            p95=${p95:-N/A}
+            p99=${p99:-N/A}
+            error_rate=${error_rate:-N/A}
+            rps=${rps:-N/A}
+            cache_hit=${cache_hit:-N/A}
+            
+            # Add 'ms' suffix for timing values if they're numeric
+            [[ $p50 =~ ^[0-9.]+$ ]] && p50="${p50}ms"
+            [[ $p95 =~ ^[0-9.]+$ ]] && p95="${p95}ms"
+            [[ $p99 =~ ^[0-9.]+$ ]] && p99="${p99}ms"
+            [[ $error_rate =~ ^[0-9.]+$ ]] && error_rate="${error_rate}%"
+            [[ $cache_hit =~ ^[0-9.]+$ ]] && cache_hit="${cache_hit}%"
+            
+            echo "$p50 | $p95 | $p99 | $error_rate | $rps | $cache_hit"
+        else
+            echo "N/A | N/A | N/A | N/A | N/A | N/A"
+        fi
+        return
+    fi
+    
+    # Parse k6 JSON metrics using jq
+    # Note: k6 outputs aggregate metrics, we try to use built-in percentiles first
+    # Fallback to Point data if aggregate metrics unavailable
+    local p50=$(echo "$summary" | jq -s '
+        [.[] | select(.metric=="http_req_duration" and .type=="Metric")] |
+        if length > 0 then 
+            (.[0].data.thresholds."p(50)" // 0)
+        else 
+            ([.[] | select(.metric=="http_req_duration" and .type=="Point")] |
+             map(.data.value) | sort | 
+             if length > 0 then (.[length * 0.5 | floor]) else 0 end)
+        end
+    ' 2>/dev/null | xargs printf "%.2f")
+    
+    local p95=$(echo "$summary" | jq -s '
+        [.[] | select(.metric=="http_req_duration" and .type=="Metric")] |
+        if length > 0 then 
+            (.[0].data.thresholds."p(95)" // 0)
+        else 
+            ([.[] | select(.metric=="http_req_duration" and .type=="Point")] |
+             map(.data.value) | sort | 
+             if length > 0 then (.[length * 0.95 | floor]) else 0 end)
+        end
+    ' 2>/dev/null | xargs printf "%.2f")
+    
+    local p99=$(echo "$summary" | jq -s '
+        [.[] | select(.metric=="http_req_duration" and .type=="Metric")] |
+        if length > 0 then 
+            (.[0].data.thresholds."p(99)" // 0)
+        else 
+            ([.[] | select(.metric=="http_req_duration" and .type=="Point")] |
+             map(.data.value) | sort | 
+             if length > 0 then (.[length * 0.99 | floor]) else 0 end)
+        end
+    ' 2>/dev/null | xargs printf "%.2f")
+    
+    # Calculate error rate
+    local error_rate=$(echo "$summary" | jq -s '
+        [.[] | select(.metric=="endpoint_errors" and .type=="Point")] |
+        if length > 0 then 
+            (map(.data.value) | add / length * 100)
+        else 0 end
+    ' 2>/dev/null | xargs printf "%.2f")
+    
+    # Calculate RPS (requests per second) using k6's http_reqs Rate metric
+    local rps=$(echo "$summary" | jq -s '
+        [.[] | select(.metric=="http_reqs" and .type=="Rate")] |
+        if length > 0 then (map(.data.value) | add / length) else 0 end
+    ' 2>/dev/null | xargs printf "%.2f")
+    
+    # Calculate cache hit rate
+    local cache_hit=$(echo "$summary" | jq -s '
+        [.[] | select(.metric=="cache_hits" and .type=="Point")] |
+        if length > 0 then 
+            (map(.data.value) | add / length * 100)
+        else 0 end
+    ' 2>/dev/null | xargs printf "%.2f")
+    
+    # Use log file fallback if JSON parsing produced empty/zero results
+    if [[ "$p50" == "0.00" ]] || [[ -z "$p50" ]]; then
+        if [ -f "$log_file" ]; then
+            p50=$(grep -oP "p50:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            p95=$(grep -oP "p95:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            p99=$(grep -oP "p99:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            error_rate=$(grep -oP "Error Rate:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            rps=$(grep -oP "Throughput:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+            cache_hit=$(grep -oP "Cache Hit Rate:\s+\K[\d.]+" "$log_file" 2>/dev/null | tail -1)
+        fi
+    fi
+    
+    # Format output with defaults
+    p50=${p50:-N/A}
+    p95=${p95:-N/A}
+    p99=${p99:-N/A}
+    error_rate=${error_rate:-N/A}
+    rps=${rps:-N/A}
+    cache_hit=${cache_hit:-N/A}
+    
+    # Add units if values are numeric
+    [[ $p50 =~ ^[0-9.]+$ ]] && p50="${p50}ms"
+    [[ $p95 =~ ^[0-9.]+$ ]] && p95="${p95}ms"
+    [[ $p99 =~ ^[0-9.]+$ ]] && p99="${p99}ms"
+    [[ $error_rate =~ ^[0-9.]+$ ]] && error_rate="${error_rate}%"
+    [[ $cache_hit =~ ^[0-9.]+$ ]] && cache_hit="${cache_hit}%"
+    
+    echo "$p50 | $p95 | $p99 | $error_rate | $rps | $cache_hit"
+}
+
 # Parse results from JSON files and add to table
 for result in "${RESULTS[@]}"; do
     IFS=':' read -r name status <<< "$result"
     JSON_FILE="${REPORT_DIR}/${name}.json"
+    LOG_FILE="${REPORT_DIR}/${name}.log"
     
-    if [ -f "$JSON_FILE" ]; then
-        # TODO: Extract metrics from k6 JSON output
-        # This requires jq or similar JSON parser
-        # For now, metrics are shown in individual logs
-        # Future enhancement: parse JSON and populate table
+    if [ -f "$JSON_FILE" ] || [ -f "$LOG_FILE" ]; then
+        # Extract metrics from k6 JSON output or log file
+        METRICS=$(extract_k6_metrics "$JSON_FILE" "$LOG_FILE")
         cat >> "${REPORT_FILE}" << EOF
-| ${name} | ${status} | See ${name}.log | - | - | - | - | - |
+| ${name} | ${status} | ${METRICS} |
 EOF
     else
         cat >> "${REPORT_FILE}" << EOF
