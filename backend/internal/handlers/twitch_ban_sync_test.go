@@ -15,7 +15,7 @@ import (
 func TestSyncBans_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]string{
 		"channel_id": "123456",
@@ -40,7 +40,7 @@ func TestSyncBans_InvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -60,7 +60,7 @@ func TestSyncBans_MissingChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]string{}
 	jsonBody, _ := json.Marshal(requestBody)
@@ -83,7 +83,7 @@ func TestSyncBans_EmptyChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]string{
 		"channel_id": "",
@@ -109,7 +109,7 @@ func TestSyncBans_ServiceUnavailable(t *testing.T) {
 
 	testUserID := uuid.New()
 	// Create handler without TwitchBanSyncService (nil)
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]string{
 		"channel_id": "123456",

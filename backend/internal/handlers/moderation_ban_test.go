@@ -15,7 +15,7 @@ import (
 func TestGetBans_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -34,7 +34,7 @@ func TestGetBans_MissingChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -53,7 +53,7 @@ func TestGetBans_InvalidChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -71,7 +71,7 @@ func TestGetBans_InvalidChannelID(t *testing.T) {
 func TestCreateBan_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]interface{}{
 		"channelId": uuid.New().String(),
@@ -98,7 +98,7 @@ func TestCreateBan_InvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -118,7 +118,7 @@ func TestCreateBan_MissingFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]interface{}{
 		"channelId": uuid.New().String(),
@@ -144,7 +144,7 @@ func TestCreateBan_InvalidChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]interface{}{
 		"channelId": "invalid-uuid",
@@ -170,7 +170,7 @@ func TestCreateBan_InvalidUserID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	requestBody := map[string]interface{}{
 		"channelId": uuid.New().String(),
@@ -195,7 +195,7 @@ func TestCreateBan_InvalidUserID(t *testing.T) {
 func TestRevokeBan_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -214,7 +214,7 @@ func TestRevokeBan_InvalidBanID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -233,7 +233,7 @@ func TestRevokeBan_InvalidBanID(t *testing.T) {
 func TestGetBanDetails_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -252,7 +252,7 @@ func TestGetBanDetails_InvalidBanID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

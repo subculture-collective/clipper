@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -29,17 +30,19 @@ type ModerationHandler struct {
 	abuseDetector          *services.SubmissionAbuseDetector
 	toxicityClassifier     *services.ToxicityClassifier
 	twitchBanSyncService   *services.TwitchBanSyncService
+	communityRepo          *repository.CommunityRepository
 	db                     *pgxpool.Pool
 }
 
 // NewModerationHandler creates a new ModerationHandler
-func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, db *pgxpool.Pool) *ModerationHandler {
+func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, communityRepo *repository.CommunityRepository, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
 		moderationEventService: moderationEventService,
 		moderationService:      moderationService,
 		abuseDetector:          abuseDetector,
 		toxicityClassifier:     toxicityClassifier,
 		twitchBanSyncService:   twitchBanSyncService,
+		communityRepo:          communityRepo,
 		db:                     db,
 	}
 }
@@ -1697,7 +1700,9 @@ func (h *ModerationHandler) CreateBan(c *gin.Context) {
 		return
 	}
 
-	// Retrieve the created ban to return full details
+	// Retrieve the created ban to return full details using direct query
+	// Note: We use a direct query here because we need the most recently created ban
+	// and CommunityRepository doesn't have a method to get ban by channel+user
 	var ban models.CommunityBan
 	err = h.db.QueryRow(ctx, `
 		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
@@ -1757,18 +1762,25 @@ func (h *ModerationHandler) RevokeBan(c *gin.Context) {
 		return
 	}
 
-	// First, retrieve the ban to get channel and user IDs
-	var ban models.CommunityBan
-	err = h.db.QueryRow(ctx, `
-		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
-		FROM community_bans
-		WHERE id = $1
-	`, banID).Scan(
-		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
-	)
+	// Check if community repository is available
+	if h.communityRepo == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Community repository not available",
+		})
+		return
+	}
+
+	// Retrieve the ban to get channel and user IDs using repository
+	ban, err := h.communityRepo.GetBanByID(ctx, banID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Ban not found",
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Ban not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve ban details",
 		})
 		return
 	}
@@ -1825,18 +1837,25 @@ func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
 		return
 	}
 
-	// Retrieve ban from database
-	var ban models.CommunityBan
-	err = h.db.QueryRow(ctx, `
-		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
-		FROM community_bans
-		WHERE id = $1
-	`, banID).Scan(
-		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
-	)
+	// Check if community repository is available
+	if h.communityRepo == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Community repository not available",
+		})
+		return
+	}
+
+	// Retrieve ban from repository
+	ban, err := h.communityRepo.GetBanByID(ctx, banID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Ban not found",
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Ban not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve ban details",
 		})
 		return
 	}

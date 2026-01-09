@@ -508,7 +508,7 @@ func main() {
 		abuseDetector := submissionService.GetAbuseDetector()
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, moderationService, abuseDetector, toxicityClassifier, twitchBanSyncService, db.Pool)
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, moderationService, abuseDetector, toxicityClassifier, twitchBanSyncService, communityRepo, db.Pool)
 		}
 	}
 
