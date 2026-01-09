@@ -184,14 +184,14 @@ func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 
 	// Parse filters - use "actor" and "target" as per requirement
 	filters, err := services.ParseAuditLogFilters(
-		c.Query("actor"),      // moderator_id in filter
-		c.Query("action"),     // action type
-		"",                    // entity_type - not specified in requirements
-		c.Query("target"),     // entity_id in filter
-		c.Query("channel"),    // channel_id
-		c.Query("startDate"),  // start_date
-		c.Query("endDate"),    // end_date
-		c.Query("search"),     // search term for reason field
+		c.Query("actor"),     // moderator_id in filter
+		c.Query("action"),    // action type
+		"",                   // entity_type - not specified in requirements
+		c.Query("target"),    // entity_id in filter
+		c.Query("channel"),   // channel_id
+		c.Query("startDate"), // start_date
+		c.Query("endDate"),   // end_date
+		c.Query("search"),    // search term for reason field
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -205,7 +205,7 @@ func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 	// returned may differ from the requested offset if it's not a multiple of limit.
 	page := (offset / limit) + 1
 	actualOffset := (page - 1) * limit
-	
+
 	logs, total, err := h.auditLogService.GetAuditLogs(c.Request.Context(), filters, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -285,10 +285,10 @@ func (h *AuditLogHandler) ExportModerationAuditLogs(c *gin.Context) {
 	c.Header("Content-Disposition", "attachment; filename=moderation_audit_logs.csv")
 
 	// Export to CSV
-	// Note: If this fails, headers are already sent, so we can only set status code
+	// Note: If export fails after headers are sent, we can only set the status code.
+	// The client may receive partial CSV data followed by an incomplete response.
 	if err := h.auditLogService.ExportAuditLogsCSV(c.Request.Context(), filters, c.Writer); err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
 }
-
