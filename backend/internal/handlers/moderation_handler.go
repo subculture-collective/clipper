@@ -1975,7 +1975,7 @@ func (h *ModerationHandler) ListModerators(c *gin.Context) {
 		ORDER BY joined_at DESC
 		LIMIT $4 OFFSET $5
 	`
-	
+
 	// Count total
 	var total int
 	err = h.db.QueryRow(ctx, `
@@ -2544,17 +2544,17 @@ func (h *ModerationHandler) validateModeratorScope(ctx context.Context, channelI
 
 // createModeratorAuditLog creates an audit log entry for moderator management actions
 func (h *ModerationHandler) createModeratorAuditLog(ctx context.Context, auditLog *models.ModerationAuditLog) {
-logger := utils.GetLogger()
+	logger := utils.GetLogger()
 
-_, err := h.db.Exec(ctx, `
+	_, err := h.db.Exec(ctx, `
 INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
 VALUES ($1, $2, $3, $4, $5, $6)
 `, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
-if err != nil {
-logger.Error("Failed to create audit log", err, map[string]interface{}{
-"action":    auditLog.Action,
-"entity_id": auditLog.EntityID,
-"moderator": auditLog.ModeratorID,
-})
-}
+	if err != nil {
+		logger.Error("Failed to create audit log", err, map[string]interface{}{
+			"action":    auditLog.Action,
+			"entity_id": auditLog.EntityID,
+			"moderator": auditLog.ModeratorID,
+		})
+	}
 }
