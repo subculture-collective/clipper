@@ -18,7 +18,7 @@ func TestSyncBans_Unauthorized(t *testing.T) {
 	handler := NewModerationHandler(nil, nil, nil, nil, nil)
 
 	requestBody := map[string]string{
-		"channelId": "123456",
+		"channel_id": "123456",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
 
@@ -86,7 +86,7 @@ func TestSyncBans_EmptyChannelID(t *testing.T) {
 	handler := NewModerationHandler(nil, nil, nil, nil, nil)
 
 	requestBody := map[string]string{
-		"channelId": "",
+		"channel_id": "",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
 
@@ -112,7 +112,7 @@ func TestSyncBans_ServiceUnavailable(t *testing.T) {
 	handler := NewModerationHandler(nil, nil, nil, nil, nil)
 
 	requestBody := map[string]string{
-		"channelId": "123456",
+		"channel_id": "123456",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
 

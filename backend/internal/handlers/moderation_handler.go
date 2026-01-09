@@ -1437,19 +1437,19 @@ func (h *ModerationHandler) SyncBans(c *gin.Context) {
 
 	// Parse request body
 	var req struct {
-		ChannelID string `json:"channelId" binding:"required"`
+		ChannelID string `json:"channel_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request: channelId is required",
+			"error": "Invalid request: channel_id is required",
 		})
 		return
 	}
 
-	// Validate channelId is not empty
+	// Validate channel_id is not empty
 	if strings.TrimSpace(req.ChannelID) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "channelId cannot be empty",
+			"error": "channel_id cannot be empty",
 		})
 		return
 	}
@@ -1532,7 +1532,7 @@ func (h *ModerationHandler) SyncBans(c *gin.Context) {
 	// Return immediate response
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "syncing",
-		"jobId":   jobID.String(),
+		"job_id":  jobID.String(),
 		"message": "Ban sync started",
 	})
 }

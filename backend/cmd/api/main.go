@@ -491,7 +491,7 @@ func main() {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
 	
-	// Initialize Twitch ban sync service
+	// Initialize Twitch-related handlers and services
 	var twitchBanSyncService *services.TwitchBanSyncService
 	if twitchClient != nil {
 		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
