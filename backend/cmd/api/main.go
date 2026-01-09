@@ -202,6 +202,7 @@ func main() {
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
 	watchPartyRepo := repository.NewWatchPartyRepository(db.Pool)
 	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
+	twitchBanRepo := repository.NewTwitchBanRepository(db.Pool)
 	applicationLogRepo := repository.NewApplicationLogRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -489,7 +490,7 @@ func main() {
 		abuseDetector := submissionService.GetAbuseDetector()
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, db.Pool)
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, twitchBanSyncService, db.Pool)
 		}
 	}
 
@@ -502,9 +503,13 @@ func main() {
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
+	
+	// Initialize Twitch ban sync service
+	var twitchBanSyncService *services.TwitchBanSyncService
 	if twitchClient != nil {
 		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
+		twitchBanSyncService = services.NewTwitchBanSyncService(twitchClient, twitchAuthRepo, twitchBanRepo, userRepo)
 	}
 
 	// Initialize router
@@ -878,6 +883,8 @@ func main() {
 			{
 				moderationAppeals.POST("/appeals", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.CreateAppeal)
 				moderationAppeals.GET("/appeals", middleware.AuthMiddleware(authService), moderationHandler.GetUserAppeals)
+				// Twitch ban sync endpoint with rate limiting
+				moderationAppeals.POST("/sync-bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.SyncBans)
 			}
 		}
 
