@@ -894,6 +894,12 @@ func main() {
 				moderationAppeals.POST("/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.CreateBan)
 				moderationAppeals.GET("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBanDetails)
 				moderationAppeals.DELETE("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RevokeBan)
+
+				// Moderator management endpoints
+				moderationAppeals.GET("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.ListModerators)
+				moderationAppeals.POST("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.AddModerator)
+				moderationAppeals.DELETE("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RemoveModerator)
+				moderationAppeals.PATCH("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.UpdateModeratorPermissions)
 			}
 		}
 

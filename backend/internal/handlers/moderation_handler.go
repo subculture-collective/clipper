@@ -1907,3 +1907,636 @@ func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
 		"bannedAt":  ban.BannedAt,
 	})
 }
+
+
+// ListModerators retrieves moderators for a channel
+// GET /api/v1/moderation/moderators
+func (h *ModerationHandler) ListModerators(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse query parameters
+	channelIDStr := c.Query("channelId")
+	if channelIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "channelId query parameter is required",
+		})
+		return
+	}
+
+	channelID, err := uuid.Parse(channelIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	// Parse pagination parameters
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate pagination parameters
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Check permission to view moderators - must be admin, site moderator, or channel owner/admin
+	if err := h.validateModeratorListPermission(ctx, channelID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to view moderators for this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Get moderators (role = 'mod' or 'admin')
+	// We'll query both roles separately and combine them
+	mods, modTotal, err := h.communityRepo.ListMembers(ctx, channelID, models.CommunityRoleMod, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve moderators",
+		})
+		return
+	}
+
+	admins, adminTotal, err := h.communityRepo.ListMembers(ctx, channelID, models.CommunityRoleAdmin, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve moderators",
+		})
+		return
+	}
+
+	// Combine results
+	moderators := append(mods, admins...)
+	total := modTotal + adminTotal
+
+	c.JSON(http.StatusOK, gin.H{
+		"moderators": moderators,
+		"total":      total,
+		"limit":      limit,
+		"offset":     offset,
+	})
+}
+
+// AddModerator adds a moderator to a channel
+// POST /api/v1/moderation/moderators
+func (h *ModerationHandler) AddModerator(c *gin.Context) {
+	ctx := c.Request.Context()
+	logger := utils.GetLogger()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		UserID    string  `json:"userId" binding:"required"`
+		ChannelID string  `json:"channelId" binding:"required"`
+		Reason    *string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse UUIDs
+	channelID, err := uuid.Parse(req.ChannelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	targetUserID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid userId format",
+		})
+		return
+	}
+
+	// Check permission to add moderators - must be admin or channel owner/admin
+	if err := h.validateModeratorManagementPermission(ctx, channelID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to add moderators to this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Validate scope - community moderators can't assign mods to other channels
+	if err := h.validateModeratorScope(ctx, channelID, userID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Community moderators can only manage moderators for their assigned channels",
+		})
+		return
+	}
+
+	// Check if target user exists
+	targetUser, err := h.db.Query(ctx, "SELECT id FROM users WHERE id = $1", targetUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify user",
+		})
+		return
+	}
+	defer targetUser.Close()
+	if !targetUser.Next() {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "User not found",
+		})
+		return
+	}
+
+	// Check if user is already a member
+	existingMember, err := h.communityRepo.GetMember(ctx, channelID, targetUserID)
+	if err == nil && existingMember != nil {
+		// User is already a member, update their role to mod
+		if err := h.communityRepo.UpdateMemberRole(ctx, channelID, targetUserID, models.CommunityRoleMod); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to update member role",
+			})
+			return
+		}
+	} else {
+		// User is not a member, add them as a moderator
+		member := &models.CommunityMember{
+			ID:          uuid.New(),
+			CommunityID: channelID,
+			UserID:      targetUserID,
+			Role:        models.CommunityRoleMod,
+		}
+		if err := h.communityRepo.AddMember(ctx, member); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to add moderator",
+			})
+			return
+		}
+	}
+
+	// Create audit log
+	metadata := map[string]interface{}{
+		"channel_id":     channelID.String(),
+		"target_user_id": targetUserID.String(),
+		"assigned_by":    userID.String(),
+		"new_role":       models.CommunityRoleMod,
+	}
+	if req.Reason != nil {
+		metadata["reason"] = *req.Reason
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      "add_moderator",
+		EntityType:  "community_member",
+		EntityID:    targetUserID,
+		ModeratorID: userID,
+		Reason:      req.Reason,
+		Metadata:    metadata,
+	}
+
+	// Log directly to database
+	_, err = h.db.Exec(ctx, `
+		INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
+	if err != nil {
+		logger.Error("Failed to create audit log", err, map[string]interface{}{
+			"action":    auditLog.Action,
+			"entity_id": auditLog.EntityID,
+			"moderator": auditLog.ModeratorID,
+		})
+	}
+
+	// Retrieve the updated member to return
+	member, err := h.communityRepo.GetMember(ctx, channelID, targetUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Moderator added but failed to retrieve details",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success":   true,
+		"moderator": member,
+		"message":   "Moderator added successfully",
+	})
+}
+
+// RemoveModerator removes a moderator from a channel
+// DELETE /api/v1/moderation/moderators/:id
+func (h *ModerationHandler) RemoveModerator(c *gin.Context) {
+	ctx := c.Request.Context()
+	logger := utils.GetLogger()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse member ID from URL
+	memberIDStr := c.Param("id")
+	memberID, err := uuid.Parse(memberIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid moderator ID format",
+		})
+		return
+	}
+
+	// Get the member to find channel and user IDs
+	var member models.CommunityMember
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, user_id, role
+		FROM community_members
+		WHERE id = $1
+	`, memberID).Scan(&member.ID, &member.CommunityID, &member.UserID, &member.Role)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Moderator not found",
+		})
+		return
+	}
+
+	// Check permission to remove moderators
+	if err := h.validateModeratorManagementPermission(ctx, member.CommunityID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to remove moderators from this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Validate scope - community moderators can't manage mods in other channels
+	if err := h.validateModeratorScope(ctx, member.CommunityID, userID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Community moderators can only manage moderators for their assigned channels",
+		})
+		return
+	}
+
+	// Check if trying to remove a channel owner (admin role typically)
+	community, err := h.communityRepo.GetCommunityByID(ctx, member.CommunityID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve community",
+		})
+		return
+	}
+	if community.OwnerID == member.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot remove the channel owner",
+		})
+		return
+	}
+
+	// Update member role to 'member' instead of removing them entirely
+	if err := h.communityRepo.UpdateMemberRole(ctx, member.CommunityID, member.UserID, models.CommunityRoleMember); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to remove moderator",
+		})
+		return
+	}
+
+	// Create audit log
+	metadata := map[string]interface{}{
+		"channel_id":     member.CommunityID.String(),
+		"target_user_id": member.UserID.String(),
+		"removed_by":     userID.String(),
+		"previous_role":  member.Role,
+		"new_role":       models.CommunityRoleMember,
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      "remove_moderator",
+		EntityType:  "community_member",
+		EntityID:    member.UserID,
+		ModeratorID: userID,
+		Metadata:    metadata,
+	}
+
+	_, err = h.db.Exec(ctx, `
+		INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
+	if err != nil {
+		logger.Error("Failed to create audit log", err, map[string]interface{}{
+			"action":    auditLog.Action,
+			"entity_id": auditLog.EntityID,
+			"moderator": auditLog.ModeratorID,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Moderator removed successfully",
+	})
+}
+
+// UpdateModeratorPermissions updates a moderator's permissions (role)
+// PATCH /api/v1/moderation/moderators/:id
+func (h *ModerationHandler) UpdateModeratorPermissions(c *gin.Context) {
+	ctx := c.Request.Context()
+	logger := utils.GetLogger()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse member ID from URL
+	memberIDStr := c.Param("id")
+	memberID, err := uuid.Parse(memberIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid moderator ID format",
+		})
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Role string `json:"role" binding:"required,oneof=mod admin"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: role must be 'mod' or 'admin'",
+		})
+		return
+	}
+
+	// Get the member to find channel and user IDs
+	var member models.CommunityMember
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, user_id, role
+		FROM community_members
+		WHERE id = $1
+	`, memberID).Scan(&member.ID, &member.CommunityID, &member.UserID, &member.Role)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Moderator not found",
+		})
+		return
+	}
+
+	// Check permission to update moderators
+	if err := h.validateModeratorManagementPermission(ctx, member.CommunityID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to update moderators in this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Validate scope - community moderators can't manage mods in other channels
+	if err := h.validateModeratorScope(ctx, member.CommunityID, userID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Community moderators can only manage moderators for their assigned channels",
+		})
+		return
+	}
+
+	// Check if trying to modify a channel owner
+	community, err := h.communityRepo.GetCommunityByID(ctx, member.CommunityID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve community",
+		})
+		return
+	}
+	if community.OwnerID == member.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot modify the channel owner's role",
+		})
+		return
+	}
+
+	// Update member role
+	if err := h.communityRepo.UpdateMemberRole(ctx, member.CommunityID, member.UserID, req.Role); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update moderator permissions",
+		})
+		return
+	}
+
+	// Create audit log
+	metadata := map[string]interface{}{
+		"channel_id":     member.CommunityID.String(),
+		"target_user_id": member.UserID.String(),
+		"updated_by":     userID.String(),
+		"previous_role":  member.Role,
+		"new_role":       req.Role,
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      "update_moderator_permissions",
+		EntityType:  "community_member",
+		EntityID:    member.UserID,
+		ModeratorID: userID,
+		Metadata:    metadata,
+	}
+
+	_, err = h.db.Exec(ctx, `
+		INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
+	if err != nil {
+		logger.Error("Failed to create audit log", err, map[string]interface{}{
+			"action":    auditLog.Action,
+			"entity_id": auditLog.EntityID,
+			"moderator": auditLog.ModeratorID,
+		})
+	}
+
+	// Retrieve updated member
+	updatedMember, err := h.communityRepo.GetMember(ctx, member.CommunityID, member.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Permissions updated but failed to retrieve details",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"moderator": updatedMember,
+		"message":   "Moderator permissions updated successfully",
+	})
+}
+
+// validateModeratorListPermission checks if a user can view moderators for a channel
+func (h *ModerationHandler) validateModeratorListPermission(ctx context.Context, channelID, userID uuid.UUID) error {
+	// Check if user exists and get their details
+	var user models.User
+	err := h.db.QueryRow(ctx, `
+		SELECT id, role, account_type, moderator_scope
+		FROM users
+		WHERE id = $1
+	`, userID).Scan(&user.ID, &user.Role, &user.AccountType, &user.ModeratorScope)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Admins and site moderators can view any channel's moderators
+	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
+		return nil
+	}
+	if user.AccountType == models.AccountTypeModerator && user.ModeratorScope == models.ModeratorScopeSite {
+		return nil
+	}
+
+	// Channel owners and admins can view their channel's moderators
+	community, err := h.communityRepo.GetCommunityByID(ctx, channelID)
+	if err != nil {
+		return services.ErrModerationCommunityNotFound
+	}
+	if community.OwnerID == userID {
+		return nil
+	}
+
+	// Channel admins can view
+	member, err := h.communityRepo.GetMember(ctx, channelID, userID)
+	if err == nil && member != nil && member.Role == models.CommunityRoleAdmin {
+		return nil
+	}
+
+	return services.ErrModerationPermissionDenied
+}
+
+// validateModeratorManagementPermission checks if a user can add/remove/update moderators
+func (h *ModerationHandler) validateModeratorManagementPermission(ctx context.Context, channelID, userID uuid.UUID) error {
+	// Check if user exists and get their details
+	var user models.User
+	err := h.db.QueryRow(ctx, `
+		SELECT id, role, account_type, moderator_scope
+		FROM users
+		WHERE id = $1
+	`, userID).Scan(&user.ID, &user.Role, &user.AccountType, &user.ModeratorScope)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Admins can manage any channel's moderators
+	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
+		return nil
+	}
+
+	// Channel owners can manage their channel's moderators
+	community, err := h.communityRepo.GetCommunityByID(ctx, channelID)
+	if err != nil {
+		return services.ErrModerationCommunityNotFound
+	}
+	if community.OwnerID == userID {
+		return nil
+	}
+
+	// Channel admins can manage moderators
+	member, err := h.communityRepo.GetMember(ctx, channelID, userID)
+	if err == nil && member != nil && member.Role == models.CommunityRoleAdmin {
+		return nil
+	}
+
+	return services.ErrModerationPermissionDenied
+}
+
+// validateModeratorScope checks if a community moderator is managing their assigned channels
+func (h *ModerationHandler) validateModeratorScope(ctx context.Context, channelID, userID uuid.UUID) error {
+	// Get user details
+	var user models.User
+	var moderationChannels []uuid.UUID
+	err := h.db.QueryRow(ctx, `
+		SELECT id, role, account_type, moderator_scope, moderation_channels
+		FROM users
+		WHERE id = $1
+	`, userID).Scan(&user.ID, &user.Role, &user.AccountType, &user.ModeratorScope, &moderationChannels)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Admins and site moderators have no scope restrictions
+	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
+		return nil
+	}
+	if user.AccountType == models.AccountTypeModerator && user.ModeratorScope == models.ModeratorScopeSite {
+		return nil
+	}
+
+	// Channel owners have no restrictions for their channels
+	community, err := h.communityRepo.GetCommunityByID(ctx, channelID)
+	if err != nil {
+		return services.ErrModerationCommunityNotFound
+	}
+	if community.OwnerID == userID {
+		return nil
+	}
+
+	// Community moderators must have the channel in their moderation scope
+	if user.AccountType == models.AccountTypeCommunityModerator {
+		if user.ModeratorScope != models.ModeratorScopeCommunity {
+			return services.ErrModerationNotAuthorized
+		}
+
+		// Check if this channel is in their authorized scope
+		for _, authorizedChannelID := range moderationChannels {
+			if authorizedChannelID == channelID {
+				return nil
+			}
+		}
+		return services.ErrModerationNotAuthorized
+	}
+
+	return nil
+}
