@@ -31,11 +31,12 @@ type ModerationHandler struct {
 	toxicityClassifier     *services.ToxicityClassifier
 	twitchBanSyncService   *services.TwitchBanSyncService
 	communityRepo          *repository.CommunityRepository
+	auditLogRepo           *repository.AuditLogRepository
 	db                     *pgxpool.Pool
 }
 
 // NewModerationHandler creates a new ModerationHandler
-func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, communityRepo *repository.CommunityRepository, db *pgxpool.Pool) *ModerationHandler {
+func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, communityRepo *repository.CommunityRepository, auditLogRepo *repository.AuditLogRepository, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
 		moderationEventService: moderationEventService,
 		moderationService:      moderationService,
@@ -43,6 +44,7 @@ func NewModerationHandler(moderationEventService *services.ModerationEventServic
 		toxicityClassifier:     toxicityClassifier,
 		twitchBanSyncService:   twitchBanSyncService,
 		communityRepo:          communityRepo,
+		auditLogRepo:           auditLogRepo,
 		db:                     db,
 	}
 }
@@ -2012,6 +2014,12 @@ func (h *ModerationHandler) ListModerators(c *gin.Context) {
 		}
 		moderators = append(moderators, member)
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to iterate moderators",
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"moderators": moderators,
@@ -2107,6 +2115,13 @@ func (h *ModerationHandler) AddModerator(c *gin.Context) {
 	// Check if user is already a member
 	existingMember, err := h.communityRepo.GetMember(ctx, channelID, targetUserID)
 	if err == nil && existingMember != nil {
+		// Check if user is already an admin - don't demote them
+		if existingMember.Role == models.CommunityRoleAdmin {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "User is already a channel admin. Cannot demote to moderator.",
+			})
+			return
+		}
 		// User is already a member, update their role to mod
 		if err := h.communityRepo.UpdateMemberRole(ctx, channelID, targetUserID, models.CommunityRoleMod); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -2418,9 +2433,9 @@ func (h *ModerationHandler) UpdateModeratorPermissions(c *gin.Context) {
 	})
 }
 
-// validateModeratorListPermission checks if a user can view moderators for a channel
-func (h *ModerationHandler) validateModeratorListPermission(ctx context.Context, channelID, userID uuid.UUID) error {
-	// Check if user exists and get their details
+// getUserDetails fetches user details from the database
+// This helper reduces code duplication across permission validation functions
+func (h *ModerationHandler) getUserDetails(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	var user models.User
 	err := h.db.QueryRow(ctx, `
 		SELECT id, role, account_type, moderator_scope
@@ -2428,14 +2443,32 @@ func (h *ModerationHandler) validateModeratorListPermission(ctx context.Context,
 		WHERE id = $1
 	`, userID).Scan(&user.ID, &user.Role, &user.AccountType, &user.ModeratorScope)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	return &user, nil
+}
+
+// isAdminOrSiteModerator checks if a user has admin or site-wide moderator privileges
+func isAdminOrSiteModerator(user *models.User) bool {
+	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
+		return true
+	}
+	if user.AccountType == models.AccountTypeModerator && user.ModeratorScope == models.ModeratorScopeSite {
+		return true
+	}
+	return false
+}
+
+// validateModeratorListPermission checks if a user can view moderators for a channel
+func (h *ModerationHandler) validateModeratorListPermission(ctx context.Context, channelID, userID uuid.UUID) error {
+	// Check if user exists and get their details
+	user, err := h.getUserDetails(ctx, userID)
+	if err != nil {
+		return err
 	}
 
 	// Admins and site moderators can view any channel's moderators
-	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
-		return nil
-	}
-	if user.AccountType == models.AccountTypeModerator && user.ModeratorScope == models.ModeratorScopeSite {
+	if isAdminOrSiteModerator(user) {
 		return nil
 	}
 
@@ -2460,18 +2493,13 @@ func (h *ModerationHandler) validateModeratorListPermission(ctx context.Context,
 // validateModeratorManagementPermission checks if a user can add/remove/update moderators
 func (h *ModerationHandler) validateModeratorManagementPermission(ctx context.Context, channelID, userID uuid.UUID) error {
 	// Check if user exists and get their details
-	var user models.User
-	err := h.db.QueryRow(ctx, `
-		SELECT id, role, account_type, moderator_scope
-		FROM users
-		WHERE id = $1
-	`, userID).Scan(&user.ID, &user.Role, &user.AccountType, &user.ModeratorScope)
+	user, err := h.getUserDetails(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
+		return err
 	}
 
 	// Admins can manage any channel's moderators
-	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
+	if isAdminOrSiteModerator(user) {
 		return nil
 	}
 
@@ -2495,7 +2523,7 @@ func (h *ModerationHandler) validateModeratorManagementPermission(ctx context.Co
 
 // validateModeratorScope checks if a community moderator is managing their assigned channels
 func (h *ModerationHandler) validateModeratorScope(ctx context.Context, channelID, userID uuid.UUID) error {
-	// Get user details
+	// Get user details with moderation channels
 	var user models.User
 	var moderationChannels []uuid.UUID
 	err := h.db.QueryRow(ctx, `
@@ -2508,10 +2536,7 @@ func (h *ModerationHandler) validateModeratorScope(ctx context.Context, channelI
 	}
 
 	// Admins and site moderators have no scope restrictions
-	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
-		return nil
-	}
-	if user.AccountType == models.AccountTypeModerator && user.ModeratorScope == models.ModeratorScopeSite {
+	if isAdminOrSiteModerator(&user) {
 		return nil
 	}
 
@@ -2539,22 +2564,24 @@ func (h *ModerationHandler) validateModeratorScope(ctx context.Context, channelI
 		return services.ErrModerationNotAuthorized
 	}
 
-	return nil
+	// Default: deny access for any other case
+	return services.ErrModerationPermissionDenied
 }
 
 // createModeratorAuditLog creates an audit log entry for moderator management actions
+// Uses AuditLogRepository for consistency with other audit logging in the codebase
 func (h *ModerationHandler) createModeratorAuditLog(ctx context.Context, auditLog *models.ModerationAuditLog) {
 	logger := utils.GetLogger()
 
-	_, err := h.db.Exec(ctx, `
-INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
-VALUES ($1, $2, $3, $4, $5, $6)
-`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
-	if err != nil {
+	if err := h.auditLogRepo.Create(ctx, auditLog); err != nil {
 		logger.Error("Failed to create audit log", err, map[string]interface{}{
-			"action":    auditLog.Action,
-			"entity_id": auditLog.EntityID,
-			"moderator": auditLog.ModeratorID,
+			"action":      auditLog.Action,
+			"entity_type": auditLog.EntityType,
+			"entity_id":   auditLog.EntityID,
+			"moderator":   auditLog.ModeratorID,
+			"reason":      auditLog.Reason,
+			"metadata":    auditLog.Metadata,
+			"error":       err.Error(),
 		})
 	}
 }
