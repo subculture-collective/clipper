@@ -266,3 +266,93 @@ func TestGetBanDetails_InvalidBanID(t *testing.T) {
 		t.Errorf("Expected status %d for invalid ban ID, got %d", http.StatusBadRequest, w.Code)
 	}
 }
+
+// TestGetBans_ServiceUnavailable tests that GetBans handles service unavailability
+func TestGetBans_ServiceUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	testUserID := uuid.New()
+	// Pass nil for moderation service to simulate unavailability
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/moderation/bans?channelId="+uuid.New().String(), nil)
+	c.Set("user_id", testUserID)
+
+	handler.GetBans(c)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("Expected status %d for service unavailable, got %d", http.StatusServiceUnavailable, w.Code)
+	}
+}
+
+// TestCreateBan_ServiceUnavailable tests that CreateBan handles service unavailability
+func TestCreateBan_ServiceUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	testUserID := uuid.New()
+	// Pass nil for moderation service to simulate unavailability
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
+
+	requestBody := map[string]interface{}{
+		"channelId": uuid.New().String(),
+		"userId":    uuid.New().String(),
+		"reason":    "Test reason",
+	}
+	jsonBody, _ := json.Marshal(requestBody)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/moderation/ban", bytes.NewReader(jsonBody))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("user_id", testUserID)
+
+	handler.CreateBan(c)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("Expected status %d for service unavailable, got %d", http.StatusServiceUnavailable, w.Code)
+	}
+}
+
+// TestRevokeBan_ServiceUnavailable tests that RevokeBan handles service unavailability
+func TestRevokeBan_ServiceUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	testUserID := uuid.New()
+	// Pass nil for moderation service to simulate unavailability
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodDelete, "/api/v1/moderation/ban/"+uuid.New().String(), nil)
+	c.Set("user_id", testUserID)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: uuid.New().String()}}
+
+	handler.RevokeBan(c)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("Expected status %d for service unavailable, got %d", http.StatusServiceUnavailable, w.Code)
+	}
+}
+
+// TestGetBanDetails_ServiceUnavailable tests that GetBanDetails handles service unavailability
+func TestGetBanDetails_ServiceUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	testUserID := uuid.New()
+	// Pass nil for moderation service to simulate unavailability
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/moderation/ban/"+uuid.New().String(), nil)
+	c.Set("user_id", testUserID)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: uuid.New().String()}}
+
+	handler.GetBanDetails(c)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("Expected status %d for service unavailable, got %d", http.StatusServiceUnavailable, w.Code)
+	}
+}

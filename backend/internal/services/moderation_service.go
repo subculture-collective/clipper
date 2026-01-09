@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,6 +10,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+)
+
+// Sentinel errors for moderation operations
+var (
+	ErrModerationPermissionDenied  = errors.New("insufficient permissions: user does not have moderation privileges")
+	ErrModerationNotAuthorized     = errors.New("moderator is not authorized to moderate this community")
+	ErrModerationCommunityNotFound = errors.New("community not found")
+	ErrModerationUserNotFound      = errors.New("user not found")
+	ErrModerationNotBanned         = errors.New("user is not banned from this community")
+	ErrModerationCannotBanOwner    = errors.New("cannot ban the community owner")
 )
 
 // ModerationCommunityRepo defines the methods needed from CommunityRepository
@@ -77,10 +88,10 @@ func (s *ModerationService) BanUser(ctx context.Context, communityID, moderatorI
 	// Check if target user is the community owner
 	community, err := s.communityRepo.GetCommunityByID(ctx, communityID)
 	if err != nil {
-		return fmt.Errorf("failed to get community: %w", err)
+		return ErrModerationCommunityNotFound
 	}
 	if community.OwnerID == targetUserID {
-		return fmt.Errorf("cannot ban the community owner")
+		return ErrModerationCannotBanOwner
 	}
 
 	// Remove user from community if they are a member
@@ -157,7 +168,7 @@ func (s *ModerationService) UnbanUser(ctx context.Context, communityID, moderato
 		return fmt.Errorf("failed to check ban status: %w", err)
 	}
 	if !isBanned {
-		return fmt.Errorf("user is not banned from this community")
+		return ErrModerationNotBanned
 	}
 
 	// Remove ban
@@ -317,15 +328,15 @@ func (s *ModerationService) validateModerationPermission(ctx context.Context, mo
 			return fmt.Errorf("failed to get member: %w", err)
 		}
 		if member == nil {
-			return fmt.Errorf("moderator is not a member of this community")
+			return ErrModerationPermissionDenied
 		}
 		if member.Role != models.CommunityRoleMod && member.Role != models.CommunityRoleAdmin {
-			return fmt.Errorf("insufficient permissions: must be a community moderator or admin")
+			return ErrModerationPermissionDenied
 		}
 		return nil
 	}
 
-	return fmt.Errorf("insufficient permissions: user does not have moderation privileges")
+	return ErrModerationPermissionDenied
 }
 
 // validateModerationScope checks if a community moderator is authorized for the specific community
@@ -341,7 +352,7 @@ func (s *ModerationService) validateModerationScope(moderator *models.User, comm
 	// Community moderators must have the community in their moderation channels
 	if moderator.AccountType == models.AccountTypeCommunityModerator {
 		if moderator.ModeratorScope != models.ModeratorScopeCommunity {
-			return fmt.Errorf("invalid moderator configuration: community moderator without community scope")
+			return ErrModerationPermissionDenied
 		}
 
 		// Check if this community is in their authorized moderation scope
@@ -350,7 +361,7 @@ func (s *ModerationService) validateModerationScope(moderator *models.User, comm
 				return nil
 			}
 		}
-		return fmt.Errorf("moderator is not authorized to moderate this community")
+		return ErrModerationNotAuthorized
 	}
 
 	return nil

@@ -1574,6 +1574,14 @@ func (h *ModerationHandler) GetBans(c *gin.Context) {
 		return
 	}
 
+	// Check if moderation service is available before parsing pagination
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
 	// Parse pagination parameters
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -1586,22 +1594,28 @@ func (h *ModerationHandler) GetBans(c *gin.Context) {
 		offset = 0
 	}
 
-	// Convert offset to page number (GetBans expects page, not offset)
-	page := (offset / limit) + 1
-
-	// Check if moderation service is available
-	if h.moderationService == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "Moderation service not available",
+	// Ensure offset is a multiple of limit for proper page calculation
+	if offset%limit != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "offset must be a multiple of limit",
 		})
 		return
 	}
 
+	// Convert offset to page number (GetBans expects page, not offset)
+	page := (offset / limit) + 1
+
 	// Get bans from moderation service
 	bans, total, err := h.moderationService.GetBans(ctx, channelID, moderatorID, page, limit)
 	if err != nil {
-		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
 			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationCommunityNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
 				"error": err.Error(),
 			})
 			return
@@ -1676,19 +1690,19 @@ func (h *ModerationHandler) CreateBan(c *gin.Context) {
 	// Create ban using moderation service
 	err = h.moderationService.BanUser(ctx, channelID, moderatorID, userID, req.Reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") || strings.Contains(err.Error(), "insufficient") {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, services.ErrModerationCommunityNotFound) || errors.Is(err, services.ErrModerationUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
-		if strings.Contains(err.Error(), "owner") {
+		if errors.Is(err, services.ErrModerationCannotBanOwner) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
@@ -1724,6 +1738,7 @@ func (h *ModerationHandler) CreateBan(c *gin.Context) {
 		"id":        ban.ID,
 		"channelId": ban.CommunityID,
 		"userId":    ban.BannedUserID,
+		"bannedBy":  ban.BannedByUserID,
 		"reason":    ban.Reason,
 		"bannedAt":  ban.BannedAt,
 	})
@@ -1788,13 +1803,13 @@ func (h *ModerationHandler) RevokeBan(c *gin.Context) {
 	// Unban user using moderation service
 	err = h.moderationService.UnbanUser(ctx, ban.CommunityID, moderatorID, ban.BannedUserID)
 	if err != nil {
-		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") || strings.Contains(err.Error(), "insufficient") {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
-		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "not banned") {
+		if errors.Is(err, services.ErrModerationNotBanned) || errors.Is(err, services.ErrModerationCommunityNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": err.Error(),
 			})
@@ -1837,6 +1852,14 @@ func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
 		return
 	}
 
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
 	// Check if community repository is available
 	if h.communityRepo == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
@@ -1860,18 +1883,10 @@ func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
 		return
 	}
 
-	// Check if moderation service is available
-	if h.moderationService == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "Moderation service not available",
-		})
-		return
-	}
-
 	// Verify moderator has permission to view bans for this channel
 	err = h.moderationService.HasModerationPermission(ctx, ban.CommunityID, moderatorID)
 	if err != nil {
-		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": "You do not have permission to view this ban",
 			})

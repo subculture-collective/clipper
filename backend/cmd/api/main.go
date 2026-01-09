@@ -890,9 +890,9 @@ func main() {
 				moderationAppeals.POST("/sync-bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.SyncBans)
 				
 				// Ban management endpoints
-				moderationAppeals.GET("/bans", middleware.AuthMiddleware(authService), moderationHandler.GetBans)
+				moderationAppeals.GET("/bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBans)
 				moderationAppeals.POST("/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.CreateBan)
-				moderationAppeals.GET("/ban/:id", middleware.AuthMiddleware(authService), moderationHandler.GetBanDetails)
+				moderationAppeals.GET("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBanDetails)
 				moderationAppeals.DELETE("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RevokeBan)
 			}
 		}
