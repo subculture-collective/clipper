@@ -529,3 +529,105 @@ func TestAuditLogService_LogAccountDeletionCancelled(t *testing.T) {
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
+
+// TestAuditLogService_LogEntitlementDenial tests logging entitlement denial
+func TestAuditLogService_LogEntitlementDenial(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	userID := uuid.New()
+	metadata := map[string]interface{}{
+		"feature": "premium_export",
+		"tier":    "free",
+	}
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "entitlement_denied" &&
+			log.EntityType == "entitlement" &&
+			log.ModeratorID == userID &&
+			log.EntityID == userID &&
+			log.Metadata != nil
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+	err := service.LogEntitlementDenial(ctx, userID, "entitlement_denied", metadata)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogClipMetadataUpdate tests logging clip metadata update
+func TestAuditLogService_LogClipMetadataUpdate(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	userID := uuid.New()
+	clipID := uuid.New()
+	metadata := map[string]interface{}{
+		"field": "title",
+		"old":   "Old Title",
+		"new":   "New Title",
+	}
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "clip_metadata_updated" &&
+			log.EntityType == "clip" &&
+			log.ModeratorID == userID &&
+			log.EntityID == clipID &&
+			log.Metadata != nil
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+	err := service.LogClipMetadataUpdate(ctx, userID, clipID, metadata)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogClipVisibilityChange tests logging clip visibility change
+func TestAuditLogService_LogClipVisibilityChange(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	userID := uuid.New()
+	clipID := uuid.New()
+	isHidden := true
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "clip_hidden" &&
+			log.EntityType == "clip" &&
+			log.ModeratorID == userID &&
+			log.EntityID == clipID &&
+			log.Metadata != nil
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+	err := service.LogClipVisibilityChange(ctx, userID, clipID, isHidden)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogClipVisibilityChange_Unhide tests logging clip unhide
+func TestAuditLogService_LogClipVisibilityChange_Unhide(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	userID := uuid.New()
+	clipID := uuid.New()
+	isHidden := false
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "clip_unhidden" &&
+			log.EntityType == "clip" &&
+			log.ModeratorID == userID &&
+			log.EntityID == clipID &&
+			log.Metadata != nil
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+	err := service.LogClipVisibilityChange(ctx, userID, clipID, isHidden)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
