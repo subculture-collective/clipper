@@ -900,6 +900,11 @@ func main() {
 				moderationAppeals.POST("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.AddModerator)
 				moderationAppeals.DELETE("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RemoveModerator)
 				moderationAppeals.PATCH("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.UpdateModeratorPermissions)
+
+				// Audit log endpoints (requires moderator or admin role)
+				moderationAppeals.GET("/audit-logs", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.ListModerationAuditLogs)
+				moderationAppeals.GET("/audit-logs/export", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), auditLogHandler.ExportModerationAuditLogs)
+				moderationAppeals.GET("/audit-logs/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.GetModerationAuditLog)
 			}
 		}
 

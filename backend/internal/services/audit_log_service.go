@@ -17,6 +17,7 @@ type AuditLogRepository interface {
 	List(ctx context.Context, filters repository.AuditLogFilters, page, limit int) ([]*models.ModerationAuditLogWithUser, int, error)
 	Create(ctx context.Context, log *models.ModerationAuditLog) error
 	Export(ctx context.Context, filters repository.AuditLogFilters) ([]*models.ModerationAuditLogWithUser, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*models.ModerationAuditLogWithUser, error)
 }
 
 // AuditLogService handles audit log business logic
@@ -34,6 +35,11 @@ func NewAuditLogService(auditLogRepo AuditLogRepository) *AuditLogService {
 // GetAuditLogs retrieves audit logs with optional filters
 func (s *AuditLogService) GetAuditLogs(ctx context.Context, filters repository.AuditLogFilters, page, limit int) ([]*models.ModerationAuditLogWithUser, int, error) {
 	return s.auditLogRepo.List(ctx, filters, page, limit)
+}
+
+// GetAuditLogByID retrieves a single audit log entry by ID
+func (s *AuditLogService) GetAuditLogByID(ctx context.Context, id uuid.UUID) (*models.ModerationAuditLogWithUser, error) {
+	return s.auditLogRepo.GetByID(ctx, id)
 }
 
 // AuditLogOptions contains optional fields for logging moderation actions
@@ -150,7 +156,7 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 }
 
 // ParseFiltersFromQuery parses audit log filters from query parameters
-func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, startDate, endDate string) (repository.AuditLogFilters, error) {
+func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, startDate, endDate, search string) (repository.AuditLogFilters, error) {
 	filters := repository.AuditLogFilters{}
 
 	if moderatorID != "" {
@@ -199,6 +205,10 @@ func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, 
 			return filters, fmt.Errorf("invalid end_date format (use RFC3339): %w", err)
 		}
 		filters.EndDate = &t
+	}
+
+	if search != "" {
+		filters.Search = search
 	}
 
 	return filters, nil
