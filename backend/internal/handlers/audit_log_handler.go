@@ -23,7 +23,7 @@ func NewAuditLogHandler(auditLogService *services.AuditLogService) *AuditLogHand
 
 // ListAuditLogs retrieves audit logs with filters
 // GET /admin/audit-logs
-// Supports filters: moderator_id, action, entity_type, entity_id, channel_id, start_date (RFC3339), end_date (RFC3339)
+// Supports filters: moderator_id, action, entity_type, entity_id, channel_id, start_date (RFC3339), end_date (RFC3339), search
 func (h *AuditLogHandler) ListAuditLogs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
@@ -44,6 +44,7 @@ func (h *AuditLogHandler) ListAuditLogs(c *gin.Context) {
 		c.Query("channel_id"),
 		c.Query("start_date"),
 		c.Query("end_date"),
+		c.Query("search"),
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -87,6 +88,7 @@ func (h *AuditLogHandler) ExportAuditLogs(c *gin.Context) {
 		c.Query("channel_id"),
 		c.Query("start_date"),
 		c.Query("end_date"),
+		c.Query("search"),
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -110,7 +112,7 @@ func (h *AuditLogHandler) ExportAuditLogs(c *gin.Context) {
 
 // ListModerationAuditLogs retrieves moderation audit logs with filters and offset-based pagination
 // GET /api/v1/moderation/audit-logs
-// Supports filters: action, actor (moderator_id), target (entity_id), channel, startDate, endDate, limit, offset
+// Supports filters: action, actor (moderator_id), target (entity_id), channel, startDate, endDate, limit, offset, search
 func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 	// Get pagination params using offset instead of page
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -135,6 +137,7 @@ func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 		c.Query("channel"),    // channel_id
 		c.Query("startDate"),  // start_date
 		c.Query("endDate"),    // end_date
+		c.Query("search"),     // search term for reason field
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -274,6 +277,7 @@ func (h *AuditLogHandler) ExportModerationAuditLogs(c *gin.Context) {
 		c.Query("channel"),
 		c.Query("startDate"),
 		c.Query("endDate"),
+		c.Query("search"),
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

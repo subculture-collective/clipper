@@ -127,6 +127,12 @@ func (r *AuditLogRepository) List(ctx context.Context, filters AuditLogFilters, 
 		placeholderIndex++
 	}
 
+	if filters.Search != "" {
+		whereClause += fmt.Sprintf(" AND mal.reason ILIKE %s", utils.SQLPlaceholder(placeholderIndex))
+		args = append(args, "%"+filters.Search+"%")
+		placeholderIndex++
+	}
+
 	// Count total
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM moderation_audit_logs mal %s", whereClause)
 	var total int
@@ -214,6 +220,7 @@ type AuditLogFilters struct {
 	ChannelID   *uuid.UUID
 	StartDate   *time.Time
 	EndDate     *time.Time
+	Search      string // Search term for filtering by reason
 }
 
 // Export retrieves all audit logs matching filters for export (no pagination)
@@ -262,6 +269,12 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 	if filters.EndDate != nil {
 		whereClause += fmt.Sprintf(" AND mal.created_at <= %s", utils.SQLPlaceholder(placeholderIndex))
 		args = append(args, *filters.EndDate)
+		placeholderIndex++
+	}
+
+	if filters.Search != "" {
+		whereClause += fmt.Sprintf(" AND mal.reason ILIKE %s", utils.SQLPlaceholder(placeholderIndex))
+		args = append(args, "%"+filters.Search+"%")
 		placeholderIndex++
 	}
 

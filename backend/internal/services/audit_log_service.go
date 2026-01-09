@@ -156,7 +156,7 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 }
 
 // ParseFiltersFromQuery parses audit log filters from query parameters
-func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, startDate, endDate string) (repository.AuditLogFilters, error) {
+func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, startDate, endDate, search string) (repository.AuditLogFilters, error) {
 	filters := repository.AuditLogFilters{}
 
 	if moderatorID != "" {
@@ -205,6 +205,10 @@ func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, 
 			return filters, fmt.Errorf("invalid end_date format (use RFC3339): %w", err)
 		}
 		filters.EndDate = &t
+	}
+
+	if search != "" {
+		filters.Search = search
 	}
 
 	return filters, nil
