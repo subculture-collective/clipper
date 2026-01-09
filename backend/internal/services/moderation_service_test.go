@@ -509,3 +509,277 @@ func TestModerationService_AuditLogging(t *testing.T) {
 
 	mockAuditLogRepo.AssertExpectations(t)
 }
+
+// TestModerationService_BanUser_FullFlow tests the complete ban user flow
+func TestModerationService_BanUser_FullFlow(t *testing.T) {
+	ctx := context.Background()
+	communityID := uuid.New()
+	moderatorID := uuid.New()
+	targetUserID := uuid.New()
+	ownerID := uuid.New()
+	reason := "spam"
+
+	mockCommunityRepo := new(MockCommunityRepository)
+	mockUserRepo := new(MockModerationUserRepository)
+	mockAuditLogRepo := new(MockModerationAuditLogRepository)
+
+	siteMod := &models.User{
+		ID:             moderatorID,
+		Username:       "sitemod",
+		AccountType:    models.AccountTypeModerator,
+		ModeratorScope: models.ModeratorScopeSite,
+	}
+
+	community := &models.Community{
+		ID:      communityID,
+		OwnerID: ownerID,
+	}
+
+	// Setup mocks
+	mockUserRepo.On("GetByID", ctx, moderatorID).Return(siteMod, nil)
+	mockCommunityRepo.On("GetCommunityByID", ctx, communityID).Return(community, nil)
+	mockCommunityRepo.On("RemoveMember", ctx, communityID, targetUserID).Return(nil)
+	mockCommunityRepo.On("BanMember", ctx, mock.AnythingOfType("*models.CommunityBan")).Return(nil)
+	mockAuditLogRepo.On("Create", ctx, mock.AnythingOfType("*models.ModerationAuditLog")).Return(nil)
+
+	service := &ModerationService{
+		communityRepo: mockCommunityRepo,
+		userRepo:      mockUserRepo,
+		auditLogRepo:  mockAuditLogRepo,
+	}
+
+	err := service.BanUser(ctx, communityID, moderatorID, targetUserID, &reason)
+	assert.NoError(t, err)
+
+	mockUserRepo.AssertExpectations(t)
+	mockCommunityRepo.AssertExpectations(t)
+	mockAuditLogRepo.AssertExpectations(t)
+}
+
+// TestModerationService_UnbanUser_FullFlow tests the complete unban user flow
+func TestModerationService_UnbanUser_FullFlow(t *testing.T) {
+	ctx := context.Background()
+	communityID := uuid.New()
+	moderatorID := uuid.New()
+	targetUserID := uuid.New()
+
+	mockCommunityRepo := new(MockCommunityRepository)
+	mockUserRepo := new(MockModerationUserRepository)
+	mockAuditLogRepo := new(MockModerationAuditLogRepository)
+
+	siteMod := &models.User{
+		ID:             moderatorID,
+		Username:       "sitemod",
+		AccountType:    models.AccountTypeModerator,
+		ModeratorScope: models.ModeratorScopeSite,
+	}
+
+	// Setup mocks
+	mockUserRepo.On("GetByID", ctx, moderatorID).Return(siteMod, nil)
+	mockCommunityRepo.On("IsBanned", ctx, communityID, targetUserID).Return(true, nil)
+	mockCommunityRepo.On("UnbanMember", ctx, communityID, targetUserID).Return(nil)
+	mockAuditLogRepo.On("Create", ctx, mock.AnythingOfType("*models.ModerationAuditLog")).Return(nil)
+
+	service := &ModerationService{
+		communityRepo: mockCommunityRepo,
+		userRepo:      mockUserRepo,
+		auditLogRepo:  mockAuditLogRepo,
+	}
+
+	err := service.UnbanUser(ctx, communityID, moderatorID, targetUserID)
+	assert.NoError(t, err)
+
+	mockUserRepo.AssertExpectations(t)
+	mockCommunityRepo.AssertExpectations(t)
+	mockAuditLogRepo.AssertExpectations(t)
+}
+
+// TestModerationService_GetBans_FullFlow tests the complete get bans flow with pagination
+func TestModerationService_GetBans_FullFlow(t *testing.T) {
+	ctx := context.Background()
+	communityID := uuid.New()
+	moderatorID := uuid.New()
+
+	mockCommunityRepo := new(MockCommunityRepository)
+	mockUserRepo := new(MockModerationUserRepository)
+
+	siteMod := &models.User{
+		ID:             moderatorID,
+		Username:       "sitemod",
+		AccountType:    models.AccountTypeModerator,
+		ModeratorScope: models.ModeratorScopeSite,
+	}
+
+	bans := []*models.CommunityBan{
+		{
+			ID:           uuid.New(),
+			CommunityID:  communityID,
+			BannedUserID: uuid.New(),
+			BannedAt:     time.Now(),
+		},
+		{
+			ID:           uuid.New(),
+			CommunityID:  communityID,
+			BannedUserID: uuid.New(),
+			BannedAt:     time.Now(),
+		},
+	}
+
+	// Setup mocks
+	mockUserRepo.On("GetByID", ctx, moderatorID).Return(siteMod, nil)
+	mockCommunityRepo.On("ListBans", ctx, communityID, 20, 0).Return(bans, 2, nil)
+
+	service := &ModerationService{
+		communityRepo: mockCommunityRepo,
+		userRepo:      mockUserRepo,
+	}
+
+	result, total, err := service.GetBans(ctx, communityID, moderatorID, 1, 20)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, total)
+	assert.Equal(t, 2, len(result))
+
+	mockUserRepo.AssertExpectations(t)
+	mockCommunityRepo.AssertExpectations(t)
+}
+
+// TestModerationService_GetBans_PaginationDefaults tests pagination defaults
+func TestModerationService_GetBans_PaginationDefaults(t *testing.T) {
+	ctx := context.Background()
+	communityID := uuid.New()
+	moderatorID := uuid.New()
+
+	mockCommunityRepo := new(MockCommunityRepository)
+	mockUserRepo := new(MockModerationUserRepository)
+
+	siteMod := &models.User{
+		ID:             moderatorID,
+		Username:       "sitemod",
+		AccountType:    models.AccountTypeModerator,
+		ModeratorScope: models.ModeratorScopeSite,
+	}
+
+	// Setup mocks - should use default page=1, limit=20
+	mockUserRepo.On("GetByID", ctx, moderatorID).Return(siteMod, nil)
+	mockCommunityRepo.On("ListBans", ctx, communityID, 20, 0).Return([]*models.CommunityBan{}, 0, nil)
+
+	service := &ModerationService{
+		communityRepo: mockCommunityRepo,
+		userRepo:      mockUserRepo,
+	}
+
+	// Test with invalid page and limit
+	_, _, err := service.GetBans(ctx, communityID, moderatorID, 0, 0)
+	assert.NoError(t, err)
+
+	mockUserRepo.AssertExpectations(t)
+	mockCommunityRepo.AssertExpectations(t)
+}
+
+// TestModerationService_GetBans_MaxLimit tests pagination max limit
+func TestModerationService_GetBans_MaxLimit(t *testing.T) {
+	ctx := context.Background()
+	communityID := uuid.New()
+	moderatorID := uuid.New()
+
+	mockCommunityRepo := new(MockCommunityRepository)
+	mockUserRepo := new(MockModerationUserRepository)
+
+	siteMod := &models.User{
+		ID:             moderatorID,
+		Username:       "sitemod",
+		AccountType:    models.AccountTypeModerator,
+		ModeratorScope: models.ModeratorScopeSite,
+	}
+
+	// Setup mocks - should cap at 100
+	mockUserRepo.On("GetByID", ctx, moderatorID).Return(siteMod, nil)
+	mockCommunityRepo.On("ListBans", ctx, communityID, 100, 0).Return([]*models.CommunityBan{}, 0, nil)
+
+	service := &ModerationService{
+		communityRepo: mockCommunityRepo,
+		userRepo:      mockUserRepo,
+	}
+
+	// Test with excessive limit
+	_, _, err := service.GetBans(ctx, communityID, moderatorID, 1, 1000)
+	assert.NoError(t, err)
+
+	mockUserRepo.AssertExpectations(t)
+	mockCommunityRepo.AssertExpectations(t)
+}
+
+// TestModerationService_UpdateBan_FullFlow tests the complete update ban flow
+func TestModerationService_UpdateBan_FullFlow(t *testing.T) {
+	ctx := context.Background()
+	communityID := uuid.New()
+	moderatorID := uuid.New()
+	targetUserID := uuid.New()
+	newReason := "updated reason"
+
+	mockCommunityRepo := new(MockCommunityRepository)
+	mockUserRepo := new(MockModerationUserRepository)
+	mockAuditLogRepo := new(MockModerationAuditLogRepository)
+
+	siteMod := &models.User{
+		ID:             moderatorID,
+		Username:       "sitemod",
+		AccountType:    models.AccountTypeModerator,
+		ModeratorScope: models.ModeratorScopeSite,
+	}
+
+	// Setup mocks
+	mockUserRepo.On("GetByID", ctx, moderatorID).Return(siteMod, nil)
+	mockCommunityRepo.On("IsBanned", ctx, communityID, targetUserID).Return(true, nil)
+	mockCommunityRepo.On("UnbanMember", ctx, communityID, targetUserID).Return(nil)
+	mockCommunityRepo.On("BanMember", ctx, mock.AnythingOfType("*models.CommunityBan")).Return(nil)
+	mockAuditLogRepo.On("Create", ctx, mock.AnythingOfType("*models.ModerationAuditLog")).Return(nil)
+
+	service := &ModerationService{
+		communityRepo: mockCommunityRepo,
+		userRepo:      mockUserRepo,
+		auditLogRepo:  mockAuditLogRepo,
+	}
+
+	err := service.UpdateBan(ctx, communityID, moderatorID, targetUserID, &newReason)
+	assert.NoError(t, err)
+
+	mockUserRepo.AssertExpectations(t)
+	mockCommunityRepo.AssertExpectations(t)
+	mockAuditLogRepo.AssertExpectations(t)
+}
+
+// TestModerationService_UpdateBan_UserNotBanned tests updating ban when user isn't banned
+func TestModerationService_UpdateBan_UserNotBanned(t *testing.T) {
+	ctx := context.Background()
+	communityID := uuid.New()
+	moderatorID := uuid.New()
+	targetUserID := uuid.New()
+	newReason := "updated reason"
+
+	mockCommunityRepo := new(MockCommunityRepository)
+	mockUserRepo := new(MockModerationUserRepository)
+
+	siteMod := &models.User{
+		ID:             moderatorID,
+		Username:       "sitemod",
+		AccountType:    models.AccountTypeModerator,
+		ModeratorScope: models.ModeratorScopeSite,
+	}
+
+	// Setup mocks - user is not banned
+	mockUserRepo.On("GetByID", ctx, moderatorID).Return(siteMod, nil)
+	mockCommunityRepo.On("IsBanned", ctx, communityID, targetUserID).Return(false, nil)
+
+	service := &ModerationService{
+		communityRepo: mockCommunityRepo,
+		userRepo:      mockUserRepo,
+	}
+
+	err := service.UpdateBan(ctx, communityID, moderatorID, targetUserID, &newReason)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not banned")
+
+	mockUserRepo.AssertExpectations(t)
+	mockCommunityRepo.AssertExpectations(t)
+}
