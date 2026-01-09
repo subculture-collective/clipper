@@ -301,6 +301,9 @@ func main() {
 	// Initialize community service
 	communityService := services.NewCommunityService(communityRepo, clipRepo, userRepo, notificationService)
 
+	// Initialize moderation service for ban management
+	moderationService := services.NewModerationService(db.Pool, communityRepo, userRepo, auditLogRepo)
+
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
 
@@ -505,7 +508,7 @@ func main() {
 		abuseDetector := submissionService.GetAbuseDetector()
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, twitchBanSyncService, db.Pool)
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, moderationService, abuseDetector, toxicityClassifier, twitchBanSyncService, db.Pool)
 		}
 	}
 
@@ -885,6 +888,12 @@ func main() {
 				moderationAppeals.GET("/appeals", middleware.AuthMiddleware(authService), moderationHandler.GetUserAppeals)
 				// Twitch ban sync endpoint with rate limiting
 				moderationAppeals.POST("/sync-bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.SyncBans)
+				
+				// Ban management endpoints
+				moderationAppeals.GET("/bans", middleware.AuthMiddleware(authService), moderationHandler.GetBans)
+				moderationAppeals.POST("/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.CreateBan)
+				moderationAppeals.GET("/ban/:id", middleware.AuthMiddleware(authService), moderationHandler.GetBanDetails)
+				moderationAppeals.DELETE("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RevokeBan)
 			}
 		}
 

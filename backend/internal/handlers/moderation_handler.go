@@ -25,6 +25,7 @@ const (
 // ModerationHandler handles moderation operations
 type ModerationHandler struct {
 	moderationEventService *services.ModerationEventService
+	moderationService      *services.ModerationService
 	abuseDetector          *services.SubmissionAbuseDetector
 	toxicityClassifier     *services.ToxicityClassifier
 	twitchBanSyncService   *services.TwitchBanSyncService
@@ -32,9 +33,10 @@ type ModerationHandler struct {
 }
 
 // NewModerationHandler creates a new ModerationHandler
-func NewModerationHandler(moderationEventService *services.ModerationEventService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, db *pgxpool.Pool) *ModerationHandler {
+func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
 		moderationEventService: moderationEventService,
+		moderationService:      moderationService,
 		abuseDetector:          abuseDetector,
 		toxicityClassifier:     toxicityClassifier,
 		twitchBanSyncService:   twitchBanSyncService,
@@ -1534,5 +1536,348 @@ func (h *ModerationHandler) SyncBans(c *gin.Context) {
 		"status":  "syncing",
 		"job_id":  jobID.String(),
 		"message": "Ban sync started",
+	})
+}
+
+// GetBans retrieves bans for a channel with filtering and pagination
+// GET /api/v1/moderation/bans
+func (h *ModerationHandler) GetBans(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse query parameters
+	channelIDStr := c.Query("channelId")
+	if channelIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "channelId query parameter is required",
+		})
+		return
+	}
+
+	channelID, err := uuid.Parse(channelIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	// Parse pagination parameters
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate pagination parameters
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Convert offset to page number (GetBans expects page, not offset)
+	page := (offset / limit) + 1
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Get bans from moderation service
+	bans, total, err := h.moderationService.GetBans(ctx, channelID, moderatorID, page, limit)
+	if err != nil {
+		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve bans",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"bans":   bans,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
+// CreateBan creates a new ban
+// POST /api/v1/moderation/ban
+func (h *ModerationHandler) CreateBan(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		ChannelID string  `json:"channelId" binding:"required"`
+		UserID    string  `json:"userId" binding:"required"`
+		Reason    *string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse UUIDs
+	channelID, err := uuid.Parse(req.ChannelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid userId format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Create ban using moderation service
+	err = h.moderationService.BanUser(ctx, channelID, moderatorID, userID, req.Reason)
+	if err != nil {
+		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") || strings.Contains(err.Error(), "insufficient") {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if strings.Contains(err.Error(), "owner") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create ban",
+		})
+		return
+	}
+
+	// Retrieve the created ban to return full details
+	// Note: Since BanUser doesn't return the ban ID, we need to query for it
+	// We'll use the channelID and userID to find the most recent ban
+	var ban models.CommunityBan
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
+		FROM community_bans
+		WHERE community_id = $1 AND banned_user_id = $2
+		ORDER BY banned_at DESC
+		LIMIT 1
+	`, channelID, userID).Scan(
+		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
+	)
+	if err != nil {
+		// Ban was created but we couldn't retrieve it - still return success
+		c.JSON(http.StatusOK, gin.H{
+			"id":        uuid.New(), // Placeholder
+			"channelId": channelID,
+			"userId":    userID,
+			"reason":    req.Reason,
+			"bannedAt":  time.Now(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        ban.ID,
+		"channelId": ban.CommunityID,
+		"userId":    ban.BannedUserID,
+		"reason":    ban.Reason,
+		"bannedAt":  ban.BannedAt,
+	})
+}
+
+// RevokeBan revokes/deletes a ban
+// DELETE /api/v1/moderation/ban/:id
+func (h *ModerationHandler) RevokeBan(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse ban ID from URL
+	banIDStr := c.Param("id")
+	banID, err := uuid.Parse(banIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid ban ID format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// First, retrieve the ban to get channel and user IDs
+	var ban models.CommunityBan
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
+		FROM community_bans
+		WHERE id = $1
+	`, banID).Scan(
+		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Ban not found",
+		})
+		return
+	}
+
+	// Unban user using moderation service
+	err = h.moderationService.UnbanUser(ctx, ban.CommunityID, moderatorID, ban.BannedUserID)
+	if err != nil {
+		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") || strings.Contains(err.Error(), "insufficient") {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "not banned") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to revoke ban",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Ban revoked successfully",
+	})
+}
+
+// GetBanDetails retrieves details of a specific ban
+// GET /api/v1/moderation/ban/:id
+func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse ban ID from URL
+	banIDStr := c.Param("id")
+	banID, err := uuid.Parse(banIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid ban ID format",
+		})
+		return
+	}
+
+	// Retrieve ban from database
+	var ban models.CommunityBan
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
+		FROM community_bans
+		WHERE id = $1
+	`, banID).Scan(
+		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Ban not found",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Verify moderator has permission to view this ban by attempting to list bans for the channel
+	// This will check permissions without actually listing all bans
+	_, _, err = h.moderationService.GetBans(ctx, ban.CommunityID, moderatorID, 1, 1)
+	if err != nil {
+		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to view this ban",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        ban.ID,
+		"channelId": ban.CommunityID,
+		"userId":    ban.BannedUserID,
+		"bannedBy":  ban.BannedByUserID,
+		"reason":    ban.Reason,
+		"bannedAt":  ban.BannedAt,
 	})
 }
