@@ -12,13 +12,20 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
+// AuditLogRepository defines the interface for audit log repository operations
+type AuditLogRepository interface {
+	List(ctx context.Context, filters repository.AuditLogFilters, page, limit int) ([]*models.ModerationAuditLogWithUser, int, error)
+	Create(ctx context.Context, log *models.ModerationAuditLog) error
+	Export(ctx context.Context, filters repository.AuditLogFilters) ([]*models.ModerationAuditLogWithUser, error)
+}
+
 // AuditLogService handles audit log business logic
 type AuditLogService struct {
-	auditLogRepo *repository.AuditLogRepository
+	auditLogRepo AuditLogRepository
 }
 
 // NewAuditLogService creates a new AuditLogService
-func NewAuditLogService(auditLogRepo *repository.AuditLogRepository) *AuditLogService {
+func NewAuditLogService(auditLogRepo AuditLogRepository) *AuditLogService {
 	return &AuditLogService{
 		auditLogRepo: auditLogRepo,
 	}

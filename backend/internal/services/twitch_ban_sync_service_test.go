@@ -486,3 +486,210 @@ func TestSyncChannelBans_DatabaseError(t *testing.T) {
 		t.Errorf("Expected DatabaseError, got: %T", err)
 	}
 }
+
+// TestSyncChannelBans_UserCreation tests that users are created for banned users
+func TestSyncChannelBans_UserCreation(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	twitchUserID := "123456"
+	channelID := twitchUserID
+
+	createdUsers := []string{}
+
+	authRepo := &mockTwitchAuthRepository{
+		getTwitchAuthFunc: func(ctx context.Context, uid uuid.UUID) (*models.TwitchAuth, error) {
+			return &models.TwitchAuth{
+				UserID:       userID,
+				TwitchUserID: twitchUserID,
+				AccessToken:  "valid_token",
+				ExpiresAt:    time.Now().Add(time.Hour),
+			}, nil
+		},
+		isTokenExpiredFunc: func(auth *models.TwitchAuth) bool {
+			return false
+		},
+	}
+
+	twitchClient := &mockTwitchClient{
+		getBannedUsersFunc: func(ctx context.Context, broadcasterID string, userAccessToken string, first int, after string) (*twitch.BannedUsersResponse, error) {
+			return &twitch.BannedUsersResponse{
+				Data: []twitch.BannedUser{
+					{UserID: "banned1", UserLogin: "user1", UserName: "User1", CreatedAt: time.Now()},
+					{UserID: "banned2", UserLogin: "user2", UserName: "User2", CreatedAt: time.Now()},
+				},
+				Pagination: twitch.Pagination{Cursor: ""},
+			}, nil
+		},
+	}
+
+	userRepo := &mockUserRepository{
+		getByTwitchIDFunc: func(ctx context.Context, twitchID string) (*models.User, error) {
+			if twitchID == channelID {
+				return &models.User{ID: uuid.New(), TwitchID: &twitchID}, nil
+			}
+			// All banned users are new
+			return nil, repository.ErrUserNotFound
+		},
+		createFunc: func(ctx context.Context, user *models.User) error {
+			createdUsers = append(createdUsers, user.Username)
+			return nil
+		},
+	}
+
+	banRepo := &mockBanRepository{
+		batchUpsertBansFunc: func(ctx context.Context, bans []*repository.TwitchBan) error {
+			return nil
+		},
+	}
+
+	service := NewTwitchBanSyncService(twitchClient, authRepo, banRepo, userRepo)
+
+	err := service.SyncChannelBans(ctx, userID.String(), channelID)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if len(createdUsers) != 2 {
+		t.Errorf("Expected 2 users to be created, got %d", len(createdUsers))
+	}
+
+	if !containsString(createdUsers, "user1") || !containsString(createdUsers, "user2") {
+		t.Errorf("Expected users 'user1' and 'user2' to be created, got: %v", createdUsers)
+	}
+}
+
+// TestSyncChannelBans_EmptyBanList tests syncing with no bans
+func TestSyncChannelBans_EmptyBanList(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	twitchUserID := "123456"
+	channelID := twitchUserID
+
+	authRepo := &mockTwitchAuthRepository{
+		getTwitchAuthFunc: func(ctx context.Context, uid uuid.UUID) (*models.TwitchAuth, error) {
+			return &models.TwitchAuth{
+				UserID:       userID,
+				TwitchUserID: twitchUserID,
+				AccessToken:  "valid_token",
+				ExpiresAt:    time.Now().Add(time.Hour),
+			}, nil
+		},
+		isTokenExpiredFunc: func(auth *models.TwitchAuth) bool {
+			return false
+		},
+	}
+
+	twitchClient := &mockTwitchClient{
+		getBannedUsersFunc: func(ctx context.Context, broadcasterID string, userAccessToken string, first int, after string) (*twitch.BannedUsersResponse, error) {
+			return &twitch.BannedUsersResponse{
+				Data:       []twitch.BannedUser{}, // No bans
+				Pagination: twitch.Pagination{Cursor: ""},
+			}, nil
+		},
+	}
+
+	userRepo := &mockUserRepository{
+		getByTwitchIDFunc: func(ctx context.Context, twitchID string) (*models.User, error) {
+			if twitchID == channelID {
+				return &models.User{ID: uuid.New(), TwitchID: &twitchID}, nil
+			}
+			return nil, repository.ErrUserNotFound
+		},
+	}
+
+	banRepo := &mockBanRepository{}
+
+	service := NewTwitchBanSyncService(twitchClient, authRepo, banRepo, userRepo)
+
+	err := service.SyncChannelBans(ctx, userID.String(), channelID)
+
+	if err != nil {
+		t.Fatalf("Expected no error with empty ban list, got: %v", err)
+	}
+}
+
+// TestSyncChannelBans_WithExpiringBans tests syncing temporary bans with expiration
+func TestSyncChannelBans_WithExpiringBans(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	twitchUserID := "123456"
+	channelID := twitchUserID
+
+	expirationTime := time.Now().Add(24 * time.Hour)
+
+	authRepo := &mockTwitchAuthRepository{
+		getTwitchAuthFunc: func(ctx context.Context, uid uuid.UUID) (*models.TwitchAuth, error) {
+			return &models.TwitchAuth{
+				UserID:       userID,
+				TwitchUserID: twitchUserID,
+				AccessToken:  "valid_token",
+				ExpiresAt:    time.Now().Add(time.Hour),
+			}, nil
+		},
+		isTokenExpiredFunc: func(auth *models.TwitchAuth) bool {
+			return false
+		},
+	}
+
+	twitchClient := &mockTwitchClient{
+		getBannedUsersFunc: func(ctx context.Context, broadcasterID string, userAccessToken string, first int, after string) (*twitch.BannedUsersResponse, error) {
+			return &twitch.BannedUsersResponse{
+				Data: []twitch.BannedUser{
+					{
+						UserID:    "banned1",
+						UserLogin: "user1",
+						UserName:  "User1",
+						CreatedAt: time.Now(),
+						ExpiresAt: expirationTime,
+						Reason:    "timeout",
+					},
+				},
+				Pagination: twitch.Pagination{Cursor: ""},
+			}, nil
+		},
+	}
+
+	userRepo := &mockUserRepository{
+		getByTwitchIDFunc: func(ctx context.Context, twitchID string) (*models.User, error) {
+			if twitchID == channelID {
+				return &models.User{ID: uuid.New(), TwitchID: &twitchID}, nil
+			}
+			return nil, repository.ErrUserNotFound
+		},
+		createFunc: func(ctx context.Context, user *models.User) error {
+			return nil
+		},
+	}
+
+	bansCaptured := []*repository.TwitchBan{}
+	banRepo := &mockBanRepository{
+		batchUpsertBansFunc: func(ctx context.Context, bans []*repository.TwitchBan) error {
+			bansCaptured = bans
+			return nil
+		},
+	}
+
+	service := NewTwitchBanSyncService(twitchClient, authRepo, banRepo, userRepo)
+
+	err := service.SyncChannelBans(ctx, userID.String(), channelID)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if len(bansCaptured) != 1 {
+		t.Fatalf("Expected 1 ban to be saved, got %d", len(bansCaptured))
+	}
+
+	ban := bansCaptured[0]
+	if ban.ExpiresAt == nil {
+		t.Error("Expected ban to have expiration time")
+	} else if !ban.ExpiresAt.Equal(expirationTime) {
+		t.Errorf("Expected expiration time %v, got %v", expirationTime, *ban.ExpiresAt)
+	}
+
+	if ban.Reason == nil || *ban.Reason != "timeout" {
+		t.Errorf("Expected ban reason 'timeout', got: %v", ban.Reason)
+	}
+}

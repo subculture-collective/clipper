@@ -1,11 +1,15 @@
 package services
 
 import (
+	"bytes"
+	"context"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
@@ -246,4 +250,282 @@ func TestAuditLogFiltersEmpty(t *testing.T) {
 	assert.Nil(t, filters.ChannelID)
 	assert.Nil(t, filters.StartDate)
 	assert.Nil(t, filters.EndDate)
+}
+
+// Mock AuditLogRepository for testing service methods
+type MockAuditLogRepository struct {
+	mock.Mock
+}
+
+func (m *MockAuditLogRepository) List(ctx context.Context, filters repository.AuditLogFilters, page, limit int) ([]*models.ModerationAuditLogWithUser, int, error) {
+	args := m.Called(ctx, filters, page, limit)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*models.ModerationAuditLogWithUser), args.Int(1), args.Error(2)
+}
+
+func (m *MockAuditLogRepository) Create(ctx context.Context, log *models.ModerationAuditLog) error {
+	args := m.Called(ctx, log)
+	return args.Error(0)
+}
+
+func (m *MockAuditLogRepository) Export(ctx context.Context, filters repository.AuditLogFilters) ([]*models.ModerationAuditLogWithUser, error) {
+	args := m.Called(ctx, filters)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.ModerationAuditLogWithUser), args.Error(1)
+}
+
+// TestAuditLogService_GetAuditLogs tests retrieving audit logs with filters
+func TestAuditLogService_GetAuditLogs(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	moderatorID := uuid.New()
+	filters := repository.AuditLogFilters{
+		ModeratorID: &moderatorID,
+		Action:      "ban",
+	}
+
+	expectedLogs := []*models.ModerationAuditLogWithUser{
+		{
+			ModerationAuditLog: models.ModerationAuditLog{
+				ID:          uuid.New(),
+				Action:      "ban",
+				EntityType:  "user",
+				EntityID:    uuid.New(),
+				ModeratorID: moderatorID,
+				CreatedAt:   time.Now(),
+			},
+			Moderator: &models.User{
+				ID:       moderatorID,
+				Username: "test_mod",
+			},
+		},
+	}
+
+	mockRepo.On("List", ctx, filters, 1, 10).Return(expectedLogs, 1, nil)
+
+	service := NewAuditLogService(mockRepo)
+	logs, total, err := service.GetAuditLogs(ctx, filters, 1, 10)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, total)
+	assert.Equal(t, 1, len(logs))
+	assert.Equal(t, "ban", logs[0].Action)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogAction tests logging a moderation action
+func TestAuditLogService_LogAction(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	actorID := uuid.New()
+	targetID := uuid.New()
+	channelID := uuid.New()
+	reason := "spam"
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "ban_user" &&
+			log.EntityType == "user" &&
+			log.ModeratorID == actorID &&
+			log.EntityID == targetID &&
+			log.Reason != nil &&
+			*log.Reason == reason &&
+			log.ChannelID != nil &&
+			*log.ChannelID == channelID
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+
+	opts := AuditLogOptions{
+		Channel: &channelID,
+		Reason:  &reason,
+		Metadata: map[string]interface{}{
+			"key": "value",
+		},
+	}
+
+	err := service.LogAction(ctx, "ban_user", actorID, targetID, "user", opts)
+	assert.NoError(t, err)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogAction_MinimalOptions tests logging with minimal options
+func TestAuditLogService_LogAction_MinimalOptions(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	actorID := uuid.New()
+	targetID := uuid.New()
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "view_logs" &&
+			log.EntityType == "audit_log" &&
+			log.ModeratorID == actorID &&
+			log.EntityID == targetID &&
+			log.Reason == nil &&
+			log.ChannelID == nil
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+
+	opts := AuditLogOptions{}
+	err := service.LogAction(ctx, "view_logs", actorID, targetID, "audit_log", opts)
+	assert.NoError(t, err)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_ExportAuditLogsCSV tests CSV export functionality
+func TestAuditLogService_ExportAuditLogsCSV(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	moderatorID := uuid.New()
+	entityID := uuid.New()
+	channelID := uuid.New()
+	reason := "test reason"
+	ipAddress := "192.168.1.1"
+	userAgent := "test-agent"
+
+	filters := repository.AuditLogFilters{
+		Action: "ban",
+	}
+
+	exportedLogs := []*models.ModerationAuditLogWithUser{
+		{
+			ModerationAuditLog: models.ModerationAuditLog{
+				ID:          uuid.New(),
+				Action:      "ban",
+				EntityType:  "user",
+				EntityID:    entityID,
+				ModeratorID: moderatorID,
+				Reason:      &reason,
+				Metadata: map[string]interface{}{
+					"key": "value",
+				},
+				IPAddress: &ipAddress,
+				UserAgent: &userAgent,
+				ChannelID: &channelID,
+				CreatedAt: time.Now(),
+			},
+			Moderator: &models.User{
+				ID:       moderatorID,
+				Username: "test_mod",
+			},
+		},
+	}
+
+	mockRepo.On("Export", ctx, filters).Return(exportedLogs, nil)
+
+	service := NewAuditLogService(mockRepo)
+
+	var buf bytes.Buffer
+	err := service.ExportAuditLogsCSV(ctx, filters, &buf)
+
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "ID,Action,Entity Type")
+	assert.Contains(t, buf.String(), "ban")
+	assert.Contains(t, buf.String(), "test_mod")
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_ExportAuditLogsCSV_EmptyResults tests CSV export with no results
+func TestAuditLogService_ExportAuditLogsCSV_EmptyResults(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	filters := repository.AuditLogFilters{
+		Action: "nonexistent",
+	}
+
+	mockRepo.On("Export", ctx, filters).Return([]*models.ModerationAuditLogWithUser{}, nil)
+
+	service := NewAuditLogService(mockRepo)
+
+	var buf bytes.Buffer
+	err := service.ExportAuditLogsCSV(ctx, filters, &buf)
+
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "ID,Action,Entity Type") // Header should still be present
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogSubscriptionEvent tests logging subscription events
+func TestAuditLogService_LogSubscriptionEvent(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	userID := uuid.New()
+	metadata := map[string]interface{}{
+		"plan":   "premium",
+		"amount": 9.99,
+	}
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "subscription_created" &&
+			log.EntityType == "subscription" &&
+			log.ModeratorID == userID &&
+			log.EntityID == userID &&
+			log.Metadata != nil
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+	err := service.LogSubscriptionEvent(ctx, userID, "subscription_created", metadata)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogAccountDeletionRequested tests logging account deletion request
+func TestAuditLogService_LogAccountDeletionRequested(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	userID := uuid.New()
+	reason := "no longer needed"
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "account_deletion_requested" &&
+			log.EntityType == "user" &&
+			log.ModeratorID == userID &&
+			log.EntityID == userID &&
+			log.Reason != nil &&
+			*log.Reason == reason
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+	err := service.LogAccountDeletionRequested(ctx, userID, &reason)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_LogAccountDeletionCancelled tests logging account deletion cancellation
+func TestAuditLogService_LogAccountDeletionCancelled(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	userID := uuid.New()
+
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(log *models.ModerationAuditLog) bool {
+		return log.Action == "account_deletion_cancelled" &&
+			log.EntityType == "user" &&
+			log.ModeratorID == userID &&
+			log.EntityID == userID
+	})).Return(nil)
+
+	service := NewAuditLogService(mockRepo)
+	err := service.LogAccountDeletionCancelled(ctx, userID)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }
