@@ -170,14 +170,8 @@ func (s *PermissionCheckService) CanModerate(ctx context.Context, actor *models.
 		// Community moderators need to be a mod or admin in the specific community
 		member, err := s.communityRepo.GetMember(ctx, channelID, actor.ID)
 		if err != nil {
-			return NewPermissionDenied(
-				"NOT_A_MEMBER",
-				"moderator is not a member of this channel",
-				map[string]interface{}{
-					"channel_id": channelID.String(),
-					"user_id":    actor.ID.String(),
-				},
-			)
+			// Actual database error occurred
+			return fmt.Errorf("failed to check community membership: %w", err)
 		}
 		if member == nil {
 			return NewPermissionDenied(

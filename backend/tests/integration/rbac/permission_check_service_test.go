@@ -227,6 +227,7 @@ func addCommunityModerator(t *testing.T, tc *testutil.TestConfig, communityID, u
 	communityRepo := repository.NewCommunityRepository(tc.DB.Pool)
 
 	member := &models.CommunityMember{
+		ID:          uuid.New(),
 		CommunityID: communityID,
 		UserID:      userID,
 		Role:        models.CommunityRoleMod,

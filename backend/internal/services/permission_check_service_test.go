@@ -172,7 +172,7 @@ func TestCanBan_CommunityModScopeLimited(t *testing.T) {
 		mockRedis.On("GetJSON", ctx, mock.MatchedBy(func(key string) bool {
 			return key != ""
 		}), mock.Anything).Return(assert.AnError).Once()
-		mockCommunityRepo.On("GetMember", ctx, otherChannelID, communityModID).Return(nil, assert.AnError)
+		mockCommunityRepo.On("GetMember", ctx, otherChannelID, communityModID).Return(nil, nil)
 
 		err := service.CanBan(ctx, communityMod, targetUserID, otherChannelID)
 		assert.Error(t, err)
