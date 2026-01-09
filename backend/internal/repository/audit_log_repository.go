@@ -333,6 +333,63 @@ func (r *AuditLogRepository) Export(ctx context.Context, filters AuditLogFilters
 	return logs, rows.Err()
 }
 
+// GetByID retrieves a single audit log entry by ID
+func (r *AuditLogRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.ModerationAuditLogWithUser, error) {
+	query := `
+		SELECT
+			mal.id, mal.action, mal.entity_type, mal.entity_id, mal.moderator_id,
+			mal.reason, mal.metadata, mal.ip_address, mal.user_agent, mal.channel_id, mal.created_at,
+			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url,
+			u.bio, u.karma_points, u.role, u.is_banned, u.created_at, u.updated_at, u.last_login_at
+		FROM moderation_audit_logs mal
+		JOIN users u ON mal.moderator_id = u.id
+		WHERE mal.id = $1`
+
+	var log models.ModerationAuditLogWithUser
+	var user models.User
+	var metadataJSON []byte
+
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&log.ID,
+		&log.Action,
+		&log.EntityType,
+		&log.EntityID,
+		&log.ModeratorID,
+		&log.Reason,
+		&metadataJSON,
+		&log.IPAddress,
+		&log.UserAgent,
+		&log.ChannelID,
+		&log.CreatedAt,
+		&user.ID,
+		&user.TwitchID,
+		&user.Username,
+		&user.DisplayName,
+		&user.Email,
+		&user.AvatarURL,
+		&user.Bio,
+		&user.KarmaPoints,
+		&user.Role,
+		&user.IsBanned,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.LastLoginAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal metadata
+	if metadataJSON != nil {
+		if err := json.Unmarshal(metadataJSON, &log.Metadata); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+		}
+	}
+
+	log.Moderator = &user
+	return &log, nil
+}
+
 // GetByEntityID returns audit logs for a specific entity with optional type filter
 func (r *AuditLogRepository) GetByEntityID(ctx context.Context, entityID uuid.UUID, entityType string, limit, offset int) ([]*models.ModerationAuditLog, error) {
 	whereClause := "WHERE entity_id = $1"
