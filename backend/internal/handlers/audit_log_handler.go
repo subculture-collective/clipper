@@ -6,8 +6,60 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/services"
 )
+
+// AuditLogResponse represents the API response format for audit log entries
+type AuditLogResponse struct {
+	ID        string                 `json:"id"`
+	Action    string                 `json:"action"`
+	Actor     map[string]interface{} `json:"actor"`
+	Target    map[string]interface{} `json:"target"`
+	Reason    string                 `json:"reason"`
+	CreatedAt string                 `json:"createdAt"`
+	Metadata  map[string]interface{} `json:"metadata"`
+}
+
+// transformAuditLog converts a ModerationAuditLogWithUser to the API response format
+// Note: Target username is not populated as it would require additional database joins.
+// The entity_id is provided for clients to fetch user details if needed.
+func transformAuditLog(log *models.ModerationAuditLogWithUser) AuditLogResponse {
+	var reason string
+	if log.Reason != nil {
+		reason = *log.Reason
+	}
+
+	actor := map[string]interface{}{
+		"id":       log.ModeratorID.String(),
+		"username": "",
+	}
+	if log.Moderator != nil {
+		actor["username"] = log.Moderator.Username
+	}
+
+	// Note: Target username is not included as it would require additional joins.
+	// Clients can fetch user details using the entity_id if entity_type is "user"
+	target := map[string]interface{}{
+		"id":       log.EntityID.String(),
+		"username": "",
+	}
+
+	metadata := log.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+
+	return AuditLogResponse{
+		ID:        log.ID.String(),
+		Action:    log.Action,
+		Actor:     actor,
+		Target:    target,
+		Reason:    reason,
+		CreatedAt: log.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Metadata:  metadata,
+	}
+}
 
 // AuditLogHandler handles audit log operations
 type AuditLogHandler struct {
@@ -155,51 +207,9 @@ func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 	}
 
 	// Transform logs to match the required response format
-	type AuditLogResponse struct {
-		ID        string                 `json:"id"`
-		Action    string                 `json:"action"`
-		Actor     map[string]interface{} `json:"actor"`
-		Target    map[string]interface{} `json:"target"`
-		Reason    string                 `json:"reason"`
-		CreatedAt string                 `json:"createdAt"`
-		Metadata  map[string]interface{} `json:"metadata"`
-	}
-
 	response := make([]AuditLogResponse, 0, len(logs))
 	for _, log := range logs {
-		var reason string
-		if log.Reason != nil {
-			reason = *log.Reason
-		}
-
-		actor := map[string]interface{}{
-			"id":       log.ModeratorID.String(),
-			"username": "",
-		}
-		if log.Moderator != nil {
-			actor["username"] = log.Moderator.Username
-		}
-
-		// For target, we use entity_id - may need to fetch username depending on entity_type
-		target := map[string]interface{}{
-			"id":       log.EntityID.String(),
-			"username": "", // Would need to join with users table if entity_type is "user"
-		}
-
-		metadata := log.Metadata
-		if metadata == nil {
-			metadata = make(map[string]interface{})
-		}
-
-		response = append(response, AuditLogResponse{
-			ID:        log.ID.String(),
-			Action:    log.Action,
-			Actor:     actor,
-			Target:    target,
-			Reason:    reason,
-			CreatedAt: log.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			Metadata:  metadata,
-		})
+		response = append(response, transformAuditLog(log))
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -231,38 +241,8 @@ func (h *AuditLogHandler) GetModerationAuditLog(c *gin.Context) {
 	}
 
 	// Transform to match response format
-	var reason string
-	if log.Reason != nil {
-		reason = *log.Reason
-	}
-
-	actor := map[string]interface{}{
-		"id":       log.ModeratorID.String(),
-		"username": "",
-	}
-	if log.Moderator != nil {
-		actor["username"] = log.Moderator.Username
-	}
-
-	target := map[string]interface{}{
-		"id":       log.EntityID.String(),
-		"username": "",
-	}
-
-	metadata := log.Metadata
-	if metadata == nil {
-		metadata = make(map[string]interface{})
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"id":        log.ID.String(),
-		"action":    log.Action,
-		"actor":     actor,
-		"target":    target,
-		"reason":    reason,
-		"createdAt": log.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		"metadata":  metadata,
-	})
+	response := transformAuditLog(log)
+	c.JSON(http.StatusOK, response)
 }
 
 // ExportModerationAuditLogs exports moderation audit logs to CSV
