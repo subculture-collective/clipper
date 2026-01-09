@@ -1908,7 +1908,6 @@ func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
 	})
 }
 
-
 // ListModerators retrieves moderators for a channel
 // GET /api/v1/moderation/moderators
 func (h *ModerationHandler) ListModerators(c *gin.Context) {

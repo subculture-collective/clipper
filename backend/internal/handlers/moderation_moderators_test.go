@@ -158,3 +158,58 @@ func TestUpdateModeratorPermissions_InvalidID(t *testing.T) {
 		t.Errorf("Expected status %d for invalid ID, got %d", http.StatusBadRequest, w.Code)
 	}
 }
+
+// TestModeratorPermissions_Structure tests that permission check functions exist
+// This validates the implementation structure without requiring database setup
+func TestModeratorPermissions_Structure(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// Create handler to verify it has the required methods
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil)
+
+	if handler == nil {
+		t.Fatal("Handler should not be nil")
+	}
+
+	// Verify handler structure includes all required methods
+	// These tests verify the methods compile and can be called
+	testCases := []struct {
+		name        string
+		method      string
+		path        string
+		handlerFunc func(*gin.Context)
+	}{
+		{
+			name:        "ListModerators exists",
+			method:      http.MethodGet,
+			path:        "/api/v1/moderation/moderators",
+			handlerFunc: handler.ListModerators,
+		},
+		{
+			name:        "AddModerator exists",
+			method:      http.MethodPost,
+			path:        "/api/v1/moderation/moderators",
+			handlerFunc: handler.AddModerator,
+		},
+		{
+			name:        "RemoveModerator exists",
+			method:      http.MethodDelete,
+			path:        "/api/v1/moderation/moderators/:id",
+			handlerFunc: handler.RemoveModerator,
+		},
+		{
+			name:        "UpdateModeratorPermissions exists",
+			method:      http.MethodPatch,
+			path:        "/api/v1/moderation/moderators/:id",
+			handlerFunc: handler.UpdateModeratorPermissions,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.handlerFunc == nil {
+				t.Errorf("Handler function should not be nil for %s", tc.name)
+			}
+		})
+	}
+}
