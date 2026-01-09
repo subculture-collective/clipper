@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	secondsPerHour = 3600
+	secondsPerHour         = 3600
+	banSyncTimeoutDuration = 5 * time.Minute
 )
 
 // ModerationHandler handles moderation operations
@@ -1477,7 +1478,7 @@ func (h *ModerationHandler) SyncBans(c *gin.Context) {
 	// Start async ban sync in a goroutine (fire and forget)
 	go func() {
 		// Create a new context for the background job with timeout
-		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		bgCtx, cancel := context.WithTimeout(context.Background(), banSyncTimeoutDuration)
 		defer cancel()
 
 		err := h.twitchBanSyncService.SyncChannelBans(bgCtx, userID.String(), req.ChannelID)

@@ -484,19 +484,6 @@ func main() {
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
-	if submissionService != nil {
-		submissionHandler = handlers.NewSubmissionHandler(submissionService)
-		// Create moderation handler using services from submission service
-		abuseDetector := submissionService.GetAbuseDetector()
-		moderationEventService := submissionService.GetModerationEventService()
-		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, twitchBanSyncService, db.Pool)
-		}
-	}
-
-	// Initialize NSFW handler
-	nsfwHandler := handlers.NewNSFWHandler(nsfwDetector)
-
 	// Initialize forum handlers
 	forumHandler := handlers.NewForumHandler(db.Pool)
 	forumModerationHandler := handlers.NewForumModerationHandler(db.Pool)
@@ -511,6 +498,19 @@ func main() {
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
 		twitchBanSyncService = services.NewTwitchBanSyncService(twitchClient, twitchAuthRepo, twitchBanRepo, userRepo)
 	}
+
+	if submissionService != nil {
+		submissionHandler = handlers.NewSubmissionHandler(submissionService)
+		// Create moderation handler using services from submission service
+		abuseDetector := submissionService.GetAbuseDetector()
+		moderationEventService := submissionService.GetModerationEventService()
+		if abuseDetector != nil && moderationEventService != nil {
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, twitchBanSyncService, db.Pool)
+		}
+	}
+
+	// Initialize NSFW handler
+	nsfwHandler := handlers.NewNSFWHandler(nsfwDetector)
 
 	// Initialize router
 	r := gin.New()
