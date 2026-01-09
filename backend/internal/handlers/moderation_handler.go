@@ -1966,27 +1966,52 @@ func (h *ModerationHandler) ListModerators(c *gin.Context) {
 		return
 	}
 
-	// Get moderators (role = 'mod' or 'admin')
-	// We'll query both roles separately and combine them
-	mods, modTotal, err := h.communityRepo.ListMembers(ctx, channelID, models.CommunityRoleMod, limit, offset)
+	// Get all moderators (both mods and admins) with proper pagination
+	// Query both roles in a single database query
+	query := `
+		SELECT id, community_id, user_id, role, joined_at
+		FROM community_members
+		WHERE community_id = $1 AND (role = $2 OR role = $3)
+		ORDER BY joined_at DESC
+		LIMIT $4 OFFSET $5
+	`
+	
+	// Count total
+	var total int
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM community_members
+		WHERE community_id = $1 AND (role = $2 OR role = $3)
+	`, channelID, models.CommunityRoleMod, models.CommunityRoleAdmin).Scan(&total)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to count moderators",
+		})
+		return
+	}
+
+	// Get moderators
+	rows, err := h.db.Query(ctx, query, channelID, models.CommunityRoleMod, models.CommunityRoleAdmin, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve moderators",
 		})
 		return
 	}
+	defer rows.Close()
 
-	admins, adminTotal, err := h.communityRepo.ListMembers(ctx, channelID, models.CommunityRoleAdmin, limit, offset)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to retrieve moderators",
-		})
-		return
+	var moderators []*models.CommunityMember
+	for rows.Next() {
+		member := &models.CommunityMember{}
+		err := rows.Scan(&member.ID, &member.CommunityID, &member.UserID, &member.Role, &member.JoinedAt)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to scan moderator",
+			})
+			return
+		}
+		moderators = append(moderators, member)
 	}
-
-	// Combine results
-	moderators := append(mods, admins...)
-	total := modTotal + adminTotal
 
 	c.JSON(http.StatusOK, gin.H{
 		"moderators": moderators,
@@ -2000,7 +2025,6 @@ func (h *ModerationHandler) ListModerators(c *gin.Context) {
 // POST /api/v1/moderation/moderators
 func (h *ModerationHandler) AddModerator(c *gin.Context) {
 	ctx := c.Request.Context()
-	logger := utils.GetLogger()
 
 	// Get user ID from context
 	userIDVal, exists := c.Get("user_id")
@@ -2065,15 +2089,15 @@ func (h *ModerationHandler) AddModerator(c *gin.Context) {
 	}
 
 	// Check if target user exists
-	targetUser, err := h.db.Query(ctx, "SELECT id FROM users WHERE id = $1", targetUserID)
+	var userExists bool
+	err = h.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", targetUserID).Scan(&userExists)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to verify user",
 		})
 		return
 	}
-	defer targetUser.Close()
-	if !targetUser.Next() {
+	if !userExists {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "User not found",
 		})
@@ -2126,18 +2150,8 @@ func (h *ModerationHandler) AddModerator(c *gin.Context) {
 		Metadata:    metadata,
 	}
 
-	// Log directly to database
-	_, err = h.db.Exec(ctx, `
-		INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
-	if err != nil {
-		logger.Error("Failed to create audit log", err, map[string]interface{}{
-			"action":    auditLog.Action,
-			"entity_id": auditLog.EntityID,
-			"moderator": auditLog.ModeratorID,
-		})
-	}
+	// Create audit log
+	h.createModeratorAuditLog(ctx, auditLog)
 
 	// Retrieve the updated member to return
 	member, err := h.communityRepo.GetMember(ctx, channelID, targetUserID)
@@ -2159,7 +2173,6 @@ func (h *ModerationHandler) AddModerator(c *gin.Context) {
 // DELETE /api/v1/moderation/moderators/:id
 func (h *ModerationHandler) RemoveModerator(c *gin.Context) {
 	ctx := c.Request.Context()
-	logger := utils.GetLogger()
 
 	// Get user ID from context
 	userIDVal, exists := c.Get("user_id")
@@ -2257,17 +2270,8 @@ func (h *ModerationHandler) RemoveModerator(c *gin.Context) {
 		Metadata:    metadata,
 	}
 
-	_, err = h.db.Exec(ctx, `
-		INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
-	if err != nil {
-		logger.Error("Failed to create audit log", err, map[string]interface{}{
-			"action":    auditLog.Action,
-			"entity_id": auditLog.EntityID,
-			"moderator": auditLog.ModeratorID,
-		})
-	}
+	// Create audit log
+	h.createModeratorAuditLog(ctx, auditLog)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -2279,7 +2283,6 @@ func (h *ModerationHandler) RemoveModerator(c *gin.Context) {
 // PATCH /api/v1/moderation/moderators/:id
 func (h *ModerationHandler) UpdateModeratorPermissions(c *gin.Context) {
 	ctx := c.Request.Context()
-	logger := utils.GetLogger()
 
 	// Get user ID from context
 	userIDVal, exists := c.Get("user_id")
@@ -2303,11 +2306,19 @@ func (h *ModerationHandler) UpdateModeratorPermissions(c *gin.Context) {
 
 	// Parse request body
 	var req struct {
-		Role string `json:"role" binding:"required,oneof=mod admin"`
+		Role string `json:"role" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request: role must be 'mod' or 'admin'",
+			"error": "Invalid request: role is required",
+		})
+		return
+	}
+
+	// Validate role using constants
+	if req.Role != models.CommunityRoleMod && req.Role != models.CommunityRoleAdmin {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid role: must be 'mod' or 'admin'",
 		})
 		return
 	}
@@ -2388,17 +2399,8 @@ func (h *ModerationHandler) UpdateModeratorPermissions(c *gin.Context) {
 		Metadata:    metadata,
 	}
 
-	_, err = h.db.Exec(ctx, `
-		INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
-	if err != nil {
-		logger.Error("Failed to create audit log", err, map[string]interface{}{
-			"action":    auditLog.Action,
-			"entity_id": auditLog.EntityID,
-			"moderator": auditLog.ModeratorID,
-		})
-	}
+	// Create audit log
+	h.createModeratorAuditLog(ctx, auditLog)
 
 	// Retrieve updated member
 	updatedMember, err := h.communityRepo.GetMember(ctx, member.CommunityID, member.UserID)
@@ -2538,4 +2540,21 @@ func (h *ModerationHandler) validateModeratorScope(ctx context.Context, channelI
 	}
 
 	return nil
+}
+
+// createModeratorAuditLog creates an audit log entry for moderator management actions
+func (h *ModerationHandler) createModeratorAuditLog(ctx context.Context, auditLog *models.ModerationAuditLog) {
+logger := utils.GetLogger()
+
+_, err := h.db.Exec(ctx, `
+INSERT INTO moderation_audit_logs (action, entity_type, entity_id, moderator_id, reason, metadata)
+VALUES ($1, $2, $3, $4, $5, $6)
+`, auditLog.Action, auditLog.EntityType, auditLog.EntityID, auditLog.ModeratorID, auditLog.Reason, auditLog.Metadata)
+if err != nil {
+logger.Error("Failed to create audit log", err, map[string]interface{}{
+"action":    auditLog.Action,
+"entity_id": auditLog.EntityID,
+"moderator": auditLog.ModeratorID,
+})
+}
 }
