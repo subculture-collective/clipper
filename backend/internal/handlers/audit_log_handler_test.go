@@ -329,3 +329,27 @@ func TestListModerationAuditLogsFilters(t *testing.T) {
 
 	mockRepo.AssertExpectations(t)
 }
+
+func TestListModerationAuditLogsSearch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockRepo := new(MockAuditLogRepository)
+	mockRepo.On("List", mock.Anything, mock.MatchedBy(func(f repository.AuditLogFilters) bool {
+		return f.Search == "harassment"
+	}), mock.AnythingOfType("int"), mock.AnythingOfType("int")).
+		Return([]*models.ModerationAuditLogWithUser{}, 0, nil)
+
+	service := services.NewAuditLogService(mockRepo)
+	handler := NewAuditLogHandler(service)
+
+	router := gin.New()
+	router.GET("/api/v1/moderation/audit-logs", handler.ListModerationAuditLogs)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/moderation/audit-logs?search=harassment", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	mockRepo.AssertExpectations(t)
+}
