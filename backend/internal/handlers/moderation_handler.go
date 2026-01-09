@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,10 +14,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 const (
-	secondsPerHour = 3600
+	secondsPerHour         = 3600
+	banSyncTimeoutDuration = 5 * time.Minute
 )
 
 // ModerationHandler handles moderation operations
@@ -23,15 +27,17 @@ type ModerationHandler struct {
 	moderationEventService *services.ModerationEventService
 	abuseDetector          *services.SubmissionAbuseDetector
 	toxicityClassifier     *services.ToxicityClassifier
+	twitchBanSyncService   *services.TwitchBanSyncService
 	db                     *pgxpool.Pool
 }
 
 // NewModerationHandler creates a new ModerationHandler
-func NewModerationHandler(moderationEventService *services.ModerationEventService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, db *pgxpool.Pool) *ModerationHandler {
+func NewModerationHandler(moderationEventService *services.ModerationEventService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
 		moderationEventService: moderationEventService,
 		abuseDetector:          abuseDetector,
 		toxicityClassifier:     toxicityClassifier,
+		twitchBanSyncService:   twitchBanSyncService,
 		db:                     db,
 	}
 }
@@ -1411,5 +1417,122 @@ func (h *ModerationHandler) GetToxicityMetrics(c *gin.Context) {
 		"data":       metrics,
 		"start_date": startDate.Format("2006-01-02"),
 		"end_date":   endDate.Format("2006-01-02"),
+	})
+}
+
+// SyncBans initiates Twitch ban synchronization for a channel
+// POST /api/v1/moderation/sync-bans
+func (h *ModerationHandler) SyncBans(c *gin.Context) {
+	logger := utils.GetLogger()
+
+	// Get user ID from context (authentication required)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		ChannelID string `json:"channel_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: channel_id is required",
+		})
+		return
+	}
+
+	// Validate channel_id is not empty
+	if strings.TrimSpace(req.ChannelID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "channel_id cannot be empty",
+		})
+		return
+	}
+
+	// Check if Twitch ban sync service is available
+	if h.twitchBanSyncService == nil {
+		logger.Warn("Twitch ban sync service not available", map[string]interface{}{
+			"user_id": userID.String(),
+		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Twitch ban sync service not available. Please ensure Twitch integration is configured.",
+		})
+		return
+	}
+
+	// Create job ID for tracking
+	jobID := uuid.New()
+
+	// Log sync request
+	logger.Info("Ban sync requested", map[string]interface{}{
+		"user_id":    userID.String(),
+		"channel_id": req.ChannelID,
+		"job_id":     jobID.String(),
+	})
+
+	// Start async ban sync in a goroutine (fire and forget)
+	go func() {
+		// Create a new context for the background job with timeout
+		bgCtx, cancel := context.WithTimeout(context.Background(), banSyncTimeoutDuration)
+		defer cancel()
+
+		err := h.twitchBanSyncService.SyncChannelBans(bgCtx, userID.String(), req.ChannelID)
+		if err != nil {
+			// Log error but don't fail the request
+			var authErr *services.AuthenticationError
+			var authzErr *services.AuthorizationError
+			var apiErr *services.BanSyncTwitchAPIError
+			var dbErr *services.DatabaseError
+
+			if errors.As(err, &authErr) {
+				logger.Error("Ban sync authentication failed", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else if errors.As(err, &authzErr) {
+				logger.Error("Ban sync authorization failed", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else if errors.As(err, &apiErr) {
+				logger.Error("Ban sync Twitch API error", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else if errors.As(err, &dbErr) {
+				logger.Error("Ban sync database error", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else {
+				logger.Error("Ban sync failed", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			}
+		} else {
+			logger.Info("Ban sync completed successfully", map[string]interface{}{
+				"user_id":    userID.String(),
+				"channel_id": req.ChannelID,
+				"job_id":     jobID.String(),
+			})
+		}
+	}()
+
+	// Return immediate response
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "syncing",
+		"job_id":  jobID.String(),
+		"message": "Ban sync started",
 	})
 }
