@@ -355,3 +355,25 @@ func (s *ModerationService) validateModerationScope(moderator *models.User, comm
 
 	return nil
 }
+
+// HasModerationPermission checks if a user has permission to moderate a community
+// without performing any ban-related queries
+func (s *ModerationService) HasModerationPermission(ctx context.Context, communityID, moderatorID uuid.UUID) error {
+	// Get moderator user
+	moderator, err := s.userRepo.GetByID(ctx, moderatorID)
+	if err != nil {
+		return fmt.Errorf("failed to get moderator: %w", err)
+	}
+
+	// Validate permission
+	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
+		return err
+	}
+
+	// Validate scope for community moderators
+	if err := s.validateModerationScope(moderator, communityID); err != nil {
+		return err
+	}
+
+	return nil
+}

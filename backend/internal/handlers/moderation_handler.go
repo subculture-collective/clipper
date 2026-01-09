@@ -1698,8 +1698,6 @@ func (h *ModerationHandler) CreateBan(c *gin.Context) {
 	}
 
 	// Retrieve the created ban to return full details
-	// Note: Since BanUser doesn't return the ban ID, we need to query for it
-	// We'll use the channelID and userID to find the most recent ban
 	var ban models.CommunityBan
 	err = h.db.QueryRow(ctx, `
 		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
@@ -1711,13 +1709,8 @@ func (h *ModerationHandler) CreateBan(c *gin.Context) {
 		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
 	)
 	if err != nil {
-		// Ban was created but we couldn't retrieve it - still return success
-		c.JSON(http.StatusOK, gin.H{
-			"id":        uuid.New(), // Placeholder
-			"channelId": channelID,
-			"userId":    userID,
-			"reason":    req.Reason,
-			"bannedAt":  time.Now(),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Ban created but failed to retrieve details",
 		})
 		return
 	}
@@ -1856,9 +1849,8 @@ func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
 		return
 	}
 
-	// Verify moderator has permission to view this ban by attempting to list bans for the channel
-	// This will check permissions without actually listing all bans
-	_, _, err = h.moderationService.GetBans(ctx, ban.CommunityID, moderatorID, 1, 1)
+	// Verify moderator has permission to view bans for this channel
+	err = h.moderationService.HasModerationPermission(ctx, ban.CommunityID, moderatorID)
 	if err != nil {
 		if strings.Contains(err.Error(), "permission") || strings.Contains(err.Error(), "authorized") {
 			c.JSON(http.StatusForbidden, gin.H{
