@@ -20,6 +20,7 @@ type ModerationCommunityRepo interface {
 	UnbanMember(ctx context.Context, communityID, userID uuid.UUID) error
 	RemoveMember(ctx context.Context, communityID, userID uuid.UUID) error
 	ListBans(ctx context.Context, communityID uuid.UUID, limit, offset int) ([]*models.CommunityBan, int, error)
+	GetBanByID(ctx context.Context, banID uuid.UUID) (*models.CommunityBan, error)
 }
 
 // ModerationUserRepo defines the methods needed from UserRepository

@@ -60,6 +60,14 @@ func (m *MockCommunityRepository) ListBans(ctx context.Context, communityID uuid
 	return args.Get(0).([]*models.CommunityBan), args.Int(1), args.Error(2)
 }
 
+func (m *MockCommunityRepository) GetBanByID(ctx context.Context, banID uuid.UUID) (*models.CommunityBan, error) {
+	args := m.Called(ctx, banID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.CommunityBan), args.Error(1)
+}
+
 // MockModerationUserRepository is a mock implementation of UserRepository for moderation tests
 type MockModerationUserRepository struct {
 	mock.Mock
