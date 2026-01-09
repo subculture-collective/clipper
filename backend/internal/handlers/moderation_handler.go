@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -25,19 +26,23 @@ const (
 // ModerationHandler handles moderation operations
 type ModerationHandler struct {
 	moderationEventService *services.ModerationEventService
+	moderationService      *services.ModerationService
 	abuseDetector          *services.SubmissionAbuseDetector
 	toxicityClassifier     *services.ToxicityClassifier
 	twitchBanSyncService   *services.TwitchBanSyncService
+	communityRepo          *repository.CommunityRepository
 	db                     *pgxpool.Pool
 }
 
 // NewModerationHandler creates a new ModerationHandler
-func NewModerationHandler(moderationEventService *services.ModerationEventService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, db *pgxpool.Pool) *ModerationHandler {
+func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, communityRepo *repository.CommunityRepository, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
 		moderationEventService: moderationEventService,
+		moderationService:      moderationService,
 		abuseDetector:          abuseDetector,
 		toxicityClassifier:     toxicityClassifier,
 		twitchBanSyncService:   twitchBanSyncService,
+		communityRepo:          communityRepo,
 		db:                     db,
 	}
 }
@@ -1534,5 +1539,371 @@ func (h *ModerationHandler) SyncBans(c *gin.Context) {
 		"status":  "syncing",
 		"job_id":  jobID.String(),
 		"message": "Ban sync started",
+	})
+}
+
+// GetBans retrieves bans for a channel with filtering and pagination
+// GET /api/v1/moderation/bans
+func (h *ModerationHandler) GetBans(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse query parameters
+	channelIDStr := c.Query("channelId")
+	if channelIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "channelId query parameter is required",
+		})
+		return
+	}
+
+	channelID, err := uuid.Parse(channelIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	// Check if moderation service is available before parsing pagination
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Parse pagination parameters
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate pagination parameters
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Ensure offset is a multiple of limit for proper page calculation
+	if offset%limit != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "offset must be a multiple of limit",
+		})
+		return
+	}
+
+	// Convert offset to page number (GetBans expects page, not offset)
+	page := (offset / limit) + 1
+
+	// Get bans from moderation service
+	bans, total, err := h.moderationService.GetBans(ctx, channelID, moderatorID, page, limit)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationCommunityNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve bans",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"bans":   bans,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
+// CreateBan creates a new ban
+// POST /api/v1/moderation/ban
+func (h *ModerationHandler) CreateBan(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		ChannelID string  `json:"channelId" binding:"required"`
+		UserID    string  `json:"userId" binding:"required"`
+		Reason    *string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse UUIDs
+	channelID, err := uuid.Parse(req.ChannelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid userId format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Create ban using moderation service
+	err = h.moderationService.BanUser(ctx, channelID, moderatorID, userID, req.Reason)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationCommunityNotFound) || errors.Is(err, services.ErrModerationUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationCannotBanOwner) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create ban",
+		})
+		return
+	}
+
+	// Retrieve the created ban to return full details using direct query
+	// Note: We use a direct query here because we need the most recently created ban
+	// and CommunityRepository doesn't have a method to get ban by channel+user
+	var ban models.CommunityBan
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
+		FROM community_bans
+		WHERE community_id = $1 AND banned_user_id = $2
+		ORDER BY banned_at DESC
+		LIMIT 1
+	`, channelID, userID).Scan(
+		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Ban created but failed to retrieve details",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        ban.ID,
+		"channelId": ban.CommunityID,
+		"userId":    ban.BannedUserID,
+		"bannedBy":  ban.BannedByUserID,
+		"reason":    ban.Reason,
+		"bannedAt":  ban.BannedAt,
+	})
+}
+
+// RevokeBan revokes/deletes a ban
+// DELETE /api/v1/moderation/ban/:id
+func (h *ModerationHandler) RevokeBan(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse ban ID from URL
+	banIDStr := c.Param("id")
+	banID, err := uuid.Parse(banIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid ban ID format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Check if community repository is available
+	if h.communityRepo == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Community repository not available",
+		})
+		return
+	}
+
+	// Retrieve the ban to get channel and user IDs using repository
+	ban, err := h.communityRepo.GetBanByID(ctx, banID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Ban not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve ban details",
+		})
+		return
+	}
+
+	// Unban user using moderation service
+	err = h.moderationService.UnbanUser(ctx, ban.CommunityID, moderatorID, ban.BannedUserID)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationNotBanned) || errors.Is(err, services.ErrModerationCommunityNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to revoke ban",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Ban revoked successfully",
+	})
+}
+
+// GetBanDetails retrieves details of a specific ban
+// GET /api/v1/moderation/ban/:id
+func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse ban ID from URL
+	banIDStr := c.Param("id")
+	banID, err := uuid.Parse(banIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid ban ID format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Check if community repository is available
+	if h.communityRepo == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Community repository not available",
+		})
+		return
+	}
+
+	// Retrieve ban from repository
+	ban, err := h.communityRepo.GetBanByID(ctx, banID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Ban not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve ban details",
+		})
+		return
+	}
+
+	// Verify moderator has permission to view bans for this channel
+	err = h.moderationService.HasModerationPermission(ctx, ban.CommunityID, moderatorID)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to view this ban",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        ban.ID,
+		"channelId": ban.CommunityID,
+		"userId":    ban.BannedUserID,
+		"bannedBy":  ban.BannedByUserID,
+		"reason":    ban.Reason,
+		"bannedAt":  ban.BannedAt,
 	})
 }
