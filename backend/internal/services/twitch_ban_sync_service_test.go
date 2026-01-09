@@ -554,7 +554,7 @@ func TestSyncChannelBans_UserCreation(t *testing.T) {
 		t.Errorf("Expected 2 users to be created, got %d", len(createdUsers))
 	}
 
-	if !containsString(createdUsers, "user1") || !containsString(createdUsers, "user2") {
+	if !testContainsString(createdUsers, "user1") || !testContainsString(createdUsers, "user2") {
 		t.Errorf("Expected users 'user1' and 'user2' to be created, got: %v", createdUsers)
 	}
 }
@@ -692,4 +692,14 @@ func TestSyncChannelBans_WithExpiringBans(t *testing.T) {
 	if ban.Reason == nil || *ban.Reason != "timeout" {
 		t.Errorf("Expected ban reason 'timeout', got: %v", ban.Reason)
 	}
+}
+
+// testContainsString is a helper function to check if a slice contains a string
+func testContainsString(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }
