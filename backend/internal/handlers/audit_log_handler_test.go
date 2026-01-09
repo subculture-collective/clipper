@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -224,7 +225,7 @@ func TestGetModerationAuditLog(t *testing.T) {
 			name:           "not found",
 			logID:          uuid.New().String(),
 			mockLog:        nil,
-			mockError:      assert.AnError,
+			mockError:      pgx.ErrNoRows,
 			expectedStatus: http.StatusNotFound,
 		},
 	}
@@ -352,4 +353,90 @@ func TestListModerationAuditLogsSearch(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	mockRepo.AssertExpectations(t)
+}
+
+func TestExportModerationAuditLogs(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name           string
+		queryParams    string
+		mockLogs       []*models.ModerationAuditLogWithUser
+		mockError      error
+		expectedStatus int
+		expectCSV      bool
+	}{
+		{
+			name:        "successful export",
+			queryParams: "?action=ban",
+			mockLogs: []*models.ModerationAuditLogWithUser{
+				{
+					ModerationAuditLog: models.ModerationAuditLog{
+						ID:          uuid.New(),
+						Action:      "ban",
+						EntityType:  "user",
+						EntityID:    uuid.New(),
+						ModeratorID: uuid.New(),
+						CreatedAt:   time.Now(),
+					},
+					Moderator: &models.User{
+						Username: "admin",
+					},
+				},
+			},
+			mockError:      nil,
+			expectedStatus: http.StatusOK,
+			expectCSV:      true,
+		},
+		{
+			name:           "export with error",
+			queryParams:    "",
+			mockLogs:       nil,
+			mockError:      assert.AnError,
+			expectedStatus: http.StatusInternalServerError,
+			expectCSV:      false,
+		},
+		{
+			name:           "export with invalid filter",
+			queryParams:    "?actor=invalid-uuid",
+			mockLogs:       nil,
+			mockError:      nil,
+			expectedStatus: http.StatusBadRequest,
+			expectCSV:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := new(MockAuditLogRepository)
+			if tt.expectedStatus != http.StatusBadRequest {
+				mockRepo.On("Export", mock.Anything, mock.AnythingOfType("repository.AuditLogFilters")).
+					Return(tt.mockLogs, tt.mockError)
+			}
+
+			service := services.NewAuditLogService(mockRepo)
+			handler := NewAuditLogHandler(service)
+
+			router := gin.New()
+			router.GET("/api/v1/moderation/audit-logs/export", handler.ExportModerationAuditLogs)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/moderation/audit-logs/export"+tt.queryParams, nil)
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatus, w.Code)
+
+			if tt.expectCSV {
+				contentType := w.Header().Get("Content-Type")
+				assert.Equal(t, "text/csv", contentType)
+				contentDisposition := w.Header().Get("Content-Disposition")
+				assert.Contains(t, contentDisposition, "attachment")
+			}
+
+			if tt.expectedStatus != http.StatusBadRequest {
+				mockRepo.AssertExpectations(t)
+			}
+		})
+	}
 }

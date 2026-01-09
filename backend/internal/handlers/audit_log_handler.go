@@ -1,24 +1,27 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/services"
 )
 
 // AuditLogResponse represents the API response format for audit log entries
 type AuditLogResponse struct {
-	ID        string                 `json:"id"`
-	Action    string                 `json:"action"`
-	Actor     map[string]interface{} `json:"actor"`
-	Target    map[string]interface{} `json:"target"`
-	Reason    string                 `json:"reason"`
-	CreatedAt string                 `json:"createdAt"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	ID         string                 `json:"id"`
+	Action     string                 `json:"action"`
+	EntityType string                 `json:"entityType"`
+	Actor      map[string]interface{} `json:"actor"`
+	Target     map[string]interface{} `json:"target"`
+	Reason     string                 `json:"reason"`
+	CreatedAt  string                 `json:"createdAt"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // transformAuditLog converts a ModerationAuditLogWithUser to the API response format
@@ -51,13 +54,14 @@ func transformAuditLog(log *models.ModerationAuditLogWithUser) AuditLogResponse 
 	}
 
 	return AuditLogResponse{
-		ID:        log.ID.String(),
-		Action:    log.Action,
-		Actor:     actor,
-		Target:    target,
-		Reason:    reason,
-		CreatedAt: log.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		Metadata:  metadata,
+		ID:         log.ID.String(),
+		Action:     log.Action,
+		EntityType: log.EntityType,
+		Actor:      actor,
+		Target:     target,
+		Reason:     reason,
+		CreatedAt:  log.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Metadata:   metadata,
 	}
 }
 
@@ -165,6 +169,7 @@ func (h *AuditLogHandler) ExportAuditLogs(c *gin.Context) {
 // ListModerationAuditLogs retrieves moderation audit logs with filters and offset-based pagination
 // GET /api/v1/moderation/audit-logs
 // Supports filters: action, actor (moderator_id), target (entity_id), channel, startDate, endDate, limit, offset, search
+// Note: For optimal results, offset should be a multiple of limit due to underlying page-based repository implementation
 func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 	// Get pagination params using offset instead of page
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -176,9 +181,6 @@ func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 	if offset < 0 {
 		offset = 0
 	}
-
-	// Calculate page from offset
-	page := (offset / limit) + 1
 
 	// Parse filters - use "actor" and "target" as per requirement
 	filters, err := services.ParseAuditLogFilters(
@@ -198,6 +200,12 @@ func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 		return
 	}
 
+	// The repository uses page-based pagination internally, so we calculate the page
+	// and adjust offset to align with page boundaries. This means the actual offset
+	// returned may differ from the requested offset if it's not a multiple of limit.
+	page := (offset / limit) + 1
+	actualOffset := (page - 1) * limit
+	
 	logs, total, err := h.auditLogService.GetAuditLogs(c.Request.Context(), filters, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -216,7 +224,7 @@ func (h *AuditLogHandler) ListModerationAuditLogs(c *gin.Context) {
 		"logs":   response,
 		"total":  total,
 		"limit":  limit,
-		"offset": offset,
+		"offset": actualOffset,
 	})
 }
 
@@ -234,8 +242,14 @@ func (h *AuditLogHandler) GetModerationAuditLog(c *gin.Context) {
 
 	log, err := h.auditLogService.GetAuditLogByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Audit log not found",
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Audit log not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve audit log",
 		})
 		return
 	}
@@ -266,15 +280,14 @@ func (h *AuditLogHandler) ExportModerationAuditLogs(c *gin.Context) {
 		return
 	}
 
-	// Set response headers for CSV download
+	// Set response headers for CSV download before writing
 	c.Header("Content-Type", "text/csv")
 	c.Header("Content-Disposition", "attachment; filename=moderation_audit_logs.csv")
 
 	// Export to CSV
+	// Note: If this fails, headers are already sent, so we can only set status code
 	if err := h.auditLogService.ExportAuditLogsCSV(c.Request.Context(), filters, c.Writer); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to export audit logs",
-		})
+		c.Status(http.StatusInternalServerError)
 		return
 	}
 }
