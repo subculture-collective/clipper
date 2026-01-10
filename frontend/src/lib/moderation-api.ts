@@ -330,3 +330,104 @@ export async function checkBanStatus(channelId: string): Promise<BanStatus> {
     );
     return response.data.data;
 }
+
+// ==================== CHANNEL MODERATOR MANAGEMENT ====================
+
+export interface ChannelModerator {
+    id: string;
+    user_id: string;
+    channel_id: string;
+    role: 'moderator' | 'admin' | 'owner';
+    assigned_by?: string;
+    assigned_at: string;
+    // User details
+    username?: string;
+    display_name?: string;
+    avatar_url?: string;
+}
+
+export interface ListModeratorsResponse {
+    success: boolean;
+    data: ChannelModerator[];
+    meta: {
+        total: number;
+        limit: number;
+        offset: number;
+    };
+}
+
+export interface AddModeratorRequest {
+    userId: string;
+    channelId: string;
+    reason?: string;
+}
+
+export interface RemoveModeratorResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface UpdateModeratorPermissionsRequest {
+    role: 'moderator' | 'admin';
+}
+
+/**
+ * List moderators for a specific channel
+ */
+export async function listChannelModerators(
+    channelId: string,
+    limit: number = 50,
+    offset: number = 0
+): Promise<ListModeratorsResponse> {
+    const params = new URLSearchParams({
+        channelId,
+        limit: limit.toString(),
+        offset: offset.toString(),
+    });
+
+    const response = await apiClient.get<ListModeratorsResponse>(
+        `/moderation/moderators?${params.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Add a moderator to a channel
+ */
+export async function addChannelModerator(
+    request: AddModeratorRequest
+): Promise<{ success: boolean; message: string; moderator: ChannelModerator }> {
+    const response = await apiClient.post<{
+        success: boolean;
+        message: string;
+        moderator: ChannelModerator;
+    }>('/moderation/moderators', request);
+    return response.data;
+}
+
+/**
+ * Remove a moderator from a channel
+ */
+export async function removeChannelModerator(
+    moderatorId: string
+): Promise<RemoveModeratorResponse> {
+    const response = await apiClient.delete<RemoveModeratorResponse>(
+        `/moderation/moderators/${moderatorId}`
+    );
+    return response.data;
+}
+
+/**
+ * Update a moderator's permissions (role)
+ */
+export async function updateModeratorPermissions(
+    moderatorId: string,
+    request: UpdateModeratorPermissionsRequest
+): Promise<{ success: boolean; message: string; moderator: ChannelModerator }> {
+    const response = await apiClient.patch<{
+        success: boolean;
+        message: string;
+        moderator: ChannelModerator;
+    }>(`/moderation/moderators/${moderatorId}`, request);
+    return response.data;
+}
