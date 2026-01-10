@@ -303,3 +303,30 @@ export async function getModerationAnalytics(params: {
     );
     return response.data;
 }
+
+// ==================== BAN STATUS ====================
+
+export interface BanStatus {
+    isBanned: boolean;
+    banReason?: string;
+    bannedAt?: string;
+    expiresAt?: string | null;
+}
+
+export interface BanStatusResponse {
+    success: boolean;
+    data: BanStatus;
+}
+
+/**
+ * Check if the authenticated user is banned from a specific channel
+ */
+export async function checkBanStatus(channelId: string): Promise<BanStatus> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('channelId', channelId);
+
+    const response = await apiClient.get<BanStatusResponse>(
+        `/moderation/ban-status?${queryParams.toString()}`
+    );
+    return response.data.data;
+}
