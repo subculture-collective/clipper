@@ -231,6 +231,23 @@ export interface ModerationDecisionWithDetails {
     created_at: string;
 }
 
+export interface AuditLogEntry {
+    id: string;
+    action: string;
+    entityType: string;
+    actor: {
+        id: string;
+        username: string;
+    };
+    target: {
+        id: string;
+        username: string;
+    };
+    reason: string;
+    createdAt: string;
+    metadata: Record<string, unknown>;
+}
+
 export interface AuditLogsResponse {
     success: boolean;
     data: ModerationDecisionWithDetails[];
@@ -239,6 +256,13 @@ export interface AuditLogsResponse {
         limit: number;
         offset: number;
     };
+}
+
+export interface NewAuditLogsResponse {
+    logs: AuditLogEntry[];
+    total: number;
+    limit: number;
+    offset: number;
 }
 
 export interface TimeSeriesPoint {
@@ -261,7 +285,7 @@ export interface AnalyticsResponse {
 }
 
 /**
- * Get moderation audit logs with filters
+ * Get moderation audit logs with filters (legacy endpoint)
  */
 export async function getModerationAuditLogs(params: {
     moderator_id?: string;
@@ -282,6 +306,67 @@ export async function getModerationAuditLogs(params: {
 
     const response = await apiClient.get<AuditLogsResponse>(
         `/admin/moderation/audit?${queryParams.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Get audit logs with filters (new API endpoint)
+ */
+export async function getAuditLogs(params: {
+    actor?: string;
+    action?: string;
+    target?: string;
+    channel?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+}): Promise<NewAuditLogsResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.actor) queryParams.append('actor', params.actor);
+    if (params.action) queryParams.append('action', params.action);
+    if (params.target) queryParams.append('target', params.target);
+    if (params.channel) queryParams.append('channel', params.channel);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.offset) queryParams.append('offset', params.offset.toString());
+
+    const response = await apiClient.get<NewAuditLogsResponse>(
+        `/api/v1/moderation/audit-logs?${queryParams.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Export audit logs to CSV
+ */
+export async function exportAuditLogs(params: {
+    actor?: string;
+    action?: string;
+    target?: string;
+    channel?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+}): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.actor) queryParams.append('actor', params.actor);
+    if (params.action) queryParams.append('action', params.action);
+    if (params.target) queryParams.append('target', params.target);
+    if (params.channel) queryParams.append('channel', params.channel);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.search) queryParams.append('search', params.search);
+
+    const response = await apiClient.get(
+        `/api/v1/moderation/audit-logs/export?${queryParams.toString()}`,
+        { responseType: 'blob' }
     );
     return response.data;
 }
