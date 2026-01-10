@@ -214,6 +214,23 @@ export async function checkUserBan(
   return response.data;
 }
 
+// Get list of banned users in a channel
+export async function getChannelBans(
+  channelId: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<{ bans: ChatBan[]; total: number; page: number; limit: number }> {
+  const response = await apiClient.get<{
+    bans: ChatBan[];
+    total: number;
+    page: number;
+    limit: number;
+  }>(`/chat/channels/${channelId}/bans`, {
+    params: { page, limit },
+  });
+  return response.data;
+}
+
 // Get current user's role in a channel
 export async function getCurrentUserRole(
   channelId: string
