@@ -40,27 +40,42 @@ export function SyncBansModal({ open, onClose, channelId, onSuccess }: SyncBansM
   useEffect(() => {
     if (!jobId || !open) return;
 
+    let isCancelled = false;
+
     const pollInterval = setInterval(async () => {
       try {
         const progress = await checkSyncBansProgress(channelId, jobId);
+
+        if (isCancelled) {
+          return;
+        }
+
         setSyncProgress(progress);
 
         if (progress.status === 'completed' || progress.status === 'failed') {
           clearInterval(pollInterval);
           if (progress.status === 'completed' && onSuccess) {
             setTimeout(() => {
-              onSuccess();
+              if (!isCancelled) {
+                onSuccess();
+              }
             }, SUCCESS_DELAY_MS);
           }
         }
       } catch (err) {
+        if (isCancelled) {
+          return;
+        }
         console.error('Failed to check sync progress:', err);
         setError(getErrorMessage(err, 'Failed to check sync progress'));
         clearInterval(pollInterval);
       }
     }, POLL_INTERVAL_MS);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      isCancelled = true;
+      clearInterval(pollInterval);
+    };
   }, [jobId, open, channelId, onSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
