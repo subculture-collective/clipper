@@ -322,8 +322,11 @@ export interface BanStatusResponse {
  * Check if the authenticated user is banned from a specific channel
  */
 export async function checkBanStatus(channelId: string): Promise<BanStatus> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('channelId', channelId);
+
     const response = await apiClient.get<BanStatusResponse>(
-        `/moderation/ban-status?channelId=${channelId}`
+        `/moderation/ban-status?${queryParams.toString()}`
     );
     return response.data.data;
 }
