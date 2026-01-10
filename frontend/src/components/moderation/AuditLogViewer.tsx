@@ -31,6 +31,11 @@ interface AuditLogFilters {
     offset: number;
 }
 
+// Utility function to truncate IDs for display
+const truncateId = (id: string, length: number = 8): string => {
+    return id.length > length ? `${id.substring(0, length)}...` : id;
+};
+
 export function AuditLogViewer() {
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -420,7 +425,7 @@ export function AuditLogViewer() {
                                                         {log.actor.username || 'Unknown'}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        {log.actor.id.substring(0, 8)}...
+                                                        {truncateId(log.actor.id)}
                                                     </span>
                                                 </div>
                                             </td>
@@ -430,7 +435,7 @@ export function AuditLogViewer() {
                                                         {log.target.username || 'Unknown'}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        {log.target.id.substring(0, 8)}...
+                                                        {truncateId(log.target.id)}
                                                     </span>
                                                 </div>
                                             </td>
