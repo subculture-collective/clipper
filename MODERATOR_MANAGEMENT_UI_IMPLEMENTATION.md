@@ -1,7 +1,7 @@
 # Moderator Management UI Implementation Summary
 
 ## Overview
-Successfully implemented a complete moderator management UI for channel moderation settings as specified in issue #1038.
+Successfully implemented a complete moderator management UI for channel moderation settings as specified in issue #1041.
 
 ## Implementation Details
 

@@ -139,6 +139,19 @@ export function ModeratorManager({ channelId, canManage = false }: ModeratorMana
         return () => clearTimeout(timer);
     }, [userSearchQuery, searchUsers]);
 
+    // Auto-dismiss success messages after 5 seconds
+    useEffect(() => {
+        if (!success) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setSuccess(null);
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [success]);
+
     // Handle add moderator
     const handleAddModerator = useCallback(async () => {
         if (!selectedUser) return;
@@ -447,6 +460,7 @@ export function ModeratorManager({ channelId, canManage = false }: ModeratorMana
                             aria-label="Search for user to add as moderator"
                             aria-autocomplete="list"
                             aria-controls="user-suggestions"
+                            aria-expanded={userSuggestions.length > 0}
                         />
                     </div>
 

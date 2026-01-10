@@ -232,6 +232,69 @@ describe('ModeratorManager', () => {
                 expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             });
         });
+
+        it('successfully adds a moderator', async () => {
+            const mockNewModerator = {
+                id: 'mod-4',
+                user_id: 'user-4',
+                channel_id: mockChannelId,
+                role: 'moderator' as const,
+                assigned_at: '2024-01-04T00:00:00Z',
+                username: 'new_moderator',
+                display_name: 'New Moderator',
+            };
+
+            const mockUserSuggestions = [
+                {
+                    id: 'user-4',
+                    username: 'new_moderator',
+                    display_name: 'New Moderator',
+                    avatar_url: 'https://example.com/avatar-new.jpg',
+                    is_verified: false,
+                },
+            ];
+
+            vi.mocked(userApi.searchUsersAutocomplete).mockResolvedValue(mockUserSuggestions);
+            vi.mocked(moderationApi.addChannelModerator).mockResolvedValue({
+                success: true,
+                message: 'Moderator added successfully',
+                moderator: mockNewModerator,
+            });
+
+            render(<ModeratorManager channelId={mockChannelId} canManage={true} />);
+
+            // Open add modal
+            const addButton = screen.getByLabelText('Add new moderator');
+            await userEvent.click(addButton);
+
+            // Search for user
+            const searchInput = screen.getByLabelText('Search for user to add as moderator');
+            await userEvent.type(searchInput, 'new');
+
+            // Wait for suggestions and select user
+            await waitFor(() => {
+                expect(screen.getByText('New Moderator')).toBeInTheDocument();
+            });
+
+            const userOption = screen.getByText('New Moderator');
+            await userEvent.click(userOption);
+
+            // Submit
+            const submitButton = screen.getByRole('button', { name: 'Add Moderator' });
+            await userEvent.click(submitButton);
+
+            // Verify success message and modal closed
+            await waitFor(() => {
+                expect(screen.getByText(/Successfully added new_moderator as a moderator/)).toBeInTheDocument();
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            });
+
+            // Verify list was reloaded
+            expect(moderationApi.listChannelModerators).toHaveBeenCalledTimes(2); // Initial load + reload after add
+        });
     });
 
     describe('Remove Moderator', () => {
@@ -270,6 +333,39 @@ describe('ModeratorManager', () => {
                 expect(screen.queryByText('Remove Moderator')).not.toBeInTheDocument();
             }, { timeout: 2000 });
         });
+
+        it('successfully removes a moderator', async () => {
+            vi.mocked(moderationApi.removeChannelModerator).mockResolvedValue({
+                success: true,
+                message: 'Moderator removed successfully',
+            });
+
+            render(<ModeratorManager channelId={mockChannelId} canManage={true} />);
+
+            await waitFor(() => {
+                expect(screen.getByText('John Doe')).toBeInTheDocument();
+            });
+
+            // Click remove button
+            const removeButtons = screen.getAllByText('Remove');
+            await userEvent.click(removeButtons[0]);
+
+            // Confirm removal
+            const confirmButton = screen.getByRole('button', { name: 'Remove' });
+            await userEvent.click(confirmButton);
+
+            // Verify success message and modal closed
+            await waitFor(() => {
+                expect(screen.getByText(/Successfully removed john_doe from moderators/)).toBeInTheDocument();
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            });
+
+            // Verify list was reloaded
+            expect(moderationApi.listChannelModerators).toHaveBeenCalledTimes(2); // Initial load + reload after remove
+        });
     });
 
     describe('Edit Permissions', () => {
@@ -299,6 +395,54 @@ describe('ModeratorManager', () => {
 
             const select = screen.getByLabelText('Select moderator role') as HTMLSelectElement;
             expect(select.value).toBe('moderator');
+        });
+
+        it('successfully updates moderator permissions', async () => {
+            const mockUpdatedModerator = {
+                id: 'mod-1',
+                user_id: 'user-1',
+                channel_id: mockChannelId,
+                role: 'admin' as const,
+                assigned_at: '2024-01-01T00:00:00Z',
+                username: 'john_doe',
+                display_name: 'John Doe',
+            };
+
+            vi.mocked(moderationApi.updateModeratorPermissions).mockResolvedValue({
+                success: true,
+                message: 'Permissions updated successfully',
+                moderator: mockUpdatedModerator,
+            });
+
+            render(<ModeratorManager channelId={mockChannelId} canManage={true} />);
+
+            await waitFor(() => {
+                expect(screen.getByText('John Doe')).toBeInTheDocument();
+            });
+
+            // Click edit button
+            const editButtons = screen.getAllByText('Edit');
+            await userEvent.click(editButtons[0]);
+
+            // Change role to admin
+            const select = screen.getByLabelText('Select moderator role') as HTMLSelectElement;
+            await userEvent.selectOptions(select, 'admin');
+
+            // Submit
+            const updateButton = screen.getByRole('button', { name: 'Update' });
+            await userEvent.click(updateButton);
+
+            // Verify success message and modal closed
+            await waitFor(() => {
+                expect(screen.getByText(/Successfully updated john_doe's permissions to admin/)).toBeInTheDocument();
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            });
+
+            // Verify list was reloaded
+            expect(moderationApi.listChannelModerators).toHaveBeenCalledTimes(2); // Initial load + reload after update
         });
     });
 
