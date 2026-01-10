@@ -57,7 +57,17 @@ export function AuditLogViewer() {
         try {
             setLoading(true);
             setError(null);
-            const response = await getAuditLogs(filters);
+            // Convert date filters to RFC3339 format for API consistency
+            const apiFilters = {
+                ...filters,
+                startDate: filters.startDate
+                    ? new Date(filters.startDate + 'T00:00:00').toISOString()
+                    : '',
+                endDate: filters.endDate
+                    ? new Date(filters.endDate + 'T23:59:59').toISOString()
+                    : '',
+            };
+            const response = await getAuditLogs(apiFilters);
             setLogs(response.logs);
             setTotal(response.total);
         } catch (err) {
@@ -75,12 +85,17 @@ export function AuditLogViewer() {
     const handleExportCSV = async () => {
         try {
             setExporting(true);
+            // Convert date filters to RFC3339 format for API consistency
             const blob = await exportAuditLogs({
                 actor: filters.actor || undefined,
                 action: filters.action || undefined,
                 target: filters.target || undefined,
-                startDate: filters.startDate ? new Date(filters.startDate).toISOString() : undefined,
-                endDate: filters.endDate ? new Date(filters.endDate).toISOString() : undefined,
+                startDate: filters.startDate
+                    ? new Date(filters.startDate + 'T00:00:00').toISOString()
+                    : undefined,
+                endDate: filters.endDate
+                    ? new Date(filters.endDate + 'T23:59:59').toISOString()
+                    : undefined,
                 search: filters.search || undefined,
             });
 
