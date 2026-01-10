@@ -30,7 +30,7 @@ go test ./tests/handlers -v -run TestSyncBans
 
 ## Test Coverage
 
-The test suite includes **54 passing tests** covering:
+The test suite includes **55 passing tests** covering:
 
 ### Sync Endpoint (5 tests)
 - Authorization validation

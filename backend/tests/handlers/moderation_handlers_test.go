@@ -278,7 +278,7 @@ func TestCreateBan_MissingRequiredFields(t *testing.T) {
 	testUserID := uuid.New()
 	requestBody := map[string]interface{}{
 		"channelId": uuid.New().String(),
-		// Missing userId
+			// Missing userId
 	}
 	jsonBody, _ := json.Marshal(requestBody)
 
@@ -596,404 +596,404 @@ func TestGetBanDetails_ServiceUnavailable(t *testing.T) {
 
 // TestGetModerationQueue_InvalidStatus tests queue endpoint with invalid status
 func TestGetModerationQueue_InvalidStatus(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
 
-testUserID := uuid.New()
+	testUserID := uuid.New()
 
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/queue?status=invalid", nil)
-c.Set("user_id", testUserID)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/queue?status=invalid", nil)
+	c.Set("user_id", testUserID)
 
-handler.GetModerationQueue(c)
+	handler.GetModerationQueue(c)
 
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestGetModerationQueue_InvalidContentType tests queue endpoint with invalid content type
 func TestGetModerationQueue_InvalidContentType(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/queue?type=invalid_type", nil)
-c.Set("user_id", testUserID)
-
-handler.GetModerationQueue(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/queue?type=invalid_type", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.GetModerationQueue(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestApproveContent_Unauthorized tests that approving content requires authentication
 func TestApproveContent_Unauthorized(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/"+uuid.New().String()+"/approve", nil)
-// Not setting user_id to test authorization
-
-handler.ApproveContent(c)
-
-assert.Equal(t, http.StatusUnauthorized, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/"+uuid.New().String()+"/approve", nil)
+	// Not setting user_id to test authorization
+	
+	handler.ApproveContent(c)
+	
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // TestApproveContent_InvalidItemID tests approving content with invalid ID
 func TestApproveContent_InvalidItemID(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/invalid-uuid/approve", nil)
-c.Set("user_id", testUserID)
-
-handler.ApproveContent(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/invalid-uuid/approve", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.ApproveContent(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestRejectContent_Unauthorized tests that rejecting content requires authentication
 func TestRejectContent_Unauthorized(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/"+uuid.New().String()+"/reject", nil)
-// Not setting user_id to test authorization
-
-handler.RejectContent(c)
-
-assert.Equal(t, http.StatusUnauthorized, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/"+uuid.New().String()+"/reject", nil)
+	// Not setting user_id to test authorization
+	
+	handler.RejectContent(c)
+	
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // TestRejectContent_InvalidItemID tests rejecting content with invalid ID
 func TestRejectContent_InvalidItemID(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/invalid-uuid/reject", nil)
-c.Set("user_id", testUserID)
-
-handler.RejectContent(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/invalid-uuid/reject", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.RejectContent(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestBulkModerate_Unauthorized tests that bulk moderation requires authentication
 func TestBulkModerate_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
+	
 	// Send valid JSON with item IDs since body is checked first
 	requestBody := map[string]interface{}{
 		"item_ids": []string{uuid.New().String()},
 		"action":   "approve",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
-
+	
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/bulk", bytes.NewReader(jsonBody))
 	c.Request.Header.Set("Content-Type", "application/json")
 	// Not setting user_id to test authorization
-
+	
 	handler.BulkModerate(c)
-
+	
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // TestBulkModerate_InvalidJSON tests bulk moderation with invalid JSON
 func TestBulkModerate_InvalidJSON(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/bulk", bytes.NewReader([]byte("invalid json")))
-c.Request.Header.Set("Content-Type", "application/json")
-c.Set("user_id", testUserID)
-
-handler.BulkModerate(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/bulk", bytes.NewReader([]byte("invalid json")))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("user_id", testUserID)
+	
+	handler.BulkModerate(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // ==============================================================================
-// Moderation Event Tests
+	// Moderation Event Tests
 // ==============================================================================
 
 
 // TestMarkEventReviewed_Unauthorized tests that marking event as reviewed requires authentication
 func TestMarkEventReviewed_Unauthorized(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/"+uuid.New().String()+"/review", nil)
-// Not setting user_id to test authorization
-
-handler.MarkEventReviewed(c)
-
-assert.Equal(t, http.StatusUnauthorized, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/"+uuid.New().String()+"/review", nil)
+	// Not setting user_id to test authorization
+	
+	handler.MarkEventReviewed(c)
+	
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // TestMarkEventReviewed_InvalidEventID tests marking event as reviewed with invalid ID
 func TestMarkEventReviewed_InvalidEventID(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/invalid-uuid/review", nil)
-c.Set("user_id", testUserID)
-
-handler.MarkEventReviewed(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/invalid-uuid/review", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.MarkEventReviewed(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestProcessEvent_Unauthorized tests that processing an event requires authentication
 func TestProcessEvent_Unauthorized(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/"+uuid.New().String()+"/process", nil)
-// Not setting user_id to test authorization
-
-handler.ProcessEvent(c)
-
-assert.Equal(t, http.StatusUnauthorized, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/"+uuid.New().String()+"/process", nil)
+	// Not setting user_id to test authorization
+	
+	handler.ProcessEvent(c)
+	
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // TestProcessEvent_InvalidEventID tests processing an event with invalid ID
 func TestProcessEvent_InvalidEventID(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/invalid-uuid/process", nil)
-c.Request.Header.Set("Content-Type", "application/json")
-c.Set("user_id", testUserID)
-
-handler.ProcessEvent(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/invalid-uuid/process", nil)
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("user_id", testUserID)
+	
+	handler.ProcessEvent(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestProcessEvent_MissingAction tests processing an event without action
 func TestProcessEvent_MissingAction(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-eventID := uuid.New()
-requestBody := map[string]string{}
-jsonBody, _ := json.Marshal(requestBody)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: eventID.String()}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/"+eventID.String()+"/process", bytes.NewReader(jsonBody))
-c.Request.Header.Set("Content-Type", "application/json")
-c.Set("user_id", testUserID)
-
-handler.ProcessEvent(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	eventID := uuid.New()
+	requestBody := map[string]string{}
+	jsonBody, _ := json.Marshal(requestBody)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: eventID.String()}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/events/"+eventID.String()+"/process", bytes.NewReader(jsonBody))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("user_id", testUserID)
+	
+	handler.ProcessEvent(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestGetUserAbuseStats_InvalidUserID tests abuse stats with invalid user ID
 func TestGetUserAbuseStats_InvalidUserID(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "userId", Value: "invalid-uuid"}}
-c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/abuse/invalid-uuid", nil)
-c.Set("user_id", testUserID)
-
-handler.GetUserAbuseStats(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "userId", Value: "invalid-uuid"}}
+	c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/abuse/invalid-uuid", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.GetUserAbuseStats(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // ==============================================================================
-// Appeal Tests
+	// Appeal Tests
 // ==============================================================================
 
 // TestCreateAppeal_Unauthorized tests that creating an appeal requires authentication
 func TestCreateAppeal_Unauthorized(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodPost, "/api/moderation/appeals", nil)
-// Not setting user_id to test authorization
-
-handler.CreateAppeal(c)
-
-assert.Equal(t, http.StatusUnauthorized, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/moderation/appeals", nil)
+	// Not setting user_id to test authorization
+	
+	handler.CreateAppeal(c)
+	
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // TestCreateAppeal_InvalidJSON tests creating an appeal with invalid JSON
 func TestCreateAppeal_InvalidJSON(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodPost, "/api/moderation/appeals", bytes.NewReader([]byte("invalid json")))
-c.Request.Header.Set("Content-Type", "application/json")
-c.Set("user_id", testUserID)
-
-handler.CreateAppeal(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/moderation/appeals", bytes.NewReader([]byte("invalid json")))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("user_id", testUserID)
+	
+	handler.CreateAppeal(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestGetAppeals_InvalidStatus tests getting appeals with invalid status
 func TestGetAppeals_InvalidStatus(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/appeals?status=invalid", nil)
-c.Set("user_id", testUserID)
-
-handler.GetAppeals(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/appeals?status=invalid", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.GetAppeals(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestResolveAppeal_Unauthorized tests that resolving an appeal requires authentication
 func TestResolveAppeal_Unauthorized(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/appeals/"+uuid.New().String()+"/resolve", nil)
-// Not setting user_id to test authorization
-
-handler.ResolveAppeal(c)
-
-assert.Equal(t, http.StatusUnauthorized, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: uuid.New().String()}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/appeals/"+uuid.New().String()+"/resolve", nil)
+	// Not setting user_id to test authorization
+	
+	handler.ResolveAppeal(c)
+	
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // TestResolveAppeal_InvalidAppealID tests resolving an appeal with invalid ID
 func TestResolveAppeal_InvalidAppealID(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
-c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/appeals/invalid-uuid/resolve", nil)
-c.Set("user_id", testUserID)
-
-handler.ResolveAppeal(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "invalid-uuid"}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/admin/moderation/appeals/invalid-uuid/resolve", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.ResolveAppeal(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestGetUserAppeals_Unauthorized tests that getting user's appeals requires authentication
 func TestGetUserAppeals_Unauthorized(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodGet, "/api/moderation/appeals", nil)
-// Not setting user_id to test authorization
-
-handler.GetUserAppeals(c)
-
-assert.Equal(t, http.StatusUnauthorized, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/moderation/appeals", nil)
+	// Not setting user_id to test authorization
+	
+	handler.GetUserAppeals(c)
+	
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 // ==============================================================================
-// Toxicity Metrics Tests
+	// Toxicity Metrics Tests
 // ==============================================================================
 
 // TestGetToxicityMetrics_InvalidDateFormat tests toxicity metrics with invalid date format
 func TestGetToxicityMetrics_InvalidDateFormat(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/toxicity/metrics?start_date=invalid-date", nil)
-c.Set("user_id", testUserID)
-
-handler.GetToxicityMetrics(c)
-
-assert.Equal(t, http.StatusBadRequest, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/toxicity/metrics?start_date=invalid-date", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.GetToxicityMetrics(c)
+	
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 // TestGetToxicityMetrics_ServiceUnavailable tests toxicity metrics when classifier is unavailable
 func TestGetToxicityMetrics_ServiceUnavailable(t *testing.T) {
-gin.SetMode(gin.TestMode)
-handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
-
-testUserID := uuid.New()
-
-w := httptest.NewRecorder()
-c, _ := gin.CreateTestContext(w)
-c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/toxicity/metrics", nil)
-c.Set("user_id", testUserID)
-
-handler.GetToxicityMetrics(c)
-
-assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	gin.SetMode(gin.TestMode)
+	handler := handlers.NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+	
+	testUserID := uuid.New()
+	
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/admin/moderation/toxicity/metrics", nil)
+	c.Set("user_id", testUserID)
+	
+	handler.GetToxicityMetrics(c)
+	
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }
 
 // ==============================================================================
-// Additional Moderation Queue and Event Tests
+	// Additional Moderation Queue and Event Tests
 // ==============================================================================
 
 
