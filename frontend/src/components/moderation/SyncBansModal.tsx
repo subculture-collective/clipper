@@ -16,6 +16,10 @@ interface SyncBansModalProps {
   onSuccess?: () => void;
 }
 
+// Constants
+const POLL_INTERVAL_MS = 2000;
+const SUCCESS_DELAY_MS = 2000;
+
 export function SyncBansModal({ open, onClose, channelId, onSuccess }: SyncBansModalProps) {
   const [twitchChannelName, setTwitchChannelName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +27,14 @@ export function SyncBansModal({ open, onClose, channelId, onSuccess }: SyncBansM
   const [syncProgress, setSyncProgress] = useState<SyncBansProgressResponse | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const resetFormState = () => {
+    setTwitchChannelName('');
+    setError(null);
+    setSyncProgress(null);
+    setJobId(null);
+    setShowConfirmation(false);
+  };
 
   // Poll for sync progress
   useEffect(() => {
@@ -38,7 +50,7 @@ export function SyncBansModal({ open, onClose, channelId, onSuccess }: SyncBansM
           if (progress.status === 'completed' && onSuccess) {
             setTimeout(() => {
               onSuccess();
-            }, 2000);
+            }, SUCCESS_DELAY_MS);
           }
         }
       } catch (err) {
@@ -46,7 +58,7 @@ export function SyncBansModal({ open, onClose, channelId, onSuccess }: SyncBansM
         setError(getErrorMessage(err, 'Failed to check sync progress'));
         clearInterval(pollInterval);
       }
-    }, 2000);
+    }, POLL_INTERVAL_MS);
 
     return () => clearInterval(pollInterval);
   }, [jobId, open, channelId, onSuccess]);
@@ -87,11 +99,7 @@ export function SyncBansModal({ open, onClose, channelId, onSuccess }: SyncBansM
 
   const handleClose = () => {
     if (!isSubmitting && syncProgress?.status !== 'in_progress') {
-      setTwitchChannelName('');
-      setError(null);
-      setSyncProgress(null);
-      setJobId(null);
-      setShowConfirmation(false);
+      resetFormState();
       onClose();
     }
   };
@@ -164,11 +172,11 @@ export function SyncBansModal({ open, onClose, channelId, onSuccess }: SyncBansM
             {syncProgress.error || 'An error occurred while syncing bans.'}
           </Alert>
 
-          <ModalFooter>
+          <div className="flex justify-end pt-4">
             <Button type="button" variant="secondary" onClick={handleClose}>
               Close
             </Button>
-          </ModalFooter>
+          </div>
         </div>
       );
     }
