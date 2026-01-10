@@ -79,9 +79,11 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
         // Apply filters
         if (filters.user) {
             const searchTerm = filters.user.toLowerCase();
-            result = result.filter((ban) =>
-                ban.target_username?.toLowerCase().includes(searchTerm)
-            );
+            result = result.filter((ban) => {
+                const username = ban.target_username?.toLowerCase() || '';
+                const userId = ban.user_id?.toLowerCase() || '';
+                return username.includes(searchTerm) || userId.includes(searchTerm);
+            });
         }
 
         if (filters.reason) {
@@ -105,8 +107,16 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
         if (filters.status !== 'all') {
             const now = new Date();
             result = result.filter((ban) => {
-                const isExpired = ban.expires_at && new Date(ban.expires_at) < now;
-                return filters.status === 'expired' ? isExpired : !isExpired;
+                const expiresAt = ban.expires_at ? new Date(ban.expires_at) : null;
+                const isPermanent = !expiresAt;
+                const isExpired = expiresAt ? expiresAt < now : false;
+                const isActive = expiresAt ? expiresAt >= now : false;
+
+                if (filters.status === 'expired') {
+                    return isExpired;
+                }
+                // Treat permanent bans as active
+                return isActive || isPermanent;
             });
         }
 
@@ -122,8 +132,9 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
                 aValue = a.target_username || '';
                 bValue = b.target_username || '';
             } else if (sortField === 'expires_at') {
-                aValue = a.expires_at ? new Date(a.expires_at).getTime() : 0;
-                bValue = b.expires_at ? new Date(b.expires_at).getTime() : 0;
+                const maxTime = Number.MAX_SAFE_INTEGER;
+                aValue = a.expires_at ? new Date(a.expires_at).getTime() : maxTime;
+                bValue = b.expires_at ? new Date(b.expires_at).getTime() : maxTime;
             }
 
             if (aValue === undefined || bValue === undefined) return 0;
@@ -145,6 +156,13 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
         }
     };
 
+    const handleSortKeyPress = (field: SortField, event: React.KeyboardEvent) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleSort(field);
+        }
+    };
+
     const handleRevokeBan = async () => {
         if (!banToRevoke) return;
 
@@ -153,9 +171,12 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
             await unbanUser(channelId, banToRevoke.user_id);
             setRevokeModalOpen(false);
             setBanToRevoke(null);
+            setPage(1); // Reset to first page after revocation
             await loadBans(); // Reload the list
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to revoke ban');
+            setRevokeModalOpen(false);
+            setBanToRevoke(null);
         } finally {
             setRevoking(false);
         }
@@ -202,16 +223,22 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute(
-            'download',
-            `channel-bans-${channelId}-${format(new Date(), 'yyyy-MM-dd')}.csv`
-        );
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+
+        try {
+            link.setAttribute('href', url);
+            link.setAttribute(
+                'download',
+                `channel-bans-${channelId}-${format(new Date(), 'yyyy-MM-dd')}.csv`
+            );
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+        } finally {
+            if (link.parentNode) {
+                document.body.removeChild(link);
+            }
+            URL.revokeObjectURL(url);
+        }
     };
 
     const handlePageChange = (newPage: number) => {
@@ -378,7 +405,12 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
 
             {/* Error Alert */}
             {error && (
-                <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+                <div 
+                    role="alert"
+                    aria-live="assertive"
+                    aria-atomic="true"
+                    className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4"
+                >
                     <p className="text-red-800 dark:text-red-400">{error}</p>
                 </div>
             )}
@@ -391,7 +423,10 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
                             <th
                                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
                                 onClick={() => handleSort('username')}
+                                onKeyPress={(e) => handleSortKeyPress('username', e)}
+                                tabIndex={0}
                                 role="columnheader"
+                                aria-sort={sortField === 'username' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                             >
                                 User {sortField === 'username' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
@@ -404,14 +439,20 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
                             <th
                                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
                                 onClick={() => handleSort('created_at')}
+                                onKeyPress={(e) => handleSortKeyPress('created_at', e)}
+                                tabIndex={0}
                                 role="columnheader"
+                                aria-sort={sortField === 'created_at' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                             >
                                 Banned At {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
                             <th
                                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
                                 onClick={() => handleSort('expires_at')}
+                                onKeyPress={(e) => handleSortKeyPress('expires_at', e)}
+                                tabIndex={0}
                                 role="columnheader"
+                                aria-sort={sortField === 'expires_at' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                             >
                                 Expires At {sortField === 'expires_at' && (sortDirection === 'asc' ? '↑' : '↓')}
                             </th>
@@ -500,7 +541,7 @@ export function BanListViewer({ channelId, canManage = false }: BanListViewerPro
             {totalPages > 1 && (
                 <div className="flex items-center justify-between" aria-label="Pagination">
                     <div className="text-sm text-gray-700 dark:text-gray-300">
-                        Showing page {currentPage} of {totalPages} ({total} total bans)
+                        Showing page {currentPage} of {totalPages} ({filteredAndSortedBans.length} bans shown{filteredAndSortedBans.length !== total ? ` out of ${total} total` : ''})
                     </div>
                     <div className="flex gap-2">
                         <button

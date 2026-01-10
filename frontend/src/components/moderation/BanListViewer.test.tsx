@@ -17,7 +17,7 @@ describe('BanListViewer', () => {
             banned_by: 'moderator-1',
             reason: 'Spam',
             created_at: '2024-01-01T00:00:00Z',
-            expires_at: '2024-12-31T23:59:59Z',
+            expires_at: '2099-12-31T23:59:59Z',
             target_username: 'spammer123',
             banned_by_username: 'mod_john',
         },
@@ -325,7 +325,8 @@ describe('BanListViewer', () => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
             });
 
-            // Click revoke button - first active ban is harasser456 (Permanent) which comes before spammer123 (Expired) when sorted
+            // Click revoke button - the first active ban in the rendered list (sorted by created_at desc)
+            // is harasser456 (Permanent, created 2024-01-02) which is user-2
             const revokeButtons = screen.getAllByText('Revoke');
             await userEvent.click(revokeButtons[0]);
 
@@ -341,6 +342,32 @@ describe('BanListViewer', () => {
             // Verify list was reloaded
             await waitFor(() => {
                 expect(chatApi.getChannelBans).toHaveBeenCalledTimes(2); // Initial load + reload after revoke
+            });
+        });
+
+        it('handles error when revoking a ban fails', async () => {
+            vi.mocked(chatApi.unbanUser).mockRejectedValue(
+                new Error('Failed to revoke ban')
+            );
+
+            render(<BanListViewer channelId={mockChannelId} canManage={true} />);
+
+            await waitFor(() => {
+                expect(screen.getByText('spammer123')).toBeInTheDocument();
+            });
+
+            // Click revoke button
+            const revokeButtons = screen.getAllByText('Revoke');
+            await userEvent.click(revokeButtons[0]);
+
+            // Confirm revocation
+            const confirmButton = screen.getByRole('button', { name: 'Revoke Ban' });
+            await userEvent.click(confirmButton);
+
+            // Verify error is displayed and modal is closed
+            await waitFor(() => {
+                expect(screen.getByText('Failed to revoke ban')).toBeInTheDocument();
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             });
         });
     });
