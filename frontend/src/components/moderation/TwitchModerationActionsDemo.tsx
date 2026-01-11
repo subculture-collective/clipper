@@ -15,27 +15,21 @@ export function TwitchModerationActionsDemo() {
     
     // Example channel and user data
     const [channelId] = useState('12345678'); // Example Twitch broadcaster ID
-    const [targetUser] = useState({
+    const [targetUser, setTargetUser] = useState({
         id: 'target-user-id',
         twitch_id: '87654321',
         username: 'exampleuser',
         is_banned: false,
     });
 
-    // Example: Check if current user is the broadcaster
-    // In a real app, you'd compare the user's Twitch ID with the channel ID
-    const isBroadcaster = user?.twitch_id === channelId;
-
-    // Example: Check if current user is a Twitch moderator
-    // In a real app, you'd fetch this from your backend or Twitch API
-    const [isTwitchModerator] = useState(false);
+    // Demo controls for testing different permission states
+    const [simulateBroadcaster, setSimulateBroadcaster] = useState(false);
+    const [simulateTwitchModerator, setSimulateTwitchModerator] = useState(false);
 
     const handleSuccess = () => {
         console.log('Ban/unban action completed successfully');
-        // In a real app, you would:
-        // - Refresh the user's ban status
-        // - Update the UI to reflect the change
-        // - Show a success notification
+        // Toggle ban status for demo purposes
+        setTargetUser(prev => ({ ...prev, is_banned: !prev.is_banned }));
     };
 
     return (
@@ -49,6 +43,34 @@ export function TwitchModerationActionsDemo() {
                     {/* Permission Status */}
                     <Card className="p-6">
                         <h2 className="text-xl font-semibold mb-4">Permission Status</h2>
+                        
+                        {/* Permission Controls */}
+                        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
+                            <p className="text-sm font-medium mb-3 text-blue-900 dark:text-blue-400">
+                                Demo Controls (Toggle to test different permissions):
+                            </p>
+                            <div className="space-y-2">
+                                <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={simulateBroadcaster}
+                                        onChange={(e) => setSimulateBroadcaster(e.target.checked)}
+                                        className="h-4 w-4 text-primary-600"
+                                    />
+                                    <span className="text-sm">Simulate Broadcaster</span>
+                                </label>
+                                <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={simulateTwitchModerator}
+                                        onChange={(e) => setSimulateTwitchModerator(e.target.checked)}
+                                        className="h-4 w-4 text-primary-600"
+                                    />
+                                    <span className="text-sm">Simulate Twitch Moderator</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600 dark:text-gray-400">
@@ -62,16 +84,16 @@ export function TwitchModerationActionsDemo() {
                                 <span className="text-gray-600 dark:text-gray-400">
                                     Is Broadcaster:
                                 </span>
-                                <span className={isBroadcaster ? 'text-green-600' : 'text-gray-600'}>
-                                    {isBroadcaster ? 'Yes' : 'No'}
+                                <span className={simulateBroadcaster ? 'text-green-600' : 'text-gray-600'}>
+                                    {simulateBroadcaster ? 'Yes' : 'No'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600 dark:text-gray-400">
                                     Is Twitch Moderator:
                                 </span>
-                                <span className={isTwitchModerator ? 'text-green-600' : 'text-gray-600'}>
-                                    {isTwitchModerator ? 'Yes' : 'No'}
+                                <span className={simulateTwitchModerator ? 'text-green-600' : 'text-gray-600'}>
+                                    {simulateTwitchModerator ? 'Yes' : 'No'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
@@ -123,8 +145,8 @@ export function TwitchModerationActionsDemo() {
                                         userID={targetUser.twitch_id}
                                         username={targetUser.username}
                                         isBanned={targetUser.is_banned}
-                                        isBroadcaster={isBroadcaster}
-                                        isTwitchModerator={isTwitchModerator}
+                                        isBroadcaster={simulateBroadcaster}
+                                        isTwitchModerator={simulateTwitchModerator}
                                         onSuccess={handleSuccess}
                                     />
                                 </div>

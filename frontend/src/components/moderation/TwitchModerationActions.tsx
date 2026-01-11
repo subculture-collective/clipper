@@ -47,6 +47,46 @@ export interface TwitchModerationActionsProps {
  * - Confirmation modals
  * - Supports both permanent bans and timeouts
  */
+/**
+ * Helper function to determine if user can perform Twitch moderation actions
+ */
+function canUserPerformTwitchActions(
+    isBroadcaster: boolean,
+    isTwitchModerator: boolean,
+    isSiteModerator: boolean
+): boolean {
+    // Only broadcaster or Twitch moderators can perform actions
+    // Site moderators are explicitly view-only
+    return (isBroadcaster || isTwitchModerator) && !isSiteModerator;
+}
+
+/**
+ * Helper function to handle moderation API errors
+ */
+function handleModerationError(err: unknown): string {
+    const apiError = err as { response?: { data?: TwitchModerationError } };
+    const errorData = apiError.response?.data;
+    
+    if (!errorData?.code) {
+        return getErrorMessage(err, 'Failed to perform action on Twitch');
+    }
+
+    switch (errorData.code) {
+        case 'SITE_MODERATORS_READ_ONLY':
+            return 'Site moderators cannot perform Twitch actions. You must be the channel broadcaster or a Twitch-recognized moderator.';
+        case 'NOT_AUTHENTICATED':
+            return 'You are not authenticated with Twitch. Please reconnect your Twitch account.';
+        case 'INSUFFICIENT_SCOPES':
+            return 'You do not have the required Twitch permissions. Please reconnect your Twitch account with moderator permissions.';
+        case 'NOT_BROADCASTER':
+            return 'Only the broadcaster can perform this action.';
+        case 'RATE_LIMIT_EXCEEDED':
+            return 'Rate limit exceeded. Please wait a moment and try again.';
+        default:
+            return errorData.detail || errorData.error || 'Failed to perform action on Twitch';
+    }
+}
+
 export function TwitchModerationActions({
     broadcasterID,
     userID,
@@ -67,9 +107,12 @@ export function TwitchModerationActions({
     const [isPermanent, setIsPermanent] = useState(true);
     const [duration, setDuration] = useState('600'); // Default 10 minutes in seconds
 
-    // Permission check: only broadcaster or Twitch moderators can perform actions
-    // Site moderators are explicitly view-only
-    const canPerformTwitchActions = (isBroadcaster || isTwitchModerator) && !isSiteModerator;
+    // Permission check
+    const canPerformTwitchActions = canUserPerformTwitchActions(
+        isBroadcaster,
+        isTwitchModerator,
+        isSiteModerator
+    );
 
     // Don't render if user doesn't have permissions
     if (!canPerformTwitchActions) {
@@ -78,6 +121,15 @@ export function TwitchModerationActions({
 
     const handleBan = async () => {
         if (!user) return;
+
+        // Validate duration for timeouts
+        if (!isPermanent) {
+            const durationNum = parseInt(duration, 10);
+            if (isNaN(durationNum) || durationNum <= 0 || durationNum > 1209600) {
+                setError('Duration must be between 1 and 1,209,600 seconds (14 days).');
+                return;
+            }
+        }
 
         try {
             setLoading(true);
@@ -99,33 +151,7 @@ export function TwitchModerationActions({
                 onSuccess();
             }
         } catch (err) {
-            const apiError = err as { response?: { data?: TwitchModerationError } };
-            const errorData = apiError.response?.data;
-            
-            // Handle structured errors from backend
-            if (errorData?.code) {
-                switch (errorData.code) {
-                    case 'SITE_MODERATORS_READ_ONLY':
-                        setError('Site moderators cannot perform Twitch actions. You must be the channel broadcaster or a Twitch-recognized moderator.');
-                        break;
-                    case 'NOT_AUTHENTICATED':
-                        setError('You are not authenticated with Twitch. Please reconnect your Twitch account.');
-                        break;
-                    case 'INSUFFICIENT_SCOPES':
-                        setError('You do not have the required Twitch permissions. Please reconnect your Twitch account with moderator permissions.');
-                        break;
-                    case 'NOT_BROADCASTER':
-                        setError('Only the broadcaster can perform this action.');
-                        break;
-                    case 'RATE_LIMIT_EXCEEDED':
-                        setError('Rate limit exceeded. Please wait a moment and try again.');
-                        break;
-                    default:
-                        setError(errorData.detail || errorData.error || 'Failed to ban user on Twitch');
-                }
-            } else {
-                setError(getErrorMessage(err, 'Failed to ban user on Twitch'));
-            }
+            setError(handleModerationError(err));
         } finally {
             setLoading(false);
         }
@@ -149,33 +175,7 @@ export function TwitchModerationActions({
                 onSuccess();
             }
         } catch (err) {
-            const apiError = err as { response?: { data?: TwitchModerationError } };
-            const errorData = apiError.response?.data;
-            
-            // Handle structured errors from backend
-            if (errorData?.code) {
-                switch (errorData.code) {
-                    case 'SITE_MODERATORS_READ_ONLY':
-                        setError('Site moderators cannot perform Twitch actions. You must be the channel broadcaster or a Twitch-recognized moderator.');
-                        break;
-                    case 'NOT_AUTHENTICATED':
-                        setError('You are not authenticated with Twitch. Please reconnect your Twitch account.');
-                        break;
-                    case 'INSUFFICIENT_SCOPES':
-                        setError('You do not have the required Twitch permissions. Please reconnect your Twitch account with moderator permissions.');
-                        break;
-                    case 'NOT_BROADCASTER':
-                        setError('Only the broadcaster can perform this action.');
-                        break;
-                    case 'RATE_LIMIT_EXCEEDED':
-                        setError('Rate limit exceeded. Please wait a moment and try again.');
-                        break;
-                    default:
-                        setError(errorData.detail || errorData.error || 'Failed to unban user on Twitch');
-                }
-            } else {
-                setError(getErrorMessage(err, 'Failed to unban user on Twitch'));
-            }
+            setError(handleModerationError(err));
         } finally {
             setLoading(false);
         }
@@ -335,7 +335,7 @@ export function TwitchModerationActions({
                         variant="danger"
                         onClick={handleBan}
                         loading={loading}
-                        disabled={loading || (!isPermanent && !duration)}
+                        disabled={loading || (!isPermanent && (!duration || parseInt(duration, 10) <= 0))}
                     >
                         {isPermanent ? 'Ban User' : 'Timeout User'}
                     </Button>
