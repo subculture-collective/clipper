@@ -220,7 +220,12 @@ CROSS JOIN LATERAL (
     ORDER BY random() LIMIT 1
 ) community
 CROSS JOIN LATERAL (
-    SELECT id FROM users WHERE role IN ('moderator', 'admin')
+    -- Select appropriate user based on the community role they'll have
+    SELECT id FROM users 
+    WHERE CASE 
+        WHEN (gs % 3) = 0 THEN role IN ('admin', 'moderator')  -- Community admins should be at least moderators
+        ELSE role IN ('admin', 'moderator', 'user')            -- Other roles can be any user
+    END
     ORDER BY random() LIMIT 1
 ) moderator
 CROSS JOIN LATERAL (

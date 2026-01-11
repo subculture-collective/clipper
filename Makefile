@@ -396,10 +396,25 @@ test-load-moderation-stress: ## Run comprehensive moderation stress test
 
 test-load-moderation-all: ## Run all moderation performance tests
 	@echo "Running all moderation performance tests..."
-	@k6 run backend/tests/load/scenarios/moderation_ban_sync.js
-	@k6 run backend/tests/load/scenarios/moderation_audit_logs.js
-	@k6 run backend/tests/load/scenarios/moderation_permissions.js
-	@k6 run backend/tests/load/scenarios/moderation_stress.js
+	@failed=0; \
+	echo "=== Ban Sync Performance Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_ban_sync.js || failed=$$((failed + 1)); \
+	echo ""; \
+	echo "=== Audit Log Query Performance Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_audit_logs.js || failed=$$((failed + 1)); \
+	echo ""; \
+	echo "=== Permission Check Performance Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_permissions.js || failed=$$((failed + 1)); \
+	echo ""; \
+	echo "=== Moderation Stress Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_stress.js || failed=$$((failed + 1)); \
+	echo ""; \
+	if [ $$failed -eq 0 ]; then \
+		echo "✓ All moderation performance tests passed"; \
+	else \
+		echo "✗ $$failed moderation test(s) failed"; \
+		exit 1; \
+	fi
 
 test-load-baseline-capture: ## Capture performance baselines (requires VERSION env var)
 	@if [ -z "$(VERSION)" ]; then \
