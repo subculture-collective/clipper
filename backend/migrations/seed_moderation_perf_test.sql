@@ -235,12 +235,12 @@ CROSS JOIN LATERAL (
 ON CONFLICT (community_id, user_id) DO NOTHING;
 
 -- Create indices to optimize performance testing queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_twitch_bans_channel_perf ON twitch_bans(channel_id, last_synced_at);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_twitch_bans_banned_user_perf ON twitch_bans(banned_user_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_moderation_decisions_moderator_perf ON moderation_decisions(moderator_id, created_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_moderation_decisions_action_perf ON moderation_decisions(action, created_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_moderation_queue_status_perf ON moderation_queue(status, priority, created_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_community_moderators_user_perf ON community_moderators(user_id);
+CREATE INDEX IF NOT EXISTS idx_twitch_bans_channel_perf ON twitch_bans(channel_id, last_synced_at);
+CREATE INDEX IF NOT EXISTS idx_twitch_bans_banned_user_perf ON twitch_bans(banned_user_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_decisions_moderator_perf ON moderation_decisions(moderator_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_moderation_decisions_action_perf ON moderation_decisions(action, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_moderation_queue_status_perf ON moderation_queue(status, priority, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_community_moderators_user_perf ON community_moderators(user_id);
 
 -- Analyze tables for query optimization
 ANALYZE twitch_bans;

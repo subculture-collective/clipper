@@ -55,19 +55,6 @@ export const options = {
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN || 'test-admin-token-for-load-testing';
 
-// Test roles
-const roles = ['admin', 'moderator', 'user'];
-
-// Test permissions
-const permissions = [
-    'manage_content',
-    'manage_members',
-    'view_reports',
-    'ban_users',
-    'manage_moderators',
-    'view_analytics',
-];
-
 /**
  * Setup function
  */
@@ -229,7 +216,6 @@ function testCommunityPermissions() {
     const startTime = Date.now();
     
     const communitySlug = `perf-test-community-${Math.floor(Math.random() * 20) + 1}`;
-    const permission = permissions[Math.floor(Math.random() * permissions.length)];
     
     const params = {
         headers: {

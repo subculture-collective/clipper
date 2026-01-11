@@ -57,7 +57,6 @@ const AUTH_TOKEN = __ENV.AUTH_TOKEN || 'test-admin-token-for-load-testing';
 
 // Test data
 const actions = ['approve', 'reject', 'escalate', 'ban_user'];
-const moderatorIDs = []; // Will be populated in setup
 
 /**
  * Setup function - get moderator IDs for filtering

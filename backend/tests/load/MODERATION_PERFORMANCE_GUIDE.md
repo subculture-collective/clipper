@@ -442,7 +442,7 @@ make test-load-baseline-compare VERSION=v1.0.0
 - [Stress & Soak Testing Guide](../STRESS_SOAK_GUIDE.md) - Extended stress testing
 - [Load Test Dashboard](../../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md) - Grafana setup
 - [Performance Summary](../PERFORMANCE_SUMMARY.md) - Performance targets
-- [CI/CD Load Tests](.github/workflows/LOAD_TESTS_README.md) - Automated testing
+- [CI/CD Load Tests](../../../.github/workflows/LOAD_TESTS_README.md) - Automated testing
 
 ## Support
 
