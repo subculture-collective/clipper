@@ -516,3 +516,69 @@ export async function updateModeratorPermissions(
     }>(`/moderation/moderators/${moderatorId}`, request);
     return response.data;
 }
+
+// ==================== TWITCH BAN/UNBAN ====================
+
+export interface TwitchBanRequest {
+    broadcasterID: string;
+    userID: string;
+    reason?: string;
+    duration?: number; // Duration in seconds for timeout, omit for permanent ban
+}
+
+export interface TwitchUnbanRequest {
+    broadcasterID: string;
+    userID: string;
+}
+
+export interface TwitchBanResponse {
+    success: boolean;
+    message: string;
+    broadcasterID: string;
+    userID: string;
+}
+
+export interface TwitchUnbanResponse {
+    success: boolean;
+    message: string;
+    broadcasterID: string;
+    userID: string;
+}
+
+export interface TwitchModerationError {
+    error: string;
+    code?: string;
+    detail?: string;
+}
+
+/**
+ * Ban a user on Twitch
+ * Requires broadcaster or Twitch moderator permissions
+ */
+export async function banUserOnTwitch(
+    request: TwitchBanRequest
+): Promise<TwitchBanResponse> {
+    const response = await apiClient.post<TwitchBanResponse>(
+        '/moderation/twitch/ban',
+        request
+    );
+    return response.data;
+}
+
+/**
+ * Unban a user on Twitch
+ * Requires broadcaster or Twitch moderator permissions
+ */
+export async function unbanUserOnTwitch(
+    request: TwitchUnbanRequest
+): Promise<TwitchUnbanResponse> {
+    const params = new URLSearchParams({
+        broadcasterID: request.broadcasterID,
+        userID: request.userID,
+    });
+
+    const response = await apiClient.delete<TwitchUnbanResponse>(
+        `/moderation/twitch/ban?${params.toString()}`
+    );
+    return response.data;
+}

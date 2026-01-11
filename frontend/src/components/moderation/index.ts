@@ -8,3 +8,4 @@ export { ModerationQueueView } from './ModerationQueueView';
 export { ModeratorManager } from './ModeratorManager';
 export { BanListViewer } from './BanListViewer';
 export { SyncBansModal } from './SyncBansModal';
+export { TwitchModerationActions } from './TwitchModerationActions';
