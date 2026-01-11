@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -641,3 +642,58 @@ func TestAuditLogService_LogClipVisibilityChange_Unhide(t *testing.T) {
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
+
+// TestAuditLogService_GetAuditLogByID tests retrieving a single audit log by ID
+func TestAuditLogService_GetAuditLogByID(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	logID := uuid.New()
+	moderatorID := uuid.New()
+
+	expectedLog := &models.ModerationAuditLogWithUser{
+		ModerationAuditLog: models.ModerationAuditLog{
+			ID:          logID,
+			Action:      "ban",
+			EntityType:  "user",
+			EntityID:    uuid.New(),
+			ModeratorID: moderatorID,
+			CreatedAt:   time.Now(),
+		},
+		Moderator: &models.User{
+			ID:       moderatorID,
+			Username: "test_mod",
+		},
+	}
+
+	mockRepo.On("GetByID", ctx, logID).Return(expectedLog, nil)
+
+	service := NewAuditLogService(mockRepo)
+	log, err := service.GetAuditLogByID(ctx, logID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, log)
+	assert.Equal(t, logID, log.ID)
+	assert.Equal(t, "ban", log.Action)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestAuditLogService_GetAuditLogByID_NotFound tests retrieving non-existent audit log
+func TestAuditLogService_GetAuditLogByID_NotFound(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockAuditLogRepository)
+
+	logID := uuid.New()
+
+	mockRepo.On("GetByID", ctx, logID).Return(nil, errors.New("not found"))
+
+	service := NewAuditLogService(mockRepo)
+	log, err := service.GetAuditLogByID(ctx, logID)
+
+	assert.Error(t, err)
+	assert.Nil(t, log)
+
+	mockRepo.AssertExpectations(t)
+}
+
