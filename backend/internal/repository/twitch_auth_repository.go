@@ -27,12 +27,12 @@ func (r *TwitchAuthRepository) UpsertTwitchAuth(ctx context.Context, auth *model
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (user_id) DO UPDATE
 		SET 
-			twitch_user_id = $2,
-			twitch_username = $3,
-			access_token = $4,
-			refresh_token = $5,
-			scopes = $6,
-			expires_at = $7,
+			twitch_user_id = EXCLUDED.twitch_user_id,
+			twitch_username = EXCLUDED.twitch_username,
+			access_token = EXCLUDED.access_token,
+			refresh_token = EXCLUDED.refresh_token,
+			scopes = EXCLUDED.scopes,
+			expires_at = EXCLUDED.expires_at,
 			updated_at = NOW()
 		RETURNING created_at, updated_at
 	`

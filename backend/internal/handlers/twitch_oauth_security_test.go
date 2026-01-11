@@ -24,15 +24,6 @@ func TestTokenMaskingInLogs(t *testing.T) {
 	// Set up a custom logger that captures log output
 	var logBuffer bytes.Buffer
 	
-	// Save original logger
-	originalLogger := utils.GetLogger()
-	defer func() {
-		// Restore original logger
-		if originalLogger != nil {
-			// Logger restoration would be implementation-specific
-		}
-	}()
-
 	// Create a test logger that writes to our buffer
 	testLogger := log.New(&logBuffer, "", 0)
 	
