@@ -650,6 +650,59 @@ npm run test:e2e -- tests/playlist-sharing-theatre-queue.spec.ts --grep "Integra
 
 **Documentation:** See [PLAYLIST_SHARING_THEATRE_QUEUE_TESTS.md](./tests/PLAYLIST_SHARING_THEATRE_QUEUE_TESTS.md) for detailed information.
 
+### Moderation Tests (`moderation.spec.ts`)
+
+Comprehensive E2E tests for moderation workflows with 20 test scenarios across 3 browsers (60 total tests):
+
+**Moderator Onboarding:**
+- Admin creates new moderator
+- Permission verification
+- Access control enforcement
+
+**Ban Sync Flow:**
+- Twitch ban synchronization
+- Ban list verification
+- Error handling for invalid channels
+
+**Audit Log Verification:**
+- Action logging
+- Log filtering by type
+- Detailed log entries
+
+**Banned User Interactions:**
+- Disabled interaction buttons
+- Ban revocation workflow
+- User restriction verification
+
+**Permission Enforcement:**
+- Role-based access control
+- Moderator vs admin permissions
+- Access denial for non-moderators
+
+**Error Handling:**
+- Network errors
+- Empty state handling
+- Concurrent action management
+
+**Performance & Compatibility:**
+- Page load time benchmarks
+- Responsive UI testing
+- Cross-browser compatibility
+
+Run the full suite:
+```bash
+npm run test:e2e -- tests/moderation.spec.ts
+```
+
+Run specific test group:
+```bash
+npm run test:e2e -- tests/moderation.spec.ts --grep "Moderator Onboarding"
+npm run test:e2e -- tests/moderation.spec.ts --grep "Ban Sync"
+npm run test:e2e -- tests/moderation.spec.ts --grep "Audit Log"
+```
+
+**Documentation:** See [MODERATION_E2E_TESTS.md](./MODERATION_E2E_TESTS.md) for detailed information.
+
 ### Other Test Suites
 
 - `framework-demo.spec.ts` - Framework validation and examples
@@ -658,6 +711,7 @@ npm run test:e2e -- tests/playlist-sharing-theatre-queue.spec.ts --grep "Integra
 - `premium-*.spec.ts` - Subscription and payment features
 - `chat.spec.ts` - Chat functionality
 - `channel-management.spec.ts` - Channel operations
+- `moderation-workflow.spec.ts` - Submission moderation queue
 
 ## Best Practices
 
