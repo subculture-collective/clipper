@@ -3,7 +3,7 @@
 **Epic:** subculture-collective/clipper#1059  
 **Phase:** P1 (API)  
 **Issue:** subculture-collective/clipper#1063  
-**Implementation Date:** 2026-01-11  
+**Implementation Date:** 2024-12-XX (PR #1103)  
 **Status:** ✅ COMPLETE
 
 ## Overview
@@ -116,6 +116,8 @@ Authorization: Bearer <user_token>
 **Query Parameters:**
 - `broadcasterID` (required): Twitch broadcaster ID
 - `userID` (required): Twitch user ID to unban
+
+**Example:** `DELETE /api/v1/moderation/twitch/ban?broadcasterID=12345&userID=67890`
 
 **Success Response (200):**
 ```json
