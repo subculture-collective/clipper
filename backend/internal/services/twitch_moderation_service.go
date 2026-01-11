@@ -85,21 +85,16 @@ func (s *TwitchModerationService) ValidateTwitchBanScope(ctx context.Context, us
 	}
 
 	// Validate scopes - user must have at least one of the required scopes
-	requiredScopes := []string{
-		"moderator:manage:banned_users", // For moderators
-		"channel:manage:banned_users",   // For broadcasters
+	requiredScopes := map[string]bool{
+		"moderator:manage:banned_users": true, // For moderators
+		"channel:manage:banned_users":   true, // For broadcasters
 	}
 
 	hasRequiredScope := false
 	scopes := strings.Split(auth.Scopes, " ")
 	for _, scope := range scopes {
-		for _, required := range requiredScopes {
-			if scope == required {
-				hasRequiredScope = true
-				break
-			}
-		}
-		if hasRequiredScope {
+		if requiredScopes[scope] {
+			hasRequiredScope = true
 			break
 		}
 	}
