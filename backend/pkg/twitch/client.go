@@ -16,8 +16,9 @@ package twitch
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"net/http"
 	"net/url"
 	"sync"
@@ -307,7 +308,7 @@ func (c *Client) GetCachedGame(ctx context.Context, gameID string) (*Game, error
 	return c.cache.CachedGame(ctx, gameID)
 }
 
-// jitteredBackoff calculates exponential backoff with jitter
+// jitteredBackoff calculates exponential backoff with jitter using crypto/rand for thread safety
 // attempt: retry attempt number (0-indexed)
 // baseDelay: base delay duration
 // maxDelay: maximum delay duration
@@ -322,8 +323,13 @@ func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Durati
 	}
 	
 	// Add jitter: random value between 0 and delay
-	// Using rand.Int63n for positive random number
-	jitter := time.Duration(rand.Int63n(int64(delay)))
+	// Use crypto/rand for thread-safe random number generation
+	maxJitter := big.NewInt(int64(delay))
+	jitterBig, err := rand.Int(rand.Reader, maxJitter)
+	if err != nil {
+		// Fallback to full delay if random generation fails
+		return delay
+	}
 	
-	return jitter
+	return time.Duration(jitterBig.Int64())
 }
