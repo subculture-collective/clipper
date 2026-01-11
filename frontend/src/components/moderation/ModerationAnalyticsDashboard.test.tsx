@@ -1,0 +1,391 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ModerationAnalyticsDashboard } from './ModerationAnalyticsDashboard';
+import * as moderationApi from '../../lib/moderation-api';
+
+// Mock the API module
+vi.mock('../../lib/moderation-api');
+
+// Mock chart components to simplify testing
+vi.mock('../analytics/MetricCard', () => ({
+  default: ({ title, value }: any) => (
+    <div data-testid="metric-card">
+      <div>{title}</div>
+      <div>{value}</div>
+    </div>
+  ),
+}));
+
+vi.mock('../analytics/PieChartComponent', () => ({
+  default: ({ data }: any) => (
+    <div data-testid="pie-chart">
+      {data.map((d: any) => (
+        <div key={d.name}>{d.name}: {d.value}</div>
+      ))}
+    </div>
+  ),
+}));
+
+vi.mock('../analytics/BarChartComponent', () => ({
+  default: ({ data }: any) => (
+    <div data-testid="bar-chart">
+      {data.map((d: any) => (
+        <div key={d.name}>{d.name}: {d.value}</div>
+      ))}
+    </div>
+  ),
+}));
+
+vi.mock('../analytics/LineChartComponent', () => ({
+  default: ({ data }: any) => (
+    <div data-testid="line-chart">
+      {data.length} data points
+    </div>
+  ),
+}));
+
+vi.mock('../analytics/DateRangeSelector', () => ({
+  default: ({ value, onChange }: any) => (
+    <select
+      data-testid="date-range-selector"
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+    >
+      <option value={7}>Last 7 days</option>
+      <option value={30}>Last 30 days</option>
+      <option value={90}>Last 90 days</option>
+    </select>
+  ),
+}));
+
+describe('ModerationAnalyticsDashboard', () => {
+  const mockAnalytics: moderationApi.ModerationAnalytics = {
+    total_actions: 150,
+    actions_by_type: {
+      approve: 80,
+      reject: 50,
+      ban: 15,
+      timeout: 5,
+    },
+    actions_by_moderator: {
+      'mod_alice': 60,
+      'mod_bob': 50,
+      'mod_charlie': 40,
+    },
+    content_type_breakdown: {
+      clips: 90,
+      comments: 60,
+    },
+    average_response_time_minutes: 25,
+    daily_activity: [],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(moderationApi.getModerationAnalytics).mockResolvedValue({
+      success: true,
+      data: mockAnalytics,
+    });
+  });
+
+  describe('Rendering', () => {
+    it('renders the component with title', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Moderation Analytics')).toBeInTheDocument();
+      });
+    });
+
+    it('displays loading state initially', () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      expect(screen.getByText('Loading analytics...')).toBeInTheDocument();
+    });
+
+    it('loads analytics data on mount', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(moderationApi.getModerationAnalytics).toHaveBeenCalled();
+      });
+    });
+
+    it('renders date range selector', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('date-range-selector')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Metric Cards', () => {
+    it('displays metric cards with analytics data', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        const metricCards = screen.getAllByTestId('metric-card');
+        expect(metricCards.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('displays total actions count', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('150')).toBeInTheDocument();
+      });
+    });
+
+    it('displays average response time', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('25 min')).toBeInTheDocument();
+      });
+    });
+
+    it('displays active moderators count', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        // 3 moderators in actions_by_moderator
+        expect(screen.getByText('3')).toBeInTheDocument();
+      });
+    });
+
+    it('handles missing response time gracefully', async () => {
+      vi.mocked(moderationApi.getModerationAnalytics).mockResolvedValue({
+        success: true,
+        data: {
+          ...mockAnalytics,
+          average_response_time_minutes: undefined,
+        },
+      });
+
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('N/A')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Charts', () => {
+    it('renders pie chart for action types', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        const pieChart = screen.getByTestId('pie-chart');
+        expect(pieChart).toBeInTheDocument();
+      });
+    });
+
+    it('displays action type data in chart', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('approve: 80')).toBeInTheDocument();
+        expect(screen.getByText('reject: 50')).toBeInTheDocument();
+        expect(screen.getByText('ban: 15')).toBeInTheDocument();
+      });
+    });
+
+    it('renders bar chart for moderator activity', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        const barChart = screen.getByTestId('bar-chart');
+        expect(barChart).toBeInTheDocument();
+      });
+    });
+
+    it('displays top moderators in chart', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('mod_alice: 60')).toBeInTheDocument();
+        expect(screen.getByText('mod_bob: 50')).toBeInTheDocument();
+        expect(screen.getByText('mod_charlie: 40')).toBeInTheDocument();
+      });
+    });
+
+    it('limits moderator chart to top 10', async () => {
+      const manyModerators: Record<string, number> = {};
+      for (let i = 0; i < 15; i++) {
+        manyModerators[`mod_${i}`] = i * 10;
+      }
+
+      vi.mocked(moderationApi.getModerationAnalytics).mockResolvedValue({
+        success: true,
+        data: {
+          ...mockAnalytics,
+          actions_by_moderator: manyModerators,
+        },
+      });
+
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        const barChart = screen.getByTestId('bar-chart');
+        // Should only show 10 items
+        const items = barChart.querySelectorAll('div');
+        expect(items.length).toBeLessThanOrEqual(10);
+      });
+    });
+
+    it('renders chart for content type breakdown', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('clips: 90')).toBeInTheDocument();
+        expect(screen.getByText('comments: 60')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Date Range Selection', () => {
+    it('defaults to 30 days', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        const selector = screen.getByTestId('date-range-selector') as HTMLSelectElement;
+        expect(selector.value).toBe('30');
+      });
+    });
+
+    it('updates analytics when date range changes', async () => {
+      const user = userEvent.setup();
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('date-range-selector')).toBeInTheDocument();
+      });
+
+      vi.clearAllMocks();
+      const selector = screen.getByTestId('date-range-selector');
+      await user.selectOptions(selector, '7');
+
+      await waitFor(() => {
+        expect(moderationApi.getModerationAnalytics).toHaveBeenCalled();
+      });
+    });
+
+    it('passes correct date range to API', async () => {
+      const user = userEvent.setup();
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('date-range-selector')).toBeInTheDocument();
+      });
+
+      vi.clearAllMocks();
+      const selector = screen.getByTestId('date-range-selector');
+      await user.selectOptions(selector, '90');
+
+      await waitFor(() => {
+        const call = vi.mocked(moderationApi.getModerationAnalytics).mock.calls[0][0];
+        expect(call).toHaveProperty('start_date');
+        expect(call).toHaveProperty('end_date');
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('displays error message when loading fails', async () => {
+      vi.mocked(moderationApi.getModerationAnalytics).mockRejectedValue(
+        new Error('Failed to load analytics')
+      );
+
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load analytics data')).toBeInTheDocument();
+      });
+    });
+
+    it('shows retry button on error', async () => {
+      vi.mocked(moderationApi.getModerationAnalytics).mockRejectedValue(
+        new Error('Failed to load analytics')
+      );
+
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+      });
+    });
+
+    it('retries loading when retry button is clicked', async () => {
+      const user = userEvent.setup();
+      vi.mocked(moderationApi.getModerationAnalytics)
+        .mockRejectedValueOnce(new Error('Failed'))
+        .mockResolvedValueOnce({ success: true, data: mockAnalytics });
+
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load analytics data')).toBeInTheDocument();
+      });
+
+      const retryButton = screen.getByRole('button', { name: /retry/i });
+      await user.click(retryButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Moderation Analytics')).toBeInTheDocument();
+        expect(screen.queryByText('Failed to load analytics data')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Data Transformation', () => {
+    it('transforms actions_by_type into chart data', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        const pieChart = screen.getByTestId('pie-chart');
+        expect(pieChart).toBeInTheDocument();
+      });
+
+      // Verify all action types are present
+      expect(screen.getByText('approve: 80')).toBeInTheDocument();
+      expect(screen.getByText('reject: 50')).toBeInTheDocument();
+      expect(screen.getByText('ban: 15')).toBeInTheDocument();
+      expect(screen.getByText('timeout: 5')).toBeInTheDocument();
+    });
+
+    it('transforms content_type_breakdown into chart data', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('clips: 90')).toBeInTheDocument();
+        expect(screen.getByText('comments: 60')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('has proper heading structure', async () => {
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Moderation Analytics' })).toBeInTheDocument();
+      });
+    });
+
+    it('displays error in accessible alert', async () => {
+      vi.mocked(moderationApi.getModerationAnalytics).mockRejectedValue(
+        new Error('Failed')
+      );
+
+      render(<ModerationAnalyticsDashboard />);
+
+      await waitFor(() => {
+        const errorContainer = screen.getByText('Failed to load analytics data').closest('div');
+        expect(errorContainer).toHaveClass('border-red-200');
+      });
+    });
+  });
+});
