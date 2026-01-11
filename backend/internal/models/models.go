@@ -3725,13 +3725,15 @@ type SendReactionRequest struct {
 }
 
 // TwitchAuth represents Twitch OAuth authentication data
+// Note: This model is for internal use only. The TwitchAuthStatusResponse
+// is used for public API responses and excludes sensitive fields like tokens and scopes.
 type TwitchAuth struct {
 	UserID         uuid.UUID `json:"user_id" db:"user_id"`
 	TwitchUserID   string    `json:"twitch_user_id" db:"twitch_user_id"`
 	TwitchUsername string    `json:"twitch_username" db:"twitch_username"`
-	AccessToken    string    `json:"access_token" db:"access_token"`
-	RefreshToken   string    `json:"refresh_token" db:"refresh_token"`
-	Scopes         string    `json:"scopes" db:"scopes"` // Space-separated list of granted scopes
+	AccessToken    string    `json:"access_token" db:"access_token"`   // Never expose in API responses
+	RefreshToken   string    `json:"refresh_token" db:"refresh_token"` // Never expose in API responses
+	Scopes         string    `json:"scopes" db:"scopes"`               // Space-separated list of granted scopes (internal use)
 	ExpiresAt      time.Time `json:"expires_at" db:"expires_at"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
