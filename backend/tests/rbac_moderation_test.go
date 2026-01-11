@@ -300,7 +300,7 @@ func TestSiteModerator_CanViewAllBans(t *testing.T) {
 	})
 
 	t.Run("Site moderator can view bans in community 2", func(t *testing.T) {
-		bans, total, err := ctx.ModerationService.GetBans(ctxBg, community2.ID, siteMod.ID, 1, 20)
+		_, total, err := ctx.ModerationService.GetBans(ctxBg, community2.ID, siteMod.ID, 1, 20)
 		assert.NoError(t, err, "Site moderator should be able to view bans in any community")
 		assert.Equal(t, 0, total, "Should have 0 bans in community 2")
 	})
