@@ -123,12 +123,15 @@ func (crl *ChannelRateLimiter) getLimiter(channelID string) *RateLimiter {
 	// First try read lock for fast path
 	crl.mu.RLock()
 	entry, exists := crl.limiters[channelID]
+	crl.mu.RUnlock()
+	
 	if exists {
+		// Update last accessed time under write lock to avoid race condition
+		crl.mu.Lock()
 		entry.lastAccessed = time.Now()
-		crl.mu.RUnlock()
+		crl.mu.Unlock()
 		return entry.limiter
 	}
-	crl.mu.RUnlock()
 	
 	// Need to create new limiter, acquire write lock
 	crl.mu.Lock()
