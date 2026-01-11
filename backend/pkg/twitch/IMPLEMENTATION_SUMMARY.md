@@ -22,10 +22,11 @@ Successfully implemented a backend service that wraps Twitch Helix POST/DELETE `
 
 ### 4. Retry Logic
 - ✅ Decorrelated jittered backoff on 429/5xx errors
-- ✅ Stops immediately on 4xx client errors (no retry)
+- ✅ Stops immediately on 4xx client errors (excluding 429, which is retried)
 - ✅ Max 3 retry attempts
 - ✅ Base delay: 1 second, Max delay: 10 seconds
 - ✅ Thread-safe using crypto/rand
+- ✅ Overflow prevention in exponential calculation
 
 ### 5. Structured Error Codes
 - ✅ `insufficient_scope` - Token lacks required scopes
@@ -86,28 +87,33 @@ Successfully implemented a backend service that wraps Twitch Helix POST/DELETE `
 
 2. **crypto/rand**: Thread-safe random number generation for concurrent access
 
-3. **Per-Channel Rate Limiting**: Separate rate limiter per channel prevents one channel's abuse from affecting others
+3. **Per-Channel Rate Limiting**: Separate rate limiter per channel prevents one channel's abuse from affecting others. Includes cleanup mechanism to prevent memory leaks.
 
 4. **Structured Errors**: ModerationError type with codes allows API layer to provide specific user feedback
 
 5. **Request ID Logging**: Extracts Twitch-Request-Id for debugging and support
 
+6. **429 Retry Order**: 429 (rate limit) is checked before general 4xx block to ensure rate-limited requests are retried, not failed immediately
+
+7. **Overflow Prevention**: Attempt value is capped at 62 in jitteredBackoff to prevent overflow in exponential calculation
+
 ## Testing
 
 ### Test Coverage
-- **Total Tests**: 33+ tests
+- **Total Tests**: 37+ tests
 - **Coverage Areas**:
   - Success scenarios
   - Error scenarios (all error codes)
-  - Rate limiting (per-channel and concurrent)
-  - Retry logic (5xx, 429, network errors)
-  - 4xx stop conditions
+  - Rate limiting (per-channel, concurrent, cleanup)
+  - Retry logic (429 retry, 5xx retry, 4xx no-retry, network errors)
+  - 4xx stop conditions (excluding 429)
   - Thread safety
+  - Overflow prevention
   - Integration with TwitchModerationService
 
 ### Test Results
 ```
-✓ All pkg/twitch tests passing
+✓ All pkg/twitch tests passing (37+ tests)
 ✓ All internal/services tests passing
 ✓ No regressions detected
 ✓ CodeQL: 0 security vulnerabilities
