@@ -372,6 +372,53 @@ func TestModerationConstraints_UnbanNonBannedUser(t *testing.T) {
 	})
 }
 
+func TestModerationConstraints_UpdateBan(t *testing.T) {
+	ctx := setupTestContext(t)
+	defer ctx.cleanup()
+
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	community := createTestCommunity(t, ctx, owner.ID)
+
+	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
+
+	ctxBg := context.Background()
+
+	t.Run("UpdateBan_Success", func(t *testing.T) {
+		// First ban the user
+		originalReason := "Original ban reason"
+		err := ctx.ModerationService.BanUser(ctxBg, community.ID, siteModerator.ID, targetUser.ID, &originalReason)
+		require.NoError(t, err)
+
+		// Update the ban reason
+		newReason := "Updated ban reason"
+		err = ctx.ModerationService.UpdateBan(ctxBg, community.ID, siteModerator.ID, targetUser.ID, &newReason)
+		require.NoError(t, err, "Update ban should succeed")
+
+		// Verify the ban still exists with updated reason
+		bans, total, err := ctx.ModerationService.GetBans(ctxBg, community.ID, siteModerator.ID, 1, 20)
+		require.NoError(t, err)
+		assert.Equal(t, 1, total, "Should still have 1 ban")
+		assert.Len(t, bans, 1)
+		assert.NotNil(t, bans[0].Reason)
+		assert.Equal(t, newReason, *bans[0].Reason, "Ban reason should be updated")
+
+		// Cleanup
+		_ = ctx.CommunityRepo.UnbanMember(ctxBg, community.ID, targetUser.ID)
+	})
+
+	t.Run("UpdateBan_UserNotBanned", func(t *testing.T) {
+		// Try to update ban for user that isn't banned
+		unbannedUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("unbanned_%d", time.Now().UnixNano()))
+		defer testutil.CleanupTestUser(t, ctx.DB, unbannedUser.ID)
+
+		newReason := "Should not work"
+		err := ctx.ModerationService.UpdateBan(ctxBg, community.ID, siteModerator.ID, unbannedUser.ID, &newReason)
+		assert.Error(t, err, "Should error when updating ban for non-banned user")
+	})
+}
+
 // ==============================================================================
 // Audit Logging Tests
 // ==============================================================================
