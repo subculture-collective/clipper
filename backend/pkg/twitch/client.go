@@ -313,6 +313,8 @@ func (c *Client) GetCachedGame(ctx context.Context, gameID string) (*Game, error
 // baseDelay: base delay duration
 // maxDelay: maximum delay duration
 // Returns a duration with random jitter applied
+// Uses the "Decorrelated Jitter" approach: returns delay/2 + random(0, delay/2)
+// This ensures a minimum delay of delay/2 while still providing randomization
 func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Duration {
 	// Exponential backoff: baseDelay * 2^attempt
 	delay := baseDelay * time.Duration(1<<uint(attempt))
@@ -322,14 +324,18 @@ func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Durati
 		delay = maxDelay
 	}
 	
-	// Add jitter: random value between 0 and delay
+	// Calculate jitter range: delay/2 to delay
+	// This ensures minimum backoff of delay/2 while providing randomization
+	halfDelay := delay / 2
+	maxJitter := big.NewInt(int64(halfDelay))
+	
 	// Use crypto/rand for thread-safe random number generation
-	maxJitter := big.NewInt(int64(delay))
 	jitterBig, err := rand.Int(rand.Reader, maxJitter)
 	if err != nil {
-		// Fallback to full delay if random generation fails
-		return delay
+		// Fallback to 75% of delay if random generation fails
+		return delay * 3 / 4
 	}
 	
-	return time.Duration(jitterBig.Int64())
+	// Return delay/2 + random(0, delay/2)
+	return halfDelay + time.Duration(jitterBig.Int64())
 }
