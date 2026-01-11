@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"strings"
@@ -16,17 +15,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // TestTokenMaskingInLogs verifies that access and refresh tokens are never logged
 func TestTokenMaskingInLogs(t *testing.T) {
 	// Set up a custom logger that captures log output
 	var logBuffer bytes.Buffer
-	
-	// Create a test logger that writes to our buffer
-	testLogger := log.New(&logBuffer, "", 0)
-	
+	log.SetOutput(&logBuffer)
+	defer log.SetOutput(os.Stderr)
 	connString := os.Getenv("TEST_DATABASE_URL")
 	if connString == "" {
 		connString = "postgres://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable"

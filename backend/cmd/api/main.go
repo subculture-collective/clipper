@@ -496,10 +496,12 @@ func main() {
 	
 	// Initialize Twitch-related handlers and services
 	var twitchBanSyncService *services.TwitchBanSyncService
+	var twitchModerationService *services.TwitchModerationService
 	if twitchClient != nil {
 		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
 		twitchBanSyncService = services.NewTwitchBanSyncService(twitchClient, twitchAuthRepo, twitchBanRepo, userRepo)
+		twitchModerationService = services.NewTwitchModerationService(twitchClient, twitchAuthRepo, userRepo)
 	}
 
 	if submissionService != nil {
@@ -509,6 +511,10 @@ func main() {
 		moderationEventService := submissionService.GetModerationEventService()
 		if abuseDetector != nil && moderationEventService != nil {
 			moderationHandler = handlers.NewModerationHandler(moderationEventService, moderationService, abuseDetector, toxicityClassifier, twitchBanSyncService, communityRepo, auditLogRepo, db.Pool)
+			// Set Twitch moderation service if available
+			if twitchModerationService != nil {
+				moderationHandler.SetTwitchModerationService(twitchModerationService)
+			}
 		}
 	}
 
@@ -894,6 +900,10 @@ func main() {
 				moderationAppeals.POST("/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.CreateBan)
 				moderationAppeals.GET("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBanDetails)
 				moderationAppeals.DELETE("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RevokeBan)
+
+				// Twitch ban management endpoints (enforces Twitch-specific scope requirements)
+				moderationAppeals.POST("/twitch/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.TwitchBanUser)
+				moderationAppeals.DELETE("/twitch/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.TwitchUnbanUser)
 
 				// Moderator management endpoints
 				moderationAppeals.GET("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.ListModerators)

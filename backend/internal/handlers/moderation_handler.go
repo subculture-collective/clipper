@@ -23,6 +23,12 @@ const (
 	banSyncTimeoutDuration = 5 * time.Minute
 )
 
+// TwitchModerationService defines the interface for Twitch-specific moderation operations
+type TwitchModerationService interface {
+	BanUserOnTwitch(ctx context.Context, moderatorUserID uuid.UUID, broadcasterID string, targetUserID string, reason *string, duration *int) error
+	UnbanUserOnTwitch(ctx context.Context, moderatorUserID uuid.UUID, broadcasterID string, targetUserID string) error
+}
+
 // ModerationHandler handles moderation operations
 type ModerationHandler struct {
 	moderationEventService *services.ModerationEventService
@@ -30,6 +36,7 @@ type ModerationHandler struct {
 	abuseDetector          *services.SubmissionAbuseDetector
 	toxicityClassifier     *services.ToxicityClassifier
 	twitchBanSyncService   *services.TwitchBanSyncService
+	twitchModerationService TwitchModerationService
 	communityRepo          *repository.CommunityRepository
 	auditLogRepo           *repository.AuditLogRepository
 	db                     *pgxpool.Pool
@@ -43,10 +50,16 @@ func NewModerationHandler(moderationEventService *services.ModerationEventServic
 		abuseDetector:          abuseDetector,
 		toxicityClassifier:     toxicityClassifier,
 		twitchBanSyncService:   twitchBanSyncService,
+		twitchModerationService: nil, // Will be set separately if configured
 		communityRepo:          communityRepo,
 		auditLogRepo:           auditLogRepo,
 		db:                     db,
 	}
+}
+
+// SetTwitchModerationService sets the Twitch moderation service (optional dependency)
+func (h *ModerationHandler) SetTwitchModerationService(service TwitchModerationService) {
+	h.twitchModerationService = service
 }
 
 // GetPendingEvents retrieves pending moderation events
@@ -2584,4 +2597,213 @@ func (h *ModerationHandler) createModeratorAuditLog(ctx context.Context, auditLo
 			"error":       err.Error(),
 		})
 	}
+}
+
+// TwitchBanUser bans a user on Twitch via the Twitch API
+// POST /api/v1/moderation/twitch/ban
+// This enforces Twitch-specific scope requirements and blocks site moderators
+func (h *ModerationHandler) TwitchBanUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	logger := utils.GetLogger()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		BroadcasterID string  `json:"broadcasterID" binding:"required"` // Twitch broadcaster ID (string, not UUID)
+		UserID        string  `json:"userID" binding:"required"`        // Twitch user ID to ban (string)
+		Reason        *string `json:"reason"`
+		Duration      *int    `json:"duration"` // Duration in seconds for timeout, omit for permanent ban
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate Twitch moderation service is available
+	if h.twitchModerationService == nil {
+		logger.Error("Twitch moderation service not configured", nil, map[string]interface{}{
+			"moderator_id": moderatorID.String(),
+		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Twitch moderation service not available. Please ensure Twitch integration is configured.",
+		})
+		return
+	}
+
+	// Ban user on Twitch with scope validation
+	err := h.twitchModerationService.BanUserOnTwitch(ctx, moderatorID, req.BroadcasterID, req.UserID, req.Reason, req.Duration)
+	if err != nil {
+		// Handle specific error types with appropriate HTTP status codes
+		if errors.Is(err, services.ErrSiteModeratorsReadOnly) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "SITE_MODERATORS_READ_ONLY",
+				"detail": "Site moderators can view Twitch bans but cannot create them. You must be the Twitch channel broadcaster or a Twitch-recognized moderator for this channel.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotAuthenticated) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_AUTHENTICATED",
+				"detail": "You must connect your Twitch account to perform this action.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchScopeInsufficient) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "INSUFFICIENT_SCOPES",
+				"detail": "Your Twitch account does not have the required permissions (moderator:manage:banned_users or channel:manage:banned_users). Please re-authenticate with Twitch.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotBroadcaster) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_BROADCASTER",
+				"detail": "Only the channel broadcaster can perform Twitch ban actions for this channel.",
+			})
+			return
+		}
+
+		// Log error for debugging
+		logger.Error("Twitch ban failed", err, map[string]interface{}{
+			"moderator_id":   moderatorID.String(),
+			"broadcaster_id": req.BroadcasterID,
+			"target_user_id": req.UserID,
+		})
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to ban user on Twitch",
+		})
+		return
+	}
+
+	logger.Info("User banned on Twitch", map[string]interface{}{
+		"moderator_id":   moderatorID.String(),
+		"broadcaster_id": req.BroadcasterID,
+		"target_user_id": req.UserID,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":       true,
+		"message":       "User banned on Twitch successfully",
+		"broadcasterID": req.BroadcasterID,
+		"userID":        req.UserID,
+	})
+}
+
+// TwitchUnbanUser unbans a user on Twitch via the Twitch API
+// DELETE /api/v1/moderation/twitch/ban
+// This enforces Twitch-specific scope requirements and blocks site moderators
+func (h *ModerationHandler) TwitchUnbanUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	logger := utils.GetLogger()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse request body or query params
+	broadcasterID := c.Query("broadcasterID")
+	userID := c.Query("userID")
+
+	if broadcasterID == "" || userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "broadcasterID and userID query parameters are required",
+		})
+		return
+	}
+
+	// Validate Twitch moderation service is available
+	if h.twitchModerationService == nil {
+		logger.Error("Twitch moderation service not configured", nil, map[string]interface{}{
+			"moderator_id": moderatorID.String(),
+		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Twitch moderation service not available. Please ensure Twitch integration is configured.",
+		})
+		return
+	}
+
+	// Unban user on Twitch with scope validation
+	err := h.twitchModerationService.UnbanUserOnTwitch(ctx, moderatorID, broadcasterID, userID)
+	if err != nil {
+		// Handle specific error types with appropriate HTTP status codes
+		if errors.Is(err, services.ErrSiteModeratorsReadOnly) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "SITE_MODERATORS_READ_ONLY",
+				"detail": "Site moderators can view Twitch bans but cannot remove them. You must be the Twitch channel broadcaster or a Twitch-recognized moderator for this channel.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotAuthenticated) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_AUTHENTICATED",
+				"detail": "You must connect your Twitch account to perform this action.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchScopeInsufficient) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "INSUFFICIENT_SCOPES",
+				"detail": "Your Twitch account does not have the required permissions (moderator:manage:banned_users or channel:manage:banned_users). Please re-authenticate with Twitch.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotBroadcaster) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_BROADCASTER",
+				"detail": "Only the channel broadcaster can perform Twitch unban actions for this channel.",
+			})
+			return
+		}
+
+		// Log error for debugging
+		logger.Error("Twitch unban failed", err, map[string]interface{}{
+			"moderator_id":   moderatorID.String(),
+			"broadcaster_id": broadcasterID,
+			"target_user_id": userID,
+		})
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to unban user on Twitch",
+		})
+		return
+	}
+
+	logger.Info("User unbanned on Twitch", map[string]interface{}{
+		"moderator_id":   moderatorID.String(),
+		"broadcaster_id": broadcasterID,
+		"target_user_id": userID,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":       true,
+		"message":       "User unbanned on Twitch successfully",
+		"broadcasterID": broadcasterID,
+		"userID":        userID,
+	})
 }
