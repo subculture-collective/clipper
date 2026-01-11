@@ -21,7 +21,8 @@ import (
 func TestTokenMaskingInLogs(t *testing.T) {
 	// Set up a custom logger that captures log output
 	var logBuffer bytes.Buffer
-	
+	log.SetOutput(&logBuffer)
+	defer log.SetOutput(os.Stderr)
 	connString := os.Getenv("TEST_DATABASE_URL")
 	if connString == "" {
 		connString = "postgres://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable"
