@@ -82,12 +82,12 @@ func (tc *testContext) cleanup() {
 
 // createTestCommunity creates a test community with owner
 func createTestCommunity(t *testing.T, ctx *testContext, ownerID uuid.UUID) *models.Community {
-	timestamp := time.Now().Unix()
+	uniqueID := uuid.New().String()[:8]
 	description := "Test community for moderation tests"
 	community := &models.Community{
 		ID:          uuid.New(),
-		Name:        fmt.Sprintf("Test Community %d", timestamp),
-		Slug:        fmt.Sprintf("test-community-%d", timestamp),
+		Name:        fmt.Sprintf("Test Community %s", uniqueID),
+		Slug:        fmt.Sprintf("test-community-%s", uniqueID),
 		Description: &description,
 		OwnerID:     ownerID,
 		IsPublic:    true,
@@ -104,7 +104,7 @@ func createTestCommunity(t *testing.T, ctx *testContext, ownerID uuid.UUID) *mod
 
 // createTestModerator creates a test user with moderator privileges
 func createTestModerator(t *testing.T, ctx *testContext, accountType string, scope string, channels []uuid.UUID) *models.User {
-	username := fmt.Sprintf("moderator_%d", time.Now().UnixNano())
+	username := fmt.Sprintf("moderator_%s", uuid.New().String()[:8])
 	user := testutil.CreateTestUser(t, ctx.DB, username)
 
 	// Update user to be a moderator
@@ -160,9 +160,9 @@ func TestModerationWorkflow_CompleteFlow(t *testing.T) {
 	defer ctx.cleanup()
 
 	// Create test data
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -216,9 +216,9 @@ func TestModerationPermissions_SiteModerator(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -245,8 +245,8 @@ func TestModerationPermissions_CommunityModerator(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	// Create community moderator authorized for this community
@@ -282,9 +282,9 @@ func TestModerationPermissions_RegularUser(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
-	regularUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("regular_%d", time.Now().UnixNano()))
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
+	regularUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("regular_%s", uuid.New().String()[:8]))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, regularUser.ID, targetUser.ID})
@@ -309,9 +309,9 @@ func TestModerationPermissions_AdminUser(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
-	adminUser := testutil.CreateTestUserWithRole(t, ctx.DB, fmt.Sprintf("admin_%d", time.Now().UnixNano()), models.RoleAdmin)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
+	adminUser := testutil.CreateTestUserWithRole(t, ctx.DB, fmt.Sprintf("admin_%s", uuid.New().String()[:8]), models.RoleAdmin)
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, adminUser.ID, targetUser.ID})
@@ -336,7 +336,7 @@ func TestModerationConstraints_CannotBanOwner(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
 	community := createTestCommunity(t, ctx, owner.ID)
 
@@ -356,9 +356,9 @@ func TestModerationConstraints_UnbanNonBannedUser(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -376,9 +376,9 @@ func TestModerationConstraints_UpdateBan(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -410,7 +410,7 @@ func TestModerationConstraints_UpdateBan(t *testing.T) {
 
 	t.Run("UpdateBan_UserNotBanned", func(t *testing.T) {
 		// Try to update ban for user that isn't banned
-		unbannedUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("unbanned_%d", time.Now().UnixNano()))
+		unbannedUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("unbanned_%s", uuid.New().String()[:8]))
 		defer testutil.CleanupTestUser(t, ctx.DB, unbannedUser.ID)
 
 		newReason := "Should not work"
@@ -427,9 +427,9 @@ func TestModerationAuditLog_BanUser(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -480,9 +480,9 @@ func TestModerationAuditLog_UnbanUser(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -536,9 +536,9 @@ func TestModerationPersistence_BanSurvivesServiceRestart(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -572,14 +572,14 @@ func TestModerationPagination_ListBans(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	// Create multiple banned users
 	users := make([]*models.User, 5)
 	for i := 0; i < 5; i++ {
-		users[i] = testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d_%d", time.Now().UnixNano(), i))
+		users[i] = testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s_%d", uuid.New().String()[:8], i))
 		reason := fmt.Sprintf("Ban reason %d", i)
 		err := ctx.ModerationService.BanUser(context.Background(), community.ID, siteModerator.ID, users[i].ID, &reason)
 		require.NoError(t, err)
@@ -616,9 +616,9 @@ func TestModerationConstraints_ForeignKeys(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
-	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%d", time.Now().UnixNano()))
+	targetUser := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("target_%s", uuid.New().String()[:8]))
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, []uuid.UUID{owner.ID, siteModerator.ID, targetUser.ID})
@@ -649,14 +649,14 @@ func TestModerationConcurrency_MultipleBans(t *testing.T) {
 	ctx := setupTestContext(t)
 	defer ctx.cleanup()
 
-	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%d", time.Now().UnixNano()))
+	owner := testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("owner_%s", uuid.New().String()[:8]))
 	siteModerator := createTestModerator(t, ctx, models.AccountTypeModerator, models.ModeratorScopeSite, nil)
 	community := createTestCommunity(t, ctx, owner.ID)
 
 	// Create multiple users to ban concurrently
 	users := make([]*models.User, 3)
 	for i := 0; i < 3; i++ {
-		users[i] = testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("concurrent_%d_%d", time.Now().UnixNano(), i))
+		users[i] = testutil.CreateTestUser(t, ctx.DB, fmt.Sprintf("concurrent_%s_%d", uuid.New().String()[:8], i))
 	}
 
 	userIDs := []uuid.UUID{owner.ID, siteModerator.ID}
@@ -666,13 +666,13 @@ func TestModerationConcurrency_MultipleBans(t *testing.T) {
 	defer cleanupTestData(t, ctx, []uuid.UUID{community.ID}, userIDs)
 
 	// Ban users concurrently
-	done := make(chan bool, len(users))
+	done := make(chan struct{}, len(users))
 	for i, user := range users {
 		go func(idx int, u *models.User) {
 			reason := fmt.Sprintf("Concurrent ban %d", idx)
 			err := ctx.ModerationService.BanUser(context.Background(), community.ID, siteModerator.ID, u.ID, &reason)
 			assert.NoError(t, err, "Concurrent ban should succeed")
-			done <- true
+			done <- struct{}{}
 		}(i, user)
 	}
 
