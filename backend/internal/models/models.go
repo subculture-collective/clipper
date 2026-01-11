@@ -3731,6 +3731,7 @@ type TwitchAuth struct {
 	TwitchUsername string    `json:"twitch_username" db:"twitch_username"`
 	AccessToken    string    `json:"access_token" db:"access_token"`
 	RefreshToken   string    `json:"refresh_token" db:"refresh_token"`
+	Scopes         string    `json:"scopes" db:"scopes"` // Space-separated list of granted scopes
 	ExpiresAt      time.Time `json:"expires_at" db:"expires_at"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
