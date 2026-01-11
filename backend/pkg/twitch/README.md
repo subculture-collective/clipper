@@ -5,12 +5,18 @@ Production-ready Twitch API client library with rate limiting, error handling, a
 ## Features
 
 - **Authentication Management**: Automatic OAuth token refresh with Redis caching
-- **Rate Limiting**: Token bucket algorithm (800 requests/minute)
+- **Rate Limiting**: Token bucket algorithm (800 requests/minute globally, 100/minute per-channel for moderation)
 - **Caching**: Redis-backed caching for users, games, channels, and streams
 - **Error Handling**: Structured error types for better debugging
-- **Retry Logic**: Exponential backoff for transient failures
+- **Retry Logic**: Exponential backoff with jitter for transient failures
 - **Circuit Breaker**: Automatic API health monitoring
-- **Comprehensive Logging**: Detailed request and error logging
+- **Comprehensive Logging**: Detailed request and error logging with request IDs
+- **Moderation Support**: Ban/unban users with advanced error handling
+
+## Documentation
+
+- [Main API Client](./README.md) - This file
+- [**Moderation Service**](./README_MODERATION.md) - Ban/unban functionality with rate limits
 
 ## Architecture
 
