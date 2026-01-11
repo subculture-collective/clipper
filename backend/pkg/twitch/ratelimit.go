@@ -86,3 +86,58 @@ func (rl *RateLimiter) Available() int {
 
 	return rl.tokens
 }
+
+// ChannelRateLimiter manages per-channel rate limits for moderation actions
+// Twitch has per-channel rate limits for ban/unban operations to prevent abuse
+type ChannelRateLimiter struct {
+	limiters map[string]*RateLimiter
+	mu       sync.RWMutex
+	maxTokens int
+}
+
+// NewChannelRateLimiter creates a new per-channel rate limiter
+// maxTokens: maximum number of requests per channel per minute
+func NewChannelRateLimiter(maxTokens int) *ChannelRateLimiter {
+	return &ChannelRateLimiter{
+		limiters: make(map[string]*RateLimiter),
+		maxTokens: maxTokens,
+	}
+}
+
+// Wait blocks until a token is available for the specified channel
+func (crl *ChannelRateLimiter) Wait(ctx context.Context, channelID string) error {
+	limiter := crl.getLimiter(channelID)
+	return limiter.Wait(ctx)
+}
+
+// getLimiter gets or creates a rate limiter for a specific channel
+func (crl *ChannelRateLimiter) getLimiter(channelID string) *RateLimiter {
+	// First try read lock for fast path
+	crl.mu.RLock()
+	limiter, exists := crl.limiters[channelID]
+	crl.mu.RUnlock()
+	
+	if exists {
+		return limiter
+	}
+	
+	// Need to create new limiter, acquire write lock
+	crl.mu.Lock()
+	defer crl.mu.Unlock()
+	
+	// Check again in case another goroutine created it
+	if limiter, exists := crl.limiters[channelID]; exists {
+		return limiter
+	}
+	
+	// Create new limiter for this channel
+	limiter = NewRateLimiter(crl.maxTokens)
+	crl.limiters[channelID] = limiter
+	return limiter
+}
+
+// Available returns the number of tokens currently available for a channel
+func (crl *ChannelRateLimiter) Available(channelID string) int {
+	limiter := crl.getLimiter(channelID)
+	return limiter.Available()
+}

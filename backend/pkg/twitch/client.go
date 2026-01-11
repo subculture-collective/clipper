@@ -17,6 +17,7 @@ package twitch
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sync"
@@ -41,12 +42,13 @@ const (
 
 // Client wraps the Twitch API with authentication, rate limiting, and caching
 type Client struct {
-	clientID       string
-	httpClient     *http.Client
-	cache          TwitchCache
-	authManager    *AuthManager
-	rateLimiter    *RateLimiter
-	circuitBreaker *CircuitBreaker
+	clientID            string
+	httpClient          *http.Client
+	cache               TwitchCache
+	authManager         *AuthManager
+	rateLimiter         *RateLimiter
+	channelRateLimiter  *ChannelRateLimiter
+	circuitBreaker      *CircuitBreaker
 }
 
 // CircuitBreaker implements circuit breaker pattern for API availability
@@ -130,15 +132,18 @@ func NewClient(cfg *config.TwitchConfig, redis *redispkg.Client) (*Client, error
 	cache := NewRedisCache(redis)
 	authManager := NewAuthManager(cfg.ClientID, cfg.ClientSecret, httpClient, cache)
 	rateLimiter := NewRateLimiter(rateLimitPerMin)
+	// Per-channel rate limiter: 100 moderation actions per channel per minute
+	channelRateLimiter := NewChannelRateLimiter(100)
 	circuitBreaker := NewCircuitBreaker(5, 30*time.Second)
 
 	client := &Client{
-		clientID:       cfg.ClientID,
-		httpClient:     httpClient,
-		cache:          cache,
-		authManager:    authManager,
-		rateLimiter:    rateLimiter,
-		circuitBreaker: circuitBreaker,
+		clientID:           cfg.ClientID,
+		httpClient:         httpClient,
+		cache:              cache,
+		authManager:        authManager,
+		rateLimiter:        rateLimiter,
+		channelRateLimiter: channelRateLimiter,
+		circuitBreaker:     circuitBreaker,
 	}
 
 	// Try to load token from cache
@@ -300,4 +305,25 @@ func (c *Client) GetCachedUser(ctx context.Context, userID string) (*User, error
 // GetCachedGame retrieves game data from cache
 func (c *Client) GetCachedGame(ctx context.Context, gameID string) (*Game, error) {
 	return c.cache.CachedGame(ctx, gameID)
+}
+
+// jitteredBackoff calculates exponential backoff with jitter
+// attempt: retry attempt number (0-indexed)
+// baseDelay: base delay duration
+// maxDelay: maximum delay duration
+// Returns a duration with random jitter applied
+func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Duration {
+	// Exponential backoff: baseDelay * 2^attempt
+	delay := baseDelay * time.Duration(1<<uint(attempt))
+	
+	// Cap at max delay
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+	
+	// Add jitter: random value between 0 and delay
+	// Using rand.Int63n for positive random number
+	jitter := time.Duration(rand.Int63n(int64(delay)))
+	
+	return jitter
 }
