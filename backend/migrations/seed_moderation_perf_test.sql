@@ -14,8 +14,8 @@ SELECT
     'moderator_' || generate_series::text || '@perftest.com',
     'https://static-cdn.jtvnw.net/jtv_user_pictures/avatar' || (generate_series % 100)::text || '.png',
     CASE 
-        WHEN generate_series <= 10 THEN 'moderator'
         WHEN generate_series = 1 THEN 'admin'
+        WHEN generate_series <= 10 THEN 'moderator'
         ELSE 'user'
     END,
     (random() * 1000)::int
