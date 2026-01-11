@@ -452,7 +452,6 @@ describe('AppealResolutionModal', () => {
     });
 
     it('shows validation error when no decision is selected', async () => {
-      const user = userEvent.setup({ delay: null });
       render(
         <AppealResolutionModal
           open={true}
