@@ -69,7 +69,7 @@ Clipper's OAuth implementation complies with Twitch's guidelines:
 5. Backend exchanges code for access token + refresh token
 6. Tokens stored encrypted in database
 
-**Current Scopes Requested:** `chat:read chat:edit`
+**Current Scopes Requested:** `chat:read chat:edit moderator:manage:banned_users channel:manage:banned_users`
 
 ---
 
@@ -149,6 +149,76 @@ Clipper's OAuth implementation complies with Twitch's guidelines:
 
 ---
 
+### Scope 3: `moderator:manage:banned_users`
+
+**Purpose:** Manage banned users in channels where user is a moderator  
+**Implementation:** Twitch ban sync and moderation features  
+**Feature:** Allow moderators to ban/unban users on Twitch from Clipper
+
+**Why Necessary:**
+- Enables moderators to manage bans from Clipper interface
+- Syncs ban lists from Twitch to Clipper
+- Provides unified moderation experience
+- Required to call Twitch ban/unban APIs as a moderator
+
+**Data Accessed:**
+- List of banned users in channels where user is a moderator
+- Ban reasons and expiration times
+- Moderator information for bans
+
+**Data NOT Accessed:**
+- Bans in channels where user is not a moderator
+- Private moderator notes (if separate from ban reasons)
+- Moderator actions unrelated to bans
+
+**User Benefit:**
+- Moderate Twitch channels directly from Clipper
+- Keep ban lists synchronized
+- Streamlined moderation workflow
+
+**Compliance:**
+- ✅ User explicitly consents via OAuth
+- ✅ Only channels where user has moderator privileges
+- ✅ All actions traceable to specific moderator
+- ✅ Respects Twitch's moderation policies
+
+---
+
+### Scope 4: `channel:manage:banned_users`
+
+**Purpose:** Manage banned users in user's own channel  
+**Implementation:** Twitch ban sync and channel management features  
+**Feature:** Allow broadcasters to ban/unban users on Twitch from Clipper
+
+**Why Necessary:**
+- Enables broadcasters to manage bans in their own channels
+- Syncs ban lists from Twitch to Clipper
+- Provides unified channel management experience
+- Required to call Twitch ban/unban APIs as a broadcaster
+
+**Data Accessed:**
+- List of banned users in user's channel
+- Ban reasons and expiration times
+- Information about who created each ban
+
+**Data NOT Accessed:**
+- Bans in other channels
+- Channel settings unrelated to bans
+- Private channel information
+
+**User Benefit:**
+- Manage channel bans directly from Clipper
+- Keep ban lists synchronized across platforms
+- Better channel moderation tools
+
+**Compliance:**
+- ✅ User explicitly consents via OAuth
+- ✅ Only user's own channel
+- ✅ All actions logged and auditable
+- ✅ Respects Twitch's channel management policies
+
+---
+
 ## Scopes NOT Requested (and Why)
 
 ### Scopes We Could Request But Don't
@@ -160,7 +230,6 @@ Clipper's OAuth implementation complies with Twitch's guidelines:
 | `user:read:follows` | Read user's followed channels | Not needed yet - may add for personalization later |
 | `channel:read:subscriptions` | Read channel subscribers | Requires broadcaster permission, not applicable |
 | `channel:manage:broadcast` | Manage stream settings | Not needed - we don't modify streams |
-| `moderator:manage:*` | Moderator actions | Not needed - we don't provide moderation tools |
 | `bits:read` | Read bits/cheers | Not needed - we don't process payments |
 | `channel_editor` | Edit channel | Dangerous and unnecessary |
 | `user:edit:follows` | Modify user's follows | Dangerous and unnecessary |
@@ -478,6 +547,7 @@ Redirect user to success page
 | Date | Change | Justification | Approved By |
 |------|--------|---------------|-------------|
 | 2025-12-29 | Initial scopes: `chat:read`, `chat:edit` | Enable Twitch chat integration | Engineering Lead, Legal |
+| 2026-01-11 | Added scopes: `moderator:manage:banned_users`, `channel:manage:banned_users` | Enable ban management and sync from Clipper | Engineering Lead |
 
 **Future Scope Additions:**
 
@@ -507,6 +577,7 @@ If we need additional scopes in the future, they will be documented here BEFORE 
 | Date | Change | Author |
 |------|--------|--------|
 | 2025-12-29 | Initial OAuth scope documentation | Backend Team, Security |
+| 2026-01-11 | Added ban management scopes documentation | Backend Team |
 
 ---
 
