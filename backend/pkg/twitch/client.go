@@ -327,6 +327,13 @@ func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Durati
 	// Calculate jitter range: delay/2 to delay
 	// This ensures minimum backoff of delay/2 while providing randomization
 	halfDelay := delay / 2
+	
+	// Prevent overflow and ensure we have a valid range
+	if halfDelay <= 0 || halfDelay > time.Duration(1<<62) {
+		// Fallback to 75% of delay for edge cases
+		return delay * 3 / 4
+	}
+	
 	maxJitter := big.NewInt(int64(halfDelay))
 	
 	// Use crypto/rand for thread-safe random number generation

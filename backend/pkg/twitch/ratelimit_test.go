@@ -117,21 +117,24 @@ func TestChannelRateLimiter_ConcurrentAccess(t *testing.T) {
 	channelID := "test-channel"
 
 	// Create multiple goroutines accessing the same channel
-	done := make(chan bool, 10)
+	done := make(chan error, 10)
 	for i := 0; i < 10; i++ {
 		go func() {
 			for j := 0; j < 5; j++ {
 				if err := crl.Wait(ctx, channelID); err != nil {
-					t.Errorf("unexpected error: %v", err)
+					done <- err
+					return
 				}
 			}
-			done <- true
+			done <- nil
 		}()
 	}
 
 	// Wait for all goroutines to complete
 	for i := 0; i < 10; i++ {
-		<-done
+		if err := <-done; err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	}
 
 	// Should have consumed 50 tokens total (10 goroutines * 5 tokens each)
