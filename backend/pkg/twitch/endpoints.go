@@ -719,6 +719,8 @@ func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID 
 				"error":      readErr.Error(),
 				"request_id": requestID,
 			})
+			// Use a fallback error message for parsing
+			body = []byte(fmt.Sprintf("failed to read response body: %v", readErr))
 		}
 
 		logger.Debug("Ban request response", map[string]interface{}{
@@ -743,7 +745,25 @@ func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID 
 			return &banResp, nil
 		}
 
-		// Handle 4xx errors - don't retry
+		// Handle 429 rate limit - retry with backoff (check before 4xx to avoid being caught by 4xx block)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Ban request rate limited, retrying", map[string]interface{}{
+					"attempt":    attempt + 1,
+					"max":        maxRetries,
+					"delay":      delay.String(),
+					"request_id": requestID,
+				})
+				time.Sleep(delay)
+				continue
+			}
+			
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			return nil, modErr
+		}
+
+		// Handle 4xx errors - don't retry (excluding 429 which is handled above)
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			
@@ -777,24 +797,6 @@ func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID 
 				"attempts":   maxRetries,
 				"request_id": requestID,
 			})
-			return nil, modErr
-		}
-
-		// Handle 429 rate limit - retry with backoff
-		if resp.StatusCode == http.StatusTooManyRequests {
-			if attempt < maxRetries-1 {
-				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
-				logger.Warn("Ban request rate limited, retrying", map[string]interface{}{
-					"attempt":    attempt + 1,
-					"max":        maxRetries,
-					"delay":      delay.String(),
-					"request_id": requestID,
-				})
-				time.Sleep(delay)
-				continue
-			}
-			
-			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			return nil, modErr
 		}
 
@@ -914,6 +916,8 @@ func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorI
 				"error":      readErr.Error(),
 				"request_id": requestID,
 			})
+			// Use a fallback error message for parsing
+			body = []byte(fmt.Sprintf("failed to read response body: %v", readErr))
 		}
 
 		logger.Debug("Unban request response", map[string]interface{}{
@@ -932,7 +936,25 @@ func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorI
 			return nil
 		}
 
-		// Handle 4xx errors - don't retry
+		// Handle 429 rate limit - retry with backoff (check before 4xx to avoid being caught by 4xx block)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Unban request rate limited, retrying", map[string]interface{}{
+					"attempt":    attempt + 1,
+					"max":        maxRetries,
+					"delay":      delay.String(),
+					"request_id": requestID,
+				})
+				time.Sleep(delay)
+				continue
+			}
+			
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			return modErr
+		}
+
+		// Handle 4xx errors - don't retry (excluding 429 which is handled above)
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			
@@ -966,24 +988,6 @@ func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorI
 				"attempts":   maxRetries,
 				"request_id": requestID,
 			})
-			return modErr
-		}
-
-		// Handle 429 rate limit - retry with backoff
-		if resp.StatusCode == http.StatusTooManyRequests {
-			if attempt < maxRetries-1 {
-				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
-				logger.Warn("Unban request rate limited, retrying", map[string]interface{}{
-					"attempt":    attempt + 1,
-					"max":        maxRetries,
-					"delay":      delay.String(),
-					"request_id": requestID,
-				})
-				time.Sleep(delay)
-				continue
-			}
-			
-			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			return modErr
 		}
 

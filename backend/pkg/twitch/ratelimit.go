@@ -89,17 +89,25 @@ func (rl *RateLimiter) Available() int {
 
 // ChannelRateLimiter manages per-channel rate limits for moderation actions
 // Twitch has per-channel rate limits for ban/unban operations to prevent abuse
+// Note: To prevent unbounded memory growth in production, consider implementing
+// periodic cleanup of inactive channels or using an LRU cache with a maximum size.
 type ChannelRateLimiter struct {
-	limiters map[string]*RateLimiter
-	mu       sync.RWMutex
+	limiters  map[string]*rateLimiterEntry
+	mu        sync.RWMutex
 	maxTokens int
+}
+
+// rateLimiterEntry wraps a rate limiter with last access time for cleanup
+type rateLimiterEntry struct {
+	limiter      *RateLimiter
+	lastAccessed time.Time
 }
 
 // NewChannelRateLimiter creates a new per-channel rate limiter
 // maxTokens: maximum number of requests per channel per minute
 func NewChannelRateLimiter(maxTokens int) *ChannelRateLimiter {
 	return &ChannelRateLimiter{
-		limiters: make(map[string]*RateLimiter),
+		limiters:  make(map[string]*rateLimiterEntry),
 		maxTokens: maxTokens,
 	}
 }
@@ -114,25 +122,30 @@ func (crl *ChannelRateLimiter) Wait(ctx context.Context, channelID string) error
 func (crl *ChannelRateLimiter) getLimiter(channelID string) *RateLimiter {
 	// First try read lock for fast path
 	crl.mu.RLock()
-	limiter, exists := crl.limiters[channelID]
-	crl.mu.RUnlock()
-	
+	entry, exists := crl.limiters[channelID]
 	if exists {
-		return limiter
+		entry.lastAccessed = time.Now()
+		crl.mu.RUnlock()
+		return entry.limiter
 	}
+	crl.mu.RUnlock()
 	
 	// Need to create new limiter, acquire write lock
 	crl.mu.Lock()
 	defer crl.mu.Unlock()
 	
 	// Check again in case another goroutine created it
-	if limiter, exists := crl.limiters[channelID]; exists {
-		return limiter
+	if entry, exists := crl.limiters[channelID]; exists {
+		entry.lastAccessed = time.Now()
+		return entry.limiter
 	}
 	
 	// Create new limiter for this channel
-	limiter = NewRateLimiter(crl.maxTokens)
-	crl.limiters[channelID] = limiter
+	limiter := NewRateLimiter(crl.maxTokens)
+	crl.limiters[channelID] = &rateLimiterEntry{
+		limiter:      limiter,
+		lastAccessed: time.Now(),
+	}
 	return limiter
 }
 
@@ -140,4 +153,24 @@ func (crl *ChannelRateLimiter) getLimiter(channelID string) *RateLimiter {
 func (crl *ChannelRateLimiter) Available(channelID string) int {
 	limiter := crl.getLimiter(channelID)
 	return limiter.Available()
+}
+
+// CleanupInactive removes rate limiters for channels that haven't been accessed
+// within the specified duration. This should be called periodically to prevent
+// unbounded memory growth. Returns the number of limiters removed.
+func (crl *ChannelRateLimiter) CleanupInactive(inactiveDuration time.Duration) int {
+	crl.mu.Lock()
+	defer crl.mu.Unlock()
+	
+	now := time.Now()
+	removed := 0
+	
+	for channelID, entry := range crl.limiters {
+		if now.Sub(entry.lastAccessed) > inactiveDuration {
+			delete(crl.limiters, channelID)
+			removed++
+		}
+	}
+	
+	return removed
 }

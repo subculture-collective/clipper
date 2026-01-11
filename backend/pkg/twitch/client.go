@@ -316,6 +316,12 @@ func (c *Client) GetCachedGame(ctx context.Context, gameID string) (*Game, error
 // Uses the "Decorrelated Jitter" approach: returns delay/2 + random(0, delay/2)
 // This ensures a minimum delay of delay/2 while still providing randomization
 func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Duration {
+	// Cap attempt to prevent overflow in exponential calculation
+	// On 64-bit systems, 1<<63 would overflow, so we cap at 62
+	if attempt > 62 {
+		attempt = 62
+	}
+	
 	// Exponential backoff: baseDelay * 2^attempt
 	delay := baseDelay * time.Duration(1<<uint(attempt))
 	
@@ -329,7 +335,7 @@ func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Durati
 	halfDelay := delay / 2
 	
 	// Prevent overflow and ensure we have a valid range
-	if halfDelay <= 0 || halfDelay > time.Duration(1<<62) {
+	if halfDelay <= 0 {
 		// Fallback to 75% of delay for edge cases
 		return delay * 3 / 4
 	}
