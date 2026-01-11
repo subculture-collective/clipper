@@ -109,7 +109,16 @@ make test-load-clip          # Clip detail views
 make test-load-search        # Search functionality
 make test-load-comments      # Comments (read-only without auth)
 make test-load-mixed         # Mixed user behavior (recommended)
+
+# Moderation performance tests
+make test-load-moderation-ban-sync        # Ban sync (10K+ bans)
+make test-load-moderation-audit-logs      # Audit log queries (50K+ entries)
+make test-load-moderation-permissions     # Permission checks (100+ users)
+make test-load-moderation-stress          # Comprehensive stress test
+make test-load-moderation-all             # Run all moderation tests
 ```
+
+For detailed moderation testing guide, see [MODERATION_PERFORMANCE_GUIDE.md](./MODERATION_PERFORMANCE_GUIDE.md).
 
 ## Quick Start: Generate Full Report
 
