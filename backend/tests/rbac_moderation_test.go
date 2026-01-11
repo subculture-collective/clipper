@@ -320,19 +320,21 @@ func TestSiteModerator_CannotEscalatePrivileges(t *testing.T) {
 
 	ctxBg := context.Background()
 
-	t.Run("Site moderator cannot change own role to admin", func(t *testing.T) {
-		// Attempt to update role to admin
-		query := `UPDATE users SET role = $1 WHERE id = $2`
-		_, err := ctx.DB.Pool.Exec(ctxBg, query, models.RoleAdmin, siteMod.ID)
-
-		// Verify role change occurred in DB (this tests DB constraint, not service logic)
-		updatedUser, err := ctx.UserRepo.GetByID(ctxBg, siteMod.ID)
+	t.Run("Site moderator has limited permission set", func(t *testing.T) {
+		// Verify site moderator has proper account type and cannot have admin permissions
+		user, err := ctx.UserRepo.GetByID(ctxBg, siteMod.ID)
 		require.NoError(t, err)
 
-		// The service layer should prevent privilege escalation
-		// This test validates that the moderator account type remains limited
-		assert.Equal(t, models.AccountTypeModerator, updatedUser.AccountType, "Account type should remain moderator")
-		assert.NotEqual(t, models.AccountTypeAdmin, updatedUser.AccountType, "Should not be able to escalate to admin account type")
+		// Validate account type is moderator, not admin
+		assert.Equal(t, models.AccountTypeModerator, user.AccountType, "Account type should be moderator")
+		assert.NotEqual(t, models.AccountTypeAdmin, user.AccountType, "Should not have admin account type")
+		
+		// Verify site moderators don't have admin-only permissions
+		assert.False(t, user.Can(models.PermissionManageSystem), "Site moderator should not have system management permission")
+		
+		// But they should have moderation permissions
+		assert.True(t, user.Can(models.PermissionModerateContent), "Should have moderate content permission")
+		assert.True(t, user.Can(models.PermissionModerateUsers), "Should have moderate users permission")
 	})
 
 	t.Run("Site moderator has site-wide scope", func(t *testing.T) {
@@ -684,16 +686,25 @@ func TestAllModerationEndpoints_WithDifferentRoles(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("UnbanUser_%s", tc.name), func(t *testing.T) {
-			err := ctx.ModerationService.UnbanUser(ctxBg, community.ID, tc.userID, targetUser.ID)
+			// Ensure user is banned before trying to unban
+			isBanned, err := ctx.CommunityRepo.IsBanned(ctxBg, community.ID, targetUser.ID)
+			require.NoError(t, err)
+			
+			if !isBanned && tc.shouldSucceed {
+				// Re-ban for this specific test if needed
+				rebannedReason := "Test ban for unban test"
+				err = ctx.ModerationService.BanUser(ctxBg, community.ID, admin.ID, targetUser.ID, &rebannedReason)
+				require.NoError(t, err, "Failed to set up ban for unban test")
+			}
+
+			err = ctx.ModerationService.UnbanUser(ctxBg, community.ID, tc.userID, targetUser.ID)
 
 			if tc.shouldSucceed {
-				// Unban will only succeed once, so we need to re-ban after first successful unban
-				if err == nil {
-					// Re-ban for next test
-					rebannedReason := "Re-ban for testing"
-					_ = ctx.ModerationService.BanUser(ctxBg, community.ID, admin.ID, targetUser.ID, &rebannedReason)
-				}
 				assert.NoError(t, err, "%s should be able to unban user", tc.userName)
+				// Re-ban for subsequent tests
+				rebannedReason := "Re-ban for next test"
+				err = ctx.ModerationService.BanUser(ctxBg, community.ID, admin.ID, targetUser.ID, &rebannedReason)
+				require.NoError(t, err, "Failed to re-ban for next test")
 			} else {
 				assert.Error(t, err, "%s should not be able to unban user", tc.userName)
 				if tc.errorExpected != nil {
