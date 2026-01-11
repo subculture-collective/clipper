@@ -608,3 +608,195 @@ func (c *Client) GetBannedUsers(ctx context.Context, broadcasterID string, userA
 	})
 	return &bannedUsersResp, nil
 }
+
+// BanUser bans a user from a broadcaster's channel
+// Requires user access token with moderator:manage:banned_users or channel:manage:banned_users scope
+// broadcasterID: The ID of the broadcaster whose channel the user is being banned from
+// moderatorID: The ID of the user or moderator issuing the ban (must match the token owner)
+// userAccessToken: User access token with appropriate scopes
+// request: Ban request containing user_id, optional duration, and optional reason
+func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID string, userAccessToken string, request *BanUserRequest) (*BanUserResponse, error) {
+	if broadcasterID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "broadcaster_id is required",
+		}
+	}
+	if moderatorID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "moderator_id is required",
+		}
+	}
+	if userAccessToken == "" {
+		return nil, &AuthError{
+			Message: "user access token is required for ban endpoints",
+		}
+	}
+	if request == nil || request.UserID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "user_id is required in request body",
+		}
+	}
+
+	params := url.Values{}
+	params.Set("broadcaster_id", broadcasterID)
+	params.Set("moderator_id", moderatorID)
+
+	// Build URL
+	reqURL := baseURL + "/moderation/bans?" + params.Encode()
+
+	// Prepare request body
+	bodyData := map[string]interface{}{
+		"data": request,
+	}
+	jsonBody, err := json.Marshal(bodyData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ban request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", reqURL, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+userAccessToken)
+	req.Header.Set("Client-Id", c.clientID)
+	req.Header.Set("Content-Type", "application/json")
+
+	logger := utils.GetLogger()
+	logger.Info("Twitch ban user request", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"moderator_id":   moderatorID,
+		"target_user_id": request.UserID,
+	})
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ban user: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body for error details
+	body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if readErr != nil {
+		logger.Warn("Failed to read ban response body", map[string]interface{}{
+			"error": readErr.Error(),
+		})
+	}
+
+	if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusUnauthorized {
+		return nil, &AuthError{
+			Message: fmt.Sprintf("insufficient permissions to ban user: %s", string(body)),
+		}
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("ban user request failed: %s", string(body)),
+		}
+	}
+
+	var banResp BanUserResponse
+	if err := json.Unmarshal(body, &banResp); err != nil {
+		return nil, fmt.Errorf("failed to decode ban response: %w", err)
+	}
+
+	logger.Info("Successfully banned user on Twitch", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"user_id":        request.UserID,
+	})
+
+	return &banResp, nil
+}
+
+// UnbanUser unbans a user from a broadcaster's channel
+// Requires user access token with moderator:manage:banned_users or channel:manage:banned_users scope
+// broadcasterID: The ID of the broadcaster whose channel the user is being unbanned from
+// moderatorID: The ID of the user or moderator issuing the unban (must match the token owner)
+// userID: The ID of the user to unban
+// userAccessToken: User access token with appropriate scopes
+func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorID string, userID string, userAccessToken string) error {
+	if broadcasterID == "" {
+		return &APIError{
+			StatusCode: 400,
+			Message:    "broadcaster_id is required",
+		}
+	}
+	if moderatorID == "" {
+		return &APIError{
+			StatusCode: 400,
+			Message:    "moderator_id is required",
+		}
+	}
+	if userID == "" {
+		return &APIError{
+			StatusCode: 400,
+			Message:    "user_id is required",
+		}
+	}
+	if userAccessToken == "" {
+		return &AuthError{
+			Message: "user access token is required for unban endpoints",
+		}
+	}
+
+	params := url.Values{}
+	params.Set("broadcaster_id", broadcasterID)
+	params.Set("moderator_id", moderatorID)
+	params.Set("user_id", userID)
+
+	// Build URL
+	reqURL := baseURL + "/moderation/bans?" + params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, "DELETE", reqURL, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+userAccessToken)
+	req.Header.Set("Client-Id", c.clientID)
+
+	logger := utils.GetLogger()
+	logger.Info("Twitch unban user request", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"moderator_id":   moderatorID,
+		"user_id":        userID,
+	})
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to unban user: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body for error details
+	body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if readErr != nil {
+		logger.Warn("Failed to read unban response body", map[string]interface{}{
+			"error": readErr.Error(),
+		})
+	}
+
+	if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusUnauthorized {
+		return &AuthError{
+			Message: fmt.Sprintf("insufficient permissions to unban user: %s", string(body)),
+		}
+	}
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("unban user request failed: %s", string(body)),
+		}
+	}
+
+	logger.Info("Successfully unbanned user on Twitch", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"user_id":        userID,
+	})
+
+	return nil
+}
