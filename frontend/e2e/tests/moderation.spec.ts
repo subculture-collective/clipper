@@ -44,7 +44,7 @@ type AuditLogEntry = {
   action: string;
   resource_type: string;
   resource_id: string;
-  details: any;
+  details: Record<string, unknown>;
   timestamp: string;
 };
 
@@ -480,7 +480,6 @@ test.describe('Moderation E2E', () => {
       // Search for user
       const searchInput = page.getByPlaceholder(/search.*user/i).or(page.getByLabel(/user/i));
       await searchInput.fill('newmoderator');
-      await page.waitForTimeout(500); // Wait for search suggestions
 
       // Select user from suggestions or fill directly
       const userOption = page.getByText('newmoderator').first();
@@ -854,11 +853,11 @@ test.describe('Moderation E2E', () => {
       if (await logEntry.isVisible({ timeout: 2000 }).catch(() => false)) {
         await logEntry.click();
 
-        // Wait for details modal or expanded view
-        await page.waitForTimeout(500);
+        // Wait for details modal or expanded view to become visible
+        const details = page.locator('[role="dialog"]').or(page.locator('.expanded-details'));
+        await expect(details).toBeVisible({ timeout: 5000 });
 
         // Verify details are displayed
-        const details = page.locator('[role="dialog"]').or(page.locator('.expanded-details'));
         await expect(details.getByText(/channel.*name/i).or(details.getByText('testchannel'))).toBeVisible({ timeout: 5000 });
       }
     });
@@ -972,7 +971,7 @@ test.describe('Moderation E2E', () => {
       mocks.seedUser(bannedUser);
 
       // Seed the ban
-      const ban = mocks.seedBan({
+      mocks.seedBan({
         id: 'ban-1',
         user_id: 'user-banned',
         target_username: 'banneduser',
@@ -1302,14 +1301,12 @@ test.describe('Moderation E2E', () => {
 
       // Test different viewport sizes
       await page.setViewportSize({ width: 375, height: 667 }); // Mobile
-      await page.waitForTimeout(500);
 
       // Verify UI is still accessible
       const heading = page.getByRole('heading', { name: /moderator/i });
       await expect(heading).toBeVisible();
 
       await page.setViewportSize({ width: 1920, height: 1080 }); // Desktop
-      await page.waitForTimeout(500);
 
       // Verify UI is still accessible
       await expect(heading).toBeVisible();
