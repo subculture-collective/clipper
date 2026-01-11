@@ -83,11 +83,12 @@ func (tc *testContext) cleanup() {
 // createTestCommunity creates a test community with owner
 func createTestCommunity(t *testing.T, ctx *testContext, ownerID uuid.UUID) *models.Community {
 	timestamp := time.Now().Unix()
+	description := "Test community for moderation tests"
 	community := &models.Community{
 		ID:          uuid.New(),
 		Name:        fmt.Sprintf("Test Community %d", timestamp),
 		Slug:        fmt.Sprintf("test-community-%d", timestamp),
-		Description: "Test community for moderation tests",
+		Description: &description,
 		OwnerID:     ownerID,
 		IsPublic:    true,
 		MemberCount: 0,
