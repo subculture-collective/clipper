@@ -686,25 +686,18 @@ func TestAllModerationEndpoints_WithDifferentRoles(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("UnbanUser_%s", tc.name), func(t *testing.T) {
-			// Ensure user is banned before trying to unban
-			isBanned, err := ctx.CommunityRepo.IsBanned(ctxBg, community.ID, targetUser.ID)
-			require.NoError(t, err)
-			
-			if !isBanned && tc.shouldSucceed {
-				// Re-ban for this specific test if needed
-				rebannedReason := "Test ban for unban test"
-				err = ctx.ModerationService.BanUser(ctxBg, community.ID, admin.ID, targetUser.ID, &rebannedReason)
-				require.NoError(t, err, "Failed to set up ban for unban test")
-			}
+			// Explicit setup: ensure a known starting state for each subtest
+			// Start by ensuring the user is not banned, then ban them for this test.
+			_ = ctx.CommunityRepo.UnbanMember(ctxBg, community.ID, targetUser.ID)
+
+			setupReason := "Test ban for unban test"
+			err := ctx.ModerationService.BanUser(ctxBg, community.ID, admin.ID, targetUser.ID, &setupReason)
+			require.NoError(t, err, "Failed to set up ban for unban test")
 
 			err = ctx.ModerationService.UnbanUser(ctxBg, community.ID, tc.userID, targetUser.ID)
 
 			if tc.shouldSucceed {
 				assert.NoError(t, err, "%s should be able to unban user", tc.userName)
-				// Re-ban for subsequent tests
-				rebannedReason := "Re-ban for next test"
-				err = ctx.ModerationService.BanUser(ctxBg, community.ID, admin.ID, targetUser.ID, &rebannedReason)
-				require.NoError(t, err, "Failed to re-ban for next test")
 			} else {
 				assert.Error(t, err, "%s should not be able to unban user", tc.userName)
 				if tc.errorExpected != nil {

@@ -213,14 +213,14 @@ go test -v -tags=integration ./tests/rbac_moderation_test.go
 
 ```bash
 cd backend
-go test -v -tags=integration ./tests/rbac_moderation_test.go -run TestAdmin_CanBanAnyUser
+go test -v -tags=integration ./tests -run TestAdmin_CanBanAnyUser
 ```
 
 ### Run with Coverage
 
 ```bash
 cd backend
-go test -v -tags=integration -coverprofile=coverage.out ./tests/rbac_moderation_test.go
+go test -v -tags=integration -coverprofile=coverage.out ./tests -run TestRBAC
 go tool cover -html=coverage.out -o coverage.html
 ```
 
@@ -263,6 +263,12 @@ PermissionCommunityModerate    = "community:moderate"
 PermissionModerateUsers        = "moderate:users"
 PermissionViewChannelAnalytics = "view:channel_analytics"
 PermissionManageModerators     = "manage:moderators"
+
+// Community Moderators do NOT have:
+// - PermissionModerateContent (site-wide content moderation)
+// - PermissionCreateDiscoveryLists (site-wide curation)
+// - PermissionManageUsers (site-wide user management)
+// - PermissionManageSystem (admin-only system management)
 ```
 
 ## Test Data Cleanup
