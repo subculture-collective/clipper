@@ -292,23 +292,21 @@ func (s *TwitchModerationService) recordBanMetrics(action string, startTime time
 			metrics.TwitchBanPermissionErrors.WithLabelValues(action, "site_moderator_readonly").Inc()
 		}
 		
-		// Track rate limits
+		// Track rate limits - check both RateLimitError and ModerationError types
 		var rateLimitErr *twitch.RateLimitError
 		if errors.As(err, &rateLimitErr) {
 			metrics.TwitchBanRateLimitHits.WithLabelValues(action).Inc()
+		} else {
+			// Only check ModerationError if it's not already a RateLimitError
+			var modErr *twitch.ModerationError
+			if errors.As(err, &modErr) && modErr.Code == twitch.ModerationErrorCodeRateLimited {
+				metrics.TwitchBanRateLimitHits.WithLabelValues(action).Inc()
+			}
 		}
 		
 		// Track server errors
 		if statusCode >= 500 {
 			metrics.TwitchBanServerErrors.WithLabelValues(action, strconv.Itoa(statusCode)).Inc()
-		}
-		
-		// Track moderation errors
-		var modErr *twitch.ModerationError
-		if errors.As(err, &modErr) {
-			if modErr.Code == twitch.ModerationErrorCodeRateLimited {
-				metrics.TwitchBanRateLimitHits.WithLabelValues(action).Inc()
-			}
 		}
 	}
 	
