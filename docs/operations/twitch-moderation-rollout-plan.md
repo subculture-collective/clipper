@@ -97,6 +97,9 @@ The feature flag is checked in:
 export FEATURE_TWITCH_MODERATION=true
 # Restart services
 docker compose restart
+
+# Or set percentage-based rollout
+export FEATURE_TWITCH_MODERATION_ROLLOUT_PERCENTAGE=100
 ```
 
 ---
@@ -127,9 +130,13 @@ docker compose restart
 
 **Rollout Command:**
 ```bash
-# In production, enable for specific user IDs or channels
-# Configure in feature flag service or environment
-FEATURE_TWITCH_MODERATION_ENABLED_USERS=user123,user456,user789
+# In production, use percentage-based rollout
+# Configure in environment or feature flag service
+export FEATURE_TWITCH_MODERATION=true
+export FEATURE_TWITCH_MODERATION_ROLLOUT_PERCENTAGE=10
+
+# Note: Percentage rollout requires feature flag service integration
+# Alternatively, enable for all users and rely on OAuth scope gating
 ```
 
 ---

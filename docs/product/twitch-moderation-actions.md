@@ -485,7 +485,7 @@ Both can coexist and complement each other.
 ## Related Documentation
 
 - [Twitch OAuth Setup](../../TWITCH_OAUTH_BAN_SCOPES_IMPLEMENTATION.md)
-- [API Reference: Twitch Moderation](../backend/api.md#twitch-moderation)
+- [API Reference: Twitch Moderation](../backend/twitch-moderation-api.md)
 - [Rollout Plan](../operations/twitch-moderation-rollout-plan.md)
 - [Feature Flags](../operations/feature-flags.md#feature_twitch_moderation)
 - [Moderation Guidelines](../users/community-guidelines.md#moderation)

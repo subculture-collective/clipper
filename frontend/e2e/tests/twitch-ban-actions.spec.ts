@@ -49,6 +49,11 @@ type AuditLogEntry = {
   timestamp: string;
 };
 
+// Constants for rate limiting
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 hour in milliseconds
+const MAX_BAN_DURATION_SECONDS = 1209600; // 14 days
+
 /**
  * Setup Twitch moderation API mocks with Helix simulation
  */
@@ -58,7 +63,8 @@ async function setupTwitchModerationMocks(page: Page) {
   const auditLogs: AuditLogEntry[] = [];
   let currentUser: MockUser | null = null;
   let rateLimitCount = 0;
-  let rateLimitResetTime = Date.now() + 60000; // 1 minute from now
+  let rateLimitResetTime = Date.now() + RATE_LIMIT_WINDOW_MS;
+  let auditIdCounter = 1;
 
   const respond = (route: Route, status: number, body: any) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -71,7 +77,7 @@ async function setupTwitchModerationMocks(page: Page) {
     details: any = {}
   ) => {
     const log: AuditLogEntry = {
-      id: `audit-${Date.now()}-${Math.random()}`,
+      id: `audit-${auditIdCounter++}`,
       actor_id: actorId,
       action,
       resource_type: resourceType,
@@ -101,12 +107,12 @@ async function setupTwitchModerationMocks(page: Page) {
       // Reset rate limit counter if time window has passed
       if (Date.now() > rateLimitResetTime) {
         rateLimitCount = 0;
-        rateLimitResetTime = Date.now() + 60000;
+        rateLimitResetTime = Date.now() + RATE_LIMIT_WINDOW_MS;
       }
 
-      // Check rate limit (10 per hour)
+      // Check rate limit
       rateLimitCount++;
-      if (rateLimitCount > 10) {
+      if (rateLimitCount > RATE_LIMIT_MAX_REQUESTS) {
         return respond(route, 429, {
           error: 'Rate limit exceeded',
           code: 'RATE_LIMIT_EXCEEDED',
@@ -163,9 +169,18 @@ async function setupTwitchModerationMocks(page: Page) {
         });
       }
 
+      // Validate duration if provided
+      if (body.duration !== undefined && body.duration !== null) {
+        if (body.duration < 1 || body.duration > MAX_BAN_DURATION_SECONDS) {
+          return respond(route, 400, {
+            error: `Duration must be between 1 and ${MAX_BAN_DURATION_SECONDS} seconds (14 days)`,
+          });
+        }
+      }
+
       // Perform ban
       const banId = `ban-${Date.now()}`;
-      const expiresAt = body.duration ? new Date(Date.now() + body.duration * 1000).toISOString() : undefined;
+      const expiresAt = body.duration ? new Date(Date.now() + Math.min(body.duration, MAX_BAN_DURATION_SECONDS) * 1000).toISOString() : undefined;
       
       bannedUsers.set(body.userID, {
         banId,
@@ -197,12 +212,12 @@ async function setupTwitchModerationMocks(page: Page) {
       // Reset rate limit counter if time window has passed
       if (Date.now() > rateLimitResetTime) {
         rateLimitCount = 0;
-        rateLimitResetTime = Date.now() + 60000;
+        rateLimitResetTime = Date.now() + RATE_LIMIT_WINDOW_MS;
       }
 
-      // Check rate limit (10 per hour)
+      // Check rate limit
       rateLimitCount++;
-      if (rateLimitCount > 10) {
+      if (rateLimitCount > RATE_LIMIT_MAX_REQUESTS) {
         return respond(route, 429, {
           error: 'Rate limit exceeded',
           code: 'RATE_LIMIT_EXCEEDED',
@@ -322,7 +337,7 @@ async function setupTwitchModerationMocks(page: Page) {
       rateLimitResetTime = Date.now() + 60000;
     },
     triggerRateLimit: () => {
-      rateLimitCount = 11; // Exceed the limit
+      rateLimitCount = RATE_LIMIT_MAX_REQUESTS + 1; // Exceed the limit
     },
     clear: () => {
       users.clear();
