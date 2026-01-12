@@ -63,6 +63,18 @@ func (m *mockUserRepoForTwitch) GetByID(ctx context.Context, id uuid.UUID) (*mod
 	return nil, errors.New("not found")
 }
 
+// mockAuditLogRepo implements the AuditLogRepository interface for testing
+type mockAuditLogRepoForTwitch struct {
+	createFunc func(ctx context.Context, log *models.ModerationAuditLog) error
+}
+
+func (m *mockAuditLogRepoForTwitch) Create(ctx context.Context, log *models.ModerationAuditLog) error {
+	if m.createFunc != nil {
+		return m.createFunc(ctx, log)
+	}
+	return nil
+}
+
 // TestValidateTwitchBanScope_Broadcaster tests that broadcaster is allowed
 func TestValidateTwitchBanScope_Broadcaster(t *testing.T) {
 	ctx := context.Background()
@@ -93,7 +105,7 @@ func TestValidateTwitchBanScope_Broadcaster(t *testing.T) {
 		},
 	}
 	
-	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo)
+	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	auth, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err != nil {
@@ -124,7 +136,7 @@ func TestValidateTwitchBanScope_SiteModeratorDenied(t *testing.T) {
 	}
 	
 	authRepo := &mockTwitchAuthRepo{}
-	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo)
+	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
@@ -156,7 +168,7 @@ func TestValidateTwitchBanScope_NotAuthenticated(t *testing.T) {
 		},
 	}
 	
-	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo)
+	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
@@ -197,7 +209,7 @@ func TestValidateTwitchBanScope_InsufficientScopes(t *testing.T) {
 		},
 	}
 	
-	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo)
+	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
@@ -239,7 +251,7 @@ func TestValidateTwitchBanScope_NotBroadcaster(t *testing.T) {
 		},
 	}
 	
-	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo)
+	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
@@ -280,7 +292,7 @@ func TestValidateTwitchBanScope_ExpiredToken(t *testing.T) {
 		},
 	}
 	
-	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo)
+	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
@@ -336,7 +348,7 @@ func TestBanUserOnTwitch_Success(t *testing.T) {
 		},
 	}
 	
-	service := NewTwitchModerationService(twitchClient, authRepo, userRepo)
+	service := NewTwitchModerationService(twitchClient, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	reason := "Test reason"
 	err := service.BanUserOnTwitch(ctx, userID, broadcasterTwitchID, targetUserID, &reason, nil)
@@ -388,7 +400,7 @@ func TestUnbanUserOnTwitch_Success(t *testing.T) {
 		},
 	}
 	
-	service := NewTwitchModerationService(twitchClient, authRepo, userRepo)
+	service := NewTwitchModerationService(twitchClient, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
 	
 	err := service.UnbanUserOnTwitch(ctx, userID, broadcasterTwitchID, targetUserID)
 	if err != nil {
