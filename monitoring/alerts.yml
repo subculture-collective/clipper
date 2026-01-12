@@ -1708,6 +1708,7 @@ groups:
             sum(rate(twitch_ban_action_total{status="failed"}[5m]))
             / sum(rate(twitch_ban_action_total[5m]))
           ) > 0.1
+          and sum(rate(twitch_ban_action_total[5m])) > 0
         for: 10m
         labels:
           severity: warning
@@ -1723,6 +1724,7 @@ groups:
             sum(rate(twitch_ban_action_total{status="failed"}[5m]))
             / sum(rate(twitch_ban_action_total[5m]))
           ) > 0.5
+          and sum(rate(twitch_ban_action_total[5m])) > 0
         for: 5m
         labels:
           severity: critical

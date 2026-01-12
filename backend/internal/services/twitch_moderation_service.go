@@ -12,6 +12,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/pkg/metrics"
 	"github.com/subculture-collective/clipper/pkg/twitch"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // Sentinel errors for Twitch moderation operations
@@ -134,10 +135,14 @@ func (s *TwitchModerationService) BanUserOnTwitch(ctx context.Context, moderator
 	var statusCode int
 	var banErr error
 	
+	// Create a separate context for audit logging so it can complete even if the request context is cancelled
+	auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
 	// Ensure metrics and audit logs are emitted regardless of outcome
 	defer func() {
 		s.recordBanMetrics(action, startTime, statusCode, banErr)
-		s.createBanAuditLog(ctx, action, moderatorUserID, broadcasterID, targetUserID, reason, duration, statusCode, banErr)
+		s.createBanAuditLog(auditCtx, action, moderatorUserID, broadcasterID, targetUserID, reason, duration, statusCode, banErr)
 	}()
 	
 	// Validate scope and get auth
@@ -181,10 +186,14 @@ func (s *TwitchModerationService) UnbanUserOnTwitch(ctx context.Context, moderat
 	var statusCode int
 	var unbanErr error
 	
+	// Create a separate context for audit logging so it can complete even if the request context is cancelled
+	auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
 	// Ensure metrics and audit logs are emitted regardless of outcome
 	defer func() {
 		s.recordBanMetrics(action, startTime, statusCode, unbanErr)
-		s.createBanAuditLog(ctx, action, moderatorUserID, broadcasterID, targetUserID, nil, nil, statusCode, unbanErr)
+		s.createBanAuditLog(auditCtx, action, moderatorUserID, broadcasterID, targetUserID, nil, nil, statusCode, unbanErr)
 	}()
 	
 	// Validate scope and get auth
@@ -348,13 +357,14 @@ func (s *TwitchModerationService) createBanAuditLog(ctx context.Context, action 
 	}
 	
 	// Create audit log entry
-	// Note: Twitch user IDs are strings, but entity_id requires UUID
-	// We store the Twitch user ID in metadata and use moderator ID for entity_id
-	// This is a known limitation of the current audit schema
+	// IMPORTANT DESIGN NOTE: EntityID uses moderatorUserID instead of targetUserID
+	// This is due to a schema limitation - entity_id requires UUID but Twitch user IDs are strings.
+	// The actual target Twitch user ID is stored in metadata["target_user_id"] for full traceability.
+	// This means queries for "actions against user X" must filter on metadata, not entity_id.
 	auditLog := &models.ModerationAuditLog{
 		Action:      auditAction,
 		EntityType:  "twitch_user",
-		EntityID:    moderatorUserID,
+		EntityID:    moderatorUserID, // Schema constraint: must be UUID; target ID in metadata
 		ModeratorID: moderatorUserID,
 		Reason:      reason,
 		Metadata:    auditMetadata,
@@ -362,9 +372,13 @@ func (s *TwitchModerationService) createBanAuditLog(ctx context.Context, action 
 	
 	// Attempt to create audit log, but don't fail the operation if it fails
 	if auditErr := s.auditLogRepo.Create(ctx, auditLog); auditErr != nil {
-		// Audit log failures are non-critical, but should be logged for visibility
-		// In production, this should use structured logging (e.g., utils.GetLogger().Error())
-		// For now, we silently ignore to avoid breaking the operation
-		_ = auditErr
+		// Log audit failures for visibility into the observability layer itself
+		logger := utils.GetLogger()
+		logger.Error("Failed to create audit log for Twitch ban action", auditErr, map[string]interface{}{
+			"action":         auditAction,
+			"moderator_id":   moderatorUserID.String(),
+			"broadcaster_id": broadcasterID,
+			"target_user_id": targetUserID,
+		})
 	}
 }
