@@ -501,7 +501,7 @@ func main() {
 		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
 		twitchBanSyncService = services.NewTwitchBanSyncService(twitchClient, twitchAuthRepo, twitchBanRepo, userRepo)
-		twitchModerationService = services.NewTwitchModerationService(twitchClient, twitchAuthRepo, userRepo)
+		twitchModerationService = services.NewTwitchModerationService(twitchClient, twitchAuthRepo, userRepo, auditLogRepo)
 	}
 
 	if submissionService != nil {
