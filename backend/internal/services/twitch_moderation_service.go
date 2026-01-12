@@ -379,6 +379,7 @@ func (s *TwitchModerationService) createBanAuditLog(ctx context.Context, action 
 			"moderator_id":   moderatorUserID.String(),
 			"broadcaster_id": broadcasterID,
 			"target_user_id": targetUserID,
+			"error_type":     fmt.Sprintf("%T", auditErr),
 		})
 	}
 }
