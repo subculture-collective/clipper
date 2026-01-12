@@ -86,8 +86,34 @@ Enhanced community features.
 - [ ] User-created collections (public)
 - [ ] Follow users/streamers
 - [ ] Clip compilation playlists
-- [ ] Community moderation tools
+- [x] Community moderation tools
+- [x] Twitch moderation actions (ban/unban)
 - [ ] Achievements/badges
+
+## Recent Additions (2026)
+
+### Twitch Moderation Actions ✅
+
+**Status**: Completed January 2026  
+**Epic**: #1059
+
+- [x] OAuth scope integration (`channel:manage:banned_users`, `moderator:manage:banned_users`)
+- [x] Backend API endpoints (ban/unban)
+- [x] Frontend UI components
+- [x] Permission gating (broadcaster/Twitch mod only)
+- [x] Site moderator read-only enforcement
+- [x] Audit logging
+- [x] E2E test coverage
+- [x] Documentation and rollout plan
+
+**Features:**
+- Permanent bans and temporary timeouts (1s - 14 days)
+- Ban reason tracking
+- Rate limiting (10 actions/hour)
+- Comprehensive error handling
+- Audit trail for all actions
+
+See: [Twitch Moderation Actions Docs](./twitch-moderation-actions.md)
 
 ## Future Considerations
 
