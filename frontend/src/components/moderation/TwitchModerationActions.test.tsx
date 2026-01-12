@@ -78,6 +78,58 @@ describe('TwitchModerationActions', () => {
             expect(container.firstChild).toBeNull();
         });
 
+        it('should render ban button when site moderator is also broadcaster', () => {
+            vi.mocked(authContext.useAuth).mockReturnValue({
+                user: { ...mockUser, role: 'moderator' },
+                isAuthenticated: true,
+                isAdmin: false,
+                isModerator: true,
+                isModeratorOrAdmin: true,
+                isLoading: false,
+                login: vi.fn(),
+                logout: vi.fn(),
+                refreshUser: vi.fn(),
+            });
+
+            render(
+                <TwitchModerationActions
+                    broadcasterID="broadcaster-123"
+                    userID="target-456"
+                    username="targetuser"
+                    isBroadcaster={true}
+                    isTwitchModerator={false}
+                />
+            );
+
+            expect(screen.getByRole('button', { name: /ban targetuser on twitch/i })).toBeInTheDocument();
+        });
+
+        it('should render ban button when site moderator is also Twitch moderator', () => {
+            vi.mocked(authContext.useAuth).mockReturnValue({
+                user: { ...mockUser, role: 'moderator' },
+                isAuthenticated: true,
+                isAdmin: false,
+                isModerator: true,
+                isModeratorOrAdmin: true,
+                isLoading: false,
+                login: vi.fn(),
+                logout: vi.fn(),
+                refreshUser: vi.fn(),
+            });
+
+            render(
+                <TwitchModerationActions
+                    broadcasterID="broadcaster-123"
+                    userID="target-456"
+                    username="targetuser"
+                    isBroadcaster={false}
+                    isTwitchModerator={true}
+                />
+            );
+
+            expect(screen.getByRole('button', { name: /ban targetuser on twitch/i })).toBeInTheDocument();
+        });
+
         it('should render ban button when user is broadcaster', () => {
             vi.mocked(authContext.useAuth).mockReturnValue({
                 user: mockUser,

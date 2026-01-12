@@ -52,12 +52,11 @@ export interface TwitchModerationActionsProps {
  */
 function canUserPerformTwitchActions(
     isBroadcaster: boolean,
-    isTwitchModerator: boolean,
-    isSiteModerator: boolean
+    isTwitchModerator: boolean
 ): boolean {
-    // Only broadcaster or Twitch moderators can perform actions
-    // Site moderators are explicitly view-only
-    return (isBroadcaster || isTwitchModerator) && !isSiteModerator;
+    // Only broadcaster or Twitch-recognized moderators can perform actions.
+    // Site moderators without these roles are view-only (their flags will both be false).
+    return isBroadcaster || isTwitchModerator;
 }
 
 /**
@@ -110,8 +109,7 @@ export function TwitchModerationActions({
     // Permission check
     const canPerformTwitchActions = canUserPerformTwitchActions(
         isBroadcaster,
-        isTwitchModerator,
-        isSiteModerator
+        isTwitchModerator
     );
 
     // Don't render if user doesn't have permissions
@@ -248,30 +246,40 @@ export function TwitchModerationActions({
                                     Ban Type
                                 </label>
                                 <div className="space-y-2">
-                                    <label className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-2">
                                         <input
                                             type="radio"
+                                            id="ban-type-permanent"
+                                            name="banType"
                                             checked={isPermanent}
                                             onChange={() => setIsPermanent(true)}
                                             className="h-4 w-4 text-primary-600"
                                             disabled={loading}
                                         />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                        <label
+                                            htmlFor="ban-type-permanent"
+                                            className="text-sm text-gray-700 dark:text-gray-300"
+                                        >
                                             Permanent Ban
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center space-x-2">
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
                                         <input
                                             type="radio"
+                                            id="ban-type-timeout"
+                                            name="banType"
                                             checked={!isPermanent}
                                             onChange={() => setIsPermanent(false)}
                                             className="h-4 w-4 text-primary-600"
                                             disabled={loading}
                                         />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                        <label
+                                            htmlFor="ban-type-timeout"
+                                            className="text-sm text-gray-700 dark:text-gray-300"
+                                        >
                                             Timeout (Temporary)
-                                        </span>
-                                    </label>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
@@ -335,7 +343,13 @@ export function TwitchModerationActions({
                         variant="danger"
                         onClick={handleBan}
                         loading={loading}
-                        disabled={loading || (!isPermanent && (!duration || parseInt(duration, 10) <= 0))}
+                        disabled={
+                            loading ||
+                            (!isPermanent &&
+                                (!duration ||
+                                    parseInt(duration, 10) <= 0 ||
+                                    parseInt(duration, 10) > 1209600))
+                        }
                     >
                         {isPermanent ? 'Ban User' : 'Timeout User'}
                     </Button>

@@ -103,14 +103,11 @@ function ChannelModerationPanel({ channelId }) {
 
 ## Permission Model
 
-The component will only render if **both** conditions are met:
+The component will only render if the current user is either:
+- The broadcaster (`isBroadcaster === true`), OR
+- A Twitch-recognized moderator (`isTwitchModerator === true`)
 
-1. The current user is either:
-   - The broadcaster (`isBroadcaster === true`), OR
-   - A Twitch-recognized moderator (`isTwitchModerator === true`)
-
-2. The current user is **not** a site moderator
-   - Site moderators are explicitly view-only for Twitch actions
+Site moderators who are not also broadcaster or Twitch moderator are view-only and will not see the component. However, if a site moderator is also the broadcaster or a Twitch moderator, they can perform Twitch moderation actions.
 
 ## Error Handling
 
