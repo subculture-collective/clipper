@@ -28,12 +28,9 @@ type ExportRepositoryInterface interface {
 	GetCreatorClipsForExport(ctx context.Context, creatorName string) ([]*models.Clip, error)
 }
 
-// UserRepoInterface defines additional user repository methods needed by ExportService
-// This extends the existing UserRepositoryInterface with GetByID
+// UserRepoInterface defines the user repository methods needed by ExportService
 type UserRepoInterface interface {
 	GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
-	GetByTwitchID(ctx context.Context, twitchID string) (*models.User, error)
-	Create(ctx context.Context, user *models.User) error
 }
 
 // ExportService handles data export operations for creators
@@ -307,6 +304,7 @@ func (s *ExportService) sendExportCompletedNotifications(
 	}
 
 	// Create in-app notification
+	inAppNotificationCreated := false
 	if s.notificationService != nil {
 		title := "Your Data Export is Ready"
 		message := fmt.Sprintf("Your %s export (%s) is ready for download", req.CreatorName, formatFileSize(fileSize))
@@ -327,10 +325,13 @@ func (s *ExportService) sendExportCompletedNotifications(
 		if err != nil {
 			logger.Error("Failed to create in-app notification for export", err)
 			// Continue to send email even if in-app notification fails
+		} else {
+			inAppNotificationCreated = true
 		}
 	}
 
 	// Send email notification
+	emailSent := false
 	if s.emailService != nil && user.Email != nil && *user.Email != "" {
 		emailData := map[string]interface{}{
 			"UserName":       user.DisplayName,
@@ -339,6 +340,7 @@ func (s *ExportService) sendExportCompletedNotifications(
 			"RequestedDate":  req.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
 			"ExpirationDate": expiresAt.Format("January 2, 2006 at 3:04 PM"),
 			"Format":         req.Format,
+			"RetentionDays":  s.retentionDays,
 		}
 
 		// Create a notification ID for email tracking
@@ -358,12 +360,21 @@ func (s *ExportService) sendExportCompletedNotifications(
 			})
 			return fmt.Errorf("failed to send email: %w", err)
 		}
+		emailSent = true
+	}
 
-		logger.Info("Export completion notifications sent successfully", map[string]interface{}{
-			"export_id": req.ID.String(),
-			"user_id":   req.UserID.String(),
-			"email":     *user.Email,
-		})
+	// Log success if at least one notification was sent
+	if inAppNotificationCreated || emailSent {
+		logFields := map[string]interface{}{
+			"export_id":         req.ID.String(),
+			"user_id":           req.UserID.String(),
+			"in_app_created":    inAppNotificationCreated,
+			"email_sent":        emailSent,
+		}
+		if emailSent && user.Email != nil {
+			logFields["email"] = *user.Email
+		}
+		logger.Info("Export completion notifications sent successfully", logFields)
 	}
 
 	return nil
@@ -401,7 +412,7 @@ func (s *ExportService) sendExportFailedNotification(
 		_, err := s.notificationService.CreateNotification(
 			ctx,
 			req.UserID,
-			"export_failed",
+			models.NotificationTypeExportFailed,
 			title,
 			message,
 			&link,
@@ -428,7 +439,7 @@ func (s *ExportService) sendExportFailedNotification(
 		err = s.emailService.SendNotificationEmail(
 			ctx,
 			user,
-			"export_failed",
+			models.NotificationTypeExportFailed,
 			notificationID,
 			emailData,
 		)

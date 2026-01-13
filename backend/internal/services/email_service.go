@@ -432,7 +432,7 @@ func (s *EmailService) prepareEmailContent(
 	case models.NotificationTypeExportCompleted:
 		subject = "Your Clipper Data Export is Ready"
 		htmlBody, textBody = s.prepareExportCompletedEmail(data)
-	case "export_failed":
+	case models.NotificationTypeExportFailed:
 		subject = "Data Export Request Failed"
 		htmlBody, textBody = s.prepareExportFailedEmail(data)
 
@@ -3050,11 +3050,21 @@ Questions? Contact our DMCA agent: %s
 func (s *EmailService) prepareExportCompletedEmail(data map[string]interface{}) (htmlBody, textBody string) {
 	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
 	downloadURL := html.EscapeString(fmt.Sprintf("%v", data["DownloadURL"]))
-	exportSize := fmt.Sprintf("%v", data["ExportSize"])
+	exportSize := html.EscapeString(fmt.Sprintf("%v", data["ExportSize"]))
 	requestedDate := html.EscapeString(fmt.Sprintf("%v", data["RequestedDate"]))
 	expirationDate := html.EscapeString(fmt.Sprintf("%v", data["ExpirationDate"]))
-	format := fmt.Sprintf("%v", data["Format"])
+	format := html.EscapeString(fmt.Sprintf("%v", data["Format"]))
 	helpURL := fmt.Sprintf("%s/help", s.baseURL)
+	
+	// Get retention days, default to 7 if not provided
+	retentionDays := 7
+	if days, ok := data["RetentionDays"].(int); ok && days > 0 {
+		retentionDays = days
+	}
+	retentionText := fmt.Sprintf("%d days", retentionDays)
+	if retentionDays == 1 {
+		retentionText = "1 day"
+	}
 
 	htmlBody = fmt.Sprintf(`
 <!DOCTYPE html>
@@ -3092,7 +3102,7 @@ func (s *EmailService) prepareExportCompletedEmail(data map[string]interface{}) 
         
         <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
             <p style="margin: 0; color: #856404;">
-                <strong>⚠️ Important:</strong> This download link will expire in 7 days. After that, you'll need to request a new export.
+                <strong>⚠️ Important:</strong> This download link will expire in %s. After that, you'll need to request a new export.
             </p>
         </div>
         
@@ -3121,7 +3131,7 @@ func (s *EmailService) prepareExportCompletedEmail(data map[string]interface{}) 
     </div>
 </body>
 </html>
-`, userName, requestedDate, format, exportSize, expirationDate, downloadURL, helpURL)
+`, userName, requestedDate, format, exportSize, expirationDate, downloadURL, retentionText, helpURL)
 
 	textBody = fmt.Sprintf(`Your Clipper Data Export is Ready
 
@@ -3137,7 +3147,7 @@ Export Details:
 
 Download your data: %s
 
-⚠️ IMPORTANT: This link will expire in 7 days. After that, you'll need to request a new export.
+⚠️ IMPORTANT: This link will expire in %s. After that, you'll need to request a new export.
 
 Your export includes:
 - Account information
@@ -3150,7 +3160,7 @@ Security Note: If you didn't request this export, please contact support immedia
 Questions? Visit our Help Center: %s
 
 Clipper Data Team
-`, userName, requestedDate, format, exportSize, expirationDate, downloadURL, helpURL)
+`, userName, requestedDate, format, exportSize, expirationDate, downloadURL, retentionText, helpURL)
 
 	return htmlBody, textBody
 }
@@ -3238,18 +3248,4 @@ Clipper Data Team
 `, userName, requestedDate, errorMessage, retryURL, supportURL)
 
 	return htmlBody, textBody
-}
-
-// formatFileSize formats a file size in bytes to a human-readable string
-func formatFileSize(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }

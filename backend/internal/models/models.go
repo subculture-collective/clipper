@@ -688,6 +688,7 @@ const (
 	NotificationTypeInvoiceFinalized = "invoice_finalized"
 	// Export notification types
 	NotificationTypeExportCompleted = "export_completed"
+	NotificationTypeExportFailed    = "export_failed"
 	// Creator clip notification types
 	NotificationTypeClipComment       = "clip_comment"
 	NotificationTypeClipViewThreshold = "clip_view_threshold"

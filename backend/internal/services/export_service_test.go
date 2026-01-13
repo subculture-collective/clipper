@@ -170,14 +170,6 @@ func (m *mockExportUserRepository) GetByID(ctx context.Context, userID uuid.UUID
 	return user, nil
 }
 
-func (m *mockExportUserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*models.User, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (m *mockExportUserRepository) Create(ctx context.Context, user *models.User) error {
-	return fmt.Errorf("not implemented")
-}
-
 func (m *mockExportUserRepository) addTestUser(userID uuid.UUID, email string, displayName string) {
 	m.users[userID] = &models.User{
 		ID:          userID,
