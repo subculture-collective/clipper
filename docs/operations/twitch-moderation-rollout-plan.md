@@ -73,7 +73,7 @@ The feature flag is checked in:
 
 ## Rollout Phases
 
-### Phase 0: Staging Validation (January 13, 2026)
+### Phase 0: Staging Validation (Planned: January 13, 2026)
 
 **Audience**: Internal team only (staging environment)
 
@@ -104,7 +104,7 @@ export FEATURE_TWITCH_MODERATION_ROLLOUT_PERCENTAGE=100
 
 ---
 
-### Phase 1: Internal Beta (January 15-17, 2026)
+### Phase 1: Internal Beta (Planned: January 15-17, 2026)
 
 **Audience**: 5-10 selected internal users/channels
 
@@ -141,7 +141,7 @@ export FEATURE_TWITCH_MODERATION_ROLLOUT_PERCENTAGE=10
 
 ---
 
-### Phase 2: Limited Rollout - 10% (January 18-20, 2026)
+### Phase 2: Limited Rollout - 10% (Planned: January 18-20, 2026)
 
 **Audience**: 10% of eligible users (broadcasters and Twitch moderators)
 
@@ -176,7 +176,7 @@ FEATURE_TWITCH_MODERATION_ROLLOUT_PERCENTAGE=10
 
 ---
 
-### Phase 3: Expanded Rollout - 50% (January 21-23, 2026)
+### Phase 3: Expanded Rollout - 50% (Planned: January 21-23, 2026)
 
 **Audience**: 50% of eligible users
 
@@ -200,7 +200,7 @@ FEATURE_TWITCH_MODERATION_ROLLOUT_PERCENTAGE=50
 
 ---
 
-### Phase 4: Full Rollout - 100% (January 24, 2026)
+### Phase 4: Full Rollout - 100% (Planned: January 24, 2026)
 
 **Audience**: All eligible users (broadcasters and Twitch moderators)
 

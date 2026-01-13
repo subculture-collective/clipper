@@ -51,7 +51,7 @@ type AuditLogEntry = {
 
 // Constants for rate limiting
 const RATE_LIMIT_MAX_REQUESTS = 10;
-const RATE_LIMIT_WINDOW_MS = 60000; // 1 hour in milliseconds
+const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour in milliseconds
 const MAX_BAN_DURATION_SECONDS = 1209600; // 14 days
 
 /**
@@ -180,7 +180,7 @@ async function setupTwitchModerationMocks(page: Page) {
 
       // Perform ban
       const banId = `ban-${Date.now()}`;
-      const expiresAt = body.duration ? new Date(Date.now() + Math.min(body.duration, MAX_BAN_DURATION_SECONDS) * 1000).toISOString() : undefined;
+      const expiresAt = body.duration ? new Date(Date.now() + body.duration * 1000).toISOString() : undefined;
       
       bannedUsers.set(body.userID, {
         banId,
@@ -334,7 +334,7 @@ async function setupTwitchModerationMocks(page: Page) {
     getAuditLogs: () => [...auditLogs],
     resetRateLimit: () => {
       rateLimitCount = 0;
-      rateLimitResetTime = Date.now() + 60000;
+      rateLimitResetTime = Date.now() + RATE_LIMIT_WINDOW_MS;
     },
     triggerRateLimit: () => {
       rateLimitCount = RATE_LIMIT_MAX_REQUESTS + 1; // Exceed the limit
