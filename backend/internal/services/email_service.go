@@ -427,7 +427,7 @@ func (s *EmailService) prepareEmailContent(
 	case models.NotificationTypeInvoiceFinalized:
 		subject = "Your Invoice is Ready"
 		htmlBody, textBody = s.prepareInvoiceFinalizedEmail(data)
-	
+
 	// Export notifications
 	case models.NotificationTypeExportCompleted:
 		subject = "Your Clipper Data Export is Ready"
@@ -435,7 +435,7 @@ func (s *EmailService) prepareEmailContent(
 	case "export_failed":
 		subject = "Data Export Request Failed"
 		htmlBody, textBody = s.prepareExportFailedEmail(data)
-	
+
 	default:
 		return "", "", "", fmt.Errorf("unsupported notification type: %s", notificationType)
 	}
