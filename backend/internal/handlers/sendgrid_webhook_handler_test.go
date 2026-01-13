@@ -54,10 +54,13 @@ func signPayload(privateKey *ecdsa.PrivateKey, timestamp string, payload []byte)
 		return "", err
 	}
 
-	// Encode as r||s (32 bytes each for P-256)
-	// Pad to ensure r and s are each 32 bytes
+	// Encode as r||s in raw format (32 bytes each for P-256 curve)
+	// P-256 uses 256-bit (32-byte) integers for r and s
+	// Pad to ensure r and s are each exactly 32 bytes
 	rBytes := make([]byte, 32)
 	sBytes := make([]byte, 32)
+	
+	// FillBytes pads with zeros on the left if needed
 	r.FillBytes(rBytes)
 	s.FillBytes(sBytes)
 	
