@@ -17,3 +17,5 @@ export { useWatchHistory } from './useWatchHistory';
 export type { UseWatchHistoryOptions, UseWatchHistoryReturn } from './useWatchHistory';
 export { useChatWebSocket } from './useChatWebSocket';
 export { useDesktopNotifications } from './useDesktopNotifications';
+export { useCheckBanStatus } from './useCheckBanStatus';
+export type { UseBanStatusReturn } from './useCheckBanStatus';

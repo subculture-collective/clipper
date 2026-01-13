@@ -382,6 +382,40 @@ test-load-report: ## Generate comprehensive load test report
 test-load-mixed: ## Run mixed user behavior load test
 	@k6 run backend/tests/load/scenarios/mixed_behavior.js
 
+test-load-moderation-ban-sync: ## Run moderation ban sync performance test
+	@k6 run backend/tests/load/scenarios/moderation_ban_sync.js
+
+test-load-moderation-audit-logs: ## Run moderation audit log query performance test
+	@k6 run backend/tests/load/scenarios/moderation_audit_logs.js
+
+test-load-moderation-permissions: ## Run moderation permission check performance test
+	@k6 run backend/tests/load/scenarios/moderation_permissions.js
+
+test-load-moderation-stress: ## Run comprehensive moderation stress test
+	@k6 run backend/tests/load/scenarios/moderation_stress.js
+
+test-load-moderation-all: ## Run all moderation performance tests
+	@echo "Running all moderation performance tests..."
+	@failed=0; \
+	echo "=== Ban Sync Performance Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_ban_sync.js || failed=$$((failed + 1)); \
+	echo ""; \
+	echo "=== Audit Log Query Performance Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_audit_logs.js || failed=$$((failed + 1)); \
+	echo ""; \
+	echo "=== Permission Check Performance Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_permissions.js || failed=$$((failed + 1)); \
+	echo ""; \
+	echo "=== Moderation Stress Test ==="; \
+	k6 run backend/tests/load/scenarios/moderation_stress.js || failed=$$((failed + 1)); \
+	echo ""; \
+	if [ $$failed -eq 0 ]; then \
+		echo "✓ All moderation performance tests passed"; \
+	else \
+		echo "✗ $$failed moderation test(s) failed"; \
+		exit 1; \
+	fi
+
 test-load-baseline-capture: ## Capture performance baselines (requires VERSION env var)
 	@if [ -z "$(VERSION)" ]; then \
 		echo "Error: VERSION environment variable required in semantic versioning format"; \
@@ -708,6 +742,16 @@ migrate-seed-load-test: ## Seed database with load test data (includes sample da
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed.sql
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed_load_test.sql
 	@echo "✓ Load test data seeded"
+
+migrate-seed-moderation-perf-test: ## Seed database with moderation performance test data (10K+ bans, 50K+ audit logs)
+	@echo "Seeding database with moderation performance test data..."
+	@echo "This will create:"
+	@echo "  - 12,000+ ban records"
+	@echo "  - 55,000+ audit log entries"
+	@echo "  - 5,000+ moderation queue items"
+	@echo "  - 100+ community moderators"
+	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed_moderation_perf_test.sql
+	@echo "✓ Moderation performance test data seeded successfully"
 
 # Search Evaluation
 evaluate-search: ## Run search quality evaluation

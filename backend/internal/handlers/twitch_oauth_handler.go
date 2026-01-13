@@ -59,8 +59,11 @@ func (h *TwitchOAuthHandler) InitiateTwitchOAuth(c *gin.Context) {
 		return
 	}
 
-	// For chat integration, we need chat:read and chat:edit scopes
-	scopes := "chat:read chat:edit"
+	// For chat integration and ban management, we need:
+	// - chat:read chat:edit: for chat functionality
+	// - moderator:manage:banned_users: for moderators to ban/unban users
+	// - channel:manage:banned_users: for broadcasters to ban/unban users
+	scopes := "chat:read chat:edit moderator:manage:banned_users channel:manage:banned_users"
 
 	authURL := fmt.Sprintf(
 		"https://id.twitch.tv/oauth2/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=%s",
@@ -219,6 +222,7 @@ func (h *TwitchOAuthHandler) TwitchOAuthCallback(c *gin.Context) {
 		TwitchUsername: userData.Data[0].Login,
 		AccessToken:    tokens.AccessToken,
 		RefreshToken:   tokens.RefreshToken,
+		Scopes:         tokens.Scope,
 		ExpiresAt:      expiresAt,
 	}
 
@@ -369,13 +373,14 @@ func (h *TwitchOAuthHandler) refreshTwitchToken(ctx context.Context, auth *model
 
 	// Update tokens in database
 	expiresAt := time.Now().Add(time.Duration(tokens.ExpiresIn) * time.Second)
-	if err := h.twitchAuthRepo.RefreshToken(ctx, auth.UserID, tokens.AccessToken, tokens.RefreshToken, expiresAt); err != nil {
+	if err := h.twitchAuthRepo.RefreshToken(ctx, auth.UserID, tokens.AccessToken, tokens.RefreshToken, tokens.Scope, expiresAt); err != nil {
 		return fmt.Errorf("failed to update tokens: %w", err)
 	}
 
 	// Update the auth object with new values
 	auth.AccessToken = tokens.AccessToken
 	auth.RefreshToken = tokens.RefreshToken
+	auth.Scopes = tokens.Scope
 	auth.ExpiresAt = expiresAt
 
 	utils.GetLogger().Info("Twitch token refreshed successfully", map[string]interface{}{

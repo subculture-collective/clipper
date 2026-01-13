@@ -14,7 +14,7 @@ func TestGetModerationAuditLogs_InvalidModeratorID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -33,7 +33,7 @@ func TestGetModerationAuditLogs_ValidParameters(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -57,7 +57,7 @@ func TestGetModerationAnalytics_DefaultDateRange(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -77,7 +77,7 @@ func TestGetModerationAnalytics_CustomDateRange(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	testUserID := uuid.New()
-	handler := NewModerationHandler(nil, nil, nil, nil)
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

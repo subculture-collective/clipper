@@ -202,6 +202,7 @@ func main() {
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
 	watchPartyRepo := repository.NewWatchPartyRepository(db.Pool)
 	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
+	twitchBanRepo := repository.NewTwitchBanRepository(db.Pool)
 	applicationLogRepo := repository.NewApplicationLogRepository(db.Pool)
 
 	// Initialize Twitch client
@@ -299,6 +300,9 @@ func main() {
 
 	// Initialize community service
 	communityService := services.NewCommunityService(communityRepo, clipRepo, userRepo, notificationService)
+
+	// Initialize moderation service for ban management
+	moderationService := services.NewModerationService(db.Pool, communityRepo, userRepo, auditLogRepo)
 
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
@@ -483,29 +487,39 @@ func main() {
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
-	if submissionService != nil {
-		submissionHandler = handlers.NewSubmissionHandler(submissionService)
-		// Create moderation handler using services from submission service
-		abuseDetector := submissionService.GetAbuseDetector()
-		moderationEventService := submissionService.GetModerationEventService()
-		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, toxicityClassifier, db.Pool)
-		}
-	}
-
-	// Initialize NSFW handler
-	nsfwHandler := handlers.NewNSFWHandler(nsfwDetector)
-
 	// Initialize forum handlers
 	forumHandler := handlers.NewForumHandler(db.Pool)
 	forumModerationHandler := handlers.NewForumModerationHandler(db.Pool)
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
+	
+	// Initialize Twitch-related handlers and services
+	var twitchBanSyncService *services.TwitchBanSyncService
+	var twitchModerationService *services.TwitchModerationService
 	if twitchClient != nil {
 		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
+		twitchBanSyncService = services.NewTwitchBanSyncService(twitchClient, twitchAuthRepo, twitchBanRepo, userRepo)
+		twitchModerationService = services.NewTwitchModerationService(twitchClient, twitchAuthRepo, userRepo, auditLogRepo)
 	}
+
+	if submissionService != nil {
+		submissionHandler = handlers.NewSubmissionHandler(submissionService)
+		// Create moderation handler using services from submission service
+		abuseDetector := submissionService.GetAbuseDetector()
+		moderationEventService := submissionService.GetModerationEventService()
+		if abuseDetector != nil && moderationEventService != nil {
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, moderationService, abuseDetector, toxicityClassifier, twitchBanSyncService, communityRepo, auditLogRepo, db.Pool)
+			// Set Twitch moderation service if available
+			if twitchModerationService != nil {
+				moderationHandler.SetTwitchModerationService(twitchModerationService)
+			}
+		}
+	}
+
+	// Initialize NSFW handler
+	nsfwHandler := handlers.NewNSFWHandler(nsfwDetector)
 
 	// Initialize router
 	r := gin.New()
@@ -878,6 +892,29 @@ func main() {
 			{
 				moderationAppeals.POST("/appeals", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.CreateAppeal)
 				moderationAppeals.GET("/appeals", middleware.AuthMiddleware(authService), moderationHandler.GetUserAppeals)
+				// Twitch ban sync endpoint with rate limiting
+				moderationAppeals.POST("/sync-bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.SyncBans)
+				
+				// Ban management endpoints
+				moderationAppeals.GET("/bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBans)
+				moderationAppeals.POST("/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.CreateBan)
+				moderationAppeals.GET("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBanDetails)
+				moderationAppeals.DELETE("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RevokeBan)
+
+				// Twitch ban management endpoints (enforces Twitch-specific scope requirements)
+				moderationAppeals.POST("/twitch/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.TwitchBanUser)
+				moderationAppeals.DELETE("/twitch/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.TwitchUnbanUser)
+
+				// Moderator management endpoints
+				moderationAppeals.GET("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.ListModerators)
+				moderationAppeals.POST("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.AddModerator)
+				moderationAppeals.DELETE("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RemoveModerator)
+				moderationAppeals.PATCH("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.UpdateModeratorPermissions)
+
+				// Audit log endpoints (requires moderator or admin role)
+				moderationAppeals.GET("/audit-logs", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.ListModerationAuditLogs)
+				moderationAppeals.GET("/audit-logs/export", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), auditLogHandler.ExportModerationAuditLogs)
+				moderationAppeals.GET("/audit-logs/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.GetModerationAuditLog)
 			}
 		}
 

@@ -22,6 +22,11 @@ on:
           - soak-short
           - benchmarks-all
           - benchmarks-with-profiling
+          - moderation-ban-sync
+          - moderation-audit-logs
+          - moderation-permissions
+          - moderation-stress
+          - moderation-all
   schedule:
     # Run nightly at 2 AM UTC
     - cron: '0 2 * * *'
@@ -107,6 +112,13 @@ jobs:
         run: |
           echo "::add-mask::postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable"
           PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test -f backend/migrations/seed_load_test.sql
+          
+          # Seed moderation performance test data if running moderation tests
+          TEST_TYPE="${{ github.event.inputs.test_type || 'all' }}"
+          if [[ "$TEST_TYPE" == *"moderation"* ]] || [[ "$TEST_TYPE" == "all" ]]; then
+            echo "Seeding moderation performance test data..."
+            PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test -f backend/migrations/seed_moderation_perf_test.sql
+          fi
 
       - name: Build backend
         run: |
@@ -245,6 +257,45 @@ jobs:
                   echo "Profiling endpoint: $endpoint"
                   ./profile_queries.sh "$endpoint" 60 || true
                 done
+                ;;
+              moderation-ban-sync)
+                echo "Running moderation ban sync performance test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_ban_sync_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_ban_sync.js \
+                  | tee backend/tests/load/reports/output_moderation_ban_sync_${TIMESTAMP}.txt
+                ;;
+              moderation-audit-logs)
+                echo "Running moderation audit log query performance test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_audit_logs_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_audit_logs.js \
+                  | tee backend/tests/load/reports/output_moderation_audit_logs_${TIMESTAMP}.txt
+                ;;
+              moderation-permissions)
+                echo "Running moderation permission check performance test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_permissions_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_permissions.js \
+                  | tee backend/tests/load/reports/output_moderation_permissions_${TIMESTAMP}.txt
+                ;;
+              moderation-stress)
+                echo "Running moderation stress test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_stress_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_stress.js \
+                  | tee backend/tests/load/reports/output_moderation_stress_${TIMESTAMP}.txt
+                ;;
+              moderation-all)
+                echo "Running all moderation performance tests..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_ban_sync_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_ban_sync.js \
+                  | tee backend/tests/load/reports/output_moderation_ban_sync_${TIMESTAMP}.txt
+                k6 run --out json=backend/tests/load/reports/results_moderation_audit_logs_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_audit_logs.js \
+                  | tee backend/tests/load/reports/output_moderation_audit_logs_${TIMESTAMP}.txt
+                k6 run --out json=backend/tests/load/reports/results_moderation_permissions_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_permissions.js \
+                  | tee backend/tests/load/reports/output_moderation_permissions_${TIMESTAMP}.txt
+                k6 run --out json=backend/tests/load/reports/results_moderation_stress_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_stress.js \
+                  | tee backend/tests/load/reports/output_moderation_stress_${TIMESTAMP}.txt
                 ;;
             esac
           fi

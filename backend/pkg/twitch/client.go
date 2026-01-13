@@ -16,7 +16,9 @@ package twitch
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 	"sync"
@@ -41,12 +43,13 @@ const (
 
 // Client wraps the Twitch API with authentication, rate limiting, and caching
 type Client struct {
-	clientID       string
-	httpClient     *http.Client
-	cache          TwitchCache
-	authManager    *AuthManager
-	rateLimiter    *RateLimiter
-	circuitBreaker *CircuitBreaker
+	clientID            string
+	httpClient          *http.Client
+	cache               TwitchCache
+	authManager         *AuthManager
+	rateLimiter         *RateLimiter
+	channelRateLimiter  *ChannelRateLimiter
+	circuitBreaker      *CircuitBreaker
 }
 
 // CircuitBreaker implements circuit breaker pattern for API availability
@@ -130,15 +133,18 @@ func NewClient(cfg *config.TwitchConfig, redis *redispkg.Client) (*Client, error
 	cache := NewRedisCache(redis)
 	authManager := NewAuthManager(cfg.ClientID, cfg.ClientSecret, httpClient, cache)
 	rateLimiter := NewRateLimiter(rateLimitPerMin)
+	// Per-channel rate limiter: 100 moderation actions per channel per minute
+	channelRateLimiter := NewChannelRateLimiter(100)
 	circuitBreaker := NewCircuitBreaker(5, 30*time.Second)
 
 	client := &Client{
-		clientID:       cfg.ClientID,
-		httpClient:     httpClient,
-		cache:          cache,
-		authManager:    authManager,
-		rateLimiter:    rateLimiter,
-		circuitBreaker: circuitBreaker,
+		clientID:           cfg.ClientID,
+		httpClient:         httpClient,
+		cache:              cache,
+		authManager:        authManager,
+		rateLimiter:        rateLimiter,
+		channelRateLimiter: channelRateLimiter,
+		circuitBreaker:     circuitBreaker,
 	}
 
 	// Try to load token from cache
@@ -300,4 +306,49 @@ func (c *Client) GetCachedUser(ctx context.Context, userID string) (*User, error
 // GetCachedGame retrieves game data from cache
 func (c *Client) GetCachedGame(ctx context.Context, gameID string) (*Game, error) {
 	return c.cache.CachedGame(ctx, gameID)
+}
+
+// jitteredBackoff calculates exponential backoff with jitter using crypto/rand for thread safety
+// attempt: retry attempt number (0-indexed)
+// baseDelay: base delay duration
+// maxDelay: maximum delay duration
+// Returns a duration with random jitter applied
+// Uses the "Decorrelated Jitter" approach: returns delay/2 + random(0, delay/2)
+// This ensures a minimum delay of delay/2 while still providing randomization
+func jitteredBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Duration {
+	// Cap attempt to prevent overflow in exponential calculation
+	// On 64-bit systems, 1<<63 would overflow, so we cap at 62
+	if attempt > 62 {
+		attempt = 62
+	}
+	
+	// Exponential backoff: baseDelay * 2^attempt
+	delay := baseDelay * time.Duration(1<<uint(attempt))
+	
+	// Cap at max delay
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+	
+	// Calculate jitter range: delay/2 to delay
+	// This ensures minimum backoff of delay/2 while providing randomization
+	halfDelay := delay / 2
+	
+	// Prevent overflow and ensure we have a valid range
+	if halfDelay <= 0 {
+		// Fallback to 75% of delay for edge cases
+		return delay * 3 / 4
+	}
+	
+	maxJitter := big.NewInt(int64(halfDelay))
+	
+	// Use crypto/rand for thread-safe random number generation
+	jitterBig, err := rand.Int(rand.Reader, maxJitter)
+	if err != nil {
+		// Fallback to 75% of delay if random generation fails
+		return delay * 3 / 4
+	}
+	
+	// Return delay/2 + random(0, delay/2)
+	return halfDelay + time.Duration(jitterBig.Int64())
 }

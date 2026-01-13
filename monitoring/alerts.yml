@@ -1693,3 +1693,143 @@ groups:
           summary: "Ingress controller memory pressure"
           description: "Ingress controller memory usage at {{ $value | humanizePercentage }}. May be exhausted by connection tracking."
           runbook: "Monitor for OOM kills. Scale ingress controller if persistent. Check for memory leak or excessive connections."
+
+  # Twitch Moderation Ban/Unban Alerts
+  # Related Issues (Epic #1059 - Phase P2: Observability):
+  # - Monitors Twitch ban/unban actions for errors, rate limits, and latency
+  # - Tracks permission/scope issues, server errors, and rate limit hits
+  - name: twitch_moderation_alerts
+    interval: 30s
+    rules:
+      # High Twitch Ban Failure Rate
+      - alert: TwitchBanHighFailureRate
+        expr: |
+          (
+            sum(rate(twitch_ban_action_total{status="failed"}[5m]))
+            / sum(rate(twitch_ban_action_total[5m]))
+          ) > 0.1
+          and sum(rate(twitch_ban_action_total[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High failure rate for Twitch ban/unban actions"
+          description: "Twitch ban/unban failure rate is {{ $value | humanizePercentage }} (threshold: 10%)."
+          runbook: "Check Twitch API status, verify OAuth scopes, review error logs for common patterns."
+      
+      # Critical Twitch Ban Failure Rate
+      - alert: TwitchBanCriticalFailureRate
+        expr: |
+          (
+            sum(rate(twitch_ban_action_total{status="failed"}[5m]))
+            / sum(rate(twitch_ban_action_total[5m]))
+          ) > 0.5
+          and sum(rate(twitch_ban_action_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical failure rate for Twitch ban/unban actions"
+          description: "Twitch ban/unban failure rate is {{ $value | humanizePercentage }} (threshold: 50%). Immediate investigation required."
+          runbook: "Check Twitch API status page, verify service health, review authentication configuration."
+      
+      # Elevated Permission/Scope Errors
+      - alert: TwitchBanPermissionErrors
+        expr: |
+          rate(twitch_ban_permission_errors_total[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated permission/scope errors for Twitch ban actions"
+          description: "{{ $value }} permission errors per second for {{ $labels.error_type }}. Users may have insufficient Twitch OAuth scopes."
+          runbook: "Review OAuth scope configuration, verify users have required Twitch permissions (moderator:manage:banned_users or channel:manage:banned_users). Check documentation for scope requirements."
+      
+      # Twitch API Rate Limit Hits
+      - alert: TwitchBanRateLimitHits
+        expr: |
+          rate(twitch_ban_rate_limit_hits_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Twitch ban API rate limit being hit"
+          description: "{{ $value }} rate limit hits per second for {{ $labels.action }}. Actions are being throttled by Twitch."
+          runbook: "Implement exponential backoff for retries, reduce request rate, or request rate limit increase from Twitch if legitimate usage."
+      
+      # Critical Rate Limit Hits
+      - alert: TwitchBanCriticalRateLimitHits
+        expr: |
+          rate(twitch_ban_rate_limit_hits_total[5m]) > 2
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical rate of Twitch ban API rate limit hits"
+          description: "{{ $value }} rate limit hits per second for {{ $labels.action }}. High volume of throttled requests."
+          runbook: "Immediate action required. Implement circuit breaker, apply request queuing, contact Twitch support if needed."
+      
+      # Elevated 5xx Server Errors from Twitch
+      - alert: TwitchBanServerErrors
+        expr: |
+          rate(twitch_ban_server_errors_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated 5xx errors from Twitch ban API"
+          description: "{{ $value }} server errors per second (status {{ $labels.status_code }}) for {{ $labels.action }}."
+          runbook: "Check Twitch API status page (https://devstatus.twitch.tv/), implement retry logic with exponential backoff."
+      
+      # Critical 5xx Error Rate
+      - alert: TwitchBanCriticalServerErrors
+        expr: |
+          rate(twitch_ban_server_errors_total[5m]) > 2
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical rate of 5xx errors from Twitch ban API"
+          description: "{{ $value }} server errors per second (status {{ $labels.status_code }}) for {{ $labels.action }}. Twitch API may be experiencing issues."
+          runbook: "Check Twitch API status page, enable circuit breaker, notify users of degraded Twitch integration."
+      
+      # High Latency for Ban/Unban Operations
+      - alert: TwitchBanHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(twitch_ban_action_duration_seconds_bucket[5m])) by (action, le)
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency for Twitch {{ $labels.action }} operations"
+          description: "P95 latency for Twitch {{ $labels.action }} is {{ $value }}s (threshold: 5s)."
+          runbook: "Check Twitch API performance, verify network connectivity, review timeout configurations."
+      
+      # Critical Latency
+      - alert: TwitchBanCriticalLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(twitch_ban_action_duration_seconds_bucket[5m])) by (action, le)
+          ) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical latency for Twitch {{ $labels.action }} operations"
+          description: "P95 latency for Twitch {{ $labels.action }} is {{ $value }}s (threshold: 10s). Immediate investigation required."
+          runbook: "Check Twitch API status, verify network path, consider implementing timeout and fallback mechanisms."
+      
+      # High 4xx Client Error Rate (excluding rate limits handled separately)
+      - alert: TwitchBan4xxErrors
+        expr: |
+          rate(twitch_ban_http_status_total{status_class="4xx",status_code!="429"}[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated 4xx client errors for Twitch ban API"
+          description: "{{ $value }} client errors per second (status {{ $labels.status_code }}) for {{ $labels.action }}."
+          runbook: "Review request validation, check for malformed requests, verify user permissions and scopes."
+
