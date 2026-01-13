@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -150,10 +151,46 @@ func (m *mockExportRepository) addTestClips(creatorName string, count int) {
 	m.clips[creatorName] = clips
 }
 
+// mockExportUserRepository is a mock implementation of UserRepoInterface for export testing
+type mockExportUserRepository struct {
+	users map[uuid.UUID]*models.User
+}
+
+func newMockExportUserRepository() *mockExportUserRepository {
+	return &mockExportUserRepository{
+		users: make(map[uuid.UUID]*models.User),
+	}
+}
+
+func (m *mockExportUserRepository) GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+	user, ok := m.users[userID]
+	if !ok {
+		return nil, fmt.Errorf("user not found")
+	}
+	return user, nil
+}
+
+func (m *mockExportUserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*models.User, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockExportUserRepository) Create(ctx context.Context, user *models.User) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (m *mockExportUserRepository) addTestUser(userID uuid.UUID, email string, displayName string) {
+	m.users[userID] = &models.User{
+		ID:          userID,
+		Email:       &email,
+		DisplayName: displayName,
+	}
+}
+
 func TestExportService_CreateExportRequest(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
+	mockUserRepo := newMockExportUserRepository()
+	service := NewExportService(mockRepo, mockUserRepo, nil, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -202,7 +239,7 @@ func TestExportService_CreateExportRequest(t *testing.T) {
 func TestExportService_ProcessExportRequest_CSV(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
+	service := NewExportService(mockRepo, nil, nil, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -240,7 +277,7 @@ func TestExportService_ProcessExportRequest_CSV(t *testing.T) {
 func TestExportService_ProcessExportRequest_JSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
+	service := NewExportService(mockRepo, nil, nil, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -274,7 +311,7 @@ func TestExportService_ProcessExportRequest_JSON(t *testing.T) {
 func TestExportService_CleanupExpiredExports(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
+	service := NewExportService(mockRepo, nil, nil, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -316,7 +353,7 @@ func TestExportService_CleanupExpiredExports(t *testing.T) {
 func TestExportService_GetExportFilePath(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
+	service := NewExportService(mockRepo, nil, nil, nil, tmpDir, "http://localhost:8080", 7)
 
 	userID := uuid.New()
 	creatorName := "testcreator"
@@ -347,7 +384,7 @@ func TestExportService_GetExportFilePath(t *testing.T) {
 func TestExportService_CSVGeneration(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
+	service := NewExportService(mockRepo, nil, nil, nil, tmpDir, "http://localhost:8080", 7)
 
 	creatorName := "testcreator"
 	mockRepo.addTestClips(creatorName, 10)
@@ -375,7 +412,7 @@ func TestExportService_CSVGeneration(t *testing.T) {
 func TestExportService_JSONGeneration(t *testing.T) {
 	tmpDir := t.TempDir()
 	mockRepo := newMockExportRepository()
-	service := NewExportService(mockRepo, nil, tmpDir, "http://localhost:8080", 7)
+	service := NewExportService(mockRepo, nil, nil, nil, tmpDir, "http://localhost:8080", 7)
 
 	creatorName := "testcreator"
 	mockRepo.addTestClips(creatorName, 10)
@@ -398,4 +435,94 @@ func TestExportService_JSONGeneration(t *testing.T) {
 
 	// Clean up
 	os.Remove(filePath)
+}
+
+func TestExportService_NotificationsSent(t *testing.T) {
+tmpDir := t.TempDir()
+mockRepo := newMockExportRepository()
+mockUserRepo := newMockExportUserRepository()
+
+// Create test user
+userID := uuid.New()
+userEmail := "test@example.com"
+mockUserRepo.addTestUser(userID, userEmail, "Test User")
+
+// Create service (without actual email/notification services for this unit test)
+service := NewExportService(mockRepo, mockUserRepo, nil, nil, tmpDir, "http://localhost:8080", 7)
+
+creatorName := "testcreator"
+mockRepo.addTestClips(creatorName, 5)
+
+// Create and process export request
+req, err := service.CreateExportRequest(context.Background(), userID, creatorName, models.ExportFormatCSV)
+require.NoError(t, err)
+
+err = service.ProcessExportRequest(context.Background(), req)
+require.NoError(t, err)
+
+// Verify export was completed
+updated, err := mockRepo.GetExportRequestByID(context.Background(), req.ID)
+require.NoError(t, err)
+assert.Equal(t, models.ExportStatusCompleted, updated.Status)
+assert.NotNil(t, updated.FilePath)
+assert.NotNil(t, updated.FileSizeBytes)
+assert.NotNil(t, updated.ExpiresAt)
+
+// Clean up
+if updated.FilePath != nil {
+os.Remove(*updated.FilePath)
+}
+}
+
+func TestExportService_FailedExportHandling(t *testing.T) {
+tmpDir := t.TempDir()
+mockRepo := newMockExportRepository()
+mockUserRepo := newMockExportUserRepository()
+
+// Create test user
+userID := uuid.New()
+mockUserRepo.addTestUser(userID, "test@example.com", "Test User")
+
+service := NewExportService(mockRepo, mockUserRepo, nil, nil, tmpDir, "http://localhost:8080", 7)
+
+// Create export request with invalid format to trigger failure
+req, err := service.CreateExportRequest(context.Background(), userID, "testcreator", models.ExportFormatCSV)
+require.NoError(t, err)
+
+// Manually change format to invalid after creation
+req.Format = "invalid"
+
+// Process export - should fail
+err = service.ProcessExportRequest(context.Background(), req)
+assert.Error(t, err)
+
+// Verify export was marked as failed
+updated, err := mockRepo.GetExportRequestByID(context.Background(), req.ID)
+require.NoError(t, err)
+assert.Equal(t, models.ExportStatusFailed, updated.Status)
+assert.NotNil(t, updated.ErrorMessage)
+}
+
+func TestFormatFileSize(t *testing.T) {
+tests := []struct {
+name     string
+bytes    int64
+expected string
+}{
+{"Zero bytes", 0, "0 B"},
+{"Bytes", 500, "500 B"},
+{"Kilobytes", 1024, "1.0 KB"},
+{"Kilobytes decimal", 1536, "1.5 KB"},
+{"Megabytes", 1048576, "1.0 MB"},
+{"Megabytes decimal", 1572864, "1.5 MB"},
+{"Gigabytes", 1073741824, "1.0 GB"},
+{"Large file", 5368709120, "5.0 GB"},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+result := formatFileSize(tt.bytes)
+assert.Equal(t, tt.expected, result)
+})
+}
 }

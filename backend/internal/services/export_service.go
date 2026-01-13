@@ -28,17 +28,35 @@ type ExportRepositoryInterface interface {
 	GetCreatorClipsForExport(ctx context.Context, creatorName string) ([]*models.Clip, error)
 }
 
+// UserRepoInterface defines additional user repository methods needed by ExportService
+// This extends the existing UserRepositoryInterface with GetByID
+type UserRepoInterface interface {
+	GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
+	GetByTwitchID(ctx context.Context, twitchID string) (*models.User, error)
+	Create(ctx context.Context, user *models.User) error
+}
+
 // ExportService handles data export operations for creators
 type ExportService struct {
-	exportRepo    ExportRepositoryInterface
-	emailService  *EmailService
-	exportDir     string
-	baseURL       string
-	retentionDays int
+	exportRepo          ExportRepositoryInterface
+	userRepo            UserRepoInterface
+	emailService        *EmailService
+	notificationService *NotificationService
+	exportDir           string
+	baseURL             string
+	retentionDays       int
 }
 
 // NewExportService creates a new export service
-func NewExportService(exportRepo ExportRepositoryInterface, emailService *EmailService, exportDir string, baseURL string, retentionDays int) *ExportService {
+func NewExportService(
+	exportRepo ExportRepositoryInterface,
+	userRepo UserRepoInterface,
+	emailService *EmailService,
+	notificationService *NotificationService,
+	exportDir string,
+	baseURL string,
+	retentionDays int,
+) *ExportService {
 	// Ensure export directory exists
 	if err := os.MkdirAll(exportDir, 0755); err != nil {
 		utils.GetLogger().Error("Failed to create export directory", err)
@@ -50,11 +68,13 @@ func NewExportService(exportRepo ExportRepositoryInterface, emailService *EmailS
 	}
 
 	return &ExportService{
-		exportRepo:    exportRepo,
-		emailService:  emailService,
-		exportDir:     exportDir,
-		baseURL:       baseURL,
-		retentionDays: retentionDays,
+		exportRepo:          exportRepo,
+		userRepo:            userRepo,
+		emailService:        emailService,
+		notificationService: notificationService,
+		exportDir:           exportDir,
+		baseURL:             baseURL,
+		retentionDays:       retentionDays,
 	}
 }
 
@@ -109,6 +129,8 @@ func (s *ExportService) ProcessExportRequest(ctx context.Context, req *models.Ex
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to retrieve clips: %v", err)
 		s.exportRepo.UpdateExportStatus(ctx, req.ID, models.ExportStatusFailed, &errMsg)
+		// Send failure notification
+		s.sendExportFailedNotification(ctx, req, errMsg)
 		return fmt.Errorf("failed to retrieve clips: %w", err)
 	}
 
@@ -124,12 +146,16 @@ func (s *ExportService) ProcessExportRequest(ctx context.Context, req *models.Ex
 	default:
 		errMsg := fmt.Sprintf("Unsupported format: %s", req.Format)
 		s.exportRepo.UpdateExportStatus(ctx, req.ID, models.ExportStatusFailed, &errMsg)
+		// Send failure notification
+		s.sendExportFailedNotification(ctx, req, errMsg)
 		return fmt.Errorf("unsupported format: %s", req.Format)
 	}
 
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to generate export file: %v", err)
 		s.exportRepo.UpdateExportStatus(ctx, req.ID, models.ExportStatusFailed, &errMsg)
+		// Send failure notification
+		s.sendExportFailedNotification(ctx, req, errMsg)
 		return fmt.Errorf("failed to generate export file: %w", err)
 	}
 
@@ -142,15 +168,13 @@ func (s *ExportService) ProcessExportRequest(ctx context.Context, req *models.Ex
 		return err
 	}
 
-	// Send email notification
-	if s.emailService != nil {
-		downloadURL := fmt.Sprintf("%s/api/v1/creators/me/export/download/%s", s.baseURL, req.ID)
-		if err := s.sendExportCompletedEmail(ctx, req, downloadURL, expiresAt); err != nil {
-			logger.Error("Failed to send export completion email", err)
-			// Don't fail the export if email fails
-		} else {
-			s.exportRepo.MarkEmailSent(ctx, req.ID)
-		}
+	// Send success notifications (email and in-app)
+	downloadURL := fmt.Sprintf("%s/api/v1/creators/me/export/download/%s", s.baseURL, req.ID)
+	if err := s.sendExportCompletedNotifications(ctx, req, fileSize, downloadURL, expiresAt); err != nil {
+		logger.Error("Failed to send export completion notifications", err)
+		// Don't fail the export if notifications fail
+	} else {
+		s.exportRepo.MarkEmailSent(ctx, req.ID)
 	}
 
 	return nil
@@ -257,19 +281,170 @@ func (s *ExportService) generateJSONExport(exportID uuid.UUID, clips []*models.C
 	return filePath, fileInfo.Size(), nil
 }
 
-// sendExportCompletedEmail sends an email notification when export is ready
-// TODO: Implement email notification when export is ready.
-// This requires access to the user repository and an email service.
-// When ready, add functionality here to send an email to the user with the export download link.
-func (s *ExportService) sendExportCompletedEmail(ctx context.Context, req *models.ExportRequest, downloadURL string, expiresAt time.Time) error {
+// sendExportCompletedNotifications sends email and in-app notifications when export is ready
+func (s *ExportService) sendExportCompletedNotifications(
+	ctx context.Context,
+	req *models.ExportRequest,
+	fileSize int64,
+	downloadURL string,
+	expiresAt time.Time,
+) error {
 	logger := utils.GetLogger()
-	logger.Info("Export completed, email notification skipped (requires user repository)", map[string]interface{}{
-		"export_id":    req.ID.String(),
-		"user_id":      req.UserID.String(),
-		"creator_name": req.CreatorName,
-		"format":       req.Format,
-	})
+
+	// Get user information
+	if s.userRepo == nil {
+		logger.Warn("User repository not available, skipping notifications")
+		return nil
+	}
+
+	user, err := s.userRepo.GetByID(ctx, req.UserID)
+	if err != nil {
+		logger.Error("Failed to get user for export notification", err, map[string]interface{}{
+			"user_id":   req.UserID.String(),
+			"export_id": req.ID.String(),
+		})
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Create in-app notification
+	if s.notificationService != nil {
+		title := "Your Data Export is Ready"
+		message := fmt.Sprintf("Your %s export (%s) is ready for download", req.CreatorName, formatFileSize(fileSize))
+		link := fmt.Sprintf("/settings/export/%s", req.ID)
+		contentType := "export"
+
+		_, err := s.notificationService.CreateNotification(
+			ctx,
+			req.UserID,
+			models.NotificationTypeExportCompleted,
+			title,
+			message,
+			&link,
+			nil,
+			&req.ID,
+			&contentType,
+		)
+		if err != nil {
+			logger.Error("Failed to create in-app notification for export", err)
+			// Continue to send email even if in-app notification fails
+		}
+	}
+
+	// Send email notification
+	if s.emailService != nil && user.Email != nil && *user.Email != "" {
+		emailData := map[string]interface{}{
+			"UserName":       user.DisplayName,
+			"DownloadURL":    downloadURL,
+			"ExportSize":     formatFileSize(fileSize),
+			"RequestedDate":  req.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+			"ExpirationDate": expiresAt.Format("January 2, 2006 at 3:04 PM"),
+			"Format":         req.Format,
+		}
+
+		// Create a notification ID for email tracking
+		notificationID := uuid.New()
+
+		err = s.emailService.SendNotificationEmail(
+			ctx,
+			user,
+			models.NotificationTypeExportCompleted,
+			notificationID,
+			emailData,
+		)
+		if err != nil {
+			logger.Error("Failed to send export completion email", err, map[string]interface{}{
+				"user_id":   req.UserID.String(),
+				"export_id": req.ID.String(),
+			})
+			return fmt.Errorf("failed to send email: %w", err)
+		}
+
+		logger.Info("Export completion notifications sent successfully", map[string]interface{}{
+			"export_id": req.ID.String(),
+			"user_id":   req.UserID.String(),
+			"email":     *user.Email,
+		})
+	}
+
 	return nil
+}
+
+// sendExportFailedNotification sends notifications when export fails
+func (s *ExportService) sendExportFailedNotification(
+	ctx context.Context,
+	req *models.ExportRequest,
+	errorMessage string,
+) {
+	logger := utils.GetLogger()
+
+	// Get user information
+	if s.userRepo == nil {
+		logger.Warn("User repository not available, skipping failure notifications")
+		return
+	}
+
+	user, err := s.userRepo.GetByID(ctx, req.UserID)
+	if err != nil {
+		logger.Error("Failed to get user for export failure notification", err, map[string]interface{}{
+			"user_id":   req.UserID.String(),
+			"export_id": req.ID.String(),
+		})
+		return
+	}
+
+	// Create in-app notification
+	if s.notificationService != nil {
+		title := "Data Export Failed"
+		message := fmt.Sprintf("Your %s export request failed. Please try again.", req.CreatorName)
+		link := "/settings/export"
+
+		_, err := s.notificationService.CreateNotification(
+			ctx,
+			req.UserID,
+			"export_failed",
+			title,
+			message,
+			&link,
+			nil,
+			&req.ID,
+			nil,
+		)
+		if err != nil {
+			logger.Error("Failed to create in-app notification for export failure", err)
+		}
+	}
+
+	// Send email notification
+	if s.emailService != nil && user.Email != nil && *user.Email != "" {
+		emailData := map[string]interface{}{
+			"UserName":      user.DisplayName,
+			"ErrorMessage":  errorMessage,
+			"RequestedDate": req.CreatedAt.Format("January 2, 2006 at 3:04 PM"),
+		}
+
+		// Create a notification ID for email tracking
+		notificationID := uuid.New()
+
+		err = s.emailService.SendNotificationEmail(
+			ctx,
+			user,
+			"export_failed",
+			notificationID,
+			emailData,
+		)
+		if err != nil {
+			logger.Error("Failed to send export failure email", err, map[string]interface{}{
+				"user_id":   req.UserID.String(),
+				"export_id": req.ID.String(),
+			})
+		} else {
+			logger.Info("Export failure notification sent", map[string]interface{}{
+				"export_id": req.ID.String(),
+				"user_id":   req.UserID.String(),
+				"email":     *user.Email,
+			})
+		}
+	}
 }
 
 // CleanupExpiredExports removes expired export files
