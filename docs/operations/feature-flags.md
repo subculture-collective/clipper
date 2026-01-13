@@ -135,6 +135,23 @@ Enables curated discovery lists and featured content.
 
 **Use case**: Enable when editorial process and list management tools are ready.
 
+### FEATURE_TWITCH_MODERATION
+
+**Default**: `false`  
+**Dependencies**: Requires Twitch OAuth with `moderator:manage:banned_users` or `channel:manage:banned_users` scopes
+
+Enables Twitch ban/unban moderation actions for broadcasters and channel moderators.
+
+**When enabled:**
+- Broadcasters can ban/unban users on Twitch from Clipper
+- Twitch channel moderators can perform ban/unban actions
+- Permanent bans and temporary timeouts supported
+- Ban reasons tracked and logged
+- Audit logging for all moderation actions
+- Site moderators remain read-only (cannot perform Twitch actions)
+
+**Use case**: Enable after Twitch OAuth integration is complete and E2E tests pass. Follow gradual rollout plan (see [Twitch Moderation Rollout Plan](./twitch-moderation-rollout-plan.md)).
+
 ## Configuration
 
 ### Environment Variables
@@ -150,6 +167,7 @@ FEATURE_PUSH_NOTIFICATIONS=false
 FEATURE_ANALYTICS=true
 FEATURE_MODERATION=true
 FEATURE_DISCOVERY_LISTS=false
+FEATURE_TWITCH_MODERATION=true  # Enable in dev for testing
 ```
 
 ```bash
@@ -161,6 +179,7 @@ FEATURE_PUSH_NOTIFICATIONS=false     # Enable with mobile app launch
 FEATURE_ANALYTICS=true               # Always enabled
 FEATURE_MODERATION=true              # Always enabled
 FEATURE_DISCOVERY_LISTS=false        # Enable when lists are curated
+FEATURE_TWITCH_MODERATION=false      # Follow gradual rollout plan
 ```
 
 ### Configuration File
