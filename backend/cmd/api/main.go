@@ -355,7 +355,7 @@ func main() {
 	}
 	// Default retention period is 7 days
 	exportRetentionDays := 7
-	exportService := services.NewExportService(exportRepo, emailService, exportDir, cfg.Server.BaseURL, exportRetentionDays)
+	exportService := services.NewExportService(exportRepo, userRepo, emailService, notificationService, exportDir, cfg.Server.BaseURL, exportRetentionDays)
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
@@ -493,7 +493,7 @@ func main() {
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
-	
+
 	// Initialize Twitch-related handlers and services
 	var twitchBanSyncService *services.TwitchBanSyncService
 	var twitchModerationService *services.TwitchModerationService
@@ -894,7 +894,7 @@ func main() {
 				moderationAppeals.GET("/appeals", middleware.AuthMiddleware(authService), moderationHandler.GetUserAppeals)
 				// Twitch ban sync endpoint with rate limiting
 				moderationAppeals.POST("/sync-bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.SyncBans)
-				
+
 				// Ban management endpoints
 				moderationAppeals.GET("/bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBans)
 				moderationAppeals.POST("/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.CreateBan)
@@ -923,10 +923,10 @@ func main() {
 		{
 			// Public user profile
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
-			
+
 			// User autocomplete for mentions/suggestions - must be before /:id to avoid route conflicts
 			users.GET("/autocomplete", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), userHandler.SearchUsersAutocomplete)
-			
+
 			users.GET("/:id", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserProfile)
 
 			// Account claiming for unclaimed profiles

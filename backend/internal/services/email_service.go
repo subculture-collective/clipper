@@ -427,6 +427,15 @@ func (s *EmailService) prepareEmailContent(
 	case models.NotificationTypeInvoiceFinalized:
 		subject = "Your Invoice is Ready"
 		htmlBody, textBody = s.prepareInvoiceFinalizedEmail(data)
+
+	// Export notifications
+	case models.NotificationTypeExportCompleted:
+		subject = "Your Clipper Data Export is Ready"
+		htmlBody, textBody = s.prepareExportCompletedEmail(data)
+	case models.NotificationTypeExportFailed:
+		subject = "Data Export Request Failed"
+		htmlBody, textBody = s.prepareExportFailedEmail(data)
+
 	default:
 		return "", "", "", fmt.Errorf("unsupported notification type: %s", notificationType)
 	}
@@ -3031,4 +3040,212 @@ Questions? Contact our DMCA agent: %s
 `, complainantName, noticeID, counterNoticeID, reinstatedAt, s.fromEmail)
 
 	return htmlContent, text
+}
+
+// ==============================================================================
+// Export Email Templates
+// ==============================================================================
+
+// prepareExportCompletedEmail prepares the export completed notification email
+func (s *EmailService) prepareExportCompletedEmail(data map[string]interface{}) (htmlBody, textBody string) {
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
+	downloadURL := html.EscapeString(fmt.Sprintf("%v", data["DownloadURL"]))
+	exportSize := html.EscapeString(fmt.Sprintf("%v", data["ExportSize"]))
+	requestedDate := html.EscapeString(fmt.Sprintf("%v", data["RequestedDate"]))
+	expirationDate := html.EscapeString(fmt.Sprintf("%v", data["ExpirationDate"]))
+	format := html.EscapeString(fmt.Sprintf("%v", data["Format"]))
+	helpURL := fmt.Sprintf("%s/help", s.baseURL)
+	
+	// Get retention days, default to 7 if not provided
+	retentionDays := 7
+	if days, ok := data["RetentionDays"].(int); ok && days > 0 {
+		retentionDays = days
+	}
+	retentionText := fmt.Sprintf("%d days", retentionDays)
+	if retentionDays == 1 {
+		retentionText = "1 day"
+	}
+
+	htmlBody = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Data Export is Ready</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">📦 Your Data Export is Ready!</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hello <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Your data export request is complete and ready for download.
+        </p>
+        
+        <div style="background: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #667eea;">
+            <h3 style="margin-top: 0; color: #667eea;">Export Details</h3>
+            <p style="margin: 5px 0;"><strong>Requested:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Format:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Size:</strong> %s</p>
+            <p style="margin: 5px 0;"><strong>Expires:</strong> %s</p>
+        </div>
+        
+        <p style="text-align: center; margin: 30px 0;">
+            <a href="%s" style="display: inline-block; background: #667eea; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Download Your Data</a>
+        </p>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #856404;">
+                <strong>⚠️ Important:</strong> This download link will expire in %s. After that, you'll need to request a new export.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px; margin: 20px 0;">
+            <strong>Your export includes:</strong>
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;">Account information</li>
+            <li style="margin-bottom: 10px;">Clips and submissions</li>
+            <li style="margin-bottom: 10px;">Comments and votes</li>
+            <li style="margin-bottom: 10px;">Favorites and watch history</li>
+        </ul>
+        
+        <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                <strong>Security Note:</strong> If you didn't request this export, please contact our support team immediately.
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999; text-align: center;">
+            Questions? Visit our <a href="%s" style="color: #667eea; text-decoration: none;">Help Center</a><br>
+            Clipper Data Team
+        </p>
+    </div>
+</body>
+</html>
+`, userName, requestedDate, format, exportSize, expirationDate, downloadURL, retentionText, helpURL)
+
+	textBody = fmt.Sprintf(`Your Clipper Data Export is Ready
+
+Hello %s,
+
+Your data export request is complete and ready for download.
+
+Export Details:
+- Requested: %s
+- Format: %s
+- Size: %s
+- Expires: %s
+
+Download your data: %s
+
+⚠️ IMPORTANT: This link will expire in %s. After that, you'll need to request a new export.
+
+Your export includes:
+- Account information
+- Clips and submissions
+- Comments and votes
+- Favorites and watch history
+
+Security Note: If you didn't request this export, please contact support immediately.
+
+Questions? Visit our Help Center: %s
+
+Clipper Data Team
+`, userName, requestedDate, format, exportSize, expirationDate, downloadURL, retentionText, helpURL)
+
+	return htmlBody, textBody
+}
+
+// prepareExportFailedEmail prepares the export failed notification email
+func (s *EmailService) prepareExportFailedEmail(data map[string]interface{}) (htmlBody, textBody string) {
+	userName := html.EscapeString(fmt.Sprintf("%v", data["UserName"]))
+	errorMessage := html.EscapeString(fmt.Sprintf("%v", data["ErrorMessage"]))
+	requestedDate := html.EscapeString(fmt.Sprintf("%v", data["RequestedDate"]))
+	supportURL := fmt.Sprintf("%s/support", s.baseURL)
+	retryURL := fmt.Sprintf("%s/settings/export", s.baseURL)
+
+	htmlBody = fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Request Failed</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #f5576c 0%%, #f093fb 100%%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">❌ Export Request Failed</h1>
+    </div>
+    
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Hello <strong>%s</strong>,
+        </p>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            Unfortunately, we were unable to complete your data export request from %s.
+        </p>
+        
+        <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #721c24;">
+                <strong>Error:</strong> %s
+            </p>
+        </div>
+        
+        <p style="font-size: 16px; margin-bottom: 20px;">
+            <strong>What to do next:</strong>
+        </p>
+        <ul style="margin: 0 0 20px 20px; padding: 0;">
+            <li style="margin-bottom: 10px;">Please try requesting your export again</li>
+            <li style="margin-bottom: 10px;">If the problem persists, contact our support team</li>
+            <li style="margin-bottom: 10px;">We're here to help ensure you get your data</li>
+        </ul>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="%s" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">Retry Export</a>
+            <a href="%s" style="display: inline-block; background: #6c757d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Contact Support</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999; text-align: center;">
+            We apologize for the inconvenience.<br>
+            Clipper Data Team
+        </p>
+    </div>
+</body>
+</html>
+`, userName, requestedDate, errorMessage, retryURL, supportURL)
+
+	textBody = fmt.Sprintf(`Export Request Failed
+
+Hello %s,
+
+Unfortunately, we were unable to complete your data export request from %s.
+
+Error: %s
+
+What to do next:
+- Please try requesting your export again
+- If the problem persists, contact our support team
+- We're here to help ensure you get your data
+
+Retry Export: %s
+Contact Support: %s
+
+We apologize for the inconvenience.
+
+Clipper Data Team
+`, userName, requestedDate, errorMessage, retryURL, supportURL)
+
+	return htmlBody, textBody
 }
