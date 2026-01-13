@@ -43,7 +43,7 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
 ```
 
 **Important Notes:**
-- The public key must be in PEM format (PKCS#8)
+- The public key must be in PEM format (PKIX/SubjectPublicKeyInfo)
 - Include the `-----BEGIN PUBLIC KEY-----` and `-----END PUBLIC KEY-----` headers
 - The key uses the ECDSA P-256 curve
 - For multi-line keys in environment files, use `\n` for newlines or quote the entire key

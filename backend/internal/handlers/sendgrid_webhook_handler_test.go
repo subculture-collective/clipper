@@ -68,6 +68,50 @@ func signPayload(privateKey *ecdsa.PrivateKey, timestamp string, payload []byte)
 	return base64.StdEncoding.EncodeToString(sig), nil
 }
 
+// signPayloadDER signs a payload and returns DER-encoded signature
+func signPayloadDER(privateKey *ecdsa.PrivateKey, timestamp string, payload []byte) (string, error) {
+	// Construct signed payload: timestamp + body
+	signedPayload := timestamp + string(payload)
+
+	// Hash with SHA-256
+	hash := sha256.Sum256([]byte(signedPayload))
+
+	// Sign the hash
+	r, s, err := ecdsa.Sign(rand.Reader, privateKey, hash[:])
+	if err != nil {
+		return "", err
+	}
+
+	// Encode as DER: SEQUENCE { INTEGER r, INTEGER s }
+	rBytes := r.Bytes()
+	sBytes := s.Bytes()
+
+	// Build DER structure
+	var derSig []byte
+	
+	// Add SEQUENCE tag
+	derSig = append(derSig, 0x30) // SEQUENCE tag
+	
+	// We'll come back to fill in the length
+	lenPos := len(derSig)
+	derSig = append(derSig, 0x00) // Placeholder for length
+	
+	// Add r INTEGER
+	derSig = append(derSig, 0x02) // INTEGER tag
+	derSig = append(derSig, byte(len(rBytes))) // r length
+	derSig = append(derSig, rBytes...)
+	
+	// Add s INTEGER
+	derSig = append(derSig, 0x02) // INTEGER tag
+	derSig = append(derSig, byte(len(sBytes))) // s length
+	derSig = append(derSig, sBytes...)
+	
+	// Fill in the SEQUENCE length (total length minus SEQUENCE tag and length byte)
+	derSig[lenPos] = byte(len(derSig) - 2)
+	
+	return base64.StdEncoding.EncodeToString(derSig), nil
+}
+
 // mockEmailLogRepo is a simple mock that does nothing
 type mockEmailLogRepo struct{}
 
@@ -397,4 +441,135 @@ func TestWebhookSignatureVerification_EdgeCaseShortSignature(t *testing.T) {
 	shortSig := base64.StdEncoding.EncodeToString([]byte("short"))
 	err = handler.verifySignature(payload, shortSig, timestamp)
 	assert.Error(t, err)
+}
+
+func TestWebhookSignatureVerification_DEREncodedSignature(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// Generate test key pair
+	privateKey, publicKeyPEM, err := generateTestKeyPair()
+	assert.NoError(t, err)
+
+	// Create handler with public key
+	handler := NewSendGridWebhookHandler(nil, publicKeyPEM)
+
+	// Create test event
+	events := []models.SendGridWebhookEvent{
+		{
+			Email:       "test@example.com",
+			Timestamp:   time.Now().Unix(),
+			Event:       "delivered",
+			SgMessageID: "test-message-id",
+			SgEventID:   "test-event-id",
+		},
+	}
+	payload, err := json.Marshal(events)
+	assert.NoError(t, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	signature, err := signPayloadDER(privateKey, timestamp, payload)
+	assert.NoError(t, err)
+
+	// Test verifySignature directly with DER-encoded signature
+	err = handler.verifySignature(payload, signature, timestamp)
+	assert.NoError(t, err, "DER-encoded signature should be accepted")
+}
+
+func TestWebhookSignatureVerification_InvalidDERZeroLengthR(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	_, publicKeyPEM, err := generateTestKeyPair()
+	assert.NoError(t, err)
+
+	handler := NewSendGridWebhookHandler(nil, publicKeyPEM)
+
+	payload := []byte(`[{"email":"test@example.com"}]`)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	// Create DER signature with zero-length r
+	// SEQUENCE { INTEGER(0 bytes), INTEGER s }
+	derSig := []byte{
+		0x30, 0x08, // SEQUENCE, length 8
+		0x02, 0x00, // INTEGER r, length 0 (invalid)
+		0x02, 0x04, 0x01, 0x02, 0x03, 0x04, // INTEGER s, length 4
+	}
+	invalidSig := base64.StdEncoding.EncodeToString(derSig)
+
+	err = handler.verifySignature(payload, invalidSig, timestamp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "r length is zero")
+}
+
+func TestWebhookSignatureVerification_InvalidDERZeroLengthS(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	_, publicKeyPEM, err := generateTestKeyPair()
+	assert.NoError(t, err)
+
+	handler := NewSendGridWebhookHandler(nil, publicKeyPEM)
+
+	payload := []byte(`[{"email":"test@example.com"}]`)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	// Create DER signature with zero-length s
+	// SEQUENCE { INTEGER r, INTEGER(0 bytes) }
+	derSig := []byte{
+		0x30, 0x08, // SEQUENCE, length 8
+		0x02, 0x04, 0x01, 0x02, 0x03, 0x04, // INTEGER r, length 4
+		0x02, 0x00, // INTEGER s, length 0 (invalid)
+	}
+	invalidSig := base64.StdEncoding.EncodeToString(derSig)
+
+	err = handler.verifySignature(payload, invalidSig, timestamp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "s length is zero")
+}
+
+func TestWebhookSignatureVerification_InvalidDERNegativeR(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	_, publicKeyPEM, err := generateTestKeyPair()
+	assert.NoError(t, err)
+
+	handler := NewSendGridWebhookHandler(nil, publicKeyPEM)
+
+	payload := []byte(`[{"email":"test@example.com"}]`)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	// Create DER signature with negative r (high bit set, treated as negative in big.Int)
+	// This simulates a zero or negative value after parsing
+	derSig := []byte{
+		0x30, 0x0A, // SEQUENCE, length 10
+		0x02, 0x01, 0x00, // INTEGER r = 0 (invalid, must be positive)
+		0x02, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, // INTEGER s, length 5
+	}
+	invalidSig := base64.StdEncoding.EncodeToString(derSig)
+
+	err = handler.verifySignature(payload, invalidSig, timestamp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "must be positive")
+}
+
+func TestWebhookSignatureVerification_RawFormatWithInvalidRange(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	_, publicKeyPEM, err := generateTestKeyPair()
+	assert.NoError(t, err)
+
+	handler := NewSendGridWebhookHandler(nil, publicKeyPEM)
+
+	payload := []byte(`[{"email":"test@example.com"}]`)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	// Create raw signature with r=0 (64 bytes, but invalid values)
+	rawSig := make([]byte, 64)
+	// r is all zeros (invalid - must be positive)
+	// s has some value
+	rawSig[32] = 0x01
+	
+	invalidSig := base64.StdEncoding.EncodeToString(rawSig)
+
+	err = handler.verifySignature(payload, invalidSig, timestamp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "must be positive")
 }

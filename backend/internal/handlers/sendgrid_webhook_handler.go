@@ -343,6 +343,14 @@ func (h *SendGridWebhookHandler) verifySignature(payload []byte, signature, time
 		return fmt.Errorf("invalid signature format: %w", err)
 	}
 
+	// Validate r and s are within the curve order [1, n-1]
+	// This is a security best practice to prevent malleability attacks
+	n := h.publicKey.Curve.Params().N
+	if r.Cmp(n) >= 0 || s.Cmp(n) >= 0 {
+		h.logger.Warn("Webhook signature verification failed: r or s exceeds curve order")
+		return fmt.Errorf("invalid signature: r or s exceeds curve order")
+	}
+
 	// Verify the signature using the public key
 	if !ecdsa.Verify(h.publicKey, hash[:], r, s) {
 		h.logger.Warn("Webhook signature verification failed: signature mismatch")
@@ -373,6 +381,13 @@ func parseECDSASignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 
 	r := new(big.Int).SetBytes(sigBytes[:32])
 	s := new(big.Int).SetBytes(sigBytes[32:])
+	
+	// Validate r and s are positive (non-zero)
+	// This prevents malleability attacks and ensures signature validity
+	if r.Sign() <= 0 || s.Sign() <= 0 {
+		return nil, nil, fmt.Errorf("invalid signature: r and s must be positive")
+	}
+	
 	return r, s, nil
 }
 
@@ -417,6 +432,9 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 	if rLen >= 0x80 {
 		return nil, nil, fmt.Errorf("DER long form length not supported for r")
 	}
+	if rLen == 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: r length is zero")
+	}
 	idx++
 	
 	// Validate r length doesn't exceed buffer
@@ -441,6 +459,9 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 	if sLen >= 0x80 {
 		return nil, nil, fmt.Errorf("DER long form length not supported for s")
 	}
+	if sLen == 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: s length is zero")
+	}
 	idx++
 	
 	// Validate s length doesn't exceed buffer
@@ -449,6 +470,15 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 	}
 	
 	s := new(big.Int).SetBytes(sigBytes[idx : idx+sLen])
+
+	// Validate r and s are positive (non-zero) as required by ECDSA
+	// This prevents malleability attacks and ensures signature validity
+	if r.Sign() <= 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: r must be positive")
+	}
+	if s.Sign() <= 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: s must be positive")
+	}
 
 	return r, s, nil
 }
