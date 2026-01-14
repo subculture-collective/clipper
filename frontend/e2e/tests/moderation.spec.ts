@@ -494,11 +494,8 @@ test.describe('Moderation E2E', () => {
       
       // Wait for the moderators section to load
       await page.waitForSelector('text=Moderators', { timeout: 10000 });
-      
-      // Wait a bit for any animations or loading to complete
-      await page.waitForTimeout(1000);
 
-      // Click "Add Moderator" button - try multiple selector strategies
+      // Click "Add Moderator" button - wait for it to be ready
       const addButton = page.locator('button:has-text("Add Moderator")');
       await expect(addButton).toBeVisible({ timeout: 10000 });
       await addButton.click();
@@ -510,21 +507,15 @@ test.describe('Moderation E2E', () => {
       // Search for user
       const searchInput = page.locator('#user-search');
       await searchInput.fill('newmoderator');
-      
-      // Wait for suggestions to appear
-      await page.waitForTimeout(500); // Give time for debounce and API call
 
-      // Select user from suggestions
+      // Wait for suggestions to appear by checking the suggestions list becomes visible
       const userSuggestionsList = page.locator('#user-suggestions');
       await expect(userSuggestionsList).toBeVisible({ timeout: 5000 });
       
       const userOption = page.locator('#user-suggestions button:has-text("newmoderator")').first();
       await userOption.click();
-      
-      // Wait for user to be selected
-      await page.waitForTimeout(300);
 
-      // Submit form - find the button within the modal
+      // Submit form - find the button within the modal and wait for it to be enabled
       const addModal = page.locator('[role="dialog"]').first();
       const submitButton = addModal.locator('button:has-text("Add Moderator")').last();
       await expect(submitButton).toBeEnabled({ timeout: 5000 });

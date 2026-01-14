@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { Container } from '../../components';
 import { ModeratorManager } from '../../components/moderation';
-import { useAuth } from '../../context/AuthContext';
 
 /**
  * Admin page for managing site moderators
@@ -14,12 +12,6 @@ import { useAuth } from '../../context/AuthContext';
  * - Send invitation emails to new moderators
  */
 export function AdminModeratorsPage() {
-    const { user } = useAuth();
-    const [selectedChannelId] = useState<string>('site'); // Default to site-level moderation
-    
-    // Check if user is admin
-    const isAdmin = user?.role === 'admin';
-
     return (
         <Container className='py-4 xs:py-6 md:py-8'>
             <div className="mb-6">
@@ -31,17 +23,10 @@ export function AdminModeratorsPage() {
                 </p>
             </div>
 
-            {!isAdmin ? (
-                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
-                    <p className="font-medium">Access Denied</p>
-                    <p className="text-sm mt-1">You must be an admin to access this page.</p>
-                </div>
-            ) : (
-                <ModeratorManager 
-                    channelId={selectedChannelId}
-                    canManage={true}
-                />
-            )}
+            <ModeratorManager 
+                channelId="site"
+                canManage={true}
+            />
         </Container>
     );
 }
