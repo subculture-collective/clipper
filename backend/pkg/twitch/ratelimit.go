@@ -124,7 +124,7 @@ func (crl *ChannelRateLimiter) getLimiter(channelID string) *RateLimiter {
 	crl.mu.RLock()
 	entry, exists := crl.limiters[channelID]
 	crl.mu.RUnlock()
-	
+
 	if exists {
 		// Update last accessed time under write lock to avoid race condition
 		crl.mu.Lock()
@@ -132,17 +132,17 @@ func (crl *ChannelRateLimiter) getLimiter(channelID string) *RateLimiter {
 		crl.mu.Unlock()
 		return entry.limiter
 	}
-	
+
 	// Need to create new limiter, acquire write lock
 	crl.mu.Lock()
 	defer crl.mu.Unlock()
-	
+
 	// Check again in case another goroutine created it
 	if entry, exists := crl.limiters[channelID]; exists {
 		entry.lastAccessed = time.Now()
 		return entry.limiter
 	}
-	
+
 	// Create new limiter for this channel
 	limiter := NewRateLimiter(crl.maxTokens)
 	crl.limiters[channelID] = &rateLimiterEntry{
@@ -164,16 +164,16 @@ func (crl *ChannelRateLimiter) Available(channelID string) int {
 func (crl *ChannelRateLimiter) CleanupInactive(inactiveDuration time.Duration) int {
 	crl.mu.Lock()
 	defer crl.mu.Unlock()
-	
+
 	now := time.Now()
 	removed := 0
-	
+
 	for channelID, entry := range crl.limiters {
 		if now.Sub(entry.lastAccessed) > inactiveDuration {
 			delete(crl.limiters, channelID)
 			removed++
 		}
 	}
-	
+
 	return removed
 }

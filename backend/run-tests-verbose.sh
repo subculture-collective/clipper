@@ -49,9 +49,17 @@ integration_packages=()
 e2e_packages=()
 
 for pkg in $test_packages; do
-    # Check if package has integration or e2e tests
+    # Check if package has integration or e2e tests by filename
     has_integration=$(find "$pkg" -maxdepth 1 -name "*integration_test.go" -o -name "*_integration_test.go" 2>/dev/null | wc -l)
     has_e2e=$(find "$pkg" -maxdepth 1 -name "*e2e_test.go" -o -name "*_e2e_test.go" 2>/dev/null | wc -l)
+
+    # Also check for build tags in test files
+    if [ "$has_integration" -eq 0 ]; then
+        has_integration=$(grep -l "//go:build integration" "$pkg"/*.go 2>/dev/null | wc -l)
+    fi
+    if [ "$has_e2e" -eq 0 ]; then
+        has_e2e=$(grep -l "//go:build e2e" "$pkg"/*.go 2>/dev/null | wc -l)
+    fi
 
     if [ "$has_e2e" -gt 0 ]; then
         e2e_packages+=("$pkg")
@@ -90,12 +98,19 @@ for pkg in "${packages_to_run[@]}"; do
     echo -e "${YELLOW}[${current}/${total}]${NC} Testing package: ${GREEN}${pkg}${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    # Determine build tags based on test type
+    # Determine build tags based on test type - check both filename and build tags
     tags=""
     if echo "$pkg" | grep -q "integration"; then
         tags="-tags=integration"
     elif echo "$pkg" | grep -q "e2e"; then
         tags="-tags=e2e"
+    else
+        # Check if any test files in this package have build tags
+        if grep -l "//go:build integration" "$pkg"/*.go 2>/dev/null | grep -q . ; then
+            tags="-tags=integration"
+        elif grep -l "//go:build e2e" "$pkg"/*.go 2>/dev/null | grep -q . ; then
+            tags="-tags=e2e"
+        fi
     fi
 
     # Run the test with verbose output and appropriate tags

@@ -130,9 +130,9 @@ export default function PricingPage() {
                                     handleBillingPeriodChange('monthly')
                                 }
                                 className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                                    billingPeriod === 'monthly' ?
-                                        'bg-purple-600 text-white'
-                                    :   'text-gray-400 hover:text-white'
+                                    billingPeriod === 'monthly'
+                                        ? 'bg-purple-600 text-white'
+                                        : 'text-gray-400 hover:text-white'
                                 }`}
                             >
                                 Monthly
@@ -142,9 +142,9 @@ export default function PricingPage() {
                                     handleBillingPeriodChange('yearly')
                                 }
                                 className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                                    billingPeriod === 'yearly' ?
-                                        'bg-purple-600 text-white'
-                                    :   'text-gray-400 hover:text-white'
+                                    billingPeriod === 'yearly'
+                                        ? 'bg-purple-600 text-white'
+                                        : 'text-gray-400 hover:text-white'
                                 }`}
                             >
                                 Yearly
@@ -274,7 +274,7 @@ export default function PricingPage() {
                             </div>
 
                             <div className='mb-6'>
-                                {billingPeriod === 'monthly' ?
+                                {billingPeriod === 'monthly' ? (
                                     <>
                                         <span className='text-4xl font-bold text-white'>
                                             ${monthlyPrice}
@@ -283,7 +283,8 @@ export default function PricingPage() {
                                             /month
                                         </span>
                                     </>
-                                :   <>
+                                ) : (
+                                    <>
                                         <span className='text-4xl font-bold text-white'>
                                             ${yearlyMonthlyPrice}
                                         </span>
@@ -294,7 +295,7 @@ export default function PricingPage() {
                                             Billed ${yearlyPrice}/year
                                         </div>
                                     </>
-                                }
+                                )}
                             </div>
 
                             <ul className='space-y-3 mb-8'>
@@ -328,9 +329,9 @@ export default function PricingPage() {
                                 disabled={isLoading !== null}
                                 className='w-full py-3 px-6 rounded-md bg-white text-purple-600 font-bold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                             >
-                                {isLoading === billingPeriod ?
-                                    'Processing...'
-                                :   'Subscribe Now'}
+                                {isLoading === billingPeriod
+                                    ? 'Processing...'
+                                    : 'Subscribe Now'}
                             </button>
                         </div>
                     </div>

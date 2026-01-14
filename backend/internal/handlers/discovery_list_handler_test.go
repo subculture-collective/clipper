@@ -1,14 +1,167 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
+	"github.com/subculture-collective/clipper/internal/models"
 )
+
+// ==============================================================================
+// Mocks
+// ==============================================================================
+
+type MockDiscoveryListRepository struct {
+	mock.Mock
+}
+
+func (m *MockDiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featuredOnly bool, userID *uuid.UUID, limit, offset int) ([]models.DiscoveryListWithStats, error) {
+	args := m.Called(ctx, featuredOnly, userID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.DiscoveryListWithStats), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) GetDiscoveryList(ctx context.Context, idOrSlug string, userID *uuid.UUID) (*models.DiscoveryListWithStats, error) {
+	args := m.Called(ctx, idOrSlug, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DiscoveryListWithStats), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.UUID, userID *uuid.UUID, limit, offset int) ([]models.ClipWithSubmitter, int, error) {
+	args := m.Called(ctx, listID, userID, limit, offset)
+	clips := []models.ClipWithSubmitter{}
+	if args.Get(0) != nil {
+		clips = args.Get(0).([]models.ClipWithSubmitter)
+	}
+	return clips, args.Int(1), args.Error(2)
+}
+
+func (m *MockDiscoveryListRepository) GetListClipCount(ctx context.Context, listID uuid.UUID) (int, error) {
+	args := m.Called(ctx, listID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) GetListClipsForExport(ctx context.Context, listID uuid.UUID, limit int) ([]models.ClipWithSubmitter, error) {
+	args := m.Called(ctx, listID, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.ClipWithSubmitter), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) FollowList(ctx context.Context, userID, listID uuid.UUID) error {
+	args := m.Called(ctx, userID, listID)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) UnfollowList(ctx context.Context, userID, listID uuid.UUID) error {
+	args := m.Called(ctx, userID, listID)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) BookmarkList(ctx context.Context, userID, listID uuid.UUID) error {
+	args := m.Called(ctx, userID, listID)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) UnbookmarkList(ctx context.Context, userID, listID uuid.UUID) error {
+	args := m.Called(ctx, userID, listID)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) GetUserFollowedLists(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.DiscoveryListWithStats, error) {
+	args := m.Called(ctx, userID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.DiscoveryListWithStats), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) CreateList(ctx context.Context, name, slug, description string, isFeatured bool, createdBy uuid.UUID) (*models.DiscoveryList, error) {
+	args := m.Called(ctx, name, slug, description, isFeatured, createdBy)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DiscoveryList), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) UpdateList(ctx context.Context, listID uuid.UUID, name, description *string, isFeatured *bool) (*models.DiscoveryList, error) {
+	args := m.Called(ctx, listID, name, description, isFeatured)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DiscoveryList), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) DeleteList(ctx context.Context, listID uuid.UUID) error {
+	args := m.Called(ctx, listID)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) AddClipToList(ctx context.Context, listID, clipID uuid.UUID) error {
+	args := m.Called(ctx, listID, clipID)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) RemoveClipFromList(ctx context.Context, listID, clipID uuid.UUID) error {
+	args := m.Called(ctx, listID, clipID)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) ReorderClips(ctx context.Context, listID uuid.UUID, clipIDs []uuid.UUID) error {
+	args := m.Called(ctx, listID, clipIDs)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) ReorderListClips(ctx context.Context, listID uuid.UUID, clipIDs []uuid.UUID) error {
+	args := m.Called(ctx, listID, clipIDs)
+	return args.Error(0)
+}
+
+func (m *MockDiscoveryListRepository) GetListClipsCount(ctx context.Context, listID uuid.UUID) (int, error) {
+	args := m.Called(ctx, listID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) ListAllDiscoveryLists(ctx context.Context, limit, offset int) ([]models.DiscoveryListWithStats, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.DiscoveryListWithStats), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) CreateDiscoveryList(ctx context.Context, name, slug, description string, isFeatured bool, createdBy uuid.UUID) (*models.DiscoveryList, error) {
+	args := m.Called(ctx, name, slug, description, isFeatured, createdBy)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DiscoveryList), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) UpdateDiscoveryList(ctx context.Context, listID uuid.UUID, name, description *string, isFeatured *bool) (*models.DiscoveryList, error) {
+	args := m.Called(ctx, listID, name, description, isFeatured)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DiscoveryList), args.Error(1)
+}
+
+func (m *MockDiscoveryListRepository) DeleteDiscoveryList(ctx context.Context, listID uuid.UUID) error {
+	args := m.Called(ctx, listID)
+	return args.Error(0)
+}
 
 // ==============================================================================
 // ListDiscoveryLists Tests
@@ -17,8 +170,12 @@ import (
 func TestListDiscoveryLists_DefaultPagination(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("ListDiscoveryLists", mock.Anything, false, (*uuid.UUID)(nil), 20, 0).
+		Return([]models.DiscoveryListWithStats{}, nil)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -44,8 +201,12 @@ func TestListDiscoveryLists_DefaultPagination(t *testing.T) {
 func TestListDiscoveryLists_WithFeaturedFilter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("ListDiscoveryLists", mock.Anything, true, (*uuid.UUID)(nil), 20, 0).
+		Return([]models.DiscoveryListWithStats{}, nil)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -65,8 +226,12 @@ func TestListDiscoveryLists_WithFeaturedFilter(t *testing.T) {
 func TestListDiscoveryLists_WithCustomPagination(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("ListDiscoveryLists", mock.Anything, false, (*uuid.UUID)(nil), mock.Anything, mock.Anything).
+		Return([]models.DiscoveryListWithStats{}, nil)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -121,8 +286,12 @@ func TestListDiscoveryLists_WithCustomPagination(t *testing.T) {
 func TestGetDiscoveryList_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("GetDiscoveryList", mock.Anything, mock.Anything, (*uuid.UUID)(nil)).
+		Return(nil, errors.New("discovery list not found"))
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -146,8 +315,12 @@ func TestGetDiscoveryList_NotFound(t *testing.T) {
 func TestGetDiscoveryList_WithSlug(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("GetDiscoveryList", mock.Anything, "top-clips", (*uuid.UUID)(nil)).
+		Return(nil, errors.New("discovery list not found"))
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -175,8 +348,12 @@ func TestGetDiscoveryList_WithSlug(t *testing.T) {
 func TestGetDiscoveryListClips_InvalidListID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("GetDiscoveryList", mock.Anything, "invalid-uuid", (*uuid.UUID)(nil)).
+		Return(nil, errors.New("discovery list not found"))
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -200,8 +377,14 @@ func TestGetDiscoveryListClips_InvalidListID(t *testing.T) {
 func TestGetDiscoveryListClips_WithPagination(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("GetDiscoveryList", mock.Anything, mock.Anything, (*uuid.UUID)(nil)).
+		Return(&models.DiscoveryListWithStats{}, nil)
+	mockRepo.On("GetListClips", mock.Anything, mock.Anything, (*uuid.UUID)(nil), 50, 10).
+		Return([]models.ClipWithSubmitter{}, 0, nil)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -243,8 +426,14 @@ func TestGetDiscoveryListClips_WithPagination(t *testing.T) {
 func TestGetDiscoveryListClips_BoundaryValues(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("GetDiscoveryList", mock.Anything, mock.Anything, (*uuid.UUID)(nil)).
+		Return(&models.DiscoveryListWithStats{}, nil)
+	mockRepo.On("GetListClips", mock.Anything, mock.Anything, (*uuid.UUID)(nil), mock.Anything, mock.Anything).
+		Return([]models.ClipWithSubmitter{}, 0, nil)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -303,8 +492,10 @@ func TestGetDiscoveryListClips_BoundaryValues(t *testing.T) {
 func TestFollowDiscoveryList_Unauthenticated(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -329,8 +520,10 @@ func TestFollowDiscoveryList_Unauthenticated(t *testing.T) {
 func TestFollowDiscoveryList_InvalidListID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -358,8 +551,10 @@ func TestFollowDiscoveryList_InvalidListID(t *testing.T) {
 func TestUnfollowDiscoveryList_Unauthenticated(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -383,8 +578,10 @@ func TestUnfollowDiscoveryList_Unauthenticated(t *testing.T) {
 func TestUnfollowDiscoveryList_InvalidListID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -412,8 +609,10 @@ func TestUnfollowDiscoveryList_InvalidListID(t *testing.T) {
 func TestBookmarkDiscoveryList_Unauthenticated(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -437,8 +636,10 @@ func TestBookmarkDiscoveryList_Unauthenticated(t *testing.T) {
 func TestBookmarkDiscoveryList_InvalidListID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -466,8 +667,10 @@ func TestBookmarkDiscoveryList_InvalidListID(t *testing.T) {
 func TestUnbookmarkDiscoveryList_Unauthenticated(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -495,8 +698,10 @@ func TestUnbookmarkDiscoveryList_Unauthenticated(t *testing.T) {
 func TestGetUserFollowedLists_Unauthenticated(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 
@@ -516,8 +721,12 @@ func TestGetUserFollowedLists_Unauthenticated(t *testing.T) {
 func TestGetUserFollowedLists_WithPagination(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	mockRepo := new(MockDiscoveryListRepository)
+	mockRepo.On("GetUserFollowedLists", mock.Anything, mock.Anything, 10, 5).
+		Return([]models.DiscoveryListWithStats{}, nil)
+
 	handler := &DiscoveryListHandler{
-		repo:          nil,
+		repo:          mockRepo,
 		analyticsRepo: nil,
 	}
 

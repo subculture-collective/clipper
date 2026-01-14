@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Button, Modal, ModalFooter, Alert, Input, TextArea } from '../ui';
-import { banUserOnTwitch, unbanUserOnTwitch, type TwitchModerationError } from '../../lib/moderation-api';
+import {
+    banUserOnTwitch,
+    unbanUserOnTwitch,
+    type TwitchModerationError,
+} from '../../lib/moderation-api';
 import { getErrorMessage } from '../../lib/error-utils';
 import { useAuth } from '../../context/AuthContext';
 import { Ban, ShieldCheck } from 'lucide-react';
@@ -38,7 +42,7 @@ export interface TwitchModerationActionsProps {
 
 /**
  * TwitchModerationActions component for banning/unbanning users on Twitch
- * 
+ *
  * Features:
  * - Permission gating: only visible to broadcaster or Twitch-recognized moderators
  * - Site moderators are view-only and cannot perform Twitch actions
@@ -65,7 +69,7 @@ function canUserPerformTwitchActions(
 function handleModerationError(err: unknown): string {
     const apiError = err as { response?: { data?: TwitchModerationError } };
     const errorData = apiError.response?.data;
-    
+
     if (!errorData?.code) {
         return getErrorMessage(err, 'Failed to perform action on Twitch');
     }
@@ -82,7 +86,11 @@ function handleModerationError(err: unknown): string {
         case 'RATE_LIMIT_EXCEEDED':
             return 'Rate limit exceeded. Please wait a moment and try again.';
         default:
-            return errorData.detail || errorData.error || 'Failed to perform action on Twitch';
+            return (
+                errorData.detail ||
+                errorData.error ||
+                'Failed to perform action on Twitch'
+            );
     }
 }
 
@@ -95,12 +103,12 @@ export function TwitchModerationActions({
     isTwitchModerator = false,
     onSuccess,
 }: TwitchModerationActionsProps) {
-    const { user, isModerator: isSiteModerator } = useAuth();
+    const { user } = useAuth();
     const [showBanModal, setShowBanModal] = useState(false);
     const [showUnbanModal, setShowUnbanModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Ban form state
     const [reason, setReason] = useState('');
     const [isPermanent, setIsPermanent] = useState(true);
@@ -123,8 +131,14 @@ export function TwitchModerationActions({
         // Validate duration for timeouts
         if (!isPermanent) {
             const durationNum = parseInt(duration, 10);
-            if (isNaN(durationNum) || durationNum <= 0 || durationNum > 1209600) {
-                setError('Duration must be between 1 and 1,209,600 seconds (14 days).');
+            if (
+                isNaN(durationNum) ||
+                durationNum <= 0 ||
+                durationNum > 1209600
+            ) {
+                setError(
+                    'Duration must be between 1 and 1,209,600 seconds (14 days).'
+                );
                 return;
             }
         }
@@ -144,7 +158,7 @@ export function TwitchModerationActions({
             setReason('');
             setIsPermanent(true);
             setDuration('600');
-            
+
             if (onSuccess) {
                 onSuccess();
             }
@@ -168,7 +182,7 @@ export function TwitchModerationActions({
             });
 
             setShowUnbanModal(false);
-            
+
             if (onSuccess) {
                 onSuccess();
             }
@@ -190,9 +204,9 @@ export function TwitchModerationActions({
         <>
             {!isBanned ? (
                 <Button
-                    variant="danger"
-                    size="sm"
-                    leftIcon={<Ban className="h-4 w-4" />}
+                    variant='danger'
+                    size='sm'
+                    leftIcon={<Ban className='h-4 w-4' />}
                     onClick={() => {
                         resetBanForm();
                         setShowBanModal(true);
@@ -203,9 +217,9 @@ export function TwitchModerationActions({
                 </Button>
             ) : (
                 <Button
-                    variant="secondary"
-                    size="sm"
-                    leftIcon={<ShieldCheck className="h-4 w-4" />}
+                    variant='secondary'
+                    size='sm'
+                    leftIcon={<ShieldCheck className='h-4 w-4' />}
                     onClick={() => {
                         setError(null);
                         setShowUnbanModal(true);
@@ -225,57 +239,63 @@ export function TwitchModerationActions({
                         resetBanForm();
                     }
                 }}
-                title="Ban User on Twitch"
+                title='Ban User on Twitch'
             >
-                <div className="space-y-4">
+                <div className='space-y-4'>
                     {error && (
-                        <Alert variant="error" role="alert">
+                        <Alert variant='error' role='alert'>
                             {error}
                         </Alert>
                     )}
 
                     <div>
-                        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                            You are about to ban <strong>{username || userID}</strong> on Twitch.
-                            This will prevent them from chatting or interacting in the Twitch channel.
+                        <p className='mb-4 text-sm text-gray-600 dark:text-gray-400'>
+                            You are about to ban{' '}
+                            <strong>{username || userID}</strong> on Twitch.
+                            This will prevent them from chatting or interacting
+                            in the Twitch channel.
                         </p>
 
-                        <div className="space-y-4">
+                        <div className='space-y-4'>
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <label className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
                                     Ban Type
                                 </label>
-                                <div className="space-y-2">
-                                    <div className="flex items-center space-x-2">
+                                <div className='space-y-2'>
+                                    <div className='flex items-center space-x-2'>
                                         <input
-                                            type="radio"
-                                            id="ban-type-permanent"
-                                            name="banType"
+                                            type='radio'
+                                            id='ban-type-permanent'
+                                            name='banType'
                                             checked={isPermanent}
-                                            onChange={() => setIsPermanent(true)}
-                                            className="h-4 w-4 text-primary-600"
+                                            onChange={() =>
+                                                setIsPermanent(true)
+                                            }
+                                            className='h-4 w-4 text-primary-600'
                                             disabled={loading}
                                         />
                                         <label
-                                            htmlFor="ban-type-permanent"
-                                            className="text-sm text-gray-700 dark:text-gray-300"
+                                            htmlFor='ban-type-permanent'
+                                            className='text-sm text-gray-700 dark:text-gray-300'
                                         >
                                             Permanent Ban
                                         </label>
                                     </div>
-                                    <div className="flex items-center space-x-2">
+                                    <div className='flex items-center space-x-2'>
                                         <input
-                                            type="radio"
-                                            id="ban-type-timeout"
-                                            name="banType"
+                                            type='radio'
+                                            id='ban-type-timeout'
+                                            name='banType'
                                             checked={!isPermanent}
-                                            onChange={() => setIsPermanent(false)}
-                                            className="h-4 w-4 text-primary-600"
+                                            onChange={() =>
+                                                setIsPermanent(false)
+                                            }
+                                            className='h-4 w-4 text-primary-600'
                                             disabled={loading}
                                         />
                                         <label
-                                            htmlFor="ban-type-timeout"
-                                            className="text-sm text-gray-700 dark:text-gray-300"
+                                            htmlFor='ban-type-timeout'
+                                            className='text-sm text-gray-700 dark:text-gray-300'
                                         >
                                             Timeout (Temporary)
                                         </label>
@@ -286,22 +306,24 @@ export function TwitchModerationActions({
                             {!isPermanent && (
                                 <div>
                                     <label
-                                        htmlFor="duration"
-                                        className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                                        htmlFor='duration'
+                                        className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'
                                     >
                                         Duration (seconds)
                                     </label>
                                     <Input
-                                        id="duration"
-                                        type="number"
-                                        min="1"
-                                        max="1209600"
+                                        id='duration'
+                                        type='number'
+                                        min='1'
+                                        max='1209600'
                                         value={duration}
-                                        onChange={(e) => setDuration(e.target.value)}
+                                        onChange={e =>
+                                            setDuration(e.target.value)
+                                        }
                                         disabled={loading}
-                                        placeholder="600"
+                                        placeholder='600'
                                     />
-                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
                                         Max: 1,209,600 seconds (14 days)
                                     </p>
                                 </div>
@@ -309,17 +331,17 @@ export function TwitchModerationActions({
 
                             <div>
                                 <label
-                                    htmlFor="reason"
-                                    className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                                    htmlFor='reason'
+                                    className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'
                                 >
                                     Reason (Optional)
                                 </label>
                                 <TextArea
-                                    id="reason"
+                                    id='reason'
                                     value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
+                                    onChange={e => setReason(e.target.value)}
                                     disabled={loading}
-                                    placeholder="Reason for ban..."
+                                    placeholder='Reason for ban...'
                                     rows={3}
                                     maxLength={500}
                                 />
@@ -330,7 +352,7 @@ export function TwitchModerationActions({
 
                 <ModalFooter>
                     <Button
-                        variant="ghost"
+                        variant='ghost'
                         onClick={() => {
                             setShowBanModal(false);
                             resetBanForm();
@@ -340,7 +362,7 @@ export function TwitchModerationActions({
                         Cancel
                     </Button>
                     <Button
-                        variant="danger"
+                        variant='danger'
                         onClick={handleBan}
                         loading={loading}
                         disabled={
@@ -365,24 +387,26 @@ export function TwitchModerationActions({
                         setError(null);
                     }
                 }}
-                title="Unban User on Twitch"
+                title='Unban User on Twitch'
             >
-                <div className="space-y-4">
+                <div className='space-y-4'>
                     {error && (
-                        <Alert variant="error" role="alert">
+                        <Alert variant='error' role='alert'>
                             {error}
                         </Alert>
                     )}
 
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to unban <strong>{username || userID}</strong> on Twitch?
-                        This will allow them to chat and interact in the Twitch channel again.
+                    <p className='text-sm text-gray-600 dark:text-gray-400'>
+                        Are you sure you want to unban{' '}
+                        <strong>{username || userID}</strong> on Twitch? This
+                        will allow them to chat and interact in the Twitch
+                        channel again.
                     </p>
                 </div>
 
                 <ModalFooter>
                     <Button
-                        variant="ghost"
+                        variant='ghost'
                         onClick={() => {
                             setShowUnbanModal(false);
                             setError(null);
@@ -392,7 +416,7 @@ export function TwitchModerationActions({
                         Cancel
                     </Button>
                     <Button
-                        variant="secondary"
+                        variant='secondary'
                         onClick={handleUnban}
                         loading={loading}
                         disabled={loading}

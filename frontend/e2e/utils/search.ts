@@ -71,7 +71,7 @@ export interface SuggestionMetrics {
  * Get API base URL from environment or use default
  */
 function getApiBaseUrl(): string {
-  return process.env.VITE_API_URL || process.env.PLAYWRIGHT_API_URL || 'http://localhost:8080/api/v1';
+  return process.env.VITE_API_URL || process.env.PLAYWRIGHT_API_URL || 'http://127.0.0.1:8080/api/v1';
 }
 
 // ============================================================================

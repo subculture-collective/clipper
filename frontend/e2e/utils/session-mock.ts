@@ -256,7 +256,7 @@ export async function verifySessionPersistsOnReload(page: Page): Promise<boolean
  */
 export async function verifySessionAcrossTabs(
   context: BrowserContext,
-  baseUrl: string = 'http://localhost:5173'
+  baseUrl: string = 'http://127.0.0.1:5173'
 ): Promise<boolean> {
   // Create first page and set session
   const page1 = await context.newPage();
@@ -524,7 +524,7 @@ export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
  */
 export async function simulateConcurrentSessions(
   contexts: BrowserContext[],
-  baseUrl: string = 'http://localhost:5173'
+  baseUrl: string = 'http://127.0.0.1:5173'
 ): Promise<Page[]> {
   const pages: Page[] = [];
 

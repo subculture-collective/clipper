@@ -381,13 +381,13 @@ func parseECDSASignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 
 	r := new(big.Int).SetBytes(sigBytes[:32])
 	s := new(big.Int).SetBytes(sigBytes[32:])
-	
+
 	// Validate r and s are positive (non-zero)
 	// This prevents malleability attacks and ensures signature validity
 	if r.Sign() <= 0 || s.Sign() <= 0 {
 		return nil, nil, fmt.Errorf("invalid signature: r and s must be positive")
 	}
-	
+
 	return r, s, nil
 }
 
@@ -423,11 +423,11 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 		return nil, nil, fmt.Errorf("invalid DER signature: expected INTEGER tag for r at position %d", idx)
 	}
 	idx++
-	
+
 	if idx >= len(sigBytes) {
 		return nil, nil, fmt.Errorf("invalid DER signature: unexpected end of data")
 	}
-	
+
 	rLen := int(sigBytes[idx])
 	if rLen >= 0x80 {
 		return nil, nil, fmt.Errorf("DER long form length not supported for r")
@@ -436,12 +436,12 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 		return nil, nil, fmt.Errorf("invalid DER signature: r length is zero")
 	}
 	idx++
-	
+
 	// Validate r length doesn't exceed buffer
 	if idx+rLen > len(sigBytes) {
 		return nil, nil, fmt.Errorf("invalid DER signature: r length %d exceeds remaining buffer %d", rLen, len(sigBytes)-idx)
 	}
-	
+
 	r := new(big.Int).SetBytes(sigBytes[idx : idx+rLen])
 	idx += rLen
 
@@ -450,11 +450,11 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 		return nil, nil, fmt.Errorf("invalid DER signature: expected INTEGER tag for s at position %d", idx)
 	}
 	idx++
-	
+
 	if idx >= len(sigBytes) {
 		return nil, nil, fmt.Errorf("invalid DER signature: unexpected end of data")
 	}
-	
+
 	sLen := int(sigBytes[idx])
 	if sLen >= 0x80 {
 		return nil, nil, fmt.Errorf("DER long form length not supported for s")
@@ -463,12 +463,12 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 		return nil, nil, fmt.Errorf("invalid DER signature: s length is zero")
 	}
 	idx++
-	
+
 	// Validate s length doesn't exceed buffer
 	if idx+sLen > len(sigBytes) {
 		return nil, nil, fmt.Errorf("invalid DER signature: s length %d exceeds remaining buffer %d", sLen, len(sigBytes)-idx)
 	}
-	
+
 	s := new(big.Int).SetBytes(sigBytes[idx : idx+sLen])
 
 	// Validate r and s are positive (non-zero) as required by ECDSA

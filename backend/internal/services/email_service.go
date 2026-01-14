@@ -3055,7 +3055,7 @@ func (s *EmailService) prepareExportCompletedEmail(data map[string]interface{}) 
 	expirationDate := html.EscapeString(fmt.Sprintf("%v", data["ExpirationDate"]))
 	format := html.EscapeString(fmt.Sprintf("%v", data["Format"]))
 	helpURL := fmt.Sprintf("%s/help", s.baseURL)
-	
+
 	// Get retention days, default to 7 if not provided
 	retentionDays := 7
 	if days, ok := data["RetentionDays"].(int); ok && days > 0 {

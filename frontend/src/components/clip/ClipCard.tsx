@@ -71,14 +71,19 @@ export function ClipCard({ clip }: ClipCardProps) {
     };
 
     const voteColor =
-        clip.vote_score > 0 ? 'text-green-600 dark:text-green-400'
-        : clip.vote_score < 0 ? 'text-red-600 dark:text-red-400'
-        : 'text-muted-foreground';
+        clip.vote_score > 0
+            ? 'text-green-600 dark:text-green-400'
+            : clip.vote_score < 0
+            ? 'text-red-600 dark:text-red-400'
+            : 'text-muted-foreground';
 
     const timestamp = formatTimestamp(clip.created_at);
 
     return (
-        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render' data-testid='clip-card'>
+        <div
+            className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render'
+            data-testid='clip-card'
+        >
             <div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
                 {/* Vote sidebar - horizontal on mobile, vertical on larger screens */}
                 <div className='flex xs:flex-col items-center justify-center xs:justify-start xs:w-10 gap-3 xs:gap-2 order-2 xs:order-1 shrink-0'>
@@ -89,9 +94,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === 1 &&
                                 'text-purple-600 dark:text-purple-400',
-                            !isAuthenticated || isVoting ?
-                                'opacity-50 cursor-not-allowed hover:bg-transparent'
-                            :   'cursor-pointer'
+                            !isAuthenticated || isVoting
+                                ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                : 'cursor-pointer'
                         )}
                         aria-label={
                             isAuthenticated ? 'Upvote' : 'Log in to upvote'
@@ -128,9 +133,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === -1 &&
                                 'text-orange-600 dark:text-orange-400',
-                            !isAuthenticated || isVoting ?
-                                'opacity-50 cursor-not-allowed hover:bg-transparent'
-                            :   'cursor-pointer'
+                            !isAuthenticated || isVoting
+                                ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                : 'cursor-pointer'
                         )}
                         aria-label={
                             isAuthenticated ? 'Downvote' : 'Log in to downvote'
@@ -167,7 +172,9 @@ export function ClipCard({ clip }: ClipCardProps) {
                     <div className='text-muted-foreground flex flex-wrap items-center gap-1.5 xs:gap-2 mb-3 text-xs xs:text-sm leading-tight'>
                         <span className='flex items-center gap-1 font-medium'>
                             <Link
-                                to={`/broadcaster/${clip.broadcaster_id || clip.broadcaster_name}`}
+                                to={`/broadcaster/${
+                                    clip.broadcaster_id || clip.broadcaster_name
+                                }`}
                                 className='hover:text-foreground transition-colors cursor-pointer'
                             >
                                 {clip.broadcaster_name}
@@ -200,26 +207,28 @@ export function ClipCard({ clip }: ClipCardProps) {
                                         {clip.submitted_by.display_name}
                                     </Link>
                                     {clip.submitted_by.is_verified && (
-                                        <VerifiedBadge size="sm" />
+                                        <VerifiedBadge size='sm' />
                                     )}
                                 </span>
                             </>
                         )}
 
-                        {clip.creator_id && clip.creator_id.trim() !== '' && clip.creator_name && (
-                            <>
-                                <span className='hidden xs:inline'>•</span>
-                                <span className='flex items-center gap-1'>
-                                    Clipped by{' '}
-                                    <Link
-                                        to={`/user/${clip.creator_id}`}
-                                        className='hover:text-foreground transition-colors cursor-pointer'
-                                    >
-                                        {clip.creator_name}
-                                    </Link>
-                                </span>
-                            </>
-                        )}
+                        {clip.creator_id &&
+                            clip.creator_id.trim() !== '' &&
+                            clip.creator_name && (
+                                <>
+                                    <span className='hidden xs:inline'>•</span>
+                                    <span className='flex items-center gap-1'>
+                                        Clipped by{' '}
+                                        <Link
+                                            to={`/user/${clip.creator_id}`}
+                                            className='hover:text-foreground transition-colors cursor-pointer'
+                                        >
+                                            {clip.creator_name}
+                                        </Link>
+                                    </span>
+                                </>
+                            )}
 
                         <span className='hidden xs:inline'>•</span>
 
@@ -297,24 +306,25 @@ export function ClipCard({ clip }: ClipCardProps) {
                             disabled={!isAuthenticated}
                             className={cn(
                                 'flex items-center gap-1.5 transition-colors touch-target min-h-11',
-                                clip.is_favorited ?
-                                    'text-red-500 hover:text-red-400'
-                                :   'text-muted-foreground hover:text-foreground',
-                                !isAuthenticated ?
-                                    'opacity-50 cursor-not-allowed hover:bg-transparent'
-                                :   'cursor-pointer'
+                                clip.is_favorited
+                                    ? 'text-red-500 hover:text-red-400'
+                                    : 'text-muted-foreground hover:text-foreground',
+                                !isAuthenticated
+                                    ? 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                                    : 'cursor-pointer'
                             )}
                             aria-label={
-                                !isAuthenticated ? 'Log in to favorite'
-                                : clip.is_favorited ?
-                                    'Remove from favorites'
-                                :   'Add to favorites'
+                                !isAuthenticated
+                                    ? 'Log in to favorite'
+                                    : clip.is_favorited
+                                    ? 'Remove from favorites'
+                                    : 'Add to favorites'
                             }
                             aria-disabled={!isAuthenticated}
                             title={
-                                !isAuthenticated ? 'Log in to favorite' : (
-                                    undefined
-                                )
+                                !isAuthenticated
+                                    ? 'Log in to favorite'
+                                    : undefined
                             }
                         >
                             <svg
@@ -371,19 +381,19 @@ export function ClipCard({ clip }: ClipCardProps) {
                                 disabled={!isAuthenticated}
                                 className={cn(
                                     'text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors touch-target min-h-11 font-medium',
-                                    !isAuthenticated ?
-                                        'opacity-50 cursor-not-allowed'
-                                    :   'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400'
+                                    !isAuthenticated
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400'
                                 )}
                                 aria-label={
-                                    !isAuthenticated ?
-                                        'Log in to post this clip'
-                                    :   'Post this clip'
+                                    !isAuthenticated
+                                        ? 'Log in to post this clip'
+                                        : 'Post this clip'
                                 }
                                 title={
-                                    !isAuthenticated ?
-                                        'Log in to post this clip'
-                                    :   'Post this clip'
+                                    !isAuthenticated
+                                        ? 'Log in to post this clip'
+                                        : 'Post this clip'
                                 }
                             >
                                 <svg

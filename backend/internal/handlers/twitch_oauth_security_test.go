@@ -47,7 +47,7 @@ func TestTokenMaskingInLogs(t *testing.T) {
 	// Create test user
 	userID := uuid.New()
 	ctx := context.Background()
-	
+
 	// Insert test user
 	_, err = pool.Exec(ctx, `
 		INSERT INTO users (id, twitch_id, username, display_name, role, account_type)
@@ -78,7 +78,7 @@ func TestTokenMaskingInLogs(t *testing.T) {
 	err = handler.refreshTwitchToken(ctx, auth)
 	// We expect this to fail since we're not hitting a real Twitch endpoint
 	// but that's OK - we just want to check logging
-	
+
 	// Reset buffer for next test
 	logBuffer.Reset()
 
@@ -96,11 +96,11 @@ func TestTokenMaskingInLogs(t *testing.T) {
 
 	// Check that tokens are not in the log output
 	logOutput := logBuffer.String()
-	
+
 	if strings.Contains(logOutput, testAccessToken) {
 		t.Errorf("Access token found in logs! This is a security violation.\nLog output: %s", logOutput)
 	}
-	
+
 	if strings.Contains(logOutput, testRefreshToken) {
 		t.Errorf("Refresh token found in logs! This is a security violation.\nLog output: %s", logOutput)
 	}
@@ -127,11 +127,11 @@ func TestTokenNotInJSONResponses(t *testing.T) {
 
 	// Verify response doesn't contain token fields
 	jsonStr := string(jsonData)
-	
+
 	if strings.Contains(jsonStr, "access_token") {
 		t.Errorf("Response JSON should not contain 'access_token' field")
 	}
-	
+
 	if strings.Contains(jsonStr, "refresh_token") {
 		t.Errorf("Response JSON should not contain 'refresh_token' field")
 	}
@@ -165,7 +165,7 @@ func TestScopesStoredAndRetrieved(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
-	
+
 	// Insert test user
 	_, err = pool.Exec(ctx, `
 		INSERT INTO users (id, twitch_id, username, display_name, role, account_type)

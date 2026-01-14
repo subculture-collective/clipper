@@ -59,11 +59,11 @@ func signPayload(privateKey *ecdsa.PrivateKey, timestamp string, payload []byte)
 	// Pad to ensure r and s are each exactly 32 bytes
 	rBytes := make([]byte, 32)
 	sBytes := make([]byte, 32)
-	
+
 	// FillBytes pads with zeros on the left if needed
 	r.FillBytes(rBytes)
 	s.FillBytes(sBytes)
-	
+
 	sig := append(rBytes, sBytes...)
 	return base64.StdEncoding.EncodeToString(sig), nil
 }
@@ -88,27 +88,27 @@ func signPayloadDER(privateKey *ecdsa.PrivateKey, timestamp string, payload []by
 
 	// Build DER structure
 	var derSig []byte
-	
+
 	// Add SEQUENCE tag
 	derSig = append(derSig, 0x30) // SEQUENCE tag
-	
+
 	// We'll come back to fill in the length
 	lenPos := len(derSig)
 	derSig = append(derSig, 0x00) // Placeholder for length
-	
+
 	// Add r INTEGER
-	derSig = append(derSig, 0x02) // INTEGER tag
+	derSig = append(derSig, 0x02)              // INTEGER tag
 	derSig = append(derSig, byte(len(rBytes))) // r length
 	derSig = append(derSig, rBytes...)
-	
+
 	// Add s INTEGER
-	derSig = append(derSig, 0x02) // INTEGER tag
+	derSig = append(derSig, 0x02)              // INTEGER tag
 	derSig = append(derSig, byte(len(sBytes))) // s length
 	derSig = append(derSig, sBytes...)
-	
+
 	// Fill in the SEQUENCE length (total length minus SEQUENCE tag and length byte)
 	derSig[lenPos] = byte(len(derSig) - 2)
-	
+
 	return base64.StdEncoding.EncodeToString(derSig), nil
 }
 
@@ -136,7 +136,7 @@ func TestWebhookSignatureVerification_ValidSignature(t *testing.T) {
 
 	// Create handler with public key
 	handler := NewSendGridWebhookHandler(nil, publicKeyPEM)
-	
+
 	// Use reflection or direct assignment to set mock repo for event processing
 	// Since we just want to test signature verification, we'll create a minimal test
 	// that doesn't process events
@@ -186,7 +186,7 @@ func TestWebhookSignatureVerification_InvalidSignature(t *testing.T) {
 	assert.NoError(t, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	
+
 	// Create invalid signature (just random data)
 	invalidSig := make([]byte, 64)
 	rand.Read(invalidSig)
@@ -566,7 +566,7 @@ func TestWebhookSignatureVerification_RawFormatWithInvalidRange(t *testing.T) {
 	// r is all zeros (invalid - must be positive)
 	// s has some value
 	rawSig[32] = 0x01
-	
+
 	invalidSig := base64.StdEncoding.EncodeToString(rawSig)
 
 	err = handler.verifySignature(payload, invalidSig, timestamp)

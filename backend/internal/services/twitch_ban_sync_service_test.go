@@ -26,7 +26,7 @@ func (m *mockTwitchClient) GetBannedUsers(ctx context.Context, broadcasterID str
 }
 
 type mockTwitchAuthRepository struct {
-	getTwitchAuthFunc func(ctx context.Context, userID uuid.UUID) (*models.TwitchAuth, error)
+	getTwitchAuthFunc  func(ctx context.Context, userID uuid.UUID) (*models.TwitchAuth, error)
 	isTokenExpiredFunc func(auth *models.TwitchAuth) bool
 }
 
@@ -283,7 +283,7 @@ func TestSyncChannelBans_Pagination(t *testing.T) {
 	twitchClient := &mockTwitchClient{
 		getBannedUsersFunc: func(ctx context.Context, broadcasterID string, userAccessToken string, first int, after string) (*twitch.BannedUsersResponse, error) {
 			callCount++
-			
+
 			if after == "" {
 				// First page
 				return &twitch.BannedUsersResponse{
@@ -302,7 +302,7 @@ func TestSyncChannelBans_Pagination(t *testing.T) {
 					Pagination: twitch.Pagination{Cursor: ""}, // No more pages
 				}, nil
 			}
-			
+
 			return &twitch.BannedUsersResponse{Data: []twitch.BannedUser{}}, nil
 		},
 	}
@@ -368,7 +368,7 @@ func TestSyncChannelBans_RateLimitRetry(t *testing.T) {
 	twitchClient := &mockTwitchClient{
 		getBannedUsersFunc: func(ctx context.Context, broadcasterID string, userAccessToken string, first int, after string) (*twitch.BannedUsersResponse, error) {
 			callCount++
-			
+
 			// First call returns rate limit error
 			if callCount == 1 {
 				return nil, &twitch.RateLimitError{
@@ -376,7 +376,7 @@ func TestSyncChannelBans_RateLimitRetry(t *testing.T) {
 					RetryAfter: 1,
 				}
 			}
-			
+
 			// Second call succeeds
 			return &twitch.BannedUsersResponse{
 				Data: []twitch.BannedUser{

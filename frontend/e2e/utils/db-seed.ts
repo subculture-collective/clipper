@@ -63,11 +63,11 @@ function getApiBaseUrl(): string {
 
   if (!envUrl) {
     console.warn(
-      'VITE_API_URL is not set; falling back to default http://localhost:8080/api/v1'
+      'VITE_API_URL is not set; falling back to default http://127.0.0.1:8080/api/v1'
     );
   }
 
-  return envUrl || 'http://localhost:8080/api/v1';
+  return envUrl || 'http://127.0.0.1:8080/api/v1';
 }
 
 /**

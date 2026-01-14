@@ -308,7 +308,7 @@ export const test = base.extend<CustomFixtures>({
    * Useful for testing role-based permissions and multi-user scenarios
    */
   multiUserContexts: async ({ browser }, use) => {
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
     const contexts = await createMultiUserContexts(browser, baseUrl, [
       'admin',
       'moderator',
@@ -341,7 +341,7 @@ export const test = base.extend<CustomFixtures>({
    * Provides the base API URL for the test environment
    */
   apiUrl: async ({ page }, use) => {
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
     await use(getApiUrl(baseUrl));
   },
 });

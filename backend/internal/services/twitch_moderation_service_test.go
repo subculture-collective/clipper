@@ -33,7 +33,7 @@ func (m *mockTwitchBanClient) UnbanUser(ctx context.Context, broadcasterID strin
 
 // mockTwitchAuthRepo implements the TwitchAuthRepository interface for testing
 type mockTwitchAuthRepo struct {
-	getTwitchAuthFunc func(ctx context.Context, userID uuid.UUID) (*models.TwitchAuth, error)
+	getTwitchAuthFunc  func(ctx context.Context, userID uuid.UUID) (*models.TwitchAuth, error)
 	isTokenExpiredFunc func(auth *models.TwitchAuth) bool
 }
 
@@ -80,7 +80,7 @@ func TestValidateTwitchBanScope_Broadcaster(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -89,7 +89,7 @@ func TestValidateTwitchBanScope_Broadcaster(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{
 		getTwitchAuthFunc: func(ctx context.Context, id uuid.UUID) (*models.TwitchAuth, error) {
 			return &models.TwitchAuth{
@@ -104,9 +104,9 @@ func TestValidateTwitchBanScope_Broadcaster(t *testing.T) {
 			return false
 		},
 	}
-	
+
 	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	auth, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err != nil {
 		t.Errorf("Expected broadcaster to be allowed, got error: %v", err)
@@ -124,7 +124,7 @@ func TestValidateTwitchBanScope_SiteModeratorDenied(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -134,10 +134,10 @@ func TestValidateTwitchBanScope_SiteModeratorDenied(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{}
 	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
 		t.Error("Expected site moderator to be denied")
@@ -152,7 +152,7 @@ func TestValidateTwitchBanScope_NotAuthenticated(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -161,15 +161,15 @@ func TestValidateTwitchBanScope_NotAuthenticated(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{
 		getTwitchAuthFunc: func(ctx context.Context, id uuid.UUID) (*models.TwitchAuth, error) {
 			return nil, errors.New("not found")
 		},
 	}
-	
+
 	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
 		t.Error("Expected unauthenticated user to be denied")
@@ -184,7 +184,7 @@ func TestValidateTwitchBanScope_InsufficientScopes(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -193,7 +193,7 @@ func TestValidateTwitchBanScope_InsufficientScopes(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{
 		getTwitchAuthFunc: func(ctx context.Context, id uuid.UUID) (*models.TwitchAuth, error) {
 			return &models.TwitchAuth{
@@ -208,9 +208,9 @@ func TestValidateTwitchBanScope_InsufficientScopes(t *testing.T) {
 			return false
 		},
 	}
-	
+
 	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
 		t.Error("Expected user without scopes to be denied")
@@ -226,7 +226,7 @@ func TestValidateTwitchBanScope_NotBroadcaster(t *testing.T) {
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
 	userTwitchID := "67890" // Different from broadcaster
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -235,7 +235,7 @@ func TestValidateTwitchBanScope_NotBroadcaster(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{
 		getTwitchAuthFunc: func(ctx context.Context, id uuid.UUID) (*models.TwitchAuth, error) {
 			return &models.TwitchAuth{
@@ -250,9 +250,9 @@ func TestValidateTwitchBanScope_NotBroadcaster(t *testing.T) {
 			return false
 		},
 	}
-	
+
 	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
 		t.Error("Expected non-broadcaster to be denied (in P0, only broadcasters allowed)")
@@ -267,7 +267,7 @@ func TestValidateTwitchBanScope_ExpiredToken(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -276,7 +276,7 @@ func TestValidateTwitchBanScope_ExpiredToken(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{
 		getTwitchAuthFunc: func(ctx context.Context, id uuid.UUID) (*models.TwitchAuth, error) {
 			return &models.TwitchAuth{
@@ -291,9 +291,9 @@ func TestValidateTwitchBanScope_ExpiredToken(t *testing.T) {
 			return true // Token is expired
 		},
 	}
-	
+
 	service := NewTwitchModerationService(&mockTwitchBanClient{}, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	_, err := service.ValidateTwitchBanScope(ctx, userID, broadcasterTwitchID)
 	if err == nil {
 		t.Error("Expected expired token to be rejected")
@@ -311,7 +311,7 @@ func TestBanUserOnTwitch_Success(t *testing.T) {
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
 	targetUserID := "target123"
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -320,7 +320,7 @@ func TestBanUserOnTwitch_Success(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{
 		getTwitchAuthFunc: func(ctx context.Context, id uuid.UUID) (*models.TwitchAuth, error) {
 			return &models.TwitchAuth{
@@ -335,7 +335,7 @@ func TestBanUserOnTwitch_Success(t *testing.T) {
 			return false
 		},
 	}
-	
+
 	twitchClient := &mockTwitchBanClient{
 		banUserFunc: func(ctx context.Context, broadcasterID string, moderatorID string, userAccessToken string, request *twitch.BanUserRequest) (*twitch.BanUserResponse, error) {
 			if broadcasterID != broadcasterTwitchID {
@@ -347,9 +347,9 @@ func TestBanUserOnTwitch_Success(t *testing.T) {
 			return &twitch.BanUserResponse{}, nil
 		},
 	}
-	
+
 	service := NewTwitchModerationService(twitchClient, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	reason := "Test reason"
 	err := service.BanUserOnTwitch(ctx, userID, broadcasterTwitchID, targetUserID, &reason, nil)
 	if err != nil {
@@ -363,7 +363,7 @@ func TestUnbanUserOnTwitch_Success(t *testing.T) {
 	userID := uuid.New()
 	broadcasterTwitchID := "12345"
 	targetUserID := "target123"
-	
+
 	userRepo := &mockUserRepoForTwitch{
 		getByIDFunc: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
 			return &models.User{
@@ -372,7 +372,7 @@ func TestUnbanUserOnTwitch_Success(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	authRepo := &mockTwitchAuthRepo{
 		getTwitchAuthFunc: func(ctx context.Context, id uuid.UUID) (*models.TwitchAuth, error) {
 			return &models.TwitchAuth{
@@ -387,7 +387,7 @@ func TestUnbanUserOnTwitch_Success(t *testing.T) {
 			return false
 		},
 	}
-	
+
 	twitchClient := &mockTwitchBanClient{
 		unbanUserFunc: func(ctx context.Context, broadcasterID string, moderatorID string, userID string, userAccessToken string) error {
 			if broadcasterID != broadcasterTwitchID {
@@ -399,9 +399,9 @@ func TestUnbanUserOnTwitch_Success(t *testing.T) {
 			return nil
 		},
 	}
-	
+
 	service := NewTwitchModerationService(twitchClient, authRepo, userRepo, &mockAuditLogRepoForTwitch{})
-	
+
 	err := service.UnbanUserOnTwitch(ctx, userID, broadcasterTwitchID, targetUserID)
 	if err != nil {
 		t.Errorf("Expected successful unban, got error: %v", err)

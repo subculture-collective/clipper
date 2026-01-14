@@ -125,7 +125,7 @@ export async function apiRequestAsUser(
   endpoint: string,
   options: any = {}
 ): Promise<Response> {
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
   const apiUrl = baseUrl.replace(/\/$/, '').replace('5173', '8080').replace('3000', '8080');
   const fullUrl = `${apiUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
@@ -154,7 +154,7 @@ export const multiUserContextFixture = async (
   { browser }: { browser: Browser },
   provide: (contexts: Record<string, MultiUserContext>) => Promise<void>
 ) => {
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
 
   const contexts = await createMultiUserContexts(browser, baseUrl, [
     'admin',

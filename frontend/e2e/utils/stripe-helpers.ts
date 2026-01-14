@@ -226,7 +226,7 @@ export async function sendMockWebhook(
   }
 
   const { 
-    baseUrl = process.env.VITE_API_URL ?? process.env.BASE_URL ?? 'http://localhost:8080', 
+    baseUrl = process.env.VITE_API_URL ?? process.env.BASE_URL ?? 'http://127.0.0.1:8080', 
     webhookSecret 
   } = options;
 

@@ -50,10 +50,10 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *models.ModerationA
 
 	query := `
 		INSERT INTO moderation_audit_logs (
-			id, action, entity_type, entity_id, moderator_id, reason, metadata, 
+			id, action, entity_type, entity_id, moderator_id, actor_id, reason, metadata,
 			ip_address, user_agent, channel_id, created_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 		)`
 
 	// Ensure timestamp is in UTC to avoid timezone offset issues
@@ -64,6 +64,8 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *models.ModerationA
 		log.Action,
 		log.EntityType,
 		log.EntityID,
+		log.ModeratorID,
+		// Populate actor_id with moderator_id for now until services provide explicit actor
 		log.ModeratorID,
 		log.Reason,
 		metadataJSON,
